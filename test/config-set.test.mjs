@@ -9,7 +9,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CLI = join(HERE, "..", "plugin", "skills", "faff", "bin", "faff");
 const CONFIG_LIB = join(HERE, "..", "plugin", "skills", "faff", "bin", "lib", "config.js");
-const EXAMPLE_YAML = join(HERE, "..", ".faffrc.example.yaml");
+const EXAMPLE_YAML = join(HERE, "..", ".faff", "config.example.yaml");
 
 function run(cwd, ...args) {
   try {
@@ -84,17 +84,17 @@ test("config (no subcommand) and config bogus print an identical verb list, matc
 });
 
 // ---------------------------------------------------------------------------
-// Every top-level key documented in .faffrc.example.yaml is writable or in the carve-out.
+// Every top-level key documented in .faff/config.example.yaml is writable or in the carve-out.
 // ---------------------------------------------------------------------------
 
-test("schema coverage: every .faffrc.example.yaml top-level key is a writable namespace", async () => {
+test("schema coverage: every .faff/config.example.yaml top-level key is a writable namespace", async () => {
   const { WRITABLE_NAMESPACES } = await import(CONFIG_LIB);
   const { parseYamlSubset } = await import(join(HERE, "..", "plugin", "skills", "faff", "bin", "lib", "shared-infra.js"));
   const exampleText = readFileSync(EXAMPLE_YAML, "utf8");
   const topKeys = Object.keys(parseYamlSubset(exampleText));
   assert.ok(topKeys.length > 0, "sanity: example file must parse to a non-empty top-level map");
   for (const key of topKeys) {
-    assert.ok(WRITABLE_NAMESPACES.has(key), `'${key}' is documented in .faffrc.example.yaml but not writable`);
+    assert.ok(WRITABLE_NAMESPACES.has(key), `'${key}' is documented in .faff/config.example.yaml but not writable`);
   }
 });
 
@@ -238,7 +238,7 @@ test("config init --set tracking.default_team=PRODUCT is accepted (same allowlis
   const dir = tmpDir();
   const r = run(dir, "config", "init", "--set", "tracking.default_team=PRODUCT");
   assert.equal(r.code, 0);
-  assert.equal(readFileSync(join(dir, ".faffrc.yaml"), "utf8").includes("default_team: PRODUCT"), true);
+  assert.equal(readFileSync(join(dir, ".faff", "config.yaml"), "utf8").includes("default_team: PRODUCT"), true);
 });
 
 test("resolveTeams: team-set / legacy team_key / zero-config resolution table", async () => {
@@ -277,7 +277,8 @@ test("config get --json tracking.teams / tracking.team_routing return structured
 
 test("config check: a team_routing KEY with no taxonomy match is harmless — only VALUES are membership-validated", () => {
   const dir = tmpDir();
-  writeFileSync(join(dir, ".faffrc.yaml"),
+  mkdirSync(join(dir, ".faff"), { recursive: true });
+  writeFileSync(join(dir, ".faff", "config.yaml"),
     "tracking:\n  teams:\n    - IDEAS\n    - PRODUCT\n  default_team: PRODUCT\n  team_routing:\n    not-a-real-type-token: IDEAS\n");
   const r = run(dir, "config", "check");
   assert.equal(r.code, 0, "an unmatched free-form routing key is never a validation error");
@@ -336,13 +337,13 @@ test("config set: refuses a dotted key whose first segment is not a writable nam
   assert.match(r.err, /unknown config namespace 'bogus'/);
 });
 
-test("config set: creates .faffrc.yaml with the header when absent", () => {
+test("config set: creates .faff/config.yaml with the header when absent", () => {
   const dir = tmpDir();
   assert.equal(run(dir, "config", "path").code, 3);
   const r = run(dir, "config", "set", "appetite", "high");
   assert.equal(r.code, 0);
-  const text = readFileSync(join(dir, ".faffrc.yaml"), "utf8");
-  assert.match(text, /^# \.faffrc\.yaml/);
+  const text = readFileSync(join(dir, ".faff", "config.yaml"), "utf8");
+  assert.match(text, /^# \.faff\/config\.yaml/);
   assert.equal(run(dir, "config", "get", "appetite").out, "high");
 });
 
@@ -358,28 +359,28 @@ test("config set --root writes under the named directory regardless of cwd (the 
 
 // ---------------------------------------------------------------------------
 // FAFF-1062 — `--local` redirects the writer to the gitignored overlay
-// (.faffrc.local.yaml) instead of the committable base (.faffrc.yaml). Same
+// (.faff/config.local.yaml) instead of the committable base (.faff/config.yaml). Same
 // merge core, same round-trip guard; only the target + existing-file lookup differ.
 // ---------------------------------------------------------------------------
 
-test("config set --local writes .faffrc.local.yaml, never .faffrc.yaml", () => {
+test("config set --local writes .faff/config.local.yaml, never .faff/config.yaml", () => {
   const dir = tmpDir();
   const r = run(dir, "config", "set", "appetite", "high", "--local");
   assert.equal(r.code, 0, r.err);
-  assert.match(r.out, /\.faffrc\.local\.yaml/);
-  assert.equal(readFileSync(join(dir, ".faffrc.local.yaml"), "utf8").includes("appetite: high"), true);
-  assert.equal(existsSync(join(dir, ".faffrc.yaml")), false, "no base file must exist yet");
+  assert.match(r.out, /\.faff\/config\.local\.yaml/);
+  assert.equal(readFileSync(join(dir, ".faff", "config.local.yaml"), "utf8").includes("appetite: high"), true);
+  assert.equal(existsSync(join(dir, ".faff", "config.yaml")), false, "no base file must exist yet");
   const p = run(dir, "config", "path");
-  assert.match(p.out, /\.faffrc\.local\.yaml$/);
+  assert.match(p.out, /\.faff\/config\.local\.yaml$/);
 });
 
-test("config set without --local still writes .faffrc.yaml (regression)", () => {
+test("config set without --local still writes .faff/config.yaml (regression)", () => {
   const dir = tmpDir();
   const r = run(dir, "config", "set", "appetite", "high");
   assert.equal(r.code, 0, r.err);
-  assert.match(r.out, /\.faffrc\.yaml/);
-  assert.doesNotMatch(r.out, /\.faffrc\.local\.yaml/);
-  assert.equal(readFileSync(join(dir, ".faffrc.yaml"), "utf8").includes("appetite: high"), true);
+  assert.match(r.out, /\.faff\/config\.yaml/);
+  assert.doesNotMatch(r.out, /config\.local\.yaml/);
+  assert.equal(readFileSync(join(dir, ".faff", "config.yaml"), "utf8").includes("appetite: high"), true);
 });
 
 test("config set --local merges into an existing overlay, base file untouched", () => {
@@ -394,22 +395,22 @@ test("config set --local merges into an existing overlay, base file untouched", 
   assert.equal(readFileSync(join(dir, ".faffrc.yaml"), "utf8"), "slots:\n  spec: shared-spec\n", "base byte-unchanged");
 });
 
-test("config init --local writes .faffrc.local.yaml, never .faffrc.yaml", () => {
+test("config init --local writes .faff/config.local.yaml, never .faff/config.yaml", () => {
   const dir = tmpDir();
   const r = run(dir, "config", "init", "--set", "tracking.team_key=FAFF", "--local");
   assert.equal(r.code, 0, r.err);
-  assert.match(r.out, /\.faffrc\.local\.yaml/);
-  assert.equal(readFileSync(join(dir, ".faffrc.local.yaml"), "utf8").includes("team_key: FAFF"), true);
-  assert.equal(existsSync(join(dir, ".faffrc.yaml")), false, "no base file must exist yet");
+  assert.match(r.out, /\.faff\/config\.local\.yaml/);
+  assert.equal(readFileSync(join(dir, ".faff", "config.local.yaml"), "utf8").includes("team_key: FAFF"), true);
+  assert.equal(existsSync(join(dir, ".faff", "config.yaml")), false, "no base file must exist yet");
 });
 
-test("config init without --local still writes .faffrc.yaml (regression)", () => {
+test("config init without --local still writes .faff/config.yaml (regression)", () => {
   const dir = tmpDir();
   const r = run(dir, "config", "init", "--set", "tracking.team_key=FAFF");
   assert.equal(r.code, 0, r.err);
-  assert.match(r.out, /\.faffrc\.yaml/);
-  assert.doesNotMatch(r.out, /\.faffrc\.local\.yaml/);
-  assert.equal(readFileSync(join(dir, ".faffrc.yaml"), "utf8").includes("team_key: FAFF"), true);
+  assert.match(r.out, /\.faff\/config\.yaml/);
+  assert.doesNotMatch(r.out, /config\.local\.yaml/);
+  assert.equal(readFileSync(join(dir, ".faff", "config.yaml"), "utf8").includes("team_key: FAFF"), true);
 });
 
 test("config init --local merges into an existing overlay, base file untouched", () => {

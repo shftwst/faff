@@ -482,45 +482,72 @@ function dig(data, dotted) {
   return cur;
 }
 
-// Config-file resolution (canonical/legacy names + linked-worktree fallback) — shared:
-// the factory config command AND governance readers resolve through this one path,
-// so the legacy-name LOUD ERROR (never a silent default) holds in both regions.
-// FAFF-50: single canonical config filename. The resolver accepts ONLY `.faffrc.yaml`;
-// a legacy-named config (`.faffrc.yml` / `.faffrc`) is a LOUD ERROR, never a silent default —
-// the silent-fallback that dropped configured slots twice.
-const CANONICAL_CONFIG = ".faffrc.yaml";
+// Config-file resolution (preferred / deprecated / legacy names + linked-worktree fallback)
+// — shared: the factory config command AND governance readers resolve through this one
+// path, so the legacy-name LOUD ERROR (never a silent default) holds in both regions.
+// FAFF-50: a legacy-named config (`.faffrc.yml` / `.faffrc`) is a LOUD ERROR, never a silent
+// default — the silent-fallback that dropped configured slots twice.
+// FAFF-1302: the config files live under `.faff/`. The root `.faffrc.yaml` names are the
+// DEPRECATED tier: still fully valid, resolved only when the preferred path is absent.
+const CANONICAL_CONFIG = ".faff/config.yaml";
+const DEPRECATED_CONFIG = [".faffrc.yaml"];
 const LEGACY_CONFIG = [".faffrc.yml", ".faffrc"];
 
 // FAFF-387: the gitignored, machine-local OVERLAY that merges over the (now
 // committable) base file. Same legacy-name discipline as the base: a
 // legacy-shaped overlay name is a LOUD error, never a silent skip.
-const CANONICAL_OVERLAY_CONFIG = ".faffrc.local.yaml";
+const CANONICAL_OVERLAY_CONFIG = ".faff/config.local.yaml";
+const DEPRECATED_OVERLAY_CONFIG = [".faffrc.local.yaml"];
 const LEGACY_OVERLAY_CONFIG = [".faffrc.local.yml", ".faffrc.local"];
 
-// Shared existence-check + legacy-name-loud-error resolver, parameterised by
-// filename set so the base and overlay finders (below) are one implementation,
-// never two hand-copies that can drift.
-function findNamedIn(base, canonicalName, legacyNames, errorTag) {
-  const isFile = (n) => !n.includes(".example") &&
-    fs.existsSync(path.join(base, n)) && fs.statSync(path.join(base, n)).isFile();
+// The committed, never-loaded documentation template (the `.example` skip below keeps it
+// out of resolution).
+const CANONICAL_EXAMPLE_CONFIG = ".faff/config.example.yaml";
+
+// The one home of the three-tier precedence rule, over an existence predicate so a caller
+// that tests names somewhere other than the working tree (a git ref) reuses it.
+// Legacy names throw first (loud, unchanged), then the preferred name, then each
+// deprecated name in order. Returns { name, tier } or null.
+function selectNamed(isFile, canonicalName, deprecatedNames, legacyNames, errorTag) {
   const legacy = legacyNames.filter(isFile);
   if (legacy.length) {
     const err = new Error(errorTag);
     err.legacy = legacy;
     throw err;
   }
-  return isFile(canonicalName) ? path.join(base, canonicalName) : null;
+  if (isFile(canonicalName)) return { name: canonicalName, tier: "canonical" };
+  const deprecated = deprecatedNames.find(isFile);
+  return deprecated === undefined ? null : { name: deprecated, tier: "deprecated" };
+}
+
+// Shared existence-check + legacy-name-loud-error resolver, parameterised by
+// filename set so the base and overlay finders (below) are one implementation,
+// never two hand-copies that can drift. Returns a ConfigLocation { path, name, tier }.
+function findNamedIn(base, canonicalName, deprecatedNames, legacyNames, errorTag) {
+  const isFile = (n) => !n.includes(".example") &&
+    fs.existsSync(path.join(base, n)) && fs.statSync(path.join(base, n)).isFile();
+  const picked = selectNamed(isFile, canonicalName, deprecatedNames, legacyNames, errorTag);
+  return picked === null ? null : { path: path.join(base, picked.name), name: picked.name, tier: picked.tier };
 }
 
 function findConfigIn(base) {
-  return findNamedIn(base, CANONICAL_CONFIG, LEGACY_CONFIG, "legacy-config-name");
+  return findNamedIn(base, CANONICAL_CONFIG, DEPRECATED_CONFIG, LEGACY_CONFIG, "legacy-config-name");
 }
 
 // FAFF-387: overlay counterpart of findConfigIn — same shape, own legacy-name tag
 // (legacy-overlay-config-name) so callers can distinguish a base-file problem from
 // an overlay-file problem in their error message.
 function findOverlayIn(base) {
-  return findNamedIn(base, CANONICAL_OVERLAY_CONFIG, LEGACY_OVERLAY_CONFIG, "legacy-overlay-config-name");
+  return findNamedIn(base, CANONICAL_OVERLAY_CONFIG, DEPRECATED_OVERLAY_CONFIG, LEGACY_OVERLAY_CONFIG, "legacy-overlay-config-name");
+}
+
+// FAFF-1302: pure path test, no file system. Is `p` at or under `root`, on a separator
+// boundary (`/repo-other` is not inside `/repo`)? The one inside-root test: the writers
+// use it to decide whether to edit a resolved file in place, `faff config check` to
+// decide whether git can be asked about it.
+function isInsideRoot(root, p) {
+  const rel = path.relative(path.resolve(root), path.resolve(p));
+  return rel !== "" && rel !== ".." && !rel.startsWith(".." + path.sep) && !path.isAbsolute(rel);
 }
 
 // FAFF-208: the MAIN worktree's root for a linked git worktree, resolved via git's
@@ -572,31 +599,42 @@ function resolveRunDir(root, run, rootExplicit) {
   return cwdDir;
 }
 
-function findConfig(root) {
-  const here = findConfigIn(root);
+// FAFF-1302: the tier-aware entry points; the bare-path finders below wrap them.
+// FAFF-208: a linked git worktree shares its repo with the main checkout, but the
+// gitignored config is per-checkout and may not have been copied into the worktree (e.g. a
+// build worktree created outside the WorktreeCreate hook). Fall back to the main checkout's
+// config so consumers (adversarial-review host, appetite, slots) never silently resolve to
+// defaults just because the worktree lacks the copy — the silent gate-degradation behind
+// FAFF-198's localhost adversarial-review misfire.
+function findLocationWithMainFallback(root, findIn) {
+  const here = findIn(root);
   if (here) return here;
-  // FAFF-208: a linked git worktree shares its repo with the main checkout, but the
-  // gitignored .faffrc.yaml is per-checkout and may not have been copied into the
-  // worktree (e.g. a build worktree created outside the WorktreeCreate hook). Fall back
-  // to the main checkout's config so consumers (adversarial-review host, appetite,
-  // slots) never silently resolve to defaults just because the worktree lacks the copy
-  // — the silent gate-degradation behind FAFF-198's localhost adversarial-review misfire.
   const mainRoot = mainWorktreeRoot(root);
-  if (mainRoot && path.resolve(mainRoot) !== path.resolve(root)) return findConfigIn(mainRoot);
+  if (mainRoot && path.resolve(mainRoot) !== path.resolve(root)) return findIn(mainRoot);
   return null;
 }
 
+function findConfigLocation(root) {
+  return findLocationWithMainFallback(root, findConfigIn);
+}
+
 // FAFF-387/FAFF-208: the overlay's own worktree fallback, resolved INDEPENDENTLY of
-// findConfig's base-file fallback — a per-file resolution, not a per-pair one. A
-// linked worktree carrying its own .faffrc.local.yaml keeps it (even when its base
-// falls back to the main checkout's); a worktree with neither falls back to the main
-// checkout's overlay, mirroring the base's existing guarantee.
+// the base's fallback — a per-file resolution, not a per-pair one. A linked worktree
+// carrying its own overlay keeps it (even when its base falls back to the main
+// checkout's); a worktree with neither falls back to the main checkout's overlay,
+// mirroring the base's existing guarantee.
+function findOverlayLocation(root) {
+  return findLocationWithMainFallback(root, findOverlayIn);
+}
+
+function findConfig(root) {
+  const location = findConfigLocation(root);
+  return location === null ? null : location.path;
+}
+
 function findOverlay(root) {
-  const here = findOverlayIn(root);
-  if (here) return here;
-  const mainRoot = mainWorktreeRoot(root);
-  if (mainRoot && path.resolve(mainRoot) !== path.resolve(root)) return findOverlayIn(mainRoot);
-  return null;
+  const location = findOverlayLocation(root);
+  return location === null ? null : location.path;
 }
 
 // FAFF-387: a plain, non-array object — the shape both a parsed config document
@@ -727,7 +765,7 @@ function runGovernedDispatch(label, handler, args) {
     }
     if (e && e.message === "legacy-config-name") {
       const names = (e.legacy || []).join(", ");
-      process.stderr.write(`faff ${label}: cannot proceed — legacy config filename (${names}); rename to .faffrc.yaml.\n`);
+      process.stderr.write(`faff ${label}: cannot proceed — legacy config filename (${names}); rename to ${CANONICAL_CONFIG}.\n`);
       return 2;
     }
     throw e;
@@ -766,4 +804,4 @@ function writeOwnerOnlyJson(target, value) {
   }
 }
 
-module.exports = { CANONICAL_CONFIG, CANONICAL_OVERLAY_CONFIG, CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG, RUN_HEARTBEAT_STALE_SECS_DEFAULT, SELF_INTAKE_REASONS, cliPosixGuard, containerParent, decideSelfIntake, deepMergeConfig, dig, ensureOwnerOnlyDir, findConfig, findConfigIn, findNamedIn, findOverlay, findOverlayIn, findRoot, homeDir, isPlainConfigMap, isSafeAnchorRelPath, latestRunDir, mainWorktreeRoot, normalizeSelfIntakeSelf, normalizeSelfIntakeTarget, parseAncestry, parseConfigMapStrict, parseOverlayStrict, parseYamlSubset, readBaseConfigStrict, readLedger, requiresSelfConsistencyStamp, resolveLedgerOrFault, resolveRunDir, runGovernedDispatch, scalar, sortRunDirsByMtimeDesc, stripInlineComment, subtreeContains, writeOwnerOnlyJson, HERE, ENTRYPOINT };
+module.exports = { CANONICAL_CONFIG, CANONICAL_EXAMPLE_CONFIG, CANONICAL_OVERLAY_CONFIG, CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, DEPRECATED_CONFIG, DEPRECATED_OVERLAY_CONFIG, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG, RUN_HEARTBEAT_STALE_SECS_DEFAULT, SELF_INTAKE_REASONS, cliPosixGuard, containerParent, decideSelfIntake, deepMergeConfig, dig, ensureOwnerOnlyDir, findConfig, findConfigIn, findConfigLocation, findNamedIn, findOverlay, findOverlayIn, findOverlayLocation, findRoot, homeDir, isInsideRoot, isPlainConfigMap, isSafeAnchorRelPath, latestRunDir, mainWorktreeRoot, normalizeSelfIntakeSelf, normalizeSelfIntakeTarget, parseAncestry, parseConfigMapStrict, parseOverlayStrict, parseYamlSubset, readBaseConfigStrict, readLedger, requiresSelfConsistencyStamp, resolveLedgerOrFault, resolveRunDir, runGovernedDispatch, selectNamed, scalar, sortRunDirsByMtimeDesc, stripInlineComment, subtreeContains, writeOwnerOnlyJson, HERE, ENTRYPOINT };

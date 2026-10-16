@@ -64,8 +64,8 @@ const { gitignoreDirHazardLines, gitignoreMentionsFaffDir } = require("./gitigno
 // verification leg is not acting on its floor — the spec anti-pattern).
 const { declaredUnattendedFromConfig, literalTrue } = require("./sentry");
 const {
-  CANONICAL_CONFIG, CANONICAL_OVERLAY_CONFIG, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG,
-  deepMergeConfig, dig, findConfig, findOverlay, findRoot, isPlainConfigMap, parseConfigMapStrict, readBaseConfigStrict,
+  CANONICAL_CONFIG, CANONICAL_EXAMPLE_CONFIG, CANONICAL_OVERLAY_CONFIG, DEPRECATED_CONFIG, DEPRECATED_OVERLAY_CONFIG, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG,
+  deepMergeConfig, dig, findConfig, findConfigLocation, findOverlay, findOverlayLocation, findRoot, isInsideRoot, isPlainConfigMap, parseConfigMapStrict, readBaseConfigStrict,
   parseOverlayStrict, parseYamlSubset, readLedger, scalar, stripInlineComment,
 } = require("./shared-infra");
 
@@ -424,9 +424,9 @@ function prepareDispatch(cfg) {
 function readConfigLayers(root) {
   const layers = [];
   const basePath = findConfig(root);
-  if (basePath !== null) layers.push({ file: path.basename(basePath), local: false, doc: readBaseConfigStrict(basePath) });
+  if (basePath !== null) layers.push({ file: configFileLabel(root, basePath), local: false, doc: readBaseConfigStrict(basePath) });
   const overlayPath = findOverlay(root);
-  if (overlayPath !== null) layers.push({ file: path.basename(overlayPath), local: true, doc: parseOverlayStrict(overlayPath) });
+  if (overlayPath !== null) layers.push({ file: configFileLabel(root, overlayPath), local: true, doc: parseOverlayStrict(overlayPath) });
   return layers;
 }
 
@@ -1287,7 +1287,63 @@ const TRACKING_KEYS = [
   "tracking.templates_path",   // FAFF-1300: committed template overrides directory; read via resolveTemplatesPath()
   "tracking.label_prefix",
 ];
-const INIT_HEADER = "# .faffrc.yaml — faff configuration (written by `faff config init`)\n";
+const INIT_HEADER = `# ${CANONICAL_CONFIG} — faff configuration (written by \`faff config init\`)\n`;
+
+const toPosix = (p) => p.split(path.sep).join("/");
+
+// FAFF-1302: the notice for a config file resolved from the deprecated root location. PURE
+// text: callers choose the stream (stderr for the posture surfaces and writers) or carry it
+// in a finding (`config check`). `isIgnored(relPath)` is the git probe, or null outside a git
+// repo, where there is no ignore policy to get wrong. faff prints the move; it never runs it.
+function locationNoticeText(name, role, isIgnored) {
+  const overlay = role === "overlay";
+  const canonical = overlay ? CANONICAL_OVERLAY_CONFIG : CANONICAL_CONFIG;
+  const want = overlay ? "ignored" : "not ignored";
+  const lines = [];
+  if (isIgnored) {
+    const got = isIgnored(canonical) ? "ignored" : "not ignored";
+    if (got !== want) {
+      lines.push(
+        `faff: ${canonical} is ${got} by this repo's ignore rules and must be ${want}.`,
+        "      Run `faff gitignore-ensure` BEFORE the move below, or the move",
+        `      ${overlay ? "would leave an operator-private file stageable" : "would leave the base config uncommittable"}.`,
+      );
+    }
+  }
+  lines.push(
+    `faff: ${overlay ? "overlay" : "base config"} resolved from the deprecated location ${name}`,
+    `      (faff now uses ${canonical}). Resolution and values are unchanged.`,
+    `      To migrate:  ${overlay ? "mv" : "git mv"} ${name} ${canonical}`,
+  );
+  if (overlay) lines.push("      (plain mv, not git mv: the overlay is untracked and may hold machine-local values.)");
+  return lines.join("\n");
+}
+
+function ignoreProbeFor(root) {
+  return gitInRepo(root) ? (relPath) => gitIsIgnored(root, relPath) : null;
+}
+
+// Never standard output: `config get` and `config path` hand stdout to shell callers.
+function printLocationNotice(root, location, role) {
+  if (location === null || location.tier !== "deprecated") return;
+  process.stderr.write(locationNoticeText(location.name, role, ignoreProbeFor(root)) + "\n");
+}
+
+// FAFF-1302: a writer edits the file the resolver resolved when it lies inside the operating
+// root, whatever its tier; otherwise (no file, or resolved through the main-worktree
+// fallback) it targets the canonical path under this root. Creates nothing: the caller
+// makes the parent directory at the moment of writing.
+function resolveWriteTarget(root, local) {
+  const location = local ? findOverlayLocation(root) : findConfigLocation(root);   // may throw legacy-*-config-name; cmdConfig's catch owns it
+  const canonicalPath = path.join(root, local ? CANONICAL_OVERLAY_CONFIG : CANONICAL_CONFIG);
+  const target = location !== null && isInsideRoot(root, location.path) ? location.path : canonicalPath;
+  return { target, targetName: toPosix(path.relative(root, target)), existingPath: location === null ? null : location.path, location };
+}
+
+function writeConfigFile(target, text) {
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(target, text);
+}
 
 // The missing inverse of scalar(): produce YAML scalar text for a string value
 // such that scalar() reads it back to that exact string. Bare when safe, else
@@ -1470,9 +1526,8 @@ function cmdConfigInit(args, root) {
 
   // 2. Resolve target file. findConfig/findOverlay throws legacy-config-name → propagates to
   //    cmdConfig's catch (the refuse-second-file guarantee). Do NOT catch here.
-  const targetName = local ? CANONICAL_OVERLAY_CONFIG : CANONICAL_CONFIG;
-  const existingPath = local ? findOverlay(root) : findConfig(root);          // may throw; intentional
-  const canonicalPath = path.join(root, targetName);
+  const { target: canonicalPath, targetName, existingPath, location } = resolveWriteTarget(root, local);
+  printLocationNotice(root, location, local ? "overlay" : "base");
 
   // 3. Compute merged text (surgical; never reserialise).
   let newText, conflicts = [], changed;
@@ -1514,7 +1569,7 @@ function cmdConfigInit(args, root) {
     process.stdout.write(newText.endsWith("\n") ? newText : newText + "\n");
     return 0;
   }
-  fs.writeFileSync(canonicalPath, newText);
+  writeConfigFile(canonicalPath, newText);
   const n = Object.keys(sets).length;
   console.log(existingPath === null
     ? `config init: created ${targetName} with ${n} key(s).`
@@ -1776,9 +1831,8 @@ function cmdConfigSet(args, root) {
   const writeErr = validateEvalKey(key, value) || validateDispatchKey(key, value) || validateGitHostValue(key, value) || validateLabelPrefix(key, value) || validateControlLabelName(key, value) || validateIsolationLane(key, value);
   if (writeErr) { process.stderr.write(writeErr + "\n"); return 2; }
 
-  const targetName = local ? CANONICAL_OVERLAY_CONFIG : CANONICAL_CONFIG;
-  const canonicalPath = path.join(root, targetName);
-  const existingPath = local ? findOverlay(root) : findConfig(root);   // may throw legacy-config-name etc.; propagate to cmdConfig's catch
+  const { target: canonicalPath, targetName, existingPath, location } = resolveWriteTarget(root, local);
+  printLocationNotice(root, location, local ? "overlay" : "base");
   let newText;
   if (existingPath === null) {
     newText = INIT_HEADER + emitChainBlock(segments, value);
@@ -1812,7 +1866,7 @@ function cmdConfigSet(args, root) {
     process.stdout.write(newText.endsWith("\n") ? newText : newText + "\n");
     return 0;
   }
-  fs.writeFileSync(canonicalPath, newText);
+  writeConfigFile(canonicalPath, newText);
   console.log(`config set: wrote ${key}=${value} to ${targetName}.`);
   return 0;
 }
@@ -1973,8 +2027,8 @@ function cmdConfigUnset(args, root) {
   const key = positionals[0];
   if (isSequenceValuedKey(key)) return refuseListKey(key);
 
-  const targetName = local ? CANONICAL_OVERLAY_CONFIG : CANONICAL_CONFIG;
-  const existingPath = local ? findOverlay(root) : findConfig(root);
+  const { target, targetName, existingPath, location } = resolveWriteTarget(root, local);
+  printLocationNotice(root, location, local ? "overlay" : "base");
   if (existingPath === null) {
     process.stderr.write(`faff config unset: no ${targetName} in ${root}; nothing to unset\n`);
     return 3;
@@ -1999,7 +2053,7 @@ function cmdConfigUnset(args, root) {
     process.stdout.write(result.text.endsWith("\n") || result.text === "" ? result.text : result.text + "\n");
     return 0;
   }
-  fs.writeFileSync(path.join(root, targetName), result.text);
+  writeConfigFile(target, result.text);
   const prunedNote = result.pruned.length ? ` Pruned empty ${result.pruned.join(", ")}.` : "";
   console.log(`config unset: removed ${key} from ${targetName}.${prunedNote}`);
   noteKeyStillSetElsewhere(root, local, segments, key);
@@ -2016,7 +2070,8 @@ function noteKeyStillSetElsewhere(root, editedLocal, segments, key) {
     const otherPath = editedLocal ? findConfig(root) : findOverlay(root);
     if (otherPath === null) return;
     if (hasConfigPath(parseYamlSubset(fs.readFileSync(otherPath, "utf8")), segments)) {
-      process.stderr.write(`note: ${key} is still set in ${path.basename(otherPath)}; faff config get reads the merged value.\n`);
+      const shown = isInsideRoot(root, otherPath) ? toPosix(path.relative(root, otherPath)) : otherPath;
+      process.stderr.write(`note: ${key} is still set in ${shown}; faff config get reads the merged value.\n`);
     }
   } catch { /* best-effort: the note never changes the outcome */ }
 }
@@ -2225,17 +2280,17 @@ function configSetSelftest() {
     check("per-consumer/refs: the predicate does not match a deeper nested refs leaf", !isSequenceValuedKey("adversarial.spec_review.sub.refs"));
   }
 
-  // WRITABLE_NAMESPACES drift check: every top-level key documented in .faffrc.example.yaml
+  // WRITABLE_NAMESPACES drift check: every top-level key documented in the example template
   // must be a member (or the guard silently refuses a legitimate future key).
   {
     try {
-      const examplePath = path.join(__dirname, "..", "..", "..", "..", "..", ".faffrc.example.yaml");
+      const examplePath = path.join(__dirname, "..", "..", "..", "..", "..", CANONICAL_EXAMPLE_CONFIG);
       const exampleText = fs.readFileSync(examplePath, "utf8");
       const topKeys = Object.keys(parseYamlSubset(exampleText));
       const missing = topKeys.filter((k) => !WRITABLE_NAMESPACES.has(k));
-      check(`namespace-drift: .faffrc.example.yaml top-level keys ⊆ WRITABLE_NAMESPACES (missing: ${missing.join(", ") || "none"})`, missing.length === 0);
+      check(`namespace-drift: ${CANONICAL_EXAMPLE_CONFIG} top-level keys ⊆ WRITABLE_NAMESPACES (missing: ${missing.join(", ") || "none"})`, missing.length === 0);
     } catch (e) {
-      check(`namespace-drift: could not read .faffrc.example.yaml (${e.message})`, false);
+      check(`namespace-drift: could not read ${CANONICAL_EXAMPLE_CONFIG} (${e.message})`, false);
     }
   }
 
@@ -2580,10 +2635,28 @@ function gitIsTracked(root, relPath) {
 }
 
 const MIGRATION_STEPS = [
-  "1. Move machine-local values (private hosts, personal model prefs) into .faffrc.local.yaml",
-  "2. Edit .gitignore: drop the `.faffrc.yaml` line; add `.faffrc.local.yaml`",
-  "3. Run `faff config check`, then commit .faffrc.yaml",
+  `1. Move machine-local values (private hosts, personal model prefs) into ${CANONICAL_OVERLAY_CONFIG}`,
+  `2. Ensure .faff/.gitignore ignores the overlay and carries \`!/config.yaml\` (\`faff gitignore-ensure\` writes both)`,
+  `3. Run \`faff config check\`, then commit ${CANONICAL_CONFIG}`,
 ];
+
+// FAFF-1302: both tiers present for one role. The preferred file wins; the stale one is
+// reported with the remedy for its tracking state (the base is tracked, the overlay is not).
+function duplicateLocationMessage(role, canonicalName, staleName) {
+  const overlay = role === "overlay";
+  // FAFF-1302: the stale file is named "not read" rather than "ignored". Its git state is not
+  // probed here, and a stale base in a repo that never carried the old root ignore lines is
+  // tracked, not ignored: calling it ignored while prescribing `git rm`, which only acts on a
+  // tracked file, contradicts itself. What matters is that it is not read, which is always true.
+  return `two ${overlay ? "overlay" : "base"} configs present: ${canonicalName} (in use) and ${staleName} (not read). Values come only from ${canonicalName}. Remove the stale file: ${overlay ? "rm" : "git rm"} ${staleName}`;
+}
+
+// A file inside the operating root is named by its repo-relative POSIX path; one resolved
+// through the main-worktree fallback has no repo-relative path here and keeps its absolute path.
+function configFileLabel(root, p) {
+  if (!p) return null;
+  return isInsideRoot(root, p) ? toPosix(path.relative(root, p)) : p;
+}
 
 const indentSteps = (steps) => steps.map((st) => "     " + st).join("\n");
 
@@ -2621,7 +2694,7 @@ const UNDERIGNORE_INEFFECTIVE_MESSAGE = `\`.faff/.gitignore\` exists but does no
 
 const UNDERIGNORE_UNTRACKED_MESSAGE = `\`.faff/.gitignore\` is the only thing ignoring faff's run state and it is NOT committed. This checkout is fine; a fresh clone gets no \`.faff\` ignore rule at all, and \`faff gitignore-ensure\` is first-run only so nothing re-adds it. Fix:\n${indentSteps([
   "1. git add .faff/.gitignore",
-  "2. Commit it alongside .faffrc.yaml",
+  `2. Commit it alongside ${CANONICAL_CONFIG}`,
 ])}`;
 
 // PURE: finding 1. A property of the file's text, so it needs no git.
@@ -2679,39 +2752,72 @@ function knownKeyLint(doc, fileLabel, knownSet) {
 // `probes` supplies { inRepo, isIgnored(rel), isTracked(rel) } (nullable inRepo).
 // FAFF-1301: rootGitignore (text | null), faffDirPresent and faffDirGitignorePresent are
 // optional filesystem facts; absent, the two .faff ignore-posture findings are no-ops.
-function computeConfigCheck({ basePath, baseDoc, overlayPath, overlayDoc, legacyBase, legacyOverlay, baseParseError, probes, rootGitignore, faffDirPresent, faffDirGitignorePresent }) {
+function computeConfigCheck({ root, basePath, baseDoc, baseTier, staleBasePath, overlayPath, overlayDoc, overlayTier, staleOverlayPath, legacyBase, legacyOverlay, baseParseError, probes, rootGitignore, faffDirPresent, faffDirGitignorePresent }) {
   const findings = [];
   const skipped = [];
-  const rel = (p) => (p ? path.basename(p) : null);
+  const rel = (p) => configFileLabel(root, p);
+  const baseLabel = rel(basePath);
+  const overlayLabel = rel(overlayPath);
+  const baseInside = Boolean(basePath) && isInsideRoot(root, basePath);
+  const overlayInside = Boolean(overlayPath) && isInsideRoot(root, overlayPath);
+  const probeIgnored = probes.inRepo ? probes.isIgnored : null;
 
   // Check 5: legacy filenames present (mirror the loud resolver error as a finding).
   for (const n of [...(legacyBase || []), ...(legacyOverlay || [])]) {
-    findings.push({ severity: "error", surface: n, message: `legacy config filename \`${n}\` present — faff uses only \`.faffrc.yaml\` / \`.faffrc.local.yaml\`; rename it.` });
+    findings.push({ severity: "error", surface: n, message: `legacy config filename \`${n}\` present — faff reads \`${CANONICAL_CONFIG}\` / \`${CANONICAL_OVERLAY_CONFIG}\` (the root \`${DEPRECATED_CONFIG[0]}\` and \`${DEPRECATED_OVERLAY_CONFIG[0]}\` names are still read, but deprecated); rename it.` });
   }
 
   // Check 1b (FAFF-577): a malformed base is an error-severity FINDING naming file +
   // parse detail — the diagnosis surface describes the fault it exists to catch,
   // exit 1, never an exit-2 abort.
   if (baseParseError) {
-    findings.push({ severity: "error", surface: rel(baseParseError.file) || rel(basePath) || ".faffrc.yaml", message: `malformed base config — ${baseParseError.detail}. Configured values (including budget/sentry ceilings) are NOT applied; fix the file (git diff / git checkout ${rel(baseParseError.file) || ".faffrc.yaml"}).` });
+    const malformedLabel = rel(baseParseError.file) || baseLabel || CANONICAL_CONFIG;
+    findings.push({ severity: "error", surface: malformedLabel, message: `malformed base config — ${baseParseError.detail}. Configured values (including budget/sentry ceilings) are NOT applied; fix the file (git diff / git checkout ${malformedLabel}).` });
   }
 
-  // Check 2 + 3: posture (git). Skipped entirely outside a git repo.
+  // Check 2 + 3: posture (git). Skipped entirely outside a git repo. A file resolved from
+  // outside this root (the main-worktree fallback) has no posture this checkout can report,
+  // and git refuses a path outside the repository, so its probes are never run.
   if (probes.inRepo) {
-    if (basePath) {
-      const baseRel = rel(basePath);
-      if (probes.isIgnored(baseRel) || !probes.isTracked(baseRel)) {
-        findings.push({ severity: "warn", surface: baseRel, message: `\`${baseRel}\` is unmigrated/uncommitted (git-ignored or untracked) — unrecoverable if corrupted. Migrate:\n${MIGRATION_STEPS.map((s) => "     " + s).join("\n")}` });
+    if (basePath && !baseInside) {
+      skipped.push(`posture checks skipped for ${basePath} (resolved outside ${root}, another checkout's file)`);
+    } else if (basePath) {
+      if (probes.isIgnored(baseLabel) || !probes.isTracked(baseLabel)) {
+        findings.push({ severity: "warn", surface: baseLabel, message: `\`${baseLabel}\` is unmigrated/uncommitted (git-ignored or untracked) — unrecoverable if corrupted. Migrate:\n${MIGRATION_STEPS.map((s) => "     " + s).join("\n")}` });
       }
     }
-    if (overlayPath) {
-      const ovRel = rel(overlayPath);
-      if (!probes.isIgnored(ovRel)) {
-        findings.push({ severity: "warn", surface: ovRel, message: `\`${ovRel}\` is NOT git-ignored — the machine-local overlay is about to be committed. Add it to .gitignore.` });
+    if (overlayPath && !overlayInside) {
+      skipped.push(`posture checks skipped for ${overlayPath} (resolved outside ${root}, another checkout's file)`);
+    } else if (overlayPath) {
+      if (!probes.isIgnored(overlayLabel)) {
+        // FAFF-1302: the remedy is tier-dependent. A canonical overlay is ignored by the `/*`
+        // that `gitignore-ensure` writes into `.faff/.gitignore`. A deprecated one sits at the
+        // repo root, where the pattern set is now empty, so no faff write can ever ignore it:
+        // the only fix is the move, and naming `gitignore-ensure` there would be a dead remedy.
+        const remedy = overlayTier === "deprecated"
+          ? `Move it with \`mv ${overlayLabel} ${CANONICAL_OVERLAY_CONFIG}\`; faff writes no root ignore lines, so \`faff gitignore-ensure\` cannot ignore it where it is.`
+          : `Run \`faff gitignore-ensure\` so ${CANONICAL_OVERLAY_CONFIG} is ignored.`;
+        findings.push({ severity: "warn", surface: overlayLabel, message: `\`${overlayLabel}\` is NOT git-ignored — the machine-local overlay is about to be committed. ${remedy}` });
       }
     }
   } else {
     skipped.push("posture checks skipped (not a git repo)");
+  }
+
+  // Check 13 (FAFF-1302): location. A file on the deprecated tier is fully valid; the finding
+  // carries the migration command. Both tiers present: the preferred file wins and the stale
+  // one is reported. Always warn, never error: the config resolves correctly either way.
+  if (baseInside && baseTier === "deprecated") {
+    findings.push({ severity: "warn", surface: baseLabel, message: locationNoticeText(baseLabel, "base", probeIgnored) });
+  }
+  if (overlayInside && overlayTier === "deprecated") {
+    findings.push({ severity: "warn", surface: overlayLabel, message: locationNoticeText(overlayLabel, "overlay", probeIgnored) });
+  }
+  if (baseInside && baseTier === "canonical" && staleBasePath) {
+    findings.push({ severity: "warn", surface: baseLabel, message: duplicateLocationMessage("base", baseLabel, rel(staleBasePath)) });
+  }
+  if (overlayInside && overlayTier === "canonical" && staleOverlayPath) {
+    findings.push({ severity: "warn", surface: overlayLabel, message: duplicateLocationMessage("overlay", overlayLabel, rel(staleOverlayPath)) });
   }
 
   // Check 11 + 12 (FAFF-1301): .faff ignore posture. Over-ignore first, then under-ignore.
@@ -2721,8 +2827,8 @@ function computeConfigCheck({ basePath, baseDoc, overlayPath, overlayDoc, legacy
   if (underIgnore) findings.push(underIgnore);
 
   // Check 4: secret scan over both files' scalar leaves (redacted output).
-  if (baseDoc) findings.push(...scanDocForSecrets(baseDoc, rel(basePath) || ".faffrc.yaml"));
-  if (overlayDoc) findings.push(...scanDocForSecrets(overlayDoc, rel(overlayPath) || ".faffrc.local.yaml"));
+  if (baseDoc) findings.push(...scanDocForSecrets(baseDoc, baseLabel || CANONICAL_CONFIG));
+  if (overlayDoc) findings.push(...scanDocForSecrets(overlayDoc, overlayLabel || CANONICAL_OVERLAY_CONFIG));
 
   // Check 6 (FAFF-523): backends: namespace soundness — a name collision with
   // engines: (error) and the derived-egress residency guard (warn) over the
@@ -2758,12 +2864,12 @@ function computeConfigCheck({ basePath, baseDoc, overlayPath, overlayDoc, legacy
   // default with no signal. Walks baseDoc and overlayDoc INDEPENDENTLY (never the merged
   // doc) — a mistake in either file is its own distinct silent no-op and must be attributed
   // to the file it lives in, exactly as the secret scan (Check 4) attributes per-file.
-  if (baseDoc) findings.push(...knownKeyLint(baseDoc, rel(basePath) || ".faffrc.yaml", RECOGNISED_NAMESPACES));
-  if (overlayDoc) findings.push(...knownKeyLint(overlayDoc, rel(overlayPath) || ".faffrc.local.yaml", RECOGNISED_NAMESPACES));
+  if (baseDoc) findings.push(...knownKeyLint(baseDoc, baseLabel || CANONICAL_CONFIG, RECOGNISED_NAMESPACES));
+  if (overlayDoc) findings.push(...knownKeyLint(overlayDoc, overlayLabel || CANONICAL_OVERLAY_CONFIG, RECOGNISED_NAMESPACES));
 
   // Check 10 (ADR-0134): a removed models:/effort: tree is an error finding per file, naming the
   // dispatch: replacements and the exact `faff config unset` command.
-  for (const [doc, filePath, fallback, local] of [[baseDoc, basePath, ".faffrc.yaml", false], [overlayDoc, overlayPath, ".faffrc.local.yaml", true]]) {
+  for (const [doc, filePath, fallback, local] of [[baseDoc, basePath, CANONICAL_CONFIG, false], [overlayDoc, overlayPath, CANONICAL_OVERLAY_CONFIG, true]]) {
     const file = rel(filePath) || fallback;
     const message = legacyTreeError([{ file, local, doc }]);
     if (message) findings.push({ severity: "error", surface: file, message });
@@ -2783,6 +2889,15 @@ function readFaffIgnoreFacts(root) {
   };
 }
 
+// FAFF-1302: an existence test, not a second resolution. When the preferred file won inside
+// this root, is a deprecated-tier file also sitting there that the resolver deliberately
+// did not read? Returns its absolute path or null.
+function staleLocationPath(root, location, deprecatedNames) {
+  if (location === null || location.tier !== "canonical" || !isInsideRoot(root, location.path)) return null;
+  const stale = deprecatedNames.map((n) => path.join(root, n)).find((p) => fs.existsSync(p));
+  return stale === undefined ? null : stale;
+}
+
 function cmdConfigCheck(args, root) {
   if (args.includes("--selftest")) return configCheckSelftest();
   const json = args.includes("--json");
@@ -2791,15 +2906,18 @@ function cmdConfigCheck(args, root) {
   // in EITHER is a loud exit 2 (never a silent skip). Legacy names are collected as
   // findings, not thrown, so `config check` reports them rather than aborting.
   let basePath = null, baseDoc = null, overlayPath = null, overlayDoc = null;
+  let baseLocation = null, overlayLocation = null;
   const legacyBase = [], legacyOverlay = [];
   try {
-    basePath = findConfig(root);
+    baseLocation = findConfigLocation(root);
+    basePath = baseLocation === null ? null : baseLocation.path;
   } catch (e) {
     if (e.message === "legacy-config-name") legacyBase.push(...e.legacy);
     else { process.stderr.write(`faff config check: ${e.message}\n`); return 2; }
   }
   try {
-    overlayPath = findOverlay(root);
+    overlayLocation = findOverlayLocation(root);
+    overlayPath = overlayLocation === null ? null : overlayLocation.path;
   } catch (e) {
     if (e.message === "legacy-overlay-config-name") legacyOverlay.push(...e.legacy);
     else { process.stderr.write(`faff config check: ${e.message}\n`); return 2; }
@@ -2836,7 +2954,10 @@ function cmdConfigCheck(args, root) {
     isTracked: (relPath) => gitIsTracked(root, relPath),
   };
   const { findings, skipped, exit } = computeConfigCheck({
-    basePath, baseDoc, overlayPath, overlayDoc, legacyBase, legacyOverlay, baseParseError, probes,
+    root,
+    basePath, baseDoc, baseTier: baseLocation && baseLocation.tier, staleBasePath: staleLocationPath(root, baseLocation, DEPRECATED_CONFIG),
+    overlayPath, overlayDoc, overlayTier: overlayLocation && overlayLocation.tier, staleOverlayPath: staleLocationPath(root, overlayLocation, DEPRECATED_OVERLAY_CONFIG),
+    legacyBase, legacyOverlay, baseParseError, probes,
     rootGitignore, faffDirPresent, faffDirGitignorePresent,
   });
 
@@ -2981,17 +3102,17 @@ function configCheckSelftest() {
   {
     // base git-ignored → posture warn with migration steps; exit 1.
     const r = computeConfigCheck({
-      basePath: "/r/.faffrc.yaml", baseDoc: {}, overlayPath: null, overlayDoc: null,
+      root: "/r", basePath: "/r/.faff/config.yaml", baseDoc: {}, overlayPath: null, overlayDoc: null,
       legacyBase: [], legacyOverlay: [],
       probes: { inRepo: true, isIgnored: () => true, isTracked: () => false },
     });
     check("posture: ignored base → 1 finding, exit 1", r.findings.length === 1 && r.exit === 1);
-    check("posture: finding carries migration steps", r.findings[0].message.includes("Migrate:") && r.findings[0].message.includes(".faffrc.local.yaml"));
+    check("posture: finding carries migration steps", r.findings[0].message.includes("Migrate:") && r.findings[0].message.includes(".faff/config.local.yaml") && r.findings[0].message.includes(".faff/.gitignore"));
   }
   {
     // base tracked + not ignored → clean, exit 0.
     const r = computeConfigCheck({
-      basePath: "/r/.faffrc.yaml", baseDoc: {}, overlayPath: null, overlayDoc: null,
+      root: "/r", basePath: "/r/.faff/config.yaml", baseDoc: {}, overlayPath: null, overlayDoc: null,
       legacyBase: [], legacyOverlay: [],
       probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
     });
@@ -3000,16 +3121,32 @@ function configCheckSelftest() {
   {
     // overlay NOT ignored → hygiene finding.
     const r = computeConfigCheck({
-      basePath: "/r/.faffrc.yaml", baseDoc: {}, overlayPath: "/r/.faffrc.local.yaml", overlayDoc: {},
+      root: "/r", basePath: "/r/.faff/config.yaml", baseDoc: {}, overlayPath: "/r/.faff/config.local.yaml", overlayDoc: {},
       legacyBase: [], legacyOverlay: [],
-      probes: { inRepo: true, isIgnored: (n) => n === ".faffrc.yaml" ? false : false, isTracked: () => true },
+      probes: { inRepo: true, isIgnored: (n) => false, isTracked: () => true },
     });
-    check("hygiene: un-ignored overlay flagged", r.findings.some((f) => f.surface === ".faffrc.local.yaml" && /NOT git-ignored/.test(f.message)));
+    check("hygiene: un-ignored overlay flagged", r.findings.some((f) => f.surface === ".faff/config.local.yaml" && /NOT git-ignored/.test(f.message)));
+    check("hygiene: canonical un-ignored overlay names gitignore-ensure (which does fix it)", r.findings.some((f) => /Run `faff gitignore-ensure`/.test(f.message)));
+  }
+  {
+    // FAFF-1302: a DEPRECATED-tier overlay that is not ignored must NOT be told to run
+    // `gitignore-ensure`. The root pattern set is empty, so no faff write can ignore a root
+    // overlay; the only working remedy is the move. Exercising the un-ignored deprecated case
+    // is what keeps that remedy honest, since the tier's other cases stub isIgnored true.
+    const r = computeConfigCheck({
+      root: "/r", basePath: "/r/.faffrc.yaml", baseDoc: {}, baseTier: "deprecated",
+      overlayPath: "/r/.faffrc.local.yaml", overlayDoc: {}, overlayTier: "deprecated",
+      legacyBase: [], legacyOverlay: [],
+      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
+    });
+    const f = r.findings.find((x) => /NOT git-ignored/.test(x.message));
+    check("hygiene: deprecated un-ignored overlay names the move, not gitignore-ensure", !!f && /mv \.faffrc\.local\.yaml \.faff\/config\.local\.yaml/.test(f.message));
+    check("hygiene: deprecated un-ignored overlay says gitignore-ensure cannot help", !!f && /cannot ignore it where it is/.test(f.message));
   }
   {
     // not a git repo → posture skipped (reported), parse/secret still run; clean → exit 0.
     const r = computeConfigCheck({
-      basePath: "/r/.faffrc.yaml", baseDoc: { slots: { spec: "x" } }, overlayPath: null, overlayDoc: null,
+      root: "/r", basePath: "/r/.faff/config.yaml", baseDoc: { slots: { spec: "x" } }, overlayPath: null, overlayDoc: null,
       legacyBase: [], legacyOverlay: [],
       probes: { inRepo: false, isIgnored: () => false, isTracked: () => false },
     });
@@ -3019,7 +3156,7 @@ function configCheckSelftest() {
   // --- FAFF-1301: .faff ignore posture (over-ignore and under-ignore) -----------
   {
     const faffIgnore = (extra) => computeConfigCheck({
-      basePath: "/r/.faffrc.yaml", baseDoc: {}, overlayPath: null, overlayDoc: null,
+      root: "/r", basePath: "/r/.faff/config.yaml", baseDoc: {}, overlayPath: null, overlayDoc: null,
       legacyBase: [], legacyOverlay: [],
       probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
       ...extra,
@@ -3053,17 +3190,86 @@ function configCheckSelftest() {
     check("faff-ignore: untracked inner file and UNCOMMITTED root `.faff/*` → still fires", onInner(faffIgnore({ ...untracked, rootGitignore: ".faff/*\n" })).length === 1);
     check("faff-ignore: faffDirPresent with inRepo false → silent", onInner(faffIgnore({ faffDirPresent: true, probes: { inRepo: false, isIgnored: () => false, isTracked: () => false } })).length === 0);
     const faffPathCalls = [];
-    const recording = (name) => (n) => { if (String(n).startsWith(".faff/")) faffPathCalls.push(`${name}:${n}`); return false; };
+    const recording = (name) => (n) => { if (String(n).startsWith(".faff/") && n !== CANONICAL_CONFIG) faffPathCalls.push(`${name}:${n}`); return false; };
     faffIgnore({ rootGitignore: "x\n", probes: { inRepo: true, isIgnored: recording("isIgnored"), isTracked: recording("isTracked") } });
     check("faff-ignore: faffDirPresent omitted → no probe sees a .faff path", faffPathCalls.length === 0);
     r = faffIgnore({ rootGitignore: ".faff/\n", faffDirPresent: true, faffDirGitignorePresent: false, probes: runStateIgnored });
     check("faff-ignore: hazard line with run state still ignored → finding 1 only", r.findings.length === 1 && r.findings[0].surface === ".gitignore");
   }
+  // --- FAFF-1302: config files under .faff/ -----------------------------------
+  {
+    const calls = [];
+    const recording = (name) => (n) => { calls.push(`${name}:${n}`); return name === "isTracked"; };
+    const probes = { inRepo: true, isIgnored: recording("isIgnored"), isTracked: recording("isTracked") };
+    const r = computeConfigCheck({ root: "/r", basePath: "/r/.faff/config.yaml", baseDoc: {}, baseTier: "canonical", overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [], probes });
+    check("under-faff: base probes are handed the repo-relative path", calls.includes("isIgnored:.faff/config.yaml") && calls.includes("isTracked:.faff/config.yaml") && !calls.some((c) => c.endsWith(":config.yaml")));
+    check("under-faff: a committed, unignored base is clean", r.findings.length === 0 && r.exit === 0);
+  }
+  {
+    const calls = [];
+    const probes = { inRepo: true, isIgnored: (n) => { calls.push(n); return false; }, isTracked: (n) => { calls.push(n); return false; } };
+    const r = computeConfigCheck({
+      root: "/wt", basePath: "/main/.faff/config.yaml", baseDoc: { bogus_key: 1 }, baseTier: "canonical",
+      overlayPath: "/main/.faff/config.local.yaml", overlayDoc: { other_bogus: 1 }, overlayTier: "canonical",
+      legacyBase: [], legacyOverlay: [], probes,
+    });
+    check("worktree fallback: neither git probe is called for an out-of-root file", calls.length === 0);
+    check("worktree fallback: no posture finding", !r.findings.some((f) => /unmigrated|NOT git-ignored/.test(f.message)));
+    check("worktree fallback: one skipped entry per file, naming its absolute path", r.skipped.length === 2 && r.skipped[0].includes("/main/.faff/config.yaml") && r.skipped[1].includes("/main/.faff/config.local.yaml"));
+    check("worktree fallback: other findings carry the absolute path as surface", r.findings.some((f) => f.surface === "/main/.faff/config.yaml:bogus_key"));
+    check("worktree fallback: no surface and no skipped entry holds a `..` segment", [...r.findings.map((f) => f.surface), ...r.skipped].every((t) => !t.split(/[\/:\s]/).includes("..")));
+  }
+  {
+    const r = computeConfigCheck({
+      root: "/r", basePath: "/r/.faff/config.yaml", baseDoc: {}, baseTier: "canonical", staleBasePath: "/r/" + DEPRECATED_CONFIG[0],
+      overlayPath: "/r/.faff/config.local.yaml", overlayDoc: {}, overlayTier: "canonical", staleOverlayPath: "/r/" + DEPRECATED_OVERLAY_CONFIG[0],
+      legacyBase: [], legacyOverlay: [], probes: { inRepo: true, isIgnored: (n) => n === CANONICAL_OVERLAY_CONFIG, isTracked: () => true },
+    });
+    const base = r.findings.find((f) => f.surface === CANONICAL_CONFIG);
+    const overlay = r.findings.find((f) => f.surface === CANONICAL_OVERLAY_CONFIG);
+    check("duplicate base: warn naming the stale file and `git rm`", Boolean(base) && base.severity === "warn" && base.message.includes(DEPRECATED_CONFIG[0]) && base.message.includes("git rm " + DEPRECATED_CONFIG[0]));
+    check("duplicate overlay: warn naming `rm`, never `git rm`", Boolean(overlay) && overlay.severity === "warn" && overlay.message.includes("rm " + DEPRECATED_OVERLAY_CONFIG[0]) && !overlay.message.includes("git rm"));
+  }
+  {
+    const r = computeConfigCheck({
+      root: "/r", basePath: "/r/" + DEPRECATED_CONFIG[0], baseDoc: {}, baseTier: "deprecated",
+      overlayPath: "/r/" + DEPRECATED_OVERLAY_CONFIG[0], overlayDoc: {}, overlayTier: "deprecated",
+      legacyBase: [], legacyOverlay: [], probes: { inRepo: true, isIgnored: (n) => n === CANONICAL_OVERLAY_CONFIG || n === DEPRECATED_OVERLAY_CONFIG[0], isTracked: () => true },
+    });
+    const base = r.findings.find((f) => f.surface === DEPRECATED_CONFIG[0]);
+    const overlay = r.findings.find((f) => f.surface === DEPRECATED_OVERLAY_CONFIG[0] && /deprecated location/.test(f.message));
+    check("deprecated base: warn carrying the exact `git mv` command", Boolean(base) && base.severity === "warn" && base.message.includes(`git mv ${DEPRECATED_CONFIG[0]} ${CANONICAL_CONFIG}`));
+    check("deprecated overlay: warn carrying plain `mv` and the machine-local reason", Boolean(overlay) && overlay.message.includes(`To migrate:  mv ${DEPRECATED_OVERLAY_CONFIG[0]} ${CANONICAL_OVERLAY_CONFIG}`) && !overlay.message.includes("git mv " + DEPRECATED_OVERLAY_CONFIG[0]) && overlay.message.includes("machine-local"));
+    check("deprecated tier: warn never error", r.findings.every((f) => f.severity === "warn"));
+  }
+  {
+    const r = computeConfigCheck({
+      root: "/r", basePath: "/r/.faff/config.yaml", baseDoc: null, baseTier: "canonical",
+      baseParseError: { file: "/r/.faff/config.yaml", detail: "does not parse to a mapping" },
+      overlayPath: null, overlayDoc: null, legacyBase: [DEPRECATED_CONFIG[0] + "x"], legacyOverlay: [], probes: { inRepo: false },
+    });
+    const malformed = r.findings.find((f) => /malformed base config/.test(f.message));
+    const legacy = r.findings.find((f) => /legacy config filename/.test(f.message));
+    check("check 1b: the remedy names the resolved base path", Boolean(malformed) && malformed.message.includes("git checkout .faff/config.yaml"));
+    check("check 5: the message names the new paths and calls the root names deprecated but still read", Boolean(legacy) && legacy.message.includes(CANONICAL_CONFIG) && legacy.message.includes(CANONICAL_OVERLAY_CONFIG) && /deprecated/.test(legacy.message) && /still read/.test(legacy.message));
+  }
+  check("computeConfigCheck's source holds no root-config literal", !computeConfigCheck.toString().includes(".faffrc"));
+  check("MIGRATION_STEPS names the new overlay and .faff/.gitignore, and no longer drops a root line", MIGRATION_STEPS.join("\n").includes(CANONICAL_OVERLAY_CONFIG) && MIGRATION_STEPS.join("\n").includes(".faff/.gitignore") && !MIGRATION_STEPS.join("\n").includes(".faffrc"));
+  {
+    const notice = (name, role, isIgnored) => locationNoticeText(name, role, isIgnored);
+    const overlayWrong = notice(DEPRECATED_OVERLAY_CONFIG[0], "overlay", () => false);
+    check("notice: an un-ignored overlay destination names gitignore-ensure ahead of the mv and the stageable hazard", overlayWrong.indexOf("faff gitignore-ensure") !== -1 && overlayWrong.indexOf("faff gitignore-ensure") < overlayWrong.indexOf("To migrate") && overlayWrong.includes("operator-private file stageable"));
+    const baseWrong = notice(DEPRECATED_CONFIG[0], "base", () => true);
+    check("notice: an ignored base destination names gitignore-ensure ahead of the git mv and the uncommittable hazard", baseWrong.indexOf("faff gitignore-ensure") < baseWrong.indexOf("git mv") && baseWrong.includes("uncommittable"));
+    check("notice: a destination with the right posture prints the move alone", !notice(DEPRECATED_OVERLAY_CONFIG[0], "overlay", () => true).includes("gitignore-ensure") && !notice(DEPRECATED_CONFIG[0], "base", () => false).includes("gitignore-ensure"));
+    check("notice: no probe (outside a git repo) prints the move alone", !notice(DEPRECATED_CONFIG[0], "base", null).includes("gitignore-ensure") && notice(DEPRECATED_CONFIG[0], "base", null).includes("git mv"));
+  }
+
   {
     // secret in base doc → exit 1, redacted (no raw value in any message).
     const raw = "sk-abcdefghijklmnopqrstuvwxyz0123456789";
     const r = computeConfigCheck({
-      basePath: "/r/.faffrc.yaml", baseDoc: { api_key: raw }, overlayPath: null, overlayDoc: null,
+      root: "/r", basePath: "/r/.faff/config.yaml", baseDoc: { api_key: raw }, overlayPath: null, overlayDoc: null,
       legacyBase: [], legacyOverlay: [],
       probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
     });
@@ -3073,7 +3279,7 @@ function configCheckSelftest() {
   {
     // legacy filename present → error finding, exit 1.
     const r = computeConfigCheck({
-      basePath: null, baseDoc: null, overlayPath: null, overlayDoc: null,
+      root: "/r", basePath: null, baseDoc: null, overlayPath: null, overlayDoc: null,
       legacyBase: [".faffrc.yml"], legacyOverlay: [],
       probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
     });
@@ -3083,13 +3289,13 @@ function configCheckSelftest() {
     // FAFF-577: malformed base → error-severity finding naming file + detail, exit 1
     // (detection-as-finding — never an exit-2 abort in the pure core's vocabulary).
     const r = computeConfigCheck({
-      basePath: "/r/.faffrc.yaml", baseDoc: null, overlayPath: null, overlayDoc: null,
+      root: "/r", basePath: "/r/.faff/config.yaml", baseDoc: null, overlayPath: null, overlayDoc: null,
       legacyBase: [], legacyOverlay: [],
-      baseParseError: { file: "/r/.faffrc.yaml", detail: "does not parse to a mapping (malformed YAML — the base config must be a key:value mapping)" },
+      baseParseError: { file: "/r/.faff/config.yaml", detail: "does not parse to a mapping (malformed YAML — the base config must be a key:value mapping)" },
       probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
     });
     check("malformed base: error finding naming file + detail, exit 1",
-      r.exit === 1 && r.findings.some((f) => f.severity === "error" && f.surface === ".faffrc.yaml" && /malformed base config/.test(f.message) && /does not parse to a mapping/.test(f.message)));
+      r.exit === 1 && r.findings.some((f) => f.severity === "error" && f.surface === ".faff/config.yaml" && /malformed base config/.test(f.message) && /does not parse to a mapping/.test(f.message)));
   }
 
   // --- known-key (schema) lint (FAFF-794) ----------------------------------
@@ -3097,19 +3303,19 @@ function configCheckSelftest() {
     // flat-dotted key with an UNKNOWN prefix (the live repro: typo'd "autonymous" +
     // flat form) → exactly one finding, never two, exit 1.
     const r = computeConfigCheck({
-      basePath: "/r/.faffrc.yaml", baseDoc: { "autonymous.sentry_acting": true },
+      root: "/r", basePath: "/r/.faff/config.yaml", baseDoc: { "autonymous.sentry_acting": true },
       overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
       probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
     });
     check("known-key: flat-dotted unknown-prefix key → exactly 1 warn finding, exit 1",
       r.exit === 1 && r.findings.length === 1 && r.findings[0].severity === "warn"
-      && r.findings[0].surface === ".faffrc.yaml:autonymous.sentry_acting"
+      && r.findings[0].surface === ".faff/config.yaml:autonymous.sentry_acting"
       && /flat dotted key with unrecognised namespace `autonymous`/.test(r.findings[0].message));
   }
   {
     // flat-dotted key with a KNOWN prefix (correctly-spelled but flat) → nested-map hint.
     const r = computeConfigCheck({
-      basePath: "/r/.faffrc.yaml", baseDoc: { "gates.fallback": "advisory" },
+      root: "/r", basePath: "/r/.faff/config.yaml", baseDoc: { "gates.fallback": "advisory" },
       overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
       probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
     });
@@ -3119,39 +3325,39 @@ function configCheckSelftest() {
   {
     // multi-dot flat key → exactly ONE finding naming the FULL key.
     const r = computeConfigCheck({
-      basePath: "/r/.faffrc.yaml", baseDoc: { "autonomous.guardrails.require_container": true },
+      root: "/r", basePath: "/r/.faff/config.yaml", baseDoc: { "autonomous.guardrails.require_container": true },
       overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
       probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
     });
     check("known-key: multi-dot flat key → exactly 1 finding naming the full key",
-      r.findings.length === 1 && r.findings[0].surface === ".faffrc.yaml:autonomous.guardrails.require_container");
+      r.findings.length === 1 && r.findings[0].surface === ".faff/config.yaml:autonomous.guardrails.require_container");
   }
   {
     // plain unknown top-level key (no dot) → warn naming it + the known namespaces.
     const r = computeConfigCheck({
-      basePath: "/r/.faffrc.yaml", baseDoc: { appetitte: "high" },
+      root: "/r", basePath: "/r/.faff/config.yaml", baseDoc: { appetitte: "high" },
       overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
       probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
     });
     check("known-key: plain unknown key → warn finding naming key + known namespaces",
-      r.findings.length === 1 && r.findings[0].surface === ".faffrc.yaml:appetitte"
+      r.findings.length === 1 && r.findings[0].surface === ".faff/config.yaml:appetitte"
       && /unrecognised top-level key/.test(r.findings[0].message) && /Known namespaces:/.test(r.findings[0].message));
   }
   {
     // overlay-only unknown key → surface names the OVERLAY file, not the base.
     const r = computeConfigCheck({
-      basePath: "/r/.faffrc.yaml", baseDoc: {},
-      overlayPath: "/r/.faffrc.local.yaml", overlayDoc: { bogus_key: 1 },
+      root: "/r", basePath: "/r/.faff/config.yaml", baseDoc: {},
+      overlayPath: "/r/.faff/config.local.yaml", overlayDoc: { bogus_key: 1 },
       legacyBase: [], legacyOverlay: [],
       probes: { inRepo: true, isIgnored: () => true, isTracked: () => true },
     });
     check("known-key: overlay-only unknown key → surface names the overlay file",
-      r.findings.some((f) => f.surface === ".faffrc.local.yaml:bogus_key"));
+      r.findings.some((f) => f.surface === ".faff/config.local.yaml:bogus_key"));
   }
   {
     // known top-level key with a scalar value (not a map) → key-name-only, no finding.
     const r = computeConfigCheck({
-      basePath: "/r/.faffrc.yaml", baseDoc: { slots: "not-a-map" },
+      root: "/r", basePath: "/r/.faff/config.yaml", baseDoc: { slots: "not-a-map" },
       overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
       probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
     });
@@ -3161,7 +3367,7 @@ function configCheckSelftest() {
   {
     // fully valid config (only known namespaces, properly nested) → no known-key findings.
     const r = computeConfigCheck({
-      basePath: "/r/.faffrc.yaml",
+      root: "/r", basePath: "/r/.faff/config.yaml",
       baseDoc: { tracking: { tracker: "linear" }, slots: { spec: "x" }, appetite: "high" },
       overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
       probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
@@ -3172,7 +3378,7 @@ function configCheckSelftest() {
   {
     // absent base and overlay → the lint contributes nothing (all-defaults stays clean).
     const r = computeConfigCheck({
-      basePath: null, baseDoc: null, overlayPath: null, overlayDoc: null,
+      root: "/r", basePath: null, baseDoc: null, overlayPath: null, overlayDoc: null,
       legacyBase: [], legacyOverlay: [],
       probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
     });
@@ -3188,7 +3394,7 @@ function configCheckSelftest() {
     // The repo's own live repro: a `capture:` stanza (decision-capture.js's read) yields no
     // known-key finding, and exit 0 absent other findings.
     const r = computeConfigCheck({
-      basePath: "/r/.faffrc.yaml", baseDoc: { capture: { decision_kernel: "on" } },
+      root: "/r", basePath: "/r/.faff/config.yaml", baseDoc: { capture: { decision_kernel: "on" } },
       overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
       probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
     });
@@ -3197,7 +3403,7 @@ function configCheckSelftest() {
   {
     // provenance (harness.js's dormant read) is recognised the same way.
     const r = computeConfigCheck({
-      basePath: "/r/.faffrc.yaml", baseDoc: { provenance: { harness: "x" } },
+      root: "/r", basePath: "/r/.faff/config.yaml", baseDoc: { provenance: { harness: "x" } },
       overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
       probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
     });
@@ -3207,7 +3413,7 @@ function configCheckSelftest() {
     // the "Known namespaces:" help text lists the full recognised UNION (capture + provenance
     // included), sorted — proven via a genuinely-unknown key so the message is actually emitted.
     const r = computeConfigCheck({
-      basePath: "/r/.faffrc.yaml", baseDoc: { bogus_unknown_key: 1 },
+      root: "/r", basePath: "/r/.faff/config.yaml", baseDoc: { bogus_unknown_key: 1 },
       overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
       probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
     });
@@ -3229,7 +3435,7 @@ function configCheckSelftest() {
   {
     // known-key findings never hard-fail: severity stays "warn" for an unrecognised key.
     const r = computeConfigCheck({
-      basePath: "/r/.faffrc.yaml", baseDoc: { totally_unknown_namespace: 1 },
+      root: "/r", basePath: "/r/.faff/config.yaml", baseDoc: { totally_unknown_namespace: 1 },
       overlayPath: null, overlayDoc: null, legacyBase: [], legacyOverlay: [],
       probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
     });
@@ -3300,11 +3506,13 @@ function cmdConfig(args) {
       // exit 3 only when NEITHER file exists (first-run offer semantics preserved).
       // BACK-COMPAT: with no overlay (the common case), output is the exact same
       // single line as before.
-      const basePath = findConfig(root);
-      const overlayPath = findOverlay(root);       // may throw legacy-overlay-config-name
-      if (basePath === null && overlayPath === null) return 3;
-      if (basePath !== null) console.log(basePath);
-      if (overlayPath !== null) console.log(overlayPath);
+      const baseLocation = findConfigLocation(root);
+      const overlayLocation = findOverlayLocation(root);       // may throw legacy-overlay-config-name
+      if (baseLocation === null && overlayLocation === null) return 3;
+      if (baseLocation !== null) console.log(baseLocation.path);
+      if (overlayLocation !== null) console.log(overlayLocation.path);
+      printLocationNotice(root, baseLocation, "base");         // FAFF-1302: stderr only
+      printLocationNotice(root, overlayLocation, "overlay");
       return 0;
     }
     if (cmd === "check") {
@@ -3523,6 +3731,8 @@ function cmdConfig(args) {
       const slots = (data.slots && typeof data.slots === "object" && !Array.isArray(data.slots)) ? data.slots : {};
       const SLOTS = ["intake", "spec", "spec_review", "architecture", "env", "review", "ship", "concurrency", "methodology",
         "routing_adaptor", "rendering_adaptor"];
+      printLocationNotice(root, findConfigLocation(root), "base");        // FAFF-1302: stderr only
+      printLocationNotice(root, findOverlayLocation(root), "overlay");
       console.log(`config:   ${p || "(none — all defaults)"}`);
       // FAFF-387: an active overlay is echoed on its own line — never silent — so a
       // run banner shows both files in play. BACK-COMPAT: with no overlay (the
@@ -3577,7 +3787,7 @@ function cmdConfig(args) {
     }
     if (e.message === "multiple-config") {
       const names = e.files.map((f) => path.basename(f)).join(", ");
-      process.stderr.write(`faff config: multiple config files at the repo root (${names}); keep only one.\n`);
+      process.stderr.write(`faff config: multiple config files (${names}); keep only one.\n`);
       return 2;
     }
     // FAFF-387: the overlay's own legacy-name + parse-fault tags — same LOUD,
@@ -3596,6 +3806,11 @@ function cmdConfig(args) {
     // exit, mirroring the overlay branch above.
     if (e.message === "base-parse-error") {
       process.stderr.write(`faff config: ${e.file} failed to parse (${e.detail}) — a malformed base is never a silent default (FAFF-577).\n`);
+      return 2;
+    }
+    // FAFF-1302: `.faff` exists as a regular file, so a writer cannot create the config under it.
+    if (e.code === "EEXIST" || e.code === "ENOTDIR") {
+      process.stderr.write(`faff config: ${e.message}\n`);
       return 2;
     }
     throw e;

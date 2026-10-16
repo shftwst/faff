@@ -58,7 +58,8 @@ function readScript(name) {
 // files import.
 
 function extractFaffrcHeredoc(scriptText) {
-  return extractHeredoc(scriptText, ".faffrc.yaml");
+  // P1 is frozen by EVP-L4-P1-0002 (test/faff-588) and still writes the deprecated root name.
+  return extractHeredoc(scriptText, ".faff/config.yaml") ?? extractHeredoc(scriptText, ".faffrc.yaml");
 }
 
 function extractGitignoreHeredoc(scriptText) {
@@ -93,7 +94,7 @@ function hasAdversarialBackendBlock(faffrcBody) {
 test("P1/P2/P3 heredocs carry both explicit L4 lights-out dials (review + spec_review)", () => {
   for (const name of ELIGIBLE) {
     const body = extractFaffrcHeredoc(readScript(name));
-    assert.ok(body, `${name}: no .faffrc.yaml heredoc found`);
+    assert.ok(body, `${name}: no .faff/config.yaml heredoc found`);
     const missing = missingDials(body);
     assert.deepEqual(missing, [], `${name}: missing dial(s): ${missing.join(", ")}`);
   }
@@ -102,7 +103,7 @@ test("P1/P2/P3 heredocs carry both explicit L4 lights-out dials (review + spec_r
 test("P1/P2/P3 heredocs carry NO explicit gates.fallback line (fail-closed is the default post-FAFF-522)", () => {
   for (const name of ELIGIBLE) {
     const body = extractFaffrcHeredoc(readScript(name));
-    assert.ok(body, `${name}: no .faffrc.yaml heredoc found`);
+    assert.ok(body, `${name}: no .faff/config.yaml heredoc found`);
     assert.ok(!hasExplicitGatesFallback(body), `${name}: still carries an explicit gates.fallback: fail-closed line — FAFF-522 made it the default, restating it is the leg FAFF-524 removes`);
   }
 });
@@ -237,7 +238,7 @@ test("P2's PRD is emitted at docs/prd/task-api.md (not root PRD.md), with a matc
   assert.match(prdBody, /Container:\*\*\s*task-api/, "docs/prd/task-api.md: missing a Container: task-api metadata line");
 
   const faffrcBody = extractFaffrcHeredoc(text);
-  assert.match(faffrcBody, /container:\s*task-api/, "scaffold-p2-task-api.sh: .faffrc.yaml missing tracking.container: task-api");
+  assert.match(faffrcBody, /container:\s*task-api/, "scaffold-p2-task-api.sh: .faff/config.yaml missing tracking.container: task-api");
 });
 
 test("P1/P3 keep their brief at root (no PRD relocation) and P2 has no residual root PRD.md reference in RUNBOOK/BRIEF", () => {
@@ -260,7 +261,7 @@ test("P1/P3 keep their brief at root (no PRD relocation) and P2 has no residual 
 test("P4/P5 heredocs do NOT claim either explicit L4 dial, nor an explicit gates.fallback line", () => {
   for (const name of GATED) {
     const body = extractFaffrcHeredoc(readScript(name));
-    assert.ok(body, `${name}: no .faffrc.yaml heredoc found`);
+    assert.ok(body, `${name}: no .faff/config.yaml heredoc found`);
     const missing = missingDials(body);
     assert.deepEqual(missing.sort(), ["slots.review", "slots.spec_review"],
       `${name}: expected both explicit L4 dials absent (gated SUT), got missing=${missing.join(", ")}`);

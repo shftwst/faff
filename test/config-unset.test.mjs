@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, writeFileSync, readFileSync, existsSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,18 +18,19 @@ function run(cwd, ...args) {
 
 function repo(base, local) {
   const dir = mkdtempSync(join(tmpdir(), "faff1201-"));
-  if (base !== undefined) writeFileSync(join(dir, ".faffrc.yaml"), base);
-  if (local !== undefined) writeFileSync(join(dir, ".faffrc.local.yaml"), local);
+  mkdirSync(join(dir, ".faff"));
+  if (base !== undefined) writeFileSync(join(dir, ".faff/config.yaml"), base);
+  if (local !== undefined) writeFileSync(join(dir, ".faff/config.local.yaml"), local);
   return dir;
 }
-const base = (dir) => readFileSync(join(dir, ".faffrc.yaml"), "utf8");
-const overlay = (dir) => readFileSync(join(dir, ".faffrc.local.yaml"), "utf8");
+const base = (dir) => readFileSync(join(dir, ".faff/config.yaml"), "utf8");
+const overlay = (dir) => readFileSync(join(dir, ".faff/config.local.yaml"), "utf8");
 
 test("unset removes a block and keeps the surrounding comments and separators", () => {
   const dir = repo("tracking:\n  provider: linear\n\n# model lanes\nmodels:\n  build: sonnet\n  # legacy\n  spec: opus\n\nappetite: small\n");
   const r = run(dir, "config", "unset", "models");
   assert.equal(r.code, 0);
-  assert.equal(r.out.trim(), "config unset: removed models from .faffrc.yaml.");
+  assert.equal(r.out.trim(), "config unset: removed models from .faff/config.yaml.");
   assert.equal(base(dir), "tracking:\n  provider: linear\n\n# model lanes\n\nappetite: small\n");
 });
 
@@ -45,12 +46,12 @@ test("unset --local edits only the overlay and notes the base still sets the key
   assert.equal(r.code, 0);
   assert.equal(overlay(dir), "slots:\n  spec: x\n");
   assert.equal(base(dir), "effort:\n  build: high\n");
-  assert.match(r.err, /note: effort is still set in \.faffrc\.yaml/);
+  assert.match(r.err, /note: effort is still set in \.faff\/config\.yaml/);
 });
 
 test("unset on the base notes a lingering overlay value; no note when the other file is clean", () => {
   const noted = repo("models:\n  build: sonnet\n", "models:\n  build: opus\n");
-  assert.match(run(noted, "config", "unset", "models").err, /note: models is still set in \.faffrc\.local\.yaml/);
+  assert.match(run(noted, "config", "unset", "models").err, /note: models is still set in \.faff\/config\.local\.yaml/);
   const quiet = repo("models:\n  build: sonnet\n", "slots:\n  spec: x\n");
   assert.equal(run(quiet, "config", "unset", "models").err, "");
 });
@@ -98,11 +99,11 @@ test("usage errors exit 2", () => {
 test("a missing target exits 3 and creates nothing", () => {
   const dir = repo(undefined);
   assert.equal(run(dir, "config", "unset", "models").code, 3);
-  assert.equal(existsSync(join(dir, ".faffrc.yaml")), false);
+  assert.equal(existsSync(join(dir, ".faff/config.yaml")), false);
   const withBase = repo("a: 1\n");
   const r = run(withBase, "config", "unset", "models", "--local");
   assert.equal(r.code, 3);
-  assert.equal(existsSync(join(withBase, ".faffrc.local.yaml")), false);
+  assert.equal(existsSync(join(withBase, ".faff/config.local.yaml")), false);
 });
 
 test("absent key, absent ancestor and scalar ancestor exit 3 and leave the file alone", () => {
@@ -111,7 +112,7 @@ test("absent key, absent ancestor and scalar ancestor exit 3 and leave the file 
   for (const key of ["a.c", "x.y", "tracking.provider", "zz"]) {
     const r = run(dir, "config", "unset", key);
     assert.equal(r.code, 3, key);
-    assert.match(r.err, new RegExp(`'${key.replace(".", "\\.")}' is not set in \\.faffrc\\.yaml`));
+    assert.match(r.err, new RegExp(`'${key.replace(".", "\\.")}' is not set in \\.faff\\/config\\.yaml`));
     assert.equal(base(dir), text);
   }
 });
@@ -201,7 +202,7 @@ test("integration smoke: base and overlay, dry run, prune, then already-gone", (
   assert.match(base(dir), /models:/);
   const first = run(dir, "config", "unset", "models");
   assert.equal(first.code, 0);
-  assert.match(first.err, /models is still set in \.faffrc\.local\.yaml/);
+  assert.match(first.err, /models is still set in \.faff\/config\.local\.yaml/);
   assert.equal(run(dir, "config", "unset", "models", "--local").code, 0);
   assert.equal(overlay(dir), "");
   const pruned = run(dir, "config", "unset", "dispatch.spec.effort");

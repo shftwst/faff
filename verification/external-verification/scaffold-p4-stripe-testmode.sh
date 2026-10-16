@@ -34,7 +34,8 @@ dist/
 secrets/
 EOF
 
-cat > .faffrc.yaml <<'EOF'
+mkdir -p .faff
+cat > .faff/config.yaml <<'EOF'
 # faff config — SUT P4 (Stripe test-mode). git-only. GATED on purpose.
 # NO automation_default here: default opt-in keeps autonomous OFF, so the unattended loop can't
 # touch this. Run it L2-L3 / interactively and OBSERVE the park boundary.

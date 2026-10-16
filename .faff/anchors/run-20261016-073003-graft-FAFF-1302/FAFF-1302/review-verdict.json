@@ -1,0 +1,233 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "terminal-only",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/config.js::the un-ignored overlay remedy was a dead command on the deprecated tier",
+      "title": "The un-ignored overlay remedy was a dead command on the deprecated tier",
+      "location": "plugin/skills/faff/bin/lib/config.js:2789",
+      "action": "Choose the remedy by tier: the move for a deprecated root overlay, gitignore-ensure for a canonical one.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "CONFIRMED by repro and FIXED in 982048d3. A repo with an un-ignored root `.faffrc.local.yaml` was told to run `faff gitignore-ensure`; following that left the overlay exactly as stageable, because this change empties the root pattern set so the command writes nothing and does not even create the file. Wrong remedy on the one file whose stated risk is committing machine-private values. Now tier-aware: a canonical overlay keeps the gitignore-ensure advice, verified by repro to actually work, and a deprecated one is told to move the file and told why the other command cannot help. Three selftest cases cover both arms, including the un-ignored deprecated case the review correctly noted the old stubs masked. The finding's second half, that MIGRATION_STEPS names files absent from a not-yet-moved repo, is a misreading: those are forward-looking instructions and step 2 names gitignore-ensure as what creates them.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "The un-ignored overlay remedy was a dead command on the deprecated tier",
+          "location": "plugin/skills/faff/bin/lib/config.js:2789",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/config.js::the duplicate-location message asserted a stale file is ignored without probing git",
+      "title": "The duplicate-location message asserted a stale file is ignored without probing git",
+      "location": "plugin/skills/faff/bin/lib/config.js:2645",
+      "action": "Drop the unprobed parenthetical or compute the state.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "CONFIRMED and FIXED in 7a694073, and worse than the finding stated: the message called the stale file \"(ignored)\" while prescribing `git rm`, which acts only on a tracked file, so it contradicted itself. A stale base in a repo that never carried the old root ignore lines is tracked, not ignored. It now reads \"not read\", which is the property that is always true and the one that matters. Removal commands unchanged.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "The duplicate-location message asserted a stale file is ignored without probing git",
+          "location": "plugin/skills/faff/bin/lib/config.js:2645",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/config.js::a stale deprecated config in a linked worktree draws no duplicate-location finding",
+      "title": "A stale deprecated config in a linked worktree draws no duplicate-location finding",
+      "location": "plugin/skills/faff/bin/lib/config.js:2650",
+      "action": "Report an in-root stale file even when the winning location resolved through the main-worktree fallback.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Plausible and accepted as a narrow gap. `staleLocationPath` returns null when the winning location is outside the root, so a worktree holding a local root-named config whose base actually resolves from the main checkout gets no signal that its local file is dead. Skipping the posture probes for an out-of-root file is correct; the finding's point is that the in-root stale file is exactly what this checkout could report. Narrow: it needs a linked worktree plus a leftover root-named config. Filed rather than fixed, since changing the gate touches the worktree-fallback semantics the spec closed deliberately. Recorded in <run-dir>/FAFF-1302/discovered-scope.json.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "A stale deprecated config in a linked worktree draws no duplicate-location finding",
+          "location": "plugin/skills/faff/bin/lib/config.js:2650",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/config.js::the eexist and enotdir catch in cmdconfig is broader than the fault it was added for",
+      "title": "The EEXIST and ENOTDIR catch in cmdConfig is broader than the fault it was added for",
+      "location": "plugin/skills/faff/bin/lib/config.js",
+      "action": "Narrow it to the write path, or match on the mkdir target.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Valid. The catch was added so that a `.faff` existing as a regular file exits 2 with a clean message instead of a stack trace, which it does. But it wraps every config subcommand, so an EEXIST or ENOTDIR arising anywhere else inside any config verb now surfaces as exit 2 with a raw fs message and no faff context. No current path is known to produce that, so the cost today is latent. Filed. Recorded in <run-dir>/FAFF-1302/discovered-scope.json.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "The EEXIST and ENOTDIR catch in cmdConfig is broader than the fault it was added for",
+          "location": "plugin/skills/faff/bin/lib/config.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/validate-adapters.js::the hand-read guard regex misses config variants under .faff/",
+      "title": "The hand-read guard regex misses config variants under .faff/",
+      "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+      "action": "Widen the pattern to the overlay variant class and extensionless reads, matching the coverage the old root-tier glob had.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Plausible and accepted. The guard's own comment claims it flags the config files, but the pattern matches only the two canonical names, so a skill hand-reading a non-canonical overlay variant under `.faff/` (for example `.faff/config.dev.yaml`) or an extensionless read would pass. The old root-tier `.faffrc.*.yaml` glob covered that variant class. The guard still catches every canonical-name hand-read, which is the common case. Filed. Recorded in <run-dir>/FAFF-1302/discovered-scope.json.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "The hand-read guard regex misses config variants under .faff/",
+          "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gitignore-ensure.js::claimed that .faffrc.*.yaml also matches .faffrc.yaml, making the base permanently mis-flagged",
+      "title": "Claimed that .faffrc.*.yaml also matches .faffrc.yaml, making the base permanently mis-flagged",
+      "location": "plugin/skills/faff/bin/lib/gitignore-ensure.js",
+      "action": "None required; the premise is false.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "Tested directly on git 2.39.5: with a root .gitignore of `.faffrc.*.yaml`, `git check-ignore -q .faffrc.yaml` exits 1 (not ignored) while `.faffrc.local.yaml` exits 0 (ignored). Git's `*` does not match the empty string across the required literal dot here.",
+      "disposition_rationale": "The finding rests on a confidently-stated claim about git wildmatch semantics that does not hold. The FAFF-548 \"safe by construction\" reasoning stands, no base is mis-flagged, and the predicted indefinite false positive cannot occur.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Claimed that .faffrc.*.yaml also matches .faffrc.yaml, making the base permanently mis-flagged",
+          "location": "plugin/skills/faff/bin/lib/gitignore-ensure.js",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "records/specs/2026-10-16-FAFF-1302-config-under-faff-dir-design.md::claimed the diff does not show this repository's own config files moving",
+      "title": "Claimed the diff does not show this repository's own config files moving",
+      "location": "records/specs/2026-10-16-FAFF-1302-config-under-faff-dir-design.md",
+      "action": "None required; the renames are present.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "Both renames are in the commit and detected as renames: `R100 .faffrc.yaml -> .faff/config.yaml` and `R096 .faffrc.example.yaml -> .faff/config.example.yaml`. `faff config path` in the worktree prints the new base.",
+      "disposition_rationale": "The reviewer flagged this honestly as unverifiable from what it was given, and it was right to: the focused core diff I supplied for this pass filtered to the library, the ignore file, the new test and two prose files, which excluded the renamed paths. The gap was in my input selection, not in the change.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Claimed the diff does not show this repository's own config files moving",
+          "location": "records/specs/2026-10-16-FAFF-1302-config-under-faff-dir-design.md",
+          "severity": "observation",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/config.js::the readconfiglayers label change may break unseen consumers",
+      "title": "The readConfigLayers label change may break unseen consumers",
+      "location": "plugin/skills/faff/bin/lib/config.js",
+      "action": "None taken; no visible consumer compares the field to a basename.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Flagged honestly as unverifiable from the supplied files. Checked: every `.file` equality or join in the library belongs to `adr.js`'s ADR records, a different field. Within config.js the label feeds message attribution, which the change updated deliberately, because the old `path.basename` rendered `.faff/config.yaml` as the bare `config.yaml` in removed-tree messages. No action.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "The readConfigLayers label change may break unseen consumers",
+          "location": "plugin/skills/faff/bin/lib/config.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gitignore-ensure.js::describetarget reports on a root .gitignore that was never created",
+      "title": "describeTarget reports on a root .gitignore that was never created",
+      "location": "plugin/skills/faff/bin/lib/gitignore-ensure.js:380",
+      "action": "Already addressed.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Already fixed in 9c0826a7, before this pass ran, in response to the same observation from the standard review. An empty pattern set is now reported distinctly as needing no faff lines, leaving the already-complete and created cases untouched. The adversarial pass saw the new wording and judged it cosmetic.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "describeTarget reports on a root .gitignore that was never created",
+          "location": "plugin/skills/faff/bin/lib/gitignore-ensure.js:380",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    }
+  ]
+}

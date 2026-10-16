@@ -128,7 +128,8 @@ Endpoints: `GET /notes`, `POST /notes`, `PUT /notes/:id`, `GET /notes/:id/relate
 EOF
 
 # --- the faff control surface ---
-cat > .faffrc.yaml <<'EOF'
+mkdir -p .faff
+cat > .faff/config.yaml <<'EOF'
 # faff config — SUT P5 (brownfield). git-only. GATED on purpose (exoskeleton, not lights-out).
 # NO automation_default: default opt-in keeps autonomous OFF. Drive it L1-L3 interactively.
 slots:

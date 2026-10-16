@@ -9,7 +9,7 @@
  * Extract the body of the first `cat > <target> <<'EOF' ... EOF` here-doc in a scaffolder script
  * that materialises the given target path. Returns null if no such here-doc is present.
  * @param {string} scriptText  the full scaffolder shell source
- * @param {string} target      the here-doc's target path, e.g. ".faffrc.yaml" or "RUNBOOK.md"
+ * @param {string} target      the here-doc's target path, e.g. ".faff/config.yaml" or "RUNBOOK.md"
  * @returns {string | null}    the here-doc body, or null when absent
  */
 export function extractHeredoc(scriptText, target) {

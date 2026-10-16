@@ -51,7 +51,7 @@ const { observeForgeMerge } = require("./forge-merge");
 const { recoveryClaimStore, resolveBundleStoreName } = require("./bundle");
 const { isLedgerSchemaError, mutateLedgerUnderLock, overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
 const { applyResumeToLedger, classifyReEnterable, reconstructResumePlan, renderResumeBanner, runResumeEvent } = require("./resume");
-const { dig, findRoot, homeDir, mainWorktreeRoot, readLedger } = require("./shared-infra");
+const { CANONICAL_OVERLAY_CONFIG, dig, findRoot, homeDir, mainWorktreeRoot, readLedger } = require("./shared-infra");
 
 // FAFF-1027 — TWO static axes, not one. `enforced` says a shipped pipeline step INVOKES this
 // guardrail's contract. `rechecked` says a DETERMINISTIC GATE INDEPENDENTLY REFUSES when this
@@ -285,7 +285,7 @@ function dialCoherence(dial) {
   if (!isAdversarial(slots.spec_review, ADVERSARIAL_SPEC_REVIEW_OCCUPANTS)) {
     refusals.push({
       gate: "dial-coherence:adversarial-spec-review",
-      detail: `L4 lights-out requires an adversarial spec_review occupant; '${slots.spec_review == null ? "" : slots.spec_review}' is the single-pass default — the approach-challenge would not be adversarial — fix slots.spec_review in .faffrc.local.yaml (set: faffter-dark-spec-review)`,
+      detail: `L4 lights-out requires an adversarial spec_review occupant; '${slots.spec_review == null ? "" : slots.spec_review}' is the single-pass default — the approach-challenge would not be adversarial — fix slots.spec_review in ${CANONICAL_OVERLAY_CONFIG} (set: faffter-dark-spec-review)`,
     });
   }
   // Rule (B) — the engineering gate ladder must fail closed under lights-out; advisory
@@ -293,7 +293,7 @@ function dialCoherence(dial) {
   if (d.gates_fallback !== "fail-closed") {
     refusals.push({
       gate: "dial-coherence:gates-fallback",
-      detail: `gates.fallback is '${d.gates_fallback == null ? "" : d.gates_fallback}' — an unattended run needs fail-closed engineering gates; advisory lets a repo with no declared gates pass silently — fix gates.fallback in .faffrc.local.yaml (set: fail-closed)`,
+      detail: `gates.fallback is '${d.gates_fallback == null ? "" : d.gates_fallback}' — an unattended run needs fail-closed engineering gates; advisory lets a repo with no declared gates pass silently — fix gates.fallback in ${CANONICAL_OVERLAY_CONFIG} (set: fail-closed)`,
     });
   }
   return refusals;
@@ -449,14 +449,14 @@ function lightsOutPreflight(probes) {
   // degradation an unattended run cannot absorb. Refuse the mint outright; the
   // hatch is for limping interactively, not living lights-out.
   if (probes.configBaseLenientSet)
-    refusals.push({ gate: "config-base-lenient", detail: "FAFF_CONFIG_BASE_LENIENT is set — governance-read leniency must not be armed for a lights-out run (a malformed .faffrc.yaml would silently degrade budget/sentry ceilings to defaults mid-run). Unset the env var and fix .faffrc.yaml (git diff / git checkout .faffrc.yaml). (FAFF-577)" });
+    refusals.push({ gate: "config-base-lenient", detail: "FAFF_CONFIG_BASE_LENIENT is set — governance-read leniency must not be armed for a lights-out run (a malformed .faff/config.yaml would silently degrade budget/sentry ceilings to defaults mid-run). Unset the env var and fix .faff/config.yaml (git diff / git checkout .faff/config.yaml). (FAFF-577)" });
   // FAFF-364 — a malformed budget.until / --until must never mint a ledger carrying
   // it: fires REGARDLESS of other ceilings (a clean budget.tokens ceiling does NOT
   // excuse garbage until). When malformed until is the run's ONLY ceiling, the
   // budget-ceiling refusal above ALSO fires (until resolves to null there too) —
   // both refusals present, each naming its own remedy.
   if (probes.budgetUntilInvalid != null)
-    refusals.push({ gate: "budget-until-invalid", detail: `budget.until / --until '${probes.budgetUntilInvalid}' is not a valid HH:MM (00-23:00-59) — fix budget.until in .faffrc.yaml or the --until flag` });
+    refusals.push({ gate: "budget-until-invalid", detail: `budget.until / --until '${probes.budgetUntilInvalid}' is not a valid HH:MM (00-23:00-59) — fix budget.until in .faff/config.yaml or the --until flag` });
   // FAFF-446 — budget.price_per_mtok is REMOVED (the ADR-0048 map is the sole
   // pricing source now). Refusing an L4 mint here carries NO fail-open risk (a
   // refusal blocks the mint outright; it can never mask an in-flight breach the
@@ -465,7 +465,7 @@ function lightsOutPreflight(probes) {
   // anti-divergence hard-refuse is unconditionally the right posture: an L4 run
   // must not launch under stale config that no longer means what it appears to.
   if (probes.budgetPriceRemoved != null)
-    refusals.push({ gate: "budget-price-per-mtok-removed", detail: `budget.price_per_mtok ('${probes.budgetPriceRemoved}') is removed (FAFF-446) — unset it in .faffrc.yaml; budget.cost prices from the ADR-0048 map by default (set budget.price_per_mtok_by_model to override specific models)` });
+    refusals.push({ gate: "budget-price-per-mtok-removed", detail: `budget.price_per_mtok ('${probes.budgetPriceRemoved}') is removed (FAFF-446) — unset it in .faff/config.yaml; budget.cost prices from the ADR-0048 map by default (set budget.price_per_mtok_by_model to override specific models)` });
   // FAFF-604 — a dollar ceiling cannot see an engine whose spend is unobservable
   // (`telemetry: none`). Counting it as zero would report "under budget" on a
   // figure that never saw its spend, so the mint refuses rather than launch an
@@ -1925,7 +1925,7 @@ function lightsOutSelftest() {
     hatchArmed.proceed === false && hatchArmed.refusals.some((r) => r.gate === "config-base-lenient"));
   check("config-base-lenient refusal names the hatch + remedy",
     /FAFF_CONFIG_BASE_LENIENT/.test(hatchArmed.refusals.find((r) => r.gate === "config-base-lenient").detail) &&
-    /\.faffrc\.yaml/.test(hatchArmed.refusals.find((r) => r.gate === "config-base-lenient").detail));
+    /\.faff\/config\.yaml/.test(hatchArmed.refusals.find((r) => r.gate === "config-base-lenient").detail));
   check("hatch unset (the common case) never fires config-base-lenient",
     !happy.refusals.some((r) => r.gate === "config-base-lenient"));
 

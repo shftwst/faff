@@ -1,11 +1,11 @@
 // FAFF-433 — First-run DECLINE path leaves the repo at accept/decline parity.
 //
-// The gateway "First run" soft-offer's decline branch writes a stub .faffrc.yaml
+// The gateway "First run" soft-offer's decline branch writes a stub .faff/config.yaml
 // (so the offer doesn't re-fire) and then — mirroring /faff-onboard step 5 — runs
 // `gitignore-ensure` + `hooks-ensure`. These tests drive that exact mechanical
 // sequence against the REAL CLI on the filesystem and pin the invariant the prose
 // promises: after a decline, `.faff/` is gitignored AND both `runcheck` /
-// `prepcheck` Stop hooks are registered, `.faffrc.yaml` exists, and a re-run is a
+// `prepcheck` Stop hooks are registered, `.faff/config.yaml` exists, and a re-run is a
 // byte-stable no-op.
 //
 // Fidelity note: the decline prose runs the bare `"$faff" config …` /
@@ -99,11 +99,11 @@ test("decline sequence writes `.faff/.gitignore` with `/*` + carve-out `!/anchor
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test("decline sequence writes a stub .faffrc.yaml so `config path` exits 0 (offer will not re-fire)", () => {
+test("decline sequence writes a stub .faff/config.yaml so `config path` exits 0 (offer will not re-fire)", () => {
   const root = seedGitRepo();
   try {
     declineSequence(root);
-    assert.equal(existsSync(join(root, ".faffrc.yaml")), true, ".faffrc.yaml stub written");
+    assert.equal(existsSync(join(root, ".faff/config.yaml")), true, ".faff/config.yaml stub written");
     const p = run(["config", "path"], root, { allowFail: true });
     assert.equal(p.code, 0, "`faff config path` exits 0 → the first-run offer does not re-fire");
   } finally { rmSync(root, { recursive: true, force: true }); }

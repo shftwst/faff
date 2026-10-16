@@ -109,8 +109,8 @@ cd "$WORKTREE_PATH"
 # defaults and the build silently ignores the repo's config (FAFF-186). .faffrc.local.yaml is the
 # gitignored machine-local overlay (FAFF-387) — copied too so a linked worktree resolves the same
 # merged config as the main checkout (both are still covered by the FAFF-208 fallback per-file).
-# Keep .faffrc.yaml in the list: an unmigrated repo still keeps it gitignored, so a worktree needs
-# the copy. Canonical names only — the resolver errors loudly on legacy .faffrc / .faffrc.yml, so
+# FAFF-1302: the config lives under .faff/ now; the root .faffrc names stay in the list so an
+# unmigrated repo (the deprecated tier) still gets its copy. Canonical names only — the resolver errors loudly on legacy .faffrc / .faffrc.yml, so
 # copying those would break the worktree.
 #
 # FAFF-532: copy ONLY files git does not track. `git worktree add` already materialises every
@@ -124,7 +124,7 @@ cd "$WORKTREE_PATH"
 # The tracked-test is the right question, not a gitignore-listing check: the overlay
 # .faffrc.local.yaml is untracked yet need not appear in .gitignore, so a gitignore-based guard
 # would wrongly drop it.
-for f in .env .env.local .env.development .env.production.local .claude/settings.local.json .faffrc.yaml .faffrc.local.yaml; do
+for f in .env .env.local .env.development .env.production.local .claude/settings.local.json .faff/config.yaml .faff/config.local.yaml .faffrc.yaml .faffrc.local.yaml; do
   if [ -f "$CWD/$f" ]; then
     # Skip any path the worktree already tracks — git put the correct own-ref content there.
     # Both streams suppressed; only the exit code is consulted, so a tracked-but-locally-modified

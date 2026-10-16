@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1302",
+  "build": {
+    "status": "complete",
+    "diff_hash": "a0ec8e202df5abce388f1bab5a9da9fe7690ce641c9fa713f626a02b3c193d66",
+    "branch": "FAFF-1302-config-under-faff-dir",
+    "pushed_at": "2026-10-16T14:55:55.183Z"
+  },
+  "updated_at": "2026-10-16T14:55:55.183Z"
+}

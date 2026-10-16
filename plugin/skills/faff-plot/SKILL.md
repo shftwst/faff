@@ -161,7 +161,7 @@ Report each project's landed state exactly — container id, members moved / ski
 
 All three write nothing to the tracker and are logged:
 
-- **Unanswered** (e.g. the thematic default declines with an empty set) — report "the configured methodology (`<name>`) offers no grouping opinion for a backlog rehoming pass" and how to switch lenses (`slots.methodology` in `.faffrc`). Exit cleanly.
+- **Unanswered** (e.g. the thematic default declines with an empty set) — report "the configured methodology (`<name>`) offers no grouping opinion for a backlog rehoming pass" and how to switch lenses (`slots.methodology` in `.faff/config.yaml`). Exit cleanly.
 - **Answered but empty** — render the leave-loose set with the lens's findings; "nothing to rehome yet" is information, not an error.
 - **All declined** — acknowledge, log the declines, exit cleanly.
 

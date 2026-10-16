@@ -11,7 +11,7 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { loadConfig } = require("./config");
 const { parseArgs, usageError } = require("./argv");
-const { CANONICAL_CONFIG, LEGACY_CONFIG, dig, findRoot, parseConfigMapStrict } = require("./shared-infra");
+const { CANONICAL_CONFIG, DEPRECATED_CONFIG, LEGACY_CONFIG, dig, findRoot, parseConfigMapStrict, selectNamed } = require("./shared-infra");
 
 const DEFAULT_FIXTURE_PATHS = Object.freeze(["fixtures/", "__fixtures__/", "testdata/"]);
 
@@ -42,7 +42,7 @@ function git(root, args) {
 
 function parseConfigText(text, label) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "faff-fixture-paths-"));
-  const file = path.join(dir, CANONICAL_CONFIG);
+  const file = path.join(dir, "config.yaml");
   try {
     fs.writeFileSync(file, text);
     return { cfg: parseConfigMapStrict(file, "base-parse-error", "the base config") };
@@ -64,14 +64,19 @@ function readConfigAtRef(root, ref) {
     return { error: `faff review-fixture-paths: cannot resolve --ref "${ref}" to a commit` };
   }
   const exists = (name) => git(root, ["cat-file", "-e", `${ref}:${name}`]).status === 0;
-  const legacy = LEGACY_CONFIG.filter(exists);
-  if (legacy.length) {
-    return { error: `faff review-fixture-paths: legacy config filename at ${ref} (${legacy.join(", ")}); rename to ${CANONICAL_CONFIG}` };
+  let picked;
+  try {
+    picked = selectNamed(exists, CANONICAL_CONFIG, DEPRECATED_CONFIG, LEGACY_CONFIG, "legacy-config-name");
+  } catch (e) {
+    if (e && e.message === "legacy-config-name") {
+      return { error: `faff review-fixture-paths: legacy config filename at ${ref} (${e.legacy.join(", ")}); rename to ${CANONICAL_CONFIG}` };
+    }
+    throw e;
   }
-  if (!exists(CANONICAL_CONFIG)) return { cfg: {} };
-  const shown = git(root, ["show", `${ref}:${CANONICAL_CONFIG}`]);
-  if (shown.status !== 0) return { error: `faff review-fixture-paths: cannot read ${CANONICAL_CONFIG} at ${ref}` };
-  return parseConfigText(shown.stdout, `${CANONICAL_CONFIG} at ${ref}`);
+  if (picked === null) return { cfg: {} };
+  const shown = git(root, ["show", `${ref}:${picked.name}`]);
+  if (shown.status !== 0) return { error: `faff review-fixture-paths: cannot read ${picked.name} at ${ref}` };
+  return parseConfigText(shown.stdout, `${picked.name} at ${ref}`);
 }
 
 function readWorkingTreeConfig(root) {
@@ -128,6 +133,7 @@ function reviewFixturePathsSelftest() {
     run("commit", "-q", "--allow-empty", "-m", "empty");
     const noFile = readConfigAtRef(root, "HEAD");
     ok("a ref with no config resolves to the defaults", noFile.cfg && same(resolveFixturePaths(noFile.cfg), DEFAULT_FIXTURE_PATHS));
+    fs.mkdirSync(path.join(root, ".faff"), { recursive: true });
     fs.writeFileSync(path.join(root, CANONICAL_CONFIG), "review:\n  fixture_paths:\n    - base/data/\n");
     run("add", CANONICAL_CONFIG);
     run("commit", "-q", "-m", "base config");
@@ -151,6 +157,18 @@ function reviewFixturePathsSelftest() {
     ok("a malformed base config exits 2 with the parse error on stderr", code === 2 && /malformed/.test(stderr));
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
+  }
+
+  const deprecatedRoot = fs.mkdtempSync(path.join(os.tmpdir(), "faff-fixture-paths-deprecated-"));
+  try {
+    const run = (...gitArgs) => spawnSync("git", ["-C", deprecatedRoot, "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null", ...gitArgs], { encoding: "utf8" });
+    run("init", "-q");
+    fs.writeFileSync(path.join(deprecatedRoot, DEPRECATED_CONFIG[0]), "review:\n  fixture_paths:\n    - old/data/\n");
+    run("add", DEPRECATED_CONFIG[0]);
+    run("commit", "-q", "-m", "deprecated-tier base config");
+    ok("--ref reads a base config on the deprecated root tier", same(resolveFixturePaths(readConfigAtRef(deprecatedRoot, "HEAD").cfg), ["old/data/"]));
+  } finally {
+    fs.rmSync(deprecatedRoot, { recursive: true, force: true });
   }
 
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (review-fixture-paths, ${fail} failed)`);

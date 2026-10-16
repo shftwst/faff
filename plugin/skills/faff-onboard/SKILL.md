@@ -1,17 +1,17 @@
 ---
 name: faff-onboard
-description: "First-run setup. Bootstrap a working faff config for this repo — auto-detects your tracker, repo slug, and git host, asks only what it can't infer, and writes a valid `.faffrc.yaml`. Use for 'set up faff', 'onboard', 'first run', 'no faffrc', 'configure faff for this repo', 'get faff working here'."
+description: "First-run setup. Bootstrap a working faff config for this repo — auto-detects your tracker, repo slug, and git host, asks only what it can't infer, and writes a valid `.faff/config.yaml`. Use for 'set up faff', 'onboard', 'first run', 'no faffrc', 'configure faff for this repo', 'get faff working here'."
 ---
 
 # faff-onboard
 
-The first-run front door. A repo with **no `.faffrc.yaml`** runs entirely on faff's built-in defaults — workable, but it can't know your tracker team, your repo slug, or where your specs live. `/faff-onboard` is the conversational on-ramp that fills that gap: it **discovers** what it can (tracker MCP, git remote, docs layout), **confirms** its guesses, **asks** only the one thing it genuinely can't infer (`team_key`), and **persists** a `tracking:` block via the `faff config init` CLI. It never hand-writes the rc file, and it **never clobbers** an existing config.
+The first-run front door. A repo with **no `.faff/config.yaml`** runs entirely on faff's built-in defaults — workable, but it can't know your tracker team, your repo slug, or where your specs live. `/faff-onboard` is the conversational on-ramp that fills that gap: it **discovers** what it can (tracker MCP, git remote, docs layout), **confirms** its guesses, **asks** only the one thing it genuinely can't infer (`team_key`), and **persists** a `tracking:` block via the `faff config init` CLI. It never hand-writes the rc file, and it **never clobbers** an existing config.
 
 It is **discovery, not interrogation** — every value it can detect is offered as a confirm, not a blank prompt. The MVP writes the `tracking` block only.
 
 ## Configuration
 
-**Load the kernel first — note onboard runs *before* a config exists.** If `faff/references/kernel.md` isn't in context this turn, Read it now — onboard uses the `.faff/` logging layout, the Untrusted-input no-execute rule, the canonical Resolver snippet, and the Control-label conventions (all kernel-side). Do **not** Read `faff/SKILL.md` (the bare-`/faff` routing gateway). Then Read `faff/references/tracker.md` (the Spec docs location onboard writes). Loading needs no resolvable `.faffrc.yaml` (the kernel is static skill prose, and onboard exists for the no-config case). Don't call `faff config get …` here — onboard's only config calls are `faff config path` (bail check) and `faff config init` (final write).
+**Load the kernel first — note onboard runs *before* a config exists.** If `faff/references/kernel.md` isn't in context this turn, Read it now — onboard uses the `.faff/` logging layout, the Untrusted-input no-execute rule, the canonical Resolver snippet, and the Control-label conventions (all kernel-side). Do **not** Read `faff/SKILL.md` (the bare-`/faff` routing gateway). Then Read `faff/references/tracker.md` (the Spec docs location onboard writes). Loading needs no resolvable `.faff/config.yaml` (the kernel is static skill prose, and onboard exists for the no-config case). Don't call `faff config get …` here — onboard's only config calls are `faff config path` (bail check) and `faff config init` (final write).
 
 **Resolving the `faff` executable.** Use the canonical gateway snippet (gateway → **Resolving the `faff` executable**) — onboard cannot assume `faff` is on `PATH`:
 
@@ -24,7 +24,7 @@ then call `"$faff" config …` / `"$faff" gitignore-ensure`.
 
 ## Rendering
 
-All human-facing output this skill emits — the detection summary, the confirm prompts, the dry-run preview, the closing report — passes through the configured `rendering_adaptor` normalise pass before it is printed (gateway → **Rendering**, Universal-routing rule). Enumerable sets (detected values, the pick-list of teams) render as skimmable lists, never `·`/comma run-on paragraphs. (The `.faffrc.yaml` the CLI writes is a config file, not human-facing output — it is exempt, and in any case onboard never hand-formats it.)
+All human-facing output this skill emits — the detection summary, the confirm prompts, the dry-run preview, the closing report — passes through the configured `rendering_adaptor` normalise pass before it is printed (gateway → **Rendering**, Universal-routing rule). Enumerable sets (detected values, the pick-list of teams) render as skimmable lists, never `·`/comma run-on paragraphs. (The `.faff/config.yaml` the CLI writes is a config file, not human-facing output — it is exempt, and in any case onboard never hand-formats it.)
 
 ## Lane
 
@@ -50,17 +50,17 @@ Before anything else, resolve one boolean and carry it unchanged through every l
 - **Interactive, no `--local`** → prompt "Set faff up in local (personal, uncommitted) mode? (y/N)"; an empty answer defaults to **No** (standard).
 - **Non-interactive, no `--local`** → standard mode. There is no autonomous path into this skill at all (see **Interactive-only**, above), but a scripted/non-interactive invocation without the flag still resolves to standard rather than prompting into a hang.
 
-Local mode redirects every writer below to its personal, uncommitted target (`.faffrc.local.yaml`, `.git/info/exclude`, `.claude/settings.local.json`, each via that writer's own `--local` flag) and pins two extra config values (`bundle_store: local`, a real `tracking.label_prefix`). Standard mode (no flag, or the prompt answered No) runs the pipeline below exactly as it always has and writes the same committable `.faffrc.yaml`.
+Local mode redirects every writer below to its personal, uncommitted target (`.faff/config.local.yaml`, `.git/info/exclude`, `.claude/settings.local.json`, each via that writer's own `--local` flag) and pins two extra config values (`bundle_store: local`, a real `tracking.label_prefix`). Standard mode (no flag, or the prompt answered No) runs the pipeline below exactly as it always has and writes the same committable `.faff/config.yaml`.
 
 ### 1. Bail first — never clobber
 
 Run `"$faff" config path` and branch on the exit code **before doing anything else**:
 
 - **Exit 0** — a config already exists. **First distinguish a decline-stub from a real config.** A *decline-stub* is the minimal rc a declined first-run offer writes (gateway → **First run**): a config carrying **only** the one empty-value `tracking.spec_docs_path` leaf and nothing else. Read the config with existing `faff config get`; if it is a decline-stub (that one empty key is all there is), a *deliberate* `/faff-onboard` **proceeds to detection (step 2)** rather than bailing — the human declined once but is now opting in for real, and onboarding a decline-stub clobbers nothing. Otherwise a real config exists: print the resolved path, report that faff is already set up for this repo, and **stop**. Onboarding never overwrites a live config. (If the human wants to change a value, that's a targeted `faff config init --set …`, not a re-onboard.)
-- **Exit 2** — a legacy-named config (`.faffrc` / `.faffrc.yml`) is present. **Surface the loud config-rename error verbatim** and stop — do **not** bootstrap a fresh config over it. The fix is to rename the file to `.faffrc.yaml`, not to write a second one.
+- **Exit 2** — a legacy-named config (`.faffrc` / `.faffrc.yml`) is present. **Surface the loud config-rename error verbatim** and stop — do **not** bootstrap a fresh config over it. The fix is to rename the file to `.faff/config.yaml`, not to write a second one (the deprecated root `.faffrc.yaml` still resolves, but it is not where to steer an operator).
 - **Exit 3** — no config. **Proceed** to detection.
 
-**Local-mode override (Exit 0 only).** The above three branches are the standard-mode bail table, unchanged. In local mode, an Exit 0 config does not stop the flow: if `.faffrc.yaml` is git-tracked (`git ls-files --error-unmatch .faffrc.yaml` exits 0), warn that a committed base is tracked and local mode adds a personal overlay on top of it without hiding it, then **proceed** to detection regardless. This is safe because every local-mode writer below targets `.faffrc.local.yaml` exclusively — the base is never read or modified by this proceed path. Exit 2 (legacy-named config) still stops in both modes.
+**Local-mode override (Exit 0 only).** The above three branches are the standard-mode bail table, unchanged. In local mode, an Exit 0 config does not stop the flow: if `.faff/config.yaml` is git-tracked (`git ls-files --error-unmatch .faff/config.yaml` exits 0), warn that a committed base is tracked and local mode adds a personal overlay on top of it without hiding it, then **proceed** to detection regardless. This is safe because every local-mode writer below targets `.faff/config.local.yaml` exclusively — the base is never read or modified by this proceed path. Exit 2 (legacy-named config) still stops in both modes.
 
 ### 2. Detect (discovery, not interrogation)
 
@@ -104,8 +104,8 @@ Once `team_key` resolves, discover the tracker's own maintained issue templates 
 Assemble a **single** `faff config init` call with one `--set tracking.<key>=<value>` per detected/confirmed value:
 
 - Only keys this flow detects: **`tracker`, `team_key`, `repo`, `git_host`, `spec_docs_path`, `adr_docs_path`, `adr_superseded_docs_path`, `prd_docs_path`, `prdr_docs_path`, `spike_docs_path`, `label_prefix`** — all already in `TRACKING_KEYS`, so no CLI change. **Never `project_id`** — it is not in the writer's allowlist and `config init` exits 2 on it (deferred to a separate ticket). Omit any key that wasn't detected/confirmed.
-- **Dry-run first:** run the same command with `--dry-run` and show the human the exact `.faffrc.yaml` text that will be written. One confirm gate ("Write this config? (y/n)").
-- On confirm, run it **without** `--dry-run` to write. The writer is surgical and round-trip-verified; it creates `.faffrc.yaml` (the single canonical filename).
+- **Dry-run first:** run the same command with `--dry-run` and show the human the exact `.faff/config.yaml` text that will be written. One confirm gate ("Write this config? (y/n)").
+- On confirm, run it **without** `--dry-run` to write. The writer is surgical and round-trip-verified; it creates `.faff/` and `.faff/config.yaml`.
 
 Example shape (values illustrative):
 
@@ -117,7 +117,7 @@ Example shape (values illustrative):
   --set tracking.git_host=github
 ```
 
-**Local mode: two writes, both `--local`.** When resolving local, append `--set tracking.label_prefix=<candidate>` (the derived/prompted value above) and `--local` to the same `config init` call — `tracking.label_prefix` is in the writer's allowlist, so it rides this one call. `bundle_store` is a **separate, top-level** key outside that allowlist (`config init` exits 2 on anything not in `TRACKING_KEYS`), so pin it with a second call: `"$faff" config set bundle_store local --local`. Both writes target the same file, `.faffrc.local.yaml` — each writer resolves `--local` to the overlay, never the base. Dry-run both before the single confirm: the preview shows the exact `.faffrc.local.yaml` text the `config init --local` call would write, plus the pending `config set bundle_store local --local`. One confirm gate covers both writes; on confirm, run the `config init --local` call first, then the `config set` call. The "commit `.faffrc.yaml`" recommendation (step 5, below) is standard-mode only — local mode's preview and report name the overlay + `.git/info/exclude` + `.claude/settings.local.json` targets instead.
+**Local mode: two writes, both `--local`.** When resolving local, append `--set tracking.label_prefix=<candidate>` (the derived/prompted value above) and `--local` to the same `config init` call — `tracking.label_prefix` is in the writer's allowlist, so it rides this one call. `bundle_store` is a **separate, top-level** key outside that allowlist (`config init` exits 2 on anything not in `TRACKING_KEYS`), so pin it with a second call: `"$faff" config set bundle_store local --local`. Both writes target the same file, `.faff/config.local.yaml` — each writer resolves `--local` to the overlay, never the base. Dry-run both before the single confirm: the preview shows the exact `.faff/config.local.yaml` text the `config init --local` call would write, plus the pending `config set bundle_store local --local`. One confirm gate covers both writes; on confirm, run the `config init --local` call first, then the `config set` call. The "commit `.faff/config.yaml`" recommendation (step 5, below) is standard-mode only — local mode's preview and report name the overlay + `.git/info/exclude` + `.claude/settings.local.json` targets instead.
 
 ```bash
 "$faff" config init \
@@ -142,10 +142,10 @@ If step 3b was skipped, or **zero** mappings were confirmed (every template unma
 
 After the write succeeds, run two idempotent, non-destructive ensurers:
 
-- `"$faff" gitignore-ensure` — so the legacy rc names and the machine-local overlay `.faffrc.local.yaml` are ignored in `.gitignore`, and `.faff/` is ignored by the new `.faff/.gitignore` (a no-op when already ignored, append-only; relay any warning it prints). The **base `.faffrc.yaml` is deliberately NOT ignored**: it is the committable base — git is its backup and drift alarm. **Recommend committing it** in the closing report (below); the operator commits — onboard never runs `git add`/`git commit` itself.
+- `"$faff" gitignore-ensure` — so the machine-local overlay `.faff/config.local.yaml` and the run state are ignored by `.faff/.gitignore`, and nothing is added to the project's root `.gitignore` (a no-op when already ignored, append-only; relay any warning it prints). The **base `.faff/config.yaml` is deliberately NOT ignored**: it is the committable base — git is its backup and drift alarm. **Recommend committing it** in the closing report (below); the operator commits — onboard never runs `git add`/`git commit` itself.
 - `"$faff" hooks-ensure` — registers faff's Stop-hook command set (`runcheck --hook` + `prepcheck --hook`) in `.claude/settings.json` so the run-ledger and same-turn-attach guards actually fire. A byte-stable no-op when already wired; it **skips** a command the resolved `faff` can't serve (a stale/copy install) rather than wiring a session-blocking hook, and names the re-link remedy.
 
-**Local mode: thread `--local` to both ensurers.** `"$faff" gitignore-ensure --local` writes only `.git/info/exclude` instead of `.gitignore` and `.faff/.gitignore` (the local pattern set covers `.faffrc.yaml`, `.faffrc.*.yaml`, and `.faff/`), leaving both untouched. `"$faff" hooks-ensure --local` writes the same Stop-hook set to `.claude/settings.local.json`, leaving `.claude/settings.json` untouched. Standard mode passes neither flag and behaves exactly as today.
+**Local mode: thread `--local` to both ensurers.** `"$faff" gitignore-ensure --local` writes only `.git/info/exclude` instead of `.gitignore` and `.faff/.gitignore` (the local pattern set is `.faff/`, which covers the base config and the overlay), leaving both untouched. `"$faff" hooks-ensure --local` writes the same Stop-hook set to `.claude/settings.local.json`, leaving `.claude/settings.json` untouched. Standard mode passes neither flag and behaves exactly as today.
 
 ### 6. Re-run never clobbers
 
@@ -153,9 +153,9 @@ Onboard relies on an idempotent, conflict-guarded writer: re-running `/faff-onbo
 
 ### 7. Report and log
 
-Close with a skimmable summary: the config path written, the keys set, the gitignore result, **the native-template map** (if written: the path `.faff/templates/native-templates.yaml` and each faff-type→template pairing; plus **every unmapped template named** so the human sees what was discovered but not stored — or a note that discovery was skipped/empty), **a recommendation to commit `.faffrc.yaml`** and the map at `.faff/templates/native-templates.yaml` (git is their backup + drift alarm; put any machine-local values in a gitignored `.faffrc.local.yaml` overlay, and run `faff config check` to verify posture), and (if git-only) a note that tracker-keyed values were skipped. Write a log per the gateway `.faff/logging` rule: the detected values, which MCP was inspected, what was confirmed vs. asked, the exact `config init` command run, and the outcome — enough that a follow-up agent can see how this repo's config came to exist.
+Close with a skimmable summary: the config path written, the keys set, the gitignore result, **the native-template map** (if written: the path `.faff/templates/native-templates.yaml` and each faff-type→template pairing; plus **every unmapped template named** so the human sees what was discovered but not stored — or a note that discovery was skipped/empty), **a recommendation to commit `.faff/config.yaml`** and the map at `.faff/templates/native-templates.yaml` (git is their backup + drift alarm; put any machine-local values in a gitignored `.faff/config.local.yaml` overlay, and run `faff config check` to verify posture), and (if git-only) a note that tracker-keyed values were skipped. Write a log per the gateway `.faff/logging` rule: the detected values, which MCP was inspected, what was confirmed vs. asked, the exact `config init` command run, and the outcome — enough that a follow-up agent can see how this repo's config came to exist.
 
-**Local mode reporting.** In local mode, the summary instead names the overlay path (`.faffrc.local.yaml`), both pinned values (`bundle_store: local`, `tracking.label_prefix`), the `.git/info/exclude` exclude target, and the `.claude/settings.local.json` hooks target — the "commit `.faffrc.yaml`" recommendation is omitted, since there is no base to commit. If a committed base was warned about in step 1, repeat that warning here so it isn't lost in scrollback. The log records the resolved `local` boolean alongside the usual detected/confirmed/command/outcome trail.
+**Local mode reporting.** In local mode, the summary instead names the overlay path (`.faff/config.local.yaml`), both pinned values (`bundle_store: local`, `tracking.label_prefix`), the `.git/info/exclude` exclude target, and the `.claude/settings.local.json` hooks target — the "commit `.faff/config.yaml`" recommendation is omitted, since there is no base to commit. If a committed base was warned about in step 1, repeat that warning here so it isn't lost in scrollback. The log records the resolved `local` boolean alongside the usual detected/confirmed/command/outcome trail.
 
 ## Rules
 

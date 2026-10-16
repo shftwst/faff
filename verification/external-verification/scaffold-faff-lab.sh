@@ -48,10 +48,11 @@ node_modules/
 dist/
 *.log
 .env.claude-box
-.faffrc.local.yaml
+.faff/config.local.yaml
 EOF
 
-cat > .faffrc.yaml <<'EOF'
+mkdir -p .faff
+cat > .faff/config.yaml <<'EOF'
 # faff config — SUT faff-lab (sixth rung). git-only-first (ADR 0070), agile lens, lights-out.
 # NOTE: git-only-first is a DELIBERATE choice (ADR 0070), not a shortcut. The full leash +
 # steer-via-comment loop is richest on a REAL tracker. To upgrade once the loop is proven in anger:
@@ -109,7 +110,7 @@ backends:
     egress: external
     timeout: 480
   # ollama-local (operator-private tailnet ollama backend) relocated to the
-  # gitignored .faffrc.local.yaml overlay (FAFF-618, mirroring FAFF-587) so this
+  # gitignored .faff/config.local.yaml overlay (FAFF-618, mirroring FAFF-587) so this
   # public repo carries no operator host. The overlay's adversarial refs list
   # restates all three entries (sequences replace wholesale); this base
   # advertises only the two cloud backends.
@@ -127,7 +128,8 @@ EOF
 # The base heredoc above stays quoted; only this small overlay heredoc is unquoted, so
 # ${FAFF_EVAL_LOCAL_BASE_URL} interpolates and nothing else in the base risks expanding.
 if [ -n "${FAFF_EVAL_LOCAL_BASE_URL:-}" ]; then
-  cat > .faffrc.local.yaml <<EOF
+  mkdir -p .faff
+  cat > .faff/config.local.yaml <<EOF
 backends:
   ollama-local:
     provider: ollama
@@ -141,9 +143,9 @@ adversarial:
     - gemini-gemma
     - ollama-local
 EOF
-  echo "wrote .faffrc.local.yaml (ollama-local backend, host from FAFF_EVAL_LOCAL_BASE_URL, gitignored)"
+  echo "wrote .faff/config.local.yaml (ollama-local backend, host from FAFF_EVAL_LOCAL_BASE_URL, gitignored)"
 else
-  echo "WARNING: FAFF_EVAL_LOCAL_BASE_URL unset — the SUT runs with the two cloud backends only; export it and re-scaffold (or hand-write .faffrc.local.yaml) to add the local ollama backend" >&2
+  echo "WARNING: FAFF_EVAL_LOCAL_BASE_URL unset — the SUT runs with the two cloud backends only; export it and re-scaffold (or hand-write .faff/config.local.yaml) to add the local ollama backend" >&2
 fi
 
 # The PRD is COPIED VERBATIM from the committed faff-lab setpoint (never heredoc'd — that would
@@ -214,7 +216,7 @@ two distinct layers:
   `faff-contract:prd-readiness` block; that block is piped to the deterministic validator:
         faff contract prd-readiness            # admit the run | refuse (fail-safe)
   It resolves the PRD via `faff prd list` (container `faff-lab`, matching `tracking.container` in
-  `.faffrc.yaml`) and admits/refuses automatically when `/faff-beep-boop --converge` mints the run.
+  `.faff/config.yaml`) and admits/refuses automatically when `/faff-beep-boop --converge` mints the run.
   A refusal is a real finding — the stop conditions weren't machine-checkable.
 - **Layer 2 — PRDR-level admission (separate from prd-readiness).** The per-container
   Definition-of-Done record:
@@ -229,7 +231,7 @@ two distinct layers:
 Lights-out only: with no `FAFF_INTEGRITY_BOUNDARY` set, `faff lights-out --check` reports
 `corrective-integrity` as an **advisory degrade, not a refusal** (FAFF-525) — admission proceeds on
 the FAFF-518 digest custody floor. All three **dial-coherence** legs are already satisfied by this
-SUT's `.faffrc.yaml` — the two explicit dials (`slots.review`, `slots.spec_review`) plus
+SUT's `.faff/config.yaml` — the two explicit dials (`slots.review`, `slots.spec_review`) plus
 `gates.fallback`, fail-closed by default (FAFF-522).
 
 ## 4. Observe the gates

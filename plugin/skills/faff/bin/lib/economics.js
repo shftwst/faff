@@ -1230,7 +1230,7 @@ function cmdEconomics(args) {
   // reason: a hard failure on a reporting-only read has no upside and would just
   // break a --by breakdown for an operator who hasn't migrated yet).
   if (env.price_per_mtok_removed != null) {
-    mapWarnings.push(`budget.price_per_mtok ('${env.price_per_mtok_removed}') is removed (FAFF-446) — ignored; economics prices from the ADR-0048 map. Unset budget.price_per_mtok in .faffrc.yaml (set budget.price_per_mtok_by_model to override specific models).`);
+    mapWarnings.push(`budget.price_per_mtok ('${env.price_per_mtok_removed}') is removed (FAFF-446) — ignored; economics prices from the ADR-0048 map. Unset budget.price_per_mtok in .faff/config.yaml (set budget.price_per_mtok_by_model to override specific models).`);
   }
 
   // FAFF-604: the engine half of the priced total. Summed here so `cost_total`

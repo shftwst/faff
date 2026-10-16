@@ -11,7 +11,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync, existsSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, existsSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -38,8 +38,8 @@ function seedGitRepo() {
   return root;
 }
 
-const overlayPath = (root) => join(root, ".faffrc.local.yaml");
-const basePath = (root) => join(root, ".faffrc.yaml");
+const overlayPath = (root) => join(root, ".faff", "config.local.yaml");
+const basePath = (root) => join(root, ".faff", "config.yaml");
 const gitignorePath = (root) => join(root, ".gitignore");
 const excludePath = (root) => join(root, ".git", "info", "exclude");
 const settingsLocalPath = (root) => join(root, ".claude", "settings.local.json");
@@ -72,16 +72,16 @@ test("--local fresh-repo sequence writes the overlay + local targets, and nothin
     const hooksResult = localSequence(root);
 
     // Overlay carries both pinned values; no committable base exists.
-    assert.equal(existsSync(overlayPath(root)), true, ".faffrc.local.yaml exists");
+    assert.equal(existsSync(overlayPath(root)), true, ".faff/config.local.yaml exists");
     const overlay = readFileSync(overlayPath(root), "utf8");
     assert.match(overlay, /^bundle_store:\s*local\s*$/m, "top-level bundle_store: local");
     assert.match(overlay, /^\s*label_prefix:\s*SHF\s*$/m, "tracking.label_prefix: SHF");
-    assert.equal(existsSync(basePath(root)), false, ".faffrc.yaml is never created in local mode");
+    assert.equal(existsSync(basePath(root)), false, ".faff/config.yaml is never created in local mode");
 
     // config path resolves the overlay as the only config, exit 0.
     const p = run(["config", "path"], root, { allowFail: true });
     assert.equal(p.code, 0, "config path exits 0 once the overlay exists");
-    assert.match(p.out, /\.faffrc\.local\.yaml/, "config path prints the overlay");
+    assert.match(p.out, /\.faff\/config\.local\.yaml/, "config path prints the overlay");
 
     // Standard targets are untouched.
     assert.equal(existsSync(gitignorePath(root)), false, ".gitignore is not created by a --local run");
@@ -90,9 +90,8 @@ test("--local fresh-repo sequence writes the overlay + local targets, and nothin
 
     // .git/info/exclude carries the faff local patterns (FAFF_GITIGNORE_PATTERNS_LOCAL).
     const exclude = readFileSync(excludePath(root), "utf8");
-    assert.match(exclude, /^\.faffrc\.yaml$/m, "exclude covers the committable base name");
-    assert.match(exclude, /^\.faffrc\.\*\.yaml$/m, "exclude covers the overlay glob");
-    assert.match(exclude, /^\.faff\/$/m, "exclude covers .faff/ wholesale");
+    assert.match(exclude, /^\.faff\/$/m, "exclude covers .faff/ wholesale, the base config and overlay included");
+    assert.doesNotMatch(exclude, /faffrc/, "no .faffrc-stemmed line is written");
 
     // .claude/settings.local.json carries both Stop hooks.
     assert.equal(existsSync(settingsLocalPath(root)), true, ".claude/settings.local.json exists");
@@ -127,20 +126,21 @@ test("a committed, git-tracked base is left byte-for-byte unmodified when local 
   const root = seedGitRepo();
   try {
     const baseText = "tracking:\n  team_key: SHF\n  repo: shftwst/faff\n";
+    mkdirSync(join(root, ".faff"), { recursive: true });
     writeFileSync(basePath(root), baseText);
-    git(root, "add", ".faffrc.yaml");
+    git(root, "add", ".faff/config.yaml");
     git(root, "commit", "-q", "-m", "seed committed base");
 
     // The precondition local mode's bail-override checks: the base is git-tracked.
-    const tracked = spawnSync("git", ["-C", root, "ls-files", "--error-unmatch", ".faffrc.yaml"], { encoding: "utf8" });
+    const tracked = spawnSync("git", ["-C", root, "ls-files", "--error-unmatch", ".faff/config.yaml"], { encoding: "utf8" });
     assert.equal(tracked.status, 0, "the seeded base is git-tracked");
 
     localSequence(root);
 
     // Base untouched, overlay written alongside it — non-destructive by construction
     // (the --local writers target the overlay exclusively, never the base).
-    assert.equal(readFileSync(basePath(root), "utf8"), baseText, ".faffrc.yaml is byte-for-byte unmodified");
-    assert.equal(existsSync(overlayPath(root)), true, ".faffrc.local.yaml is written alongside the untouched base");
+    assert.equal(readFileSync(basePath(root), "utf8"), baseText, ".faff/config.yaml is byte-for-byte unmodified");
+    assert.equal(existsSync(overlayPath(root)), true, ".faff/config.local.yaml is written alongside the untouched base");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -149,8 +149,9 @@ test("standard-mode sequence is unaffected: writes the base + shared targets, cr
   try {
     const hooksResult = standardSequence(root);
 
-    assert.equal(existsSync(basePath(root)), true, ".faffrc.yaml is written");
-    assert.equal(existsSync(gitignorePath(root)), true, ".gitignore is written");
+    assert.equal(existsSync(basePath(root)), true, ".faff/config.yaml is written");
+    assert.equal(existsSync(gitignorePath(root)), false, "faff adds nothing to the project's root .gitignore (FAFF-1302)");
+    assert.equal(existsSync(join(root, ".faff", ".gitignore")), true, ".faff/.gitignore is written");
     assert.equal(existsSync(settingsPath(root)), true, ".claude/settings.json is written");
     assert.ok(hooksResult.added.includes("runcheck") && hooksResult.added.includes("prepcheck"),
       "standard mode still registers both Stop hooks, in the shared target");
@@ -159,8 +160,8 @@ test("standard-mode sequence is unaffected: writes the base + shared targets, cr
     // invariant is that standard mode never appends faff's local block to it, not that
     // the file is absent.
     const excludeAfterStandard = existsSync(excludePath(root)) ? readFileSync(excludePath(root), "utf8") : "";
-    assert.doesNotMatch(excludeAfterStandard, /^\.faffrc\.yaml$/m, "standard mode writes no faff local-mode block to .git/info/exclude");
-    assert.equal(existsSync(overlayPath(root)), false, "standard mode never creates .faffrc.local.yaml");
+    assert.doesNotMatch(excludeAfterStandard, /^\.faff\/$/m, "standard mode writes no faff local-mode block to .git/info/exclude");
+    assert.equal(existsSync(overlayPath(root)), false, "standard mode never creates .faff/config.local.yaml");
     assert.equal(existsSync(settingsLocalPath(root)), false, "standard mode never creates settings.local.json");
 
     const base = readFileSync(basePath(root), "utf8");

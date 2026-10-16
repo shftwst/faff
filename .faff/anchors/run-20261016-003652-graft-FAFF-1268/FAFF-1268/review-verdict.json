@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "terminal-only",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/evidence.js::resumed dialogue hold fails record-review-round when build-review/ is absent",
+      "title": "resumed dialogue hold fails record-review-round when build-review/ is absent",
+      "location": "plugin/skills/faff/bin/lib/evidence.js",
+      "action": "degrade an absent --prior-dir to the no-round-record warning path",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in 2733531e: a --prior-dir that does not exist now stores carried_id null with a warning instead of exiting 2. The dialogue-loop round numbering restarting after a resume is pre-existing (build-review/ was never restored into a fresh run dir) and is recorded as discovered scope.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "resumed dialogue hold fails record-review-round when build-review/ is absent",
+          "location": "plugin/skills/faff/bin/lib/evidence.js",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/evidence.js::record-review-round drops an out-of-enum adversarial_outcome without a warning",
+      "title": "record-review-round drops an out-of-enum adversarial_outcome without a warning",
+      "location": "plugin/skills/faff/bin/lib/evidence.js",
+      "action": "warn like the other soft enum fields",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in 2733531e: adversarial_outcome goes through enumOrNull and warns without the value; covered by a test.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "record-review-round drops an out-of-enum adversarial_outcome without a warning",
+          "location": "plugin/skills/faff/bin/lib/evidence.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/evidence.js::collated writer read-then-write is not atomic against a concurrent recorder",
+      "title": "collated writer read-then-write is not atomic against a concurrent recorder",
+      "location": "plugin/skills/faff/bin/lib/evidence.js",
+      "action": "re-list rounds before the rename",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Graft runs one review loop per issue and only writes review-verdict.json after the last pass is recorded, so the recorder and the writer never overlap for one issue; the spec scopes concurrency to the recorder.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "collated writer read-then-write is not atomic against a concurrent recorder",
+          "location": "plugin/skills/faff/bin/lib/evidence.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/evidence.js::writer and recorder accept validate-only flags silently",
+      "title": "writer and recorder accept validate-only flags silently",
+      "location": "plugin/skills/faff/bin/lib/evidence.js",
+      "action": "reject --json, --candidate-schemas and --require-evidence-schema on the write paths",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The shared EVIDENCE_SPEC flag table already behaves this way for the existing spec-review-verdict and ac-checklist writers; changing it is outside this slice.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "writer and recorder accept validate-only flags silently",
+          "location": "plugin/skills/faff/bin/lib/evidence.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

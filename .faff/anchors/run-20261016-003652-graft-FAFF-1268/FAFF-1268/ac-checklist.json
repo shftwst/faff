@@ -1,0 +1,306 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "`faff merge-gate` routes identically on `test/merge-gate-local.test.mjs` and every `test/holdout-*.test.mjs` with no fixture edits",
+      "verified": "node --test test/merge-gate-local.test.mjs test/holdout-*.test.mjs passes (90 tests), no fixture file changed on the branch",
+      "passed": true,
+      "ac_id": "faff-1268#done:1",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/merge-gate-local.test.mjs test/holdout-*.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "After a build with two review passes, `faff evidence validate --json` over the minted anchor reports `review-verdict.json` with file status `ok` and `round_history: \"recorded\"`",
+      "verified": "the smoke test mints an anchor after three recorded passes; evidence validate reports review-verdict.json ok with round_history recorded",
+      "passed": true,
+      "ac_id": "faff-1268#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-review-rounds.test.mjs::smoke: recorded rounds collate into an anchor that validates and a floor that reads pass"
+        }
+      ]
+    },
+    {
+      "ac": "`review-round` gains required nullable `adversarial_outcome`; `review-verdict-anchored` admits `signal: \"unavailable\"` and the optional `admitted_by: \"build-judge\"`; both copies and the `review-round.example.json` pair stay byte-identical and `test/evidence-v0.3.test.mjs` passes",
+      "verified": "schemas edited in both copies, byte-identical (compose --check up to date); test/evidence-v0.3.test.mjs passes",
+      "passed": true,
+      "ac_id": "faff-1268#done:3",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/evidence-v0.3.test.mjs"
+        },
+        {
+          "kind": "command",
+          "locator": "node scripts/evidence-v0.3-compose.mjs --check"
+        }
+      ]
+    },
+    {
+      "ac": "`faff regions check` passes, and no governance module requires `contract-defs.js` or `review-prior.js`",
+      "verified": "faff regions check PASS; evidence.js, evidence-collate.js, finding-id.js and review-vocab.js require neither contract-defs.js nor review-prior.js",
+      "passed": true,
+      "ac_id": "faff-1268#done:4",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        }
+      ]
+    },
+    {
+      "ac": "`record-review-round`, the default mode and both `--park` modes exit 2 and write nothing for `--issue ../x`, an `--issue` with `/`, and a `--run-dir` outside `.faff/runs/` (including through a symlink)",
+      "verified": "each command exits 2 for ../x, a/b, a run dir outside .faff/runs and a symlinked one, writing nothing",
+      "passed": true,
+      "ac_id": "faff-1268#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-review-rounds.test.mjs::every command exits 2 and writes nothing for a bad issue id or a run dir outside .faff/runs"
+        }
+      ]
+    },
+    {
+      "ac": "Each exits 1 and writes nothing on invalid input, and identical input against identical run-dir state yields byte-identical output",
+      "verified": "invalid input exits 1 with nothing written; two identical fixtures yield byte-identical rounds and verdicts",
+      "passed": true,
+      "ac_id": "faff-1268#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-review-rounds.test.mjs::every command exits 1 and writes nothing on invalid input"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-review-rounds.test.mjs::identical input against identical run-dir state yields byte-identical output"
+        }
+      ]
+    },
+    {
+      "ac": "Each replaces a configured known secret in a string field (temp config and env var); a malformed config exits 2 with nothing written",
+      "verified": "config and env-var secrets are redacted by every command; a malformed config exits 2 with nothing written",
+      "passed": true,
+      "ac_id": "faff-1268#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-review-rounds.test.mjs::every command replaces a configured known secret, from the config or an env var"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-review-rounds.test.mjs::a malformed redaction config exits 2 from every command with nothing written"
+        }
+      ]
+    },
+    {
+      "ac": "`record-review-round` refuses `signal: \"unavailable\"`, ignores a supplied `finding_id`, stores `carried_id`, resolves an accepted carry to the prior round's id, translates a `--prior-dir` handle to the matching `review-rounds/` handle and stores `null` with a warning when there is no single match, and writes an out-of-enum `severity` as `null` with exit 0 and a stderr warning that does not contain the value",
+      "verified": "recorder tests cover the unavailable refusal, ignored finding_id, stored and resolved carry, --prior-dir translation and null fallback, and out-of-enum warnings without the value",
+      "passed": true,
+      "ac_id": "faff-1268#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-review-rounds.test.mjs::record-review-round: refuses unavailable, ignores a supplied finding_id, stores carried_id and resolves the carry"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-review-rounds.test.mjs::scenario: a dialogue-loop handle is translated through --prior-dir"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-review-rounds.test.mjs::record-review-round: --prior-dir stores null with a warning when there is no single match or no prior round"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-review-rounds.test.mjs::record-review-round: an out-of-enum value is written as null with a warning that hides the value"
+        }
+      ]
+    },
+    {
+      "ac": "Two concurrent `record-review-round` calls never produce the same round number",
+      "verified": "five bursts of three concurrent recorders never share a round number (losers exit 2)",
+      "passed": true,
+      "ac_id": "faff-1268#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-review-rounds.test.mjs::record-review-round: two concurrent calls never record the same round number"
+        }
+      ]
+    },
+    {
+      "ac": "`collateReviewRounds`: a merged finding takes `model` from the latest round where it is non-null when the highest-severity round's finding has `model: null`; a carry across a missing round is refused and yields two merged findings; a stored `finding_id` edited after recording does not change the merge, including for an untitled finding whose carry is refused on re-resolution; a merged finding's `location` is its latest occurrence's",
+      "verified": "collator unit tests for model fallback, gap refusal, edited stored ids (including an untitled refused carry) and latest location",
+      "passed": true,
+      "ac_id": "faff-1268#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-review-rounds.test.mjs::collateReviewRounds: model falls back to the latest round where it is non-null"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-review-rounds.test.mjs::collateReviewRounds: a carry across a missing round is refused, giving two merged findings"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-review-rounds.test.mjs::collateReviewRounds: an edited stored finding_id changes nothing, even for an untitled refused carry"
+        }
+      ]
+    },
+    {
+      "ac": "`computeReviewVerdict` passes through the listed per-finding and top-level fields, does not pass through `carried_id`, and fails `schemaCheck` on a mistyped pass-through; existing contract golden cases pass unchanged",
+      "verified": "pass-through of the listed fields, carried_id dropped, mistyped occurrence fails schemaCheck; contract tests pass",
+      "passed": true,
+      "ac_id": "faff-1268#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-review-rounds.test.mjs::computeReviewVerdict passes the collation fields through typed, never carried_id"
+        },
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/contract*.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "The nine scenarios above pass as tests",
+      "verified": "one test per scenario, all nine passing",
+      "passed": true,
+      "ac_id": "faff-1268#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-review-rounds.test.mjs::scenario: fail, fail with a refutation and a new finding, then pass"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-review-rounds.test.mjs::scenario: a carried, reworded finding keeps the round-1 id across rounds"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-review-rounds.test.mjs::scenario: a dialogue-loop handle is translated through --prior-dir"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-review-rounds.test.mjs::scenario: a needs-human terminal round settles an unraised finding open, never fixed"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-review-rounds.test.mjs::scenario: a hold-limit park keeps a refutation and leaves the rest open"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-review-rounds.test.mjs::scenario: a judge admit writes pass with admitted_by, and refuses without the judge's admit"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-review-rounds.test.mjs::scenario: an exhausted outage after one fail round writes unavailable with findings open"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-review-rounds.test.mjs::scenario: the terminal round's adversarial_outcome reaches review-verdict.json"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-review-rounds.test.mjs::scenario: a resume into a fresh run dir numbers on from the restored rounds"
+        }
+      ]
+    },
+    {
+      "ac": "Default mode with no rounds exits 1 naming `--park`; with a `fail` terminal round exits 1; `--park needs-human` and `--park unavailable` with no rounds each write `rounds_total: 0`, `findings: []`; any two of `--park`, `--judge-admitted` and `--terminal-only` together exit 2",
+      "verified": "no-rounds and fail-terminal refusals, empty park verdicts and the mutually exclusive flags",
+      "passed": true,
+      "ac_id": "faff-1268#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-review-rounds.test.mjs::default mode refuses no rounds or a fail terminal round; parks write empty verdicts; flags exclude each other"
+        }
+      ]
+    },
+    {
+      "ac": "The bare-form exit-2 test in `test/evidence-write.test.mjs` is replaced, and every existing `--terminal-only` test passes unchanged except the `unavailable` refusal message",
+      "verified": "the bare-form test now expects the collation refusal; the only other edit is the unavailable refusal message; 14 tests pass",
+      "passed": true,
+      "ac_id": "faff-1268#done:14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-write.test.mjs::bare review-verdict collates recorded rounds, refusing none (FAFF-1268); --terminal-only elsewhere exits 2"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-write.test.mjs::review-verdict --terminal-only: exits 1 and writes nothing for each refused input"
+        }
+      ]
+    },
+    {
+      "ac": "`record-review-round` exits 2 naming the file when an existing round record is corrupt, and writes nothing",
+      "verified": "a corrupt round-1.json makes the recorder exit 2 naming review-rounds/round-1.json, with no new round",
+      "passed": true,
+      "ac_id": "faff-1268#done:15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-review-rounds.test.mjs::record-review-round: exits 2 naming a corrupt existing round record, and writes nothing"
+        }
+      ]
+    },
+    {
+      "ac": "`faff-graft/SKILL.md` Step 9 records every non-`unavailable` pass with `--prior-dir` on dialogue-loop passes, routes a recorder exit 2 to one retry then the \"review-round record failed\" park, calls the bare writer for a terminal verdict outside the dialogue loop, `--judge-admitted` on a judge admit and `--park` for all three park arms, writes once per dialogue-loop outcome, and no longer calls `--terminal-only` or hand-writes `review-verdict.json`",
+      "verified": "Step 9 now records every non-unavailable pass (--prior-dir on dialogue-loop passes), retries exit 2 once then parks, uses the bare writer, --judge-admitted and --park, and no longer calls --terminal-only",
+      "passed": true,
+      "ac_id": "faff-1268#done:16",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n \"record-review-round\\|--judge-admitted\\|--park \\|terminal-only\" plugin/skills/faff-graft/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "The retry-later and hold stashes carry `review-rounds/`, and the Step 3 restore copies it back",
+      "verified": "the retry-later and hold stashes copy review-rounds/ recursively and the Step 3 restore copies it back",
+      "passed": true,
+      "ac_id": "faff-1268#done:17",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n \"review-rounds\" plugin/skills/faff-graft/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "`evidence-documents.md` (both copies) and `docs/guide/cli.md` describe the recorded form and `--park`",
+      "verified": "both evidence-documents.md copies (byte-identical) and docs/guide/cli.md describe the recorded form, --park and --judge-admitted; lint-cli-doc passes",
+      "passed": true,
+      "ac_id": "faff-1268#done:18",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-doc"
+        }
+      ]
+    },
+    {
+      "ac": "`faff validate-adapters` passes, and `faff-graft` exceeds its line baseline only with a noted FAFF-1268 bump",
+      "verified": "faff validate-adapters PASS; faff-graft stays at 956 lines, within its 957 baseline, so no bump was needed",
+      "passed": true,
+      "ac_id": "faff-1268#done:19",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    }
+  ]
+}

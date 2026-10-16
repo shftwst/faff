@@ -17,6 +17,6 @@ The website publishes only `docs/guide/` and `docs/concept/`. Repository records
 
 ## Configured record paths
 
-This repository opts into `records/specs/`, `records/prd/`, `records/prdr/`, `records/adr/`, and `records/spikes/` through `.faffrc.yaml`. Other repositories retain SuperDomestique's existing `docs/*` defaults unless they configure their own locations.
+This repository opts into `records/specs/`, `records/prd/`, `records/prdr/`, `records/adr/`, and `records/spikes/` through `.faff/config.yaml`. Other repositories retain SuperDomestique's existing `docs/*` defaults unless they configure their own locations.
 
 These paths are consumed by commands, skills, tests, workflows, and generators. Move them only with their configuration and consumers.

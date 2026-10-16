@@ -377,6 +377,7 @@ const { parseArgs, usageError } = require("./argv");
 const GITIGNORE_ENSURE_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--root": { arity: 1 }, "--local": { arity: 0 } } };
 
 function describeTarget(target) {
+  if (!target.added.length && !target.already.length) return `${target.path} needs no faff lines (nothing in this target's pattern set)`;
   if (!target.added.length) return `${target.path} — already ignores faff's local artifacts (no change)`;
   const verb = target.created ? "created" : "updated";
   return `${verb} ${target.path} — added: ${target.added.join(", ")}`;

@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1301",
+  "build": {
+    "status": "complete",
+    "diff_hash": "75e0a1c9daf4675059132a3f457572f72481de9f7216f96024c8c8f7039aad8f",
+    "branch": "FAFF-1301-config-check-faff-hazard",
+    "pushed_at": "2026-10-16T01:29:52.307Z"
+  },
+  "updated_at": "2026-10-16T01:29:52.307Z"
+}

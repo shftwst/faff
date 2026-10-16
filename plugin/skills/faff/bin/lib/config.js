@@ -55,6 +55,7 @@ function configVerbList() {
 const { overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
 const { runIsHeld } = require("./runcheck");
 const { backendsConfigCheckFindings, mergeBackendsNamespace } = require("./backends");
+const { gitignoreDirHazardLines, gitignoreMentionsFaffDir } = require("./gitignore-ensure");
 // FAFF-1061: reuse FAFF-717's attendedness READ half (declaredUnattendedFromConfig) and its
 // fail-closed boolean coercion (literalTrue) so the interactive-verification resolver keys off the
 // exact same unattended axis, never a parallel switch. factory→governance is a legal require edge
@@ -2483,6 +2484,66 @@ const MIGRATION_STEPS = [
   "3. Run `faff config check`, then commit .faffrc.yaml",
 ];
 
+const indentSteps = (steps) => steps.map((st) => "     " + st).join("\n");
+
+// FAFF-1301: the never-committed canonical run directory, asked about through `git check-ignore`
+// so the check never models ignore precedence (or `.git/info/exclude`) itself.
+const FAFF_RUN_STATE_PROBE_PATH = ".faff/runs";
+
+// Distinct lines in file order, as one plural-aware slot: (line: `a`) or (lines: `a`, `b`).
+function dirHazardSlot(hazardLines) {
+  const quoted = [...new Set(hazardLines)].map((l) => `\`${l}\``);
+  return `${quoted.length === 1 ? "line" : "lines"}: ${quoted.join(", ")}`;
+}
+
+function dirHazardMessage(hazardLines) {
+  const steps = [
+    `1. Change the \`${hazardLines[0]}\` line to \`.faff/*\` in .gitignore`,
+    "2. Keep any `!.faff/...` carve-out lines AFTER it (git honours a negation only after the matching ignore)",
+    "3. Run `git status`; the committed parts of .faff/ should now appear",
+    "4. Run `faff config check` to confirm the finding is gone",
+  ];
+  return `\`.gitignore\` ignores the \`.faff\` DIRECTORY (${dirHazardSlot(hazardLines)}). Git never descends into it, so every committed part of \`.faff/\` is silently skipped: the per-PR chain anchors today, and the templates and config later. Any \`!.faff/...\` carve-out below this line is dead, and a \`.gitignore\` inside \`.faff/\` is never even read. \`faff gitignore-ensure\` is append-only and cannot fix this. Hand-edit:\n${indentSteps(steps)}`;
+}
+
+const UNDERIGNORE_NONE_MESSAGE = `nothing ignores faff's run state. \`.faff/\` exists but no ignore rule covers \`${FAFF_RUN_STATE_PROBE_PATH}\`, so git is offering every run artifact, log and scratch file for commit. \`.faff/.gitignore\` is absent. Fix:\n${indentSteps([
+  "1. Run `faff gitignore-ensure`",
+  "2. Commit the file (or the .gitignore line) it writes, so a fresh clone inherits the rule",
+  "3. Run `faff config check` to confirm the finding is gone",
+])}`;
+
+const UNDERIGNORE_INEFFECTIVE_MESSAGE = `\`.faff/.gitignore\` exists but does not ignore faff's run state. \`${FAFF_RUN_STATE_PROBE_PATH}\` is not ignored by any rule, so git is offering every run artifact, log and scratch file for commit. The file may be empty, truncated, or missing the rule. Fix:\n${indentSteps([
+  "1. Run `faff gitignore-ensure` to restore the rules it owns",
+  "2. Commit the result",
+  "3. Run `faff config check` to confirm the finding is gone",
+])}`;
+
+const UNDERIGNORE_UNTRACKED_MESSAGE = `\`.faff/.gitignore\` is the only thing ignoring faff's run state and it is NOT committed. This checkout is fine; a fresh clone gets no \`.faff\` ignore rule at all, and \`faff gitignore-ensure\` is first-run only so nothing re-adds it. Fix:\n${indentSteps([
+  "1. git add .faff/.gitignore",
+  "2. Commit it alongside .faffrc.yaml",
+])}`;
+
+// PURE: finding 1. A property of the file's text, so it needs no git.
+function dirHazardFinding(rootGitignore) {
+  const hazardLines = gitignoreDirHazardLines(rootGitignore);
+  if (hazardLines.length === 0) return null;
+  return { severity: "warn", surface: ".gitignore", message: dirHazardMessage(hazardLines) };
+}
+
+// PURE: finding 2. faffDirPresent is tested before any probe is called, so callers that
+// never set it never see a `.faff/...` path in their probes.
+function dirUnderignoreFinding({ rootGitignore, faffDirPresent, faffDirGitignorePresent, probes }) {
+  if (!faffDirPresent || !probes.inRepo) return null;
+  const finding = (message) => ({ severity: "warn", surface: ".faff/.gitignore", message });
+  if (!probes.isIgnored(FAFF_RUN_STATE_PROBE_PATH)) {
+    return finding(faffDirGitignorePresent ? UNDERIGNORE_INEFFECTIVE_MESSAGE : UNDERIGNORE_NONE_MESSAGE);
+  }
+  if (!faffDirGitignorePresent) return null;
+  if (gitignoreMentionsFaffDir(rootGitignore) && probes.isTracked(".gitignore")) return null;
+  if (probes.isTracked(".faff/.gitignore")) return null;
+  return finding(UNDERIGNORE_UNTRACKED_MESSAGE);
+}
+
 // PURE: known-key (schema) lint over a document's TOP-LEVEL key NAMES only — values are
 // never inspected (value-shape validation is out of scope, FAFF-794 §2). Classifies each
 // top-level key as flat-dotted (name contains ".", the unreachable-literal-key mistake
@@ -2515,7 +2576,9 @@ function knownKeyLint(doc, fileLabel, knownSet) {
 // { findings, skipped, exit }. Split from cmdConfigCheck's I/O so --selftest can
 // drive the secret scan + posture logic in-memory without a real git repo.
 // `probes` supplies { inRepo, isIgnored(rel), isTracked(rel) } (nullable inRepo).
-function computeConfigCheck({ basePath, baseDoc, overlayPath, overlayDoc, legacyBase, legacyOverlay, baseParseError, probes }) {
+// FAFF-1301: rootGitignore (text | null), faffDirPresent and faffDirGitignorePresent are
+// optional filesystem facts; absent, the two .faff ignore-posture findings are no-ops.
+function computeConfigCheck({ basePath, baseDoc, overlayPath, overlayDoc, legacyBase, legacyOverlay, baseParseError, probes, rootGitignore, faffDirPresent, faffDirGitignorePresent }) {
   const findings = [];
   const skipped = [];
   const rel = (p) => (p ? path.basename(p) : null);
@@ -2549,6 +2612,12 @@ function computeConfigCheck({ basePath, baseDoc, overlayPath, overlayDoc, legacy
   } else {
     skipped.push("posture checks skipped (not a git repo)");
   }
+
+  // Check 11 + 12 (FAFF-1301): .faff ignore posture. Over-ignore first, then under-ignore.
+  const overIgnore = dirHazardFinding(rootGitignore);
+  if (overIgnore) findings.push(overIgnore);
+  const underIgnore = dirUnderignoreFinding({ rootGitignore, faffDirPresent, faffDirGitignorePresent, probes });
+  if (underIgnore) findings.push(underIgnore);
 
   // Check 4: secret scan over both files' scalar leaves (redacted output).
   if (baseDoc) findings.push(...scanDocForSecrets(baseDoc, rel(basePath) || ".faffrc.yaml"));
@@ -2602,6 +2671,17 @@ function computeConfigCheck({ basePath, baseDoc, overlayPath, overlayDoc, legacy
   return { findings, skipped, exit: findings.length ? 1 : 0 };
 }
 
+// Any failure, a missing path included, yields the no-op value: the command that describes
+// faults must not abort on one.
+function readFaffIgnoreFacts(root) {
+  const attempt = (read, fallback) => { try { return read(); } catch { return fallback; } };
+  return {
+    rootGitignore: attempt(() => fs.readFileSync(path.join(root, ".gitignore"), "utf8"), null),
+    faffDirPresent: attempt(() => fs.statSync(path.join(root, ".faff")).isDirectory(), false),
+    faffDirGitignorePresent: attempt(() => fs.statSync(path.join(root, ".faff", ".gitignore")).isFile(), false),
+  };
+}
+
 function cmdConfigCheck(args, root) {
   if (args.includes("--selftest")) return configCheckSelftest();
   const json = args.includes("--json");
@@ -2648,6 +2728,7 @@ function cmdConfigCheck(args, root) {
   }
 
   const inRepo = gitInRepo(root);
+  const { rootGitignore, faffDirPresent, faffDirGitignorePresent } = readFaffIgnoreFacts(root);
   const probes = {
     inRepo,
     isIgnored: (relPath) => gitIsIgnored(root, relPath),
@@ -2655,6 +2736,7 @@ function cmdConfigCheck(args, root) {
   };
   const { findings, skipped, exit } = computeConfigCheck({
     basePath, baseDoc, overlayPath, overlayDoc, legacyBase, legacyOverlay, baseParseError, probes,
+    rootGitignore, faffDirPresent, faffDirGitignorePresent,
   });
 
   if (json) {
@@ -2831,6 +2913,50 @@ function configCheckSelftest() {
       probes: { inRepo: false, isIgnored: () => false, isTracked: () => false },
     });
     check("not-a-repo: posture skipped + reported", r.skipped.length === 1 && r.exit === 0);
+  }
+
+  // --- FAFF-1301: .faff ignore posture (over-ignore and under-ignore) -----------
+  {
+    const faffIgnore = (extra) => computeConfigCheck({
+      basePath: "/r/.faffrc.yaml", baseDoc: {}, overlayPath: null, overlayDoc: null,
+      legacyBase: [], legacyOverlay: [],
+      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
+      ...extra,
+    });
+    const onGitignore = (r) => r.findings.filter((f) => f.surface === ".gitignore");
+    const onInner = (r) => r.findings.filter((f) => f.surface === ".faff/.gitignore");
+    const runStateIgnored = { inRepo: true, isIgnored: (n) => n === ".faff/runs", isTracked: () => true };
+
+    let r = faffIgnore({ rootGitignore: ".faff/\n" });
+    check("faff-ignore: `.faff/` → one warn on .gitignore, exit 1", r.findings.length === 1 && r.findings[0].severity === "warn" && r.findings[0].surface === ".gitignore" && r.exit === 1);
+    check("faff-ignore: message echoes the line, names `.faff/*`, says ensure cannot fix it", /\(line: `\.faff\/`\)/.test(r.findings[0].message) && r.findings[0].message.includes("`.faff/*`") && r.findings[0].message.includes("cannot fix this"));
+    check("faff-ignore: `**/.faff/` flagged", onGitignore(faffIgnore({ rootGitignore: "**/.faff/\n" })).length === 1);
+    check("faff-ignore: `/**/.faff` flagged", onGitignore(faffIgnore({ rootGitignore: "/**/.faff\n" })).length === 1);
+    check("faff-ignore: `.faff/**` flagged", onGitignore(faffIgnore({ rootGitignore: ".faff/**\n" })).length === 1);
+    check("faff-ignore: `.faff/*` + `!.faff/anchors/` → no .gitignore finding", onGitignore(faffIgnore({ rootGitignore: ".faff/*\n!.faff/anchors/\n" })).length === 0);
+    check("faff-ignore: rootGitignore omitted → no .gitignore finding", onGitignore(faffIgnore({})).length === 0);
+    r = faffIgnore({ rootGitignore: ".faff\n", probes: { inRepo: false, isIgnored: () => false, isTracked: () => false } });
+    check("faff-ignore: outside a repo still flagged, posture skip kept", onGitignore(r).length === 1 && r.skipped.includes("posture checks skipped (not a git repo)"));
+    r = faffIgnore({ rootGitignore: ".faff/\n.faff/**\n.faff/\n" });
+    check("faff-ignore: several hazard lines → one finding, plural slot, duplicates collapsed", onGitignore(r).length === 1 && r.findings[0].message.includes("(lines: `.faff/`, `.faff/**`)"));
+
+    r = faffIgnore({ faffDirPresent: true, faffDirGitignorePresent: false });
+    check("faff-ignore: nothing ignores run state → one warn on .faff/.gitignore naming ensure, exit 1", onInner(r).length === 1 && onInner(r)[0].severity === "warn" && onInner(r)[0].message.includes("faff gitignore-ensure") && onInner(r)[0].message.includes("is absent") && r.exit === 1);
+    r = faffIgnore({ faffDirPresent: true, faffDirGitignorePresent: true });
+    check("faff-ignore: inner file present but run state unignored → ineffective variant", onInner(r).length === 1 && onInner(r)[0].message.includes("exists but does not ignore") && !onInner(r)[0].message.includes("is absent"));
+    const untracked = { probes: { ...runStateIgnored, isTracked: () => false }, faffDirPresent: true, faffDirGitignorePresent: true, rootGitignore: "node_modules/\n" };
+    r = faffIgnore(untracked);
+    check("faff-ignore: untracked inner file, silent root → one finding saying NOT committed", onInner(r).length === 1 && onInner(r)[0].message.includes("NOT committed"));
+    check("faff-ignore: tracked inner file → silent", onInner(faffIgnore({ ...untracked, probes: runStateIgnored })).length === 0);
+    check("faff-ignore: untracked inner file but committed root `.faff/*` covers a clone → silent", onInner(faffIgnore({ ...untracked, rootGitignore: ".faff/*\n", probes: { ...runStateIgnored, isTracked: (n) => n === ".gitignore" } })).length === 0);
+    check("faff-ignore: untracked inner file and UNCOMMITTED root `.faff/*` → still fires", onInner(faffIgnore({ ...untracked, rootGitignore: ".faff/*\n" })).length === 1);
+    check("faff-ignore: faffDirPresent with inRepo false → silent", onInner(faffIgnore({ faffDirPresent: true, probes: { inRepo: false, isIgnored: () => false, isTracked: () => false } })).length === 0);
+    const faffPathCalls = [];
+    const recording = (name) => (n) => { if (String(n).startsWith(".faff/")) faffPathCalls.push(`${name}:${n}`); return false; };
+    faffIgnore({ rootGitignore: "x\n", probes: { inRepo: true, isIgnored: recording("isIgnored"), isTracked: recording("isTracked") } });
+    check("faff-ignore: faffDirPresent omitted → no probe sees a .faff path", faffPathCalls.length === 0);
+    r = faffIgnore({ rootGitignore: ".faff/\n", faffDirPresent: true, faffDirGitignorePresent: false, probes: runStateIgnored });
+    check("faff-ignore: hazard line with run state still ignored → finding 1 only", r.findings.length === 1 && r.findings[0].surface === ".gitignore");
   }
   {
     // secret in base doc → exit 1, redacted (no raw value in any message).

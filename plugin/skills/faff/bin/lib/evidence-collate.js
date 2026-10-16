@@ -1,5 +1,6 @@
 // ===========================================================================
 // === region:governance — evidence-collate — FAFF-1267: collate every spec-review round into one digest-checked comment ===
+// FAFF-1268: collateReviewRounds merges recorded code-review rounds on the id resolveRoundChain decides.
 //
 // Pure cores behind `faff spec-review collate-evidence` and `faff evidence write spec-review-verdict`.
 // The collator lists every objection from every valid `round-<n>.json` as its own item (never merged),
@@ -16,6 +17,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { REVIEW_DISPOSITIONS, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS } = require("./review-vocab");
 const { redactKnownSecrets } = require("./redact");
+const { resolveRoundChain } = require("./finding-id");
 
 const EVIDENCE_HEADING = "spec-review evidence";
 const EVIDENCE_FENCE_RE = /```faff-contract:spec-review-verdict\s*\n([\s\S]*?)\n```/;
@@ -184,7 +186,101 @@ function parseSpecReviewComment(text) {
   return parsed;
 }
 
+// --- code-review rounds (FAFF-1268) ---------------------------------------------
+
+const SEVERITY_RANK = { critical: 4, major: 3, minor: 2, observation: 1 };
+const rankOf = (severity) => SEVERITY_RANK[severity] || 0;
+const SETTLED_BY_REVIEWER = ["refuted", "accepted-risk"];
+
+// contiguousRuns(rounds) -> rounds split wherever a round number is missing, so a P<k> handle is
+// only ever resolved against the round the reviewer was shown.
+function contiguousRuns(rounds) {
+  const runs = [];
+  for (const r of rounds) {
+    const last = runs.length ? runs[runs.length - 1] : null;
+    if (last && r.round === last[last.length - 1].round + 1) last.push(r);
+    else runs.push([r]);
+  }
+  return runs;
+}
+
+// resolvedRoundIds(rounds) -> per round (ascending by round number), the finding ids resolveRoundChain
+// decides over that round's contiguous run, with every stored finding_id removed first so a stored id
+// never overrides a refusal. Two findings of one round never share an id: a repeat takes its
+// round-scoped id.
+function resolvedRoundIds(rounds) {
+  const chained = contiguousRuns(rounds).flatMap((run) => resolveRoundChain(run.map((r) => ({
+    round: r.round,
+    findings: r.findings.map(({ finding_id: _ignored, ...rest }) => rest),
+  }))));
+  return chained.map((entries, ri) => {
+    const seen = new Set();
+    return entries.map((e, i) => {
+      const id = seen.has(e.id) ? `round-${rounds[ri].round}#${i}` : e.id;
+      seen.add(id);
+      return id;
+    });
+  });
+}
+
+function latestNonNull(occ, field) {
+  for (let i = occ.length - 1; i >= 0; i--) if (occ[i].finding[field] !== null && occ[i].finding[field] !== undefined) return occ[i].finding[field];
+  return null;
+}
+
+function settle(occ, terminalRound, terminalSignal, park) {
+  const last = occ[occ.length - 1];
+  if (!park && last.round === terminalRound) return { disposition: last.finding.disposition, refutation: last.finding.refutation, disposition_rationale: last.finding.disposition_rationale };
+  for (let i = occ.length - 1; i >= 0; i--) {
+    const f = occ[i].finding;
+    if (f.disposition === null) continue;
+    if (SETTLED_BY_REVIEWER.includes(f.disposition)) return { disposition: f.disposition, refutation: f.refutation, disposition_rationale: f.disposition_rationale };
+    break;
+  }
+  return { disposition: terminalSignal === "pass" ? "fixed" : "open", refutation: null, disposition_rationale: null };
+}
+
+function mergedFinding(id, occ, terminalRound, terminalSignal, park) {
+  let rep = occ[0];
+  for (const o of occ) if (rankOf(o.finding.severity) >= rankOf(rep.finding.severity)) rep = o;
+  const pickField = (field) => (rep.finding[field] !== null && rep.finding[field] !== undefined ? rep.finding[field] : latestNonNull(occ, field));
+  const last = occ[occ.length - 1];
+  const latest = last.finding;
+  return {
+    finding_id: id,
+    title: pickField("title"),
+    location: latest.location,
+    action: pickField("action"),
+    location_present: latest.location_present,
+    action_present: rep.finding.action_present,
+    severity: rep.finding.severity,
+    source: pickField("source"),
+    model: pickField("model"),
+    ...settle(occ, terminalRound, terminalSignal, park),
+    first_round: occ[0].round,
+    last_round: last.round,
+    occurrences: occ.map((o) => ({ round: o.round, title: o.finding.title, location: o.finding.location, severity: o.finding.severity, disposition: o.finding.disposition })),
+  };
+}
+
+// collateReviewRounds(rounds, terminalSignal, park) -> merged findings in first-appearance order.
+// rounds: recorded round records ascending by round number. Pure. A finding is settled `fixed` only
+// when the loop ended in pass; on a park no recorded round is the review's terminal verdict.
+function collateReviewRounds(rounds, terminalSignal, park) {
+  const list = Array.isArray(rounds) ? rounds : [];
+  if (list.length === 0) return [];
+  const ids = resolvedRoundIds(list);
+  const byId = new Map();
+  list.forEach((r, ri) => r.findings.forEach((finding, fi) => {
+    const id = ids[ri][fi];
+    if (!byId.has(id)) byId.set(id, []);
+    byId.get(id).push({ round: r.round, finding });
+  }));
+  const terminalRound = list[list.length - 1].round;
+  return Array.from(byId, ([id, occ]) => mergedFinding(id, occ, terminalRound, terminalSignal, park));
+}
+
 module.exports = {
-  EvidenceRefusal, applyDispositions, collateSpecReviewRounds, conformantRound, extractSpecReviewEvidence,
+  EvidenceRefusal, applyDispositions, collateReviewRounds, collateSpecReviewRounds, resolvedRoundIds, conformantRound, extractSpecReviewEvidence,
   parseSpecReviewComment, renderSpecReviewComment,
 };

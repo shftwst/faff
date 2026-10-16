@@ -2,6 +2,7 @@
   "schema_version": 1,
   "round": 1,
   "signal": "fail",
+  "adversarial_outcome": null,
   "findings": [
     {
       "finding_id": "src/example.js::missing null check",

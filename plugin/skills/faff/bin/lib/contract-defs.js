@@ -16,7 +16,7 @@ const path = require("node:path");
 const { HERE, requiresSelfConsistencyStamp } = require("./shared-infra");
 const { exitFor, schemaCheck, validateAgainstSchema } = require("./contract-engine");
 const { parseArgs, usageError } = require("./argv");
-const { REVIEW_DISPOSITIONS, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS } = require("./review-vocab");
+const { REVIEW_DISPOSITIONS, REVIEW_FINDING_SOURCES, REVIEW_SEVERITIES, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS } = require("./review-vocab");
 const CONTRACT_SPEC = { flags: { "--selftest": { arity: 0 }, "--require-spawner-attested": { arity: 0 }, "--in": { arity: 1 }, "--describe": { arity: 0 }, "--json": { arity: 0 } }, positionals: { min: 0, max: 1, name: "contract-name" } };
 const { RUN_DONE_VERDICTS } = require("./run-done");
 const { RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, deriveRunTrigger, normalizeRunTriggerSignals } = require("./run-start");
@@ -79,8 +79,6 @@ function contractSpecReadiness(extraction) {
 // exact set faffter-dark-adversarial-review already emits (critical/major/minor/observation) so no
 // well-formed adversarial finding — including the auto-refutation downgrade and the clean-review
 // `observation` token — trips a spurious violation.
-const REVIEW_SEVERITIES = ["critical", "major", "minor", "observation"];
-const REVIEW_FINDING_SOURCES = ["standard", "adversarial"];
 function computeReviewVerdict(extraction) {
   if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
     return { contractData: null, failLoud: "extraction must be a JSON object" };
@@ -120,6 +118,10 @@ function computeReviewVerdict(extraction) {
     if (typeof obj.refutation === "string") out.refutation = obj.refutation;
     if (typeof obj.disposition_rationale === "string") out.disposition_rationale = obj.disposition_rationale;
     if (typeof obj.model === "string") out.model = obj.model;
+    // FAFF-1268: the collated evidence fields pass through typed; carried_id never does.
+    for (const field of ["finding_id", "title", "location", "action"]) if (typeof obj[field] === "string") out[field] = obj[field];
+    for (const field of ["first_round", "last_round"]) if (Number.isInteger(obj[field])) out[field] = obj[field];
+    if (Array.isArray(obj.occurrences) && obj.occurrences.every((o) => o !== null && typeof o === "object" && !Array.isArray(o))) out.occurrences = obj.occurrences;
     return out;
   });
   if ((signal === "fail" || signal === "needs-human") && findings.length === 0) {
@@ -129,7 +131,12 @@ function computeReviewVerdict(extraction) {
     if (!f.location_present) violations.push(`finding[${i}] has no location`);
     if (!f.action_present) violations.push(`finding[${i}] has no action`);
   });
-  return { contractData: { signal, findings, conformant: violations.length === 0, violations }, failLoud: null };
+  const passed = {};
+  for (const field of ["schema_version", "rounds_total"]) if (Number.isInteger(extraction[field])) passed[field] = extraction[field];
+  if (["recorded", "terminal-only"].includes(extraction.round_history)) passed.round_history = extraction.round_history;
+  if (extraction.adversarial_outcome === "chain-outage-skipped") passed.adversarial_outcome = extraction.adversarial_outcome;
+  if (extraction.admitted_by === "build-judge") passed.admitted_by = extraction.admitted_by;
+  return { contractData: { signal, findings, conformant: violations.length === 0, violations, ...passed }, failLoud: null };
 }
 
 function contractReviewVerdict(extraction) {

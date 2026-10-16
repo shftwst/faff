@@ -235,7 +235,7 @@ test("evidence validate: violation messages never print a data value", () => {
   writeFileSync(join(dir, "review-verdict.json"), JSON.stringify(bad));
   const { stdout } = validate(dir);
   assert.ok(!stdout.includes(SENTINEL));
-  assert.match(stdout, /value not in enum \[pass, fail, needs-human\]/);
+  assert.match(stdout, /value not in enum \[pass, fail, needs-human, unavailable\]/);
   rmSync(dir, { recursive: true, force: true });
 });
 

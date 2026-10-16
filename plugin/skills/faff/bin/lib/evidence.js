@@ -14,6 +14,9 @@
 // are shared cores (`guardWriterPaths`, `writeEvidenceFile`) any later evidence writer reuses.
 // `faff evidence write ac-checklist` and `faff evidence write review-verdict --terminal-only`
 // (FAFF-1277) write graft's other two verdict files in the v0.3 shape through the same cores.
+// `faff evidence record-review-round` (FAFF-1268) records each code-review pass as
+// `review-rounds/round-<n>.json`, and `faff evidence write review-verdict` collates the recorded
+// rounds, with `--park` and `--judge-admitted` for the verdicts no reviewer pass produced.
 // ===========================================================================
 
 const fs = require("node:fs");
@@ -24,10 +27,10 @@ const { appendEventRecord, eventViolations, splitPhysicalLines } = require("./ev
 const { declaredEffectViolations } = require("./effects");
 const { HERE, findRoot, mainWorktreeRoot } = require("./shared-infra");
 const { DELIVERY_PROFILE, activeProfile } = require("./governance-profile");
-const { REVIEW_DISPOSITIONS, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES } = require("./review-vocab");
-const { EvidenceRefusal, parseSpecReviewComment } = require("./evidence-collate");
+const { REVIEW_DISPOSITIONS, REVIEW_FINDING_SOURCES, REVIEW_SEVERITIES, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES } = require("./review-vocab");
+const { EvidenceRefusal, collateReviewRounds, parseSpecReviewComment, resolvedRoundIds } = require("./evidence-collate");
 const { redactKnownSecrets, resolveKnownSecretValues } = require("./redact");
-const { assignFindingIds } = require("./finding-id");
+const { assignFindingIds, normaliseFindingPath, normaliseFindingTitle } = require("./finding-id");
 const { parseAcId } = require("./ac-id");
 
 const SPEC_VERSION = "v0.3";
@@ -36,7 +39,7 @@ const BUNDLE_DIR = path.resolve(HERE, "..", "contracts", "evidence-v0.3");
 const EVIDENCE_SPEC = { flags: {
   "--json": { arity: 0 }, "--selftest": { arity: 0 }, "--require-evidence-schema": { arity: 0 },
   "--run-dir": { arity: 1 }, "--issue": { arity: 1 }, "--terminal-only": { arity: 0 },
-  "--candidate-schemas": { arity: 1 },
+  "--candidate-schemas": { arity: 1 }, "--park": { arity: 1 }, "--judge-admitted": { arity: 0 }, "--prior-dir": { arity: 1 },
 }, positionals: { min: 0, max: null, name: "argument(s)" } };
 
 // Per-line validators for the JSONL files the schema subset cannot fully express. A jsonl
@@ -796,7 +799,7 @@ function anchoredTerminalReview(block) {
 }
 
 function terminalReviewRefusal(issueDir, block) {
-  if (block.signal === "unavailable") return "signal: unavailable is not an anchored verdict; the outage park keeps the raw review-verdict block";
+  if (block.signal === "unavailable") return "signal: unavailable is not a reviewer verdict; the outage park writes through --park unavailable";
   let rounds;
   try { rounds = fs.readdirSync(path.join(issueDir, "review-rounds")).filter((f) => /^round-.*\.json$/.test(f)); } catch (e) {
     rounds = e && e.code === "ENOENT" ? [] : ["unreadable"];
@@ -832,27 +835,277 @@ function writeTerminalReviewVerdict(runDir, issue, text, secrets) {
   }
 }
 
+// --- code-review round records and their collation (FAFF-1268) ---------------
+
+const ROUND_FILE_RE = /^round-([1-9]\d*)\.json$/;
+const ROUND_SCHEMA = "schema/review-round.schema.json";
+const ROUND_SIGNALS = ["pass", "fail", "needs-human"];
+const PARK_SIGNALS = ["needs-human", "unavailable"];
+const HANDLE_RE = /^P([1-9]\d*)$/;
+
+// A recorded round that cannot be read or fails its schema. The recorder treats it as a run-dir
+// fault (exit 2), the verdict writer as a refusal (exit 1); both name the file, never a value.
+class RoundRecordFault extends Error {}
+
+// The round schema is not an anchor-manifest entry, so it is loaded by path, not through schemaFor.
+let roundSchemaCache = null;
+function roundSchema() {
+  if (!roundSchemaCache) roundSchemaCache = readJsonFile(path.join(BUNDLE_DIR, ROUND_SCHEMA), ROUND_SCHEMA);
+  return roundSchemaCache;
+}
+
+// listRoundFiles(dir) -> [{ n, name, file }] ascending by n; a missing directory has none.
+function listRoundFiles(dir) {
+  let names;
+  try { names = fs.readdirSync(dir); } catch (e) {
+    if (e && e.code === "ENOENT") return [];
+    throw new WriterFault(`cannot list ${path.basename(dir)}/: ${(e && e.code) || "io error"}`);
+  }
+  return names
+    .map((name) => { const m = name.match(ROUND_FILE_RE); return m ? { n: Number(m[1]), name, file: path.join(dir, name) } : null; })
+    .filter(Boolean)
+    .sort((a, b) => a.n - b.n);
+}
+
+// readRecordedRounds(issueDir) -> every review-rounds/round-<n>.json, ascending, each re-validated.
+function readRecordedRounds(issueDir) {
+  return listRoundFiles(path.join(issueDir, "review-rounds")).map(({ n, name, file }) => {
+    const where = `review-rounds/${name}`;
+    let rec;
+    try { rec = JSON.parse(fs.readFileSync(file, "utf8")); } catch { throw new RoundRecordFault(`${where}: unreadable or not valid JSON`); }
+    const violations = validateAgainstSchema(rec, roundSchema()).map(tidy);
+    if (violations.length > 0) throw new RoundRecordFault(`${where}: ${violations[0]}`);
+    if (rec.round !== n) throw new RoundRecordFault(`${where}: round does not match the file name`);
+    return rec;
+  });
+}
+
+function enumOrNull(value, allowed, where, warnings) {
+  if (value === undefined || value === null) return null;
+  if (typeof value === "string" && allowed.includes(value)) return value;
+  warnings.push(`${where}: not in the enum; written as null`);
+  return null;
+}
+
+function carriedOrNull(value, where, warnings) {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== "string") {
+    warnings.push(`${where}: not a string; written as null`);
+    return null;
+  }
+  return value.trim() || null;
+}
+
+// priorDirFindings(priorDir, issueDir, secrets) -> the findings of the highest round record in the
+// --prior-dir, in record order (the order `faff review-prior` numbers them), or null when it has none.
+// A --prior-dir that does not exist yet (a resume into a fresh run dir) has none.
+function priorDirFindings(priorDir, issueDir, secrets) {
+  if (!fs.existsSync(priorDir)) return null;
+  const realIssueDir = realpathOrNull(issueDir);
+  const real = realpathOrNull(priorDir);
+  if (realIssueDir === null || real === null || real === realIssueDir || !within(realIssueDir, real)) throw new WriterFault("--prior-dir is not inside the issue directory");
+  const files = listRoundFiles(real);
+  if (files.length === 0) return null;
+  const last = files[files.length - 1];
+  let rec;
+  try { rec = JSON.parse(fs.readFileSync(last.file, "utf8")); } catch { throw new WriterFault(`--prior-dir ${last.name} is unreadable or not valid JSON`); }
+  return redactKnownSecrets(isObject(rec) && Array.isArray(rec.findings) ? rec.findings : [], secrets);
+}
+
+// translateHandle(carried, src, previous, where, warnings) -> the review-rounds/ handle naming the same
+// finding a --prior-dir handle names, matched on exact normalised file and title, else null.
+function translateHandle(carried, src, previous, where, warnings) {
+  if (src === null) {
+    warnings.push(`${where}: --prior-dir has no round record; written as null`);
+    return null;
+  }
+  const m = carried.match(HANDLE_RE);
+  const j = m ? Number(m[1]) : 0;
+  if (!j || j > src.length) {
+    warnings.push(`${where}: not a handle in the --prior-dir round; written as null`);
+    return null;
+  }
+  const f = isObject(src[j - 1]) ? src[j - 1] : {};
+  const file = normaliseFindingPath(f.location);
+  const title = normaliseFindingTitle(f.title);
+  const candidates = previous ? previous.findings : [];
+  const hits = file && title
+    ? candidates.flatMap((g, i) => (normaliseFindingPath(g.location) === file && normaliseFindingTitle(g.title) === title ? [i] : []))
+    : [];
+  if (hits.length !== 1) {
+    warnings.push(`${where}: no single matching finding in the previous review-rounds record; written as null`);
+    return null;
+  }
+  return `P${hits[0] + 1}`;
+}
+
+// roundFinding(f, at, carried, warnings) -> one finding in review-round key order, finding_id unset.
+function roundFinding(f, at, carried, warnings) {
+  return {
+    finding_id: null,
+    carried_id: carried,
+    title: orNull(f.title),
+    location: orNull(f.location),
+    action: orNull(f.action),
+    location_present: !!f.location_present,
+    action_present: !!f.action_present,
+    severity: enumOrNull(f.severity, REVIEW_SEVERITIES, `${at}.severity`, warnings),
+    source: enumOrNull(f.source, REVIEW_FINDING_SOURCES, `${at}.source`, warnings),
+    model: orNull(f.model),
+    disposition: enumOrNull(f.disposition, REVIEW_DISPOSITIONS, `${at}.disposition`, warnings),
+    refutation: orNull(f.refutation),
+    disposition_rationale: orNull(f.disposition_rationale),
+  };
+}
+
+// writeExclusive(dir, name, document) -> path. Links a complete temp file to the target, so the
+// round number is claimed exactly once and a reader never sees a torn file.
+function writeExclusive(dir, name, document) {
+  const target = path.join(dir, name);
+  const temp = path.join(dir, `.${name}.tmp-${process.pid}-${Date.now()}`);
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(temp, JSON.stringify(document, null, 2) + "\n");
+    fs.linkSync(temp, target);
+  } catch (e) {
+    throw new WriterFault(e && e.code === "EEXIST" ? `${name} already exists; another pass recorded that round` : `cannot write ${name}: ${(e && e.code) || "io error"}`);
+  } finally {
+    fs.rmSync(temp, { force: true });
+  }
+  return target;
+}
+
+// recordReviewRound(runDir, issue, text, secrets, priorDir) -> { written, warnings } | { refused }.
+// Throws WriterFault (exit 2) on a path, IO or existing-round fault. Nothing is written unless every
+// check passes. A supplied finding_id is ignored: resolveRoundChain decides every id.
+function recordReviewRound(runDir, issue, text, secrets, priorDir) {
+  const issueDir = guardWriterPaths(runDir, issue);
+  const input = parseStdinObject(text);
+  if (input === null) return { refused: [NOT_AN_OBJECT] };
+  if (!ROUND_SIGNALS.includes(input.signal)) return { refused: ["signal: must be pass, fail or needs-human; an unavailable pass records no round"] };
+  if (!Array.isArray(input.findings) || !input.findings.every(isObject)) return { refused: ["findings: must be an array of objects"] };
+  const block = redactKnownSecrets(input, secrets);
+  let existing;
+  try { existing = readRecordedRounds(issueDir); } catch (e) {
+    if (e instanceof RoundRecordFault) throw new WriterFault(e.message);
+    throw e;
+  }
+  const previous = existing.length > 0 ? existing[existing.length - 1] : null;
+  const n = previous ? previous.round + 1 : 1;
+  const warnings = [];
+  let src;
+  const findings = block.findings.map((f, i) => {
+    const at = `findings[${i}]`;
+    let carried = carriedOrNull(f.carried_id, `${at}.carried_id`, warnings);
+    if (carried !== null && priorDir != null) {
+      if (src === undefined) src = priorDirFindings(priorDir, issueDir, secrets);
+      carried = translateHandle(carried, src, previous, `${at}.carried_id`, warnings);
+    }
+    return roundFinding(f, at, carried, warnings);
+  });
+  const adversarialOutcome = enumOrNull(block.adversarial_outcome, ["chain-outage-skipped"], "adversarial_outcome", warnings);
+  const doc = { schema_version: 1, round: n, signal: block.signal, adversarial_outcome: adversarialOutcome, findings };
+  const ids = resolvedRoundIds([...existing, doc]).pop();
+  findings.forEach((f, i) => { f.finding_id = ids[i]; });
+  const violations = validateAgainstSchema(doc, roundSchema()).map(tidy);
+  if (violations.length > 0) return { refused: violations };
+  return { written: writeExclusive(path.join(issueDir, "review-rounds"), `round-${n}.json`, doc), warnings };
+}
+
+function judgeAdmitRefusal(issueDir) {
+  const rel = "build-review/judge/admit-result.json";
+  const real = realpathOrNull(path.join(issueDir, rel));
+  if (real === null) return `${rel} is missing`;
+  const realIssueDir = realpathOrNull(issueDir);
+  if (realIssueDir === null || !within(realIssueDir, real)) throw new WriterFault(`${rel} resolves outside the issue directory`);
+  let result;
+  try { result = JSON.parse(fs.readFileSync(real, "utf8")); } catch { return `${rel} is unreadable or not valid JSON`; }
+  return isObject(result) && result.admit === true ? null : `${rel} does not record admit: true`;
+}
+
+function collatedReviewViolations(doc, highestRound) {
+  const out = [];
+  if (!(doc.rounds_total >= 0)) out.push("rounds_total: must be at least 0");
+  doc.findings.forEach((f, i) => {
+    const at = `findings[${i}]`;
+    if (!(f.first_round >= 1 && f.first_round <= f.last_round && f.last_round <= highestRound)) out.push(`${at}: needs 1 <= first_round <= last_round <= the highest round`);
+    f.occurrences.forEach((o, j) => {
+      if (!(o.round >= f.first_round && o.round <= f.last_round)) out.push(`${at}.occurrences[${j}].round: outside first_round..last_round`);
+    });
+  });
+  return out;
+}
+
+// writeCollatedReviewVerdict(runDir, issue, secrets, mode) -> { written } | { refused: [message] }.
+// mode: { park: "needs-human" | "unavailable" } | { judgeAdmitted: true } | {} (the default).
+function writeCollatedReviewVerdict(runDir, issue, secrets, mode) {
+  const issueDir = guardWriterPaths(runDir, issue);
+  let rounds;
+  try { rounds = redactKnownSecrets(readRecordedRounds(issueDir), secrets); } catch (e) {
+    if (e instanceof RoundRecordFault) return { refused: [e.message] };
+    throw e;
+  }
+  const terminal = rounds.length > 0 ? rounds[rounds.length - 1] : null;
+  const park = mode.park !== undefined;
+  let signal;
+  if (park) {
+    signal = mode.park;
+  } else if (terminal === null) {
+    return { refused: [mode.judgeAdmitted ? "no review rounds recorded; a judge admit needs the reviewer pass it overturned" : "no review rounds recorded; use --park or --terminal-only"] };
+  } else if (mode.judgeAdmitted) {
+    const refusal = judgeAdmitRefusal(issueDir);
+    if (refusal !== null) return { refused: [refusal] };
+    signal = "pass";
+  } else if (terminal.signal === "fail") {
+    return { refused: ["terminal round is fail; the review loop has not finished"] };
+  } else {
+    signal = terminal.signal;
+  }
+  const doc = { schema_version: 1, signal };
+  if (terminal !== null && terminal.adversarial_outcome === "chain-outage-skipped") doc.adversarial_outcome = terminal.adversarial_outcome;
+  if (mode.judgeAdmitted) doc.admitted_by = "build-judge";
+  doc.rounds_total = rounds.length;
+  doc.round_history = "recorded";
+  doc.findings = collateReviewRounds(rounds, signal, park);
+  const violations = [
+    ...validateAgainstSchema(doc, schemaFor("review-verdict.json")).map(tidy),
+    ...collatedReviewViolations(doc, terminal === null ? 0 : terminal.round),
+  ];
+  if (violations.length > 0) return { refused: violations };
+  return { written: writeEvidenceFile(issueDir, "review-verdict.json", doc) };
+}
+
 const WRITERS = {
   "spec-review-verdict": writeSpecReviewVerdict,
   "ac-checklist": writeAcChecklist,
   "review-verdict": writeTerminalReviewVerdict,
 };
 
-function cmdEvidenceWrite(values, name) {
-  const fail = (code, message) => { process.stderr.write(`faff evidence write ${name}: ${message}\n`); return code; };
-  if (!Object.hasOwn(WRITERS, name)) return fail(2, `expected one of: ${Object.keys(WRITERS).join(", ")}`);
-  if (name === "review-verdict" && !values["--terminal-only"]) {
-    return fail(2, "round collation is not available yet; usage: faff evidence write review-verdict --terminal-only --run-dir <dir> --issue <id>");
+// reviewVerdictMode(values) -> { mode } | { usage: message }. --park, --judge-admitted and
+// --terminal-only are mutually exclusive; with none, the recorded rounds are collated.
+function reviewVerdictMode(values) {
+  const chosen = ["--park", "--judge-admitted", "--terminal-only"].filter((flag) => values[flag] != null && values[flag] !== false);
+  if (chosen.length > 1) return { usage: `${chosen.join(" and ")} cannot be combined` };
+  if (values["--park"] != null) {
+    return PARK_SIGNALS.includes(values["--park"]) ? { mode: { park: values["--park"] } } : { usage: `--park takes one of: ${PARK_SIGNALS.join(", ")}` };
   }
-  if (name !== "review-verdict" && values["--terminal-only"]) return fail(2, "--terminal-only applies to review-verdict only");
+  if (values["--terminal-only"]) return { mode: { terminalOnly: true } };
+  return { mode: values["--judge-admitted"] ? { judgeAdmitted: true } : {} };
+}
+
+// runWriter(label, values, write) -> exit code. Guards the paths and resolves the redaction secrets
+// before write(secrets) reads or writes anything.
+function runWriter(label, values, write) {
+  const fail = (code, message) => { process.stderr.write(`${label}: ${message}\n`); return code; };
   if (values["--run-dir"] == null || values["--issue"] == null) return fail(2, "--run-dir and --issue are required");
   try {
     guardWriterPaths(values["--run-dir"], values["--issue"]);
     let secrets;
     try { secrets = resolveKnownSecretValues(findRoot()); } catch { return fail(2, "the redaction config could not be read; nothing written"); }
-    const result = WRITERS[name](values["--run-dir"], values["--issue"], fs.readFileSync(0, "utf8"), secrets);
+    const result = write(secrets);
+    for (const message of result.warnings || []) process.stderr.write(`${label}: warning: ${message}\n`);
     if (result.refused) {
-      for (const message of result.refused) process.stderr.write(`faff evidence write ${name}: refused: ${message}\n`);
+      for (const message of result.refused) process.stderr.write(`${label}: refused: ${message}\n`);
       return 1;
     }
     process.stdout.write(`${result.written}\n`);
@@ -861,6 +1114,34 @@ function cmdEvidenceWrite(values, name) {
     if (e instanceof WriterFault || e instanceof SchemaUnavailable) return fail(2, e.message);
     throw e;
   }
+}
+
+const readStdin = () => fs.readFileSync(0, "utf8");
+
+function cmdEvidenceWrite(values, name) {
+  const label = `faff evidence write ${name}`;
+  const fail = (code, message) => { process.stderr.write(`${label}: ${message}\n`); return code; };
+  if (!Object.hasOwn(WRITERS, name)) return fail(2, `expected one of: ${Object.keys(WRITERS).join(", ")}`);
+  if (values["--prior-dir"] != null) return fail(2, "--prior-dir applies to record-review-round only");
+  if (name !== "review-verdict") {
+    const flag = ["--terminal-only", "--park", "--judge-admitted"].find((f) => values[f] != null && values[f] !== false);
+    if (flag) return fail(2, `${flag} applies to review-verdict only`);
+    return runWriter(label, values, (secrets) => WRITERS[name](values["--run-dir"], values["--issue"], readStdin(), secrets));
+  }
+  const { mode, usage } = reviewVerdictMode(values);
+  if (usage) return fail(2, usage);
+  if (mode.terminalOnly) return runWriter(label, values, (secrets) => writeTerminalReviewVerdict(values["--run-dir"], values["--issue"], readStdin(), secrets));
+  return runWriter(label, values, (secrets) => writeCollatedReviewVerdict(values["--run-dir"], values["--issue"], secrets, mode));
+}
+
+function cmdRecordReviewRound(values) {
+  const label = "faff evidence record-review-round";
+  const flag = ["--terminal-only", "--park", "--judge-admitted"].find((f) => values[f] != null && values[f] !== false);
+  if (flag) {
+    process.stderr.write(`${label}: ${flag} applies to write review-verdict only\n`);
+    return 2;
+  }
+  return runWriter(label, values, (secrets) => recordReviewRound(values["--run-dir"], values["--issue"], readStdin(), secrets, values["--prior-dir"]));
 }
 
 function cmdEvidenceRender(values, name) {
@@ -945,7 +1226,7 @@ function evidenceSelftest() {
 // flag exits 2 just as schema-unavailable does, so probing flags could not tell the two apart.
 const CAPABILITIES = { validate: ["require-evidence-schema", "candidate-schemas"] };
 
-const USAGE = "usage: faff evidence validate <anchor-dir> [--require-evidence-schema] [--json] [--candidate-schemas <dir>]\n       faff evidence capabilities --json\n       faff evidence write spec-review-verdict --run-dir <dir> --issue <id>   (comment or spec text on stdin)\n       faff evidence write ac-checklist --run-dir <dir> --issue <id>   ({all_verified, criteria?: [{ac, verified, passed, ac_id?, verifications?}]} on stdin)\n       faff evidence render ac-checklist --run-dir <dir> --issue <id>   (prints the PR-body Acceptance Criteria block)\n       faff evidence write review-verdict --terminal-only --run-dir <dir> --issue <id>   (terminal review-verdict block on stdin)\n       faff evidence --selftest\n";
+const USAGE = "usage: faff evidence validate <anchor-dir> [--require-evidence-schema] [--json] [--candidate-schemas <dir>]\n       faff evidence capabilities --json\n       faff evidence write spec-review-verdict --run-dir <dir> --issue <id>   (comment or spec text on stdin)\n       faff evidence write ac-checklist --run-dir <dir> --issue <id>   ({all_verified, criteria?: [{ac, verified, passed, ac_id?, verifications?}]} on stdin)\n       faff evidence render ac-checklist --run-dir <dir> --issue <id>   (prints the PR-body Acceptance Criteria block)\n       faff evidence record-review-round --run-dir <dir> --issue <id> [--prior-dir <dir>]   (one review-verdict block on stdin)\n       faff evidence write review-verdict --run-dir <dir> --issue <id> [--park needs-human|unavailable | --judge-admitted]   (collates review-rounds/)\n       faff evidence write review-verdict --terminal-only --run-dir <dir> --issue <id>   (terminal review-verdict block on stdin; manual recovery)\n       faff evidence --selftest\n";
 
 function cmdEvidence(args) {
   const parsed = parseArgs(args, EVIDENCE_SPEC);
@@ -959,6 +1240,7 @@ function cmdEvidence(args) {
       return 0;
     }
     if (sub === "write" && anchorDir && rest.length === 0) return cmdEvidenceWrite(values, anchorDir);
+    if (sub === "record-review-round" && !anchorDir) return cmdRecordReviewRound(values);
     if (sub === "render" && anchorDir && rest.length === 0) return cmdEvidenceRender(values, anchorDir);
     if (sub !== "validate" || !anchorDir || rest.length > 0) {
       process.stderr.write(USAGE);
@@ -983,6 +1265,7 @@ function cmdEvidence(args) {
 module.exports = {
   CAPABILITIES, EVIDENCE_SPEC, SCHEMA_UNAVAILABLE_MARKER, SchemaUnavailable, WriterFault, acChecklistWriterViolations, announceSchemaUnavailable, anchoredAcChecklist,
   anchoredTerminalReview, checkAnchorDir, classifySchemaChange, cmdEvidence, eventDataKeys, evidenceSelftest, exitCodeFor,
+  recordReviewRound, writeCollatedReviewVerdict,
   guardWriterPaths, introducedViolations, logRecordChecker, manifestFileNames, noteSchemaUnavailable, preloadEvidenceSchemas,
   renderAcChecklist, resetEvidenceSchemaCache, sanitiseDisplay, validateAnchorDir, validateEvidenceDocument, writeAcChecklist, writeEvidenceFile,
   writeSpecReviewVerdict, writeTerminalReviewVerdict,

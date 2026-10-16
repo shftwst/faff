@@ -11,7 +11,7 @@ FAFF-1259.
 | `build-progress.json` | `build-progress` | `buildProgressApplyComplete` (`effects.js`) | FAFF-1258 |
 | `landing-progress.json` | `landing-progress` | `landingProgressApplyFixCycle` (`effects.js`) | FAFF-1258 |
 | `ac-checklist.json` | `ac-checklist` | `faff evidence write ac-checklist`, called by graft Step 8 | FAFF-1277 |
-| `review-verdict.json` | `review-verdict-anchored` | `faff evidence write review-verdict --terminal-only`, called by graft Step 9 | FAFF-1277 |
+| `review-verdict.json` | `review-verdict-anchored` | `faff evidence write review-verdict`, collating the rounds `faff evidence record-review-round` records, called by graft Step 9 | FAFF-1277 |
 | `spec-review-verdict.json` | `spec-review-verdict-anchored` | `faff evidence write spec-review-verdict`, called by graft Step 9b | FAFF-1267 |
 | `holdout.json` | `holdout-anchored` | `holdout_step` | FAFF-1259 |
 
@@ -78,11 +78,24 @@ round records are never anchored. Each finding keeps the reviewer's `carried_id`
 of the previous round's finding it re-raises (`null` when none); `resolveRoundChain` honours it only
 for a finding in the same file, so a carried id is never trusted on the reviewer's word alone.
 
-Until code-review rounds are recorded (FAFF-1268), `review-verdict.json` is written with
-`round_history: "terminal-only"` and `rounds_total: 1`, and the writer appends one
-`evidence-terminal-only` event to `events.jsonl` first, so the missing history is visible in the
-hash chain as well as the file. Its optional `adversarial_outcome` (`chain-outage-skipped`) is
-present only when the adversarial review chain was skipped for an outage.
+Graft records every code-review pass as `review-rounds/round-<n>.json` (`faff evidence
+record-review-round`), and `faff evidence write review-verdict` collates them into
+`review-verdict.json` with `round_history: "recorded"` and `rounds_total` set to the number of
+round records. Findings merge on the id `resolveRoundChain` decides, re-resolved from the stored
+`carried_id`, title and location on every collation and restarted at a gap in round numbers. A
+merged finding is settled `fixed` only when the review loop ended in `pass`; a finding the
+reviewer refuted or accepted keeps that disposition, and on a park every other finding is `open`.
+The park writes (`--park needs-human` and `--park unavailable`) collate the rounds that did run
+and add no round of their own, so `signal: "unavailable"` appears only on the outage park. A
+judge admit (`--judge-admitted`) writes `signal: "pass"` with `admitted_by: "build-judge"`, after
+checking the judge's own `admit-result.json`. The optional `adversarial_outcome`
+(`chain-outage-skipped`) is copied from the terminal round, present only when the adversarial
+review chain was skipped for an outage.
+
+`--terminal-only` stays for manual recovery of a run dir with no recorded rounds: it writes
+`round_history: "terminal-only"` and `rounds_total: 1`, and appends one `evidence-terminal-only`
+event to `events.jsonl` first, so the missing history is visible in the hash chain as well as the
+file.
 
 Constraints the validator subset cannot express are enforced by the writer, not the schema:
 for a holdout criterion, `met` and `unmet` need `exercised`, `expected` and `observed`,

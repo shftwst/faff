@@ -155,7 +155,7 @@ test("review-verdict --terminal-only: exits 1 and writes nothing for each refuse
     assert.ok(!w.stderr.includes(SECRET), label);
     assert.ok(!existsSync(f.out("review-verdict.json")), label);
   }
-  assert.match(f.review(cases.unavailable).stderr, /raw review-verdict block/);
+  assert.match(f.review(cases.unavailable).stderr, /--park unavailable/);
   mkdirSync(join(f.runDir, ISSUE, "review-rounds"), { recursive: true });
   writeFileSync(join(f.runDir, ISSUE, "review-rounds", "round-1.json"), "{}");
   assert.equal(f.review({ signal: "pass", findings: [] }).code, 1);
@@ -167,11 +167,11 @@ test("review-verdict --terminal-only: exits 1 and writes nothing for each refuse
   assert.equal(f.events().length, before);
 });
 
-test("bare review-verdict exits 2 with a usage line; --terminal-only elsewhere exits 2", (t) => {
+test("bare review-verdict collates recorded rounds, refusing none (FAFF-1268); --terminal-only elsewhere exits 2", (t) => {
   const f = fixture(t);
   const bare = f.write("review-verdict", JSON.stringify({ signal: "pass", findings: [] }));
-  assert.equal(bare.code, 2);
-  assert.match(bare.stderr, /usage: faff evidence write review-verdict --terminal-only/);
+  assert.equal(bare.code, 1);
+  assert.match(bare.stderr, /no review rounds recorded; use --park or --terminal-only/);
   assert.equal(f.write("ac-checklist", JSON.stringify({ all_verified: true }), ["--terminal-only"]).code, 2);
   assert.equal(f.write("holdout", "{}").code, 2);
   assert.deepEqual(readdirSync(f.runDir).filter((n) => n === ISSUE), []);

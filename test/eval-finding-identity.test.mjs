@@ -323,14 +323,17 @@ test("--model and --effort flow into the frontier options (pure builder, no spaw
 
 // --- reviewer contract additions ------------------------------------------------------------------
 
-test("faff contract review-verdict ignores title, location and action: same output with and without them", () => {
+test("faff contract review-verdict: title, location and action pass through (FAFF-1268) without changing the verdict", () => {
   const bare = { signal: "fail", findings: [{ location_present: true, action_present: true, severity: "major" }] };
-  const rich = { signal: "fail", findings: [{ ...bare.findings[0], title: "Leaks fd in readFirstLine", location: "lib/reader.js:9", action: "close the fd" }] };
+  const added = { title: "Leaks fd in readFirstLine", location: "lib/reader.js:9", action: "close the fd" };
+  const rich = { signal: "fail", findings: [{ ...bare.findings[0], ...added }] };
   const a = runCli(["contract", "review-verdict"], { input: JSON.stringify(bare) });
   const b = runCli(["contract", "review-verdict"], { input: JSON.stringify(rich) });
   assert.equal(a.code, 0);
   assert.equal(b.code, 0);
-  assert.equal(b.stdout, a.stdout);
+  const [x, y] = [JSON.parse(a.stdout), JSON.parse(b.stdout)];
+  assert.deepEqual([y.signal, y.conformant, y.violations], [x.signal, x.conformant, x.violations]);
+  assert.deepEqual(y.findings[0], { ...x.findings[0], ...added });
 });
 
 test("both review SKILLs document title, location and action and point at the shared helper", () => {

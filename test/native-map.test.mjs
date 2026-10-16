@@ -1,13 +1,13 @@
 // FAFF-1081 — `faff native-map set` is the pure faff-type→tracker-template-identity writer.
 // It persists the confirmed mapping (discovered over MCP by /faff-onboard step 2) to the committed
-// `.faff-templates/native-templates.yaml`. These drive the REAL CLI against a throwaway dir (the
+// `.faff/templates/native-templates.yaml` (FAFF-1300). These drive the REAL CLI against a throwaway dir (the
 // whole write path — stdin JSON → validate → emit through the real YAML encoder → round-trip
 // self-verify → fs.writeFileSync) and assert the observable DONE checks: exact round-trip,
 // injection safety (a crafted name/id injects NO sibling key), unknown-type refusal, empty no-op.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync, existsSync, mkdirSync, writeFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,7 +15,8 @@ import { fileURLToPath } from "node:url";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CLI = join(HERE, "..", "plugin", "skills", "faff", "bin", "faff");
 const SHARED_INFRA = join(HERE, "..", "plugin", "skills", "faff", "bin", "lib", "shared-infra.js");
-const MAP_REL = join(".faff-templates", "native-templates.yaml");
+const MAP_REL = join(".faff", "templates", "native-templates.yaml");
+const DEPRECATED_MAP_REL = join(".faff-templates", "native-templates.yaml");
 
 function run(cwd, args, input) {
   try {
@@ -24,6 +25,14 @@ function run(cwd, args, input) {
   } catch (e) {
     return { code: e.status ?? 1, out: (e.stdout ?? "").toString(), err: (e.stderr ?? "").toString() };
   }
+}
+
+// Success-path stderr is not surfaced by `run` (execFileSync), so notice and advisory assertions
+// use this. Each call is a fresh process, so the once-per-process notice latch never carries over.
+function runFull(cwd, args, input) {
+  const r = spawnSync("node", [CLI, ...args], { cwd, encoding: "utf8", input: input ?? "" });
+  const err = r.stderr;
+  return { code: r.status, out: r.stdout, err };
 }
 
 function tmpDir() {
@@ -212,7 +221,7 @@ test("get --type <mapped> --json → { type, id, name }, exit 0", () => {
   writeMap(dir);
   const r = run(dir, ["native-map", "get", "--type", "bug", "--json"]);
   assert.equal(r.code, 0, r.err);
-  assert.deepEqual(JSON.parse(r.out), { type: "bug", id: "tmpl_bug_123", name: "Bug Report" });
+  assert.deepEqual(JSON.parse(r.out), { type: "bug", id: "tmpl_bug_123", name: "Bug Report", path: ".faff/templates/native-templates.yaml" });
 });
 
 test("get --type <unmapped> --json → { type, mapping:null }, exit 0", () => {
@@ -235,11 +244,12 @@ test("get (no --type) --json → { tracker, team_key, mappings }, exit 0", () =>
       bug: { id: "tmpl_bug_123", name: "Bug Report" },
       feature: { id: "tmpl_feat_456", name: "Feature Request" },
     },
+    path: ".faff/templates/native-templates.yaml",
   });
 });
 
 test("get --type against an ABSENT map file → { type, mapping:null }, exit 0, no throw", () => {
-  const dir = tmpDir(); // no .faff-templates written at all
+  const dir = tmpDir(); // no template directory written at all
   const r = run(dir, ["native-map", "get", "--type", "bug", "--json"]);
   assert.equal(r.code, 0, r.err);
   assert.deepEqual(JSON.parse(r.out), { type: "bug", mapping: null });
@@ -255,7 +265,7 @@ test("get (no --type) against an ABSENT map file → { mappings:{} }, exit 0, no
 test("get against a MALFORMED/unreadable map → absent-shape, exit 0, no throw", () => {
   const dir = tmpDir();
   // A garbage file at the map path parses to no usable mappings → treated as absent.
-  mkdirSync(join(dir, ".faff-templates"), { recursive: true });
+  mkdirSync(join(dir, ".faff", "templates"), { recursive: true });
   writeFileSync(join(dir, MAP_REL), ":\n\t- [not valid structure}\n::::\n");
   const r = run(dir, ["native-map", "get", "--type", "bug", "--json"]);
   assert.equal(r.code, 0, r.err);
@@ -293,4 +303,164 @@ test("get non-json hit prints a tab-separated id/name line", () => {
   const r = run(dir, ["native-map", "get", "--type", "bug"]);
   assert.equal(r.code, 0, r.err);
   assert.equal(r.out.trim(), "tmpl_bug_123\tBug Report");
+});
+
+// ===========================================================================
+// FAFF-1300: the map lives in `.faff/templates/`; `.faff-templates/` is a deprecated, read-only
+// fallback. Reads resolve through `faff config templates-path`; the write target never does.
+// ===========================================================================
+
+const BUG_PAYLOAD = JSON.stringify({ mappings: { bug: { id: "tmpl_bug_123", name: "Bug Report" } } });
+const SET_ARGS = ["native-map", "set", "--team", "FAFF", "--tracker", "linear"];
+
+function writeDeprecatedMap(dir, id = "legacy_id") {
+  mkdirSync(join(dir, ".faff-templates"), { recursive: true });
+  writeFileSync(join(dir, DEPRECATED_MAP_REL),
+    `tracker: linear\nteam_key: FAFF\nmappings:\n  bug:\n    id: ${id}\n    name: Legacy Bug\n`);
+}
+
+test("set with no existing map writes the canonical path, creates the directory, and names itself in the header", () => {
+  const dir = tmpDir();
+  const r = run(dir, SET_ARGS, BUG_PAYLOAD);
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /wrote 1 mapping\(s\) to \.faff\/templates\/native-templates\.yaml\./);
+  assert.ok(readFileSync(join(dir, MAP_REL), "utf8").startsWith("# .faff/templates/native-templates.yaml "));
+  assert.equal(existsSync(join(dir, ".faff-templates")), false);
+});
+
+test("set --json reports the write path in the wrote, empty-mappings and unchanged objects", () => {
+  const dir = tmpDir();
+  const wrote = JSON.parse(run(dir, [...SET_ARGS, "--json"], BUG_PAYLOAD).out);
+  assert.equal(wrote.path, ".faff/templates/native-templates.yaml");
+  const unchanged = JSON.parse(run(dir, [...SET_ARGS, "--json"], BUG_PAYLOAD).out);
+  assert.deepEqual(unchanged, { wrote: false, reason: "unchanged", path: ".faff/templates/native-templates.yaml" });
+  const human = run(dir, SET_ARGS, BUG_PAYLOAD);
+  assert.match(human.out, /no changes \(\.faff\/templates\/native-templates\.yaml already up to date\)/);
+  const empty = JSON.parse(run(tmpDir(), [...SET_ARGS, "--json"], JSON.stringify({ mappings: {} })).out);
+  assert.deepEqual(empty, { wrote: false, reason: "empty-mappings", path: ".faff/templates/native-templates.yaml" });
+});
+
+test("set --json with tracking.templates_path reports the configured write path", () => {
+  const dir = tmpDir();
+  writeFileSync(join(dir, ".faffrc.yaml"), "tracking:\n  templates_path: records/tpl/\n");
+  const empty = JSON.parse(run(dir, [...SET_ARGS, "--json"], JSON.stringify({ mappings: {} })).out);
+  assert.equal(empty.path, "records/tpl/native-templates.yaml");
+  assert.equal(run(dir, SET_ARGS, BUG_PAYLOAD).code, 0);
+  assert.ok(existsSync(join(dir, "records", "tpl", "native-templates.yaml")));
+});
+
+test("set refuses a differing canonical map without --force, naming the write path", () => {
+  const dir = tmpDir();
+  assert.equal(run(dir, SET_ARGS, BUG_PAYLOAD).code, 0);
+  const r = run(dir, SET_ARGS, JSON.stringify({ mappings: { bug: { id: "other", name: "Other" } } }));
+  assert.equal(r.code, 2);
+  assert.match(r.err, /\.faff\/templates\/native-templates\.yaml already exists with different content/);
+});
+
+test("get reads the canonical map and reports its path", () => {
+  const dir = tmpDir();
+  writeMap(dir);
+  const r = run(dir, ["native-map", "get", "--type", "bug", "--json"]);
+  assert.equal(JSON.parse(r.out).path, ".faff/templates/native-templates.yaml");
+});
+
+test("get falls back to the deprecated map: path reported, notice on stderr, stdout still valid JSON", () => {
+  const dir = tmpDir();
+  writeDeprecatedMap(dir);
+  const r = runFull(dir, ["native-map", "get", "--type", "bug", "--json"]);
+  assert.equal(r.code, 0, r.err);
+  assert.deepEqual(JSON.parse(r.out), { type: "bug", id: "legacy_id", name: "Legacy Bug", path: ".faff-templates/native-templates.yaml" });
+  assert.match(r.err, /template overrides at \.faff-templates\/ are deprecated/);
+  assert.ok(r.err.includes("git mv .faff-templates .faff/templates"));
+});
+
+test("get with maps in both locations: the canonical one wins", () => {
+  const dir = tmpDir();
+  writeDeprecatedMap(dir);
+  mkdirSync(join(dir, ".faff", "templates"), { recursive: true });
+  writeFileSync(join(dir, MAP_REL), "tracker: linear\nteam_key: FAFF\nmappings:\n  bug:\n    id: tmpl_bug_123\n    name: Bug Report\n");
+  const r = runFull(dir, ["native-map", "get", "--type", "bug", "--json"]);
+  assert.equal(JSON.parse(r.out).id, "tmpl_bug_123");
+  assert.match(r.err, /are deprecated and are now ignored/);
+});
+
+test("get with no map anywhere is silent on stderr", () => {
+  const dir = tmpDir();
+  const r = runFull(dir, ["native-map", "get", "--type", "bug", "--json"]);
+  assert.equal(r.err, "");
+});
+
+test("set with a map only at the deprecated path exits 2 without --force: nothing written, file-level remedy, destination absent", () => {
+  const dir = tmpDir();
+  writeDeprecatedMap(dir);
+  const r = runFull(dir, SET_ARGS, BUG_PAYLOAD);
+  assert.equal(r.code, 2);
+  assert.equal(existsSync(join(dir, ".faff")), false);
+  assert.ok(r.err.includes(".faff-templates/native-templates.yaml"));
+  const guardLine = r.err.split("\n").find((l) => l.startsWith("faff native-map set:"));
+  assert.ok(guardLine.includes("mkdir -p .faff/templates && git mv .faff-templates/native-templates.yaml .faff/templates/native-templates.yaml"));
+  assert.ok(!guardLine.includes("git mv .faff-templates .faff/templates"));
+});
+
+test("set with a deprecated-only map and a canonical directory already holding another file: same file-level remedy", () => {
+  const dir = tmpDir();
+  writeDeprecatedMap(dir);
+  mkdirSync(join(dir, ".faff", "templates"), { recursive: true });
+  writeFileSync(join(dir, ".faff", "templates", "adr.md"), "## Context\nx\n");
+  const r = runFull(dir, SET_ARGS, BUG_PAYLOAD);
+  assert.equal(r.code, 2);
+  assert.deepEqual(readdirSync(join(dir, ".faff", "templates")), ["adr.md"]);
+  assert.ok(r.err.includes("git mv .faff-templates/native-templates.yaml .faff/templates/native-templates.yaml"));
+  assert.ok(!r.err.includes("git mv .faff-templates .faff/templates"));
+});
+
+test("set --force with a deprecated-only map writes the canonical path, leaves the old file, and names it", () => {
+  const dir = tmpDir();
+  writeDeprecatedMap(dir);
+  const r = runFull(dir, [...SET_ARGS, "--force"], BUG_PAYLOAD);
+  assert.equal(r.code, 0, r.err);
+  assert.ok(existsSync(join(dir, MAP_REL)));
+  assert.ok(existsSync(join(dir, DEPRECATED_MAP_REL)));
+  assert.match(r.out, /\.faff-templates\/native-templates\.yaml is deprecated and was left in place/);
+});
+
+test("set --dry-run prints the preview with the canonical header and writes nothing", () => {
+  const dir = tmpDir();
+  const r = runFull(dir, [...SET_ARGS, "--dry-run"], BUG_PAYLOAD);
+  assert.equal(r.code, 0, r.err);
+  assert.ok(r.out.startsWith("# .faff/templates/native-templates.yaml "));
+  assert.equal(existsSync(join(dir, ".faff")), false);
+});
+
+test("set --dry-run on a deprecated-only map exits 0, writes nothing, and carries the shadowed-map advisory plus the deprecation notice", () => {
+  const dir = tmpDir();
+  writeDeprecatedMap(dir);
+  const real = runFull(dir, SET_ARGS, BUG_PAYLOAD);
+  const r = runFull(dir, [...SET_ARGS, "--dry-run"], BUG_PAYLOAD);
+  assert.equal(r.code, 0, r.err);
+  assert.equal(existsSync(join(dir, ".faff")), false);
+  assert.match(r.err, /advisory/);
+  assert.match(r.err, /a map already exists at \.faff-templates\/native-templates\.yaml/);
+  assert.match(r.err, /template overrides at \.faff-templates\/ are deprecated/);
+  const empty = runFull(tmpDir(), [...SET_ARGS, "--dry-run"], BUG_PAYLOAD);
+  assert.equal(r.out, empty.out, "the preview is the same text a clean repo's dry run prints");
+  assert.equal(real.code, 2);
+});
+
+test("set --dry-run against a byte-identical canonical map still prints the preview, with an up-to-date advisory", () => {
+  const dir = tmpDir();
+  assert.equal(run(dir, SET_ARGS, BUG_PAYLOAD).code, 0);
+  const r = runFull(dir, [...SET_ARGS, "--dry-run"], BUG_PAYLOAD);
+  assert.equal(r.code, 0, r.err);
+  assert.equal(r.out, readFileSync(join(dir, MAP_REL), "utf8"));
+  assert.match(r.err, /already up to date/);
+});
+
+test("set --dry-run against a differing canonical map previews and advises that a real run would refuse", () => {
+  const dir = tmpDir();
+  assert.equal(run(dir, SET_ARGS, BUG_PAYLOAD).code, 0);
+  const r = runFull(dir, [...SET_ARGS, "--dry-run"], JSON.stringify({ mappings: { bug: { id: "other", name: "Other" } } }));
+  assert.equal(r.code, 0, r.err);
+  assert.ok(r.out.includes("other"));
+  assert.match(r.err, /already exists with different content/);
 });

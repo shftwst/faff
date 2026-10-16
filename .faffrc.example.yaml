@@ -82,6 +82,12 @@ tracking:
   # copying this template, and would drift out of step with a changed adr_docs_path.
   # adr_superseded_docs_path: docs/adr/superseded/
   spike_docs_path: docs/spikes/
+  # FAFF-1300: where committed template overrides live (the ADR template, the native-template map and
+  # the per-type <type>.md files). Left unset (commented out) it resolves to .faff/templates, falling
+  # back to the deprecated repo-root .faff-templates while only that exists. Setting it disables that
+  # fallback outright. Keep it commented: an uncommented value ships a live pin to anyone copying
+  # this template.
+  # templates_path: .faff/templates/
 
 # Optional delegation slots. Each has a sensible faff default when unset.
 # Producers DO the work; adaptors TRANSLATE a producer's output onto a fixed

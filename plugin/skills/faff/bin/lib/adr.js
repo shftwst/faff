@@ -48,7 +48,7 @@ const ADR_SURFACE = {
 // enum constants where identical, don't fork a byte-identical enum under a new name).
 const { PRDR_ACTORS: ADR_ACTORS, PRDR_SUPERSEDES: ADR_SUPERSEDES, computeAdrAdmission, computeAdrAdmissionVerdict } = require("./contract-defs");
 const { schemaCheck } = require("./contract-engine");
-const { DEFAULTS, loadConfig, resolveAdrDocsPath, resolveAdrSupersededDocsPath } = require("./config");
+const { DEFAULTS, loadConfig, resolveAdrDocsPath, resolveAdrSupersededDocsPath, resolveTemplatesPath, resetTemplatesDeprecationNotice, TEMPLATES_DEPRECATED_REL, TEMPLATES_DEPRECATED_MSG, TEMPLATES_SHADOWED_MSG } = require("./config");
 const { dig, findRoot } = require("./shared-infra");
 const { readField } = require("./fields");
 
@@ -454,12 +454,12 @@ function adrRenumber(dir, root, selector, target, refScope) {
 
 // === FAFF-1085: repo-specific ADR format resolution. One resolver both writers reach (ADR-0128 ===
 // — resolve via the CLI, never hand-read the file). Activation is FILE PRESENCE, mirroring the
-// committed `.faff-templates/<type>.md` ticket-template surface (create.md): a repo opts in by
-// committing `.faff-templates/adr.md`; absent resolves silently to Nygard (byte-identical, the
+// committed `<type>.md` ticket-template surface (create.md): a repo opts in by committing
+// `adr.md` in the templates directory `faff config templates-path` resolves (FAFF-1300); absent
+// resolves silently to Nygard (byte-identical, the
 // regression floor); present-but-empty/heading-less/unreadable degrades to Nygard and LOGS the
 // skip (never blocks). No `adr_format` convention key — the section list lives in exactly one
 // place, the template file itself.
-const ADR_TEMPLATE_REL_PATH = ".faff-templates/adr.md";
 const GENERIC_PLACEHOLDER = "_TODO: ..._";
 
 // The built-in default — reproduces adrTemplate()'s three verbatim per-section placeholders, so
@@ -491,8 +491,8 @@ function extractLevel2Headings(text) {
   return names;
 }
 
-const ADR_TEMPLATE_DEGRADE_MSG = `faff adr format: ${ADR_TEMPLATE_REL_PATH} is empty or has no level-2 headings; using the Nygard default`;
-const ADR_TEMPLATE_NO_DECISION_MSG = `faff adr format: ${ADR_TEMPLATE_REL_PATH} has no \`## Decision\` heading; L3 contradiction-detection disabled for this repo`;
+const adrTemplateDegradeMsg = (rel) => `faff adr format: ${rel} is empty or has no level-2 headings; using the Nygard default`;
+const adrTemplateNoDecisionMsg = (rel) => `faff adr format: ${rel} has no \`## Decision\` heading; L3 contradiction-detection disabled for this repo`;
 
 // Resolve the repo's ADR format — read-only, always returns a value (Nygard is the floor,
 // mirroring `faff conventions get`'s always-exit-0-with-a-value contract). No `root` (an internal
@@ -500,28 +500,31 @@ const ADR_TEMPLATE_NO_DECISION_MSG = `faff adr format: ${ADR_TEMPLATE_REL_PATH} 
 // call) resolves to Nygard directly rather than crashing on an unresolvable path.
 function resolveAdrFormat(root) {
   if (!root) return nygardDefault();
-  const templatePath = path.join(root, ADR_TEMPLATE_REL_PATH);
+  const templateRel = resolveTemplatesPath(root, loadConfig(root)[0], false) + "/adr.md";
+  const templatePath = path.join(root, templateRel);
   let text;
   try {
     text = fs.readFileSync(templatePath, "utf8");
   } catch (e) {
     if (e && e.code === "ENOENT") return nygardDefault();   // absent — the clean silent default
-    process.stderr.write(ADR_TEMPLATE_DEGRADE_MSG + "\n");   // present but unreadable
-    return { ...nygardDefault(), degraded: true, notes: ADR_TEMPLATE_DEGRADE_MSG };
+    const degradeMsg = adrTemplateDegradeMsg(templateRel);
+    process.stderr.write(degradeMsg + "\n");   // present but unreadable
+    return { ...nygardDefault(), degraded: true, notes: degradeMsg };
   }
   const names = extractLevel2Headings(text);
   if (names.length === 0) {
-    process.stderr.write(ADR_TEMPLATE_DEGRADE_MSG + "\n");
-    return { ...nygardDefault(), degraded: true, notes: ADR_TEMPLATE_DEGRADE_MSG };
+    const degradeMsg = adrTemplateDegradeMsg(templateRel);
+    process.stderr.write(degradeMsg + "\n");
+    return { ...nygardDefault(), degraded: true, notes: degradeMsg };
   }
   const sections = names.map((name) => ({ name, placeholder: GENERIC_PLACEHOLDER }));
   const decision_section = names.includes("Decision") ? "Decision" : null;
   let notes = null;
   if (decision_section === null) {
-    process.stderr.write(ADR_TEMPLATE_NO_DECISION_MSG + "\n");
-    notes = ADR_TEMPLATE_NO_DECISION_MSG;
+    notes = adrTemplateNoDecisionMsg(templateRel);
+    process.stderr.write(notes + "\n");
   }
-  return { format: "template", sections, decision_section, source: "template", template_path: ADR_TEMPLATE_REL_PATH, degraded: false, notes };
+  return { format: "template", sections, decision_section, source: "template", template_path: templateRel, degraded: false, notes };
 }
 
 function adrTemplate({ num, title, date, issue, initiative, status, provenance }, resolved_format = nygardDefault()) {
@@ -700,7 +703,7 @@ function cmdAdr(args) {
 
   if (action === "format") {
     // FAFF-1085: the single read-only resolver both writers (`adr new` and the `adr` slot
-    // producer) reach — never a hand-read of `.faff-templates/adr.md` (ADR-0128). Always exits 0
+    // producer) reach — never a hand-read of the template file (ADR-0128). Always exits 0
     // with a value (Nygard is the floor), mirroring `faff conventions get`.
     const resolved = resolveAdrFormat(root);
     if (args.includes("--json")) {
@@ -761,7 +764,7 @@ function cmdAdr(args) {
     if (fs.existsSync(full)) { process.stderr.write(`faff adr new: ${file} already exists — never overwrite (append-only)\n`); return 1; }
     fs.mkdirSync(dir, { recursive: true });
     // FAFF-1085: resolve the repo's ADR format ONCE and scaffold against it — Nygard (byte-identical
-    // to before) when the repo commits no `.faff-templates/adr.md`, else the template's own sections.
+    // to before) when the repo commits no ADR template, else the template's own sections.
     const resolvedFormat = resolveAdrFormat(root);
     fs.writeFileSync(full, adrTemplate({ num, title, date, issue: get("--issue"), initiative: get("--initiative"), status: get("--status"), provenance: provenance || "human" }, resolvedFormat));
     process.stdout.write(full + "\n");
@@ -1025,7 +1028,7 @@ function adrSelftest() {
   t("live-decisions keeps Proposed (non-superseded) when not the new one", adrLiveDecisions(l3dir, "0001").some((d) => d.adr === "0004"));
 
   // FAFF-1085 — repo-specific ADR format resolution (resolveAdrFormat / adrTemplate / adrDecisionBody
-  // threading). File-presence activation mirroring create.md's `.faff-templates/<type>.md` model.
+  // threading). File-presence activation mirroring create.md's `<type>.md` override model.
   {
     const noTplRoot = path.join(tmp, "fmt-none");
     fs.mkdirSync(noTplRoot, { recursive: true });
@@ -1035,27 +1038,59 @@ function adrSelftest() {
     t("format: no root at all → nygard (never crashes)", resolveAdrFormat(undefined).format === "nygard");
 
     const tplRoot = path.join(tmp, "fmt-template");
-    fs.mkdirSync(path.join(tplRoot, ".faff-templates"), { recursive: true });
-    fs.writeFileSync(path.join(tplRoot, ".faff-templates", "adr.md"), "## Status\nguidance\n\n## Context\nguidance\n\n## Options\nguidance\n\n## Decision\nguidance\n\n## Consequences\nguidance\n");
+    fs.mkdirSync(path.join(tplRoot, ".faff", "templates"), { recursive: true });
+    fs.writeFileSync(path.join(tplRoot, ".faff", "templates", "adr.md"), "## Status\nguidance\n\n## Context\nguidance\n\n## Options\nguidance\n\n## Decision\nguidance\n\n## Consequences\nguidance\n");
     const tplResolved = resolveAdrFormat(tplRoot);
     t("format: committed template → its 5 headings, in order, source=template", tplResolved.format === "template" && tplResolved.source === "template"
       && tplResolved.sections.map((s) => s.name).join("/") === "Status/Context/Options/Decision/Consequences" && tplResolved.decision_section === "Decision" && !tplResolved.degraded);
     t("format: template sections carry the generic placeholder", tplResolved.sections.every((s) => s.placeholder === GENERIC_PLACEHOLDER));
+    t("format: template_path reports the canonical location", tplResolved.template_path === ".faff/templates/adr.md");
+
+    // FAFF-1300: deprecated-only and both-present branches. The latch is process-wide, so each
+    // notice case resets it first and captures stderr itself.
+    const captureStderr = (fn) => {
+      const chunks = [];
+      const orig = process.stderr.write;
+      process.stderr.write = (c) => { chunks.push(String(c)); return true; };
+      try { fn(); } finally { process.stderr.write = orig; }
+      return chunks.join("");
+    };
+    const deprRoot = path.join(tmp, "fmt-deprecated");
+    fs.mkdirSync(path.join(deprRoot, TEMPLATES_DEPRECATED_REL), { recursive: true });
+    fs.writeFileSync(path.join(deprRoot, TEMPLATES_DEPRECATED_REL, "adr.md"), "## Legacy\nx\n\n## Decision\ny\n");
+    let deprResolved;
+    resetTemplatesDeprecationNotice();
+    const deprErr = captureStderr(() => { deprResolved = resolveAdrFormat(deprRoot); });
+    t("format: deprecated-only template still resolves, reports its own path, notice on stderr",
+      deprResolved.template_path === TEMPLATES_DEPRECATED_REL + "/adr.md" && deprResolved.sections.map((s) => s.name).join("/") === "Legacy/Decision"
+      && deprErr === TEMPLATES_DEPRECATED_MSG + "\n");
+    const shadowRoot = path.join(tmp, "fmt-shadowed");
+    fs.mkdirSync(path.join(shadowRoot, TEMPLATES_DEPRECATED_REL), { recursive: true });
+    fs.mkdirSync(path.join(shadowRoot, ".faff", "templates"), { recursive: true });
+    fs.writeFileSync(path.join(shadowRoot, TEMPLATES_DEPRECATED_REL, "adr.md"), "## Legacy\nx\n\n## Decision\ny\n");
+    fs.writeFileSync(path.join(shadowRoot, ".faff", "templates", "adr.md"), "## Fresh\nx\n\n## Decision\ny\n");
+    let shadowResolved;
+    resetTemplatesDeprecationNotice();
+    const shadowErr = captureStderr(() => { shadowResolved = resolveAdrFormat(shadowRoot); });
+    t("format: both present, canonical wins and the shadowed notice fires",
+      shadowResolved.template_path === ".faff/templates/adr.md" && shadowResolved.sections.map((s) => s.name).join("/") === "Fresh/Decision"
+      && shadowErr === TEMPLATES_SHADOWED_MSG + "\n");
+    resetTemplatesDeprecationNotice();
 
     const emptyRoot = path.join(tmp, "fmt-empty");
-    fs.mkdirSync(path.join(emptyRoot, ".faff-templates"), { recursive: true });
-    fs.writeFileSync(path.join(emptyRoot, ".faff-templates", "adr.md"), "");
+    fs.mkdirSync(path.join(emptyRoot, ".faff", "templates"), { recursive: true });
+    fs.writeFileSync(path.join(emptyRoot, ".faff", "templates", "adr.md"), "");
     const emptyResolved = resolveAdrFormat(emptyRoot);
     t("format: present-but-empty template degrades to nygard, logged in notes", emptyResolved.format === "nygard" && emptyResolved.degraded === true && /empty or has no level-2 headings/.test(emptyResolved.notes || ""));
 
     const headinglessRoot = path.join(tmp, "fmt-headingless");
-    fs.mkdirSync(path.join(headinglessRoot, ".faff-templates"), { recursive: true });
-    fs.writeFileSync(path.join(headinglessRoot, ".faff-templates", "adr.md"), "just some prose, no headings at all\n");
+    fs.mkdirSync(path.join(headinglessRoot, ".faff", "templates"), { recursive: true });
+    fs.writeFileSync(path.join(headinglessRoot, ".faff", "templates", "adr.md"), "just some prose, no headings at all\n");
     t("format: heading-less template degrades to nygard", resolveAdrFormat(headinglessRoot).degraded === true);
 
     const noDecisionRoot = path.join(tmp, "fmt-no-decision");
-    fs.mkdirSync(path.join(noDecisionRoot, ".faff-templates"), { recursive: true });
-    fs.writeFileSync(path.join(noDecisionRoot, ".faff-templates", "adr.md"), "## Summary\nx\n\n## Rationale\ny\n");
+    fs.mkdirSync(path.join(noDecisionRoot, ".faff", "templates"), { recursive: true });
+    fs.writeFileSync(path.join(noDecisionRoot, ".faff", "templates", "adr.md"), "## Summary\nx\n\n## Rationale\ny\n");
     const noDecisionResolved = resolveAdrFormat(noDecisionRoot);
     t("format: template with no Decision heading → decision_section null, disablement noted, never degraded to nygard", noDecisionResolved.decision_section === null && noDecisionResolved.format === "template" && !noDecisionResolved.degraded && /L3 contradiction-detection disabled/.test(noDecisionResolved.notes || ""));
 

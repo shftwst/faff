@@ -9,8 +9,9 @@
 //     colon grammar (a tracker template name may contain colons/newlines, so a delimiter
 //     grammar is unsafe to parse):
 //        {"mappings": {"bug": {"id": "tmpl_123", "name": "Bug Report"}, ...}}
-//     Writes/overwrites the committed `.faff-templates/native-templates.yaml` — a sibling of
-//     the per-type override files, keyed by faff type, each value a { id, name } identity ref.
+//     Writes/overwrites the committed native-template map, under the directory
+//     `faff config templates-path` resolves, a sibling of the per-type override files, keyed by
+//     faff type, each value a { id, name } identity ref.
 //
 // Persist-only / PURE: NO MCP, NO network, NO env discovery, NO git — it parses stdin,
 // validates against the closed faff-type taxonomy, and emits the file through the REAL
@@ -37,16 +38,20 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { parseArgs, usageError } = require("./argv");
 const { findRoot, parseYamlSubset, dig } = require("./shared-infra");
-const { emitScalar } = require("./config");
+const { emitScalar, loadConfig, resolveTemplatesPath, resolveTemplatesWritePath, deprecatedTemplatesRel, resetTemplatesDeprecationNotice, TEMPLATES_CANONICAL_REL, TEMPLATES_DEPRECATED_REL, TEMPLATES_DEPRECATED_MSG } = require("./config");
 
 // The closed create-taxonomy (create.md:11-18). A `mappings` key outside this set is refused.
 const FAFF_TYPES = ["bug", "feature", "spike", "chore", "epic", "default"];
 const FAFF_TYPE_SET = new Set(FAFF_TYPES);
 
-const NATIVE_MAP_DIR = ".faff-templates";
-const NATIVE_MAP_REL = `${NATIVE_MAP_DIR}/native-templates.yaml`;
-const NATIVE_MAP_HEADER =
-  "# .faff-templates/native-templates.yaml — faff-type → tracker-native template map (written by `faff native-map set`)\n";
+const NATIVE_MAP_FILE = "native-templates.yaml";
+const nativeMapHeader = (rel) =>
+  `# ${rel} — faff-type → tracker-native template map (written by \`faff native-map set\`)\n`;
+
+// The READ target honours the deprecated directory through the resolver; the WRITE target is
+// deliberately not the read resolver, so a write never lands in the deprecated directory.
+const nativeMapReadRel = (root, data) => `${resolveTemplatesPath(root, data, false)}/${NATIVE_MAP_FILE}`;
+const nativeMapWriteRel = (data) => `${resolveTemplatesWritePath(data)}/${NATIVE_MAP_FILE}`;
 
 const NATIVE_MAP_SPEC = {
   flags: {
@@ -112,7 +117,7 @@ function expectedReadback(value) {
 
 // Emit the whole file. `mappings` is an ordered array of { type, id, name } (faff-type order),
 // already validated. Nothing else (no body, no description, no unmapped list) is written.
-function emitNativeMap(tracker, teamKey, mappings) {
+function emitNativeMap(tracker, teamKey, mappings, mapRel = `${TEMPLATES_CANONICAL_REL}/${NATIVE_MAP_FILE}`) {
   const lines = [];
   lines.push(...emitEntryLines("", "tracker", tracker));
   lines.push(...emitEntryLines("", "team_key", teamKey));
@@ -122,7 +127,7 @@ function emitNativeMap(tracker, teamKey, mappings) {
     lines.push(...emitEntryLines("    ", "id", id));
     lines.push(...emitEntryLines("    ", "name", name));
   }
-  return NATIVE_MAP_HEADER + lines.join("\n") + "\n";
+  return nativeMapHeader(mapRel) + lines.join("\n") + "\n";
 }
 
 // ---------------------------------------------------------------------------
@@ -220,49 +225,81 @@ function cmdNativeMapSet(values, root) {
   const { mappings, error } = validatePayload(payload);
   if (error) { process.stderr.write(`faff native-map set: ${error}\n`); return 2; }
 
+  const [data] = loadConfig(root);
+  const writeRel = nativeMapWriteRel(data);
+
   // Empty mappings → no-op: write no file, exit success.
   if (mappings.length === 0) {
-    if (values["--json"]) console.log(JSON.stringify({ wrote: false, reason: "empty-mappings", path: NATIVE_MAP_REL }));
+    if (values["--json"]) console.log(JSON.stringify({ wrote: false, reason: "empty-mappings", path: writeRel }));
     else console.log("native-map set: no mappings given — nothing to write.");
     return 0;
   }
 
-  const text = emitNativeMap(tracker, team, mappings);
+  const text = emitNativeMap(tracker, team, mappings, writeRel);
   const problem = verifyRoundTrip(text, tracker, team, mappings);
   if (problem) {
     process.stderr.write(`faff native-map set: internal error — written text does not round-trip (${problem}); aborting to avoid a corrupt map.\n`);
     return 2;
   }
 
-  if (values["--dry-run"]) {
+  // The existence guard runs ahead of the --dry-run return so a preview predicts the real run:
+  // each branch that would refuse or no-op a real run is an advisory on stderr under --dry-run.
+  const dryRun = !!values["--dry-run"];
+  // Resolved for its deprecation notice, which must fire under --dry-run too. The shadow check
+  // below looks at the deprecated map directly: the resolver answers the canonical directory
+  // whenever that exists, which would hide a map still sitting in the deprecated one.
+  nativeMapReadRel(root, data);
+  const deprecatedDir = deprecatedTemplatesRel(data);
+  const deprecatedRel = deprecatedDir && `${deprecatedDir}/${NATIVE_MAP_FILE}`;
+  const targetPath = path.join(root, writeRel);
+  const refuse = (message) => {
+    if (!dryRun) { process.stderr.write(`faff native-map set: ${message}\n`); return 2; }
+    process.stderr.write(`faff native-map set --dry-run (advisory, a real run would refuse): ${message}\n`);
+    return null;
+  };
+  let leftInPlace = null;
+  if (fs.existsSync(targetPath)) {
+    const existing = fs.readFileSync(targetPath, "utf8");
+    if (existing === text) {
+      if (dryRun) process.stderr.write(`faff native-map set --dry-run (advisory): no changes, ${writeRel} is already up to date.\n`);
+      else {
+        if (values["--json"]) console.log(JSON.stringify({ wrote: false, reason: "unchanged", path: writeRel }));
+        else console.log(`native-map set: no changes (${writeRel} already up to date).`);
+        return 0;
+      }
+    } else if (!values["--force"]) {
+      const code = refuse(`${writeRel} already exists with different content; re-run with --force to overwrite.`);
+      if (code !== null) return code;
+    }
+  } else if (deprecatedRel && fs.existsSync(path.join(root, deprecatedRel))) {
+    if (!values["--force"]) {
+      const code = refuse(
+        `a map already exists at ${deprecatedRel}; it is deprecated and would be shadowed by ${writeRel}. ` +
+        `Migrate it with \`mkdir -p ${path.posix.dirname(writeRel)} && git mv ${deprecatedRel} ${writeRel}\`, ` +
+        "or re-run with --force to write the new path and leave the old file in place.");
+      if (code !== null) return code;
+    } else {
+      leftInPlace = deprecatedRel;
+    }
+  }
+
+  if (dryRun) {
     process.stdout.write(text);
     return 0;
   }
 
-  const targetPath = path.join(root, NATIVE_MAP_REL);
-  if (fs.existsSync(targetPath)) {
-    const existing = fs.readFileSync(targetPath, "utf8");
-    if (existing === text) {
-      if (values["--json"]) console.log(JSON.stringify({ wrote: false, reason: "unchanged", path: NATIVE_MAP_REL }));
-      else console.log(`native-map set: no changes (${NATIVE_MAP_REL} already up to date).`);
-      return 0;
-    }
-    if (!values["--force"]) {
-      process.stderr.write(`faff native-map set: ${NATIVE_MAP_REL} already exists with different content; re-run with --force to overwrite.\n`);
-      return 2;
-    }
-  }
-
-  fs.mkdirSync(path.join(root, NATIVE_MAP_DIR), { recursive: true });
+  fs.mkdirSync(path.dirname(targetPath), { recursive: true });
   fs.writeFileSync(targetPath, text);
 
   if (values["--json"]) {
     console.log(JSON.stringify({
-      wrote: true, path: NATIVE_MAP_REL, tracker, team_key: team,
+      wrote: true, path: writeRel, tracker, team_key: team,
       mappings: Object.fromEntries(mappings.map((m) => [m.type, { id: m.id, name: m.name }])),
+      ...(leftInPlace ? { deprecated_left_in_place: leftInPlace } : {}),
     }));
   } else {
-    console.log(`native-map set: wrote ${mappings.length} mapping(s) to ${NATIVE_MAP_REL}.`);
+    console.log(`native-map set: wrote ${mappings.length} mapping(s) to ${writeRel}.`);
+    if (leftInPlace) console.log(`native-map set: ${leftInPlace} is deprecated and was left in place; remove it once nothing needs it.`);
   }
   return 0;
 }
@@ -303,7 +340,9 @@ function cmdNativeMapGet(values, root) {
     );
   }
 
-  const targetPath = path.join(root, NATIVE_MAP_REL);
+  const [data] = loadConfig(root);
+  const mapRel = nativeMapReadRel(root, data);
+  const targetPath = path.join(root, mapRel);
   let tree = null;
   try {
     if (fs.existsSync(targetPath)) tree = parseYamlSubset(fs.readFileSync(targetPath, "utf8"));
@@ -318,7 +357,7 @@ function cmdNativeMapGet(values, root) {
     const id = dig(tree, `mappings.${type}.id`);
     const name = dig(tree, `mappings.${type}.name`);
     if (id === null || name === null) return emitNativeMapGetMiss(type, json);
-    if (json) console.log(JSON.stringify({ type, id, name }));
+    if (json) console.log(JSON.stringify({ type, id, name, path: mapRel }));
     else console.log(`${id}\t${name}`);
     return 0;
   }
@@ -326,7 +365,7 @@ function cmdNativeMapGet(values, root) {
   const rawMap = tree.mappings;
   const mappings = rawMap !== null && typeof rawMap === "object" && !Array.isArray(rawMap) ? rawMap : {};
   if (json) {
-    console.log(JSON.stringify({ tracker: dig(tree, "tracker"), team_key: dig(tree, "team_key"), mappings }));
+    console.log(JSON.stringify({ tracker: dig(tree, "tracker"), team_key: dig(tree, "team_key"), mappings, path: mapRel }));
   } else {
     const types = Object.keys(mappings);
     if (!types.length) console.log("no mapping");
@@ -375,6 +414,38 @@ function nativeMapSelftest() {
     check("counter-proof: a string-built writer injects `evil` (this is what emitEntryLines prevents)", "evil" in tree);
   }
 
+  // FAFF-1300: read honours the deprecated directory (with its notice); write never targets it.
+  {
+    const os = require("node:os");
+    const mkRoot = (...dirs) => {
+      const r = fs.mkdtempSync(path.join(os.tmpdir(), "faff-nm-"));
+      for (const d of dirs) fs.mkdirSync(path.join(r, d), { recursive: true });
+      return r;
+    };
+    const capture = (fn) => {
+      const chunks = [];
+      const orig = process.stderr.write;
+      process.stderr.write = (c) => { chunks.push(String(c)); return true; };
+      try { fn(); } finally { process.stderr.write = orig; }
+      return chunks.join("");
+    };
+    const deprRoot = mkRoot(TEMPLATES_DEPRECATED_REL);
+    let readRel;
+    resetTemplatesDeprecationNotice();
+    const err = capture(() => { readRel = nativeMapReadRel(deprRoot, {}); });
+    check("paths: deprecated-only read resolves the deprecated map, notice on stderr (in-process + reset)",
+      readRel === `${TEMPLATES_DEPRECATED_REL}/${NATIVE_MAP_FILE}` && err === TEMPLATES_DEPRECATED_MSG + "\n");
+    check("paths: write target is canonical even when only the deprecated directory exists",
+      nativeMapWriteRel({}) === `${TEMPLATES_CANONICAL_REL}/${NATIVE_MAP_FILE}`);
+    check("paths: configured key sets both read and write, trailing slash stripped",
+      nativeMapWriteRel({ tracking: { templates_path: "records/tpl/" } }) === `records/tpl/${NATIVE_MAP_FILE}`
+      && nativeMapReadRel(deprRoot, { tracking: { templates_path: "records/tpl/" } }) === `records/tpl/${NATIVE_MAP_FILE}`);
+    check("paths: written header names the path it was written to",
+      emitNativeMap("linear", "FAFF", [{ type: "bug", id: "t1", name: "B" }], "records/tpl/native-templates.yaml").startsWith("# records/tpl/native-templates.yaml "));
+    resetTemplatesDeprecationNotice();
+    fs.rmSync(deprRoot, { recursive: true, force: true });
+  }
+
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (native-map, ${fail} failed)`);
   return fail ? 1 : 0;
 }
@@ -401,7 +472,7 @@ function cmdNativeMap(args) {
 }
 
 module.exports = {
-  FAFF_TYPES, NATIVE_MAP_REL, NATIVE_MAP_SPEC, NATIVE_MAP_SURFACE,
+  FAFF_TYPES, NATIVE_MAP_SPEC, NATIVE_MAP_SURFACE,
   cmdNativeMap, cmdNativeMapGet, emitNativeMap, emitEntryLines, emitNativeMapGetMiss,
   expectedReadback, validatePayload, verifyRoundTrip, nativeMapSelftest,
 };

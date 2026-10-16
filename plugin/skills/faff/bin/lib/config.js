@@ -15,7 +15,7 @@ const { parseArgs, usageError } = require("./argv");
 // Union across every `config` sub-verb (path|get|set|check|init and the docs-path resolvers). The gate
 // rejects unknown flags / missing values; each sub-verb's own body reads the validated flags below.
 const CONFIG_SPEC = { flags: {
-  "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--force": { arity: 0 }, "--dry-run": { arity: 0 }, "--create": { arity: 0 },
+  "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--force": { arity: 0 }, "--dry-run": { arity: 0 }, "--create": { arity: 0 }, "--absolute": { arity: 0 },
   // FAFF-1062: --local redirects `config init`/`config set` to the gitignored overlay
   // (CANONICAL_OVERLAY_CONFIG) instead of the committable base (CANONICAL_CONFIG) — every
   // other sub-verb ignores it (accepted at the shared gate, unread elsewhere).
@@ -39,6 +39,7 @@ const CONFIG_SURFACE = {
     "adr-docs-path": { required_flags: [] },
     "adr-superseded-docs-path": { required_flags: [] },
     "spike-docs-path": { required_flags: [] },
+    "templates-path": { required_flags: [] },
     dump: { required_flags: [] },
     init: { required_flags: [] },
     resolved: { required_flags: [] },
@@ -1203,6 +1204,59 @@ const resolveSpikeDocsPath = (root, data, create) => resolveDocsPath(root, data,
 const resolveAdrSupersededDocsPath = (root, data, create) =>
   resolveDocsPath(root, data, create, "tracking.adr_superseded_docs_path", null, resolveAdrDocsPath(root, data, false));
 
+// FAFF-1300: where committed template overrides live (the ADR template, the native-template map,
+// the per-type <type>.md files). The one owner of the canonical-first, deprecated-fallback rule.
+const TEMPLATES_CANONICAL_REL = ".faff/templates";
+const TEMPLATES_DEPRECATED_REL = ".faff-templates";
+const TEMPLATES_DEPRECATED_MSG =
+  "faff: template overrides at .faff-templates/ are deprecated; move them to .faff/templates/\n" +
+  "      (`git mv .faff-templates .faff/templates`) or set tracking.templates_path.";
+const TEMPLATES_SHADOWED_MSG =
+  "faff: overrides at .faff-templates/ are deprecated and are now ignored; .faff/templates/ wins.\n" +
+  "      Move any file you still need into .faff/templates/, then delete .faff-templates/.\n" +
+  "      Do not `git mv` the whole directory: .faff/templates/ already exists, so the move\n" +
+  "      would nest it as .faff/templates/.faff-templates/.";
+let templatesNoticeEmitted = false;
+function resetTemplatesDeprecationNotice() { templatesNoticeEmitted = false; }
+function emitTemplatesDeprecationNotice(state) {
+  if (templatesNoticeEmitted) return;
+  templatesNoticeEmitted = true;
+  process.stderr.write((state === "shadowed" ? TEMPLATES_SHADOWED_MSG : TEMPLATES_DEPRECATED_MSG) + "\n");
+}
+// The directory a WRITER targets: the configured key, else the canonical directory. Never the
+// deprecated one, so a write cannot land where the resolver is about to stop looking.
+function resolveTemplatesWritePath(data) {
+  const val = dig(data, "tracking.templates_path");
+  return val ? String(val).trim().replace(/\/+$/, "") : TEMPLATES_CANONICAL_REL;
+}
+// The deprecated directory a writer should check for a file that would be shadowed, or null when
+// the key is configured (a configured value never consults the deprecated directory).
+function deprecatedTemplatesRel(data) {
+  return dig(data, "tracking.templates_path") ? null : TEMPLATES_DEPRECATED_REL;
+}
+function templatesFallbackRel(root) {
+  const canon = fs.existsSync(path.join(root, TEMPLATES_CANONICAL_REL));
+  const depr = fs.existsSync(path.join(root, TEMPLATES_DEPRECATED_REL));
+  if (canon && depr) return [TEMPLATES_CANONICAL_REL, "shadowed"];
+  if (canon) return [TEMPLATES_CANONICAL_REL, "canonical"];
+  if (depr) return [TEMPLATES_DEPRECATED_REL, "fallback"];
+  return [TEMPLATES_CANONICAL_REL, "absent"];
+}
+// Not built on resolveDocsPath's fallbackRel: that argument is evaluated eagerly, so a configured
+// key would still trigger the deprecation notice.
+function resolveTemplatesPath(root, data, create) {
+  let rel;
+  const val = dig(data, "tracking.templates_path");
+  if (val) rel = String(val).trim().replace(/\/+$/, "");
+  else {
+    const [fallbackRel, state] = templatesFallbackRel(root);
+    rel = fallbackRel;
+    if (state === "fallback" || state === "shadowed") emitTemplatesDeprecationNotice(state);
+  }
+  if (create) fs.mkdirSync(path.join(root, rel), { recursive: true });
+  return rel;
+}
+
 // ---------------------------------------------------------------------------
 // config init — FAFF-5: the deterministic WRITE half of the config surface.
 // Writes/merges a `tracking` block into `.faffrc.yaml`. Pure-functional except
@@ -1230,6 +1284,7 @@ const TRACKING_KEYS = [
   "tracking.adr_docs_path",
   "tracking.adr_superseded_docs_path",   // FAFF-1048: where a superseded ADR lands; read by adr.js supersededDir()
   "tracking.spike_docs_path",
+  "tracking.templates_path",   // FAFF-1300: committed template overrides directory; read via resolveTemplatesPath()
   "tracking.label_prefix",
 ];
 const INIT_HEADER = "# .faffrc.yaml — faff configuration (written by `faff config init`)\n";
@@ -2283,6 +2338,7 @@ function configInitSelftest() {
   check("allowlist: known key normalises", TRACKING_KEYS.includes("tracking.team_key"));
   check("allowlist: ADR docs path is writable", TRACKING_KEYS.includes("tracking.adr_docs_path"));
   check("allowlist: spike docs path is writable", TRACKING_KEYS.includes("tracking.spike_docs_path"));
+  check("allowlist: templates path is writable", TRACKING_KEYS.includes("tracking.templates_path"));
   check("allowlist: unknown key absent", !TRACKING_KEYS.includes("tracking.slug"));
 
   // FAFF-754: ADR and spike stores share the configurable docs-path contract while
@@ -2295,6 +2351,51 @@ function configInitSelftest() {
     typeof resolveSpikeDocsPath === "function" && resolveSpikeDocsPath("/tmp/no-doc-tree", {}, false) === "docs/spikes");
   check("docs paths: spike resolver honours tracking.spike_docs_path",
     typeof resolveSpikeDocsPath === "function" && resolveSpikeDocsPath("/tmp/no-doc-tree", { tracking: { spike_docs_path: "records/spikes/" } }, false) === "records/spikes");
+
+  // FAFF-1300: templates-path resolution ladder and the once-per-process deprecation notice.
+  {
+    const mk = (...dirs) => {
+      const r = fs.mkdtempSync(path.join(require("os").tmpdir(), "faff-tpl-"));
+      for (const d of dirs) fs.mkdirSync(path.join(r, d), { recursive: true });
+      return r;
+    };
+    const captured = (fn) => {
+      const lines = [];
+      const orig = process.stderr.write;
+      process.stderr.write = (chunk) => { lines.push(String(chunk)); return true; };
+      try { fn(); } finally { process.stderr.write = orig; }
+      return lines;
+    };
+    const resolveQuiet = (r, data = {}) => { let rel; const err = captured(() => { resetTemplatesDeprecationNotice(); rel = resolveTemplatesPath(r, data, false); }); return [rel, err]; };
+    const absent = mk(), canon = mk(".faff/templates"), depr = mk(".faff-templates"), both = mk(".faff/templates", ".faff-templates");
+    const [relAbsent, errAbsent] = resolveQuiet(absent);
+    check("templates path: neither present resolves canonical, silent, creates nothing",
+      relAbsent === ".faff/templates" && errAbsent.length === 0 && !fs.existsSync(path.join(absent, ".faff")));
+    const [relCanon, errCanon] = resolveQuiet(canon);
+    check("templates path: canonical only is silent", relCanon === ".faff/templates" && errCanon.length === 0);
+    const [relDepr, errDepr] = resolveQuiet(depr);
+    check("templates path: deprecated only falls back with the directory-level remedy",
+      relDepr === ".faff-templates" && errDepr.length === 1 && errDepr[0].includes("git mv .faff-templates .faff/templates"));
+    const [relBoth, errBoth] = resolveQuiet(both);
+    check("templates path: both present resolves canonical with the file-level remedy",
+      relBoth === ".faff/templates" && errBoth.length === 1 && errBoth[0].includes("deprecated and are now ignored") && !errBoth[0].includes("git mv .faff-templates .faff/templates"));
+    const [relCfg, errCfg] = resolveQuiet(depr, { tracking: { templates_path: "records/tpl/" } });
+    check("templates path: configured value wins, trailing slash stripped, silent", relCfg === "records/tpl" && errCfg.length === 0);
+    resetTemplatesDeprecationNotice();
+    const twice = captured(() => { resolveTemplatesPath(depr, {}, false); resolveTemplatesPath(depr, {}, false); });
+    check("templates path: notice latches to once per process", twice.length === 1);
+    resetTemplatesDeprecationNotice();
+    const afterReset = captured(() => {
+      resolveTemplatesPath(depr, {}, false); resetTemplatesDeprecationNotice(); resolveTemplatesPath(depr, {}, false);
+    });
+    check("templates path: reset re-arms the notice", afterReset.length === 2);
+    const created = mk();
+    resolveTemplatesPath(created, {}, true);
+    check("templates path: --create makes the canonical directory only",
+      fs.existsSync(path.join(created, ".faff/templates")) && !fs.existsSync(path.join(created, ".faff-templates")));
+    for (const r of [absent, canon, depr, both, created]) fs.rmSync(r, { recursive: true, force: true });
+    resetTemplatesDeprecationNotice();
+  }
 
   // FAFF-1048: the superseded-ADR docs-path key + the resolveDocsPath fallbackRel branch.
   check("allowlist: superseded-ADR docs path is writable", TRACKING_KEYS.includes("tracking.adr_superseded_docs_path"));
@@ -3391,6 +3492,12 @@ function cmdConfig(args) {
       console.log(resolveSpikeDocsPath(root, data, rest.includes("--create")));
       return 0;
     }
+    if (cmd === "templates-path") {
+      const [data] = loadConfig(root);
+      const rel = resolveTemplatesPath(root, data, rest.includes("--create"));
+      console.log(rest.includes("--absolute") ? path.join(root, rel) : rel);
+      return 0;
+    }
     if (cmd === "dump") {
       const [data] = loadConfig(root);
       console.log(JSON.stringify(data, null, 2));
@@ -3556,4 +3663,4 @@ function resolveBuildModel(dispatch, tier, conf) {
   return fromTier ?? fromConfidence() ?? (isUnset(build.model) ? "inherit" : String(build.model).trim());
 }
 
-module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, DISPATCH_LANES, EFFORT_GRADED_FAMILIES, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, GIT_HOST_ALLOWLIST, INIT_HEADER, ISOLATION_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdConfigUnset, cmdVerification, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configUnsetSelftest, configVerbList, emitChainBlock, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeConfigPath, mergeTrackingBlock, removeConfigPath, reasoningEffortForTransport, redactSecret, resolveAdrDocsPath, resolveAdrSupersededDocsPath, resolveAppetite, resolveBuildModel, resolveConvergence, resolveInteractiveVerification, resolveDocsPath, resolveEngineForLane, resolveControlLabels, resolveLabelPrefix, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, resolveSpikeDocsPath, resolveTeams, scanDocForSecrets, secretScanLeaf, validateControlLabelName, validateDispatchKey, validateDispatchTree, validateEngineRef, validateGitHostValue, validateIsolationLane, validateLabelPrefix, validateTeams, AGENT_MODEL_TOKENS, EFFORT_LEVELS_WITH_INHERIT, legacyTreeError, legacyTreeGuard, pickDispatchField, prepareDispatch, removedKeyError };
+module.exports = { CONFIG_SPEC, CONFIG_SURFACE, DEFAULTS, DISPATCH_LANES, EFFORT_GRADED_FAMILIES, ENGINE_CALL_LANES, ENGINE_PROVIDER_FAMILY, GIT_HOST_ALLOWLIST, INIT_HEADER, ISOLATION_LANE_VOCAB, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, VALID_APPETITES, WRITABLE_NAMESPACES, cmdConfig, cmdConfigCheck, cmdConfigInit, cmdConfigSet, cmdConfigUnset, cmdVerification, computeConfigCheck, configCheckSelftest, configInitSelftest, configSetSelftest, configUnsetSelftest, configVerbList, emitChainBlock, emitScalar, emitTrackingBlock, fmt, loadConfig, mergeConfigPath, mergeTrackingBlock, removeConfigPath, reasoningEffortForTransport, redactSecret, resolveAdrDocsPath, resolveAdrSupersededDocsPath, resolveAppetite, resolveBuildModel, resolveConvergence, resolveInteractiveVerification, resolveDocsPath, resolveEngineForLane, resolveControlLabels, resolveLabelPrefix, resolvePrdDocsPath, resolvePrdrDocsPath, resolveSpecDocsPath, resolveSpikeDocsPath, resolveTemplatesPath, resolveTemplatesWritePath, deprecatedTemplatesRel, resetTemplatesDeprecationNotice, TEMPLATES_CANONICAL_REL, TEMPLATES_DEPRECATED_REL, TEMPLATES_DEPRECATED_MSG, TEMPLATES_SHADOWED_MSG, resolveTeams, scanDocForSecrets, secretScanLeaf, validateControlLabelName, validateDispatchKey, validateDispatchTree, validateEngineRef, validateGitHostValue, validateIsolationLane, validateLabelPrefix, validateTeams, AGENT_MODEL_TOKENS, EFFORT_LEVELS_WITH_INHERIT, legacyTreeError, legacyTreeGuard, pickDispatchField, prepareDispatch, removedKeyError };

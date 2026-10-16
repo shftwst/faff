@@ -1,0 +1,208 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "terminal-only",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/adr.js::adr format and native-map get newly load config, coupling their exit-0 floor to rc parseability",
+      "title": "adr format and native-map get newly load config, coupling their exit-0 floor to rc parseability",
+      "location": "plugin/skills/faff/bin/lib/adr.js",
+      "action": "None required; the premise does not hold.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "Isolated against the pristine ce6d0ffd baseline across valid, malformed and absent config, for both `adr format --json` and `native-map get --json`: every one of the six cells is exit 0 on baseline and exit 0 with the change. The feared exit-2 never occurs and the floor holds.",
+      "disposition_rationale": "The finding itself marked the loadConfig throw behaviour unverifiable from the files supplied, and it does not hold. Worth recording that my first measurement appeared to show a change: that was my own test bug, prefixing an already-absolute baseline path with $(pwd), so the apparent baseline exit 1 was node failing to find the script. The isolated re-run refutes the finding.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "adr format and native-map get newly load config, coupling their exit-0 floor to rc parseability",
+          "location": "plugin/skills/faff/bin/lib/adr.js",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/native-map.js::an operator-configured templates_path is interpolated unquoted into a suggested shell command",
+      "title": "An operator-configured templates_path is interpolated unquoted into a suggested shell command",
+      "location": "plugin/skills/faff/bin/lib/native-map.js:278",
+      "action": "Shell-quote the interpolated paths, or name them without wrapping them in a runnable command when they contain shell metacharacters.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Partially valid and the one security-adjacent finding of the series. Verified by reading the sources: the resolver notices at config.js:1213 and :1217 use hardcoded directory names and are safe, so exactly one site interpolates a configured value into a backtick-quoted command. It matters more than self-inflicted because `.faffrc.yaml` is committed and shared, so a value set in a pull request could land in a command a different developer pastes. Not fixed here because the message's shape is specified and quoting changes specified user-facing output. Recorded in <run-dir>/FAFF-1300/discovered-scope.json.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "An operator-configured templates_path is interpolated unquoted into a suggested shell command",
+          "location": "plugin/skills/faff/bin/lib/native-map.js:278",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/native-map.js::dry-run with --force over a deprecated-only map does not predict the left-in-place outcome",
+      "title": "dry-run with --force over a deprecated-only map does not predict the left-in-place outcome",
+      "location": "plugin/skills/faff/bin/lib/native-map.js",
+      "action": "Emit the left-in-place advisory under --dry-run, for symmetry with the spec's stated dry-run rule.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Fair, and it cites the spec's own rule that each branch which would refuse or no-op a real run is an advisory under --dry-run. The refusal branches got that treatment and this outcome-bearing branch did not. Nothing is lost or mis-written; the outcome is reported post-hoc in the success output and the `deprecated_left_in_place` JSON field. Filed as a small symmetry gap. Recorded in <run-dir>/FAFF-1300/discovered-scope.json.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "dry-run with --force over a deprecated-only map does not predict the left-in-place outcome",
+          "location": "plugin/skills/faff/bin/lib/native-map.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/native-map.test.mjs::the configured-path read branch has no subprocess-level cli coverage",
+      "title": "The configured-path read branch has no subprocess-level CLI coverage",
+      "location": "test/native-map.test.mjs",
+      "action": "Add a subprocess test for native-map get with tracking.templates_path set, including that a configured value suppresses the deprecation notice.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Accurate: the configured write path has a subprocess test but the configured read path is exercised only by the in-process selftest. The standard reviewer independently flagged the sibling gap that the `../shared/tpl` relative-path item has no `.test.mjs` case although its behaviour is correct when run by hand. Both are coverage gaps rather than defects, filed together. Recorded in <run-dir>/FAFF-1300/discovered-scope.json.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "The configured-path read branch has no subprocess-level CLI coverage",
+          "location": "test/native-map.test.mjs",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/native-map.js::two different migration remedies can appear on stderr together",
+      "title": "Two different migration remedies can appear on stderr together",
+      "location": "plugin/skills/faff/bin/lib/native-map.js",
+      "action": "Suppress the directory-level notice when the file-level guard is about to speak, or note the pairing in the notice design.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Accepted. The finding concedes neither remedy is wrong in the states where they co-occur. The cost is an operator reading two migration commands for one situation, which is a notice-design nit rather than a fault. Filed with the dry-run symmetry item. Recorded in <run-dir>/FAFF-1300/discovered-scope.json.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Two different migration remedies can appear on stderr together",
+          "location": "plugin/skills/faff/bin/lib/native-map.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/native-map.js::the empty-mappings no-op returns before the shadow guard runs",
+      "title": "The empty-mappings no-op returns before the shadow guard runs",
+      "location": "plugin/skills/faff/bin/lib/native-map.js",
+      "action": "None taken; the finding concedes the behaviour is defensible.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Accepted as the finding frames it: there is nothing to write, so returning early is correct, and the residue is only that this one invocation does not surface a stranded deprecated map. No data is lost and no wrong file is written.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "The empty-mappings no-op returns before the shadow guard runs",
+          "location": "plugin/skills/faff/bin/lib/native-map.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/config.js::--absolute is accepted and silently ignored on every other config sub-verb",
+      "title": "--absolute is accepted and silently ignored on every other config sub-verb",
+      "location": "plugin/skills/faff/bin/lib/config.js",
+      "action": "Scope the flag to the verbs that honour it, so an unsupported use is refused rather than ignored.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "CONFIRMED by running it: `faff config get appetite --absolute` parses cleanly and prints `high`, ignoring the flag. The finding is right that this is the drift the codebase documents against, and that `native-map.js` refuses `--type` on `set` for exactly that reason. Not fixed here because the flag lives on the shared CONFIG_SPEC and scoping it means per-verb validation across the whole config surface, well outside this ticket. Recorded in <run-dir>/FAFF-1300/discovered-scope.json.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "--absolute is accepted and silently ignored on every other config sub-verb",
+          "location": "plugin/skills/faff/bin/lib/config.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/native-map.test.mjs::the new cli test helpers spawned a path-resolved node rather than the running one",
+      "title": "The new CLI test helpers spawned a PATH-resolved node rather than the running one",
+      "location": "test/native-map.test.mjs:23",
+      "action": "Spawn process.execPath, matching the sibling templates-path test.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "CONFIRMED and fixed in commit ceaf3e62. Both new helpers spawned the literal `node` while the sibling `test/templates-path.test.mjs` uses `process.execPath`, so on a host whose PATH node differs from the running binary the new assertions would fail for reasons unrelated to the code. Both call sites now use `process.execPath`; the three touched test files pass 62 of 62 in a clean environment.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "The new CLI test helpers spawned a PATH-resolved node rather than the running one",
+          "location": "test/native-map.test.mjs:23",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    }
+  ]
+}

@@ -25,9 +25,13 @@ const cli = (args, cwd = REPO) => spawnSync(process.execPath, [BIN, ...args], { 
 function tmpRoot() {
   return mkdtempSync(join(tmpdir(), "faff-adr-format-"));
 }
-function writeTemplate(root, body) {
+function writeDeprecatedTemplate(root, body) {
   mkdirSync(join(root, ".faff-templates"), { recursive: true });
   writeFileSync(join(root, ".faff-templates", "adr.md"), body);
+}
+function writeTemplate(root, body) {
+  mkdirSync(join(root, ".faff", "templates"), { recursive: true });
+  writeFileSync(join(root, ".faff", "templates", "adr.md"), body);
 }
 
 // --- Golden-file test: the byte-identical Nygard regression floor -------------------------------
@@ -40,12 +44,12 @@ test("golden: faff adr new (no template) is byte-identical to the committed pre-
   assert.equal(r.status, 0, r.stderr);
   const got = readFileSync(r.stdout.trim(), "utf8");
   const want = readFileSync(join(HERE, "fixtures", "adr-nygard-golden.md"), "utf8");
-  assert.equal(got, want, "faff adr new output for a repo with no .faff-templates/adr.md drifted from the pinned Nygard golden fixture");
+  assert.equal(got, want, "faff adr new output for a repo with no ADR template drifted from the pinned Nygard golden fixture");
   rmSync(root, { recursive: true, force: true });
 });
 
 // --- format: file-presence activation + resolution ----------------------------------------------
-test("format: no .faff-templates/adr.md resolves to nygard/default with the three verbatim sections", () => {
+test("format: no ADR template resolves to nygard/default with the three verbatim sections", () => {
   const root = tmpRoot();
   const r = adr(["format", "--json", "--root", root]);
   assert.equal(r.status, 0, r.stderr);
@@ -75,7 +79,7 @@ test("format: a committed template's level-2 headings become the section list, i
   const resolved = JSON.parse(r.stdout);
   assert.equal(resolved.format, "template");
   assert.equal(resolved.source, "template");
-  assert.equal(resolved.template_path, ".faff-templates/adr.md");
+  assert.equal(resolved.template_path, ".faff/templates/adr.md");
   assert.equal(resolved.degraded, false);
   assert.deepEqual(resolved.sections.map((s) => s.name), ["Status", "Context", "Options", "Decision", "Consequences"]);
   assert.equal(resolved.decision_section, "Decision");
@@ -90,7 +94,7 @@ test("format: a present-but-empty template degrades to nygard, logs to stderr, a
   const resolved = JSON.parse(r.stdout);
   assert.equal(resolved.format, "nygard");
   assert.equal(resolved.degraded, true);
-  const expected = "faff adr format: .faff-templates/adr.md is empty or has no level-2 headings; using the Nygard default";
+  const expected = "faff adr format: .faff/templates/adr.md is empty or has no level-2 headings; using the Nygard default";
   assert.equal(resolved.notes, expected);
   assert.match(r.stderr, /is empty or has no level-2 headings; using the Nygard default/);
   rmSync(root, { recursive: true, force: true });
@@ -108,7 +112,7 @@ test("format: a heading-less (prose-only) template degrades exactly like empty",
 test("format: a present-but-unreadable template (permission-denied) degrades exactly like empty", { skip: process.getuid && process.getuid() === 0 }, () => {
   const root = tmpRoot();
   writeTemplate(root, "## Context\nx\n");
-  const tplPath = join(root, ".faff-templates", "adr.md");
+  const tplPath = join(root, ".faff", "templates", "adr.md");
   chmodSync(tplPath, 0o000);
   try {
     const r = adr(["format", "--json", "--root", root]);
@@ -213,7 +217,7 @@ test("smoke: template activation, scaffold, removal reverts to Nygard, no-Decisi
   const body1 = readFileSync(n1.stdout.trim(), "utf8");
   for (const h of ["## Status", "## Context", "## Options", "## Decision", "## Consequences"]) assert.ok(body1.includes(h));
 
-  rmSync(join(root, ".faff-templates", "adr.md"));
+  rmSync(join(root, ".faff", "templates", "adr.md"));
   const f2 = JSON.parse(adr(["format", "--json", "--root", root]).stdout);
   assert.equal(f2.format, "nygard");
   assert.equal(f2.source, "default");
@@ -228,4 +232,75 @@ test("smoke: template activation, scaffold, removal reverts to Nygard, no-Decisi
   assert.match(f3.notes, /disablement|disabled/);
 
   rmSync(root, { recursive: true, force: true });
+});
+
+// --- FAFF-1300: the deprecated location and the both-present case (each a fresh CLI process) ----
+const stderrOf = (r) => r.stderr;
+const SHADOWED_REMEDY = "git mv .faff-templates .faff/templates";
+
+test("format: canonical template alone resolves silently", () => {
+  const root = tmpRoot();
+  writeTemplate(root, "## Context\nx\n\n## Decision\ny\n");
+  const r = adr(["format", "--json", "--root", root]);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(stderrOf(r), "");
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("format: a template only at the deprecated location still resolves, with the directory-level notice on stderr", () => {
+  const root = tmpRoot();
+  writeDeprecatedTemplate(root, "## Legacy\nx\n\n## Decision\ny\n");
+  const r = adr(["format", "--json", "--root", root]);
+  assert.equal(r.status, 0, r.stderr);
+  const resolved = JSON.parse(r.stdout);
+  assert.equal(resolved.template_path, ".faff-templates/adr.md");
+  assert.deepEqual(resolved.sections.map((x) => x.name), ["Legacy", "Decision"]);
+  assert.match(r.stderr, /template overrides at \.faff-templates\/ are deprecated/);
+  assert.ok(r.stderr.includes(SHADOWED_REMEDY));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("format: with templates in both locations the canonical one wins and the shadowed notice names a file-level remedy", () => {
+  const root = tmpRoot();
+  writeDeprecatedTemplate(root, "## Legacy\nx\n\n## Decision\ny\n");
+  writeTemplate(root, "## Fresh\nx\n\n## Decision\ny\n");
+  const r = adr(["format", "--json", "--root", root]);
+  assert.equal(r.status, 0, r.stderr);
+  const resolved = JSON.parse(r.stdout);
+  assert.equal(resolved.template_path, ".faff/templates/adr.md");
+  assert.deepEqual(resolved.sections.map((x) => x.name), ["Fresh", "Decision"]);
+  assert.equal(stderrOf(r).match(/are deprecated and are now ignored/g).length, 1);
+  assert.ok(!r.stderr.includes(SHADOWED_REMEDY));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("format: a heading-less canonical template names the canonical path in its degrade note", () => {
+  const root = tmpRoot();
+  writeTemplate(root, "prose only\n");
+  const resolved = JSON.parse(adr(["format", "--json", "--root", root]).stdout);
+  assert.match(resolved.notes, /^faff adr format: \.faff\/templates\/adr\.md is empty/);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("format: a template without a Decision heading names the resolved path in the disablement note", () => {
+  const root = tmpRoot();
+  writeTemplate(root, "## Summary\nx\n");
+  const resolved = JSON.parse(adr(["format", "--json", "--root", root]).stdout);
+  assert.match(resolved.notes, /^faff adr format: \.faff\/templates\/adr\.md has no `## Decision` heading/);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("format: tracking.templates_path (absolute, from a foreign cwd) is the directory adr format reads", () => {
+  const root = tmpRoot();
+  const elsewhere = tmpRoot();
+  const tplDir = join(root, "custom-tpl");
+  mkdirSync(tplDir, { recursive: true });
+  writeFileSync(join(tplDir, "adr.md"), "## Only\nx\n");
+  writeFileSync(join(root, ".faffrc.yaml"), "tracking:\n  templates_path: custom-tpl/\n");
+  const resolved = JSON.parse(adr(["format", "--json", "--root", root], elsewhere).stdout);
+  assert.equal(resolved.template_path, "custom-tpl/adr.md");
+  const abs = cli(["config", "templates-path", "--absolute", "--root", root], elsewhere);
+  assert.equal(abs.stdout.trim(), tplDir);
+  rmSync(root, { recursive: true, force: true });
+  rmSync(elsewhere, { recursive: true, force: true });
 });

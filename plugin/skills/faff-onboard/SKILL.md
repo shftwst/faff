@@ -129,14 +129,14 @@ Example shape (values illustrative):
 
 ### 4b. Persist the native map (its own dry-run + confirm)
 
-If step 3b confirmed **≥1** mapping, persist it via the `faff native-map set` CLI writer — onboard **never** hand-writes this file either. Pipe the confirmed pairs as **JSON on stdin** (not a delimiter grammar — a template name may contain colons/newlines); the writer validates every key against the closed taxonomy, emits through a real YAML encoder, and round-trip-verifies before writing `.faff-templates/native-templates.yaml`. Dry-run first, show the exact file text, one confirm gate; on confirm, re-run without `--dry-run`.
+If step 3b confirmed **≥1** mapping, persist it via the `faff native-map set` CLI writer — onboard **never** hand-writes this file either. Pipe the confirmed pairs as **JSON on stdin** (not a delimiter grammar — a template name may contain colons/newlines); the writer validates every key against the closed taxonomy, emits through a real YAML encoder, and round-trip-verifies before writing the map to `.faff/templates/native-templates.yaml` (or the directory `tracking.templates_path` names). Dry-run first, show the exact file text, one confirm gate; on confirm, re-run without `--dry-run`.
 
 ```bash
 printf '%s' '{"mappings":{"bug":{"id":"tmpl_123","name":"Bug Report"},"feature":{"id":"tmpl_456","name":"Feature Request"}}}' \
   | "$faff" native-map set --team SHF --tracker linear --dry-run   # preview; then re-run without --dry-run on confirm
 ```
 
-If step 3b was skipped, or **zero** mappings were confirmed (every template unmapped), write no map file — the report still names every discovered template as unmapped. The map is committed like the rest of `.faff-templates/` (it is not gitignored); local mode does not overlay it.
+If step 3b was skipped, or **zero** mappings were confirmed (every template unmapped), write no map file — the report still names every discovered template as unmapped. The map is committed like the rest of the templates directory (it is not gitignored); local mode does not overlay it.
 
 ### 5. Ensure gitignore + Stop hooks
 
@@ -153,7 +153,7 @@ Onboard relies on an idempotent, conflict-guarded writer: re-running `/faff-onbo
 
 ### 7. Report and log
 
-Close with a skimmable summary: the config path written, the keys set, the gitignore result, **the native-template map** (if written: the path `.faff-templates/native-templates.yaml` and each faff-type→template pairing; plus **every unmapped template named** so the human sees what was discovered but not stored — or a note that discovery was skipped/empty), **a recommendation to commit `.faffrc.yaml`** and `.faff-templates/native-templates.yaml` (git is their backup + drift alarm; put any machine-local values in a gitignored `.faffrc.local.yaml` overlay, and run `faff config check` to verify posture), and (if git-only) a note that tracker-keyed values were skipped. Write a log per the gateway `.faff/logging` rule: the detected values, which MCP was inspected, what was confirmed vs. asked, the exact `config init` command run, and the outcome — enough that a follow-up agent can see how this repo's config came to exist.
+Close with a skimmable summary: the config path written, the keys set, the gitignore result, **the native-template map** (if written: the path `.faff/templates/native-templates.yaml` and each faff-type→template pairing; plus **every unmapped template named** so the human sees what was discovered but not stored — or a note that discovery was skipped/empty), **a recommendation to commit `.faffrc.yaml`** and the map at `.faff/templates/native-templates.yaml` (git is their backup + drift alarm; put any machine-local values in a gitignored `.faffrc.local.yaml` overlay, and run `faff config check` to verify posture), and (if git-only) a note that tracker-keyed values were skipped. Write a log per the gateway `.faff/logging` rule: the detected values, which MCP was inspected, what was confirmed vs. asked, the exact `config init` command run, and the outcome — enough that a follow-up agent can see how this repo's config came to exist.
 
 **Local mode reporting.** In local mode, the summary instead names the overlay path (`.faffrc.local.yaml`), both pinned values (`bundle_store: local`, `tracking.label_prefix`), the `.git/info/exclude` exclude target, and the `.claude/settings.local.json` hooks target — the "commit `.faffrc.yaml`" recommendation is omitted, since there is no base to commit. If a committed base was warned about in step 1, repeat that warning here so it isn't lost in scrollback. The log records the resolved `local` boolean alongside the usual detected/confirmed/command/outcome trail.
 

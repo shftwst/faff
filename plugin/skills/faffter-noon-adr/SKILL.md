@@ -1,13 +1,13 @@
 ---
 name: faffter-noon-adr
-description: "Default `adr` producer — authors the body of an architecture decision record at graft time (Nygard's Context/Decision/Consequences by default, or a repo's own committed `.faff-templates/adr.md` shape when one exists), from a settled decision plus the spec rationale and the configured ADR log. The single ADR-authoring producer. Runs as a configured slot, not the user `/` menu."
+description: "Default `adr` producer — authors the body of an architecture decision record at graft time (Nygard's Context/Decision/Consequences by default, or a repo's own committed `adr.md` template shape when one exists), from a settled decision plus the spec rationale and the configured ADR log. The single ADR-authoring producer. Runs as a configured slot, not the user `/` menu."
 user-invocable: false
 judgement_seam: adr-gloss
 ---
 
 # faffter-noon-adr
 
-The default producer for the **`adr` slot**. Given a *settled* (already-`Chosen`) decision, it authors the ADR body that faff-graft drops into the `faff adr new` scaffold and commits on the feature branch (the `faff adr new` mechanics own the scaffold, numbering, and validate; this producer owns only the prose) — against the repo's **resolved section list**: Nygard (Context / Decision / Consequences) by default, or a committed `.faff-templates/adr.md`'s own headings when the repo carries one.
+The default producer for the **`adr` slot**. Given a *settled* (already-`Chosen`) decision, it authors the ADR body that faff-graft drops into the `faff adr new` scaffold and commits on the feature branch (the `faff adr new` mechanics own the scaffold, numbering, and validate; this producer owns only the prose) — against the repo's **resolved section list**: Nygard (Context / Decision / Consequences) by default, or a committed `adr.md` template's own headings when the repo carries one.
 
 It is the judgement layer over the `faff adr new` deterministic ADR machinery, and the **single ADR-authoring producer**: the generative architecture proposer *decides* architecture and feeds settled decisions into this same slot rather than carrying its own writer.
 
@@ -25,7 +25,7 @@ faff-graft provides:
 - **spec_rationale** — the issue's committed spec / tracker spec comment.
 - **issue** — the `ISSUE-XX` id + title (provenance).
 - **related_adrs** — `faff adr list --json` (number / title / status / date) for cross-references to related or superseded ADRs.
-- **resolved_format** — run `faff adr format --json` first and author against its `sections` list, in order, and under no others; resolve the format via that CLI call only, never by reading `.faff-templates/adr.md` directly. A repo with no committed template resolves to Nygard's three sections; a repo that commits `.faff-templates/adr.md` resolves to that file's own headings instead.
+- **resolved_format** — run `faff adr format --json` first and author against its `sections` list, in order, and under no others; resolve the format via that CLI call only, never by reading the template file directly. A repo with no committed template resolves to Nygard's three sections; a repo that commits an `adr.md` template resolves to that file's own headings instead.
 
 ## Output — the ADR body (the `adr`-slot contract)
 

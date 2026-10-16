@@ -11,7 +11,7 @@ Full nlspec-format spec generation, usable as a delegated `spec` skill in faff-p
 
 The nlspec format is inspired by [NLSpec-Spec](https://github.com/TG-Techie/NLSpec-Spec) by TG-Techie. No code from that project is used.
 
-Configure in `.faffrc`:
+Configure in `.faff/config.yaml`:
 
 ```yaml
 slots:

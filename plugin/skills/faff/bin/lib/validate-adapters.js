@@ -601,7 +601,7 @@ function validateConfigured(args, skillsDir) {
       return 2;
     }
     if (e.message === "multiple-config") {
-      process.stderr.write(`validate-adapters --configured: multiple .faffrc files at ${root}; keep only one.\n`);
+      process.stderr.write(`validate-adapters --configured: multiple config files at ${root}; keep only one.\n`);
       return 2;
     }
     throw e;
@@ -611,8 +611,8 @@ function validateConfigured(args, skillsDir) {
   const entries = Object.entries(slots).filter(([, v]) => v !== null && v !== undefined && v !== "");
   if (!entries.length) {
     console.log(cfgPath
-      ? `no slots configured in ${path.basename(cfgPath)} — nothing to pre-flight (all slots use shipped defaults).`
-      : "no .faffrc found — nothing to pre-flight (all slots use shipped defaults).");
+      ? `no slots configured in ${path.relative(root, cfgPath)} — nothing to pre-flight (all slots use shipped defaults).`
+      : "no config file found — nothing to pre-flight (all slots use shipped defaults).");
     return 0;
   }
 
@@ -998,8 +998,8 @@ function cmdValidateAdapters(args) {
   }
   // FAFF-50: CLI-only config access — no skill may hand-read the rc file with a shell command;
   // config is resolved via `faff config`. Conservative: flags only an explicit shell read of
-  // .faffrc* (cat/head/tail/grep/sed/awk/less), never a prose mention.
-  const HANDREAD = /\b(?:cat|head|tail|less|grep|sed|awk)\b[^\n]*\.faffrc(?:\.ya?ml)?\b/;
+  // the config files (.faffrc*, .faff/config*.yaml) with cat/head/tail/grep/sed/awk/less, never a prose mention.
+  const HANDREAD = /\b(?:cat|head|tail|less|grep|sed|awk)\b[^\n]*(?:\.faffrc(?:\.ya?ml)?\b|\.faff\/config(?:\.local)?\.ya?ml\b)/;
   const allSkills = fs.readdirSync(skillsDir)
     .filter((d) => fs.existsSync(path.join(skillsDir, d, "SKILL.md"))).sort();
   for (const name of allSkills) {
@@ -1010,7 +1010,7 @@ function cmdValidateAdapters(args) {
       if (m) {
         failed = true;
         console.log(`FAIL  ${name} (config access)`);
-        console.log(`        ✗ hand-reads the rc file ("${m[0].trim()}") — resolve config via \`faff config\`, never read .faffrc directly (FAFF-50)`);
+        console.log(`        ✗ hand-reads the rc file ("${m[0].trim()}") — resolve config via \`faff config\`, never read the config file directly (FAFF-50)`);
         break;
       }
     }

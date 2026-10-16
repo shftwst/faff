@@ -9,7 +9,7 @@ judgement_seam: grouping
 
 Agile delivery methodology lens. Fills the `methodology` slot and answers requests for backlog/build outputs through seven delivery principles — diagnosing problems, explaining them in plain English, and recommending fixes. Surface-only at low/medium appetite — no autonomous tracker mutations.
 
-Configure in `.faffrc`:
+Configure in `.faff/config.yaml`:
 
 ```yaml
 slots:
@@ -245,7 +245,7 @@ Never: "You're doing this wrong." / "Best practice is..." / "You should...". Des
 
 ## Appetite integration
 
-This skill reads the suite-wide `appetite` setting from `.faffrc`. Appetite governs how much this skill acts vs. surfaces.
+This skill reads the suite-wide `appetite` setting from `.faff/config.yaml`. Appetite governs how much this skill acts vs. surfaces.
 
 **Authority over tracker topology is the gateway's dial, not re-derived here.** How much this lens may write tracker topology per appetite level — reparent, convert, rehome a gating chain, default where new work lands — is the shared **topology-write-authority** dial: gateway → **Appetite for destruction** → **Topology-write authority** (the table, the anti-thrash + legibility-preserver guardrails, and the reversibility-floor + DoD-ceiling invariants, all of which compose with the existing hard floor and the human-curated-structure floor). This section keeps only the lens's own seven-principle flavour of what each level *does* with that authority; it does not restate the levels.
 

@@ -12,9 +12,9 @@
 # directories themselves are never symlinked, so other tools' skills are untouched.
 #
 # --global targets come from the install.skill_targets config key when it's set (a YAML
-# sequence of absolute or "~"-relative paths in .faffrc.yaml), defaulting to the pair above
+# sequence of absolute or "~"-relative paths in .faff/config.yaml), defaulting to the pair above
 # when it's unset or unreadable. Local (non-`--global`) mode never consults the key. See
-# FAFF-684 and plugin/skills/faff/SKILL.md's .faffrc.yaml schema block.
+# FAFF-684 and plugin/skills/faff/SKILL.md's .faff/config.yaml schema block.
 #
 # Discovery rule: any top-level dir in plugin/skills/ that contains a SKILL.md.
 #
@@ -138,7 +138,7 @@ expand_target() {
 }
 
 # FAFF-684: best-effort read of the configured install target list, via the already-resolved
-# bundled CLI (BIN_SRC) rather than a hand grep/sed of .faffrc.yaml — the resolver alone
+# bundled CLI (BIN_SRC) rather than a hand grep/sed of .faff/config.yaml — the resolver alone
 # handles overlay merge and the malformed-base loud-exit. Every failure mode (node absent,
 # BIN_SRC unreadable, a non-zero exit other than "key absent", an empty result, every entry
 # unusable) appends nothing to CONFIGURED_TARGETS — the caller falls back to the hardcoded

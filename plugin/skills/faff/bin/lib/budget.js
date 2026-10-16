@@ -1243,7 +1243,7 @@ function cmdBudget(args, { resolveUnmetered = () => [] } = {}) {
   // hard failure here would fail-OPEN the whole budget signal (the same FAFF-364
   // until_invalid reasoning immediately above).
   if (env.price_per_mtok_removed != null) {
-    const msg = `budget.price_per_mtok ('${env.price_per_mtok_removed}') is removed (FAFF-446) — ignored; cost prices from the ADR-0048 map. Unset budget.price_per_mtok in .faffrc.yaml (set budget.price_per_mtok_by_model to override specific models).`;
+    const msg = `budget.price_per_mtok ('${env.price_per_mtok_removed}') is removed (FAFF-446) — ignored; cost prices from the ADR-0048 map. Unset budget.price_per_mtok in .faff/config.yaml (set budget.price_per_mtok_by_model to override specific models).`;
     warnings.push(msg);
     process.stderr.write(`faff budget check: ${msg}\n`);
   }

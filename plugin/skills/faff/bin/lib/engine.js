@@ -315,7 +315,7 @@ function cmdEngine(args) {
     [cfg] = loadConfig(root);
   } catch (e) {
     if (e.message === "legacy-config-name" || e.message === "multiple-config") {
-      process.stderr.write(`faff engine call: config resolution failed (${e.message}) — fix the ${CANONICAL_CONFIG} at the repo root\n`);
+      process.stderr.write(`faff engine call: config resolution failed (${e.message}) — fix the ${CANONICAL_CONFIG}\n`);
       return ENGINE_EXIT.CONFIG;
     }
     throw e;

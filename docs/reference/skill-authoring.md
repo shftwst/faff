@@ -2,7 +2,7 @@
 
 The standard every faff skill prompt (`SKILL.md`) is written to: **lean, deduplicated, skimmable.** This doc is the single home for that ethos and is written *as* the ethos — terse, bulleted, factual — so it is its own worked example.
 
-It is faff's **contributor guidance**, not faff config. The faff CLI reads config only via `faff config` (the `.faffrc.yaml` path); this charter and the repo-root `CLAUDE.md` that loads it are never a config source.
+It is faff's **contributor guidance**, not faff config. The faff CLI reads config only via `faff config` (the `.faff/config.yaml` path); this charter and the repo-root `CLAUDE.md` that loads it are never a config source.
 
 ## Why it exists
 

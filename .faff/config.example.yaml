@@ -1,22 +1,23 @@
-# .faffrc.example.yaml — faff configuration template.
+# .faff/config.example.yaml — faff configuration template.
 #
-# Copy this to `.faffrc.yaml` at your repo root and edit. The `.example` file is a
+# Copy this to `.faff/config.yaml` and edit. The `.example` file is a
 # template only — faff never loads it as config.
 #
-# TWO-FILE MODEL (FAFF-387). faff config resolves from two optional files at the repo root:
-#   .faffrc.yaml        — the BASE. Durable, shareable behaviour (slots, appetite,
-#                         tracking paths, adversarial routing). RECOMMENDED: commit it —
-#                         git is then its backup (`git checkout` restores a corrupted file)
-#                         and its drift alarm (a silent wholesale rewrite shows up as a diff).
-#                         It holds NO secrets by construction: `api_key_env` names an env var;
-#                         the key value is read from the environment, never stored here.
-#   .faffrc.local.yaml  — the OVERLAY. Optional, gitignored, machine-local. Put anything an
-#                         operator considers private (an internal hostname, a personal model
-#                         preference) here — it deep-merges OVER the base (maps merge per leaf,
-#                         sequences replace wholesale, the overlay wins scalars).
-# Run `faff config check` to verify posture (base committed? overlay ignored? no secret-shaped
-# values?) — it's read-only and never writes or commits anything. A corrupted/lost file is
-# `git checkout -- .faffrc.yaml` away from recovery only once the base is committed.
+# TWO-FILE MODEL (FAFF-387). faff config resolves from two optional files under `.faff/`:
+#   .faff/config.yaml        — the BASE. Durable, shareable behaviour (slots, appetite,
+#                              tracking paths, adversarial routing). RECOMMENDED: commit it —
+#                              git is then its backup (`git checkout` restores a corrupted file)
+#                              and its drift alarm (a silent wholesale rewrite shows up as a diff).
+#                              It holds NO secrets by construction: `api_key_env` names an env var;
+#                              the key value is read from the environment, never stored here.
+#   .faff/config.local.yaml  — the OVERLAY. Optional, gitignored, machine-local. Put anything an
+#                              operator considers private (an internal hostname, a personal model
+#                              preference) here — it deep-merges OVER the base (maps merge per leaf,
+#                              sequences replace wholesale, the overlay wins scalars).
+# `faff gitignore-ensure` writes `.faff/.gitignore`, which commits the base and this template and
+# ignores the overlay. Run `faff config check` to verify posture (base committed? overlay ignored?
+# no secret-shaped values?) — it's read-only and never writes or commits anything. A corrupted/lost
+# file is `git checkout -- .faff/config.yaml` away from recovery only once the base is committed.
 #
 # Every key is optional; anything you omit falls back to faff's built-in default.
 # Holds stable config only — never mutable tracker state (no milestones, dates,
@@ -413,7 +414,7 @@ sentry:
 # construction: a webhook failure never affects the run (see records/adr/0101).
 #
 # `url`/`token` are secret-bearing (an auth-carrying webhook endpoint) — set them in the
-# gitignored `.faffrc.local.yaml` OVERLAY (see the two-file model note at the top of this
+# gitignored `.faff/config.local.yaml` OVERLAY (see the two-file model note at the top of this
 # file), never committed here, mirroring how `adversarial`'s `api_key_env`
 # keeps the actual key value out of the committed base.
 andon:

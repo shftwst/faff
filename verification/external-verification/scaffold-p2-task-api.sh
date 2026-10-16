@@ -31,10 +31,11 @@ node_modules/
 dist/
 *.log
 .env.claude-box
-.faffrc.local.yaml
+.faff/config.local.yaml
 EOF
 
-cat > .faffrc.yaml <<'EOF'
+mkdir -p .faff
+cat > .faff/config.yaml <<'EOF'
 # faff config — SUT P2 (task API, multi-increment). git-only, agile lens.
 # NOTE: the full leash + steer-via-comment loop is richest on a REAL tracker. To upgrade:
 #   add a project_id / team_key under tracking, drop `automation_default`, and let the
@@ -88,7 +89,7 @@ backends:
     egress: external
     timeout: 480
   # ollama-local (operator-private tailnet ollama backend) relocated to the
-  # gitignored .faffrc.local.yaml overlay (FAFF-618, mirroring FAFF-587) so this
+  # gitignored .faff/config.local.yaml overlay (FAFF-618, mirroring FAFF-587) so this
   # repo carries no operator host. The overlay's adversarial refs list restates
   # all three entries (sequences replace wholesale); this base advertises only
   # the two cloud backends.
@@ -106,7 +107,8 @@ EOF
 # only this small overlay heredoc is unquoted, so ${FAFF_EVAL_LOCAL_BASE_URL} interpolates
 # and nothing else in the base risks expanding.
 if [ -n "${FAFF_EVAL_LOCAL_BASE_URL:-}" ]; then
-  cat > .faffrc.local.yaml <<EOF
+  mkdir -p .faff
+  cat > .faff/config.local.yaml <<EOF
 backends:
   ollama-local:
     provider: ollama
@@ -120,9 +122,9 @@ adversarial:
     - gemini-gemma
     - ollama-local
 EOF
-  echo "wrote .faffrc.local.yaml (ollama-local backend, host from FAFF_EVAL_LOCAL_BASE_URL, gitignored)"
+  echo "wrote .faff/config.local.yaml (ollama-local backend, host from FAFF_EVAL_LOCAL_BASE_URL, gitignored)"
 else
-  echo "WARNING: FAFF_EVAL_LOCAL_BASE_URL unset — the SUT runs with the two cloud backends only; export it and re-scaffold (or hand-write .faffrc.local.yaml) to add the local ollama backend" >&2
+  echo "WARNING: FAFF_EVAL_LOCAL_BASE_URL unset — the SUT runs with the two cloud backends only; export it and re-scaffold (or hand-write .faff/config.local.yaml) to add the local ollama backend" >&2
 fi
 
 # PRD lives under docs/prd/ (not the repo root) so `faff prd list` — and the L4 run-start
@@ -209,7 +211,7 @@ See authoring-and-admitting-a-prd.md for the current verb surface (the two comma
 used to list here — a `prd new` invocation with a `--from` flag, and an `admit` verb under
 `prd` — never existed as written; see that doc for what NOT to run).
 `docs/prd/task-api.md` stays hand-authored; the L4 run-start `prd-readiness` gate resolves it via
-`faff prd list` (container `task-api`, matching `tracking.container` in `.faffrc.yaml`) and
+`faff prd list` (container `task-api`, matching `tracking.container` in `.faff/config.yaml`) and
 admits/refuses it automatically when `/faff-beep-boop --converge` mints the run. A refusal means
 the stop conditions weren't machine-checkable — a real finding.
     # (If the gate refuses, that's a real finding — the stop conditions weren't verifiable.)
@@ -225,7 +227,7 @@ the FAFF-518 digest custody floor. Setting a boundary is optional; it only buys 
 mount-asserted basis once the cage read-only-mounts the integrity dirs (FAFF-517). Compose it with
 `faff integrity-boundary` if/when that lands (an automating cage supplies it; FAFF-514) — never a
 fabricated value (fabricating it to clear the gate is the lying attestation FAFF-525 exists to
-avoid). All three **dial-coherence** legs are already satisfied by this SUT's `.faffrc.yaml` — the
+avoid). All three **dial-coherence** legs are already satisfied by this SUT's `.faff/config.yaml` — the
 two explicit dials (`slots.review`, `slots.spec_review`) plus `gates.fallback`, fail-closed by
 default (FAFF-522).
 

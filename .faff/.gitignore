@@ -5,3 +5,5 @@
 !/templates/
 !/decisions.md
 !/conventions.md
+!/config.yaml
+!/config.example.yaml

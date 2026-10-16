@@ -35,7 +35,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const {
-  SELF_INTAKE_REASONS, decideSelfIntake, dig, findRoot, normalizeSelfIntakeTarget,
+  CANONICAL_CONFIG, SELF_INTAKE_REASONS, decideSelfIntake, dig, findRoot, normalizeSelfIntakeTarget,
 } = require("./shared-infra");
 const { loadConfig, resolveTeams } = require("./config");
 const { isSafeRunId } = require("./contain");
@@ -147,7 +147,7 @@ function cmdSelfIntake(args) {
     // A config parse failure is LOUD exit 2 — never a silent not-self with a
     // wrong reason, and never a fall-through to defaults that could misreport
     // lane-off as the cause. (readBaseConfigStrict already wrote its remedy line.)
-    const detail = e && e.legacy ? `legacy config name (${e.legacy.join(", ")}) — rename to .faffrc.yaml` : (e && (e.detail || e.message)) || "unreadable";
+    const detail = e && e.legacy ? `legacy config name (${e.legacy.join(", ")}) — rename to ${CANONICAL_CONFIG}` : (e && (e.detail || e.message)) || "unreadable";
     process.stderr.write(`faff self-intake: cannot derive the self side — config resolution failed (${detail}).\n`);
     return 2;
   }

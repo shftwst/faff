@@ -3,7 +3,7 @@ set -euo pipefail
 
 # FAFF-360 — scaffold the config-free bare Claude Code Commissaire consumer SUT.
 #
-# Unlike the P1-P5 rungs, this SUT is CONFIG-FREE: it writes no .faffrc.yaml and calls no
+# Unlike the P1-P5 rungs, this SUT is CONFIG-FREE: it writes no .faff/config.yaml and calls no
 # `faff hooks-ensure`. Its only integration with the governance layer is a hand-written Stop hook,
 # one repository-owned verifier script, and a separately supplied immutable CLI checkout. The SUT is
 # a fresh LOCAL no-remote git repository; the committed absolute FAFF_BIN constant in the hook is a

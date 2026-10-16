@@ -48,7 +48,7 @@ Pluggable skills that either add new behaviour or change the default behaviour o
 | `faffter-dark-concurrency-parallel` | `concurrency` | Concurrent build-pass executor — runs independents in parallel, each in its own worktree, capped at `concurrency_max`, with rebase-before-merge so a moving `main` can't merge stale-green. Replaces the sequential default for speed. |
 | `faffter-dark-authoring-adaptors` | — (tooling) | Author/validate skill for slot occupants. Scaffolds a new adaptor/producer/methodology with the correct refer-back prose + contract mapping, and validates that an existing slot skill conforms. A development-time tool, not a pipeline slot. |
 
-Some of these skills (`adversarial-review`) can be configured to use a different model, with provider settings per-slot in `.faffrc.yaml`. Transport families supported: `ollama`, any OpenAI-compatible `/v1` endpoint (`openai`, `vllm`, `openrouter`, `nvidia`, `deepseek`, and `gemini` via Google's OpenAI-compat base URL), and `anthropic` (native `/v1/messages`):
+Some of these skills (`adversarial-review`) can be configured to use a different model, with provider settings per-slot in `.faff/config.yaml`. Transport families supported: `ollama`, any OpenAI-compatible `/v1` endpoint (`openai`, `vllm`, `openrouter`, `nvidia`, `deepseek`, and `gemini` via Google's OpenAI-compat base URL), and `anthropic` (native `/v1/messages`):
 
 ```yaml
 adversarial:

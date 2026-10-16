@@ -15,7 +15,7 @@ Set you up to build. Checks the spec exists, creates a worktree, commits the spe
 
 ### Worktree provisioning
 
-Graft owns the worktree *mechanism*; the *policy* (location `~/.faff/worktrees/<repo>/<branch>` by default, overridable via `.faffrc` `worktree_root`; branch-off-HEAD naming, config-copy, install-skip, per-issue isolation, cleanup-is-housekeeping) is single-sourced in the gateway → **Worktree policy**. This section names how graft enacts it.
+Graft owns the worktree *mechanism*; the *policy* (location `~/.faff/worktrees/<repo>/<branch>` by default, overridable via `.faff/config.yaml` `worktree_root`; branch-off-HEAD naming, config-copy, install-skip, per-issue isolation, cleanup-is-housekeeping) is single-sourced in the gateway → **Worktree policy**. This section names how graft enacts it.
 
 The Step 3 fresh-create path invokes the bundled `setup-worktree.sh` **directly** via the shell (no harness hook needed) — see Step 3 for the resolution + invocation. A project-specific wrapper at `scripts/setup-worktree.sh` is preferred when present; the skill step picks it up instead of the bundled script. Nothing load-bearing requires a `WorktreeCreate` hook registration: an existing one is harmless (graft no longer triggers it) and the operator may keep or remove it.
 
@@ -156,7 +156,7 @@ PROCEDURE build_time_premise_superseded_gate(spec, issue, run_dir, mode):
 
 **Step 3: Check for Existing Worktree**
 
-(Worktree layout and rules: gateway → **Worktree policy**. Worktrees live at `~/.faff/worktrees/<repo>/<branch>` by default, overridable via `.faffrc` `worktree_root`.)
+(Worktree layout and rules: gateway → **Worktree policy**. Worktrees live at `~/.faff/worktrees/<repo>/<branch>` by default, overridable via `.faff/config.yaml` `worktree_root`.)
 **Is this run governed? (every lane, top-level or dispatched; every governed step in this skill refers to this check; `<run dir>` is `"$run_dir"`)** Governed-run check: run `"$faff" commissaire contract status --run-dir <run dir>`. If the call exits non-zero, has not returned within 30 seconds, or its stdout is anything other than exactly one parseable JSON object with a boolean `governed`, stop with the error `commissaire-status-failed` and take neither the governed nor the ungoverned path, whatever `"governed"` appears to say; otherwise the run is governed when that object's `governed` is `true` and not governed when it is `false`. In this skill a `commissaire-status-failed` stop is a needs-human park (park protocol), naming the error and the call's exit code, `timeout` or `unparseable output`, never the call's stderr text.
 
 **Mint the interactive run substrate (standalone/top-level interactive graft only; runs after the Step-2 gates PASS, before any worktree work).** A directly-invoked `/faff-graft` (no orchestrator/dispatch above it) has no run dir, so it mints neither the `events.jsonl` nor the `run-ledger.json` that Step 9b's `faff events anchor` byte-copies and `faff merge-gate` reads — the anchor can't be built and the fail-closed merge floor refuses. Mint that substrate now, once, so the *existing* anchor + gate path just works:
@@ -245,7 +245,7 @@ dir=$("$faff" config spec-docs-path --create)
 builder_view=$(printf '%s' "$captured_full_spec" | "$faff" dod split --spec - --view builder) || { echo "FATAL: dod split --view builder exited non-zero — refusing to commit (never fall back to the full spec)"; exit 1; }
 ```
 
-This reads `tracking.spec_docs_path` from `.faffrc` and, when unset, applies the default rule (`docs/specs` if `docs/` exists, else `doc/specs` if `doc/` exists, else creates `docs/` and uses `docs/specs`). **Commit `$builder_view`, never the raw captured spec** — the split strips any `holdout:`-marked scenarios (byte-identical pass-through for a marker-free spec) so the worktree-resident builder never sees them; the full spec stays recoverable only from the tracker (git-only: `.faff/specs/<issue-id>.md`). A **`--view builder` exit 2** (the non-zero branch above) is fail-loud — refuse the commit outright and log the cause, never fall back to committing the full spec; a non-gating over-withholding advisory the CLI may print to stderr is logged, never blocking. Commit `$builder_view` to:
+This reads `tracking.spec_docs_path` from `.faff/config.yaml` and, when unset, applies the default rule (`docs/specs` if `docs/` exists, else `doc/specs` if `doc/` exists, else creates `docs/` and uses `docs/specs`). **Commit `$builder_view`, never the raw captured spec** — the split strips any `holdout:`-marked scenarios (byte-identical pass-through for a marker-free spec) so the worktree-resident builder never sees them; the full spec stays recoverable only from the tracker (git-only: `.faff/specs/<issue-id>.md`). A **`--view builder` exit 2** (the non-zero branch above) is fail-loud — refuse the commit outright and log the cause, never fall back to committing the full spec; a non-gating over-withholding advisory the CLI may print to stderr is logged, never blocking. Commit `$builder_view` to:
 
 - `$dir/YYYY-MM-DD-<issue-id>-<slug>-design.md`
 
@@ -447,7 +447,7 @@ Invoke the `review` slot via the Skill tool (resolve `faff config get slots.revi
 
 Forward both as prose context in the Skill-tool invocation (alongside the diff/spec/Phase-1 result), not CLI flags. The slot's default is `faffter-noon-review`; the review's passes and how it arrives at a verdict are that skill's concern, not faff-graft's. faff-graft owns only the sequencing around the result. **Prior findings (from the second review pass of this build on):** also forward `faff review-prior --dir <dir> --block` as the prior findings, where `<dir>` is `<run_dir>/<ISSUE>/build-review` for a dialogue-loop pass and `<run_dir>/<ISSUE>/review-rounds` otherwise; for Phase 2 the block is appended to the `--system` file. Empty output forwards nothing; a non-zero exit forwards nothing and is logged, so that pass runs with round-1 identity.
 
-**Interactive verification opt-in (attended sessions, advisory, never acting).** A hands-on operator can run faff's high-assurance verification legs on an *attended* build and read the real floor verdict, with no unattended acting authority conferred. Resolve which legs are on by shelling the single resolver (never hand-read `.faffrc`):
+**Interactive verification opt-in (attended sessions, advisory, never acting).** A hands-on operator can run faff's high-assurance verification legs on an *attended* build and read the real floor verdict, with no unattended acting authority conferred. Resolve which legs are on by shelling the single resolver (never hand-read `.faff/config.yaml`):
 
 ```bash
 verif=$("$faff" verification resolve --json)   # {attended, unattended, level, legs:{holdout,spec_review,code_review}, any}
@@ -680,7 +680,7 @@ Consumed at the merge handoff both modes: **interactive** at Step 11 (via **How 
 | Landing loop | The bounded observe-then-act loop below that replaces the uncapped CI wait and drives an open PR toward merged |
 | Landing time budget | A fixed 25-minute wall-clock deadline measured from loop entry; at the deadline the loop stops and hands off `landing-resumable` |
 | Re-run budget | The within-firing flaky re-run allowance carried as ephemeral loop state: at most one clean re-run per head sha, at most two per issue-build |
-| Autofix mode | `.faffrc` `graft.landing.autofix`: `off` (default; `CONFLICTING`/`CI_RED_REGRESSION` leave for a human, unchanged) \| `shadow` (fix cycle runs and pushes, merge stays human-gated) \| `unattended` (a resolved cycle continues the loop toward merge). Unset or unrecognised reads as `off` plus one warning |
+| Autofix mode | `.faff/config.yaml` `graft.landing.autofix`: `off` (default; `CONFLICTING`/`CI_RED_REGRESSION` leave for a human, unchanged) \| `shadow` (fix cycle runs and pushes, merge stays human-gated) \| `unattended` (a resolved cycle continues the loop toward merge). Unset or unrecognised reads as `off` plus one warning |
 | Fix-cycle counter | The persisted per-issue `fix_cycles` (0..3) at `<run_dir>/<issue>/landing-progress.json` (`faff landing-progress`) — the bound on commits a fix cycle pushes to a live PR |
 | Leave-for-human path | The existing `pr-open-for-human` park behaviour (below); the loop routes `CI_RED_PARK`, `NO_CI_COVERAGE`, a budget-exhausted `CI_RED_FLAKY`, a failed `BEHIND` rebase, and — under `autofix: off` or an exhausted fix-cycle budget — `CONFLICTING`/`CI_RED_REGRESSION` to it |
 
@@ -707,7 +707,7 @@ FUNCTION observe(pr) -> ObservedLandingState:
   7. ELSE (mergeStateStatus UNKNOWN/BLOCKED, not yet settled) -> CI_PENDING   # re-poll
 ```
 
-**The loop.** A fixed 25-minute whole-loop wall-clock deadline (within the 20–30 minute band; not configurable in this ticket — the `.faffrc` knob is deferred), checked at the top of every iteration, bounds every state, not only `CI_PENDING` — repeated `BEHIND` rebases and repeated flaky re-runs also count against it, so no state can spin without end:
+**The loop.** A fixed 25-minute whole-loop wall-clock deadline (within the 20–30 minute band; not configurable in this ticket — the `.faff/config.yaml` knob is deferred), checked at the top of every iteration, bounds every state, not only `CI_PENDING` — repeated `BEHIND` rebases and repeated flaky re-runs also count against it, so no state can spin without end:
 
 ```
 PROCEDURE landing_loop(issue, pr, run_dir):
@@ -772,7 +772,7 @@ PROCEDURE landing_loop(issue, pr, run_dir):
 
 ### The staged fix cycle (CONFLICTING and CI_RED_REGRESSION)
 
-**The autofix config gate.** `graft.landing.autofix` (`.faffrc`, read via `faff config get graft.landing.autofix -d off`): `off` (default, fail-safe) \| `shadow` \| `unattended`. An unset or unrecognised value resolves to `off` and emits one warning naming the value, so a typo never silently disables autofix without a trace.
+**The autofix config gate.** `graft.landing.autofix` (`.faff/config.yaml`, read via `faff config get graft.landing.autofix -d off`): `off` (default, fail-safe) \| `shadow` \| `unattended`. An unset or unrecognised value resolves to `off` and emits one warning naming the value, so a typo never silently disables autofix without a trace.
 
 **`handle_fixable_state`** replaces `leave_for_human` on both branches with a bounded fix cycle:
 

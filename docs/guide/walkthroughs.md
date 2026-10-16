@@ -12,7 +12,7 @@ The output is illustrative; your run will use its own issue identifiers.
 
 No backlog yet — an empty repo or a fresh idea. `/faff-jot` is the front door; it turns a loose starting point into well-formed tickets the rest of the loop can pick up.
 
-**1. Point faff at your tracker** — the three-line `.faffrc.yaml` from [Configuration](configuration.md).
+**1. Point faff at your tracker** — the three-line `.faff/config.yaml` from [Configuration](configuration.md).
 
 **2. `/faff-jot` — describe what you want.** It runs a short discovery conversation, then shapes tickets (it asks before creating anything):
 
@@ -50,7 +50,7 @@ Either way you end up with tickets in Todo and a chain into prep. From here it's
 
 What the loop looks like once you have tickets — whether jot just made them or you already had a backlog.
 
-**1. Point faff at your tracker** — the three-line `.faffrc.yaml` from [Configuration](configuration.md).
+**1. Point faff at your tracker** — the three-line `.faff/config.yaml` from [Configuration](configuration.md).
 
 **2. `/faff-wtf` — "what should I work on?"**
 

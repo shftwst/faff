@@ -32,8 +32,8 @@ Every invocation re-fetches the whole picture live per the shared **Always pull 
 Run through these sections in order:
 
 ### 1. Timeline Check
-- Read tracker/project config from `.faffrc` (`tracking`); milestones are always fetched live, never from config
-- **Always re-fetch milestones and their completeness live** — never rely on cached snapshots or values written into `.faffrc`. Source of truth is the tracker. Call whichever tracker MCP is configured (use its list-milestones equivalent — autodetect from the available MCP, don't hardcode) per project / workstream id to pull current milestone target dates and progress percentages.
+- Read tracker/project config from `.faff/config.yaml` (`tracking`); milestones are always fetched live, never from config
+- **Always re-fetch milestones and their completeness live** — never rely on cached snapshots or values written into `.faff/config.yaml`. Source of truth is the tracker. Call whichever tracker MCP is configured (use its list-milestones equivalent — autodetect from the available MCP, don't hardcode) per project / workstream id to pull current milestone target dates and progress percentages.
 - Calculate where we are relative to milestone target dates
 - Flag if any milestone is at risk based on remaining work vs time
 - Render one table per project with columns `Milestone | Target | Progress` (see Output Format)
@@ -44,7 +44,7 @@ Run through these sections in order:
 - **Recently Completed:** Issues closed since last briefing (last 24-48 hours). For each, list any issues it just **unblocked** (dependents whose last remaining blocker was this one). These newly-unlocked issues are the freshly-realised potential of the recent shipping.
 - **Coming Up:** Next unstarted issues to surface, ordered per the configured methodology's `pick-ordering` (gateway → **Ordering & judgement delegation**). Issues unblocked in the last 24-48 hours are annotated as just-realised potential so they're easy to spot.
 
-Query across every team in the resolved team-set (`tracking.teams`, legacy `tracking.team_key` as a one-team set — resolve via `faff config get --json tracking.teams`, falling back to `tracking.team_key`) in one pass, unioned with the project scope from `.faffrc` (`tracking.project_id`); honour "always pull fresh" per team (gateway → **Always pull fresh**). Exclude cancelled and archived per the shared rule.
+Query across every team in the resolved team-set (`tracking.teams`, legacy `tracking.team_key` as a one-team set — resolve via `faff config get --json tracking.teams`, falling back to `tracking.team_key`) in one pass, unioned with the project scope from `.faff/config.yaml` (`tracking.project_id`); honour "always pull fresh" per team (gateway → **Always pull fresh**). Exclude cancelled and archived per the shared rule.
 
 ### 3. Git Activity
 - **Recent Commits:** Last 24-48 hours of commits on active branches

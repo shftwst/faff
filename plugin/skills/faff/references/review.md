@@ -12,7 +12,7 @@ The single terminal review-findings comment (the collapse-and-log rule: one comm
 <!-- /faff-review-findings:<ISSUE-ID> -->
 ```
 
-Identity lives in the **body**, not tracker metadata: the tracker exposes no native idempotency-key param and faff keeps no comment-ID map (`.faffrc` is stable-config-only). The marker is invisible in rendered markdown (skimmability), greppable in `list_comments` output, and the *pair* bounds the **faff-owned region** (text between the markers) so update rewrites only faff's text. This adds **no** new comment, per-pass marker, or write density — it only makes *the one* comment findable.
+Identity lives in the **body**, not tracker metadata: the tracker exposes no native idempotency-key param and faff keeps no comment-ID map (the config is stable-config-only). The marker is invisible in rendered markdown (skimmability), greppable in `list_comments` output, and the *pair* bounds the **faff-owned region** (text between the markers) so update rewrites only faff's text. This adds **no** new comment, per-pass marker, or write density — it only makes *the one* comment findable.
 
 **Locate → create-or-update** (run at the terminal verdict; `marker_open(id)` = `<!-- faff-review-findings:<id> -->`):
 

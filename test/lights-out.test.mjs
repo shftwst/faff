@@ -669,10 +669,10 @@ test("lights-out: reckless dial combination refuses (non-adversarial review + ad
   for (const r of out.refusals.filter((x) => x.gate.startsWith("dial-coherence:"))) {
     assert.ok(typeof r.detail === "string" && r.detail.length > 0, `${r.gate} has a detail`);
   }
-  // FAFF-468 — the gates-fallback remedy points the operator at the .faffrc.local.yaml
+  // FAFF-468 — the gates-fallback remedy points the operator at the .faff/config.local.yaml
   // overlay (not the shared committed base) and names the fail-closed target value.
   const gatesRef = out.refusals.find((r) => r.gate === "dial-coherence:gates-fallback");
-  assert.match(gatesRef.detail, /\.faffrc\.local\.yaml/, "gates-fallback remedy names the overlay");
+  assert.match(gatesRef.detail, /\.faff\/config\.local\.yaml/, "gates-fallback remedy names the overlay");
   assert.match(gatesRef.detail, /fail-closed/, "gates-fallback remedy names the fail-closed target");
   assert.ok(!fs.existsSync(path.join(root, ".faff")), "no run minted on a reckless dial");
   fs.rmSync(root, { recursive: true, force: true });
@@ -697,10 +697,10 @@ test("lights-out: named recipe + reckless dial still refuses (no name-based bypa
   assert.ok(coherenceRefusals.length >= 1, "at least one dial-coherence refusal fires");
   assert.ok(out.refusals.some((r) => r.gate === "dial-coherence:adversarial-review"), "names the non-adversarial review gate");
   // FAFF-468 — the single-pass spec_review trips adversarial-spec-review, and its remedy
-  // points the operator at the .faffrc.local.yaml overlay + the adversarial target occupant.
+  // points the operator at the .faff/config.local.yaml overlay + the adversarial target occupant.
   const specReviewRef = out.refusals.find((r) => r.gate === "dial-coherence:adversarial-spec-review");
   assert.ok(specReviewRef, "the single-pass spec_review trips the adversarial-spec-review gate");
-  assert.match(specReviewRef.detail, /\.faffrc\.local\.yaml/, "spec_review remedy names the overlay");
+  assert.match(specReviewRef.detail, /\.faff\/config\.local\.yaml/, "spec_review remedy names the overlay");
   assert.match(specReviewRef.detail, /faffter-dark-spec-review/, "spec_review remedy names the adversarial target");
   assert.ok(!fs.existsSync(path.join(root, ".faff")), "no run minted — a recipe name never auto-passes");
   fs.rmSync(root, { recursive: true, force: true });

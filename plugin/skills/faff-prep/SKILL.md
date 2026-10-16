@@ -20,7 +20,7 @@ Faff-prep is an **orchestrator** — it owns the issue tracker lifecycle and cod
 
 ### Spec slot (always delegated)
 
-Spec production is **always** delegated to the `spec` slot. The slot defaults to `faffter-noon-spec` (the lite nlspec arc) when `.faffrc` doesn't set one:
+Spec production is **always** delegated to the `spec` slot. The slot defaults to `faffter-noon-spec` (the lite nlspec arc) when `.faff/config.yaml` doesn't set one:
 
 ```yaml
 slots:

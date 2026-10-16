@@ -5,7 +5,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { runCli } from "./helpers/run-cli.mjs";
@@ -14,7 +14,10 @@ import { DEFAULTS, legacyTreeError, removedKeyError } from "../plugin/skills/faf
 
 function withConfig(body, fn) {
   const dir = mkdtempSync(path.join(tmpdir(), "faff1197-"));
-  if (body !== undefined) writeFileSync(path.join(dir, ".faffrc.yaml"), body);
+  if (body !== undefined) {
+    mkdirSync(path.join(dir, ".faff"));
+    writeFileSync(path.join(dir, ".faff/config.yaml"), body);
+  }
   try { return fn(dir); } finally { rmSync(dir, { recursive: true, force: true }); }
 }
 const cli = (dir, ...args) => runCli(args, { cwd: dir });
@@ -30,7 +33,7 @@ test("config set dispatch.spec.effort low writes a block-form node and exits 0",
   withConfig("", (dir) => {
     const r = cli(dir, "config", "set", "dispatch.spec.effort", "low");
     assert.equal(r.code, 0, r.stderr);
-    assert.match(readFileSync(path.join(dir, ".faffrc.yaml"), "utf8"), /dispatch:\n {2}spec:\n {4}effort: low/);
+    assert.match(readFileSync(path.join(dir, ".faff/config.yaml"), "utf8"), /dispatch:\n {2}spec:\n {4}effort: low/);
     assert.equal(cli(dir, "config", "get", "dispatch.spec.effort").stdout.trim(), "low");
   });
 });
@@ -266,24 +269,24 @@ test("config unset removes a legacy tree, including an empty header, and is neve
   withConfig("models:\n  adr: sonnet\neffort:\ntracking:\n  repo: a/b\n", (dir) => {
     assert.equal(cli(dir, "config", "unset", "models").code, 0);
     assert.equal(cli(dir, "config", "unset", "effort").code, 0);
-    assert.equal(readFileSync(path.join(dir, ".faffrc.yaml"), "utf8"), "tracking:\n  repo: a/b\n");
+    assert.equal(readFileSync(path.join(dir, ".faff/config.yaml"), "utf8"), "tracking:\n  repo: a/b\n");
   });
   withConfig("tracking:\n  repo: a/b\n", (dir) => {
-    writeFileSync(path.join(dir, ".faffrc.local.yaml"), "effort:\n");
+    writeFileSync(path.join(dir, ".faff/config.local.yaml"), "effort:\n");
     assert.equal(cli(dir, "config", "unset", "effort", "--local").code, 0);
   });
 });
 
 test("legacyTreeError names the file, each leaf with its replacement and the exact unset command", () => {
-  const base = { file: ".faffrc.yaml", local: false, doc: { models: { prep_explore: "sonnet", build_by_tier: { complex: "opus" } }, effort: { spec: "low" } } };
-  const overlay = { file: ".faffrc.local.yaml", local: true, doc: { effort: null } };
+  const base = { file: ".faff/config.yaml", local: false, doc: { models: { prep_explore: "sonnet", build_by_tier: { complex: "opus" } }, effort: { spec: "low" } } };
+  const overlay = { file: ".faff/config.local.yaml", local: true, doc: { effort: null } };
   assert.equal(
     legacyTreeError([base, overlay]),
-    ".faffrc.yaml still holds the removed models: tree (ADR-0134); set models.prep_explore -> dispatch.prep_explore.model, models.build_by_tier.complex -> dispatch.build.by_tier.complex.model, then run `faff config unset models`."
-    + " .faffrc.yaml still holds the removed effort: tree (ADR-0134); set effort.spec -> dispatch.spec.effort, then run `faff config unset effort`."
-    + " .faffrc.local.yaml still holds the removed effort: tree (ADR-0134); run `faff config unset effort --local`.",
+    ".faff/config.yaml still holds the removed models: tree (ADR-0134); set models.prep_explore -> dispatch.prep_explore.model, models.build_by_tier.complex -> dispatch.build.by_tier.complex.model, then run `faff config unset models`."
+    + " .faff/config.yaml still holds the removed effort: tree (ADR-0134); set effort.spec -> dispatch.spec.effort, then run `faff config unset effort`."
+    + " .faff/config.local.yaml still holds the removed effort: tree (ADR-0134); run `faff config unset effort --local`.",
   );
-  assert.equal(legacyTreeError([{ file: ".faffrc.yaml", local: false, doc: { tracking: {} } }]), null);
+  assert.equal(legacyTreeError([{ file: ".faff/config.yaml", local: false, doc: { tracking: {} } }]), null);
 });
 
 test("a legacy tree in the base makes every resolver exit 2, and the named command clears it", () => {
@@ -291,7 +294,7 @@ test("a legacy tree in the base makes every resolver exit 2, and the named comma
     for (const args of [["dispatch", "resolve", "prep_explore"], ["engine", "call", "--lane", "methodology", "--system", "/dev/null", "--user", "/dev/null"]]) {
       const r = cli(dir, ...args);
       assert.equal(r.code, 2, args.join(" "));
-      assert.match(r.stderr, /\.faffrc\.yaml still holds the removed models: tree/);
+      assert.match(r.stderr, /\.faff\/config\.yaml still holds the removed models: tree/);
       assert.ok(r.stderr.includes("models.prep_explore -> dispatch.prep_explore.model"));
       assert.ok(r.stderr.includes("models.adr -> dispatch.adr.model"));
       assert.ok(r.stderr.includes("`faff config unset models`"));
@@ -300,7 +303,7 @@ test("a legacy tree in the base makes every resolver exit 2, and the named comma
     assert.match(resolved.stdout, /^dispatch: INVALID — .*models\.prep_explore -> dispatch\.prep_explore\.model/m);
     const check = cli(dir, "config", "check");
     assert.equal(check.code, 1);
-    assert.match(check.stdout, /ERROR \.faffrc\.yaml: .*models\.adr -> dispatch\.adr\.model/);
+    assert.match(check.stdout, /ERROR \.faff\/config\.yaml: .*models\.adr -> dispatch\.adr\.model/);
     assert.equal(cli(dir, "config", "set", "dispatch.spec.effort", "low").code, 0, "config set keeps working beside a legacy tree");
     assert.equal(cli(dir, "config", "get", "tracking.repo").code, 3, "config get of a non-removed key keeps working");
     assert.equal(cli(dir, "config", "unset", "models").code, 0);
@@ -313,19 +316,19 @@ test("an empty effort: header is a legacy tree: exit 2 with no set clause, clear
   withConfig("effort:\n", (dir) => {
     const r = cli(dir, "dispatch", "resolve", "spec");
     assert.equal(r.code, 2);
-    assert.ok(r.stderr.includes(".faffrc.yaml still holds the removed effort: tree (ADR-0134); run `faff config unset effort`."), r.stderr);
+    assert.ok(r.stderr.includes(".faff/config.yaml still holds the removed effort: tree (ADR-0134); run `faff config unset effort`."), r.stderr);
     assert.doesNotMatch(r.stderr, /set .* -> /);
     assert.equal(cli(dir, "config", "unset", "effort").code, 0);
     assert.equal(cli(dir, "dispatch", "resolve", "spec").code, 0);
   });
 });
 
-test("a legacy tree in the overlay names .faffrc.local.yaml and the --local command", () => {
+test("a legacy tree in the overlay names .faff/config.local.yaml and the --local command", () => {
   withConfig("tracking:\n  repo: a/b\n", (dir) => {
-    writeFileSync(path.join(dir, ".faffrc.local.yaml"), "models:\n  spec: opus\n");
+    writeFileSync(path.join(dir, ".faff/config.local.yaml"), "models:\n  spec: opus\n");
     const r = cli(dir, "dispatch", "resolve", "spec");
     assert.equal(r.code, 2);
-    assert.ok(r.stderr.includes(".faffrc.local.yaml still holds the removed models: tree"));
+    assert.ok(r.stderr.includes(".faff/config.local.yaml still holds the removed models: tree"));
     assert.ok(r.stderr.includes("`faff config unset models --local`"));
     assert.equal(cli(dir, "config", "unset", "models", "--local").code, 0);
     assert.equal(cli(dir, "dispatch", "resolve", "spec").code, 0);
@@ -358,7 +361,7 @@ test("faff models and faff effort are unknown commands", () => {
 
 test("legacyTreeError maps the eval leaves to their eval: keys instead of dropping them", () => {
   const doc = { models: { adr: "sonnet", eval: "x" }, effort: { eval: "low" } };
-  const message = legacyTreeError([{ file: ".faffrc.yaml", local: false, doc }]);
+  const message = legacyTreeError([{ file: ".faff/config.yaml", local: false, doc }]);
   assert.ok(message.includes("models.adr -> dispatch.adr.model, models.eval -> eval.model, then run `faff config unset models`."), message);
   assert.ok(message.includes("effort.eval -> eval.effort"), message);
 });

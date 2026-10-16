@@ -108,3 +108,34 @@ test("an UNTRACKED (gitignored) .faffrc.yaml in an unmigrated repo is still copi
     rmSync(parent, { recursive: true, force: true });
   }
 });
+
+// FAFF-1302: the same two guarantees at the new `.faff/` paths.
+test("a TRACKED .faff/config.yaml keeps its own-ref content and is logged as skipped; the untracked overlay is copied into a fresh .faff/ (FAFF-1302)", () => {
+  const parent = mkdtempSync(path.join(tmpdir(), "faff1302-"));
+  const repo = path.join(parent, "repo");
+  mkdirSync(path.join(repo, ".faff"), { recursive: true });
+  git(repo, "init", "-q", "-b", "main");
+  git(repo, "config", "user.email", "t@t.test");
+  git(repo, "config", "user.name", "t");
+  writeFileSync(path.join(repo, "README.md"), "x\n");
+  writeFileSync(path.join(repo, ".faff", "config.yaml"), "faff_base: A\n");
+  git(repo, "add", "README.md", ".faff/config.yaml");
+  git(repo, "commit", "-q", "-m", "init");
+  writeFileSync(path.join(repo, ".faff", "config.yaml"), "faff_base: B\n");
+  writeFileSync(path.join(repo, ".faff", "config.local.yaml"), "overlay: OV\n");
+  try {
+    const wtRoot = path.join(parent, "wt");
+    const r = spawnSync("bash", [HOOK], {
+      input: JSON.stringify({ name: "feat-x", cwd: repo }),
+      encoding: "utf8",
+      env: { ...process.env, SKIP_NPM_PACKAGES_INSTALL: "1", FAFF_WORKTREE_ROOT: wtRoot, CLAUDE_PLUGIN_ROOT: PLUGIN_ROOT },
+    });
+    assert.equal(r.status, 0, `hook exited non-zero: ${r.stderr}`);
+    const wt = r.stdout.trim().split("\n").pop().trim();
+    assert.equal(readFileSync(path.join(wt, ".faff", "config.yaml"), "utf8"), "faff_base: A\n", "the tracked base keeps the worktree ref's content");
+    assert.match(readFileSync(path.join(wtRoot, "setup.log"), "utf8"), /skip \.faff\/config\.yaml .* tracked at worktree ref/, "the skip is logged");
+    assert.equal(readFileSync(path.join(wt, ".faff", "config.local.yaml"), "utf8"), "overlay: OV\n", "the untracked overlay is copied, with .faff/ created if absent");
+  } finally {
+    rmSync(parent, { recursive: true, force: true });
+  }
+});

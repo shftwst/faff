@@ -11,7 +11,7 @@ Two-phase code review: standard structural review (delegated to `faffter-noon-re
 
 Plugs into the `review` slot — replaces the default review, not augments it. The hard signal it returns conforms to the gateway Review-verdict contract (canonical semantics: `faff contract review-verdict --describe`). The adversarial phase adds evidence, never a fourth verdict.
 
-Configure in `.faffrc`:
+Configure in `.faff/config.yaml`:
 
 ```yaml
 slots:
@@ -135,7 +135,7 @@ This is NOT a repeat of the primary review. The adversarial reviewer looks for t
 
 **The network call is made only by the bundled `review-call.mjs` helper** (via `review-spawn.mjs`) — never a hand-rolled request. The cage sandbox blocks a raw call straight to a backend host (recorded under `permission_denials`), so hand-rolling one costs a wasted turn recovering to the sanctioned path; see **Backend call** below for the actual invocation. Everything between here and **Backend call** is backend **configuration** the helper consumes internally on your behalf — not a request shape to construct yourself.
 
-The skill supports any LLM backend. Configure which one it should use in `.faffrc`:
+The skill supports any LLM backend. Configure which one it should use in `.faff/config.yaml`:
 
 ```yaml
 adversarial:

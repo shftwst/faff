@@ -1,7 +1,7 @@
 // FAFF-538/628 — CLI-surface drift-guard for the external-verification scaffolders.
 //
 // The six SUT scaffolders (verification/external-verification/scaffold-p{1..5}-*.sh + scaffold-faff-lab.sh)
-// embed `.faffrc.yaml` + `RUNBOOK.md` here-docs of faff CLI gestures that rot silently as the CLI
+// embed `.faff/config.yaml` + `RUNBOOK.md` here-docs of faff CLI gestures that rot silently as the CLI
 // surface moves — already three manual repair passes (FAFF-512/513/524/529), each caught only by a
 // human eyeballing the scripts against main. This static guard makes a stale scaffolder fail CI
 // instead: it extracts the here-docs and asserts every embedded `faff` verb/subcommand/flag still
@@ -29,6 +29,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { extractHeredoc } from "./helpers/scaffolder-heredocs.mjs";
+
+// The P1 scaffolder is frozen by EVP-L4-P1-0002 (test/faff-588), so it still writes the deprecated
+// root `.faffrc.yaml`; every other scaffolder writes `.faff/config.yaml`.
+const extractConfigHeredoc = (script) => extractHeredoc(script, ".faff/config.yaml") ?? extractHeredoc(script, ".faffrc.yaml");
 import faffEntry from "../plugin/skills/faff/bin/faff";
 import cliSurfaceEntry from "../plugin/skills/faff/bin/lib/cli-surface.js";
 import {
@@ -62,7 +66,7 @@ const CANONICAL_SIX = [
 ];
 const SCAFFOLDERS = fs.readdirSync(EV_DIR).filter((f) => /^scaffold-.*\.sh$/.test(f)).sort();
 
-// CONFIG-FREE scaffolders (FAFF-360): a member deliberately writes NO `.faffrc.yaml` here-doc (its
+// CONFIG-FREE scaffolders (FAFF-360): a member deliberately writes NO `.faff/config.yaml` here-doc (its
 // SUT installs no factory config), so for it the guard asserts that here-doc is ABSENT rather than
 // present, while still requiring its `RUNBOOK.md` here-doc and linting every embedded `faff` gesture
 // exactly as for the config-bearing rungs.
@@ -174,7 +178,7 @@ function runbookFindings(body, source) {
 
 // --- config-key half ------------------------------------------------------------------------------
 
-// Extract dotted keys + scalar values from an embedded `.faffrc.yaml` body. A minimal indent-stack
+// Extract dotted keys + scalar values from an embedded `.faff/config.yaml` body. A minimal indent-stack
 // walk of the documented YAML subset — enough to key `slots.*`, `appetite`, `dispatch.*`;
 // deeper namespaced blocks (backends.*, budget.*, adversarial.*, tracking.*) round-trip as tolerated
 // keys their own validators own (see OUT OF SCOPE — deep grammar).
@@ -253,15 +257,15 @@ for (const name of SCAFFOLDERS) {
     assert.deepStrictEqual(findings, [], "\n" + findings.join("\n"));
   });
 
-  test(`${name}: .faffrc.yaml slot keys/occupants/scalars are valid against config.js`, () => {
+  test(`${name}: .faff/config.yaml slot keys/occupants/scalars are valid against config.js`, () => {
     const script = readScript(name);
-    const body = extractHeredoc(script, ".faffrc.yaml");
+    const body = extractConfigHeredoc(script);
     if (CONFIG_FREE.has(name)) {
-      // a config-free scaffolder must NOT embed a `.faffrc.yaml` here-doc.
-      assert.strictEqual(body, null, `${name}: config-free scaffolder must not embed a .faffrc.yaml here-doc`);
+      // a config-free scaffolder must NOT embed a `.faff/config.yaml` here-doc.
+      assert.strictEqual(body, null, `${name}: config-free scaffolder must not embed a .faff/config.yaml here-doc`);
       return;
     }
-    assert.notStrictEqual(body, null, `${name}: no .faffrc.yaml here-doc (fail loud, never skip)`);
+    assert.notStrictEqual(body, null, `${name}: no .faff/config.yaml here-doc (fail loud, never skip)`);
     const findings = faffrcFindings(body, name);
     assert.deepStrictEqual(findings, [], "\n" + findings.join("\n"));
   });

@@ -32,10 +32,11 @@ node_modules/
 dist/
 *.log
 .env.claude-box
-.faffrc.local.yaml
+.faff/config.local.yaml
 EOF
 
-cat > .faffrc.yaml <<'EOF'
+mkdir -p .faff
+cat > .faff/config.yaml <<'EOF'
 # faff config — SUT P3 (landing page). git-only, agile lens, lights-out eligible.
 # The two explicit L4 lights-out dials this SUT needs to clear `faff lights-out --check`
 # dial-coherence: slots.review (adversarial), slots.spec_review (adversarial). The third leg,
@@ -80,7 +81,7 @@ backends:
     egress: external
     timeout: 480
   # ollama-local (operator-private tailnet ollama backend) relocated to the
-  # gitignored .faffrc.local.yaml overlay (FAFF-618, mirroring FAFF-587) so this
+  # gitignored .faff/config.local.yaml overlay (FAFF-618, mirroring FAFF-587) so this
   # repo carries no operator host. The overlay's adversarial refs list restates
   # all three entries (sequences replace wholesale); this base advertises only
   # the two cloud backends.
@@ -98,7 +99,8 @@ EOF
 # only this small overlay heredoc is unquoted, so ${FAFF_EVAL_LOCAL_BASE_URL} interpolates
 # and nothing else in the base risks expanding.
 if [ -n "${FAFF_EVAL_LOCAL_BASE_URL:-}" ]; then
-  cat > .faffrc.local.yaml <<EOF
+  mkdir -p .faff
+  cat > .faff/config.local.yaml <<EOF
 backends:
   ollama-local:
     provider: ollama
@@ -112,9 +114,9 @@ adversarial:
     - gemini-gemma
     - ollama-local
 EOF
-  echo "wrote .faffrc.local.yaml (ollama-local backend, host from FAFF_EVAL_LOCAL_BASE_URL, gitignored)"
+  echo "wrote .faff/config.local.yaml (ollama-local backend, host from FAFF_EVAL_LOCAL_BASE_URL, gitignored)"
 else
-  echo "WARNING: FAFF_EVAL_LOCAL_BASE_URL unset — the SUT runs with the two cloud backends only; export it and re-scaffold (or hand-write .faffrc.local.yaml) to add the local ollama backend" >&2
+  echo "WARNING: FAFF_EVAL_LOCAL_BASE_URL unset — the SUT runs with the two cloud backends only; export it and re-scaffold (or hand-write .faff/config.local.yaml) to add the local ollama backend" >&2
 fi
 
 cat > BRIEF.md <<'EOF'
@@ -175,7 +177,7 @@ the FAFF-518 digest custody floor. Setting a boundary is optional; it only buys 
 mount-asserted basis once the cage read-only-mounts the integrity dirs (FAFF-517). Compose it with
 `faff integrity-boundary` if/when that lands (an automating cage supplies it; FAFF-514) — never a
 fabricated value (fabricating it to clear the gate is the lying attestation FAFF-525 exists to
-avoid). All three **dial-coherence** legs are already satisfied by this SUT's `.faffrc.yaml` — the
+avoid). All three **dial-coherence** legs are already satisfied by this SUT's `.faff/config.yaml` — the
 two explicit dials (`slots.review`, `slots.spec_review`) plus `gates.fallback`, fail-closed by
 default (FAFF-522).
 

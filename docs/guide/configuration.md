@@ -12,7 +12,7 @@ The minimum configuration is three lines. Other settings have defaults.
 
 Works with Linear, GitHub Issues, Jira, or any tracker exposed via MCP. No tracker? It falls back to git-only mode.
 
-Drop a `.faffrc.yaml` at your repo root telling it where your stuff lives:
+Put a `.faff/config.yaml` in your repo telling it where your stuff lives:
 
 ```yaml
 tracking:
@@ -21,7 +21,7 @@ tracking:
   repo: org/repo
 ```
 
-That's the whole minimum. Everything else has a sensible default. (`/faff-onboard` writes this file for you on a first run — autodetecting what it can.) Copy `.faffrc.example.yaml` for the full list of knobs.
+That's the whole minimum. Everything else has a sensible default. (`/faff-onboard` writes this file for you on a first run — autodetecting what it can.) Copy `.faff/config.example.yaml` for the full list of knobs.
 
 ### Linear + GitHub: PR-open automation
 

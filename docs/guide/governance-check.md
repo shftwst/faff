@@ -207,7 +207,7 @@ anchors path, two further steps judge the anchors with the PR **base** commit's 
 
 Both steps run after the head verb under `!cancelled()`, so a failing head verb or a head
 binary whose discovery prints nothing cannot skip them. The trusted CLI runs from an
-empty working directory with a cleared environment, so a `.faffrc.yaml` or `FAFF_*`
+empty working directory with a cleared environment, so a `.faff/config.yaml` or `FAFF_*`
 variable in the PR checkout cannot reach it.
 
 The new `evidence-schema` input decides how schema findings count:

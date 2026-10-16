@@ -1,5 +1,5 @@
-// FAFF-387 — two-file merged config resolution (.faffrc.local.yaml overlay over
-// .faffrc.yaml base over DEFAULTS) + `faff config check` + `config path`/`resolved`.
+// FAFF-387 — two-file merged config resolution (.faff/config.local.yaml overlay over
+// .faff/config.yaml base over DEFAULTS) + `faff config check` + `config path`/`resolved`.
 // Exercised through the REAL CLI on the filesystem, so the whole read path is covered
 // (findConfig/findOverlay → deepMergeConfig → dig), not just the pure helpers.
 //
@@ -15,7 +15,7 @@ import { join, dirname } from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
-const { gitignoreDirHazardLines } = createRequire(import.meta.url)("../plugin/skills/faff/bin/lib/gitignore-ensure.js");
+const { gitignoreDirHazardLines, FAFF_DIR_GITIGNORE_PATTERNS } = createRequire(import.meta.url)("../plugin/skills/faff/bin/lib/gitignore-ensure.js");
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
 
@@ -37,21 +37,33 @@ function git(cwd, ...args) {
 // A plain (non-git) tmp dir with the given files written.
 function plainDir({ base, overlay } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "faff387-"));
-  if (base != null) writeFileSync(join(dir, ".faffrc.yaml"), base);
-  if (overlay != null) writeFileSync(join(dir, ".faffrc.local.yaml"), overlay);
+  if (base != null || overlay != null) mkdirSync(join(dir, ".faff"), { recursive: true });
+  if (base != null) writeFileSync(join(dir, ".faff/config.yaml"), base);
+  if (overlay != null) writeFileSync(join(dir, ".faff/config.local.yaml"), overlay);
   return dir;
 }
 
 // A real git repo (findRoot anchors on .git; posture probes need a repo) with files.
-function gitDir({ base, overlay, gitignore, commitBase } = {}) {
+// commitBase also commits `.faff/.gitignore` (the real writer's pattern set) when a config file
+// exists, unless faffGitignore is false: it is what keeps the base committable and the overlay ignored.
+function gitDir({ base, overlay, gitignore, commitBase, faffGitignore = true } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "faff387g-"));
   git(dir, "init", "-q", "-b", "main");
   git(dir, "config", "user.email", "t@t.test");
   git(dir, "config", "user.name", "t");
   if (gitignore != null) writeFileSync(join(dir, ".gitignore"), gitignore);
-  if (base != null) writeFileSync(join(dir, ".faffrc.yaml"), base);
-  if (overlay != null) writeFileSync(join(dir, ".faffrc.local.yaml"), overlay);
-  if (commitBase) { git(dir, "add", ".faffrc.yaml"); if (gitignore != null) git(dir, "add", ".gitignore"); git(dir, "commit", "-q", "-m", "init"); }
+  if (base != null || overlay != null) mkdirSync(join(dir, ".faff"), { recursive: true });
+  if (base != null) writeFileSync(join(dir, ".faff/config.yaml"), base);
+  if (overlay != null) writeFileSync(join(dir, ".faff/config.local.yaml"), overlay);
+  if (commitBase) {
+    if (faffGitignore && (base != null || overlay != null)) {
+      writeFileSync(join(dir, ".faff/.gitignore"), FAFF_DIR_GITIGNORE_PATTERNS.join("\n") + "\n");
+      git(dir, "add", ".faff/.gitignore");
+    }
+    if (base != null) git(dir, "add", ".faff/config.yaml");
+    if (gitignore != null) git(dir, "add", ".gitignore");
+    git(dir, "commit", "-q", "--allow-empty", "-m", "init");
+  }
   return dir;
 }
 
@@ -97,7 +109,7 @@ test("overlay-only, no base file → valid (all-overlay config), exit 0", () => 
     assert.equal(run(dir, "config", "get", "appetite").out, "low");
     const p = run(dir, "config", "path");
     assert.equal(p.code, 0);
-    assert.match(p.out, /\.faffrc\.local\.yaml$/, "path prints the overlay");
+    assert.match(p.out, /\.faff\/config\.local\.yaml$/, "path prints the overlay");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -121,7 +133,7 @@ test("back-compat: no overlay → `config path` is a single line; `config resolv
   try {
     const p = run(dir, "config", "path");
     assert.equal(p.out.split("\n").length, 1, "single line");
-    assert.match(p.out, /\.faffrc\.yaml$/);
+    assert.match(p.out, /\.faff\/config\.yaml$/);
     const r = run(dir, "config", "resolved");
     assert.doesNotMatch(r.out, /config local:/, "no overlay line when no overlay");
   } finally { rmSync(dir, { recursive: true, force: true }); }
@@ -143,8 +155,8 @@ test("config path is multi-line (base first, overlay second) when both exist", (
   try {
     const lines = run(dir, "config", "path").out.split("\n");
     assert.equal(lines.length, 2);
-    assert.match(lines[0], /\.faffrc\.yaml$/);
-    assert.match(lines[1], /\.faffrc\.local\.yaml$/);
+    assert.match(lines[0], /\.faff\/config\.yaml$/);
+    assert.match(lines[1], /\.faff\/config\.local\.yaml$/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -152,8 +164,8 @@ test("config resolved echoes both `config:` and `config local:` paths", () => {
   const dir = plainDir({ base: "appetite: high\n", overlay: "appetite: low\n" });
   try {
     const r = run(dir, "config", "resolved");
-    assert.match(r.out, /config:\s+.*\.faffrc\.yaml/);
-    assert.match(r.out, /config local:\s+.*\.faffrc\.local\.yaml/);
+    assert.match(r.out, /config:\s+.*\.faff\/config\.yaml/);
+    assert.match(r.out, /config local:\s+.*\.faff\/config\.local\.yaml/);
     assert.match(r.out, /appetite: low/, "resolved appetite is the merged (overlay) value");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
@@ -183,8 +195,9 @@ test("comment-only / empty overlay is allowed (valid no-op overlay), exit 0", ()
 
 test("legacy-shaped overlay name (.faffrc.local.yml) → loud exit 2, never a silent load", () => {
   const dir = mkdtempSync(join(tmpdir(), "faff387l-"));
+  mkdirSync(join(dir, ".faff"));
   try {
-    writeFileSync(join(dir, ".faffrc.yaml"), "appetite: high\n");
+    writeFileSync(join(dir, ".faff/config.yaml"), "appetite: high\n");
     writeFileSync(join(dir, ".faffrc.local.yml"), "appetite: low\n");
     const r = run(dir, "config", "get", "appetite");
     assert.equal(r.code, 2);
@@ -209,8 +222,9 @@ test("config check: base present but untracked → exit 1 with a posture finding
     assert.equal(r.code, 1);
     assert.match(r.out, /unmigrated|untracked|uncommitted/i);
     assert.match(r.out, /Move machine-local values/);
-    assert.match(r.out, /drop the `\.faffrc\.yaml` line/);
-    assert.match(r.out, /commit \.faffrc\.yaml/);
+    assert.match(r.out, /\.faff\/\.gitignore/);
+    assert.doesNotMatch(r.out, /drop the/);
+    assert.match(r.out, /commit \.faff\/config\.yaml/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -218,7 +232,7 @@ test("config check: base committed + overlay ignored → clean, exit 0", () => {
   const dir = gitDir({
     base: "slots:\n  spec: x\n",
     overlay: "appetite: low\n",
-    gitignore: ".faffrc.local.yaml\n",
+    gitignore: ".faff/config.local.yaml\n",
     commitBase: true,
   });
   try {
@@ -233,6 +247,7 @@ test("config check: overlay present but NOT git-ignored → hygiene finding, exi
     overlay: "appetite: low\n",
     gitignore: "# empty\n",
     commitBase: true,
+    faffGitignore: false,
   });
   try {
     const r = run(dir, "config", "check");
@@ -245,7 +260,7 @@ test("config check: a secret in the BASE file → exit 1, REDACTED (raw value NE
   const RAW = "sk-abcdefghijklmnopqrstuvwxyz0123456789ABCD";
   const dir = gitDir({
     base: "adversarial:\n  api_key: " + RAW + "\n",
-    gitignore: ".faffrc.local.yaml\n",
+    gitignore: ".faff/config.local.yaml\n",
     commitBase: true,
   });
   try {
@@ -264,7 +279,7 @@ test("config check: a secret in the BASE file → exit 1, REDACTED (raw value NE
 
 test("config check: secret redaction holds under --json too (raw value absent)", () => {
   const RAW = "ghp_ZZZZZZZZ0123456789abcdefghijklmn";
-  const dir = gitDir({ base: "token: " + RAW + "\n", gitignore: ".faffrc.local.yaml\n", commitBase: true });
+  const dir = gitDir({ base: "token: " + RAW + "\n", gitignore: ".faff/config.local.yaml\n", commitBase: true });
   try {
     const r = run(dir, "config", "check", "--json");
     assert.equal(r.code, 1);
@@ -305,12 +320,13 @@ test("config check: no config at all → exit 0 (defaults)", () => {
 // config check: .faff ignore posture (FAFF-1301)
 // ---------------------------------------------------------------------------
 
-const BASE = "slots:\n  spec: x\n";
 const INNER_GITIGNORE = "/*\n!/.gitignore\n!/anchors/\n!/templates/\n";
 
-// A committed-base git repo with the given root .gitignore text and, optionally, a .faff/ tree.
+// A committed git repo with the given root .gitignore text and, optionally, a .faff/ tree.
+// No config file: these cases are about ignore posture, and a base config under a hazard
+// line would be ignored and add its own finding.
 function faffIgnoreDir({ gitignore, faffDir = false, innerGitignore = null }) {
-  const dir = gitDir({ base: BASE, gitignore, commitBase: true });
+  const dir = gitDir({ gitignore, commitBase: true });
   if (faffDir) mkdirSync(join(dir, ".faff", "runs"), { recursive: true });
   if (innerGitignore != null) writeFileSync(join(dir, ".faff", ".gitignore"), innerGitignore);
   return dir;
@@ -361,7 +377,7 @@ test("config check --json: two hazard lines → exactly one .gitignore finding w
 });
 
 test("config check: not a git repo with a `.faff` line → over-ignore finding AND the posture skip line", () => {
-  const dir = plainDir({ base: BASE });
+  const dir = plainDir({ base: "slots:\n  spec: x\n" });
   writeFileSync(join(dir, ".gitignore"), ".faff\n");
   try {
     const r = run(dir, "config", "check");
@@ -472,7 +488,7 @@ const ORACLE_ROWS = [
 
 for (const { line, hazard, gap } of ORACLE_ROWS) {
   test(`oracle: ${JSON.stringify(line)} → predicate ${hazard ? "flags" : "is silent"}${gap ? " (pinned gap: git still blocks)" : ", agreeing with git"}`, () => {
-    const dir = gitDir({ gitignore: line, base: BASE, commitBase: true });
+    const dir = gitDir({ gitignore: line, commitBase: true });
     try {
       mkdirSync(join(dir, ".faff", "anchors", "run1"), { recursive: true });
       mkdirSync(join(dir, ".faff", "templates"), { recursive: true });
@@ -569,18 +585,18 @@ test("config check: a scalar (non-map) team_routing is rejected loudly, not sile
 test("config set: refuses a nested team_routing LEAF write (tracking.team_routing.spike), not just the exact key (adversarial review finding)", () => {
   const dir = plainDir({ base: "tracking:\n  teams:\n    - IDEAS\n    - PRODUCT\n  default_team: PRODUCT\n  team_routing:\n    spike: IDEAS\n" });
   try {
-    const before = readFileSync(join(dir, ".faffrc.yaml"), "utf8");
+    const before = readFileSync(join(dir, ".faff/config.yaml"), "utf8");
     const r = run(dir, "config", "set", "tracking.team_routing.spike", "PRODUCT", "--force");
     assert.equal(r.code, 2);
     assert.match(r.err, /list-valued key/);
-    assert.equal(readFileSync(join(dir, ".faffrc.yaml"), "utf8"), before);
+    assert.equal(readFileSync(join(dir, ".faff/config.yaml"), "utf8"), before);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test("config check: a *_env value is NOT flagged (name-indirection is exempt by design)", () => {
   const dir = gitDir({
     base: "adversarial:\n  api_key_env: NVIDIA_API_KEY\n  host: https://integrate.api.nvidia.com/v1\n",
-    gitignore: ".faffrc.local.yaml\n",
+    gitignore: ".faff/config.local.yaml\n",
     commitBase: true,
   });
   try {
@@ -596,17 +612,17 @@ test("config check: a *_env value is NOT flagged (name-indirection is exempt by 
 test("scenario: a committed base survives a wholesale rewrite — diff visible, checkout restores", () => {
   const dir = gitDir({
     base: "slots:\n  review: faffter-dark-adversarial-review\n  spec: faffter-dark-nlspec\nappetite: high\n",
-    gitignore: ".faffrc.local.yaml\n",
+    gitignore: ".faff/config.local.yaml\n",
     commitBase: true,
   });
   try {
     // A wholesale agent rewrite drops the review slot (the real 2026-07-01 corruption shape).
-    writeFileSync(join(dir, ".faffrc.yaml"), "slots:\n  spec: faffter-dark-nlspec\nappetite: high\n");
+    writeFileSync(join(dir, ".faff/config.yaml"), "slots:\n  spec: faffter-dark-nlspec\nappetite: high\n");
     // Drift is DETECTABLE: git sees a modification.
-    const status = git(dir, "status", "--porcelain", ".faffrc.yaml");
-    assert.match(status, /^\s*M\s+\.faffrc\.yaml/m, "wholesale rewrite shows as a working-tree diff");
+    const status = git(dir, "status", "--porcelain", ".faff/config.yaml");
+    assert.match(status, /^\s*M\s+\.faff\/config\.yaml/m, "wholesale rewrite shows as a working-tree diff");
     // and RECOVERABLE: checkout restores the dropped slot.
-    git(dir, "checkout", "--", ".faffrc.yaml");
+    git(dir, "checkout", "--", ".faff/config.yaml");
     assert.equal(run(dir, "config", "get", "slots.review").out, "faffter-dark-adversarial-review");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
@@ -619,7 +635,7 @@ test("integration smoke: merge → check exit 1 (untracked) → commit → check
   const dir = gitDir({
     base: "adversarial:\n  host: http://base.test\n",
     overlay: "adversarial:\n  host: http://overlay.test\n",
-    gitignore: ".faffrc.local.yaml\n",
+    gitignore: ".faff/config.local.yaml\n",
   });
   try {
     // merge plumbing connected: overlay wins the nested leaf.
@@ -627,12 +643,13 @@ test("integration smoke: merge → check exit 1 (untracked) → commit → check
     // posture check connected: base is untracked → exit 1.
     assert.equal(run(dir, "config", "check").code, 1);
     // commit the base → clean posture.
-    git(dir, "add", ".faffrc.yaml", ".gitignore");
+    writeFileSync(join(dir, ".faff/.gitignore"), FAFF_DIR_GITIGNORE_PATTERNS.join("\n") + "\n");
+    git(dir, "add", ".faff/config.yaml", ".faff/.gitignore", ".gitignore");
     git(dir, "commit", "-q", "-m", "commit base");
     assert.equal(run(dir, "config", "check").code, 0);
     // append a secret to the base → exit 1, output redacted.
     const RAW = "token: nvapi-0123456789abcdefghijklmnopqrstuv";
-    appendFileSync(join(dir, ".faffrc.yaml"), RAW + "\n");
+    appendFileSync(join(dir, ".faff/config.yaml"), RAW + "\n");
     const r = run(dir, "config", "check");
     assert.equal(r.code, 1);
     assert.ok(!r.out.includes("nvapi-0123456789abcdefghijklmnopqrstuv"), "raw secret redacted");

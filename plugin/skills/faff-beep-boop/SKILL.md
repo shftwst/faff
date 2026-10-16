@@ -7,7 +7,7 @@ description: "Chew through ready work unattended — overnight or fire-and-forge
 
 Unattended end-to-end runs of the faff suite. Drives the other faff skills in **autonomous mode** — no prompts, no human in the loop, parks anything ambiguous, logs everything to `.faff/runs/…`. This skill is the orchestrator: it does not reimplement prep, build, or tidy — it invokes the existing faff sub-skills with the autonomous-mode signal set.
 
-**Methodology lens.** The `methodology` slot **always runs** — it defaults to `faffter-noon-methodology-thematic` when `.faffrc` sets none, and its `pick-ordering` / `build-queue` outputs are Required (gateway → **The `methodology` slot**), so the build-queue order always comes through it. What's *conditional* is only the display banner: the run summary's first line is `Methodology: [skill-name]` and an opinionated lens (e.g. `faffter-dark-methodology-agile-delivery`) re-sequences by its own logic (value × risk × dep-aware) rather than the thematic default's baseline order. When the slot is the silent thematic default, the banner is omitted and the order is whatever the default's `pick-ordering` returns (priority + chainable unlock value) — beep-boop renders the slot's order and never names a baseline of its own; the slot is never *skipped*, because its outputs are load-bearing. **No WIP gating** — autonomous queues are unbounded regardless of methodology. Admission stays governed by the verdict gate (admit `fire-and-forget` + `likely-fire`, route out the other four verdicts).
+**Methodology lens.** The `methodology` slot **always runs** — it defaults to `faffter-noon-methodology-thematic` when `.faff/config.yaml` sets none, and its `pick-ordering` / `build-queue` outputs are Required (gateway → **The `methodology` slot**), so the build-queue order always comes through it. What's *conditional* is only the display banner: the run summary's first line is `Methodology: [skill-name]` and an opinionated lens (e.g. `faffter-dark-methodology-agile-delivery`) re-sequences by its own logic (value × risk × dep-aware) rather than the thematic default's baseline order. When the slot is the silent thematic default, the banner is omitted and the order is whatever the default's `pick-ordering` returns (priority + chainable unlock value) — beep-boop renders the slot's order and never names a baseline of its own; the slot is never *skipped*, because its outputs are load-bearing. **No WIP gating** — autonomous queues are unbounded regardless of methodology. Admission stays governed by the verdict gate (admit `fire-and-forget` + `likely-fire`, route out the other four verdicts).
 
 ## Configuration
 
@@ -15,7 +15,7 @@ Unattended end-to-end runs of the faff suite. Drives the other faff skills in **
 
 **Tracker availability is resolved once per run (gateway → Tracker availability resolution).** The whole-lifecycle structural git-only signal this run asserts once and never re-sniffs per wave (step 8.5) **is** the tracker side of that shared rule: honour a `tracking.tracker` pin, discover the connector before concluding git-only (never infer absence from an immediately-invisible tool list under a deferred-tool harness), and hold that one resolved answer for the run's lifecycle — every delegated skill (tidy/prep/graft) consumes it rather than re-inferring.
 
-Beep-boop uses these `slots` from `.faffrc` when set:
+Beep-boop uses these `slots` from `.faff/config.yaml` when set:
 
 - `concurrency` — the build-pass executor. Default `faffter-noon-concurrency-sequential` (one build at a time); swap to `faffter-dark-concurrency-parallel` for capped, worktree-isolated concurrency with rebase-before-merge.
 - `spec`, `review`, `ship` — passed through to the sub-skills; beep-boop doesn't use them directly.
@@ -58,17 +58,17 @@ All forms run non-interactively (no yes/no gates — the whole point is unattend
 
 ## Budget flags
 
-A run's budget is a **BudgetEnvelope**: a set of **ceilings** across four **dimensions** — wall-clock (`until`), build-attempts (`max_attempts`), `tokens`, `cost` — and one **at-ceiling outcome** (`stop` | `narrow` | `escalate`, default `stop`). Any subset of ceilings; an unset dimension is unbounded. The envelope is resolved **once at run start** from the `.faffrc` `budget:` block, with the `--until`/`--max` flags overriding it. The contract consumed downstream is *ceiling + outcome*; how spend is **accounted** is a swappable producer behind it (the default is `faff budget check`'s transcript-sum).
+A run's budget is a **BudgetEnvelope**: a set of **ceilings** across four **dimensions** — wall-clock (`until`), build-attempts (`max_attempts`), `tokens`, `cost` — and one **at-ceiling outcome** (`stop` | `narrow` | `escalate`, default `stop`). Any subset of ceilings; an unset dimension is unbounded. The envelope is resolved **once at run start** from the `.faff/config.yaml` `budget:` block, with the `--until`/`--max` flags overriding it. The contract consumed downstream is *ceiling + outcome*; how spend is **accounted** is a swappable producer behind it (the default is `faff budget check`'s transcript-sum).
 
 | Dimension | CLI flag | Config key | Caps | Semantic |
 |---|---|---|---|---|
 | `until` | `--until HH:MM` | `budget.until` | Wall-clock time | Stop dispatching once local time reaches HH:MM. 24-hour; a past time is next-day (so `06:00` started at 23:00 means 06:00 tomorrow). |
 | `max_attempts` | `--max N` | `budget.max_attempts` | Build attempts | Stop once N attempts launched. Counts every build-queue dispatch regardless of outcome (Shipped / PR-open / Parked / Errored). **Not** routed-out (no `/faff-graft` invocation), **not** prep dispatches. |
 | `tokens` | — | `budget.tokens` | Token spend | Stop once this run's measured token spend reaches N. Measured from the session transcript; **estimate fallback** labelled `(estimate)` when the transcript is unavailable. |
-| `cost` | — | `budget.cost` | Dollar cost | **The recommended default spend governor.** Prices this run's per-model × per-class token spend from the built-in price map, unconditionally (a model the map doesn't know about prices at the map's costliest known rate rather than ever silently undercounting). (the legacy flat `budget.price_per_mtok` scalar is **removed** — a `.faffrc.yaml` that still sets it is ignored, named in a warning at `faff budget check`, and refused outright at `faff lights-out` mint time. `budget.price_per_mtok_by_model`, below, is unaffected.) (Real CI/compute metering is out of scope — `cost` is priced from token spend until a CI-introspection producer lands.) |
+| `cost` | — | `budget.cost` | Dollar cost | **The recommended default spend governor.** Prices this run's per-model × per-class token spend from the built-in price map, unconditionally (a model the map doesn't know about prices at the map's costliest known rate rather than ever silently undercounting). (the legacy flat `budget.price_per_mtok` scalar is **removed** — a `.faff/config.yaml` that still sets it is ignored, named in a warning at `faff budget check`, and refused outright at `faff lights-out` mint time. `budget.price_per_mtok_by_model`, below, is unaffected.) (Real CI/compute metering is out of scope — `cost` is priced from token spend until a CI-introspection producer lands.) |
 
 ```yaml
-# .faffrc — all optional; read only via `faff config get` (so validate-adapters passes)
+# .faff/config.yaml — all optional; read only via `faff config get` (so validate-adapters passes)
 budget:
   until:          # HH:MM wall-clock        (== --until, now config-settable)
   max_attempts:   # build-attempt count      (== --max)

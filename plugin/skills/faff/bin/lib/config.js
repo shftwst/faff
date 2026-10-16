@@ -2786,7 +2786,14 @@ function computeConfigCheck({ root, basePath, baseDoc, baseTier, staleBasePath, 
       skipped.push(`posture checks skipped for ${overlayPath} (resolved outside ${root}, another checkout's file)`);
     } else if (overlayPath) {
       if (!probes.isIgnored(overlayLabel)) {
-        findings.push({ severity: "warn", surface: overlayLabel, message: `\`${overlayLabel}\` is NOT git-ignored — the machine-local overlay is about to be committed. Run \`faff gitignore-ensure\` so ${CANONICAL_OVERLAY_CONFIG} is ignored.` });
+        // FAFF-1302: the remedy is tier-dependent. A canonical overlay is ignored by the `/*`
+        // that `gitignore-ensure` writes into `.faff/.gitignore`. A deprecated one sits at the
+        // repo root, where the pattern set is now empty, so no faff write can ever ignore it:
+        // the only fix is the move, and naming `gitignore-ensure` there would be a dead remedy.
+        const remedy = overlayTier === "deprecated"
+          ? `Move it with \`mv ${overlayLabel} ${CANONICAL_OVERLAY_CONFIG}\`; faff writes no root ignore lines, so \`faff gitignore-ensure\` cannot ignore it where it is.`
+          : `Run \`faff gitignore-ensure\` so ${CANONICAL_OVERLAY_CONFIG} is ignored.`;
+        findings.push({ severity: "warn", surface: overlayLabel, message: `\`${overlayLabel}\` is NOT git-ignored — the machine-local overlay is about to be committed. ${remedy}` });
       }
     }
   } else {
@@ -3115,6 +3122,22 @@ function configCheckSelftest() {
       probes: { inRepo: true, isIgnored: (n) => false, isTracked: () => true },
     });
     check("hygiene: un-ignored overlay flagged", r.findings.some((f) => f.surface === ".faff/config.local.yaml" && /NOT git-ignored/.test(f.message)));
+    check("hygiene: canonical un-ignored overlay names gitignore-ensure (which does fix it)", r.findings.some((f) => /Run `faff gitignore-ensure`/.test(f.message)));
+  }
+  {
+    // FAFF-1302: a DEPRECATED-tier overlay that is not ignored must NOT be told to run
+    // `gitignore-ensure`. The root pattern set is empty, so no faff write can ignore a root
+    // overlay; the only working remedy is the move. Exercising the un-ignored deprecated case
+    // is what keeps that remedy honest, since the tier's other cases stub isIgnored true.
+    const r = computeConfigCheck({
+      root: "/r", basePath: "/r/.faffrc.yaml", baseDoc: {}, baseTier: "deprecated",
+      overlayPath: "/r/.faffrc.local.yaml", overlayDoc: {}, overlayTier: "deprecated",
+      legacyBase: [], legacyOverlay: [],
+      probes: { inRepo: true, isIgnored: () => false, isTracked: () => true },
+    });
+    const f = r.findings.find((x) => /NOT git-ignored/.test(x.message));
+    check("hygiene: deprecated un-ignored overlay names the move, not gitignore-ensure", !!f && /mv \.faffrc\.local\.yaml \.faff\/config\.local\.yaml/.test(f.message));
+    check("hygiene: deprecated un-ignored overlay says gitignore-ensure cannot help", !!f && /cannot ignore it where it is/.test(f.message));
   }
   {
     // not a git repo → posture skipped (reported), parse/secret still run; clean → exit 0.

@@ -1,0 +1,211 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A fresh repository run of `faff gitignore-ensure` produces a root `.gitignore` with no line beginning `.faff`.",
+      "verified": "Integration smoke test step 4 plus direct assertion: a fresh-repo run writes no `^\\.faff` line to the root `.gitignore`; `FAFF_GITIGNORE_PATTERNS` asserted to contain no `.faff` form.",
+      "passed": true
+    },
+    {
+      "ac": "Adding a future committed folder under `.faff/` requires editing only `FAFF_DIR_GITIGNORE_PATTERNS`, with no change to `FAFF_GITIGNORE_PATTERNS`.",
+      "verified": "Integration smoke test step 4 plus direct assertion: a fresh-repo run writes no `^\\.faff` line to the root `.gitignore`; `FAFF_GITIGNORE_PATTERNS` asserted to contain no `.faff` form.",
+      "passed": true
+    },
+    {
+      "ac": "`FAFF_DIR_GITIGNORE_PATTERNS` exists, equals `[\"/*\", \"!/.gitignore\", \"!/anchors/\", \"!/templates/\", \"!/decisions.md\", \"!/conventions.md\"]`, and is in the `module.exports` list.",
+      "verified": "Direct `require()` assertions over the exported symbols (all PASS) plus `faff regions selftest --region factory`: gitignore-ensure PASS, 117 members, 0 failed. `--json` shape observed live: keys path,created,added,already,faff_dir,warnings.",
+      "passed": true
+    },
+    {
+      "ac": "A selftest case asserts every pattern in `FAFF_DIR_GITIGNORE_PATTERNS` begins with `/`.",
+      "verified": "Direct `require()` assertions over the exported symbols (all PASS) plus `faff regions selftest --region factory`: gitignore-ensure PASS, 117 members, 0 failed. `--json` shape observed live: keys path,created,added,already,faff_dir,warnings.",
+      "passed": true
+    },
+    {
+      "ac": "A selftest case asserts `/*` is at a lower index than every `!`-prefixed pattern in that set.",
+      "verified": "Direct `require()` assertions over the exported symbols (all PASS) plus `faff regions selftest --region factory`: gitignore-ensure PASS, 117 members, 0 failed. `--json` shape observed live: keys path,created,added,already,faff_dir,warnings.",
+      "passed": true
+    },
+    {
+      "ac": "`FAFF_GITIGNORE_PATTERNS` equals `[\".faffrc\", \".faffrc.yml\", \".faffrc.*.yaml\", \"!.faffrc.example.yaml\"]`, asserted by a selftest case over the set.",
+      "verified": "Direct `require()` assertions over the exported symbols (all PASS) plus `faff regions selftest --region factory`: gitignore-ensure PASS, 117 members, 0 failed. `--json` shape observed live: keys path,created,added,already,faff_dir,warnings.",
+      "passed": true
+    },
+    {
+      "ac": "A selftest case asserts `FAFF_GITIGNORE_PATTERNS` contains neither `.faff/*` nor `!.faff/anchors/` nor a bare `.faff/`.",
+      "verified": "Direct `require()` assertions over the exported symbols (all PASS) plus `faff regions selftest --region factory`: gitignore-ensure PASS, 117 members, 0 failed. `--json` shape observed live: keys path,created,added,already,faff_dir,warnings.",
+      "passed": true
+    },
+    {
+      "ac": "`FAFF_GITIGNORE_PATTERNS_LOCAL` is unchanged, and its existing selftest cases at `gitignore-ensure.js:200-206` still pass unmodified.",
+      "verified": "Direct `require()` assertions over the exported symbols (all PASS) plus `faff regions selftest --region factory`: gitignore-ensure PASS, 117 members, 0 failed. `--json` shape observed live: keys path,created,added,already,faff_dir,warnings.",
+      "passed": true
+    },
+    {
+      "ac": "`faff gitignore-ensure --json` emits `faff_dir` (an object in standard mode, `null` with `--local`) and `warnings` (an array), with `path`, `created`, `added` and `already` unchanged in meaning.",
+      "verified": "Direct `require()` assertions over the exported symbols (all PASS) plus `faff regions selftest --region factory`: gitignore-ensure PASS, 117 members, 0 failed. `--json` shape observed live: keys path,created,added,already,faff_dir,warnings.",
+      "passed": true
+    },
+    {
+      "ac": "`FAFF_GITIGNORE_DIR_HAZARD_PATTERNS` exists and contains at least `[\".faff\", \"/.faff\", \"**/.faff\", \"/**/.faff\", \".faff/**\", \"/.faff/**\", \"**/.faff/**\", \"/**/.faff/**\"]`, with comments marking the first four as full hazards and the last four as partial. A wider list (FAFF-1301 enumerates the full cross-product) satisfies this item unchanged.",
+      "verified": "Direct `require()` assertions (all PASS): hazard set is a superset of the required eight (size 8); `gitignoreDirHazardLines` flags each of the 11 spellings once, ignores `.faff/*`, `!.faff/anchors/`, a `#` comment and the empty string, and returns two hazards in file order. Purity exercised with no temp dir. Neither symbol pre-existed at the merge base, so this slice defines them; the FAFF-1301 consume-unchanged arm is vacuous this landing.",
+      "passed": true
+    },
+    {
+      "ac": "`gitignoreDirHazardLines(text)` exists, takes a string, returns the offending trimmed lines in file order, and skips blank and `#`-comment lines.",
+      "verified": "Direct `require()` assertions (all PASS): hazard set is a superset of the required eight (size 8); `gitignoreDirHazardLines` flags each of the 11 spellings once, ignores `.faff/*`, `!.faff/anchors/`, a `#` comment and the empty string, and returns two hazards in file order. Purity exercised with no temp dir. Neither symbol pre-existed at the merge base, so this slice defines them; the FAFF-1301 consume-unchanged arm is vacuous this landing.",
+      "passed": true
+    },
+    {
+      "ac": "Both symbols are in the `module.exports` list, so FAFF-1301's `computeConfigCheck` can import them.",
+      "verified": "Direct `require()` assertions (all PASS): hazard set is a superset of the required eight (size 8); `gitignoreDirHazardLines` flags each of the 11 spellings once, ignores `.faff/*`, `!.faff/anchors/`, a `#` comment and the empty string, and returns two hazards in file order. Purity exercised with no temp dir. Neither symbol pre-existed at the merge base, so this slice defines them; the FAFF-1301 consume-unchanged arm is vacuous this landing.",
+      "passed": true
+    },
+    {
+      "ac": "If `gitignore-ensure.js` already carries both symbols because FAFF-1301 landed first, this slice consumes them unchanged and does not redefine them; a definition that differs from the list above is raised as a conflict, not reconciled silently.",
+      "verified": "Direct `require()` assertions (all PASS): hazard set is a superset of the required eight (size 8); `gitignoreDirHazardLines` flags each of the 11 spellings once, ignores `.faff/*`, `!.faff/anchors/`, a `#` comment and the empty string, and returns two hazards in file order. Purity exercised with no temp dir. Neither symbol pre-existed at the merge base, so this slice defines them; the FAFF-1301 consume-unchanged arm is vacuous this landing.",
+      "passed": true
+    },
+    {
+      "ac": "A selftest case asserts `gitignoreDirHazardLines` returns one line for each of the eleven hazardous spellings (`.faff/`, `.faff`, `/.faff/`, `/.faff`, `**/.faff/`, `**/.faff`, `/**/.faff/`, `/**/.faff`, `.faff/**`, `/.faff/**`, `**/.faff/**`), tested one spelling per input string.",
+      "verified": "Direct `require()` assertions (all PASS): hazard set is a superset of the required eight (size 8); `gitignoreDirHazardLines` flags each of the 11 spellings once, ignores `.faff/*`, `!.faff/anchors/`, a `#` comment and the empty string, and returns two hazards in file order. Purity exercised with no temp dir. Neither symbol pre-existed at the merge base, so this slice defines them; the FAFF-1301 consume-unchanged arm is vacuous this landing.",
+      "passed": true
+    },
+    {
+      "ac": "A selftest case asserts `gitignoreDirHazardLines` returns an empty list for `.faff/*`, for `!.faff/anchors/`, for a commented-out `# .faff/` line, and for an empty string.",
+      "verified": "Direct `require()` assertions (all PASS): hazard set is a superset of the required eight (size 8); `gitignoreDirHazardLines` flags each of the 11 spellings once, ignores `.faff/*`, `!.faff/anchors/`, a `#` comment and the empty string, and returns two hazards in file order. Purity exercised with no temp dir. Neither symbol pre-existed at the merge base, so this slice defines them; the FAFF-1301 consume-unchanged arm is vacuous this landing.",
+      "passed": true
+    },
+    {
+      "ac": "A selftest case asserts `gitignoreDirHazardLines` returns both lines, in file order, for an input carrying two different hazardous spellings.",
+      "verified": "Direct `require()` assertions (all PASS): hazard set is a superset of the required eight (size 8); `gitignoreDirHazardLines` flags each of the 11 spellings once, ignores `.faff/*`, `!.faff/anchors/`, a `#` comment and the empty string, and returns two hazards in file order. Purity exercised with no temp dir. Neither symbol pre-existed at the merge base, so this slice defines them; the FAFF-1301 consume-unchanged arm is vacuous this landing.",
+      "passed": true
+    },
+    {
+      "ac": "`gitignoreDirHazardLines` touches no filesystem and spawns no subprocess, asserted by it being exercised in the selftest without a temp directory.",
+      "verified": "Direct `require()` assertions (all PASS): hazard set is a superset of the required eight (size 8); `gitignoreDirHazardLines` flags each of the 11 spellings once, ignores `.faff/*`, `!.faff/anchors/`, a `#` comment and the empty string, and returns two hazards in file order. Purity exercised with no temp dir. Neither symbol pre-existed at the merge base, so this slice defines them; the FAFF-1301 consume-unchanged arm is vacuous this landing.",
+      "passed": true
+    },
+    {
+      "ac": "A fresh-repository selftest case asserts `.faff/.gitignore` is created, holds all six patterns, and has `/*` on an earlier line than each negation.",
+      "verified": "`faff regions selftest --region factory`: gitignore-ensure PASS, 117 members, 0 failed; `--region governance` exit 0.",
+      "passed": true
+    },
+    {
+      "ac": "A fresh-repository selftest case asserts the root `.gitignore` contains no line matching `^\\.faff` and no line matching `^!\\.faff`.",
+      "verified": "`faff regions selftest --region factory`: gitignore-ensure PASS, 117 members, 0 failed; `--region governance` exit 0.",
+      "passed": true
+    },
+    {
+      "ac": "A selftest case asserts `.faff/` is created by a standard run in a repository that lacked it.",
+      "verified": "`faff regions selftest --region factory`: gitignore-ensure PASS, 117 members, 0 failed; `--region governance` exit 0.",
+      "passed": true
+    },
+    {
+      "ac": "A selftest case asserts a second standard run leaves both the root `.gitignore` and `.faff/.gitignore` byte-identical, with `added` and `faff_dir.added` both empty.",
+      "verified": "`faff regions selftest --region factory`: gitignore-ensure PASS, 117 members, 0 failed; `--region governance` exit 0.",
+      "passed": true
+    },
+    {
+      "ac": "A selftest case seeds a root `.gitignore` containing `.faff/*` and `!.faff/anchors/`, runs the writer, and asserts both lines are still present, neither was re-appended, and `warnings` is empty.",
+      "verified": "`faff regions selftest --region factory`: gitignore-ensure PASS, 117 members, 0 failed; `--region governance` exit 0.",
+      "passed": true
+    },
+    {
+      "ac": "A selftest case seeds a root `.gitignore` containing a full-hazard spelling, runs the writer, and asserts `warnings` has exactly one entry naming both the offending line and `.faff/*`, that `.faff/.gitignore` was still written, and that the command returns 0.",
+      "verified": "`faff regions selftest --region factory`: gitignore-ensure PASS, 117 members, 0 failed; `--region governance` exit 0.",
+      "passed": true
+    },
+    {
+      "ac": "A selftest case asserts a partial-hazard spelling (`.faff/**`) produces the same single warning and the same exit 0.",
+      "verified": "`faff regions selftest --region factory`: gitignore-ensure PASS, 117 members, 0 failed; `--region governance` exit 0.",
+      "passed": true
+    },
+    {
+      "ac": "A selftest case asserts a root file carrying two hazardous lines produces two warnings, in file order.",
+      "verified": "`faff regions selftest --region factory`: gitignore-ensure PASS, 117 members, 0 failed; `--region governance` exit 0.",
+      "passed": true
+    },
+    {
+      "ac": "A selftest case asserts a `--local` run creates neither the root `.gitignore` nor `.faff/.gitignore` nor the `.faff/` directory, and that `faff_dir` is `null` and `warnings` is empty, including when the root file carries a hazardous line.",
+      "verified": "`faff regions selftest --region factory`: gitignore-ensure PASS, 117 members, 0 failed; `--region governance` exit 0.",
+      "passed": true
+    },
+    {
+      "ac": "The human-readable output prints one line per written target, and the warning lines after them.",
+      "verified": "`faff regions selftest --region factory`: gitignore-ensure PASS, 117 members, 0 failed; `--region governance` exit 0.",
+      "passed": true
+    },
+    {
+      "ac": "A case in `test/impure/gitignore-ensure-set.test.mjs` runs the real CLI in a `git init` temp repository, seeds files under `.faff/anchors/`, `.faff/runs/` and `.faff/logs/`, and asserts via `git check-ignore` that the anchors file and `.faff/.gitignore` are not ignored while the runs and logs files are.",
+      "verified": "`node --import ./test/hermetic-env.mjs --test test/impure/gitignore-ensure-set.test.mjs` (with the two sibling files): 24/24 pass, including the FAFF-1299 git-semantics, migration, git-status, partial-hazard and --local cases. Independently re-run as the spec's integration smoke test: every step PASS against real `git check-ignore`.",
+      "passed": true
+    },
+    {
+      "ac": "A case in the same file seeds the old root lines (`.faff/*`, `!.faff/anchors/`) before running the CLI and asserts the same four outcomes, proving the migration-free claim.",
+      "verified": "`node --import ./test/hermetic-env.mjs --test test/impure/gitignore-ensure-set.test.mjs` (with the two sibling files): 24/24 pass, including the FAFF-1299 git-semantics, migration, git-status, partial-hazard and --local cases. Independently re-run as the spec's integration smoke test: every step PASS against real `git check-ignore`.",
+      "passed": true
+    },
+    {
+      "ac": "A case in the same file asserts `git status --porcelain` lists `.faff/.gitignore` as an addition in a fresh repository.",
+      "verified": "`node --import ./test/hermetic-env.mjs --test test/impure/gitignore-ensure-set.test.mjs` (with the two sibling files): 24/24 pass, including the FAFF-1299 git-semantics, migration, git-status, partial-hazard and --local cases. Independently re-run as the spec's integration smoke test: every step PASS against real `git check-ignore`.",
+      "passed": true
+    },
+    {
+      "ac": "A case in the same file seeds a root `.gitignore` carrying `.faff/**`, runs the CLI, and asserts via `git check-ignore -v` that `.faff/.gitignore` is attributed to `.faff/.gitignore` while `.faff/anchors/run-1/FAFF-1/events.jsonl` is attributed to the root `.faff/**` and is ignored. This is the partial hazard, pinned against real git rather than asserted in prose.",
+      "verified": "`node --import ./test/hermetic-env.mjs --test test/impure/gitignore-ensure-set.test.mjs` (with the two sibling files): 24/24 pass, including the FAFF-1299 git-semantics, migration, git-status, partial-hazard and --local cases. Independently re-run as the spec's integration smoke test: every step PASS against real `git check-ignore`.",
+      "passed": true
+    },
+    {
+      "ac": "The existing `--local` git-semantics case at `test/impure/gitignore-ensure-set.test.mjs:151-165` still passes unmodified.",
+      "verified": "`node --import ./test/hermetic-env.mjs --test test/impure/gitignore-ensure-set.test.mjs` (with the two sibling files): 24/24 pass, including the FAFF-1299 git-semantics, migration, git-status, partial-hazard and --local cases. Independently re-run as the spec's integration smoke test: every step PASS against real `git check-ignore`.",
+      "passed": true
+    },
+    {
+      "ac": "Every row of the invalidated-assertion table in section 6 is updated, including the two stale test names at `test/impure/gitignore-ensure-set.test.mjs:25` and `:177`, and `faff regions selftest` plus `node --test` both pass.",
+      "verified": "Full suite under the repo's own CI command `node --import ./test/hermetic-env.mjs --test`: 6727 tests, 0 fail, 6 skipped; all 8 shards pass. `faff regions selftest` factory and governance both exit 0.",
+      "passed": true
+    },
+    {
+      "ac": "`test/decline-parity.test.mjs` asserts the parity invariant against `.faff/.gitignore` rather than the root `.gitignore`, and its test name at `:90` is retargeted to match.",
+      "verified": "Full suite under the repo's own CI command `node --import ./test/hermetic-env.mjs --test`: 6727 tests, 0 fail, 6 skipped; all 8 shards pass. `faff regions selftest` factory and governance both exit 0.",
+      "passed": true
+    },
+    {
+      "ac": "`test/onboard-local.test.mjs` asserts a `--local` run creates no `.faff/.gitignore`.",
+      "verified": "Full suite under the repo's own CI command `node --import ./test/hermetic-env.mjs --test`: 6727 tests, 0 fail, 6 skipped; all 8 shards pass. `faff regions selftest` factory and governance both exit 0.",
+      "passed": true
+    },
+    {
+      "ac": "`docs/guide/cli.md:39` describes both targets rather than only `.gitignore`.",
+      "verified": "Per-file `git diff --word-diff` inspection: cli.md:39, kernel.md:285 and faff-onboard SKILL.md:145/:148 all name both targets, :148 still says `--local` writes only `.git/info/exclude`, and no commit recommendation was added (the `recommend committing` text is pre-existing prose about `.faffrc.yaml`). Header comment rewritten to describe the two-file split. This repo's committed `.faff/.gitignore` diffed byte-identical against fresh writer output; root `.gitignore` and `bin/lib/config.js` both absent from the merge-base diff.",
+      "passed": true
+    },
+    {
+      "ac": "`plugin/skills/faff/references/kernel.md:285` describes `.faff/`'s rules as living in `.faff/.gitignore`.",
+      "verified": "Per-file `git diff --word-diff` inspection: cli.md:39, kernel.md:285 and faff-onboard SKILL.md:145/:148 all name both targets, :148 still says `--local` writes only `.git/info/exclude`, and no commit recommendation was added (the `recommend committing` text is pre-existing prose about `.faffrc.yaml`). Header comment rewritten to describe the two-file split. This repo's committed `.faff/.gitignore` diffed byte-identical against fresh writer output; root `.gitignore` and `bin/lib/config.js` both absent from the merge-base diff.",
+      "passed": true
+    },
+    {
+      "ac": "`plugin/skills/faff-onboard/SKILL.md:145` and `:148` name both written files, and `:148` still says `--local` writes only `.git/info/exclude`. Neither line gains a commit recommendation; staging stays the operator's.",
+      "verified": "Per-file `git diff --word-diff` inspection: cli.md:39, kernel.md:285 and faff-onboard SKILL.md:145/:148 all name both targets, :148 still says `--local` writes only `.git/info/exclude`, and no commit recommendation was added (the `recommend committing` text is pre-existing prose about `.faffrc.yaml`). Header comment rewritten to describe the two-file split. This repo's committed `.faff/.gitignore` diffed byte-identical against fresh writer output; root `.gitignore` and `bin/lib/config.js` both absent from the merge-base diff.",
+      "passed": true
+    },
+    {
+      "ac": "The `region:factory` header comment in `gitignore-ensure.js:1-44` describes the two-file split, keeps the append-only and leading-slash rationales, and records that `.faff/.gitignore` has to be committed for the rules to reach another clone.",
+      "verified": "Per-file `git diff --word-diff` inspection: cli.md:39, kernel.md:285 and faff-onboard SKILL.md:145/:148 all name both targets, :148 still says `--local` writes only `.git/info/exclude`, and no commit recommendation was added (the `recommend committing` text is pre-existing prose about `.faffrc.yaml`). Header comment rewritten to describe the two-file split. This repo's committed `.faff/.gitignore` diffed byte-identical against fresh writer output; root `.gitignore` and `bin/lib/config.js` both absent from the merge-base diff.",
+      "passed": true
+    },
+    {
+      "ac": "This repository carries a committed `.faff/.gitignore` matching the writer's output byte-for-byte, and its root `.gitignore` is unchanged by this slice.",
+      "verified": "Per-file `git diff --word-diff` inspection: cli.md:39, kernel.md:285 and faff-onboard SKILL.md:145/:148 all name both targets, :148 still says `--local` writes only `.git/info/exclude`, and no commit recommendation was added (the `recommend committing` text is pre-existing prose about `.faffrc.yaml`). Header comment rewritten to describe the two-file split. This repo's committed `.faff/.gitignore` diffed byte-identical against fresh writer output; root `.gitignore` and `bin/lib/config.js` both absent from the merge-base diff.",
+      "passed": true
+    },
+    {
+      "ac": "No `faff config check` finding is added; the file `bin/lib/config.js` is untouched.",
+      "verified": "Per-file `git diff --word-diff` inspection: cli.md:39, kernel.md:285 and faff-onboard SKILL.md:145/:148 all name both targets, :148 still says `--local` writes only `.git/info/exclude`, and no commit recommendation was added (the `recommend committing` text is pre-existing prose about `.faffrc.yaml`). Header comment rewritten to describe the two-file split. This repo's committed `.faff/.gitignore` diffed byte-identical against fresh writer output; root `.gitignore` and `bin/lib/config.js` both absent from the merge-base diff.",
+      "passed": true
+    }
+  ]
+}

@@ -85,6 +85,7 @@ test("--local fresh-repo sequence writes the overlay + local targets, and nothin
 
     // Standard targets are untouched.
     assert.equal(existsSync(gitignorePath(root)), false, ".gitignore is not created by a --local run");
+    assert.equal(existsSync(join(root, ".faff", ".gitignore")), false, ".faff/.gitignore is not created by a --local run");
     assert.equal(existsSync(settingsPath(root)), false, ".claude/settings.json is not created by a --local run");
 
     // .git/info/exclude carries the faff local patterns (FAFF_GITIGNORE_PATTERNS_LOCAL).

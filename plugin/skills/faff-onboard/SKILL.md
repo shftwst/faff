@@ -142,10 +142,10 @@ If step 3b was skipped, or **zero** mappings were confirmed (every template unma
 
 After the write succeeds, run two idempotent, non-destructive ensurers:
 
-- `"$faff" gitignore-ensure` — so `.faff/`, the legacy rc names, and the machine-local overlay `.faffrc.local.yaml` are ignored (a no-op when already ignored, append-only). The **base `.faffrc.yaml` is deliberately NOT ignored**: it is the committable base — git is its backup and drift alarm. **Recommend committing it** in the closing report (below); the operator commits — onboard never runs `git add`/`git commit` itself.
+- `"$faff" gitignore-ensure` — so the legacy rc names and the machine-local overlay `.faffrc.local.yaml` are ignored in `.gitignore`, and `.faff/` is ignored by the new `.faff/.gitignore` (a no-op when already ignored, append-only; relay any warning it prints). The **base `.faffrc.yaml` is deliberately NOT ignored**: it is the committable base — git is its backup and drift alarm. **Recommend committing it** in the closing report (below); the operator commits — onboard never runs `git add`/`git commit` itself.
 - `"$faff" hooks-ensure` — registers faff's Stop-hook command set (`runcheck --hook` + `prepcheck --hook`) in `.claude/settings.json` so the run-ledger and same-turn-attach guards actually fire. A byte-stable no-op when already wired; it **skips** a command the resolved `faff` can't serve (a stale/copy install) rather than wiring a session-blocking hook, and names the re-link remedy.
 
-**Local mode: thread `--local` to both ensurers.** `"$faff" gitignore-ensure --local` writes to `.git/info/exclude` instead of `.gitignore` (the local pattern set covers `.faffrc.yaml`, `.faffrc.*.yaml`, and `.faff/`), leaving `.gitignore` untouched. `"$faff" hooks-ensure --local` writes the same Stop-hook set to `.claude/settings.local.json`, leaving `.claude/settings.json` untouched. Standard mode passes neither flag and behaves exactly as today.
+**Local mode: thread `--local` to both ensurers.** `"$faff" gitignore-ensure --local` writes only `.git/info/exclude` instead of `.gitignore` and `.faff/.gitignore` (the local pattern set covers `.faffrc.yaml`, `.faffrc.*.yaml`, and `.faff/`), leaving both untouched. `"$faff" hooks-ensure --local` writes the same Stop-hook set to `.claude/settings.local.json`, leaving `.claude/settings.json` untouched. Standard mode passes neither flag and behaves exactly as today.
 
 ### 6. Re-run never clobbers
 

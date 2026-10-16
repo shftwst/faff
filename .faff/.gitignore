@@ -1,0 +1,7 @@
+# faff local artifacts (added by `faff gitignore-ensure`)
+/*
+!/.gitignore
+!/anchors/
+!/templates/
+!/decisions.md
+!/conventions.md

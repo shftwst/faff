@@ -9,10 +9,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, writeFileSync, readFileSync, appendFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, appendFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
+
+const { gitignoreDirHazardLines } = createRequire(import.meta.url)("../plugin/skills/faff/bin/lib/gitignore-ensure.js");
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
 
@@ -297,6 +300,193 @@ test("config check: no config at all → exit 0 (defaults)", () => {
   try { assert.equal(run(dir, "config", "check").code, 0); }
   finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+// ---------------------------------------------------------------------------
+// config check: .faff ignore posture (FAFF-1301)
+// ---------------------------------------------------------------------------
+
+const BASE = "slots:\n  spec: x\n";
+const INNER_GITIGNORE = "/*\n!/.gitignore\n!/anchors/\n!/templates/\n";
+
+// A committed-base git repo with the given root .gitignore text and, optionally, a .faff/ tree.
+function faffIgnoreDir({ gitignore, faffDir = false, innerGitignore = null }) {
+  const dir = gitDir({ base: BASE, gitignore, commitBase: true });
+  if (faffDir) mkdirSync(join(dir, ".faff", "runs"), { recursive: true });
+  if (innerGitignore != null) writeFileSync(join(dir, ".faff", ".gitignore"), innerGitignore);
+  return dir;
+}
+
+function findingsOn(dir, surface) {
+  return JSON.parse(run(dir, "config", "check", "--json").out).findings.filter((f) => f.surface === surface);
+}
+
+test("config check: root `.faff/` line → one warn on .gitignore echoing the line and naming `.faff/*`, exit 1", () => {
+  const dir = faffIgnoreDir({ gitignore: ".faff/\n" });
+  try {
+    const r = run(dir, "config", "check");
+    assert.equal(r.code, 1);
+    assert.match(r.out, /warn +\.gitignore:/);
+    assert.ok(r.out.includes("(line: `.faff/`)"));
+    assert.ok(r.out.includes("`.faff/*`"));
+    assert.match(r.out, /faff gitignore-ensure` is append-only and cannot fix this/);
+    assert.equal(findingsOn(dir, ".gitignore").length, 1);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("config check: `**/.faff/` is a hazard too", () => {
+  const dir = faffIgnoreDir({ gitignore: "**/.faff/\n" });
+  try { assert.equal(findingsOn(dir, ".gitignore").length, 1); }
+  finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("config check: `.faff/*` with a carve-out → no .gitignore finding, no .faff/.gitignore finding, exit 0", () => {
+  const dir = faffIgnoreDir({ gitignore: ".faff/*\n!.faff/anchors/\n", faffDir: true });
+  try {
+    const r = run(dir, "config", "check");
+    assert.equal(r.code, 0, r.out + r.err);
+    assert.equal(findingsOn(dir, ".gitignore").length, 0);
+    assert.equal(findingsOn(dir, ".faff/.gitignore").length, 0);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("config check --json: two hazard lines → exactly one .gitignore finding with the plural slot and only the three keys", () => {
+  const dir = faffIgnoreDir({ gitignore: ".faff/\n.faff/**\n" });
+  try {
+    const found = findingsOn(dir, ".gitignore");
+    assert.equal(found.length, 1);
+    assert.ok(found[0].message.includes("(lines: `.faff/`, `.faff/**`)"));
+    assert.deepEqual(Object.keys(found[0]).sort(), ["message", "severity", "surface"]);
+    assert.equal(found[0].severity, "warn");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("config check: not a git repo with a `.faff` line → over-ignore finding AND the posture skip line", () => {
+  const dir = plainDir({ base: BASE });
+  writeFileSync(join(dir, ".gitignore"), ".faff\n");
+  try {
+    const r = run(dir, "config", "check");
+    assert.equal(r.code, 1);
+    assert.match(r.out, /warn +\.gitignore:/);
+    assert.match(r.out, /skip.*posture checks skipped \(not a git repo\)/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("config check: no root .gitignore and no .faff/ → neither finding, exit 0", () => {
+  const dir = faffIgnoreDir({});
+  try {
+    const r = run(dir, "config", "check");
+    assert.equal(r.code, 0, r.out + r.err);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("config check: .faff/ present and nothing ignores run state → one warn on .faff/.gitignore naming gitignore-ensure, exit 1", () => {
+  const dir = faffIgnoreDir({ gitignore: "node_modules/\n", faffDir: true });
+  try {
+    const r = run(dir, "config", "check");
+    assert.equal(r.code, 1);
+    assert.match(r.out, /warn +\.faff\/\.gitignore:/);
+    assert.ok(r.out.includes("faff gitignore-ensure"));
+    assert.match(r.out, /Commit the file/);
+    assert.equal(findingsOn(dir, ".faff/.gitignore").length, 1);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("config check: root `.faff/*`, .faff/ present, no inner file (this repo today) → silent, exit 0", () => {
+  const dir = faffIgnoreDir({ gitignore: ".faff/*\n!.faff/anchors/\n", faffDir: true });
+  try { assert.equal(run(dir, "config", "check").code, 0); }
+  finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("config check: a correct `--local` install (.git/info/exclude has `.faff/`, no inner file) → silent, exit 0", () => {
+  const dir = faffIgnoreDir({ gitignore: "", faffDir: true });
+  appendFileSync(join(dir, ".git", "info", "exclude"), ".faff/\n");
+  try {
+    const r = run(dir, "config", "check");
+    assert.equal(r.code, 0, r.out + r.err);
+    assert.equal(findingsOn(dir, ".gitignore").length, 0);
+    assert.equal(findingsOn(dir, ".faff/.gitignore").length, 0);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("config check smoke: over-ignore, then under-ignore none / ineffective-or-untracked / committed", () => {
+  const dir = faffIgnoreDir({ gitignore: ".faff/\n" });
+  try {
+    let r = run(dir, "config", "check");
+    assert.equal(r.code, 1);
+    assert.match(r.out, /warn +\.gitignore:/);
+    assert.ok(r.out.includes(".faff/*"));
+
+    writeFileSync(join(dir, ".gitignore"), ".faff/*\n");
+    git(dir, "add", ".gitignore"); git(dir, "commit", "-q", "-m", "fix ignore");
+    r = run(dir, "config", "check");
+    assert.equal(r.code, 0, r.out + r.err);
+    assert.match(r.out, /config check: clean/);
+
+    mkdirSync(join(dir, ".faff", "runs"), { recursive: true });
+    writeFileSync(join(dir, ".faff", "runs", "x.md"), "x\n");
+    assert.equal(run(dir, "config", "check").code, 0, "root `.faff/*` still covers run state");
+
+    writeFileSync(join(dir, ".gitignore"), "# nothing\n");
+    git(dir, "add", ".gitignore"); git(dir, "commit", "-q", "-m", "drop root rule");
+    r = run(dir, "config", "check");
+    assert.equal(r.code, 1);
+    assert.match(r.out, /warn +\.faff\/\.gitignore:/);
+    assert.ok(r.out.includes("faff gitignore-ensure"));
+
+    writeFileSync(join(dir, ".faff", ".gitignore"), "/*\n!/.gitignore\n");
+    r = run(dir, "config", "check");
+    assert.equal(r.code, 1);
+    assert.match(r.out, /warn +\.faff\/\.gitignore:/);
+    assert.ok(r.out.includes("NOT committed"));
+
+    git(dir, "add", "-f", ".faff/.gitignore"); git(dir, "commit", "-q", "-m", "commit inner");
+    r = run(dir, "config", "check");
+    assert.equal(r.code, 0, r.out + r.err);
+    assert.match(r.out, /config check: clean/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// The real-git oracle. Each row writes the line(s) as the sole root .gitignore, lays out the
+// committed parts of .faff/ behind an inner .gitignore, and asks git itself whether any of them
+// is blocked. `hazard` is the section 3 table's verdict; `gap` pins a KNOWN, accepted
+// miss (git blocks, the predicate stays silent) so widening the list shows as a failing row.
+// Adding a spelling to FAFF_GITIGNORE_DIR_HAZARD_PATTERNS requires a row here and a row in the
+// gitignoreEnsureSelftest fixture table.
+const COMMITTED_FAFF_PARTS = [".faff/.gitignore", ".faff/anchors/run1/a.json", ".faff/templates/adr.md"];
+const ORACLE_ROWS = [
+  ...["", "/", "**/", "/**/"].flatMap((prefix) => [
+    ...["", "/", "/**", "/**/", "/*/**", "/**/*"].map((suffix) => ({ line: `${prefix}.faff${suffix}\n`, hazard: true })),
+    { line: `${prefix}.faff/*\n`, hazard: false },
+  ]),
+  { line: "", hazard: false },
+  { line: "# .faff/\n", hazard: false },
+  { line: "!.faff/\n", hazard: false },
+  { line: ".faff/   \n", hazard: true },
+  { line: ".faff/*\n.faff/\n", hazard: true },
+  { line: ".faff/\n.faff/*\n", hazard: true },
+  { line: "node_modules/\n.faff/\ndist/\n", hazard: true },
+  { line: ".faff/*/*/**\n", hazard: false, gap: true },
+  { line: ".faff/**/**\n", hazard: false, gap: true },
+  { line: ".faff/*/*\n", hazard: false, gap: true },
+];
+
+for (const { line, hazard, gap } of ORACLE_ROWS) {
+  test(`oracle: ${JSON.stringify(line)} → predicate ${hazard ? "flags" : "is silent"}${gap ? " (pinned gap: git still blocks)" : ", agreeing with git"}`, () => {
+    const dir = gitDir({ gitignore: line, base: BASE, commitBase: true });
+    try {
+      mkdirSync(join(dir, ".faff", "anchors", "run1"), { recursive: true });
+      mkdirSync(join(dir, ".faff", "templates"), { recursive: true });
+      writeFileSync(join(dir, ".faff", "anchors", "run1", "a.json"), "{}\n");
+      writeFileSync(join(dir, ".faff", "templates", "adr.md"), "t\n");
+      writeFileSync(join(dir, ".faff", ".gitignore"), INNER_GITIGNORE);
+      const gitBlocks = COMMITTED_FAFF_PARTS.some((p) => spawnSync("git", ["check-ignore", "-q", p], { cwd: dir }).status === 0);
+      const predicateFlags = gitignoreDirHazardLines(line).length > 0;
+      assert.equal(predicateFlags, hazard, "predicate matches the section 3 table");
+      if (gap) assert.ok(gitBlocks && !predicateFlags, "git blocks a committed part while the predicate stays silent");
+      else assert.equal(predicateFlags, gitBlocks, "predicate agrees with git");
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  });
+}
 
 // ---------------------------------------------------------------------------
 // FAFF-1080: tracking.teams / default_team / team_routing cross-field validation.

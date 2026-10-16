@@ -15,6 +15,8 @@
 // another clone; `--local` writes only .git/info/exclude and creates neither file.
 // A root line spelled `.faff/` (or any other spelling on the hazard list) blocks the
 // rules inside .faff/; the writer never rewrites it and warns with the `.faff/*` fix.
+// FAFF-1301: `faff config check` reports the same line (and an absent or uncommitted
+// .faff/.gitignore) as a read-only posture finding on every later run.
 // ===========================================================================
 
 const fs = require("node:fs");
@@ -66,8 +68,13 @@ const FAFF_DIR_GITIGNORE_PATTERNS = [
   "!/conventions.md", // NOT the gitignored conventions.json cache (FAFF-1068)
 ];
 
-// FAFF-1299: root ignore spellings that defeat the carve-outs above. Exact spellings
-// only, compared after trailing-slash folding; deliberately no glob evaluation.
+// FAFF-1299, FAFF-1301: root ignore spellings that defeat the carve-outs above. Four
+// prefix forms (bare, `/`, `**/`, `/**/`) crossed with four directory-scope shapes.
+// Exact spellings only, stored trailing-slash-folded (a written `.faff/` and `.faff`
+// compare equal; `.faff/**/` folds onto `.faff/**`); deliberately no glob evaluation.
+// The family of equivalent globs is unbounded (`.faff/*/*/**`, `.faff/**/**`), so those
+// are a pinned, accepted gap. Adding a spelling needs a row in the real-git oracle in
+// test/config-two-file.test.mjs and one in the gitignoreEnsureSelftest fixture table.
 const FAFF_GITIGNORE_DIR_HAZARD_PATTERNS = [
   // Full hazard: git skips the whole subtree, so .faff/.gitignore is never read.
   ".faff",
@@ -80,6 +87,23 @@ const FAFF_GITIGNORE_DIR_HAZARD_PATTERNS = [
   "/.faff/**",
   "**/.faff/**",
   "/**/.faff/**",
+  ".faff/*/**",
+  "/.faff/*/**",
+  "**/.faff/*/**",
+  "/**/.faff/*/**",
+  ".faff/**/*",
+  "/.faff/**/*",
+  "**/.faff/**/*",
+  "/**/.faff/**/*",
+];
+
+// FAFF-1301: the correct spellings. `.faff/*` ignores direct children only, so git still
+// descends and the carve-outs work.
+const FAFF_GITIGNORE_DIR_CLEAN_PATTERNS = [
+  ".faff/*",
+  "/.faff/*",
+  "**/.faff/*",
+  "/**/.faff/*",
 ];
 
 // FAFF-1062: the `--local` counterpart, targeting `.git/info/exclude` (a per-checkout,
@@ -116,15 +140,28 @@ function gitignoreHasPattern(pattern, lines) {
   return false;
 }
 
-// Pure: offending trimmed lines of a root ignore file, in file order.
-function gitignoreDirHazardLines(text) {
+function foldedIgnoreLines(text) {
+  if (typeof text !== "string") return [];
   const out = [];
   for (const line of text.split("\n")) {
     const t = line.trim();
     if (t === "" || t.startsWith("#")) continue;
-    if (FAFF_GITIGNORE_DIR_HAZARD_PATTERNS.includes(stripTrailingSlash(t))) out.push(t);
+    out.push({ line: t, folded: stripTrailingSlash(t) });
   }
   return out;
+}
+
+// Pure: offending trimmed lines of a root ignore file, in file order.
+function gitignoreDirHazardLines(text) {
+  return foldedIgnoreLines(text)
+    .filter(({ folded }) => FAFF_GITIGNORE_DIR_HAZARD_PATTERNS.includes(folded))
+    .map(({ line }) => line);
+}
+
+// Pure: does the file say anything about the `.faff` directory, wrongly or rightly?
+function gitignoreMentionsFaffDir(text) {
+  if (gitignoreDirHazardLines(text).length > 0) return true;
+  return foldedIgnoreLines(text).some(({ folded }) => FAFF_GITIGNORE_DIR_CLEAN_PATTERNS.includes(folded));
 }
 
 function buildGitignoreAppendBlock(raw, missing) {
@@ -212,16 +249,34 @@ function gitignoreEnsureSelftest() {
     check("faff-dir set: `/*` is at a lower index than every negation", star !== -1 && negations.every((i) => star < i));
   }
 
-  // FAFF-1299: hazard detection is pure, exercised here with no temp directory.
-  for (const spelling of [".faff/", ".faff", "/.faff/", "/.faff", "**/.faff/", "**/.faff", "/**/.faff/", "/**/.faff", ".faff/**", "/.faff/**", "**/.faff/**"]) {
-    const got = gitignoreDirHazardLines(`node_modules/\n${spelling}\n`);
-    check(`hazard: \`${spelling}\` flagged`, got.length === 1 && got[0] === spelling);
+  // FAFF-1299, FAFF-1301: hazard detection is pure, exercised here with no temp directory.
+  // Every spelling added to FAFF_GITIGNORE_DIR_HAZARD_PATTERNS needs a row here and one in
+  // the real-git oracle in test/config-two-file.test.mjs.
+  for (const prefix of ["", "/", "**/", "/**/"]) {
+    for (const suffix of ["", "/", "/**", "/**/", "/*/**", "/**/*"]) {
+      const spelling = `${prefix}.faff${suffix}`;
+      const got = gitignoreDirHazardLines(`node_modules/\n${spelling}\n`);
+      check(`hazard: \`${spelling}\` flagged`, got.length === 1 && got[0] === spelling);
+    }
+    const clean = `${prefix}.faff/*`;
+    check(`hazard: \`${clean}\` is not flagged`, gitignoreDirHazardLines(`${clean}\n`).length === 0);
+    check(`mentions: \`${clean}\` counts as a .faff rule`, gitignoreMentionsFaffDir(`${clean}\n`) === true);
+    check(`mentions: \`${prefix}.faff/\` counts as a .faff rule`, gitignoreMentionsFaffDir(`${prefix}.faff/\n`) === true);
   }
-  check("hazard: `.faff/*` is not flagged", gitignoreDirHazardLines(".faff/*\n").length === 0);
+  check("hazard: the sixteen-spelling list keeps the original eight", [".faff", "/.faff", "**/.faff", "/**/.faff", ".faff/**", "/.faff/**", "**/.faff/**", "/**/.faff/**"].every((p) => FAFF_GITIGNORE_DIR_HAZARD_PATTERNS.includes(p)) && FAFF_GITIGNORE_DIR_HAZARD_PATTERNS.length === 16);
+  check("hazard: clean list is exactly the four `.faff/*` forms", JSON.stringify(FAFF_GITIGNORE_DIR_CLEAN_PATTERNS) === JSON.stringify([".faff/*", "/.faff/*", "**/.faff/*", "/**/.faff/*"]));
   check("hazard: `!.faff/anchors/` is not flagged", gitignoreDirHazardLines("!.faff/anchors/\n").length === 0);
+  check("hazard: a negated `!.faff/` is not flagged", gitignoreDirHazardLines("!.faff/\n").length === 0);
   check("hazard: a commented-out `# .faff/` is not flagged", gitignoreDirHazardLines("# .faff/\n").length === 0);
+  check("hazard: trailing whitespace is still flagged and trimmed", JSON.stringify(gitignoreDirHazardLines(".faff/   \n")) === JSON.stringify([".faff/"]));
+  check("hazard: CRLF line endings are still flagged", JSON.stringify(gitignoreDirHazardLines(".faff/\r\n")) === JSON.stringify([".faff/"]));
+  check("hazard: `.faff/*` alongside `.faff/` still flags, in either order", gitignoreDirHazardLines(".faff/*\n.faff/\n").length === 1 && gitignoreDirHazardLines(".faff/\n.faff/*\n").length === 1);
   check("hazard: empty string yields nothing", gitignoreDirHazardLines("").length === 0);
+  check("hazard: null and non-strings yield nothing", gitignoreDirHazardLines(null).length === 0 && gitignoreDirHazardLines(undefined).length === 0 && gitignoreDirHazardLines(42).length === 0);
   check("hazard: two hazardous lines returned in file order", JSON.stringify(gitignoreDirHazardLines("**/.faff/\nx\n  .faff/**  \n")) === JSON.stringify(["**/.faff/", ".faff/**"]));
+  check("hazard: a repeated hazard line is returned each time (the message collapses it)", gitignoreDirHazardLines(".faff/\n.faff/\n").length === 2);
+  check("mentions: null yields false", gitignoreMentionsFaffDir(null) === false);
+  check("mentions: a file with no .faff line yields false", gitignoreMentionsFaffDir("node_modules/\n# .faff/\n!.faff/\n") === false);
 
   // Fresh repo: append content + glob-before-negation order ──────────────────────
   withTmp((dir) => {
@@ -405,4 +460,4 @@ function cmdGitignoreEnsure(args) {
 }
 
 
-module.exports = { FAFF_DIR_GITIGNORE_PATTERNS, FAFF_GITIGNORE_DIR_HAZARD_PATTERNS, FAFF_GITIGNORE_PATTERNS, FAFF_GITIGNORE_PATTERNS_LOCAL, GITIGNORE_HEADER, buildGitignoreAppendBlock, cmdGitignoreEnsure, gitignoreDirHazardLines, gitignoreEnsure, gitignoreHasPattern, stripTrailingSlash };
+module.exports = { FAFF_DIR_GITIGNORE_PATTERNS, FAFF_GITIGNORE_DIR_CLEAN_PATTERNS, FAFF_GITIGNORE_DIR_HAZARD_PATTERNS, FAFF_GITIGNORE_PATTERNS, FAFF_GITIGNORE_PATTERNS_LOCAL, GITIGNORE_HEADER, buildGitignoreAppendBlock, cmdGitignoreEnsure, gitignoreDirHazardLines, gitignoreEnsure, gitignoreHasPattern, gitignoreMentionsFaffDir, stripTrailingSlash };

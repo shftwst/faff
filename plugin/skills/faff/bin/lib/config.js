@@ -2644,7 +2644,11 @@ const MIGRATION_STEPS = [
 // reported with the remedy for its tracking state (the base is tracked, the overlay is not).
 function duplicateLocationMessage(role, canonicalName, staleName) {
   const overlay = role === "overlay";
-  return `two ${overlay ? "overlay" : "base"} configs present: ${canonicalName} (in use) and ${staleName} (ignored). Values come only from ${canonicalName}. Remove the stale file: ${overlay ? "rm" : "git rm"} ${staleName}`;
+  // FAFF-1302: the stale file is named "not read" rather than "ignored". Its git state is not
+  // probed here, and a stale base in a repo that never carried the old root ignore lines is
+  // tracked, not ignored: calling it ignored while prescribing `git rm`, which only acts on a
+  // tracked file, contradicts itself. What matters is that it is not read, which is always true.
+  return `two ${overlay ? "overlay" : "base"} configs present: ${canonicalName} (in use) and ${staleName} (not read). Values come only from ${canonicalName}. Remove the stale file: ${overlay ? "rm" : "git rm"} ${staleName}`;
 }
 
 // A file inside the operating root is named by its repo-relative POSIX path; one resolved

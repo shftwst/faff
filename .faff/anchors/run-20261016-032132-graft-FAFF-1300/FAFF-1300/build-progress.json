@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1300",
+  "build": {
+    "status": "complete",
+    "diff_hash": "db64abe11a88e0feabdcdd0ff071d5db774a73937eb0f6bc7d34b70b93682563",
+    "branch": "FAFF-1300-templates-in-faff-dir",
+    "pushed_at": "2026-10-16T04:22:35.247Z"
+  },
+  "updated_at": "2026-10-16T04:22:35.247Z"
+}

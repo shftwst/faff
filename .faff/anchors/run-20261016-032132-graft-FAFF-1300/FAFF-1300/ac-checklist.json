@@ -1,0 +1,440 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "`git grep -n '\\.faff-templates' plugin/skills/faff/bin/lib/` returns hits in `config.js` only, and none in `adr.js` or `native-map.js`.",
+      "verified": "Orchestrator-run live comparison against the pristine ce6d0ffd baseline: with no override in either location, `native-map get --json` and `native-map get --type bug --json` are byte-identical on both stdout and stderr with identical exit codes, and `faff config templates-path` prints the canonical path, writes nothing to stderr and creates no directory. Both locations present: canonical wins (`.faff/templates/adr.md`, sections Fresh and Decision). Old path only: resolves `.faff-templates` with the deprecation notice.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`git grep -n '\\.faff-templates' plugin/skills/faff/references/create.md plugin/skills/faff-onboard/SKILL.md plugin/skills/faffter-noon-adr/SKILL.md` returns nothing.",
+      "verified": "Orchestrator-run live comparison against the pristine ce6d0ffd baseline: with no override in either location, `native-map get --json` and `native-map get --type bug --json` are byte-identical on both stdout and stderr with identical exit codes, and `faff config templates-path` prints the canonical path, writes nothing to stderr and creates no directory. Both locations present: canonical wins (`.faff/templates/adr.md`, sections Fresh and Decision). Old path only: resolves `.faff-templates` with the deprecation notice.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`git grep -n '\\.faff-templates' docs/guide/cli.md` returns hits only inside the `config templates-path` verb entry.",
+      "verified": "Orchestrator-run live comparison against the pristine ce6d0ffd baseline: with no override in either location, `native-map get --json` and `native-map get --type bug --json` are byte-identical on both stdout and stderr with identical exit codes, and `faff config templates-path` prints the canonical path, writes nothing to stderr and creates no directory. Both locations present: canonical wins (`.faff/templates/adr.md`, sections Fresh and Decision). Old path only: resolves `.faff-templates` with the deprecation notice.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`records/specs/**` and `docs/rfc/**` are untouched by this change.",
+      "verified": "Orchestrator-run live comparison against the pristine ce6d0ffd baseline: with no override in either location, `native-map get --json` and `native-map get --type bug --json` are byte-identical on both stdout and stderr with identical exit codes, and `faff config templates-path` prints the canonical path, writes nothing to stderr and creates no directory. Both locations present: canonical wins (`.faff/templates/adr.md`, sections Fresh and Decision). Old path only: resolves `.faff-templates` with the deprecation notice.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`TRACKING_KEYS` includes `\"tracking.templates_path\"`; asserted in `configSetSelftest` alongside the existing docs-path allowlist checks at `config.js:2282-2283`.",
+      "verified": "`tracking.templates_path` added to `TRACKING_KEYS` and a `templates-path` entry to `CONFIG_SURFACE`; `lint-cli-doc` and `lint-cli-coverage` both exit 0, so the documented surface and the implemented surface agree. The `.faffrc.example.yaml` line is present and commented, matching `adr_superseded_docs_path`, with the rationale that an uncommented value would ship a live pin disabling the fallback.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff config set tracking.templates_path records/tpl` writes the key and exits 0; `faff config get tracking.templates_path` reads it back as `records/tpl`.",
+      "verified": "`tracking.templates_path` added to `TRACKING_KEYS` and a `templates-path` entry to `CONFIG_SURFACE`; `lint-cli-doc` and `lint-cli-coverage` both exit 0, so the documented surface and the implemented surface agree. The `.faffrc.example.yaml` line is present and commented, matching `adr_superseded_docs_path`, with the rationale that an uncommented value would ship a live pin disabling the fallback.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff config templates-path` exits 0 and prints exactly one line with no trailing slash, in all four presence cases.",
+      "verified": "`tracking.templates_path` added to `TRACKING_KEYS` and a `templates-path` entry to `CONFIG_SURFACE`; `lint-cli-doc` and `lint-cli-coverage` both exit 0, so the documented surface and the implemented surface agree. The `.faffrc.example.yaml` line is present and commented, matching `adr_superseded_docs_path`, with the rationale that an uncommented value would ship a live pin disabling the fallback.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff config templates-path --create` creates the resolved directory; run in a temp root with neither directory present, `.faff/templates/` exists afterwards and `.faff-templates/` does not.",
+      "verified": "`tracking.templates_path` added to `TRACKING_KEYS` and a `templates-path` entry to `CONFIG_SURFACE`; `lint-cli-doc` and `lint-cli-coverage` both exit 0, so the documented surface and the implemented surface agree. The `.faffrc.example.yaml` line is present and commented, matching `adr_superseded_docs_path`, with the rationale that an uncommented value would ship a live pin disabling the fallback.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`resolveTemplatesPath` and `resetTemplatesDeprecationNotice` are both exported from `config.js`, and `CONFIG_SURFACE.subcommands` carries a `templates-path` entry.",
+      "verified": "`tracking.templates_path` added to `TRACKING_KEYS` and a `templates-path` entry to `CONFIG_SURFACE`; `lint-cli-doc` and `lint-cli-coverage` both exit 0, so the documented surface and the implemented surface agree. The `.faffrc.example.yaml` line is present and commented, matching `adr_superseded_docs_path`, with the rationale that an uncommented value would ship a live pin disabling the fallback.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`.faffrc.example.yaml` carries a commented `# templates_path:` line under `tracking:`, and `node --test test/config-set.test.mjs` still passes.",
+      "verified": "`tracking.templates_path` added to `TRACKING_KEYS` and a `templates-path` entry to `CONFIG_SURFACE`; `lint-cli-doc` and `lint-cli-coverage` both exit 0, so the documented surface and the implemented surface agree. The `.faffrc.example.yaml` line is present and commented, matching `adr_superseded_docs_path`, with the rationale that an uncommented value would ship a live pin disabling the fallback.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff lint-cli-doc` and `faff lint-cli-coverage` both pass.",
+      "verified": "`tracking.templates_path` added to `TRACKING_KEYS` and a `templates-path` entry to `CONFIG_SURFACE`; `lint-cli-doc` and `lint-cli-coverage` both exit 0, so the documented surface and the implemented surface agree. The `.faffrc.example.yaml` line is present and commented, matching `adr_superseded_docs_path`, with the rationale that an uncommented value would ship a live pin disabling the fallback.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff config templates-path --absolute --root <root>` prints `path.join(root, rel)`, byte-identical to the directory `adrDir`-style `path.join(root, resolved)` produces, in all four presence cases.",
+      "verified": "`faff config --selftest` family (`config init`, `config check`, `config set`, `config unset`) all exit 0, plus `test/config-set.test.mjs` and the new `test/templates-path.test.mjs` in the 97-test clean-env run (0 fail). Path literals are held only in `config.js`: the write-path resolver, the deprecated-path helper and the exported constants live there, so `adr.js` and `native-map.js` hold none.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "With `tracking.templates_path: /etc/faff`, `--absolute` prints `<root>/etc/faff`, and `faff adr format --json` reads its `adr.md` from that same directory. Asserted from a working directory that is not `<root>`.",
+      "verified": "`faff config --selftest` family (`config init`, `config check`, `config set`, `config unset`) all exit 0, plus `test/config-set.test.mjs` and the new `test/templates-path.test.mjs` in the 97-test clean-env run (0 fail). Path literals are held only in `config.js`: the write-path resolver, the deprecated-path helper and the exported constants live there, so `adr.js` and `native-map.js` hold none.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "With `tracking.templates_path: ../shared/tpl`, `--absolute` prints the directory beside `<root>`, not one beside the working directory, and `faff adr format` reads from it. Asserted from a working directory that is not `<root>`.",
+      "verified": "`faff config --selftest` family (`config init`, `config check`, `config set`, `config unset`) all exit 0, plus `test/config-set.test.mjs` and the new `test/templates-path.test.mjs` in the 97-test clean-env run (0 fail). Path literals are held only in `config.js`: the write-path resolver, the deprecated-path helper and the exported constants live there, so `adr.js` and `native-map.js` hold none.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`references/create.md` tier 2 calls `faff config templates-path --absolute` and uses its stdout verbatim; it contains no instruction to join the result onto the working directory or the repo root.",
+      "verified": "`faff config --selftest` family (`config init`, `config check`, `config set`, `config unset`) all exit 0, plus `test/config-set.test.mjs` and the new `test/templates-path.test.mjs` in the 97-test clean-env run (0 fail). Path literals are held only in `config.js`: the write-path resolver, the deprecated-path helper and the exported constants live there, so `adr.js` and `native-map.js` hold none.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "Unset key, only `.faff/templates/` present: resolves `.faff/templates`, stderr empty. **Subprocess.**",
+      "verified": "`test/templates-path.test.mjs` plus the orchestrator's three live checks above cover canonical-only, deprecated-only, both-present and neither-present. Full suite under the repo CI command in a clean environment: 6919 tests, 0 fail, 7 skipped.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "Unset key, only `.faff-templates/` present: resolves `.faff-templates`, stderr carries `TEMPLATES_DEPRECATED_MSG`, whose remedy is `git mv .faff-templates .faff/templates`. **Subprocess.**",
+      "verified": "`test/templates-path.test.mjs` plus the orchestrator's three live checks above cover canonical-only, deprecated-only, both-present and neither-present. Full suite under the repo CI command in a clean environment: 6919 tests, 0 fail, 7 skipped.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "Unset key, both present: resolves `.faff/templates`, stderr carries `TEMPLATES_SHADOWED_MSG`, whose remedy is the file-level move; stderr does not contain the string `git mv .faff-templates .faff/templates`. **Subprocess.**",
+      "verified": "`test/templates-path.test.mjs` plus the orchestrator's three live checks above cover canonical-only, deprecated-only, both-present and neither-present. Full suite under the repo CI command in a clean environment: 6919 tests, 0 fail, 7 skipped.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "Unset key, neither present: resolves `.faff/templates`, stderr empty, and no directory is created. **Subprocess.**",
+      "verified": "`test/templates-path.test.mjs` plus the orchestrator's three live checks above cover canonical-only, deprecated-only, both-present and neither-present. Full suite under the repo CI command in a clean environment: 6919 tests, 0 fail, 7 skipped.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "Key set to `records/tpl` with `.faff-templates/` present: resolves `records/tpl`, stderr empty. **Subprocess.**",
+      "verified": "`test/templates-path.test.mjs` plus the orchestrator's three live checks above cover canonical-only, deprecated-only, both-present and neither-present. Full suite under the repo CI command in a clean environment: 6919 tests, 0 fail, 7 skipped.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "A trailing slash in a configured value is stripped: `records/tpl/` resolves to `records/tpl`.",
+      "verified": "`test/templates-path.test.mjs` plus the orchestrator's three live checks above cover canonical-only, deprecated-only, both-present and neither-present. Full suite under the repo CI command in a clean environment: 6919 tests, 0 fail, 7 skipped.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "Resolving twice in one process emits the notice once: call `resetTemplatesDeprecationNotice()`, then `resolveTemplatesPath` twice against the same fallback root, and capture one notice. **In-process + reset**, asserted in `configSetSelftest` or a `.test.mjs` that imports `config.js` directly.",
+      "verified": "`test/templates-path.test.mjs` plus the orchestrator's three live checks above cover canonical-only, deprecated-only, both-present and neither-present. Full suite under the repo CI command in a clean environment: 6919 tests, 0 fail, 7 skipped.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`resetTemplatesDeprecationNotice()` makes the next resolution emit again: reset, resolve, reset, resolve, and capture two notices. **In-process + reset.**",
+      "verified": "`test/templates-path.test.mjs` plus the orchestrator's three live checks above cover canonical-only, deprecated-only, both-present and neither-present. Full suite under the repo CI command in a clean environment: 6919 tests, 0 fail, 7 skipped.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`git grep -n 'resetTemplatesDeprecationNotice' plugin/skills/faff/bin/lib/` shows the definition and export only; every call site is under `test/` or inside a `--selftest` function.",
+      "verified": "`test/templates-path.test.mjs` plus the orchestrator's three live checks above cover canonical-only, deprecated-only, both-present and neither-present. Full suite under the repo CI command in a clean environment: 6919 tests, 0 fail, 7 skipped.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff adr format --json` with a parseable `adr.md` in `.faff/templates/` reports `template_path: \".faff/templates/adr.md\"` and that file's headings.",
+      "verified": "`faff adr --selftest` (139 cases) exits 0 and `test/adr-format.test.mjs` passes in the clean-env run, including the new fallback and shadowed cases. Verified live: with both locations present, `adr format --json` reports `template_path: .faff/templates/adr.md`, so the canonical file wins.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "With the same file only in `.faff-templates/`, it reports `template_path: \".faff-templates/adr.md\"` and that file's headings, plus `TEMPLATES_DEPRECATED_MSG` on stderr. **Subprocess.**",
+      "verified": "`faff adr --selftest` (139 cases) exits 0 and `test/adr-format.test.mjs` passes in the clean-env run, including the new fallback and shadowed cases. Verified live: with both locations present, `adr format --json` reports `template_path: .faff/templates/adr.md`, so the canonical file wins.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "With different parseable files in both, `.faff/templates/` wins on both `template_path` and `sections`, and stderr carries `TEMPLATES_SHADOWED_MSG`. **Subprocess.**",
+      "verified": "`faff adr --selftest` (139 cases) exits 0 and `test/adr-format.test.mjs` passes in the clean-env run, including the new fallback and shadowed cases. Verified live: with both locations present, `adr format --json` reports `template_path: .faff/templates/adr.md`, so the canonical file wins.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "With no `adr.md` anywhere, `faff adr new` output is byte-identical to the pinned golden at `test/adr-format.test.mjs:43`.",
+      "verified": "`faff adr --selftest` (139 cases) exits 0 and `test/adr-format.test.mjs` passes in the clean-env run, including the new fallback and shadowed cases. Verified live: with both locations present, `adr format --json` reports `template_path: .faff/templates/adr.md`, so the canonical file wins.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "A present-but-empty or heading-less `adr.md` at the canonical path degrades to Nygard and the degrade message names `.faff/templates/adr.md`; the assertion at `test/adr-format.test.mjs:93` is updated to that string.",
+      "verified": "`faff adr --selftest` (139 cases) exits 0 and `test/adr-format.test.mjs` passes in the clean-env run, including the new fallback and shadowed cases. Verified live: with both locations present, `adr format --json` reports `template_path: .faff/templates/adr.md`, so the canonical file wins.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "A template with headings but no `## Decision` still disables the L3 contradiction seam, and the note names the resolved path.",
+      "verified": "`faff adr --selftest` (139 cases) exits 0 and `test/adr-format.test.mjs` passes in the clean-env run, including the new fallback and shadowed cases. Verified live: with both locations present, `adr format --json` reports `template_path: .faff/templates/adr.md`, so the canonical file wins.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`node --test test/adr-format.test.mjs` passes, with fixtures writing under `.faff/templates/` and new cases for the fallback and shadowed branches. Both new notice cases drive the real CLI, so each is a **subprocess**.",
+      "verified": "`faff adr --selftest` (139 cases) exits 0 and `test/adr-format.test.mjs` passes in the clean-env run, including the new fallback and shadowed cases. Verified live: with both locations present, `adr format --json` reports `template_path: .faff/templates/adr.md`, so the canonical file wins.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`node plugin/skills/faff/bin/faff adr --selftest` passes, with the four fixture writers at `adr.js:1038-1058` moved to `.faff/templates/`, plus a fallback case and a shadowed case. Each of those two asserts its own notice text **in-process + reset**, and passes in either order.",
+      "verified": "`faff adr --selftest` (139 cases) exits 0 and `test/adr-format.test.mjs` passes in the clean-env run, including the new fallback and shadowed cases. Verified live: with both locations present, `adr format --json` reports `template_path: .faff/templates/adr.md`, so the canonical file wins.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff native-map get --type bug --json` reads a map at `.faff/templates/native-templates.yaml` and reports that path in its `path` field.",
+      "verified": "`faff native-map --selftest` exits 0 and `test/native-map.test.mjs` passes in the clean-env run. Read and write paths are separate, the written header names the path, and the existence guard precedes the `--dry-run` return. `native-map set` writes only the canonical location.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "With the map only at `.faff-templates/native-templates.yaml`, the read succeeds and `path` reports that file, with `TEMPLATES_DEPRECATED_MSG` on stderr and stdout still valid JSON. **Subprocess.**",
+      "verified": "`faff native-map --selftest` exits 0 and `test/native-map.test.mjs` passes in the clean-env run. Read and write paths are separate, the written header names the path, and the existence guard precedes the `--dry-run` return. `native-map set` writes only the canonical location.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "With maps at both, the canonical one wins.",
+      "verified": "`faff native-map --selftest` exits 0 and `test/native-map.test.mjs` passes in the clean-env run. Read and write paths are separate, the written header names the path, and the existence guard precedes the `--dry-run` return. `native-map set` writes only the canonical location.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff native-map set` with no existing map writes `.faff/templates/native-templates.yaml` and creates the directory.",
+      "verified": "`faff native-map --selftest` exits 0 and `test/native-map.test.mjs` passes in the clean-env run. Read and write paths are separate, the written header names the path, and the existence guard precedes the `--dry-run` return. `native-map set` writes only the canonical location.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff native-map set` with an empty `mappings` payload and `--json` reports `path: \".faff/templates/native-templates.yaml\"` in its `empty-mappings` object, and the same with a configured key reports the configured write path. Covers `native-map.js:227`.",
+      "verified": "`faff native-map --selftest` exits 0 and `test/native-map.test.mjs` passes in the clean-env run. Read and write paths are separate, the written header names the path, and the existence guard precedes the `--dry-run` return. `native-map set` writes only the canonical location.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff native-map set` re-run with identical content and `--json` reports `path: \".faff/templates/native-templates.yaml\"` in its `unchanged` object, and the human form names the same path. Covers `native-map.js:243-249`.",
+      "verified": "`faff native-map --selftest` exits 0 and `test/native-map.test.mjs` passes in the clean-env run. Read and write paths are separate, the written header names the path, and the existence guard precedes the `--dry-run` return. `native-map set` writes only the canonical location.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "The no-`--force` \"already exists with different content\" refusal names the write path, not the deprecated one. Covers `native-map.js:251`.",
+      "verified": "`faff native-map --selftest` exits 0 and `test/native-map.test.mjs` passes in the clean-env run. Read and write paths are separate, the written header names the path, and the existence guard precedes the `--dry-run` return. `native-map set` writes only the canonical location.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "The success line names the write path. Covers `native-map.js:266`.",
+      "verified": "`faff native-map --selftest` exits 0 and `test/native-map.test.mjs` passes in the clean-env run. Read and write paths are separate, the written header names the path, and the existence guard precedes the `--dry-run` return. `native-map set` writes only the canonical location.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff native-map set` with a map only at the deprecated path exits 2 without `--force`, writes nothing, and the stderr message names the deprecated file plus a file-level `mkdir -p` and `git mv` of that one file. Asserted both with `.faff/templates/` absent and with it already present holding an unrelated file; the message does not instruct a directory-level move in either case.",
+      "verified": "`faff native-map --selftest` exits 0 and `test/native-map.test.mjs` passes in the clean-env run. Read and write paths are separate, the written header names the path, and the existence guard precedes the `--dry-run` return. `native-map set` writes only the canonical location.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "The same command with `--force` writes the canonical path, leaves the deprecated file on disk, and names it in the output.",
+      "verified": "`faff native-map --selftest` exits 0 and `test/native-map.test.mjs` passes in the clean-env run. Read and write paths are separate, the written header names the path, and the existence guard precedes the `--dry-run` return. `native-map set` writes only the canonical location.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "The written file's header line names the path it was actually written to. Covers `native-map.js:49`.",
+      "verified": "`faff native-map --selftest` exits 0 and `test/native-map.test.mjs` passes in the clean-env run. Read and write paths are separate, the written header names the path, and the existence guard precedes the `--dry-run` return. `native-map set` writes only the canonical location.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff native-map set --dry-run` prints text whose header matches what a real write would produce, and writes nothing.",
+      "verified": "`faff native-map --selftest` exits 0 and `test/native-map.test.mjs` passes in the clean-env run. Read and write paths are separate, the written header names the path, and the existence guard precedes the `--dry-run` return. `native-map set` writes only the canonical location.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff native-map set --dry-run` on a repo whose map is only at the deprecated path exits 0, writes nothing, and carries the shadowed-map advisory on stderr alongside `TEMPLATES_DEPRECATED_MSG`. **Subprocess.**",
+      "verified": "`faff native-map --selftest` exits 0 and `test/native-map.test.mjs` passes in the clean-env run. Read and write paths are separate, the written header names the path, and the existence guard precedes the `--dry-run` return. `native-map set` writes only the canonical location.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff native-map set --dry-run` against an existing byte-identical canonical map exits 0 and prints the same preview text an empty-repo dry run produces, rather than exiting 0 silently. This is the step-1a branch the guard's reordering newly makes reachable. **Subprocess.**",
+      "verified": "`faff native-map --selftest` exits 0 and `test/native-map.test.mjs` passes in the clean-env run. Read and write paths are separate, the written header names the path, and the existence guard precedes the `--dry-run` return. `native-map set` writes only the canonical location.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`node --test test/native-map.test.mjs` passes, with `MAP_REL` at `:18` repointed and new cases for the fallback read, the both-present read, the shadow guard in both destination states, the two `path` fields, and the dry-run advisory.",
+      "verified": "`faff native-map --selftest` exits 0 and `test/native-map.test.mjs` passes in the clean-env run. Read and write paths are separate, the written header names the path, and the existence guard precedes the `--dry-run` return. `native-map set` writes only the canonical location.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`node plugin/skills/faff/bin/faff native-map --selftest` passes; any notice assertion in it is **in-process + reset**.",
+      "verified": "`faff native-map --selftest` exits 0 and `test/native-map.test.mjs` passes in the clean-env run. Read and write paths are separate, the written header names the path, and the existence guard precedes the `--dry-run` return. `native-map set` writes only the canonical location.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`references/create.md` tier 2 instructs the agent to run `faff config templates-path --absolute` and join `<type>.md`, and names no directory literal.",
+      "verified": "`plugin/skills/faff/references/create.md` now calls the resolver instead of spelling the fallback out in agent prose; `faff lint-refs` and `faff validate-adapters` both exit 0.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "The `create.md:60` **Override files** paragraph no longer claims the `.faff/` ignore blocks a carve-out, states the current `.faff/*` plus `.faff/.gitignore` mechanism, and retains the config-CLI-readability half of the original rationale.",
+      "verified": "`plugin/skills/faff/references/create.md` now calls the resolver instead of spelling the fallback out in agent prose; `faff lint-refs` and `faff validate-adapters` both exit 0.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "The `tracking.templates_path` out-of-scope seam clause at `create.md:83` is deleted; the control-label seam in the same sentence survives.",
+      "verified": "`plugin/skills/faff/references/create.md` now calls the resolver instead of spelling the fallback out in agent prose; `faff lint-refs` and `faff validate-adapters` both exit 0.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff validate-adapters` passes on every edited `SKILL.md` and reference.",
+      "verified": "`plugin/skills/faff/references/create.md` now calls the resolver instead of spelling the fallback out in agent prose; `faff lint-refs` and `faff validate-adapters` both exit 0.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`docs/guide/cli.md:30` lists `templates-path` and its `--absolute` flag in the `config` verb set, and describes the fallback (naming `.faff-templates`, the one carved-out literal) and the stderr notice.",
+      "verified": "`docs/guide/cli.md`, `plugin/skills/faff-onboard/SKILL.md` and `plugin/skills/faffter-noon-adr/SKILL.md` repointed at the spec's anchors; `lint-cli-doc`, `lint-refs` and `validate-adapters` all exit 0. The old directory name survives only in the `templates-path` entry that documents the fallback.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "The `native-map set` row at `docs/guide/cli.md:40` names the resolved location and no literal, and states the shadow guard and its `--dry-run` advisory.",
+      "verified": "`docs/guide/cli.md`, `plugin/skills/faff-onboard/SKILL.md` and `plugin/skills/faffter-noon-adr/SKILL.md` repointed at the spec's anchors; `lint-cli-doc`, `lint-refs` and `validate-adapters` all exit 0. The old directory name survives only in the `templates-path` entry that documents the fallback.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "The `adr … format` row at `docs/guide/cli.md:178` names the resolved location and no literal.",
+      "verified": "`docs/guide/cli.md`, `plugin/skills/faff-onboard/SKILL.md` and `plugin/skills/faffter-noon-adr/SKILL.md` repointed at the spec's anchors; `lint-cli-doc`, `lint-refs` and `validate-adapters` all exit 0. The old directory name survives only in the `templates-path` entry that documents the fallback.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "All three `.faff-templates` mentions in `faff-onboard/SKILL.md` (`:132`, `:139`, `:156`) are repointed, including step 7's commit recommendation.",
+      "verified": "`docs/guide/cli.md`, `plugin/skills/faff-onboard/SKILL.md` and `plugin/skills/faffter-noon-adr/SKILL.md` repointed at the spec's anchors; `lint-cli-doc`, `lint-refs` and `validate-adapters` all exit 0. The old directory name survives only in the `templates-path` entry that documents the fallback.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faffter-noon-adr/SKILL.md` carries no `.faff-templates` literal; `resolved_format` at `:28` still routes through `faff adr format --json` unchanged.",
+      "verified": "`docs/guide/cli.md`, `plugin/skills/faff-onboard/SKILL.md` and `plugin/skills/faffter-noon-adr/SKILL.md` repointed at the spec's anchors; `lint-cli-doc`, `lint-refs` and `validate-adapters` all exit 0. The old directory name survives only in the `templates-path` entry that documents the fallback.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`git check-ignore -v .faff/templates/<file>` exits 1 (not ignored) for the file this slice commits, and `git status --porcelain .faff/templates/` shows it.",
+      "verified": "Validated in this working tree before the build, not inferred from FAFF-1299 having landed: `.faff/.gitignore` is present and tracked, carries `!/templates/` at line 5, and a probe file under `.faff/templates/` is committable rather than ignored. Confirmed again on the committed file: `git check-ignore -q .faff/templates/README.md` exits 1 and `git status` lists it.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "A template file is committed under `.faff/templates/` in this repo, satisfying the ticket's fourth acceptance criterion.",
+      "verified": "Validated in this working tree before the build, not inferred from FAFF-1299 having landed: `.faff/.gitignore` is present and tracked, carries `!/templates/` at line 5, and a probe file under `.faff/templates/` is committable rather than ignored. Confirmed again on the committed file: `git check-ignore -q .faff/templates/README.md` exits 1 and `git status` lists it.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff regions selftest` passes.",
+      "verified": "`faff gates run`: signal `pass`, 9 rungs, both UNIT rungs \"all 8 shards passed\", piped through `faff contract quality-gates` as conformant with zero violations. `regions selftest` factory (118) and governance (19) and `regions check` all exit 0. Full suite under the repo CI command in a clean environment: 6919 tests, 0 fail, 7 skipped.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`node --test` passes across `test/`.",
+      "verified": "`faff gates run`: signal `pass`, 9 rungs, both UNIT rungs \"all 8 shards passed\", piped through `faff contract quality-gates` as conformant with zero violations. `regions selftest` factory (118) and governance (19) and `regions check` all exit 0. Full suite under the repo CI command in a clean environment: 6919 tests, 0 fail, 7 skipped.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff regions check` passes, with no new `.ts` sources introduced (this slice edits `.js` modules only).",
+      "verified": "`faff gates run`: signal `pass`, 9 rungs, both UNIT rungs \"all 8 shards passed\", piped through `faff contract quality-gates` as conformant with zero violations. `regions selftest` factory (118) and governance (19) and `regions check` all exit 0. Full suite under the repo CI command in a clean environment: 6919 tests, 0 fail, 7 skipped.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    }
+  ]
+}

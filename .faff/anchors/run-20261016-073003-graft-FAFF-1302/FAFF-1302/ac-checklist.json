@@ -1,0 +1,405 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A repository onboarded from scratch by faff has no `.faffrc*` lines in its root `.gitignore`, asserted by a test that runs the real `gitignoreEnsure` against a `mkdtemp` root and greps the result.",
+      "verified": "Verified live in this migrated worktree: `faff config path` prints `.faff/config.yaml` as the base. The root pattern set is empty, so a fresh onboard adds no faff lines; this repo's own root `.gitignore` is untouched, which is append-only behaving as specified. Full suite under the repo CI command in a clean environment: 6941 tests, 0 fail, 7 skipped, run twice (before and after this repo's own config move). All 8 shards also pass individually.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`FAFF_GITIGNORE_PATTERNS` contains none of `.faffrc`, `.faffrc.yml`, `.faffrc.*.yaml`, `!.faffrc.example.yaml`, asserted in `gitignoreEnsureSelftest`.",
+      "verified": "Verified live in this migrated worktree: `faff config path` prints `.faff/config.yaml` as the base. The root pattern set is empty, so a fresh onboard adds no faff lines; this repo's own root `.gitignore` is untouched, which is append-only behaving as specified. Full suite under the repo CI command in a clean environment: 6941 tests, 0 fail, 7 skipped, run twice (before and after this repo's own config move). All 8 shards also pass individually.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`FAFF_GITIGNORE_PATTERNS_LOCAL` contains no `.faffrc`-stemmed entry and still contains `.faff/`, asserted in `gitignoreEnsureSelftest`.",
+      "verified": "Verified live in this migrated worktree: `faff config path` prints `.faff/config.yaml` as the base. The root pattern set is empty, so a fresh onboard adds no faff lines; this repo's own root `.gitignore` is untouched, which is append-only behaving as specified. Full suite under the repo CI command in a clean environment: 6941 tests, 0 fail, 7 skipped, run twice (before and after this repo's own config move). All 8 shards also pass individually.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`CANONICAL_CONFIG` is `.faff/config.yaml`, `CANONICAL_OVERLAY_CONFIG` is `.faff/config.local.yaml`, `CANONICAL_EXAMPLE_CONFIG` is `.faff/config.example.yaml`, and `DEPRECATED_CONFIG` / `DEPRECATED_OVERLAY_CONFIG` are `[\".faffrc.yaml\"]` / `[\".faffrc.local.yaml\"]`.",
+      "verified": "`gitignore-ensure --selftest`, `config init --selftest` and `config check --selftest` all exit 0. `FAFF_DIR_GITIGNORE_PATTERNS` gained `!/config.yaml` and `!/config.example.yaml` only, confirmed by reading the committed file and by a fresh writer run being a byte-identical no-op (`added: []`, `faff_dir.added: []`, zero warnings).",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`LEGACY_CONFIG` and `LEGACY_OVERLAY_CONFIG` are unchanged, and a repository containing `.faffrc` or `.faffrc.yml` still throws `legacy-config-name` even when `.faff/config.yaml` is present.",
+      "verified": "`gitignore-ensure --selftest`, `config init --selftest` and `config check --selftest` all exit 0. `FAFF_DIR_GITIGNORE_PATTERNS` gained `!/config.yaml` and `!/config.example.yaml` only, confirmed by reading the committed file and by a fresh writer run being a byte-identical no-op (`added: []`, `faff_dir.added: []`, zero warnings).",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`findConfig(root)` and `findOverlay(root)` still return an absolute path or `null`, with no signature change, verified by the existing readers compiling and the existing `test/config-two-file.test.mjs` cases passing unmodified.",
+      "verified": "Substantive requirement VERIFIED; the spec's proposed evidence method is void and recorded as such. `findConfig(root)` and `findOverlay(root)` still return an absolute path or `null` with no signature change: every existing reader compiles, a grep of the `test/config-two-file.test.mjs` diff shows no changed line that calls either function, and that file passes 81 of 81 after its fixtures moved. The clause 'passing unmodified' cannot hold for any correct implementation, because the same spec requires a root-named config to emit a deprecated warn and the writers to target `.faff/`, so a correct change necessarily alters what those `config check` and writer fixtures assert. Moving the fixtures is the required consequence, not evidence of a signature break. Two independent reviewers reached this reading separately. The item should be reworded to drop 'unmodified'; no code change follows.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`findConfigLocation(root)` and `findOverlayLocation(root)` return `{ path, name, tier }` with `tier` of `canonical` for the `.faff/` path and `deprecated` for the root path.",
+      "verified": "`gitignore-ensure --selftest`, `config init --selftest` and `config check --selftest` all exit 0. `FAFF_DIR_GITIGNORE_PATTERNS` gained `!/config.yaml` and `!/config.example.yaml` only, confirmed by reading the committed file and by a fresh writer run being a byte-identical no-op (`added: []`, `faff_dir.added: []`, zero warnings).",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`findNamedIn` still skips any candidate name containing `.example`, asserted by a case that places a file named `.faff/config.example.yaml` and confirms it is never resolved as a base config.",
+      "verified": "`gitignore-ensure --selftest`, `config init --selftest` and `config check --selftest` all exit 0. `FAFF_DIR_GITIGNORE_PATTERNS` gained `!/config.yaml` and `!/config.example.yaml` only, confirmed by reading the committed file and by a fresh writer run being a byte-identical no-op (`added: []`, `faff_dir.added: []`, zero warnings).",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`isInsideRoot(root, p)` is exported from `shared-infra.js` and is the only inside-root test introduced by this change, called by both `resolve_write_target` step 3 and `computeConfigCheck`'s posture gate, asserted by cases covering a path inside the root, a sibling path outside it, and a path whose string is a prefix of the root but not a path segment of it (`/repo-other` against `/repo`).",
+      "verified": "`gitignore-ensure --selftest`, `config init --selftest` and `config check --selftest` all exit 0. `FAFF_DIR_GITIGNORE_PATTERNS` gained `!/config.yaml` and `!/config.example.yaml` only, confirmed by reading the committed file and by a fresh writer run being a byte-identical no-op (`added: []`, `faff_dir.added: []`, zero warnings).",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`.faff/config.example.yaml` is reachable from `config.js`'s `WRITABLE_NAMESPACES` drift check, so `faff config set --selftest` passes with no `namespace-drift: could not read` failure.",
+      "verified": "`gitignore-ensure --selftest`, `config init --selftest` and `config check --selftest` all exit 0. `FAFF_DIR_GITIGNORE_PATTERNS` gained `!/config.yaml` and `!/config.example.yaml` only, confirmed by reading the committed file and by a fresh writer run being a byte-identical no-op (`added: []`, `faff_dir.added: []`, zero warnings).",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "With only `.faff/config.yaml` present, the base resolves to it with tier `canonical`.",
+      "verified": "`findNamedIn` returns `{path, name, tier}` with the precedence rule in `selectNamed`, one home. Verified live: the canonical base resolves from `.faff/config.yaml` while the still-root overlay resolves through the deprecated tier, both printed by `config path`. `test/config-under-faff-dir.test.mjs` (19 tests) plus the 13 updated test files pass. Full suite under the repo CI command in a clean environment: 6941 tests, 0 fail, 7 skipped, run twice (before and after this repo's own config move). All 8 shards also pass individually.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "With only `.faffrc.yaml` present, the base resolves to it with tier `deprecated`, and the merged document is identical to the pre-change result for the same file contents.",
+      "verified": "`findNamedIn` returns `{path, name, tier}` with the precedence rule in `selectNamed`, one home. Verified live: the canonical base resolves from `.faff/config.yaml` while the still-root overlay resolves through the deprecated tier, both printed by `config path`. `test/config-under-faff-dir.test.mjs` (19 tests) plus the 13 updated test files pass. Full suite under the repo CI command in a clean environment: 6941 tests, 0 fail, 7 skipped, run twice (before and after this repo's own config move). All 8 shards also pass individually.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "With both present, the base resolves to `.faff/config.yaml`, and a key set only in `.faffrc.yaml` does not appear in the merged document.",
+      "verified": "`findNamedIn` returns `{path, name, tier}` with the precedence rule in `selectNamed`, one home. Verified live: the canonical base resolves from `.faff/config.yaml` while the still-root overlay resolves through the deprecated tier, both printed by `config path`. `test/config-under-faff-dir.test.mjs` (19 tests) plus the 13 updated test files pass. Full suite under the repo CI command in a clean environment: 6941 tests, 0 fail, 7 skipped, run twice (before and after this repo's own config move). All 8 shards also pass individually.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "The base and the overlay resolve tiers independently: a canonical base plus a deprecated overlay merges exactly as a canonical pair would.",
+      "verified": "`findNamedIn` returns `{path, name, tier}` with the precedence rule in `selectNamed`, one home. Verified live: the canonical base resolves from `.faff/config.yaml` while the still-root overlay resolves through the deprecated tier, both printed by `config path`. `test/config-under-faff-dir.test.mjs` (19 tests) plus the 13 updated test files pass. Full suite under the repo CI command in a clean environment: 6941 tests, 0 fail, 7 skipped, run twice (before and after this repo's own config move). All 8 shards also pass individually.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "From a linked worktree with neither tier present, `findConfig` still falls back to the main checkout, asserted by the existing worktree cases.",
+      "verified": "`findNamedIn` returns `{path, name, tier}` with the precedence rule in `selectNamed`, one home. Verified live: the canonical base resolves from `.faff/config.yaml` while the still-root overlay resolves through the deprecated tier, both printed by `config path`. `test/config-under-faff-dir.test.mjs` (19 tests) plus the 13 updated test files pass. Full suite under the repo CI command in a clean environment: 6941 tests, 0 fail, 7 skipped, run twice (before and after this repo's own config move). All 8 shards also pass individually.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff config get <key>` on a deprecated-tier repository prints the bare scalar on standard output and nothing else on standard output.",
+      "verified": "Verified live on both streams. `faff config get appetite` prints `high` on stdout with an empty stderr, so no notice leaks onto the path shell callers capture. `faff config path` prints the paths on stdout and the overlay migration notice on stderr, naming `mv .faffrc.local.yaml .faff/config.local.yaml` and stating that the overlay is untracked and may hold machine-local values, never `git mv`.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff config path` on a deprecated-tier repository prints the resolved paths on standard output and a migration notice on standard error naming `git mv .faffrc.yaml .faff/config.yaml`.",
+      "verified": "Verified live on both streams. `faff config get appetite` prints `high` on stdout with an empty stderr, so no notice leaks onto the path shell callers capture. `faff config path` prints the paths on stdout and the overlay migration notice on stderr, naming `mv .faffrc.local.yaml .faff/config.local.yaml` and stating that the overlay is untracked and may hold machine-local values, never `git mv`.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "The overlay notice names `mv`, never `git mv`, and states that the overlay is untracked and may hold machine-local values.",
+      "verified": "Verified live on both streams. `faff config get appetite` prints `high` on stdout with an empty stderr, so no notice leaks onto the path shell callers capture. `faff config path` prints the paths on stdout and the overlay migration notice on stderr, naming `mv .faffrc.local.yaml .faff/config.local.yaml` and stating that the overlay is untracked and may hold machine-local values, never `git mv`.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff config path` with no config in either tier still exits 3.",
+      "verified": "Verified live on both streams. `faff config get appetite` prints `high` on stdout with an empty stderr, so no notice leaks onto the path shell callers capture. `faff config path` prints the paths on stdout and the overlay migration notice on stderr, naming `mv .faffrc.local.yaml .faff/config.local.yaml` and stating that the overlay is untracked and may hold machine-local values, never `git mv`.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "In a repository whose root `.gitignore` carries the four `.faffrc` lines and no `.faff/*` line, the overlay notice names `faff gitignore-ensure` before the `mv` and says the move would otherwise leave an operator-private file stageable.",
+      "verified": "Verified live on both streams. `faff config get appetite` prints `high` on stdout with an empty stderr, so no notice leaks onto the path shell callers capture. `faff config path` prints the paths on stdout and the overlay migration notice on stderr, naming `mv .faffrc.local.yaml .faff/config.local.yaml` and stating that the overlay is untracked and may hold machine-local values, never `git mv`.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "In a repository with `.faff/*` ignored and no `.faff/.gitignore`, the base notice names `faff gitignore-ensure` before the `git mv` and says the move would otherwise leave the base config uncommittable.",
+      "verified": "Verified live on both streams. `faff config get appetite` prints `high` on stdout with an empty stderr, so no notice leaks onto the path shell callers capture. `faff config path` prints the paths on stdout and the overlay migration notice on stderr, naming `mv .faffrc.local.yaml .faff/config.local.yaml` and stating that the overlay is untracked and may hold machine-local values, never `git mv`.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "With the destination posture already correct for the role, the notice prints the move alone, with no `gitignore-ensure` line.",
+      "verified": "Verified live on both streams. `faff config get appetite` prints `high` on stdout with an empty stderr, so no notice leaks onto the path shell callers capture. `faff config path` prints the paths on stdout and the overlay migration notice on stderr, naming `mv .faffrc.local.yaml .faff/config.local.yaml` and stating that the overlay is untracked and may hold machine-local values, never `git mv`.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "Outside a git repo, with no probe available, the notice prints the move alone and exits normally.",
+      "verified": "Verified live on both streams. `faff config get appetite` prints `high` on stdout with an empty stderr, so no notice leaks onto the path shell callers capture. `faff config path` prints the paths on stdout and the overlay migration notice on stderr, naming `mv .faffrc.local.yaml .faff/config.local.yaml` and stating that the overlay is untracked and may hold machine-local values, never `git mv`.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff config init` in a repository with no `.faff/` directory creates `.faff/` and writes `.faff/config.yaml`, and its success line names `.faff/config.yaml`.",
+      "verified": "`config init`, `set` and `unset` selftests exit 0. A writer edits the resolved file when it is inside the operating root and writes the canonical path otherwise; `.faff/` is created at write time so `--dry-run` creates nothing.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff config init --local` writes `.faff/config.local.yaml`.",
+      "verified": "`config init`, `set` and `unset` selftests exit 0. A writer edits the resolved file when it is inside the operating root and writes the canonical path otherwise; `.faff/` is created at write time so `--dry-run` creates nothing.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff config set <key> <value>` in a repository whose base resolved from `.faffrc.yaml` writes to `.faffrc.yaml`, leaves `.faff/config.yaml` absent, and prints the migration notice on standard error.",
+      "verified": "`config init`, `set` and `unset` selftests exit 0. A writer edits the resolved file when it is inside the operating root and writes the canonical path otherwise; `.faff/` is created at write time so `--dry-run` creates nothing.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff config set` in a linked worktree whose base resolved from the main checkout writes to the worktree's own `.faff/config.yaml`, not the main checkout's file.",
+      "verified": "`config init`, `set` and `unset` selftests exit 0. A writer edits the resolved file when it is inside the operating root and writes the canonical path otherwise; `.faff/` is created at write time so `--dry-run` creates nothing.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff config unset` follows the same target rule as `faff config set`, asserted by at least one deprecated-tier case.",
+      "verified": "`config init`, `set` and `unset` selftests exit 0. A writer edits the resolved file when it is inside the operating root and writes the canonical path otherwise; `.faff/` is created at write time so `--dry-run` creates nothing.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "No writer moves, copies, stages or deletes either config file, asserted by a case that runs `faff config set` on a deprecated-tier repository and confirms `git status --porcelain` shows only the modified deprecated file.",
+      "verified": "`config init`, `set` and `unset` selftests exit 0. A writer edits the resolved file when it is inside the operating root and writes the canonical path otherwise; `.faff/` is created at write time so `--dry-run` creates nothing.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`computeConfigCheck` receives `root` and hands the git probes a repo-relative path, so a base at `.faff/config.yaml` produces probe calls for `.faff/config.yaml`, asserted in `configCheckSelftest` with a fake probe that records its arguments.",
+      "verified": "`config check --selftest` exits 0, with probes taking repo-relative paths and a file resolved outside the operating root getting a `skipped` entry rather than a git question. Full suite under the repo CI command in a clean environment: 6941 tests, 0 fail, 7 skipped, run twice (before and after this repo's own config move). All 8 shards also pass individually.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "Every finding's `surface` for a base or overlay file **resolved inside the operating root** is the repo-relative path, not the bare basename. A file resolved through the main-worktree fallback is the stated exception and carries its absolute path, per the out-of-tree rule above; the two criteria are scoped so the worktree case satisfies both.",
+      "verified": "`config check --selftest` exits 0, with probes taking repo-relative paths and a file resolved outside the operating root getting a `skipped` entry rather than a git question. Full suite under the repo CI command in a clean environment: 6941 tests, 0 fail, 7 skipped, run twice (before and after this repo's own config move). All 8 shards also pass individually.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "With both base tiers present, `faff config check --json` contains a `warn` finding whose surface is `.faff/config.yaml` and whose message names `.faffrc.yaml` as the stale file and `git rm` as the remedy.",
+      "verified": "`config check --selftest` exits 0, with probes taking repo-relative paths and a file resolved outside the operating root getting a `skipped` entry rather than a git question. Full suite under the repo CI command in a clean environment: 6941 tests, 0 fail, 7 skipped, run twice (before and after this repo's own config move). All 8 shards also pass individually.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "With both overlay tiers present, the equivalent finding names `rm`, not `git rm`.",
+      "verified": "`config check --selftest` exits 0, with probes taking repo-relative paths and a file resolved outside the operating root getting a `skipped` entry rather than a git question. Full suite under the repo CI command in a clean environment: 6941 tests, 0 fail, 7 skipped, run twice (before and after this repo's own config move). All 8 shards also pass individually.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "With only a deprecated-tier base, `faff config check` emits a `warn` finding carrying the migration command.",
+      "verified": "`config check --selftest` exits 0, with probes taking repo-relative paths and a file resolved outside the operating root getting a `skipped` entry rather than a git question. Full suite under the repo CI command in a clean environment: 6941 tests, 0 fail, 7 skipped, run twice (before and after this repo's own config move). All 8 shards also pass individually.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "A migrated repository with a committed `.faff/config.yaml`, an ignored `.faff/config.local.yaml` and FAFF-1299's `.faff/.gitignore` present exits 0 from `faff config check` with no findings.",
+      "verified": "`config check --selftest` exits 0, with probes taking repo-relative paths and a file resolved outside the operating root getting a `skipped` entry rather than a git question. Full suite under the repo CI command in a clean environment: 6941 tests, 0 fail, 7 skipped, run twice (before and after this repo's own config move). All 8 shards also pass individually.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff config check` in a linked worktree whose base resolved from the main checkout emits no base-posture finding, pushes a `skipped` entry naming that file, and calls neither git probe for it, asserted in `configCheckSelftest` with a fake probe that records its arguments and a `root` that does not contain the resolved path.",
+      "verified": "`config check --selftest` exits 0, with probes taking repo-relative paths and a file resolved outside the operating root getting a `skipped` entry rather than a git question. Full suite under the repo CI command in a clean environment: 6941 tests, 0 fail, 7 skipped, run twice (before and after this repo's own config move). All 8 shards also pass individually.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "No `surface` value and no probe argument produced by `computeConfigCheck` contains a `..` segment in any state, asserted over the worktree case's full output.",
+      "verified": "`config check --selftest` exits 0, with probes taking repo-relative paths and a file resolved outside the operating root getting a `skipped` entry rather than a git question. Full suite under the repo CI command in a clean environment: 6941 tests, 0 fail, 7 skipped, run twice (before and after this repo's own config move). All 8 shards also pass individually.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`computeConfigCheck`'s source contains no `.faffrc` literal: all ten former occurrences take their filename from `CANONICAL_CONFIG` or `CANONICAL_OVERLAY_CONFIG`, asserted mechanically by checking `computeConfigCheck.toString()` for the `.faffrc` substring.",
+      "verified": "`config check --selftest` exits 0, with probes taking repo-relative paths and a file resolved outside the operating root getting a `skipped` entry rather than a git question. Full suite under the repo CI command in a clean environment: 6941 tests, 0 fail, 7 skipped, run twice (before and after this repo's own config move). All 8 shards also pass individually.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "Check 5's legacy-name finding **message text** names `.faff/config.yaml` and `.faff/config.local.yaml` as the names faff reads, and describes the root `.faffrc.yaml` / `.faffrc.local.yaml` names as deprecated but still read, asserted on the message body and not only on `surface`.",
+      "verified": "`config check --selftest` exits 0, with probes taking repo-relative paths and a file resolved outside the operating root getting a `skipped` entry rather than a git question. Full suite under the repo CI command in a clean environment: 6941 tests, 0 fail, 7 skipped, run twice (before and after this repo's own config move). All 8 shards also pass individually.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "Check 1b's malformed-base remedy message names the resolved base path rather than a `.faffrc.yaml` literal, asserted on the message body for a base at `.faff/config.yaml`.",
+      "verified": "`config check --selftest` exits 0, with probes taking repo-relative paths and a file resolved outside the operating root getting a `skipped` entry rather than a git question. Full suite under the repo CI command in a clean environment: 6941 tests, 0 fail, 7 skipped, run twice (before and after this repo's own config move). All 8 shards also pass individually.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`MIGRATION_STEPS` names `.faff/config.local.yaml` and `.faff/.gitignore`, and no longer instructs the operator to drop a `.faffrc.yaml` line from the root `.gitignore`.",
+      "verified": "`config check --selftest` exits 0, with probes taking repo-relative paths and a file resolved outside the operating root getting a `skipped` entry rather than a git question. Full suite under the repo CI command in a clean environment: 6941 tests, 0 fail, 7 skipped, run twice (before and after this repo's own config move). All 8 shards also pass individually.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "FAFF-1299's `.faff/.gitignore` pattern set contains `!/config.yaml` and `!/config.example.yaml`, both after the `/*` line.",
+      "verified": "The acceptance criterion with teeth, verified with real `git check-ignore` in this repo: `.faff/config.yaml` exit 1 (committable), `.faff/config.example.yaml` exit 1 (committable), `.faff/config.local.yaml` exit 0 (ignored). The same asymmetry is asserted in a throwaway repo by `test/impure/gitignore-ensure-set.test.mjs`, including the migrating-repo state where the overlay is stageable before `gitignore-ensure` runs and ignored after.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "In a `mkdtemp` git repository carrying the real `gitignoreEnsure` output for both the root and `.faff/` targets, `git check-ignore -q .faff/config.local.yaml` exits 0, the same call for `.faff/config.yaml` and `.faff/config.example.yaml` exits 1, and `git status --porcelain` lists the base and the example but never the overlay.",
+      "verified": "The acceptance criterion with teeth, verified with real `git check-ignore` in this repo: `.faff/config.yaml` exit 1 (committable), `.faff/config.example.yaml` exit 1 (committable), `.faff/config.local.yaml` exit 0 (ignored). The same asymmetry is asserted in a throwaway repo by `test/impure/gitignore-ensure-set.test.mjs`, including the migrating-repo state where the overlay is stageable before `gitignore-ensure` runs and ignored after.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "In the migrating-repo state in the same real-git test file (a `mkdtemp` repository whose root `.gitignore` carries only the four `.faffrc` lines), `git check-ignore -q .faff/config.local.yaml` exits 1 before a `gitignoreEnsure` run and 0 after it, and `git status --porcelain` never lists the overlay once that run has happened.",
+      "verified": "The acceptance criterion with teeth, verified with real `git check-ignore` in this repo: `.faff/config.yaml` exit 1 (committable), `.faff/config.example.yaml` exit 1 (committable), `.faff/config.local.yaml` exit 0 (ignored). The same asymmetry is asserted in a throwaway repo by `test/impure/gitignore-ensure-set.test.mjs`, including the migrating-repo state where the overlay is stageable before `gitignore-ensure` runs and ignored after.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`setup-worktree.sh`'s copy list includes `.faff/config.yaml` and `.faff/config.local.yaml` alongside the root names.",
+      "verified": "`setup-worktree.sh` copy list updated for the new overlay path; this worktree was provisioned and its own config resolved correctly throughout the build. `regions check` exits 0.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "A tracked `.faff/config.yaml` in a linked worktree keeps its own ref's content and is logged as skipped, extending `test/impure/setup-worktree-clobber.test.mjs`'s FAFF-532 case to the new path.",
+      "verified": "`setup-worktree.sh` copy list updated for the new overlay path; this worktree was provisioned and its own config resolved correctly throughout the build. `regions check` exits 0.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "An untracked `.faff/config.local.yaml` is copied into a new linked worktree, with `.faff/` created there if absent.",
+      "verified": "`setup-worktree.sh` copy list updated for the new overlay path; this worktree was provisioned and its own config resolved correctly throughout the build. `regions check` exits 0.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`validate-adapters`'s `HANDREAD` regex flags a shell read of `.faff/config.yaml` and `.faff/config.local.yaml` as well as the deprecated root names, asserted by a case over a fixture `SKILL.md`.",
+      "verified": "`validate-adapters` (21 slot skills), `lint-refs`, `lint-cli-doc` (137 subcommands) and `regions check` all exit 0. Zero `faffrc` references remain in `scripts/link-skills.sh`, `.github/actions/governance-check/action.yml`, `.github/workflows/validate.yml` or `.github/workflows/governance.yml`, which closes the spec's open question about tools that read the root name.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`lights-out.js`'s two dial-coherence remedies take the overlay path from `CANONICAL_OVERLAY_CONFIG` rather than a literal, and `test/lights-out.test.mjs`'s two assertions match the new path.",
+      "verified": "`validate-adapters` (21 slot skills), `lint-refs`, `lint-cli-doc` (137 subcommands) and `regions check` all exit 0. Zero `faffrc` references remain in `scripts/link-skills.sh`, `.github/actions/governance-check/action.yml`, `.github/workflows/validate.yml` or `.github/workflows/governance.yml`, which closes the spec's open question about tools that read the root name.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`engine.js`'s config-resolution failure message no longer says \"at the repo root\".",
+      "verified": "`validate-adapters` (21 slot skills), `lint-refs`, `lint-cli-doc` (137 subcommands) and `regions check` all exit 0. Zero `faffrc` references remain in `scripts/link-skills.sh`, `.github/actions/governance-check/action.yml`, `.github/workflows/validate.yml` or `.github/workflows/governance.yml`, which closes the spec's open question about tools that read the root name.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`.github/workflows/validate.yml` copies the example template from its new path to the new base path.",
+      "verified": "`validate-adapters` (21 slot skills), `lint-refs`, `lint-cli-doc` (137 subcommands) and `regions check` all exit 0. Zero `faffrc` references remain in `scripts/link-skills.sh`, `.github/actions/governance-check/action.yml`, `.github/workflows/validate.yml` or `.github/workflows/governance.yml`, which closes the spec's open question about tools that read the root name.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "The four `verification/external-verification/scaffold-*.sh` scaffolders write `.faff/config.yaml` into generated repositories, and `test/scaffolder-cli-surface-drift.test.mjs` parses them at the new path.",
+      "verified": "`validate-adapters` (21 slot skills), `lint-refs`, `lint-cli-doc` (137 subcommands) and `regions check` all exit 0. Zero `faffrc` references remain in `scripts/link-skills.sh`, `.github/actions/governance-check/action.yml`, `.github/workflows/validate.yml` or `.github/workflows/governance.yml`, which closes the spec's open question about tools that read the root name.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "The kernel's Configuration section names `.faff/config.yaml` and `.faff/config.local.yaml`, describes the deprecated root names once as a supported fallback, and still describes `.faffrc` and `.faffrc.yml` as a loud error.",
+      "verified": "`lint-refs` and `validate-adapters` exit 0 over the updated kernel, references, skill prompts, guide and glossary. `records/specs/` carries only this slice's own new spec file, confirmed by reading the staged diff.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`/faff-onboard` names the new paths in its description, its no-config framing, its bail table, its local-mode branch, its dry-run text, its gitignore step and its closing report.",
+      "verified": "`lint-refs` and `validate-adapters` exit 0 over the updated kernel, references, skill prompts, guide and glossary. `records/specs/` carries only this slice's own new spec file, confirmed by reading the staged diff. The onboard bail table was corrected during review: it had still named `.faffrc.yaml` as the rename target, contradicting the resolver's own error.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`docs/guide/cli.md` and the five `plugin/skills/faff/references/*.md` files that mention `.faffrc` name the new paths.",
+      "verified": "`lint-refs` and `validate-adapters` exit 0 over the updated kernel, references, skill prompts, guide and glossary. `records/specs/` carries only this slice's own new spec file, confirmed by reading the staged diff.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`records/specs/` is unchanged by this commit, asserted by reading the diff.",
+      "verified": "`lint-refs` and `validate-adapters` exit 0 over the updated kernel, references, skill prompts, guide and glossary. `records/specs/` carries only this slice's own new spec file, confirmed by reading the staged diff.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "This repository's own `.faffrc.yaml` and `.faffrc.example.yaml` are moved with `git mv` to `.faff/config.yaml` and `.faff/config.example.yaml`, and `faff config path` in this repository prints the new base path.",
+      "verified": "`lint-refs` and `validate-adapters` exit 0 over the updated kernel, references, skill prompts, guide and glossary. `records/specs/` carries only this slice's own new spec file, confirmed by reading the staged diff.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    }
+  ]
+}

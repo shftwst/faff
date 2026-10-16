@@ -239,7 +239,7 @@ test("record-review-round: an out-of-enum value is written as null with a warnin
   assert.ok(!r.stderr.includes("huge"));
 });
 
-test("record-review-round: --prior-dir stores null with a warning when there is no single match", (t) => {
+test("record-review-round: --prior-dir stores null with a warning when there is no single match or no prior round", (t) => {
   const f = fixture(t);
   recordAll(f, [{ signal: "fail", findings: [A, { ...A, location: "a.js:30" }] }]);
   const buildReview = join(f.issueDir, "build-review");
@@ -249,11 +249,18 @@ test("record-review-round: --prior-dir stores null with a warning when there is 
   assert.equal(ambiguous.code, 0, ambiguous.stderr);
   assert.deepEqual(f.round(2).findings.map((x) => x.carried_id), [null, null, null]);
   assert.equal((ambiguous.stderr.match(/warning/g) || []).length, 3);
+  const absent = f.record({ signal: "fail", findings: [{ ...A, carried_id: "P1" }], adversarial_outcome: `skipped-${SECRET}` }, ["--prior-dir", join(f.issueDir, "build-review-missing")]);
+  assert.equal(absent.code, 0, absent.stderr);
+  assert.equal(f.round(3).findings[0].carried_id, null);
+  assert.equal(f.round(3).adversarial_outcome, null);
+  assert.match(absent.stderr, /--prior-dir has no round record/);
+  assert.match(absent.stderr, /adversarial_outcome: not in the enum; written as null/);
+  assert.ok(!absent.stderr.includes(SECRET));
   const outside = join(f.root, "outside");
   mkdirSync(outside);
   const escape = f.record({ signal: "fail", findings: [{ ...A, carried_id: "P1" }] }, ["--prior-dir", outside]);
   assert.equal(escape.code, 2);
-  assert.ok(!existsSync(join(f.issueDir, "review-rounds", "round-3.json")));
+  assert.ok(!existsSync(join(f.issueDir, "review-rounds", "round-4.json")));
 });
 
 test("record-review-round: exits 2 naming a corrupt existing round record, and writes nothing", (t) => {

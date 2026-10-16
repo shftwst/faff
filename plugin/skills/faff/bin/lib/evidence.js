@@ -898,7 +898,9 @@ function carriedOrNull(value, where, warnings) {
 
 // priorDirFindings(priorDir, issueDir, secrets) -> the findings of the highest round record in the
 // --prior-dir, in record order (the order `faff review-prior` numbers them), or null when it has none.
+// A --prior-dir that does not exist yet (a resume into a fresh run dir) has none.
 function priorDirFindings(priorDir, issueDir, secrets) {
+  if (!fs.existsSync(priorDir)) return null;
   const realIssueDir = realpathOrNull(issueDir);
   const real = realpathOrNull(priorDir);
   if (realIssueDir === null || real === null || real === realIssueDir || !within(realIssueDir, real)) throw new WriterFault("--prior-dir is not inside the issue directory");
@@ -1001,7 +1003,8 @@ function recordReviewRound(runDir, issue, text, secrets, priorDir) {
     }
     return roundFinding(f, at, carried, warnings);
   });
-  const doc = { schema_version: 1, round: n, signal: block.signal, adversarial_outcome: block.adversarial_outcome === "chain-outage-skipped" ? "chain-outage-skipped" : null, findings };
+  const adversarialOutcome = enumOrNull(block.adversarial_outcome, ["chain-outage-skipped"], "adversarial_outcome", warnings);
+  const doc = { schema_version: 1, round: n, signal: block.signal, adversarial_outcome: adversarialOutcome, findings };
   const ids = resolvedRoundIds([...existing, doc]).pop();
   findings.forEach((f, i) => { f.finding_id = ids[i]; });
   const violations = validateAgainstSchema(doc, roundSchema()).map(tidy);

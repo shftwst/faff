@@ -20,7 +20,7 @@ const DEPRECATED_MAP_REL = join(".faff-templates", "native-templates.yaml");
 
 function run(cwd, args, input) {
   try {
-    const out = execFileSync("node", [CLI, ...args], { cwd, encoding: "utf8", input: input ?? "" });
+    const out = execFileSync(process.execPath, [CLI, ...args], { cwd, encoding: "utf8", input: input ?? "" });
     return { code: 0, out, err: "" };
   } catch (e) {
     return { code: e.status ?? 1, out: (e.stdout ?? "").toString(), err: (e.stderr ?? "").toString() };
@@ -30,7 +30,7 @@ function run(cwd, args, input) {
 // Success-path stderr is not surfaced by `run` (execFileSync), so notice and advisory assertions
 // use this. Each call is a fresh process, so the once-per-process notice latch never carries over.
 function runFull(cwd, args, input) {
-  const r = spawnSync("node", [CLI, ...args], { cwd, encoding: "utf8", input: input ?? "" });
+  const r = spawnSync(process.execPath, [CLI, ...args], { cwd, encoding: "utf8", input: input ?? "" });
   const err = r.stderr;
   return { code: r.status, out: r.stdout, err };
 }

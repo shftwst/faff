@@ -9,6 +9,7 @@
     "schema_version",
     "round",
     "signal",
+    "adversarial_outcome",
     "findings"
   ],
   "properties": {
@@ -29,6 +30,17 @@
         "fail",
         "needs-human"
       ]
+    },
+    "adversarial_outcome": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "chain-outage-skipped",
+        null
+      ],
+      "description": "the terminal-pass marker that the adversarial review chain was skipped for an outage; null otherwise"
     },
     "findings": {
       "type": "array",

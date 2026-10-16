@@ -25,9 +25,10 @@
       "enum": [
         "pass",
         "fail",
-        "needs-human"
+        "needs-human",
+        "unavailable"
       ],
-      "description": "terminal round's signal"
+      "description": "terminal round's signal; unavailable and needs-human are also written by a park, which records no round of its own"
     },
     "adversarial_outcome": {
       "type": "string",
@@ -35,6 +36,13 @@
         "chain-outage-skipped"
       ],
       "description": "present only when the adversarial review chain was skipped for an outage; faff-beep-boop reads it for review_adversarial_skipped"
+    },
+    "admitted_by": {
+      "type": "string",
+      "enum": [
+        "build-judge"
+      ],
+      "description": "present only when the build judge admitted a build whose terminal recorded round did not pass"
     },
     "rounds_total": {
       "type": "integer"

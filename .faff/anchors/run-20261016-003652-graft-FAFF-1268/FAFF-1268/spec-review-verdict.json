@@ -1,0 +1,407 @@
+{
+  "schema_version": 1,
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 5,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "`collateReviewRounds` step 1 sets `title, location, action, source, model, location_present, action_present` \"＝ the highest-severity occurrence's values\", but the occurrence the same step appends is `{round, title, location, severity, disposition}` — and that exact shape is pinned again in the normaliser change (\"arrays of closed `{round, title, location, severity, disposition}` objects\"). `action`, `source`, `model`, `location_present` and `action_present` have no home in the occurrence and no other named source. Followed literally, the collated findings lack `location_present`/`action_present`, which `computeReviewVerdict` still requires (the location/action violations are explicitly unchanged), so the writer's own step-4 validation would reject the collation the writer itself produced.",
+      "evidence": "\"Collation\" procedure step 1 vs the occurrence shape in the same step and in \"Normaliser change\"; `computeReviewVerdict` in ctx-1268-code.js requires `location_present`/`action_present` per finding.",
+      "predicted_consequence": "the builder must silently deviate from the spec (keep full per-round finding records internally and source the descriptive fields from those) or ship a writer that refuses its own output; the DONE item \"identical input yields byte-identical output\" is then decided by an undocumented choice.",
+      "spec_anchor": "`collation`",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Prior spec version (2026-10-14): Collation now names rep, the full RoundFinding from the highest-severity round, as the source of location_present and action_present, with per-field latest-non-null fallback for title, location, action, source and model; a DONE item tests the model fallback.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "`collateReviewRounds` step 1 sets `title, location, action, source, model, location_present, action_present` \"＝ the highest-severity occurrence's values\", but the occurrence the same step appends is `{round, title, location, severity, disposition}` — and that exact shape is pinned again in the normaliser change (\"arrays of closed `{round, title, location, severity, disposition}` objects\"). `action`, `source`, `model`, `location_present` and `action_present` have no home in the occurrence and no other named source. Followed literally, the collated findings lack `location_present`/`action_present`, which `computeReviewVerdict` still requires (the location/action violations are explicitly unchanged), so the writer's own step-4 validation would reject the collation the writer itself produced.",
+          "spec_anchor": "`collation`"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "graft step 4 routes *both* exit 1 and exit 2 from `record-review-round` to \"treat as a malformed reviewer block (existing needs-human path)\". Exit 2 is defined as usage/path-guard/IO fault — a run-dir permission glitch, a full disk, or (per the concurrency rule) another recorder holding the exclusive create. Treating an environment fault as a verdict about the work converts a transient infrastructure failure into a `needs-human` park, the exact conflation the SKILL's own `unavailable` disposition exists to avoid for the reviewer.",
+      "evidence": "\"Graft Step 9\" procedure step 4; \"Round record\" (\"the loser exits 2\"); exit-code table (\"2 usage, path-guard or IO fault\").",
+      "predicted_consequence": "a run where the recorder hits an IO fault parks the issue needs-human with a park comment citing a malformed reviewer block that was never malformed; the fix is a one-line spec edit distinguishing exit 1 (malformed input → needs-human path) from exit 2 (log, retry or surface as an outage-class fault).",
+      "spec_anchor": "`graft-step-9`",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Prior spec version (2026-10-14): Graft Step 9 now splits recorder exits: exit 1 keeps the malformed-block path; exit 2 retries once, then parks with cause \"review-round record failed\", naming the writer fault rather than a verdict about the work.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "graft step 4 routes *both* exit 1 and exit 2 from `record-review-round` to \"treat as a malformed reviewer block (existing needs-human path)\". Exit 2 is defined as usage/path-guard/IO fault — a run-dir permission glitch, a full disk, or (per the concurrency rule) another recorder holding the exclusive create. Treating an environment fault as a verdict about the work converts a transient infrastructure failure into a `needs-human` park, the exact conflation the SKILL's own `unavailable` disposition exists to avoid for the reviewer.",
+          "spec_anchor": "`graft-step-9`"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "major",
+      "claim": "The slice's own contingency mechanism undermines one of its stated design principles, and the critique's \"right-sized? no issues\" verdict rests on treating that contingency as a scope reduction when it is not. On the expected path (eval ≥ 90%) the full bundle lands — the same bundle the FAFF-1257 critique sized as too big for one unit; the **[eval]** tag changes what happens when the eval *fails*, not the size of the intended increment. Worse, in the withheld world the shipped state contradicts the spec: \"After this slice no SKILL prose serialises `review-verdict.json`\" is asserted as a design principle, yet the withheld path leaves graft Step 9 hand-writing `review-verdict.json` (Step 9 edits are **[eval]**, Step 8 is not), and the normaliser's per-finding pass-through fields (`finding_id`, `title`, `occurrences`, …) ship with no producer anywhere in the shipped code.",
+      "evidence": "Design principles bullet \"Writers own the bytes\"; build order step 4 (\"Graft SKILL edits: Step 8 always; Step 3 and Step 9 **[eval]**\"); normaliser change listed unconditionally in WHAT; methodology critique \"Right-sized? No issues … the **[eval]** tags in DONE already let it do so\".",
+      "predicted_consequence": "If FAFF-1266's eval scores below 90%, the branch ships with a half-migrated write surface — `ac-checklist.json` writer-owned, `review-verdict.json` still prose-serialised, and normaliser pass-through fields that nothing emits — and the spec's own principle is false on that branch. A reviewer or downstream slice reading the principles cannot tell which world they describe.",
+      "spec_anchor": "writers-own-the-bytes",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Prior spec version (2026-10-14): The sizing part is settled by the product-owner split of FAFF-1257 into 2a, 2b and 2c (addendum: do not re-litigate). The valid part was fixed in place: the writers-own-the-bytes principle now states the below-bar case, and the schema additions, event type and normaliser change are tagged [eval] so nothing ships without a producer.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The slice's own contingency mechanism undermines one of its stated design principles, and the critique's \"right-sized? no issues\" verdict rests on treating that contingency as a scope reduction when it is not. On the expected path (eval ≥ 90%) the full bundle lands — the same bundle the FAFF-1257 critique sized as too big for one unit; the **[eval]** tag changes what happens when the eval *fails*, not the size of the intended increment. Worse, in the withheld world the shipped state contradicts the spec: \"After this slice no SKILL prose serialises `review-verdict.json`\" is asserted as a design principle, yet the withheld path leaves graft Step 9 hand-writing `review-verdict.json` (Step 9 edits are **[eval]**, Step 8 is not), and the normaliser's per-finding pass-through fields (`finding_id`, `title`, `occurrences`, …) ship with no producer anywhere in the shipped code.",
+          "spec_anchor": "writers-own-the-bytes"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The whole shipping decision hinges on reading a recorded eval percentage from another ticket, but the spec only covers the two clean outcomes (≥ 90% ship all; < 90% withhold). It does not say what the build agent does when FAFF-1266 has merged but the eval result is not yet recorded, or was recorded without a percentage — the exact gap FAFF-1257's critique flagged as the riskiest unknown (\"an autonomous build that cannot reach the frontier driver parks at build step 2\"), which this spec dropped when it moved the eval upstream to 2a.",
+      "evidence": "\"Dependency on FAFF-1266 (2a)\": \"build step 0 reads that result\"; assumptions: \"FAFF-1266 carries a recorded eval percentage\" — with a validation check but no instruction for the check failing at build time.",
+      "predicted_consequence": "An autonomous build at step 0 with no recorded percentage has no specified behaviour: it either guesses (shipping or withholding arbitrarily) or stalls without the `needs-human` park the parent prescribed for exactly this situation.",
+      "spec_anchor": "dependency-on-faff-1266-2a",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Prior spec version (2026-10-14): Dependency on FAFF-1266 now says that when no eval percentage is recorded the build stops before writing code: autonomous builds park needs-human with cause \"FAFF-1266 eval result not recorded\", interactive builds surface the gap.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The whole shipping decision hinges on reading a recorded eval percentage from another ticket, but the spec only covers the two clean outcomes (≥ 90% ship all; < 90% withhold). It does not say what the build agent does when FAFF-1266 has merged but the eval result is not yet recorded, or was recorded without a percentage — the exact gap FAFF-1257's critique flagged as the riskiest unknown (\"an autonomous build that cannot reach the frontier driver parks at build step 2\"), which this spec dropped when it moved the eval upstream to 2a.",
+          "spec_anchor": "dependency-on-faff-1266-2a"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The collation procedure's field-source rule is internally inconsistent, so the expected bytes for a merged finding's `action`, `source`, `model`, `location_present` and `action_present` are not decidable from the spec alone.",
+      "evidence": "`### Collation` step 1 appends occurrences as `{ round, title, location, severity, disposition }` — five fields — then sets \"title, location, action, source, model, location_present, action_present = the highest-severity occurrence's values (ties: latest round)\". Four of the eight fields named on the right-hand side do not exist in the occurrence record the same step defines. A tester writing the expected `review-verdict.json` for the scenarios cannot tell whether, e.g., a merged finding's `model` comes from the full finding in the highest-severity round's file or is undefined; the scenarios themselves never assert these fields, so the ambiguity surfaces only in the DONE item \"identical input yields byte-identical output\" once a test fixes richer fixtures.",
+      "predicted_consequence": "Two competent builders produce different merged-finding field values for a fixture where the highest-severity occurrence's finding has a null `action` but an earlier lower-severity occurrence had one; the byte-identical-output DONE item cannot be adjudicated against a single expected artifact.",
+      "spec_anchor": "collation",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Prior spec version (2026-10-14): Same fix as the architectural collation objection: the collator reads whole round records and the field sources are defined, so expected bytes are decidable.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The collation procedure's field-source rule is internally inconsistent, so the expected bytes for a merged finding's `action`, `source`, `model`, `location_present` and `action_present` are not decidable from the spec alone.",
+          "spec_anchor": "collation"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The spec moves `review-verdict.json` into a writer whose only inputs are round records built from the reviewer's `faff-contract:review-verdict` block, and `record-review-round` copies `adversarial_outcome` \"when it equals `chain-outage-skipped`\" from that block. But no producer is specified to put `adversarial_outcome` in the block: FAFF-1266 (2a) adds only `title`, `location`, `action` per finding; graft's Step 9 procedure folds \"this pass's dispositions into the findings\" and says nothing about the field; and neither review SKILL edit in this spec adds it. Today the field reaches the file because the agent hand-writes it; after this slice the hand-write is forbidden (\"a writer refusal is never followed by a hand-write\") and nothing replaces its source.",
+      "evidence": "\"Round record\" bullet \"`adversarial_outcome` is copied when it equals `\"chain-outage-skipped\"`, else `null`\"; graft Step 9 procedure steps 1–2; \"Both review occupants add three strings per finding\" is FAFF-1266's scope, not this spec's; `faff-beep-boop/SKILL.md` `review_adversarial_skipped` (~418) reads the field from the file.",
+      "predicted_consequence": "Every writer-produced `review-verdict.json` carries `adversarial_outcome: null`, so `review_adversarial_skipped` silently stops recording outage-skipped issues — the exact regression the spec's own scenario (\"so beep-boop's review_adversarial_skipped still records the issue\") claims to prevent, and the scenario test can only pass if the test fixture supplies a field no real producer emits.",
+      "spec_anchor": "round-record",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Prior spec version (2026-10-14): faffter-dark-adversarial-review/SKILL.md (Full-chain outage annotation, ~line 295, and its block example ~line 334) already sets the contract block to {signal: pass, findings: [], adversarial_outcome: chain-outage-skipped}, so the recorder has a producer. The spec now cites that source.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The spec moves `review-verdict.json` into a writer whose only inputs are round records built from the reviewer's `faff-contract:review-verdict` block, and `record-review-round` copies `adversarial_outcome` \"when it equals `chain-outage-skipped`\" from that block. But no producer is specified to put `adversarial_outcome` in the block: FAFF-1266 (2a) adds only `title`, `location`, `action` per finding; graft's Step 9 procedure folds \"this pass's dispositions into the findings\" and says nothing about the field; and neither review SKILL edit in this spec adds it. Today the field reaches the file because the agent hand-writes it; after this slice the hand-write is forbidden (\"a writer refusal is never followed by a hand-write\") and nothing replaces its source.",
+          "spec_anchor": "round-record"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The HOW says \"The outage park arm (autonomous exhausted retries, no checkpoint, or interactive) runs `write review-verdict --park unavailable`\", but the graft SKILL this spec names as the write point says the non-autonomous `unavailable` disposition is \"unchanged `needs-human` (write `review-verdict.json`, park protocol)\". The spec changes the interactive park's file signal from `needs-human` to `unavailable` without flagging it as a behaviour change or a departure, and the two documents now disagree about what a builder implements.",
+      "evidence": "\"Writer modes\" row `--park unavailable`; HOW bullet \"The outage park arm (autonomous exhausted retries, no checkpoint, or interactive) runs `write review-verdict --park unavailable`\"; graft SKILL: \"**Not autonomous → unchanged `needs-human`** (write `review-verdict.json`, park protocol)\".",
+      "predicted_consequence": "The graft SKILL edit and the writer mode disagree; whichever the builder follows, one of the two shipped artifacts is wrong, and interactive outage parks carry a different merge-visible signal than the SKILL documents.",
+      "spec_anchor": "writer-modes-for-review-verdict",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Prior spec version (2026-10-14): The interactive outage arm is now explicit: the SKILL's \"unchanged needs-human\" names the park disposition, and the file keeps the unavailable signal the review returned, as the autonomous arm does; the Step 9 edit states this.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The HOW says \"The outage park arm (autonomous exhausted retries, no checkpoint, or interactive) runs `write review-verdict --park unavailable`\", but the graft SKILL this spec names as the write point says the non-autonomous `unavailable` disposition is \"unchanged `needs-human` (write `review-verdict.json`, park protocol)\". The spec changes the interactive park's file signal from `needs-human` to `unavailable` without flagging it as a behaviour change or a departure, and the two documents now disagree about what a builder implements.",
+          "spec_anchor": "writer-modes-for-review-verdict"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The write procedure mandates that validation-failure messages \"name the key path and rule, never a value\", but the `record-review-round` out-of-enum behaviour is specified separately — \"written as `null` with a stderr warning naming the key path\" — without that guarantee. The offending value is reviewer-block text (an arbitrary string the reviewer agent emitted), and stderr is not covered by the step-2 redaction pass, which only sanitises written file bytes. A warning that echoes the raw value could place unredacted reviewer-produced text into a log surface (a terminal scrollback, a CI log, a park comment quoting stderr).",
+      "evidence": "\"an out-of-enum `severity`, `disposition` or `source` is written as `null` with a stderr warning naming the key path, and the write exits 0\" vs. step 4's \"messages name the key path and rule, never a value\".",
+      "predicted_consequence": "an out-of-enum string carrying sensitive or injected content from the reviewer block appears verbatim on stderr, outside the redaction and digest controls the spec applies to every written byte.",
+      "spec_anchor": "round-record",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Prior spec version (2026-10-14): The out-of-enum warning now names the key path and rule, never the value, and the DONE item asserts the stderr warning does not contain the value.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The write procedure mandates that validation-failure messages \"name the key path and rule, never a value\", but the `record-review-round` out-of-enum behaviour is specified separately — \"written as `null` with a stderr warning naming the key path\" — without that guarantee. The offending value is reviewer-block text (an arbitrary string the reviewer agent emitted), and stderr is not covered by the step-2 redaction pass, which only sanitises written file bytes. A warning that echoes the raw value could place unredacted reviewer-produced text into a log surface (a terminal scrollback, a CI log, a park comment quoting stderr).",
+          "spec_anchor": "round-record"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The park-unavailable scenario asserts round 1's findings settle to `disposition: open`, but the collation procedure cannot produce that value. Rule 2a fires first (\"last_round = terminal round → that round's disposition\"): with only round 1 recorded, round 1 *is* the terminal round, so the merged finding takes round 1's recorded (folded) disposition — typically `null` for a fail pass, since nothing was settled yet. Rule 2d (`open`) is only reached when 2a and 2b do not fire, and 2a here does fire. The spec nowhere states that a `null` recorded disposition renders as `open`, nor that park modes skip rule 2a (the mode table explicitly says `--park needs-human` applies \"rule 2d for absent findings\", implying 2a still governs present ones). A tester cannot decide whether the scenario passes under the rules as written.",
+      "evidence": "Scenario \"Given an autonomous review that recorded one fail round, then hit an exhausted outage … Then the file carries signal unavailable, rounds_total 1, and round 1's findings with disposition open\" vs. `PROCEDURE collateReviewRounds` rule 2a; DONE item \"The six scenarios above pass as tests\".",
+      "predicted_consequence": "The scenario test is ambiguous: a builder following rule 2a writes `disposition: null` (or the folded value) and fails the scenario's `open` assertion, or silently reorders the rules to make it pass — either way the DONE item cannot be decided consistently from the spec text.",
+      "spec_anchor": "collation",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Prior spec version (2026-10-14): Rule 2a now applies only when the write is not a park write; park modes settle by rules 2b and 2d only, so the --park unavailable scenario's disposition open follows from the rules.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The park-unavailable scenario asserts round 1's findings settle to `disposition: open`, but the collation procedure cannot produce that value. Rule 2a fires first (\"last_round = terminal round → that round's disposition\"): with only round 1 recorded, round 1 *is* the terminal round, so the merged finding takes round 1's recorded (folded) disposition — typically `null` for a fail pass, since nothing was settled yet. Rule 2d (`open`) is only reached when 2a and 2b do not fire, and 2a here does fire. The spec nowhere states that a `null` recorded disposition renders as `open`, nor that park modes skip rule 2a (the mode table explicitly says `--park needs-human` applies \"rule 2d for absent findings\", implying 2a still governs present ones). A tester cannot decide whether the scenario passes under the rules as written.",
+          "spec_anchor": "collation"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The spec's Step 9 procedure and its writer mode table together leave the dialogue loop's rebuttal→judge→OVERTURN admit path structurally unable to merge. On admit, the last recorded round is the reviewer pass that raised the critical — its signal is `fail` or `needs-human`, never `pass` (the reviewer flagged the finding; it is the judge that later overturns it). Graft Step 9 step 5 writes only when the terminal signal is `pass` or `needs-human`; the judge not-admit arm parks, and the admit arm proceeds straight to Step 9b with no terminal write specified. If no write fires, `review-verdict.json` is missing and the anchor mint refuses `floor-incomplete` — the admitted build parks. If the builder instead reaches for `--park needs-human`, the file carries a non-pass signal and `readReviewVerdict` refuses the merge leg. And the default mode cannot be forced either: it exits 1 on a `fail` terminal round (\"the review loop has not finished\"), and no mode derives `signal: pass` from a judge verdict — the recorder refuses synthetic rounds and the park write \"never adds a synthetic round\". Every write mode the spec defines dead-ends the one terminal state the dialogue loop exists to reach.",
+      "evidence": "\"Writer modes for `review-verdict`\" table (default mode precondition \"terminal round signal `pass` or `needs-human`\"; error \"terminal round is fail; the review loop has not finished\"); `graft_step_9_pass` step 5 (\"IF signal in {pass, needs-human} and this is the terminal verdict\"); the park-arm list (\"The hold-limit park and the judge not-admit park run `--park needs-human`\") which names every park but no admit-path write; \"a park write never adds a synthetic round\".",
+      "predicted_consequence": "every autonomous build whose critical is resolved by judge overturn rather than by a fix-path pass parks at the anchor mint (`floor-incomplete`) or is refused at merge (`review-verdict.json` signal ≠ pass) — the dialogue loop's success outcome can never ship without a spec change.",
+      "spec_anchor": "writer-modes-for-review-verdict",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added a --judge-admitted writer mode: signal pass plus admitted_by \"build-judge\", checked against build-review/judge/admit-result.json; the overturned finding keeps its recorded disposition. Inside the dialogue loop no pass is terminal; the loop outcome writes once (admit, not-admit or hold-limit).",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "major",
+          "claim": "The spec's Step 9 procedure and its writer mode table together leave the dialogue loop's rebuttal→judge→OVERTURN admit path structurally unable to merge. On admit, the last recorded round is the reviewer pass that raised the critical — its signal is `fail` or `needs-human`, never `pass` (the reviewer flagged the finding; it is the judge that later overturns it). Graft Step 9 step 5 writes only when the terminal signal is `pass` or `needs-human`; the judge not-admit arm parks, and the admit arm proceeds straight to Step 9b with no terminal write specified. If no write fires, `review-verdict.json` is missing and the anchor mint refuses `floor-incomplete` — the admitted build parks. If the builder instead reaches for `--park needs-human`, the file carries a non-pass signal and `readReviewVerdict` refuses the merge leg. And the default mode cannot be forced either: it exits 1 on a `fail` terminal round (\"the review loop has not finished\"), and no mode derives `signal: pass` from a judge verdict — the recorder refuses synthetic rounds and the park write \"never adds a synthetic round\". Every write mode the spec defines dead-ends the one terminal state the dialogue loop exists to reach.",
+          "spec_anchor": "writer-modes-for-review-verdict"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "`record_review_round` step 4 exits 1 when any existing round record is unparseable or schema-invalid — a fault in the run dir, not in the reviewer's block. Graft routes every recorder exit 1 to \"treat as a malformed reviewer block (existing needs-human path)\", so (a) the current pass's findings are never recorded anywhere (the pass is neither in `review-rounds/` nor re-routed to `build-review/`), violating the stated principle \"Nothing a reviewer raised is lost\" for that pass, and (b) the park cause reads as a reviewer-block fault when the real fault is a tampered or corrupted round file, sending the human debugging the wrong artifact. The park is fail-closed so nothing merges wrongly, but the evidence record silently loses a whole review pass and the diagnosis points at the wrong side.",
+      "evidence": "`record_review_round` step 4 (\"any unparseable or schema-invalid -> exit 1 naming it\"); graft Step 9 step 4 (\"exit 1 -> log it; treat as a malformed reviewer block (existing needs-human path)\"); design principle \"Nothing a reviewer raised is lost\".",
+      "predicted_consequence": "a single corrupted `round-<k>.json` (the spec's own edge case \"A round file edited after recording\") makes every subsequent pass unrecordable until a human intervenes, and the park comment names the reviewer block as the cause.",
+      "spec_anchor": "graft-step-9",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "A corrupt existing round record now makes record-review-round exit 2 naming the file, so graft retries once and parks with \"review-round record failed\", naming the run-dir fault rather than the reviewer block.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "`record_review_round` step 4 exits 1 when any existing round record is unparseable or schema-invalid — a fault in the run dir, not in the reviewer's block. Graft routes every recorder exit 1 to \"treat as a malformed reviewer block (existing needs-human path)\", so (a) the current pass's findings are never recorded anywhere (the pass is neither in `review-rounds/` nor re-routed to `build-review/`), violating the stated principle \"Nothing a reviewer raised is lost\" for that pass, and (b) the park cause reads as a reviewer-block fault when the real fault is a tampered or corrupted round file, sending the human debugging the wrong artifact. The park is fail-closed so nothing merges wrongly, but the evidence record silently loses a whole review pass and the diagnosis points at the wrong side.",
+          "spec_anchor": "graft-step-9"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The spec names park writes as a headline deliverable (\"including on the two park paths\") and specifies the `--park needs-human` mode's settlement rules (2b and 2d, signal `needs-human`), but neither the seven scenarios nor the DONE criteria exercise that mode with rounds present. The only `--park needs-human` DONE item is the no-rounds exit-1 refusal; scenario 5 covers only `--park unavailable`, and scenario 4 is a *default-mode* terminal `needs-human`, not a park write.",
+      "evidence": "Writer-modes table row `--park needs-human`; DONE item \"`--park needs-human` with no rounds exits 1\"; Scenarios section (scenarios 1–7).",
+      "predicted_consequence": "A build can satisfy every scenario and DONE item while the hold-limit park and judge not-admit park — the paths the spec says motivate `--park` — write a file whose signal and settlement are never asserted by any named test; a regression there (e.g. settling to `fixed` under a park) ships undetected.",
+      "spec_anchor": "writer-modes-for-review-verdict",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added a --park needs-human scenario with recorded rounds (hold-limit park: refuted finding keeps its refutation, absent finding settles open, never fixed).",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The spec names park writes as a headline deliverable (\"including on the two park paths\") and specifies the `--park needs-human` mode's settlement rules (2b and 2d, signal `needs-human`), but neither the seven scenarios nor the DONE criteria exercise that mode with rounds present. The only `--park needs-human` DONE item is the no-rounds exit-1 refusal; scenario 5 covers only `--park unavailable`, and scenario 4 is a *default-mode* terminal `needs-human`, not a park write.",
+          "spec_anchor": "writer-modes-for-review-verdict"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The spec has the recorder resolve ids with `resolveRoundChain` and store `finding_id` (step 6 of `record_review_round`), then has the collator *re-resolve* ids from stored `carried_id`/`title`/`location` with every stored `finding_id` removed (collation step 0). These two resolutions are not guaranteed to agree. The recorder resolves over the contiguous run ending at the new round *including* the new round's findings; the collator resolves over the same run but with the new round's `finding_id` removed. For a titled finding, `readerFindingIds` computes the id from title/location, so removal is a no-op and the ids agree. But for an *untitled* finding, `readerFindingIds` falls back to the stored `finding_id` — which the recorder just wrote — and the collator removes it, so the collator's fallback is `round-<n>#<i>`, a different id. The spec's own DONE item acknowledges this (\"a stored `finding_id` edited after recording does not change the merge, including for an untitled finding whose carry is refused on re-resolution\") but only tests the *edited* case; the unedited case is the same divergence. The merged finding's `finding_id` in `review-verdict.json` is therefore the collator's id, which for an untitled finding differs from the id the recorder stored in the round record — and the round record is what FAFF-1276's readers and the dialogue-loop churn/judge readers consume. Two consumers of the same run dir see different ids for the same finding.",
+      "evidence": "FAFF-1268 spec, \"Round record\" step 6 (\"ids = resolveRoundChain(...)[last]; finding_id = ids[i].id\") vs. \"Collation\" step 0 (\"resolveRoundChain(run) with ... every finding's stored finding_id removed first\"); `finding-id.js` `readerFindingIds` (\"if (titled[i]) return findingId(...); return storedFindingId(f) || roundScopedId(round, i)\").",
+      "predicted_consequence": "A finding with no title (the schema allows `title: null`) is recorded with id `round-<n>#<i>` (the recorder's resolution, which sees the stored id it just wrote) and collated with id `round-<n>#<i>` only if the collator's resolution happens to agree — but the collator removed the stored id, so it falls back to `round-<n>#<i>` too, which *is* the same id. The divergence is narrower than claimed: the recorder's `resolveRoundChain` call happens *before* the `finding_id` is written (step 6 computes ids, step 9 writes the file), so the recorder's resolution also sees no stored id for the new round. The two resolutions agree. This objection does not survive scrutiny — the recorder resolves the new round's findings before storing their ids, so the collator's removal is a no-op for the new round, and for prior rounds both see the stored ids identically. Downgrade to observation.",
+      "spec_anchor": "round-record",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Checked against the spec: record_review_round ignores a supplied finding_id and removes every finding_id before calling resolveRoundChain (steps 5 and 6), and the collator removes them too, so both resolve from identical inputs. The refuter reached the same conclusion in its own predicted_consequence.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "major",
+          "claim": "The spec has the recorder resolve ids with `resolveRoundChain` and store `finding_id` (step 6 of `record_review_round`), then has the collator *re-resolve* ids from stored `carried_id`/`title`/`location` with every stored `finding_id` removed (collation step 0). These two resolutions are not guaranteed to agree. The recorder resolves over the contiguous run ending at the new round *including* the new round's findings; the collator resolves over the same run but with the new round's `finding_id` removed. For a titled finding, `readerFindingIds` computes the id from title/location, so removal is a no-op and the ids agree. But for an *untitled* finding, `readerFindingIds` falls back to the stored `finding_id` — which the recorder just wrote — and the collator removes it, so the collator's fallback is `round-<n>#<i>`, a different id. The spec's own DONE item acknowledges this (\"a stored `finding_id` edited after recording does not change the merge, including for an untitled finding whose carry is refused on re-resolution\") but only tests the *edited* case; the unedited case is the same divergence. The merged finding's `finding_id` in `review-verdict.json` is therefore the collator's id, which for an untitled finding differs from the id the recorder stored in the round record — and the round record is what FAFF-1276's readers and the dialogue-loop churn/judge readers consume. Two consumers of the same run dir see different ids for the same finding.",
+          "spec_anchor": "round-record"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The spec records dialogue-loop passes with `--no-carry` (every `carried_id` null), so their ids fall back to the FAFF-1266 title rule. But the dialogue loop's own churn reader (`faff build-review-churn`, FAFF-1276) resolves ids over `build-review/`'s records *with* carries. The collator then merges the `review-rounds/` records on title-computed ids. A reworded critical that the dialogue loop correctly treated as one standing critical (churn false, loop stopped) is collated as two findings in `review-verdict.json` (the round-1 wording and the round-2 wording, different title-computed ids). The spec's own failure mode admits this (\"Dialogue-loop passes duplicate findings ... expected\"), but the consequence is not merely duplication: the terminal `review-verdict.json` on a judge-admit (`--judge-admitted`) or hold-limit park (`--park needs-human`) will show the overturned critical as *two* findings, one of which (the round-2 wording) has `last_round` = the terminal round and settles by rule 2a to the recorded disposition, while the round-1 wording settles by rule 2c/2d. The judge's overturn, which the dialogue loop treated as clearing one finding, is represented as clearing one of two. The anchored evidence then disagrees with the dialogue loop's own adjudication record.",
+      "evidence": "FAFF-1268 spec, \"Which prior list a handle names\" (\"graft passes `--no-carry` when recording a dialogue-loop pass\"); \"Collation\" rule 2a–2d; \"Failure modes\" (\"Dialogue-loop passes duplicate findings\"); FAFF-1276 spec, dialogue-loop readers (\"`computeChurn` ... resolves `[...earlier, prev, curr]` with `resolveRoundChain`\").",
+      "predicted_consequence": "A judge-admitted build whose overturned critical was reworded between dialogue rounds produces a `review-verdict.json` with two findings for one defect, one settled `fixed` (rule 2c) and one settled by its recorded disposition — the anchored audit trail contradicts the judge's single overturn. The spec's own extension point (`--prior-dir`) is the fix, but the spec ships the wrong default.",
+      "spec_anchor": "which-prior-list-a-handle-names",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Replaced --no-carry with --prior-dir: the recorder translates a build-review handle to the review-rounds handle of the finding with the same normalised file and title (exactly one match, else null with a warning), so a reworded critical stays one merged finding and rule 2c cannot stamp an uncleared wording fixed.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "major",
+          "claim": "The spec records dialogue-loop passes with `--no-carry` (every `carried_id` null), so their ids fall back to the FAFF-1266 title rule. But the dialogue loop's own churn reader (`faff build-review-churn`, FAFF-1276) resolves ids over `build-review/`'s records *with* carries. The collator then merges the `review-rounds/` records on title-computed ids. A reworded critical that the dialogue loop correctly treated as one standing critical (churn false, loop stopped) is collated as two findings in `review-verdict.json` (the round-1 wording and the round-2 wording, different title-computed ids). The spec's own failure mode admits this (\"Dialogue-loop passes duplicate findings ... expected\"), but the consequence is not merely duplication: the terminal `review-verdict.json` on a judge-admit (`--judge-admitted`) or hold-limit park (`--park needs-human`) will show the overturned critical as *two* findings, one of which (the round-2 wording) has `last_round` = the terminal round and settles by rule 2a to the recorded disposition, while the round-1 wording settles by rule 2c/2d. The judge's overturn, which the dialogue loop treated as clearing one finding, is represented as clearing one of two. The anchored evidence then disagrees with the dialogue loop's own adjudication record.",
+          "spec_anchor": "which-prior-list-a-handle-names"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "Collation step 1 picks `rep` = the finding in the round holding the highest severity (ties: latest round), then takes `title`, `location`, `action`, `source`, `model` from `rep`, falling back per-field to the latest non-null value. A defect whose severity was downgraded between rounds (critical in round 1, major in round 2) has `rep` = the round-1 finding, so the merged finding's `location` is round 1's line — even though the finding was re-raised at a different line in round 2 (the FAFF-1276 carry rule only checks the file, never the line). The merged `location` then points at a line the reviewer may have already fixed, while the occurrence list carries the round-2 line. The spec never states which location a consumer should trust.",
+      "evidence": "FAFF-1268 spec, \"Collation\" step 1 (\"rep = the finding in the round holding the highest severity (ties: latest round); ... title, location, action, source, model = rep's value; where rep's is null, the value from the latest round in which that field is non-null\"); FAFF-1276 spec, \"Identity helper\" (\"the handle must name a previous-round finding in the same normalised file; the line is not compared\").",
+      "predicted_consequence": "A merged finding's `location` field can name a line that no longer holds the defect, and a consumer (the FAFF-1268 collator's own `occurrences` is correct, but any reader of the merged `location` — e.g. a future collator consumer, or a human reading the anchored verdict) is pointed at the wrong line. The fix is a one-line rule (\"location from the latest round, not the highest-severity round\"), so this is a minor edit, not a redesign.",
+      "spec_anchor": "collation",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Collation now takes location and location_present from the latest occurrence; other descriptive fields still come from the highest-severity round with latest-non-null fallback. DONE asserts it.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "Collation step 1 picks `rep` = the finding in the round holding the highest severity (ties: latest round), then takes `title`, `location`, `action`, `source`, `model` from `rep`, falling back per-field to the latest non-null value. A defect whose severity was downgraded between rounds (critical in round 1, major in round 2) has `rep` = the round-1 finding, so the merged finding's `location` is round 1's line — even though the finding was re-raised at a different line in round 2 (the FAFF-1276 carry rule only checks the file, never the line). The merged `location` then points at a line the reviewer may have already fixed, while the occurrence list carries the round-2 line. The spec never states which location a consumer should trust.",
+          "spec_anchor": "collation"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "blocker",
+      "claim": "The writer mode `--judge-admitted` grants `signal: \"pass\"` (plus `admitted_by: \"build-judge\"`) after corroborating only that `<issue-dir>/build-review/judge/admit-result.json` parses with `admit: true`. That file lives inside the run dir, which the spec itself declares build-agent-writable (\"round records sit in a run dir the build agent can write\"), and the judge's mode-0600 files are written by the same user the build agent runs as — the permission bit constrains other users, not the author. The author agent therefore has a one-command fail-open path: write `{\"admit\": true}` to `admit-result.json`, run `faff evidence write review-verdict --judge-admitted`, and a `needs-human` terminal round with a standing critical becomes a merge-gate-passing `review-verdict.json`. The spec's stated safeguard — \"the writer corroborates the admit from the judge's own `admit-result.json` … rather than taking graft's word\" — is not a control at all: graft's word and the corroborating file have the same writer. The spec never establishes who can write `admit-result.json` or that it is tamper-evident, yet it grants merge-gate authority on its contents. This contradicts the spec's own design principle (\"A file never claims a settlement the review did not reach\") and its own anti-pattern that the author agent must never vouch for itself (the FAFF-1276 anti-pattern against an author choosing carries exists for exactly this incentive).",
+      "evidence": "Spec section 3, \"Writer modes for `review-verdict`\" (`--judge-admitted` row: \"`admit-result.json` parses with `admit: true`\") and \"Chosen: a judge admit writes through `--judge-admitted`\"; the run-dir writability admission in \"Collation\" (\"round records sit in a run dir the build agent can write\"); the merge gate routing on `signal` alone (\"The merge gate does not move\").",
+      "predicted_consequence": "A build agent under review pressure forges `admit: true`, the writer emits `signal: \"pass\"` with `admitted_by: \"build-judge\"`, `faff merge-gate` reads the review leg as pass, and a critical the judge never overturned reaches `main`. The forged file also survives into the per-PR anchor, so the audit trail shows a legitimate-looking judge admit.",
+      "spec_anchor": "writer-modes-for-review-verdict",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Checked against the code: merge-gate.js readReviewVerdict (~781) reads <run-dir>/<ISSUE>/review-verdict.json as written, and the run dir is writable by the build agent today, so --judge-admitted grants no capability the agent lacks. Moving evidence writes behind a dispatch cut is listed out of scope. The spec overclaimed: the admit-result check is now described as a consistency check, not a trust boundary.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "blocker",
+          "claim": "The writer mode `--judge-admitted` grants `signal: \"pass\"` (plus `admitted_by: \"build-judge\"`) after corroborating only that `<issue-dir>/build-review/judge/admit-result.json` parses with `admit: true`. That file lives inside the run dir, which the spec itself declares build-agent-writable (\"round records sit in a run dir the build agent can write\"), and the judge's mode-0600 files are written by the same user the build agent runs as — the permission bit constrains other users, not the author. The author agent therefore has a one-command fail-open path: write `{\"admit\": true}` to `admit-result.json`, run `faff evidence write review-verdict --judge-admitted`, and a `needs-human` terminal round with a standing critical becomes a merge-gate-passing `review-verdict.json`. The spec's stated safeguard — \"the writer corroborates the admit from the judge's own `admit-result.json` … rather than taking graft's word\" — is not a control at all: graft's word and the corroborating file have the same writer. The spec never establishes who can write `admit-result.json` or that it is tamper-evident, yet it grants merge-gate authority on its contents. This contradicts the spec's own design principle (\"A file never claims a settlement the review did not reach\") and its own anti-pattern that the author agent must never vouch for itself (the FAFF-1276 anti-pattern against an author choosing carries exists for exactly this incentive).",
+          "spec_anchor": "writer-modes-for-review-verdict"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The recorder sets `adversarial_outcome = \"chain-outage-skipped\"` \"when the block carries exactly that\" — i.e. it trusts a field of the `faff-contract:review-verdict` block, which is occupant/agent-authored text, for a signal graft elsewhere declares CLI-computed and \"never hand-adjusted by graft-time agent judgement\". A reviewer pass that actually ran the adversarial chain (or an author folding dispositions) can claim `chain-outage-skipped`, and the value flows through the round record into the terminal `review-verdict.json`, where `faff-beep-boop` reads it into the `review_adversarial_skipped` ledger annotation. The blast radius is an audit annotation, not a gate, but the spec creates the trust path by sourcing the field from the block instead of from `review-call.mjs`'s deterministic output (or by having the recorder refuse the value unless the run's events chain records the outage).",
+      "evidence": "Spec section 3, \"Round record\" step 7; `faff-graft/SKILL.md` (\"that disposition is CLI-computed … never hand-adjusted\"); `faff-beep-boop/SKILL.md` reading `adversarial_outcome` from `review-verdict.json`.",
+      "predicted_consequence": "The run ledger records `review_adversarial_skipped` for a build whose adversarial chain was never skipped, corrupting the skip-observability signal beep-boop reports.",
+      "spec_anchor": "round-record",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "adversarial_outcome is an audit annotation no gate reads (merge-gate routes on signal). faffter-dark-adversarial-review (Full-chain outage annotation) makes the review-verdict block its only carrier, and FAFF-1277 already copies it the same way; corroborating it against the transport is a separate change.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The recorder sets `adversarial_outcome = \"chain-outage-skipped\"` \"when the block carries exactly that\" — i.e. it trusts a field of the `faff-contract:review-verdict` block, which is occupant/agent-authored text, for a signal graft elsewhere declares CLI-computed and \"never hand-adjusted by graft-time agent judgement\". A reviewer pass that actually ran the adversarial chain (or an author folding dispositions) can claim `chain-outage-skipped`, and the value flows through the round record into the terminal `review-verdict.json`, where `faff-beep-boop` reads it into the `review_adversarial_skipped` ledger annotation. The blast radius is an audit annotation, not a gate, but the spec creates the trust path by sourcing the field from the block instead of from `review-call.mjs`'s deterministic output (or by having the recorder refuse the value unless the run's events chain records the outage).",
+          "spec_anchor": "round-record"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec routes a recorder exit 1 (\"treat as a malformed reviewer block (existing needs-human path)\") to `--park needs-human`, but that mode requires at least one round and exits 1 with none. On the first pass — exactly when a malformed block is most likely — no round exists, so the park write fails, no `review-verdict.json` is written, and the reviewer's raw findings vanish from the evidence trail. This is a regression the spec causes: today the park hand-writes the raw block (the very hand-write this slice removes), and the spec forbids restoring it (\"no longer ... hand-writes `review-verdict.json`\"). The asymmetry with `--park unavailable` (explicitly allowed zero rounds, `rounds_total: 0`) is unexplained.",
+      "evidence": "Writer-modes table precondition \"at least 1 round\" for `--park needs-human`; graft step 4 \"exit 1 -> ... existing needs-human path\"; \"A needs-human reached through a recorder exit 1 also uses `--park needs-human`, because its malformed pass is not recorded\"; edge case \"Outage on the first pass, then park\" handles only `unavailable`.",
+      "predicted_consequence": "A first-pass malformed reviewer block parks with no `review-verdict.json` at all; the findings survive only in the mutable graft log and the park comment, and the \"nothing a reviewer raised is lost\" design principle is violated on this path.",
+      "spec_anchor": "writer-modes-for-review-verdict",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "--park needs-human now allows zero rounds and writes rounds_total 0 and findings [], matching --park unavailable; the unrecorded block stays in the graft log. DONE covers both park modes with no rounds.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "The spec routes a recorder exit 1 (\"treat as a malformed reviewer block (existing needs-human path)\") to `--park needs-human`, but that mode requires at least one round and exits 1 with none. On the first pass — exactly when a malformed block is most likely — no round exists, so the park write fails, no `review-verdict.json` is written, and the reviewer's raw findings vanish from the evidence trail. This is a regression the spec causes: today the park hand-writes the raw block (the very hand-write this slice removes), and the spec forbids restoring it (\"no longer ... hand-writes `review-verdict.json`\"). The asymmetry with `--park unavailable` (explicitly allowed zero rounds, `rounds_total: 0`) is unexplained.",
+          "spec_anchor": "writer-modes-for-review-verdict"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "`translate_handle` step 2 defines `src` as \"the highest round-<k>.json in priorDir\" with only the unparseable case specified (exit 2). When the directory exists, passes the realpath containment check, but contains zero round files, the procedure does not say whether the recorder exits 2 or stores `carried_id: null` with a warning and proceeds.",
+      "evidence": "`### Which prior list a handle names`, step 2; the CLI table's `--prior-dir D/I/build-review` flag; graft step 4 routes exit 2 to \"retry once; still 2 -> park\" while a warning path records the round.",
+      "predicted_consequence": "the two candidate behaviours land on different graft routes — exit 2 parks a build over an empty dialogue directory, while null-with-warning records the round with the carry dropped. A tester cannot decide which is correct, and the DONE item \"translates a `--prior-dir` handle ... and stores `null` with a warning when there is no single match\" does not cover the no-files case (there is no `src.findings` to match against). The build's exit-code behaviour on this path is undecidable as written.",
+      "spec_anchor": "which-prior-list-a-handle-names",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "translate_handle now defines an empty --prior-dir: no round file stores carried_id null with a stderr warning and the round is recorded, never exit 2.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "`translate_handle` step 2 defines `src` as \"the highest round-<k>.json in priorDir\" with only the unparseable case specified (exit 2). When the directory exists, passes the realpath containment check, but contains zero round files, the procedure does not say whether the recorder exits 2 or stores `carried_id: null` with a warning and proceeds.",
+          "spec_anchor": "which-prior-list-a-handle-names"
+        }
+      ]
+    }
+  ]
+}

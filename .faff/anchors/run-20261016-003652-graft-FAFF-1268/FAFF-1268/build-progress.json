@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1268",
+  "build": {
+    "status": "complete",
+    "diff_hash": "d54f668e879918cc763bdb50c5c732c288ff9a0613010603eb167bc03d213601",
+    "branch": "FAFF-1268-record-code-review-rounds",
+    "pushed_at": "2026-10-16T01:14:42.311Z"
+  },
+  "updated_at": "2026-10-16T01:14:42.311Z"
+}

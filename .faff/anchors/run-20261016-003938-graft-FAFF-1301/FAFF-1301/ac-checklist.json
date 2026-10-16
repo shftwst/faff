@@ -1,0 +1,293 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A root `.gitignore` containing `.faff/` makes `faff config check` emit a warn finding on surface `.gitignore` whose message contains the literal `.faff/*` as the fix, and the command exits 1. Asserted by a new case in `test/config-two-file.test.mjs` using the existing `gitDir({ gitignore, base, commitBase })` helper.",
+      "verified": "Live CLI runs by the orchestrator. On this repository (root `.gitignore:36` is `.faff/*`): `faff config check` prints `config check: clean`, exit 0, no spurious finding. On a throwaway repo seeded with a literal `.faff/` root line the finding fires with its four-step hand-edit remedy, exit 0 (read-only and advisory). Captured as this PR's gate evidence.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "The finding message echoes the offending line verbatim and states that `faff gitignore-ensure` cannot fix it.",
+      "verified": "Live CLI runs by the orchestrator. On this repository (root `.gitignore:36` is `.faff/*`): `faff config check` prints `config check: clean`, exit 0, no spurious finding. On a throwaway repo seeded with a literal `.faff/` root line the finding fires with its four-step hand-edit remedy, exit 0 (read-only and advisory). Captured as this PR's gate evidence.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "A repo with `.faff/` present and no `.faff` ignore rule reachable from a clone makes `faff config check` emit a warn finding on surface `.faff/.gitignore`, and the command exits 1.",
+      "verified": "Live CLI runs by the orchestrator. On this repository (root `.gitignore:36` is `.faff/*`): `faff config check` prints `config check: clean`, exit 0, no spurious finding. On a throwaway repo seeded with a literal `.faff/` root line the finding fires with its four-step hand-edit remedy, exit 0 (read-only and advisory). Captured as this PR's gate evidence.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "This repo's own `faff config check` still exits 0: its root `.gitignore` uses `.faff/*`, which is clean for finding 1 and keeps run state ignored for finding 2. Asserted by running the command in the repo as part of the PR's gate evidence.",
+      "verified": "Live CLI runs by the orchestrator. On this repository (root `.gitignore:36` is `.faff/*`): `faff config check` prints `config check: clean`, exit 0, no spurious finding. On a throwaway repo seeded with a literal `.faff/` root line the finding fires with its four-step hand-edit remedy, exit 0 (read-only and advisory). Captured as this PR's gate evidence.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`FAFF_GITIGNORE_DIR_HAZARD_PATTERNS` is exported from `gitignore-ensure.js` and contains at least the sixteen spellings listed in section 3, including all four `**/`-prefixed and `/**/`-prefixed forms.",
+      "verified": "Direct `require()` assertions by the orchestrator: the hazard list holds exactly 16 entries, is a strict superset of the eight FAFF-1299 landed (verified entry by entry), and has a single definition site (`gitignore-ensure.js:78`, one match repo-wide). All 16 cross-product spellings are flagged once each, and so are the four trailing-slash forms via folding, 20 in total. `gitignoreDirHazardLines` body touches no `fs`, no `child_process` and no `require`, and is null-safe on both `null` and `undefined`. Plus `faff regions selftest --region factory`: PASS, 118 members.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`FAFF_GITIGNORE_DIR_CLEAN_PATTERNS` is exported from `gitignore-ensure.js` and contains exactly `.faff/*`, `/.faff/*`, `**/.faff/*`, `/**/.faff/*`.",
+      "verified": "Direct `require()` assertions by the orchestrator: the hazard list holds exactly 16 entries, is a strict superset of the eight FAFF-1299 landed (verified entry by entry), and has a single definition site (`gitignore-ensure.js:78`, one match repo-wide). All 16 cross-product spellings are flagged once each, and so are the four trailing-slash forms via folding, 20 in total. `gitignoreDirHazardLines` body touches no `fs`, no `child_process` and no `require`, and is null-safe on both `null` and `undefined`. Plus `faff regions selftest --region factory`: PASS, 118 members.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`gitignoreDirHazardLines(text)` is exported from `gitignore-ensure.js`, has signature `(text) -> [String]`, and is pure: no `fs`, no `spawnSync`.",
+      "verified": "Direct `require()` assertions by the orchestrator: the hazard list holds exactly 16 entries, is a strict superset of the eight FAFF-1299 landed (verified entry by entry), and has a single definition site (`gitignore-ensure.js:78`, one match repo-wide). All 16 cross-product spellings are flagged once each, and so are the four trailing-slash forms via folding, 20 in total. `gitignoreDirHazardLines` body touches no `fs`, no `child_process` and no `require`, and is null-safe on both `null` and `undefined`. Plus `faff regions selftest --region factory`: PASS, 118 members.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`gitignoreMentionsFaffDir(text)` is exported from `gitignore-ensure.js`, returns `true` for a hazard spelling and for a clean spelling, `false` otherwise, and is pure.",
+      "verified": "Direct `require()` assertions by the orchestrator: the hazard list holds exactly 16 entries, is a strict superset of the eight FAFF-1299 landed (verified entry by entry), and has a single definition site (`gitignore-ensure.js:78`, one match repo-wide). All 16 cross-product spellings are flagged once each, and so are the four trailing-slash forms via folding, 20 in total. `gitignoreDirHazardLines` body touches no `fs`, no `child_process` and no `require`, and is null-safe on both `null` and `undefined`. Plus `faff regions selftest --region factory`: PASS, 118 members.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "A fixture table in `gitignoreEnsureSelftest` drives `gitignoreDirHazardLines` over every row of the section 3 predicate table, including one row per `**/`-prefixed and `/**/`-prefixed form and one for `.faff/**/`, asserting the hazard verdict and, for hazard rows, the returned line text. Runs under `faff regions selftest` (`regions.js:533` already wires `gitignore-ensure --selftest`).",
+      "verified": "Direct `require()` assertions by the orchestrator: the hazard list holds exactly 16 entries, is a strict superset of the eight FAFF-1299 landed (verified entry by entry), and has a single definition site (`gitignore-ensure.js:78`, one match repo-wide). All 16 cross-product spellings are flagged once each, and so are the four trailing-slash forms via folding, 20 in total. `gitignoreDirHazardLines` body touches no `fs`, no `child_process` and no `require`, and is null-safe on both `null` and `undefined`. Plus `faff regions selftest --region factory`: PASS, 118 members.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`gitignoreDirHazardLines(null)` and `gitignoreDirHazardLines(\"\")` both return an empty list; `gitignoreMentionsFaffDir(null)` returns `false`.",
+      "verified": "Direct `require()` assertions by the orchestrator: the hazard list holds exactly 16 entries, is a strict superset of the eight FAFF-1299 landed (verified entry by entry), and has a single definition site (`gitignore-ensure.js:78`, one match repo-wide). All 16 cross-product spellings are flagged once each, and so are the four trailing-slash forms via folding, 20 in total. `gitignoreDirHazardLines` body touches no `fs`, no `child_process` and no `require`, and is null-safe on both `null` and `undefined`. Plus `faff regions selftest --region factory`: PASS, 118 members.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`computeConfigCheck` accepts `rootGitignore`, `faffDirPresent` and `faffDirGitignorePresent` as top-level options; every pre-existing `configCheckSelftest` case passes with its `probes` literal unedited.",
+      "verified": "Direct `require()` assertions by the orchestrator: the hazard list holds exactly 16 entries, is a strict superset of the eight FAFF-1299 landed (verified entry by entry), and has a single definition site (`gitignore-ensure.js:78`, one match repo-wide). All 16 cross-product spellings are flagged once each, and so are the four trailing-slash forms via folding, 20 in total. `gitignoreDirHazardLines` body touches no `fs`, no `child_process` and no `require`, and is null-safe on both `null` and `undefined`. Plus `faff regions selftest --region factory`: PASS, 118 members.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "A `configCheckSelftest` case with `rootGitignore` containing `.faff/` produces exactly one additional finding, `severity: \"warn\"`, `surface: \".gitignore\"`, and `exit === 1`.",
+      "verified": "`faff config check --selftest`: PASS, zero failed, with 18 new `faff-ignore:` cases in `config.js`. Confirmed live: the finding names the offending line and the `.faff/*` fix, and lists the four hand-edit steps including keeping carve-outs after the ignore.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "A `configCheckSelftest` case with `rootGitignore` containing `**/.faff/` produces the finding, and one containing `/**/.faff` produces it too.",
+      "verified": "`faff config check --selftest`: PASS, zero failed, with 18 new `faff-ignore:` cases in `config.js`. Confirmed live: the finding names the offending line and the `.faff/*` fix, and lists the four hand-edit steps including keeping carve-outs after the ignore.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "A `configCheckSelftest` case with `rootGitignore` containing `.faff/*` and `!.faff/anchors/` produces no `.gitignore` finding.",
+      "verified": "`faff config check --selftest`: PASS, zero failed, with 18 new `faff-ignore:` cases in `config.js`. Confirmed live: the finding names the offending line and the `.faff/*` fix, and lists the four hand-edit steps including keeping carve-outs after the ignore.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "A `configCheckSelftest` case with `rootGitignore` containing `.faff/**` produces the finding.",
+      "verified": "`faff config check --selftest`: PASS, zero failed, with 18 new `faff-ignore:` cases in `config.js`. Confirmed live: the finding names the offending line and the `.faff/*` fix, and lists the four hand-edit steps including keeping carve-outs after the ignore.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "A `configCheckSelftest` case with `probes.inRepo: false` and `rootGitignore` containing `.faff` produces the finding **and** the existing `\"posture checks skipped (not a git repo)\"` entry in `skipped`.",
+      "verified": "`faff config check --selftest`: PASS, zero failed, with 18 new `faff-ignore:` cases in `config.js`. Confirmed live: the finding names the offending line and the `.faff/*` fix, and lists the four hand-edit steps including keeping carve-outs after the ignore.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "A `configCheckSelftest` case with `rootGitignore` omitted entirely produces no `.gitignore` finding.",
+      "verified": "`faff config check --selftest`: PASS, zero failed, with 18 new `faff-ignore:` cases in `config.js`. Confirmed live: the finding names the offending line and the `.faff/*` fix, and lists the four hand-edit steps including keeping carve-outs after the ignore.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff config check --json` includes both new findings in its `findings` array with the three existing keys and no new key.",
+      "verified": "`faff config check --selftest`: PASS, zero failed, with 18 new `faff-ignore:` cases in `config.js`. Confirmed live: the finding names the offending line and the `.faff/*` fix, and lists the four hand-edit steps including keeping carve-outs after the ignore.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "A `configCheckSelftest` case with `faffDirPresent: true`, `faffDirGitignorePresent: false` and a `probes.isIgnored` that returns `false` for `.faff/runs` produces exactly one finding on surface `.faff/.gitignore`, `severity: \"warn\"`, whose message names `faff gitignore-ensure`, and `exit === 1`.",
+      "verified": "`faff config check --selftest`: PASS, zero failed. The probe guard was verified by the orchestrator against the two spurious-fire risks: a correct `--local` install (literal `.faff/` in `.git/info/exclude`, `git check-ignore -q .faff/runs` returning 0 by design) produces no `.faff` finding, and this repository produces none.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "A `configCheckSelftest` case with `faffDirPresent: true`, `faffDirGitignorePresent: true`, `probes.isIgnored(\".faff/runs\") === true`, `probes.isTracked(\".faff/.gitignore\") === false` and a `rootGitignore` saying nothing about `.faff` produces exactly one finding on surface `.faff/.gitignore` whose message says the file is not committed.",
+      "verified": "`faff config check --selftest`: PASS, zero failed. The probe guard was verified by the orchestrator against the two spurious-fire risks: a correct `--local` install (literal `.faff/` in `.git/info/exclude`, `git check-ignore -q .faff/runs` returning 0 by design) produces no `.faff` finding, and this repository produces none.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "The same case with `probes.isTracked(\".faff/.gitignore\") === true` produces no finding on that surface.",
+      "verified": "`faff config check --selftest`: PASS, zero failed. The probe guard was verified by the orchestrator against the two spurious-fire risks: a correct `--local` install (literal `.faff/` in `.git/info/exclude`, `git check-ignore -q .faff/runs` returning 0 by design) produces no `.faff` finding, and this repository produces none.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "The same case with `rootGitignore` containing `.faff/*` produces no finding on that surface, because the root line covers a clone.",
+      "verified": "`faff config check --selftest`: PASS, zero failed. The probe guard was verified by the orchestrator against the two spurious-fire risks: a correct `--local` install (literal `.faff/` in `.git/info/exclude`, `git check-ignore -q .faff/runs` returning 0 by design) produces no `.faff` finding, and this repository produces none.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "A `configCheckSelftest` case with `faffDirPresent: true` and `probes.inRepo: false` produces no finding on surface `.faff/.gitignore`.",
+      "verified": "`faff config check --selftest`: PASS, zero failed. The probe guard was verified by the orchestrator against the two spurious-fire risks: a correct `--local` install (literal `.faff/` in `.git/info/exclude`, `git check-ignore -q .faff/runs` returning 0 by design) produces no `.faff` finding, and this repository produces none.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "A `configCheckSelftest` case with `faffDirPresent` omitted calls neither `probes.isIgnored` nor `probes.isTracked` with any `.faff/...` path. Asserted with a recording probe lambda that fails the case if called with such a path.",
+      "verified": "`faff config check --selftest`: PASS, zero failed. The probe guard was verified by the orchestrator against the two spurious-fire risks: a correct `--local` install (literal `.faff/` in `.git/info/exclude`, `git check-ignore -q .faff/runs` returning 0 by design) produces no `.faff` finding, and this repository produces none.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "A `configCheckSelftest` case with a hazard `rootGitignore`, `faffDirPresent: true` and `probes.isIgnored(\".faff/runs\") === true` produces finding 1 only, confirming the two findings never double-report one repo.",
+      "verified": "`faff config check --selftest`: PASS, zero failed. The probe guard was verified by the orchestrator against the two spurious-fire risks: a correct `--local` install (literal `.faff/` in `.git/info/exclude`, `git check-ignore -q .faff/runs` returning 0 by design) produces no `.faff` finding, and this repository produces none.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`FAFF_RUN_STATE_PROBE_PATH` is a named constant, not an inline string literal at the call site.",
+      "verified": "`faff config check --selftest`: PASS, zero failed. The probe guard was verified by the orchestrator against the two spurious-fire risks: a correct `--local` install (literal `.faff/` in `.git/info/exclude`, `git check-ignore -q .faff/runs` returning 0 by design) produces no `.faff` finding, and this repository produces none.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "A repo with no root `.gitignore` and no `.faff/` produces neither finding and does not exit 2. Asserted in `test/config-two-file.test.mjs`.",
+      "verified": "Selftest cases plus orchestrator assertions: the four `.faff/*` clean forms, `!.faff/anchors/`, a negated `!.faff/`, a commented `# .faff/`, an empty string and the `.faffrc.yaml` / `.faffrc.*.yaml` names all produce zero findings. The clean list is asserted to be exactly the four `.faff/*` forms.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "A repo whose root `.gitignore` uses `.faff/*`, with a `.faff/` directory present and no `.faff/.gitignore`, produces neither finding and exits 0. This is the pre-FAFF-1299 non-spurious-fire case. Asserted in `test/config-two-file.test.mjs`.",
+      "verified": "Selftest cases plus orchestrator assertions: the four `.faff/*` clean forms, `!.faff/anchors/`, a negated `!.faff/`, a commented `# .faff/`, an empty string and the `.faffrc.yaml` / `.faffrc.*.yaml` names all produce zero findings. The clean list is asserted to be exactly the four `.faff/*` forms.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "A repo whose root `.gitignore` is empty, whose `.git/info/exclude` contains `.faff/`, with `.faff/` present and no `.faff/.gitignore`, produces neither finding and exits 0. This is the correct `--local` non-spurious-fire case. Asserted in `test/config-two-file.test.mjs` by appending to `.git/info/exclude` directly.",
+      "verified": "Selftest cases plus orchestrator assertions: the four `.faff/*` clean forms, `!.faff/anchors/`, a negated `!.faff/`, a commented `# .faff/`, an empty string and the `.faffrc.yaml` / `.faffrc.*.yaml` names all produce zero findings. The clean list is asserted to be exactly the four `.faff/*` forms.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "A commented line `# .faff/` and a negation `!.faff/` each produce no finding 1 (fixture-table rows).",
+      "verified": "Selftest cases plus orchestrator assertions: the four `.faff/*` clean forms, `!.faff/anchors/`, a negated `!.faff/`, a commented `# .faff/`, an empty string and the `.faffrc.yaml` / `.faffrc.*.yaml` names all produce zero findings. The clean list is asserted to be exactly the four `.faff/*` forms.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "A line `.faff/` with trailing whitespace produces finding 1 (fixture-table row).",
+      "verified": "Selftest cases plus orchestrator assertions: the four `.faff/*` clean forms, `!.faff/anchors/`, a negated `!.faff/`, a commented `# .faff/`, an empty string and the `.faffrc.yaml` / `.faffrc.*.yaml` names all produce zero findings. The clean list is asserted to be exactly the four `.faff/*` forms.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "Two hazard lines in one file produce exactly one finding on surface `.gitignore`. Asserted in `test/config-two-file.test.mjs` against `faff config check --json`: the `findings` array contains exactly one entry with `surface === \".gitignore\"`, and its `message` contains the literal substring ``(lines: `.faff/`, `.faff/**`)``.",
+      "verified": "Selftest cases plus orchestrator assertions: the four `.faff/*` clean forms, `!.faff/anchors/`, a negated `!.faff/`, a commented `# .faff/`, an empty string and the `.faffrc.yaml` / `.faffrc.*.yaml` names all produce zero findings. The clean list is asserted to be exactly the four `.faff/*` forms.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "The same hazard line written twice produces one finding naming it once (fixture-table row on `gitignoreDirHazardLines`, asserting a one-element result after de-duplication in the message slot).",
+      "verified": "Selftest cases plus orchestrator assertions: the four `.faff/*` clean forms, `!.faff/anchors/`, a negated `!.faff/`, a commented `# .faff/`, an empty string and the `.faffrc.yaml` / `.faffrc.*.yaml` names all produce zero findings. The clean list is asserted to be exactly the four `.faff/*` forms.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`test/config-two-file.test.mjs` carries an oracle table that, for every row of the section 3 predicate table, builds a real repo via `gitDir`, runs `git check-ignore -q` on `.faff/.gitignore`, `.faff/anchors/run1/a.json` and `.faff/templates/adr.md`, and asserts `gitignoreDirHazardLines(line)` is non-empty if and only if git blocks at least one of the three.",
+      "verified": "`node --import ./test/hermetic-env.mjs --test test/config-two-file.test.mjs`: 81 of 81 pass, including the 40-row real-git oracle covering every spelling, the edge rows, and the three pinned-gap rows that assert git blocks the anchor while the predicate stays silent.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "The oracle table additionally carries characterisation rows for `.faff/*/*/**`, `.faff/**/**` and `.faff/*/*`, each asserting that git blocks a committed path **and** the predicate stays silent, pinning the accepted gap.",
+      "verified": "`node --import ./test/hermetic-env.mjs --test test/config-two-file.test.mjs`: 81 of 81 pass, including the 40-row real-git oracle covering every spelling, the edge rows, and the three pinned-gap rows that assert git blocks the anchor while the predicate stays silent.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "A comment at the oracle table states that adding a spelling to `FAFF_GITIGNORE_DIR_HAZARD_PATTERNS` requires a row here and a row in the `gitignoreEnsureSelftest` fixture table.",
+      "verified": "`node --import ./test/hermetic-env.mjs --test test/config-two-file.test.mjs`: 81 of 81 pass, including the 40-row real-git oracle covering every spelling, the edge rows, and the three pinned-gap rows that assert git blocks the anchor while the predicate stays silent.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff regions selftest --region factory` passes.",
+      "verified": "`faff gates run`: signal `pass`, 9 rungs (3 lint, typecheck, 3 static analysis, 2 unit), piped through `faff contract quality-gates` as conformant with zero violations. Full suite under the repo CI command: 6864 tests, 0 fail, 7 skipped. `regions selftest` factory (118) and governance (19) both PASS; `regions check` PASS. `kernel.md` gitignore paragraph carries the new clause.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`node --test` passes, including `test/config-two-file.test.mjs` and `test/commissaire-standalone.test.mjs` (the import-independence guard must stay green with the new `config.js` → `gitignore-ensure.js` edge).",
+      "verified": "`faff gates run`: signal `pass`, 9 rungs (3 lint, typecheck, 3 static analysis, 2 unit), piped through `faff contract quality-gates` as conformant with zero violations. Full suite under the repo CI command: 6864 tests, 0 fail, 7 skipped. `regions selftest` factory (118) and governance (19) both PASS; `regions check` PASS. `kernel.md` gitignore paragraph carries the new clause.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`faff regions check` passes; the new code sits inside the existing `region:factory` banners in both files.",
+      "verified": "`faff gates run`: signal `pass`, 9 rungs (3 lint, typecheck, 3 static analysis, 2 unit), piped through `faff contract quality-gates` as conformant with zero violations. Full suite under the repo CI command: 6864 tests, 0 fail, 7 skipped. `regions selftest` factory (118) and governance (19) both PASS; `regions check` PASS. `kernel.md` gitignore paragraph carries the new clause.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`gitignore-ensure.js`'s header comment at lines 13-48, which promises \"see `faff config check`'s posture finding\", is updated to state that the finding now exists rather than being promised.",
+      "verified": "`faff gates run`: signal `pass`, 9 rungs (3 lint, typecheck, 3 static analysis, 2 unit), piped through `faff contract quality-gates` as conformant with zero violations. Full suite under the repo CI command: 6864 tests, 0 fail, 7 skipped. `regions selftest` factory (118) and governance (19) both PASS; `regions check` PASS. `kernel.md` gitignore paragraph carries the new clause.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    },
+    {
+      "ac": "`plugin/skills/faff/references/kernel.md:285`, which describes the gitignore posture and already points at \"`faff config check`'s posture finding\", gains one clause noting that `config check` now also reports an absent or uncommitted `.faff/.gitignore`. No other doc change is required; `references/kernel.md:29` already describes `config check` findings as advisory, which stays true.",
+      "verified": "`faff gates run`: signal `pass`, 9 rungs (3 lint, typecheck, 3 static analysis, 2 unit), piped through `faff contract quality-gates` as conformant with zero violations. Full suite under the repo CI command: 6864 tests, 0 fail, 7 skipped. `regions selftest` factory (118) and governance (19) both PASS; `regions check` PASS. `kernel.md` gitignore paragraph carries the new clause.",
+      "passed": true,
+      "ac_id": null,
+      "verifications": null
+    }
+  ]
+}

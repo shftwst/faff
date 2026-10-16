@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "terminal-only",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/config.js::finding 2 can fire on a correctly configured repo whose committed run-state rule is not an enumerated spelling",
+      "title": "Finding 2 can fire on a correctly configured repo whose committed run-state rule is not an enumerated spelling",
+      "location": "plugin/skills/faff/bin/lib/config.js:2543",
+      "action": "Replace the enumerated text scan with a query of which ignore source actually covers the probe path and whether that source is tracked.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "CONFIRMED by repro. A repo with a committed root `.faff/runs/` line plus a present-but-untracked `.faff/.gitignore` is told `.faff/.gitignore` is the only thing ignoring run state and it is NOT committed, and a fresh clone gets no rule at all. Both claims are false: the committed narrow line covers the clone. Mechanism: step 3 passes because run state IS ignored, then `gitignoreMentionsFaffDir` only knows the 4 clean and 16 hazard spellings, so a narrower committed rule is invisible and the untracked-inner-file branch fires. It exits 1, which repos may gate on. NOT fixed here: `gitignoreMentionsFaffDir` is an explicit Chosen decision in the spec, and asking which source covers the path is a spec-level redesign rather than a correction of what was specified. Mitigating: the spurious warning's advice, commit `.faff/.gitignore`, is correct for any repo after FAFF-1299, so the cost is a redundant warning rather than wrong guidance. Recorded in <run-dir>/FAFF-1301/discovered-scope.json.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Finding 2 can fire on a correctly configured repo whose committed run-state rule is not an enumerated spelling",
+          "location": "plugin/skills/faff/bin/lib/config.js:2543",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/config.js::selftest pins finding-1-only in a configuration that masks a double-fire",
+      "title": "Selftest pins finding-1-only in a configuration that masks a double-fire",
+      "location": "plugin/skills/faff/bin/lib/config.js:2541",
+      "action": "None required; the premise does not hold.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "config.js:2541 is `if (!faffDirGitignorePresent) return null;`, which returns before the tracked-ness branches the finding relies on. Verified empirically: a repo with a root `.faff/` hazard line and an untracked `.gitignore` emits finding 1 only, with finding 2 silent, matching the spec's table row.",
+      "disposition_rationale": "The finding reasons from steps 5 and 6 while omitting the `faffDirGitignorePresent` early return that precedes them, so the predicted double-fire is unreachable whenever no `.faff/.gitignore` exists. Confirmed by running the CLI in that exact configuration.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Selftest pins finding-1-only in a configuration that masks a double-fire",
+          "location": "plugin/skills/faff/bin/lib/config.js:2541",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/config.js::the hazard remedy under-fixes the prefixed spellings",
+      "title": "The hazard remedy under-fixes the prefixed spellings",
+      "location": "plugin/skills/faff/bin/lib/config.js:2527",
+      "action": "Pick the replacement per spelling family, or note that the `.faff/*` substitution is root-scoped.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Fair and accurate: for `**/.faff/` the scope-preserving fix is `**/.faff/*`, so the suggested line changes the rule's reach as well as repairing the hazard. The message is advisory and hand-applied, so nothing is automated on the wrong fix. Same family as the monorepo-intent observation already filed from the FAFF-1299 review. Recorded in <run-dir>/FAFF-1301/discovered-scope.json.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "The hazard remedy under-fixes the prefixed spellings",
+          "location": "plugin/skills/faff/bin/lib/config.js:2527",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gitignore-ensure.js::widening the shared list also changes gitignore-ensure's shipped write-time warning surface",
+      "title": "Widening the shared list also changes gitignore-ensure's shipped write-time warning surface",
+      "location": "plugin/skills/faff/bin/lib/gitignore-ensure.js:78",
+      "action": "State the write-time surface change in the PR body so a later bisect lands here.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "CONFIRMED by repro: `faff gitignore-ensure` on a root file carrying `.faff/*/**` or `.faff/**/*` reports 0 warnings on main and 1 with this change. The direction is intended and the spec's superset-reconciliation rule is honoured, but the finding is right that the change was framed as a config-check addition only. Addressed by stating the write-time surface change explicitly in the PR body.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Widening the shared list also changes gitignore-ensure's shipped write-time warning surface",
+          "location": "plugin/skills/faff/bin/lib/gitignore-ensure.js:78",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/config-two-file.test.mjs::the real-git oracle's committed parts are never actually committed",
+      "title": "The real-git oracle's committed parts are never actually committed",
+      "location": "test/config-two-file.test.mjs",
+      "action": "Either git add the fixture files or rename the fixture to say on-disk rather than committed.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Accurate and the finding concedes the verdicts are correct, because `git check-ignore` is index-independent, so every oracle row asserts what it claims. The residue is fixture naming plus latent brittleness if a future row came to depend on tracked-ness. Low value against the churn of touching 40 oracle rows.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "The real-git oracle's committed parts are never actually committed",
+          "location": "test/config-two-file.test.mjs",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

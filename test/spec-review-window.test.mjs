@@ -381,7 +381,7 @@ test("govern: soft pin-marker-contradiction (pin present, capture marker state !
 function legacyPin(dir, n, servedBackend) {
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "pinned-reviewer.json"), JSON.stringify(BACKENDS[0]));
-  atomicWriteJSON(servedIdentityPath(dir, n), { round: n, served_identity: backendIdentity(servedBackend), winner_index: 0, ts: new Date().toISOString() });
+  atomicWriteJSON(servedIdentityPath(dir, n), { round: n, served_identity: backendIdentity(servedBackend), winner_index: BACKENDS.indexOf(servedBackend), ts: new Date().toISOString() });
 }
 
 test("govern: unvouchable marker, window_start already n — unchanged, never lowered", () => {

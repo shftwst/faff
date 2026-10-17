@@ -116,6 +116,7 @@ const { cmdSentrycheck } = require("./lib/sentrycheck");
 const { cmdSpecJudgeEvidence, cmdSpecJudgeAcceptBar } = require("./lib/spec-judge-evidence");
 const { cmdBuildReviewChurn } = require("./lib/build-review-churn");
 const { cmdReviewPrior } = require("./lib/review-prior");
+const { cmdResumeStore } = require("./lib/resume-store");
 const { cmdBuildReviewConvergence } = require("./lib/build-review-convergence");
 const { cmdBuildJudgeEvidence } = require("./lib/build-judge-evidence");
 const { cmdSpecReview } = require("./lib/spec-review");
@@ -247,6 +248,7 @@ const COMMANDS = {
   "review-progress": cmdReviewProgress,
   "build-progress": cmdBuildProgress,
   "landing-progress": cmdLandingProgress,
+  "resume-store": cmdResumeStore,
   "sentry": cmdSentry,
   "sentry-poller": cmdSentryPoller,
   "sentrycheck": cmdSentrycheck,

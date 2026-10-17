@@ -353,7 +353,8 @@ test("govern: soft pin-marker-missing (legacy pin, no capture marker) — full G
     const { code, result } = govern(dir, 3, "any-served");
     assert.equal(code, 0);
     assert.equal(result.anomaly, "pin-marker-missing");
-    assert.equal(result.action, "unchanged");
+    assert.equal(result.action, "unpinnable-reset");
+    assert.equal(result.window_start, 3);
     assert.equal(result.capture_state, "absent");
     assert.equal(result.capture_round, null);
   } finally { rmSync(dir, { recursive: true, force: true }); }
@@ -369,7 +370,54 @@ test("govern: soft pin-marker-contradiction (pin present, capture marker state !
     const { code, result } = govern(dir, 3, "any-served");
     assert.equal(code, 0);
     assert.equal(result.anomaly, "pin-marker-contradiction");
+    assert.equal(result.action, "unpinnable-reset");
+    assert.equal(result.window_start, 3);
     assert.equal(result.capture_state, "failed");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// A pin with NO capture marker (the legacy-pin arm of the unvouchable-marker pair). The pin is
+// always BACKENDS[0]; `servedBackend` is who served round `n`, so passing BACKENDS[1] stages a swap.
+function legacyPin(dir, n, servedBackend) {
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "pinned-reviewer.json"), JSON.stringify(BACKENDS[0]));
+  atomicWriteJSON(servedIdentityPath(dir, n), { round: n, served_identity: backendIdentity(servedBackend), winner_index: 0, ts: new Date().toISOString() });
+}
+
+test("govern: unvouchable marker, window_start already n — unchanged, never lowered", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-srw-gov-"));
+  try {
+    legacyPin(dir, 3, BACKENDS[0]);
+    writeWindowStart(dir, 3);
+    const { code, result } = govern(dir, 3, "any-served");
+    assert.equal(code, 0);
+    assert.equal(result.anomaly, "pin-marker-missing");
+    assert.equal(result.action, "unchanged");
+    assert.equal(result.window_start, 3);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("govern: unvouchable marker at round 1 — window_start 1, unchanged", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-srw-gov-"));
+  try {
+    legacyPin(dir, 1, BACKENDS[0]);
+    const { code, result } = govern(dir, 1, "any-served");
+    assert.equal(code, 0);
+    assert.equal(result.anomaly, "pin-marker-missing");
+    assert.equal(result.action, "unchanged");
+    assert.equal(result.window_start, 1);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("govern: unvouchable marker plus a swapped served identity — swap-reset with the anomaly attached", () => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-srw-gov-"));
+  try {
+    legacyPin(dir, 3, BACKENDS[1]);
+    const { code, result } = govern(dir, 3, "any-served");
+    assert.equal(code, 0);
+    assert.equal(result.anomaly, "pin-marker-missing");
+    assert.equal(result.action, "swap-reset");
+    assert.equal(result.window_start, 3);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

@@ -1,0 +1,261 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A governed round with an unvouchable marker and `window_start < n` persists `window_start: n`, so the convergence window no longer spans rounds whose shared reviewer is unproven.",
+      "verified": "Integration smoke test run: govern round 3 over a pin with a {state:failed,round:1} marker and window_start 1 persisted window_start 3, action unpinnable-reset, anomaly pin-marker-contradiction; window.json re-read as {\"window_start\":3}.",
+      "passed": true,
+      "ac_id": "faff-1324#done:1",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff spec-review-window --govern --dir <scratch> --round 3 --any-served"
+        }
+      ]
+    },
+    {
+      "ac": "The commit message records the decision and rests it on the fail-safe idiom and on `window_start`'s published meaning, states the trade in the direction Failure modes establishes (a wide window is biased toward over-parking, so this change buys a vouchable comparison rather than a safer outcome), and notes that FAFF-1052 deferred this question rather than deciding it. It must **not** claim the status quo yielded false convergence, and must **not** claim it breached FAFF-1052's acceptance.",
+      "verified": "Commit 02a45a96's message rests the decision on the fail-safe idiom and on window_start's published meaning, states the over-parking direction and that the change buys a comparison the governor can vouch for rather than a safer outcome, and records that FAFF-1052 deferred the question. Neither forbidden claim appears: no false-convergence claim, no acceptance-breach claim.",
+      "passed": true,
+      "ac_id": "faff-1324#done:2",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git log -1 --format=%B"
+        }
+      ]
+    },
+    {
+      "ac": "`GovernanceResult` carries exactly `round`, `window_start`, `action`, `anomaly`, `served_identity`, `capture_state`, `capture_round`, `ts`; `test/spec-review-window.test.mjs:418-432` passes with its key list unmodified.",
+      "verified": "Key-set test passes with its list unmodified; no field added to GovernanceResult.",
+      "passed": true,
+      "ac_id": "faff-1324#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-window.test.mjs::govern: every non-arg-error path writes governance-<n>.json with the full result shape"
+        }
+      ]
+    },
+    {
+      "ac": "No `AnomalyToken` or `ActionToken` value is added, renamed, or removed; `grep -c '\"unpinnable-reset\"' plugin/skills/faff/bin/lib/spec-review-window.js` shows the token reused, not replaced.",
+      "verified": "grep -c '\"unpinnable-reset\"' returns 6 — the token is reused, not replaced; no token added, renamed or removed.",
+      "passed": true,
+      "ac_id": "faff-1324#done:4",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c '\"unpinnable-reset\"' plugin/skills/faff/bin/lib/spec-review-window.js"
+        }
+      ]
+    },
+    {
+      "ac": "`spec-review-window.js:245` — the `else` arm — sets `capRound = n`; the literal `capRound = 1` no longer appears in `govern()`. Do **not** edit `:244`: that is the clean `cap.state === \"captured\"` arm, and setting `capRound = n` there would break late-pin-advance and fail `test/spec-review-window.test.mjs:308`.",
+      "verified": "The else arm sets capRound = n and the literal capRound = 1 no longer appears anywhere in the file (0 occurrences). The arm now sits at :247 rather than :245 because the explanatory comment added above it shifted the line; the clean captured arm was not touched.",
+      "passed": true,
+      "ac_id": "faff-1324#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'capRound = n' plugin/skills/faff/bin/lib/spec-review-window.js; grep -c 'capRound = 1' plugin/skills/faff/bin/lib/spec-review-window.js"
+        }
+      ]
+    },
+    {
+      "ac": "The late-pin rule reports `unpinnable-reset` when it fires with a non-null anomaly and `late-pin-advance` when it fires with `anomaly == null`.",
+      "verified": "Rule (L) reads action = anomaly === null ? \"late-pin-advance\" : \"unpinnable-reset\" at :251; both branches are covered by the suite.",
+      "passed": true,
+      "ac_id": "faff-1324#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-window.test.mjs::govern: late-pin-advance — the pin is first captured at round 2 (the FAFF-996 recovery case)"
+        }
+      ]
+    },
+    {
+      "ac": "`test/spec-review-window.test.mjs:347` (`govern: soft pin-marker-missing ... full GovernanceResult asserted`) is updated: `action` changes from `\"unchanged\"` to `\"unpinnable-reset\"`, and a new `assert.equal(result.window_start, 3)` is added. `code: 0`, `anomaly: \"pin-marker-missing\"`, `capture_state: \"absent\"`, `capture_round: null` are all asserted unchanged.",
+      "verified": "The pin-marker-missing test now asserts action unpinnable-reset and window_start 3; its code, anomaly, capture_state and capture_round assertions are unchanged.",
+      "passed": true,
+      "ac_id": "faff-1324#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-window.test.mjs::govern: soft pin-marker-missing (legacy pin, no capture marker) — full GovernanceResult asserted"
+        }
+      ]
+    },
+    {
+      "ac": "`test/spec-review-window.test.mjs:362` (the `pin-marker-contradiction` twin) gains `assert.equal(result.action, \"unpinnable-reset\")` and `assert.equal(result.window_start, 3)`. Its existing `code: 0`, `anomaly`, and `capture_state: \"failed\"` assertions pass unmodified; this test asserts no `action` or `window_start` today, so it does not fail before the edit. The assertions are added so the new behaviour is pinned rather than merely tolerated.",
+      "verified": "The contradiction twin gained the action and window_start assertions; its existing assertions are untouched.",
+      "passed": true,
+      "ac_id": "faff-1324#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-window.test.mjs::govern: soft pin-marker-contradiction (pin present, capture marker state != captured) — full GovernanceResult asserted"
+        }
+      ]
+    },
+    {
+      "ac": "The selftest twin at `spec-review-window.js:556` (`govern pin-marker-missing (soft, non-fatal)`) asserts `r.result.action === \"unpinnable-reset\"` and `r.result.window_start === 3` in place of `action === \"unchanged\"`, keeping `r.code === 0` and the anomaly check.",
+      "verified": "Selftest twin asserts action unpinnable-reset and window_start 3, run via the worktree's own binary (the modified lib), not the main checkout's.",
+      "passed": true,
+      "ac_id": "faff-1324#done:9",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "./plugin/skills/faff/bin/faff spec-review-window --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "The selftest twin at `spec-review-window.js:560` (`govern pin-marker-contradiction (soft, non-fatal)`) is extended from code-and-anomaly only to also assert `action === \"unpinnable-reset\"` and `window_start === 3`, closing the asymmetry with its sibling.",
+      "verified": "The contradiction selftest twin now asserts action and window_start too, closing the asymmetry with its sibling. It needed a writeWindowStart(tmp, 1) reset, because it shares a scratch dir with the sibling whose govern call had already persisted window_start 3; without it the twin could not reach the late-pin rule at all. This fixture reset is an addition beyond the spec's literal DoD text.",
+      "passed": true,
+      "ac_id": "faff-1324#done:10",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "./plugin/skills/faff/bin/faff spec-review-window --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`faff spec-review-window --selftest` reports PASS and exits 0, so `test/spec-review-window.test.mjs:250,256` pass.",
+      "verified": "RESULT: PASS (spec-review-window, 0 failed), exit 0, against the modified lib.",
+      "passed": true,
+      "ac_id": "faff-1324#done:11",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "./plugin/skills/faff/bin/faff spec-review-window --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "A governed round with an unvouchable marker and `window_start` already equal to `n` reports `action: \"unchanged\"`, `window_start: n`, anomaly recorded; covered by a new test case.",
+      "verified": "New case: window_start already equal to the round reports unchanged with window_start held, anomaly recorded, exit 0 — never lowered.",
+      "passed": true,
+      "ac_id": "faff-1324#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-window.test.mjs::govern: unvouchable marker, window_start already n — unchanged, never lowered"
+        }
+      ]
+    },
+    {
+      "ac": "Round 1 with an unvouchable marker is unchanged from today: `window_start: 1`, `action: \"unchanged\"`; covered by a new test case.",
+      "verified": "New case: round 1 is inert — window_start 1, action unchanged, exit 0.",
+      "passed": true,
+      "ac_id": "faff-1324#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-window.test.mjs::govern: unvouchable marker at round 1 — window_start 1, unchanged"
+        }
+      ]
+    },
+    {
+      "ac": "An unvouchable marker plus a served identity differing from the pin still reports `action: \"swap-reset\"` with the anomaly attached; covered by a new test case.",
+      "verified": "New case: an unvouchable marker plus a differing served identity still reports swap-reset with the anomaly attached.",
+      "passed": true,
+      "ac_id": "faff-1324#done:14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-window.test.mjs::govern: unvouchable marker plus a swapped served identity — swap-reset with the anomaly attached"
+        }
+      ]
+    },
+    {
+      "ac": "`test/spec-review-window.test.mjs:308` (the healthy `late-pin-advance` path) and the `unchanged` and `swap-reset` tests pass unmodified, proving the clean branch is untouched.",
+      "verified": "Whole window suite green at 35/35, including the healthy late-pin-advance path and the unchanged and swap-reset tests, none of which were edited.",
+      "passed": true,
+      "ac_id": "faff-1324#done:15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-window.test.mjs::govern: late-pin-advance — the pin is first captured at round 2 (the FAFF-996 recovery case)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-window.test.mjs::govern: unchanged when round 2 is served by the SAME backend as the pin"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-window.test.mjs::govern: swap-reset fires from served-<n>.json even though the pin is still chain[0]"
+        }
+      ]
+    },
+    {
+      "ac": "`test/spec-review-occupant-served-dispatch.test.mjs:76-80` passes unmodified, asserting exit 0 and `action: \"swap-reset\"` through the real `faff` binary.",
+      "verified": "Passes unmodified; git diff --name-only HEAD~1 HEAD lists no sibling test file.",
+      "passed": true,
+      "ac_id": "faff-1324#done:16",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-occupant-served-dispatch.test.mjs::occupant dispatch (extracted verbatim from SKILL.md): round >= 2 idempotent no-op capture STILL writes served-<n>.json"
+        }
+      ]
+    },
+    {
+      "ac": "`test/spec-review-atomic-write.test.mjs:69,88` and `test/spec-review-pin.test.mjs:262,290` pass unmodified.",
+      "verified": "Both suites pass unmodified; 46/46 across the three sibling suites, and the diff touches none of them.",
+      "passed": true,
+      "ac_id": "faff-1324#done:17",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-atomic-write.test.mjs::govern: a rename fault on governance-<n>.json throws and leaves no orphaned tmp file"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-pin.test.mjs::captureNoLensServed: a no-lens round after a served round PRESERVES the captured marker"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-pin.test.mjs::captureNoLensServed: a non-captured prior marker is replaced, not preserved"
+        }
+      ]
+    },
+    {
+      "ac": "`test/spec-review-window.test.mjs:268` (the prep prose lint) passes unmodified; `git diff --stat` shows no change to `plugin/skills/faff-prep/SKILL.md` and no change to `SKILL_LINE_BASELINE`.",
+      "verified": "The prose lint passes and the diff touches neither plugin/skills/faff-prep/SKILL.md nor validate-adapters.js, so SKILL_LINE_BASELINE needs no bump.",
+      "passed": true,
+      "ac_id": "faff-1324#done:18",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-window.test.mjs::faff-prep/SKILL.md: the loop resolves the window + round number via the new CLI"
+        }
+      ]
+    },
+    {
+      "ac": "No change to `spec-review-pin.js`, `spec-review-convergence.js`, `judge-trail.js`, or any `SKILL.md`. `git diff --name-only` lists only `spec-review-window.js` and `test/spec-review-window.test.mjs`.",
+      "verified": "git diff --name-only HEAD~1 HEAD lists exactly spec-review-window.js and its test; no change to spec-review-pin.js, spec-review-convergence.js, judge-trail.js or any SKILL.md.",
+      "passed": true,
+      "ac_id": "faff-1324#done:19",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --name-only HEAD~1 HEAD"
+        }
+      ]
+    },
+    {
+      "ac": "The marker self-heal and the unguarded `--backends-json` failure write are filed as separate issues, each citing its extension point from OUT OF SCOPE.",
+      "verified": "Both filed: FAFF-1331 (the marker self-heal, citing capturePin's existing-pin arm at spec-review-pin.js:214-224 and the [n..n] latch consequence from Failure modes) and FAFF-1332 (the unguarded --backends-json failure write, citing the atomicWriteJSON at spec-review-pin.js:382 inside the :378-385 catch block, and noting FAFF-1052's never-silent property the fix must preserve). Each cites its OUT OF SCOPE extension point. Intake recorded for both.",
+      "passed": true,
+      "ac_id": "faff-1324#done:20",
+      "verifications": [
+        {
+          "kind": "human"
+        }
+      ]
+    }
+  ]
+}

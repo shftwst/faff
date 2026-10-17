@@ -233,6 +233,10 @@ test("stash refuses a dialogue hold with no rounds, and needs both counters once
   assert.equal(runCli(stashArgs(a, store, "build-review-dialogue", ["--fix-rounds-used", "-1", "--rebuttal-rounds-used", "0"])).code, 2);
   assert.ok(!fs.existsSync(join(store, ISSUE)));
   assert.equal(runCli(stashArgs(join(tmp, "missing"), store, "review-outage", [])).code, 2);
+  const linked = join(tmp, "L");
+  write(join(linked, ISSUE, "build-progress.json"), {});
+  fs.symlinkSync(join(a, ISSUE, "build-review"), join(linked, ISSUE, "build-review"));
+  assert.equal(runCli(stashArgs(linked, store, "build-review-dialogue")).code, 1, "a symlinked build-review is not carried, so it holds no rounds");
 }));
 
 test("an --issue that is not an issue id exits 2 before touching the filesystem", () => withTmp((tmp) => {

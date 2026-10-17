@@ -210,7 +210,7 @@ function stash({ runDir, issue, cause, fixRoundsUsed, rebuttalRoundsUsed, storeR
   const src = path.join(runDir, issue);
   const dst = path.join(storeRoot, issue);
   if (!isDir(src)) fault(`no issue dir at ${src}`);
-  const n = nextRoundNumber(path.join(src, "build-review"));
+  const n = isDir(path.join(src, "build-review")) ? nextRoundNumber(path.join(src, "build-review")) : 1;
   if (cause === "build-review-dialogue" && n === 1) refuse("no dialogue rounds to resume");
   if (n > 1 && (fixRoundsUsed == null || rebuttalRoundsUsed == null)) {
     fault("build-review/ holds a round file, so --fix-rounds-used and --rebuttal-rounds-used are required");

@@ -1,0 +1,491 @@
+{
+  "schema_version": 1,
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 4,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "Stash step 4's justification — \"one writer per issue: the build-claim mutex already serialises graft runs on an issue\" — does not hold for the second-hold-in-a-resumed-run scenario, which the spec's Scenarios section treats as a supported case. Graft releases the claim on every hold (`faff build-claim release` in both hold dispositions), and the resumed run's Step-5 claim is explicitly a no-op (\"already In Progress/In Review… never reverted\"). So from the first hold's release until the next drain's terminal disposition, no claim exists, and two concurrent drains that both re-acquire the issue (a lease-matched reclaim only guards the claim ref, and a no-op Step 5 on the resumed path re-establishes no fresh lease to fence the stash) can both reach stash step 4.",
+      "evidence": "Stash step 4 (\"one writer per issue: the build-claim mutex already serialises graft runs on an issue\"); graft context — both hold arms end with `faff build-claim release`, and graft-step3.md states the Step-5 claim is a no-op on resume; the scenario \"A second hold after a restore…\" assumes a single stash.",
+      "predicted_consequence": "Two concurrent stashes both read the same prior `hold.json` before either's rename completes; both increment from the same prior, so `hold_count` advances by 1 instead of 2 (or one store swap is silently lost) — the counter the spec calls \"the only thing making `graft.build_review_hold_limit` a real ceiling\" resets, producing the exact unbounded-requeue outcome the spec's own anti-pattern paragraph forbids.",
+      "spec_anchor": "how",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Verified: both resume arms skip Step 5, so a resumed run holds no build-claim ref. The spec no longer relies on the claim; all three subcommands take their own per-issue lock (exclusive mkdir of the stage folder, exit 4 when busy). The missing claim on resume is listed under OUT OF SCOPE for a follow-up.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "Stash step 4's justification — \"one writer per issue: the build-claim mutex already serialises graft runs on an issue\" — does not hold for the second-hold-in-a-resumed-run scenario, which the spec's Scenarios section treats as a supported case. Graft releases the claim on every hold (`faff build-claim release` in both hold dispositions), and the resumed run's Step-5 claim is explicitly a no-op (\"already In Progress/In Review… never reverted\"). So from the first hold's release until the next drain's terminal disposition, no claim exists, and two concurrent drains that both re-acquire the issue (a lease-matched reclaim only guards the claim ref, and a no-op Step 5 on the resumed path re-establishes no fresh lease to fence the stash) can both reach stash step 4.",
+          "spec_anchor": "how"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec codifies the dialogue counters precisely so they survive a hold, but stashes them only under `cause: build-review-dialogue`. An `unavailable` during the dialogue loop (a reviewer re-evaluation or judge call that the graft context routes to the outage hold) stashes with `cause: review-outage`, whose hold record carries no `dialogue` object and whose restore arm re-enters via the outage resume (\"skip Steps 4–7, re-run 7.5+8, Step 9 reads the carried review-progress.json\") — no restore of `fix_rounds_used` / `rebuttal_rounds_used`. `hold_count` also resets: a subsequent dialogue hold sees `prior.cause != build-review-dialogue` and starts at 1.",
+      "evidence": "Types (`dialogue` \"present iff cause == build-review-dialogue\"); Stash step 3 gates counters on the cause; graft context: the `unavailable` disposition explicitly covers \"a reviewer re-evaluation or a judge pass inside the dialogue loop\", and its stash is `--cause review-outage`.",
+      "predicted_consequence": "A dialogue suspended by a provider outage resumes with caps reset, running extra fix/rebuttal rounds past `faff review-iteration-cap` and re-arming `hold_count` — the same defect class this ticket exists to kill, surviving one cause-label over.",
+      "spec_anchor": "cli-surface",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The dialogue object is now written whenever the stashed build-review/ holds a round, for either cause; an outage hold carries hold_count unchanged and both resume arms seed the counters from the restore output.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The spec codifies the dialogue counters precisely so they survive a hold, but stashes them only under `cause: build-review-dialogue`. An `unavailable` during the dialogue loop (a reviewer re-evaluation or judge call that the graft context routes to the outage hold) stashes with `cause: review-outage`, whose hold record carries no `dialogue` object and whose restore arm re-enters via the outage resume (\"skip Steps 4–7, re-run 7.5+8, Step 9 reads the carried review-progress.json\") — no restore of `fix_rounds_used` / `rebuttal_rounds_used`. `hold_count` also resets: a subsequent dialogue hold sees `prior.cause != build-review-dialogue` and starts at 1.",
+          "spec_anchor": "cli-surface"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "Restore validates the store *before* copying (step 4) and proves the chain *after* copying (step 10). If the post-copy `nextRoundNumber(dst/build-review)` check fails (e.g. a copy silently dropped or renamed a round file), the run dir has already received the store's JSON files and folders, yet the CLI reports the same exit 1 \"refusal\" the pre-copy check uses. The DONE item (\"exits 1 without writing when the stashed rounds disagree\") is only true of the pre-copy check; as written, a builder can satisfy it while leaving a half-restored run dir on disk. That half-restored dir is then resume-shaped state in the repo — a later drain or a human poking at the run dir can mistake it for a legitimately resumed build, and the store has already been left intact (restore never clears it), so the same disagreement re-fires every drain with no signal that the run dir is polluted.",
+      "evidence": "HOW → Restore steps 7–10; DONE → \"Restore … exits 1 without writing when the stashed rounds disagree with `next_round`\"; Edge cases (no cleanup-on-refusal path is specified for restore, only for stash's staging folders).",
+      "predicted_consequence": "a partially restored run dir persists in the repo after a refused restore, indistinguishable from a valid resume target; repeated drains re-fail against an unchanged store with accumulating partial state.",
+      "spec_anchor": "how",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Restore now copies into a staging folder beside the issue dir, runs the round check there, and only then moves entries in, so every exit 1 leaves the run dir unchanged.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "Restore validates the store *before* copying (step 4) and proves the chain *after* copying (step 10). If the post-copy `nextRoundNumber(dst/build-review)` check fails (e.g. a copy silently dropped or renamed a round file), the run dir has already received the store's JSON files and folders, yet the CLI reports the same exit 1 \"refusal\" the pre-copy check uses. The DONE item (\"exits 1 without writing when the stashed rounds disagree\") is only true of the pre-copy check; as written, a builder can satisfy it while leaving a half-restored run dir on disk. That half-restored dir is then resume-shaped state in the repo — a later drain or a human poking at the run dir can mistake it for a legitimately resumed build, and the store has already been left intact (restore never clears it), so the same disagreement re-fires every drain with no signal that the run dir is polluted.",
+          "spec_anchor": "how"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The slice is well-shaped as an increment, but it ships under FAFF-1255 (anchor evidence) while fixing a graft resume-path defect, so FAFF-1255's completion signal is polluted by an unrelated ticket.",
+      "evidence": "The spec's own Methodology critique, principle 5: \"Leaving it there blurs what 'done' means for FAFF-1255. Consider moving it out to project-less Backlog or to the project that owns the build-review dialogue; this is a human call and prep does not move it.\"",
+      "predicted_consequence": "FAFF-1255 cannot be closed on its own criteria until a human re-files FAFF-1314; the misfile persists through delivery and surfaces as a project-level accounting discrepancy at review time.",
+      "spec_anchor": "methodology-critique",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Re-parenting FAFF-1314 out of FAFF-1255 is a product-owner call; prep does not move tickets. Surfaced to the user in the prep report.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The slice is well-shaped as an increment, but it ships under FAFF-1255 (anchor evidence) while fixing a graft resume-path defect, so FAFF-1255's completion signal is polluted by an unrelated ticket.",
+          "spec_anchor": "methodology-critique"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The scenario section covers only the `build-review-dialogue` path. The `review-outage` stash→restore round trip — half the verb's purpose, and the path whose restore output graft Step 3 branches on (`cause: review-outage` → skip Steps 4–7, re-run 7.5+8) — has no Given/When/Then. Nor does the legacy shape (`hold.json` absent → `{ \"cause\": \"review-outage\", \"legacy\": true }`), which is a named DONE item (\"prints the legacy shape when `hold.json` is absent\"). A build that broke restore for `review-outage` specifically — e.g. mishandling the no-`dialogue` record branch — would pass every existing scenario.",
+      "evidence": "DONE \"Restore exits 3 with no store, prints the legacy shape when `hold.json` is absent…\"; Scenarios section (all three blocks are dialogue-cause).",
+      "predicted_consequence": "The outage-hold resume path — the counter-monotonicity property the WHY section calls load-bearing (\"a dropped carry is an infinite hold loop\") — ships with no test that would fail if it regressed.",
+      "spec_anchor": "5-scenarios",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added a review-outage stash and restore scenario and a legacy-store scenario, with matching DONE items.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The scenario section covers only the `build-review-dialogue` path. The `review-outage` stash→restore round trip — half the verb's purpose, and the path whose restore output graft Step 3 branches on (`cause: review-outage` → skip Steps 4–7, re-run 7.5+8) — has no Given/When/Then. Nor does the legacy shape (`hold.json` absent → `{ \"cause\": \"review-outage\", \"legacy\": true }`), which is a named DONE item (\"prints the legacy shape when `hold.json` is absent\"). A build that broke restore for `review-outage` specifically — e.g. mishandling the no-`dialogue` record branch — would pass every existing scenario.",
+          "spec_anchor": "5-scenarios"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The stash lock's stale-cleanup and restore's absent-store path jointly fail open on the exact crash the design admits is possible, deleting or ignoring the one complete copy of the store and resetting the counter the spec exists to preserve.",
+      "evidence": "Stash step 4a: \"`IF stage mtime is older than 10 minutes -> remove it and store_root/.<issue>.old`\". Consider the crash window between the two renames in step 11 (`dst -> .<issue>.old` succeeds, `stage -> dst` fails): state is `.<issue>.old` = the previous valid store (rounds 1–n, `hold.json` with `hold_count` ≥ 1) plus a stale `.<issue>.stage`. The next stash removes **both**, then step 5 reads `dst/hold.json` — now absent — so `prior_holds = 0` and the new record carries `hold_count: 1`. The counter silently reset and the rounds for the gap are only re-stashed from whatever the current run dir happens to hold. This directly contradicts the spec's own DONE item (\"the previous store stays intact until the swap\") and its anti-pattern (\"discarding the store and rebuilding fresh … turns `graft.build_review_hold_limit` into a label that resets on every drain\"). The same root cause hits restore: step 2 exits 3 when `<issue>` is absent without ever consulting `.<issue>.old`, so graft's unchanged stale-label rule proceeds as a fresh build — the spec's stated principle \"Fail closed toward a human, never toward round 1\" is violated by its own design, not by a careless builder.",
+      "predicted_consequence": "A crash inside the two-rename window yields a resumed run with `hold_count` reset to 0 or 1 and a lost round chain — the precise regression FAFF-1314 is filed to fix, recurring via the fix's own recovery path. A single design change closes it: restore falls back to `.<issue>.old` when `<issue>` is absent, and stash never deletes `.<issue>.old` until the swap has fully published.",
+      "spec_anchor": "stash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added a shared recover step that renames .<issue>.old back when <issue> is absent, run under the lock by every subcommand; stale-lock cleanup now removes only the stage, never .old. Added a torn-swap scenario.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The stash lock's stale-cleanup and restore's absent-store path jointly fail open on the exact crash the design admits is possible, deleting or ignoring the one complete copy of the store and resetting the counter the spec exists to preserve.",
+          "spec_anchor": "stash"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The restore procedure's only rollback mechanism is deleting the `created` list — paths that did not previously exist in the destination. But step 8 explicitly copies top-level `*.json` with \"overwrite allowed\", and those overwrites are *not* recorded in `created`, so when the step-11 post-copy round check fails and the verb exits 1, every pre-existing run-dir JSON (`build-progress.json`, `review-progress.json`, `ac-checklist.json`, …) retains the stashed store's content. The spec's own invariant — \"Every exit 1 leaves the run dir as it found it\" — is false for exactly the files graft's resume logic then reads. This is a fail-open path in the safety check the spec designs: a store whose `next_round` disagrees with its rounds (the tampered/torn-store case the check exists for) still succeeds in planting its `build-progress.json` and `review-progress.json` into the run dir before refusing. Graft's resume-at-review flow then reads a checkpoint the restore was supposed to have never applied — e.g. a stale `outage_retries` or a diff-hash checkpoint from an earlier hold — and the subsequent resume decision is made against store-controlled state that the refusal was meant to keep out.",
+      "evidence": "Restore step 8 (\"overwrite allowed; append to created each path that did not exist\"), step 11 (\"remove every path in created ; exit 1 # post-copy proof; the run dir is left as it was\"), and the prose claim \"Every exit 1 leaves the run dir as it found it\" under `### Restore`.",
+      "predicted_consequence": "A disagreeing/torn store passes its round-file payload's sibling JSONs into the run dir despite exiting 1; the resumed run's checkpoint reads (diff-hash validation, outage-retry counter, holdout idempotency) operate on stashed content the restore refused, defeating the fail-closed intent of the validation step.",
+      "spec_anchor": "restore",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Same fix as 1#2 in its final form: restore stages, verifies, then publishes by rename, so pre-existing top-level JSON files are untouched on any exit 1.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The restore procedure's only rollback mechanism is deleting the `created` list — paths that did not previously exist in the destination. But step 8 explicitly copies top-level `*.json` with \"overwrite allowed\", and those overwrites are *not* recorded in `created`, so when the step-11 post-copy round check fails and the verb exits 1, every pre-existing run-dir JSON (`build-progress.json`, `review-progress.json`, `ac-checklist.json`, …) retains the stashed store's content. The spec's own invariant — \"Every exit 1 leaves the run dir as it found it\" — is false for exactly the files graft's resume logic then reads. This is a fail-open path in the safety check the spec designs: a store whose `next_round` disagrees with its rounds (the tampered/torn-store case the check exists for) still succeeds in planting its `build-progress.json` and `review-progress.json` into the run dir before refusing. Graft's resume-at-review flow then reads a checkpoint the restore was supposed to have never applied — e.g. a stale `outage_retries` or a diff-hash checkpoint from an earlier hold — and the subsequent resume decision is made against store-controlled state that the refusal was meant to keep out.",
+          "spec_anchor": "restore"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "Stash step 9 copies an existing `spec-review-hold.json` into the stage, but step 10 defines `carried` as \"sorted relative paths actually copied in steps 6 and 7\" — excluding the step-9 copy. The hold record is the audit surface for what travelled through the resume store; a file present in the store but absent from `carried` means any future consumer (or the extension-point `gatherResumeEvidence` reader named in OUT OF SCOPE) trusting `carried` as an inventory of the store's contents is silently wrong.",
+      "evidence": "Stash steps 9–10; `HoldRecord.carried` documented as \"relative paths copied, sorted; audit only\".",
+      "predicted_consequence": "not separately stated (audit-integrity gap; no direct exploit shown).",
+      "spec_anchor": "stash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "carried is now every file in the store except hold.json, so the preserved spec-review-hold.json is listed.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "Stash step 9 copies an existing `spec-review-hold.json` into the stage, but step 10 defines `carried` as \"sorted relative paths actually copied in steps 6 and 7\" — excluding the step-9 copy. The hold record is the audit surface for what travelled through the resume store; a file present in the store but absent from `carried` means any future consumer (or the extension-point `gatherResumeEvidence` reader named in OUT OF SCOPE) trusting `carried` as an inventory of the store's contents is silently wrong.",
+          "spec_anchor": "stash"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The first-ever hold in a repo has no `.faff/resume/` directory, and stash step 4a does `mkdir stage` **non-recursive** — which fails with ENOENT when `store_root` does not exist. The spec never states that stash creates `store_root` (recursively) first, nor which exit code an ENOENT at 4a takes (the exit table's \"2 usage or I/O fault\" is a guess, not a spec line). The main behaviour — a repo's first dialogue hold — is therefore not decidable as written.",
+      "evidence": "HOW → Stash, step 4a; CLI surface table (`stash` exit codes); Integration smoke test step 2 (uses `--store-root S` without creating it).",
+      "predicted_consequence": "A builder who follows step 4a literally ships a verb whose first real-world invocation exits 2 and graft parks `needs-human` on every first hold; a second builder silently `mkdir -p`s and the two builds differ on an untested path.",
+      "spec_anchor": "how",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Stash now runs mkdir -p on the store root before taking the lock; DONE item added for the first stash in a repo.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The first-ever hold in a repo has no `.faff/resume/` directory, and stash step 4a does `mkdir stage` **non-recursive** — which fails with ENOENT when `store_root` does not exist. The spec never states that stash creates `store_root` (recursively) first, nor which exit code an ENOENT at 4a takes (the exit table's \"2 usage or I/O fault\" is a guess, not a spec line). The main behaviour — a repo's first dialogue hold — is therefore not decidable as written.",
+          "spec_anchor": "how"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "Stash step 3b exits 2 whenever `n > 1` and the counters are missing — i.e. for **any** cause with rounds present, including `review-outage`. But graft edit 3 says to add `--fix-rounds-used … --rebuttal-rounds-used …` \"whenever the dialogue loop has run\". An outage that interrupts a dialogue reviewer pass (the exact case the Types section says the counters must survive) sits on the boundary: if graft's \"the dialogue loop has run\" is read as \"a dialogue hold was reached\", the counters are omitted, stash exits 2, and graft's own rule (\"a non-zero stash exit → needs-human park\") fires — the outage hold becomes an unparkable human escalation instead of a retry-later.",
+      "evidence": "HOW → Stash step 3b vs Graft SKILL edits item 3; Types section (\"the counters must survive that hold too\").",
+      "predicted_consequence": "An outage mid-dialogue parks a human where the spec's stated intent is an auto-resuming hold; the DONE item \"an outage stash with rounds carries it unchanged\" cannot be exercised because the stash refuses before writing.",
+      "spec_anchor": "graft-skill-edits",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Graft now passes the counters under the same test the CLI applies: whenever <run_dir>/<ISSUE>/build-review/ holds a round file.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "Stash step 3b exits 2 whenever `n > 1` and the counters are missing — i.e. for **any** cause with rounds present, including `review-outage`. But graft edit 3 says to add `--fix-rounds-used … --rebuttal-rounds-used …` \"whenever the dialogue loop has run\". An outage that interrupts a dialogue reviewer pass (the exact case the Types section says the counters must survive) sits on the boundary: if graft's \"the dialogue loop has run\" is read as \"a dialogue hold was reached\", the counters are omitted, stash exits 2, and graft's own rule (\"a non-zero stash exit → needs-human park\") fires — the outage hold becomes an unparkable human escalation instead of a retry-later.",
+          "spec_anchor": "graft-skill-edits"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec routes every `stash` exit 1 and the restore's \"fresh stash lock exists\" exit 1 to a `needs-human` park. But exit 1 has at least two semantically different causes: a genuinely corrupt/refusing store (correctly fail-closed toward a human) and \"another stash for <issue> is in progress\" — a seconds-long transient that graft's own `Concurrent stash` edge case names. The park is sticky (`faff-parked`, human unpark) and can entail clearing `.faff/resume/<issue>/` on the terminal-disposition housekeeping path — i.e. a race can both wake a human and discard the hold chain the lock was protecting.",
+      "evidence": "\"A second stash for the same issue while the first holds the lock exits 1, and graft parks `needs-human`\" (Edge cases); \"A non-zero `stash` exit → `needs-human` park, never a hold that cannot resume\" and \"Exit 1 or 2 on a store that passed the build-progress validation → `needs-human` park\" (Graft SKILL edits). The reachability of overlap is the spec's own doing: the outage hold releases the claim and sets `In Progress → Todo` precisely so the issue is re-acquirable, so two executors on one issue is a reachable state, not hypothetical.",
+      "predicted_consequence": "an overlapping drain converts a recoverable, seconds-long contention into a sticky human park (and on the park path, potentially a store clear that destroys a valid stash mid-flight). A distinguishing of error classes — in-drain short retry or a retry-later-like disposition for the lock case — is available inside the existing vocabulary and the spec does not take it.",
+      "spec_anchor": "graft-skill-edits",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Lock contention now has its own exit code 4. Restore returns claimed-by-peer so the next drain retries; stash and read retry once before parking.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The spec routes every `stash` exit 1 and the restore's \"fresh stash lock exists\" exit 1 to a `needs-human` park. But exit 1 has at least two semantically different causes: a genuinely corrupt/refusing store (correctly fail-closed toward a human) and \"another stash for <issue> is in progress\" — a seconds-long transient that graft's own `Concurrent stash` edge case names. The park is sticky (`faff-parked`, human unpark) and can entail clearing `.faff/resume/<issue>/` on the terminal-disposition housekeeping path — i.e. a race can both wake a human and discard the hold chain the lock was protecting.",
+          "spec_anchor": "graft-skill-edits"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec replaces a plain 189-word prose paragraph with one that now contains a CLI invocation with four flags, a three-way exit-code branch (0 / 1–2 / 3), cause branching on the printed output, and the preserved freshness sentence — and simultaneously binds that same paragraph to \"at or under the 200-word cap\", enforced by lint. Absorbing control-flow semantics into prose this compressed is a numerical squeeze the builder cannot resolve by editing elsewhere, since the cap is tied to exactly that paragraph.",
+      "evidence": "\"This paragraph is plain prose (189 words today) and must stay at or under the 200-word cap\" plus the lint gate \"the Step 3 resume-store fallback paragraph is at or under 200 words\"; the file is at 956 of a 957-line baseline, so there is no vertical room to relocate text either.",
+      "predicted_consequence": "`faff validate-adapters` fails at build time (or the paragraph has to be rewritten so tersely it loses the exit-code semantics the DONE items require — a restore exit 1/2 versus 3 distinction is exactly the kind of thing that vanishes under compression), and the fix requires loosening the budget, i.e. changing the spec.",
+      "spec_anchor": "graft-skill-edits",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Edit 1 notes that removing the cp clauses frees roughly 60 words and allows the exit routing to move into one bullet using the file's one spare line.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The spec replaces a plain 189-word prose paragraph with one that now contains a CLI invocation with four flags, a three-way exit-code branch (0 / 1–2 / 3), cause branching on the printed output, and the preserved freshness sentence — and simultaneously binds that same paragraph to \"at or under the 200-word cap\", enforced by lint. Absorbing control-flow semantics into prose this compressed is a numerical squeeze the builder cannot resolve by editing elsewhere, since the cap is tied to exactly that paragraph.",
+          "spec_anchor": "graft-skill-edits"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The spec's own design principle is \"Fail closed toward a human, never toward round 1,\" and its anti-pattern forbids discarding the store on a restore refusal because a fresh build \"turns `graft.build_review_hold_limit` into a label that resets on every drain.\" Yet edit 1 routes restore **exit 3** (\"the store vanished after the build-progress read\") to \"the existing stale-label arm, a fresh build.\" That conflates two different situations. The resume-store fallback only fires when the issue **carries a hold label** (`faff-awaiting-review` or `awaiting-adjudication`) — the label is the precondition for entering the fallback, so a store absent at that point is *store loss*, not a *stale label*. The stale-label arm was designed for a label with no hold behind it; here the label is evidence a hold happened. Worse, the loss is reachable without an attacker: graft's terminal-disposition housekeeping removes `.faff/resume/<issue>/` and removes the hold label **both best-effort, logged-not-halted** — a failed label removal after a `needs-human` park leaves the label on the issue with the store deleted, and the next drain takes exactly this exit-3 path. The same reset is reachable via `read`: graft's dialogue-hold limit check maps `read` exit 3 → `hold_count` 0. The counter that makes the hold limit \"a real ceiling\" is therefore deletable-without-trace, and the spec's specified response to its deletion is the reset the spec elsewhere calls an anti-pattern.",
+      "evidence": "Graft SKILL edits item 1 (\"Exit 3 (the store vanished after the build-progress read) → the existing stale-label arm, a fresh build\"); the dialogue-hold bullet (\"exit 3 → 0\"); Design principles (\"Fail closed toward a human, never toward round 1\"); the anti-pattern (\"a fresh build resets `hold_count` to 0, which turns `graft.build_review_hold_limit` into a label that resets on every drain\"); Step-3 context (fallback fires only when the issue carries a hold label); graft Step 9 housekeeping (\"best-effort, logged-not-halted\" label/store removal).",
+      "predicted_consequence": "A build whose dialogue keeps holding can lose its store (crash, best-effort housekeeping race, or the agent deleting its own constraint) and silently resume as a fresh build with `hold_count` 0, repeating hold→lose→rebuild indefinitely; `graft.build_review_hold_limit` never terminates the loop and no human is ever woken.",
+      "spec_anchor": "graft-skill-edits",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Verified the fallback only runs under a hold label. A missing store there (restore exit 3, or build-progress read exit 3 on this path) now parks needs-human for both hold labels instead of rebuilding fresh; read exit 3 parks on a run that resumed from the store.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "major",
+          "claim": "The spec's own design principle is \"Fail closed toward a human, never toward round 1,\" and its anti-pattern forbids discarding the store on a restore refusal because a fresh build \"turns `graft.build_review_hold_limit` into a label that resets on every drain.\" Yet edit 1 routes restore **exit 3** (\"the store vanished after the build-progress read\") to \"the existing stale-label arm, a fresh build.\" That conflates two different situations. The resume-store fallback only fires when the issue **carries a hold label** (`faff-awaiting-review` or `awaiting-adjudication`) — the label is the precondition for entering the fallback, so a store absent at that point is *store loss*, not a *stale label*. The stale-label arm was designed for a label with no hold behind it; here the label is evidence a hold happened. Worse, the loss is reachable without an attacker: graft's terminal-disposition housekeeping removes `.faff/resume/<issue>/` and removes the hold label **both best-effort, logged-not-halted** — a failed label removal after a `needs-human` park leaves the label on the issue with the store deleted, and the next drain takes exactly this exit-3 path. The same reset is reachable via `read`: graft's dialogue-hold limit check maps `read` exit 3 → `hold_count` 0. The counter that makes the hold limit \"a real ceiling\" is therefore deletable-without-trace, and the spec's specified response to its deletion is the reset the spec elsewhere calls an anti-pattern.",
+          "spec_anchor": "graft-skill-edits"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The spec answers \"How are concurrent stashes kept apart?\" with an exclusive-`mkdir` lock on the **writer** side only, and states \"the stash takes its own lock\" as the concurrency control. The reader side has none: restore's only guard is step 2's check that `.<issue>.stage` exists and is younger than 10 minutes — but during stash step 13 the stage has already been renamed away (first `dst→old`, then `stage→dst`), so between the two renames there is **no stage** and restore's check passes. Restore then runs `recover()`, which renames `old→dst` underneath the live stash, and reads/copies a store the stash is concurrently replacing. The post-copy `next_round` proof (step 10) catches round-count divergence, but non-round checkpoint files (`review-progress.json` with its `outage_retries`, `ac-checklist.json`) can be restored from a different hold generation than the record describes, with no error. The spec's own edge-case list covers concurrent stash and torn swap but never stash-vs-restore.",
+      "evidence": "Restore step 2 (stage-freshness check as the only guard), step 3 (`recover` runs unconditionally), stash step 13 (two-rename publication during which no stage exists); \"How are concurrent stashes kept apart?\" (lock described as the answer); Edge cases (concurrency limited to \"Concurrent stash\").",
+      "predicted_consequence": "A resumed run restores `review-progress.json` from a different hold than the printed record — e.g. an `outage_retries` value from the wrong generation — so the outage retry counter under-counts and the `graft.review_outage_retry_limit` ceiling is exceeded by silent increments, or the stash fails mid-swap and graft parks on an error the spec never assigns an exit code.",
+      "spec_anchor": "restore",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "restore and read now take the same per-issue lock as stash for their whole run, and recover only under it, so no reader sees a store mid-swap.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The spec answers \"How are concurrent stashes kept apart?\" with an exclusive-`mkdir` lock on the **writer** side only, and states \"the stash takes its own lock\" as the concurrency control. The reader side has none: restore's only guard is step 2's check that `.<issue>.stage` exists and is younger than 10 minutes — but during stash step 13 the stage has already been renamed away (first `dst→old`, then `stage→dst`), so between the two renames there is **no stage** and restore's check passes. Restore then runs `recover()`, which renames `old→dst` underneath the live stash, and reads/copies a store the stash is concurrently replacing. The post-copy `next_round` proof (step 10) catches round-count divergence, but non-round checkpoint files (`review-progress.json` with its `outage_retries`, `ac-checklist.json`) can be restored from a different hold generation than the record describes, with no error. The spec's own edge-case list covers concurrent stash and torn swap but never stash-vs-restore.",
+          "spec_anchor": "restore"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The Step-3 fallback edit directs graft to `return claimed-by-peer` on restore exit 4 — a new member of graft's drain-facing return vocabulary. Nothing in the spec (or the supplied graft/lights-out context) defines how the lights-out drain treats it: which ledger bucket it lands in, whether it re-enqueues, or whether an unrecognised return is fail-closed. The verb's exit codes are fully specified; the return value they map to is not.",
+      "evidence": "Graft SKILL edits, item 1, \"exit 4 → return `claimed-by-peer`: another run is working this issue's store, and the next drain retries.\"",
+      "predicted_consequence": "The first drain that hits a lock clash produces a return value no drain code understands; the behaviour \"the next drain retries\" exists only in prose, not in any consumer the spec names.",
+      "spec_anchor": "graft-skill-edits",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "claimed-by-peer is not new: graft Step 5 already returns it when the build-claim is held elsewhere, and resume.js lists it in TERMINAL_NON_SHIPPED. The spec now says so.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The Step-3 fallback edit directs graft to `return claimed-by-peer` on restore exit 4 — a new member of graft's drain-facing return vocabulary. Nothing in the spec (or the supplied graft/lights-out context) defines how the lights-out drain treats it: which ledger bucket it lands in, whether it re-enqueues, or whether an unrecognised return is fail-closed. The verb's exit codes are fully specified; the return value they map to is not.",
+          "spec_anchor": "graft-skill-edits"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec budgets prose wholesale against the hard `SKILL_LINE_BASELINE` (957; file is 956) and even then only for the Step-3 fallback paragraph (one spare bullet line). The dialogue-hold edit does not merely swap a clause for a verb call — it adds an entire new read-based limit check with four exit branches (`read` 0/absent/3/4 plus the stash retry rule), which cannot plausibly be an in-place clause swap of equal length. If the file exceeds baseline, `faff validate-adapters` fails and the DONE item is undecidable as written.",
+      "evidence": "Graft SKILL edits, item 3, versus \"`plugin/skills/faff-graft/SKILL.md` must stay at or under its 957-line baseline\" and the DONE lint item.",
+      "predicted_consequence": "The builder discovers mid-build that the dialogue-hold bullet cannot be edited in place under the baseline, and the spec supplies no compression or relocation strategy for that site.",
+      "spec_anchor": "graft-skill-edits",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The spec now states the hold-site edits stay on their existing single-line bullets (a bold-lead bullet over the word cap only warns), so only the Step 3 paragraph may spend the one spare line.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The spec budgets prose wholesale against the hard `SKILL_LINE_BASELINE` (957; file is 956) and even then only for the Step-3 fallback paragraph (one spare bullet line). The dialogue-hold edit does not merely swap a clause for a verb call — it adds an entire new read-based limit check with four exit branches (`read` 0/absent/3/4 plus the stash retry rule), which cannot plausibly be an in-place clause swap of equal length. If the file exceeds baseline, `faff validate-adapters` fails and the DONE item is undecidable as written.",
+          "spec_anchor": "graft-skill-edits"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "\"Restore exits 3 with no store and prints the legacy shape when `hold.json` is absent and no `build-review/` is stashed\" merges two mutually exclusive behaviours. Per the Restore procedure, store absent → exit 3; store present with no `hold.json` and no `build-review/` → legacy rec printed, **exit 0**. As written, a builder reading the DONE list alone can implement exit 3 for the legacy path, contradicting the procedure and the CLI surface table (exit 3 = \"no store\").",
+      "evidence": "DONE \"From HOW (behaviour)\" bullet vs. Restore procedure steps 4–5 and CLI surface exit table.",
+      "predicted_consequence": "An implementer following DONE literally makes a legacy store (old-prose outage stash) unresumable — the exact regression this ticket exists to fix, in a related shape.",
+      "spec_anchor": "from-how-behaviour",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Split the DONE item: exit 3 only when the store folder is absent; exit 0 with the legacy shape when it exists without hold.json.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "\"Restore exits 3 with no store and prints the legacy shape when `hold.json` is absent and no `build-review/` is stashed\" merges two mutually exclusive behaviours. Per the Restore procedure, store absent → exit 3; store present with no `hold.json` and no `build-review/` → legacy rec printed, **exit 0**. As written, a builder reading the DONE list alone can implement exit 3 for the legacy path, contradicting the procedure and the CLI surface table (exit 3 = \"no store\").",
+          "spec_anchor": "from-how-behaviour"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The specified stale-lock procedure (stat the stage's age, remove if > 10 min, retry once) is a check-then-act race: process A can observe a stale stage, process B can then remove it and take a fresh lock, and A — acting on its earlier observation — removes B's *live* lock and takes the lock itself. Two stashes then run concurrently; both publish by rename, last writer wins, and the loser's `hold_count` increment is silently lost. A regressed counter weakens `graft.build_review_hold_limit` from a ceiling to a slower drain — the exact fail-open the spec's design principles (\"fail closed toward a human, never toward round 1\") say it must not permit.",
+      "evidence": "\"On `EEXIST`: a stage older than 10 minutes is stale, so remove the stage only and retry once\" (§4, \"Issue lock and torn-swap recovery\"); DONE item \"a stage older than 10 minutes is cleared and the call proceeds\".",
+      "predicted_consequence": "Under concurrent drains on the same issue, a hold counter regresses and the bounded-hold guarantee is silently extended; no data loss beyond the counter (recover still restores the previous store).",
+      "spec_anchor": "issue-lock-and-torn-swap-recovery-shared-by-every-subcommand",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The lock holder writes a nonce to stage/.lock and stash re-checks it immediately before publishing, exiting 4 when it is missing or not its own; selftest DONE item added.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The specified stale-lock procedure (stat the stage's age, remove if > 10 min, retry once) is a check-then-act race: process A can observe a stale stage, process B can then remove it and take a fresh lock, and A — acting on its earlier observation — removes B's *live* lock and takes the lock itself. Two stashes then run concurrently; both publish by rename, last writer wins, and the loser's `hold_count` increment is silently lost. A regressed counter weakens `graft.build_review_hold_limit` from a ceiling to a slower drain — the exact fail-open the spec's design principles (\"fail closed toward a human, never toward round 1\") say it must not permit.",
+          "spec_anchor": "issue-lock-and-torn-swap-recovery-shared-by-every-subcommand"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The CLI surface takes `--cause <HoldCause>` but no subcommand behaviour specifies rejecting a value outside `{review-outage, build-review-dialogue}`. An out-of-enum cause is written into `hold.json`, and `restore` — which branches on the record's `cause` (legacy shape, dialogue object) — has no specified behaviour for an unknown value. Graft's resume arms branch on exactly two cause strings; an unknown cause falls outside every specified routing, including the fail-closed ones.",
+      "evidence": "CLI surface table (§3) lists `--cause <HoldCause>` with exit codes for usage/I/O/busy but no enum-validation rule; restore step 5 reads `rec.cause` with no unknown-value arm; the graft SKILL edits branch only on the two named causes.",
+      "predicted_consequence": "A mistyped cause produces a store that restore accepts but graft routes nowhere specified — the resumed run's behaviour on that hold is undefined rather than parked.",
+      "spec_anchor": "cli-surface",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "--cause outside HoldCause exits 2, and a stored hold.json with such a cause reads as out of shape (exit 2).",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The CLI surface takes `--cause <HoldCause>` but no subcommand behaviour specifies rejecting a value outside `{review-outage, build-review-dialogue}`. An out-of-enum cause is written into `hold.json`, and `restore` — which branches on the record's `cause` (legacy shape, dialogue object) — has no specified behaviour for an unknown value. Graft's resume arms branch on exactly two cause strings; an unknown cause falls outside every specified routing, including the fail-closed ones.",
+          "spec_anchor": "cli-surface"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The dialogue hold reads `hold_count` via `faff resume-store read`; exit 3 routes to `0` \"on a run that did not resume from the store\" and to a `needs-human` park \"on one that did\". Nothing in the spec tells the build agent how to distinguish the two cases — there is no marker in the run dir, no flag, no restored-from record named. A resumed run that misclassifies itself reads a missing/corrupt store as `hold_count: 0`, resetting the hold ceiling — the same counter-reset fail-open the spec's anti-pattern paragraph explicitly forbids (\"a fresh build resets `hold_count` to 0, which turns `graft.build_review_hold_limit` into a label that resets on every drain\").",
+      "evidence": "Graft SKILL edits, site 3: \"exit 3 → 0 on a run that did not resume from the store, and `needs-human` park on one that did (the store it restored from has gone)\".",
+      "predicted_consequence": "A resumed dialogue run whose store was lost after restore reads `hold_count` as 0 and requeues past the intended limit instead of parking.",
+      "spec_anchor": "graft-skill-edits",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Defined operationally: a run resumed from the store exactly when its own Step 3 restore exited 0, recorded in the per-issue log at Step 3 for the hold step to read.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The dialogue hold reads `hold_count` via `faff resume-store read`; exit 3 routes to `0` \"on a run that did not resume from the store\" and to a `needs-human` park \"on one that did\". Nothing in the spec tells the build agent how to distinguish the two cases — there is no marker in the run dir, no flag, no restored-from record named. A resumed run that misclassifies itself reads a missing/corrupt store as `hold_count: 0`, resetting the hold ceiling — the same counter-reset fail-open the spec's anti-pattern paragraph explicitly forbids (\"a fresh build resets `hold_count` to 0, which turns `graft.build_review_hold_limit` into a label that resets on every drain\").",
+          "spec_anchor": "graft-skill-edits"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The ticket is filed under FAFF-1255 (anchor evidence) but fixes graft's resume path, so shipping it does not move FAFF-1255's outcome — the increment is coherent but lands in the wrong workstream, blurring what \"done\" means for the parent.",
+      "evidence": "Methodology critique, \"Workstream fit? (principles 1 and 5)\": \"Leaving it there blurs what 'done' means for FAFF-1255. Consider moving it out… this is a human call and prep does not move it.\"",
+      "predicted_consequence": "FAFF-1255's completion gate counts a graft-resume fix toward its evidence-recording outcome; a reviewer closing FAFF-1255 must either absorb an unrelated defect or manually carve this ticket out mid-flight.",
+      "spec_anchor": "methodology-critique",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Same as 1#3: moving the ticket out of FAFF-1255 is a product-owner call, surfaced in the prep report.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The ticket is filed under FAFF-1255 (anchor evidence) but fixes graft's resume path, so shipping it does not move FAFF-1255's outcome — the increment is coherent but lands in the wrong workstream, blurring what \"done\" means for the parent.",
+          "spec_anchor": "methodology-critique"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The spec admits `faff-graft/SKILL.md` has one spare line under its 957-line baseline and that the Step 3 paragraph rewrite may not fit within the 200-word cap, offering a \"one bullet under the paragraph\" escape hatch — i.e. the slice's prose budget is already at zero slack, and any concurrent sibling ticket editing the same file competes for it.",
+      "evidence": "Methodology critique, \"Deps surfaced? (principle 6)\": \"one soft coupling: `faff-graft/SKILL.md` has one line of headroom… The spec keeps its edits line-neutral, so no link is proposed.\" Spec §4 Graft SKILL edits: \"if the routing above still does not fit, put it in one bullet under the paragraph, which uses the file's one spare line.\"",
+      "predicted_consequence": "The new exit-routing prose (four exit codes plus a read-exit-3 conditional) does not fit the freed ~60 words, the spare line is consumed, and the first sibling ticket touching graft SKILL.md fails `faff validate-adapters` — or the routing is compressed until ambiguous, reintroducing the drift this ticket exists to remove.",
+      "spec_anchor": "graft-skill-edits",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Same fix as 4#1; the methodology critique now says the edits stay within the one spare line.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The spec admits `faff-graft/SKILL.md` has one spare line under its 957-line baseline and that the Step 3 paragraph rewrite may not fit within the 200-word cap, offering a \"one bullet under the paragraph\" escape hatch — i.e. the slice's prose budget is already at zero slack, and any concurrent sibling ticket editing the same file competes for it.",
+          "spec_anchor": "graft-skill-edits"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "Two spec statements give undecidable, opposite outcomes for the same path — a run restored from a legacy store (no `hold.json`) that later reaches a dialogue hold. The Graft SKILL edits routing says `read` exit 3 → \"`needs-human` park on one that did [resume from the store]\", but OUT OF SCOPE says a legacy stash \"restores as the legacy single-cause shape … holds drain within `graft.build_review_hold_limit` (default 2) drains\". A legacy-resumed run's first dialogue hold reads a store with no `hold.json` → exit 3 → park, so it can never hold-and-resume, contradicting the drain claim. A tester cannot decide which behaviour is the acceptance oracle.",
+      "evidence": "\"Graft SKILL edits\" item 3 (`read` exit routing) vs \"## 2. OUT OF SCOPE\" last bullet (\"Migrating a stash written by the old prose\").",
+      "predicted_consequence": "The legacy-migration behaviour is untestable as specified — a test asserting \"legacy hold drains within the limit\" and one asserting \"read exit 3 on a resumed run parks\" both pass their own DONE wording but contradict each other; the builder picks one arbitrarily.",
+      "spec_anchor": "graft-skill-edits",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "read now prints the legacy shape (exit 0, no dialogue, hold_count 0) for a store without hold.json, matching restore; exit 3 means only that the store folder is absent.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "Two spec statements give undecidable, opposite outcomes for the same path — a run restored from a legacy store (no `hold.json`) that later reaches a dialogue hold. The Graft SKILL edits routing says `read` exit 3 → \"`needs-human` park on one that did [resume from the store]\", but OUT OF SCOPE says a legacy stash \"restores as the legacy single-cause shape … holds drain within `graft.build_review_hold_limit` (default 2) drains\". A legacy-resumed run's first dialogue hold reads a store with no `hold.json` → exit 3 → park, so it can never hold-and-resume, contradicting the drain claim. A tester cannot decide which behaviour is the acceptance oracle.",
+          "spec_anchor": "graft-skill-edits"
+        }
+      ]
+    }
+  ]
+}

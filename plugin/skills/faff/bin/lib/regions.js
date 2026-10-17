@@ -432,6 +432,9 @@ const REGION_MAP = {
   // FAFF-1276: review-prior lists the previous review round's findings by handle for the
   // reviewer — reads the same round directories as the build-review resolvers → factory.
   "review-prior": "factory",
+  // FAFF-1314: resume-store stashes and restores a held build's per-issue state and reads
+  // the build-review round counter through spec-review-window (factory→factory, ADR-0042).
+  "resume-store": "factory",
   // FAFF-945: spec-judge-accept-bar is the deterministic accept-bar roll-up faff-prep's judge
   // step shells — a pure coercion over the evidence bundle + the judge verdict, same family as
   // the other small spec-review resolvers → factory.
@@ -608,6 +611,7 @@ const REGION_SELFTEST_ARGV = {
   // test/build-judge-evidence.test.mjs, declared in lint-cli-coverage's TEST_FILE_COVERAGE).
   "build-judge-evidence": null,
   "review-prior": ["review-prior", "--selftest"],
+  "resume-store": ["resume-store", "--selftest"],
   "tier": ["tier", "--selftest"],
   "dispatch": ["dispatch", "--selftest"],
 };

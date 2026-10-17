@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1314",
+  "build": {
+    "status": "complete",
+    "diff_hash": "84e0c03d65632f414e3b9742fe8a1a7265187a875f61a87464c6a6a62ca206ad",
+    "branch": "FAFF-1314-held-build-review-dialogue-resumes-at-stashed-round",
+    "pushed_at": "2026-10-17T03:07:25.925Z"
+  },
+  "updated_at": "2026-10-17T03:07:25.925Z"
+}

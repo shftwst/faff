@@ -11,6 +11,7 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateAgainstSchema } from "../plugin/skills/faff/contracts/validate-schema.mjs";
 import { mintL4Ledger } from "./helpers/mint-l4-ledger.mjs";
+import { example, seedFloor, seedOptionalFloor } from "./helpers/evidence-anchor-fixtures.mjs";
 
 const require = createRequire(import.meta.url);
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -64,12 +65,10 @@ test("v0.3: a per-PR mint with every optional file present produces only manifes
   const runId = "run-v03-mint";
   const genesis = { schema: 2, run_id: runId, seq: 0, ts: "2026-01-01T00:00:00.000Z", phase: "run", type: "run-start", prev: createHash("sha256").update(runId, "utf8").digest("hex") };
   writeFileSync(join(src, "events.jsonl"), JSON.stringify(genesis) + "\n");
-  writeFileSync(join(src, "run-ledger.json"), JSON.stringify({ run_id: runId }));
+  writeFileSync(join(src, "run-ledger.json"), example("run-ledger"));
   writeFileSync(join(src, "declared-effects.jsonl"), readFileSync(join(SRC, "schema", "examples", "declared-effect.example.json"), "utf8").replace(/\s*\n\s*/g, " ") + "\n");
-  mkdirSync(join(src, "FAFF-1"), { recursive: true });
-  for (const f of ["ac-checklist.json", "review-verdict.json", "spec-review-verdict.json", "holdout.json", "build-progress.json", "landing-progress.json"]) {
-    writeFileSync(join(src, "FAFF-1", f), "{}");
-  }
+  seedFloor(src, "FAFF-1");
+  seedOptionalFloor(src, "FAFF-1");
   mkdirSync(join(src, "commissaire", "producer"), { recursive: true });
   writeFileSync(join(src, "commissaire", "producer", "pk.json"), readFileSync(join(SRC, "schema", "examples", "producer-pk.example.json")));
   const r = spawnSync(process.execPath, [BIN, "events", "anchor", "--run-dir", src, "--issue", "FAFF-1", "--dest", dest], { encoding: "utf8" });
@@ -359,11 +358,28 @@ test("v0.3: schema enums mirror their code constants", () => {
 
 // --- docs and examples --------------------------------------------------------
 
-test("v0.3: the evidence README lists v0.3 as draft with the draft rule and a changelog entry", () => {
+test("v0.3: the evidence README lists v0.3 as current with one versioning rule and a changelog entry", () => {
   const readme = readFileSync(join(REPO, "verification", "evidence", "README.md"), "utf8");
-  assert.match(readme, /\[`v0\.3\/`\]\(v0\.3\/\) \| draft \|/);
-  assert.match(readme, /\*\*Draft rule:\*\*/);
+  assert.match(readme, /\[`v0\.3\/`\]\(v0\.3\/\) \| current \|/);
+  assert.doesNotMatch(readme, /\*\*Draft rule:\*\*/);
+  assert.match(readme, /^- \*\*v0\.3 — 2026-10-17 \(FAFF-1261, current, slice 6\)\.\*\*/m);
   assert.match(readme, /^- \*\*v0\.3 — 2026-10-14 \(FAFF-1256, draft\)\.\*\*/m);
+  const entry = readme.slice(readme.indexOf("(FAFF-1261, current, slice 6)"), readme.indexOf("(FAFF-1260, draft, slice 5)"));
+  assert.ok(entry.includes("FAFF-1287") && entry.includes("FAFF-1268"), "the freeze entry names both in-place additions");
+  assert.match(readme, /v0\.1 and v0\.2 are \*\*immutable\*\*/);
+  assert.match(readme, /typo or prose fix/);
+  assert.match(readme, /additive change to a JSON evidence document/);
+  assert.match(readme, /schema-first, writer-second/);
+  assert.match(readme, /Any other change\*\* to a v0\.3 schema needs a new minor version/);
+  assert.match(readme, /\*\*Vocabulary sequencing:\*\*/);
+  assert.match(readme, /v1\.0 is reserved for the first version an external consumer pins/);
+  assert.doesNotMatch(readme, /every change to the documented shape/);
+  assert.doesNotMatch(readme, /Published version directories are \*\*immutable\*\*/);
+  const v03 = readFileSync(join(SRC, "README.md"), "utf8");
+  assert.match(v03, /^# Agent Delivery Evidence spec, v0\.3 \(current\)/);
+  assert.match(v03, /\*\*Status: current\.\*\*/);
+  assert.doesNotMatch(v03, /Nothing refuses on v0\.3|Nothing in this version changes a gate|freezes when FAFF-1261/);
+  assert.match(v03, /versioning rule in\s+\[`verification\/evidence\/README\.md`\]/);
   for (const page of ["README.md", "anchor-manifest.md", "evidence-documents.md", "logs.md"]) assert.ok(existsSync(join(SRC, page)), page);
   const manifestPage = readFileSync(join(SRC, "anchor-manifest.md"), "utf8");
   for (const anchorPath of Object.keys(readJson(join(SRC, "anchor-manifest.json")).files)) assert.ok(manifestPage.includes(`\`${anchorPath}\``), anchorPath);

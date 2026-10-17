@@ -18,6 +18,7 @@ import { fileURLToPath } from "node:url";
 import { appendRecordUnderLock, tailReadState, TAIL_WINDOW_BYTES } from "../plugin/skills/faff/bin/lib/events.js";
 import { atomicWriteLedger } from "../plugin/skills/faff/bin/lib/heartbeat.js";
 import { runCli } from "./helpers/run-cli.mjs";
+import { seedFloor as seedFloorFiles } from "./helpers/evidence-anchor-fixtures.mjs";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
 
@@ -269,11 +270,7 @@ test("integration smoke: 5 CLI appends + a --tokens ledger write + a hand-edit n
 // FAFF-1155: a per-PR `events anchor` requires ac-checklist.json + review-verdict.json under
 // <runDir>/<issue>/ (a valid-genesis run reaching Step 9b always carries them). Seed both so an
 // exit-0 anchor exercises the real Step-9b shape.
-function seedFloor(runDir, issue = "A-1") {
-  mkdirSync(join(runDir, issue), { recursive: true });
-  writeFileSync(join(runDir, issue, "ac-checklist.json"), JSON.stringify({ all_verified: true }));
-  writeFileSync(join(runDir, issue, "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
-}
+const seedFloor = (runDir, issue = "A-1") => seedFloorFiles(runDir, issue);
 
 function buildAnchoredChain(prefix, runId, count = 3) {
   const { root, runDir, log } = mkRoot(prefix, runId);

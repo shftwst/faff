@@ -12,6 +12,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { runCli } from "./helpers/run-cli.mjs";
+import { floorAcChecklist, floorReviewVerdict } from "./helpers/evidence-anchor-fixtures.mjs";
 
 const require = createRequire(import.meta.url);
 const { appendRecordUnderLock } = require("../plugin/skills/faff/bin/lib/events.js");
@@ -33,8 +34,8 @@ function mkValidRun(root) {
 
 function writeFloor(runDir, which /* "both" | "ac-only" | "review-only" | "none" */, issue = "TEST-1") {
   mkdirSync(path.join(runDir, issue), { recursive: true });
-  if (which === "both" || which === "ac-only") writeFileSync(path.join(runDir, issue, "ac-checklist.json"), JSON.stringify({ all_verified: true }));
-  if (which === "both" || which === "review-only") writeFileSync(path.join(runDir, issue, "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
+  if (which === "both" || which === "ac-only") writeFileSync(path.join(runDir, issue, "ac-checklist.json"), floorAcChecklist());
+  if (which === "both" || which === "review-only") writeFileSync(path.join(runDir, issue, "review-verdict.json"), floorReviewVerdict());
 }
 
 function anchor(runDir, root) {

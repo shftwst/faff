@@ -17,7 +17,7 @@ license to relax the validator.
 |---|---|---|
 | [`v0.1/`](v0.1/) | current baseline | The nine artifacts a governed run produces at construction time: `run-ledger.json`, `events.jsonl`, and the five per-issue floor artifacts (`ac-checklist.json`, `review-verdict.json`, `holdout.json`, `merge-record.json`, `supersession.json`), plus the two supporting artifacts (`build-progress.json`, `lane-boundary.json`) the L4 holdout leg transitively reads. |
 | [`v0.2/`](v0.2/) | current | Adds the `chain-head.json` witness artifact, the `faff events verify` / `faff events anchor` verbs, and governance-check's sixth `integrity` leg — the hash-chain anchoring/verification surface FAFF-568 shipped after v0.1 was approved. v0.1's nine pages are otherwise unchanged; see `v0.2/conformance.md` for the six-leg conformance statement FAFF-610's Action should cite going forward. |
-| [`v0.3/`](v0.3/) | draft | A closed schema for every file a per-PR anchor can hold, the anchor manifest, and the read-only `faff evidence validate` command (FAFF-1256, slice 1 of FAFF-1255). A copy ships with the plugin. Draft until FAFF-1261 (enforcement) lands. |
+| [`v0.3/`](v0.3/) | current | A closed schema for every file a per-PR anchor can hold, the anchor manifest, and the read-only `faff evidence validate` command (FAFF-1256, slice 1 of FAFF-1255). A copy ships with the plugin. Enforced since FAFF-1261: the mint refuses and CI fails a non-conforming anchor. Changes follow the versioning rule below. |
 
 Each version directory is a **full, self-contained description of its own scope** —
 `v0.2/` does not restate v0.1's unchanged pages; it documents only what's new and points
@@ -31,17 +31,23 @@ The spec version is **independent of faff's release version** and of the per-rec
 `schema: 1|2` field inside `events.jsonl` (in-band record versioning, orthogonal to the
 spec version). v0.1 = the shipped dialect at the date of landing.
 
-**Pre-1.0 rule:** every change to the documented shape — additive or breaking — bumps the
-minor (v0.2, v0.3, …) with a dated changelog entry below. There is no silent in-place edit
-of a published version directory (a typo/prose fix that changes no schema or normative
-statement may land in place). Published version directories are **immutable** once
-landed — this durable rule binds FAFF-610 (the Action names the spec version it checks),
-FAFF-611 (per-unit release plumbing), and the flight-recorder extraction (v2 is reserved
-for the `issue`→`unit` rename).
+**Pre-1.0 rule:** v0.1 and v0.2 are **immutable** once landed (a typo or prose fix that changes
+no schema or normative statement may land in place), and this durable rule binds FAFF-610 (the
+Action names the spec version it checks), FAFF-611 (per-unit release plumbing), and the
+flight-recorder extraction (v2 is reserved for the `issue`→`unit` rename). From v0.3 on, one
+versioning rule applies, and every change carries a dated changelog entry below:
 
-**Draft rule:** a version marked draft in the table above may be edited in place by the
-FAFF-1255 slices, and freezes when FAFF-1261 (enforcement) lands. Nothing refuses on a draft
-version, so an in-place edit breaks no consumer. v0.3 is the only draft version.
+- An **additive change to a JSON evidence document** (as `classifySchemaChange` defines additive,
+  with the array tightening of FAFF-1278) may land in place, with no new version directory.
+- A **change to a JSONL record** (a new event type, effect kind, payload field or enum value) lands
+  in place in schema-first, writer-second order, with the line-validator change in the first PR.
+- **Any other change** to a v0.3 schema needs a new minor version.
+
+**Vocabulary sequencing:** a new event type, effect kind or enum value lands before any anchor uses
+it. "In place" means no new version directory, not one PR: the mint validates with the installed
+CLI's bundled schemas, which in normal use match `main`, so a writer may emit a new field only
+after the schema change that adds it is on `main` (and in the installed CLI). The schema change
+and the writer change are two PRs, in that order, for JSON documents as well as JSONL records.
 
 v1.0 is reserved for the first version an external consumer pins.
 
@@ -76,6 +82,15 @@ cross-link rather than merge.
 
 ## Changelog
 
+- **v0.3 — 2026-10-17 (FAFF-1261, current, slice 6).** v0.3 freezes and becomes current: the
+  per-PR mint (`faff events anchor`) validates a staged anchor and refuses one that fails its
+  schema, and the governance-check Action's `evidence-schema` input defaults to `require`. The
+  freeze covers v0.3 as it stands, including two in-place additions that had no entry before:
+  FAFF-1287's optional `ac_id` and `verifications` on `ac-checklist` criteria, and FAFF-1268's
+  published `review-round` schema. A `holdout.json` must carry the issue named by
+  `chain-head.json`. The `faff evidence write ac-checklist` writer now requires an `ac_id` on every
+  criterion; that is a writer rule, not a schema change, so anchors with absent or `null` ids still
+  validate. The draft rule is replaced by the versioning rule above.
 - **v0.3 — 2026-10-18 (FAFF-1342, draft, schema slice of FAFF-1291).** Adds the optional, closed
   top-level `delegated` array to `holdout-anchored.schema.json`, so `holdout.json` can list every
   criterion the code-blind judge did not judge with the verifier that covers it. `required` and

@@ -148,11 +148,15 @@ function delegationViolations(doc) {
   return found;
 }
 
-// Pure. Schema first, then the writer-only constraints. Messages name key paths, never values.
-function holdoutRecordViolations(doc) {
-  const found = validateAgainstSchema(doc, loadSchema()).map((m) => m.replace(/^<root>: /, ""));
+// Pure. The writer-only constraints the schema cannot express (id pattern, met/unmet detail, needs-human
+// reason, length, prose rule) plus the delegation rules. Messages name key paths, never values. Anchor
+// validation calls this alone, since it has already run the (possibly candidate) schema. The delegation
+// rules run on a record that carries `delegated`: the writer always emits it from FAFF-1291 on, and a
+// record committed before then was valid under its writer and stays valid (anchors are immutable).
+function holdoutConstraintViolations(doc) {
+  const found = [];
   if (!isObject(doc) || !Array.isArray(doc.criteria)) return found;
-  found.push(...delegationViolations(doc));
+  if (Object.prototype.hasOwnProperty.call(doc, "delegated")) found.push(...delegationViolations(doc));
   doc.criteria.forEach((c, i) => {
     if (!isObject(c)) return;
     const at = `criteria[${i}]`;
@@ -171,6 +175,12 @@ function holdoutRecordViolations(doc) {
     }
   });
   return found;
+}
+
+// Pure. Schema first, then the writer-only constraints.
+function holdoutRecordViolations(doc) {
+  const found = validateAgainstSchema(doc, loadSchema()).map((m) => m.replace(/^<root>: /, ""));
+  return [...found, ...holdoutConstraintViolations(doc)];
 }
 
 function serialise(doc) {
@@ -384,5 +394,5 @@ function holdoutRecordSelftest() {
 }
 
 module.exports = {
-  buildHoldoutRecord, delegationViolations, holdoutRecordViolations, holdoutRecordSelftest, isSafeHoldoutKey, resolveContained, writeHoldoutRecord,
+  buildHoldoutRecord, delegationViolations, holdoutConstraintViolations, holdoutRecordViolations, holdoutRecordSelftest, isSafeHoldoutKey, resolveContained, writeHoldoutRecord,
 };

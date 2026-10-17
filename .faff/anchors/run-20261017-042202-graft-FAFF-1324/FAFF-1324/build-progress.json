@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1324",
+  "build": {
+    "status": "complete",
+    "diff_hash": "11663f616c1ca39fb1d9a8c97bcced868418f2feb58dbc6b99a91a736f0c4fd6",
+    "branch": "FAFF-1324-pin-marker-contradiction-disposition",
+    "pushed_at": "2026-10-17T13:21:59.905Z"
+  },
+  "updated_at": "2026-10-17T13:21:59.905Z"
+}

@@ -242,11 +242,13 @@ function govern(dir, n, servedness) {
   let capRound;
   let anomaly;
   if (cap && cap.state === "captured") { capRound = cap.round; anomaly = null; }
-  else { capRound = 1; anomaly = cap ? "pin-marker-contradiction" : "pin-marker-missing"; } // SOFT — recorded, not fatal
+  // The marker cannot vouch for the pin's capture round, so the window narrows to n for the
+  // same reason the pin === null arm above does: no unvouched round is compared across.
+  else { capRound = n; anomaly = cap ? "pin-marker-contradiction" : "pin-marker-missing"; } // recorded, exit 0
 
   let action = "unchanged";
   let newWs = ws;
-  if (newWs < capRound) { newWs = capRound; action = "late-pin-advance"; } // (L) late pin
+  if (newWs < capRound) { newWs = capRound; action = anomaly === null ? "late-pin-advance" : "unpinnable-reset"; } // (L) late pin
   if (servedIdentity !== pinIdentity) { newWs = n; action = "swap-reset"; } // (S) swap within a pinned span
 
   writeWindowStart(dir, newWs);
@@ -553,11 +555,12 @@ function specReviewWindowSelftest() {
         fs.writeFileSync(path.join(tmp, "pinned-reviewer.json"), JSON.stringify(backends[0])); // legacy pin, no marker
         atomicWriteJSON(servedIdentityPath(tmp, 3), { round: 3, served_identity: backendIdentity(backends[0]), winner_index: 0, ts: new Date().toISOString() });
         const r = govern(tmp, 3, "any-served");
-        ok("govern pin-marker-missing (soft, non-fatal)", r.code === 0 && r.result.anomaly === "pin-marker-missing" && r.result.action === "unchanged");
+        ok("govern pin-marker-missing (soft, non-fatal)", r.code === 0 && r.result.anomaly === "pin-marker-missing" && r.result.action === "unpinnable-reset" && r.result.window_start === 3);
 
         atomicWriteJSON(path.join(tmp, "pin-capture.json"), { state: "failed", round: 1, reason: "x", ts: new Date().toISOString() });
+        writeWindowStart(tmp, 1); // the first govern persisted window_start 3; reset so the twin starts from the same state
         const r2 = govern(tmp, 3, "any-served");
-        ok("govern pin-marker-contradiction (soft, non-fatal)", r2.code === 0 && r2.result.anomaly === "pin-marker-contradiction");
+        ok("govern pin-marker-contradiction (soft, non-fatal)", r2.code === 0 && r2.result.anomaly === "pin-marker-contradiction" && r2.result.action === "unpinnable-reset" && r2.result.window_start === 3);
       } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
     }
 

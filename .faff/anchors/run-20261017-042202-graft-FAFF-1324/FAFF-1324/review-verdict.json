@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 2,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "records/specs/2026-10-17-FAFF-1324-pin-marker-contradiction-disposition-design.md::unfiled follow-ups for the deferred marker self-heal and the unguarded --backends-json marker write",
+      "title": "unfiled follow-ups for the deferred marker self-heal and the unguarded --backends-json marker write",
+      "location": "records/specs/2026-10-17-FAFF-1324-pin-marker-contradiction-disposition-design.md:252",
+      "action": "No action: FAFF-1331 and FAFF-1332 are filed, each citing its OUT OF SCOPE extension point.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "Both issues exist and are substantive: FAFF-1331 cites capturePin's existing-pin arm (spec-review-pin.js:214-224) and the [n..n] latch; FAFF-1332 cites the atomicWriteJSON at spec-review-pin.js:382 in the :378-385 catch and preserves FAFF-1052's never-silent property. Intake provenance written for both.",
+      "disposition_rationale": "The remote reviewer is tracker-blind and judged from the diff alone; the remedy the finding names was completed outside the diff and was verified by the structural pass.",
+      "first_round": 1,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "unfiled follow-ups for the deferred marker self-heal and the unguarded --backends-json marker write",
+          "location": "records/specs/2026-10-17-FAFF-1324-pin-marker-contradiction-disposition-design.md:252",
+          "severity": "major",
+          "disposition": "open"
+        },
+        {
+          "round": 2,
+          "title": "unfiled follow-ups for the deferred marker self-heal and the unguarded --backends-json marker write",
+          "location": "records/specs/2026-10-17-FAFF-1324-pin-marker-contradiction-disposition-design.md:252",
+          "severity": "major",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/spec-review-window.test.mjs::inconsistent winner_index in the legacypin test helper",
+      "title": "inconsistent winner_index in the legacyPin test helper",
+      "location": "test/spec-review-window.test.mjs:384",
+      "action": "Derive the field as winner_index: BACKENDS.indexOf(servedBackend) so the fixture record is internally consistent.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": null,
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "inconsistent winner_index in the legacyPin test helper",
+          "location": "test/spec-review-window.test.mjs:384",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-window.js::adversarial pass returned no findings",
+      "title": "adversarial pass returned no findings",
+      "location": "plugin/skills/faff/bin/lib/spec-review-window.js:247",
+      "action": "No action required; recorded so the audit shows the second opinion ran and was served by the primary backend.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Not a finding: the adversarial pass served clean on chain[0] with exit 0. Recorded for audit that the second opinion ran.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "adversarial pass returned no findings",
+          "location": "plugin/skills/faff/bin/lib/spec-review-window.js:247",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/spec-review-window.test.mjs::prior finding p2 (inconsistent winner_index in legacypin) is resolved",
+      "title": "prior finding P2 (inconsistent winner_index in legacyPin) is resolved",
+      "location": "test/spec-review-window.test.mjs:384",
+      "action": "None required; the round-1 observation is discharged, recorded for audit.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Applied in 6a0c73c5; winner_index is derived from servedBackend and indexOf returns 0/0/1 across the three callsites, never -1.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "prior finding P2 (inconsistent winner_index in legacyPin) is resolved",
+          "location": "test/spec-review-window.test.mjs:384",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-window.js::no findings on the library",
+      "title": "no findings on the library",
+      "location": "plugin/skills/faff/bin/lib/spec-review-window.js:247",
+      "action": "None required; the library is byte-identical to round 1, recorded for audit.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Not a defect: an audit record that the independent second opinion ran clean on an unchanged library.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "no findings on the library",
+          "location": "plugin/skills/faff/bin/lib/spec-review-window.js:247",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

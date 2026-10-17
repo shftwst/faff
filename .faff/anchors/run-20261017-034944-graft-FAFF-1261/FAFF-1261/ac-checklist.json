@@ -1,0 +1,465 @@
+{
+  "schema_version": 1,
+  "all_verified": false,
+  "criteria": [
+    {
+      "ac": "The first Scenario passes as a test in `test/evidence-enforcement.test.mjs` (new; replaces `test/faff-1263-evidence-warn-only-mint.test.mjs`)",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1261#ac-1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-enforcement.test.mjs::a review verdict without schema_version is refused: exit 3, schema-mismatch, no --dest and no parent created"
+        }
+      ]
+    },
+    {
+      "ac": "`faff merge-gate` routes identically on `test/merge-gate-local.test.mjs` and `test/holdout-*.test.mjs` with no fixture edits",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1261#ac-2",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/merge-gate-local.test.mjs test/holdout-*.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`warnOnEvidenceSchema` and its call are gone from `events.js`",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1261#ac-3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-enforcement.test.mjs::the warn-only check is gone from events.js"
+        }
+      ]
+    },
+    {
+      "ac": "`faff events anchor` exits 3 with `schema-unavailable <reason>` (bundled manifest removed in a temp copy of the plugin tree), `unschemaed-file <path>` (a staged file with no manifest entry), `schema-mismatch <path>` (invalid evidence file) and `schema-check-error <reason>` (`validateAnchorDir` stubbed to throw a plain `Error`); none creates `--dest` or its parent",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1261#ac-4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-enforcement.test.mjs::each refusal code exits 3 and creates neither --dest nor its parent"
+        }
+      ]
+    },
+    {
+      "ac": "A legacy staged anchor is refused with one `schema-mismatch` line per present evidence document",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1261#ac-5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-enforcement.test.mjs::a legacy staged anchor is refused with one schema-mismatch line per present evidence document"
+        }
+      ]
+    },
+    {
+      "ac": "Stderr lines are grouped and ordered per the refusal table, with at most 5 file lines in total and a `(+N more files)` suffix",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1261#ac-6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-enforcement.test.mjs::refusal lines are grouped in table order, sorted by path, at most five files in total, then a (+N more files) suffix"
+        }
+      ]
+    },
+    {
+      "ac": "`--check` returns the same exit code as the real mint on the pass case and every refusal case, and leaves `--dest` byte-identical (absent stays absent; existing stays unchanged); `--check --json` prints the redacted staged `validateAnchorDir` report on a `schema-mismatch` refusal and on a pass, and prints none on `schema-unavailable`",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1261#ac-7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-enforcement.test.mjs::--check exits with the real mint's code on every case and leaves --dest byte-identical"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-enforcement.test.mjs::--check --json prints the redacted validation report on a pass and on a refusal, and none when the validator produced none"
+        }
+      ]
+    },
+    {
+      "ac": "For an `events.jsonl` line whose `type` holds the sentinel `S3CR3T-SENTINEL`, no mint stderr line contains it (`--check --json` and `faff evidence validate` may)",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1261#ac-8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-enforcement.test.mjs::no mint stderr line carries violation text or a field value; --check --json and evidence validate may"
+        }
+      ]
+    },
+    {
+      "ac": "`holdout.json` whose `issue` differs from `chain-head.json` `issue` is refused at mint and fails `faff evidence validate`; the message contains neither id; `holdout.json` with no `chain-head.json` fails `faff evidence validate`",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1261#ac-9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-enforcement.test.mjs::a holdout.json whose issue differs from chain-head.json is refused at mint and fails validate, naming neither id"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-enforcement.test.mjs::a holdout.json with no chain-head.json fails evidence validate"
+        }
+      ]
+    },
+    {
+      "ac": "`holdout.json` failing `holdoutConstraintViolations` is refused at mint; `holdoutRecordViolations` returns the same list as before the split on its existing tests",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1261#ac-10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-enforcement.test.mjs::a holdout.json failing the writer-only constraints is refused at mint"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-enforcement.test.mjs::holdoutRecordViolations is the schema check followed by holdoutConstraintViolations"
+        },
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/holdout-record.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "A JSONL file whose only fault is a torn final line passes the mint",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1261#ac-11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-enforcement.test.mjs::a torn final line in events.jsonl or declared-effects.jsonl is skipped: the mint passes"
+        }
+      ]
+    },
+    {
+      "ac": "A `--dest` holding a non-anchor file, or a non-empty `--dest` with no `chain-head.json`, exits 2 `dest-not-anchor` and is untouched; an empty existing `--dest` is filled in place and not removed; the landed `--dest` passes `checkAnchorDir` after copy",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1261#ac-12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-enforcement.test.mjs::a --dest holding a non-anchor file, or a non-empty --dest with no chain-head.json, exits 2 dest-not-anchor and is untouched"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-enforcement.test.mjs::an empty existing --dest is filled in place and not removed; the landed --dest passes checkAnchorDir"
+        }
+      ]
+    },
+    {
+      "ac": "A re-mint that would drop a file from an existing `--dest` exits 3 `anchor-shrink <path>` and leaves `--dest` byte-identical; a `--dest` that is a symlink exits 2 and nothing it points to is touched",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1261#ac-13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-enforcement.test.mjs::a re-mint replaces --dest wholesale; a re-mint that would drop a file exits 3 anchor-shrink and --check agrees"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-enforcement.test.mjs::a --dest that is a symlink or a regular file exits 2 and nothing it points to is touched"
+        }
+      ]
+    },
+    {
+      "ac": "`anchor-run` re-mints of a legacy run, and the `bundle.js` and `bundle-recover.js` selftest mints, succeed unchanged (the `anchor-run` selftest cases and `faff bundle --selftest` pass unedited)",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1261#ac-14",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff bundle --selftest"
+        },
+        {
+          "kind": "command",
+          "locator": "faff events --selftest"
+        },
+        {
+          "kind": "command",
+          "locator": "faff bundle-recover --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "Every existing per-PR mint fixture (the `events.js` selftest `anchor` cases and the per-PR mints in `test/events-chain.test.mjs`, `test/effects-chain.test.mjs`, `test/events-anchor-genesis-guard.test.mjs`, `test/faff-1155-anchor-floor-required.test.mjs`, `test/faff-1001-anchor-before-pr-order.test.mjs`, `test/faff-1005-anchor-commit-broad-swallow.test.mjs`, `test/run-ledger-init-*.test.mjs`, `test/commissaire-unit-id.test.mjs`, `test/evidence-v0.3.test.mjs`, as found by grep at build time) writes its floor files through `test/helpers/evidence-anchor-fixtures.mjs`; edits touch fixture setup only, never an assertion",
+      "verified": "passing; the listed mint fixtures write floor files through the helper; one assertion changed in run-ledger-writer-inventory, where the mint now refuses the legacy shape the smoke test expected",
+      "passed": true,
+      "ac_id": "faff-1261#ac-15",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/events-chain.test.mjs test/effects-chain.test.mjs test/events-anchor-genesis-guard.test.mjs test/faff-1155-anchor-floor-required.test.mjs test/run-ledger-init-*.test.mjs test/evidence-v0.3.test.mjs"
+        },
+        {
+          "kind": "human"
+        }
+      ]
+    },
+    {
+      "ac": "`--check` returns before `commitMint` (unit test with `commitMint` stubbed to throw)",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1261#ac-16",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-enforcement.test.mjs::--check returns before commitMint (commitMint stubbed to throw)"
+        }
+      ]
+    },
+    {
+      "ac": "A run dir whose `FAFF-1/review-rounds/round-1.json` exists mints with exit 0, and the landed `--dest` holds no `review-rounds/` path",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1261#ac-17",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-enforcement.test.mjs::a run dir holding review-rounds/ mints with exit 0 and the landed --dest has no review-rounds path"
+        }
+      ]
+    },
+    {
+      "ac": "`faff evidence write ac-checklist` exits 1 and writes no `ac-checklist.json` for each of: one criterion with no `ac_id` key, one with `ac_id: null`, every criterion `null`; stderr has one `criteria[<i>].ac_id: required` line per offending criterion and contains no criterion `ac` or `verified` text (sentinel test)",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1261#ac-18",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-enforcement.test.mjs::ac-checklist writer: a criterion with no ac_id is refused with its index, no criterion text, and nothing written"
+        }
+      ]
+    },
+    {
+      "ac": "`faff evidence write ac-checklist` exits 0 for a zero-AC input (no `criteria` key) and for criteria that all carry ids taken from `faff dod classify --issue`, including the positional `<ticket>#done:N` form",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1261#ac-19",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-enforcement.test.mjs::ac-checklist writer: a zero-AC input and criteria that all carry classify ids (including done:N) are written"
+        }
+      ]
+    },
+    {
+      "ac": "`faff evidence render ac-checklist` still renders a planted checklist whose criteria lack `ac_id` or carry `null` (the existing \"render handles a zero-AC anchor and an older anchor without the new keys\" test passes unedited)",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1261#ac-20",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1287-ac-ids.test.mjs::render handles a zero-AC anchor and an older anchor without the new keys"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-enforcement.test.mjs::a checklist whose criteria all carry ac_id: null still renders, validates, mints and passes --check"
+        }
+      ]
+    },
+    {
+      "ac": "The committed anchors for FAFF-1300, FAFF-1301 and FAFF-1302 (every `ac_id` null) pass `faff evidence validate --require-evidence-schema`, and the `ac-checklist` schema still allows `null` for `ac_id` (the `test/faff-1287-ac-ids.test.mjs` schema assertion is unchanged)",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1261#ac-21",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-enforcement.test.mjs::the committed FAFF-1300, FAFF-1301 and FAFF-1302 anchors (every ac_id null) still pass evidence validate --require-evidence-schema"
+        }
+      ]
+    },
+    {
+      "ac": "`test/evidence-write.test.mjs` and `test/evidence-review-rounds.test.mjs` pass with `ac_id` added to their written criteria; in `test/faff-1287-ac-ids.test.mjs` the \"null when omitted\" case becomes a refusal and the refusal table gains the two missing-id cases; apart from expected-output values that embed `ac_id` (such as the expected bytes at `test/evidence-write.test.mjs:47`), no other assertion in those files changes",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1261#ac-22",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/evidence-write.test.mjs test/evidence-review-rounds.test.mjs test/faff-1287-ac-ids.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "The `write ac-checklist` usage line no longer marks `ac_id` optional; `docs/guide/cli.md`'s `evidence write ac-checklist` row names the rule and no longer says `ac_id` is written as `null` when the input omits it (\"Both are always written, `null` when the input omits them\" is reworded so it covers `verifications` only); graft Step 8's refusal list names the rule; `verification/evidence/v0.3/evidence-documents.md`'s \"Either every criterion carries one or none does\" sentence (and its bundled copy) is reworded to say the writer requires an id on every criterion; `verification/evidence/v0.3/evidence-documents.md` and its bundled copy say the writer requires an id while anchors with absent or `null` ids still validate",
+      "verified": "lints pass; wording checked by eye",
+      "passed": true,
+      "ac_id": "faff-1261#ac-23",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff lint-cli-doc"
+        },
+        {
+          "kind": "command",
+          "locator": "faff validate-adapters"
+        },
+        {
+          "kind": "human"
+        }
+      ]
+    },
+    {
+      "ac": "`verification/evidence/README.md` lists v0.3 as current with a dated changelog entry naming FAFF-1287's and FAFF-1268's in-place additions, and states the additive in-place rule (JSON documents only), the JSONL two-PR rule, the vocabulary sequencing rule and that any other v0.3 schema change needs a new minor; the Pre-1.0 rule and the \"published version directories are immutable\" sentence are rewritten to match, so the README states one versioning rule; v0.1 and v0.2 stay immutable, the typo and prose-fix exemption is kept, and v1.0 stays reserved for the first version an external consumer pins; the README assertion in `test/evidence-v0.3.test.mjs` is updated to match",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1261#ac-24",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-v0.3.test.mjs::the evidence README lists v0.3 as current with one versioning rule and a changelog entry"
+        }
+      ]
+    },
+    {
+      "ac": "`verification/evidence/v0.3/README.md` and its bundled copy say \"current\", not \"draft\", no longer say nothing refuses on v0.3, and replace \"v0.3 freezes when FAFF-1261 lands\" with a pointer to the versioning rule in `verification/evidence/README.md`; the byte-identity test in `test/evidence-v0.3.test.mjs` passes",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1261#ac-25",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-v0.3.test.mjs::the evidence README lists v0.3 as current with one versioning rule and a changelog entry"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-v0.3.test.mjs::the bundled copy and verification/evidence/v0.3 have the same files and identical bytes"
+        }
+      ]
+    },
+    {
+      "ac": "`faff evidence capabilities --json` prints `{\"validate\":[\"require-evidence-schema\",\"candidate-schemas\",\"holdout-binding\"]}`, and the capabilities test in `test/faff-1278-governance-check-base-commit-leg.test.mjs` pins it",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1261#ac-26",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1278-governance-check-base-commit-leg.test.mjs::faff evidence capabilities --json prints the documented object"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-enforcement.test.mjs::evidence capabilities lists holdout-binding"
+        }
+      ]
+    },
+    {
+      "ac": "The Action's `evidence-schema` input defaults to `require` and its description names `require` as the default; the structural test in `test/faff-1278-governance-check-base-commit-leg.test.mjs` pins `default: \"require\"`",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1261#ac-27",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1278-governance-check-base-commit-leg.test.mjs::the evidence-schema input defaults to require and the head verb gets the flag only under require"
+        }
+      ]
+    },
+    {
+      "ac": "The `holdout binding not checked` warning test passes against a base CLI whose capabilities lack `holdout-binding`, and a base CLI from this branch with a `holdout.json` anchor under `require` emits no such warning",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1261#ac-28",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1278-governance-check-base-commit-leg.test.mjs::under require a base CLI without holdout-binding warns that the holdout binding was not checked"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1278-governance-check-base-commit-leg.test.mjs::under require a base CLI listing holdout-binding emits no holdout binding warning"
+        }
+      ]
+    },
+    {
+      "ac": "`docs/guide/cli.md` documents `events anchor --check [--json]`, drops the warn-only wording and shows the three-entry `evidence capabilities` output; `docs/guide/governance-check.md` states `require` as the default",
+      "verified": "lints pass; wording checked by eye",
+      "passed": true,
+      "ac_id": "faff-1261#ac-29",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff lint-cli-doc"
+        },
+        {
+          "kind": "command",
+          "locator": "faff lint-refs"
+        },
+        {
+          "kind": "human"
+        }
+      ]
+    },
+    {
+      "ac": "`faff-graft/SKILL.md` Step 9b names the new refusal codes, both `anchor-shrink` remedies, the recovery pointer and the rule that `--check --json` output never goes into a tracker comment, PR body or committed file, and drops the warn-only sentence; Step 8 names the `ac_id` refusal and its remedy; `faff validate-adapters` passes",
+      "verified": "validate-adapters passes; Step 8 and Step 9b wording checked by eye",
+      "passed": true,
+      "ac_id": "faff-1261#ac-30",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff validate-adapters"
+        },
+        {
+          "kind": "human"
+        }
+      ]
+    },
+    {
+      "ac": "The PR body carries the completed pre-switch gate (both `faff evidence-readiness --json` outputs, the live run-dir `--check` results with the count of run dirs holding null `ac_id`, the open-PR anchor results, and `branch-protection-check` output showing code-owner review required on main)",
+      "verified": "open: readiness needs FAFF-1270's --since revision; 29 live run-dir issue-runs refuse under --check; code-owner review not yet checked on main",
+      "passed": false,
+      "ac_id": "faff-1261#ac-31",
+      "verifications": [
+        {
+          "kind": "human"
+        }
+      ]
+    },
+    {
+      "ac": "The second Scenario passes (re-mint replaces `--dest` wholesale), and the fourth Scenario passes as a test (`ac_id` writer rule)",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1261#ac-32",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-enforcement.test.mjs::a re-mint replaces --dest wholesale; a re-mint that would drop a file exits 3 anchor-shrink and --check agrees"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-enforcement.test.mjs::ac-checklist writer: a criterion with no ac_id is refused with its index, no criterion text, and nothing written"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-enforcement.test.mjs::ac-checklist writer: a zero-AC input and criteria that all carry classify ids (including done:N) are written"
+        }
+      ]
+    }
+  ]
+}

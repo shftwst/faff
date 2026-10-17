@@ -96,9 +96,11 @@ function truncateDetail(value) {
   return value.slice(0, cut) + TRUNCATION_SUFFIX;
 }
 
-// Pure. Schema first, then the writer-only constraints. Messages name key paths, never values.
-function holdoutRecordViolations(doc) {
-  const found = validateAgainstSchema(doc, loadSchema()).map((m) => m.replace(/^<root>: /, ""));
+// Pure. The writer-only constraints the schema cannot express (id pattern, met/unmet detail, needs-human
+// reason, length). Messages name key paths, never values. Anchor validation calls this alone, since it
+// has already run the (possibly candidate) schema.
+function holdoutConstraintViolations(doc) {
+  const found = [];
   if (!isObject(doc) || !Array.isArray(doc.criteria)) return found;
   doc.criteria.forEach((c, i) => {
     if (!isObject(c)) return;
@@ -117,6 +119,12 @@ function holdoutRecordViolations(doc) {
     }
   });
   return found;
+}
+
+// Pure. Schema first, then the writer-only constraints.
+function holdoutRecordViolations(doc) {
+  const found = validateAgainstSchema(doc, loadSchema()).map((m) => m.replace(/^<root>: /, ""));
+  return [...found, ...holdoutConstraintViolations(doc)];
 }
 
 function serialise(doc) {
@@ -262,5 +270,5 @@ function holdoutRecordSelftest() {
 }
 
 module.exports = {
-  buildHoldoutRecord, holdoutRecordViolations, holdoutRecordSelftest, isSafeHoldoutKey, resolveContained, writeHoldoutRecord,
+  buildHoldoutRecord, holdoutConstraintViolations, holdoutRecordViolations, holdoutRecordSelftest, isSafeHoldoutKey, resolveContained, writeHoldoutRecord,
 };

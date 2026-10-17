@@ -12,6 +12,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { runCli } from "./helpers/run-cli.mjs";
+import { seedFloor as seedFloorFiles } from "./helpers/evidence-anchor-fixtures.mjs";
 
 const require = createRequire(import.meta.url);
 const { appendRecordUnderLock } = require("../plugin/skills/faff/bin/lib/events.js");
@@ -37,11 +38,7 @@ function tryAnchor(runDir, root) {
 // review-verdict.json under <runDir>/<issue>/. Seed both so a valid-genesis exit-0 test
 // exercises the real Step-9b shape; genesis-fault tests skip this (the guard is genesis-gated,
 // so an invalid genesis refuses before the floor check regardless).
-function seedFloor(runDir, issue = "TEST-1") {
-  mkdirSync(path.join(runDir, issue), { recursive: true });
-  writeFileSync(path.join(runDir, issue, "ac-checklist.json"), JSON.stringify({ all_verified: true }));
-  writeFileSync(path.join(runDir, issue, "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
-}
+const seedFloor = (runDir, issue = "TEST-1") => seedFloorFiles(runDir, issue);
 
 test("no-events: run-ledger.json present, events.jsonl absent → exit 3, code no-events (unchanged from before this ticket)", () => {
   const root = mkTmp("faff-966-guard-");
@@ -193,7 +190,7 @@ test("valid: a genesis chain whose ONLY record is a ledger-write (no run-start e
   // A matching run-ledger.json (its sha256 recorded on the ledger-write) — otherwise the
   // UNRELATED, pre-existing FAFF-958 ledger-fold precondition refuses first, masking the
   // genesis check this test targets (see the tampered-chain test above for the same note).
-  const ledgerBytes = JSON.stringify({ run_id: runId, admitted: [], outcomes: {} });
+  const ledgerBytes = JSON.stringify({ schema_version: 1, run_id: runId, admitted: [], outcomes: {} });
   writeFileSync(path.join(runDir, "run-ledger.json"), ledgerBytes);
   const ledgerSha = require("node:crypto").createHash("sha256").update(ledgerBytes).digest("hex");
   appendRecordUnderLock(runDir, (seq, _p, prevHash) => ({ schema: 2, run_id: runId, seq, ts: "t", prev: prevHash, phase: "run", type: "ledger-write", data: { ledger_sha256: ledgerSha } }));

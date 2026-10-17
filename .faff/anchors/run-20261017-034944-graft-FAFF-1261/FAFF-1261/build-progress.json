@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1261",
+  "build": {
+    "status": "complete",
+    "diff_hash": "eb24ef32d888617b5658024ae44ccae002f7bda10bf2de5673a0ef01f2bed8fe",
+    "branch": "FAFF-1261-refuse-to-mint-anchors-that-fail-their-schema",
+    "pushed_at": "2026-10-17T06:01:45.982Z"
+  },
+  "updated_at": "2026-10-17T06:01:45.982Z"
+}

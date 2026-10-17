@@ -1,0 +1,370 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A dialogue held at round 2 and restored into a fresh run dir yields `--next-round` 3 (test `test/resume-store.test.mjs`).",
+      "verified": "Test passes: a round-2 hold restored into a fresh run dir prints `--next-round` 3, dialogue.next_round 3, hold_count 1.",
+      "passed": true,
+      "ac_id": "faff-1314#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::a dialogue held at round 2 and restored into a fresh run dir resumes at round 3"
+        }
+      ]
+    },
+    {
+      "ac": "`git grep \"cp .faff/resume\\|cp -R .faff/resume\" plugin/skills/faff-graft/SKILL.md` returns nothing.",
+      "verified": "`git grep` for both cp forms in faff-graft/SKILL.md exits 1 with no output.",
+      "passed": true,
+      "ac_id": "faff-1314#done:2",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git grep \"cp .faff/resume\\|cp -R .faff/resume\" plugin/skills/faff-graft/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "`faff resume-store stash|restore|read|--selftest` exist with the flags, stdout and exit codes in the CLI surface table.",
+      "verified": "All three subcommands and --selftest exercised through the real entrypoint: exit 0/1/2/3/4 paths each asserted; selftest PASS.",
+      "passed": true,
+      "ac_id": "faff-1314#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::a dialogue held at round 2 and restored into a fresh run dir resumes at round 3"
+        },
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::stash refuses a dialogue hold with no rounds, and needs both counters once rounds exist"
+        },
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::restore and read exit 3 when there is no store"
+        },
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::a fresh issue lock makes every subcommand exit 4 and leaves the store and stage untouched"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff resume-store --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`hold.json` matches `HoldRecord`; `dialogue` is present iff the stashed `build-review/` holds a round file; `carried` equals the sorted list of every file in the store except `hold.json`.",
+      "verified": "Test asserts the key order and types of the record, carried equal to every file in the store except hold.json, and no dialogue object on a round-free outage stash.",
+      "passed": true,
+      "ac_id": "faff-1314#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::the hold record names schema, issue, cause and every carried file, sorted"
+        },
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::a review-outage round trip keeps outage_retries and review-rounds and prints no dialogue"
+        }
+      ]
+    },
+    {
+      "ac": "An `--issue` outside `^[A-Za-z0-9][A-Za-z0-9._-]*$` exits 2 before any filesystem access.",
+      "verified": "Test: four malformed ids across all three subcommands exit 2 and the store root is never created.",
+      "passed": true,
+      "ac_id": "faff-1314#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::an --issue that is not an issue id exits 2 before touching the filesystem"
+        }
+      ]
+    },
+    {
+      "ac": "The verb is registered in `bin/faff`, `regions.js` (region `factory` and the selftest map) and `docs/guide/cli.md`; `faff regions check` passes.",
+      "verified": "`faff regions check` PASS, `faff lint-cli-doc` PASS (138 subcommands), `faff lint-cli-coverage` PASS; region factory and selftest map entries added.",
+      "passed": true,
+      "ac_id": "faff-1314#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-doc"
+        }
+      ]
+    },
+    {
+      "ac": "Stash carries every top-level `*.json` except `hold.json` and `spec-review-hold.json`, plus `review-rounds/` and `build-review/` recursively, including `build-review/judge/`.",
+      "verified": "Test asserts carried lists the three top-level JSON files, build-review rounds, build-review/judge/ledger.json and review-rounds, excluding a stray hold.json, a symlink and a non-JSON file.",
+      "passed": true,
+      "ac_id": "faff-1314#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::the hold record names schema, issue, cause and every carried file, sorted"
+        },
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::prep's spec-review-hold.json is byte-identical through stash and restore and never restored"
+        }
+      ]
+    },
+    {
+      "ac": "A dialogue stash sets `hold_count` to the prior record's `dialogue.hold_count` + 1 (no prior → 1); an outage stash with rounds carries it unchanged.",
+      "verified": "Tests: a second dialogue hold yields hold_count 2; dialogue, outage, dialogue yields 1, 1, 2.",
+      "passed": true,
+      "ac_id": "faff-1314#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::a second hold after a restore carries rounds 1 to 3, next_round 4 and hold_count 2"
+        },
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::dialogue, outage, then dialogue holds count 1, 1, 2"
+        }
+      ]
+    },
+    {
+      "ac": "Stash refuses (exit 1) a dialogue hold with no round files, and exits 2 when rounds exist but the fix or rebuttal counter is missing.",
+      "verified": "Test: a round-free dialogue stash exits 1 naming no dialogue rounds; a missing or negative counter with rounds exits 2.",
+      "passed": true,
+      "ac_id": "faff-1314#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::stash refuses a dialogue hold with no rounds, and needs both counters once rounds exist"
+        }
+      ]
+    },
+    {
+      "ac": "`stash`, `restore` and `read` started while `.<issue>.stage` exists and is under 10 minutes old each exit 4 and leave the store and the stage untouched; a stage older than 10 minutes is cleared and the call proceeds; `restore` and `read` leave no stage behind.",
+      "verified": "Tests: a fresh stage makes stash, restore and read exit 4 with the store snapshot unchanged; a stage aged 11 minutes is cleared and read and restore leave no stage.",
+      "passed": true,
+      "ac_id": "faff-1314#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::a fresh issue lock makes every subcommand exit 4 and leaves the store and stage untouched"
+        },
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::a stale lock is cleared without touching .old, and restore and read leave no stage"
+        }
+      ]
+    },
+    {
+      "ac": "Stash leaves an existing `spec-review-hold.json` byte-identical.",
+      "verified": "Test: a 0640 prep hold file is byte-identical after stash and after restore.",
+      "passed": true,
+      "ac_id": "faff-1314#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::prep's spec-review-hold.json is byte-identical through stash and restore and never restored"
+        }
+      ]
+    },
+    {
+      "ac": "Restore and read exit 3 when the store folder is absent.",
+      "verified": "Test: restore and read exit 3 with no store root and with an empty one, leaving no stage.",
+      "passed": true,
+      "ac_id": "faff-1314#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::restore and read exit 3 when there is no store"
+        }
+      ]
+    },
+    {
+      "ac": "Restore and read exit 0 and print `{ \"cause\": \"review-outage\", \"legacy\": true }` when the store folder exists without `hold.json` and (for restore) without a stashed `build-review/`.",
+      "verified": "Test: a store without hold.json restores and reads as the legacy shape and copies both entries.",
+      "passed": true,
+      "ac_id": "faff-1314#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::a store written by the old prose restores as the legacy review-outage shape"
+        }
+      ]
+    },
+    {
+      "ac": "`--cause` outside `HoldCause`, or a stored `hold.json` with such a cause, exits 2.",
+      "verified": "Test: --cause nap exits 2; a stored record with cause nap makes restore, read and stash exit 2.",
+      "passed": true,
+      "ac_id": "faff-1314#done:14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::an unknown --cause, or a stored hold record with one, exits 2"
+        }
+      ]
+    },
+    {
+      "ac": "Two stashes that both take over the same stale stage end with exactly one published store; the other exits 4 (selftest: replace `stage/.lock` before publish and assert exit 4).",
+      "verified": "Selftest case: replacing stage/.lock before publish makes the stash exit 4 and publish nothing.",
+      "passed": true,
+      "ac_id": "faff-1314#done:15",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff resume-store --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "Restore exits 1 with the run dir byte-identical (including pre-existing top-level JSON files) when the stashed rounds disagree with `next_round`, `hold.json` is absent but `build-review/` is stashed, the run dir already has a non-empty `review-rounds/` or `build-review/`, the run dir's `review-rounds/` or `build-review/` is a symlink, or the staged round check fails (the selftest drives that check with a mismatching expected round).",
+      "verified": "Tests cover each refusal (round mismatch, missing hold record with build-review, non-empty or symlinked review-rounds and build-review, staged check) with a full snapshot of the run dir unchanged.",
+      "passed": true,
+      "ac_id": "faff-1314#done:16",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::restore refuses with the run dir unchanged when rounds and the hold record disagree"
+        },
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::restore refuses with the run dir unchanged on an occupied or symlinked round folder, or a dialogue store without a hold record"
+        },
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::restore refuses with the run dir unchanged when the staged round check fails"
+        }
+      ]
+    },
+    {
+      "ac": "A review-outage stash and restore round trip keeps `outage_retries` and `review-rounds/` intact and prints no `dialogue` object when no round exists.",
+      "verified": "Test: outage_retries 1 and review-rounds/round-1.json restored; no dialogue object in either output.",
+      "passed": true,
+      "ac_id": "faff-1314#done:17",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::a review-outage round trip keeps outage_retries and review-rounds and prints no dialogue"
+        }
+      ]
+    },
+    {
+      "ac": "Copies preserve mode (a 0600 judge file stays 0600) and mtimes, and skip symlinks.",
+      "verified": "Selftest: a 0600 judge file stays 0600 and its mtime survives; test: build-progress and holdout mtimes kept; symlink not carried.",
+      "passed": true,
+      "ac_id": "faff-1314#done:18",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff resume-store --selftest"
+        },
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::copies keep mtimes, so holdout.json stays newer than build-progress.json"
+        },
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::the hold record names schema, issue, cause and every carried file, sorted"
+        }
+      ]
+    },
+    {
+      "ac": "The four graft SKILL sites named under Graft SKILL edits call the verb with `--store-root \"$repo/.faff/resume\"`, with the exit routing listed there: restore 1, 2 or 3 and build-progress exit 3 on the fallback path park `needs-human`; restore 4 returns `claimed-by-peer`; stash or read 4 retries once; `read` 3 parks only on a resumed run; both resume arms seed the dialogue counters from the restore output.",
+      "verified": "All four sites carry `--store-root \"$repo/.faff/resume\"` (git grep -c: 4) with the routing the spec lists, read against the diff.",
+      "passed": true,
+      "ac_id": "faff-1314#done:19",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git grep -c 'store-root \"$repo/.faff/resume\"' plugin/skills/faff-graft/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "A second hold after a restore carries rounds 1 to 3, `next_round` 4 and `hold_count` 2.",
+      "verified": "Test: rounds 1 to 3 in the store, next_round 4, hold_count 2.",
+      "passed": true,
+      "ac_id": "faff-1314#done:20",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::a second hold after a restore carries rounds 1 to 3, next_round 4 and hold_count 2"
+        }
+      ]
+    },
+    {
+      "ac": "A dialogue hold, then an outage hold, then a dialogue hold yields `hold_count` 1, 1, 2.",
+      "verified": "Test asserts hold_count sequence [1, 1, 2].",
+      "passed": true,
+      "ac_id": "faff-1314#done:21",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::dialogue, outage, then dialogue holds count 1, 1, 2"
+        }
+      ]
+    },
+    {
+      "ac": "With `.<issue>.old` present and `<issue>` absent, every subcommand first renames `.old` back; a following stash reads the old `hold_count` and increments it.",
+      "verified": "Test: with the store renamed to .FAFF-9.old, stash, read and restore each repair it; the stash reads hold_count 1 and writes 2.",
+      "passed": true,
+      "ac_id": "faff-1314#done:22",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::a torn publish is repaired before a stash reads the prior hold count"
+        }
+      ]
+    },
+    {
+      "ac": "A stale `.<issue>.stage` is removed without touching `.<issue>.old`.",
+      "verified": "Test: a stale stage is taken over while .FAFF-9.old/marker.json stays.",
+      "passed": true,
+      "ac_id": "faff-1314#done:23",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::a stale lock is cleared without touching .old, and restore and read leave no stage"
+        }
+      ]
+    },
+    {
+      "ac": "The first stash in a repo with no `<store-root>` creates it and exits 0.",
+      "verified": "Test: a stash into a missing nested .faff/resume creates it and exits 0.",
+      "passed": true,
+      "ac_id": "faff-1314#done:24",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::the first stash in a repo creates the store root"
+        }
+      ]
+    },
+    {
+      "ac": "`faff validate-adapters` passes; `faff-graft/SKILL.md` is at or under 957 lines and the Step 3 resume-store fallback paragraph is at or under 200 words.",
+      "verified": "`faff validate-adapters` exit 0; faff-graft/SKILL.md at the 957-line baseline as the lint counts it; Step 3 paragraph 166 words.",
+      "passed": true,
+      "ac_id": "faff-1314#done:25",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "`faff lint-refs` finds no ticket or ADR reference added to the SKILL.",
+      "verified": "`faff lint-refs` PASS; the SKILL diff adds no ticket or ADR identifier.",
+      "passed": true,
+      "ac_id": "faff-1314#done:26",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-refs"
+        }
+      ]
+    }
+  ]
+}

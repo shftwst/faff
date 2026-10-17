@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/resume-store.js::lock released by the publish rename before the stash's own cleanup",
+      "title": "lock released by the publish rename before the stash's own cleanup",
+      "location": "plugin/skills/faff/bin/lib/resume-store.js:242",
+      "action": "Delete the stage's .lock before the publishing rename so no cleanup touches the published store after release.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Partly valid. The post-publish unlink of dst/.lock could act on a store a later caller had already replaced; the lock file is now removed from the stage before the rename, and a failed rename removes the stage. The remaining post-release removal of .<issue>.old is kept by design: the spec makes the publishing rename the release, and a second caller can only collide if it completes a full lock, recover, copy and first rename between two consecutive syscalls, then crashes; .old is a backup in that window, not the live store.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "lock released by the publish rename before the stash's own cleanup",
+          "location": "plugin/skills/faff/bin/lib/resume-store.js:242",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/resume-store.js::directory in the run dir named like a carried file wedges restore",
+      "title": "directory in the run dir named like a carried file wedges restore",
+      "location": "plugin/skills/faff/bin/lib/resume-store.js:301",
+      "action": "Refuse with exit 1 before moving anything when the run dir has a directory where a staged file would land.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Valid. refuseDirectoryCollisions runs after the staged round check and before any move; a test case asserts exit 1 with the run dir unchanged.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "directory in the run dir named like a carried file wedges restore",
+          "location": "plugin/skills/faff/bin/lib/resume-store.js:301",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/resume-store.js::carried lists spec-review-hold.json, which restore never restores",
+      "title": "carried lists spec-review-hold.json, which restore never restores",
+      "location": "plugin/skills/faff/bin/lib/resume-store.js:229",
+      "action": "None; the record follows the spec.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "The spec defines carried as every file in the store except hold.json (types block and the DONE item), and the store does hold the preserved prep file.",
+      "disposition_rationale": "Spec-mandated shape; carried is audit-only and describes the store, not the restore.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "carried lists spec-review-hold.json, which restore never restores",
+          "location": "plugin/skills/faff/bin/lib/resume-store.js:229",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/resume-store.js::stale-stage takeover loser leaves the winner's stage for 10 minutes",
+      "title": "stale-stage takeover loser leaves the winner's stage for 10 minutes",
+      "location": "plugin/skills/faff/bin/lib/resume-store.js:67",
+      "action": "None.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "After a takeover the stage belongs to the live winner, which removes it by publishing or on its own fault path; removing it from the loser would break the winner's lock. A crashed winner is the ordinary stale case the spec bounds at 10 minutes.",
+      "disposition_rationale": "Behaviour matches the spec's lock design.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "stale-stage takeover loser leaves the winner's stage for 10 minutes",
+          "location": "plugin/skills/faff/bin/lib/resume-store.js:67",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/resume-store.test.mjs::staged round check covered only through an injected seam",
+      "title": "staged round check covered only through an injected seam",
+      "location": "test/resume-store.test.mjs",
+      "action": "None.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Under the issue lock the store cannot change between the stashed and staged checks, so no CLI input reaches the staged refusal; the spec names the seam as the way to drive it.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "staged round check covered only through an injected seam",
+          "location": "test/resume-store.test.mjs",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

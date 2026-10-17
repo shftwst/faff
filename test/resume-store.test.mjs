@@ -184,6 +184,7 @@ test("restore refuses with the run dir unchanged on an occupied or symlinked rou
     "non-empty build-review": (d) => write(join(d, "build-review", "round-9.json"), {}),
     "symlinked build-review": (d) => { fs.mkdirSync(join(tmp, "elsewhere"), { recursive: true }); fs.symlinkSync(join(tmp, "elsewhere"), join(d, "build-review")); },
     "symlinked review-rounds": (d) => { fs.mkdirSync(join(tmp, "elsewhere"), { recursive: true }); fs.symlinkSync(join(tmp, "elsewhere"), join(d, "review-rounds")); },
+    "directory named like a carried file": (d) => fs.mkdirSync(join(d, "ac-checklist.json", "inner"), { recursive: true }),
   };
   for (const [name, arrange] of Object.entries(cases)) {
     const b = join(tmp, name.replace(/ /g, "-"));

@@ -240,9 +240,14 @@ function stash({ runDir, issue, cause, fixRoundsUsed, rebuttalRoundsUsed, storeR
     if (beforePublish) beforePublish(lock);
     if (!ownsLock(lock)) return { code: EXIT.busy, message: "the issue lock was taken over before publish" };
     const old = oldPath(storeRoot, issue);
-    if (lstatOrNull(dst)) fs.renameSync(dst, old);
-    fs.renameSync(lock.stage, dst);
-    fs.rmSync(path.join(dst, LOCK_FILE), { force: true });
+    fs.rmSync(path.join(lock.stage, LOCK_FILE));
+    try {
+      if (lstatOrNull(dst)) fs.renameSync(dst, old);
+      fs.renameSync(lock.stage, dst);
+    } catch (e) {
+      fs.rmSync(lock.stage, { recursive: true, force: true });
+      throw e;
+    }
     fs.rmSync(old, { recursive: true, force: true });
     return { code: EXIT.ok, record };
   });
@@ -255,6 +260,14 @@ function refuseOccupiedFolders(dst) {
     if (!st) continue;
     if (st.isSymbolicLink()) refuse(`run dir already has ${folder} (a symlink)`);
     if (!st.isDirectory() || fs.readdirSync(p).length) refuse(`run dir already has ${folder}`);
+  }
+}
+
+function refuseDirectoryCollisions(rstage, dst) {
+  for (const name of fs.readdirSync(rstage)) {
+    if (CARRIED_DIRS.includes(name)) continue;
+    const st = lstatOrNull(path.join(dst, name));
+    if (st && st.isDirectory()) refuse(`run dir has a directory named ${name}`);
   }
 }
 
@@ -284,6 +297,7 @@ function restore({ runDir, issue, storeRoot, afterStageCopy }) {
       copyCarriedSet(src, rstage);
       if (afterStageCopy) afterStageCopy(rstage);
       proveRounds(rstage, rec, "staged");
+      refuseDirectoryCollisions(rstage, dst);
       fs.mkdirSync(dst, { recursive: true });
       for (const name of fs.readdirSync(rstage).sort()) fs.renameSync(path.join(rstage, name), path.join(dst, name));
     } finally {

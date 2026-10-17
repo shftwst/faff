@@ -259,6 +259,49 @@ test("captureNoLensServed: a legitimate no-op — no pin, no served-<n>.json, ex
   } finally { rmSync(d, { recursive: true, force: true }); }
 });
 
+test("captureNoLensServed: a no-lens round after a served round PRESERVES the captured marker", () => {
+  // FAFF-1307 regression: clobbering the marker leaves a pin on disk whose state is no
+  // longer "captured", which --govern scores pin-marker-contradiction and then reads
+  // capRound = 1 for this round and every later one — a permanent latch that disables
+  // late-pin-advance for the rest of the loop.
+  const d = mkdtempSync(join(tmpdir(), "faff-srp-nolens-after-pin-"));
+  try {
+    const chain = CFG.adversarial.backends;
+    assert.equal(capturePin(d, chain, 1, 2).written, true, "round 2 established the pin");
+    const pinned = readCaptureOutcome(d);
+    assert.equal(pinned.state, "captured");
+    assert.equal(pinned.round, 2);
+
+    const r = captureNoLensServed(d, 3);
+    assert.equal(r.state, "skipped-no-lens");
+    assert.equal(r.marker_preserved, true);
+
+    const cap = readCaptureOutcome(d);
+    assert.equal(cap.state, "captured", "the captured state survives the no-lens round");
+    assert.equal(cap.round, 2, "the PINNING round survives, not the no-lens round");
+    assert.equal(cap.backend_identity, pinned.backend_identity);
+    assert.equal(cap.ts, pinned.ts, "the capture timestamp is not rewritten");
+    assert.equal(cap.last_no_lens_round, 3, "the no-lens round is still a disk-recorded fact");
+    assert.equal(typeof cap.last_no_lens_ts, "string");
+    assert.equal(existsSync(join(d, "served-3.json")), false, "still no served identity for a no-lens round");
+  } finally { rmSync(d, { recursive: true, force: true }); }
+});
+
+test("captureNoLensServed: a non-captured prior marker is replaced, not preserved", () => {
+  const d = mkdtempSync(join(tmpdir(), "faff-srp-nolens-replace-"));
+  try {
+    assert.equal(capturePin(d, "nope", 0, 1).error, "bad-capture", "a failed capture leaves state:failed");
+    assert.equal(readCaptureOutcome(d).state, "failed");
+
+    const r = captureNoLensServed(d, 2);
+    assert.equal(r.state, "skipped-no-lens");
+    assert.equal(r.marker_preserved, undefined);
+    const cap = readCaptureOutcome(d);
+    assert.equal(cap.state, "skipped-no-lens");
+    assert.equal(cap.round, 2);
+  } finally { rmSync(d, { recursive: true, force: true }); }
+});
+
 // --- CLI seam ---
 
 test("CLI resolve unpinned prints a chain byte-identical to `adversarial-backends`", () => {

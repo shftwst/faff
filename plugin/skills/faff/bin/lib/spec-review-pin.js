@@ -248,11 +248,27 @@ function capturePin(scratchDir, chain, winnerIndex, round) {
 }
 
 // captureNoLensServed(scratchDir, round) — the empty-exit-0-set path. Writes NO pin and
-// NO served-<n>.json (there is no served identity to record); writes
-// pin-capture.json{state:"skipped-no-lens"} so the round's legitimate no-op is a disk-
-// recorded fact, distinguishable from a silent non-run. Always succeeds (exit 0).
+// NO served-<n>.json (there is no served identity to record); records the round's
+// legitimate no-op in pin-capture.json so it is a disk-recorded fact, distinguishable
+// from a silent non-run. Always succeeds (exit 0).
+//
+// An established pin capture is preserved, never overwritten. capturePin is idempotent
+// about the pin itself, so a no-lens round arriving after an earlier served round must be
+// equally careful about the marker recording WHICH round pinned. Clobbering it leaves a
+// pin on disk whose marker no longer reads "captured", which --govern scores as
+// pin-marker-contradiction and then falls back to capRound = 1 — for that round and every
+// later one, since the clobber is permanent. That latch disables the late-pin-advance rule
+// for the rest of the loop, so a pin captured after a no-lens round never advances the
+// window and convergence is then read across rounds served by different backends. The
+// no-lens fact rides the preserved marker instead.
 function captureNoLensServed(scratchDir, round) {
-  atomicWriteJSON(pinCapturePath(scratchDir), { state: "skipped-no-lens", round, reason: NO_LENS_REASON, ts: new Date().toISOString() });
+  const ts = new Date().toISOString();
+  const prior = readCaptureOutcome(scratchDir);
+  if (prior && prior.state === "captured") {
+    atomicWriteJSON(pinCapturePath(scratchDir), { ...prior, last_no_lens_round: round, last_no_lens_ts: ts });
+    return { state: "skipped-no-lens", marker_preserved: true };
+  }
+  atomicWriteJSON(pinCapturePath(scratchDir), { state: "skipped-no-lens", round, reason: NO_LENS_REASON, ts });
   return { state: "skipped-no-lens" };
 }
 

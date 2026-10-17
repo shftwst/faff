@@ -39,7 +39,7 @@ const EVENTS_SPEC = { flags: {
   "--root": { arity: 1 }, "--run": { arity: 1 }, "--ts": { arity: 1 }, "--file": { arity: 1 },
   "--session-id": { arity: 1 }, "--type": { arity: 1 }, "--issue": { arity: 1 },
   // FAFF-568: verify/anchor sub-verb flags (re-hash + snapshot the chain).
-  "--run-dir": { arity: 1 }, "--legacy-policy": { arity: 1 }, "--dest": { arity: 1 },
+  "--run-dir": { arity: 1 }, "--legacy-policy": { arity: 1 }, "--dest": { arity: 1 }, "--check": { arity: 0 },
 }, positionals: { min: 0, max: null, name: "verb" } };
 // FAFF-628 — declared grammar for `faff cli-surface --json` + the drift-guard's flag-layer
 // assertions. `validate` takes only a positional file path (spec §2 OUT OF SCOPE: value-level
@@ -1151,7 +1151,7 @@ function cmdEvents(args) {
   // FAFF-576: fail-closed flag gate — unknown flag / missing value exits 2 before any sub-verb work
   // (the append/read bodies below then read validated flags via the existing manual scan).
   const gate = parseArgs(args, EVENTS_SPEC);
-  if (gate.errors.length) return usageError(gate.errors, "usage: faff events <append|validate|read|verify|anchor|anchor-run> [--run ID] [--file F] [--ts T] [--tokens] [--session-id ID] [--type T] [--issue ID] [--run-dir DIR] [--legacy-policy pass|warn|fail] [--dest DIR] [--json] [--root DIR]");
+  if (gate.errors.length) return usageError(gate.errors, "usage: faff events <append|validate|read|verify|anchor|anchor-run> [--run ID] [--file F] [--ts T] [--tokens] [--session-id ID] [--type T] [--issue ID] [--run-dir DIR] [--legacy-policy pass|warn|fail] [--dest DIR] [--check] [--json] [--root DIR]");
   let root = null, run = null, ts = null, file = null, tokensFlag = false, sessionIdFlag = null;
   const rest = [];
   for (let i = 0; i < args.length; i++) {
@@ -1483,20 +1483,7 @@ function cmdEvents(args) {
         }
       }
     }
-    const result = mintIssueAnchor(dirArg, issueArg, destArg);
-    if (!result.ok) {
-      process.stderr.write(`faff events anchor: ${result.message}\n`);
-      // FAFF-966: "genesis-invalid" (a present-but-invalid genesis) is the sibling fail-closed
-      // refusal alongside "no-events" (absent) — both exit 3, matching the spec's scenarios;
-      // neither ever touches the run dir (validateAnchorGenesis is read-only).
-      return (result.code === "no-events" || result.code === "genesis-invalid") ? 3 : 2;
-    }
-    const { head, copiedFloorFiles, effectsAnchored } = result;
-    const floorNote = copiedFloorFiles.length ? ` + ${copiedFloorFiles.join(", ")}` : "";
-    const effectsNote = effectsAnchored ? " + declared-effects.jsonl, effects-chain-head.json" : "";
-    console.log(`events anchor: ${dirArg} → ${destArg} (head_seq ${head.head_seq}, head_sha256 ${head.head_sha256 ? head.head_sha256.slice(0, 12) + "…" : "null"}, ${head.line_count} lines, schema_floor ${head.schema_floor})${floorNote}${effectsNote}`);
-    warnOnEvidenceSchema(destArg, issueArg);
-    return 0;
+    return stagedAnchorMint(dirArg, issueArg, destArg, { check: args.includes("--check"), json: args.includes("--json") });
   }
 
   // FAFF-796: `anchor-run` — the git-only run-level sibling of `anchor` (per ADR 0109). Mints
@@ -1708,28 +1695,151 @@ function validateAnchorGenesis(runDir) {
   return { valid: true, eventsBuf: buf };
 }
 
-// FAFF-1263: the warn-only evidence-schema check. Runs after a successful mint on the minted
-// destination (the bytes that get committed), writes to stderr only, and never changes the exit
-// code, stdout or the anchor. A fault inside the check is itself only a warning. evidence.js requires
-// this module, so it is required lazily here to avoid handing either module a half-loaded exports.
-const WARN_ONLY_MAX_FILES = 5;
-function warnOnEvidenceSchema(dest, issue) {
-  const say = (line) => process.stderr.write(line + "\n");
-  try {
-    const { checkAnchorDir, sanitiseDisplay } = require("./evidence");
-    const check = checkAnchorDir(dest, {});
-    const who = sanitiseDisplay(issue);
-    if (check.status === "pass") return;
-    if (check.status === "error") {
-      say(`faff events anchor: evidence-schema warn-only: error ${who}: ${check.reason}; not a refusal`);
-      return;
+// FAFF-1261: the per-PR mint stages the anchor under os.tmpdir(), validates exactly those bytes with
+// the shipped validator, and copies them into --dest only on a pass. A refused mint (and --check)
+// writes nothing under --dest or its parent. Refusal lines carry paths, statuses and counts, never
+// violation text: the JSONL line validators echo field values, and refusal stderr reaches the tracker.
+// evidence.js requires this module, so it is required lazily here to avoid a half-loaded exports.
+const ANCHOR_MAX_REFUSAL_FILES = 5;
+
+function anchorSay(line) { process.stderr.write(`faff events anchor: ${line}\n`); }
+
+// Regular files (and any other non-directory entry, never followed) under root, as sorted posix paths.
+function anchorTreeFiles(root) {
+  const out = [];
+  const walk = (dir, prefix) => {
+    for (const d of fs.readdirSync(dir, { withFileTypes: true })) {
+      const rel = prefix ? `${prefix}/${d.name}` : d.name;
+      if (d.isDirectory()) walk(path.join(dir, d.name), rel);
+      else out.push(rel);
     }
-    say(`faff events anchor: evidence-schema warn-only: ${check.status} ${who} (${check.files.length} non-conforming file(s)); not a refusal; details: faff evidence validate ${sanitiseDisplay(dest)}`);
-    for (const f of check.files.slice(0, WARN_ONLY_MAX_FILES)) say(`  ${f.path}: ${f.status}, ${f.violations} violation(s)`);
-    if (check.files.length > WARN_ONLY_MAX_FILES) say(`  (+${check.files.length - WARN_ONLY_MAX_FILES} more files)`);
-  } catch (e) {
-    const name = e && typeof e.name === "string" && /^[A-Za-z][A-Za-z0-9_$]{0,63}$/.test(e.name) ? e.name : "Error";
-    try { say(`faff events anchor: evidence-schema warn-only: error ${String(issue).replace(/[^A-Za-z0-9._-]/g, "?")}: ${name}; not a refusal`); } catch { /* stderr closed: nothing left to warn on */ }
+  };
+  walk(root, "");
+  return out.sort();
+}
+
+// The stderr lines for a non-pass staged summary, in the refusal table's order, capped in total.
+function anchorSummaryRefusal(summary, evidence) {
+  if (summary.status === "error") {
+    const reason = String(summary.reason || "").replace(/^schema-unavailable\s*/, "");
+    return { lines: [summary.schema_unavailable ? `schema-unavailable${reason ? " " + reason : ""}` : `schema-check-error ${summary.reason}`], more: 0 };
+  }
+  let files = summary.files;
+  if (summary.status === "legacy") {
+    // A legacy anchor lists every file as legacy; the refusal names the evidence documents.
+    let docs = null;
+    try { docs = new Set(evidence.evidenceDocumentFiles()); } catch { docs = null; }
+    const only = docs ? files.filter((f) => docs.has(f.path)) : [];
+    if (only.length > 0) files = only;
+  }
+  const byPath = (x, y) => (x.path < y.path ? -1 : x.path > y.path ? 1 : 0);
+  const unschemaed = files.filter((f) => f.status === "unschemaed").sort(byPath);
+  const mismatch = files.filter((f) => f.status !== "unschemaed").sort(byPath);
+  const all = [
+    ...unschemaed.map((f) => `unschemaed-file ${f.path}`),
+    ...mismatch.map((f) => `schema-mismatch ${f.path}: ${f.status}, ${f.violations} violation(s)`),
+  ];
+  return { lines: all.slice(0, ANCHOR_MAX_REFUSAL_FILES), more: Math.max(0, all.length - ANCHOR_MAX_REFUSAL_FILES) };
+}
+
+// Read-only: is --dest something the mint may write into, and would the re-mint drop a file?
+// Returns null, or { code, lines } for the refusal.
+function checkAnchorDest(dest, stagedFiles, evidence) {
+  let st;
+  try { st = fs.lstatSync(dest); } catch (e) {
+    if (e && e.code === "ENOENT") return null;
+    return { code: 2, lines: [`--dest is not a plain directory: ${evidence.sanitiseDisplay(dest)}`] };
+  }
+  if (st.isSymbolicLink() || !st.isDirectory()) return { code: 2, lines: [`--dest is not a plain directory: ${evidence.sanitiseDisplay(dest)}`] };
+  const existing = anchorTreeFiles(dest);
+  if (existing.length === 0) return null;
+  let manifestNames;
+  try { manifestNames = new Set(evidence.manifestFileNames()); } catch { return { code: 3, lines: ["schema-unavailable anchor-manifest.json"] }; }
+  if (!existing.includes("chain-head.json") || existing.some((f) => !manifestNames.has(f))) {
+    return { code: 2, lines: [`--dest holds non-anchor files: ${evidence.sanitiseDisplay(dest)}`] };
+  }
+  const staged = new Set(stagedFiles);
+  const dropped = existing.filter((f) => !staged.has(f));
+  if (dropped.length === 0) return null;
+  const lines = dropped.slice(0, ANCHOR_MAX_REFUSAL_FILES).map((f) => `anchor-shrink ${evidence.sanitiseDisplay(f)}: present in the existing anchor, absent from the staged anchor`);
+  if (dropped.length > ANCHOR_MAX_REFUSAL_FILES) lines.push(`(+${dropped.length - ANCHOR_MAX_REFUSAL_FILES} more files)`);
+  return { code: 3, lines };
+}
+
+// The only function that writes under --dest. Replaces a prior anchor wholesale (an empty --dest is
+// kept), copies the staged bytes (chain-head.json first, so a crash leaves a recognisable anchor
+// directory), then re-checks what landed. Returns the exit code.
+function commitMint(staging, dest, stagedFiles, evidence) {
+  let st = null;
+  try { st = fs.lstatSync(dest); } catch { st = null; }
+  if (st && (st.isSymbolicLink() || !st.isDirectory())) { anchorSay(`--dest is not a plain directory: ${evidence.sanitiseDisplay(dest)}`); return 2; }
+  if (st && anchorTreeFiles(dest).length > 0) fs.rmSync(dest, { recursive: true, force: true });
+  fs.mkdirSync(dest, { recursive: true });
+  const ordered = [...stagedFiles].sort((x, y) => (x === "chain-head.json" ? -1 : y === "chain-head.json" ? 1 : 0));
+  for (const rel of ordered) {
+    const target = path.join(dest, ...rel.split("/"));
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, fs.readFileSync(path.join(staging, ...rel.split("/"))));
+  }
+  const landed = evidence.checkAnchorDir(dest, {});
+  if (landed.status === "pass") return 0;
+  const refusal = anchorSummaryRefusal(landed, evidence);
+  for (const l of refusal.lines) anchorSay(l);
+  if (refusal.more) anchorSay(`(+${refusal.more} more files)`);
+  return 3;
+}
+
+function stagedAnchorMint(runDir, issue, dest, { check, json }) {
+  const evidence = require("./evidence");
+  let staging;
+  try { staging = fs.mkdtempSync(path.join(os.tmpdir(), "faff-anchor-")); } catch { anchorSay("cannot create a staging directory"); return 2; }
+  try {
+    const result = mintIssueAnchor(runDir, issue, staging);
+    if (!result.ok) {
+      anchorSay(result.message);
+      // FAFF-966: "genesis-invalid" is the sibling fail-closed refusal alongside "no-events"; both exit 3.
+      return (result.code === "no-events" || result.code === "genesis-invalid") ? 3 : 2;
+    }
+    const summary = evidence.checkAnchorDir(staging, {});
+    // `--check --json` prints the full report (violation text included, redacted) for a human
+    // operator whenever the validator produced one, on a pass and on every refusal after it.
+    const printReport = () => {
+      if (!(check && json) || summary.status === "error") return 0;
+      let secrets;
+      try { secrets = resolveKnownSecretValues(findRoot()); } catch { anchorSay("the redaction config could not be read; no report printed"); return 2; }
+      try { console.log(JSON.stringify(redactKnownSecrets(evidence.validateAnchorDir(staging), secrets))); } catch { /* the summary above already reported the fault */ }
+      return 0;
+    };
+    const refuse = (code, lines, more) => {
+      for (const l of lines) anchorSay(l);
+      if (more) anchorSay(`(+${more} more files)`);
+      const printed = printReport();
+      return printed !== 0 ? printed : code;
+    };
+    if (summary.status !== "pass") {
+      const r = anchorSummaryRefusal(summary, evidence);
+      return refuse(3, r.lines, r.more);
+    }
+    const stagedFiles = anchorTreeFiles(staging);
+    const destRefusal = checkAnchorDest(dest, stagedFiles, evidence);
+    if (destRefusal) {
+      return refuse(destRefusal.code, destRefusal.lines, 0);
+    }
+    if (check) {
+      const printed = printReport();
+      if (printed !== 0) return printed;
+      console.log("events anchor --check: ok");
+      return 0;
+    }
+    const code = module.exports.commitMint(staging, dest, stagedFiles, evidence);
+    if (code !== 0) return code;
+    const { head, copiedFloorFiles, effectsAnchored } = result;
+    const floorNote = copiedFloorFiles.length ? ` + ${copiedFloorFiles.join(", ")}` : "";
+    const effectsNote = effectsAnchored ? " + declared-effects.jsonl, effects-chain-head.json" : "";
+    console.log(`events anchor: ${runDir} → ${dest} (head_seq ${head.head_seq}, head_sha256 ${head.head_sha256 ? head.head_sha256.slice(0, 12) + "…" : "null"}, ${head.line_count} lines, schema_floor ${head.schema_floor})${floorNote}${effectsNote}`);
+    return 0;
+  } finally {
+    fs.rmSync(staging, { recursive: true, force: true });
   }
 }
 
@@ -1948,14 +2058,17 @@ function eventsSelftest() {
       if (ledger !== undefined) fs.writeFileSync(path.join(dir, "run-ledger.json"), ledger);
       return lines;
     };
+    // FAFF-1261: the per-PR mint validates what it stages, so the selftest's evidence documents come
+    // from the shipped v0.3 valid examples and its ledgers carry schema_version.
+    const exampleDoc = (name) => fs.readFileSync(path.join(__dirname, "..", "..", "contracts", "evidence-v0.3", "schema", "examples", `${name}.example.json`), "utf8");
     // FAFF-1155: a per-PR `events anchor` now REQUIRES ac-checklist.json + review-verdict.json
     // under <runDir>/<issue>/ (a valid-genesis run reaching Step 9b always carries them). Seed
     // both so an exit-0 anchor test exercises the real Step-9b shape rather than the pre-guard
     // floor-less one.
     const seedFloor = (dir, issue = "FAFF-1") => {
       fs.mkdirSync(path.join(dir, issue), { recursive: true });
-      fs.writeFileSync(path.join(dir, issue, "ac-checklist.json"), JSON.stringify({ all_verified: true }));
-      fs.writeFileSync(path.join(dir, issue, "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
+      fs.writeFileSync(path.join(dir, issue, "ac-checklist.json"), exampleDoc("ac-checklist"));
+      fs.writeFileSync(path.join(dir, issue, "review-verdict.json"), exampleDoc("review-verdict-anchored"));
     };
     const vcheck = (label, cond) => { if (!cond) { process.stderr.write(`events --selftest FAIL: ${label}\n`); failed++; } };
 
@@ -2111,7 +2224,7 @@ function eventsSelftest() {
     { // anchor round-trip
       const src = mkDir(), dest = mkDir();
       try {
-        const ledger = JSON.stringify({ run_id: "run-anchor", admitted: [], outcomes: {} }, null, 2) + "\n";
+        const ledger = JSON.stringify({ schema_version: 1, run_id: "run-anchor", admitted: [], outcomes: {} }, null, 2) + "\n";
         const ledgerSha = sha256Hex(Buffer.from(ledger, "utf8"));
         const lines = buildChain(src, "run-anchor", [
           { phase: "run", type: "run-start" },
@@ -2138,7 +2251,7 @@ function eventsSelftest() {
       const src = mkDir(), destRoot = mkDir();
       const dest = path.join(destRoot, "anchor-dest");
       try {
-        const ledgerBefore = JSON.stringify({ run_id: "run-anchor-drift", admitted: [], outcomes: {} }, null, 2) + "\n";
+        const ledgerBefore = JSON.stringify({ schema_version: 1, run_id: "run-anchor-drift", admitted: [], outcomes: {} }, null, 2) + "\n";
         const ledgerShaBefore = sha256Hex(Buffer.from(ledgerBefore, "utf8"));
         buildChain(src, "run-anchor-drift", [
           { phase: "run", type: "run-start" },
@@ -2196,7 +2309,7 @@ function eventsSelftest() {
       const src = mkDir(), destRoot = mkDir();
       const dest = path.join(destRoot, "anchor-dest");
       try {
-        const ledger = JSON.stringify({ run_id: "run-anchor-nolw", admitted: [], outcomes: {} }, null, 2) + "\n";
+        const ledger = JSON.stringify({ schema_version: 1, run_id: "run-anchor-nolw", admitted: [], outcomes: {} }, null, 2) + "\n";
         buildChain(src, "run-anchor-nolw", [
           { phase: "run", type: "run-start" },
           { phase: "build", type: "build-start", issue: "FAFF-1" },
@@ -2210,7 +2323,7 @@ function eventsSelftest() {
       const src = mkDir(), destRoot = mkDir();
       const dest = path.join(destRoot, "anchor-dest");
       try {
-        const ledger = JSON.stringify({ run_id: "run-anchor-match", admitted: [], outcomes: {} }, null, 2) + "\n";
+        const ledger = JSON.stringify({ schema_version: 1, run_id: "run-anchor-match", admitted: [], outcomes: {} }, null, 2) + "\n";
         const ledgerSha = sha256Hex(Buffer.from(ledger, "utf8"));
         buildChain(src, "run-anchor-match", [
           { phase: "run", type: "run-start" },
@@ -2226,7 +2339,7 @@ function eventsSelftest() {
       const src = mkDir(), destRoot = mkDir();
       const dest = path.join(destRoot, "anchor-dest");
       try {
-        const ledgerBefore = JSON.stringify({ run_id: "run-anchor-resync", admitted: [], outcomes: {} }, null, 2) + "\n";
+        const ledgerBefore = JSON.stringify({ schema_version: 1, run_id: "run-anchor-resync", admitted: [], outcomes: {} }, null, 2) + "\n";
         const ledgerShaBefore = sha256Hex(Buffer.from(ledgerBefore, "utf8"));
         const initialLines = buildChain(src, "run-anchor-resync", [
           { phase: "run", type: "run-start" },
@@ -2279,8 +2392,8 @@ function eventsSelftest() {
         // the normal case below L4) and re-anchor to a fresh dest.
         const dest2 = mkDir();
         fs.mkdirSync(path.join(src, "FAFF-1"), { recursive: true });
-        fs.writeFileSync(path.join(src, "FAFF-1", "ac-checklist.json"), JSON.stringify({ all_verified: true }));
-        fs.writeFileSync(path.join(src, "FAFF-1", "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
+        fs.writeFileSync(path.join(src, "FAFF-1", "ac-checklist.json"), exampleDoc("ac-checklist"));
+        fs.writeFileSync(path.join(src, "FAFF-1", "review-verdict.json"), exampleDoc("review-verdict-anchored"));
         rc = cmdEvents(["anchor", "--run-dir", src, "--issue", "FAFF-1", "--dest", dest2]);
         vcheck("anchor: ac-checklist.json + review-verdict.json present → exit 0, both copied verbatim", rc === 0
           && fs.readFileSync(path.join(dest2, "ac-checklist.json"), "utf8") === fs.readFileSync(path.join(src, "FAFF-1", "ac-checklist.json"), "utf8")
@@ -2294,7 +2407,7 @@ function eventsSelftest() {
 
         // FAFF-1157: spec-review-verdict.json present alongside the required floor → best-effort copied verbatim.
         const dest2b = mkDir();
-        fs.writeFileSync(path.join(src, "FAFF-1", "spec-review-verdict.json"), JSON.stringify({ verdict: "revise", objections: [{ lens: "architectural", severity: "major", disposition: "fixed" }] }));
+        fs.writeFileSync(path.join(src, "FAFF-1", "spec-review-verdict.json"), exampleDoc("spec-review-verdict-anchored"));
         rc = cmdEvents(["anchor", "--run-dir", src, "--issue", "FAFF-1", "--dest", dest2b]);
         vcheck("anchor: spec-review-verdict.json present → exit 0, copied verbatim into the anchor", rc === 0
           && fs.readFileSync(path.join(dest2b, "spec-review-verdict.json"), "utf8") === fs.readFileSync(path.join(src, "FAFF-1", "spec-review-verdict.json"), "utf8"));
@@ -2303,8 +2416,8 @@ function eventsSelftest() {
 
         // L4: add holdout.json + build-progress.json too — all four copy.
         const dest3 = mkDir();
-        fs.writeFileSync(path.join(src, "FAFF-1", "holdout.json"), JSON.stringify({ aggregate: "meets-spec", code_blind: true, criteria: [] }));
-        fs.writeFileSync(path.join(src, "FAFF-1", "build-progress.json"), JSON.stringify({ updated_at: new Date().toISOString() }));
+        fs.writeFileSync(path.join(src, "FAFF-1", "holdout.json"), exampleDoc("holdout-anchored"));
+        fs.writeFileSync(path.join(src, "FAFF-1", "build-progress.json"), exampleDoc("build-progress"));
         rc = cmdEvents(["anchor", "--run-dir", src, "--issue", "FAFF-1", "--dest", dest3]);
         vcheck("anchor: all four merge-floor files present → exit 0, all four copied", rc === 0
           && fs.existsSync(path.join(dest3, "ac-checklist.json")) && fs.existsSync(path.join(dest3, "review-verdict.json"))
@@ -2452,4 +2565,4 @@ function eventsSelftest() {
 }
 
 
-module.exports = { RUNNER_IDENTITY_CREDENTIAL_SOURCES, DISPATCH_ALLOWED_DATA_KEYS, DISPATCH_KINDS, EFFORT_LEVELS, EVENTS_SPEC, EVENTS_SURFACE, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, DECISION_CAPTURE_COVERAGE_VALUES, HEX64_RE, QUALITY_GATE_CATCHES, TAIL_WINDOW_BYTES, appendEventRecord, appendRecordUnderLock, appendRecordsUnderLock, parseJsonlEntries, cmdEvents, computeChainHead, emitGenesisRunStart, eventLineCount, eventViolations, eventsSelftest, issueScopedViolations, mintIssueAnchor, seqFinding, sha256Hex, splitPhysicalLines, tailReadNextSeq, tailReadState, validateAnchorGenesis, verifyChain, verifyEffectsChain, walkPhysicalChain, verifyExitCode, ROW_SCOPE, SCOPE_REFUSALS, classifyRow, resolveAnchorScope, ledgerIsBound, admittedIssueSet };
+module.exports = { RUNNER_IDENTITY_CREDENTIAL_SOURCES, DISPATCH_ALLOWED_DATA_KEYS, DISPATCH_KINDS, EFFORT_LEVELS, EVENTS_SPEC, EVENTS_SURFACE, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, DECISION_CAPTURE_COVERAGE_VALUES, HEX64_RE, QUALITY_GATE_CATCHES, TAIL_WINDOW_BYTES, appendEventRecord, appendRecordUnderLock, appendRecordsUnderLock, parseJsonlEntries, cmdEvents, computeChainHead, emitGenesisRunStart, eventLineCount, eventViolations, eventsSelftest, commitMint, issueScopedViolations, mintIssueAnchor, seqFinding, sha256Hex, splitPhysicalLines, tailReadNextSeq, tailReadState, validateAnchorGenesis, verifyChain, verifyEffectsChain, walkPhysicalChain, verifyExitCode, ROW_SCOPE, SCOPE_REFUSALS, classifyRow, resolveAnchorScope, ledgerIsBound, admittedIssueSet };

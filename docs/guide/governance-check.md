@@ -214,8 +214,8 @@ The new `evidence-schema` input decides how schema findings count:
 
 | Value | Schema findings | Integrity findings |
 |---|---|---|
-| `report` (default) | Warning annotation and summary row; the check still passes | Fail the check |
-| `require` | Fail the check; the head verb also gets `--require-evidence-schema` | Fail the check |
+| `require` (default) | Fail the check; the head verb also gets `--require-evidence-schema` | Fail the check |
+| `report` | Warning annotation and summary row; the check still passes | Fail the check |
 
 Integrity findings fail under either value, since they mean tampering or a broken check
 rather than a writer that has not caught up:
@@ -233,8 +233,8 @@ build, which mints a new `<run>/<issue>` anchor beside the old one.
 The Action's `verdict` output is `fail` whenever the PR touches anchors and this leg did
 not finish with `verdict=pass`, including when the step errors or is cancelled. The
 `evidence-result` output exposes what the validator found (`pass` or `fail`) in either
-mode. The default stays `report` until committed anchors stop being `legacy`; the later
-enforcement slice switches it to `require`. This leg cannot protect `.github/` itself; the
+mode. The default is `require`: the per-PR mint refuses a non-conforming anchor, so a
+PR whose new anchor fails its schema fails here too. An adopter can set `report` explicitly. This leg cannot protect `.github/` itself; the
 code-owner rule in section 2 does.
 
 ## Failure modes worth knowing about

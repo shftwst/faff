@@ -188,7 +188,7 @@ After this change, `meets-spec` means every criterion in the judged set was met.
 - `evidence-documents.md`, both copies;
 - the graft Step 10 holdout-gate text.
 
-### The trust shift for prose DONE items
+### The trust shift for delegated prose items
 
 Today a prose DONE item forces the holdout to `needs-human`, and the strict L4 floor blocks the merge whatever anyone does. After this change it passes on the AC-checklist leg. The builder writes `ac-checklist.json` in-lane (graft Step 8, the rung-0 posture), so a prose item now rests on the builder's own attestation plus the review leg. The checklist writer requires a test or command locator per criterion (FAFF-1287), and the review is a separate agent that sees the checklist and the diff. Neither is independent of the lane in the way the old block was.
 

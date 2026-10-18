@@ -13,7 +13,7 @@ const DOD_SPLIT_SPEC = { flags: { "--view": { arity: 1 }, "--spec": { arity: 1 }
 const HOLDOUT_VERDICTS_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--require-spawner-attested": { arity: 0 }, "--association": { arity: 1 }, "--dir": { arity: 1 }, "--persist": { arity: 0 }, "--prdr-dir": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
 const HOLDOUT_VERDICT_SPEC = { flags: { "--json": { arity: 0 }, "--require-spawner-attested": { arity: 0 }, "--issue": { arity: 1 }, "--dir": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
 const HOLDOUT_RECORD_SPEC = { flags: { "--json": { arity: 0 }, "--issue": { arity: 1 }, "--spec": { arity: 1 }, "--key": { arity: 1 }, "--run-dir": { arity: 1 }, "--credentials-env": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
-const SPEC_REVIEW_LENSES_SPEC = { flags: { "--selftest": { arity: 0 }, "--tags": { arity: 1 }, "--level": { arity: 1 }, "--appetite": { arity: 1 } }, positionals: { min: 0, max: null, name: "arg" } };
+const SPEC_REVIEW_LENSES_SPEC = { flags: { "--selftest": { arity: 0 }, "--tags": { arity: 1 }, "--level": { arity: 1 }, "--appetite": { arity: 1 }, "--adversarial-configured": { arity: 1 }, "--root": { arity: 1 } }, positionals: { min: 0, max: null, name: "arg" } };
 // FAFF-628 — declared grammar for the two subcommand-dispatch verbs this module owns. `spec`
 // carries BOTH per-subcommand CommandSpecs (a List<CommandSpec>) so the accepted-flag union
 // covers both — `dod classify --view` (a `dod split`-only flag) still correctly reads as unknown.
@@ -35,6 +35,8 @@ const HOLDOUT_SURFACE = {
   },
 };
 const { SPEC_REVIEW_LENSES, computeHoldoutVerdictsMap, holdoutGateResult } = require("./contract-defs");
+const { loadConfig } = require("./config");
+const { assembleAdversarialBackends } = require("./adversarial-backends");
 const { ISSUE_ID_RE, parseLocalAcId, qualifyAcId } = require("./ac-id");
 
 function prdHasComparator(s) {
@@ -1412,11 +1414,40 @@ const SPEC_REVIEW_SURFACE_FIRES = {
 };
 const SPEC_REVIEW_ALL_LENSES = SPEC_REVIEW_LENSES; // ["architectural","infosec","methodology","QA"]
 
-// Pure: { tags:[SurfaceTag], level:"L1".."L4", appetite:"low|medium|high|full" } → LensSelection.
-function selectLenses({ tags = [], level = "L3", appetite = "high" } = {}) {
+// The four autonomy levels this resolver accepts. FAFF-1343: the enum is VALIDATED, not
+// coerced. An out-of-enum `--level` (a bare `4` for `L4`) used to fall through to the
+// single-pass default and echo the bogus level back in the rationale, so the output read
+// like a considered answer rather than a rejected input; with the L4 fail-closed rule below
+// that silent fall-through would let a malformed level BYPASS the refusal outright.
+const SPEC_REVIEW_LEVELS = ["L1", "L2", "L3", "L4"];
+
+// Pure: { tags:[SurfaceTag], level:"L1".."L4", appetite:"low|medium|high|full",
+// adversarialConfigured:bool } → LensSelection | { error }.
+//
+// FAFF-1343: `mode` follows whether an adversarial spec_review chain is CONFIGURED — at
+// every level. It is no longer pinned to the L4 mint. An operator who configures the
+// adversarial occupant and its backend chain gets per-lens refuters on an ordinary L3
+// drain, which is the same axis the kill-switch already uses (Sentry acts on
+// ATTENDEDNESS, not on the mint, precisely because an unattended L3 has no human
+// reading the output). Pinning depth to the mint meant a configured adversarial occupant
+// was collapsed to the single-pass checklist its own SKILL says "reduces this to the
+// single-pass default" — silently, on every L1–L3 review.
+//
+// L4 keeps exactly ONE level-specific rule, and it is the opposite of a degrade: it must
+// FAIL CLOSED when no chain is configured, rather than quietly reviewing at a depth it is
+// not permitted to rely on. `adversarialConfigured` defaults to false, so a caller that
+// does not resolve it cannot accidentally obtain an L4 selection.
+function selectLenses({ tags = [], level = "L3", appetite = "high", adversarialConfigured = false } = {}) {
   const lvl = String(level).toUpperCase();
   const app = String(appetite).toLowerCase();
-  const mode = lvl === "L4" ? "adversarial" : "single-pass";
+  if (!SPEC_REVIEW_LEVELS.includes(lvl)) {
+    return { error: "bad-level", detail: `--level must be one of ${SPEC_REVIEW_LEVELS.join("|")} (got ${JSON.stringify(String(level))})` };
+  }
+  const adversarial = adversarialConfigured === true;
+  if (lvl === "L4" && !adversarial) {
+    return { error: "adversarial-unconfigured", detail: "L4 requires a configured adversarial spec_review chain — refusing to degrade to the single-pass checklist" };
+  }
+  const mode = adversarial ? "adversarial" : "single-pass";
   const order = (arr) => SPEC_REVIEW_ALL_LENSES.filter((l) => arr.includes(l));
   const all = () => SPEC_REVIEW_ALL_LENSES.slice();
 
@@ -1433,7 +1464,7 @@ function selectLenses({ tags = [], level = "L3", appetite = "high" } = {}) {
   }
   // L4: pinned to the full adversarial set; appetite never narrows below the fail-safe set.
   if (lvl === "L4") {
-    return { lenses: all(), mode, rationale: `L4 → adversarial all-four (never narrowed by appetite); tags=[${tagList.join(", ")}]` };
+    return { lenses: all(), mode, rationale: `L4 → adversarial all-four (never narrowed by appetite; configured chain required); tags=[${tagList.join(", ")}]` };
   }
   // L1–L3, low/medium appetite: widen to all four (fires more, skips less — safe direction).
   if (app === "low" || app === "medium") {
@@ -1465,9 +1496,37 @@ function specReviewLensesSelftest() {
     { name: "unknown tag → fail-safe all four",
       in: { tags: ["mystery"], level: "L2", appetite: "high" },
       check: (s) => s.lenses.length === 4 && /unrecognised/.test(s.rationale) },
-    { name: "L4 → adversarial mode, all four, not narrowed by appetite",
-      in: { tags: ["config"], level: "L4", appetite: "full" },
+    { name: "L4 + configured chain → adversarial mode, all four, not narrowed by appetite",
+      in: { tags: ["config"], level: "L4", appetite: "full", adversarialConfigured: true },
       check: (s) => s.mode === "adversarial" && s.lenses.length === 4 },
+    // FAFF-1343: mode follows CONFIGURATION, at every level — not the L4 mint.
+    { name: "L3 + configured chain → adversarial (depth is no longer pinned to the L4 mint)",
+      in: { tags: ["config"], level: "L3", appetite: "high", adversarialConfigured: true },
+      check: (s) => s.mode === "adversarial" },
+    { name: "L1 + configured chain → adversarial (every level can reach it)",
+      in: { tags: ["config"], level: "L1", appetite: "high", adversarialConfigured: true },
+      check: (s) => s.mode === "adversarial" },
+    { name: "L2 + NO configured chain → single-pass (unchanged below L4)",
+      in: { tags: ["config"], level: "L2", appetite: "high", adversarialConfigured: false },
+      check: (s) => s.mode === "single-pass" && !s.error },
+    { name: "L4 + NO configured chain → FAILS CLOSED, never degrades to single-pass",
+      in: { tags: ["config"], level: "L4", appetite: "full", adversarialConfigured: false },
+      check: (s) => s.error === "adversarial-unconfigured" && s.mode === undefined && s.lenses === undefined },
+    { name: "L4 fail-closed is the DEFAULT when the caller omits adversarialConfigured",
+      in: { tags: ["config"], level: "L4", appetite: "full" },
+      check: (s) => s.error === "adversarial-unconfigured" },
+    { name: "configured chain still narrows the L1–L3 lens SET by tag (mode is orthogonal to set)",
+      in: { tags: ["config"], level: "L3", appetite: "high", adversarialConfigured: true },
+      check: (s) => s.mode === "adversarial" && !has(s, "architectural") && has(s, "infosec") && has(s, "QA") },
+    { name: "out-of-enum level is REJECTED, not coerced to single-pass (the bare-4 fail-open)",
+      in: { tags: ["config"], level: "4", appetite: "high", adversarialConfigured: true },
+      check: (s) => s.error === "bad-level" && s.mode === undefined },
+    { name: "out-of-enum level cannot BYPASS the L4 fail-closed refusal",
+      in: { tags: ["config"], level: "4", appetite: "high", adversarialConfigured: false },
+      check: (s) => s.error === "bad-level" },
+    { name: "lowercase level is still accepted (case-normalised, not rejected)",
+      in: { tags: ["config"], level: "l4", appetite: "full", adversarialConfigured: true },
+      check: (s) => s.mode === "adversarial" && !s.error },
     { name: "low appetite widens to all four (no skip)",
       in: { tags: ["config"], level: "L2", appetite: "low" },
       check: (s) => s.lenses.length === 4 },
@@ -1492,22 +1551,60 @@ function specReviewLensesSelftest() {
     const s = selectLenses(c.in);
     const ok = !!c.check(s);
     if (!ok) failed++;
-    console.log(`${ok ? "ok  " : "FAIL"} ${c.name} → {${s.lenses.join(",")}} ${s.mode}`);
+    // FAFF-1343: a refusal (L4 with no configured chain, or an out-of-enum level) returns an
+    // { error } shape with no lenses/mode, so render that rather than throwing on undefined.
+    const shown = s.error ? `error=${s.error}` : `{${s.lenses.join(",")}} ${s.mode}`;
+    console.log(`${ok ? "ok  " : "FAIL"} ${c.name} → ${shown}`);
   }
   console.log(`\nRESULT: ${failed ? "FAIL" : "PASS"} (${cases.length} cases, ${failed} failed)`);
   return failed ? 1 : 0;
 }
 
+const SPEC_REVIEW_LENSES_USAGE =
+  "usage: faff spec-review-lenses [--tags a,b] [--level L1|L2|L3|L4] [--appetite ...] " +
+  "[--adversarial-configured yes|no] [--root DIR]";
+
 function cmdSpecReviewLenses(args) {
   if (args.includes("--selftest")) return specReviewLensesSelftest();
   const parsed = parseArgs(args, SPEC_REVIEW_LENSES_SPEC);
-  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff spec-review-lenses [--tags a,b] [--level L1|L2|L3|L4] [--appetite ...]");
+  if (parsed.errors.length) return usageError(parsed.errors, SPEC_REVIEW_LENSES_USAGE);
   const get = (f) => (parsed.values[f] === undefined ? null : parsed.values[f]);
   const tagsArg = get("--tags");
   const tags = tagsArg ? tagsArg.split(",").map((s) => s.trim()).filter(Boolean) : [];
   const level = get("--level") || "L3";
   const appetite = get("--appetite") || "high";
-  process.stdout.write(JSON.stringify(selectLenses({ tags, level, appetite })) + "\n");
+
+  // FAFF-1343: resolve whether an adversarial spec_review chain is configured. An explicit
+  // --adversarial-configured wins (deterministic tests, and a caller that already resolved
+  // its own chain); otherwise read the repo config through the SAME predicate
+  // `faff spec-review-pin --resolve` uses, for the `spec_review` consumer, so the two verbs
+  // can never disagree about whether a chain exists.
+  const advFlag = get("--adversarial-configured");
+  let adversarialConfigured;
+  if (advFlag === "yes" || advFlag === "no") {
+    adversarialConfigured = advFlag === "yes";
+  } else if (advFlag != null) {
+    return usageError(
+      [{ code: "bad-value", detail: `--adversarial-configured must be yes|no (got ${JSON.stringify(advFlag)})` }],
+      SPEC_REVIEW_LENSES_USAGE);
+  } else {
+    const root = get("--root") || findRoot();
+    const [cfg] = loadConfig(root);
+    adversarialConfigured = !assembleAdversarialBackends(cfg, "spec_review").error;
+  }
+
+  const selection = selectLenses({ tags, level, appetite, adversarialConfigured });
+  if (selection.error === "bad-level") {
+    process.stderr.write(`faff spec-review-lenses: ${selection.detail}\n`);
+    return 2;
+  }
+  if (selection.error === "adversarial-unconfigured") {
+    // Exit 3 for parity with `faff spec-review-pin --resolve`, which already returns 3 for
+    // this same condition ("adversarial is unset ... no adversarial provider configured").
+    process.stderr.write(`faff spec-review-lenses: ${selection.detail}\n`);
+    return 3;
+  }
+  process.stdout.write(JSON.stringify(selection) + "\n");
   return 0;
 }
 

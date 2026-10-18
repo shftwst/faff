@@ -1,0 +1,247 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 2,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/holdout-record.js::fail-closed record drops the evaluator block's own violations in buildholdoutrecord",
+      "title": "fail-closed record drops the evaluator block's own violations in buildHoldoutRecord",
+      "location": "plugin/skills/faff/bin/lib/holdout-record.js:482",
+      "action": "Carry the block's redacted violations into the fail-closed record after the refusal lines, so an env-not-ready block refused for missing judged ids still records why nothing was judged, and add a test for that case.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "fail-closed record drops the evaluator block's own violations in buildHoldoutRecord",
+          "location": "plugin/skills/faff/bin/lib/holdout-record.js:482",
+          "severity": "minor",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faffter-noon-evaluate/evaluate-call.mjs::unguarded dodclassify call in the evaluate-call spawner",
+      "title": "unguarded dodClassify call in the evaluate-call spawner",
+      "location": "plugin/skills/faffter-noon-evaluate/evaluate-call.mjs:239",
+      "action": "Wrap the dodClassify call in try/catch and pass classified: null on a throw, so the writer emits the fail-closed record as the faff holdout record path already does.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "unguarded dodClassify call in the evaluate-call spawner",
+          "location": "plugin/skills/faffter-noon-evaluate/evaluate-call.mjs:239",
+          "severity": "minor",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "records/adr/0140-the-code-blind-holdout-judges-only-machine-checkable-criteria.md::adr 0140 calls the holdout record signed",
+      "title": "ADR 0140 calls the holdout record signed",
+      "location": "records/adr/0140-the-code-blind-holdout-judges-only-machine-checkable-criteria.md:12",
+      "action": "Replace 'signed verdict' and 'signed record' with 'anchored verdict' and 'anchored record', since nothing signs holdout.json until FAFF-1214.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "ADR 0140 calls the holdout record signed",
+          "location": "records/adr/0140-the-code-blind-holdout-judges-only-machine-checkable-criteria.md:12",
+          "severity": "minor",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": ".faff/anchors/run-20261015-013751-graft-FAFF-1279/FAFF-1279/holdout.json::committed faff-1279 holdout anchor no longer passes the holdout-verdict contract",
+      "title": "committed FAFF-1279 holdout anchor reads contract-rejected rather than needs-human",
+      "location": ".faff/anchors/run-20261015-013751-graft-FAFF-1279/FAFF-1279/holdout.json",
+      "action": "State in the PR description that id-carrying pre-change records with done:N prose rows now read as contract-rejected rather than needs-human, with the gate outcome unchanged.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The gate blocks either way, so the outcome is unchanged. The done:N rule is the ticket's point and must not be narrowed to spare a legacy anchor. Carried to the PR description.",
+      "first_round": 1,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "committed FAFF-1279 holdout anchor no longer passes the holdout-verdict contract",
+          "location": ".faff/anchors/run-20261015-013751-graft-FAFF-1279/FAFF-1279/holdout.json",
+          "severity": "observation",
+          "disposition": "open"
+        },
+        {
+          "round": 2,
+          "title": "committed FAFF-1279 holdout anchor reads contract-rejected rather than needs-human",
+          "location": ".faff/anchors/run-20261015-013751-graft-FAFF-1279/FAFF-1279/holdout.json",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "eval/cases-seeded/holdout-seed-clean-audit-logging-003.json::seeded holdout-exercise eval cases still ask the judge to force every prose criterion to needs-human",
+      "title": "seeded holdout-exercise eval cases keep the old prose question",
+      "location": "eval/cases-seeded/holdout-seed-clean-audit-logging-003.json",
+      "action": "Note in the PR that the 240 seeded cases keep the old prose question, so the next baseline recording may drift.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The seeded cases carry no source, so they cannot be re-tiered mechanically. Rewriting 240 fixtures is out of scope for this ticket. Possible baseline drift is noted in the PR description.",
+      "first_round": 1,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "seeded holdout-exercise eval cases still ask the judge to force every prose criterion to needs-human",
+          "location": "eval/cases-seeded/holdout-seed-clean-audit-logging-003.json",
+          "severity": "observation",
+          "disposition": "open"
+        },
+        {
+          "round": 2,
+          "title": "seeded holdout-exercise eval cases keep the old prose question",
+          "location": "eval/cases-seeded/holdout-seed-clean-audit-logging-003.json",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/holdout-record.js::writer checks judged ids but not each row's class against faff dod classify in buildholdoutrecord",
+      "title": "writer checks judged ids but not each row's class against faff dod classify in buildHoldoutRecord",
+      "location": "plugin/skills/faff/bin/lib/holdout-record.js:285",
+      "action": "None in this ticket; a class cross-check against classify could be a later hardening ticket.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Not a new fail-open path. The evaluator's verdict on a judged row is trusted by design (spec: the writer never recomputes aggregate, verdict or evidence_present). An evaluator willing to relabel a prose Scenarios unit as scenario/met can just as easily fabricate met evidence on a real scenario, so a class check closes no capability. The self-declared class is also what main trusts today, and this diff only tightens the writer (id-set completeness). Optional hardening, not a defect of this diff.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "writer checks judged ids but not each row's class against faff dod classify in buildHoldoutRecord",
+          "location": "plugin/skills/faff/bin/lib/holdout-record.js:285",
+          "severity": "major",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/contract-defs.js::faff contract holdout-verdict echoes block-supplied delegated text unredacted in computeholdoutverdict",
+      "title": "faff contract holdout-verdict echoes block-supplied delegated text unredacted in computeHoldoutVerdict",
+      "location": "plugin/skills/faff/bin/lib/contract-defs.js:968",
+      "action": "None.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "The contract echoes the caller's own stdin back to that caller, so it creates no new exposure. The persisted holdout.json, which is what the contract is run on, is already redacted and truncated by the writer. The criteria detail text is echoed the same way on main.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "faff contract holdout-verdict echoes block-supplied delegated text unredacted in computeHoldoutVerdict",
+          "location": "plugin/skills/faff/bin/lib/contract-defs.js:968",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faffter-noon-evaluate/evaluate-call.mjs::evaluate-call overwrites an unparseable prior --store-out in storecopyrecordsotherissue",
+      "title": "evaluate-call overwrites an unparseable prior --store-out in storeCopyRecordsOtherIssue",
+      "location": "plugin/skills/faffter-noon-evaluate/evaluate-call.mjs:263",
+      "action": "None in this ticket.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Pre-existing and out of scope: this diff neither adds nor changes storeCopyRecordsOtherIssue or the inline writer's unparseable rename.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "evaluate-call overwrites an unparseable prior --store-out in storeCopyRecordsOtherIssue",
+          "location": "plugin/skills/faffter-noon-evaluate/evaluate-call.mjs:263",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/holdout-record.js::delegated-tier row with an empty or absent id skips the done:n rule in delegationviolations",
+      "title": "delegated-tier row with an empty or absent id skips the done:N rule in delegationViolations",
+      "location": "plugin/skills/faff/bin/lib/holdout-record.js:137",
+      "action": "None.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "The reviewer itself grants that this is fail-closed. An absent id already raises 'id: required' and an empty id raises 'id: does not match pattern', which name the defect. Writer-built delegated rows always carry classify ids.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "delegated-tier row with an empty or absent id skips the done:N rule in delegationViolations",
+          "location": "plugin/skills/faff/bin/lib/holdout-record.js:137",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    }
+  ]
+}

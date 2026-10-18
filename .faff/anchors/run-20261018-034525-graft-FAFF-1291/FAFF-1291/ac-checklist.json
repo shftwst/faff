@@ -1,0 +1,381 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A fixture spec with two passing scenario units, one passing DONE assertion and three prose DONE items, evaluated through `faff holdout record --spec`, produces `holdout.json` with `aggregate: meets-spec`. `faff contract holdout-verdict` exits 0 on it.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1291#ac-1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/holdout-delegation.test.mjs::ac-1 smoke: two scenarios, one assertion and prose DONE items reach meets-spec through faff holdout record --spec"
+        }
+      ]
+    },
+    {
+      "ac": "The spec cannot reach `meets-spec` under the FAFF-1292 and FAFF-1293 defects. A test re-classifies a fixture modelled on the FAFF-1279 shape (one no-surface assertion, one When-only Scenarios unit, 22 prose DONE items) and asserts 22 delegated rows and a `needs-human` aggregate.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1291#ac-2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/holdout-delegation.test.mjs::ac-2: a FAFF-1279-shaped spec (one no-surface assertion, a When-only unit, 22 prose DONE) has 22 delegated rows and a needs-human aggregate"
+        }
+      ]
+    },
+    {
+      "ac": "`faff dod classify --json` tiers a DONE prose item `delegated` with `verifier: ac-checklist`. It tiers a Scenarios prose unit `running-stack` with `verifier: holdout`. It tiers a DONE assertion containing \"rollback\" (for example \"the rollback must restore the previous release\") `integration` with `verifier: review-merge-floor`.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1291#ac-3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/dod.test.mjs::dod classify (FAFF-1291): a prose DONE item is delegated to ac-checklist, a prose Scenarios unit stays running-stack, a rollback assertion is integration"
+        },
+        {
+          "kind": "command",
+          "locator": "faff dod --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`verification_tier_counts` has keys `running-stack`, `integration` and `delegated` that sum to `criteria.length`. `judged_count` equals the running-stack criteria, prose Scenarios units included, and `integration_count` equals the integration rows. `delegated_count` equals the integration plus delegated rows. `test/dod.test.mjs` asserts all three tier values.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1291#ac-4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/dod.test.mjs::dod classify (FAFF-1291): a prose DONE item is delegated to ac-checklist, a prose Scenarios unit stays running-stack, a rollback assertion is integration"
+        }
+      ]
+    },
+    {
+      "ac": "`class` still takes only `scenario`, `assertion` or `prose` on every criterion in the existing dod tests.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1291#ac-5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/dod.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "Every delegated row in a written record has `id`, `text`, `holdout`, `verification_tier`, `verifier` and `ac_id`. A done row written with `--issue FAFF-1` has `ac_id` `faff-1#ac-N` or `faff-1#done:N`. A record written with a run key as `--issue` has `ac_id: null` on every row and does not throw. A fixture with a DONE assertion tiered `integration` writes that row in `delegated[]` with verifier `review-merge-floor`. `faff holdout record --spec -` exits 2.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1291#ac-9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/holdout-delegation.test.mjs::ac-9: a run key writes ac_id null on every row; an integration DONE assertion lands in delegated[] with review-merge-floor; --spec - exits 2"
+        },
+        {
+          "kind": "test",
+          "locator": "test/holdout-record.test.mjs::accepted block: exit 0, byte-identical store and run copies, detail kept, gate unchanged"
+        }
+      ]
+    },
+    {
+      "ac": "`faff contract holdout-verdict` exits 1 on a block whose `criteria` holds a `class: prose` row with id `done:2`, and the violation names `criteria[i]`.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1291#ac-10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/holdout-delegation.test.mjs::ac-10: a prose done:2 row in criteria is a contract violation naming criteria[i]"
+        }
+      ]
+    },
+    {
+      "ac": "`faff contract holdout-verdict` exits 0 on a conformant block whose `criteria` holds a `scenarios:N` prose row with `needs-human`. It exits 1 if that row is `met`.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1291#ac-11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/holdout-delegation.test.mjs::ac-11: a scenarios:N prose row is conformant as needs-human and a violation as met"
+        }
+      ]
+    },
+    {
+      "ac": "`faff contract holdout-verdict` exits 1 when an id appears in both `criteria` and `delegated`, when a `delegated` row pairs `delegated` with `review-merge-floor`, or when a `delegated`-tier row has a `scenarios:N` id.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1291#ac-12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/holdout-delegation.test.mjs::ac-12: an id in both lists, a wrong tier and verifier pairing, and a delegated-tier scenarios id each exit 1"
+        }
+      ]
+    },
+    {
+      "ac": "A block with `criteria: []` and a non-empty `delegated` derives `aggregate: needs-human`, and `holdoutGateResult` returns `block`.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1291#ac-13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/holdout-delegation.test.mjs::ac-13: criteria [] with a non-empty delegated derives needs-human and the gate blocks"
+        }
+      ]
+    },
+    {
+      "ac": "`delegationViolations` is exported from `holdout-record.js`, and both `computeHoldoutVerdict` and `holdoutRecordViolations` call it. `faff regions check` passes.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1291#ac-14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/holdout-delegation.test.mjs::ac-14: delegationViolations is exported and both the contract and the record validator call it"
+        },
+        {
+          "kind": "command",
+          "locator": "faff regions check"
+        }
+      ]
+    },
+    {
+      "ac": "`faff holdout record` without `--spec` exits 2 with a usage message and writes no file.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1291#ac-15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/holdout-delegation.test.mjs::ac-15: faff holdout record without --spec exits 2 with a usage message and writes no file"
+        }
+      ]
+    },
+    {
+      "ac": "The writer refuses a block that omits a running-stack id, includes a delegated id, or includes an id classify did not mint. It writes the fail-closed `needs-human` record whose violations name the ids, and exits 1.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1291#ac-16",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/holdout-delegation.test.mjs::ac-16: the writer refuses a missing judged id, a delegated id and an id classify did not mint, and names them"
+        }
+      ]
+    },
+    {
+      "ac": "The writer's `delegated[]` comes from classify. A block that carries its own `delegated` key gets the classify-derived list, not the block's. A test covers this.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1291#ac-17",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/holdout-delegation.test.mjs::ac-17: the written delegated[] comes from classify, not from the block"
+        }
+      ]
+    },
+    {
+      "ac": "`evaluate-call.mjs` writes records with `delegated[]` derived from its `--spec` text, and its selftest covers one delegated row.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1291#ac-18",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evaluate-call.test.mjs::caged run: preflight holds + inner blind → verdict file with spawner_attested:true, code_blind spawner-derived"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faffter-noon-evaluate/evaluate-call.mjs --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`faffter-noon-evaluate/SKILL.md` partitions on `verification_tier`. It records running-stack prose as `needs-human` with reason `prose scenario: no machine check and no delegate verifier`. It leaves `delegated` and `integration` rows out of `criteria`, and the example block has no `done:N` prose row. `faff validate-adapters` passes.",
+      "verified": "passing; the example block has no done:N prose row (checked by reading the skill)",
+      "passed": true,
+      "ac_id": "faff-1291#ac-19",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/eval-cli-driver.test.mjs::FAFF-317 loadHoldoutJudgementProse extracts the exercise-step/met-unmet/prose rubric verbatim"
+        },
+        {
+          "kind": "command",
+          "locator": "faff validate-adapters"
+        },
+        {
+          "kind": "human"
+        }
+      ]
+    },
+    {
+      "ac": "`faff-graft/SKILL.md` Step 6 and Step 8c skip only when `judged_count == 0` and `integration_count == 0`, and the marker lists `judged_count`, `integration_count` and `delegated_count` in place of `born_verifiable_count`. `faff-beep-boop/SKILL.md` `holdout_step` passes `--spec` to `faff holdout record`. `faff validate-adapters` passes within the line baselines.",
+      "verified": "passing; the Step 6 and 8c skip rule and marker fields checked by reading the skill",
+      "passed": true,
+      "ac_id": "faff-1291#ac-20",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/holdout-record.test.mjs::skill prose: graft's resume skip needs an empty violations list, and the callers name the writers (FAFF-1259)"
+        },
+        {
+          "kind": "command",
+          "locator": "faff validate-adapters"
+        },
+        {
+          "kind": "human"
+        }
+      ]
+    },
+    {
+      "ac": "`faff admissible` on a spec with prose DONE items prints a warning starting `prose-DONE advisory: N DONE item(s)` that names the AC checklist and the judged count, and does not contain `forced to needs-human`. A spec whose DONE items are all prose and whose `judged_count` is 0 gets an extra advisory line saying nothing in DONE will be judged code-blind. Its exit code is unchanged (`test/admissible.test.mjs`).",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1291#ac-21",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1291: the prose-DONE advisory names the AC checklist and the judged count, and no longer says forced to needs-human"
+        },
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1291: all-prose DONE with nothing judged adds a second advisory line; the exit code is unchanged"
+        }
+      ]
+    },
+    {
+      "ac": "`faff contract holdout-verdict --describe` says `meets-spec` means every judged criterion was met and that delegated criteria rely on the AC-checklist and review legs. GLOSSARY has a `delegated` row and an updated `born-verifiable` row. `test/contract-describe.test.mjs` and `test/contract-golden.test.mjs` pass with updated fixtures.",
+      "verified": "passing; GLOSSARY rows checked by reading",
+      "passed": true,
+      "ac_id": "faff-1291#ac-22",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/contract-describe.test.mjs test/contract-golden.test.mjs"
+        },
+        {
+          "kind": "command",
+          "locator": "faff contract --selftest"
+        },
+        {
+          "kind": "human"
+        }
+      ]
+    },
+    {
+      "ac": "FAFF-1342 (the schema change) is merged to `main` before this ticket's PR opens, and whichever of this PR and #1086 merges second makes `holdoutConstraintViolations` call `delegationViolations`.",
+      "verified": "FAFF-1342 merged to main (7407a04e) before this PR; #1086 is not on main, so this PR merges first and its description names #1086 to rebase and call delegationViolations from holdoutConstraintViolations",
+      "passed": true,
+      "ac_id": "faff-1291#ac-24",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git merge-base --is-ancestor 7407a04e HEAD"
+        },
+        {
+          "kind": "human"
+        }
+      ]
+    },
+    {
+      "ac": "`git diff --name-only main...HEAD` lists no `bin/lib/*.ts` file. If one is listed, its `.js` emit and `build-manifest.json` are in the same commit, and `faff regions check` exits 0.",
+      "verified": "no .ts file in the diff",
+      "passed": true,
+      "ac_id": "faff-1291#ac-25",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --name-only origin/main...HEAD"
+        },
+        {
+          "kind": "command",
+          "locator": "faff regions check"
+        }
+      ]
+    },
+    {
+      "ac": "A test re-classifies the committed specs of the four anchors that carry `holdout.json` (FAFF-1197, FAFF-1198, FAFF-1201, FAFF-1279) and asserts, per anchor: for FAFF-1279, whose rows carry ids, every id the record judged as `scenario` or `assertion` is still in the judged set and every id that moved to `delegated` is a `done:N` prose row; for FAFF-1197, FAFF-1198 and FAFF-1201, whose rows carry no ids, the re-classified count of `running-stack` scenarios and assertions is at least the record's count of `scenario` and `assertion` rows.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1291#ac-27",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/holdout-delegation.test.mjs::ac-27: re-classifying the committed specs of the four anchors leaves no judged scenario or assertion row behind"
+        }
+      ]
+    },
+    {
+      "ac": "A refused record whose classify step succeeded carries the classify-derived `delegated[]`; a block whose `criteria` rows lack `id` is refused fail-closed. Tests cover both.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1291#ac-28",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/holdout-delegation.test.mjs::ac-28: a refused record keeps the classify-derived delegated[]; a block whose rows lack ids is refused fail-closed"
+        }
+      ]
+    },
+    {
+      "ac": "`--describe` and both `evidence-documents.md` copies say that delegated prose DONE items rest on the builder-written AC checklist and the review leg, and name FAFF-1339. Graft Step 10 says the same and that nothing yet checks each delegated `ac_id` against the checklist, without a ticket id, because `faff lint-refs` forbids ticket ids in a `SKILL.md`.",
+      "verified": "--describe and both evidence-documents copies name FAFF-1339; graft Step 10 states the gap without a ticket id",
+      "passed": true,
+      "ac_id": "faff-1291#ac-29",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff contract holdout-verdict --describe"
+        },
+        {
+          "kind": "human"
+        }
+      ]
+    },
+    {
+      "ac": "A spec whose Scenarios are all prose and whose DONE is all prose is not skipped by graft: classify reports `judged_count > 0`, and the holdout aggregate is `needs-human`. A spec whose only checkable DONE items are tiered `integration` is not skipped either. A DONE prose item containing \"rollback\" is tiered `delegated` with verifier `ac-checklist`.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1291#ac-30",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/holdout-delegation.test.mjs::ac-30: an all-prose spec is not skipped; an integration-only spec is not skipped; a rollback prose DONE is delegated"
+        }
+      ]
+    },
+    {
+      "ac": "A delegated row whose DONE text contains a known secret is written redacted, and a row longer than the writer's detail limit is truncated, on both the success and the fail-closed paths.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1291#ac-31",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/holdout-delegation.test.mjs::ac-31: a delegated row with a known secret is redacted and a long row is truncated, on the success and the fail-closed paths"
+        }
+      ]
+    },
+    {
+      "ac": "The `holdout` eval cases (`eval/cases/holdout-001.json`, `-002`) and `holdout-live` oracles are updated. A DONE-sourced prose criterion is absent from the judged closed set, and a Scenarios-sourced prose criterion stays `:needs-human`. `test/eval-holdout-live.test.mjs` asserts the new rule, and `eval/seam-registry.json` still lists `holdout`, `holdout-exercise` and `holdout-live`. Recording a new baseline is a separate human-supervised step and is not part of this item.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1291#ac-26",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/eval-holdout-live.test.mjs::the loader loads and validates both holdout-live cases"
+        }
+      ]
+    }
+  ]
+}

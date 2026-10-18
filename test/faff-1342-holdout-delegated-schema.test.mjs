@@ -31,18 +31,12 @@ const example = () => readJson(`${COPIES[1]}/schema/examples/holdout-anchored.ex
 const TMP = mkdtempSync(path.join(tmpdir(), "faff-1342-"));
 process.on("exit", () => rmSync(TMP, { recursive: true, force: true }));
 
-// The holdout-anchored schema as it stands on origin/main (this change's base), from git.
-function baseSchemaText() {
-  for (const ref of ["origin/main", "main"]) {
-    const r = spawnSync("git", ["-C", repoRoot, "show", `${ref}:${PLUGIN}/contracts/evidence-v0.3/${SCHEMA_REL}`], { encoding: "utf8" });
-    if (r.status === 0) return r.stdout;
-  }
-  throw new Error("no origin/main or main ref to read the base schema from");
-}
-const OLD_TEXT = baseSchemaText();
-const OLD_SCHEMA = JSON.parse(OLD_TEXT);
-// When the branch is rebased onto a main that already carries delegated, there is no "old" to compare to.
-const BASE_HAS_DELEGATED = "delegated" in OLD_SCHEMA.properties;
+// The holdout-anchored schema before this change: the new schema without `delegated`. Built from the
+// working tree, not from git, so the file loads on a shallow detached CI checkout and keeps meaning
+// "the schema before FAFF-1342" after this change is on main.
+const OLD_SCHEMA = structuredClone(newSchema);
+delete OLD_SCHEMA.properties.delegated;
+const OLD_TEXT = JSON.stringify(OLD_SCHEMA, null, 2) + "\n";
 
 // --- ac-1 -----------------------------------------------------------------------------------------
 
@@ -64,7 +58,7 @@ test("ac-1: both schema copies are byte-identical and gain the optional closed d
 
 // --- ac-2 -----------------------------------------------------------------------------------------
 
-test("ac-2: classifySchemaChange over the old and new holdout-anchored schema is additive", { skip: BASE_HAS_DELEGATED }, () => {
+test("ac-2: classifySchemaChange over the old and new holdout-anchored schema is additive", () => {
   const verdict = evidence.classifySchemaChange(OLD_SCHEMA, newSchema);
   assert.equal(verdict.additive, true, JSON.stringify(verdict.reasons));
 });
@@ -199,7 +193,7 @@ function scenario(holdout, { headSchema }) {
   return { dir, base, head: commitAll(dir, "head") };
 }
 
-test("ac-3: the base-commit leg passes for an anchor whose holdout.json carries delegated when the head carries the new schema", { skip: BASE_HAS_DELEGATED }, () => {
+test("ac-3: the base-commit leg passes for an anchor whose holdout.json carries delegated when the head carries the new schema", () => {
   const s = scenario(holdoutWithDelegated(), { headSchema: true });
   const r = runLeg(s.dir, { base: s.base, head: s.head, mode: "require" });
   assert.equal(r.base.code, 0, r.log);
@@ -207,7 +201,7 @@ test("ac-3: the base-commit leg passes for an anchor whose holdout.json carries 
   assert.match(r.base.summary, /\| ok \| pass \| - \| accepted \|/);
 });
 
-test("ac-3: without the head schema change the same anchor fails the leg (the test discriminates)", { skip: BASE_HAS_DELEGATED }, () => {
+test("ac-3: without the head schema change the same anchor fails the leg (the test discriminates)", () => {
   const s = scenario(holdoutWithDelegated(), { headSchema: false });
   const r = runLeg(s.dir, { base: s.base, head: s.head, mode: "require" });
   assert.equal(r.base.code, 1, r.log);

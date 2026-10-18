@@ -221,8 +221,8 @@ Keeping prose as a hard block would undo the ticket: no spec with prose DONE ite
 PR #1086 waits on FAFF-1270, and FAFF-1270 is blocked by this ticket. The expected order is therefore this ticket first.
 
 **Chosen:** two PRs, in this order, whichever way #1086 lands. Splitting on behaviour instead would fail open: a classifier that tiers `delegated` before the writer emits `delegated[]` drops criteria with no record.
-- **PR A (schema).** The additive `delegated` property in both schema copies, the example, `evidence-documents.md` (both copies) and the dated v0.3 changelog entry. Low risk; it changes no behaviour. This also satisfies ADR 0140's two-PR rule if #1086 is on `main` by then.
-- **PR B (behaviour).** Classifier, writer, contract, evaluator, spawner, graft, beep-boop, `faff admissible`, the remaining docs and the eval oracles. If #1086 is on `main`, PR B calls `delegationViolations` from `holdoutConstraintViolations` and rebases on #1086's split. If not, #1086 rebases onto PR B and makes that call, and PR B's description says so.
+- **PR A (schema) is [FAFF-1342](https://linear.app/shftwst/issue/FAFF-1342).** The additive `delegated` property in both schema copies, the example, `evidence-documents.md` (both copies) and the dated v0.3 changelog entry, split into its own ticket by the product owner on 2026-10-18 so each PR closes its own ticket and carries its own evidence. Low risk; it changes no behaviour.
+- **PR B (behaviour), this ticket.** Classifier, writer, contract, evaluator, spawner, graft, beep-boop, `faff admissible`, the remaining docs and the eval oracles. If #1086 is on `main`, PR B calls `delegationViolations` from `holdoutConstraintViolations` and rebases on #1086's split. If not, #1086 rebases onto PR B and makes that call, and PR B's description says so.
 - **Before PR B opens**, run the re-classification check on the four committed holdouts (see the failure modes and DONE) and record its result.
 
 ### Failure modes
@@ -314,9 +314,6 @@ Then the record is refused fail-closed and its violation lists scenarios:2 as mi
 - [ ] [ac-5] `class` still takes only `scenario`, `assertion` or `prose` on every criterion in the existing dod tests.
 
 ### From WHAT (record and schema)
-- [ ] [ac-6] Both copies of `holdout-anchored.schema.json` gain the optional closed `delegated` array defined above and stay byte-identical (`test/evidence-v0.3.test.mjs`). `required` is unchanged.
-- [ ] [ac-7] `classifySchemaChange` over the old and new `holdout-anchored` schema returns `additive: true`. `faff evidence validate --candidate-schemas` with the new schema accepts an anchor whose `holdout.json` carries `delegated`. The FAFF-1278 base-commit leg test passes for such an anchor.
-- [ ] [ac-8] `holdout-anchored.example.json` (both copies) carries a `delegated` row and validates. The four committed legacy and v1 anchors under `.faff/anchors/` still validate unchanged.
 - [ ] [ac-9] Every delegated row in a written record has `id`, `text`, `holdout`, `verification_tier`, `verifier` and `ac_id`. A done row written with `--issue FAFF-1` has `ac_id` `faff-1#ac-N` or `faff-1#done:N`. A record written with a run key as `--issue` has `ac_id: null` on every row and does not throw. A fixture with a DONE assertion tiered `integration` writes that row in `delegated[]` with verifier `review-merge-floor`. `faff holdout record --spec -` exits 2.
 
 ### From WHAT (validator)
@@ -336,11 +333,10 @@ Then the record is refused fail-closed and its violation lists scenarios:2 as mi
 - [ ] [ac-19] `faffter-noon-evaluate/SKILL.md` partitions on `verification_tier`. It records running-stack prose as `needs-human` with reason `prose scenario: no machine check and no delegate verifier`. It leaves `delegated` and `integration` rows out of `criteria`, and the example block has no `done:N` prose row. `faff validate-adapters` passes.
 - [ ] [ac-20] `faff-graft/SKILL.md` Step 6 and Step 8c skip only when `judged_count == 0` and `integration_count == 0`, and the marker lists `judged_count`, `integration_count` and `delegated_count` in place of `born_verifiable_count`. `faff-beep-boop/SKILL.md` `holdout_step` passes `--spec` to `faff holdout record`. `faff validate-adapters` passes within the line baselines.
 - [ ] [ac-21] `faff admissible` on a spec with prose DONE items prints a warning starting `prose-DONE advisory: N DONE item(s)` that names the AC checklist and the judged count, and does not contain `forced to needs-human`. A spec whose DONE items are all prose and whose `judged_count` is 0 gets an extra advisory line saying nothing in DONE will be judged code-blind. Its exit code is unchanged (`test/admissible.test.mjs`).
-- [ ] [ac-22] `faff contract holdout-verdict --describe` says `meets-spec` means every judged criterion was met and that delegated criteria rely on the AC-checklist and review legs. GLOSSARY has a `delegated` row and an updated `born-verifiable` row. Both copies of `evidence-documents.md` document `delegated[]`. `test/contract-describe.test.mjs` and `test/contract-golden.test.mjs` pass with updated fixtures.
-- [ ] [ac-23] `verification/evidence/README.md` has a dated v0.3 changelog entry naming FAFF-1291 and the `delegated` property.
+- [ ] [ac-22] `faff contract holdout-verdict --describe` says `meets-spec` means every judged criterion was met and that delegated criteria rely on the AC-checklist and review legs. GLOSSARY has a `delegated` row and an updated `born-verifiable` row. `test/contract-describe.test.mjs` and `test/contract-golden.test.mjs` pass with updated fixtures.
 
 ### From HOW (sequencing and build hygiene)
-- [ ] [ac-24] The schema change (ac-6, ac-8, ac-23) merges in an earlier PR than the behaviour change, and whichever of the behaviour PR and #1086 merges second makes `holdoutConstraintViolations` call `delegationViolations`.
+- [ ] [ac-24] FAFF-1342 (the schema change) is merged to `main` before this ticket's PR opens, and whichever of this PR and #1086 merges second makes `holdoutConstraintViolations` call `delegationViolations`.
 - [ ] [ac-25] `git diff --name-only main...HEAD` lists no `bin/lib/*.ts` file. If one is listed, its `.js` emit and `build-manifest.json` are in the same commit, and `faff regions check` exits 0.
 
 - [ ] [ac-27] A test re-classifies the committed specs of the four anchors that carry `holdout.json` (FAFF-1197, FAFF-1198, FAFF-1201, FAFF-1279) and asserts, per anchor: for FAFF-1279, whose rows carry ids, every id the record judged as `scenario` or `assertion` is still in the judged set and every id that moved to `delegated` is a `done:N` prose row; for FAFF-1197, FAFF-1198 and FAFF-1201, whose rows carry no ids, the re-classified count of `running-stack` scenarios and assertions is at least the record's count of `scenario` and `assertion` rows.
@@ -370,7 +366,7 @@ PROCEDURE smoke():
   7. faff evidence validate on an anchor dir holding doc   -> no holdout findings
 ```
 
-Revised on 2026-10-18 after 3 spec-review rounds. The product owner raised the rating from medium to high: the writer's downgrade reason (3 self-review majors) was resolved and no Punt is open.
+Revised on 2026-10-18 after 3 spec-review rounds. Split on 2026-10-18: the schema slice and its criteria ac-6, ac-7, ac-8 and ac-23 moved to FAFF-1342; their ids are not reused. The product owner raised the rating from medium to high: the writer's downgrade reason (3 self-review majors) was resolved and no Punt is open.
 
 confidence: high
 build-tier: complex

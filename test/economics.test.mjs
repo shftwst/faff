@@ -1519,7 +1519,7 @@ test("FAFF-933 INTEGRATION: --by day does NOT fold (no per-day granularity in a 
     assert.equal(r.code, 0, r.err);
     const e = JSON.parse(r.out);
     assert.equal(e.tokens_total, 600, "the top line still spans epochs");
-    assert.ok(e.warnings.some((w) => /resumed run: per-day\/mcp\/effort\/phase/.test(w) && /1 prior epoch\(s\) not reconciled/.test(w)),
+    assert.ok(e.warnings.some((w) => /resumed run: per-day\/mcp\/phase/.test(w) && /1 prior epoch\(s\) not reconciled/.test(w)),
       `expected the per-day coverage warning naming the prior epoch count, got ${JSON.stringify(e.warnings)}`);
     // The day axis still reconciles against the population IT measures (the
     // resuming epoch), which is exactly what docs/guide/cli.md now promises.
@@ -1560,7 +1560,7 @@ test("FAFF-933 INTEGRATION: a ZERO-delta closed span still fires the coverage wa
     assert.equal(r.code, 0, r.err);
     const e = JSON.parse(r.out);
     assert.equal(e.tokens_total, 100, "a zero-delta span adds nothing to the top line");
-    assert.ok(e.warnings.some((w) => /resumed run: per-day\/mcp\/effort\/phase/.test(w)),
+    assert.ok(e.warnings.some((w) => /resumed run: per-day\/mcp\/phase/.test(w)),
       `a zero-delta prior epoch must NOT suppress the coverage warning, got ${JSON.stringify(e.warnings)}`);
   } finally { f.cleanup(); }
 });
@@ -1683,7 +1683,7 @@ test("FAFF-933: --by mcp carries the same presence-gated coverage warning as --b
       { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "epoch-1" });
     assert.equal(r.code, 0, r.err);
     const e = JSON.parse(r.out);
-    assert.ok(e.warnings.some((w) => /resumed run: per-day\/mcp\/effort\/phase/.test(w)),
+    assert.ok(e.warnings.some((w) => /resumed run: per-day\/mcp\/phase/.test(w)),
       `expected the coverage warning on the mcp axis too, got ${JSON.stringify(e.warnings)}`);
   } finally { f.cleanup(); }
 });
@@ -1734,4 +1734,90 @@ test("FAFF-933: the census basis names EVERY contributing source — a mixed-fle
   assert.equal(economicsBreakdown(recs, "class", pm, 100, null, null).source, "transcript");
   // The day axis never folds closed spans, so its basis must NOT claim them.
   assert.equal(economicsBreakdown(recs, "day", pm, 100, null, closed).source, "transcript");
+});
+
+test("FAFF-933 (adversarial A1): --by effort gets its OWN truthful warning — its events.jsonl substrate is run-scoped, so it is never described as resuming-epoch-only", () => {
+  const f = fixture({ rc: null, ledger: twoEpochLedger([EPOCH0_500, openSpan("epoch-1")]) });
+  try {
+    // events.jsonl is RUN-scoped: a resume keeps appending to the SAME file, so
+    // epoch-0's effort-tagged dispatch is still here next to epoch-1's.
+    writeFileSync(join(f.runDir, "events.jsonl"), [
+      { schema: 1, run_id: "run-test", seq: 0, ts: "2026-08-29T10:00:00Z", type: "run-start", data: {} },
+      { schema: 1, run_id: "run-test", seq: 1, ts: "2026-08-29T11:00:00Z", type: "issue-outcome", issue: "FAFF-1", data: { effort: "high", tokens: { input: 400, output: 100, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } },
+      { schema: 1, run_id: "run-test", seq: 2, ts: "2026-08-29T15:00:00Z", type: "issue-outcome", issue: "FAFF-1", data: { effort: "low", tokens: { input: 80, output: 20, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } },
+    ].map((e) => JSON.stringify(e)).join("\n") + "\n");
+    const cfg = withRecords(f.root, f.root, "epoch-1", {
+      "epoch-1.jsonl": [{ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 80, output_tokens: 20 } }, timestamp: "2026-08-29T15:00:00Z" }],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "effort", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "epoch-1" });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    // The effort rows DO span epochs — epoch-0's `high` dispatch is present — which is
+    // exactly why calling them resuming-epoch-only would be a false statement.
+    const keys = e.breakdown.rows.map((x) => x.key);
+    assert.ok(keys.includes("high"), `epoch-0's effort bucket must be present, got ${JSON.stringify(keys)}`);
+    assert.equal(e.breakdown.reconciliation.events_token_total, 600);
+    assert.ok(!e.warnings.some((w) => /per-day\/mcp\/phase/.test(w) && /effort/.test(w)),
+      "effort must NOT be lumped into the transcript-derived axes' resuming-epoch-only claim");
+    assert.ok(e.warnings.some((w) => /--by effort axis reads the run-scoped events\.jsonl/.test(w) && /coverage_pct is not meaningful/.test(w)),
+      `expected the effort-specific truthful warning, got ${JSON.stringify(e.warnings)}`);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-933 (adversarial A1): a transcript-derived fine axis keeps the resuming-epoch-only wording, now without naming effort", () => {
+  const f = fixture({ rc: null, ledger: twoEpochLedger([EPOCH0_500, openSpan("epoch-1")]) });
+  try {
+    const cfg = withRecords(f.root, f.root, "epoch-1", {
+      "epoch-1.jsonl": [{ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 80, output_tokens: 20 } }, timestamp: "2026-08-29T15:00:00Z" }],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "day", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "epoch-1" });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    const w = e.warnings.find((x) => /resuming epoch only/.test(x));
+    assert.ok(w, `expected the coverage warning, got ${JSON.stringify(e.warnings)}`);
+    assert.match(w, /per-day\/mcp\/phase/);
+    assert.ok(!/effort/.test(w), "the transcript-derived axes' warning must no longer claim effort");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-933 (adversarial A2): a model row that absorbed closed-span deltas names the composition, never bare transcript-jsonl", () => {
+  // epoch-0's closed span shares a model with the open span's transcript AND carries
+  // one the transcript never saw, so both merged and closed-only rows are exercised.
+  const shared = closedSpan("epoch-0", "claude-sonnet-4-6", { input: 300 });
+  shared.closed_delta_by_model_class["claude-opus-4-8"] = { input: 200, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 };
+  const f = fixture({ rc: null, ledger: twoEpochLedger([shared, openSpan("epoch-1")]) });
+  try {
+    const cfg = withRecords(f.root, f.root, "epoch-1", {
+      "epoch-1.jsonl": [{ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 100 } }, timestamp: "2026-08-29T15:00:00Z" }],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "model", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "epoch-1" });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    const byKey = Object.fromEntries(e.breakdown.rows.map((x) => [x.key, x]));
+    assert.equal(byKey["claude-sonnet-4-6"].total, 400, "100 transcript + 300 closed");
+    assert.equal(byKey["claude-sonnet-4-6"].source, "transcript-jsonl+closed-spans",
+      "a merged row must not claim to be pure transcript");
+    assert.equal(byKey["claude-opus-4-8"].total, 200);
+    assert.equal(byKey["claude-opus-4-8"].source, "closed-spans",
+      "a model seen only in an earlier epoch is closed-spans alone");
+    assert.equal(e.tokens_total, 600);
+    assert.equal(e.breakdown.reconciliation.reconciles, true);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-933 (adversarial A2): a single-session transcript-only model breakdown still emits NO per-row source key", () => {
+  const f = fixture({ rc: null, ledger: baseLedger({ budget: { tokens_at_start: 0 } }) });
+  try {
+    const cfg = withRecords(f.root, f.root, "sess-1", {
+      "sess-1.jsonl": [{ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 100 } }, timestamp: "2026-08-29T15:00:00Z" }],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "model", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "sess-1" });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    assert.ok(!("source" in e.breakdown.rows[0]), "the byte-identical guarantee: no new per-row key");
+  } finally { f.cleanup(); }
 });

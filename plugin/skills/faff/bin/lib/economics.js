@@ -73,6 +73,14 @@ function computeUnitEconomics(ledger, opts) {
   const closedSpanTotal = Number.isFinite(opts.closed_span_total) ? opts.closed_span_total : 0;
   const closedSpanCount = Number.isFinite(opts.closed_span_count) ? opts.closed_span_count : 0;
   const epochScopedAxes = opts.epoch_scoped_axes === true;
+  // FAFF-933: the `effort` axis is NOT epoch-scoped and must not be described as if
+  // it were. Its substrate is `events.jsonl`, which is RUN-scoped — a resume keeps
+  // appending to the same file — so its rows already span every epoch, while its
+  // reconciliation target is this epoch's transcript. That is the opposite problem
+  // from the transcript-derived axes, so it gets its own truthful warning instead of
+  // being folded into theirs. (Measured: on a 2-epoch fixture the effort axis reports
+  // events_token_total 600 against a top_line_total of 100 — coverage_pct 600.)
+  const effortAxisCrossEpoch = opts.effort_axis_cross_epoch === true;
   const estimateEpochScoped = opts.estimate_epoch_scoped === true;
   const degradedCloseSources = Array.isArray(opts.degraded_close_sources) ? opts.degraded_close_sources : [];
   const price = Number.isFinite(price_per_mtok) && price_per_mtok > 0 ? price_per_mtok : 0;
@@ -125,7 +133,10 @@ function computeUnitEconomics(ledger, opts) {
   // (`has_closed_spans`), never on magnitude — a silently epoch-scoped figure is
   // the exact defect this ticket exists to close, so the drop is always named.
   if (epochScopedAxes) {
-    warnings.push(`resumed run: per-day/mcp/effort/phase and per-issue breakdowns cover the resuming epoch only (${closedSpanCount} prior epoch(s) not reconciled); top-line and per-model/class span all epochs`);
+    warnings.push(`resumed run: per-day/mcp/phase and per-issue breakdowns cover the resuming epoch only (${closedSpanCount} prior epoch(s) not reconciled); top-line and per-model/class span all epochs`);
+  }
+  if (effortAxisCrossEpoch) {
+    warnings.push(`resumed run: the --by effort axis reads the run-scoped events.jsonl, so its rows already span all ${closedSpanCount + 1} epoch(s) while its reconciliation target covers the resuming epoch only — coverage_pct is not meaningful on a resumed run; the top-line and per-model/class figures span all epochs`);
   }
   if (estimateEpochScoped) {
     warnings.push(`resumed run on the estimate fallback: this figure covers the resuming epoch only — ${closedSpanCount} prior epoch(s) with recorded spend cannot be reconciled into a per-attempt estimate (run \`faff budget check\` for the cross-epoch total)`);
@@ -561,8 +572,23 @@ function economicsBreakdown(records, axis, priceMap, topLineTotal, engineSpend =
         transcriptModels.set(model, acc);
       }
     }
-    rows = [...transcriptModels.entries()].map(([model, b]) => (engineRows.length
-      ? { ...mkRow(model, b, model), source: "transcript-jsonl" }
+    // FAFF-933: a row that ABSORBED closed-span deltas is no longer pure transcript,
+    // so its per-row source names the composition. Stamping `transcript-jsonl` on a
+    // merged row would misattribute ledger-derived tokens to the transcript census —
+    // the per-row source column exists precisely so provenance need not be inferred.
+    // A model seen ONLY in an earlier epoch is `closed-spans` alone. With neither
+    // engine rows nor a closed-span fold, no per-row source is emitted at all (the
+    // byte-identical guarantee for a single-session, transcript-only run).
+    const rowSource = (model) => {
+      const merged = closedMerged.has(model);
+      const fromTranscript = byModel.has(model);
+      if (merged && fromTranscript) return "transcript-jsonl+closed-spans";
+      if (merged) return "closed-spans";
+      return "transcript-jsonl";
+    };
+    const stampRowSource = engineRows.length > 0 || foldsClosedSpans;
+    rows = [...transcriptModels.entries()].map(([model, b]) => (stampRowSource
+      ? { ...mkRow(model, b, model), source: rowSource(model) }
       : mkRow(model, b, model)));
     rows = rows.concat(engineRows).sort((a, b) => b.total - a.total || (a.key < b.key ? -1 : 1));
   } else if (axis === "day") {
@@ -1451,14 +1477,19 @@ function cmdEconomics(args) {
   // span retains per-model x per-class deltas only, with no per-day/per-tool/
   // per-issue granularity. Where a surface cannot span, the epoch-scoping is NAMED
   // (never silently dropped), gated on the PRESENCE of a prior epoch.
+  // `effort` is deliberately NOT in this list — see computeUnitEconomics' own note: its
+  // events.jsonl substrate is run-scoped, so it already spans epochs and gets the
+  // separate, truthful warning below rather than a claim the data contradicts.
   const epochScopedAxes = hasClosedSpans
-    && (["day", "mcp", "effort", "phase"].includes(byAxis) || perIssue.length > 0);
+    && (["day", "mcp", "phase"].includes(byAxis) || perIssue.length > 0);
+  const effortAxisCrossEpoch = hasClosedSpans && byAxis === "effort";
   const econ = computeUnitEconomics(ledger, {
     tokens_total: tokensTotal, tokens_source: tokensSource, price_per_mtok: price,
     tokens_at_start: tokensAtStart, per_issue: perIssue, run_id: path.basename(runDir),
     pricing: env.pricing, map_cost: combinedMapCost, map_warnings: mapWarnings,
     closed_span_total: closedSpend.total, has_closed_spans: hasClosedSpans,
     closed_span_count: closedSpans.length, epoch_scoped_axes: epochScopedAxes,
+    effort_axis_cross_epoch: effortAxisCrossEpoch,
     estimate_epoch_scoped: estimateEpochScoped, degraded_close_sources: degradedCloseSources,
   });
 

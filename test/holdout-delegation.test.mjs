@@ -230,6 +230,19 @@ test("ac-28: a refused record keeps the classify-derived delegated[]; a block wh
   rmSync(root, { recursive: true, force: true });
 });
 
+test("an env-not-ready block refused for missing judged ids keeps the evaluator's own reason after the refusal", () => {
+  const root = repo();
+  const spec = withSpec(root, SMOKE_SPEC);
+  const r = record(root, ["--issue", "FAFF-1", "--spec", spec], { aggregate: "needs-human", code_blind: true, violations: ["env not ready: health check failed"], criteria: [] });
+  assert.equal(r.status, 1);
+  const doc = read(storeFile(root, "FAFF-1"));
+  assert.equal(doc.aggregate, "needs-human");
+  assert.match(doc.violations[0], /^holdout record refused: criteria ids do not match/);
+  assert.equal(doc.violations.at(-1), "env not ready: health check failed");
+  assert.equal(doc.delegated.length, 2);
+  rmSync(root, { recursive: true, force: true });
+});
+
 test("ac-30: an all-prose spec is not skipped; an integration-only spec is not skipped; a rollback prose DONE is delegated", () => {
   const allProse = dodClassify("## Scenarios\n\nThe copy feels friendly\n\n## 8. DONE\n\n- [ ] Operators like the flow\n- [ ] The rollback is smooth\n");
   assert.ok(allProse.judged_count > 0);

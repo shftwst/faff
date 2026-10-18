@@ -9,13 +9,13 @@
 
 ADR-0029 trusted the machine holdout for born-verifiable (scenario and assertion) criteria and sent prose criteria to a human. In the code, a prose DONE item forced the verdict to needs-human, and ADR-0032 fixes the verdict contract that carries it. Every spec's DONE section holds prose items, since they are the builder's own acceptance criteria. So the strict L4 floor was blocked unconditionally for them, and no run could pass it. FAFF-1291 exists to remove that block.
 
-The holdout is code-blind: it sees the spec and a running environment, never the codebase. A prose DONE item cannot be checked that way, and asking the evaluator model to judge it would put an unverifiable opinion into the signed verdict. The criterion still has a verifier, though. The builder writes an acceptance-criterion (AC) checklist (`ac-checklist.json`, keyed by the qualified ids of ADR-0139), and the review leg reads the diff against it.
+The holdout is code-blind: it sees the spec and a running environment, never the codebase. A prose DONE item cannot be checked that way, and asking the evaluator model to judge it would put an unverifiable opinion into the anchored verdict. The criterion still has a verifier, though. The builder writes an acceptance-criterion (AC) checklist (`ac-checklist.json`, keyed by the qualified ids of ADR-0139), and the review leg reads the diff against it.
 
 Three ways to route those criteria out of the judged set were considered:
 
 - Infer "prose means delegated" separately in each consumer. That gives two partition keys and no per-row verifier to name.
 - Add new verdict or class enum values. These are non-additive under `classifySchemaChange`.
-- List delegated rows only in the unsigned evidence report. The signed record then cannot show what was left out of the judgement.
+- List delegated rows only in the unsigned evidence report. The anchored record then cannot show what was left out of the judgement.
 
 ## Decision
 

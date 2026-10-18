@@ -236,7 +236,10 @@ export async function main(argv, { preflightFn, spawnFn, writeFn = writeHoldoutR
   const withheld = buildWithheldSet();
   const att = deriveAttestation(pf.holds, res.verdict, withheld);
   const token = credentials && credentials.scheme === "bearer" && typeof credentials.token === "string" && credentials.token ? credentials.token : null;
-  const classified = dodClassify(specText, ISSUE_ID_RE.test(a.key) ? { issue: a.key } : undefined);
+  // A classify fault must still produce the fail-closed record, never an absent one (read as "did not run").
+  let classified = null;
+  try { classified = dodClassify(specText, ISSUE_ID_RE.test(a.key) ? { issue: a.key } : undefined); }
+  catch (e) { process.stderr.write(`evaluate-call: faff dod classify failed on the spec: ${e.message}; the record is written fail-closed\n`); }
   const record = buildHoldoutRecord(res.verdict, { issue: a.key, envelope: att, secretValues: [], extraSecrets: token ? [token] : [], classified });
   if (a.storeOut && storeCopyRecordsOtherIssue(a.storeOut, a.key)) {
     process.stderr.write(`evaluate-call: --store-out ${a.storeOut} already records a different issue; refusing to overwrite it; exit ${EXIT.USAGE}\n`);

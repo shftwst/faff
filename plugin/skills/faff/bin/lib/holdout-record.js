@@ -201,7 +201,9 @@ function normaliseAttestation(att) {
   return { spawner: att.spawner, withheld: { repo: w.repo, worktree_cwd: w.worktree_cwd, diff: w.diff }, preflight: att.preflight };
 }
 
-function failClosed(top, refusals, delegated) {
+// `blockViolations` are the evaluator block's own (already redacted) violations, kept after the
+// refusal lines so a refused record still says why the evaluator judged nothing (FAFF-1291).
+function failClosed(top, refusals, delegated, blockViolations) {
   const doc = {
     schema_version: 1,
     issue: top.issue,
@@ -209,7 +211,7 @@ function failClosed(top, refusals, delegated) {
     code_blind: top.code_blind === true,
     spawner_attested: top.spawner_attested === true,
     attestation: top.attestation || null,
-    violations: refusals.map((r) => `holdout record refused: ${r}`),
+    violations: [...refusals.map((r) => `holdout record refused: ${r}`), ...(Array.isArray(blockViolations) ? blockViolations : [])],
     criteria: [],
     delegated: Array.isArray(delegated) ? delegated : [],
   };
@@ -293,7 +295,7 @@ function buildHoldoutRecord(block, opts) {
     }
   }
   refusals.push(...holdoutRecordViolations(redacted));
-  if (refusals.length > 0) return failClosed(base, refusals, delegated);
+  if (refusals.length > 0) return failClosed(base, refusals, delegated, redacted.violations);
   return { ok: true, doc: redacted, bytes: serialise(redacted), refusals: [] };
 }
 

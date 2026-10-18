@@ -101,6 +101,24 @@ Constraints the validator subset cannot express are enforced by the writer, not 
 for a holdout criterion, `met` and `unmet` need `exercised`, `expected` and `observed`,
 `needs-human` needs `reason`, and each string is at most 2000 characters.
 
+`holdout.json` may also carry `delegated[]` (FAFF-1342), the criteria the code-blind judge did not
+judge, each with the verifier that covers it, so no criterion disappears without a trace. The writer
+fills it from `faff dod classify` (FAFF-1291). The key is optional: an anchor without it still
+validates. Each row is a closed object and all six keys are required:
+
+| Key | Meaning |
+|---|---|
+| `id` | `<source>:<index>` from `faff dod classify`; the source is `scenarios` or `done` and the index starts at 1 |
+| `text` | the criterion text |
+| `holdout` | whether the criterion is a holdout criterion |
+| `verification_tier` | `delegated` or `integration` |
+| `verifier` | `ac-checklist` or `review-merge-floor` |
+| `ac_id` | the qualified ac_id for a `done` row when the record's `issue` is an issue id; otherwise `null` |
+
+The schema lists both tiers and both verifiers but does not pair them. The pairing rule
+(`delegated` with `ac-checklist`, `integration` with `review-merge-floor`) is a writer and validator
+rule that FAFF-1291 adds, because the validator subset cannot express it.
+
 A `holdout.json` record's `issue` is the id of the call that wrote it: the issue id for the per-issue
 graft gate, and the run id for the per-run phase that is keyed by the run. The `--issue` of
 `faff holdout record` (or the `--key` of the caged spawner) is that id.

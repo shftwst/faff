@@ -76,6 +76,11 @@ cross-link rather than merge.
 
 ## Changelog
 
+- **v0.3 — 2026-10-18 (FAFF-1342, draft, schema slice of FAFF-1291).** Adds the optional, closed
+  top-level `delegated` array to `holdout-anchored.schema.json`, so `holdout.json` can list every
+  criterion the code-blind judge did not judge with the verifier that covers it. `required` and
+  `schema_version` are unchanged. Additive under the draft rule: every committed anchor that
+  validated still gives the same result. The writer that fills it is FAFF-1291.
 - **v0.3 — 2026-10-14 (FAFF-1260, draft, slice 5).** Closes the log payloads: one schema per
   event type (27, including `evidence-terminal-only`), per effect kind (16) and per schema-3 record
   kind (8), under `v0.3/schema/events/`, `effects/` and `commissaire/`, composed into

@@ -18,7 +18,8 @@ const contract = (args, input) => spawnSync(process.execPath, [BIN, "contract", 
 
 function scratch() {
   const dir = mkdtempSync(join(tmpdir(), "faff-eval-"));
-  writeFileSync(join(dir, "spec.md"), "# spec\n## DONE\n- [ ] AC1\n- [ ] AC2\n");
+  // Two judged scenarios (scenarios:1, scenarios:2) and two prose DONE items the classifier delegates.
+  writeFileSync(join(dir, "spec.md"), "# spec\n## Scenarios\n\n```\nGiven a\nWhen b\nThen c\n```\n\n```\nGiven d\nWhen e\nThen f\n```\n\n## DONE\n- [ ] AC1\n- [ ] AC2\n");
   return dir;
 }
 
@@ -47,6 +48,7 @@ test("caged run: preflight holds + inner blind → verdict file with spawner_att
   assert.equal(v.attestation.spawner, "evaluate-call.mjs");
   assert.equal(v.attestation.withheld.repo, true);
   assert.equal(v.attestation.preflight, "pass");
+  assert.deepEqual(v.delegated.map((r) => [r.id, r.verification_tier, r.verifier, r.ac_id]), [["done:1", "delegated", "ac-checklist", "faff-384#done:1"], ["done:2", "delegated", "ac-checklist", "faff-384#done:2"]]);
   rmSync(dir, { recursive: true, force: true });
 });
 
@@ -207,7 +209,7 @@ test("redaction: a token echoed into aggregate, violations and criterion detail 
   writeFileSync(credsPath, JSON.stringify({ scheme: "bearer", token: "sekret" }));
   const tokenEchoingInner = {
     aggregate: "fails",
-    criteria: [detailed(1, "scenario", { verdict: "unmet", observed: "401 for Authorization: Bearer sekret" })],
+    criteria: [detailed(1, "scenario", { verdict: "unmet", observed: "401 for Authorization: Bearer sekret" }), detailed(2, "scenario", { verdict: "unmet" })],
     violations: ["401 for Authorization: Bearer sekret"],
   };
   const code = await main(["--spec", join(dir, "spec.md"), "--endpoint", "http://localhost:8080", "--key", "K", "--out", out, "--store-out", store, "--credentials", credsPath], {

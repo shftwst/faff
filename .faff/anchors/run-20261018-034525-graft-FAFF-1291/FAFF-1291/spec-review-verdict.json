@@ -1,0 +1,575 @@
+{
+  "schema_version": 1,
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 3,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The validator rules are defined over `criteria[]` rows **by id** (\"a `criteria[]` row with `class: prose` and an id of the form `done:N` is a violation\"; \"no id may appear in both `criteria` and `delegated`\"), and the spec places `delegationViolations` under `computeHoldoutVerdict` so the gate enforces them. But in the supplied contract, criteria rows have no id to test: `computeHoldoutVerdict` maps each criterion to `{ class, verdict, evidence_present }` and drops `id`/`text`/`holdout` (contract-defs.js lines 910–919), and `contracts/holdout-verdict.schema.json` declares criteria items `additionalProperties: false` with only `class`/`verdict`/`evidence_present` — an id-bearing block is outside that schema. The spec's only planned change to `holdout-verdict.schema.json` is \"gains the same optional `delegated` array\"; it never says `criteria[].id` is added there or that `computeHoldoutVerdict`'s mapping is widened to carry it.",
+      "evidence": "Spec §\"Validator rules\" and ac-10/ac-12/ac-14 (\"both `computeHoldoutVerdict` and `holdoutRecordViolations` call it\"); contract-defs.js `computeHoldoutVerdict` criteria mapping; `contracts/holdout-verdict.schema.json` lines 12–24.",
+      "predicted_consequence": "ac-10 (\"`faff contract holdout-verdict` exits 1 on a block whose `criteria` holds a `class: prose` row with id `done:2`\") cannot be satisfied by the described design: either the builder must silently widen `computeHoldoutVerdict`'s criteria mapping and the contract schema's criteria items (an unplanned, non-additive-shaped change to a shipped contract schema the spec never budgets for), or the rule fires only in the writer path and the gate/`holdoutGateResult` — the thing the merge floor actually reads — never rejects a judged DONE-prose row, so the \"narrow the issue's wording\" guarantee exists only where the record is already being written fail-closed anyway.",
+      "spec_anchor": "validator-rules",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Largely a false positive per the reviewer's own code check; the spec now says delegationViolations runs on the raw block before the contractData mapping.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The validator rules are defined over `criteria[]` rows **by id** (\"a `criteria[]` row with `class: prose` and an id of the form `done:N` is a violation\"; \"no id may appear in both `criteria` and `delegated`\"), and the spec places `delegationViolations` under `computeHoldoutVerdict` so the gate enforces them. But in the supplied contract, criteria rows have no id to test: `computeHoldoutVerdict` maps each criterion to `{ class, verdict, evidence_present }` and drops `id`/`text`/`holdout` (contract-defs.js lines 910–919), and `contracts/holdout-verdict.schema.json` declares criteria items `additionalProperties: false` with only `class`/`verdict`/`evidence_present` — an id-bearing block is outside that schema. The spec's only planned change to `holdout-verdict.schema.json` is \"gains the same optional `delegated` array\"; it never says `criteria[].id` is added there or that `computeHoldoutVerdict`'s mapping is widened to carry it.",
+          "spec_anchor": "validator-rules"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec's WHY states the writer lists every non-judged criterion \"so no criterion can disappear without a trace,\" but the specified refusal path writes `delegated: []` alongside `criteria: []` — the trace is destroyed precisely in the case where the evaluator misbehaved (omitted a judged id, emitted a delegated id). Only the free-text `violations` strings survive, and they name only the mismatching ids, not the full delegated set.",
+      "evidence": "Spec §\"Writer completeness (needs classify output)\": \"A refusal goes through the existing `failClosed` path: `needs-human`, `criteria: []`, `delegated: []`\"; §1 WHY trace claim; `holdout-record.js` `failClosed` (lines 150–162).",
+      "predicted_consequence": "A refused run's persisted record carries no durable `delegated[]`, so any consumer or audit reconstructing coverage from the anchor sees an empty delegation for a spec that has, e.g., 22 prose DONE items; the completeness failure and the delegation listing cannot be distinguished from \"no delegated criteria exist\" without re-running classify.",
+      "spec_anchor": "writer-completeness-needs-classify-output",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The spec's WHY states the writer lists every non-judged criterion \"so no criterion can disappear without a trace,\" but the specified refusal path writes `delegated: []` alongside `criteria: []` — the trace is destroyed precisely in the case where the evaluator misbehaved (omitted a judged id, emitted a delegated id). Only the free-text `violations` strings survive, and they name only the mismatching ids, not the full delegated set.",
+          "spec_anchor": "writer-completeness-needs-classify-output"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The writer's completeness check exists to make it impossible for a criterion to \"disappear without a trace\" — the spec's own anti-pattern is \"letting the evaluator emit `delegated[]` and having the writer trust it.\" But in the inline path, `faff holdout record --spec <path>` is invoked by `holdout_step` running **in the judged party's own lane** (top-level/sequential graft runs it in-lane). The agent chooses which file `--spec` names. Nothing pins that file to the text the evaluator actually judged: no hash, no cached classify output, no binding to the evaluate step. An agent that wants a criterion omitted writes a trimmed spec copy (drop the scenario, or reword the DONE item to prose), passes that path, and the writer's classify run then derives a judged set that matches the trimmed block. The record validates clean, `delegated[]` is derived from the doctored spec, and the merge floor sees a self-consistent `meets-spec`. The control the ticket introduces is rekeyed by the adversary it exists against — the same fail-open the spec rejects one level down (\"the writer, not the LLM\"), relocated to the flag that feeds the writer.",
+      "evidence": "\"Writer completeness (needs classify output)\" — `cmdHoldoutRecord` gains a required `--spec <path|->`; \"It calls `dodClassify(specText, { issue })`\" over text read fresh at record time; the only stated binding is the intent \"the same full-view spec text the evaluator received,\" with no mechanism. The caged path is safe (`evaluate-call.mjs` reads `--spec` spawner-side and classifies the same text it spawns with), but the inline path is not.",
+      "predicted_consequence": "an in-lane holdout record written against a spec file the judged party supplied, in which omitted criteria leave no trace — `holdout.json` shows `meets-spec` with a `delegated[]` list derived from text the evaluator never judged, and the strict merge floor passes it.",
+      "spec_anchor": "writer-completeness-needs-classify-output",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The writer's completeness check exists to make it impossible for a criterion to \"disappear without a trace\" — the spec's own anti-pattern is \"letting the evaluator emit `delegated[]` and having the writer trust it.\" But in the inline path, `faff holdout record --spec <path>` is invoked by `holdout_step` running **in the judged party's own lane** (top-level/sequential graft runs it in-lane). The agent chooses which file `--spec` names. Nothing pins that file to the text the evaluator actually judged: no hash, no cached classify output, no binding to the evaluate step. An agent that wants a criterion omitted writes a trimmed spec copy (drop the scenario, or reword the DONE item to prose), passes that path, and the writer's classify run then derives a judged set that matches the trimmed block. The record validates clean, `delegated[]` is derived from the doctored spec, and the merge floor sees a self-consistent `meets-spec`. The control the ticket introduces is rekeyed by the adversary it exists against — the same fail-open the spec rejects one level down (\"the writer, not the LLM\"), relocated to the flag that feeds the writer.",
+          "spec_anchor": "writer-completeness-needs-classify-output"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "Before this change, a prose DONE item forced the holdout aggregate to `needs-human`, and the strict L4 floor blocked unconditionally — no actor could convert it to a pass. After this change, the item is delegated with `verifier: ac-checklist`, and the only artifact that verifies it is `ac-checklist.json` — which, per the graft SKILL's own admission, is written **in-lane by the judged party** under the \"sanctioned rung-0 posture\" (\"under a dispatched autonomous lane it must ultimately be written by the trusted side; today's in-lane write is the sanctioned rung-0 posture\"). The merge floor's `readAcComplete` reads that self-written artifact. So the design replaces a hard, actor-independent block with a self-attested pass: an autonomous builder ticks its own prose ACs with fabricated test/command locators, the holdout returns `meets-spec` over the judged set, and the merge floor passes. The spec's own design principle (\"A delegated criterion needs a verifier that can see it\") is satisfied on visibility but not on independence, and the mechanical cross-check that would catch a missing or self-attested row is explicitly out of scope. The build-time \"stop and report\" assumption validation is a prep step, not an enforcement.",
+      "evidence": "\"Which prose criteria are delegated\" (Chosen: DONE prose only, verifier `ac-checklist`); Out of scope: \"Cross-checking delegated `ac_id`s against `ac-checklist.json`\"; graft SKILL Step 8 (\"today's in-lane write is the sanctioned rung-0 posture\"); `evaluateMergeFloorLeg` reads `readAcComplete` from the same run dir the lane wrote.",
+      "predicted_consequence": "on a dispatched autonomous L4 run, every prose DONE criterion is recorded as `delegated`/`ac-checklist` and gate-passes on the builder's own checklist ticks; the merge floor's holdout leg returns `meets-spec` where the shipped code blocks every such run today.",
+      "spec_anchor": "which-prose-criteria-are-delegated",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Product owner accepted the trust shift on 2026-10-17: delegated prose rests on the builder-written AC checklist plus the review leg, stated in the spec; FAFF-1339 and a trusted-side checklist write are the follow-ups.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "Before this change, a prose DONE item forced the holdout aggregate to `needs-human`, and the strict L4 floor blocked unconditionally — no actor could convert it to a pass. After this change, the item is delegated with `verifier: ac-checklist`, and the only artifact that verifies it is `ac-checklist.json` — which, per the graft SKILL's own admission, is written **in-lane by the judged party** under the \"sanctioned rung-0 posture\" (\"under a dispatched autonomous lane it must ultimately be written by the trusted side; today's in-lane write is the sanctioned rung-0 posture\"). The merge floor's `readAcComplete` reads that self-written artifact. So the design replaces a hard, actor-independent block with a self-attested pass: an autonomous builder ticks its own prose ACs with fabricated test/command locators, the holdout returns `meets-spec` over the judged set, and the merge floor passes. The spec's own design principle (\"A delegated criterion needs a verifier that can see it\") is satisfied on visibility but not on independence, and the mechanical cross-check that would catch a missing or self-attested row is explicitly out of scope. The build-time \"stop and report\" assumption validation is a prep step, not an enforcement.",
+          "spec_anchor": "which-prose-criteria-are-delegated"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "major",
+      "claim": "The critique's fourth finding says the real-run re-classification of four committed anchor specs — confirming `judged_count` equals the scenario/assertion rows those runs judged — is the slice's central risk (a change in meaning) and must be run before PR B **and added as an acceptance criterion**. The spec still buries it in failure-modes prose only; its closest DONE item (ac-2) tests a synthetic fixture modelled on the FAFF-1279 shape, not the four real committed anchors. An acceptance criterion derived from a constructed fixture does not detect systematic mis-tiering in real specs, which is exactly what the prose check exists to catch.",
+      "evidence": "methodology-critique \"Risk profile\" finding; spec §4 failure modes \"The classifier tiers an observable DONE item as prose\" (re-classify the four committed anchor specs); spec §7 has no corresponding ac.",
+      "predicted_consequence": "the slice ships and `judged_count` silently under- or over-counts on the actual anchor specs; the aggregate-meaning change is discovered only after reviewers inspect real records, not in CI.",
+      "spec_anchor": "section-4-how",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The critique's fourth finding says the real-run re-classification of four committed anchor specs — confirming `judged_count` equals the scenario/assertion rows those runs judged — is the slice's central risk (a change in meaning) and must be run before PR B **and added as an acceptance criterion**. The spec still buries it in failure-modes prose only; its closest DONE item (ac-2) tests a synthetic fixture modelled on the FAFF-1279 shape, not the four real committed anchors. An acceptance criterion derived from a constructed fixture does not detect systematic mis-tiering in real specs, which is exactly what the prose check exists to catch.",
+          "spec_anchor": "section-4-how"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The critique directs \"Set an estimate.\" The spec front-matter carries `build-tier: complex` but no estimate, leaving the oversized-ticket flag unresolved at the plan boundary.",
+      "evidence": "methodology-critique \"Right-sized?\" finding, \"No estimate.\"; spec header `build-tier: complex` with no estimate.",
+      "predicted_consequence": "not separately stated.",
+      "spec_anchor": "spec-the-code-blind-holdout-judges-only-criteria-a-machine-can-check-faff-1291",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Product owner decided on 2026-10-17 that the estimate is a tracker field, not spec text.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The critique directs \"Set an estimate.\" The spec front-matter carries `build-tier: complex` but no estimate, leaving the oversized-ticket flag unresolved at the plan boundary.",
+          "spec_anchor": "spec-the-code-blind-holdout-judges-only-criteria-a-machine-can-check-faff-1291"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The critique names two concrete hygiene actions — link FAFF-1292/1293 as blockers of FAFF-1270 (or note the constraint on 1270), and file the delegated-ac_id vs ac-checklist cross-check follow-up (checking FAFF-1288 first). The spec repeatedly asserts \"file the governance-check cross-check if real anchors show any gap\" (§4 failure modes) but files nothing, and the 1270 dep constraint appears only as prose in the integration expectations, not as a tracked dependency action this slice owns before it changes `meets-spec`'s meaning.",
+      "evidence": "methodology-critique \"Deps surfaced?\" finding; spec Out of scope bullet \"Cross-checking delegated `ac_id`s\" names `evaluateMergeFloorLeg` but no ticket; failure modes \"The fix does not move real runs\".",
+      "predicted_consequence": "FAFF-1270 proceeds against a holdout run that still ends needs-human, and the cross-check reliance on graft Step 8 stays assumed rather than tracked if no one later revisits this ticket's prose.",
+      "spec_anchor": "out-of-scope",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The critique names two concrete hygiene actions — link FAFF-1292/1293 as blockers of FAFF-1270 (or note the constraint on 1270), and file the delegated-ac_id vs ac-checklist cross-check follow-up (checking FAFF-1288 first). The spec repeatedly asserts \"file the governance-check cross-check if real anchors show any gap\" (§4 failure modes) but files nothing, and the 1270 dep constraint appears only as prose in the integration expectations, not as a tracked dependency action this slice owns before it changes `meets-spec`'s meaning.",
+          "spec_anchor": "out-of-scope"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The spec states as a design principle that a prose Scenarios unit \"is never delegated. It fails closed to `needs-human`\" and that it \"holds the aggregate at `needs-human`\". But the graft skip rule keys on `judged_count`, which counts only running-stack `scenario`/`assertion` criteria. A spec whose Scenarios are all prose-shaped (or whose only non-DONE content is a When-only unit) has `judged_count == 0`, so graft Steps 6 and 8c skip the holdout entirely; no record is written; and per `holdout-record.js`, an absent holdout verdict is read as \"did not run\" and the merge floor's holdout leg steps aside. The undelegable prose Scenarios units end up covered by no verifier at all — the exact fail-open the spec's principle says it avoids. The edge-case note (\"If a holdout still runs (the per-run phase has no skip)…\") acknowledges the mechanics but does not reconcile it with the stated fail-closed guarantee; the guarantee as written is false on the primary graft path.",
+      "evidence": "\"Delegation scope\" chosen text (\"It fails closed to `needs-human`… so it holds the aggregate at `needs-human`\") vs \"Counts in graft\" (\"Graft Step 6 and Step 8c skip on `judged_count == 0`\") and the edge case \"Zero judged criteria: graft skips the holdout.\"",
+      "predicted_consequence": "a spec exhibiting precisely the FAFF-1293 defect class (prose-shaped Scenarios units, prose DONE items) merges with the holdout never run and the prose Scenarios units verified by nothing — the merge floor's holdout leg passes through on the absent record, so the \"fails closed\" route never executes.",
+      "spec_anchor": "counts-in-graft-and-faff-admissible",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The spec states as a design principle that a prose Scenarios unit \"is never delegated. It fails closed to `needs-human`\" and that it \"holds the aggregate at `needs-human`\". But the graft skip rule keys on `judged_count`, which counts only running-stack `scenario`/`assertion` criteria. A spec whose Scenarios are all prose-shaped (or whose only non-DONE content is a When-only unit) has `judged_count == 0`, so graft Steps 6 and 8c skip the holdout entirely; no record is written; and per `holdout-record.js`, an absent holdout verdict is read as \"did not run\" and the merge floor's holdout leg steps aside. The undelegable prose Scenarios units end up covered by no verifier at all — the exact fail-open the spec's principle says it avoids. The edge-case note (\"If a holdout still runs (the per-run phase has no skip)…\") acknowledges the mechanics but does not reconcile it with the stated fail-closed guarantee; the guarantee as written is false on the primary graft path.",
+          "spec_anchor": "counts-in-graft-and-faff-admissible"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "`resolve_tier` checks `INTEGRATION_TIER_MARKERS` before the prose-DONE rule, so a prose DONE item containing \"rollback\" is tiered `integration` with `verifier: review-merge-floor`. But the review/merge floor's verifier is the build's own test suite (per the FAFF-961 framing the spec reuses), and a prose criterion is by definition not test-decidable — the contract itself forces prose to `needs-human` for exactly that reason. Its real coverage remains the AC checklist (graft Step 8 sources every DONE item regardless of tier), yet the durable `delegated[]` row names a verifier that has no mechanism to discharge it. The spec's edge-case list notes the tiering outcome but not the verifier mismatch.",
+      "evidence": "`resolve_tier` step 2 preceding step 3; DelegatedRow pairing \"`integration` with `review-merge-floor`\"; edge case \"A DONE prose item that matches an integration keyword is tiered `integration`\".",
+      "predicted_consequence": "FAFF-1339's cross-check (delegated `ac_id` ↔ passed checklist row) is scoped to `verifier: ac-checklist` rows, so these rows escape it while no leg owns them — a permanently-unowned delegated row in the anchored record.",
+      "spec_anchor": "which-prose-criteria-are-delegated",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "`resolve_tier` checks `INTEGRATION_TIER_MARKERS` before the prose-DONE rule, so a prose DONE item containing \"rollback\" is tiered `integration` with `verifier: review-merge-floor`. But the review/merge floor's verifier is the build's own test suite (per the FAFF-961 framing the spec reuses), and a prose criterion is by definition not test-decidable — the contract itself forces prose to `needs-human` for exactly that reason. Its real coverage remains the AC checklist (graft Step 8 sources every DONE item regardless of tier), yet the durable `delegated[]` row names a verifier that has no mechanism to discharge it. The spec's edge-case list notes the tiering outcome but not the verifier mismatch.",
+          "spec_anchor": "which-prose-criteria-are-delegated"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The new skip rule `judged_count == 0 ⇒ skip` combines with the existing `INTEGRATION_TIER_MARKERS` keyword list to give the lane a one-word fail-open against the strict L4 floor. Any DONE item containing \"rollback\", \"roll back\", \"rolled back\" etc. is tiered `integration` (marker check precedes everything in `resolve_tier`), leaves the judged set, and drops out of `judged_count`. A spec whose every born-verifiable DONE item carries one of these common words — whether by lazy authoring, a prompt-injected builder phrasing criteria to dodge the cage, or an adversarial issue — yields `judged_count == 0`, graft Step 6/8c skip the run, no `holdout.json` is produced, and the merge floor's holdout leg reads an absent verdict as \"did not run\" and steps aside. Before this ticket the same spec ran the holdout, got an empty/needs-human criteria set, and was blocked. The \"compensating\" verifier (`review-merge-floor`) has no mechanical enforcement that its tests actually cover the criterion — the AC-checklist locator is builder-authored.",
+      "evidence": "`resolve_tier` step 2 (marker/keyword before everything); \"Graft Step 6 and Step 8c skip on `judged_count == 0`\"; `INTEGRATION_TIER_MARKERS` in admissibility.js includes the broad \"rollback\"/\"roll back\"/\"rolled back\" family; `evaluateMergeFloorLeg` (governance-check.js) only blocks when `holdout_posture === \"strict\" && holdout !== \"meets-spec\"` — an absent verdict is not a block.",
+      "predicted_consequence": "a merge where zero code-blind judgement occurred, gated only on builder-authored artifacts, reached by phrasing DONE items with tier keywords — a silent bypass of the L4 holdout floor.",
+      "spec_anchor": "counts-in-graft-and-faff-admissible",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The new skip rule `judged_count == 0 ⇒ skip` combines with the existing `INTEGRATION_TIER_MARKERS` keyword list to give the lane a one-word fail-open against the strict L4 floor. Any DONE item containing \"rollback\", \"roll back\", \"rolled back\" etc. is tiered `integration` (marker check precedes everything in `resolve_tier`), leaves the judged set, and drops out of `judged_count`. A spec whose every born-verifiable DONE item carries one of these common words — whether by lazy authoring, a prompt-injected builder phrasing criteria to dodge the cage, or an adversarial issue — yields `judged_count == 0`, graft Step 6/8c skip the run, no `holdout.json` is produced, and the merge floor's holdout leg reads an absent verdict as \"did not run\" and steps aside. Before this ticket the same spec ran the holdout, got an empty/needs-human criteria set, and was blocked. The \"compensating\" verifier (`review-merge-floor`) has no mechanical enforcement that its tests actually cover the criterion — the AC-checklist locator is builder-authored.",
+          "spec_anchor": "counts-in-graft-and-faff-admissible"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "`buildHoldoutRecord` runs `redactKnownSecrets(top, secrets)` over the block-derived document, then `complete_against_classify` sets `redacted_doc.delegated := delegated` (procedure step 4) — after the redaction pass. The `DelegatedRow.text` is copied verbatim from classify output over the full-view spec. Any known-secret value that appears in a prose DONE item's text (an issue that carried a token, a credential pasted into a DONE line) is scrubbed from `criteria` rows but lands unredacted in `delegated[]`, which is persisted into `.faff/holdout/<key>.json`, the run-dir copy, and the committed anchor. The refusal path makes it worse by design: \"a refused run keeps its delegation listing\", so even a fail-closed record persists the unredacted text.",
+      "evidence": "`PROCEDURE complete_against_classify` step 4 operates on `redacted_doc` and is described as running after the writer's existing redaction/truncation pipeline (`buildHoldoutRecord` in holdout-record.js redacts at line ~190 before returning); `DelegatedRow.text: String` copied \"from the criterion\".",
+      "predicted_consequence": "a bearer token or other known secret written in plaintext into a committed evidence anchor, visible to every consumer of the record and outside the scrub set the writer otherwise guarantees.",
+      "spec_anchor": "writer-completeness-needs-classify-output",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "`buildHoldoutRecord` runs `redactKnownSecrets(top, secrets)` over the block-derived document, then `complete_against_classify` sets `redacted_doc.delegated := delegated` (procedure step 4) — after the redaction pass. The `DelegatedRow.text` is copied verbatim from classify output over the full-view spec. Any known-secret value that appears in a prose DONE item's text (an issue that carried a token, a credential pasted into a DONE line) is scrubbed from `criteria` rows but lands unredacted in `delegated[]`, which is persisted into `.faff/holdout/<key>.json`, the run-dir copy, and the committed anchor. The refusal path makes it worse by design: \"a refused run keeps its delegation listing\", so even a fail-closed record persists the unredacted text.",
+          "spec_anchor": "writer-completeness-needs-classify-output"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The spec moves every prose DONE criterion from an independent, code-blind verifier to the AC checklist — which the builder writes in-lane, about itself, with builder-chosen \"test/command\" locators. The one mechanical backstop that would make this delegation meaningful (FAFF-1339's cross-check that every `delegated[].ac_id` has a `passed:true` row) is explicitly out of scope, and the trusted-side checklist write is also out of scope. So at the moment this ticket ships, the merge floor's `all_verified` for delegated criteria rests entirely on the judged party's own attestation; the review leg is pre-PR and advisory-shaped, not a floor. The spec states the shift honestly, but stating a widened trust boundary is not a control: between this ticket and FAFF-1339, a builder (or a compromised lane) marks its own prose DONE items verified and the strict floor passes.",
+      "evidence": "\"The trust shift for prose DONE items\" — \"accept the shift and state it\"; Out of scope lists both FAFF-1339 and the trusted-side write; graft Step 8's checklist is builder-written (rung-0 posture, per the spec's own text).",
+      "predicted_consequence": "a PR merges at L4 with unverified prose requirements recorded as `passed` by the lane that produced the diff; no artifact in the floor contradicts it until FAFF-1339 lands.",
+      "spec_anchor": "the-trust-shift-for-prose-done-items",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Product owner accepted the trust shift on 2026-10-17: delegated prose rests on the builder-written AC checklist plus the review leg, stated in the spec; FAFF-1339 and a trusted-side checklist write are the follow-ups.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The spec moves every prose DONE criterion from an independent, code-blind verifier to the AC checklist — which the builder writes in-lane, about itself, with builder-chosen \"test/command\" locators. The one mechanical backstop that would make this delegation meaningful (FAFF-1339's cross-check that every `delegated[].ac_id` has a `passed:true` row) is explicitly out of scope, and the trusted-side checklist write is also out of scope. So at the moment this ticket ships, the merge floor's `all_verified` for delegated criteria rests entirely on the judged party's own attestation; the review leg is pre-PR and advisory-shaped, not a floor. The spec states the shift honestly, but stating a widened trust boundary is not a control: between this ticket and FAFF-1339, a builder (or a compromised lane) marks its own prose DONE items verified and the strict floor passes.",
+          "spec_anchor": "the-trust-shift-for-prose-done-items"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "`truncateDetail`/`MAX_DETAIL` are applied only to `criteria` detail keys; `complete_against_classify` maps delegated rows without any truncation, and the new subschema may not carry `maxLength` (outside `SUBSET_KEYWORDS`). A pathological spec text (a very long prose DONE item) is persisted verbatim into the record and anchor with no bound the writer otherwise enforces everywhere else.",
+      "evidence": "`DelegatedRow` record definition (no length bound); `complete_against_classify` step 4; the schema-keyword whitelist in \"Holdout record shape (additive)\".",
+      "predicted_consequence": "unbounded spec text persisted into committed evidence records; inconsistent with the writer's own 2000-char invariant.",
+      "spec_anchor": "holdout-record-shape-additive",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "`truncateDetail`/`MAX_DETAIL` are applied only to `criteria` detail keys; `complete_against_classify` maps delegated rows without any truncation, and the new subschema may not carry `maxLength` (outside `SUBSET_KEYWORDS`). A pathological spec text (a very long prose DONE item) is persisted verbatim into the record and anchor with no bound the writer otherwise enforces everywhere else.",
+          "spec_anchor": "holdout-record-shape-additive"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The methodology critique judged the slice \"Too big\" in time terms and concluded with the action \"Set an estimate.\" The diff carries a `confidence`/`build-tier: complex` trailer but no estimate or revised size statement, so the right-sizing action has not actually been discharged — the slice ships at the same unquantified bulk the critique flagged.",
+      "evidence": "Methodology critique: \"well past a 1 to 3 day unit … What to do: one ticket, always two PRs whatever #1086's order … Set an estimate.\" The spec adopts the two-PR split (section \"Sequencing against PR #1086\") but the DONE list and header carry no estimate field.",
+      "predicted_consequence": "The un-estimated complex ticket re-enters the same planning failure the critique identified: it cannot be scheduled against FAFF-1292/1293/1270, so the cluster the critique flagged for rehoming stays unordered.",
+      "spec_anchor": "sequencing-against-pr-1086-faff-1261",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Product owner decided on 2026-10-17 that the estimate is a tracker field, not spec text.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The methodology critique judged the slice \"Too big\" in time terms and concluded with the action \"Set an estimate.\" The diff carries a `confidence`/`build-tier: complex` trailer but no estimate or revised size statement, so the right-sizing action has not actually been discharged — the slice ships at the same unquantified bulk the critique flagged.",
+          "spec_anchor": "sequencing-against-pr-1086-faff-1261"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The critique's remedy for the sequencing risk was \"That fixes ac-24's conditional\" — i.e. the two-PR split should make the schema-first ordering unconditional. The spec keeps the two-PR split yet retains ac-24's conditional branch (\"If #1086 is on `main` when the behaviour PR merges, `holdoutConstraintViolations` calls `delegationViolations`; otherwise … names #1086 as the one to rebase\"). A DONE item whose pass condition depends on the state of another PR at merge time is not a decidable acceptance criterion.",
+      "evidence": "Methodology critique: \"PR A: additive schema … PR B: behaviour. That fixes ac-24's conditional.\" Spec ac-24 restates exactly the conditional structure, including the alternative branch handled in prose on PR B's description.",
+      "predicted_consequence": "ac-24 is verified differently depending on when PR B merges relative to #1086, so the DONE checklist's pass state is not fixed by the work — a checkpoint the holdout-style mechanical reading cannot decide.",
+      "spec_anchor": "from-how-sequencing-and-build-hygiene",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The critique's remedy for the sequencing risk was \"That fixes ac-24's conditional\" — i.e. the two-PR split should make the schema-first ordering unconditional. The spec keeps the two-PR split yet retains ac-24's conditional branch (\"If #1086 is on `main` when the behaviour PR merges, `holdoutConstraintViolations` calls `delegationViolations`; otherwise … names #1086 as the one to rebase\"). A DONE item whose pass condition depends on the state of another PR at merge time is not a decidable acceptance criterion.",
+          "spec_anchor": "from-how-sequencing-and-build-hygiene"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The DONE item mixes a machine-checkable assertion with a process obligation no test or observation can decide. A build can satisfy the test half and still fail the DONE item as written (or satisfy it vacuously, since \"recorded in a PR description\" has no oracle).",
+      "evidence": "ac-27 — \"A test re-classifies the committed specs of the four anchors … Its result is recorded in the behaviour PR's description.\"",
+      "predicted_consequence": "A reviewer cannot tick ac-27 from repo state alone; the clause is either skipped or satisfied by an unverifiable prose claim, weakening an otherwise decidable regression check.",
+      "spec_anchor": "from-how-sequencing-and-build-hygiene",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The DONE item mixes a machine-checkable assertion with a process obligation no test or observation can decide. A build can satisfy the test half and still fail the DONE item as written (or satisfy it vacuously, since \"recorded in a PR description\" has no oracle).",
+          "spec_anchor": "from-how-sequencing-and-build-hygiene"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec presents two follow-ups that \"narrow\" the trust shift for delegated prose DONE items: FAFF-1339 and moving the checklist write to the trusted side. FAFF-1339 checks that a `delegated[].ac_id` with verifier `ac-checklist` has a `passed:true` row in the same anchor — but both the `delegated[]` listing and `ac-checklist.json` (including its `passed` flags) are builder-authored in-lane artifacts. The check verifies internal consistency of one lane's own attestations; it adds no independence and therefore does not narrow the trust shift at all. Only the trusted-side write does.",
+      "evidence": "Spec §3, \"The trust shift for prose DONE items\" (\"Two follow-ups narrow it: FAFF-1339 … and moving the checklist write to the trusted side\") and the Out-of-scope FAFF-1339 bullet (\"makes the merge floor fail when a `delegated[].ac_id` … has no `passed:true` row in the same anchor\"). The spec itself concedes the checklist is builder-authored rung-0 and \"Neither is independent of the lane.\"",
+      "predicted_consequence": "A reader of the shipped `--describe`/`evidence-documents.md` text (ac-29 requires it to \"name FAFF-1339\") is told the delegated-prose risk is narrowed by a check that cannot narrow it; the trust shift is in fact narrowed only by the follow-up that may never land, and the documentation overstates the current guarantee.",
+      "spec_anchor": "the-trust-shift-for-prose-done-items",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The spec presents two follow-ups that \"narrow\" the trust shift for delegated prose DONE items: FAFF-1339 and moving the checklist write to the trusted side. FAFF-1339 checks that a `delegated[].ac_id` with verifier `ac-checklist` has a `passed:true` row in the same anchor — but both the `delegated[]` listing and `ac-checklist.json` (including its `passed` flags) are builder-authored in-lane artifacts. The check verifies internal consistency of one lane's own attestations; it adds no independence and therefore does not narrow the trust shift at all. Only the trusted-side write does.",
+          "spec_anchor": "the-trust-shift-for-prose-done-items"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "Listing `integration` rows in `delegated[]` makes the FAFF-961 handoff durable and visible, but the verifier recorded for those rows (`review-merge-floor`) cannot act on ids — the spec's own delegation-scope argument establishes that nothing receives a Scenarios unit by id, and the review floor reads the spec, not the record. So the \"trace\" for integration rows is a passive label on what remains a prompt-only handoff, and unlike the `ac-checklist` verifier (which gets FAFF-1339), no follow-up is filed or named for `review-merge-floor` rows. The claim that this \"closes FAFF-961's gap\" is true only for visibility, not for enforcement, and the spec does not say which.",
+      "evidence": "Spec §3, \"Integration rows in `delegated[]`\" (\"Listing them closes FAFF-961's gap, where the handoff existed only in the prose report\") and the delegation-scope argument (\"No verifier receives a Scenarios unit by id\"). Out-of-scope bullet: \"This ticket records it in `delegated[]` and leaves the rest unchanged.\"",
+      "predicted_consequence": "An integration criterion dropped from the review floor's remit is detectable only by a human reading `delegated[]`; the record's verifier field asserts a check nothing mechanically performs, and the asymmetry (enforced for `ac-checklist` via FAFF-1339, unenforced for `review-merge-floor`) is invisible to future readers of the schema docs.",
+      "spec_anchor": "holdout-record-shape-additive",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "Listing `integration` rows in `delegated[]` makes the FAFF-961 handoff durable and visible, but the verifier recorded for those rows (`review-merge-floor`) cannot act on ids — the spec's own delegation-scope argument establishes that nothing receives a Scenarios unit by id, and the review floor reads the spec, not the record. So the \"trace\" for integration rows is a passive label on what remains a prompt-only handoff, and unlike the `ac-checklist` verifier (which gets FAFF-1339), no follow-up is filed or named for `review-merge-floor` rows. The claim that this \"closes FAFF-961's gap\" is true only for visibility, not for enforcement, and the spec does not say which.",
+          "spec_anchor": "holdout-record-shape-additive"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "Before this change, a prose DONE item forced the holdout aggregate to `needs-human`, and the strict L4 floor blocked — an independent, code-blind verifier stood between the item and the merge. After this change, the same item is verified only by `ac-checklist.json`, which the builder writes in-lane (the rung-0 posture the spec itself restates), attesting `all_verified` and per-criterion `passed` over its own work. At ship time there is no mechanical check that a `delegated[].ac_id` has any checklist row at all (FAFF-1339 is out of scope), and the trusted-side checklist write is also out of scope. The only independent compensating control is the review leg, which sees the checklist but does not re-execute it. The net effect is that the actor being judged becomes the sole attester for every delegated criterion, and the spec ships that state rather than sequencing a hardening follow-up into it.",
+      "evidence": "\"The trust shift for prose DONE items\" — \"a prose item now rests on the builder's own attestation plus the review leg… Neither is independent of the lane in the way the old block was\"; Out of scope defers both FAFF-1339 and the trusted-side checklist write; ac-29 only requires the docs to *say* this.",
+      "predicted_consequence": "A builder whose prose DONE items are unmet ticks them in its own `ac-checklist.json` (or omits rows entirely, undetected until FAFF-1339), the holdout records `meets-spec` over the judged set, and the merge floor passes on the builder's self-attestation alone.",
+      "spec_anchor": "the-trust-shift-for-prose-done-items",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Product owner accepted the trust shift on 2026-10-17: delegated prose rests on the builder-written AC checklist plus the review leg, stated in the spec; FAFF-1339 and a trusted-side checklist write are the follow-ups.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "major",
+          "claim": "Before this change, a prose DONE item forced the holdout aggregate to `needs-human`, and the strict L4 floor blocked — an independent, code-blind verifier stood between the item and the merge. After this change, the same item is verified only by `ac-checklist.json`, which the builder writes in-lane (the rung-0 posture the spec itself restates), attesting `all_verified` and per-criterion `passed` over its own work. At ship time there is no mechanical check that a `delegated[].ac_id` has any checklist row at all (FAFF-1339 is out of scope), and the trusted-side checklist write is also out of scope. The only independent compensating control is the review leg, which sees the checklist but does not re-execute it. The net effect is that the actor being judged becomes the sole attester for every delegated criterion, and the spec ships that state rather than sequencing a hardening follow-up into it.",
+          "spec_anchor": "the-trust-shift-for-prose-done-items"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The design inverts the incentive on classification. Previously, phrasing a requirement as prose DONE *punished* the spec (hard `needs-human` block); after this change it *rewards* it — the item leaves code-blind judgement and lands on the builder-controlled checklist leg. This is adversarially exploitable because the tier rule is shape-based and the spec author controls the shape: any criterion — including a security-relevant one — can be written as a prose DONE item to route it to `delegated`/`ac-checklist`. The spec's own precedence rule makes this stronger: a DONE prose item containing \"rollback\" is explicitly tiered `delegated` *ahead of* the integration-keyword check, so an author can phrase a rollback/reversal requirement as prose and move it off the review/merge test floor (which runs the build's own tests) onto the builder's self-attestation. The spec's mis-tiering analysis considers only *accidental* mis-tiering (\"authors who want code-blind coverage phrase the item with Then or must\") and adds no heuristic; its only structural answer, FAFF-1293, covers prose *Scenarios* units, not prose DONE items, which remain legal and now advantageous.",
+      "evidence": "\"Which prose criteria are delegated\" PROCEDURE step 2 (prose+done → delegated before the keyword check); \"Prose DONE with an integration keyword? Chosen: tier it delegated\"; \"Mis-tiering. Chosen: no new mis-tier heuristic in this slice\"; Out of scope excludes any gating check in `faff admissible`.",
+      "predicted_consequence": "A spec whose substantive requirements are systematically phrased as prose DONE items produces `judged_count` near zero, a trivially satisfiable holdout, and a merge resting entirely on the builder's own checklist — with the non-gating advisory as the only signal.",
+      "spec_anchor": "which-prose-criteria-are-delegated",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Product owner accepted the trust shift on 2026-10-17: delegated prose rests on the builder-written AC checklist plus the review leg, stated in the spec; FAFF-1339 and a trusted-side checklist write are the follow-ups. A non-gating advisory now flags a spec whose DONE items are all prose with nothing judged.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "major",
+          "claim": "The design inverts the incentive on classification. Previously, phrasing a requirement as prose DONE *punished* the spec (hard `needs-human` block); after this change it *rewards* it — the item leaves code-blind judgement and lands on the builder-controlled checklist leg. This is adversarially exploitable because the tier rule is shape-based and the spec author controls the shape: any criterion — including a security-relevant one — can be written as a prose DONE item to route it to `delegated`/`ac-checklist`. The spec's own precedence rule makes this stronger: a DONE prose item containing \"rollback\" is explicitly tiered `delegated` *ahead of* the integration-keyword check, so an author can phrase a rollback/reversal requirement as prose and move it off the review/merge test floor (which runs the build's own tests) onto the builder's self-attestation. The spec's mis-tiering analysis considers only *accidental* mis-tiering (\"authors who want code-blind coverage phrase the item with Then or must\") and adds no heuristic; its only structural answer, FAFF-1293, covers prose *Scenarios* units, not prose DONE items, which remain legal and now advantageous.",
+          "spec_anchor": "which-prose-criteria-are-delegated"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "`cmdHoldoutRecord` takes the evaluator block on stdin (`fs.readFileSync(0)`), and the spec defines `--spec <path|->`. If `-` means stdin for the spec, both the block and the classify input are drawn from the same stream with no defined framing — the second read gets whatever the first left (typically empty, yielding a spurious \"unreadable spec\" refusal) or, worse, a caller that concatenates the two documents gets one of them silently mis-parsed. The failure path here is fail-closed (exit 2 / refusal), so this is a hardening edit, not a bypass — but the spec should either drop `-` or define the framing.",
+      "evidence": "\"cmdHoldoutRecord gains a required --spec <path|->\"; context `cmdHoldoutRecord` reads the block via `fs.readFileSync(0, \"utf8\")`.",
+      "predicted_consequence": "An inline invocation using `--spec -` writes no record or writes a fail-closed record derived from a mis-framed spec; the operator gets an confusing refusal rather than a defined error.",
+      "spec_anchor": "writer-completeness-needs-classify-output",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "`cmdHoldoutRecord` takes the evaluator block on stdin (`fs.readFileSync(0)`), and the spec defines `--spec <path|->`. If `-` means stdin for the spec, both the block and the classify input are drawn from the same stream with no defined framing — the second read gets whatever the first left (typically empty, yielding a spurious \"unreadable spec\" refusal) or, worse, a caller that concatenates the two documents gets one of them silently mis-parsed. The failure path here is fail-closed (exit 2 / refusal), so this is a hardening edit, not a bypass — but the spec should either drop `-` or define the framing.",
+          "spec_anchor": "writer-completeness-needs-classify-output"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "major",
+      "claim": "The methodology critique explicitly instructed \"Set an estimate\" for this oversized build-tier-complex ticket, and the spec carries none — the delivery shape is still unplanned despite the critique being consumed.",
+      "evidence": "issue-critique: \"well past a 1 to 3 day unit… No estimate… What to do: one ticket, always two PRs… **Set an estimate.**\" The spec's header blockquote states only `build-tier: complex`.",
+      "predicted_consequence": "the two-PR plan (PR A schema, PR B behaviour) cannot be scheduled or tracked against a forecast, and the oversized unit stays invisible to any velocity or burn-down signal, so the known \"too big\" ticket sits untracked exactly as before.",
+      "spec_anchor": "1-why",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Product owner decided on 2026-10-17 that the estimate is a tracker field, not spec text.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "major",
+          "claim": "The methodology critique explicitly instructed \"Set an estimate\" for this oversized build-tier-complex ticket, and the spec carries none — the delivery shape is still unplanned despite the critique being consumed.",
+          "spec_anchor": "1-why"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The critique recommends flagging FAFF-1291, 1292 and 1293 as one cluster for rehoming out of Backlog (\"L4 holdout reaches meets-spec on real specs\"); the spec neither files that rehoming nor declares it a follow-up.",
+      "evidence": "issue-critique workstream-fit section vs the spec's Out of scope, which mentions FAFF-1292/1293 only as extension points and files FAFF-1339 but no tracker-hygiene action.",
+      "predicted_consequence": "the three sibling tickets remain project-less in Backlog, so the shipping of this slice does not advance the shared outcome the critique identified and the cluster dependency stays invisible to the tracker.",
+      "spec_anchor": "scope",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The critique recommends flagging FAFF-1291, 1292 and 1293 as one cluster for rehoming out of Backlog (\"L4 holdout reaches meets-spec on real specs\"); the spec neither files that rehoming nor declares it a follow-up.",
+          "spec_anchor": "scope"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The critique says to link 1292/1293 as blockers of 1270 (or note on 1270 that its holdout run must use a spec without no-surface assertions or prose Scenarios units); the spec relies on prose only (\"FAFF-1279… A real run reaches `meets-spec` only once FAFF-1292 and FAFF-1293 land\") without recording the dependency on 1270.",
+      "evidence": "issue-critique deps section; spec failure-mode \"The fix does not move real runs\" and sequencing section naming FAFF-1270 without any tracker link.",
+      "predicted_consequence": "FAFF-1270 could be picked up with this ticket unmerged, and its holdout run ends `needs-human` for a reason no dependency link surfaced — the exact \"buried in prose\" gap the critique named.",
+      "spec_anchor": "sequencing-against-pr-1086-faff-1261",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The critique says to link 1292/1293 as blockers of 1270 (or note on 1270 that its holdout run must use a spec without no-surface assertions or prose Scenarios units); the spec relies on prose only (\"FAFF-1279… A real run reaches `meets-spec` only once FAFF-1292 and FAFF-1293 land\") without recording the dependency on 1270.",
+          "spec_anchor": "sequencing-against-pr-1086-faff-1261"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The new validator rules (reject `done:N` prose, duplicate-id, completeness matching) all depend on `criteria[].id` being present in the raw block that `computeHoldoutVerdict` receives — but `holdout-verdict.schema.json`'s `criteria` items are `additionalProperties: false` with only `class`, `verdict`, `evidence_present` in `properties`. The spec asserts \"the id rules need no change to the criteria items of `holdout-verdict.schema.json`\" and justifies it by citing `holdout-anchored.schema.json` (the *record* schema), not the contract schema the block is shaped by. The spec never states whether the contract path schema-validates the input block, and never says whether `id` is added to the contract schema (which, note, *would* be additive: optional, closed, `additionalProperties` is false).",
+      "evidence": "\"### Validator rules\" — \"The raw block already carries `criteria[].id` (required by `holdout-anchored.schema.json`)\"; ac-10, ac-12, ac-14.",
+      "predicted_consequence": "A build can satisfy ac-10/ac-12/ac-14 (compute-fn violations fire on ids) while the reference contract schema rejects every conformant block for carrying `id` — or, on a build that adds `id` to the schema, ac-6's \"byte-identical copies\" scope silently expands. The tester cannot tell which of the two the spec intends.",
+      "spec_anchor": "validator-rules",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The new validator rules (reject `done:N` prose, duplicate-id, completeness matching) all depend on `criteria[].id` being present in the raw block that `computeHoldoutVerdict` receives — but `holdout-verdict.schema.json`'s `criteria` items are `additionalProperties: false` with only `class`, `verdict`, `evidence_present` in `properties`. The spec asserts \"the id rules need no change to the criteria items of `holdout-verdict.schema.json`\" and justifies it by citing `holdout-anchored.schema.json` (the *record* schema), not the contract schema the block is shaped by. The spec never states whether the contract path schema-validates the input block, and never says whether `id` is added to the contract schema (which, note, *would* be additive: optional, closed, `additionalProperties` is false).",
+          "spec_anchor": "validator-rules"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "ac-27 requires a test that re-classifies \"the committed specs of the four anchors that carry `holdout.json`\" and matches them against \"every criterion the committed record judged as `scenario` or `assertion`\". Two things are unstated: (1) where the committed specs live and whether all four are retrievable in-repo; (2) the matching key. FAFF-1259's ids are recent — if any of the four committed records is legacy (the spec itself says \"Legacy records without ids … validate as before\"), its criteria rows carry no `id`, and the record also does not carry `source`, so \"only `done`-sourced prose moved to `delegated`\" cannot be decided from the record at all: a prose row with no id cannot be attributed to `done` vs `scenarios` except by fuzzy text matching, which the spec does not define.",
+      "evidence": "ac-27; the spec's own edge case \"Legacy records without ids … validate as before\".",
+      "predicted_consequence": "The ac-27 test cannot be written with a deterministic pass/fail line; two builders write two different matching heuristics and both claim the AC.",
+      "spec_anchor": "from-how-sequencing-and-build-hygiene",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "ac-27 requires a test that re-classifies \"the committed specs of the four anchors that carry `holdout.json`\" and matches them against \"every criterion the committed record judged as `scenario` or `assertion`\". Two things are unstated: (1) where the committed specs live and whether all four are retrievable in-repo; (2) the matching key. FAFF-1259's ids are recent — if any of the four committed records is legacy (the spec itself says \"Legacy records without ids … validate as before\"), its criteria rows carry no `id`, and the record also does not carry `source`, so \"only `done`-sourced prose moved to `delegated`\" cannot be decided from the record at all: a prose row with no id cannot be attributed to `done` vs `scenarios` except by fuzzy text matching, which the spec does not define.",
+          "spec_anchor": "from-how-sequencing-and-build-hygiene"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "\"### Holdout record shape (additive)\" makes an explicit decision (\"Chosen: the writer lists `integration` rows in `delegated[]` too, with verifier `review-merge-floor`\") and uses it to justify the completeness rule covering \"every criterion id\". No DONE criterion asserts that a written record's `delegated[]` contains an integration-tier row, and no scenario exercises it. ac-3 covers classify tiering; ac-12 covers a *violation* for a mispaired row; ac-30 covers a DONE prose item with \"rollback\" at classify level only.",
+      "evidence": "\"### Holdout record shape (additive)\", \"Integration rows in `delegated[]`\"; DONE items ac-6–ac-9, ac-16–ac-18.",
+      "predicted_consequence": "A build that drops integration rows from the writer's `delegated[]` (emitting only `delegated`-tier rows) passes every AC while silently reverting the FAFF-961 durability the spec claims to close — and the completeness rule's \"every id\" guarantee is untested.",
+      "spec_anchor": "holdout-record-shape-additive",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "\"### Holdout record shape (additive)\" makes an explicit decision (\"Chosen: the writer lists `integration` rows in `delegated[]` too, with verifier `review-merge-floor`\") and uses it to justify the completeness rule covering \"every criterion id\". No DONE criterion asserts that a written record's `delegated[]` contains an integration-tier row, and no scenario exercises it. ac-3 covers classify tiering; ac-12 covers a *violation* for a mispaired row; ac-30 covers a DONE prose item with \"rollback\" at classify level only.",
+          "spec_anchor": "holdout-record-shape-additive"
+        }
+      ]
+    }
+  ]
+}

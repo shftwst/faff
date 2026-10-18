@@ -18,6 +18,7 @@ const { exitFor, schemaCheck, validateAgainstSchema } = require("./contract-engi
 const { parseArgs, usageError } = require("./argv");
 const { REVIEW_DISPOSITIONS, REVIEW_FINDING_SOURCES, REVIEW_SEVERITIES, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS } = require("./review-vocab");
 const CONTRACT_SPEC = { flags: { "--selftest": { arity: 0 }, "--require-spawner-attested": { arity: 0 }, "--in": { arity: 1 }, "--describe": { arity: 0 }, "--json": { arity: 0 } }, positionals: { min: 0, max: 1, name: "contract-name" } };
+const { delegationViolations } = require("./holdout-record");   // FAFF-1291: factory -> governance is the legal direction
 const { RUN_DONE_VERDICTS } = require("./run-done");
 const { RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, deriveRunTrigger, normalizeRunTriggerSignals } = require("./run-start");
 
@@ -907,6 +908,8 @@ function computeHoldoutVerdict(extraction, opts = {}) {
 
   const rawCriteria = Array.isArray(extraction.criteria) ? extraction.criteria : [];
   if (!Array.isArray(extraction.criteria)) violations.push("criteria is missing or not an array");
+  // FAFF-1291: the delegation rules run on the RAW block, before the contractData mapping drops `id`.
+  violations.push(...delegationViolations(extraction));
   const criteria = rawCriteria.map((c, i) => {
     const obj = c && typeof c === "object" && !Array.isArray(c) ? c : {};
     const klass = HOLDOUT_CLASSES.includes(obj.class) ? obj.class : "";
@@ -958,6 +961,14 @@ function computeHoldoutVerdict(extraction, opts = {}) {
   if (hasSpawnerField) {
     contractData.spawner_attested = spawner_attested;
     if (attestation) contractData.attestation = attestation;
+  }
+  // FAFF-1291: `delegated` rides along only when the input carries an array (the spawner_attested precedent).
+  // Rows are normalised to the schema's types; any shape or pairing fault is already a violation above.
+  if (Array.isArray(extraction.delegated)) {
+    contractData.delegated = extraction.delegated.map((r) => {
+      const o = r && typeof r === "object" && !Array.isArray(r) ? r : {};
+      return { id: typeof o.id === "string" ? o.id : "", text: typeof o.text === "string" ? o.text : "", holdout: o.holdout === true, verification_tier: typeof o.verification_tier === "string" ? o.verification_tier : "", verifier: typeof o.verifier === "string" ? o.verifier : "", ac_id: typeof o.ac_id === "string" ? o.ac_id : null };
+    });
   }
   return { contractData, failLoud: null };
 }
@@ -2995,6 +3006,15 @@ const CONTRACTS = {
       { name: "refuse-to-attest-false-tolerated-flag-off", in: { aggregate: "meets-spec", code_blind: true, criteria: [{ class: "scenario", verdict: "met", evidence_present: true }], spawner_attested: false }, wantExit: 0 },
       { name: "refuse-to-attest-false-blocks-flag-on", in: { aggregate: "meets-spec", code_blind: true, criteria: [{ class: "scenario", verdict: "met", evidence_present: true }], spawner_attested: false }, opts: { requireSpawnerAttested: true }, wantExit: 1 },
       { name: "spawner-attested-non-boolean", in: { aggregate: "meets-spec", code_blind: true, criteria: [{ class: "scenario", verdict: "met", evidence_present: true }], spawner_attested: "yes" }, wantExit: 1 },
+      // FAFF-1291 delegation rules.
+      { name: "delegated-prose-done-in-criteria", in: { aggregate: "needs-human", code_blind: true, criteria: [{ id: "done:2", class: "prose", verdict: "needs-human", evidence_present: false }] }, wantExit: 1 },
+      { name: "delegated-prose-scenario-needs-human", in: { aggregate: "needs-human", code_blind: true, criteria: [{ id: "scenarios:2", class: "prose", verdict: "needs-human", evidence_present: false }] }, wantExit: 0 },
+      { name: "delegated-prose-scenario-met", in: { aggregate: "meets-spec", code_blind: true, criteria: [{ id: "scenarios:2", class: "prose", verdict: "met", evidence_present: true }] }, wantExit: 1 },
+      { name: "delegated-conformant-meets-spec", in: { aggregate: "meets-spec", code_blind: true, criteria: [{ id: "scenarios:1", class: "scenario", verdict: "met", evidence_present: true }], delegated: [{ id: "done:1", text: "t", holdout: false, verification_tier: "delegated", verifier: "ac-checklist", ac_id: "faff-1#ac-1" }, { id: "done:2", text: "t", holdout: false, verification_tier: "integration", verifier: "review-merge-floor", ac_id: null }] }, wantExit: 0 },
+      { name: "delegated-id-in-both-lists", in: { aggregate: "meets-spec", code_blind: true, criteria: [{ id: "done:1", class: "assertion", verdict: "met", evidence_present: true }], delegated: [{ id: "done:1", text: "t", holdout: false, verification_tier: "delegated", verifier: "ac-checklist", ac_id: null }] }, wantExit: 1 },
+      { name: "delegated-wrong-verifier-pairing", in: { aggregate: "needs-human", code_blind: true, criteria: [], delegated: [{ id: "done:1", text: "t", holdout: false, verification_tier: "delegated", verifier: "review-merge-floor", ac_id: null }] }, wantExit: 1 },
+      { name: "delegated-tier-with-scenarios-id", in: { aggregate: "needs-human", code_blind: true, criteria: [], delegated: [{ id: "scenarios:1", text: "t", holdout: false, verification_tier: "delegated", verifier: "ac-checklist", ac_id: null }] }, wantExit: 1 },
+      { name: "delegated-empty-criteria-needs-human", in: { aggregate: "needs-human", code_blind: true, criteria: [], delegated: [{ id: "done:1", text: "t", holdout: false, verification_tier: "delegated", verifier: "ac-checklist", ac_id: null }] }, wantExit: 0 },
       { name: "fail-loud-non-object", in: "not an object", wantExit: 2 },
     ],
   },
@@ -3469,23 +3489,26 @@ const CONTRACT_DESCRIBES = {
   "holdout-verdict": {
     purpose: "The code-blind holdout verdict the `evaluator` slot producer emits after exercising a built feature against its spec's DoD in a provisioned env — the L4 per-issue merge gate re-reads this.",
     values: [
-      { field: "aggregate", enum: HOLDOUT_AGGREGATES, semantics: { "meets-spec": "every judged criterion met — the only aggregate that passes the merge gate", gaps: "a mix of met and unmet criteria", fails: "every judged criterion unmet", "needs-human": "at least one criterion needs human judgement, or nothing was judged at all" } },
+      { field: "aggregate", enum: HOLDOUT_AGGREGATES, semantics: { "meets-spec": "every judged criterion met — the only aggregate that passes the merge gate. It does not mean the whole DoD was met: criteria listed in delegated[] are not judged here, and delegated prose DONE items rest on the builder-written AC checklist and the review leg (FAFF-1339 will check each delegated ac_id has a passed checklist row)", gaps: "a mix of met and unmet criteria", fails: "every judged criterion unmet", "needs-human": "at least one criterion needs human judgement, or nothing was judged at all" } },
       // class/verdict are lintable:false: the evaluator producer must WRITE these labels while
       // classifying and judging each of its own criteria (the DoD-classification dialect it
       // produces via `faff dod classify`) — not a routing verdict a consumer branches on.
       // `aggregate` above stays lintable (the closed 4-value routing enum the merge floor reads).
-      { field: "criteria[].class", enum: HOLDOUT_CLASSES, lintable: false, semantics: { scenario: "an end-to-end behavioural scenario from the spec's DoD", assertion: "a narrower, machine-checkable assertion", prose: "a criterion that can't be machine-judged — its verdict MUST be needs-human, never machine-decided" } },
+      { field: "criteria[].class", enum: HOLDOUT_CLASSES, lintable: false, semantics: { scenario: "an end-to-end behavioural scenario from the spec's DoD", assertion: "a narrower, machine-checkable assertion", prose: "a Scenarios unit that can't be machine-judged — its verdict MUST be needs-human, never machine-decided. A prose DONE item is not judged at all: faff dod classify tiers it delegated and it appears in delegated[] with the verifier ac-checklist" } },
       { field: "criteria[].verdict", enum: HOLDOUT_VERDICTS, lintable: false, semantics: { met: "the criterion was verified satisfied, with evidence", unmet: "the criterion was verified unsatisfied, with evidence", "needs-human": "the criterion could not be machine-judged (mandatory for class:prose)" } },
     ],
     coercions: [
       "an out-of-enum aggregate → coerced to needs-human (never meets-spec)",
       "code_blind ≠ true → conformant:false — a non-blind verdict is structurally inadmissible regardless of aggregate (exit 0 requires code_blind:true AND the aggregate matching the criteria's derivation)",
       "a class:prose criterion with verdict ≠ needs-human → conformant:false (prose is never machine-judged)",
+      "a class:prose criterion with a done:N id in criteria → conformant:false (a prose DONE item is delegated to the AC checklist, never judged)",
+      "a delegated[] row that is malformed, pairs a tier with the wrong verifier (delegated with ac-checklist, integration with review-merge-floor), gives a delegated-tier row a scenarios:N id, or repeats an id, or an id present in both criteria and delegated → conformant:false",
       "a met/unmet criterion with evidence_present:false → conformant:false (no evidence, no verdict)",
       "the declared aggregate disagreeing with the derivation from criteria (deriveHoldoutAggregate) → conformant:false",
     ],
     producer_notes: [
       "FAFF-384 spawner attestation: when the run's lane-boundary cage promise requires it (`--require-spawner-attested`), a self-attested (non-spawner-derived) code_blind:true is refused at this contract's gate, not merely by prose instruction",
+      "FAFF-1291 delegation: the optional delegated[] lists every criterion the holdout did not judge with its verifier; the writer fills it from faff dod classify, never the evaluator. meets-spec means every judged criterion was met; delegated prose DONE items rest on the builder-written AC checklist and the review leg, and FAFF-1339 adds the check that each delegated ac_id has a passed checklist row",
     ],
   },
   "lane-boundary": {

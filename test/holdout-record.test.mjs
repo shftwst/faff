@@ -15,6 +15,7 @@ const BIN = join(HERE, "..", "plugin", "skills", "faff", "bin", "faff");
 const require = createRequire(import.meta.url);
 const { buildHoldoutRecord, holdoutRecordViolations, isSafeHoldoutKey, resolveContained } = require("../plugin/skills/faff/bin/lib/holdout-record.js");
 const { readHoldout } = require("../plugin/skills/faff/bin/lib/merge-gate.js");
+const { dodClassify } = require("../plugin/skills/faff/bin/lib/admissibility.js");
 const { validateAgainstSchema } = require("../plugin/skills/faff/bin/lib/contract-engine.js");
 const SCHEMA = JSON.parse(readFileSync(join(HERE, "..", "plugin", "skills", "faff", "contracts", "evidence-v0.3", "schema", "holdout-anchored.schema.json"), "utf8"));
 
@@ -25,14 +26,21 @@ function repo() {
   return root;
 }
 const faff = (root, args, input, env = {}) => spawnSync(process.execPath, [BIN, ...args], { cwd: root, encoding: "utf8", input, env: { ...process.env, ...env } });
-const holdoutRecord = (root, args, input, env) => faff(root, ["holdout", "record", ...args], typeof input === "string" ? input : JSON.stringify(input), env);
+// FAFF-1291: `faff holdout record` needs the full-view spec the evaluator received. SPEC has one judged
+// scenario (scenarios:1) and two prose DONE items (delegated to the AC checklist).
+const SPEC = ["## Scenarios", "", "```", "Given an order", "When it is posted", "Then 201", "```", "", "## 8. DONE", "", "- [ ] [ac-1] The copy reads well", "- [ ] [ac-2] Operators like the dashboard", ""].join("\n");
+const specFile = (root, text = SPEC, name = "spec.md") => { const f = join(root, name); writeFileSync(f, text); return f; };
+const holdoutRecord = (root, args, input, env) => {
+  const withSpec = args.includes("--spec") ? args : [...args, "--spec", specFile(root)];
+  return faff(root, ["holdout", "record", ...withSpec], typeof input === "string" ? input : JSON.stringify(input), env);
+};
 
 const scenario = (extra = {}) => ({
   id: "scenarios:1", text: "Given an order When it is posted Then 201", holdout: true, class: "scenario", verdict: "met", evidence_present: true,
   exercised: 'POST /orders {"sku":"a"}', expected: "201 and an order id", observed: '201 Created; body {"id":"ord-1"}', evidence_ref: null, reason: null, ...extra,
 });
-const prose = () => ({ id: "done:1", text: "The copy reads well", holdout: false, class: "prose", verdict: "needs-human", evidence_present: false, reason: "prose criterion" });
-const block = (criteria = [scenario(), prose()], extra = {}) => ({ aggregate: "gaps", code_blind: true, violations: [], criteria, ...extra });
+const prose = () => ({ id: "scenarios:1", text: "The copy reads well", holdout: false, class: "prose", verdict: "needs-human", evidence_present: false, reason: "prose scenario: no machine check and no delegate verifier" });
+const block = (criteria = [scenario()], extra = {}) => ({ aggregate: "meets-spec", code_blind: true, violations: [], criteria, ...extra });
 const read = (file) => JSON.parse(readFileSync(file, "utf8"));
 const storeFile = (root, key) => join(root, ".faff", "holdout", `${key}.json`);
 const runFile = (root, issue = "FAFF-1") => join(root, ".faff", "runs", "run-x", issue, "holdout.json");
@@ -48,6 +56,7 @@ test("accepted block: exit 0, byte-identical store and run copies, detail kept, 
   assert.equal(rec.criteria[0].id, "scenarios:1");
   assert.equal(rec.criteria[0].exercised, b.criteria[0].exercised);
   assert.deepEqual(validateAgainstSchema(rec, SCHEMA), []);
+  assert.deepEqual(rec.delegated.map((r) => [r.id, r.verification_tier, r.verifier, r.ac_id]), [["done:1", "delegated", "ac-checklist", "faff-1#ac-1"], ["done:2", "delegated", "ac-checklist", "faff-1#ac-2"]]);
   const verdict = faff(root, ["holdout", "verdict", "--issue", "FAFF-1"]);
   assert.equal(verdict.status, 0);
   assert.equal(JSON.parse(verdict.stdout).gate, "pass");
@@ -93,7 +102,8 @@ test("a met criterion with exercised null: exit 1, a fail-closed record on disk,
 
 test("a needs-human criterion without a reason is refused; unparseable stdin is refused with a record", () => {
   const root = repo();
-  const noReason = holdoutRecord(root, ["--issue", "FAFF-1"], block([{ ...prose(), reason: null }], { aggregate: "needs-human" }));
+  const proseSpec = specFile(root, "## Scenarios\n\nThe copy reads well\n", "prose-spec.md");
+  const noReason = holdoutRecord(root, ["--issue", "FAFF-1", "--spec", proseSpec], block([{ ...prose(), reason: null }], { aggregate: "needs-human" }));
   assert.equal(noReason.status, 1);
   const garbage = holdoutRecord(root, ["--issue", "FAFF-1"], "this is not json");
   assert.equal(garbage.status, 1);
@@ -103,11 +113,15 @@ test("a needs-human criterion without a reason is refused; unparseable stdin is 
   rmSync(root, { recursive: true, force: true });
 });
 
-test("an env-not-ready block (no criteria) is accepted", () => {
+test("an env-not-ready block (no criteria) is accepted when classify judges nothing, and refused when it judges something", () => {
   const root = repo();
-  const r = holdoutRecord(root, ["--issue", "FAFF-1"], { aggregate: "needs-human", code_blind: true, violations: ["env not ready"], criteria: [] });
+  const doneOnly = specFile(root, "## 8. DONE\n\n- [ ] The copy reads well\n", "done-only.md");
+  const r = holdoutRecord(root, ["--issue", "FAFF-1", "--spec", doneOnly], { aggregate: "needs-human", code_blind: true, violations: ["env not ready"], criteria: [] });
   assert.equal(r.status, 0, r.stderr);
   assert.deepEqual(read(storeFile(root, "FAFF-1")).violations, ["env not ready"]);
+  const refused = holdoutRecord(root, ["--issue", "FAFF-1"], { aggregate: "needs-human", code_blind: true, violations: ["env not ready"], criteria: [] });
+  assert.equal(refused.status, 1);
+  assert.match(read(storeFile(root, "FAFF-1")).violations[0], /missing \[scenarios:1\]/);
   rmSync(root, { recursive: true, force: true });
 });
 
@@ -216,7 +230,8 @@ test("--credentials-env removes the bearer token everywhere, including across th
   const creds = JSON.stringify({ scheme: "bearer", token });
   const straddling = scenario({ observed: `${"x".repeat(1978)}${token}${"y".repeat(100)}` });
   const echoed = scenario({ id: "scenarios:2", expected: `expects Authorization: Bearer ${token}` });
-  const r = holdoutRecord(root, ["--issue", "FAFF-1", "--run-dir", ".faff/runs/run-x", "--credentials-env", "FAFF_HOLDOUT_CREDS"], block([straddling, echoed], { aggregate: "meets-spec", violations: [`saw ${token}`] }), { FAFF_HOLDOUT_CREDS: creds });
+  const twoScenarios = specFile(root, SPEC.replace("## 8. DONE", "```\nGiven b\nWhen c\nThen d\n```\n\n## 8. DONE").replace("Then 201\n```\n\n```\nGiven b", "Then 201\n```\n\n```\nGiven b"), "two.md");
+  const r = holdoutRecord(root, ["--issue", "FAFF-1", "--run-dir", ".faff/runs/run-x", "--credentials-env", "FAFF_HOLDOUT_CREDS", "--spec", twoScenarios], block([straddling, echoed], { aggregate: "meets-spec", violations: [`saw ${token}`] }), { FAFF_HOLDOUT_CREDS: creds });
   assert.equal(r.status, 0, r.stderr);
   const bytes = readFileSync(runFile(root), "utf8");
   for (let n = 6; n <= token.length; n++) {
@@ -233,11 +248,15 @@ test("holdout record is listed in the CLI surface (usage names it, missing --iss
   const r = faff(root, ["holdout", "record"], "{}");
   assert.equal(r.status, 2);
   assert.match(r.stderr, /--issue/);
+  const noSpec = faff(root, ["holdout", "record", "--issue", "FAFF-1"], JSON.stringify(block()));
+  assert.equal(noSpec.status, 2);
+  assert.match(noSpec.stderr, /--spec/);
+  assert.equal(existsSync(join(root, ".faff", "holdout")), false);
   rmSync(root, { recursive: true, force: true });
 });
 
 test("library: truncation, surrogate pairs, config secrets and value-free violation messages", () => {
-  const opts = { issue: "FAFF-1", secretValues: ["config-secret-123"] };
+  const opts = { issue: "FAFF-1", secretValues: ["config-secret-123"], classified: dodClassify(SPEC, { issue: "FAFF-1" }) };
   const long = buildHoldoutRecord(block([scenario({ observed: "z".repeat(5000) })], { aggregate: "meets-spec" }), opts);
   assert.equal(long.doc.criteria[0].observed.length, 2000);
   assert.ok(long.doc.criteria[0].observed.endsWith("…[truncated]"));
@@ -256,7 +275,7 @@ test("library: truncation, surrogate pairs, config secrets and value-free violat
 });
 
 test("library: the writer never recomputes aggregate, verdict or evidence_present", () => {
-  const out = buildHoldoutRecord(block([scenario()], { aggregate: "fails" }), { issue: "FAFF-1", secretValues: [] });
+  const out = buildHoldoutRecord(block([scenario()], { aggregate: "fails" }), { issue: "FAFF-1", secretValues: [], classified: dodClassify(SPEC, { issue: "FAFF-1" }) });
   assert.equal(out.ok, true);
   assert.equal(out.doc.aggregate, "fails", "an inconsistent aggregate is the gate's to report, not the writer's to fix");
 });
@@ -275,9 +294,9 @@ test("skill prose: graft's resume skip needs an empty violations list, and the c
   const graft = read("faff-graft");
   const skip = graft.split("\n").find((l) => l.includes("idempotent on resume"));
   assert.ok(skip && /violations list is empty/.test(skip), "the 8c skip fires only for a record with no violations");
-  assert.match(graft, /`faff holdout record` \(inline\) or the evaluate-call\.mjs spawner \(caged\)/);
+  assert.match(graft, /`faff holdout record --spec <full_spec>` \(inline\) or the evaluate-call\.mjs spawner \(caged\)/);
   const beep = read("faff-beep-boop");
-  assert.match(beep, /faff holdout record --issue <key>/);
+  assert.match(beep, /faff holdout record --issue <key> --spec </);
   assert.match(beep, /--store-out <abs repo root>\/\.faff\/holdout\/<key>\.json/);
   assert.match(beep, /written by `faff holdout record` or the spawner's `--store-out`/);
   const evaluator = read("faffter-noon-evaluate");

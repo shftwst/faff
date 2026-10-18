@@ -181,7 +181,7 @@
       "kind": "holdout",
       "grader_shape": "closed-set: key:class pairs (env.holdout, pairsOf)",
       "class": "sound",
-      "rationale": "The recorded exercise cleanly supports each pinned class: health-endpoint:met (200 with {status:ok} in 180ms, inside the 500ms bound), error-schema:met (404 body carries both required string keys), readable-output:needs-human (a prose criterion with an explicitly no-bearing observation, forced per the question). The oracle is the exact correct classification set; a competent code-blind judge reproduces it.",
+      "rationale": "The recorded exercise cleanly supports each pinned class: health-endpoint:met (200 with {status:ok} in 180ms, inside the 500ms bound), error-schema:met (404 body carries both required string keys), readable-output is a prose DONE criterion, delegated to the AC checklist and therefore absent from the oracle (the question tells the judge to leave it out). The oracle is the exact correct classification set; a competent code-blind judge reproduces it.",
       "triage_ticket": "FAFF-319"
     },
     {
@@ -189,7 +189,7 @@
       "kind": "holdout",
       "grader_shape": "closed-set: key:class pairs (env.holdout, pairsOf)",
       "class": "sound",
-      "rationale": "Each class is directly evidenced: health-200:unmet (health returns 500, connection refused), idempotent-send:met (repeat POST returns deduped:true, mail sink stays at one message), tone-friendly:needs-human (a prose criterion with no born-verifiable exercise). The unmet/met/needs-human spread makes this a stronger reference case than an all-met fixture; oracle is the correct set.",
+      "rationale": "Each class is directly evidenced: health-200:unmet (health returns 500, connection refused), idempotent-send:met (repeat POST returns deduped:true, mail sink stays at one message), tone-friendly:needs-human (a prose Scenarios unit with no born-verifiable exercise); docs-clear is a prose DONE criterion, delegated and absent from the oracle. The unmet/met/needs-human spread makes this a stronger reference case than an all-met fixture; oracle is the correct set.",
       "triage_ticket": "FAFF-319"
     },
     {

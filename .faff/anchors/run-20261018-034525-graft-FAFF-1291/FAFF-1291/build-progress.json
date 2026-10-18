@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1291",
+  "build": {
+    "status": "complete",
+    "diff_hash": "9d5ee3417bd98b7da8c4e98b7101936e0f9e11f4fb0bceab641292130b3d79d5",
+    "branch": "FAFF-1291-holdout-judges-only-machine-checkable-criteria",
+    "pushed_at": "2026-10-18T17:31:55.584Z"
+  },
+  "updated_at": "2026-10-18T17:31:55.584Z"
+}

@@ -23,6 +23,10 @@ const { HERE } = require("./shared-infra");
 const SCHEMA_PATH = path.resolve(HERE, "..", "contracts", "evidence-v0.3", "schema", "holdout-anchored.schema.json");
 const KEY_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const ID_RE = /^(scenarios|done):[1-9][0-9]*$/;
+const DONE_ID_RE = /^done:[1-9][0-9]*$/;
+const DELEGATED_KEYS = ["id", "text", "holdout", "verification_tier", "verifier", "ac_id"];
+const DELEGATED_TIERS = ["delegated", "integration"];
+const DELEGATED_VERIFIER_FOR_TIER = { delegated: "ac-checklist", integration: "review-merge-floor" };
 const MAX_DETAIL = 2000;
 const TRUNCATION_SUFFIX = "…[truncated]";
 const DETAIL_KEYS = ["text", "exercised", "expected", "observed", "evidence_ref", "reason"];
@@ -96,10 +100,59 @@ function truncateDetail(value) {
   return value.slice(0, cut) + TRUNCATION_SUFFIX;
 }
 
+// FAFF-1291: the one home for the delegation rules. Pure; reads only `criteria` and `delegated`
+// of a holdout block or record, so the contract (raw evaluator block) and the writer (record) share it.
+// Messages name key paths and ids minted by `faff dod classify`, never free text.
+function delegationViolations(doc) {
+  const found = [];
+  if (!isObject(doc)) return found;
+  const criteria = Array.isArray(doc.criteria) ? doc.criteria : [];
+  const judgedIds = new Set();
+  criteria.forEach((c, i) => {
+    if (!isObject(c)) return;
+    if (c.class === "prose" && typeof c.id === "string" && DONE_ID_RE.test(c.id)) {
+      found.push(`criteria[${i}] is a delegated prose DONE criterion and must not be judged`);
+    }
+    if (typeof c.id === "string") {
+      if (judgedIds.has(c.id)) found.push(`criteria[${i}].id: ${c.id} appears more than once in criteria`);
+      judgedIds.add(c.id);
+    }
+  });
+  if (!Object.prototype.hasOwnProperty.call(doc, "delegated") || doc.delegated === undefined) return found;
+  if (!Array.isArray(doc.delegated)) { found.push("delegated: must be an array"); return found; }
+  const delegatedIds = new Set();
+  doc.delegated.forEach((r, i) => {
+    const at = `delegated[${i}]`;
+    if (!isObject(r)) { found.push(`${at}: must be an object`); return; }
+    for (const key of DELEGATED_KEYS) if (!(key in r)) found.push(`${at}.${key}: required`);
+    for (const key of Object.keys(r)) if (!DELEGATED_KEYS.includes(key)) found.push(`${at}.${key}: not a permitted key`);
+    if ("id" in r && !(typeof r.id === "string" && ID_RE.test(r.id))) found.push(`${at}.id: does not match pattern ${ID_RE.source}`);
+    if ("text" in r && typeof r.text !== "string") found.push(`${at}.text: must be a string`);
+    if ("holdout" in r && typeof r.holdout !== "boolean") found.push(`${at}.holdout: must be a boolean`);
+    if ("ac_id" in r && r.ac_id !== null && typeof r.ac_id !== "string") found.push(`${at}.ac_id: must be a string or null`);
+    const tierOk = DELEGATED_TIERS.includes(r.verification_tier);
+    if ("verification_tier" in r && !tierOk) found.push(`${at}.verification_tier: not in {${DELEGATED_TIERS.join(",")}}`);
+    if ("verifier" in r && !Object.values(DELEGATED_VERIFIER_FOR_TIER).includes(r.verifier)) found.push(`${at}.verifier: not in {ac-checklist,review-merge-floor}`);
+    if (tierOk && "verifier" in r && DELEGATED_VERIFIER_FOR_TIER[r.verification_tier] !== r.verifier) {
+      found.push(`${at}: verification_tier ${r.verification_tier} must pair with verifier ${DELEGATED_VERIFIER_FOR_TIER[r.verification_tier]}`);
+    }
+    if (r.verification_tier === "delegated" && typeof r.id === "string" && !DONE_ID_RE.test(r.id)) {
+      found.push(`${at}.id: a delegated-tier row must have a done:N id`);
+    }
+    if (typeof r.id === "string") {
+      if (delegatedIds.has(r.id)) found.push(`${at}.id: ${r.id} appears more than once in delegated`);
+      delegatedIds.add(r.id);
+      if (judgedIds.has(r.id)) found.push(`${at}.id: ${r.id} appears in both criteria and delegated`);
+    }
+  });
+  return found;
+}
+
 // Pure. Schema first, then the writer-only constraints. Messages name key paths, never values.
 function holdoutRecordViolations(doc) {
   const found = validateAgainstSchema(doc, loadSchema()).map((m) => m.replace(/^<root>: /, ""));
   if (!isObject(doc) || !Array.isArray(doc.criteria)) return found;
+  found.push(...delegationViolations(doc));
   doc.criteria.forEach((c, i) => {
     if (!isObject(c)) return;
     const at = `criteria[${i}]`;
@@ -109,6 +162,7 @@ function holdoutRecordViolations(doc) {
         if (c[key] === null || c[key] === undefined) found.push(`${at}.${key}: required (non-null) when verdict is met or unmet`);
       }
     }
+    if (c.class === "prose" && c.verdict !== "needs-human") found.push(`${at}: a prose criterion must be needs-human (ADR-0029)`);
     if (c.verdict === "needs-human" && (c.reason === null || c.reason === undefined)) {
       found.push(`${at}.reason: required (non-null) when verdict is needs-human`);
     }
@@ -147,7 +201,9 @@ function normaliseAttestation(att) {
   return { spawner: att.spawner, withheld: { repo: w.repo, worktree_cwd: w.worktree_cwd, diff: w.diff }, preflight: att.preflight };
 }
 
-function failClosed(top, refusals) {
+// `blockViolations` are the evaluator block's own (already redacted) violations, kept after the
+// refusal lines so a refused record still says why the evaluator judged nothing (FAFF-1291).
+function failClosed(top, refusals, delegated, blockViolations) {
   const doc = {
     schema_version: 1,
     issue: top.issue,
@@ -155,12 +211,35 @@ function failClosed(top, refusals) {
     code_blind: top.code_blind === true,
     spawner_attested: top.spawner_attested === true,
     attestation: top.attestation || null,
-    violations: refusals.map((r) => `holdout record refused: ${r}`),
+    violations: [...refusals.map((r) => `holdout record refused: ${r}`), ...(Array.isArray(blockViolations) ? blockViolations : [])],
     criteria: [],
+    delegated: Array.isArray(delegated) ? delegated : [],
   };
   return { ok: false, doc, bytes: serialise(doc), refusals };
 }
 
+// FAFF-1291: the writer-owned `delegated[]`, derived from `faff dod classify` output and never copied
+// from the evaluator block. Returns null when `classified` is not usable classify output.
+function deriveDelegated(classified) {
+  if (!isObject(classified) || !Array.isArray(classified.criteria)) return null;
+  return classified.criteria
+    .filter((c) => isObject(c) && (c.verification_tier === "delegated" || c.verification_tier === "integration"))
+    .map((c) => ({
+      id: c.id,
+      text: c.text,
+      holdout: c.holdout === true,
+      verification_tier: c.verification_tier,
+      verifier: c.verifier,
+      ac_id: typeof c.ac_id === "string" ? c.ac_id : null,
+    }));
+}
+
+function judgedIdsOf(classified) {
+  return classified.criteria.filter((c) => isObject(c) && c.verification_tier === "running-stack").map((c) => c.id);
+}
+
+// `opts.classified` is `dodClassify` output over the full-view spec text the evaluator received. It is
+// passed in, not computed here: this module is governance-region and must not require admissibility.js.
 function buildHoldoutRecord(block, opts) {
   const issue = opts.issue;
   const envelope = opts.envelope;
@@ -170,12 +249,19 @@ function buildHoldoutRecord(block, opts) {
     base.spawner_attested = envelope.spawner_attested === true;
     base.attestation = normaliseAttestation(envelope.attestation);
   }
-  if (!isObject(block)) return failClosed(base, ["evaluator block is not a JSON object"]);
-  if (!envelope) base.code_blind = block.code_blind === true;
 
   const secrets = [...(opts.secretValues || resolveKnownSecretValues()), ...(opts.extraSecrets || [])]
     .filter((s) => typeof s === "string" && s.length > 0);
+  const derived = deriveDelegated(opts.classified);
+  // Redacted and truncated like criteria detail, on the success and the fail-closed paths alike.
+  const delegated = derived === null ? [] : redactKnownSecrets(derived, secrets).map((r) => ({ ...r, text: truncateDetail(r.text) }));
+  if (derived === null) return failClosed(base, ["no `faff dod classify` output to check the criteria against (the spec was not classified)"], []);
+
+  if (!isObject(block)) return failClosed(base, ["evaluator block is not a JSON object"], delegated);
+  if (!envelope) base.code_blind = block.code_blind === true;
+
   const violations = Array.isArray(block.violations) ? block.violations.filter((v) => typeof v === "string" && v.trim()) : [];
+  const rawCriteria = Array.isArray(block.criteria) ? block.criteria : [];
   const top = {
     schema_version: 1,
     issue,
@@ -184,7 +270,7 @@ function buildHoldoutRecord(block, opts) {
     spawner_attested: base.spawner_attested,
     attestation: base.attestation,
     violations: envelope && Array.isArray(envelope.violations) ? [...violations, ...envelope.violations] : violations,
-    criteria: (Array.isArray(block.criteria) ? block.criteria : []).map(normaliseCriterion),
+    criteria: rawCriteria.map(normaliseCriterion),
   };
 
   const redacted = redactKnownSecrets(top, secrets);
@@ -193,9 +279,23 @@ function buildHoldoutRecord(block, opts) {
     for (const key of DETAIL_KEYS) out[key] = truncateDetail(out[key]);
     return out;
   });
+  redacted.delegated = delegated;
 
-  const refusals = holdoutRecordViolations(redacted);
-  if (refusals.length > 0) return failClosed(base, refusals);
+  const refusals = [];
+  const unidentified = redacted.criteria.map((c, i) => (typeof c.id === "string" ? -1 : i)).filter((i) => i >= 0);
+  if (unidentified.length > 0) {
+    refusals.push(`criteria[${unidentified.join(", ")}].id: missing, so the rows cannot be matched against the judged set from faff dod classify`);
+  } else {
+    const have = new Set(redacted.criteria.map((c) => c.id));
+    const want = new Set(judgedIdsOf(opts.classified));
+    const missing = [...want].filter((id) => !have.has(id));
+    const unexpected = [...have].filter((id) => !want.has(id));
+    if (missing.length > 0 || unexpected.length > 0) {
+      refusals.push(`criteria ids do not match the judged set from faff dod classify: missing [${missing.join(", ")}], unexpected [${unexpected.join(", ")}]`);
+    }
+  }
+  refusals.push(...holdoutRecordViolations(redacted));
+  if (refusals.length > 0) return failClosed(base, refusals, delegated, redacted.violations);
   return { ok: true, doc: redacted, bytes: serialise(redacted), refusals: [] };
 }
 
@@ -205,7 +305,9 @@ function holdoutRecordSelftest() {
   const issue = "FAFF-1";
   const met = { id: "scenarios:1", text: "t", holdout: true, class: "scenario", verdict: "met", evidence_present: true, exercised: "POST /x", expected: "201", observed: "201" };
   const block = (criteria, aggregate = "meets-spec") => ({ aggregate, code_blind: true, violations: [], criteria });
-  const opts = { issue, secretValues: [] };
+  const row = (id, tier, extra = {}) => ({ id, text: `t ${id}`, class: id.startsWith("done") ? "prose" : "scenario", source: id.split(":")[0], holdout: false, verification_tier: tier, verifier: { "running-stack": "holdout", delegated: "ac-checklist", integration: "review-merge-floor" }[tier], ac_id: null, ...extra });
+  const classified = { criteria: [row("scenarios:1", "running-stack"), row("done:1", "delegated", { ac_id: "faff-1#ac-1" }), row("done:2", "integration", { ac_id: "faff-1#ac-2" })] };
+  const opts = { issue, secretValues: [], classified };
 
   const ok = buildHoldoutRecord(block([met]), opts);
   check("accepted: ok", ok.ok && ok.refusals.length === 0);
@@ -214,6 +316,25 @@ function holdoutRecordSelftest() {
   check("accepted: bytes are deterministic", ok.bytes === buildHoldoutRecord(block([met]), opts).bytes);
   check("accepted: bytes end with a newline", ok.bytes.endsWith("\n"));
   check("accepted: passes its own validator", holdoutRecordViolations(ok.doc).length === 0);
+  check("accepted: delegated[] comes from classify", ok.doc.delegated.length === 2 && ok.doc.delegated[0].verifier === "ac-checklist" && ok.doc.delegated[1].verifier === "review-merge-floor" && ok.doc.delegated[0].ac_id === "faff-1#ac-1");
+  const own = buildHoldoutRecord({ ...block([met]), delegated: [{ id: "done:9" }] }, opts);
+  check("accepted: a block's own delegated key is ignored", own.ok && own.doc.delegated.length === 2 && own.doc.delegated.every((r) => r.id !== "done:9"));
+  const noClassify = buildHoldoutRecord(block([met]), { issue, secretValues: [] });
+  check("refused: no classify output", !noClassify.ok && Array.isArray(noClassify.doc.delegated) && noClassify.doc.delegated.length === 0);
+  const missing = buildHoldoutRecord(block([], "needs-human"), opts);
+  check("refused: a missing judged id is named, delegated kept", !missing.ok && missing.doc.violations.some((v) => v.includes("missing [scenarios:1]")) && missing.doc.delegated.length === 2);
+  const proseDone = buildHoldoutRecord(block([met, { id: "done:1", text: "t", class: "prose", verdict: "needs-human", evidence_present: false, reason: "prose criterion" }], "needs-human"), opts);
+  check("refused: a delegated prose DONE row is named", !proseDone.ok && proseDone.doc.violations.some((v) => v.includes("done:1")));
+  const noId = buildHoldoutRecord(block([{ ...met, id: undefined }]), opts);
+  check("refused: a row with no id", !noId.ok && noId.doc.delegated.length === 2);
+  check("delegationViolations: both-lists id", delegationViolations({ criteria: [{ id: "done:1", class: "assertion" }], delegated: ok.doc.delegated }).some((v) => v.includes("both criteria and delegated")));
+  check("delegationViolations: tier and verifier must pair", delegationViolations({ criteria: [], delegated: [{ ...ok.doc.delegated[0], verifier: "review-merge-floor" }] }).length > 0);
+  check("delegationViolations: delegated tier needs a done id", delegationViolations({ criteria: [], delegated: [{ ...ok.doc.delegated[0], id: "scenarios:3" }] }).length > 0);
+  const secretDelegated = { criteria: [row("scenarios:1", "running-stack"), row("done:1", "delegated", { text: `uses sk-secret-token-123 ${"x".repeat(3000)}` })] };
+  const redactedOk = buildHoldoutRecord(block([met]), { ...opts, extraSecrets: ["sk-secret-token-123"], classified: secretDelegated });
+  check("delegated text is redacted and truncated (success)", redactedOk.ok && !redactedOk.bytes.includes("sk-secret") && redactedOk.doc.delegated[0].text.length === 2000);
+  const redactedRefused = buildHoldoutRecord(block([]), { ...opts, extraSecrets: ["sk-secret-token-123"], classified: secretDelegated });
+  check("delegated text is redacted and truncated (fail-closed)", !redactedRefused.ok && !redactedRefused.bytes.includes("sk-secret") && redactedRefused.doc.delegated[0].text.length === 2000);
 
   const attested = { code_blind: true, spawner_attested: true, attestation: { spawner: "evaluate-call.mjs", withheld: { repo: true, worktree_cwd: true, diff: true }, preflight: "pass" }, violations: [] };
   const att = buildHoldoutRecord({ ...block([met]), spawner_attested: false }, { ...opts, envelope: attested });
@@ -227,12 +348,13 @@ function holdoutRecordSelftest() {
   check("refused: violation carries the prefix", noExercised.doc.violations[0].startsWith("holdout record refused:"));
   check("refused: record validates", holdoutRecordViolations(noExercised.doc).length === 0);
 
-  const noReason = buildHoldoutRecord(block([{ id: "done:1", text: "t", class: "prose", verdict: "needs-human", evidence_present: false }], "needs-human"), opts);
+  const noReason = buildHoldoutRecord(block([met, { id: "scenarios:2", text: "t", class: "prose", verdict: "needs-human", evidence_present: false }], "needs-human"), { ...opts, classified: { criteria: [row("scenarios:1", "running-stack"), row("scenarios:2", "running-stack")] } });
   check("refused: needs-human without reason", !noReason.ok);
 
   check("refused: non-object block", !buildHoldoutRecord("nope", opts).ok);
-  check("accepted: env-not-ready block", buildHoldoutRecord(block([], "needs-human"), opts).ok);
+  check("accepted: nothing-judged block when classify judges nothing", buildHoldoutRecord(block([], "needs-human"), { ...opts, classified: { criteria: [row("done:1", "delegated")] } }).ok);
   check("refused: bad id", !buildHoldoutRecord(block([{ ...met, id: "scenarios:0" }]), opts).ok);
+  check("refused: prose scenario judged met", !buildHoldoutRecord(block([{ ...met, class: "prose" }]), opts).ok);
 
   const long = buildHoldoutRecord(block([{ ...met, observed: "x".repeat(5000) }]), opts);
   check("truncation: length exactly 2000", long.ok && long.doc.criteria[0].observed.length === 2000 && long.doc.criteria[0].observed.endsWith(TRUNCATION_SUFFIX));
@@ -262,5 +384,5 @@ function holdoutRecordSelftest() {
 }
 
 module.exports = {
-  buildHoldoutRecord, holdoutRecordViolations, holdoutRecordSelftest, isSafeHoldoutKey, resolveContained, writeHoldoutRecord,
+  buildHoldoutRecord, delegationViolations, holdoutRecordViolations, holdoutRecordSelftest, isSafeHoldoutKey, resolveContained, writeHoldoutRecord,
 };

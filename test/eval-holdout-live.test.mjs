@@ -77,10 +77,18 @@ test("the loader loads and validates both holdout-live cases", () => {
   // at least one case expresses a distractor + a trap live (multiple containers)
   const withExtra = cs.find((c) => Array.isArray(c.fixture.extra) && c.fixture.extra.length >= 1);
   assert.ok(withExtra, "at least one case composes multiple containers (distractor + trap)");
-  // a prose criterion is pinned needs-human in the oracle of every case
+  // FAFF-1291: a DONE-sourced prose criterion is delegated, so it is absent from the judged closed set; a
+  // Scenarios-sourced prose criterion stays pinned needs-human.
+  const keysOf = (c) => c.oracle.closed_set.map((p) => p.slice(0, p.lastIndexOf(":")));
   for (const c of cs) {
-    assert.ok(c.oracle.closed_set.some((p) => p.endsWith(":needs-human")), `${c.id} pins a criterion needs-human`);
+    for (const d of c.spec_dod.filter((x) => x.class === "prose")) {
+      assert.ok(d.source === "done" || d.source === "scenarios", `${c.id}/${d.key} names its prose source`);
+      if (d.source === "done") assert.ok(!keysOf(c).includes(d.key), `${c.id}/${d.key} is delegated and absent from the closed set`);
+      else assert.ok(c.oracle.closed_set.includes(`${d.key}:needs-human`), `${c.id}/${d.key} stays pinned needs-human`);
+    }
   }
+  assert.ok(cs.some((c) => c.spec_dod.some((d) => d.class === "prose" && d.source === "done")), "a case covers delegated DONE prose");
+  assert.ok(cs.some((c) => c.spec_dod.some((d) => d.class === "prose" && d.source === "scenarios")), "a case covers a prose Scenarios unit");
 });
 
 // --- driveCase normalisation: the drive's map becomes { env: { "holdout-exercise": {...} }, tokens } ---
@@ -238,7 +246,7 @@ test("hostMediatedDrive fails closed to needs-human when no final answer lands",
     maxTurns: 3,
     fetchImpl: async () => ({ ok: true, status: 200, text: async () => "" }),
   });
-  assert.deepEqual(classifications, { c1: "needs-human", c2: "needs-human" }, "no answer → fail-closed needs-human");
+  assert.deepEqual(classifications, { c1: "needs-human" }, "no answer → fail-closed needs-human for every judged criterion; a delegated DONE prose key is left out");
 });
 
 // --- parseExec: a well-formed block parses; a malformed/absent block is null (never a throw) ---

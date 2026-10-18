@@ -12,7 +12,7 @@ const DOD_CLASSIFY_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { ari
 const DOD_SPLIT_SPEC = { flags: { "--view": { arity: 1 }, "--spec": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
 const HOLDOUT_VERDICTS_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--require-spawner-attested": { arity: 0 }, "--association": { arity: 1 }, "--dir": { arity: 1 }, "--persist": { arity: 0 }, "--prdr-dir": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
 const HOLDOUT_VERDICT_SPEC = { flags: { "--json": { arity: 0 }, "--require-spawner-attested": { arity: 0 }, "--issue": { arity: 1 }, "--dir": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
-const HOLDOUT_RECORD_SPEC = { flags: { "--json": { arity: 0 }, "--issue": { arity: 1 }, "--key": { arity: 1 }, "--run-dir": { arity: 1 }, "--credentials-env": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
+const HOLDOUT_RECORD_SPEC = { flags: { "--json": { arity: 0 }, "--issue": { arity: 1 }, "--spec": { arity: 1 }, "--key": { arity: 1 }, "--run-dir": { arity: 1 }, "--credentials-env": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
 const SPEC_REVIEW_LENSES_SPEC = { flags: { "--selftest": { arity: 0 }, "--tags": { arity: 1 }, "--level": { arity: 1 }, "--appetite": { arity: 1 } }, positionals: { min: 0, max: null, name: "arg" } };
 // FAFF-628 — declared grammar for the two subcommand-dispatch verbs this module owns. `spec`
 // carries BOTH per-subcommand CommandSpecs (a List<CommandSpec>) so the accepted-flag union
@@ -31,7 +31,7 @@ const HOLDOUT_SURFACE = {
   subcommands: {
     verdicts: { required_flags: ["--association"] },
     verdict: { required_flags: ["--issue"] },
-    record: { required_flags: ["--issue"] },
+    record: { required_flags: ["--issue", "--spec"] },
   },
 };
 const { SPEC_REVIEW_LENSES, computeHoldoutVerdictsMap, holdoutGateResult } = require("./contract-defs");
@@ -103,8 +103,8 @@ function isHoldoutFenceOpen(line) {
 
 // --- verification-tier tagging (FAFF-961) ---
 // A second, orthogonal axis over `class` (shape) and `holdout` (builder-visibility): which VERIFIER
-// can observe a criterion. This slice defines two values — `running-stack` (the default; the
-// code-blind holdout's remit) and `integration` (born-verifiable, but only by the review/merge test
+// can observe a criterion. Three values — `running-stack` (the default; the
+// code-blind holdout's remit), `delegated` (FAFF-1291: a prose DONE item, verified by the AC checklist) and `integration` (born-verifiable, but only by the review/merge test
 // floor, e.g. a down-migration on a forward-only stack the holdout cannot roll back). Carried on an
 // additive `verification_tier` field (never a fourth `class` value — that would break every consumer
 // switching on the three-value `class`, exactly what FAFF-812 rejected for `oracle_less`). FAFF-962
@@ -129,12 +129,20 @@ const INTEGRATION_TIER_MARKERS = [
 
 // Pure. Resolves a criterion's verification tier by precedence: an explicit marker (from the parser)
 // wins over an INTEGRATION_TIER_MARKERS keyword hit, which wins over the running-stack default.
-function resolveVerificationTier(text, markerTier) {
+// FAFF-1291: a prose DONE criterion is `delegated` (its verifier is the AC checklist, which receives
+// DONE items by id); the rule sits between the explicit marker and the keyword check, so a prose DONE
+// item that names a rollback is still delegated, not integration. A prose Scenarios unit stays
+// running-stack: no verifier receives a Scenarios unit by id.
+function resolveVerificationTier(text, markerTier, criterion) {
   if (markerTier) return markerTier;
+  if (criterion && criterion.class === "prose" && criterion.source === "done") return "delegated";
   const lc = String(text == null ? "" : text).toLowerCase();
   if (INTEGRATION_TIER_MARKERS.some((k) => lc.includes(k))) return "integration";
   return "running-stack";
 }
+
+// FAFF-1291: the verifier is a pure function of the tier.
+const TIER_VERIFIER = { "running-stack": "holdout", integration: "review-merge-floor", delegated: "ac-checklist" };
 
 // Pure function over the `## Acceptance criteria` / `## Scenarios` section body. No filesystem /
 // tracker I/O, so it is unit-testable in isolation. Returns [{text, kind, holdout}].
@@ -265,12 +273,18 @@ function dodClassify(specText, opts) {
   // > running-stack default. A single post-pass over the already-built criteria, mirroring the
   // oracle_less pass; never changes class/counts/holdout/oracle_less. verification_tier_counts sums to
   // criteria.length by construction (every criterion resolves to exactly one tier value).
-  const verification_tier_counts = { "running-stack": 0, integration: 0 };
+  const verification_tier_counts = { "running-stack": 0, integration: 0, delegated: 0 };
   for (let i = 0; i < criteria.length; i++) {
     const c = criteria[i];
-    c.verification_tier = resolveVerificationTier(c.text, markerTiers[i]);
+    c.verification_tier = resolveVerificationTier(c.text, markerTiers[i], c);
+    c.verifier = TIER_VERIFIER[c.verification_tier];
     verification_tier_counts[c.verification_tier]++;
   }
+  // FAFF-1291: judged_count is the judged set (every running-stack criterion, any class); the graft
+  // skip rule needs it and integration_count both at zero; delegated_count is integration + delegated.
+  const judged_count = verification_tier_counts["running-stack"];
+  const integration_count = verification_tier_counts.integration;
+  const delegated_count = integration_count + verification_tier_counts.delegated;
   // FAFF-1259: additive `id` per criterion, "<source>:<n>" with n the 1-based position among that
   // source's criteria in classify order. Minted here, not by the evaluator, so the value is mechanical.
   const seenPerSource = {};
@@ -282,7 +296,7 @@ function dodClassify(specText, opts) {
     c.local_ac_id = doneItems[doneIndex++].local || c.id;
     if (issue) c.ac_id = qualifyAcId(issue, c.local_ac_id);
   }
-  return { criteria, counts, holdout_counts, oracle_less_count, verification_tier_counts };
+  return { criteria, counts, holdout_counts, oracle_less_count, verification_tier_counts, judged_count, integration_count, delegated_count };
 }
 
 // FAFF-1287: reads each DONE item's authored `[ac-N]` id. A near miss, a duplicate, or an id on only
@@ -543,11 +557,11 @@ function detectRunnableCheck(specText) {
   return false;
 }
 
-// --- prose-DONE punt-prediction advisory (FAFF-304) ---
-// The holdout evaluator forces EVERY prose-class DoD criterion to needs-human (a
-// fixed rule — a code-blind judge can't machine-verify loose prose). So the count of
-// prose DONE items is a deterministic, knowable-in-advance predictor of the
-// evaluator's punt count. This advisory surfaces that prediction on `admissible`'s
+// --- prose-DONE delegation advisory (FAFF-304, reworded by FAFF-1291) ---
+// A prose DONE item is no longer judged by the code-blind holdout: `faff dod classify` tiers it
+// `delegated` and the AC checklist verifies it. The count of prose DONE items is still a
+// deterministic, knowable-in-advance number, and so is the judged count (the criteria the holdout
+// does judge). This advisory surfaces both on `admissible`'s
 // existing warnings[] channel — additive only, NEVER gating (it can't flip
 // `admissible`). It reuses dodClassify (the SAME classifier the evaluator uses), so
 // the count agrees with the evaluator by construction and inherits FAFF-306's
@@ -603,7 +617,8 @@ function proseDoneAdvisory(specText) {
   if (proseDone.length === 0) return null;
   const bornVerifiable = classified.criteria.filter((c) => c.class === "scenario" || c.class === "assertion");
   const duplicates = proseDone.filter((p) => bornVerifiable.some((b) => proseDoneContainment(p.text, b.text) >= DUP_THRESHOLD));
-  return { count: proseDone.length, items: proseDone, duplicates };
+  const doneTotal = classified.criteria.filter((c) => c.source === "done").length;
+  return { count: proseDone.length, items: proseDone, duplicates, judged: classified.judged_count, allProseDone: proseDone.length === doneTotal };
 }
 
 // Render the single-line advisory (deterministic "prose-DONE advisory:" prefix). Items
@@ -612,7 +627,7 @@ function proseDoneAdvisory(specText) {
 function renderProseDoneWarning(adv) {
   const trunc = (s) => String(s).replace(/\s+/g, " ").trim().slice(0, 50);
   const items = adv.items.map((p) => trunc(p.text)).join(" | ");
-  let s = `prose-DONE advisory: ${adv.count} DONE item(s) are loose prose and will be forced to needs-human by the holdout evaluator: ${items}`;
+  let s = `prose-DONE advisory: ${adv.count} DONE item(s) are loose prose and are delegated to the AC checklist, not judged by the holdout (judged count: ${adv.judged}; phrase an item with Then or must to keep it code-blind): ${items}`;
   if (adv.duplicates.length >= 1) {
     const dups = adv.duplicates.map((p) => trunc(p.text)).join(" | ");
     s += `  (${adv.duplicates.length} appear to restate a born-verifiable scenario — candidates to remove: ${dups})`;
@@ -661,6 +676,7 @@ function admissibleVerdict(specText, lightsOut) {
   warnings.push(...doneScenariosLevelWarning(specText));   // FAFF-306: advisory only — never flips admissible
   const adv = proseDoneAdvisory(specText);                 // FAFF-304: predict the evaluator's prose-DONE punts
   if (adv) warnings.push(renderProseDoneWarning(adv));     // advisory only — never flips admissible
+  if (adv && adv.allProseDone && adv.judged === 0) warnings.push("prose-DONE advisory: every DONE item is loose prose and nothing is judged, so nothing in DONE will be judged code-blind (it rests on the AC checklist and review)");  // FAFF-1291
   const admissible = checks.every((c) => c.pass);
   const reasons = checks.filter((c) => !c.pass).map((c) => c.detail);
   return { admissible, reasons, checks, warnings };
@@ -683,8 +699,8 @@ const ADMISSIBLE_GOOD_NUMBERED = [
   "### 8. DONE", "", "- [ ] `faff admissible` MUST emit the verdict JSON", "- [ ] exit code MUST be 0 admissible / 1 inadmissible", "",
 ].join("\n");
 
-// FAFF-304 fixtures — prose DONE items trip the holdout evaluator's prose→needs-human
-// punt rule. ADMISSIBLE_PROSE_DONE: 3 prose DONE that do NOT restate the scenario (no
+// FAFF-304 fixtures — prose DONE items are delegated to the AC checklist (FAFF-1291).
+// ADMISSIBLE_PROSE_DONE: 3 prose DONE that do NOT restate the scenario (no
 // duplicate clause). ADMISSIBLE_DUP_DONE: 3 prose DONE, 2 of which restate the scenario
 // (the duplicate clause names those 2 as candidates to remove).
 const ADMISSIBLE_PROSE_DONE = [
@@ -1020,8 +1036,12 @@ function dodSelftest() {
   check("FAFF-961: an unmarked 'rollback' assertion tiers integration via the keyword heuristic", rollbackCrit && rollbackCrit.verification_tier === "integration");
   check("FAFF-961: an 'integration:' bullet prefix tiers integration and strips the prefix from text", prefixCrit && prefixCrit.verification_tier === "integration" && !/^integration:/i.test(prefixCrit.text));
   check("FAFF-961: an unmarked running-stack assertion keeps the conservative running-stack default", healthzTierCrit && healthzTierCrit.verification_tier === "running-stack");
-  check("FAFF-961: every criterion resolves to a legal tier value", tc.criteria.every((c) => c.verification_tier === "running-stack" || c.verification_tier === "integration"));
-  check("FAFF-961: verification_tier_counts sums to criteria.length", tc.verification_tier_counts["running-stack"] + tc.verification_tier_counts.integration === tc.criteria.length);
+  check("FAFF-961: every criterion resolves to a legal tier value", tc.criteria.every((c) => c.verification_tier === "running-stack" || c.verification_tier === "integration" || c.verification_tier === "delegated"));
+  check("FAFF-961: verification_tier_counts sums to criteria.length", tc.verification_tier_counts["running-stack"] + tc.verification_tier_counts.integration + tc.verification_tier_counts.delegated === tc.criteria.length);
+  const dtc = dodClassify(["## Scenarios", "", "- The API MUST return 200", "- a loose prose line", "", "## 8. DONE", "", "- [ ] the rollback must restore the previous release", "- [ ] operators like the dashboard", "- [ ] rollback is smooth"].join("\n"));
+  check("FAFF-1291: a prose DONE item tiers delegated with verifier ac-checklist, even when it names a rollback", dtc.criteria.filter((c) => c.verification_tier === "delegated").every((c) => c.source === "done" && c.class === "prose" && c.verifier === "ac-checklist") && dtc.verification_tier_counts.delegated === 2);
+  check("FAFF-1291: a prose Scenarios unit stays running-stack with verifier holdout", dtc.criteria.some((c) => c.source === "scenarios" && c.class === "prose" && c.verification_tier === "running-stack" && c.verifier === "holdout"));
+  check("FAFF-1291: judged_count / integration_count / delegated_count", dtc.judged_count === 2 && dtc.integration_count === 1 && dtc.delegated_count === 3);
   check("FAFF-961: counts is UNCHANGED shape and still sums to criteria.length (no regression)", tc.counts.scenario + tc.counts.assertion + tc.counts.prose === tc.criteria.length);
   check("FAFF-961: the tier axis never perturbs holdout_counts or oracle_less_count shape", tc.holdout_counts.holdout + tc.holdout_counts.visible === tc.criteria.length && typeof tc.oracle_less_count === "number");
   check("FAFF-961: precedence — a 'rollback' inside a running-stack context still tiers integration by keyword", resolveVerificationTier("The rollback MUST restore the schema", null) === "integration");
@@ -1045,10 +1065,10 @@ function cmdHoldout(args) {
   if (action === "verdict") return cmdHoldoutVerdict(args);   // FAFF-311: the singular per-issue graft gate
   if (action === "record") return cmdHoldoutRecord(args);     // FAFF-1259: the one writer of the v0.3 holdout record
   const parsed = parseArgs(args, HOLDOUT_VERDICTS_SPEC);
-  if (parsed.errors.length) return usageError(parsed.errors, "faff holdout: usage:\n  faff holdout verdicts --association <json|@file|-> [--dir .faff/holdout] [--json]\n  faff holdout verdict --issue <id> [--dir .faff/holdout] [--json]\n  faff holdout record --issue <id> [--key <k>] [--run-dir <dir>] [--credentials-env <VAR>] [--json]");
+  if (parsed.errors.length) return usageError(parsed.errors, "faff holdout: usage:\n  faff holdout verdicts --association <json|@file|-> [--dir .faff/holdout] [--json]\n  faff holdout verdict --issue <id> [--dir .faff/holdout] [--json]\n  faff holdout record --issue <id> --spec <path> [--key <k>] [--run-dir <dir>] [--credentials-env <VAR>] [--json]");
   const get = (f) => (parsed.values[f] === undefined ? null : parsed.values[f]);
   if (action !== "verdicts") {
-    process.stderr.write("faff holdout: usage:\n  faff holdout verdicts --association <json|@file|-> [--dir .faff/holdout] [--json]\n  faff holdout verdict --issue <id> [--dir .faff/holdout] [--json]\n  faff holdout record --issue <id> [--key <k>] [--run-dir <dir>] [--credentials-env <VAR>] [--json]\n");
+    process.stderr.write("faff holdout: usage:\n  faff holdout verdicts --association <json|@file|-> [--dir .faff/holdout] [--json]\n  faff holdout verdict --issue <id> [--dir .faff/holdout] [--json]\n  faff holdout record --issue <id> --spec <path> [--key <k>] [--run-dir <dir>] [--credentials-env <VAR>] [--json]\n");
     return 2;
   }
   // --association (required): inline JSON, @path, or - for stdin. A broken association is operator error
@@ -1183,7 +1203,7 @@ function holdoutRunDirContained(root, runDirArg) {
 }
 
 function cmdHoldoutRecord(args) {
-  const usage = "faff holdout record: usage: faff holdout record --issue <id> [--key <k>] [--run-dir <dir>] [--credentials-env <VAR>] [--json]  (evaluator block on stdin)";
+  const usage = "faff holdout record: usage: faff holdout record --issue <id> --spec <path> [--key <k>] [--run-dir <dir>] [--credentials-env <VAR>] [--json]  (evaluator block on stdin)";
   const parsed = parseArgs(args, HOLDOUT_RECORD_SPEC);
   if (parsed.errors.length) return usageError(parsed.errors, usage);
   const get = (f) => (parsed.values[f] === undefined ? null : parsed.values[f]);
@@ -1191,6 +1211,11 @@ function cmdHoldoutRecord(args) {
   if (reqErr) { process.stderr.write(reqErr + "\n"); return 2; }
   const issue = get("--issue");
   const key = get("--key") || issue;
+  const specArg = get("--spec");
+  if (specArg === "-") {
+    process.stderr.write("faff holdout record: --spec must be a file path; - is refused because the evaluator block arrives on stdin\n");
+    return 2;
+  }
   for (const [flag, value] of [["--issue", issue], ["--key", key]]) {
     if (!isSafeHoldoutKey(value)) {
       process.stderr.write(`faff holdout record: ${flag} ${JSON.stringify(value)} is not a valid id (letters/digits/._- only, no path separators)\n`);
@@ -1236,7 +1261,11 @@ function cmdHoldoutRecord(args) {
   try {
     let stdin = "";
     try { stdin = fs.readFileSync(0, "utf8"); } catch { /* no stdin reads as an unparseable block */ }
-    built = buildHoldoutRecord(parseHoldoutBlock(stdin), { issue, extraSecrets });
+    // FAFF-1291: classify the full-view spec the evaluator received; the writer checks the block against it.
+    // An unreadable spec leaves `classified` null, and the writer refuses fail-closed (no classify output).
+    let classified = null;
+    try { classified = dodClassify(fs.readFileSync(specArg, "utf8"), ISSUE_ID_RE.test(issue) ? { issue } : undefined); } catch { classified = null; }
+    built = buildHoldoutRecord(parseHoldoutBlock(stdin), { issue, extraSecrets, classified });
   } catch (e) { process.stderr.write(`faff holdout record: cannot build the record: ${e.message}\n`); return 2; }
   try {
     fs.mkdirSync(path.dirname(storeFile), { recursive: true });
@@ -1336,12 +1365,13 @@ function holdoutVerdictsSelftest() {
 
   // FAFF-1259: the record writer — accepted, refused and attested cases, and the gate reading them unchanged.
   const detailed = { id: "scenarios:1", text: "t", holdout: true, class: "scenario", verdict: "met", evidence_present: true, exercised: "GET /x", expected: "200", observed: "200" };
-  const accepted = buildHoldoutRecord({ aggregate: "meets-spec", code_blind: true, violations: [], criteria: [detailed] }, { issue: "FAFF-1", secretValues: [] });
+  const recClassified = dodClassify("## Scenarios\n\n```\nGiven a\nWhen b\nThen c\n```\n\n## 8. DONE\n\n- [ ] a loose prose item\n", { issue: "FAFF-1" });
+  const accepted = buildHoldoutRecord({ aggregate: "meets-spec", code_blind: true, violations: [], criteria: [detailed] }, { issue: "FAFF-1", secretValues: [], classified: recClassified });
   check("record: accepted block gate-passes", accepted.ok && holdoutGateResult(accepted.doc).gate === "pass");
-  const refused = buildHoldoutRecord({ aggregate: "meets-spec", code_blind: true, violations: [], criteria: [{ ...detailed, exercised: null }] }, { issue: "FAFF-1", secretValues: [] });
+  const refused = buildHoldoutRecord({ aggregate: "meets-spec", code_blind: true, violations: [], criteria: [{ ...detailed, exercised: null }] }, { issue: "FAFF-1", secretValues: [], classified: recClassified });
   check("record: refused block writes a gate-blocked fail-closed record", !refused.ok && holdoutGateResult(refused.doc).gate === "block");
   const attestationEnvelope = { code_blind: true, spawner_attested: true, attestation: { spawner: "evaluate-call.mjs", withheld: { repo: true, worktree_cwd: true, diff: true }, preflight: "pass" }, violations: [] };
-  const stamped = buildHoldoutRecord({ aggregate: "meets-spec", criteria: [detailed], violations: [] }, { issue: "FAFF-1", secretValues: [], envelope: attestationEnvelope });
+  const stamped = buildHoldoutRecord({ aggregate: "meets-spec", criteria: [detailed], violations: [] }, { issue: "FAFF-1", secretValues: [], envelope: attestationEnvelope, classified: recClassified });
   check("record: attested record passes the ratchet", stamped.ok && holdoutGateResult(stamped.doc, { requireSpawnerAttested: true }).gate === "pass");
   check("record: unattested record fails the ratchet", holdoutGateResult(accepted.doc, { requireSpawnerAttested: true }).gate === "block");
   if (holdoutRecordSelftest() !== 0) failed++;

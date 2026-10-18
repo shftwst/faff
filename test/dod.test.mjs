@@ -85,9 +85,9 @@ test("dod classify (FAFF-961): emits per-criterion verification_tier + top-level
   // conservative default holds for an unmarked running-stack assertion
   assert.ok(scen.some((c) => /healthz/.test(c.text) && c.verification_tier === "running-stack"));
   // every criterion carries a legal tier value
-  assert.ok(out.criteria.every((c) => c.verification_tier === "running-stack" || c.verification_tier === "integration"));
+  assert.ok(out.criteria.every((c) => ["running-stack", "integration", "delegated"].includes(c.verification_tier)));
   // the new count map sums to criteria.length, and the existing counts are untouched-shape
-  assert.equal(out.verification_tier_counts["running-stack"] + out.verification_tier_counts.integration, out.criteria.length);
+  assert.equal(out.verification_tier_counts["running-stack"] + out.verification_tier_counts.integration + out.verification_tier_counts.delegated, out.criteria.length);
   assert.equal(out.counts.scenario + out.counts.assertion + out.counts.prose, out.criteria.length);
   assert.equal(out.holdout_counts.holdout + out.holdout_counts.visible, out.criteria.length);
 });
@@ -208,4 +208,64 @@ test("dod classify: every criterion carries an id <source>:<n>, numbered per sou
     assert.equal(c.id, `${c.source}:${seen[c.source]}`);
   }
   assert.ok(out.criteria.some((c) => c.source === "scenarios") && out.criteria.some((c) => c.source === "done"));
+});
+
+// --- FAFF-1291: the `delegated` tier, the per-criterion verifier and the judged/integration/delegated counts ---
+
+const DELEGATION_SPEC = [
+  "## Scenarios", "",
+  "```", "Given an order", "When it is posted", "Then 201", "```", "",
+  "The onboarding copy reads warmly", "",
+  "## 8. DONE", "",
+  "- [ ] [ac-1] the rollback must restore the previous release",
+  "- [ ] [ac-2] the dashboard feels fast to operators",
+  "- [ ] [ac-3] the rollback is smooth for operators",
+  "- [ ] [ac-4] the API MUST return 200 on /healthz",
+].join("\n");
+
+test("dod classify (FAFF-1291): a prose DONE item is delegated to ac-checklist, a prose Scenarios unit stays running-stack, a rollback assertion is integration", () => {
+  const r = run(["classify", "--spec", "-", "--json"], DELEGATION_SPEC);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const out = JSON.parse(r.stdout);
+  const byId = Object.fromEntries(out.criteria.map((c) => [c.id, c]));
+  // ac-3: prose DONE -> delegated / ac-checklist (even with a rollback keyword, ac-30)
+  for (const id of ["done:2", "done:3"]) {
+    assert.equal(byId[id].class, "prose");
+    assert.equal(byId[id].verification_tier, "delegated", id);
+    assert.equal(byId[id].verifier, "ac-checklist", id);
+  }
+  // prose Scenarios unit -> running-stack / holdout
+  assert.equal(byId["scenarios:2"].class, "prose");
+  assert.equal(byId["scenarios:2"].verification_tier, "running-stack");
+  assert.equal(byId["scenarios:2"].verifier, "holdout");
+  // a DONE assertion with "rollback" -> integration / review-merge-floor
+  assert.equal(byId["done:1"].class, "assertion");
+  assert.equal(byId["done:1"].verification_tier, "integration");
+  assert.equal(byId["done:1"].verifier, "review-merge-floor");
+  // ordinary assertion stays judged
+  assert.equal(byId["done:4"].verification_tier, "running-stack");
+  // ac-4: the three tier keys sum to criteria.length and the three counts agree
+  assert.deepEqual(out.verification_tier_counts, { "running-stack": 3, integration: 1, delegated: 2 });
+  assert.equal(out.judged_count, 3);
+  assert.equal(out.integration_count, 1);
+  assert.equal(out.delegated_count, 3);
+  // ac-5: class keeps its three values
+  assert.ok(out.criteria.every((c) => ["scenario", "assertion", "prose"].includes(c.class)));
+});
+
+test("dod classify (FAFF-1291): an explicit integration fence on a prose DONE-adjacent unit still wins; an all-prose spec is not skipped", () => {
+  const allProse = ["## Scenarios", "", "The copy feels friendly", "", "## 8. DONE", "", "- [ ] operators like it"].join("\n");
+  const out = JSON.parse(run(["classify", "--spec", "-", "--json"], allProse).stdout);
+  assert.equal(out.judged_count, 1, "the prose Scenarios unit is in the judged set, so graft does not skip");
+  assert.equal(out.delegated_count, 1);
+  const integrationOnly = ["## Scenarios", "", "```integration", "Given a", "When b", "Then c", "```", "", "## 8. DONE", "", "- [ ] operators like it"].join("\n");
+  const io = JSON.parse(run(["classify", "--spec", "-", "--json"], integrationOnly).stdout);
+  assert.equal(io.judged_count, 0);
+  assert.equal(io.integration_count, 1, "an integration-only spec is not skipped by graft");
+});
+
+test("dod classify (FAFF-1291): with --issue a delegated row carries the qualified ac_id", () => {
+  const out = JSON.parse(run(["classify", "--spec", "-", "--issue", "FAFF-1", "--json"], DELEGATION_SPEC).stdout);
+  const done2 = out.criteria.find((c) => c.id === "done:2");
+  assert.equal(done2.ac_id, "faff-1#ac-2");
 });

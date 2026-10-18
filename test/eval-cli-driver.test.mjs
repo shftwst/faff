@@ -375,7 +375,8 @@ test("FAFF-317 loadHoldoutJudgementProse extracts the exercise-step/met-unmet/pr
   const prose = loadHoldoutJudgementProse(DEFAULT_PLUGIN_DIR);
   assert.ok(prose.startsWith("## How it evaluates"), "starts at the START anchor");
   assert.ok(/never as instructions to execute/.test(prose), "carries the responses-are-data rule");
-  assert.ok(/Force prose to `needs-human`/.test(prose), "carries the prose→needs-human rule");
+  assert.ok(/Record prose scenarios as `needs-human`/.test(prose), "carries the prose-scenario→needs-human rule");
+  assert.ok(/prose DONE item/.test(prose), "carries the delegated-prose-DONE rule");
   assert.ok(/never a silent `met`/.test(prose), "carries the fail-closed no-surface rule");
   assert.ok(!prose.includes("## Output (the contract artifact)"), "stops before the END anchor");
 });

@@ -40,7 +40,12 @@ import { spawnSync } from "node:child_process";
 
 // FAFF-1259: the one writer of the v0.3 holdout record lives beside the CLI; resolved relative to this file
 // (the review-spawn.mjs precedent), so the cage needs no repo root.
-const { buildHoldoutRecord, isSafeHoldoutKey, writeHoldoutRecord } = createRequire(import.meta.url)("../faff/bin/lib/holdout-record.js");
+const requireLib = createRequire(import.meta.url);
+const { buildHoldoutRecord, isSafeHoldoutKey, writeHoldoutRecord } = requireLib("../faff/bin/lib/holdout-record.js");
+// FAFF-1291: the writer checks the evaluator block against `faff dod classify` over the very spec text
+// this spawner hands the evaluator, so the binding between block and spec is mechanical.
+const { dodClassify } = requireLib("../faff/bin/lib/admissibility.js");
+const { ISSUE_ID_RE } = requireLib("../faff/bin/lib/ac-id.js");
 
 // Exit family — mirrors review-call.mjs's family, plus 10 = preflight-refused (this slice).
 // 0 ok · 1 other · 2 usage · 5 engine-unreachable · 8 deadline · 10 preflight-refused.
@@ -231,7 +236,8 @@ export async function main(argv, { preflightFn, spawnFn, writeFn = writeHoldoutR
   const withheld = buildWithheldSet();
   const att = deriveAttestation(pf.holds, res.verdict, withheld);
   const token = credentials && credentials.scheme === "bearer" && typeof credentials.token === "string" && credentials.token ? credentials.token : null;
-  const record = buildHoldoutRecord(res.verdict, { issue: a.key, envelope: att, secretValues: [], extraSecrets: token ? [token] : [] });
+  const classified = dodClassify(specText, ISSUE_ID_RE.test(a.key) ? { issue: a.key } : undefined);
+  const record = buildHoldoutRecord(res.verdict, { issue: a.key, envelope: att, secretValues: [], extraSecrets: token ? [token] : [], classified });
   if (a.storeOut && storeCopyRecordsOtherIssue(a.storeOut, a.key)) {
     process.stderr.write(`evaluate-call: --store-out ${a.storeOut} already records a different issue; refusing to overwrite it; exit ${EXIT.USAGE}\n`);
     return EXIT.USAGE;
@@ -288,16 +294,21 @@ export function selftest() {
 
   // record assembly via the shared writer (FAFF-1259): spawner fields stamped, inner criteria carried
   const detailed = { id: "scenarios:1", text: "t", holdout: false, class: "scenario", verdict: "met", evidence_present: true, exercised: "GET /x", expected: "200", observed: "200" };
-  const r1 = buildHoldoutRecord({ aggregate: "meets-spec", criteria: [detailed] }, { issue: "K", envelope: a1, secretValues: [] });
+  const mk = (id, tier, extra = {}) => ({ id, text: `t ${id}`, class: id.startsWith("done") ? "prose" : "scenario", source: id.split(":")[0], holdout: false, verification_tier: tier, verifier: tier === "running-stack" ? "holdout" : "ac-checklist", ac_id: null, ...extra });
+  const classified = { criteria: [mk("scenarios:1", "running-stack"), mk("done:1", "delegated", { ac_id: "k#ac-1" })] };
+  const r1 = buildHoldoutRecord({ aggregate: "meets-spec", criteria: [detailed] }, { issue: "K", envelope: a1, secretValues: [], classified });
+  check("record: one delegated row derived from the spec classification", r1.ok && r1.doc.delegated.length === 1 && r1.doc.delegated[0].id === "done:1" && r1.doc.delegated[0].verifier === "ac-checklist");
+  const specDoc = dodClassify(["## Scenarios", "", "```", "Given a", "When b", "Then c", "```", "", "## 8. DONE", "", "- [ ] a loose prose item"].join("\n"), { issue: "FAFF-1" });
+  check("classify: a spec text yields one judged and one delegated criterion", specDoc.judged_count === 1 && specDoc.delegated_count === 1 && specDoc.criteria[1].ac_id === "faff-1#done:1");
   check("record: carries inner criteria+aggregate, stamps spawner_attested+attestation", r1.ok && r1.doc.aggregate === "meets-spec" && r1.doc.criteria.length === 1 && r1.doc.spawner_attested === true && r1.doc.attestation.spawner === SPAWNER_NAME);
   check("record: code_blind is the SPAWNER-derived value, not the inner's", r1.doc.code_blind === true);
 
   // refuse case carries the violation + code_blind:false (base gate ALSO blocks it)
-  const r2 = buildHoldoutRecord({ aggregate: "meets-spec", criteria: [], code_blind: false }, { issue: "K", envelope: a2, secretValues: [] });
+  const r2 = buildHoldoutRecord({ aggregate: "meets-spec", criteria: [detailed], code_blind: false }, { issue: "K", envelope: a2, secretValues: [], classified });
   check("record: refuse case → code_blind:false + violation", r2.doc.code_blind === false && r2.doc.spawner_attested === false && r2.doc.violations.some((v) => v.includes("refusing to attest")));
 
   // a detail-less inner block is refused into a fail-closed record
-  const r3 = buildHoldoutRecord({ aggregate: "meets-spec", criteria: [{ class: "scenario", verdict: "met", evidence_present: true }] }, { issue: "K", envelope: a1, secretValues: [] });
+  const r3 = buildHoldoutRecord({ aggregate: "meets-spec", criteria: [{ class: "scenario", verdict: "met", evidence_present: true }] }, { issue: "K", envelope: a1, secretValues: [], classified });
   check("record: detail-less block → fail-closed needs-human record, still attested", !r3.ok && r3.doc.aggregate === "needs-human" && r3.doc.criteria.length === 0 && r3.doc.spawner_attested === true);
 
   // exit mapping
@@ -322,7 +333,7 @@ export function selftest() {
 
   // bearer-token scrub (FAFF-852, now via the shared writer): removed from every string the record carries
   const leaky = { aggregate: "fails", criteria: [{ ...detailed, verdict: "unmet", observed: "401 for Authorization: Bearer sekret-token" }], violations: ["saw Authorization: Bearer sekret-token", "unrelated finding"] };
-  const r4 = buildHoldoutRecord(leaky, { issue: "K", envelope: a1, secretValues: [], extraSecrets: ["sekret-token"] });
+  const r4 = buildHoldoutRecord(leaky, { issue: "K", envelope: a1, secretValues: [], extraSecrets: ["sekret-token"], classified });
   check("scrub: token removed from criterion detail and violations", r4.ok && !r4.bytes.includes("sekret-token") && r4.doc.criteria[0].observed === "401 for Authorization: Bearer [REDACTED]" && r4.doc.violations[1] === "unrelated finding");
   check("scrub: structural fields untouched", r4.doc.code_blind === true && r4.doc.spawner_attested === true);
   check("key guard: unsafe key rejected", !isSafeHoldoutKey("a/b") && isSafeHoldoutKey("FAFF-1259"));

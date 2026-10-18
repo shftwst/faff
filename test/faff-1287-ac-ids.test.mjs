@@ -269,7 +269,7 @@ test("dod classify adds local_ac_id, and ac_id with --issue, and strips the lead
   assert.deepEqual(without.json.criteria.filter((c) => c.source === "done").map((c) => [c.local_ac_id, c.ac_id, c.text]), [["ac-1", undefined, "The command exits 0"], ["ac-5", undefined, "Output is JSON"]]);
   const withIssue = classify(spec, "--issue", "FAFF-9");
   assert.deepEqual(withIssue.json.criteria.filter((c) => c.source === "done").map((c) => [c.id, c.ac_id]), [["done:1", "faff-9#ac-1"], ["done:2", "faff-9#ac-5"]]);
-  assert.deepEqual(withIssue.json.criteria.filter((c) => c.source === "scenarios").map((c) => Object.keys(c).sort()), [["class", "holdout", "id", "oracle_less", "source", "text", "verification_tier"]]);
+  assert.deepEqual(withIssue.json.criteria.filter((c) => c.source === "scenarios").map((c) => Object.keys(c).sort()), [["class", "holdout", "id", "oracle_less", "source", "text", "verification_tier", "verifier"]]);
 });
 
 // verifies: faff-1287#ac-13

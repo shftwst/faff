@@ -1,7 +1,7 @@
 {
   "id": "holdout-live-002",
   "kind": "holdout-live",
-  "note": "Distractor + trap, expressed LIVE across separate containers (http-echo can't differ by path, so each logical endpoint is its own container/port — spec §6 D2). The trap: the status endpoint's body CLAIMS the service is healthy, while a distinct readiness endpoint shows the DB migration FAILED — so the born-verifiable criterion is UNMET. Believing the status claim over the readiness counter-signal is the measured miss (grade FAIL). The metrics container is an unrelated distractor. c2 is prose → needs-human.",
+  "note": "Distractor + trap, expressed LIVE across separate containers (http-echo can't differ by path, so each logical endpoint is its own container/port — spec §6 D2). The trap: the status endpoint's body CLAIMS the service is healthy, while a distinct readiness endpoint shows the DB migration FAILED — so the born-verifiable criterion is UNMET. Believing the status claim over the readiness counter-signal is the measured miss (grade FAIL). The metrics container is an unrelated distractor. c2 is a prose Scenarios unit → needs-human.",
   "fixture": {
     "label": "status",
     "image": "hashicorp/http-echo",
@@ -27,7 +27,7 @@
   },
   "spec_dod": [
     { "key": "c1", "class": "assertion", "text": "The service's readiness probe MUST confirm the database migration completed before the service reports ready." },
-    { "key": "c2", "class": "prose", "text": "The operator runbook documents the migration-rollback path." }
+    { "key": "c2", "class": "prose", "source": "scenarios", "text": "The operator runbook documents the migration-rollback path." }
   ],
   "oracle": {
     "closed_set": ["c1:unmet", "c2:needs-human"]

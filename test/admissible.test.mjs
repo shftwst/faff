@@ -217,3 +217,31 @@ test("FAFF-304: the advisory never flips admissible — a prose+vague DONE is st
   assert.ok(v.reasons.some((x) => /vague DONE/i.test(x)));
   assert.ok(advisoryOf(v), "advisory and R2b are independent signals — both present");
 });
+
+// --- FAFF-1291: the advisory now says prose DONE items are delegated, not forced to needs-human ---
+
+test("FAFF-1291: the prose-DONE advisory names the AC checklist and the judged count, and no longer says forced to needs-human", () => {
+  const r = run(["--lights-out", "--json"], PROSE_DONE);
+  assert.equal(r.status, 0, r.stdout);
+  const adv = advisoryOf(verdict(r));
+  assert.match(adv, /^prose-DONE advisory: 3 DONE item\(s\)/);
+  assert.match(adv, /AC checklist/);
+  assert.match(adv, /judged count: 2/);
+  assert.doesNotMatch(adv, /forced to needs-human/);
+});
+
+test("FAFF-1291: all-prose DONE with nothing judged adds a second advisory line; the exit code is unchanged", () => {
+  const spec = [
+    "## Scenarios", "",
+    "```", "Given an integration case", "When the rollback runs", "Then the schema reverts", "```", "",
+    "### 8. DONE", "",
+    "- [ ] the dashboard feels fast to operators",
+    "- [ ] operators like the onboarding flow",
+  ].join("\n");
+  const r = run(["--lights-out", "--json"], spec);
+  assert.equal(r.status, 0, r.stdout);
+  const v = verdict(r);
+  const lines = v.warnings.filter((w) => w.startsWith("prose-DONE advisory:"));
+  assert.equal(lines.length, 2);
+  assert.match(lines[1], /nothing in DONE will be judged code-blind/);
+});

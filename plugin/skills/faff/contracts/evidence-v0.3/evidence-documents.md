@@ -119,6 +119,13 @@ The schema lists both tiers and both verifiers but does not pair them. The pairi
 (`delegated` with `ac-checklist`, `integration` with `review-merge-floor`) is a writer and validator
 rule that FAFF-1291 adds, because the validator subset cannot express it.
 
+With `delegated[]` in the record, the holdout `aggregate` is derived over `criteria` alone, the judged
+set. `meets-spec` therefore means every judged criterion was met, not that the whole DoD was met. A
+prose DONE item is delegated to the AC checklist, so it rests on the builder-written `ac-checklist.json`
+and the review leg. FAFF-1339 adds the check that each delegated `ac_id` has a `passed: true` row in the
+same anchor. That check adds completeness, not independence, because both files are builder-written.
+Only moving the checklist write out of the build lane narrows the trust shift.
+
 A `holdout.json` record's `issue` is the id of the call that wrote it: the issue id for the per-issue
 graft gate, and the run id for the per-run phase that is keyed by the run. The `--issue` of
 `faff holdout record` (or the `--key` of the caged spawner) is that id.

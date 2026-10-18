@@ -341,7 +341,7 @@ Then the record is refused fail-closed and its violation lists scenarios:2 as mi
 
 - [ ] [ac-27] A test re-classifies the committed specs of the four anchors that carry `holdout.json` (FAFF-1197, FAFF-1198, FAFF-1201, FAFF-1279) and asserts, per anchor: for FAFF-1279, whose rows carry ids, every id the record judged as `scenario` or `assertion` is still in the judged set and every id that moved to `delegated` is a `done:N` prose row; for FAFF-1197, FAFF-1198 and FAFF-1201, whose rows carry no ids, the re-classified count of `running-stack` scenarios and assertions is at least the record's count of `scenario` and `assertion` rows.
 - [ ] [ac-28] A refused record whose classify step succeeded carries the classify-derived `delegated[]`; a block whose `criteria` rows lack `id` is refused fail-closed. Tests cover both.
-- [ ] [ac-29] `--describe`, both `evidence-documents.md` copies and graft Step 10 say that delegated prose DONE items rest on the builder-written AC checklist and the review leg, and name FAFF-1339.
+- [ ] [ac-29] `--describe` and both `evidence-documents.md` copies say that delegated prose DONE items rest on the builder-written AC checklist and the review leg, and name FAFF-1339. Graft Step 10 says the same and that nothing yet checks each delegated `ac_id` against the checklist, without a ticket id, because `faff lint-refs` forbids ticket ids in a `SKILL.md`.
 
 - [ ] [ac-30] A spec whose Scenarios are all prose and whose DONE is all prose is not skipped by graft: classify reports `judged_count > 0`, and the holdout aggregate is `needs-human`. A spec whose only checkable DONE items are tiered `integration` is not skipped either. A DONE prose item containing "rollback" is tiered `delegated` with verifier `ac-checklist`.
 - [ ] [ac-31] A delegated row whose DONE text contains a known secret is written redacted, and a row longer than the writer's detail limit is truncated, on both the success and the fail-closed paths.
@@ -366,7 +366,7 @@ PROCEDURE smoke():
   7. faff evidence validate on an anchor dir holding doc   -> no holdout findings
 ```
 
-Revised on 2026-10-18 after 3 spec-review rounds. Split on 2026-10-18: the schema slice and its criteria ac-6, ac-7, ac-8 and ac-23 moved to FAFF-1342; their ids are not reused. The product owner raised the rating from medium to high: the writer's downgrade reason (3 self-review majors) was resolved and no Punt is open.
+Revised on 2026-10-18 after 3 spec-review rounds. Split on 2026-10-18: the schema slice and its criteria ac-6, ac-7, ac-8 and ac-23 moved to FAFF-1342; their ids are not reused. ac-29 was amended on 2026-10-18 by the product owner: graft Step 10 names no ticket id, because `faff lint-refs` forbids one in a `SKILL.md`. The product owner raised the rating from medium to high: the writer's downgrade reason (3 self-review majors) was resolved and no Punt is open.
 
 confidence: high
 build-tier: complex

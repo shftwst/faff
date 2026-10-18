@@ -19,7 +19,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { BUDGET_NON_ATTEMPT_OUTCOMES, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, childOwningSession, classCountsFromUsage, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureRunSpend, readGovernanceConfig, resolveEconomicsPriceMap, sessionOwnedTranscriptFiles, sumTranscriptFile, transcriptBaseDir } = require("./budget");
+const { BUDGET_NON_ATTEMPT_OUTCOMES, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, byModelClassTotal, childOwningSession, classCountsFromUsage, closedSessionsSpend, currentOpenSpan, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureRunSpend, readGovernanceConfig, resolveEconomicsPriceMap, sessionOwnedTranscriptFiles, sumTranscriptFile, transcriptBaseDir } = require("./budget");
 const { unmeteredFleetEngines } = require("./backends");
 const { EFFORT_LEVELS } = require("./events");
 const { dig, findRoot, latestRunDir, readLedger } = require("./shared-infra");
@@ -59,6 +59,22 @@ function economicsAttributeIssue(desc, outcomes) {
 // deferred means this is now the SAME rule `budget.cost` prices from.
 function computeUnitEconomics(ledger, opts) {
   const { tokens_total, tokens_source, price_per_mtok, tokens_at_start, per_issue, pricing, map_cost, map_warnings } = opts;
+  // FAFF-933: resumed-run (multi-epoch) inputs. `has_closed_spans` is the PRESENCE
+  // gate — true when the ledger carries >=1 closed prior-epoch span — and is
+  // deliberately NOT `closed_span_total > 0` (a magnitude): a degraded or
+  // zero-delta prior epoch is still a dropped epoch and must still warn. Every
+  // input defaults to the single-session value, so an existing caller that passes
+  // none of them is byte-for-byte unchanged (no new warning, old warning intact).
+  const hasClosedSpans = opts.has_closed_spans === true;
+  // The MAGNITUDE of the folded prior-epoch spend. It deliberately gates nothing —
+  // every warning below keys off `has_closed_spans` instead — but it is reported on
+  // a resumed run so the reader can see how much of `tokens_total` came from
+  // earlier epochs rather than having to infer that the composition happened.
+  const closedSpanTotal = Number.isFinite(opts.closed_span_total) ? opts.closed_span_total : 0;
+  const closedSpanCount = Number.isFinite(opts.closed_span_count) ? opts.closed_span_count : 0;
+  const epochScopedAxes = opts.epoch_scoped_axes === true;
+  const estimateEpochScoped = opts.estimate_epoch_scoped === true;
+  const degradedCloseSources = Array.isArray(opts.degraded_close_sources) ? opts.degraded_close_sources : [];
   const price = Number.isFinite(price_per_mtok) && price_per_mtok > 0 ? price_per_mtok : 0;
   const total = Number.isFinite(tokens_total) ? tokens_total : 0;
   const resolvedPricing = pricing === "map" ? "map" : "flat";
@@ -96,14 +112,39 @@ function computeUnitEconomics(ledger, opts) {
   const warnings = [];
   // Inflation warning is a transcript-path concern only (the estimate path never
   // uses the tokens_at_start baseline, so a 0 there is not an inflation risk).
-  if (tokens_source === "transcript" && tokens_at_start === 0 && total > 0) {
+  // FAFF-933: ALSO suppressed once a closed span exists. On a resumed run the
+  // total is an explicit composition of measured spans (or, on the estimate path,
+  // a knowingly epoch-scoped estimate) rather than the naive whole-session sum
+  // this warning describes — leaving it firing would train readers to ignore it
+  // on exactly the runs whose totals are now correct. The residual resumed-run
+  // signals are the three presence-gated warnings below.
+  if (tokens_source === "transcript" && tokens_at_start === 0 && total > 0 && !hasClosedSpans) {
     warnings.push("tokens_at_start=0 — run total may be inflated by prior-session history");
+  }
+  // FAFF-933: the residual epoch-scoped surfaces. Each gates on PRESENCE
+  // (`has_closed_spans`), never on magnitude — a silently epoch-scoped figure is
+  // the exact defect this ticket exists to close, so the drop is always named.
+  if (epochScopedAxes) {
+    warnings.push(`resumed run: per-day/mcp/effort/phase and per-issue breakdowns cover the resuming epoch only (${closedSpanCount} prior epoch(s) not reconciled); top-line and per-model/class span all epochs`);
+  }
+  if (estimateEpochScoped) {
+    warnings.push(`resumed run on the estimate fallback: this figure covers the resuming epoch only — ${closedSpanCount} prior epoch(s) with recorded spend cannot be reconciled into a per-attempt estimate (run \`faff budget check\` for the cross-epoch total)`);
+  }
+  if (degradedCloseSources.length) {
+    warnings.push(`resumed run: ${degradedCloseSources.length} folded prior-epoch span(s) were measured with a degraded basis (close_source != transcript: ${degradedCloseSources.join(", ")}); the run-scoped figure may under-count those epochs`);
   }
   if (Array.isArray(map_warnings)) for (const w of map_warnings) warnings.push(w);
 
+  // FAFF-933: the resumed-run composition is named on the blob, but ONLY when a
+  // prior epoch exists — a single-session run emits neither key, so its output
+  // stays byte-for-byte identical (the parity invariant this change inherits).
+  const epochFields = hasClosedSpans
+    ? { closed_span_total: closedSpanTotal, closed_span_count: closedSpanCount }
+    : null;
   return {
     run_id: (ledger && typeof ledger.run_id === "string" && ledger.run_id) || opts.run_id || null,
     tokens_total: total,
+    ...(epochFields || {}),
     tokens_source,
     price_per_mtok: price,
     pricing: resolvedPricing,
@@ -344,7 +385,7 @@ function econAttributeCacheRead(lightRecords) {
 // requested axis' buckets, prices per-model × per-class, and reconciles to the
 // top-line total (`topLineTotal`, the raw measureTokens sum over the SAME files;
 // null for the estimate path). Selftest-coverable like computeUnitEconomics.
-function economicsBreakdown(records, axis, priceMap, topLineTotal, engineSpend = null) {
+function economicsBreakdown(records, axis, priceMap, topLineTotal, engineSpend = null, closedSpendByModel = null) {
   const grandTotal = { total: 0 };
   const byClass = { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 };
   const byModel = new Map();               // model -> {input,output,cache_write_5m,cache_write_1h,cache_read,total}
@@ -403,6 +444,36 @@ function economicsBreakdown(records, axis, priceMap, topLineTotal, engineSpend =
     ? [...engineByModel.values()].reduce((s, c) => s + c.input + c.output + c.cache_write_5m + c.cache_write_1h + c.cache_read, 0)
     : 0;
 
+  // FAFF-933: the resumed-run (multi-epoch) census — Σ per-model deltas over the
+  // ledger's CLOSED prior-epoch spans, keyed by model exactly like `engineByModel`.
+  // It folds into the `class` and `model` axes ONLY: those two retain enough
+  // granularity to stay reconciled to the new top line, while `day`/`mcp`/`effort`/
+  // `phase` have no per-day/per-tool granularity in a closed span and instead carry
+  // the presence-gated coverage warning `computeUnitEconomics` emits. Null/empty on a
+  // single-session run, so every existing breakdown is byte-for-byte unchanged.
+  const closedByModel = closedSpendByModel instanceof Map && closedSpendByModel.size > 0 ? closedSpendByModel : null;
+  const foldsClosedSpans = closedByModel != null && (axis === "class" || axis === "model");
+  const closedFolded = foldsClosedSpans
+    ? [...closedByModel.values()].reduce((s, c) => s + (Number(c.input) || 0) + (Number(c.output) || 0)
+      + (Number(c.cache_write_5m) || 0) + (Number(c.cache_write_1h) || 0) + (Number(c.cache_read) || 0), 0)
+    : 0;
+  // The extra per-model censuses the `class` axis prices alongside the transcript
+  // half. Each is priced at ITS OWN model (never the transcript's dominant model),
+  // the same anti-cross-engine-pricing guarantee FAFF-640 established.
+  const extraByModelCensuses = [];
+  if (engineFolded > 0 && engineByModel) extraByModelCensuses.push(engineByModel);
+  if (foldsClosedSpans) extraByModelCensuses.push(closedByModel);
+  // FAFF-933: the census basis names EVERY source that contributed, so a mixed-fleet
+  // resumed run cannot report "transcript+engine-spend" while silently also carrying
+  // folded prior epochs — the same never-unnamed rule this ticket applies to the
+  // surfaces that cannot span. Both absent yields the bare "transcript", and an
+  // engine-only run yields the pre-existing "transcript+engine-spend", so every
+  // previously-emitted value is unchanged.
+  const censusBasis = ["transcript"]
+    .concat(engineFolded > 0 ? ["engine-spend"] : [])
+    .concat(closedFolded > 0 ? ["closed-spans"] : [])
+    .join("+");
+
   if (axis === "class") {
     // one row per class, fixed order; priced at the run's dominant model, named.
     // "unknown" (no model field on any record) is not a pricing basis — surface it
@@ -414,26 +485,29 @@ function economicsBreakdown(records, axis, priceMap, topLineTotal, engineSpend =
       const transcriptCost = price ? (transcriptCount / 1e6) * price[cls] : null;
       let total = transcriptCount;
       let cost = transcriptCost;
-      if (engineFolded > 0) {
+      if (extraByModelCensuses.length) {
         // FAFF-640: never price one engine's tokens at another engine's (or the
-        // transcript's dominant model's) rate — sum the engine half PER ITS OWN
+        // transcript's dominant model's) rate — sum each extra census PER ITS OWN
         // model, priced independently, then add to the transcript half. `cost`
         // becomes null (never a confident understatement) when either half
         // carries tokens it cannot price.
-        let engineCount = 0, engineCost = 0, engineUnpriced = false;
-        if (engineByModel) {
-          for (const [model, counts] of engineByModel) {
-            const v = counts[cls] || 0;
-            engineCount += v;
+        // FAFF-933: the closed prior-epoch span census rides the SAME loop — this
+        // IS the model->class projection the `class` axis needs (it has no model
+        // rows), summing each token class across all models.
+        let extraCount = 0, extraCost = 0, extraUnpriced = false;
+        for (const census of extraByModelCensuses) {
+          for (const [model, counts] of census) {
+            const v = Number(counts[cls]) || 0;
+            extraCount += v;
             if (v > 0) {
-              const enginePrice = economicsPriceForModel(model, priceMap);
-              if (enginePrice) engineCost += (v / 1e6) * enginePrice[cls];
-              else engineUnpriced = true;
+              const extraPrice = economicsPriceForModel(model, priceMap);
+              if (extraPrice) extraCost += (v / 1e6) * extraPrice[cls];
+              else extraUnpriced = true;
             }
           }
         }
-        total = transcriptCount + engineCount;
-        cost = (transcriptCost == null || engineUnpriced) ? null : transcriptCost + engineCost;
+        total = transcriptCount + extraCount;
+        cost = (transcriptCost == null || extraUnpriced) ? null : transcriptCost + extraCost;
       }
       const one = { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0, total };
       one[cls] = total;
@@ -442,7 +516,10 @@ function economicsBreakdown(records, axis, priceMap, topLineTotal, engineSpend =
       // both censuses, so it carries the same per-row vocabulary the model axis
       // uses. A transcript-only run (engineFolded === 0) carries no `source` key
       // at all — the byte-identical guarantee.
-      if (engineFolded > 0) row.source = "transcript+engine-spend";
+      // FAFF-933: a closed-span fold names itself the same way, so a resumed run's
+      // row says it aggregates prior epochs rather than claiming one session — and
+      // a run carrying BOTH censuses names both rather than only the engine half.
+      if (engineFolded > 0 || closedFolded > 0) row.source = censusBasis;
       return row;
     });
   } else if (axis === "model") {
@@ -457,7 +534,34 @@ function economicsBreakdown(records, axis, priceMap, topLineTotal, engineSpend =
         return { ...mkRow(model, b, model), source: "exec-json-events" };
       })
       : [];
-    rows = [...byModel.entries()].map(([model, b]) => (engineRows.length
+    // FAFF-933: the closed prior-epoch spans fold ROW-FOR-ROW by model (the model
+    // axis IS keyed by model, so no projection is needed) — accumulated onto the
+    // open-span walk's row for that model, or creating a new row for a model that
+    // only appears in an earlier epoch (otherwise that epoch's whole model would
+    // vanish from the breakdown while counting in the top line).
+    const closedMerged = new Map();
+    if (foldsClosedSpans) {
+      for (const [model, counts] of closedByModel) {
+        const acc = closedMerged.get(model) || mkc();
+        for (const cls of TOKEN_DELTA_CLASSES) {
+          const v = Number(counts[cls]) || 0;
+          acc[cls] += v;
+          acc.total += v;
+        }
+        closedMerged.set(model, acc);
+      }
+    }
+    const transcriptModels = new Map(byModel);
+    for (const [model, acc] of closedMerged) {
+      const b = transcriptModels.get(model);
+      if (b) {
+        for (const cls of TOKEN_DELTA_CLASSES) b[cls] += acc[cls];
+        b.total += acc.total;
+      } else {
+        transcriptModels.set(model, acc);
+      }
+    }
+    rows = [...transcriptModels.entries()].map(([model, b]) => (engineRows.length
       ? { ...mkRow(model, b, model), source: "transcript-jsonl" }
       : mkRow(model, b, model)));
     rows = rows.concat(engineRows).sort((a, b) => b.total - a.total || (a.key < b.key ? -1 : 1));
@@ -505,7 +609,13 @@ function economicsBreakdown(records, axis, priceMap, topLineTotal, engineSpend =
   // FAFF-604/FAFF-640: every axis' reconciliation target now includes the engine
   // half (the axis === "model" gate is gone) — an axis that reconciles against
   // the top line must measure the same population the top line does.
-  const target = (typeof topLineTotal === "number") ? topLineTotal + engineFolded : null;
+  // FAFF-933: `closedFolded` is non-zero only on the two axes that actually folded
+  // the closed spans (class/model), so each axis still reconciles against exactly
+  // the population IT measured. On a resumed run the class/model target therefore
+  // tracks the epoch-spanning top line, while day/mcp/effort/phase keep reconciling
+  // to their own resuming-epoch population and carry the coverage warning instead —
+  // which is precisely the promise `docs/guide/cli.md` now makes.
+  const target = (typeof topLineTotal === "number") ? topLineTotal + engineFolded + closedFolded : null;
   const reconciliation = {
     grand_total: grand,
     top_line_total: target,
@@ -513,7 +623,7 @@ function economicsBreakdown(records, axis, priceMap, topLineTotal, engineSpend =
   };
   // `source` names the axis' census basis: a model-axis breakdown that folded in
   // engine spend drew on both, and says so rather than claiming transcript alone.
-  const out = { axis, source: engineFolded > 0 ? "transcript+engine-spend" : "transcript", rows, reconciliation };
+  const out = { axis, source: censusBasis, rows, reconciliation };
   if (axis === "class") out.priced_at_model = pricedAtModel;
   return out;
 }
@@ -1071,8 +1181,12 @@ function cmdEconomics(args) {
   // measure functions below (never process.env itself, never written into any
   // event/ledger field) — a selector, not a payload; non-leak by construction.
   // Absent ⇒ effectiveEnv IS process.env, byte-for-byte today's resolution.
+  // FAFF-933: `effectiveEnv` is no longer resolved here — the FAFF-560 precedence
+  // it now follows needs the ledger (for the open span's own session_id), so it is
+  // resolved below, immediately after the ledger is read. Same posture either way:
+  // a selector overlaid only onto the throwaway env handed to the measure
+  // functions, never process.env, never any event/ledger field.
   const sessionIdFlag = get("--session-id");
-  const effectiveEnv = sessionIdFlag ? { ...process.env, CLAUDE_CODE_SESSION_ID: sessionIdFlag } : process.env;
 
   // FAFF-410: optional `--by <axis>` breakdown. Fail-loud on an unrecognised axis
   // (mirrors validateModelLane) — never a silent default.
@@ -1093,6 +1207,43 @@ function cmdEconomics(args) {
   try { ledger = readLedger(runDir); }
   catch { process.stderr.write(`faff economics: cannot read ${path.join(runDir, "run-ledger.json")}\n`); return 2; }
 
+  // FAFF-933: a run resumed across epochs is ONE run made of several sessions,
+  // each with its own transcript. FAFF-527 records every prior epoch in the
+  // ledger as a CLOSED span carrying its measured per-model delta, and
+  // `budget check` already sums Σ closed spans + the current open span.
+  // Economics was deliberately left out of that mechanism (FAFF-560 scoped it to
+  // `budget check`: "A later slice may unify them; not this one") and so reported
+  // only the resuming epoch, silently dropping every earlier one. This is that
+  // later slice: it consumes the SAME already-on-disk accumulation via the SAME
+  // pure helpers, rather than computing epoch spend a second, drift-prone way.
+  const budgetSessions = (ledger.budget && Array.isArray(ledger.budget.sessions) && ledger.budget.sessions.length)
+    ? ledger.budget.sessions : null;
+  // FAFF-560 precedence, mirrored exactly: --session-id flag (FAFF-488 explicit
+  // override — always wins) > the open span's OWN session_id (a resumed run's
+  // current owning session; the mint-time field is stale the instant a resume has
+  // happened, and the open span's baseline was measured against ITS OWN sid, so
+  // the subtraction below must compare the same transcript) > the persisted
+  // mint-time measure_session_id > ambient. All four absent ⇒ effectiveEnv IS
+  // process.env, byte-for-byte today's ambient resolution.
+  const openSpanSessionId = budgetSessions ? ((currentOpenSpan(budgetSessions) || {}).session_id || null) : null;
+  const measureSessionId = sessionIdFlag || openSpanSessionId || (ledger.budget && ledger.budget.measure_session_id) || null;
+  const effectiveEnv = measureSessionId ? { ...process.env, CLAUDE_CODE_SESSION_ID: measureSessionId } : process.env;
+
+  const closedSpend = budgetSessions ? closedSessionsSpend(budgetSessions) : { total: 0, byModel: new Map() };
+  // PRESENCE, not magnitude. A closed span whose measured delta is 0 (a degraded
+  // or genuinely-zero prior epoch) adds nothing to the top line but is still a
+  // dropped epoch on the surfaces that cannot span — so every coverage warning
+  // gates on this, never on `closedSpend.total > 0`.
+  const closedSpans = budgetSessions ? budgetSessions.filter((s) => s && s.closed_delta_by_model_class != null) : [];
+  const hasClosedSpans = closedSpans.length > 0;
+  // Provenance thread: a span closed with a non-transcript basis may be under- or
+  // zero-counted. Its delta is still the best available measure and is still
+  // folded, but the figure's basis is NAMED rather than quietly trusted. A span
+  // missing `close_source` reads as non-transcript — the safe direction.
+  const degradedCloseSources = closedSpans
+    .filter((s) => s.close_source !== "transcript")
+    .map((s) => s.session_id || s.close_source || "unknown");
+
   const cfg = readGovernanceConfig(root);
   // Same price source budget check reads: a ledger-recorded envelope if present,
   // else fresh from config. No ceiling flags — economics reports, never gates.
@@ -1104,7 +1255,26 @@ function cmdEconomics(args) {
 
   const ownerStart = ledger.owner && ledger.owner.started_at ? Date.parse(ledger.owner.started_at) : null;
   const runStartMs = Number.isFinite(ownerStart) ? ownerStart : null;
-  const tokensAtStart = (ledger.budget && typeof ledger.budget.tokens_at_start === "number") ? ledger.budget.tokens_at_start : 0;
+  let tokensAtStart = (ledger.budget && typeof ledger.budget.tokens_at_start === "number") ? ledger.budget.tokens_at_start : 0;
+  // FAFF-933: the per-model baseline is resolved here (it was read inline at the
+  // map-pricing block) so the open-span rebaseline below can move BOTH the scalar
+  // and the per-model baseline together — they must describe the same instant.
+  let tokensAtStartByModel = (ledger.budget && ledger.budget.tokens_at_start_by_model_class
+    && typeof ledger.budget.tokens_at_start_by_model_class === "object" && !Array.isArray(ledger.budget.tokens_at_start_by_model_class))
+    ? ledger.budget.tokens_at_start_by_model_class : null;
+  // FAFF-933 (mirror budget.js): on a resumed run the OPEN span's baseline replaces
+  // the mint baseline as the current-span subtraction basis — it was measured at the
+  // resume instant against the resuming session's sid, which is the session
+  // `effectiveEnv` now meters. Guarded by the same plain-object check budget.js uses;
+  // on failure the mint baseline stands (no worse than today). Absent a sessions
+  // array this is a no-op, so single-session runs keep today's math exactly.
+  if (budgetSessions) {
+    const open = currentOpenSpan(budgetSessions);
+    if (open && open.baseline_by_model_class && typeof open.baseline_by_model_class === "object" && !Array.isArray(open.baseline_by_model_class)) {
+      tokensAtStartByModel = open.baseline_by_model_class;
+      tokensAtStart = byModelClassTotal(open.baseline_by_model_class);
+    }
+  }
 
   // Reuse budget check's EXACT token path — but via the per-model resolver
   // (FAFF-427), the ONE walk that also carries what map pricing needs. Its
@@ -1122,13 +1292,33 @@ function cmdEconomics(args) {
     ? (measured.totals.input + measured.totals.output + measured.totals.cache_write_5m + measured.totals.cache_write_1h + measured.totals.cache_read)
     : null;
   let tokensTotal, tokensSource;
+  // FAFF-933: `estimateEpochScoped` names the one path that CANNOT span epochs.
+  let estimateEpochScoped = false;
+  // FAFF-933: the THIS-EPOCH transcript delta, kept separately from the run-scoped
+  // `tokensTotal` because two downstream consumers must stay epoch-scoped — the
+  // `spend_sources` figure that names what the transcript census itself measured,
+  // and the numerator of the pro-rate `scale` below (a run-scoped numerator over an
+  // epoch-scoped denominator would exceed 1 and inflate every model's priced delta).
+  let transcriptPortion;
   if (measuredSource === "transcript") {
-    tokensTotal = Math.max(0, measuredTotal - tokensAtStart);
+    // THE FIX: this-epoch delta + Σ closed prior-epoch spans = the run-scoped
+    // total, the same figure `budget check` reports. Zero when no sessions array
+    // is present, so a single-session run is byte-for-byte today's total.
+    transcriptPortion = Math.max(0, measuredTotal - tokensAtStart);
+    tokensTotal = transcriptPortion + closedSpend.total;
     tokensSource = "transcript";
   } else {
     const estPer = Number(dig(cfg, "budget.est_tokens_per_attempt")) || 200000;
     tokensTotal = attemptsFromLedger(ledger) * estPer;
     tokensSource = "estimate";
+    transcriptPortion = tokensTotal;   // unchanged on this path (no transcript census to scope)
+    // The estimate path replaces the total entirely with attempts x est_per, so
+    // `closedSpend.total` is deliberately NOT added — a measured token sum and a
+    // per-attempt estimate are different units, and mixing them is incoherent.
+    // But closed spans can still EXIST (the resuming epoch's transcript is gone,
+    // the prior epochs' durable ledger deltas are not), so the drop is NAMED
+    // rather than silent: this flag drives the coverage warning below.
+    estimateEpochScoped = hasClosedSpans;
   }
 
   // FAFF-604 — the second spend source. Engine-spend records are run-scoped, so
@@ -1139,7 +1329,6 @@ function cmdEconomics(args) {
   const engineSpend = runSpend.engine_spend;
   const engineSpendTotal = engineSpend.totals.input + engineSpend.totals.output
     + engineSpend.totals.cache_write_5m + engineSpend.totals.cache_write_1h + engineSpend.totals.cache_read;
-  const transcriptPortion = tokensTotal;
   tokensTotal += engineSpendTotal;
 
   // Per-issue attribution is transcript-only (the estimate path has no
@@ -1197,15 +1386,21 @@ function cmdEconomics(args) {
     mapWarnings.push(`${engineSpend.malformed} malformed line(s) skipped in engine-spend.jsonl — engine spend may be under-reported`);
   }
   if (env.pricing === "map" && measuredSource === "transcript") {
-    const baseByModel = (ledger.budget && ledger.budget.tokens_at_start_by_model_class
-      && typeof ledger.budget.tokens_at_start_by_model_class === "object" && !Array.isArray(ledger.budget.tokens_at_start_by_model_class))
-      ? ledger.budget.tokens_at_start_by_model_class : null;
+    // FAFF-933: resolved once above (and rebaselined to the open span on a resumed
+    // run) rather than re-read from the mint field here — otherwise the cost would
+    // subtract the mint baseline while the token total subtracted the resume one.
+    const baseByModel = tokensAtStartByModel;
     // FAFF-604: the pro-rate scale is the TRANSCRIPT portion over the transcript
     // measurement — engine spend is measured per-record and never pro-rated, so
     // folding it into this ratio would inflate every transcript model's delta.
     const scale = measuredTotal > 0 ? transcriptPortion / measuredTotal : 0;
-    let priced = 0, anyPriced = false;
-    const unpriced = [];
+    // FAFF-933 (mirror budget.js:1052-1058): build the per-model this-epoch delta
+    // FIRST, then fold the closed prior-epoch spans into it, and price the union —
+    // so `cost_total` spans epochs exactly as `tokens_total` now does. Pricing
+    // after the fold (rather than pricing two halves separately) is what keeps a
+    // model that appears in BOTH an earlier epoch and this one priced once, at its
+    // own rate, with no second pricing path to drift from.
+    const deltaByModel = new Map();
     for (const [model, counts] of measured.by_model) {
       const delta = {};
       if (baseByModel) {
@@ -1214,6 +1409,19 @@ function cmdEconomics(args) {
       } else {
         for (const cls of TOKEN_DELTA_CLASSES) delta[cls] = (counts[cls] || 0) * scale;
       }
+      deltaByModel.set(model, delta);
+    }
+    // A closed-span model absent from this epoch's walk gets its own entry —
+    // otherwise that epoch's whole model would count in the token total yet
+    // contribute nothing to the dollar figure.
+    for (const [model, counts] of closedSpend.byModel) {
+      const existing = deltaByModel.get(model) || { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 };
+      for (const cls of TOKEN_DELTA_CLASSES) existing[cls] = (Number(existing[cls]) || 0) + (Number(counts[cls]) || 0);
+      deltaByModel.set(model, existing);
+    }
+    let priced = 0, anyPriced = false;
+    const unpriced = [];
+    for (const [model, delta] of deltaByModel) {
       const rate = economicsPriceForModel(model, priceMap);
       if (!rate) { if (TOKEN_DELTA_CLASSES.some((cls) => delta[cls] > 0)) unpriced.push(model); continue; }
       for (const cls of TOKEN_DELTA_CLASSES) priced += (delta[cls] / 1e6) * rate[cls];
@@ -1239,10 +1447,19 @@ function cmdEconomics(args) {
   const combinedMapCost = (mapCost == null && engineMapCost == null) ? null
     : (mapCost || 0) + (engineMapCost || 0);
 
+  // FAFF-933: the fine `--by` axes and `per_issue` cannot span epochs — a closed
+  // span retains per-model x per-class deltas only, with no per-day/per-tool/
+  // per-issue granularity. Where a surface cannot span, the epoch-scoping is NAMED
+  // (never silently dropped), gated on the PRESENCE of a prior epoch.
+  const epochScopedAxes = hasClosedSpans
+    && (["day", "mcp", "effort", "phase"].includes(byAxis) || perIssue.length > 0);
   const econ = computeUnitEconomics(ledger, {
     tokens_total: tokensTotal, tokens_source: tokensSource, price_per_mtok: price,
     tokens_at_start: tokensAtStart, per_issue: perIssue, run_id: path.basename(runDir),
     pricing: env.pricing, map_cost: combinedMapCost, map_warnings: mapWarnings,
+    closed_span_total: closedSpend.total, has_closed_spans: hasClosedSpans,
+    closed_span_count: closedSpans.length, epoch_scoped_axes: epochScopedAxes,
+    estimate_epoch_scoped: estimateEpochScoped, degraded_close_sources: degradedCloseSources,
   });
 
   // FAFF-604 — additive metering-provenance labels, so a mixed-fleet run reports
@@ -1321,7 +1538,10 @@ function cmdEconomics(args) {
     if (byAxis === "mcp") {
       bd = economicsMcpBreakdown(records, priceMap, economicsDominantModel(records));
     } else {
-      bd = economicsBreakdown(records, byAxis, priceMap, measuredTotal, engineSpend);
+      // FAFF-933: `closedSpend.byModel` rides through so the class/model axes can
+      // fold the prior epochs and stay reconciled to the epoch-spanning top line.
+      // The breakdown itself decides which axes fold — day/mcp/effort/phase never do.
+      bd = economicsBreakdown(records, byAxis, priceMap, measuredTotal, engineSpend, closedSpend.byModel);
     }
   }
 

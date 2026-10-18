@@ -1354,3 +1354,384 @@ test("FAFF-641 REGRESSION: a transcript-only --by model table renders byte-ident
     assert.ok(!/\bsource\s*$/m.test(lines[1]), "no source column header on a single-source run");
   } finally { f.cleanup(); }
 });
+
+// ---------------------------------------------------------------------------
+// FAFF-933 — a run resumed across epochs reports WHOLE-RUN spend, not just the
+// resuming epoch's. `budget check` already sums Σ closed prior-epoch spans + the
+// open span (FAFF-527/560/594); economics was deliberately left out of that
+// mechanism and so silently dropped every earlier epoch. These pin the fix
+// end-to-end through the CLI over a synthetic 2-epoch ledger fixture (the shape
+// `test/budget.test.mjs`'s FAFF-594 resume case uses), never the ticket's
+// illustrative dollar figures.
+// ---------------------------------------------------------------------------
+
+// A closed prior-epoch span: `closed_delta_by_model_class` non-null is what makes
+// it "closed" (and so a PRIOR epoch), independent of the delta's magnitude.
+const closedSpan = (sid, model, counts, over = {}) => ({
+  session_id: sid,
+  baseline_by_model_class: {},
+  closed_at: "2026-08-29T13:34:00Z",
+  close_source: "transcript",
+  closed_delta_by_model_class: { [model]: { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0, ...counts } },
+  ...over,
+});
+// The resuming epoch: exactly one span with a null delta is the open span.
+const openSpan = (sid, over = {}) => ({
+  session_id: sid, baseline_by_model_class: {}, closed_at: null, close_source: null,
+  closed_delta_by_model_class: null, ...over,
+});
+// The canonical 2-epoch fixture: epoch-0 closed at 500 tokens, epoch-1 open.
+const twoEpochLedger = (sessions) => baseLedger({ budget: { tokens_at_start: 0, sessions } });
+const EPOCH0_500 = closedSpan("epoch-0", "claude-opus-4-8", { input: 400, output: 100 });
+
+test("FAFF-933 INTEGRATION: a resumed 2-epoch run reports the RUN-scoped total (closed 500 + open 100 = 600), not the resuming epoch's 100 alone", () => {
+  const f = fixture({ rc: null, ledger: twoEpochLedger([EPOCH0_500, openSpan("epoch-1")]) });
+  try {
+    const cfg = withRecords(f.root, f.root, "epoch-1", {
+      "epoch-1.jsonl": [{ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 80, output_tokens: 20 } }, timestamp: "2026-08-29T15:00:00Z" }],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "epoch-1" });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    assert.equal(e.tokens_source, "transcript");
+    // The regression this ticket exists to close: a pre-fix economics reported 100.
+    assert.equal(e.tokens_total, 600, "closed prior-epoch span must be folded into the run total");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-933: session PRECEDENCE meters the open span's own session — a resumed run is correct with NO ambient CLAUDE_CODE_SESSION_ID set", () => {
+  const f = fixture({ rc: null, ledger: twoEpochLedger([EPOCH0_500, openSpan("epoch-1")]) });
+  try {
+    const cfg = withRecords(f.root, f.root, "epoch-1", {
+      "epoch-1.jsonl": [{ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 80, output_tokens: 20 } }, timestamp: "2026-08-29T15:00:00Z" }],
+    });
+    // No CLAUDE_CODE_SESSION_ID — pre-fix this fell through to the ambient (absent)
+    // session and degraded to the estimate path, losing the measurement entirely.
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--json"], { CLAUDE_CONFIG_DIR: cfg });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    assert.equal(e.tokens_source, "transcript", "the open span's session_id is the meter target, not the ambient env");
+    assert.equal(e.tokens_total, 600);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-933 INTEGRATION: economics and `budget check` agree on tokens across the resume boundary — the two governance surfaces no longer disagree by the dropped epochs", () => {
+  const rc = "budget:\n  tokens: 100000\n";
+  const sessions = [EPOCH0_500, openSpan("epoch-1")];
+  const a = fixture({ rc, ledger: twoEpochLedger(sessions) });
+  try {
+    const cfg = withRecords(a.root, a.root, "epoch-1", {
+      "epoch-1.jsonl": [{ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 80, output_tokens: 20 } }, timestamp: "2026-08-29T15:00:00Z" }],
+    });
+    const env = { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "epoch-1" };
+    const re = run(["economics", "--run-dir", a.runDir, "--root", a.root, "--json"], env);
+    const rb = run(["budget", "check", "--run-dir", a.runDir, "--root", a.root], env);
+    assert.equal(re.code, 0, re.err);
+    assert.equal(rb.code, 0, rb.err);
+    const e = JSON.parse(re.out);
+    const b = JSON.parse(rb.out);
+    assert.equal(b.spent.tokens, 600, "budget check's own cross-epoch total (the reference)");
+    assert.equal(e.tokens_total, b.spent.tokens, "economics must match budget check on the same resumed run");
+  } finally { a.cleanup(); }
+});
+
+test("FAFF-933 PARITY: a single-session run (no budget.sessions, or one all-open span) is byte-for-byte unchanged — no rebaseline, no fold, no resumed-run warning", () => {
+  const rc = null;
+  const noSessions = fixture({ rc, ledger: baseLedger({ budget: { tokens_at_start: 0 } }) });
+  const allOpen = fixture({ rc, ledger: twoEpochLedger([openSpan("sess-1")]) });
+  try {
+    const recs = { "sess-1.jsonl": [{ message: { model: "claude-opus-4-8", usage: { input_tokens: 100, output_tokens: 50 } }, timestamp: "2026-07-01T10:00:00Z" }] };
+    const cfgA = withRecords(noSessions.root, noSessions.root, "sess-1", recs);
+    const cfgB = withRecords(allOpen.root, allOpen.root, "sess-1", recs);
+    const rA = run(["economics", "--run-dir", noSessions.runDir, "--root", noSessions.root, "--json"],
+      { CLAUDE_CONFIG_DIR: cfgA, CLAUDE_CODE_SESSION_ID: "sess-1" });
+    const rB = run(["economics", "--run-dir", allOpen.runDir, "--root", allOpen.root, "--json"],
+      { CLAUDE_CONFIG_DIR: cfgB, CLAUDE_CODE_SESSION_ID: "sess-1" });
+    assert.equal(rA.code, 0, rA.err);
+    assert.equal(rB.code, 0, rB.err);
+    // Both fixtures carry the same run_id and the same draw, so a sessions array
+    // holding only an OPEN span must produce the identical bytes — it is a fresh
+    // single-epoch run merely recorded in the newer shape, nothing dropped.
+    assert.equal(rB.out, rA.out, "an all-open sessions array must not change a single-session run's output");
+    const e = JSON.parse(rA.out);
+    assert.equal(e.tokens_total, 150);
+    assert.ok(!e.warnings.some((w) => /resumed run/.test(w)), "no resumed-run warning on a single-session run");
+  } finally { noSessions.cleanup(); allOpen.cleanup(); }
+});
+
+test("FAFF-933 INTEGRATION: --by model folds the closed span ROW-FOR-ROW and reconciles to the epoch-spanning top line; the earlier epoch's model is not lost", () => {
+  const f = fixture({ rc: null, ledger: twoEpochLedger([EPOCH0_500, openSpan("epoch-1")]) });
+  try {
+    const cfg = withRecords(f.root, f.root, "epoch-1", {
+      "epoch-1.jsonl": [{ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 80, output_tokens: 20 } }, timestamp: "2026-08-29T15:00:00Z" }],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "model", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "epoch-1" });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    assert.equal(e.tokens_total, 600);
+    const bd = e.breakdown;
+    assert.equal(bd.axis, "model");
+    assert.equal(bd.reconciliation.grand_total, 600);
+    assert.equal(bd.reconciliation.top_line_total, 600);
+    assert.equal(bd.reconciliation.reconciles, true, "the model axis must reconcile after the closed-span fold");
+    const byKey = Object.fromEntries(bd.rows.map((x) => [x.key, x]));
+    // epoch-0's model appears ONLY in the closed span — a fold that skipped it
+    // would count its 500 tokens in the top line while hiding them in the rows.
+    assert.ok(byKey["claude-opus-4-8"], "the closed span's model must appear as a row");
+    assert.equal(byKey["claude-opus-4-8"].total, 500);
+    assert.equal(byKey["claude-sonnet-4-6"].total, 100);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-933 INTEGRATION: --by class folds the closed span via the model->class projection (summed across models) and reconciles to the epoch-spanning top line", () => {
+  const f = fixture({ rc: null, ledger: twoEpochLedger([EPOCH0_500, openSpan("epoch-1")]) });
+  try {
+    const cfg = withRecords(f.root, f.root, "epoch-1", {
+      "epoch-1.jsonl": [{ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 80, output_tokens: 20 } }, timestamp: "2026-08-29T15:00:00Z" }],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "class", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "epoch-1" });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    const bd = e.breakdown;
+    assert.equal(bd.axis, "class");
+    assert.equal(bd.reconciliation.grand_total, 600);
+    assert.equal(bd.reconciliation.top_line_total, 600);
+    assert.equal(bd.reconciliation.reconciles, true, "the class axis must reconcile after the model->class projection fold");
+    const byKey = Object.fromEntries(bd.rows.map((x) => [x.key, x]));
+    // The class axis has no model rows: epoch-0's 400 input / 100 output are summed
+    // ACROSS models into the per-class rows alongside the open span's 80 / 20.
+    assert.equal(byKey.input.total, 480);
+    assert.equal(byKey.output.total, 120);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-933 INTEGRATION: --by day does NOT fold (no per-day granularity in a closed span) and NAMES its epoch-scoping in a warning — never a silent drop", () => {
+  const f = fixture({ rc: null, ledger: twoEpochLedger([EPOCH0_500, openSpan("epoch-1")]) });
+  try {
+    const cfg = withRecords(f.root, f.root, "epoch-1", {
+      "epoch-1.jsonl": [{ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 80, output_tokens: 20 } }, timestamp: "2026-08-29T15:00:00Z" }],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "day", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "epoch-1" });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    assert.equal(e.tokens_total, 600, "the top line still spans epochs");
+    assert.ok(e.warnings.some((w) => /resumed run: per-day\/mcp\/effort\/phase/.test(w) && /1 prior epoch\(s\) not reconciled/.test(w)),
+      `expected the per-day coverage warning naming the prior epoch count, got ${JSON.stringify(e.warnings)}`);
+    // The day axis still reconciles against the population IT measures (the
+    // resuming epoch), which is exactly what docs/guide/cli.md now promises.
+    assert.equal(e.breakdown.reconciliation.grand_total, 100);
+    assert.equal(e.breakdown.reconciliation.top_line_total, 100);
+    assert.equal(e.breakdown.reconciliation.reconciles, true);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-933 INTEGRATION: the estimate fallback does NOT fold a measured span sum into a per-attempt estimate, but NAMES the prior epochs it cannot reconcile", () => {
+  const f = fixture({ rc: null, ledger: twoEpochLedger([EPOCH0_500, openSpan("epoch-1")]) });
+  try {
+    // The resuming epoch's transcript is gone (no epoch-1.jsonl) — but the prior
+    // epoch's durable ledger delta is not, so the drop must still be named.
+    const cfg = withRecords(f.root, f.root, "epoch-1", {});
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "epoch-1" });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    assert.equal(e.tokens_source, "estimate");
+    // 1 attempt x the 200000 default — the closed span's 500 is NOT mixed in
+    // (a measured token sum and a per-attempt estimate are different units).
+    assert.equal(e.tokens_total, 200000);
+    assert.ok(e.warnings.some((w) => /resumed run on the estimate fallback/.test(w) && /1 prior epoch\(s\)/.test(w) && /budget check/.test(w)),
+      `expected the estimate-path coverage warning, got ${JSON.stringify(e.warnings)}`);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-933 INTEGRATION: a ZERO-delta closed span still fires the coverage warning — the gate is the PRESENCE of a prior epoch, never closed_span_total > 0", () => {
+  const zeroSpan = closedSpan("epoch-0", "m1", {});   // every class 0 -> closedSpend.total === 0
+  const f = fixture({ rc: null, ledger: twoEpochLedger([zeroSpan, openSpan("epoch-1")]) });
+  try {
+    const cfg = withRecords(f.root, f.root, "epoch-1", {
+      "epoch-1.jsonl": [{ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 80, output_tokens: 20 } }, timestamp: "2026-08-29T15:00:00Z" }],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "day", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "epoch-1" });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    assert.equal(e.tokens_total, 100, "a zero-delta span adds nothing to the top line");
+    assert.ok(e.warnings.some((w) => /resumed run: per-day\/mcp\/effort\/phase/.test(w)),
+      `a zero-delta prior epoch must NOT suppress the coverage warning, got ${JSON.stringify(e.warnings)}`);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-933: the tokens_at_start=0 inflation warning is SUPPRESSED on a resumed run (the total is a measured composition, not a naive whole-session sum)", () => {
+  const f = fixture({ rc: null, ledger: twoEpochLedger([EPOCH0_500, openSpan("epoch-1")]) });
+  try {
+    const cfg = withRecords(f.root, f.root, "epoch-1", {
+      "epoch-1.jsonl": [{ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 80, output_tokens: 20 } }, timestamp: "2026-08-29T15:00:00Z" }],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "epoch-1" });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    assert.ok(!e.warnings.some((w) => /inflated by prior-session history/.test(w)),
+      `the inflation warning must not fire on a resumed run, got ${JSON.stringify(e.warnings)}`);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-933: a single-session run with tokens_at_start=0 STILL emits the inflation warning — the refinement narrows it, never removes it", () => {
+  const f = fixture({ rc: null, ledger: baseLedger({ budget: { tokens_at_start: 0 } }) });
+  try {
+    const cfg = withRecords(f.root, f.root, "sess-1", {
+      "sess-1.jsonl": [{ message: { model: "claude-opus-4-8", usage: { input_tokens: 100 } }, timestamp: "2026-07-01T10:00:00Z" }],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "sess-1" });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    assert.ok(e.warnings.some((w) => /inflated by prior-session history/.test(w)),
+      `the single-session inflation case must be unchanged, got ${JSON.stringify(e.warnings)}`);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-933: a folded span measured with a DEGRADED basis (close_source != transcript) raises a provenance warning naming it", () => {
+  const degraded = closedSpan("epoch-0", "claude-opus-4-8", { input: 400, output: 100 }, { close_source: "degraded" });
+  const f = fixture({ rc: null, ledger: twoEpochLedger([degraded, openSpan("epoch-1")]) });
+  try {
+    const cfg = withRecords(f.root, f.root, "epoch-1", {
+      "epoch-1.jsonl": [{ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 80, output_tokens: 20 } }, timestamp: "2026-08-29T15:00:00Z" }],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "epoch-1" });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    // The delta is still folded (it is the best available measure) — only its
+    // BASIS is named, so the reader can see why the figure may under-count.
+    assert.equal(e.tokens_total, 600);
+    assert.ok(e.warnings.some((w) => /degraded basis/.test(w) && /epoch-0/.test(w)),
+      `expected the degraded-provenance warning, got ${JSON.stringify(e.warnings)}`);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-933: --session-id still OVERRIDES the open span's session (the FAFF-488 contract is preserved at the top of the precedence)", () => {
+  const f = fixture({ rc: null, ledger: twoEpochLedger([EPOCH0_500, openSpan("epoch-1")]) });
+  try {
+    const cfg = withRecords(f.root, f.root, "other-sess", {
+      "other-sess.jsonl": [{ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 70 } }, timestamp: "2026-08-29T15:00:00Z" }],
+      "epoch-1.jsonl": [{ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 80, output_tokens: 20 } }, timestamp: "2026-08-29T15:00:00Z" }],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--session-id", "other-sess", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "epoch-1" });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    assert.equal(e.tokens_source, "transcript");
+    // 70 from the flag-named session (NOT epoch-1's 100) + the closed span's 500.
+    assert.equal(e.tokens_total, 570, "the explicit flag must win over the open span's session_id");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-933: the OPEN span's baseline rebaselines the subtraction — a stale mint tokens_at_start no longer governs a resumed run", () => {
+  // The mint-time scalar (999999) is stale the instant a resume happens; the open
+  // span's own baseline (30) was measured at the resume instant against the session
+  // being metered. Without the rebaseline, max(0, 100 - 999999) + 500 would report
+  // 500; with it, max(0, 100 - 30) + 500 reports 570 — so the number distinguishes
+  // the two implementations rather than passing under either.
+  const open = openSpan("epoch-1", { baseline_by_model_class: { "claude-sonnet-4-6": { input: 30, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 } } });
+  const f = fixture({ rc: null, ledger: baseLedger({ budget: { tokens_at_start: 999999, sessions: [EPOCH0_500, open] } }) });
+  try {
+    const cfg = withRecords(f.root, f.root, "epoch-1", {
+      "epoch-1.jsonl": [{ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 80, output_tokens: 20 } }, timestamp: "2026-08-29T15:00:00Z" }],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "epoch-1" });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    assert.equal(e.tokens_source, "transcript");
+    assert.equal(e.tokens_total, 570, "the open span's baseline must replace the stale mint baseline");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-933: cost_total spans epochs too — the map-priced per-model delta folds the closed span, each model at its OWN rate", () => {
+  // epoch-0 closed: 1 MTok of opus input at $5/MTok = $5.
+  // epoch-1 open:   2 MTok of sonnet input at $3/MTok = $6.
+  // Run-scoped cost is $11; an epoch-scoped cost would report $6 and a
+  // cross-priced fold would report neither.
+  const closed = closedSpan("epoch-0", "claude-opus-4-8", { input: 1_000_000 });
+  const f = fixture({ rc: null, ledger: twoEpochLedger([closed, openSpan("epoch-1")]) });
+  try {
+    const cfg = withRecords(f.root, f.root, "epoch-1", {
+      "epoch-1.jsonl": [{ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 2_000_000 } }, timestamp: "2026-08-29T15:00:00Z" }],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "epoch-1" });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    assert.equal(e.pricing, "map");
+    assert.equal(e.tokens_total, 3_000_000);
+    assert.ok(Math.abs(e.cost_total - 11) < 1e-6, `expected the epoch-spanning cost 11, got ${e.cost_total}`);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-933: --by mcp carries the same presence-gated coverage warning as --by day (the gate is the axis set, not one axis)", () => {
+  const f = fixture({ rc: null, ledger: twoEpochLedger([EPOCH0_500, openSpan("epoch-1")]) });
+  try {
+    const cfg = withRecords(f.root, f.root, "epoch-1", {
+      "epoch-1.jsonl": [{ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 80, output_tokens: 20 } }, timestamp: "2026-08-29T15:00:00Z" }],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "mcp", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "epoch-1" });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    assert.ok(e.warnings.some((w) => /resumed run: per-day\/mcp\/effort\/phase/.test(w)),
+      `expected the coverage warning on the mcp axis too, got ${JSON.stringify(e.warnings)}`);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-933: a resumed run NAMES its composition (closed_span_total / closed_span_count); a single-session run emits neither key", () => {
+  const resumed = fixture({ rc: null, ledger: twoEpochLedger([EPOCH0_500, openSpan("epoch-1")]) });
+  const single = fixture({ rc: null, ledger: baseLedger({ budget: { tokens_at_start: 0 } }) });
+  try {
+    const recs = { "epoch-1.jsonl": [{ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 80, output_tokens: 20 } }, timestamp: "2026-08-29T15:00:00Z" }] };
+    const cfgR = withRecords(resumed.root, resumed.root, "epoch-1", recs);
+    const rR = run(["economics", "--run-dir", resumed.runDir, "--root", resumed.root, "--json"],
+      { CLAUDE_CONFIG_DIR: cfgR, CLAUDE_CODE_SESSION_ID: "epoch-1" });
+    assert.equal(rR.code, 0, rR.err);
+    const eR = JSON.parse(rR.out);
+    assert.equal(eR.closed_span_total, 500, "how much of the total came from earlier epochs is reported, not left to inference");
+    assert.equal(eR.closed_span_count, 1);
+
+    const cfgS = withRecords(single.root, single.root, "sess-1", {
+      "sess-1.jsonl": [{ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 80, output_tokens: 20 } }, timestamp: "2026-08-29T15:00:00Z" }],
+    });
+    const rS = run(["economics", "--run-dir", single.runDir, "--root", single.root, "--json"],
+      { CLAUDE_CONFIG_DIR: cfgS, CLAUDE_CODE_SESSION_ID: "sess-1" });
+    assert.equal(rS.code, 0, rS.err);
+    const eS = JSON.parse(rS.out);
+    assert.ok(!("closed_span_total" in eS), "a single-session run must not grow a new key");
+    assert.ok(!("closed_span_count" in eS), "a single-session run must not grow a new key");
+  } finally { resumed.cleanup(); single.cleanup(); }
+});
+
+test("FAFF-933: the census basis names EVERY contributing source — a mixed-fleet resumed run says transcript+engine-spend+closed-spans, not just the engine half", () => {
+  const require2 = createRequire(import.meta.url);
+  const { economicsBreakdown } = require2("../plugin/skills/faff/bin/lib/economics.js");
+  const { resolveEconomicsPriceMap } = require2("../plugin/skills/faff/bin/lib/budget.js");
+  const pm = resolveEconomicsPriceMap({});
+  const recs = [{ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 100 } }, timestamp: "2026-08-29T15:00:00Z" }];
+  const engine = { by_model: new Map([["gpt-5-codex", { input: 50, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 }]]), by_day: new Map() };
+  const closed = new Map([["claude-opus-4-8", { input: 400, output: 100, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 }]]);
+
+  const both = economicsBreakdown(recs, "class", pm, 100, engine, closed);
+  assert.equal(both.source, "transcript+engine-spend+closed-spans", "a folded census must never go unnamed");
+  assert.equal(both.rows.find((r) => r.key === "input").source, "transcript+engine-spend+closed-spans");
+  assert.equal(both.reconciliation.grand_total, 650);
+  assert.equal(both.reconciliation.reconciles, true);
+
+  // Back-compatibility: every previously-emitted value is unchanged.
+  assert.equal(economicsBreakdown(recs, "class", pm, 100, engine, null).source, "transcript+engine-spend");
+  assert.equal(economicsBreakdown(recs, "class", pm, 100, null, closed).source, "transcript+closed-spans");
+  assert.equal(economicsBreakdown(recs, "class", pm, 100, null, null).source, "transcript");
+  // The day axis never folds closed spans, so its basis must NOT claim them.
+  assert.equal(economicsBreakdown(recs, "day", pm, 100, null, closed).source, "transcript");
+});

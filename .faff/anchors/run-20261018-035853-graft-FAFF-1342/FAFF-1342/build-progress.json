@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1342",
+  "build": {
+    "status": "complete",
+    "diff_hash": "7c57755ca5c8ebd19415a0491fcd6f2b6a4a7ac6933949620aca6a0b8430b67a",
+    "branch": "FAFF-1342-holdout-delegated-schema",
+    "pushed_at": "2026-10-18T04:26:19.373Z"
+  },
+  "updated_at": "2026-10-18T04:26:19.373Z"
+}

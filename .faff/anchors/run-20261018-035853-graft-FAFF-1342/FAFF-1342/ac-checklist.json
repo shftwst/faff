@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "Both copies of `holdout-anchored.schema.json` gain the optional closed `delegated` array defined above and stay byte-identical (`test/evidence-v0.3.test.mjs`). `required` is unchanged.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1342#ac-1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1342-holdout-delegated-schema.test.mjs::ac-1: both schema copies are byte-identical and gain the optional closed delegated array; required is unchanged"
+        }
+      ]
+    },
+    {
+      "ac": "A test shows `classifySchemaChange` over the old and new `holdout-anchored` schema returns `additive: true`, and `faff evidence validate --candidate-schemas` with the new schema accepts an anchor whose `holdout.json` carries `delegated`.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1342#ac-2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1342-holdout-delegated-schema.test.mjs::ac-2: classifySchemaChange over the old and new holdout-anchored schema is additive"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1342-holdout-delegated-schema.test.mjs::ac-2: validate --candidate-schemas with the new schema accepts an anchor whose holdout.json carries delegated; the old schema rejects it"
+        }
+      ]
+    },
+    {
+      "ac": "The FAFF-1278 base-commit leg test passes for an anchor whose `holdout.json` carries `delegated`.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1342#ac-3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1342-holdout-delegated-schema.test.mjs::ac-3: the base-commit leg passes for an anchor whose holdout.json carries delegated when the head carries the new schema"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1342-holdout-delegated-schema.test.mjs::ac-3: without the head schema change the same anchor fails the leg (the test discriminates)"
+        }
+      ]
+    },
+    {
+      "ac": "`holdout-anchored.example.json` (both copies) carries a `delegated` row and validates against the new schema; a `holdout.json` with a `delegated` row that has an extra key, a wrong tier, a wrong verifier or a malformed id fails it.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1342#ac-4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1342-holdout-delegated-schema.test.mjs::ac-4: both example copies carry a delegated row and validate against the new schema"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1342-holdout-delegated-schema.test.mjs::ac-4: a delegated row with an extra key, a wrong tier, a wrong verifier or a malformed id fails"
+        }
+      ]
+    },
+    {
+      "ac": "The four committed anchors that carry `holdout.json` (FAFF-1197, FAFF-1198, FAFF-1201, FAFF-1279) still give the same `faff evidence validate` result as before.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1342#ac-5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1342-holdout-delegated-schema.test.mjs::ac-5: the four committed holdout anchors give the same evidence validate result under the old and new schema"
+        }
+      ]
+    },
+    {
+      "ac": "Both copies of `evidence-documents.md` document `delegated[]` and stay byte-identical; `verification/evidence/README.md` has a dated v0.3 changelog entry naming FAFF-1342, FAFF-1291 and the `delegated` property.",
+      "verified": "passing",
+      "passed": true,
+      "ac_id": "faff-1342#ac-6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1342-holdout-delegated-schema.test.mjs::ac-6: both evidence-documents.md copies are byte-identical and document delegated[]; the README has a dated changelog entry"
+        }
+      ]
+    },
+    {
+      "ac": "The full test suite passes, and `faff evidence --selftest` passes.",
+      "verified": "selftest OK; full suite 6960 of 6975 pass, 0 fail, 15 skipped, in two shards on Node 22",
+      "passed": true,
+      "ac_id": "faff-1342#ac-7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff evidence --selftest"
+        },
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test --test-concurrency=8 --test-shard=1/2"
+        },
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test --test-concurrency=8 --test-shard=2/2"
+        }
+      ]
+    }
+  ]
+}

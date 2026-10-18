@@ -1,6 +1,6 @@
 # ADR 0140 — The code-blind holdout judges only machine-checkable criteria
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Provenance:** human
 - **Date:** 2026-10-18
 - **Issue:** FAFF-1291

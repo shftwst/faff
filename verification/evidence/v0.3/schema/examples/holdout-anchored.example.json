@@ -28,5 +28,15 @@
       "evidence_ref": "report section 1",
       "reason": null
     }
+  ],
+  "delegated": [
+    {
+      "id": "done:1",
+      "text": "The report lists every delegated criterion",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1#done:1"
+    }
   ]
 }

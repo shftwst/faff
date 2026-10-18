@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 2,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "test/faff-1342-holdout-delegated-schema.test.mjs::baseschematext throws at module load without an origin/main or main ref",
+      "title": "baseSchemaText throws at module load without an origin/main or main ref",
+      "location": "test/faff-1342-holdout-delegated-schema.test.mjs:35",
+      "action": "Derive the old schema without git: deep-clone the new schema and delete properties.delegated (optionally cross-check against origin/main only when that ref resolves), so the file loads on the shallow detached PR checkout the unit shards use.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "baseSchemaText throws at module load without an origin/main or main ref",
+          "location": "test/faff-1342-holdout-delegated-schema.test.mjs:35",
+          "severity": "major",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/faff-1342-holdout-delegated-schema.test.mjs::ac-2 candidate-schemas test asserts the old schema rejects delegated with no skip guard",
+      "title": "ac-2 candidate-schemas test asserts the old schema rejects delegated with no skip guard",
+      "location": "test/faff-1342-holdout-delegated-schema.test.mjs:91",
+      "action": "Make OLD_SCHEMA independent of the current main (same fix as the module-load finding) so the 'old schema rejects' assertion stays true after merge, and drop the BASE_HAS_DELEGATED skips on ac-2 and ac-3 so those tests keep running on main.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "ac-2 candidate-schemas test asserts the old schema rejects delegated with no skip guard",
+          "location": "test/faff-1342-holdout-delegated-schema.test.mjs:91",
+          "severity": "major",
+          "disposition": "open"
+        }
+      ]
+    }
+  ]
+}

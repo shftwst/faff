@@ -168,6 +168,56 @@
           }
         }
       }
+    },
+    "delegated": {
+      "type": "array",
+      "description": "criteria the holdout judge did not judge, each with the verifier that covers it; optional, written by FAFF-1291 from `faff dod classify`. The tier and verifier pairing (delegated with ac-checklist, integration with review-merge-floor) is a writer and validator rule, not a schema constraint.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "text",
+          "holdout",
+          "verification_tier",
+          "verifier",
+          "ac_id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^(scenarios|done):[1-9][0-9]*$",
+            "description": "<source>:<index> from `faff dod classify`"
+          },
+          "text": {
+            "type": "string"
+          },
+          "holdout": {
+            "type": "boolean"
+          },
+          "verification_tier": {
+            "type": "string",
+            "enum": [
+              "delegated",
+              "integration"
+            ]
+          },
+          "verifier": {
+            "type": "string",
+            "enum": [
+              "ac-checklist",
+              "review-merge-floor"
+            ]
+          },
+          "ac_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "the qualified ac_id for a done row when the record's issue is an issue id; otherwise null"
+          }
+        }
+      }
     }
   }
 }

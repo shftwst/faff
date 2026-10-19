@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "run_id": "run-20261018-174517-beepboop-list-2710a1",
+  "level": "L3",
+  "admitted": [
+    "FAFF-933",
+    "FAFF-1079",
+    "FAFF-1132"
+  ],
+  "outcomes": {
+    "FAFF-933": "parked"
+  },
+  "base_sha": "e86dd495c9970887a7d7621a2e79b518ef2f5e74",
+  "base_sha_required": true,
+  "owner": {
+    "status": "running",
+    "session_id": "run-20261018-174517-beepboop-list-2710a1",
+    "pid": 91404,
+    "started_at": "2026-10-18T17:45:17.330Z",
+    "last_heartbeat": "2026-10-18T17:45:17.330Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "budget": {
+    "measure_session_id": "2c526c13-d0f6-42de-b4f7-2bb7fd9f4dac",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-5": {
+        "input": 4147,
+        "output": 3133106,
+        "cache_write_5m": 0,
+        "cache_write_1h": 15815343,
+        "cache_read": 894245223
+      }
+    },
+    "tokens_at_start": 913197819,
+    "tokens_at_last_event": {
+      "input": 4283,
+      "output": 3242852,
+      "cache_write_5m": 0,
+      "cache_write_1h": 17490991,
+      "cache_read": 926955594
+    }
+  },
+  "outcome_details": {
+    "FAFF-1266": {
+      "disposition": "skipped-terminal",
+      "detail": "Done — Anchor evidence 2a shipped; not a build candidate"
+    },
+    "FAFF-1267": {
+      "disposition": "skipped-terminal",
+      "detail": "Done — Anchor evidence 2c shipped; not a build candidate"
+    },
+    "FAFF-1268": {
+      "disposition": "skipped-terminal",
+      "detail": "Done — Anchor evidence 2b shipped; not a build candidate"
+    },
+    "FAFF-1344": {
+      "disposition": "ineligible",
+      "detail": "no faff-automate label (faff eligible -> false). Filed by the agent this session; the filing path cannot write that label by design. A human crank-up re-admits it at wave re-entry, which re-reads labels live."
+    },
+    "FAFF-1110": {
+      "phase": "prep",
+      "bucket": "parked",
+      "adversarial": "yes — 6 per-lens bodies, openai/z-ai/glm-5.3-flash chain[0]",
+      "verdict": "reject-approach x2"
+    },
+    "FAFF-1111": {
+      "phase": "prep",
+      "bucket": "parked",
+      "adversarial": "yes — 4 per-lens bodies, all four lenses served",
+      "verdict": "reject-approach, route->plot"
+    },
+    "FAFF-1122": {
+      "phase": "prep",
+      "bucket": "parked",
+      "adversarial": "no — gate never reached, no spec produced (honest, not a skip)",
+      "verdict": "premise-superseded"
+    },
+    "FAFF-769": {
+      "phase": "prep",
+      "bucket": "parked",
+      "adversarial": "yes — 4 per-lens bodies, winner_index 0",
+      "verdict": "reject-approach, route->plot",
+      "note": "confidence was HIGH; the composed gate parked it because the spec-review half failed. Carries BOTH faff-automate and faff-automation-hold."
+    },
+    "FAFF-933": {
+      "phase": "build",
+      "bucket": "parked",
+      "terminal": "needs-human",
+      "branch": "FAFF-933-run-ledger-economics-under-reports-resumed-run-cost",
+      "head": "4fc74975",
+      "pr": null,
+      "ac": "19/20, all_verified:false — done:12 left UNTICKED rather than reinterpreted",
+      "gate_ladder": "fail (UNIT) — proven pre-existing: same fail on pristine origin/main",
+      "review": "Phase 1 pass; Phase 2 3 minor, all reproduced then fixed",
+      "suite": "branch 7005/0 fail, base 6983/0 fail (delta = its 22 new tests)",
+      "worktree": "preserved for resume"
+    }
+  },
+  "park_records": [
+    {
+      "issue_id": "FAFF-1110",
+      "root_cause_class": "other",
+      "cause": "reject-approach (2 rounds, converging:false 3->9)",
+      "reconsider": "human",
+      "ts": "2026-10-18T18:35:00Z"
+    },
+    {
+      "issue_id": "FAFF-1111",
+      "root_cause_class": "other",
+      "cause": "reject-approach (1 round, 12 objections, route->plot)",
+      "reconsider": "human",
+      "ts": "2026-10-18T19:12:00Z"
+    },
+    {
+      "issue_id": "FAFF-1122",
+      "root_cause_class": "other",
+      "cause": "premise-superseded (delivered by FAFF-1212, Done 2026-10-13)",
+      "reconsider": "human",
+      "ts": "2026-10-18T19:30:00Z"
+    },
+    {
+      "issue_id": "FAFF-769",
+      "root_cause_class": "spec-ambiguous-external",
+      "cause": "reject-approach (1 round, 4/4 lenses, route->plot)",
+      "reconsider": "human",
+      "ts": "2026-10-18T20:05:00Z"
+    },
+    {
+      "issue_id": "FAFF-933",
+      "root_cause_class": "spec-ambiguous-external",
+      "cause": "needs-human: acceptance criterion done:12 cannot hold truthfully for the `effort` axis (events.jsonl is run-scoped, so its rows already span every epoch; measured coverage_pct 600)",
+      "reconsider": "human",
+      "ts": "2026-10-18T22:40:00Z"
+    }
+  ]
+}

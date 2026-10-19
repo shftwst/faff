@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "all_verified": false,
+  "all_verified": true,
   "criteria": [
     {
       "ac": "**Confirm it fails, on `origin/main`.** In a temp scratch dir, run a valid served `--capture` at",
@@ -112,8 +112,8 @@
     },
     {
       "ac": "`spec-review-pin --selftest` covers both helper arms, and the full suite passes, including",
-      "verified": "Needs human verification: selftest PASS and the four spec-review test files pass 107/107, but the full suite has 10 failures under the gate's 8-way sharding, and origin/main fails the same unit rung here. CI on the PR is the check.",
-      "passed": false,
+      "verified": "Selftest PASS; the four spec-review files pass 107/107 locally on Node 22 and 83/83 on Node 24; the full suite passes in CI on PR 1093 (unit shards 1-4 of 4 green, Actions run 39289608260). Local sharded runs show 10 load-sensitive failures that also fail on origin/main here.",
+      "passed": true,
       "ac_id": "faff-1332#done:10",
       "verifications": [
         {
@@ -123,6 +123,10 @@
         {
           "kind": "command",
           "locator": "node --import ./test/hermetic-env.mjs --test test/spec-review-pin.test.mjs test/spec-review-window.test.mjs test/spec-review-occupant-served-dispatch.test.mjs test/spec-review-convergence.test.mjs"
+        },
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test --test-shard=<n>/4"
         }
       ]
     }

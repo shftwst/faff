@@ -297,6 +297,10 @@ function buildIssueSubtree(runDir, issue, specReviewDir, judgeDir) {
     spec_blob: specText !== null ? "spec.txt" : null,
     objections: "objections.json",
     objections_by_round: "objections-by-round.json",
+    // `truncated` reports whether rounds were DROPPED, which is not the same as "the blob is
+    // within the cap": a sole standing-residue round that alone exceeds the cap is retained
+    // whole, so it reports truncated:false with a blob over the cap. Read it as a
+    // history-completeness marker, never as a size guarantee.
     objections_by_round_truncated: fit.dropped > 0,
     objections_by_round_dropped_rounds: fit.dropped,
     rulings: "rulings.json",

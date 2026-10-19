@@ -609,7 +609,9 @@ test("FAFF-1132: an over-cap multi-round corpus mints truncated — capped bytes
 
     // Reader compatibility: --rounds still enumerates per-round lines on a truncated trail.
     const human = runCli(["judge-history", "--run", runId, "--rounds", "--root", root]).stdout;
-    assert.equal(human.match(/^ {2}round \d+ \(window_start=/gm).length, parsed.length,
+    const roundLines = human.match(/^ {2}round \d+ \(window_start=/gm);
+    assert.ok(roundLines, "judge-history --rounds printed at least one per-round line (an Array.isArray regression prints none)");
+    assert.equal(roundLines.length, parsed.length,
       "judge-history --rounds prints one line per retained round (no Array.isArray regression)");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "all_verified": false,
+  "criteria": [
+    {
+      "ac": "**Confirm it fails, on `origin/main`.** In a temp scratch dir, run a valid served `--capture` at",
+      "verified": "Old writer reproduced on origin/main base: round-2 marker {state:failed, round:2} with pin present; round-3 govern gave anomaly pin-marker-contradiction, action unpinnable-reset, window_start 3.",
+      "passed": true,
+      "ac_id": "faff-1332#done:1",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff spec-review-window --govern --dir <scratch> --round 3 --any-served"
+        }
+      ]
+    },
+    {
+      "ac": "`captureReadFailure(scratchDir, round, reason)` exists in `spec-review-pin.js`, is listed in",
+      "verified": "Helper exported; fold arm returns {state:failed, marker_preserved:true}, fresh arm {state:failed}.",
+      "passed": true,
+      "ac_id": "faff-1332#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-pin.test.mjs::captureReadFailure: a read failure after a served round FOLDS beside the captured marker"
+        }
+      ]
+    },
+    {
+      "ac": "On a prior `captured` marker the fold leaves `state`, `round`, `reason`, `winner_index`,",
+      "verified": "Fold keeps state/round/reason/winner_index/backend_identity/ts, adds exactly the three last_failure_* keys, keeps last_no_lens_*.",
+      "passed": true,
+      "ac_id": "faff-1332#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-pin.test.mjs::captureReadFailure: a read failure after a served round FOLDS beside the captured marker"
+        }
+      ]
+    },
+    {
+      "ac": "`last_failure_reason` is `scrub`'s output: a reason longer than 200 characters is stored",
+      "verified": "500-char reason stored as 200 on both the fold and fresh-write arms.",
+      "passed": true,
+      "ac_id": "faff-1332#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-pin.test.mjs::captureReadFailure: the folded reason is scrub-bounded to 200 chars, like the fresh-write arm"
+        }
+      ]
+    },
+    {
+      "ac": "Absent, torn, `failed` and `skipped-no-lens` priors each fresh-write `{state:\"failed\", round,",
+      "verified": "Absent, torn, failed and skipped-no-lens priors each fresh-write {state, round, reason, ts}; torn prior does not throw.",
+      "passed": true,
+      "ac_id": "faff-1332#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-pin.test.mjs::captureReadFailure: a ${label} prior is replaced by a fresh {failed} marker, not folded"
+        }
+      ]
+    },
+    {
+      "ac": "The catch block calls `captureReadFailure` instead of writing the marker itself, prints",
+      "verified": "Catch block calls captureReadFailure, prints the result to stdout, keeps the stderr reason line, returns 2.",
+      "passed": true,
+      "ac_id": "faff-1332#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-pin.test.mjs::CLI smoke (FAFF-1332): a round-2 read failure leaves the captured marker, and round 3 governs clean"
+        }
+      ]
+    },
+    {
+      "ac": "The diff touches no line inside `captureNoLensServed`, `capturePin` or `writeFailedMarker`.",
+      "verified": "git diff shows no added or removed line inside captureNoLensServed, capturePin or writeFailedMarker.",
+      "passed": true,
+      "ac_id": "faff-1332#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main -- plugin/skills/faff/bin/lib/spec-review-pin.js"
+        }
+      ]
+    },
+    {
+      "ac": "A governance-level test, run against `origin/main`'s `spec-review-window.js`, stages the fold at",
+      "verified": "Governance test passes (anomaly null, capture_round 1); against the old writer it fails with anomaly pin-marker-contradiction.",
+      "passed": true,
+      "ac_id": "faff-1332#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-pin.test.mjs::governance (FAFF-1332): a read failure at round 2 does not latch round 3 into unpinnable-reset"
+        }
+      ]
+    },
+    {
+      "ac": "`faffter-dark-spec-review/SKILL.md:148` no longer states unconditionally that the failure is",
+      "verified": "SKILL.md line 148 now conditions the {failed} write on there being no established capture; validate-adapters PASS.",
+      "passed": true,
+      "ac_id": "faff-1332#done:9",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "`spec-review-pin --selftest` covers both helper arms, and the full suite passes, including",
+      "verified": "Needs human verification: selftest PASS and the four spec-review test files pass 107/107, but the full suite has 10 failures under the gate's 8-way sharding, and origin/main fails the same unit rung here. CI on the PR is the check.",
+      "passed": false,
+      "ac_id": "faff-1332#done:10",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "plugin/skills/faff/bin/faff spec-review-pin --selftest"
+        },
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/spec-review-pin.test.mjs test/spec-review-window.test.mjs test/spec-review-occupant-served-dispatch.test.mjs test/spec-review-convergence.test.mjs"
+        }
+      ]
+    }
+  ]
+}

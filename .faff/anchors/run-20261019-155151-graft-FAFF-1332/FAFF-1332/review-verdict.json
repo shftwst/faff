@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-pin.js::fold disclosure printed to stdout is not persisted to any artifact in cmdspecreviewpin",
+      "title": "fold disclosure printed to stdout is not persisted to any artifact in cmdSpecReviewPin",
+      "location": "plugin/skills/faff/bin/lib/spec-review-pin.js",
+      "action": "persist it via a governor cross-ref (the spec's named capture_last_failure_round extension point), not in this ticket",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "The spec's Chosen loudness decision scopes stdout as the cheapest in-band disclosure and says it is not as loud as a governor anomaly; a persisted disclosure is OUT OF SCOPE as the capture_last_failure_round extension point.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "fold disclosure printed to stdout is not persisted to any artifact in cmdSpecReviewPin",
+          "location": "plugin/skills/faff/bin/lib/spec-review-pin.js",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-pin.js::round argument not validated in capturereadfailure",
+      "title": "round argument not validated in captureReadFailure",
+      "location": "plugin/skills/faff/bin/lib/spec-review-pin.js",
+      "action": "none; the CLI validates --round before the catch",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "The sole production caller (cmdSpecReviewPin) validates --round as a positive integer before reaching the catch; the sibling captureNoLensServed takes the same unvalidated internal argument.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "round argument not validated in captureReadFailure",
+          "location": "plugin/skills/faff/bin/lib/spec-review-pin.js",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-pin.js::torn marker beside a pin is fresh-written in capturereadfailure",
+      "title": "torn marker beside a pin is fresh-written in captureReadFailure",
+      "location": "plugin/skills/faff/bin/lib/spec-review-pin.js",
+      "action": "none; repair of an unvouchable marker is FAFF-1331",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "A torn marker beside a pin is already unvouchable: readCaptureOutcome returns null, so govern cannot read it as captured before or after this write. The spec's edge-case table routes torn to a fresh write deliberately; repair is FAFF-1331's scope.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "torn marker beside a pin is fresh-written in captureReadFailure",
+          "location": "plugin/skills/faff/bin/lib/spec-review-pin.js",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-pin.js::non-atomic read-modify-write fold in capturereadfailure",
+      "title": "non-atomic read-modify-write fold in captureReadFailure",
+      "location": "plugin/skills/faff/bin/lib/spec-review-pin.js",
+      "action": "none in this ticket",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Same pattern as the shipped captureNoLensServed fold (FAFF-1323); one capture call per round, and prep's re-dispatch runs after the outaged attempt, not concurrently with it.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "non-atomic read-modify-write fold in captureReadFailure",
+          "location": "plugin/skills/faff/bin/lib/spec-review-pin.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

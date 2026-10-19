@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1132",
+  "build": {
+    "status": "complete",
+    "diff_hash": "2711bed786e1f8dd191ea03c8bcdf4d5ec2d69a1991e6625f9708344bb9a6fc7",
+    "branch": "FAFF-1132-bound-judge-trail-objection-storage-write-cap-two-phase-truncation",
+    "pushed_at": "2026-10-19T02:42:15.637Z"
+  },
+  "updated_at": "2026-10-19T02:42:15.637Z"
+}

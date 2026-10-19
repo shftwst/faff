@@ -509,4 +509,4 @@ jobs:
         # FAFF-1200: the .ts compiler-API fixtures live in testdata/typescript/, outside Node's default
         # test glob, and test/no-typescript-under-test.test.mjs keeps .ts files out of test/, so this
         # is the same pathless command developers and the Node 20 unit lane run.
-        run: node --import ./test/hermetic-env.mjs --test
+        run: node --import ./test/hermetic-env.mjs --test --test-timeout=240000 --test-reporter=spec

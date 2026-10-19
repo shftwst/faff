@@ -272,6 +272,23 @@ function captureNoLensServed(scratchDir, round) {
   return { state: "skipped-no-lens" };
 }
 
+// captureReadFailure(scratchDir, round, reason) — a served --capture whose --backends-json
+// could not be read. Never silent, and never a clobber: an established "captured" marker is
+// the record of WHICH round pinned, so the failure rides it as last_failure_* beside the
+// untouched state/round/ts instead of replacing it (a replaced marker beside a live pin is
+// scored pin-marker-contradiction on every later round). With no established capture the
+// failure is the marker: {failed}. Reason is scrub()-bounded on both arms.
+function captureReadFailure(scratchDir, round, reason) {
+  const ts = new Date().toISOString();
+  const prior = readCaptureOutcome(scratchDir);
+  if (prior && prior.state === "captured") {
+    atomicWriteJSON(pinCapturePath(scratchDir), { ...prior, last_failure_round: round, last_failure_reason: scrub(reason), last_failure_ts: ts });
+    return { state: "failed", marker_preserved: true };
+  }
+  atomicWriteJSON(pinCapturePath(scratchDir), { state: "failed", round, reason: scrub(reason), ts });
+  return { state: "failed" };
+}
+
 // PURE: the per-spec scratch dir both the round records and the pin resolve through.
 //   run-dir resolvable (flag, else $FAFF_RUN_DIR) → <run-dir>/<ISSUE>/spec-review
 //   otherwise (interactive, no run-dir)           → .faff/spec-review/<ISSUE>
@@ -377,9 +394,11 @@ function cmdSpecReviewPin(args) {
     chain = JSON.parse(fs.readFileSync(values["--backends-json"], "utf8"));
   } catch (e) {
     // A failed --backends-json read/parse is candidate-cause #2 from the FAFF-1052 spec —
-    // never silent: write pin-capture.json{failed} before the existing exit 2.
+    // never silent: captureReadFailure records it on disk (folded beside an established
+    // captured marker, else as {failed}); the result goes to stdout, the reason to stderr.
     const reason = `--backends-json could not be read as JSON: ${e && e.message}`;
-    atomicWriteJSON(pinCapturePath(dir), { state: "failed", round, reason: scrub(reason), ts: new Date().toISOString() });
+    const result = captureReadFailure(dir, round, reason);
+    console.log(JSON.stringify(result));
     process.stderr.write(`faff spec-review-pin: ${reason}\n`);
     return 2;
   }
@@ -515,6 +534,27 @@ function specReviewPinSelftest() {
     } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
   }
 
+  // captureReadFailure: fold beside an established capture; fresh-write otherwise.
+  {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-srp-readfail-"));
+    try {
+      const fresh = captureReadFailure(tmp, 2, "boom");
+      ok("read-failure, no prior → {failed} without marker_preserved", fresh.state === "failed" && fresh.marker_preserved === undefined);
+      ok("read-failure, no prior → pin-capture.json{failed, round:2, reason}", (() => {
+        const c = readCaptureOutcome(tmp); return c && c.state === "failed" && c.round === 2 && c.reason === "boom";
+      })());
+      capturePin(tmp, cfg.adversarial.backends, 0, 1);
+      const before = readCaptureOutcome(tmp);
+      const folded = captureReadFailure(tmp, 3, "x".repeat(500));
+      ok("read-failure on captured prior → marker_preserved", folded.state === "failed" && folded.marker_preserved === true);
+      ok("read-failure fold keeps state/round/ts and records last_failure_* (reason bounded)", (() => {
+        const c = readCaptureOutcome(tmp);
+        return c.state === "captured" && c.round === 1 && c.ts === before.ts && c.backend_identity === before.backend_identity
+          && c.last_failure_round === 3 && c.last_failure_reason.length === 200 && typeof c.last_failure_ts === "string";
+      })());
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  }
+
   // scrub / isWellFormedIdentity round-trip + tolerance
   ok("scrub strips control chars", scrub("a\x00b\x1fc") === "abc");
   ok("scrub bounds to 200 chars", scrub("x".repeat(500)).length === 200);
@@ -611,6 +651,7 @@ module.exports = {
   resolvePinChain,
   capturePin,
   captureNoLensServed,
+  captureReadFailure,
   specReviewDir,
   cmdSpecReviewPin,
   cmdSpecReviewDir,

@@ -2,6 +2,18 @@
 
 > Spec: faffter-dark-nlspec · 2026-09-22 · interactive · claude-code/unknown · confidence: medium. Full spec on Linear FAFF-1077.
 
+> Corrected 2026-10-18 (FAFF-1086). The base-override text printed the live-ref form
+> `FAFF_WORKTREE_BASE_REF=origin/<parent_branch>` in six places; the shipped implementation threads
+> the dependency's pinned tip commit SHA (the anchor's `parent_tip_sha`, resolved once at the
+> `resolve parent_tip_sha` step of the STACK procedure) into the base override verbatim, closing the
+> tip-SHA race spec-review caught and the build fixed (`setup-worktree.sh:84-91`,
+> `test/faff-1077-dependency-stacking.test.mjs:186`). Those six occurrences and the `resolve_base_ref`
+> fetch step are corrected in place; the rebase command text was already correct and is unchanged.
+> That the worktree base and the rebase upstream boundary are the same commit is a **contract
+> obligation** on the concurrency occupant (l4.md obligation 2), **not** a code-enforced invariant:
+> `readStackAnchor` validates `parent_pr` and `parent_branch` but does not validate `parent_tip_sha`,
+> and `setup-worktree.sh` consumes whatever base it is handed.
+
 This is the formal build spec for **FAFF-1077**. Audience: the build agent that implements it, and the human reviewers who gate it. It is a **re-spec**. The prior spec chose "awaiting-approval auto-resume" and the repo owner rejected it: auto-resume only re-kicks the dependent, it does not recover throughput, because the dependent still waits for the dependency's PR to merge (days of human review) before it can build. The owner has explicitly chosen **branch-stacking** and accepts its rebase-conflict and review-scope risks as the price of recovering the review-days. This spec designs branch-stacking and the merge-order interlock that keeps it correct.
 
 ---
@@ -101,7 +113,7 @@ Fed into `decideFloor(f)` as `f.dependency_gate`, mirroring the additive polarit
 **Base-override interface to `setup-worktree.sh`.**
 
 ```
-INPUT (new, optional): FAFF_WORKTREE_BASE_REF   # env var; a fully-qualified ref D branches from (e.g. origin/<B-branch>)
+INPUT (new, optional): FAFF_WORKTREE_BASE_REF   # env var; a commit-ish the caller supplies, used verbatim — B's pinned tip commit SHA (the anchor's parent_tip_sha)
   ABSENT  → today's path: resolve origin/<default> via remote-diff-base.sh (byte-identical)
   PRESENT → fetch + verify that ref, branch D's worktree off it; skip remote-diff-base.sh
 ```
@@ -130,7 +142,7 @@ concurrency occupant (obligation 2, knob-aware)
    └─ knob=stack AND B landed pr-open  →  STACK path:
         1. resolve B's PR + tip SHA from the run ledger; B's branch from `gh pr view <B-pr> --json headRefName`
         2. write StackParent anchor for D
-        3. dispatch faff-graft for D with FAFF_WORKTREE_BASE_REF=origin/<B-branch>
+        3. dispatch faff-graft for D with FAFF_WORKTREE_BASE_REF=<B's pinned tip SHA>
               └─ setup-worktree.sh branches D's worktree off B's branch (base-override)
         4. D builds, opens its PR (base = B's branch, a true stacked PR), returns pr-ready
    └─ knob=off OR B not applicable  →  PARK path (today, unchanged)
@@ -155,7 +167,7 @@ PROCEDURE decide_dependent_disposition(D, B, knob):
      parent_tip_sha from `git rev-parse origin/<parent_branch>` after fetch
   4. IF parent_pr absent OR parent_branch absent: PARK D (fail loud, a stack needs a forge parent)
   5. write + commit .faff/anchors/<run>/D/stack-parent.json (StackParent) onto D's branch
-  6. dispatch faff-graft for D with FAFF_WORKTREE_BASE_REF="origin/<parent_branch>"
+  6. dispatch faff-graft for D with FAFF_WORKTREE_BASE_REF="<parent_tip_sha>"   # the SAME SHA pinned at step 3, never a live ref; it is also the rebase upstream boundary, which is what makes the later rebase squash-safe (a contract obligation on the occupant, not a code-enforced check)
   7. add the faff-stacked control label to D
 ```
 
@@ -168,9 +180,9 @@ The override is consumed **before** the `git remote get-url origin` branch (`set
 ```
 PROCEDURE resolve_base_ref():                       # replaces the block at setup-worktree.sh:76-85
   1. IF FAFF_WORKTREE_BASE_REF is set and non-empty:
-     a. git fetch -q origin <the branch component of BASE_REF>   # bounded, non-interactive (reuse remote-diff-base.sh net posture)
+     a. git fetch -q origin   # fetch-all, best-effort; a fetch failure is TOLERATED, the rev-parse below is the fail-loud gate
      b. git rev-parse --verify --quiet "<BASE_REF>^{commit}"  → FATAL exit 1 if it does not resolve (never fall back to HEAD)
-     c. BASE_REF := FAFF_WORKTREE_BASE_REF ; log "basing new branch on <BASE_REF> (caller-supplied stack base)"
+     c. BASE_REF := FAFF_WORKTREE_BASE_REF, used VERBATIM and may be a bare commit SHA (it has no branch component to derive) ; log "basing new branch on <BASE_REF> (caller-supplied stack base)"
   2. ELSE: today's path exactly, origin present → remote-diff-base.sh; no origin → HEAD (git-only)
   3. git worktree add -b "${SAFE_NAME}" "$WORKTREE_PATH" "$BASE_REF"    # unchanged call, line 88
 ```
@@ -254,7 +266,7 @@ Recording `parent_tip_sha` at stack time is what makes `--onto` precise: it repl
 ```
 Given graft.dependency_wait=stack and B landed pr-open in the collision group
 When the concurrency occupant decides D's disposition
-Then D's worktree is created off origin/<B-branch> (not origin/<default>), D's PR opens, and D carries the faff-stacked label
+Then D's worktree is created off B's pinned tip commit SHA (not origin/<default>, and not a live origin/<B-branch>), D's PR opens, and D carries the faff-stacked label
 ```
 
 ```
@@ -331,7 +343,7 @@ At the time of writing, GitHub auto-retargets an open PR's base branch to the me
 - [ ] A `faff-stacked` control label is defined in `labels.js` `CONTROL_LABEL_DEFS` (machine-writable, rendered `<prefix>-stacked`).
 
 ### From HOW (behaviour)
-- [ ] Under `stack`, the concurrency occupant dispatches D's graft with `FAFF_WORKTREE_BASE_REF=origin/<B-branch>` and applies the `faff-stacked` label; under `off` it parks.
+- [ ] Under `stack`, the concurrency occupant dispatches D's graft with `FAFF_WORKTREE_BASE_REF=<parent_tip_sha>` and applies the `faff-stacked` label; under `off` it parks.
 - [ ] `decideFloor` pushes a dependency-not-merged blocker exactly when `dependency_gate === "blocked"`, and pushes nothing on `satisfied` or `not-applicable`.
 - [ ] `decideFloor` with `dependency_gate:"not-applicable"` returns byte-identical verdicts/blockers to the same inputs without the field.
 - [ ] `observeForgeMerge` is factored into a shared module, exported, and imported by `merge-gate.js`; `lights-out.js` still resolves it.
@@ -354,7 +366,7 @@ At the time of writing, GitHub auto-retargets an open PR's base branch to the me
 PROCEDURE smoke():
   1. set graft.dependency_wait=stack
   2. run a collision group [B, D] where D declares a dependency on B, B opens PR pr-open
-  3. assert: D's worktree branched off origin/<B-branch>; D's PR opened; D labelled faff-stacked
+  3. assert: D's worktree branched off B's pinned tip SHA; D's PR opened; D labelled faff-stacked
   4. attempt D merge with B still open → assert refuse (dependency_gate blocker), D stays pr-open
   5. merge B → next drain: assert D rebased --onto main, gates re-run, D merges after B
 ```

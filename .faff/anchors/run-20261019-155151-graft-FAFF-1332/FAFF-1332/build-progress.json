@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1332",
+  "build": {
+    "status": "complete",
+    "diff_hash": "6395e823c0357493610a4d6e261e638fd891cb2267f4675354679da3ac7de282",
+    "branch": "FAFF-1332-failed-backends-json-read-clobbers-pin-capture-marker",
+    "pushed_at": "2026-10-19T16:48:11.734Z"
+  },
+  "updated_at": "2026-10-19T16:48:11.734Z"
+}

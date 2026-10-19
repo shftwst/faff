@@ -24,6 +24,7 @@ import {
   resolvePinChain,
   capturePin,
   captureNoLensServed,
+  captureReadFailure,
   specReviewDir,
   specReviewPinSelftest,
   specReviewDirSelftest,
@@ -302,6 +303,72 @@ test("captureNoLensServed: a non-captured prior marker is replaced, not preserve
   } finally { rmSync(d, { recursive: true, force: true }); }
 });
 
+test("captureReadFailure: a read failure after a served round FOLDS beside the captured marker", () => {
+  // FAFF-1332: replacing the marker leaves a pin beside a non-captured state, which --govern
+  // scores pin-marker-contradiction and narrows to the governed round on every later round.
+  const d = mkdtempSync(join(tmpdir(), "faff-srp-readfail-fold-"));
+  try {
+    assert.equal(capturePin(d, CFG.adversarial.backends, 1, 1).written, true);
+    captureNoLensServed(d, 2); // a pre-existing last_no_lens_* fold must survive
+    const pinned = readCaptureOutcome(d);
+    assert.equal(pinned.state, "captured");
+
+    const r = captureReadFailure(d, 3, "--backends-json could not be read as JSON: boom");
+    assert.deepEqual(r, { state: "failed", marker_preserved: true });
+
+    const cap = readCaptureOutcome(d);
+    assert.equal(cap.state, "captured");
+    assert.equal(cap.round, 1);
+    assert.equal(cap.reason, undefined);
+    assert.equal(cap.winner_index, pinned.winner_index);
+    assert.equal(cap.backend_identity, pinned.backend_identity);
+    assert.equal(cap.ts, pinned.ts, "the capture timestamp is not rewritten");
+    assert.equal(cap.last_failure_round, 3);
+    assert.equal(cap.last_failure_reason, "--backends-json could not be read as JSON: boom");
+    assert.equal(typeof cap.last_failure_ts, "string");
+    assert.equal(cap.last_no_lens_round, pinned.last_no_lens_round, "last_no_lens_* kept");
+    assert.equal(cap.last_no_lens_ts, pinned.last_no_lens_ts);
+    const added = Object.keys(cap).filter((k) => !(k in pinned)).sort();
+    assert.deepEqual(added, ["last_failure_reason", "last_failure_round", "last_failure_ts"], "exactly the three last_failure_* keys are added");
+    assert.equal(existsSync(join(d, "served-3.json")), false);
+  } finally { rmSync(d, { recursive: true, force: true }); }
+});
+
+test("captureReadFailure: the folded reason is scrub-bounded to 200 chars, like the fresh-write arm", () => {
+  const d = mkdtempSync(join(tmpdir(), "faff-srp-readfail-scrub-"));
+  const f = mkdtempSync(join(tmpdir(), "faff-srp-readfail-scrub-fresh-"));
+  try {
+    capturePin(d, CFG.adversarial.backends, 0, 1);
+    captureReadFailure(d, 2, "y".repeat(500));
+    assert.equal(readCaptureOutcome(d).last_failure_reason.length, 200);
+    captureReadFailure(f, 2, "y".repeat(500));
+    assert.equal(readCaptureOutcome(f).reason.length, 200);
+  } finally { rmSync(d, { recursive: true, force: true }); rmSync(f, { recursive: true, force: true }); }
+});
+
+for (const [label, stage] of [
+  ["absent", () => {}],
+  ["torn (unparseable JSON)", (d) => writeFileSync(join(d, "pin-capture.json"), "{ torn")],
+  ["failed", (d) => capturePin(d, "nope", 0, 1)],
+  ["skipped-no-lens", (d) => captureNoLensServed(d, 1)],
+]) {
+  test(`captureReadFailure: a ${label} prior is replaced by a fresh {failed} marker, not folded`, () => {
+    const d = mkdtempSync(join(tmpdir(), "faff-srp-readfail-fresh-"));
+    try {
+      stage(d);
+      let r;
+      assert.doesNotThrow(() => { r = captureReadFailure(d, 3, "read failed"); });
+      assert.deepEqual(r, { state: "failed" });
+      const cap = readCaptureOutcome(d);
+      assert.deepEqual(Object.keys(cap).sort(), ["reason", "round", "state", "ts"]);
+      assert.equal(cap.state, "failed");
+      assert.equal(cap.round, 3);
+      assert.equal(cap.reason, "read failed");
+      assert.equal(typeof cap.ts, "string");
+    } finally { rmSync(d, { recursive: true, force: true }); }
+  });
+}
+
 // --- CLI seam ---
 
 test("CLI resolve unpinned prints a chain byte-identical to `adversarial-backends`", () => {
@@ -424,6 +491,72 @@ test("CLI capture: a hostile/oversize/newline-laden --backends-json is scrubbed 
     assert.ok(cap2.reason.length <= 200, "reason is bounded even for an oversize parse-failure detail");
     // eslint-disable-next-line no-control-regex
     assert.ok(!/[\x00-\x1f\x7f]/.test(cap2.reason));
+  } finally { rmSync(scratch, { recursive: true, force: true }); }
+});
+
+test("CLI smoke (FAFF-1332): a round-2 read failure leaves the captured marker, and round 3 governs clean", () => {
+  const scratch = mkdtempSync(join(tmpdir(), "faff-srp-readfail-cli-"));
+  const bj = join(scratch, "backends.json");
+  try {
+    writeFileSync(bj, JSON.stringify(CFG.adversarial.backends));
+    const c1 = runCli(["spec-review-pin", "--capture", "--dir", scratch, "--backends-json", bj, "--winner-index", "0", "--round", "1"]);
+    assert.equal(c1.code, 0);
+    assert.deepEqual(JSON.parse(c1.stdout), { written: true });
+    assert.ok(existsSync(join(scratch, "pinned-reviewer.json")));
+    const m1 = JSON.parse(readFileSync(join(scratch, "pin-capture.json"), "utf8"));
+    assert.equal(m1.state, "captured");
+    assert.equal(m1.round, 1);
+
+    const c2 = runCli(["spec-review-pin", "--capture", "--dir", scratch, "--backends-json", join(scratch, "missing.json"), "--winner-index", "0", "--round", "2"]);
+    assert.equal(c2.code, 2);
+    assert.match(c2.stderr, /--backends-json could not be read as JSON/);
+    assert.deepEqual(JSON.parse(c2.stdout), { state: "failed", marker_preserved: true });
+
+    const m2 = JSON.parse(readFileSync(join(scratch, "pin-capture.json"), "utf8"));
+    assert.equal(m2.state, "captured");
+    assert.equal(m2.round, 1);
+    assert.equal(m2.backend_identity, m1.backend_identity);
+    assert.equal(m2.ts, m1.ts);
+    assert.equal(m2.last_failure_round, 2);
+    assert.ok(m2.last_failure_reason.length > 0);
+    assert.equal(typeof m2.last_failure_ts, "string");
+
+    const c3 = runCli(["spec-review-pin", "--capture", "--dir", scratch, "--backends-json", bj, "--winner-index", "0", "--round", "3"]);
+    assert.equal(c3.code, 0);
+    assert.deepEqual(JSON.parse(c3.stdout), { written: false });
+    assert.ok(existsSync(join(scratch, "served-3.json")));
+
+    const g = runCli(["spec-review-window", "--govern", "--dir", scratch, "--round", "3", "--any-served"]);
+    assert.equal(g.code, 0, g.stderr);
+    const rec = JSON.parse(g.stdout);
+    assert.equal(rec.anomaly, null);
+    assert.equal(rec.action, "unchanged");
+    assert.notEqual(rec.window_start, 3, "the window is not narrowed to the governed round");
+    assert.equal(rec.capture_state, "captured");
+    assert.equal(rec.capture_round, 1);
+  } finally { rmSync(scratch, { recursive: true, force: true }); }
+});
+
+test("governance (FAFF-1332): a read failure at round 2 does not latch round 3 into unpinnable-reset", () => {
+  // Asserts only what --govern records, so a clobbering writer fails here on the latch itself
+  // (pin-marker-contradiction / unpinnable-reset / window_start 3 / capture_round 2).
+  const scratch = mkdtempSync(join(tmpdir(), "faff-srp-readfail-govern-"));
+  const bj = join(scratch, "backends.json");
+  try {
+    writeFileSync(bj, JSON.stringify(CFG.adversarial.backends));
+    const capture = (backends, round) => runCli(["spec-review-pin", "--capture", "--dir", scratch, "--backends-json", backends, "--winner-index", "0", "--round", String(round)]);
+    assert.equal(capture(bj, 1).code, 0);
+    assert.equal(capture(join(scratch, "missing.json"), 2).code, 2);
+    assert.equal(capture(bj, 3).code, 0);
+
+    const g = runCli(["spec-review-window", "--govern", "--dir", scratch, "--round", "3", "--any-served"]);
+    assert.equal(g.code, 0, g.stderr);
+    const rec = JSON.parse(g.stdout);
+    assert.equal(rec.anomaly, null);
+    assert.notEqual(rec.action, "unpinnable-reset");
+    assert.notEqual(rec.window_start, 3);
+    assert.equal(rec.capture_state, "captured");
+    assert.equal(rec.capture_round, 1);
   } finally { rmSync(scratch, { recursive: true, force: true }); }
 });
 

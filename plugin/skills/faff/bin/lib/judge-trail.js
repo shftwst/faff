@@ -49,8 +49,21 @@ const { readWindowStart } = require("./spec-review-window");
 // schema_version 2 (FAFF-1131): adds the `objections-by-round.json` per-issue member and its
 // manifest pointer. A trail minted before this slice is schema_version 1 (no per-round member,
 // no pointer); `judge-history --rounds` reads such a trail as objections_by_round:null.
-const SCHEMA_VERSION = 2;
+// schema_version 3 (FAFF-1132): the per-round member is write-capped (OBJECTIONS_BLOB_WRITE_CAP)
+// and the manifest carries the truncation marker. A v2 trail is unbounded-by-construction; a v3
+// trail is capped. The bump is informational — no reader gates on it, so v2 and v3 both read.
+const SCHEMA_VERSION = 3;
 const REMOTE_NAME = "origin";
+
+// FAFF-1132 — the hard write-cap on the retained per-round objection corpus
+// (`objections-by-round.json`), in bytes of the exact serialization staged below.
+// Measured, not asserted: one objection is ~640 B, a 4-objection round ~2.6 KB, a realistic
+// 5-round x 4-objection corpus ~14.6 KB, a pathological 10-round x 6-objection convergence
+// ~43.5 KB. 256 KiB leaves ~17x headroom over the realistic corpus and ~6x over the
+// pathological one — so no normal or even long-but-sane run truncates — while still bounding a
+// genuinely runaway/adversarial corpus at a quarter of this codebase's established 1 MiB
+// precedent (`ratified-scope.js`'s VALIDATE_MAX_BYTES).
+const OBJECTIONS_BLOB_WRITE_CAP = 262144; // 256 KiB
 
 // Identity-component charset — mirrors bundle.js's own (unexported) validIdentityToken:
 // no ".." segment, first char never "-" (defence in depth against argv-as-flag
@@ -162,6 +175,34 @@ function collectObjectionsByRound(specReviewDir) {
   return out;
 }
 
+// The ONE serialization of the per-round member, shared by the cap measurement (phase 1) and
+// the staged buffer (phase 2) — a measured-here-but-written-differently pair is the failure
+// mode this single expression exists to make impossible.
+function serializeObjectionsByRound(rounds) {
+  return JSON.stringify(rounds, null, 2) + "\n";
+}
+
+// FAFF-1132 phase 1 — decide the fitted set. Front-drops WHOLE rounds (oldest, down-weighted
+// history) until the serialized member fits `cap`, and never drops the tail: the last entry of
+// the ascending array is the standing residue the judge actually ruled on
+// (`spec-judge-evidence.js`'s readStandingResidue — latest in-window round wins), so a single
+// residue round that alone exceeds the cap is retained whole and the blob legitimately exceeds
+// the cap in that one pathological case. Pure, total, and allocation-only: it never reads the
+// filesystem, never throws, and never errors the best-effort mint.
+// Returns { fitted, dropped } where `fitted` is a suffix of `rounds` and `dropped` is the count
+// of rounds removed from the front.
+function fitObjectionsByRound(rounds, cap) {
+  if (!Array.isArray(rounds) || rounds.length === 0) return { fitted: [], dropped: 0 };
+  let start = 0;
+  for (;;) {
+    const candidate = rounds.slice(start);
+    if (Buffer.byteLength(serializeObjectionsByRound(candidate), "utf8") <= cap) break; // fits
+    if (candidate.length === 1) break; // single residue round floor — kept whole, cap or not
+    start += 1;
+  }
+  return { fitted: rounds.slice(start), dropped: start };
+}
+
 // Rulings — verbatim ruling-<pid>.json files (the spec-judge-verdict contract shape:
 // proposition_id/outcome/rationale/correction/synthesis_sources/prd_gap_citation/lens/
 // severity/conformant/violations), gathered in ledger.order when a ledger is present (a
@@ -235,9 +276,15 @@ function buildIssueSubtree(runDir, issue, specReviewDir, judgeDir) {
   const outcome = determineOutcome(!!ledger, admitResult);
   const lenses = [...new Set(objections.map((o) => o.lens).filter((l) => l))].sort();
 
+  // FAFF-1132 phase 2 — serialize the fitted set ONCE and stage that single whole buffer. The
+  // staged member is always complete valid JSON and always a bare ascending array (the
+  // truncation marker goes in the manifest below, never inside the member — `judge-history
+  // --rounds` reads it with Array.isArray).
+  const fit = fitObjectionsByRound(objectionsByRound, OBJECTIONS_BLOB_WRITE_CAP);
+
   const files = {};
   files["objections.json"] = Buffer.from(JSON.stringify(objections, null, 2) + "\n", "utf8");
-  files["objections-by-round.json"] = Buffer.from(JSON.stringify(objectionsByRound, null, 2) + "\n", "utf8");
+  files["objections-by-round.json"] = Buffer.from(serializeObjectionsByRound(fit.fitted), "utf8");
   files["rulings.json"] = Buffer.from(JSON.stringify(rulings, null, 2) + "\n", "utf8");
   if (admitResult !== null) files["admit-result.json"] = Buffer.from(JSON.stringify(admitResult, null, 2) + "\n", "utf8");
   if (specText !== null) files["spec.txt"] = Buffer.from(specText, "utf8");
@@ -250,6 +297,12 @@ function buildIssueSubtree(runDir, issue, specReviewDir, judgeDir) {
     spec_blob: specText !== null ? "spec.txt" : null,
     objections: "objections.json",
     objections_by_round: "objections-by-round.json",
+    // `truncated` reports whether rounds were DROPPED, which is not the same as "the blob is
+    // within the cap": a sole standing-residue round that alone exceeds the cap is retained
+    // whole, so it reports truncated:false with a blob over the cap. Read it as a
+    // history-completeness marker, never as a size guarantee.
+    objections_by_round_truncated: fit.dropped > 0,
+    objections_by_round_dropped_rounds: fit.dropped,
     rulings: "rulings.json",
     admit_result: admitResult !== null ? "admit-result.json" : null,
     outcome,
@@ -391,6 +444,24 @@ function judgeTrailSelftest() {
   ok("witnessSha is key-order independent", witnessSha(core1) === witnessSha(core2));
   const core3 = { ...core1, outcome: "park" };
   ok("witnessSha changes when the manifest core changes", witnessSha(core1) !== witnessSha(core3));
+
+  // fitObjectionsByRound (FAFF-1132): the pure write-cap fit — front-drop only, residue kept.
+  ok("OBJECTIONS_BLOB_WRITE_CAP is the measured 256 KiB", OBJECTIONS_BLOB_WRITE_CAP === 262144);
+  const fitRound = (n, size) => ({ round: n, window_start: 1, objections: [{ lens: "QA", claim: "x".repeat(size) }] });
+  const fitEmpty = fitObjectionsByRound([], OBJECTIONS_BLOB_WRITE_CAP);
+  ok("fitObjectionsByRound: empty in, empty out, nothing dropped", fitEmpty.fitted.length === 0 && fitEmpty.dropped === 0);
+  const fitUnder = [1, 2].map((n) => fitRound(n, 10));
+  const underRes = fitObjectionsByRound(fitUnder, OBJECTIONS_BLOB_WRITE_CAP);
+  ok("fitObjectionsByRound: an under-cap corpus is untouched", underRes.dropped === 0 && underRes.fitted.length === 2);
+  const fitOver = [1, 2, 3, 4].map((n) => fitRound(n, 100000));
+  const overRes = fitObjectionsByRound(fitOver, OBJECTIONS_BLOB_WRITE_CAP);
+  ok("fitObjectionsByRound: an over-cap corpus front-drops", overRes.dropped > 0);
+  ok("fitObjectionsByRound: the fitted set meets the cap",
+    Buffer.byteLength(serializeObjectionsByRound(overRes.fitted), "utf8") <= OBJECTIONS_BLOB_WRITE_CAP);
+  ok("fitObjectionsByRound: the standing residue is retained",
+    overRes.fitted[overRes.fitted.length - 1] === fitOver[fitOver.length - 1]);
+  const soleOver = fitObjectionsByRound([fitRound(9, OBJECTIONS_BLOB_WRITE_CAP + 1000)], OBJECTIONS_BLOB_WRITE_CAP);
+  ok("fitObjectionsByRound: a sole over-cap residue round is kept whole", soleOver.fitted.length === 1 && soleOver.dropped === 0);
 
   // collectObjections: verbatim triple + ledger-carried contested_source, index-matched by
   // the same p-01/p-02 scheme spec-judge-casefile.js's assemble() uses.
@@ -615,6 +686,8 @@ module.exports = {
   listIssueScratchDirs,
   collectObjections,
   collectObjectionsByRound,
+  fitObjectionsByRound,
+  OBJECTIONS_BLOB_WRITE_CAP,
   collectRulings,
   resolveSpecText,
   determineOutcome,

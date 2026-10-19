@@ -107,12 +107,14 @@ test("mint -> judge-history (local store): manifest carries schema_version/issue
     assert.deepEqual([...rec.lenses].sort(), ["QA", "infosec"]);
 
     const m = rec.manifest;
-    assert.equal(m.schema_version, 2);
+    assert.equal(m.schema_version, 3, "FAFF-1132 bumped the trail schema 2 -> 3 (the per-round member is write-capped)");
     assert.equal(m.issue, "FAFF-1");
     assert.equal(m.run_id, runId);
     assert.equal(m.spec_blob, "spec.txt");
     assert.equal(m.objections, "objections.json");
     assert.equal(m.objections_by_round, "objections-by-round.json");
+    assert.equal(m.objections_by_round_truncated, false, "a small corpus is untruncated");
+    assert.equal(m.objections_by_round_dropped_rounds, 0);
     assert.equal(m.rulings, "rulings.json");
     assert.equal(m.admit_result, "admit-result.json");
     assert.equal(m.built_spec_sha, sha256Text("# Spec\n\nhello world\n"), "built_spec_sha == sha256Text(spec_text), the exact spec.txt bytes just fetched below");
@@ -510,5 +512,188 @@ test("FAFF-1131: a corrupt round is skipped (others retained) and a corrupt wind
     const obr = withRounds[0].objections_by_round;
     assert.deepEqual(obr.map((r) => r.round), [1, 3], "the corrupt round 2 is skipped; rounds 1 and 3 retained");
     assert.ok(obr.every((r) => r.window_start === 1), "the corrupt window.json degraded to window_start=1");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// ===========================================================================
+// FAFF-1132 — the hard write-cap (OBJECTIONS_BLOB_WRITE_CAP) and its two-phase,
+// front-dropping truncation on the per-round objection member.
+
+const CAP = jt.OBJECTIONS_BLOB_WRITE_CAP;
+
+// The exact serialization the member is staged as — the same expression both phases share.
+const serializeMember = (rounds) => JSON.stringify(rounds, null, 2) + "\n";
+const memberBytes = (rounds) => Buffer.byteLength(serializeMember(rounds), "utf8");
+
+// Read the STAGED member back out of the ref as raw bytes (never via a re-serialization), so a
+// byte-length assertion measures what was actually written.
+function stagedMemberBytes(root, runId, issue) {
+  const r = spawnSync("git", ["-C", root, "show", `refs/faff/judge-trail/${runId}:${issue}/objections-by-round.json`], { encoding: "buffer" });
+  assert.equal(r.status, 0, String(r.stderr));
+  return r.stdout;
+}
+
+// One objection of roughly `claimBytes` bytes — the knob that drives a round over the cap.
+const bigObjection = (tag, claimBytes) => ({
+  lens: "QA", severity: "minor", claim: `${tag}:${"x".repeat(claimBytes)}`,
+  evidence: "", predicted_consequence: null, spec_anchor: "the-guard",
+});
+
+test("FAFF-1132: OBJECTIONS_BLOB_WRITE_CAP is the measured 256 KiB constant", () => {
+  assert.equal(CAP, 262144, "the cap is 262144 bytes (256 KiB) — the justified, measured value");
+});
+
+test("FAFF-1132: fitObjectionsByRound front-drops whole rounds, keeps the residue, and meets the cap", () => {
+  // Empty input: trivially under cap, nothing dropped.
+  assert.deepEqual(jt.fitObjectionsByRound([], CAP), { fitted: [], dropped: 0 });
+  assert.deepEqual(jt.fitObjectionsByRound(null, CAP), { fitted: [], dropped: 0 }, "a non-array degrades, never throws");
+
+  // Already under cap: the full array, unchanged, nothing dropped.
+  const small = [1, 2, 3].map((n) => ({ round: n, window_start: 1, objections: [{ lens: "QA", claim: `r${n}` }] }));
+  const sfit = jt.fitObjectionsByRound(small, CAP);
+  assert.deepEqual(sfit, { fitted: small, dropped: 0 });
+
+  // Over cap across several rounds: a SUFFIX is kept, the tail (standing residue) survives,
+  // the serialized fitted set meets the cap, and `dropped` counts the front rounds removed.
+  const big = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({ round: n, window_start: 1, objections: [bigObjection(`r${n}`, 60000)] }));
+  assert.ok(memberBytes(big) > CAP, "the fixture corpus genuinely exceeds the cap");
+  const bfit = jt.fitObjectionsByRound(big, CAP);
+  assert.ok(bfit.dropped > 0, "front rounds were dropped");
+  assert.equal(bfit.fitted.length, big.length - bfit.dropped, "dropped + fitted accounts for every round");
+  assert.deepEqual(bfit.fitted, big.slice(bfit.dropped), "fitted is a suffix of the input — never a reordering or a tail cut");
+  assert.deepEqual(bfit.fitted[bfit.fitted.length - 1], big[big.length - 1], "the standing residue (last entry) is retained");
+  assert.ok(bfit.fitted[0].round > big[0].round, "the first retained round is later than the original first");
+  assert.ok(memberBytes(bfit.fitted) <= CAP, "the fitted set meets the cap");
+  assert.ok(memberBytes(big.slice(bfit.dropped - 1)) > CAP, "the fit is maximal — one more round would breach the cap");
+
+  // Single round alone over cap: the residue is retained WHOLE, nothing dropped, cap exceeded.
+  const single = [{ round: 7, window_start: 7, objections: [bigObjection("huge", CAP + 10000)] }];
+  assert.ok(memberBytes(single) > CAP, "the single round genuinely exceeds the cap");
+  const onefit = jt.fitObjectionsByRound(single, CAP);
+  assert.deepEqual(onefit, { fitted: single, dropped: 0 }, "the single residue round is kept whole — never dropped, never sliced");
+  assert.ok(memberBytes(onefit.fitted) > CAP, "the blob legitimately exceeds the cap in this one pathological case");
+});
+
+test("FAFF-1132: an over-cap multi-round corpus mints truncated — capped bytes, valid array, residue intact, marker in the manifest", () => {
+  const root = mkdtempSync(join(tmpdir(), "faff-judge-trail-cap-over-"));
+  try {
+    initRepo(root);
+    const runId = "run-cap-over-000201";
+    const issue = "FAFF-1132";
+    const seeded = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({ n, objections: [bigObjection(`r${n}`, 60000)] }));
+    const unfitted = seeded.map(({ n, objections }) => ({ round: n, window_start: 1, objections }));
+    assert.ok(memberBytes(unfitted) > CAP, "the seeded corpus exceeds the cap before fitting");
+    const { runDir } = seedRounds(root, runId, issue, seeded);
+
+    const mint = JSON.parse(runCli(["judge-trail", "mint", "--run-dir", runDir, "--root", root, "--json"]).stdout);
+    assert.equal(mint.ok, true, "a cap breach truncates and proceeds — the mint never errors");
+    assert.equal(mint.minted, true);
+
+    // The STAGED bytes meet the cap and parse as a bare JSON array (no torn write).
+    const raw = stagedMemberBytes(root, runId, issue);
+    assert.ok(raw.length <= CAP, `staged member is ${raw.length} bytes, within the ${CAP}-byte cap`);
+    const parsed = JSON.parse(raw.toString("utf8"));
+    assert.ok(Array.isArray(parsed), "the staged member is a bare JSON array at every truncation level");
+
+    const rec = JSON.parse(runCli(["judge-history", "--run", runId, "--rounds", "--root", root, "--json"]).stdout)[0];
+    assert.equal(rec.tamper_suspect, false, "witness_sha verifies on the v3 manifest carrying the two new fields");
+    assert.equal(rec.manifest.schema_version, 3);
+    assert.equal(rec.manifest.objections_by_round_truncated, true);
+    assert.equal(rec.manifest.objections_by_round_dropped_rounds, seeded.length - parsed.length,
+      "dropped_rounds equals the number of front rounds removed");
+    assert.ok(rec.manifest.objections_by_round_dropped_rounds > 0);
+    assert.equal(parsed[parsed.length - 1].round, 8, "the last retained round is the original highest — the standing residue");
+    assert.ok(parsed[0].round > 1, "the first retained round is later than the original first");
+    assert.deepEqual(parsed.map((r) => r.round), unfitted.slice(unfitted.length - parsed.length).map((r) => r.round),
+      "the retained rounds are a contiguous ascending suffix");
+
+    // Reader compatibility: --rounds still enumerates per-round lines on a truncated trail.
+    const human = runCli(["judge-history", "--run", runId, "--rounds", "--root", root]).stdout;
+    const roundLines = human.match(/^ {2}round \d+ \(window_start=/gm);
+    assert.ok(roundLines, "judge-history --rounds printed at least one per-round line (an Array.isArray regression prints none)");
+    assert.equal(roundLines.length, parsed.length,
+      "judge-history --rounds prints one line per retained round (no Array.isArray regression)");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-1132: a single in-window round that alone exceeds the cap is retained whole; mint ok, truncated:false", () => {
+  const root = mkdtempSync(join(tmpdir(), "faff-judge-trail-cap-single-"));
+  try {
+    initRepo(root);
+    const runId = "run-cap-single-000202";
+    const issue = "FAFF-1132";
+    const { runDir } = seedRounds(root, runId, issue, [{ n: 1, objections: [bigObjection("huge", CAP + 10000)] }]);
+
+    const mint = JSON.parse(runCli(["judge-trail", "mint", "--run-dir", runDir, "--root", root, "--json"]).stdout);
+    assert.equal(mint.ok, true, "the mint stays best-effort — no throw, no ok:false on an over-cap residue");
+    assert.equal(mint.minted, true);
+
+    const raw = stagedMemberBytes(root, runId, issue);
+    assert.ok(raw.length > CAP, "the blob legitimately exceeds the cap rather than dropping the residue");
+    const parsed = JSON.parse(raw.toString("utf8"));
+    assert.ok(Array.isArray(parsed) && parsed.length === 1, "the one round is staged whole as a valid array");
+    assert.equal(parsed[0].round, 1);
+
+    const rec = JSON.parse(runCli(["judge-history", "--run", runId, "--rounds", "--root", root, "--json"]).stdout)[0];
+    assert.equal(rec.manifest.objections_by_round_truncated, false, "nothing was dropped, so nothing is marked truncated");
+    assert.equal(rec.manifest.objections_by_round_dropped_rounds, 0);
+    assert.equal(rec.manifest.schema_version, 3);
+    assert.equal(rec.tamper_suspect, false);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-1132: a realistic 5-round x 4-objection corpus is untouched by the cap (the no-change-for-normal-runs regression guard)", () => {
+  const root = mkdtempSync(join(tmpdir(), "faff-judge-trail-cap-realistic-"));
+  try {
+    initRepo(root);
+    const runId = "run-cap-realistic-000203";
+    const issue = "FAFF-1132";
+    // ~640 B per objection: a realistic claim/evidence/consequence triple, 4 per round, 5 rounds.
+    const realistic = (r, i) => ({
+      lens: ["infosec", "QA", "architectural", "methodology"][i], severity: i === 0 ? "major" : "minor",
+      claim: `round ${r} objection ${i}: ${"the spec under-specifies the boundary here. ".repeat(4)}`,
+      evidence: `see the module cited in the spec's reference table. ${"line-level citation. ".repeat(4)}`,
+      predicted_consequence: `a reader would implement the wrong shape. ${"consequence detail. ".repeat(3)}`,
+      spec_anchor: `section-${r}-${i}`,
+    });
+    const seeded = [1, 2, 3, 4, 5].map((n) => ({ n, objections: [0, 1, 2, 3].map((i) => realistic(n, i)) }));
+    const unfitted = seeded.map(({ n, objections }) => ({ round: n, window_start: 1, objections }));
+    const unfittedBytes = memberBytes(unfitted);
+    assert.ok(unfittedBytes > 10000 && unfittedBytes < 25000,
+      `the fixture is a realistic ~15 KB corpus (measured ${unfittedBytes} bytes)`);
+    assert.ok(unfittedBytes < CAP, "a realistic corpus sits well inside the cap");
+
+    const { runDir } = seedRounds(root, runId, issue, seeded);
+    assert.equal(JSON.parse(runCli(["judge-trail", "mint", "--run-dir", runDir, "--root", root, "--json"]).stdout).minted, true);
+
+    const raw = stagedMemberBytes(root, runId, issue);
+    assert.equal(raw.toString("utf8"), serializeMember(unfitted),
+      "the staged member is byte-identical to the un-fitted serialization — no behavioural change for a normal run");
+    const rec = JSON.parse(runCli(["judge-history", "--run", runId, "--rounds", "--root", root, "--json"]).stdout)[0];
+    assert.equal(rec.manifest.objections_by_round_truncated, false);
+    assert.equal(rec.manifest.objections_by_round_dropped_rounds, 0);
+    assert.equal(rec.objections_by_round.length, 5, "all five rounds are retained");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-1132: an empty in-window corpus stages \"[]\\n\" with truncated:false, dropped_rounds:0", () => {
+  const root = mkdtempSync(join(tmpdir(), "faff-judge-trail-cap-empty-"));
+  try {
+    initRepo(root);
+    const runId = "run-cap-empty-000204";
+    const issue = "FAFF-15";
+    // A full judge fixture (so the issue is mintable material) whose window_start excludes
+    // every round file -> collectObjectionsByRound returns [].
+    const { runDir, specReviewDir } = seedFullFixture(root, runId, issue);
+    writeFileSync(join(specReviewDir, "window.json"), JSON.stringify({ window_start: 9 }));
+    assert.equal(JSON.parse(runCli(["judge-trail", "mint", "--run-dir", runDir, "--root", root, "--json"]).stdout).minted, true);
+
+    assert.equal(stagedMemberBytes(root, runId, issue).toString("utf8"), "[]\n", "an empty corpus stages the empty array verbatim");
+    const rec = JSON.parse(runCli(["judge-history", "--run", runId, "--rounds", "--root", root, "--json"]).stdout)[0];
+    assert.deepEqual(rec.objections_by_round, []);
+    assert.equal(rec.manifest.objections_by_round_truncated, false);
+    assert.equal(rec.manifest.objections_by_round_dropped_rounds, 0);
+    assert.equal(rec.manifest.schema_version, 3);
+    assert.equal(rec.tamper_suspect, false);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

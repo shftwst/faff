@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "records/specs/2026-10-20-FAFF-1356-halve-the-local-gate-default-shard-concurrency-design.md::committed spec still specifies half while code ships quarter",
+      "title": "Committed spec still specifies half while code ships quarter",
+      "location": "records/specs/2026-10-20-FAFF-1356-halve-the-local-gate-default-shard-concurrency-design.md",
+      "action": "Record the fallback outcome in the PR body",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The ratified spec is attached to the tracker and its step 5 names the quarter fallback; the PR body records the taken branch and the divergent DoD item 3.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Committed spec still specifies half while code ships quarter",
+          "location": "records/specs/2026-10-20-FAFF-1356-halve-the-local-gate-default-shard-concurrency-design.md",
+          "severity": "major",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gates.js::shardcapable guard disables sharding for the repo unit rung, invalidating the measurement",
+      "title": "shardCapable guard disables sharding for the repo UNIT rung, invalidating the measurement",
+      "location": "plugin/skills/faff/bin/lib/gates.js:639",
+      "action": "Re-run with sharding active",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "The repo UNIT command is 'node --import ./test/hermetic-env.mjs --test' with no trailing path; every measured run reported 'all 8 shards passed'.",
+      "disposition_rationale": "Evidence in qd1..qd5 gates JSON shows 8 shards ran at the quarter default.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "shardCapable guard disables sharding for the repo UNIT rung, invalidating the measurement",
+          "location": "plugin/skills/faff/bin/lib/gates.js:639",
+          "severity": "major",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gates.js::shardcapable demotes shardable commands with space-separated flag values silently",
+      "title": "shardCapable demotes shardable commands with space-separated flag values silently",
+      "location": "plugin/skills/faff/bin/lib/gates.js:639",
+      "action": "Parse flag/value pairs",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The failure direction is safe (a slower unsharded run); recorded as discovered scope.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "shardCapable demotes shardable commands with space-separated flag values silently",
+          "location": "plugin/skills/faff/bin/lib/gates.js:639",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gates.js::helper placed between the parallelism comment and its function",
+      "title": "Helper placed between the parallelism comment and its function",
+      "location": "plugin/skills/faff/bin/lib/gates.js:860",
+      "action": "Move the helper",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Moved above the comment in a follow-up commit.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Helper placed between the parallelism comment and its function",
+          "location": "plugin/skills/faff/bin/lib/gates.js:860",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "records/specs/2026-10-20-FAFF-1356-halve-the-local-gate-default-shard-concurrency-design.md::spec done item on records/specs is unsatisfiable as written",
+      "title": "Spec DONE item on records/specs is unsatisfiable as written",
+      "location": "records/specs/2026-10-20-FAFF-1356-halve-the-local-gate-default-shard-concurrency-design.md",
+      "action": "Reword to pre-existing files",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Read as no pre-existing file modified; verified with git diff --diff-filter=M.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Spec DONE item on records/specs is unsatisfiable as written",
+          "location": "records/specs/2026-10-20-FAFF-1356-halve-the-local-gate-default-shard-concurrency-design.md",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

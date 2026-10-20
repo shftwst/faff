@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "all_verified": false,
+  "criteria": [
+    {
+      "ac": "On this 8-core host, with `gates.local_shard_concurrency` unset, five consecutive `faff gates run --json` runs each report a UNIT rung with status pass; the five `duration_ms` values, the control run's result and the load average are recorded in the PR body.",
+      "verified": "Five consecutive unconfigured runs (qd1-qd5, quarter default, width 2) each passed every UNIT rung: 425362, 425440, 423622, 426269, 424404 ms for the main rung. Control (width 7) failed; load averages and results are in the PR body.",
+      "passed": true,
+      "ac_id": "faff-1356#done:1",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff gates run --json (x5, gates.local_shard_concurrency unset)"
+        }
+      ]
+    },
+    {
+      "ac": "If any of those runs failed, the PR body lists the failing test names and which branch of `measure_default` was taken.",
+      "verified": "Half (width 4) failed twice (run1, h1; test 835 in test/sentry-poller.test.mjs); quarter branch of measure_default taken. Names and branch are in the PR body.",
+      "passed": true,
+      "ac_id": "faff-1356#done:2",
+      "verifications": [
+        {
+          "kind": "human"
+        }
+      ]
+    },
+    {
+      "ac": "`gates.js` exports `defaultShardConcurrency`; for inputs 2, 3, 4, 8 and 16 it returns 1, 1, 2, 4 and 8, each pinned by a `gates --selftest` case.",
+      "verified": "Not met as written: the measured quarter fallback makes defaultShardConcurrency return 1,1,1,2,4 for 2,3,4,8,16 (spec step 5b), pinned by a selftest case. The criterion still lists the half values.",
+      "passed": false,
+      "ac_id": "faff-1356#done:3",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node -e 'console.log([2,3,4,8,16].map(require(\"./plugin/skills/faff/bin/lib/gates.js\").defaultShardConcurrency).join())'"
+        }
+      ]
+    },
+    {
+      "ac": "`readGatesConfig` with no `local_shard_concurrency` returns `defaultShardConcurrency(local_shards)`; the existing absent, non-numeric and `0` selftest cases expect that value and their labels no longer say `max(2, local_shards-1)`.",
+      "verified": "readGatesConfig absent, non-numeric and 0 selftest cases expect defaultShardConcurrency(local_shards); labels updated.",
+      "passed": true,
+      "ac_id": "faff-1356#done:4",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff gates --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "A present `local_shard_concurrency: 7` and `local_shard_concurrency: 1` are both honoured verbatim (selftest).",
+      "verified": "Selftest cases honour local_shard_concurrency 7 and 1 verbatim.",
+      "passed": true,
+      "ac_id": "faff-1356#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff gates --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`grep -n \"max(2, local_shards - 1)\\|reserves one core\\|reserve one core\" plugin/skills/faff/bin/lib/gates.js` returns nothing.",
+      "verified": "grep exits 1 with no output.",
+      "passed": true,
+      "ac_id": "faff-1356#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n \"max(2, local_shards - 1)\\|reserves one core\\|reserve one core\" plugin/skills/faff/bin/lib/gates.js"
+        }
+      ]
+    },
+    {
+      "ac": "`runShardedRung` and `runRung` are unchanged apart from comments.",
+      "verified": "The diff has no code hunk inside runShardedRung or runRung; comment-only hunks there. shardCapable gained a guard (a separate function) to fix a docker-rung collision.",
+      "passed": true,
+      "ac_id": "faff-1356#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main...HEAD -- plugin/skills/faff/bin/lib/gates.js"
+        }
+      ]
+    },
+    {
+      "ac": "`faff gates --selftest` prints a line starting `RESULT: PASS`.",
+      "verified": "RESULT: PASS (183 cases, 0 failed).",
+      "passed": true,
+      "ac_id": "faff-1356#done:8",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff gates --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`node --test test/gates-local-shard.test.mjs` passes.",
+      "verified": "6 pass, 0 fail.",
+      "passed": true,
+      "ac_id": "faff-1356#done:9",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/gates-local-shard.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "No file under `records/specs/` is modified.",
+      "verified": "No file under records/specs is modified (only the new FAFF-1356 spec is added).",
+      "passed": true,
+      "ac_id": "faff-1356#done:10",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main...HEAD --diff-filter=M --name-only -- records/specs"
+        }
+      ]
+    }
+  ]
+}

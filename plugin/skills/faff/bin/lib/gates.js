@@ -857,9 +857,6 @@ function readGatesConfig(root) {
   return { fallback, partial, exclude, max_rungs_per_kind, partial_threshold, rung_timeout_ms, local_shards, local_shard_concurrency };
 }
 
-// os.availableParallelism() is the FAFF-1002 default shard count (mirrors CI's own "N=4 matches the
-// 4-vCPU runner" reasoning, adapted to the actual host). Defensive fallback for an older/unusual
-// Node build where the function is absent or throws: os.cpus().length, or 1 as the final floor.
 // FAFF-1356: a quarter of the shard count keeps peak pressure on timing-sensitive tests well below the
 // old one-core-spare width (half still tripped a sentry-poller timing test on the 8-core reference
 // host); the floor of 1 means a host with fewer than 8 shards runs serially.
@@ -867,6 +864,9 @@ function defaultShardConcurrency(local_shards) {
   return Math.max(1, Math.floor(local_shards / 4));
 }
 
+// os.availableParallelism() is the FAFF-1002 default shard count (mirrors CI's own "N=4 matches the
+// 4-vCPU runner" reasoning, adapted to the actual host). Defensive fallback for an older/unusual
+// Node build where the function is absent or throws: os.cpus().length, or 1 as the final floor.
 function safeAvailableParallelism() {
   try {
     if (typeof os.availableParallelism === "function") {

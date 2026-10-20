@@ -3,8 +3,8 @@
   "all_verified": true,
   "criteria": [
     {
-      "ac": "On this 8-core host, with `gates.local_shard_concurrency` unset, five consecutive `faff gates run --json` runs each report a UNIT rung with status pass; the five `duration_ms` values, the control run's result and the load average are recorded in the PR body.",
-      "verified": "Five consecutive unconfigured runs (qd1-qd5, quarter default, width 2) each passed every UNIT rung: 425362, 425440, 423622, 426269, 424404 ms for the main rung. Control (width 7) failed; load averages and results are in the PR body.",
+      "ac": "On this 8-core host, with `gates.local_shard_concurrency` unset, five consecutive `faff gates run --json` runs each report a `rungs[]` entry with `kind: \"UNIT\"` and `status: \"pass\"`; the five `duration_ms` values, the control run's result (status and failing test names at width 7) and the load average are recorded in the PR body.",
+      "verified": "Five unconfigured runs (qd1-qd5, quarter default, width 2) each passed every UNIT rung (main rung 425362, 425440, 423622, 426269, 424404 ms). Control at width 7 failed (gate run 519.9 s; a manual 8-shard rerun at width 7 named 9 failing tests). Durations, names and load averages are in the PR body.",
       "passed": true,
       "ac_id": "faff-1356#done:1",
       "verifications": [
@@ -15,7 +15,7 @@
       ]
     },
     {
-      "ac": "If any of those runs failed, the PR body lists the failing test names and which branch of `measure_default` was taken.",
+      "ac": "If any of those runs failed, the PR body lists the failing test names and which branch of `measure_default` was taken (quarter default shipped, or parked).",
       "verified": "Half (width 4) failed twice (run1, h1; test 835 in test/sentry-poller.test.mjs); quarter branch of measure_default taken. Names and branch are in the PR body.",
       "passed": true,
       "ac_id": "faff-1356#done:2",

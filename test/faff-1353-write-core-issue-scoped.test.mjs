@@ -117,6 +117,7 @@ test("unavailable schema bundle: the append is still refused and writes nothing"
   t.after(() => rmSync(copy.dir, { recursive: true, force: true }));
   const copied = require(join(copy.copy, "bin", "lib", "events.js"));
   assertRefused(ctx, () => copied.appendEventRecord(ctx.runDir, ctx.runId, capture("")));
+  // The marker records a degraded write; a refused record writes nothing, so nothing is marked.
   assert.ok(!existsSync(join(ctx.runDir, "evidence-schema-unavailable.json")));
 });
 

@@ -623,7 +623,7 @@ function runSingleSpawnSync(rung, root, rung_timeout_ms) {
   return classifyRungResult(rung, res, duration_ms, rung_timeout_ms);
 }
 
-// FAFF-1002: a Node test invocation (`node … --test`) carrying NO existing `--test-shard` token —
+// FAFF-1002: a Node test invocation (`node … --test`) carrying NO existing `--test-shard` token and no explicit test path —
 // the only command class Node can partition with `--test-shard=<i>/<N>`. Deterministic from the
 // command string alone (tokenised on whitespace) — no timing measurement, no size heuristic. A
 // command already carrying `--test-shard` (defensive — normaliseLocalRungCommand already strips it
@@ -635,6 +635,10 @@ function shardCapable(command) {
   if (!hasNode) return false;
   if (!tokens.includes("--test")) return false;
   if (tokens.some((t) => t.startsWith("--test-shard"))) return false;
+  // FAFF-1356: the pool appends `--test-shard=i/n` to the command; node treats anything after an
+  // explicit test path as a script argument, so every shard would run the same files in full.
+  const afterTest = tokens.slice(tokens.indexOf("--test") + 1);
+  if (afterTest.some((t) => !t.startsWith("-"))) return false;
   return true;
 }
 
@@ -1289,7 +1293,8 @@ async function gatesSelftest() {
   cases.push(["overflow: >1 MB stdout + exit 1 classifies fail, not errored", noisyFailRung.status === "fail" && !noisyFailRung.reason]);
 
   // 5i. FAFF-1002: shard-capability predicate — deterministic from the command string alone.
-  cases.push(["shard: node --test with no shard token is shard-capable", shardCapable("node --import ./test/hermetic-env.mjs --test test/") === true]);
+  cases.push(["shard: node --test with no shard token is shard-capable", shardCapable("node --import ./test/hermetic-env.mjs --test") === true]);
+  cases.push(["shard: node --test with explicit test paths is NOT shard-capable (a trailing shard flag would be ignored)", shardCapable("node --import ./test/hermetic-env.mjs --test test/env.test.mjs test/holdout-evaluate-integration.test.mjs") === false]);
   cases.push(["shard: node --test WITH an existing --test-shard is NOT shard-capable (defensive)", shardCapable("node --test --test-shard=1/4 test/") === false]);
   cases.push(["shard: lint/static (no node/--test) is NOT shard-capable", shardCapable("eslint .") === false]);
   cases.push(["shard: a non-`--test` node command is NOT shard-capable", shardCapable("node scripts/build.js") === false]);

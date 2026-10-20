@@ -1,0 +1,176 @@
+{
+  "schema_version": 1,
+  "verdict": "revise",
+  "final_verdict": "revise",
+  "rounds_total": 3,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The chosen design runs `eventViolations(record, ENVELOPE_MODE, profile)` unconditionally at the core, with `profile` being the *active* (possibly overridden) profile. Envelope mode checks far more than the issue-scoped rule this slice exists to close: it checks `phase` and `type` against the profile's vocabularies, the outcome vocabulary, the `agent-dispatch`/`runner-identity`/`decision-capture` payload shapes, and the `ledger-write` hash rule. Under any `$FAFF_GOVERNANCE_PROFILE` override whose `event_types`/`event_phases` do not restate the full delivery vocabulary — which `validateProfileShape` explicitly permits (it requires only arrays of strings, not any particular content; `SECOND_PROFILE` is the shipped proof) — every standard internal write is now refused: `emitGenesisRunStart`'s `run-start` (phase `run`), heartbeat's `ledger-write` fold, `run-ledger.js`'s `sentry-trip`, `lights-out.js`'s `run-resume`, `resumecheck.js`'s `run-claim-abandoned`. Today those writes proceed unchecked under an override (`logRecordChecker` returns null and nothing else runs); after this change they throw `EVENT_SCHEMA`. The spec's own holdout scenario embraces override enforcement *for the issue-scoped rule only* and its failure-modes section tests refusals only on the default path; the collateral refusal of the chain's own structural events is stated nowhere.",
+      "evidence": "Spec §\"The write core's shape after this change\" step (c) (\"envelope_violations := event_violations(record, ENVELOPE_MODE, profile)\", running \"whether or not `check` is null\") and the Decision \"where the profile is resolved and how it reaches the check\"; `governance-profile.js` `validateProfileShape` (closed keys, content-free arrays) and `SECOND_PROFILE` (`event_phases: [\"job\"]`, disjoint `event_types`); the spec's own constraint that the change must not disturb the FAFF-564/966/1277 structure, vs. the `ledger-write` fold being one of the now-gated writers.",
+      "predicted_consequence": "Under any override that does not duplicate the delivery vocabulary, `faff lights-out --resume`, sentry-trip recording, and the heartbeat ledger-write fold all throw `EVENT_SCHEMA` mid-run. If the fold's append failure propagates, run-ledger writes fail; if it is swallowed, the chain silently loses its `ledger-write` links and the ledger-fold integrity leg — which this spec explicitly says must keep working — degrades for every subsequent `events verify`. Either branch is a regression the spec neither states nor tests, and the builder cannot fix it without narrowing the spec's step (c) (e.g. scoping the core check to the issue-scoped/outcome rules, or documenting that overrides are now write-supersets and enforcing that at `validateProfileShape`).",
+      "spec_anchor": "decision-where-the-profile-is-resolved-and-how-it-reaches-the-check",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in spec round 2: the write core enforces the issue-scoped rule alone, through one extracted predicate, instead of running eventViolations in full envelope mode.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The chosen design runs `eventViolations(record, ENVELOPE_MODE, profile)` unconditionally at the core, with `profile` being the *active* (possibly overridden) profile. Envelope mode checks far more than the issue-scoped rule this slice exists to close: it checks `phase` and `type` against the profile's vocabularies, the outcome vocabulary, the `agent-dispatch`/`runner-identity`/`decision-capture` payload shapes, and the `ledger-write` hash rule. Under any `$FAFF_GOVERNANCE_PROFILE` override whose `event_types`/`event_phases` do not restate the full delivery vocabulary — which `validateProfileShape` explicitly permits (it requires only arrays of strings, not any particular content; `SECOND_PROFILE` is the shipped proof) — every standard internal write is now refused: `emitGenesisRunStart`'s `run-start` (phase `run`), heartbeat's `ledger-write` fold, `run-ledger.js`'s `sentry-trip`, `lights-out.js`'s `run-resume`, `resumecheck.js`'s `run-claim-abandoned`. Today those writes proceed unchecked under an override (`logRecordChecker` returns null and nothing else runs); after this change they throw `EVENT_SCHEMA`. The spec's own holdout scenario embraces override enforcement *for the issue-scoped rule only* and its failure-modes section tests refusals only on the default path; the collateral refusal of the chain's own structural events is stated nowhere.",
+          "spec_anchor": "decision-where-the-profile-is-resolved-and-how-it-reaches-the-check"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The spec's closed decision on whitespace rests on a false reading of JSON Schema `pattern` semantics. `pattern` is an **unanchored** ECMA-262 search, and `.` matches any character except line terminators — so `issue: \" \"` **matches** `pattern: \".\"` and passes the schema half; the only values the schema rejects but `eventViolations` accepts are strings composed solely of line terminators (e.g. `\"\\n\"`). The spec's sentence (\"`\" \"` passes the core check while the schema's `pattern: \".\"` rejects a value holding no non-newline character\") implies a whitespace divergence that does not exist and omits the one that does. Two consequences: (a) the shipped spec documents a schema guarantee the schema does not provide, and a builder or reviewer relying on \"the schema rejects whitespace-only issues\" is wrong; (b) the residual fail-open the spec's own fail-open analysis misses is the newline-only case — under a non-delivery profile or an unavailable bundle the schema half is skipped, `eventViolations` accepts `issue: \"\\n\"`, and the core writes a contaminating row, which is the exact defect class this slice exists to close. The \"unreachable from the capture path\" mitigation holds for the capture path specifically (it passes a resolved issue or `\"\"`), but the spec presents the divergence as closed-and-documented when its description of it is incorrect.",
+      "evidence": "\"Decision — a whitespace-only `issue`\" in `### Decision — a whitespace-only issue`; the schema constraint is specified in `### Decision — whether the schema constraint ships in this slice` (`\"pattern\": \".\"` on the envelope `issue`); the fail-open claim \"the `eventViolations` half covers the two fail-open paths\" in `### Design principles`.",
+      "predicted_consequence": "A `\"\\n\"`-only `issue` is written to `events.jsonl` under a profile override or schema-bundle fault (the two paths this slice claims to have closed), is byte-copied into every per-issue anchor by `mintIssueAnchor`, and is then rejected by `faff events validate` / the evidence gate — the same contamination-and-inheritance shape the fourteen rows exhibit, reached through the paths the spec says are shut.",
+      "spec_anchor": "decision-a-whitespace-only-issue",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in spec rounds 2 and 3: the pattern reading was corrected, then the schema change was dropped by operator decision of 2026-10-20, so no pattern ships.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The spec's closed decision on whitespace rests on a false reading of JSON Schema `pattern` semantics. `pattern` is an **unanchored** ECMA-262 search, and `.` matches any character except line terminators — so `issue: \" \"` **matches** `pattern: \".\"` and passes the schema half; the only values the schema rejects but `eventViolations` accepts are strings composed solely of line terminators (e.g. `\"\\n\"`). The spec's sentence (\"`\" \"` passes the core check while the schema's `pattern: \".\"` rejects a value holding no non-newline character\") implies a whitespace divergence that does not exist and omits the one that does. Two consequences: (a) the shipped spec documents a schema guarantee the schema does not provide, and a builder or reviewer relying on \"the schema rejects whitespace-only issues\" is wrong; (b) the residual fail-open the spec's own fail-open analysis misses is the newline-only case — under a non-delivery profile or an unavailable bundle the schema half is skipped, `eventViolations` accepts `issue: \"\\n\"`, and the core writes a contaminating row, which is the exact defect class this slice exists to close. The \"unreachable from the capture path\" mitigation holds for the capture path specifically (it passes a resolved issue or `\"\"`), but the spec presents the divergence as closed-and-documented when its description of it is incorrect.",
+          "spec_anchor": "decision-a-whitespace-only-issue"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The slice ships two independently droppable halves — the write-core wiring and the schema `\"pattern\": \".\"` regeneration — but the downstream dependency (FAFF-1261, already In Review with an open PR) is satisfied by both, and only the schema half gives that gate teeth. If a build pass de-scopes the schema half as \"schema hardening, follow-up\", FAFF-1261 unblocks on the next human pass with a gate that still accepts `issue: \"\"`, and no artifact in this slice's DONE list would catch it.",
+      "evidence": "The methodology critique's Principle 6 finding: FAFF-1261 is `blockedBy` this slice and In Review; the edge is satisfied by both halves but only one is named in the ticket title; the schema constraint is \"the most droppable item in the slice\" because it is the non-additive piece regenerating 14 files per tree. The spec's own DONE section (§9, \"From HOW (the schema constraint)\") carries the schema criteria but carries no marker tying them to the FAFF-1261 edge.",
+      "predicted_consequence": "FAFF-1261's PR merges against a `run-event.schema.json` whose envelope `issue` is still a bare `{\"type\":\"string\"}`, so an anchor carrying `issue: \"\"` passes the very gate FAFF-1261 exists to add — discovered only at audit, not at merge.",
+      "spec_anchor": "surfaced-dependencies-minor",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in spec round 3: the FAFF-1261 edge is satisfied by the write-core half; the schema half was dropped by operator decision of 2026-10-20.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The slice ships two independently droppable halves — the write-core wiring and the schema `\"pattern\": \".\"` regeneration — but the downstream dependency (FAFF-1261, already In Review with an open PR) is satisfied by both, and only the schema half gives that gate teeth. If a build pass de-scopes the schema half as \"schema hardening, follow-up\", FAFF-1261 unblocks on the next human pass with a gate that still accepts `issue: \"\"`, and no artifact in this slice's DONE list would catch it.",
+          "spec_anchor": "surfaced-dependencies-minor"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The slice's headline design decision — resolve the profile once before the lock and thread it, rather than per record — is justified entirely by a cost argument (one file read per append, not per record), yet the DONE criterion asserting it (\"reads and parses the override file exactly once\") is untestable as written: a single-record append cannot distinguish once-per-append from once-per-record, and on the default path `activeProfile` reads nothing at all, so the count is zero before and after the change. The slice ships a design decision whose distinguishing property is unasserted.",
+      "evidence": "The methodology critique's Principle 7 finding, verbatim: \"A single-record append cannot distinguish once-per-append from once-per-record, because the two are the same number when there is one record — and that distinction is the entire cost argument behind threading a profile rather than resolving it in the mint callback.\" Spec §9, \"From WHAT (profile resolution)\", first checkbox.",
+      "predicted_consequence": "The criterion passes trivially under the default profile and passes even if a future edit re-introduces a per-record resolution inside the mint callback — the exact anti-pattern §4 names — because no test would fail. The cost regression the slice exists to prevent is unguarded.",
+      "spec_anchor": "from-what-profile-resolution",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in spec rounds 2 and 3: the read-count criterion became read-count plus lock-ordering, which fails at HEAD and passes only under the fix.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The slice's headline design decision — resolve the profile once before the lock and thread it, rather than per record — is justified entirely by a cost argument (one file read per append, not per record), yet the DONE criterion asserting it (\"reads and parses the override file exactly once\") is untestable as written: a single-record append cannot distinguish once-per-append from once-per-record, and on the default path `activeProfile` reads nothing at all, so the count is zero before and after the change. The slice ships a design decision whose distinguishing property is unasserted.",
+          "spec_anchor": "from-what-profile-resolution"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "\"One `appendEventRecord` call under a `$FAFF_GOVERNANCE_PROFILE` override reads and parses the override file exactly once\" is satisfied equally by the threaded design and by the anti-pattern the spec forbids (resolving `activeProfile()` inside the mint callback). Both read the override exactly once per single-record `appendEventRecord` call, because every events write is one record per append. The criterion therefore cannot decide whether the builder implemented the spec's central design decision (resolve once in the core, thread into both halves) or the design it explicitly rules out — the two are observationally identical under the named test.",
+      "evidence": "DONE item \"One `appendEventRecord` call … reads and parses the override file exactly once\"; holdout scenario \"the override file is read exactly once during that append\" (also a single-record append). The spec's own Methodology critique names this exact defect (\"A single-record append cannot distinguish once-per-append from once-per-record… Pin that criterion to the profile-override path and to reads of the override file specifically, with a record count greater than one\") — but the DONE section and the holdout scenario were never updated to carry the fix, so the spec ships a criterion its own advisory already declared unable to do the work asked of it.",
+      "predicted_consequence": "a build that resolves the profile inside the mint callback — the exact anti-pattern the spec's WHAT section forbids, with the per-record in-lock I/O and `GovernanceProfileError` escape that motivates it — passes every DONE criterion and both scenarios, and the once-per-append cost guarantee is unverifiable.",
+      "spec_anchor": "from-what-profile-resolution",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in spec rounds 2 and 3: the lock-ordering probe discriminates the threaded design from the mint-callback resolution, through both appendEventRecord and faff corrective author.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "\"One `appendEventRecord` call under a `$FAFF_GOVERNANCE_PROFILE` override reads and parses the override file exactly once\" is satisfied equally by the threaded design and by the anti-pattern the spec forbids (resolving `activeProfile()` inside the mint callback). Both read the override exactly once per single-record `appendEventRecord` call, because every events write is one record per append. The criterion therefore cannot decide whether the builder implemented the spec's central design decision (resolve once in the core, thread into both halves) or the design it explicitly rules out — the two are observationally identical under the named test.",
+          "spec_anchor": "from-what-profile-resolution"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The core's new check applies `profile.issue_scoped_types` from the **active** profile. Under any `$FAFF_GOVERNANCE_PROFILE` override whose `issue_scoped_types` does not list `decision-capture` (e.g. the shipped disjoint `SECOND_PROFILE`, which lists only `job-start`/`job-end`/`job-outcome`), a `decision-capture` row with `issue: \"\"` passes the new check *and* the payload check (`logRecordChecker` returns null under a non-delivery profile). The spec's headline principle — \"No writer may skip the rule, including on the two paths that skip checks today\" — is therefore not met by the spec's own design: under an override, the rule is skipped for every type the override fails to declare issue-scoped. The spec never weighed the obvious alternative: key the rule to `DELIVERY_PROFILE.issue_scoped_types` (a frozen constant, zero extra resolution, satisfies every scenario in §6 including the holdout and the disjoint-dialect cases). The rejected \"two sources of truth\" option in the rationale attacked a *different* combination (structural vocab vs delivery); it does not rule out keying this one rule structurally.",
+      "evidence": "§4 PROCEDURE step (c) `issue_violations := issue_scoped_violations(record, profile)`; the rationale's \"Chosen: the core enforces the issue-scoped rule alone… under any dialect\"; the WHY claim \"The path is still open, though, and this slice closes it\"; `SECOND_PROFILE` in `governance-profile.js` (disjoint `issue_scoped_types`).",
+      "predicted_consequence": "under any non-delivery governance dialect, the exact defect row (`decision-capture`, `issue: \"\"`) writes again; it survives to `mintIssueAnchor` and is refused only at FAFF-1261's gate — the per-anchor poisoning this slice exists to prevent, reopened for every multi-issue run under an override. The WHAT claim \"refuses exactly the measured defect on all three paths (default profile, profile override, unavailable bundle)\" is false on the override path as written.",
+      "spec_anchor": "decision-how-much-of-eventviolations-the-core-enforces",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in spec round 4: the override-path claim is scoped to dialects that declare the type issue-scoped; keying to DELIVERY_PROFILE is recorded as rejected by operator ruling of 2026-10-20.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The core's new check applies `profile.issue_scoped_types` from the **active** profile. Under any `$FAFF_GOVERNANCE_PROFILE` override whose `issue_scoped_types` does not list `decision-capture` (e.g. the shipped disjoint `SECOND_PROFILE`, which lists only `job-start`/`job-end`/`job-outcome`), a `decision-capture` row with `issue: \"\"` passes the new check *and* the payload check (`logRecordChecker` returns null under a non-delivery profile). The spec's headline principle — \"No writer may skip the rule, including on the two paths that skip checks today\" — is therefore not met by the spec's own design: under an override, the rule is skipped for every type the override fails to declare issue-scoped. The spec never weighed the obvious alternative: key the rule to `DELIVERY_PROFILE.issue_scoped_types` (a frozen constant, zero extra resolution, satisfies every scenario in §6 including the holdout and the disjoint-dialect cases). The rejected \"two sources of truth\" option in the rationale attacked a *different* combination (structural vocab vs delivery); it does not rule out keying this one rule structurally.",
+          "spec_anchor": "decision-how-much-of-eventviolations-the-core-enforces"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The slice bundles a second concern — threading the resolved profile through the mint-callback parameter to fix `corrective.js`'s in-lock resolution — into a writer-rule slice. The supplied critique itself flags this as \"in principle a separate concern\" and only justifies keeping it because the slice's own no-in-lock-resolution rule would otherwise be false on day one. That justification holds, but the critique also hedges that \"if review keeps returning to the corrective probe, that is the part that comes out cleanly\" — i.e. the slice has a pre-identified amputation point, which is exactly the shape of a slice carrying two changes wearing one ticket.",
+      "evidence": "Methodology critique, Right-sizing: \"The `corrective.js` change is in principle a separate concern, but without it the slice's own rule that no profile is resolved under the lock would be false on day one — keep it; if review keeps returning to the corrective probe, that is the part that comes out cleanly.\"",
+      "predicted_consequence": "If build or review churns on the corrective lock-ordering probe (the one criterion that fails at `HEAD` and pins a threading decision), the slice stalls on its least-defect-adjacent component; the amputation is clean but nobody has pre-agreed the fallback, so the re-slice happens mid-build rather than in prep.",
+      "spec_anchor": "decision-the-in-lock-pre-check-in-correctivejs",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in spec round 5: the corrective.js threading is recorded as the pre-agreed split point if the build stalls on its probe (operator, 2026-10-20).",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The slice bundles a second concern — threading the resolved profile through the mint-callback parameter to fix `corrective.js`'s in-lock resolution — into a writer-rule slice. The supplied critique itself flags this as \"in principle a separate concern\" and only justifies keeping it because the slice's own no-in-lock-resolution rule would otherwise be false on day one. That justification holds, but the critique also hedges that \"if review keeps returning to the corrective probe, that is the part that comes out cleanly\" — i.e. the slice has a pre-identified amputation point, which is exactly the shape of a slice carrying two changes wearing one ticket.",
+          "spec_anchor": "decision-the-in-lock-pre-check-in-correctivejs"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "`faff corrective author --op park-with-cause --cites-signal scope-drift` exits 1 before any append, so the probe as literally written cannot observe `event_appended: true` and loses its discriminating power.",
+      "evidence": "DONE item under \"From WHAT (profile resolution)\" and scenario 4 (\"When faff corrective author records a park-with-cause corrective\"). The spec's own selftest asserts `park-with-cause requires a non-empty cause` (`corrective.js` payloadViolations), and `cmdCorrectiveAuthor` validates before writing: with no `--cause`, `payload.cause` is null, validation fails, the verb prints \"nothing written\" and exits 1. No event lands, no lock is ever taken, so \"no read of the override file happens while `<run dir>/events.jsonl.lock` exists\" passes trivially and \"the override file is read exactly twice\" is measured on a run that never appends.",
+      "predicted_consequence": "a tester following the DONE command literally records exit 1 and no `corrective-authored` row, then either falsely concludes the probe is unsatisfiable or silently adds `--cause` and tests something the spec never stated; the criterion's stated oracle and its intended oracle diverge.",
+      "spec_anchor": "from-what-profile-resolution",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in spec round 5: the probe command now passes --issue, a non-empty --cause and --run-dir, so the verb reaches the append.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "`faff corrective author --op park-with-cause --cites-signal scope-drift` exits 1 before any append, so the probe as literally written cannot observe `event_appended: true` and loses its discriminating power.",
+          "spec_anchor": "from-what-profile-resolution"
+        }
+      ]
+    }
+  ]
+}

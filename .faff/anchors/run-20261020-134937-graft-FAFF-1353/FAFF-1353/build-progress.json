@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1353",
+  "build": {
+    "status": "complete",
+    "diff_hash": "79c1170ae4ad4dcd070d749cf068d583f144e4cdfd179ecc14d0755bbd44f9e7",
+    "branch": "FAFF-1353-write-core-refuses-issue-scoped-event-with-empty-issue",
+    "pushed_at": "2026-10-20T15:19:40.799Z"
+  },
+  "updated_at": "2026-10-20T15:19:40.799Z"
+}

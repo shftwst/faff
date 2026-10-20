@@ -694,11 +694,14 @@ function cmdIsBundled(args) {
 // mirroring the seam-registry / frontier.json precedent. A root with no eval/ harness (a fixture
 // skills-dir) has no planner to run and is a clean no-op, exactly as the seam block skips an absent
 // registry. Usage drift is NOT checked here — it is advisory (`--drift`), never a CI gate.
+// A hung planner fails this lint by name instead of stalling every caller's spawn.
+const PLANNER_TIMEOUT_MS = 60_000;
+
 function lintGatewayManifest(root) {
   const plannerPath = path.join(root, "eval", "prefix-planner.mjs");
   if (!fs.existsSync(plannerPath)) return { failed: false, exit2: false };
   try {
-    execFileSync(process.execPath, [plannerPath, "--check-manifest", "--json"], { encoding: "utf8" });
+    execFileSync(process.execPath, [plannerPath, "--check-manifest", "--json"], { encoding: "utf8", timeout: PLANNER_TIMEOUT_MS, killSignal: "SIGKILL" });
   } catch (err) {
     if (err.status === 2) {
       console.log(`FAIL  eval/baselines/gateway-usage.json (gateway-usage manifest)`);

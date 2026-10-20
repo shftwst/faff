@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 2,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/events.js::issuescopedviolations assumes profile.issue_scoped_types is present",
+      "title": "issueScopedViolations assumes profile.issue_scoped_types is present",
+      "location": "plugin/skills/faff/bin/lib/events.js:160",
+      "action": "Guard with (profile.issue_scoped_types || []) or require the key",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "validateProfileShape requires issue_scoped_types (governance-profile.js:213-215, missing-key violation at :233); an override lacking it throws GovernanceProfileError in activeProfile before the lock, unchanged from HEAD.",
+      "disposition_rationale": "Every profile reaching the predicate is shape-validated or a shipped constant carrying the key; in-tree explicit profile arguments are DELIVERY_PROFILE or SECOND_PROFILE.",
+      "first_round": 1,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "issueScopedViolations assumes profile.issue_scoped_types is present",
+          "location": "plugin/skills/faff/bin/lib/events.js:160",
+          "severity": "major",
+          "disposition": "refuted"
+        },
+        {
+          "round": 2,
+          "title": "issueScopedViolations assumes profile.issue_scoped_types is present",
+          "location": "plugin/skills/faff/bin/lib/events.js:160",
+          "severity": "major",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/events.js::appendrecordunderlock drops the schema-unavailable note when a record is refused",
+      "title": "appendRecordUnderLock drops the schema-unavailable note when a record is refused",
+      "location": "plugin/skills/faff/bin/lib/events.js:633",
+      "action": "Note the unavailable bundle before rethrowing the refusal",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "The marker records a degraded write: 'the record went out under the line validator alone' (evidence.js:227). A refused record writes nothing, so there is no degraded write to mark; the next accepted write under the same fault marks it.",
+      "disposition_rationale": "Intended per the DoD; round 2 asked for the intent to be documented, so the test now carries a one-line comment saying a refused record writes nothing and so marks nothing.",
+      "first_round": 1,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "appendRecordUnderLock drops the schema-unavailable note when a record is refused",
+          "location": "plugin/skills/faff/bin/lib/events.js:633",
+          "severity": "minor",
+          "disposition": "refuted"
+        },
+        {
+          "round": 2,
+          "title": "appendRecordUnderLock drops the schema-unavailable note when a record is refused",
+          "location": "plugin/skills/faff/bin/lib/events.js:633",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,246 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "Appending a `decision-capture` record with `issue: \"\"` through `appendEventRecord` throws `EVENT_SCHEMA`, its violations name the issue-scoped rule, and `events.jsonl` is byte-identical before and after the call.",
+      "verified": "Default-profile refusal tests pass: EVENT_SCHEMA names the rule, events.jsonl byte-identical.",
+      "passed": true,
+      "ac_id": "faff-1353#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1353-write-core-issue-scoped.test.mjs::default profile: a decision-capture append with issue '' is refused and writes nothing"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1353-write-core-issue-scoped.test.mjs::default profile: a decision-capture append with no issue key is refused and writes nothing"
+        }
+      ]
+    },
+    {
+      "ac": "The same append is refused, with `events.jsonl` byte-identical, when `$FAFF_GOVERNANCE_PROFILE` points at a shape-valid profile file whose `issue_scoped_types` includes the type. The path where `logRecordChecker` returns null no longer lets the row through.",
+      "verified": "Override declaring the type issue-scoped refuses the append; file byte-identical.",
+      "passed": true,
+      "ac_id": "faff-1353#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1353-write-core-issue-scoped.test.mjs::profile override declaring the type issue-scoped: the append is refused and writes nothing"
+        }
+      ]
+    },
+    {
+      "ac": "The same append is refused, with `events.jsonl` byte-identical, when the schema bundle is unavailable, set up the way `test/evidence-payload-writers.test.mjs:191` does it with `pluginCopy` plus `mintRun`. The `evidence-schema-unavailable.json` marker and stderr line do not let the write through.",
+      "verified": "Plugin copy with run-event.schema.json removed still refuses; file byte-identical.",
+      "passed": true,
+      "ac_id": "faff-1353#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1353-write-core-issue-scoped.test.mjs::unavailable schema bundle: the append is still refused and writes nothing"
+        }
+      ]
+    },
+    {
+      "ac": "`git diff` against the base names no file under `verification/evidence/v0.3/` or `plugin/skills/faff/contracts/evidence-v0.3/`, and does not name `scripts/evidence-v0.3-compose.mjs`.",
+      "verified": "git diff cb1a9f15..HEAD names only events.js, evidence.js, corrective.js, two tests and the spec.",
+      "passed": true,
+      "ac_id": "faff-1353#done:4",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --name-only cb1a9f15..HEAD"
+        }
+      ]
+    },
+    {
+      "ac": "The issue-scoped rule exists once in the tree, as a predicate over a record and a resolved profile, called by both `eventViolations` and the write core. No second copy of its violation string exists in production code under `plugin/skills/faff/bin/lib/` (`EVENT_ISSUE_SCOPED` at `events.js:96` is a delivery-keyed set used only by `test/park-reconsider.test.mjs:190`; it carries no violation string and is not a second implementation). `eventViolations` calls it after the `phase` and `type` checks and before the outcome check, so for every `events.jsonl` tracked in git (`git ls-files '*events.jsonl'`, 420 files at `HEAD`, mostly under `.faff/anchors/`), `faff events validate --file`, run with `$FAFF_GOVERNANCE_PROFILE` unset, prints byte-identical stdout and stderr, and exits with the same code, before and after the change.",
+      "verified": "One predicate, issueScopedViolations; the violation string appears once in bin/lib; validate output identical over 421 tracked events.jsonl files.",
+      "passed": true,
+      "ac_id": "faff-1353#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1353-write-core-issue-scoped.test.mjs::issueScopedViolations is the rule eventViolations applies, between the type check and the outcome check"
+        },
+        {
+          "kind": "command",
+          "locator": "grep -rn \"is issue-scoped but missing required field\" plugin/skills/faff/bin/lib/"
+        },
+        {
+          "kind": "command",
+          "locator": "faff events validate --file <f> at cb1a9f15 vs HEAD for every git ls-files '*events.jsonl' (FAFF_GOVERNANCE_PROFILE unset)"
+        }
+      ]
+    },
+    {
+      "ac": "Under a `$FAFF_GOVERNANCE_PROFILE` override whose `event_phases` and `event_types` are disjoint from delivery's, `emitGenesisRunStart` still appends its `run-start`, and `faff run-ledger init-interactive` refused with exit 3 because a live L3/L4 run is already resolved (the `sentry-trip` site at `run-ledger.js:315`) still appends its `sentry-trip` row to that live run's `events.jsonl`. That append sits in a best-effort `catch`, so the exit code alone proves nothing: the criterion is the row's presence. Neither write throws `EVENT_SCHEMA`. The core refuses no record over a phase or type its dialect does not name.",
+      "verified": "Under a disjoint override, genesis run-start and the init-interactive exit-3 sentry-trip rows land.",
+      "passed": true,
+      "ac_id": "faff-1353#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1353-write-core-issue-scoped.test.mjs::disjoint override: emitGenesisRunStart still appends its run-start"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1353-write-core-issue-scoped.test.mjs::disjoint override: a refused init-interactive against a live L4 run still appends its sentry-trip"
+        }
+      ]
+    },
+    {
+      "ac": "Under that same override, the core still accepts a `ledger-write` record with no `data.ledger_sha256`, because the core never runs envelope mode. That rule stays enforced only where it is enforced today.",
+      "verified": "Under a disjoint override, ledger-write with no ledger_sha256 is accepted.",
+      "passed": true,
+      "ac_id": "faff-1353#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1353-write-core-issue-scoped.test.mjs::disjoint override: the core accepts a ledger-write with no ledger_sha256 because it never runs envelope mode"
+        }
+      ]
+    },
+    {
+      "ac": "During one in-process `appendEventRecord` call under a `$FAFF_GOVERNANCE_PROFILE` override, the override file is read exactly once, and `<run dir>/events.jsonl.lock` does not exist at the moment of that read.",
+      "verified": "appendEventRecord reads the override once, lock absent.",
+      "passed": true,
+      "ac_id": "faff-1353#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1353-write-core-issue-scoped.test.mjs::appendEventRecord under an override reads the override once, with no lock held"
+        }
+      ]
+    },
+    {
+      "ac": "During one in-process `cmdCorrectiveAuthor` call (`faff corrective author --op park-with-cause --cites-signal scope-drift --issue FAFF-1 --cause \"probe\" --run-dir <R>`; `--issue` is required at `corrective.js:431` and `park-with-cause` needs a non-empty `--cause` at `:435`) under a `$FAFF_GOVERNANCE_PROFILE` override pointing at a JSON copy of `DELIVERY_PROFILE`:",
+      "verified": "cmdCorrectiveAuthor reads the override twice, never under the lock, event_appended true; probe fails at the base (3 reads, third under lock).",
+      "passed": true,
+      "ac_id": "faff-1353#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1353-write-core-issue-scoped.test.mjs::faff corrective author under an override reads it twice, never with the lock held, and appends the event"
+        }
+      ]
+    },
+    {
+      "ac": "With `$FAFF_GOVERNANCE_PROFILE` pointing at an unreadable or malformed file, `appendEventRecord` throws `GovernanceProfileError` and writes nothing, as that call site does today.",
+      "verified": "Missing and malformed overrides throw GovernanceProfileError; nothing written.",
+      "passed": true,
+      "ac_id": "faff-1353#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1353-write-core-issue-scoped.test.mjs::an unreadable or malformed override makes appendEventRecord throw GovernanceProfileError and write nothing"
+        }
+      ]
+    },
+    {
+      "ac": "A record that fails both halves raises one `EVENT_SCHEMA`. Its `violations` array holds the issue-scoped violation followed by the payload violations, all plain strings, and its `code` and message prefix are unchanged.",
+      "verified": "One EVENT_SCHEMA, issue violation first, plain strings, message prefix unchanged.",
+      "passed": true,
+      "ac_id": "faff-1353#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1353-write-core-issue-scoped.test.mjs::a record failing both halves raises one EVENT_SCHEMA listing the issue violation first, as plain strings"
+        }
+      ]
+    },
+    {
+      "ac": "`faff events append` of `{\"phase\":\"build\",\"type\":\"build-start\"}` with no `issue` still exits 1, prints one stderr line per violation, and creates no `events.jsonl`. `test/events.test.mjs:139` and `:244` pass without modification.",
+      "verified": "faff events append pre-check exits 1, no events.jsonl; test/events.test.mjs passes unmodified.",
+      "passed": true,
+      "ac_id": "faff-1353#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1353-write-core-issue-scoped.test.mjs::faff events append of an issue-scoped type with no issue exits 1 and creates no events.jsonl"
+        },
+        {
+          "kind": "command",
+          "locator": "node --test test/events.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "All eight `appendRecordUnderLock` call sites, `emitGenesisRunStart` included, still append under the default profile. No existing `test/*.test.mjs` file fails with `EVENT_SCHEMA` on a path that passed before. The diff leaves the seven mint callbacks other than `corrective.js`'s unchanged.",
+      "verified": "Full suite passes (4 CI shards: 7031 pass, 0 fail, 6 skipped); diff leaves the seven other mint callbacks unchanged.",
+      "passed": true,
+      "ac_id": "faff-1353#done:13",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test --test-shard=<n>/4"
+        },
+        {
+          "kind": "command",
+          "locator": "faff gates run --json"
+        }
+      ]
+    },
+    {
+      "ac": "The comment above `appendRecordUnderLock` no longer says an unavailable bundle \"degrades the write to eventViolations alone\". It states that the issue-scoped rule runs on every minted record, and that an unavailable bundle or a non-delivery profile skips only the payload check.",
+      "verified": "Comment rewritten; the old 'degrades the write to eventViolations alone' text is gone.",
+      "passed": true,
+      "ac_id": "faff-1353#done:14",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n \"degrades the write to eventViolations alone\" plugin/skills/faff/bin/lib/events.js"
+        }
+      ]
+    },
+    {
+      "ac": "Under a `$FAFF_GOVERNANCE_PROFILE` override shaped like `SECOND_PROFILE`, `faff corrective author --json` still writes its artifact and reports `event_appended: false`, and `events.jsonl` gains no `corrective-authored` row. The retained in-mint `eventViolations` call still refuses the record against the override's type list, as it does at `HEAD`.",
+      "verified": "SECOND_PROFILE-shaped override: artifact written, event_appended false, no row.",
+      "passed": true,
+      "ac_id": "faff-1353#done:15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1353-write-core-issue-scoped.test.mjs::faff corrective author under a SECOND_PROFILE-shaped override writes its artifact but appends no event"
+        }
+      ]
+    },
+    {
+      "ac": "Using a `pluginCopy` whose `run-event.schema.json` adds `probe_required` to the `issue-outcome` mapping's `data.required`, run the copy's `faff run-ledger record-outcome --issue FAFF-1 --outcome shipped --run-dir <R>` against a run minted with `run-ledger init-interactive --issue FAFF-1`. The core refuses the `issue-outcome` append, `run-ledger.json` holds the new outcome, the stderr line names the refusal and ends `the ledger IS written`, the verb exits 0 as it does on success, and `events.jsonl` gains no `issue-outcome` row.",
+      "verified": "record-outcome refusal: ledger written, stderr ends 'the ledger IS written', exit 0, no issue-outcome row.",
+      "passed": true,
+      "ac_id": "faff-1353#done:16",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1353-write-core-issue-scoped.test.mjs::record-outcome: a core refusal leaves the ledger written, exits 0 and adds no issue-outcome row"
+        }
+      ]
+    },
+    {
+      "ac": "Using a `pluginCopy` whose `run-event.schema.json` adds `probe_required` to the `evidence-terminal-only` mapping's `data.required`, run the copy's `faff evidence write review-verdict --terminal-only --run-dir <R> --issue ISSUE-1` with `{\"signal\":\"pass\",\"findings\":[]}` on stdin, from a fixture built like `test/evidence-write.test.mjs`'s. The verb exits 2, stderr carries `cannot append the evidence-terminal-only event; nothing written`, no `review-verdict.json` is written, and `events.jsonl` is byte-identical before and after.",
+      "verified": "terminal-only refusal: exit 2, named stderr, no verdict, events.jsonl byte-identical.",
+      "passed": true,
+      "ac_id": "faff-1353#done:17",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1353-write-core-issue-scoped.test.mjs::evidence write review-verdict --terminal-only: a core refusal exits 2, writes no verdict and leaves events.jsonl untouched"
+        }
+      ]
+    },
+    {
+      "ac": "In a scratch git repo with `capture.decision_kernel: on` and a genesis `run-start` minted via `faff events append`, run `FAFF_RUN_DIR=<abs run dir> faff next --status todo --spec high` with neither `FAFF_DECISION_CORRELATION_ID` nor `FAFF_DECISION_ISSUE` exported. `faff next` exits 0 and prints its verdict, `events.jsonl` gains no `decision-capture` row, and `faff events validate --file <that events.jsonl>` exits 0.",
+      "verified": "faff next under FAFF_RUN_DIR with no correlation id or issue exits 0, no decision-capture row, validate and verify exit 0.",
+      "passed": true,
+      "ac_id": "faff-1353#done:18",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-989-decision-capture-driver.test.mjs::FAFF-1353: a kernel run with no correlation id and no issue writes no decision-capture row, and the events file still validates"
+        }
+      ]
+    }
+  ]
+}

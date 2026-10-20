@@ -204,12 +204,12 @@ function validateEvidenceDocument(anchorPath, doc) {
 const SCHEMA_UNAVAILABLE_MARKER = "evidence-schema-unavailable.json";
 const announcedUnavailable = new Set();
 
-// Resolves the profile and warms the schema cache, so call it before taking the lock. Returns null
+// Takes the resolved profile (default: resolves it) and warms the schema cache; call it before the lock. Returns null
 // when no check applies, else a function from a record to { ok, violations, unavailable? } with
 // violations as plain message strings. The record is checked as the bytes that land (a key whose
 // value is undefined is not written).
-function logRecordChecker(anchorPath) {
-  if (activeProfile() !== DELIVERY_PROFILE) return null;
+function logRecordChecker(anchorPath, profile = activeProfile()) {
+  if (profile !== DELIVERY_PROFILE) return null;
   preloadEvidenceSchemas();
   return (record) => {
     const r = validateEvidenceDocument(anchorPath, JSON.parse(JSON.stringify(record)));

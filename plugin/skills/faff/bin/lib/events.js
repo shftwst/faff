@@ -156,6 +156,14 @@ function sha256Hex(buf) {
   return crypto.createHash("sha256").update(buf).digest("hex");
 }
 
+// FAFF-1353: the issue-scoped rule, shared by eventViolations and the events.jsonl write core.
+function issueScopedViolations(obj, profile) {
+  const missing = obj.issue === undefined || obj.issue === null || obj.issue === "";
+  return missing && profile.issue_scoped_types.includes(obj.type)
+    ? [`type '${obj.type}' is issue-scoped but missing required field 'issue'`]
+    : [];
+}
+
 // Pure validator over one event object. `requireEnvelope` distinguishes a caller-supplied
 // payload (append: CLI fills schema/run_id/seq/ts, so they're not required yet) from a
 // full record read back off disk (validate: the envelope must be present + well-formed).
@@ -197,7 +205,6 @@ function eventViolations(obj, requireEnvelope, profile = activeProfile()) {
   }
   const phases = new Set(profile.event_phases);
   const types = new Set(profile.event_types);
-  const issueScoped = new Set(profile.issue_scoped_types);
   const outcomeRequired = new Set(profile.outcome_required_types);
   const ledgerOutcomes = new Set(profile.ledger_outcomes);
   if (!phases.has(obj.phase)) {
@@ -206,9 +213,7 @@ function eventViolations(obj, requireEnvelope, profile = activeProfile()) {
   if (!types.has(obj.type)) {
     v.push(`type '${obj.type}' not in EventType {${[...types].join(", ")}}`);
   }
-  if (issueScoped.has(obj.type) && (obj.issue === undefined || obj.issue === null || obj.issue === "")) {
-    v.push(`type '${obj.type}' is issue-scoped but missing required field 'issue'`);
-  }
+  v.push(...issueScopedViolations(obj, profile));
   if (outcomeRequired.has(obj.type)) {
     const outcome = obj.data && typeof obj.data === "object" ? obj.data.outcome : undefined;
     if (!ledgerOutcomes.has(outcome)) {
@@ -604,20 +609,27 @@ function dropUnknownDataKeys(type, data) {
 // mints need zero edits. A null mintRecord return aborts (batch of 1 → null) and writes
 // nothing — today's abort path, preserved. GUARD the unwrap: a batch-of-1 abort returns
 // null, never [null].
-// FAFF-1260: every events.jsonl write passes through here, so the v0.3 payload check runs on each
-// minted record inside the lock. A refused record throws EVENT_SCHEMA (nothing written), the same
-// route callers already take for EVENTS_LOCKED. An unavailable schema bundle degrades the write to
-// eventViolations alone; `opts.onSchemaUnavailable(path)` lets a caller with no stderr log it.
+// FAFF-1260: every events.jsonl write passes through here. The profile is resolved once, before the
+// lock, and handed to both checks and to the mint callback (as its last argument). The issue-scoped
+// rule runs on every minted record; an unavailable schema bundle or a non-delivery profile skips only
+// the v0.3 payload check. A refused record throws EVENT_SCHEMA (nothing written), the same route
+// callers already take for EVENTS_LOCKED. `opts.onSchemaUnavailable(path)` lets a caller with no
+// stderr log an unavailable bundle.
 function appendRecordUnderLock(dir, mintRecord, opts = {}) {
   const evidence = require("./evidence"); // lazy — evidence.js requires this module at load
-  const check = evidence.logRecordChecker("events.jsonl");
+  const profile = activeProfile();
+  const check = evidence.logRecordChecker("events.jsonl", profile);
   let unavailable = null;
   const r = appendRecordsUnderLock(dir, EVENTS_CFG, 1, (index, seq, prevRecord, prevHash) => {
-    const record = mintRecord(seq, prevRecord, prevHash);
-    if (!record || !check) return record;
-    const result = check(record);
-    if (result.unavailable) unavailable = result.unavailable;
-    else if (!result.ok) throw eventSchemaError(record, result.violations);
+    const record = mintRecord(seq, prevRecord, prevHash, profile);
+    if (!record) return record;
+    const violations = issueScopedViolations(record, profile);
+    if (check) {
+      const result = check(record);
+      if (result.unavailable) unavailable = result.unavailable;
+      else violations.push(...result.violations);
+    }
+    if (violations.length) throw eventSchemaError(record, violations);
     return record;
   });
   if (unavailable) {
@@ -2311,4 +2323,4 @@ function eventsSelftest() {
 }
 
 
-module.exports = { RUNNER_IDENTITY_CREDENTIAL_SOURCES, DISPATCH_ALLOWED_DATA_KEYS, DISPATCH_KINDS, EFFORT_LEVELS, EVENTS_SPEC, EVENTS_SURFACE, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, DECISION_CAPTURE_COVERAGE_VALUES, HEX64_RE, QUALITY_GATE_CATCHES, TAIL_WINDOW_BYTES, appendEventRecord, appendRecordUnderLock, appendRecordsUnderLock, parseJsonlEntries, cmdEvents, computeChainHead, emitGenesisRunStart, eventLineCount, eventViolations, eventsSelftest, mintIssueAnchor, seqFinding, sha256Hex, splitPhysicalLines, tailReadNextSeq, tailReadState, validateAnchorGenesis, verifyChain, verifyEffectsChain, walkPhysicalChain, verifyExitCode };
+module.exports = { RUNNER_IDENTITY_CREDENTIAL_SOURCES, DISPATCH_ALLOWED_DATA_KEYS, DISPATCH_KINDS, EFFORT_LEVELS, EVENTS_SPEC, EVENTS_SURFACE, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, DECISION_CAPTURE_COVERAGE_VALUES, HEX64_RE, QUALITY_GATE_CATCHES, TAIL_WINDOW_BYTES, appendEventRecord, appendRecordUnderLock, appendRecordsUnderLock, parseJsonlEntries, cmdEvents, computeChainHead, emitGenesisRunStart, eventLineCount, eventViolations, eventsSelftest, issueScopedViolations, mintIssueAnchor, seqFinding, sha256Hex, splitPhysicalLines, tailReadNextSeq, tailReadState, validateAnchorGenesis, verifyChain, verifyEffectsChain, walkPhysicalChain, verifyExitCode };

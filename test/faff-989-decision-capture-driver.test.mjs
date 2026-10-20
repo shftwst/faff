@@ -128,6 +128,18 @@ test("Part B: an empty correlation_id writes a loud degraded-capture note, and t
   assert.match(note, /empty correlation_id/);
 });
 
+test("FAFF-1353: a kernel run with no correlation id and no issue writes no decision-capture row, and the events file still validates", () => {
+  const { root, runId, runDir } = scratchRoot();
+  const kenv = { FAFF_RUN_DIR: runDir, FAFF_DECISION_CORRELATION_ID: undefined, FAFF_DECISION_ISSUE: undefined };
+  const v = run(root, ["next", "--status", "todo", "--spec", "high"], { env: kenv });
+  assert.equal(v.code, 0, v.err);
+  assert.match(v.out, /"next":"graft"/);
+  const rows = readFileSync(join(runDir, "events.jsonl"), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+  assert.deepEqual(rows.map((r) => r.type), ["run-start"]);
+  assert.equal(run(root, ["events", "validate", "--file", join(runDir, "events.jsonl")]).code, 0);
+  assert.equal(run(root, ["events", "verify", "--run-dir", runDir]).code, 0);
+});
+
 test("Part C: `decide` mints a deterministic id and `action` re-derives the identical id (join by construction)", () => {
   const { root, runId } = scratchRoot();
   const bare = run(root, ["decision-capture", "decide", "--run", runId, "--issue", "FAFF-1", "--kernel", "next", "--wave", "3", "--root", root]);

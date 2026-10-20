@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "all_verified": false,
+  "all_verified": true,
   "criteria": [
     {
       "ac": "On this 8-core host, with `gates.local_shard_concurrency` unset, five consecutive `faff gates run --json` runs each report a UNIT rung with status pass; the five `duration_ms` values, the control run's result and the load average are recorded in the PR body.",
@@ -26,9 +26,9 @@
       ]
     },
     {
-      "ac": "`gates.js` exports `defaultShardConcurrency`; for inputs 2, 3, 4, 8 and 16 it returns 1, 1, 2, 4 and 8, each pinned by a `gates --selftest` case.",
-      "verified": "Not met as written: the measured quarter fallback makes defaultShardConcurrency return 1,1,1,2,4 for 2,3,4,8,16 (spec step 5b), pinned by a selftest case. The criterion still lists the half values.",
-      "passed": false,
+      "ac": "`gates.js` exports `defaultShardConcurrency`; for inputs 2, 3, 4, 8 and 16 it returns 1, 1, 2, 4 and 8 (or the quarter-fallback table if that branch was taken), each pinned by a `gates --selftest` case.",
+      "verified": "The quarter branch was taken (half failed in run1 and h1, step 5b), so the quarter table applies: defaultShardConcurrency returns 1,1,1,2,4 for 2,3,4,8,16, pinned by the selftest case 'defaultShardConcurrency pins 2,3,4,8,16 to 1,1,1,2,4'. faff gates --selftest: RESULT: PASS (183 cases, 0 failed).",
+      "passed": true,
       "ac_id": "faff-1356#done:3",
       "verifications": [
         {

@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import { cpSync, mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, existsSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { seedFloor } from "./helpers/evidence-anchor-fixtures.mjs";
 
 const require = createRequire(import.meta.url);
 const { validateEvidenceDocument } = require("../plugin/skills/faff/bin/lib/evidence.js");
@@ -472,8 +473,7 @@ test("integration smoke: mint, build-progress, record-outcome, anchor, validate,
     const bp = faff(["build-progress", "write", runDir, "FAFF-1", "--build-complete", "--diff-hash", "h", "--branch", "b"]);
     assert.equal(bp.code, 0, bp.err);
     const issueDir = path.join(runDir, "FAFF-1");
-    writeFileSync(path.join(issueDir, "ac-checklist.json"), JSON.stringify({ all_verified: true }));
-    writeFileSync(path.join(issueDir, "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
+    seedFloor(runDir, "FAFF-1");
     const done = faff(["run-ledger", "record-outcome", "--issue", "FAFF-1", "--outcome", "shipped", "--run-dir", runDir]);
     assert.equal(done.code, 0, done.err);
     const dest = path.join(root, "anchor-out");
@@ -483,10 +483,7 @@ test("integration smoke: mint, build-progress, record-outcome, anchor, validate,
     const byPath = Object.fromEntries(report.files.map((f) => [f.path, f]));
     assert.equal(byPath["run-ledger.json"].status, "ok", JSON.stringify(byPath["run-ledger.json"]));
     assert.equal(byPath["build-progress.json"].status, "ok", JSON.stringify(byPath["build-progress.json"]));
-    for (const legacy of ["ac-checklist.json", "review-verdict.json"]) {
-      assert.equal(byPath[legacy].status, "fail");
-      assert.match(byPath[legacy].violations.join(" "), /schema_version/);
-    }
+    for (const floor of ["ac-checklist.json", "review-verdict.json"]) assert.equal(byPath[floor].status, "ok", JSON.stringify(byPath[floor]));
     const verify = faff(["events", "verify", "--run-dir", runDir]);
     assert.equal(verify.code, 0, verify.out + verify.err);
   } finally { rmSync(root, { recursive: true, force: true }); }

@@ -68,6 +68,9 @@ test("ac-1 smoke: two scenarios, one assertion and prose DONE items reach meets-
   const anchorDir = join(root, "anchor");
   mkdirSync(anchorDir);
   writeFileSync(join(anchorDir, "holdout.json"), readFileSync(storeFile(root, "FAFF-1")));
+  // FAFF-1261 binds holdout.json to the issue chain-head.json names, so the anchor carries one.
+  const chainHead = JSON.parse(readFileSync(join(REPO, "verification", "evidence", "v0.3", "schema", "examples", "chain-head.example.json"), "utf8"));
+  writeFileSync(join(anchorDir, "chain-head.json"), JSON.stringify({ ...chainHead, issue: "FAFF-1" }));
   const report = validateAnchorDir(anchorDir);
   assert.deepEqual(report.files.filter((f) => f.path === "holdout.json").map((f) => [f.status, f.violations]), [["ok", []]]);
   rmSync(root, { recursive: true, force: true });

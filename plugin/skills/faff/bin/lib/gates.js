@@ -755,7 +755,7 @@ function aggregateShardResults(rung, shardResults, n, wall_ms) {
 //
 // FAFF-1137: the fan-out is a bounded worker pool, not an unbounded Promise.all. `concurrency` caps
 // how many shards run at once so a resource-heavy shard can't oversubscribe the box and starve its
-// siblings into a spurious RED; runRung passes gates.local_shard_concurrency (default half the
+// siblings into a spurious RED; runRung passes gates.local_shard_concurrency (default a quarter of the
 // shard count). An absent/non-numeric/<1 `concurrency` (an external caller omitting the new
 // param) means n → a single wave, byte-identical to the pre-pool Promise.all path. Results are
 // COLLECTED KEYED BY SHARD INDEX and folded in index order: aggregateShardResults reports the
@@ -846,7 +846,7 @@ function readGatesConfig(root) {
   const ls = Math.floor(num("gates.local_shards"));
   if (Number.isFinite(ls) && ls >= 2) local_shards = ls;
   // FAFF-1137: gates.local_shard_concurrency — how many of the N shards run at once (a bounded pool
-  // in runShardedRung). The default is half the shard count (defaultShardConcurrency) so a resource-heavy
+  // in runShardedRung). The default is a quarter of the shard count (defaultShardConcurrency) so a resource-heavy
   // shard can't starve a co-running shard into a spurious RED; the knob only tunes it. Present-ness-
   // before-coerce, mirroring local_shards above: absent/non-numeric/<1 → default; a present value
   // >=1 is honoured verbatim (set it == local_shards to opt back into full-width single-wave, or
@@ -860,10 +860,11 @@ function readGatesConfig(root) {
 // os.availableParallelism() is the FAFF-1002 default shard count (mirrors CI's own "N=4 matches the
 // 4-vCPU runner" reasoning, adapted to the actual host). Defensive fallback for an older/unusual
 // Node build where the function is absent or throws: os.cpus().length, or 1 as the final floor.
-// FAFF-1356: half the shard count keeps peak pressure on timing-sensitive tests well below the old
-// one-core-spare width; floor of 1 means a 2- or 3-shard host runs serially.
+// FAFF-1356: a quarter of the shard count keeps peak pressure on timing-sensitive tests well below the
+// old one-core-spare width (half still tripped a sentry-poller timing test on the 8-core reference
+// host); the floor of 1 means a host with fewer than 8 shards runs serially.
 function defaultShardConcurrency(local_shards) {
-  return Math.max(1, Math.floor(local_shards / 2));
+  return Math.max(1, Math.floor(local_shards / 4));
 }
 
 function safeAvailableParallelism() {
@@ -1309,7 +1310,7 @@ async function gatesSelftest() {
   cases.push(["config: positive local_shards>=2 honoured", readGatesConfig(mk("ls-ok", { ".faffrc.yaml": "gates:\n  local_shards: 3\n" })).local_shards === 3]);
 
   // FAFF-1137: gates.local_shard_concurrency — same present-ness-before-coerce idiom as local_shards
-  // above; the default is half the shard count. With local_shards unset it resolves
+  // above; the default is a quarter of the shard count. With local_shards unset it resolves
   // to safeAvailableParallelism(), so the default is defaultShardConcurrency of that.
   const lscDefault = defaultShardConcurrency(safeAvailableParallelism());
   cases.push(["config: absent local_shard_concurrency defaults to defaultShardConcurrency(local_shards)", readGatesConfig(mk("lsc-absent", { "README.md": "hi" })).local_shard_concurrency === lscDefault]);
@@ -1317,7 +1318,7 @@ async function gatesSelftest() {
   cases.push(["config: local_shard_concurrency=0 (<1) defaults", readGatesConfig(mk("lsc-zero", { ".faffrc.yaml": "gates:\n  local_shard_concurrency: 0\n" })).local_shard_concurrency === lscDefault]);
   cases.push(["config: positive local_shard_concurrency>=1 honoured verbatim", readGatesConfig(mk("lsc-ok", { ".faffrc.yaml": "gates:\n  local_shard_concurrency: 1\n" })).local_shard_concurrency === 1]);
   cases.push(["config: local_shard_concurrency=7 honoured verbatim", readGatesConfig(mk("lsc-seven", { ".faffrc.yaml": "gates:\n  local_shard_concurrency: 7\n" })).local_shard_concurrency === 7]);
-  cases.push(["defaultShardConcurrency pins 2,3,4,8,16 to 1,1,2,4,8", [2, 3, 4, 8, 16].map(defaultShardConcurrency).join(",") === "1,1,2,4,8"]);
+  cases.push(["defaultShardConcurrency pins 2,3,4,8,16 to 1,1,1,2,4", [2, 3, 4, 8, 16].map(defaultShardConcurrency).join(",") === "1,1,1,2,4"]);
 
   // 5k. FAFF-1002: end-to-end sharded run — a real `node --test` fixture, forced to 2 shards via
   // gates.local_shards, must produce ONE aggregate RungResult whose command is the logical

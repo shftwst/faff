@@ -513,6 +513,31 @@ test("holdoutRecordViolations is the schema check followed by holdoutConstraintV
   assert.deepEqual(holdoutRecord.holdoutConstraintViolations(null), []);
 });
 
+test("anchor validation applies the FAFF-1291 delegation rules to a holdout.json that carries delegated", () => {
+  const good = { ...exampleObject("holdout-anchored") };
+  assert.ok(Array.isArray(good.delegated) && good.delegated.length > 0, "the shipped example carries a delegated row");
+  assert.deepEqual(holdoutRecord.holdoutConstraintViolations(good), []);
+  const proseDone = { ...good, criteria: [...good.criteria, { ...good.criteria[0], id: "done:9", class: "prose", verdict: "needs-human", reason: "prose", exercised: null, expected: null, observed: null }] };
+  assert.ok(holdoutRecord.holdoutConstraintViolations(proseDone).some((v) => /delegated prose DONE criterion/.test(v)));
+  const both = { ...good, criteria: [...good.criteria, { ...good.criteria[0], id: good.delegated[0].id }] };
+  assert.ok(holdoutRecord.holdoutConstraintViolations(both).some((v) => /appears in both criteria and delegated/.test(v)));
+  const f = fixture({ mutate: (run) => {
+    mkdirSync(path.join(run, "FAFF-1"), { recursive: true });
+    writeFileSync(path.join(run, "FAFF-1", "holdout.json"), JSON.stringify({ ...proseDone, issue: "FAFF-1" }));
+  } });
+  try {
+    const r = f.mint();
+    assert.equal(r.code, 3, r.stderr);
+    assert.match(r.stderr, /schema-mismatch holdout\.json/);
+  } finally { cleanup(f); }
+});
+
+test("a holdout.json committed before FAFF-1291 (no delegated key) is not held to the delegation rules", () => {
+  const { delegated, ...legacy } = exampleObject("holdout-anchored");
+  const withProseDone = { ...legacy, criteria: [...legacy.criteria, { ...legacy.criteria[0], id: "done:9", class: "prose", verdict: "needs-human", reason: "prose", exercised: null, expected: null, observed: null }] };
+  assert.deepEqual(holdoutRecord.holdoutConstraintViolations(withProseDone), []);
+});
+
 test("evidence capabilities lists holdout-binding", () => {
   const r = runCli(["evidence", "capabilities", "--json"]);
   assert.deepEqual(JSON.parse(r.stdout), { validate: ["require-evidence-schema", "candidate-schemas", "holdout-binding"] });

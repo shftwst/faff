@@ -623,7 +623,7 @@ function runSingleSpawnSync(rung, root, rung_timeout_ms) {
   return classifyRungResult(rung, res, duration_ms, rung_timeout_ms);
 }
 
-// FAFF-1002: a Node test invocation (`node … --test`) carrying NO existing `--test-shard` token —
+// FAFF-1002: a Node test invocation (`node … --test`) carrying NO existing `--test-shard` token and no explicit test path —
 // the only command class Node can partition with `--test-shard=<i>/<N>`. Deterministic from the
 // command string alone (tokenised on whitespace) — no timing measurement, no size heuristic. A
 // command already carrying `--test-shard` (defensive — normaliseLocalRungCommand already strips it
@@ -635,6 +635,10 @@ function shardCapable(command) {
   if (!hasNode) return false;
   if (!tokens.includes("--test")) return false;
   if (tokens.some((t) => t.startsWith("--test-shard"))) return false;
+  // FAFF-1356: the pool appends `--test-shard=i/n` to the command; node treats anything after an
+  // explicit test path as a script argument, so every shard would run the same files in full.
+  const afterTest = tokens.slice(tokens.indexOf("--test") + 1);
+  if (afterTest.some((t) => !t.startsWith("-"))) return false;
   return true;
 }
 
@@ -751,8 +755,8 @@ function aggregateShardResults(rung, shardResults, n, wall_ms) {
 //
 // FAFF-1137: the fan-out is a bounded worker pool, not an unbounded Promise.all. `concurrency` caps
 // how many shards run at once so a resource-heavy shard can't oversubscribe the box and starve its
-// siblings into a spurious RED; runRung passes gates.local_shard_concurrency (default reserves one
-// core of headroom). An absent/non-numeric/<1 `concurrency` (an external caller omitting the new
+// siblings into a spurious RED; runRung passes gates.local_shard_concurrency (default a quarter of the
+// shard count). An absent/non-numeric/<1 `concurrency` (an external caller omitting the new
 // param) means n → a single wave, byte-identical to the pre-pool Promise.all path. Results are
 // COLLECTED KEYED BY SHARD INDEX and folded in index order: aggregateShardResults reports the
 // first-errored shard's reason in index order, so a completion-order fold would silently change
@@ -842,15 +846,22 @@ function readGatesConfig(root) {
   const ls = Math.floor(num("gates.local_shards"));
   if (Number.isFinite(ls) && ls >= 2) local_shards = ls;
   // FAFF-1137: gates.local_shard_concurrency — how many of the N shards run at once (a bounded pool
-  // in runShardedRung). The default reserves one core of scheduling headroom so a resource-heavy
+  // in runShardedRung). The default is a quarter of the shard count (defaultShardConcurrency) so a resource-heavy
   // shard can't starve a co-running shard into a spurious RED; the knob only tunes it. Present-ness-
   // before-coerce, mirroring local_shards above: absent/non-numeric/<1 → default; a present value
   // >=1 is honoured verbatim (set it == local_shards to opt back into full-width single-wave, or
   // lower it on a docker-saturating box).
-  let local_shard_concurrency = Math.max(2, local_shards - 1);
+  let local_shard_concurrency = defaultShardConcurrency(local_shards);
   const lsc = Math.floor(num("gates.local_shard_concurrency"));
   if (Number.isFinite(lsc) && lsc >= 1) local_shard_concurrency = lsc;
   return { fallback, partial, exclude, max_rungs_per_kind, partial_threshold, rung_timeout_ms, local_shards, local_shard_concurrency };
+}
+
+// FAFF-1356: a quarter of the shard count keeps peak pressure on timing-sensitive tests well below the
+// old one-core-spare width (half still tripped a sentry-poller timing test on the 8-core reference
+// host); the floor of 1 means a host with fewer than 8 shards runs serially.
+function defaultShardConcurrency(local_shards) {
+  return Math.max(1, Math.floor(local_shards / 4));
 }
 
 // os.availableParallelism() is the FAFF-1002 default shard count (mirrors CI's own "N=4 matches the
@@ -1283,7 +1294,8 @@ async function gatesSelftest() {
   cases.push(["overflow: >1 MB stdout + exit 1 classifies fail, not errored", noisyFailRung.status === "fail" && !noisyFailRung.reason]);
 
   // 5i. FAFF-1002: shard-capability predicate — deterministic from the command string alone.
-  cases.push(["shard: node --test with no shard token is shard-capable", shardCapable("node --import ./test/hermetic-env.mjs --test test/") === true]);
+  cases.push(["shard: node --test with no shard token is shard-capable", shardCapable("node --import ./test/hermetic-env.mjs --test") === true]);
+  cases.push(["shard: node --test with explicit test paths is NOT shard-capable (a trailing shard flag would be ignored)", shardCapable("node --import ./test/hermetic-env.mjs --test test/env.test.mjs test/holdout-evaluate-integration.test.mjs") === false]);
   cases.push(["shard: node --test WITH an existing --test-shard is NOT shard-capable (defensive)", shardCapable("node --test --test-shard=1/4 test/") === false]);
   cases.push(["shard: lint/static (no node/--test) is NOT shard-capable", shardCapable("eslint .") === false]);
   cases.push(["shard: a non-`--test` node command is NOT shard-capable", shardCapable("node scripts/build.js") === false]);
@@ -1298,13 +1310,15 @@ async function gatesSelftest() {
   cases.push(["config: positive local_shards>=2 honoured", readGatesConfig(mk("ls-ok", { ".faffrc.yaml": "gates:\n  local_shards: 3\n" })).local_shards === 3]);
 
   // FAFF-1137: gates.local_shard_concurrency — same present-ness-before-coerce idiom as local_shards
-  // above; the default reserves one core of scheduling headroom. With local_shards unset it resolves
-  // to safeAvailableParallelism(), so the default is max(2, that - 1).
-  const lscDefault = Math.max(2, safeAvailableParallelism() - 1);
-  cases.push(["config: absent local_shard_concurrency defaults to max(2, local_shards-1)", readGatesConfig(mk("lsc-absent", { "README.md": "hi" })).local_shard_concurrency === lscDefault]);
+  // above; the default is a quarter of the shard count. With local_shards unset it resolves
+  // to safeAvailableParallelism(), so the default is defaultShardConcurrency of that.
+  const lscDefault = defaultShardConcurrency(safeAvailableParallelism());
+  cases.push(["config: absent local_shard_concurrency defaults to defaultShardConcurrency(local_shards)", readGatesConfig(mk("lsc-absent", { "README.md": "hi" })).local_shard_concurrency === lscDefault]);
   cases.push(["config: non-numeric local_shard_concurrency defaults", readGatesConfig(mk("lsc-nan", { ".faffrc.yaml": "gates:\n  local_shard_concurrency: not-a-number\n" })).local_shard_concurrency === lscDefault]);
   cases.push(["config: local_shard_concurrency=0 (<1) defaults", readGatesConfig(mk("lsc-zero", { ".faffrc.yaml": "gates:\n  local_shard_concurrency: 0\n" })).local_shard_concurrency === lscDefault]);
   cases.push(["config: positive local_shard_concurrency>=1 honoured verbatim", readGatesConfig(mk("lsc-ok", { ".faffrc.yaml": "gates:\n  local_shard_concurrency: 1\n" })).local_shard_concurrency === 1]);
+  cases.push(["config: local_shard_concurrency=7 honoured verbatim", readGatesConfig(mk("lsc-seven", { ".faffrc.yaml": "gates:\n  local_shard_concurrency: 7\n" })).local_shard_concurrency === 7]);
+  cases.push(["defaultShardConcurrency pins 2,3,4,8,16 to 1,1,1,2,4", [2, 3, 4, 8, 16].map(defaultShardConcurrency).join(",") === "1,1,1,2,4"]);
 
   // 5k. FAFF-1002: end-to-end sharded run — a real `node --test` fixture, forced to 2 shards via
   // gates.local_shards, must produce ONE aggregate RungResult whose command is the logical
@@ -2388,4 +2402,4 @@ function cmdSync(args) {
 }
 
 
-module.exports = { CI_COST_PENALTY, GATES_SPEC, GATES_SURFACE, GATE_COST, MAX_RUNG_STDOUT_BYTES, PARTIAL_COVERAGE_THRESHOLD, aggregateSelftest, aggregateShardResults, applyPartialPolicy, assertScanSetExpectCopiesInvariant, buildDoctorJson, capPerKind, ciRunnerKind, classifyRungResult, cmdDoctor, cmdGates, cmdSync, discoverCiWorkflows, discoverCiWorkflowsReporting, discoverCiWorkflowsRunnable, discoverMakefile, discoverPkgScripts, discoverPreCommit, discoverRunnerFiles, discoverRungs, discoverRungsReporting, exclusionReason, extractRunCommands, extractRunCommandsWithContext, gateKindForName, gatesContractExtraction, gatesFallbackPolicy, gatesSelftest, gatherDoctorState, localOs, mergeFencePresentAt, normaliseLocalRungCommand, osFamily, readGatesConfig, reportKind, resolveDoctorScanSet, resolveSyncScript, runLadder, runnerKindForName, runRung, runShardedRung, runSingleSpawnSync, safeAvailableParallelism, scanDoctorDirectory, selectRunnableRungs, shardCapable, spawnAsync };
+module.exports = { CI_COST_PENALTY, GATES_SPEC, GATES_SURFACE, GATE_COST, MAX_RUNG_STDOUT_BYTES, PARTIAL_COVERAGE_THRESHOLD, aggregateSelftest, aggregateShardResults, applyPartialPolicy, assertScanSetExpectCopiesInvariant, buildDoctorJson, capPerKind, defaultShardConcurrency, ciRunnerKind, classifyRungResult, cmdDoctor, cmdGates, cmdSync, discoverCiWorkflows, discoverCiWorkflowsReporting, discoverCiWorkflowsRunnable, discoverMakefile, discoverPkgScripts, discoverPreCommit, discoverRunnerFiles, discoverRungs, discoverRungsReporting, exclusionReason, extractRunCommands, extractRunCommandsWithContext, gateKindForName, gatesContractExtraction, gatesFallbackPolicy, gatesSelftest, gatherDoctorState, localOs, mergeFencePresentAt, normaliseLocalRungCommand, osFamily, readGatesConfig, reportKind, resolveDoctorScanSet, resolveSyncScript, runLadder, runnerKindForName, runRung, runShardedRung, runSingleSpawnSync, safeAvailableParallelism, scanDoctorDirectory, selectRunnableRungs, shardCapable, spawnAsync };

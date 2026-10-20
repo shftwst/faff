@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1356",
+  "build": {
+    "status": "complete",
+    "diff_hash": "a0658c9c63aed1b8fe502ef1afd753dfcea1403227f8600f9e32f97682cd8036",
+    "branch": "FAFF-1356-halve-the-local-gate-default-shard-concurrency",
+    "pushed_at": "2026-10-20T22:30:39.943Z"
+  },
+  "updated_at": "2026-10-20T22:30:39.943Z"
+}

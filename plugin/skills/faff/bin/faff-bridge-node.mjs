@@ -532,8 +532,40 @@ function selftest(log) {
   })();
 }
 
+// FAFF-1355: a failing run sets process.exitCode instead of calling process.exit() (Node 24 can hang
+// in process.exit(); nodejs/node#64274). The adopter's --module may hold a ref'd handle, so every
+// non-zero path arms an unref'd backstop that forces the exit only if the process is still alive.
+export const BRIDGE_EXIT_BACKSTOP_GRACE_MS = 2000;
+
+export function armBridgeExitBackstop(code, {
+  graceMs = BRIDGE_EXIT_BACKSTOP_GRACE_MS,
+  write = (s) => process.stderr.write(s),
+  exit = (c) => process.exit(c),
+  flush = (cb) => process.stdout.write("", cb),
+  activeResources = () => (process.getActiveResourcesInfo ? process.getActiveResourcesInfo() : []),
+} = {}) {
+  const t = setTimeout(() => {
+    let kinds;
+    try { kinds = activeResources().join(", "); } catch { kinds = ""; }
+    write(`faff-bridge-node: process still alive ${graceMs}ms after exit ${code}; leaked handle(s): ${kinds || "unknown"}; forcing exit ${code} (FAFF-1355)\n`);
+    flush(() => exit(code));
+  }, graceMs);
+  t.unref();
+  return t;
+}
+
+export function runBridgeCli(mainPromise, proc = process, arm = armBridgeExitBackstop) {
+  return mainPromise.then(
+    (code) => { proc.exitCode = code; if (code !== EXIT.OK) arm(code); },
+    (e) => {
+      proc.stderr.write(`faff-bridge-node: fatal ${e && e.stack || e}\n`);
+      proc.exitCode = EXIT.OTHER;
+      arm(EXIT.OTHER);
+    },
+  );
+}
+
 // Direct-invocation guard.
 if (process.argv[1] && process.argv[1].endsWith("faff-bridge-node.mjs")) {
-  main(process.argv.slice(2)).then((code) => { if (code !== EXIT.OK || process.argv.includes("--selftest")) process.exit(code); },
-    (e) => { process.stderr.write(`faff-bridge-node: fatal ${e && e.stack || e}\n`); process.exit(EXIT.OTHER); });
+  runBridgeCli(main(process.argv.slice(2)));
 }

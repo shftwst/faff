@@ -146,26 +146,26 @@ function main() {
 
     if (goodOk && badOk) {
       console.log("selftest: OK");
-      process.exit(0);
+      return 0;
     }
     console.error("selftest: BROKEN");
-    process.exit(1);
+    return 1;
   }
 
   const [dataFile, schemaFile] = args;
   if (!dataFile || !schemaFile) {
     console.error("usage: node validate-schema.mjs <data.json> <schema.json> | --selftest");
-    process.exit(2);
+    return 2;
   }
 
   const violations = validateFiles(dataFile, schemaFile);
   if (violations.length === 0) {
     console.log("PASS — valid against schema");
-    process.exit(0);
+    return 0;
   }
   console.error("FAIL — violations:");
   for (const v of violations) console.error("  - " + v);
-  process.exit(1);
+  return 1;
 }
 
 function isEntrypoint() {
@@ -177,4 +177,4 @@ function isEntrypoint() {
   }
 }
 
-if (isEntrypoint()) main();
+if (isEntrypoint()) process.exitCode = main();

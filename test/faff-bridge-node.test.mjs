@@ -4,13 +4,17 @@
 // (no real listener), then spawn `--selftest` as a subprocess assertion. Mirrors evaluate-call.test.mjs.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import { createServer } from "node:net";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   EXIT, WIRE_NAME, RPC_PATH, HEALTH_PATH,
   parseBridgeArgs, buildAllowlist, resolveOwn, isJsonRepresentable, toThrownError,
   validateEnvelope, dispatch, handleRequest, healthBody,
+  BRIDGE_EXIT_BACKSTOP_GRACE_MS, armBridgeExitBackstop, runBridgeCli,
 } from "../plugin/skills/faff/bin/faff-bridge-node.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -208,4 +212,104 @@ test("close disposes the live instance (best-effort)", async () => {
 
 test("healthBody shape", () => {
   assert.deepEqual(healthBody(1), { status: "ok", wire: ["faff.session-rpc/1"] });
+});
+
+// ---- FAFF-1355: exit through process.exitCode, with a leak-only backstop ----
+
+test("BRIDGE_EXIT_BACKSTOP_GRACE_MS is 2000", () => {
+  assert.equal(BRIDGE_EXIT_BACKSTOP_GRACE_MS, 2000);
+});
+
+function fakeProc() {
+  const lines = [];
+  return { exitCode: undefined, stderr: { write: (s) => { lines.push(s); } }, lines };
+}
+
+test("runBridgeCli: code 0 leaves exitCode 0 and does not arm the backstop", async () => {
+  const proc = fakeProc(); const armed = [];
+  await runBridgeCli(Promise.resolve(EXIT.OK), proc, (c) => armed.push(c));
+  assert.equal(proc.exitCode, 0);
+  assert.deepEqual(armed, []);
+});
+
+test("runBridgeCli: code 2 sets exitCode and arms the backstop", async () => {
+  const proc = fakeProc(); const armed = [];
+  await runBridgeCli(Promise.resolve(EXIT.USAGE), proc, (c) => armed.push(c));
+  assert.equal(proc.exitCode, 2);
+  assert.deepEqual(armed, [2]);
+});
+
+test("runBridgeCli: rejection writes the fatal line, sets exitCode 1 and arms the backstop", async () => {
+  const proc = fakeProc(); const armed = [];
+  await runBridgeCli(Promise.reject(new Error("boom")), proc, (c) => armed.push(c));
+  assert.equal(proc.exitCode, 1);
+  assert.deepEqual(armed, [1]);
+  assert.match(proc.lines.join(""), /^faff-bridge-node: fatal /);
+});
+
+test("armBridgeExitBackstop: forces exit once after the grace period, with an unref'd timer", async () => {
+  const exits = []; const written = [];
+  const t = armBridgeExitBackstop(3, {
+    graceMs: 10,
+    write: (s) => written.push(s),
+    exit: (c) => exits.push(c),
+    flush: (cb) => cb(),
+    activeResources: () => ["Timeout", "TCPServerWrap"],
+  });
+  assert.equal(t.hasRef(), false);
+  await new Promise((r) => setTimeout(r, 60));
+  assert.deepEqual(exits, [3]);
+  assert.match(written.join(""), /leaked handle\(s\): Timeout, TCPServerWrap/);
+});
+
+function boundPort() {
+  return new Promise((resolve) => {
+    const srv = createServer();
+    srv.listen(0, "127.0.0.1", () => resolve({ srv, port: srv.address().port }));
+  });
+}
+
+async function runBridgeAgainstBoundPort(moduleSource) {
+  const dir = mkdtempSync(join(tmpdir(), "faff-bridge-exit-"));
+  const { srv, port } = await boundPort();
+  try {
+    const manifest = join(dir, "manifest.json");
+    const mod = join(dir, "mod.mjs");
+    writeFileSync(manifest, JSON.stringify(MANIFEST));
+    writeFileSync(mod, moduleSource);
+    const started = Date.now();
+    const child = spawn(process.execPath, [BRIDGE, "--manifest", manifest, "--module", pathToFileURL(mod).href, "--host", "127.0.0.1", "--port", String(port)], { stdio: ["ignore", "pipe", "pipe"] });
+    let stderr = "";
+    child.stderr.on("data", (c) => { stderr += c; });
+    const killer = setTimeout(() => child.kill("SIGKILL"), 10000);
+    const status = await new Promise((resolve) => child.on("close", (code) => resolve(code)));
+    clearTimeout(killer);
+    return { status, stderr, elapsedMs: Date.now() - started };
+  } finally {
+    srv.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+test("bridge start-up failure with a ref'd handle in the adopter module exits 1 via the backstop", async () => {
+  const r = await runBridgeAgainstBoundPort("export class Stack {}\nsetInterval(() => {}, 1000);\n");
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stderr, /faff-bridge-node: fatal/);
+  assert.match(r.stderr, /leaked handle\(s\)/);
+  assert.ok(r.elapsedMs < BRIDGE_EXIT_BACKSTOP_GRACE_MS + 3000, `took ${r.elapsedMs}ms`);
+});
+
+test("bridge start-up failure with no handles exits 1 without the backstop", async () => {
+  const r = await runBridgeAgainstBoundPort("export class Stack {}\n");
+  assert.equal(r.status, 1, r.stderr);
+  assert.match(r.stderr, /faff-bridge-node: fatal/);
+  assert.doesNotMatch(r.stderr, /leaked handle\(s\)/);
+  assert.ok(r.elapsedMs < BRIDGE_EXIT_BACKSTOP_GRACE_MS, `took ${r.elapsedMs}ms`);
+});
+
+test("bridge with no arguments exits 2 with the usage line and no backstop line", () => {
+  const r = spawnSync(process.execPath, [BRIDGE], { encoding: "utf8", timeout: 10000 });
+  assert.equal(r.status, EXIT.USAGE);
+  assert.match(r.stderr, /usage: faff-bridge-node\.mjs/);
+  assert.doesNotMatch(r.stderr, /leaked handle\(s\)/);
 });

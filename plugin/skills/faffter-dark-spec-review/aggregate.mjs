@@ -302,5 +302,5 @@ export function entrypoint_href(argv1) {
 }
 
 if (import.meta.url === entrypoint_href(process.argv[1])) {
-  process.exit(main(process.argv));
+  process.exitCode = main(process.argv);
 }

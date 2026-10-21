@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "test/helpers/live-process-exit.mjs::countliveprocessexit counts a member-access process.exit call",
+      "title": "countLiveProcessExit counts a member-access process.exit call",
+      "location": "test/helpers/live-process-exit.mjs",
+      "action": "none required; a spurious guard failure is the safe direction",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Over-counting fails the guard loudly and an allowlist entry resolves it; the safe direction for a guard whose job is to stop new calls.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "countLiveProcessExit counts a member-access process.exit call",
+          "location": "test/helpers/live-process-exit.mjs",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/faff-bridge-node.test.mjs::no-handle bridge subprocess test bounds elapsed time by the grace period",
+      "title": "No-handle bridge subprocess test bounds elapsed time by the grace period",
+      "location": "test/faff-bridge-node.test.mjs",
+      "action": "none required; the bound is the spec scenario",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The under-2000 ms bound is stated in the spec scenario; node start-up is far below it.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "No-handle bridge subprocess test bounds elapsed time by the grace period",
+          "location": "test/faff-bridge-node.test.mjs",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/no-live-process-exit.test.mjs::bin/faff read in the guard test is not covered by the existence check",
+      "title": "bin/faff read in the guard test is not covered by the existence check",
+      "location": "test/no-live-process-exit.test.mjs",
+      "action": "none required",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "A missing bin/faff fails the test loudly with ENOENT naming the path; the spec existence rule covers ALLOWLIST paths only.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "bin/faff read in the guard test is not covered by the existence check",
+          "location": "test/no-live-process-exit.test.mjs",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/faff-bridge-node.mjs::backstop exit and stdout flush follow the review-call precedent",
+      "title": "Backstop exit and stdout flush follow the review-call precedent",
+      "location": "plugin/skills/faff/bin/faff-bridge-node.mjs",
+      "action": "none required; accepted as the spec-mandated precedent",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Spec-mandated copy of the FAFF-1239 backstop; it runs only after a leak.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Backstop exit and stdout flush follow the review-call precedent",
+          "location": "plugin/skills/faff/bin/faff-bridge-node.mjs",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/helpers/live-process-exit.mjs::regex heuristic after a closing parenthesis and the 64 character lookahead",
+      "title": "Regex heuristic after a closing parenthesis and the 64 character lookahead",
+      "location": "test/helpers/live-process-exit.mjs",
+      "action": "none required; heuristic limits are documented",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Documented heuristic limits; the spec names the fallback and no shipped file hits them.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Regex heuristic after a closing parenthesis and the 64 character lookahead",
+          "location": "test/helpers/live-process-exit.mjs",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1355",
+  "build": {
+    "status": "complete",
+    "diff_hash": "5f13a8c19b1373b2c0c40139aeec393867c352fa7c086533631dea3afbc7df50",
+    "branch": "faff-1355-shipped-scripts-end-without-process-exit",
+    "pushed_at": "2026-10-21T00:34:30.023Z"
+  },
+  "updated_at": "2026-10-21T00:34:30.023Z"
+}

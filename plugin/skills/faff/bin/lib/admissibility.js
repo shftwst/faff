@@ -149,6 +149,9 @@ const EXPORT_CLAUSE_RES = [
   new RegExp(`${MASK_SRC}\\s+exports?\\s+${MASK_ID}`, "i"),
 ];
 
+// "Export `x` to a file" moves data, not a module symbol.
+const DATA_EXPORT_RE = new RegExp(`(?:^|[.;:!?]\\s+)export\\s+${MASK_IDS}\\s+(?:to|into|onto|as)\\b`, "i");
+
 function maskCodeSpans(text) {
   return String(text).split(SENTINEL).join(" ").replace(/`([^`]*)`/g, (_, code) => {
     if (IDENT_RE.test(code)) return ` ${MASK_ID} `;
@@ -162,7 +165,7 @@ function codeSurfaceSignal(text) {
   const t = String(text == null ? "" : text);
   if (TEST_FILE_TOKEN_RE.test(t)) return "test-file";
   const masked = maskCodeSpans(t);
-  if (EXPORT_CLAUSE_RES.some((re) => re.test(masked))) return "export";
+  if (!DATA_EXPORT_RE.test(masked) && EXPORT_CLAUSE_RES.some((re) => re.test(masked))) return "export";
   return null;
 }
 
@@ -1124,6 +1127,8 @@ function dodSelftest() {
     ["The exported `runShardedRung`'s new `concurrency` parameter defaults to single-wave", "export"],
     ["the `summary` field is exported to the CSV", null],
     ["The CSV export `path` MUST default to stdout", null],
+    ["Export `results` to a CSV after the run.", null],
+    ["On success: export `summary` to stdout.", null],
     ["`faff export` MUST write `out.json`", null],
     ["the CSV export `report.csv` MUST have a header row", null],
     ["the service MUST answer 200 on `http://app.test.internal/healthz`", null],

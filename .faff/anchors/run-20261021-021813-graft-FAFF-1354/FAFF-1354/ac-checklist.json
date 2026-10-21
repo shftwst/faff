@@ -1,0 +1,240 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A refused capture's stderr line and note name the event type, the kernel and the rule, in the format in section 3.",
+      "verified": "Both tests pass: reason reads capture suppressed: <type> event for kernel <k> refused by the <rule>, on stderr and in the note.",
+      "passed": true,
+      "ac_id": "faff-1354#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::faff next with no issue: exit 0, stdout unchanged, one capture line, note names the rule, events untouched"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::record with a 2000-byte kernel: reason and kernel are bounded and the stderr text equals the note"
+        }
+      ]
+    },
+    {
+      "ac": "Every `EVENT_SCHEMA` error thrown by `appendRecordUnderLock` has `rules`: `[\"issue-scoped\"]` for an empty issue with a valid payload, `[\"payload-schema\"]` for a good issue with a bad payload under the delivery profile, and `[\"issue-scoped\",\"payload-schema\"]` when both fail. `message`, `violations` and `code` are byte-identical to before for the same inputs.",
+      "verified": "Passes for all three cases; message, violations and code unchanged.",
+      "passed": true,
+      "ac_id": "faff-1354#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::EVENT_SCHEMA carries rules: issue-scoped, payload-schema, and both"
+        }
+      ]
+    },
+    {
+      "ac": "`test/faff-1353-write-core-issue-scoped.test.mjs` and `test/events.test.mjs` pass unmodified, and `faff events append` with `{\"phase\":\"run\",\"type\":\"decision-capture\",\"issue\":\"\"}` still exits 1 with one `- <violation>` stderr line per violation.",
+      "verified": "Both suites pass unmodified (git diff shows no change under test/ beyond the new file); events append exits 1 with one - line per violation.",
+      "passed": true,
+      "ac_id": "faff-1354#done:3",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/faff-1353-write-core-issue-scoped.test.mjs test/events.test.mjs"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::faff events append of an empty-issue decision-capture still exits 1, one '- violation' line each"
+        }
+      ]
+    },
+    {
+      "ac": "`lineSafe` unit cases: `\"a\\nb\\tc\"` gives `\"a b c\"`; `a`, U+2028 LINE SEPARATOR, `b` gives `\"a b\"`; `\"a\\u0085b\"` gives `\"a b\"`; a 1024-byte ASCII string is returned unchanged; a 2000-byte ASCII string gives 1010 bytes plus `...[truncated]` (1024 bytes); a string of 600 copies of `é` (1200 bytes) gives at most 1024 bytes, no U+FFFD, and ends `...[truncated]`.",
+      "verified": "Passes every listed case, including U+2028, U+0085, the 2000-byte truncation and 600 multi-byte characters with no U+FFFD.",
+      "passed": true,
+      "ac_id": "faff-1354#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::lineSafe collapses control runs, trims, and bounds to 1024 UTF-8 bytes"
+        }
+      ]
+    },
+    {
+      "ac": "A suppressed capture's note has exactly the keys `ts, run, note, reason, event_type, kernel, rules`, in that order; every other degraded-capture note has exactly `ts, run, note, reason`.",
+      "verified": "Suppression note key order is ts, run, note, reason, event_type, kernel, rules; other notes keep the four keys.",
+      "passed": true,
+      "ac_id": "faff-1354#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::faff next with no issue: exit 0, stdout unchanged, one capture line, note names the rule, events untouched"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::reportAppendFailure: a non-schema failure keeps the generic reason and adds no event_type"
+        }
+      ]
+    },
+    {
+      "ac": "`docs/guide/cli.md`'s `decision-capture` row carries the suppressed-capture sentence and the exit-code justification.",
+      "verified": "Read in the diff: the decision-capture row carries the suppressed-capture sentence and the exit-code justification; lint-cli-doc rung passes.",
+      "passed": true,
+      "ac_id": "faff-1354#done:6",
+      "verifications": [
+        {
+          "kind": "human"
+        }
+      ]
+    },
+    {
+      "ac": "The three sites (`record`, in-kernel, `action`) each produce the suppression reason for an empty issue, with event types `decision-capture`, `decision-capture`, `decision-capture-action`.",
+      "verified": "record and action report decision-capture and decision-capture-action; the in-kernel site is covered by the faff next test.",
+      "passed": true,
+      "ac_id": "faff-1354#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::record and action each report the suppression with their own event type"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::faff next with no issue: exit 0, stdout unchanged, one capture line, note names the rule, events untouched"
+        }
+      ]
+    },
+    {
+      "ac": "A non-schema append failure still produces `journal append failed: <message>`: called with `{code: \"EVENTS_LOCKED\", message: \"m\"}`, `reportAppendFailure` writes a note whose reason is `journal append failed: m` and which has no `event_type` key. Export `reportAppendFailure` and `lineSafe` for the unit tests, as `effects-reconcile.js` exports `sanitizeDetail`.",
+      "verified": "EVENTS_LOCKED gives journal append failed: m with no event_type.",
+      "passed": true,
+      "ac_id": "faff-1354#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::reportAppendFailure: a non-schema failure keeps the generic reason and adds no event_type"
+        }
+      ]
+    },
+    {
+      "ac": "Each existing degraded-capture reason (config read, stdin, shape, run dir, chain head, empty correlation) is unchanged in text when it contains no control characters and is under 1024 bytes; `test/decision-capture.test.mjs:172-215`, `test/faff-989-decision-capture-driver.test.mjs` and `test/faff-1009-decision-capture-tier-wiring.test.mjs:138-176` pass unmodified.",
+      "verified": "Existing degraded-capture tests pass unmodified, so each existing reason text is unchanged.",
+      "passed": true,
+      "ac_id": "faff-1354#done:9",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/decision-capture.test.mjs test/faff-989-decision-capture-driver.test.mjs test/decision-capture-wiring.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "The comment at `decision-capture.js:454-458` no longer says the append always happens; it names the empty-issue half as decided by the write core and the empty-`correlation_id` half as deferred.",
+      "verified": "Read in the diff: the comment now names the empty-issue half as decided by the write core (FAFF-1353) and the correlation half as deferred.",
+      "passed": true,
+      "ac_id": "faff-1354#done:10",
+      "verifications": [
+        {
+          "kind": "human"
+        }
+      ]
+    },
+    {
+      "ac": "`decision-capture.js` contains no test of `issueVal === \"\"` and no match on violation text to pick a rule.",
+      "verified": "No match (grep exit 1); rule selection reads e.rules, never violation text.",
+      "passed": true,
+      "ac_id": "faff-1354#done:11",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'issueVal === \"\"' plugin/skills/faff/bin/lib/decision-capture.js"
+        }
+      ]
+    },
+    {
+      "ac": "With both `FAFF_DECISION_CORRELATION_ID` and `FAFF_DECISION_ISSUE` unset, `faff next` writes the empty-correlation note before the suppression note.",
+      "verified": "Passes: the empty-correlation note precedes the suppression note.",
+      "passed": true,
+      "ac_id": "faff-1354#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::faff next with neither correlation id nor issue: empty-correlation note, then the suppression note"
+        }
+      ]
+    },
+    {
+      "ac": "The visible scenarios in section 5 pass as integration tests that spawn the CLI, including the `--kernel` line-feed scenario.",
+      "verified": "The visible section-5 scenarios pass as CLI-spawning integration tests, including the --kernel line feed.",
+      "passed": true,
+      "ac_id": "faff-1354#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::faff next with no issue: exit 0, stdout unchanged, one capture line, note names the rule, events untouched"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::record with a 2000-byte kernel: reason and kernel are bounded and the stderr text equals the note"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::record with a line feed inside --kernel: one stderr line, kernel collapsed"
+        }
+      ]
+    },
+    {
+      "ac": "For every kernel that calls `captureDecision` with `process.env.FAFF_DECISION_ISSUE || \"\"` (`next`, `project-next`, `claim-verdict`, `eligible`, `park-verdict`), a run with `FAFF_DECISION_ISSUE` unset, capture on, exits with the same code and prints the same stdout as with capture off.",
+      "verified": "Five per-kernel tests pass: exit code and stdout match capture off.",
+      "passed": true,
+      "ac_id": "faff-1354#done:14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::next: FAFF_DECISION_ISSUE unset, capture on, exits and prints as with capture off"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::project-next: FAFF_DECISION_ISSUE unset, capture on, exits and prints as with capture off"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::claim-verdict: FAFF_DECISION_ISSUE unset, capture on, exits and prints as with capture off"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::eligible: FAFF_DECISION_ISSUE unset, capture on, exits and prints as with capture off"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::park-verdict: FAFF_DECISION_ISSUE unset, capture on, exits and prints as with capture off"
+        }
+      ]
+    },
+    {
+      "ac": "With capture off, no stderr capture line and no note are written on any of the paths above.",
+      "verified": "Same per-kernel tests assert no stderr capture line and no note with capture off.",
+      "passed": true,
+      "ac_id": "faff-1354#done:15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::next: FAFF_DECISION_ISSUE unset, capture on, exits and prints as with capture off"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::project-next: FAFF_DECISION_ISSUE unset, capture on, exits and prints as with capture off"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::claim-verdict: FAFF_DECISION_ISSUE unset, capture on, exits and prints as with capture off"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::eligible: FAFF_DECISION_ISSUE unset, capture on, exits and prints as with capture off"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::park-verdict: FAFF_DECISION_ISSUE unset, capture on, exits and prints as with capture off"
+        }
+      ]
+    }
+  ]
+}

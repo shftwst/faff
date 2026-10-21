@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "verdict": "revise",
+  "final_verdict": "approve",
+  "rounds_total": 2,
+  "objections": [
+    {
+      "lens": "methodology",
+      "severity": "major",
+      "claim": "This is two changes wearing one ticket: a small reporting fix, and the first real exercise of the code-blind holdout path. The spec's own scenarios embed two `holdout` blocks whose purpose is not to verify FAFF-1354 but to prove FAFF-1270's evaluator pipeline works — including one that requires the evaluator env to pass a literal line feed inside a `--kernel` argv argument, a capability the spec itself admits may not exist.",
+      "evidence": "Methodology critique, Risk: \"This build also serves as FAFF-1270's code-blind holdout proving run… The second holdout needs the evaluator to pass a literal line feed inside a `--kernel` argument, which a code-blind judge driving a running env may not be able to express.\" Also section 5's two `holdout` scenarios, one of which (`bad<newline>kernel`) is precisely the harness-stumble case.",
+      "predicted_consequence": "A harness stumble stalls a small, independently valuable fix and leaves FAFF-1270 with a failed proving run of ambiguous cause — the critique's own words. The slice's merge becomes hostage to an unrelated pipeline's first-run reliability.",
+      "spec_anchor": "methodology-critique",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in spec round 2: the line-feed holdout became a visible scenario and both holdouts now drive only the CLI; section 7 records that a harness-traced holdout failure is filed against FAFF-1270 or FAFF-1346.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "This is two changes wearing one ticket: a small reporting fix, and the first real exercise of the code-blind holdout path. The spec's own scenarios embed two `holdout` blocks whose purpose is not to verify FAFF-1354 but to prove FAFF-1270's evaluator pipeline works — including one that requires the evaluator env to pass a literal line feed inside a `--kernel` argv argument, a capability the spec itself admits may not exist.",
+          "spec_anchor": "methodology-critique"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "major",
+      "claim": "The spec's section 7 asserts \"No open questions and no assumptions\" and the description says \"nothing downstream is blocked by this slice,\" yet the build actually gates FAFF-1270 (which blocks FAFF-1261). The dependency exists but is not surfaced where the pipeline can see it — it lives only in the methodology critique's prose.",
+      "evidence": "Methodology critique, Dependencies: \"FAFF-1270 blocks FAFF-1261. The enforcement chain now waits on this graft, but the graph doesn't show it… correct the 'nothing downstream is blocked' line.\" Contrast section 7: \"No open questions and no assumptions.\"",
+      "predicted_consequence": "The enforcement chain's true critical path is invisible to scheduling; a delay or failure on this graft is discovered only after FAFF-1261 has already slipped, and the tracker graph actively misleads.",
+      "spec_anchor": "open-questions-and-assumptions",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in spec round 2: section 7 records the FAFF-1270 relationship, and FAFF-1354 is linked as blocking FAFF-1270.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The spec's section 7 asserts \"No open questions and no assumptions\" and the description says \"nothing downstream is blocked by this slice,\" yet the build actually gates FAFF-1270 (which blocks FAFF-1261). The dependency exists but is not surfaced where the pipeline can see it — it lives only in the methodology critique's prose.",
+          "spec_anchor": "open-questions-and-assumptions"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The tracker title still reads \"…names which rule refused it and leaves a run-directory marker,\" but the spec decides against the marker. The critique flags this as a workstream-fit defect, yet the spec's own text never instructs the retitling or the description correction as a build step — it is left as critique commentary rather than a Done item.",
+      "evidence": "Methodology critique, Workstream fit: \"Retitle FAFF-1354 to the outcome that will ship… and record in the description that the marker was dropped.\" Section 8's Done checklist contains no such item.",
+      "predicted_consequence": "A merged PR whose ticket promises a marker looks incomplete and invites a follow-up to \"add the missing marker\" — the duplicate observability the ticket said to drop.",
+      "spec_anchor": "done",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed during prep: FAFF-1354 retitled to the outcome that ships, with a description note that the marker was dropped.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The tracker title still reads \"…names which rule refused it and leaves a run-directory marker,\" but the spec decides against the marker. The critique flags this as a workstream-fit defect, yet the spec's own text never instructs the retitling or the description correction as a build step — it is left as critique commentary rather than a Done item.",
+          "spec_anchor": "done"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The spec's per-PR anchor will be minted while FAFF-1346 (anchor mints a non-conforming anchor and exits 0) is still open, so this graft's own governance evidence may be non-conforming. The critique names the risk but the spec's How/Done sections carry no contingency — only the critique's \"agree in advance\" suggestion, which is not a spec commitment.",
+      "evidence": "Methodology critique, Risk: \"The run's per-PR anchor is minted while FAFF-1346 … is still open.\" Section 8 and section 4 contain no corresponding step or acceptance carve-out.",
+      "predicted_consequence": "The graft's merge-floor or evidence-schema leg fails for a reason traceable to FAFF-1346, producing a red CI run on this slice that reviewers must manually disentangle from FAFF-1354's own changes.",
+      "spec_anchor": "methodology-critique",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in spec round 2: section 7 carries a Chosen contingency for an anchor or holdout failure traced to FAFF-1346 or the evaluator harness.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The spec's per-PR anchor will be minted while FAFF-1346 (anchor mints a non-conforming anchor and exits 0) is still open, so this graft's own governance evidence may be non-conforming. The critique names the risk but the spec's How/Done sections carry no contingency — only the critique's \"agree in advance\" suggestion, which is not a spec commitment.",
+          "spec_anchor": "methodology-critique"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The edge case \"`--kernel` contains a newline or tab\" (edge-case table) and its DONE-adjacent behaviour (stderr stays one line, note's `kernel` collapsed) have exactly one scenario — a `holdout` scenario that requires the code-blind evaluator to pass a shell argument containing a raw line feed. The spec's own Methodology critique section says this \"a code-blind judge driving a running env may not be able to express\" and recommends swapping it for a `claim-verdict`-style scenario, yet section 5 still ships it as a holdout. If the harness cannot express the argument, that named edge case has no test anywhere: the visible integration tests cover only the non-holdout scenarios, and no DONE bullet asserts the newline case outside the holdout.",
+      "evidence": "Section 5, second `holdout` scenario; edge-case table row \"`--kernel` contains a newline or tab\"; Methodology critique → Risk, first bullet.",
+      "predicted_consequence": "The line-safe collapsing behaviour for control characters in `kernel` (a core part of the new `lineSafe` contract) can ship untested if the proving harness stumbles, and a failed holdout is ambiguous between \"build wrong\" and \"harness can't express the input\" — the spec pre-agrees to file such a result against FAFF-1270/FAFF-1346, so the edge case silently ends up with no verdict at all.",
+      "spec_anchor": "scenarios",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in spec round 2: the --kernel line-feed case is a visible scenario and a Done item, no longer holdout-only.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The edge case \"`--kernel` contains a newline or tab\" (edge-case table) and its DONE-adjacent behaviour (stderr stays one line, note's `kernel` collapsed) have exactly one scenario — a `holdout` scenario that requires the code-blind evaluator to pass a shell argument containing a raw line feed. The spec's own Methodology critique section says this \"a code-blind judge driving a running env may not be able to express\" and recommends swapping it for a `claim-verdict`-style scenario, yet section 5 still ships it as a holdout. If the harness cannot express the argument, that named edge case has no test anywhere: the visible integration tests cover only the non-holdout scenarios, and no DONE bullet asserts the newline case outside the holdout.",
+          "spec_anchor": "scenarios"
+        }
+      ]
+    }
+  ]
+}

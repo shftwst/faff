@@ -274,10 +274,11 @@ test("library: truncation, surrogate pairs, config secrets and value-free violat
   assert.equal(resolveContained("/tmp/base", "../x"), null);
 });
 
-test("library: the writer never recomputes aggregate, verdict or evidence_present", () => {
+test("library: the writer refuses an aggregate the criteria do not derive, never rewrites it", () => {
   const out = buildHoldoutRecord(block([scenario()], { aggregate: "fails" }), { issue: "FAFF-1", secretValues: [], classified: dodClassify(SPEC, { issue: "FAFF-1" }) });
-  assert.equal(out.ok, true);
-  assert.equal(out.doc.aggregate, "fails", "an inconsistent aggregate is the gate's to report, not the writer's to fix");
+  assert.equal(out.ok, false);
+  assert.equal(out.doc.aggregate, "needs-human");
+  assert.ok(out.doc.violations.includes('holdout record refused: aggregate is "fails" but criteria derive "meets-spec"'), out.doc.violations.join("\n"));
 });
 
 test("holdout --selftest and the contract accept an accepted record", () => {

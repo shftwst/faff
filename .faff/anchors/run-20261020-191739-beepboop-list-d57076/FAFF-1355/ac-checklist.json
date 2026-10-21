@@ -1,0 +1,294 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "`grep -rn \"process\\.exit(\" plugin/ --include=*.js --include=*.mjs --include=*.cjs | grep -v node_modules` shows only comments, the `env.js:284` healthcheck string, and the two allowlisted backstops (`review-call.mjs`, `faff-bridge-node.mjs`)",
+      "verified": "grep over plugin/ shows only comments, the env.js healthcheck string, and the two allowlisted backstops",
+      "passed": true,
+      "ac_id": "faff-1355#done:1",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -rn \"process\\.exit(\" plugin/ --include=*.js --include=*.mjs --include=*.cjs | grep -v node_modules"
+        },
+        {
+          "kind": "test",
+          "locator": "test/no-live-process-exit.test.mjs::no live process.exit in shipped JS"
+        }
+      ]
+    },
+    {
+      "ac": "The PR body states that the ticket's seven `bin/lib/` matches are comments and fixture or healthcheck strings, and lists the live sites from the second table in section 1",
+      "verified": "PR body states the seven bin/lib matches and lists the live sites (checked on the composed body before PR creation)",
+      "passed": true,
+      "ac_id": "faff-1355#done:2",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c \"bin/lib\" \"$PR_BODY_FILE\""
+        }
+      ]
+    },
+    {
+      "ac": "`faff-bridge-node.mjs` exports `BRIDGE_EXIT_BACKSTOP_GRACE_MS` (2000), `armBridgeExitBackstop` and `runBridgeCli` with the injectable dependencies listed in section 3, and imports only Node built-ins",
+      "verified": "bridge exports BRIDGE_EXIT_BACKSTOP_GRACE_MS (2000), armBridgeExitBackstop, runBridgeCli; imports are node: built-ins only",
+      "passed": true,
+      "ac_id": "faff-1355#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-bridge-node.test.mjs::BRIDGE_EXIT_BACKSTOP_GRACE_MS is 2000"
+        },
+        {
+          "kind": "command",
+          "locator": "grep -n \"^import\" plugin/skills/faff/bin/faff-bridge-node.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`test/helpers/live-process-exit.mjs` exports `countLiveProcessExit` and `ALLOWLIST` with exactly the two entries in section 3",
+      "verified": "helper exports countLiveProcessExit and ALLOWLIST with exactly the two entries",
+      "passed": true,
+      "ac_id": "faff-1355#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/no-live-process-exit.test.mjs::ALLOWLIST holds exactly the two backstops"
+        }
+      ]
+    },
+    {
+      "ac": "`build-lens-requests.mjs`, `parse-refutation.mjs` and `aggregate.mjs` end with `process.exitCode = main(process.argv)`. Their existing `--selftest` and tests still pass: `node plugin/skills/faffter-dark-spec-review/aggregate.mjs --selftest; echo $?` prints 0",
+      "verified": "three spec-review helpers end with process.exitCode = main(process.argv); aggregate.mjs --selftest exits 0; node --test passes",
+      "passed": true,
+      "ac_id": "faff-1355#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faffter-dark-spec-review/aggregate.mjs --selftest; echo $?"
+        }
+      ]
+    },
+    {
+      "ac": "`build-manifest.js` ends with `process.exitCode = main(...)`. `cd plugin/skills/faff && node scripts/build-manifest.js check; echo $?` prints 0 on a clean tree, and `node scripts/build-manifest.js; echo $?` prints 2",
+      "verified": "build-manifest.js check exits 0 on a clean tree; no-argument run exits 2",
+      "passed": true,
+      "ac_id": "faff-1355#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "cd plugin/skills/faff && node scripts/build-manifest.js check; echo $?"
+        },
+        {
+          "kind": "command",
+          "locator": "cd plugin/skills/faff && node scripts/build-manifest.js; echo $?"
+        }
+      ]
+    },
+    {
+      "ac": "`validate-schema.mjs` makes no live `process.exit` call. `--selftest` gives status 0, no arguments gives 2, and a known-bad document gives 1. Every existing test that spawns it passes unchanged",
+      "verified": "validate-schema.mjs has no live process.exit; --selftest 0, no args 2, bad document 1; existing spawning tests pass in the full suite",
+      "passed": true,
+      "ac_id": "faff-1355#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/contracts/validate-schema.mjs --selftest; echo $?"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/contracts/validate-schema.mjs; echo $?"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/contracts/validate-schema.mjs plugin/skills/faff/contracts/examples/spec-readiness.bad.json plugin/skills/faff/contracts/spec-readiness.schema.json; echo $?"
+        }
+      ]
+    },
+    {
+      "ac": "The `gates.js` fixtures use `process.exitCode=1`. `node plugin/skills/faff/bin/faff gates --selftest` passes, including the \"noisy fail\" and \"INDEX order\" cases",
+      "verified": "gates.js fixtures use process.exitCode=1; gates --selftest reports PASS (183 cases, 0 failed)",
+      "passed": true,
+      "ac_id": "faff-1355#done:8",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gates --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "Unit test: `runBridgeCli` with a fake `proc` and a recording `arm` resolving to 0 leaves `proc.exitCode === 0` and `arm` not called. Resolving to 2 sets `exitCode` to 2 and calls `arm(2)`. Rejecting writes the `faff-bridge-node: fatal` line, sets `exitCode` to 1 and calls `arm(1)`",
+      "verified": "runBridgeCli unit tests: 0 leaves exitCode 0 without arming; 2 sets exitCode 2 and arms 2; rejection writes the fatal line, exitCode 1, arms 1",
+      "passed": true,
+      "ac_id": "faff-1355#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-bridge-node.test.mjs::runBridgeCli: code 0 leaves exitCode 0 and does not arm the backstop"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-bridge-node.test.mjs::runBridgeCli: code 2 sets exitCode and arms the backstop"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-bridge-node.test.mjs::runBridgeCli: rejection writes the fatal line, sets exitCode 1 and arms the backstop"
+        }
+      ]
+    },
+    {
+      "ac": "Unit test: `armBridgeExitBackstop` with `graceMs: 10` and fake `write`, `exit`, `flush` and `activeResources` calls `exit(code)` once, writes a line containing `leaked handle(s)`, and returns a timer whose `hasRef()` is false",
+      "verified": "armBridgeExitBackstop unit test: exit called once, leaked handle(s) line written, timer unref'd",
+      "passed": true,
+      "ac_id": "faff-1355#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-bridge-node.test.mjs::armBridgeExitBackstop: forces exit once after the grace period, with an unref'd timer"
+        }
+      ]
+    },
+    {
+      "ac": "Subprocess tests for both bridge Given-When-Then scenarios in section 5 (with a ref'd-interval module and with a no-handle module) are added to `test/faff-bridge-node.test.mjs`, with a `spawnSync` timeout of 10000 ms",
+      "verified": "subprocess tests for both scenarios against an already-bound port (ref'd interval: status 1 with leaked handle(s); no handles: status 1 in under 2000 ms without it)",
+      "passed": true,
+      "ac_id": "faff-1355#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-bridge-node.test.mjs::bridge start-up failure with a ref'd handle in the adopter module exits 1 via the backstop"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-bridge-node.test.mjs::bridge start-up failure with no handles exits 1 without the backstop"
+        }
+      ]
+    },
+    {
+      "ac": "The existing `--selftest passes as a subprocess` test still passes",
+      "verified": "existing --selftest subprocess test still passes",
+      "passed": true,
+      "ac_id": "faff-1355#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-bridge-node.test.mjs::--selftest passes as a subprocess"
+        }
+      ]
+    },
+    {
+      "ac": "`test/no-live-process-exit.test.mjs` scans shipped JS as defined in section 3 and passes on the converted tree",
+      "verified": "guard test scans shipped JS and passes on the converted tree",
+      "passed": true,
+      "ac_id": "faff-1355#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/no-live-process-exit.test.mjs::no live process.exit in shipped JS"
+        }
+      ]
+    },
+    {
+      "ac": "Lexer fixture cases in the same file each assert a count: a line comment (0), a block comment (0), a single- or double-quoted string (0), template text (0), a live call inside `${...}` (1), a regex containing a quote followed by a live call (1), `return /x/.test(s); process.exit(1)` (1), and a live call with a trailing comment (1)",
+      "verified": "lexer fixture cases assert 0 for comments, strings, template text and 1 for ${} calls, regex-with-quote, return /x/, trailing comment",
+      "passed": true,
+      "ac_id": "faff-1355#done:14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/no-live-process-exit.test.mjs::lexer: text that cannot hold a live call counts 0"
+        },
+        {
+          "kind": "test",
+          "locator": "test/no-live-process-exit.test.mjs::lexer: live calls count 1"
+        }
+      ]
+    },
+    {
+      "ac": "A fixture asserting that adding one live call to an unallowlisted file produces a failure message containing that path and `FAFF-1355`. Drive the test's checking function over an in-memory file map, not the real tree",
+      "verified": "new live call in an unallowlisted file fails naming the path and FAFF-1355, driven over an in-memory map",
+      "passed": true,
+      "ac_id": "faff-1355#done:15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/no-live-process-exit.test.mjs::a new live call in an unallowlisted file fails and names the path and FAFF-1355"
+        }
+      ]
+    },
+    {
+      "ac": "The test fails when an `ALLOWLIST` path does not exist",
+      "verified": "test fails when an ALLOWLIST path does not exist",
+      "passed": true,
+      "ac_id": "faff-1355#done:16",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/no-live-process-exit.test.mjs::an allowlisted path missing from the scan fails"
+        },
+        {
+          "kind": "test",
+          "locator": "test/no-live-process-exit.test.mjs::every ALLOWLIST path exists"
+        }
+      ]
+    },
+    {
+      "ac": "A fixture asserting the \"fewer\" direction: an in-memory allowlisted file whose live count drops below its `count` produces a failure naming that path (a stale entry)",
+      "verified": "stale allowlist entry (fewer calls) fails naming the path",
+      "passed": true,
+      "ac_id": "faff-1355#done:17",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/no-live-process-exit.test.mjs::a stale allowlist entry (fewer calls than allowed) fails and names the path"
+        }
+      ]
+    },
+    {
+      "ac": "Fixtures asserting `process?.exit(1)`, `process[\"exit\"](1)` and `process['exit'](1)` each count 1, and that the same text inside a string or comment counts 0",
+      "verified": "process?.exit, process[\"exit\"], process['exit'] each count 1; same text in string or comment counts 0",
+      "passed": true,
+      "ac_id": "faff-1355#done:18",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/no-live-process-exit.test.mjs::lexer: optional-chain and bracket spellings count 1, inside strings or comments 0"
+        }
+      ]
+    },
+    {
+      "ac": "No `.ts` file under `plugin/skills/faff/bin/lib/` is edited (none of the touched files has a `.ts` source: `gates.js` is plain JS, and the bridge, spec-review helpers, `validate-schema.mjs` and `build-manifest.js` are outside the TypeScript set), so `cd plugin/skills/faff && npm install && npm run build && git diff --exit-code` is clean with no `build-manifest.json` change",
+      "verified": "no .ts under bin/lib edited; npm run build leaves the tree clean with no build-manifest.json change",
+      "passed": true,
+      "ac_id": "faff-1355#done:19",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "cd plugin/skills/faff && npm install && npm run build && git diff --exit-code"
+        }
+      ]
+    },
+    {
+      "ac": "`node --import ./test/hermetic-env.mjs --test` passes on Node 20 and Node 22, and the `typecheck` job (Node 24) is green on the PR",
+      "verified": "CI run 39522467795 at head d7cc0e80: unit (1..4) jobs 118969309586, 118969309688, 118969309538, 118969309634 (Node 20) and typecheck job 118969309753 (Node 24) all succeeded; local full suite 7049 pass 0 fail on Node 22.23.3",
+      "passed": true,
+      "ac_id": "faff-1355#done:20",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "gh run view 39522467795 --json jobs"
+        },
+        {
+          "kind": "command",
+          "locator": "gh run view --job 118969309753"
+        },
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test"
+        }
+      ]
+    }
+  ]
+}

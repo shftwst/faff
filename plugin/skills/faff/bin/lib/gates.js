@@ -1289,7 +1289,7 @@ async function gatesSelftest() {
 
   // 5g. Companion: the same high-output rung exiting non-zero classifies "fail", not "errored" —
   // output volume alone must never manufacture (or erase) a failure verdict.
-  const noisyFailCmd = "node -e \"for(let i=0;i<80000;i++)process.stdout.write('x'.repeat(30)+'\\n');process.exit(1)\"";
+  const noisyFailCmd = "node -e \"for(let i=0;i<80000;i++)process.stdout.write('x'.repeat(30)+'\\n');process.exitCode=1\"";
   const noisyFailRung = await runRung({ kind: "UNIT", name: "unit (noisy fail)", command: noisyFailCmd }, dOverflowOk);
   cases.push(["overflow: >1 MB stdout + exit 1 classifies fail, not errored", noisyFailRung.status === "fail" && !noisyFailRung.reason]);
 
@@ -1372,7 +1372,7 @@ async function gatesSelftest() {
   // index-order collection that aggregateShardResults' first-errored-in-index-order reason relies on.
   // `--` terminates node's option parsing so the pool's appended `--test-shard=i/n` reaches the
   // program as a positional arg (node otherwise consumes `--test-shard` as its own flag).
-  const idxProg = 'const s=(process.argv.find(a=>a.startsWith("--test-shard"))||"").split("=")[1]||"";if(s.startsWith("1")){setTimeout(()=>{process.stdout.write("MARK1");process.exit(1)},400)}else{process.stdout.write("MARK2");process.exit(1)}';
+  const idxProg = 'const s=(process.argv.find(a=>a.startsWith("--test-shard"))||"").split("=")[1]||"";if(s.startsWith("1")){setTimeout(()=>{process.stdout.write("MARK1");process.exitCode=1},400)}else{process.stdout.write("MARK2");process.exitCode=1}';
   const idxRung = await runShardedRung({ kind: "UNIT", name: "unit (index order)", command: `node -e '${idxProg}' --` }, dShardPass, 1_800_000, 2, 2);
   cases.push(["shard: results folded in INDEX order regardless of completion order (MARK1 before MARK2)", idxRung.status === "fail" && idxRung.detail.startsWith("shard 1/2: MARK1") && idxRung.detail.indexOf("MARK1") < idxRung.detail.indexOf("MARK2")]);
 

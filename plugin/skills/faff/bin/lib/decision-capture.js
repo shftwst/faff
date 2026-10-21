@@ -353,19 +353,17 @@ function bestEffortFail(root, run, reason, fields = {}) {
   return 0;
 }
 
-const RULE_PHRASES = {
-  "issue-scoped": "issue-scoped rule",
-  "payload-schema": "payload-schema rule",
-  "issue-scoped,payload-schema": "issue-scoped and payload-schema rules",
-};
+function rulePhrase(rules) {
+  if (rules.length === 0) return "run-event schema";
+  return `${rules.join(" and ")} ${rules.length === 1 ? "rule" : "rules"}`;
+}
 
 // A refusal by the write core is a suppressed capture and names the rule; any other append
 // failure keeps the generic reason.
 function reportAppendFailure(root, run, e, eventType, kernel) {
   if (e && e.code === "EVENT_SCHEMA") {
     const rules = Array.isArray(e.rules) && e.rules.length ? e.rules : [];
-    const phrase = RULE_PHRASES[rules.join(",")] || "run-event schema";
-    const reason = `capture suppressed: ${eventType} event for kernel ${kernel} refused by the ${phrase}: ${(e.violations || []).join("; ")}`;
+    const reason = `capture suppressed: ${eventType} event for kernel ${kernel} refused by the ${rulePhrase(rules)}: ${(e.violations || []).join("; ")}`;
     return bestEffortFail(root, run, reason, { event_type: eventType, kernel: lineSafe(kernel), rules });
   }
   return bestEffortFail(root, run, "journal append failed: " + (e && e.message));

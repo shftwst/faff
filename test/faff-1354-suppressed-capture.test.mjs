@@ -69,13 +69,18 @@ test("EVENT_SCHEMA carries rules: issue-scoped, payload-schema, and both", (t) =
   assert.deepEqual(emptyIssue.violations, [ISSUE_LINE]);
   assert.equal(emptyIssue.message, `decision-capture event refused by the v0.3 run-event schema: ${ISSUE_LINE}`);
 
+  const refusedMessage = (e) => `decision-capture event refused by the v0.3 run-event schema: ${e.violations.join("; ")}`;
   const badPayload = refuse({ phase: "run", type: "decision-capture", issue: "FAFF-1", data: {} });
+  assert.equal(badPayload.code, "EVENT_SCHEMA");
   assert.deepEqual(badPayload.rules, ["payload-schema"]);
+  assert.ok(badPayload.violations.length > 0);
+  assert.equal(badPayload.message, refusedMessage(badPayload));
 
   const both = refuse({ phase: "run", type: "decision-capture", issue: "", data: {} });
+  assert.equal(both.code, "EVENT_SCHEMA");
   assert.deepEqual(both.rules, ["issue-scoped", "payload-schema"]);
-  assert.equal(both.violations[0], ISSUE_LINE);
-  assert.ok(both.violations.length > 1);
+  assert.deepEqual(both.violations, [ISSUE_LINE, ...badPayload.violations]);
+  assert.equal(both.message, refusedMessage(both));
 });
 
 test("faff events append of an empty-issue decision-capture still exits 1, one '- violation' line each", (t) => {
@@ -129,6 +134,14 @@ test("reportAppendFailure: both rules fire", (t) => {
   const { root, notes } = scratch(t);
   reportAppendFailure(root, "run-1", { code: "EVENT_SCHEMA", violations: ["a", "b"], rules: ["issue-scoped", "payload-schema"] }, "decision-capture", "k");
   assert.match(notes()[0].reason, /refused by the issue-scoped and payload-schema rules: a; b$/);
+});
+
+test("reportAppendFailure: a rule name the phrase has not seen is still named, never read as run-event schema", (t) => {
+  const { root, notes } = scratch(t);
+  reportAppendFailure(root, "run-1", { code: "EVENT_SCHEMA", violations: ["a"], rules: ["issue-scoped", "new-rule"] }, "decision-capture", "k");
+  const note = notes()[0];
+  assert.match(note.reason, /refused by the issue-scoped and new-rule rules: a$/);
+  assert.deepEqual(note.rules, ["issue-scoped", "new-rule"]);
 });
 
 // ---- integration: the CLI -------------------------------------------------------------------

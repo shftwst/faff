@@ -197,6 +197,8 @@ Format:
 
 Each item must be concrete enough to write a test against. "Works correctly" is not a DONE item. "Returns 401 with body `{ error: "session_expired" }`" is.
 
+Put a check the running system cannot show (a repository test file passing, a symbol being exported) in its own DONE item, apart from any CLI or HTTP behaviour. `faff dod classify` sends such an item to the review/merge test floor, so behaviour stated in the same item is not judged by the holdout.
+
 **Eval coverage.** If the work introduces or changes an LLM-judgement seam, a DONE item registers its grader `KIND` + ≥1 eval case + the seam-registry row in this same ticket — all autonomous-doable. Recording/accepting the baseline value is a separate human-supervised step and is never required by this DONE item.
 
 **Integration smoke test:** pseudocode for a single end-to-end path that exercises the happy case. This is not exhaustive — it's the "if this one thing works, the plumbing is connected" test.

@@ -18,7 +18,7 @@ const { exitFor, schemaCheck, validateAgainstSchema } = require("./contract-engi
 const { parseArgs, usageError } = require("./argv");
 const { REVIEW_DISPOSITIONS, REVIEW_FINDING_SOURCES, REVIEW_SEVERITIES, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS } = require("./review-vocab");
 const CONTRACT_SPEC = { flags: { "--selftest": { arity: 0 }, "--require-spawner-attested": { arity: 0 }, "--in": { arity: 1 }, "--describe": { arity: 0 }, "--json": { arity: 0 } }, positionals: { min: 0, max: 1, name: "contract-name" } };
-const { delegationViolations } = require("./holdout-record");   // FAFF-1291: factory -> governance is the legal direction
+const { delegationViolations, deriveHoldoutAggregate } = require("./holdout-record");   // FAFF-1291: factory -> governance is the legal direction
 const { RUN_DONE_VERDICTS } = require("./run-done");
 const { RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS, deriveRunTrigger, normalizeRunTriggerSignals } = require("./run-start");
 
@@ -863,15 +863,6 @@ function contractEnvHandle(extraction) {
 const HOLDOUT_AGGREGATES = ["meets-spec", "gaps", "fails", "needs-human"];
 const HOLDOUT_CLASSES = ["scenario", "assertion", "prose"];
 const HOLDOUT_VERDICTS = ["met", "unmet", "needs-human"];
-
-// The aggregate derivation (gateway-normative, ADR-0032). Shared so producer + validator agree.
-function deriveHoldoutAggregate(verdicts) {
-  if (verdicts.some((v) => v === "needs-human")) return "needs-human";
-  if (verdicts.length === 0) return "needs-human";       // nothing judged → needs-human
-  if (verdicts.every((v) => v === "met")) return "meets-spec";
-  if (verdicts.every((v) => v === "unmet")) return "fails";
-  return "gaps";                                          // mixed met/unmet
-}
 
 // FAFF-384: shape-validate the spawner `attestation` record (present iff spawner_attested:true). The
 // withheld-set is the BASIS code_blind is derived from, so `repo` MUST be provably withheld and the in-cage

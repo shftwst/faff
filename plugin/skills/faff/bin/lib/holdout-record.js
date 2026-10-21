@@ -4,8 +4,9 @@
 // The evaluator reports, per criterion, what it exercised, what it expected and what it
 // observed. This module turns that block into the fixed `holdout-anchored` shape, for both
 // callers: `faff holdout record` (inline path) and the caged `evaluate-call.mjs` spawner.
-// It shapes and refuses; it never recomputes `aggregate`, `verdict` or `evidence_present`, so
-// the gate (computeHoldoutVerdict, readHoldout, merge-gate) routes exactly as before.
+// It shapes and refuses; it refuses an `aggregate` the criteria do not derive and never rewrites
+// `aggregate`, `verdict` or `evidence_present`, so the gate (computeHoldoutVerdict, readHoldout,
+// merge-gate) routes exactly as before.
 //
 // A refused block still yields a record: a fail-closed `needs-human` one. Every consumer reads
 // an absent holdout verdict as "did not run" and steps aside, so writing nothing would turn a
@@ -294,9 +295,23 @@ function buildHoldoutRecord(block, opts) {
       refusals.push(`criteria ids do not match the judged set from faff dod classify: missing [${missing.join(", ")}], unexpected [${unexpected.join(", ")}]`);
     }
   }
+  const verdicts = redacted.criteria.map((c) => c.verdict);
+  if (verdicts.every((v) => v === "met" || v === "unmet" || v === "needs-human")) {
+    const expected = deriveHoldoutAggregate(verdicts);
+    if (redacted.aggregate !== expected) refusals.push(`aggregate is "${truncateDetail(String(redacted.aggregate))}" but criteria derive "${expected}"`);
+  }
   refusals.push(...holdoutRecordViolations(redacted));
   if (refusals.length > 0) return failClosed(base, refusals, delegated, redacted.violations);
   return { ok: true, doc: redacted, bytes: serialise(redacted), refusals: [] };
+}
+
+// The aggregate derivation (gateway-normative, ADR-0032). Lives here so the writer and the contract agree.
+function deriveHoldoutAggregate(verdicts) {
+  if (verdicts.some((v) => v === "needs-human")) return "needs-human";
+  if (verdicts.length === 0) return "needs-human";       // nothing judged → needs-human
+  if (verdicts.every((v) => v === "met")) return "meets-spec";
+  if (verdicts.every((v) => v === "unmet")) return "fails";
+  return "gaps";                                          // mixed met/unmet
 }
 
 function holdoutRecordSelftest() {
@@ -351,6 +366,10 @@ function holdoutRecordSelftest() {
   const noReason = buildHoldoutRecord(block([met, { id: "scenarios:2", text: "t", class: "prose", verdict: "needs-human", evidence_present: false }], "needs-human"), { ...opts, classified: { criteria: [row("scenarios:1", "running-stack"), row("scenarios:2", "running-stack")] } });
   check("refused: needs-human without reason", !noReason.ok);
 
+  const disagree = buildHoldoutRecord(block([met], "fails"), opts);
+  check("refused: aggregate the criteria do not derive", !disagree.ok && disagree.doc.aggregate === "needs-human" && disagree.doc.violations.some((v) => v.includes('aggregate is "fails" but criteria derive "meets-spec"')));
+  check("refused: meets-spec over no criteria", !buildHoldoutRecord(block([], "meets-spec"), { ...opts, classified: { criteria: [row("done:1", "delegated")] } }).ok);
+
   check("refused: non-object block", !buildHoldoutRecord("nope", opts).ok);
   check("accepted: nothing-judged block when classify judges nothing", buildHoldoutRecord(block([], "needs-human"), { ...opts, classified: { criteria: [row("done:1", "delegated")] } }).ok);
   check("refused: bad id", !buildHoldoutRecord(block([{ ...met, id: "scenarios:0" }]), opts).ok);
@@ -384,5 +403,5 @@ function holdoutRecordSelftest() {
 }
 
 module.exports = {
-  buildHoldoutRecord, delegationViolations, holdoutRecordViolations, holdoutRecordSelftest, isSafeHoldoutKey, resolveContained, writeHoldoutRecord,
+  buildHoldoutRecord, delegationViolations, deriveHoldoutAggregate, holdoutRecordViolations, holdoutRecordSelftest, isSafeHoldoutKey, resolveContained, writeHoldoutRecord,
 };

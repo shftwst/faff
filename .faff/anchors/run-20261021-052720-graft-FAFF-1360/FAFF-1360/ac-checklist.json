@@ -1,0 +1,239 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "`faff dod classify --spec <the Appendix A file> --json` exits 0 and gives `done:3` and `done:8` `verification_tier` `integration` and `verifier` `review-merge-floor`, gives `scenarios:1` to `scenarios:7` `running-stack`, and reports `judged_count` 7, `integration_count` 2 and `delegated_count` 15.",
+      "verified": "Passes: done:3 and done:8 integration/review-merge-floor, scenarios running-stack, judged 7, integration 2, delegated 15.",
+      "passed": true,
+      "ac_id": "faff-1360#ac-1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1360-code-surface-done-tier.test.mjs::ac-1: the FAFF-1354 DoD sends done:3 and done:8 to the test floor and judges the 7 scenarios"
+        }
+      ]
+    },
+    {
+      "ac": "`faff holdout record --issue FAFF-1354 --spec <the Appendix A file>`, given an all-met block for `scenarios:1` to `scenarios:7` only, exits 0 and writes `aggregate` `meets-spec` with 15 `delegated` rows, `done:3` and `done:8` among them with verifier `review-merge-floor`.",
+      "verified": "Passes: exit 0, meets-spec, 15 delegated rows including done:3 and done:8 with review-merge-floor.",
+      "passed": true,
+      "ac_id": "faff-1360#ac-2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1360-code-surface-done-tier.test.mjs::ac-2 and scenario 3: an all-met block for the 7 scenarios records meets-spec with 15 delegated rows"
+        }
+      ]
+    },
+    {
+      "ac": "`codeSurfaceSignal`, `codeSurfaceAdvisory` and `renderCodeSurfaceWarning` are exported from `admissibility.js`, and `codeSurfaceSignal` returns the value in every row of the expected-values table in section 3.",
+      "verified": "Selftest covers every expected-values row; the three functions are exported.",
+      "passed": true,
+      "ac_id": "faff-1360#ac-3",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff dod --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`resolveVerificationTier` follows the five-step order in section 3: an explicit marker still wins; a prose DONE item naming a test file stays `delegated`; a Scenarios unit naming a test file stays `running-stack`; a call with no `criterion` argument returns what it returns today.",
+      "verified": "Selftest covers marker precedence, prose DONE naming a test file, a Scenarios unit, and the no-criterion call.",
+      "passed": true,
+      "ac_id": "faff-1360#ac-4",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff dod --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "An assertion-class DONE item naming only CLI behaviour, \"`faff events append` MUST exit 1 on an empty issue\", is `running-stack` with verifier `holdout`.",
+      "verified": "Passes: the CLI-only DONE item is running-stack with verifier holdout.",
+      "passed": true,
+      "ac_id": "faff-1360#ac-5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1360-code-surface-done-tier.test.mjs::scenario 2 and ac-5: a CLI-only DONE item and a Scenarios test-file unit stay running-stack"
+        }
+      ]
+    },
+    {
+      "ac": "On the Appendix A file, `counts` is still `{scenario: 7, assertion: 2, prose: 13}`, `holdout_counts` is still `{holdout: 2, visible: 20}`, `oracle_less_count` is still 0, and every criterion other than `done:3` and `done:8` has the same `verification_tier` as before (`running-stack` for `scenarios:1` to `scenarios:7`, `delegated` for the other 13 DONE items).",
+      "verified": "Passes: counts, holdout_counts, oracle_less_count and every other tier unchanged.",
+      "passed": true,
+      "ac_id": "faff-1360#ac-6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1360-code-surface-done-tier.test.mjs::ac-6: counts and every other tier are unchanged on the FAFF-1354 DoD"
+        }
+      ]
+    },
+    {
+      "ac": "`faff admissible --lights-out --json` on the Appendix A file exits 0 with exactly one warning beginning `code-surface advisory: 2 DONE item(s)`, and that warning's mixed clause counts 1 item. On `ADMISSIBLE_GOOD` it adds no code-surface warning, and without `--lights-out` it adds none.",
+      "verified": "Passes: one code-surface warning, mixed count 1; none on ADMISSIBLE_GOOD or without --lights-out.",
+      "passed": true,
+      "ac_id": "faff-1360#ac-7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1360-code-surface-done-tier.test.mjs::ac-7: faff admissible --lights-out warns once, naming 2 code-surface items with 1 mixed"
+        }
+      ]
+    },
+    {
+      "ac": "The \"Classify the DoD\" bullet in `faffter-noon-evaluate/SKILL.md` ends with the replacement sentence given in section 4, and no longer contains \"A criterion with no exposed surface is not integration-tier\".",
+      "verified": "Read in the diff: the Classify-the-DoD bullet ends with the replacement sentence; the old sentence is gone.",
+      "passed": true,
+      "ac_id": "faff-1360#ac-8",
+      "verifications": [
+        {
+          "kind": "human"
+        }
+      ]
+    },
+    {
+      "ac": "`faffter-noon-spec/SKILL.md` section 4 and `faffter-dark-nlspec/SKILL.md` section 8 each contain the authoring sentence given in section 4.",
+      "verified": "Read in the diff: both spec-producer SKILL.md files carry the authoring sentence; validate-adapters passes.",
+      "passed": true,
+      "ac_id": "faff-1360#ac-9",
+      "verifications": [
+        {
+          "kind": "human"
+        }
+      ]
+    },
+    {
+      "ac": "The FAFF-961 tier comment block, the `resolveVerificationTier` header comment and the DONE-loop marker comment in `admissibility.js` each name the code-surface step.",
+      "verified": "Read in the diff: the FAFF-961 comment block, the resolveVerificationTier header and the DONE-loop comment name the code-surface step.",
+      "passed": true,
+      "ac_id": "faff-1360#ac-10",
+      "verifications": [
+        {
+          "kind": "human"
+        }
+      ]
+    },
+    {
+      "ac": "A DONE item \"holdout: `x.test.mjs` MUST pass\" keeps its literal text and `holdout: false` and is `integration`.",
+      "verified": "Selftest: the holdout-prefixed DONE item keeps its literal text, holdout false, and is integration.",
+      "passed": true,
+      "ac_id": "faff-1360#ac-11",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff dod --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "\"`test/decision-capture.test.mjs:172-215` MUST pass\" as a DONE item is `integration`.",
+      "verified": "Selftest: the line-range test-file item is integration.",
+      "passed": true,
+      "ac_id": "faff-1360#ac-12",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff dod --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`faff dod --selftest` includes FAFF-1360 checks for ac-3, ac-4, ac-5, ac-11 and ac-12, and `faff dod --selftest` and `faff admissible --selftest` both print `ok`.",
+      "verified": "Both selftests pass and include the FAFF-1360 checks.",
+      "passed": true,
+      "ac_id": "faff-1360#ac-13",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff dod --selftest"
+        },
+        {
+          "kind": "command",
+          "locator": "faff admissible --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`test/faff-1360-code-surface-done-tier.test.mjs` covers ac-1, ac-2, ac-5 and ac-7 and the four scenarios in section 5 by spawning the CLI, using `test/fixtures/faff-1360/faff-1354-dod.md`, which is byte-identical to the Appendix A block content.",
+      "verified": "7 tests pass covering ac-1, ac-2, ac-5, ac-7, ac-17 and the four scenarios; the fixture is byte-identical to Appendix A.",
+      "passed": true,
+      "ac_id": "faff-1360#ac-14",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/faff-1360-code-surface-done-tier.test.mjs"
+        },
+        {
+          "kind": "command",
+          "locator": "cmp <Appendix A block> test/fixtures/faff-1360/faff-1354-dod.md"
+        }
+      ]
+    },
+    {
+      "ac": "`test/dod.test.mjs` and `test/holdout-delegation.test.mjs` pass unmodified. `test/holdout-record.test.mjs` passes with exactly one test changed: \"library: the writer never recomputes aggregate, verdict or evidence_present\" now asserts the refusal described in section 4.",
+      "verified": "All pass; dod and holdout-delegation tests unmodified; holdout-record has only the one permitted test change.",
+      "passed": true,
+      "ac_id": "faff-1360#ac-15",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/dod.test.mjs test/holdout-delegation.test.mjs test/holdout-record.test.mjs"
+        },
+        {
+          "kind": "command",
+          "locator": "git diff --stat origin/main -- test/dod.test.mjs test/holdout-delegation.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`faff validate-adapters` and `faff regions check` exit 0.",
+      "verified": "Both exit 0.",
+      "passed": true,
+      "ac_id": "faff-1360#ac-16",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff validate-adapters"
+        },
+        {
+          "kind": "command",
+          "locator": "faff regions check"
+        }
+      ]
+    },
+    {
+      "ac": "`faff holdout record` over a spec whose only non-prose criterion is a code-surface DONE item (`judged_count` 0, `integration_count` 1), given an evaluator block with `criteria: []` and aggregate `needs-human`, exits 0 and writes `aggregate` `needs-human`; the same block with aggregate `meets-spec` exits 1 and writes a fail-closed record with `aggregate` `needs-human` whose violations include `holdout record refused: aggregate is \"meets-spec\" but criteria derive \"needs-human\"`. Covered in `test/faff-1360-code-surface-done-tier.test.mjs`.",
+      "verified": "Passes: needs-human with criteria [] is written (exit 0); meets-spec with criteria [] is refused (exit 1) with the exact message.",
+      "passed": true,
+      "ac_id": "faff-1360#ac-17",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1360-code-surface-done-tier.test.mjs::ac-17 and scenario 4: nothing judged rolls up to needs-human, and the writer refuses meets-spec over no criteria"
+        }
+      ]
+    },
+    {
+      "ac": "`deriveHoldoutAggregate` is defined only in `holdout-record.js` and exported from it; `contract-defs.js` has no local definition, imports it from `holdout-record.js`, and still exports it. `buildHoldoutRecord` refuses a block whose aggregate differs from `deriveHoldoutAggregate` over the verdicts of its criteria (for example aggregate `fails` with one `met` criterion), and `holdoutRecordSelftest` has a case for it. `faff contract --selftest` and `faff holdout --selftest` pass.",
+      "verified": "Both pass (contract 651 cases); deriveHoldoutAggregate lives in holdout-record.js and contract-defs.js imports it.",
+      "passed": true,
+      "ac_id": "faff-1360#ac-18",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff holdout --selftest"
+        },
+        {
+          "kind": "command",
+          "locator": "faff contract --selftest"
+        }
+      ]
+    }
+  ]
+}

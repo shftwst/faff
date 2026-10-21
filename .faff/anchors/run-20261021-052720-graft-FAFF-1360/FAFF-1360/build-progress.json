@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1360",
+  "build": {
+    "status": "complete",
+    "diff_hash": "1330f654c5147edae143f35e41d8d58389fb5de9dec94cb589f4e614839e9fe4",
+    "branch": "FAFF-1360-a-done-item-checked-by-a-test-file-goes-to-the-test-floor",
+    "pushed_at": "2026-10-21T06:18:06.722Z"
+  },
+  "updated_at": "2026-10-21T06:18:06.722Z"
+}

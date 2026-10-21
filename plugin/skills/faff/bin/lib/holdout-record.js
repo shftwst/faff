@@ -298,7 +298,7 @@ function buildHoldoutRecord(block, opts) {
   const verdicts = redacted.criteria.map((c) => c.verdict);
   if (verdicts.every((v) => v === "met" || v === "unmet" || v === "needs-human")) {
     const expected = deriveHoldoutAggregate(verdicts);
-    if (redacted.aggregate !== expected) refusals.push(`aggregate is "${redacted.aggregate}" but criteria derive "${expected}"`);
+    if (redacted.aggregate !== expected) refusals.push(`aggregate is "${truncateDetail(String(redacted.aggregate))}" but criteria derive "${expected}"`);
   }
   refusals.push(...holdoutRecordViolations(redacted));
   if (refusals.length > 0) return failClosed(base, refusals, delegated, redacted.violations);

@@ -4,7 +4,7 @@
 // (no real listener), then spawn `--selftest` as a subprocess assertion. Mirrors evaluate-call.test.mjs.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { spawn, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { createServer } from "node:net";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -278,13 +278,8 @@ async function runBridgeAgainstBoundPort(moduleSource) {
     writeFileSync(manifest, JSON.stringify(MANIFEST));
     writeFileSync(mod, moduleSource);
     const started = Date.now();
-    const child = spawn(process.execPath, [BRIDGE, "--manifest", manifest, "--module", pathToFileURL(mod).href, "--host", "127.0.0.1", "--port", String(port)], { stdio: ["ignore", "pipe", "pipe"] });
-    let stderr = "";
-    child.stderr.on("data", (c) => { stderr += c; });
-    const killer = setTimeout(() => child.kill("SIGKILL"), 10000);
-    const status = await new Promise((resolve) => child.on("close", (code) => resolve(code)));
-    clearTimeout(killer);
-    return { status, stderr, elapsedMs: Date.now() - started };
+    const r = spawnSync(process.execPath, [BRIDGE, "--manifest", manifest, "--module", pathToFileURL(mod).href, "--host", "127.0.0.1", "--port", String(port)], { encoding: "utf8", timeout: 10000 });
+    return { status: r.status, stderr: r.stderr, elapsedMs: Date.now() - started };
   } finally {
     srv.close();
     rmSync(dir, { recursive: true, force: true });

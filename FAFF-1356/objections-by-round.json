@@ -1,0 +1,59 @@
+[
+  {
+    "round": 1,
+    "window_start": 1,
+    "objections": [
+      {
+        "lens": "architectural",
+        "severity": "minor",
+        "claim": "The spec's own design principle is \"evidence over arithmetic — the new default ships only once three consecutive gate runs on this 8-core host pass\", but the change ships a formula (`max(1, floor(n/2))`, or `floor(n/4)` on the fallback) whose values on every *other* core count were never measured. On a 16-core host the default becomes width 8 — a pressure level with zero evidence behind it — and on the fallback branch width 4. The 2–3-core serial case is acknowledged in the failure modes, but the 16-core case is not, and it is the direction where the old bug (oversubscription pressure) recurs by construction.",
+        "evidence": "\"Decision: which default width\" chooses `floor(local_shards / 2)`; the `measure_default` procedure and its Assumptions bind all validation to \"the same 8-core host\"; the DONE table pins 2/3/4/8/16 by arithmetic, not measurement.",
+        "predicted_consequence": "the same lock/sentry/andon false-RED class reappears for adopters on ≥12-core hosts at the new default, and the fix is discovered to be host-local after the ticket is closed; the escape hatch is the knob, which reproduces the FAFF-1137 \"operator discovers the knob\" anti-pattern this ticket's own principles reject.",
+        "spec_anchor": "decision-which-default-width"
+      },
+      {
+        "lens": "QA",
+        "severity": "minor",
+        "claim": "`measure_default` accepts the new default on three consecutive passing runs, but never re-establishes the failing condition it is supposed to fix. The spec's own failure mode 2 says the diagnostic signal is \"the same tests fail at width 4 and 2 but pass at 1\" — yet the procedure never runs a width-1 (or old-default width-7) control, so a build that records three passes cannot distinguish \"the new default fixed the starvation\" from \"the failures were intermittent today\" or \"an unrelated test was already broken at spec time\". Three consecutive passes at width 4 are also compatible with residual flakiness at that width (3/3 luck on a test that fails, say, 1 run in 4).",
+        "evidence": "`### From WHY` DONE item (\"three consecutive `faff gates run --json` runs each report … `status: pass`\"); `PROCEDURE measure_default` steps 2–5; failure mode 2 (\"How you'd know: the same tests fail at width 4 and 2 but pass at 1\").",
+        "predicted_consequence": "the PR body's three recorded passes satisfy the DONE criterion even if the default change has no causal effect on the reported failures; a reviewer re-running the measurement next week on a quiet host could get three failures at the shipped default with no procedure step telling them whether that refutes the change or the host. The failure mode's own diagnostic (\"pass at 1\") is unexecutable within the procedure as written.",
+        "spec_anchor": "measurement-on-this-host-acceptance-not-a-unit-test"
+      }
+    ]
+  },
+  {
+    "round": 2,
+    "window_start": 1,
+    "objections": [
+      {
+        "lens": "architectural",
+        "severity": "minor",
+        "claim": "`measure_default` treats 3/3 UNIT passes as decisive proof that half-width fixed the failures, while a single failure triggers the fallback. For timing-flaky tests whose per-run failure probability at width 4 is, say, 0.2, three consecutive passes happen by chance over half the time — the gate can ship a default that still fails a large fraction of runs for every adopter. The spec's own principle is \"Evidence over arithmetic\", and its evidence-weakness caveat (`non-causal`) is attached only to the control-run branch, never to the pass branch.",
+        "evidence": "`measure_default` step 4 (\"IF all three runs have a UNIT rung with status `pass`: ship half\"); the Revision notes add an idle-host check but no run-count or asymmetry acknowledgement for the measured runs.",
+        "predicted_consequence": "the default ships on a coin-flip-quality measurement; the ≥12-core failure mode later fires for adopters on this very host too, and the follow-up hardening ticket is filed with an incorrect premise (\"half was sufficient\").",
+        "spec_anchor": "how"
+      },
+      {
+        "lens": "architectural",
+        "severity": "minor",
+        "claim": "`measure_default` steps 1 and 1b require `nproc` prints 8 and use `pgrep -f \"node --test\"`; the repo paths in context (`/Users/shftwst/...`) show the build runs on macOS, where `nproc` does not exist by default. As written, the acceptance precondition fails or is silently mis-executed before the measurement can even begin.",
+        "evidence": "`measure_default` step 1 (\"Confirm nproc = 8\") and step 1b; the supplied context paths `/Users/shftwst/workspace/shftwst/faff/...`.",
+        "predicted_consequence": "step 1 errors out (command not found), and a builder either invents a substitute mid-run (unrecorded, so the PR body's evidence trail diverges from the spec) or stalls.",
+        "spec_anchor": "how"
+      },
+      {
+        "lens": "QA",
+        "severity": "minor",
+        "claim": "DONE item 1 is scoped to \"On this 8-core host\", yet the Assumptions section explicitly permits the measurement to run on a different host (\"If either fails, record the host facts and run the measurement anyway; report that it was not the reference host\"). The spec never states what DONE means in that case — whether the three-passes criterion is waived, downgraded to advisory evidence, or forces the park branch. A tester on a non-reference host cannot decide whether the ticket's primary DONE item is satisfied or failed.",
+        "evidence": "\"### From WHY\" first checkbox (\"On this 8-core host, with `gates.local_shard_concurrency` unset, three consecutive … runs each report … status `pass`\") vs. the Assumptions bullet's fallback instruction.",
+        "predicted_consequence": "a build executed off the reference host (host drifted, cores changed, docker unavailable) completes the measurement, reports \"not the reference host\", and the reviewer cannot decide DONE item 1 — the ticket's central acceptance is neither met nor explicitly failed.",
+        "spec_anchor": "done"
+      }
+    ]
+  },
+  {
+    "round": 3,
+    "window_start": 1,
+    "objections": []
+  }
+]

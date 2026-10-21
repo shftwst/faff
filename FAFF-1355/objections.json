@@ -1,0 +1,11 @@
+[
+  {
+    "claim": "The guard's entire purpose is to stop new live `process.exit` calls from being added, yet the spec chooses a lexer that by construction misses two trivial alternative spellings, and then adds fixture cases *asserting they count 0* — actively codifying the bypass rather than closing it. A new live call written as `process?.exit(1)` or `process[\"exit\"](1)` ships with the guard green. The spec's answer is \"a reviewer catches one,\" but the guard exists precisely because review is the fallible layer (the ticket's own premise is that the ticket's grep-based count was wrong). Counting both forms is a one-line regex extension, not a parser.",
+    "evidence": "\"Edge cases\" — \"`process?.exit(` and `process[\"exit\"](` are not counted. None exists today. A reviewer catches one. The lexer stays simple.\" Done item: \"Fixtures asserting `process?.exit(1)` and `process[\"exit\"](1)` count 0, pinning the documented limit.\"",
+    "predicted_consequence": "A future live call in the optional-chaining or bracket-access form passes `test/no-live-process-exit.test.mjs`, ships, and can hang a Node 24 CI run or adopter invocation — the exact incident class FAFF-1355 exists to prevent, with the guard reporting all-clear.",
+    "spec_anchor": "edge-cases",
+    "lens": "infosec",
+    "severity": "minor",
+    "contested_source": false
+  }
+]

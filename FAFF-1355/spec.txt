@@ -1,0 +1,392 @@
+# FAFF-1355: Shipped faff scripts end without `process.exit()` so Node 24 cannot hang them
+
+> Spec: faffter-dark-nlspec · 2026-10-20 · autonomous · claude-code/unknown · confidence: high. Full spec on Linear FAFF-1355.
+
+This spec is for the build agent and human reviewers. It covers Linear issue FAFF-1355: remove the live `process.exit()` calls from the JavaScript faff ships under `plugin/skills/`, keep every exit code the same, and add a test that stops new ones being added.
+
+## 1. Why
+
+**The core idea.** On Node 24, `process.exit()` can hang forever when a V8 background compile job is waiting for the main thread to run garbage collection (upstream nodejs/node#64274; the fix, nodejs/node#66171, was still open on 2026-10-20). A script that sets `process.exitCode` and lets the event loop drain never enters that code path. Each live call should set the exit code and return, and the process should then end once nothing keeps it alive.
+
+**The ticket's count is wrong.** The ticket counts seven `process.exit(` matches under `plugin/skills/faff/bin/lib/`. None of them ends a faff command:
+
+| Match | What it is |
+|---|---|
+| `bin/lib/budget.js:90`, `bin/lib/governance-profile.js:292` | Comments |
+| `bin/lib/gates.js:1281`, `bin/lib/gates.js:1361` (two calls) | `node -e` child scripts that `faff gates --selftest` spawns as fixtures |
+| `bin/lib/env.js:284` (two calls) | The docker `HEALTHCHECK` command string that the env composer emits for a Node system under test; it runs inside the SUT container |
+
+The live calls are outside `bin/lib/`, in shipped scripts the same grep misses:
+
+| File | Live calls | Who runs it |
+|---|---|---|
+| `plugin/skills/faff/bin/faff-bridge-node.mjs:537-538` | 2 | The FAFF-1104 Node reflection bridge, run as a compose service by the `env-code-interface` slot |
+| `plugin/skills/faffter-dark-spec-review/build-lens-requests.mjs:109` | 1 | The spec-review loop on every faff-prep round, including unattended beep-boop runs |
+| `plugin/skills/faffter-dark-spec-review/parse-refutation.mjs:308` | 1 | Same |
+| `plugin/skills/faffter-dark-spec-review/aggregate.mjs:305` | 1 | Same |
+| `plugin/skills/faff/contracts/validate-schema.mjs:149-168` | 5 | Documented CLI in `contracts/README.md`; tests spawn it as a subprocess |
+| `plugin/skills/faff/scripts/build-manifest.js:169` | 1 | `npm run build`, which the Node 24 `typecheck` CI job runs |
+| `plugin/skills/faffter-dark-adversarial-review/review-call.mjs:2849` | 1 | The FAFF-1239 exit backstop. It only fires when a handle has leaked, 2 s after `main` returned |
+
+**Problem.** Six shipped entry points still end through `process.exit()`, so on Node 24 a spec-review round, a bridge start-up failure or a CI build can hang instead of exiting. FAFF-1353 fixed the first observed case (`eval/prefix-planner.mjs`), but nothing stops new calls being added. This change converts the remaining live calls, decides what to do with the fixture and healthcheck strings, and adds a test over `plugin/skills/` that fails on a new live call.
+
+**Design principles**
+
+- **Exit codes do not change.** Each converted site produces the same status for the same input. A conversion that changes a status is a regression, even if the new status looks more correct.
+- **A converted site must still end.** A process that has an open handle (a listening server, a ref'd timer, a socket) when `main` returns stays alive after `process.exitCode` is set. Each converted site is checked for open handles on every non-zero path.
+
+**Reference context**
+
+| System | Language | Relevance |
+|---|---|---|
+| `plugin/skills/faff/bin/faff` | JS | Already exits through `process.exitCode` (lines 335-346). The pattern to copy |
+| `plugin/skills/faffter-dark-adversarial-review/review-call.mjs` `armExitBackstop` / `runCli` | JS | FAFF-1239 precedent for "set `exitCode`, then arm an unref'd timer that forces the exit only if a handle leaked" |
+| `scripts/check-no-boundary-cast.mjs` | JS | Existing source-lint precedent (FAFF-1170). It uses the TypeScript compiler API and self-skips without it, which this spec does not copy |
+| `.github/workflows/validate.yml` `typecheck` job | YAML | Runs on Node 24: `npm run build`, then the full `node --test` suite. This is the job where the race was observed |
+
+**Scope.** This change touches process termination in shipped plugin scripts and one selftest fixture string. It does not change any command's behaviour.
+
+## 2. Out of scope
+
+- **`process.exit(` in `test/`, `eval/` and `scripts/`.** 28 calls in 13 test files, plus `eval/*.mjs`, `eval/review-bench/*.mjs` and four `scripts/*.mjs` files. These are repo-only tooling that adopters never run. Extension point: add their roots to the guard test's scan roots and convert them in a follow-up ticket.
+- **Removing the FAFF-1239 backstop in `review-call.mjs`.** It is the last resort when a handle leaks, and it never runs on the healthy path. Extension point: `armExitBackstop` in `review-call.mjs`. Once nodejs/node#66171 ships in a Node 24 release, the backstop is safe again with no change.
+- **Pinning or banning Node 24 for adopters.** The upstream bug is a race, and this change removes faff's exposure to it. Extension point: the `engines` field and the adopter floor in `AGENTS.md`.
+- **Reproducing the hang locally.** It did not reproduce on arm64. The Node 24.22 x64 `typecheck` job is the place to observe it.
+
+## 3. What
+
+**Vocabulary**
+
+| Term | Definition |
+|---|---|
+| Live call | A `process.exit(` call expression in executable code, not inside a comment, a string literal or the text part of a template literal |
+| Exit backstop | An unref'd timer, armed after `process.exitCode` is set, that calls `process.exit(code)` only if the process is still alive after a grace period. Because it is unref'd, the timer never keeps the process alive itself |
+| Shipped JS | Files under `plugin/skills/` ending in `.js`, `.mjs` or `.cjs`, plus the extensionless `plugin/skills/faff/bin/faff`, excluding `node_modules/` |
+
+**Sites to change**
+
+**Chosen:** Convert every live call in shipped JS except the `review-call.mjs` backstop. That is the bridge (2 calls), the three spec-review helpers (1 each), `validate-schema.mjs` (5) and `build-manifest.js` (1). The ticket's Expected ("No faff command exits through `process.exit()`") covers what adopters and CI actually run, and the spec-review helpers run on every unattended prep round. A fix limited to `bin/lib/` would change no live call.
+
+**Bridge failure path**
+
+**Chosen:** Set `process.exitCode`, then arm an exit backstop (grace 2000 ms) on every non-zero path. The bridge imports the adopter's `--module` before it listens. That module can open ref'd handles when it loads, such as a database pool or an interval. If `listen` then rejects, for example on `EADDRINUSE` because the port is already taken, setting `exitCode` alone would leave the container running and unhealthy instead of exiting with status 1. The backstop keeps today's exit in that case. Its own `process.exit` runs only after a leak, and only then could it meet the Node 24 race.
+
+**Chosen:** The bridge defines its own backstop rather than importing `armExitBackstop` from `review-call.mjs`. The `env-code-interface` slot runs `node faff-bridge-node.mjs` as a single file in the SUT container, and the bridge imports only Node built-ins. A cross-skill import would break that.
+
+```
+CONSTANT BRIDGE_EXIT_BACKSTOP_GRACE_MS = 2000      # exported
+
+INTERFACE armBridgeExitBackstop(code, deps?) -> Timer           # exported
+  deps: { graceMs, write, exit, flush, activeResources }   # all injectable; defaults are the real process ones
+  # the default exit is written `exit = (c) => process.exit(c)`, which is the file's one live call the guard allowlists (count 1)
+  # sets an unref'd timer; on fire: write one stderr line naming the code and the
+  # active resource kinds, then flush stdout and call exit(code)
+
+INTERFACE runBridgeCli(mainPromise, proc?, arm?) -> Promise  # exported
+  # positional: proc defaults to process; arm defaults to armBridgeExitBackstop
+```
+
+**Fixture and healthcheck strings**
+
+**Chosen:** Convert the two `gates.js` selftest fixtures to `process.exitCode=1`. `faff gates --selftest` is a faff command, and `test/gates-ci-source.test.mjs` runs it in the Node 24 `typecheck` job. A hung fixture child would stall the selftest until the rung timeout, which is 30 minutes for the sharded fixture at `gates.js:1362`. Neither fixture holds a handle after its last write or its 400 ms timer, so each still ends with status 1 and the same output.
+
+**Chosen:** Leave the `env.js:284` healthcheck string unchanged. It runs on the SUT image's Node version, not faff's, and the composer emits `timeout: 5s` on the healthcheck (`env.js:339`), so Docker limits a hung probe to one failed attempt that is then retried. Converting it would also need `r.resume()` and a non-keep-alive agent: Node 19 and later default `http.get` to keep-alive, so an unread response would hold the socket open. That change affects the probe on every Node SUT to address a small risk the healthcheck retry already absorbs.
+
+**Durable guard**
+
+**Chosen:** A dependency-free `node:test` file, `test/no-live-process-exit.test.mjs`, with a small lexer. It is not a `faff validate-adapters` lint or a TypeScript-AST check. `validate-adapters` lints skill adapters and runs on adopters' machines, and a source lint of faff's own code does not belong there. A TypeScript-AST check self-skips wherever `typescript` is not installed, which includes the Node 20 unit matrix. The lexer runs in every lane with no install.
+
+**Chosen:** Scan shipped JS only, not `.ts` sources. Every `.ts` under `bin/lib/` has a committed `.js` emit beside it (ADR-0132), and the emit is what ships and what gets scanned.
+
+**Chosen:** The allowlist maps a repo-relative path to the exact number of live calls allowed in that file. A file not in the list allows zero. The test fails both on more calls than allowed and on fewer, so a stale entry is caught when its call is removed.
+
+```
+RECORD AllowEntry:
+  path: String       # repo-relative, forward slashes
+  count: Int         # exact live-call count expected; >= 1
+  why: String        # one line, for review
+
+ALLOWLIST = [
+  { path: "plugin/skills/faffter-dark-adversarial-review/review-call.mjs", count: 1, why: "FAFF-1239 leak-only exit backstop" },
+  { path: "plugin/skills/faff/bin/faff-bridge-node.mjs",                  count: 1, why: "FAFF-1355 leak-only exit backstop" },
+]
+```
+
+The lexer is exported from the test's own helper module, `test/helpers/live-process-exit.mjs`, so that its fixture cases can call it directly.
+
+```
+INTERFACE countLiveProcessExit(source: String) -> Int
+```
+
+## 4. How
+
+### Conversions
+
+The four synchronous entry points end with one statement each.
+
+```
+build-lens-requests.mjs, parse-refutation.mjs, aggregate.mjs (inside the existing entrypoint guard):
+  process.exitCode = main(process.argv)
+
+build-manifest.js:
+  IF require.main === module: process.exitCode = main(process.argv.slice(2))
+```
+
+Each `main` is a plain function with synchronous I/O and opens no handles, so the process ends as soon as the statement returns.
+
+**`validate-schema.mjs`.** Restructure `main()` to return the code on each branch it currently exits on: 0 or 1 for the selftest, 2 for usage, and 0 or 1 for validation. The entrypoint guard then sets `process.exitCode = main()`. The stdout and stderr text stays the same.
+
+**`gates.js` fixtures.** `plugin/skills/faff/bin/lib/gates.js` is hand-maintained plain JavaScript. It has no `gates.ts` source and no entry in `build-manifest.json` (the `.ts` modules under `bin/lib/` are the `commissaire*`, `governor*`, `decision-policy`, `ids`, `peer-cred`, `producer-auth` and `result` sets), so editing `gates.js` directly is the whole change and needs no rebuild.
+
+```
+noisyFailCmd: replace the trailing `process.exit(1)` with `process.exitCode=1`
+idxProg:      replace both `process.exit(1)` with `process.exitCode=1`
+```
+
+Keep the existing quoting and escaping of both strings. Change only the call text.
+
+### Bridge entry
+
+`runBridgeCli` sets the exit code from `main` and arms the backstop on every non-zero path.
+
+```
+PROCEDURE runBridgeCli(mainPromise, proc = process, arm = armBridgeExitBackstop):
+  1. ON mainPromise resolves with code:
+     a. proc.exitCode = code
+     b. IF code !== EXIT.OK: arm(code)
+     # OK path: either --selftest (no handles, so the process ends) or a listening server (stays up, as today)
+  2. ON mainPromise rejects with e:
+     a. write "faff-bridge-node: fatal <stack or e>\n" to proc.stderr   # same text as today
+     b. proc.exitCode = EXIT.OTHER
+     c. arm(EXIT.OTHER)
+
+PROCEDURE armBridgeExitBackstop(code, deps):
+  1. t = setTimeout(after graceMs):
+     a. kinds = activeResources().join(", ") (empty on error)
+     b. write "faff-bridge-node: process still alive <graceMs>ms after exit <code>; leaked handle(s): <kinds or 'unknown'>; forcing exit <code> (FAFF-1355)\n"
+     c. flush(() => exit(code))
+  2. t.unref()
+  3. RETURN t
+
+Direct-invocation guard (replaces lines 537-538):
+  runBridgeCli(main(process.argv.slice(2)))
+```
+
+Exit codes stay the same. Before the change the bridge exited with `--selftest` 0 or 1, usage error 2, manifest or import failure 1, and fatal rejection 1, and it stayed up on a successful listen. After the change the codes are the same. The `--selftest` OK path used to call `process.exit(0)` explicitly. It now ends because the event loop drains, since the selftest uses injected fake timers and opens no listener.
+
+**Anti-pattern:** arming the backstop on the OK path. Why: the listening server is meant to stay alive. The unref'd timer would not keep the process up, but if the server's handle were closed for any reason, the backstop would print a false "leaked handle" line.
+
+**Anti-pattern:** replacing the backstop with `process.kill(process.pid, "SIGKILL")`. Why: the status becomes 137, which breaks the exit-code rule.
+
+### Guard lexer
+
+The lexer walks the source once. It skips everything that cannot hold a live call and counts `process.exit(` (optional whitespace before the `(`) in what is left.
+
+```
+PROCEDURE countLiveProcessExit(source):
+  1. Walk characters with a state stack. States: code, line-comment, block-comment,
+     single-quote, double-quote, template-text, regex.
+  2. In code:
+     a. "//" -> line-comment until newline; "/*" -> block-comment until "*/"
+     b. ' or " -> string state until the unescaped matching quote
+     c. "`" -> template-text; inside template-text, "${" pushes code and the
+        matching "}" (tracked by brace depth) pops back to template-text
+     d. "/" starts a regex when the previous significant character is one of
+        ( , = : [ ! & | ? { } ; + - * % < > ~ ^ or the start of the file, or the
+        previous token is a keyword (return, typeof, case, do, else, in, of,
+        new, delete, void, throw, yield, await); otherwise it is division.
+        Inside a regex, skip "\x" escapes and [...] classes until the closing "/".
+     e. Match /\bprocess\s*\.\s*exit\s*\(/ at the current position in code state -> count++
+  3. A leading "#!" line is a comment.
+  4. RETURN count
+```
+
+The test then does the following.
+
+```
+PROCEDURE test "no live process.exit in shipped JS":
+  1. files = walk plugin/skills/ for *.js, *.mjs, *.cjs (skip node_modules/) + plugin/skills/faff/bin/faff
+  2. FOR each file: n = countLiveProcessExit(read(file))
+  3. allowed = ALLOWLIST[path]?.count ?? 0
+  4. collect every file where n !== allowed as "<path>: <n> live process.exit call(s), allowed <allowed>"
+  5. assert collection is empty; the failure message lists every offender plus a one-line pointer:
+     "set process.exitCode and return (FAFF-1355)"
+  6. Also assert every ALLOWLIST path exists, so a renamed file fails rather than silently passing
+```
+
+**Anti-pattern:** a plain `grep -v '//'` filter. Why: it misses `/* */` comments, counts calls inside strings such as the `env.js` healthcheck, and drops a live call that has a trailing comment on the same line.
+
+### Edge cases
+
+- **`process.exit` without a call.** Something like `const exit = process.exit` is not counted. The regex requires `(`. Today the only aliasing is `review-call.mjs`'s default `exit = (c) => process.exit(c)`, which is a call and is allowlisted.
+- **Optional chaining or bracket access.** `process?.exit(` and `process["exit"](` are not counted. None exists today. A reviewer catches one. The lexer stays simple.
+- **The `env.js` healthcheck.** It sits inside a template literal's text, so it counts 0, which is correct.
+- **The `gates.js` fixtures after conversion.** They count 0 because they are inside string literals, and after the conversion they also hold no exit text.
+
+### Failure modes
+
+- **The backstop fires on a healthy bridge start-up failure.** The new subprocess test (see Done) would show `leaked handle(s)` on stderr for the no-handle fixture. That would mean some Node built-in the bridge loads keeps a handle open. Narrow the cause before merging. Do not raise the grace period to hide it.
+- **The guard lexer mis-tracks a regex literal and skips real code.** A fixture case with a quote inside a regex, followed by a live call, would return 0 instead of 1. If the regex heuristic cannot be made to pass that fixture, fall back to stripping only comments and strings and add an allowlist entry for any false positive. Never drop the guard.
+- **Node 24 still hangs after the change.** The typecheck job would stall again. That would show a remaining `process.exit` path outside `plugin/skills/` (`test/`, `eval/`, `scripts/`), or the race reached through another API. The stall log names the last file started, as FAFF-987 already arranged. File a follow-up for that root. Do not reopen this ticket.
+
+## 5. Scenarios
+
+```
+Given an adopter module that opens a ref'd setInterval when imported
+And a valid manifest
+And a TCP port already bound by the test (so listen fails with EADDRINUSE and main rejects)
+When faff-bridge-node.mjs runs with --port <that port>
+Then the process exits with status 1 within 2000 ms + 3000 ms slack
+And stderr contains "faff-bridge-node: fatal" and "leaked handle(s)"
+```
+
+```
+Given an adopter module that opens no handles
+And a valid manifest
+And a TCP port already bound by the test
+When faff-bridge-node.mjs runs with --port <that port>
+Then the process exits with status 1 in under 2000 ms
+And stderr contains "faff-bridge-node: fatal" and does not contain "leaked handle(s)"
+```
+
+```holdout
+Given faff-bridge-node.mjs is run with no arguments
+When it starts
+Then it exits with status 2 and prints the usage line, with no "leaked handle(s)" line
+```
+
+- The guard test MUST fail with the offending path in its message when a `process.exit(0)` call is added to any shipped JS file that is not on the allowlist.
+- holdout: `node plugin/skills/faff/contracts/validate-schema.mjs` with no arguments MUST exit with status 2, and with `--selftest` MUST exit with status 0.
+
+## 6. Design decision rationale
+
+**Which sites should change?**
+- Only `bin/lib/` (the ticket's literal scope) would change no live call, because every match there is a comment or a string.
+- Only the bridge would leave the spec-review helpers, which run on every unattended prep round, and `build-manifest.js`, which runs in the Node 24 CI job.
+- All shipped JS except the leak-only backstop covers what adopters and CI run, and each extra site is a one-line change.
+- **Chosen:** All shipped JS except the leak-only backstop.
+
+**How should the bridge end on a failure after the module import?**
+- `exitCode` alone can leave the container running when the adopter's module holds a handle.
+- `SIGKILL` changes the status.
+- A backstop keeps today's exit and only calls `process.exit` after a leak.
+- **Chosen:** `exitCode` plus a backstop, following the FAFF-1239 precedent.
+
+**Should the bridge share `review-call.mjs`'s backstop?**
+- Sharing removes about 15 lines of duplication.
+- The bridge is a single file copied into the SUT container, and a cross-skill import breaks that.
+- **Chosen:** A local copy in the bridge.
+
+**Should the `gates.js` fixture strings change?**
+- They run under the `faff gates --selftest` command in the Node 24 job, so a hang stalls CI for up to 30 minutes.
+- Converting them changes no behaviour.
+- **Chosen:** Convert.
+
+**Should the `env.js` healthcheck string change?**
+- It runs on the SUT's Node version, and Docker's timeout and retries already limit a hang.
+- A correct conversion needs keep-alive handling, which widens the change to every Node SUT's probe.
+- **Chosen:** Leave it unchanged.
+
+**What form should the guard take?**
+- A `validate-adapters` lint is the wrong home and runs on adopters' machines.
+- A TypeScript-AST check is the most accurate, but it self-skips in the Node 20 unit lanes.
+- A dependency-free lexer test runs everywhere, and its regex heuristic is backed by fixture cases.
+- **Chosen:** A dependency-free lexer test.
+
+**What shape should the allowlist take?**
+- Exact line numbers break on every edit.
+- Function-name scoping needs a parser.
+- An exact count per file is stable and still catches both additions and stale entries.
+- **Chosen:** An exact count per file.
+
+**Should the guard scan `.ts` sources?**
+- The `.js` emit is the governed, shipped artifact (ADR-0132), and type syntax makes the regex heuristic less reliable.
+- **Chosen:** Scan only the `.js` emit.
+
+At the time of writing, nodejs/node#66171 is unmerged. Once it ships in a Node 24 release, the backstops are safe on Node 24 too. The guard stays, because the exit-code pattern is still the cleaner way to end a process.
+
+## 7. Open questions and assumptions
+
+**Open questions:** none.
+
+**Assumptions**
+
+- **Assumes:** `loadManifest` in `faff-bridge-node.mjs` accepts a minimal manifest that the new subprocess test can write to a temporary directory. Validation: read `loadManifest` and `buildAllowlist`, plus the existing fixtures in `test/faff-bridge-node.test.mjs`. If any of them builds a manifest object, reuse that shape.
+
+## 8. Done
+
+### From why
+- [ ] `grep -rn "process\.exit(" plugin/ --include=*.js --include=*.mjs --include=*.cjs | grep -v node_modules` shows only comments, the `env.js:284` healthcheck string, and the two allowlisted backstops (`review-call.mjs`, `faff-bridge-node.mjs`)
+- [ ] The PR body states that the ticket's seven `bin/lib/` matches are comments and fixture or healthcheck strings, and lists the live sites from the second table in section 1
+
+### From what
+- [ ] `faff-bridge-node.mjs` exports `BRIDGE_EXIT_BACKSTOP_GRACE_MS` (2000), `armBridgeExitBackstop` and `runBridgeCli` with the injectable dependencies listed in section 3, and imports only Node built-ins
+- [ ] `test/helpers/live-process-exit.mjs` exports `countLiveProcessExit` and `ALLOWLIST` with exactly the two entries in section 3
+
+### From how (conversions; exit codes unchanged)
+- [ ] `build-lens-requests.mjs`, `parse-refutation.mjs` and `aggregate.mjs` end with `process.exitCode = main(process.argv)`. Their existing `--selftest` and tests still pass: `node plugin/skills/faffter-dark-spec-review/aggregate.mjs --selftest; echo $?` prints 0
+- [ ] `build-manifest.js` ends with `process.exitCode = main(...)`. `cd plugin/skills/faff && node scripts/build-manifest.js check; echo $?` prints 0 on a clean tree, and `node scripts/build-manifest.js; echo $?` prints 2
+- [ ] `validate-schema.mjs` makes no live `process.exit` call. `--selftest` gives status 0, no arguments gives 2, and a known-bad document gives 1. Every existing test that spawns it passes unchanged
+- [ ] The `gates.js` fixtures use `process.exitCode=1`. `node plugin/skills/faff/bin/faff gates --selftest` passes, including the "noisy fail" and "INDEX order" cases
+
+### From how (bridge)
+- [ ] Unit test: `runBridgeCli` with a fake `proc` and a recording `arm` resolving to 0 leaves `proc.exitCode === 0` and `arm` not called. Resolving to 2 sets `exitCode` to 2 and calls `arm(2)`. Rejecting writes the `faff-bridge-node: fatal` line, sets `exitCode` to 1 and calls `arm(1)`
+- [ ] Unit test: `armBridgeExitBackstop` with `graceMs: 10` and fake `write`, `exit`, `flush` and `activeResources` calls `exit(code)` once, writes a line containing `leaked handle(s)`, and returns a timer whose `hasRef()` is false
+- [ ] Subprocess tests for both bridge Given-When-Then scenarios in section 5 (with a ref'd-interval module and with a no-handle module) are added to `test/faff-bridge-node.test.mjs`, with a `spawnSync` timeout of 10000 ms
+- [ ] The existing `--selftest passes as a subprocess` test still passes
+
+### From how (guard)
+- [ ] `test/no-live-process-exit.test.mjs` scans shipped JS as defined in section 3 and passes on the converted tree
+- [ ] Lexer fixture cases in the same file each assert a count: a line comment (0), a block comment (0), a single- or double-quoted string (0), template text (0), a live call inside `${...}` (1), a regex containing a quote followed by a live call (1), `return /x/.test(s); process.exit(1)` (1), and a live call with a trailing comment (1)
+- [ ] A fixture asserting that adding one live call to an unallowlisted file produces a failure message containing that path and `FAFF-1355`. Drive the test's checking function over an in-memory file map, not the real tree
+- [ ] The test fails when an `ALLOWLIST` path does not exist
+- [ ] A fixture asserting the "fewer" direction: an in-memory allowlisted file whose live count drops below its `count` produces a failure naming that path (a stale entry)
+- [ ] Fixtures asserting `process?.exit(1)` and `process["exit"](1)` count 0, pinning the documented limit
+
+### From how (repo rules)
+- [ ] No `.ts` file under `plugin/skills/faff/bin/lib/` is edited (none of the touched files has a `.ts` source: `gates.js` is plain JS, and the bridge, spec-review helpers, `validate-schema.mjs` and `build-manifest.js` are outside the TypeScript set), so `cd plugin/skills/faff && npm install && npm run build && git diff --exit-code` is clean with no `build-manifest.json` change
+- [ ] `node --import ./test/hermetic-env.mjs --test` passes on Node 20 and Node 22, and the `typecheck` job (Node 24) is green on the PR
+
+### Integration smoke test
+
+```
+1. node plugin/skills/faff/bin/faff-bridge-node.mjs --selftest        -> status 0, prompt exit
+2. node plugin/skills/faff/bin/faff-bridge-node.mjs                   -> status 2, usage line
+3. node plugin/skills/faff/contracts/validate-schema.mjs --selftest   -> status 0
+4. cd plugin/skills/faff && npm run build && git diff --exit-code    -> clean, status 0
+5. node --test test/no-live-process-exit.test.mjs test/faff-bridge-node.test.mjs -> all pass
+```
+
+## Already shipped against this surface
+
+- **FAFF-1353** (Done, PR shftwst/faff#1094). It fixed the `eval/prefix-planner.mjs` site, which now sets `process.exitCode` and returns. It also gave the `faff validate-adapters` spawn of the planner a 60 s timeout (`PLANNER_TIMEOUT_MS`, `SIGKILL`). It is related to this ticket and does not supersede it: it covered the one site seen hanging in CI, and this ticket covers the remaining shipped sites and adds the guard.
+- **FAFF-1239** (`review-call.mjs` `armExitBackstop` and `runCli`). It already converted the adversarial-review transport to `process.exitCode` with a leak-only backstop. This spec copies that pattern for the bridge and allowlists the backstop.
+
+## Revision notes
+
+- Revised 2026-10-20 after spec-review round 1. The architectural lens read `gates.js` as a TypeScript emit; it is plain JavaScript with no `.ts` source, so the `gates.js` fixtures section and the repo-rules Done item now say so. Also: the bridge scenarios use an already-bound port (a real `EADDRINUSE`) instead of `--port 99999`, `runBridgeCli` takes positional defaults in both sections, the backstop default `exit` spelling is pinned, and the guard gains fixtures for a stale allowlist entry and the optional-chaining and bracket forms.
+
+## Methodology critique
+
+Methodology: faffter-dark-methodology-agile-delivery
+
+**Right-sized (principle 4).** This ticket is at the top of a 1–3 day unit, and the spec rates it `build-tier: complex`. It holds three separate pieces of work:
+
+- about ten one-statement conversions across seven files, plus the `gates.js` fixture strings;
+- the bridge's new exit backstop (`armBridgeExitBackstop` and `runBridgeCli`), with its unit and subprocess tests;
+- the guard test and its lexer, with eight fixture cases.
+
+The conversions and the guard belong together. The guard is what stops new calls, and its allowlist only passes once the conversions land. The bridge backstop is the one part that can be cut out: it adds new exported API, new failure behaviour and its own subprocess tests. No split is needed now, because the spec's exit-code rule and Done checklist keep the scope bounded. If the build overruns, move the bridge into its own ticket and give the guard allowlist a temporary entry of `faff-bridge-node.mjs` with count 2 until that ticket ships.
+
+**Workstream fit (principles 1 + 5).** No issues. The ticket has no project and sits in Backlog, the default landing for captured work. Its single outcome is "shipped faff scripts end without a Node 24 hang", and every site serves that outcome.
+
+**Deps surfaced (principle 6).**
+- No blocker links are missing. FAFF-1353 is Done and merged in #1094. FAFF-1332 is merged in #1093, so the spec-review helper edits have no in-flight conflict. FAFF-1239 has shipped and is only copied as a pattern. nodejs/node#66171 is an external upstream fix, and nothing waits on it.
+- **The deferred work has no ticket.** Section 2 leaves out the `process.exit(` calls in `test/`, `eval/` and `scripts/`, which also run in the Node 24 `typecheck` job. Recommended action: file a project-less Backlog follow-up, related to FAFF-1355, to extend the guard's scan roots and convert those calls.
+
+**Risk profile (principle 7).** Medium.
+- **The fix cannot be checked deterministically.** The hang is a race. A green `typecheck` run only shows nothing hung on that run. Review should treat the guard test as the main evidence, not the CI result.
+- **The lexer's regex heuristic is the one new technique.** The spec already de-risks it with a fixture case and a documented fallback. Recommended action: build the lexer and its fixtures first, before the conversions.
+
+confidence: high
+build-tier: complex

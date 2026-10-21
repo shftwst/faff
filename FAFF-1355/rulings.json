@@ -1,0 +1,13 @@
+[
+  {
+    "proposition_id": "FAFF-1355-guard-lexer-variants",
+    "outcome": "UPHOLD_REVIEW",
+    "rationale": "The reconstruction verifies B's factual premises: the lexer's regex `\\bprocess\\s*\\.\\s*exit\\s*\\(` genuinely does not match `process?.exit(` or `process[\"exit\"](`, and the spec explicitly adds Done-item fixtures asserting these forms count 0, pinning the bypass as a first-class, codified limit. B's predicted consequence is concrete and checkable: a live Node 24 hang path shipped in either trivial spelling passes `test/no-live-process-exit.test.mjs` green, reproducing the exact incident class the ticket's own Why section defines ('nothing stops new calls being added') with the guard reporting all-clear. The determining fact against A is the ticket's own premise: the grep-based count was wrong, which is the stated reason the durable machine guard exists — invoking 'a reviewer catches one' for the guard's own blind spots reinstates the fallible review layer the guard was built to replace, precisely the reliance the reconstruction flags as insufficient. A offers no predicted consequence at all ('not separately stated'), and its lone true premise ('none exists today') describes current exposure, not enforcement, so it does not defeat the defect. The valid-solution property requires the documented blind spots 'must not be reachable evasion routes by default'; codifying count-0 fixtures for two one-character syntax variants makes them reachable by construction. This is a bounded requirement violation, not a policy gap: the correction (extend the lexer match to the optional-chaining and bracket-access forms) is an implementation detail squarely within the guard's stated mandate to stop new live termination calls, so UPHOLD_REVIEW applies rather than PRD_BOUNDARY.",
+    "correction": {
+      "summary": "Extend the guard lexer to count `process?.exit(` and `process[\"exit\"](` as live calls (a one-line regex extension covering the optional-chaining and bracket-access spellings), replace the Done-item fixtures that pin these forms at count 0 with fixtures asserting count 1, and remove the 'a reviewer catches one' reliance for these variants from the edge-cases section. The allowlist keeps its two entries, but the guard now fails on any unallowlisted shipped file containing any of the three live-call spellings.",
+      "verification": "the lexer counts process?.exit( and process[\"exit\"]( as live calls"
+    },
+    "synthesis_sources": [],
+    "prd_gap_citation": ""
+  }
+]

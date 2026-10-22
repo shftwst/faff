@@ -1,0 +1,215 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 2,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/economics.js::zero-delta closed span labels model rows closed-spans while axis source stays transcript",
+      "title": "zero-delta closed span labels model rows closed-spans while axis source stays transcript",
+      "location": "plugin/skills/faff/bin/lib/economics.js",
+      "action": "none required",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "row label names presence, axis basis names contributing magnitude; both truthful",
+      "first_round": 1,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "zero-delta closed span labels model rows closed-spans while axis source stays transcript",
+          "location": "plugin/skills/faff/bin/lib/economics.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        },
+        {
+          "round": 2,
+          "title": "zero-delta closed span labels model rows closed-spans while axis source stays transcript",
+          "location": "plugin/skills/faff/bin/lib/economics.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "docs/guide/cli.md::class/model reconcile claim in cli.md overstated for a non-zero baseline",
+      "title": "class/model reconcile claim in cli.md overstated for a non-zero baseline",
+      "location": "docs/guide/cli.md",
+      "action": "scope the sentence to the baseline-0 case",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "class/model reconcile claim in cli.md overstated for a non-zero baseline",
+          "location": "docs/guide/cli.md",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/economics.js::spend_sources transcript row carries closed-span cost",
+      "title": "spend_sources transcript row carries closed-span cost",
+      "location": "plugin/skills/faff/bin/lib/economics.js",
+      "action": "give closed spans their own spend_sources row",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "spend_sources transcript row carries closed-span cost",
+          "location": "plugin/skills/faff/bin/lib/economics.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/economics.js::class-axis header note names only engine spend",
+      "title": "class-axis header note names only engine spend",
+      "location": "plugin/skills/faff/bin/lib/economics.js",
+      "action": "name closed-span pricing in the header note",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "class-axis header note names only engine spend",
+          "location": "plugin/skills/faff/bin/lib/economics.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/economics.js::fine-axis epoch warning fires on the estimate path",
+      "title": "fine-axis epoch warning fires on the estimate path",
+      "location": "plugin/skills/faff/bin/lib/economics.js",
+      "action": "gate epochScopedAxes on tokens_source transcript",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "fine-axis epoch warning fires on the estimate path",
+          "location": "plugin/skills/faff/bin/lib/economics.js",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/economics.js::effort-axis resumed-run warning asserts facts the output may contradict",
+      "title": "effort-axis resumed-run warning asserts facts the output may contradict",
+      "location": "plugin/skills/faff/bin/lib/economics.js",
+      "action": "gate the warning on a measured top line with effort rows",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "effortAxisCrossEpoch now requires tokens_source transcript and events or engine records; pinned by test C1",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "effort-axis resumed-run warning asserts facts the output may contradict",
+          "location": "plugin/skills/faff/bin/lib/economics.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/economics.js::estimate-path warning remedy points at budget check",
+      "title": "estimate-path warning remedy points at budget check",
+      "location": "plugin/skills/faff/bin/lib/economics.js",
+      "action": "none",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "budget.js:1068 adds closedSpend.total after both the transcript and estimate branches, so budget check does report the cross-epoch total on the estimate path; the spec's description of budget.js was wrong, not the warning",
+      "disposition_rationale": "verified against budget.js on the rebased head",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "estimate-path warning remedy points at budget check",
+          "location": "plugin/skills/faff/bin/lib/economics.js",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/economics.js::fine-axis coverage warning names all four surfaces regardless of trigger",
+      "title": "fine-axis coverage warning names all four surfaces regardless of trigger",
+      "location": "plugin/skills/faff/bin/lib/economics.js",
+      "action": "none required",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "accurate and cosmetic; one warning string for the shared condition",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "fine-axis coverage warning names all four surfaces regardless of trigger",
+          "location": "plugin/skills/faff/bin/lib/economics.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

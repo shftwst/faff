@@ -1,6 +1,6 @@
 # SuperDomestique (formerly known as `faff`)
 
-SuperDomestique enables progressively autonymous AI software delivery by combining AI-led execution with deterministic governance, explicit engineering constraints and verifiable evidence.
+SuperDomestique enables progressively autonomous AI software delivery by combining AI-led execution with deterministic governance, explicit engineering constraints and verifiable evidence.
 
 It works from a tracker, moves work through specification, implementation,
 review, testing, and delivery, and returns unresolved decisions to a person. The aim is

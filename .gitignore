@@ -4,6 +4,12 @@
 *.err
 *.stderr
 *.log
+*.tmp
+*.whl
+
+# Working eval baseline written by run-evals --update-baseline; the dated
+# opus-5-5-reference-*.json snapshot is the committed one.
+/eval/baselines/opus-5-5.json
 
 design/
 reports/

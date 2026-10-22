@@ -1869,3 +1869,36 @@ test("FAFF-933 (adversarial B4): on the estimate path no fine-axis breakdown exi
     assert.ok(!e.warnings.some((w) => /per-day\/mcp\/phase/.test(w)), `the fine-axis warning must not fire on the estimate path: ${JSON.stringify(e.warnings)}`);
   } finally { f.cleanup(); }
 });
+
+test("FAFF-933 (adversarial C1): the effort warning stays silent when there are no effort rows, and on the estimate path", () => {
+  const effortWarn = (w) => /--by effort axis reads the run-scoped events\.jsonl/.test(w);
+  // No events.jsonl and no engine spend: the effort breakdown is empty, so there are no rows to describe.
+  const f = fixture({ rc: null, ledger: twoEpochLedger([EPOCH0_500, openSpan("epoch-1")]) });
+  try {
+    const cfg = withRecords(f.root, f.root, "epoch-1", {
+      "epoch-1.jsonl": [{ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 80, output_tokens: 20 } }, timestamp: "2026-08-29T15:00:00Z" }],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "effort", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "epoch-1" });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    assert.equal(e.breakdown.rows.length, 0);
+    assert.ok(!e.warnings.some(effortWarn), `no rows, so no effort warning: ${JSON.stringify(e.warnings)}`);
+  } finally { f.cleanup(); }
+  // Estimate path with events present: the top line spans no epochs, so the effort warning would contradict the estimate warning.
+  const g = fixture({ rc: null, ledger: twoEpochLedger([EPOCH0_500, openSpan("epoch-1")]) });
+  try {
+    writeFileSync(join(g.runDir, "events.jsonl"), [
+      { schema: 1, run_id: "run-test", seq: 0, ts: "2026-08-29T10:00:00Z", type: "run-start", data: {} },
+      { schema: 1, run_id: "run-test", seq: 1, ts: "2026-08-29T11:00:00Z", type: "issue-outcome", issue: "FAFF-1", data: { effort: "high", tokens: { input: 400, output: 100, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } },
+    ].map((x) => JSON.stringify(x)).join("\n") + "\n");
+    const cfg = withRecords(g.root, g.root, "epoch-1", {});
+    const r = run(["economics", "--run-dir", g.runDir, "--root", g.root, "--by", "effort", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "epoch-1" });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    assert.equal(e.tokens_source, "estimate");
+    assert.ok(e.warnings.some((w) => /resumed run on the estimate fallback/.test(w)), JSON.stringify(e.warnings));
+    assert.ok(!e.warnings.some(effortWarn), `estimate path must not claim the top line spans epochs: ${JSON.stringify(e.warnings)}`);
+  } finally { g.cleanup(); }
+});

@@ -1496,7 +1496,11 @@ function cmdEconomics(args) {
   // separate, truthful warning below rather than a claim the data contradicts.
   const epochScopedAxes = hasClosedSpans && tokensSource === "transcript"
     && (["day", "mcp", "phase"].includes(byAxis) || perIssue.length > 0);
-  const effortAxisCrossEpoch = hasClosedSpans && byAxis === "effort";
+  // Read once here and reused by the effort branch below, so the warning only fires
+  // when that branch will actually build an event-sourced breakdown over a measured top line.
+  const effortRun = byAxis === "effort" ? readRunEvents(runDir) : null;
+  const effortHasRows = effortRun != null && (effortRun.events.length > 0 || engineSpend.records > 0);
+  const effortAxisCrossEpoch = hasClosedSpans && tokensSource === "transcript" && effortHasRows;
   const econ = computeUnitEconomics(ledger, {
     tokens_total: tokensTotal, tokens_source: tokensSource, price_per_mtok: price,
     tokens_at_start: tokensAtStart, per_issue: perIssue, run_id: path.basename(runDir),
@@ -1547,7 +1551,7 @@ function cmdEconomics(args) {
     // effort is recorded), independent of whether the live transcript is resolvable.
     // The dominant model + top-line come from the transcript when available (used to
     // price + report coverage), else null.
-    const { events, malformed } = readRunEvents(runDir);
+    const { events, malformed } = effortRun;
     // FAFF-705: fold engine-spend into the effort axis too. An engine-only run (no events.jsonl
     // but codex effort-tagged spend) still folds — so keep the estimate short-circuit ONLY when
     // there are neither events NOR engine-spend records (byte-identical to today's empty case).

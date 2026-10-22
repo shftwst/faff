@@ -337,7 +337,7 @@ Then the output is byte-for-byte identical to the pre-change output (closedSpend
 - [ ] Map-pricing per-model delta folds `closedSpend.byModel` (mirror `budget.js:1052-1058`) so `cost_total` spans epochs.
 - [ ] Estimate branch does NOT add `closedSpend.total` to the per-attempt estimate, AND emits a coverage warning (`estimate_epoch_scoped`) whenever a closed span is present — the drop is named, not silent.
 - [ ] `--by model` folds `closedSpend.byModel` row-for-row by model; `--by class` folds via the model→class projection (`Σ over models` per token class); both reconcile (in tokens) to the new `tokens_total`.
-- [ ] `--by day|mcp|effort|phase` do NOT fold and emit a coverage warning naming them as resuming-epoch-only on a resumed run.
+- [ ] `--by day|mcp|phase` do NOT fold and emit a coverage warning naming them as resuming-epoch-only on a resumed run. `--by effort` reads the run-scoped `events.jsonl`, spans every epoch, and emits its own warning naming that substrate and stating that its `coverage_pct` is not meaningful. (Amended by operator decision, 2026-10-22.)
 - [ ] Every coverage/estimate/provenance warning gates on `has_closed_spans` (presence), NOT on `closed_span_total > 0` (magnitude) — a degraded/zero-delta prior epoch still warns.
 - [ ] A folded span with `close_source != "transcript"` surfaces a provenance warning, threaded via `degraded_close_sources`.
 - [ ] The `tokens_at_start=0` inflation warning is suppressed when `has_closed_spans` is true; the single-session case still emits it.

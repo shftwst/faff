@@ -1151,8 +1151,11 @@ function renderEconomicsBreakdown(bd) {
   // the transcript half's dominant model (unchanged meaning) — so the header notes
   // that the engine half is priced separately, per its own model, rather than let
   // the single model name imply it covers the whole row.
-  const engineNote = bd.axis === "class" && bd.source === "transcript+engine-spend"
-    ? ` · engine spend priced per engine model` : "";
+  const extraSources = bd.axis === "class" && typeof bd.source === "string" ? bd.source.split("+").slice(1) : [];
+  const engineNote = [
+    extraSources.includes("engine-spend") ? " · engine spend priced per engine model" : "",
+    extraSources.includes("closed-spans") ? " · prior-epoch spans priced per their own model" : "",
+  ].join("");
   const at = bd.axis === "class" && bd.priced_at_model ? `  (priced at ${bd.priced_at_model}${engineNote})` : "";
   lines.push(`# economics --by ${bd.axis}${at}`);
   // FAFF-641 (spec-review objection 2): the basis sentence and the abbreviation
@@ -1380,6 +1383,8 @@ function cmdEconomics(args) {
   // the governor's costliest-rate overcount) and named in a warning rather than
   // silently dropped from the dollar figure.
   let mapCost = null;
+  // The closed prior-epoch spans' share of mapCost, priced on its own so spend_sources can label it.
+  let closedMapCost = null;
   const mapWarnings = [];
   // FAFF-604: engine-spend models price from the SAME map, on measured per-record
   // sums (no baseline, no pro-rate). Priced outside the transcript-gated block so
@@ -1455,6 +1460,15 @@ function cmdEconomics(args) {
     }
     if (anyPriced) mapCost = priced;
     else if (tokensTotal === 0) mapCost = 0; // nothing spent this run → $0, not "unknown"
+    if (closedSpend.byModel.size) {
+      let closedPriced = 0, closedUnpriced = false;
+      for (const [model, counts] of closedSpend.byModel) {
+        const rate = economicsPriceForModel(model, priceMap);
+        if (!rate) { if (TOKEN_DELTA_CLASSES.some((cls) => (Number(counts[cls]) || 0) > 0)) closedUnpriced = true; continue; }
+        for (const cls of TOKEN_DELTA_CLASSES) closedPriced += ((Number(counts[cls]) || 0) / 1e6) * rate[cls];
+      }
+      closedMapCost = closedUnpriced ? null : closedPriced;
+    }
     if (unpriced.length) {
       mapWarnings.push(`top-line excludes unpriced model(s) from cost (reported as cost:null, never silently free): ${unpriced.join(", ")}`);
     }
@@ -1480,7 +1494,7 @@ function cmdEconomics(args) {
   // `effort` is deliberately NOT in this list — see computeUnitEconomics' own note: its
   // events.jsonl substrate is run-scoped, so it already spans epochs and gets the
   // separate, truthful warning below rather than a claim the data contradicts.
-  const epochScopedAxes = hasClosedSpans
+  const epochScopedAxes = hasClosedSpans && tokensSource === "transcript"
     && (["day", "mcp", "phase"].includes(byAxis) || perIssue.length > 0);
   const effortAxisCrossEpoch = hasClosedSpans && byAxis === "effort";
   const econ = computeUnitEconomics(ledger, {
@@ -1500,7 +1514,10 @@ function cmdEconomics(args) {
   if (engineSpend.records > 0) {
     const spendSources = [];
     if (tokensSource === "transcript") {
-      spendSources.push({ source: "transcript-jsonl", tokens: transcriptPortion, cost: mapCost });
+      const transcriptCost = (mapCost == null || !hasClosedSpans) ? mapCost
+        : (closedMapCost == null ? null : mapCost - closedMapCost);
+      spendSources.push({ source: "transcript-jsonl", tokens: transcriptPortion, cost: transcriptCost });
+      if (hasClosedSpans) spendSources.push({ source: "closed-spans", tokens: closedSpend.total, cost: closedMapCost });
     }
     spendSources.push({
       source: "exec-json-events", tokens: engineSpendTotal, cost: engineMapCost,

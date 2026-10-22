@@ -1821,3 +1821,51 @@ test("FAFF-933 (adversarial A2): a single-session transcript-only model breakdow
     assert.ok(!("source" in e.breakdown.rows[0]), "the byte-identical guarantee: no new per-row key");
   } finally { f.cleanup(); }
 });
+
+test("FAFF-933 (adversarial B2): on a resumed mixed-fleet run, spend_sources gives the closed spans their own row, so the transcript row's cost covers only its own tokens", () => {
+  const closed = closedSpan("epoch-0", "claude-opus-4-8", { input: 1_000_000 });
+  const f = fixture({ rc: ECON_MIXED_RC, ledger: twoEpochLedger([closed, openSpan("epoch-1")]) });
+  try {
+    writeFileSync(join(f.runDir, "engine-spend.jsonl"),
+      JSON.stringify(econCodexRecord({ input: 1000, output: 200 })) + "\n");
+    const cfg = withRecords(f.root, f.root, "epoch-1", {
+      "epoch-1.jsonl": [{ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 2_000_000 } }, timestamp: "2026-08-29T15:00:00Z" }],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "epoch-1" });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    const src = Object.fromEntries(e.spend_sources.map((x) => [x.source, x]));
+    assert.equal(src["transcript-jsonl"].tokens, 2_000_000);
+    assert.ok(Math.abs(src["transcript-jsonl"].cost - 6) < 1e-6, `transcript row must carry only its own $6, got ${src["transcript-jsonl"].cost}`);
+    assert.equal(src["closed-spans"].tokens, 1_000_000);
+    assert.ok(Math.abs(src["closed-spans"].cost - 5) < 1e-6, `closed-spans row must carry the prior epoch's $5, got ${src["closed-spans"].cost}`);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-933 (adversarial B3): the class-axis header names closed-span pricing when the census includes it", () => {
+  const bd = syntheticBd([syntheticRow({ key: "input", source: "transcript+closed-spans" })],
+    { axis: "class", source: "transcript+closed-spans", priced_at_model: "claude-sonnet-4-6" });
+  const first = renderEconomicsBreakdown(bd).split("\n")[0];
+  assert.match(first, /prior-epoch spans priced per their own model/);
+  assert.doesNotMatch(first, /engine spend priced per engine model/);
+  const both = syntheticBd([syntheticRow({ key: "input", source: "transcript+engine-spend+closed-spans" })],
+    { axis: "class", source: "transcript+engine-spend+closed-spans", priced_at_model: "claude-sonnet-4-6" });
+  const bothFirst = renderEconomicsBreakdown(both).split("\n")[0];
+  assert.match(bothFirst, /engine spend priced per engine model/);
+  assert.match(bothFirst, /prior-epoch spans priced per their own model/);
+});
+
+test("FAFF-933 (adversarial B4): on the estimate path no fine-axis breakdown exists, so only the estimate warning fires, not the per-day one", () => {
+  const f = fixture({ rc: null, ledger: twoEpochLedger([EPOCH0_500, openSpan("epoch-1")]) });
+  try {
+    const cfg = withRecords(f.root, f.root, "epoch-1", {});
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "day", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: "epoch-1" });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    assert.equal(e.tokens_source, "estimate");
+    assert.ok(e.warnings.some((w) => /resumed run on the estimate fallback/.test(w)), JSON.stringify(e.warnings));
+    assert.ok(!e.warnings.some((w) => /per-day\/mcp\/phase/.test(w)), `the fine-axis warning must not fire on the estimate path: ${JSON.stringify(e.warnings)}`);
+  } finally { f.cleanup(); }
+});

@@ -284,7 +284,7 @@ In priority order. Items 1 to 7 are about a weekend; the rest is writing and ren
 - Duplicated helpers: `resolveRunDir` defined three times (`shared-infra.js` 589, `runcheck.js` 148, `sentry-poller.js` 360); six differently named JSON-read helpers; 49 inline `JSON.parse(readFileSync)` sites; 18 separate atomic-write implementations.
 
 - [ ] Fold the spec-review knobs into `faff spec-review <verb>`.
-- [ ] Remove the `regions selftest` exclusion after making the budget selftest hermetic.
+- [x] Re-checked the `regions selftest` exclusion: `--region all` passes on a dirty `.faff/` (138 members, about 53 s). Kept the exclusion for gate speed, since CI runs both regions, and corrected its stated reason in `.faff/config.yaml`.
 - [ ] Move the run-dir, JSON-state and staleness helpers into `shared-infra.js`.
 - [ ] Decide `landing-claim` / `landing-comment`: test or remove.
 

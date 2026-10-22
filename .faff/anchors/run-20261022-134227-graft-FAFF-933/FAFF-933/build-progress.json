@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-933",
+  "build": {
+    "status": "complete",
+    "diff_hash": "01f54f4bd22fb9c4559e76ce7e95583c7787d43a2e9a2a2487193cbda5af0191",
+    "branch": "FAFF-933-run-ledger-economics-under-reports-resumed-run-cost",
+    "pushed_at": "2026-10-22T14:51:05.769Z"
+  },
+  "updated_at": "2026-10-22T14:51:05.769Z"
+}

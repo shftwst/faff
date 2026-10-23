@@ -262,14 +262,14 @@ function probeServes(bin, sub, probeRoot) {
 //   3. the running binary's own real path (last resort; serves the set by construction).
 // FAFF-434: "the set" is FAFF_ALL_HOOKS (Stop + PreToolUse combined) — a bin that can
 // serve runcheck/prepcheck but not merge-fence is not fit to be the one canonical bin.
-function resolveHookBin(probeRoot) {
+function resolveHookBin(probeRoot, probe = probeServes) {
   const onPath = whichFaff();
-  if (onPath && FAFF_ALL_HOOKS.every((s) => probeServes(onPath, s, probeRoot))) return onPath;
+  if (onPath && FAFF_ALL_HOOKS.every((s) => probe(onPath, s, probeRoot))) return onPath;
   const installed = process.env.CLAUDE_PLUGIN_ROOT
     ? path.join(process.env.CLAUDE_PLUGIN_ROOT, "skills", "faff", "bin", "faff")
     : path.join(homeDir(), ".claude", "skills", "faff", "bin", "faff");
   try {
-    if (fs.existsSync(installed) && FAFF_ALL_HOOKS.every((s) => probeServes(installed, s, probeRoot))) return installed;
+    if (fs.existsSync(installed) && FAFF_ALL_HOOKS.every((s) => probe(installed, s, probeRoot))) return installed;
   } catch { /* fall through to the running binary */ }
   try { return fs.realpathSync(process.argv[1]); } catch { return process.argv[1]; }
 }
@@ -302,9 +302,12 @@ function cmdHooksEnsure(args) {
 
   const probeRoot = fs.mkdtempSync(path.join(os.tmpdir(), "faff-hooks-probe-"));
   let bin, served;
+  // One spawn per (bin, sub): the served set below re-asks what resolveHookBin already probed.
+  const probed = new Map();
+  const probe = (b, sub, r) => { const k = `${b}\0${sub}`; if (!probed.has(k)) probed.set(k, probeServes(b, sub, r)); return probed.get(k); };
   try {
-    bin = resolveHookBin(probeRoot);
-    served = FAFF_ALL_HOOKS.filter((s) => probeServes(bin, s, probeRoot));
+    bin = resolveHookBin(probeRoot, probe);
+    served = FAFF_ALL_HOOKS.filter((s) => probe(bin, s, probeRoot));
   } finally {
     try { fs.rmSync(probeRoot, { recursive: true, force: true }); } catch { /* best-effort */ }
   }

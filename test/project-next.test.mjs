@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
 
@@ -27,6 +28,8 @@ function pn({ current, kind, total, active, done, hasDod, dodMet }) {
 function verdict(r) { assert.equal(r.code, 0, r.err); return JSON.parse(r.out); }
 
 const RANK = { planned: 0, started: 1, completed: 2 };
+// The 320-cell grid calls the pure predicate in-process; the CLI wrapper is covered by the tests above and below.
+const { projectNext } = createRequire(import.meta.url)("../plugin/skills/faff/bin/lib/project-next.js");
 
 test("project-next --selftest passes (transition + malformed + monotonicity table)", () => {
   const r = run("project-next", "--selftest");
@@ -149,9 +152,8 @@ test("MONOTONICITY: no advance over the input grid ever ranks desired <= current
       for (const [total, active, done] of [[0,0,0],[1,0,0],[1,1,0],[2,1,0],[2,0,2],[3,0,1],[3,1,2],[1,0,1],[4,2,1],[5,1,4]]) {
         for (const hasDod of [false, true]) {
           for (const dodMet of [false, true]) {
-            const r = pn({ current, kind, total, active, done, hasDod, dodMet });
-            if (r.code !== 0) continue; // malformed rollup (incl. dodMet-without-hasDod) → usage exit, not a transition
-            const v = JSON.parse(r.out);
+            const v = projectNext({ current, kind, total, active, done, hasDod, dodMet });
+            if (v.error) continue; // malformed rollup (incl. dodMet-without-hasDod) → usage exit, not a transition
             if (v.action === "advance") {
               advances++;
               assert.ok(RANK[v.desired] > RANK[v.current], `backward/equal advance: ${JSON.stringify(v)}`);

@@ -46,7 +46,14 @@ Eight files in `bin/lib` exceed 2,000 lines: `config.js` 3,881, `contract-defs.j
     - Lazy module loading in `bin/faff`, which took UNIT from 242 s to 159 s.
     - A gate-owned pool running one file per process, as wide as the core count, with only `sentry-poller` in the serial lane. That took UNIT to 138 to 148 s and the gate to 180 to 189 s.
     - Together, about 40% off UNIT, not 2 to 3x.
-- [ ] **Action:** add an in-process mode for `runCli` in the spawn-heavy tests (`judge-trail`, `merge-gate-controlflow`, `adversarial-call`), calling the exported `cmd*` handlers instead of a fresh Node process.
+- [x] **Action:** add an in-process mode for `runCli` in the spawn-heavy tests (`judge-trail`, `merge-gate-controlflow`, `adversarial-call`), calling the exported `cmd*` handlers instead of a fresh Node process. **Superseded 2026-10-23 (FAFF-1383):** not done as written.
+  - **Spawn cost is no longer the large term.** After lazy loading, a CLI spawn costs about 65 ms. Timed one file at a time on `main`, the suite is 930 s of CPU, and the three files named here are not in the slowest 15.
+  - **The large terms were inside the commands:**
+    - `validate-adapters` took about 1 s on any input, because the gateway-manifest planner re-normalised every skill's text once per block.
+    - `hooks-ensure` probed every hook subcommand twice.
+    - The `project-next` grid spawned the CLI 320 times to check a pure predicate.
+  - **What shipped:** a fix for each of those three. On the same filesystem, UNIT went from 136 to 149 s to 106 to 107 s and the gate from 177 to 191 s to 147 to 148 s.
+  - **Left alone:** `sentry.test.mjs` drives the real CLI on purpose; moving it in-process would save about 1 s of wall-clock time. `env.test.mjs` is real Docker work.
 - [ ] **Action:** `faff gates run --budget-secs N --resume` with the exit-3 re-invoke idiom the spec judge already uses, so a lane can poll a long gate across foreground calls. This is orchestrator defect 3 from the last run.
 
 ### 1.4 The orchestrator is prose

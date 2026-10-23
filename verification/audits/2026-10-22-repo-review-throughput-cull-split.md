@@ -153,7 +153,7 @@ About a third of the effort moved the strategy. The largest single stream is unp
 
 ### 2.3 Critical path
 
-- [ ] **One human gate day.** Sit FAFF-824 and FAFF-827; accept ADDENDUM-1 and settle its decision 2.
+- [x] **One human gate day.** Sit FAFF-824 and FAFF-827; accept ADDENDUM-1 and settle its decision 2. Done 2026-10-23: both narrowed, decision 2 (a), ADDENDUM-1 accepted; see [the gate session record](2026-10-22-v5-gate-session-824-827.md).
 - [ ] **Freeze governance depth** (no facade v0.4, FAFF-1282) until FAFF-1030, the live capture with an outside producer, has run.
 - [ ] **Collapse the prose** per 1.4, which emits the fidelity markers.
 - [ ] **FAFF-1174 then FAFF-974:** the post-fix fidelity corpus.

@@ -1,0 +1,262 @@
+// ===========================================================================
+// === region:factory — gates-select — FAFF-849 (639b): select the runnable rungs from the reporting set and run the ladder (runLadder) ===
+// Split out of gates.js (FAFF-1390), which re-exports every name it exported before.
+// ===========================================================================
+
+const fs = require("node:fs");
+const path = require("node:path");
+const os = require("node:os");
+const { localOs, readGatesConfig } = require("./gates-config");
+const { CI_COST_PENALTY, GATE_COST, ciRunnerKind, discoverMakefile, discoverPkgScripts, discoverPreCommit, discoverRunnerFiles, mergeRunnerTier, normaliseLocalRungCommand } = require("./gates-discover");
+const { extractRunCommandsWithContext, reportKind } = require("./gates-report");
+const { runRung } = require("./gates-exec");
+
+// ===========================================================================
+// FAFF-849 (639b) — the EXECUTION path consumes the wider REPORTING recogniser (848's
+// discoverRungsReporting set), but "recognised is not runnable": before running, execution
+// subtracts what is unsafe/impossible to run locally (exclusion rules), collapses the regions
+// selftest family into one aggregate rung, caps the per-kind blast radius, and applies a
+// partial-coverage policy. See records/specs/2026-08-27-faff-849-…-design.md.
+// ===========================================================================
+
+// Map a workflow `runs-on:` label to an OS family, or null for an unrecognised/absent/matrix value
+// (which fails TOWARD running — a missing/expression runs-on is usually the default Linux runner).
+function osFamily(runsOn) {
+  const s = String(runsOn || "").toLowerCase();
+  if (/macos|osx|mac-/.test(s)) return "macos";
+  if (/windows|win-/.test(s)) return "windows";
+  if (/ubuntu|linux/.test(s)) return "linux";
+  return null;
+}
+
+// FAFF-1149: a recognised portable UNIT test runner (the UNIT entries of CI_RUNNERS — node --test,
+// pytest, jest, vitest, mocha, ava, tap, go test, cargo test). Its result is OS-independent by
+// construction, so it survives an os-mismatch and runs on any dev host.
+function isPortableRunner(command) {
+  return ciRunnerKind(command) === "UNIT";
+}
+
+// FAFF-1149: a scraped `run:` body line that cannot be executed standalone in the worktree, so it
+// must never become a rung (excluded "not-runnable", never fail/errored). Reached only AFTER the
+// github-context check in exclusionReason, so cmd carries no ${{ }} / $GITHUB_ / $RUNNER_ token.
+// Three cases:
+//   (a) a comment-only line (trimmed starts with "#");
+//   (b) a reference to a shell variable ($NAME or ${NAME}) whose NAME is not a live process.env key
+//       (a workflow-local var like $f / ${test_timeout_ms}; an exported var like $HOME is runnable);
+//   (c) a bare control-operator fragment: a lone shell keyword (fi/done/then/else/do/esac), an
+//       assignment-only NAME=VALUE line, or a lone control operator (a trailing "&" with no command).
+function isNotRunnable(command) {
+  const cmd = String(command);
+  const trimmed = cmd.trim();
+  if (trimmed.startsWith("#")) return true;
+  for (const m of cmd.matchAll(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)/g)) {
+    const name = m[1] || m[2];
+    if (!Object.prototype.hasOwnProperty.call(process.env, name)) return true;
+  }
+  if (/^(fi|done|then|else|do|esac)$/.test(trimmed)) return true;
+  if (/^[A-Za-z_][A-Za-z0-9_]*=\S*$/.test(trimmed)) return true;
+  if (/^[&|;]+$/.test(trimmed)) return true;
+  return false;
+}
+
+// Why a recognised/candidate step is excluded from local execution, or null if runnable.
+// Precedence (FAFF-1149): configured > github-context > not-runnable > os-mismatch (any one
+// excludes). github-context stays AHEAD of not-runnable so ${{ }} / $GITHUB_ / $RUNNER_ keep their
+// existing reason and the existing selftests pass unchanged; a recognised portable UNIT runner
+// survives os-mismatch so the genuine cross-platform suite runs on any dev host.
+function isInsideRoot(relativeDir) {
+  const resolved = path.posix.normalize(String(relativeDir));
+  return !path.posix.isAbsolute(resolved) && resolved !== ".." && !resolved.startsWith("../");
+}
+
+function exclusionReason(rec, cfg, localOsVal) {
+  const cmd = String(rec.command);
+  if (cfg.exclude.some((pat) => pat && cmd.includes(pat))) return "configured";
+  if (/\$\{\{|\$GITHUB_|\$RUNNER_/.test(`${cmd}\n${rec.working_directory || ""}`)) return "github-context";
+  if (isNotRunnable(cmd)) return "not-runnable";
+  if (rec.working_directory && !isInsideRoot(rec.working_directory)) return "not-runnable";
+  if (rec.runs_on) {
+    const fam = osFamily(rec.runs_on);
+    if (fam !== null && fam !== localOsVal && !isPortableRunner(cmd)) return "os-mismatch";
+  }
+  return null;
+}
+
+// Runnable variant of discoverCiWorkflowsReporting: applies the exclusion filter at step
+// granularity (a step is subtracted from eligible_steps only when EVERY one of its command
+// records is excluded — matching 848's per-step counting), emits a rung per recognised, runnable
+// command, and returns the runnable-coverage inputs + the exclusion log. Never throws (same
+// missing-dir/unreadable-file posture as discoverCiWorkflowsReporting).
+function discoverCiWorkflowsRunnable(root, cfg, hostOs = localOs()) {
+  const rungs = [];
+  const exclusions = [];
+  let eligibleSteps = 0;
+  const recognisedStepKeys = new Set();
+  const dir = path.join(root, ".github", "workflows");
+  let stat;
+  try { stat = fs.statSync(dir); } catch { return { rungs, exclusions, eligibleSteps, recognisedSteps: 0 }; }
+  if (!stat.isDirectory()) return { rungs, exclusions, eligibleSteps, recognisedSteps: 0 };
+  let entries;
+  try { entries = fs.readdirSync(dir); } catch { return { rungs, exclusions, eligibleSteps, recognisedSteps: 0 }; }
+  const files = entries.filter((f) => /\.ya?ml$/i.test(f)).sort();
+  for (const f of files) {
+    let text;
+    try { text = fs.readFileSync(path.join(dir, f), "utf8"); } catch { continue; }
+    const records = extractRunCommandsWithContext(text);
+    const byStep = new Map();
+    for (const rec of records) {
+      if (!byStep.has(rec.step_index)) byStep.set(rec.step_index, []);
+      byStep.get(rec.step_index).push(rec);
+    }
+    for (const [idx, recs] of byStep) {
+      // FAFF-987: derive the LOCAL rung command before exclusion/kind resolution, so a sharded CI
+      // node --test line runs the whole suite unsharded locally AND its `${{ matrix.shard }}` no
+      // longer trips the github-context exclusion below. No-op for a command without --test-shard.
+      for (const rec of recs) rec.command = normaliseLocalRungCommand(rec.command);
+      const reasons = recs.map((r) => exclusionReason(r, cfg, hostOs));
+      const allExcluded = reasons.every((x) => x !== null);
+      if (allExcluded) {                             // whole step subtracted from eligible + never a rung
+        recs.forEach((r, i) => exclusions.push({ command: r.command, reason: reasons[i] }));
+        continue;
+      }
+      eligibleSteps += 1;
+      recs.forEach((rec, i) => {
+        if (reasons[i]) { exclusions.push({ command: rec.command, reason: reasons[i] }); return; }
+        const kind = reportKind(rec.command);
+        if (!kind) return;
+        recognisedStepKeys.add(`${f}:${idx}`);
+        const rung = { kind, name: `${kind.toLowerCase()} (ci-workflow: ${rec.command})`, command: rec.command, source: "ci_workflow", cost_rank: GATE_COST[kind] + CI_COST_PENALTY, required: true };
+        if (rec.working_directory) {
+          rung.cwd = rec.working_directory;
+          rung.name = `${kind.toLowerCase()} (ci-workflow: ${rec.command}; in ${rec.working_directory})`;
+        }
+        rungs.push(rung);
+      });
+    }
+  }
+  return { rungs, exclusions, eligibleSteps, recognisedSteps: recognisedStepKeys.size };
+}
+
+// Collapse every recognised `regions selftest --region <x>` rung into ONE aggregate
+// `regions selftest --region all` rung (the human decision of 2026-08-19). The aggregate inherits
+// the cheapest source cost_rank so it sorts among the other STATIC_ANALYSIS rungs, and consumes a
+// single slot against the per-kind cap. The invocation prefix is derived from a source command so
+// the aggregate stays runnable (e.g. `node bin/faff regions selftest --region all`).
+function aggregateSelftest(rungs) {
+  const isSelftest = (c) => /regions\s+selftest\s+--region/i.test(String(c));
+  const selftests = rungs.filter((r) => isSelftest(r.command));
+  if (selftests.length === 0) return rungs;
+  const keep = rungs.filter((r) => !isSelftest(r.command));
+  const src = selftests[0].command;
+  const at = src.toLowerCase().indexOf("regions");
+  const prefix = at > 0 ? src.slice(0, at) : "";
+  const command = `${prefix}regions selftest --region all`;
+  const agg = {
+    kind: "STATIC_ANALYSIS",
+    name: "static_analysis (ci-workflow: regions selftest --region all)",
+    command,
+    source: "ci_workflow",
+    cost_rank: Math.min(...selftests.map((r) => r.cost_rank)),
+    required: true,
+  };
+  return [...keep, agg];
+}
+
+// Keep at most `cap` rungs of each kind, cheapest-first (rungs are cost-sorted first).
+function capPerKind(rungs, cap) {
+  const n = Number.isInteger(cap) && cap >= 1 ? cap : 5;
+  const sorted = rungs.slice().sort((a, b) => a.cost_rank - b.cost_rank);
+  const counts = new Map();
+  const out = [];
+  for (const r of sorted) {
+    const c = counts.get(r.kind) || 0;
+    if (c >= n) continue;
+    counts.set(r.kind, c + 1);
+    out.push(r);
+  }
+  return out;
+}
+
+// The EXECUTION resolver: the wide reporting set, filtered to runnable, aggregated, and capped.
+// Local rungs (pre-commit/pkg/Makefile) are reused as-is and a local rung of a kind still
+// suppresses ALL ci rungs of that kind (FAFF-533 preserved). Returns the bounded rung set +
+// runnable coverage + discovery (confident/partial/none) + the exclusion log.
+function selectRunnableRungs(root, cfg, hostOs = localOs()) {
+  const localRungs = [
+    ...discoverPreCommit(root),
+    ...discoverPkgScripts(root),
+    ...discoverMakefile(root),
+  ];
+  const localByKind = new Map();
+  for (const r of localRungs.slice().sort((a, b) => a.cost_rank - b.cost_rank)) {
+    if (!localByKind.has(r.kind)) localByKind.set(r.kind, r);
+  }
+  const dedupedLocal = [...localByKind.values()];
+
+  const { rungs: ciRunnable, exclusions, eligibleSteps, recognisedSteps } = discoverCiWorkflowsRunnable(root, cfg, hostOs);
+  const ciByKindCommand = new Map();
+  for (const r of ciRunnable) {
+    const key = `${r.kind} ${r.cwd || "."} ${r.command}`;
+    if (!ciByKindCommand.has(key)) ciByKindCommand.set(key, r);   // two-tier: keep distinct commands
+  }
+  const runner = discoverRunnerFiles(root, { hostOs, cap: cfg.max_rungs_per_kind, exclude: cfg.exclude });
+  const merged = mergeRunnerTier(dedupedLocal, runner.rungs, [...ciByKindCommand.values()]); // FAFF-533
+  exclusions.push(...runner.exclusions, ...merged.displaced);
+
+  let rungs = aggregateSelftest(merged.rungs);
+  rungs = capPerKind(rungs, cfg.max_rungs_per_kind);
+  rungs = rungs.sort((a, b) => a.cost_rank - b.cost_rank);
+
+  const ratio = eligibleSteps === 0 ? 1.0 : recognisedSteps / eligibleSteps;
+  const coverage = { eligible_steps: eligibleSteps, recognised_steps: recognisedSteps, ratio };
+  let discovery;
+  if (rungs.length === 0) discovery = "none";
+  else if (ratio < cfg.partial_threshold) discovery = "partial";
+  else discovery = "confident";
+  return { rungs, discovery, coverage, exclusions };
+}
+
+// The partial-coverage policy, factored out as a pure function so its "never lowers an existing
+// fail/needs-human" contract is unit-testable without running any rung. When runnable coverage is
+// below gates.partial_threshold on a `partial` discovery: gates.partial=needs-human RAISES a `pass`
+// to `needs-human` (a fail/needs-human is left untouched); gates.partial=warn leaves the signal and
+// flags a warning line. Any other case is a pass-through.
+function applyPartialPolicy(signal, discovery, coverage, cfg) {
+  if (discovery === "partial" && coverage && coverage.ratio < cfg.partial_threshold) {
+    if (cfg.partial === "needs-human") {
+      return { signal: signal === "pass" ? "needs-human" : signal, partialWarning: false };
+    }
+    return { signal, partialWarning: true };                       // warn: signal unchanged, emit a line
+  }
+  return { signal, partialWarning: false };
+}
+
+// Run the ladder: cheapest-first, fail-fast on the first failing REQUIRED rung. An errored rung at
+// L3 → needs-human (can't conclude the code is bad). discovery:none → the fallback policy decides.
+// FAFF-849 (639b): rungs now come from selectRunnableRungs (the filtered/bounded reporting set),
+// and a runnable-coverage-below-threshold `partial` verdict consults gates.partial via
+// applyPartialPolicy as a final, never-lowering signal adjustment.
+async function runLadder(root) {
+  const cfg = readGatesConfig(root);
+  const { rungs, discovery, coverage, exclusions } = selectRunnableRungs(root, cfg);
+  const results = [];
+  let needsHuman = false;
+  for (const rung of rungs) {
+    const r = await runRung(rung, root);
+    results.push(r);
+    if (r.status === "errored") { needsHuman = true; continue; }   // surface, don't gate as fail
+    if (rung.required && r.status === "fail") {
+      return { signal: "fail", discovery, coverage, exclusions, rungs: results };  // fail-fast
+    }
+  }
+  let signal = "pass";
+  if (discovery === "none") {
+    signal = cfg.fallback === "fail-closed" ? "needs-human" : "pass";
+  } else if (needsHuman) {
+    signal = "needs-human";
+  }
+  const { signal: finalSignal, partialWarning } = applyPartialPolicy(signal, discovery, coverage, cfg);
+  return { signal: finalSignal, discovery, coverage, exclusions, rungs: results, partialWarning };
+}
+
+module.exports = { aggregateSelftest, applyPartialPolicy, capPerKind, discoverCiWorkflowsRunnable, exclusionReason, osFamily, runLadder, selectRunnableRungs };

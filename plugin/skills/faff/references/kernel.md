@@ -317,7 +317,7 @@ Wherever a faff skill tells you to "invoke the `<name>` skill via the Skill tool
 
 1. Take the canonical name the instruction gives you.
 2. Find the matching entry in your available-skills list — the entry **equal to** the canonical name, **or** the canonical name **prefixed with `faff:`**. Prefer the `faff:`-prefixed entry if both appear.
-3. Pass **that** resolved name to the Skill tool. Never pass a leading-slash form (`/faff-prep`, `/faff:prep`), and never assume the literal — always resolve against the live list.
+3. Pass **that** resolved name to the Skill tool. Never pass a leading-slash form (`/faff-prep`, `/faff:prep`), and never assume the literal — always resolve against the live list. Human-facing "type `/faff-prep`" prose is **not** a delegation: it keeps its slash.
 
 **Edge cases.**
 
@@ -345,8 +345,6 @@ Wherever a faff skill tells you to "invoke the `<name>` skill via the Skill tool
 A single, non-clustered subagent dispatch (one child, not a same-kind group) carries no obligation here. Emitting the event without stamping the description is worse than skipping both: the recompute has no per-cluster key to match on, so the cluster reports `unverifiable-substrate` at audit time — a claim the harness can never check, exactly the failure this exists to close. The trust never comes from the event itself — `faff audit`'s `dispatch_observability` block re-derives the count from the child transcripts this run owns and reports `verified` only when it can attribute at least as many children as claimed.
 
 **Voice clause.** Every producer dispatch whose output includes **durable prose** (specs, PR bodies, commit messages, tracker comments — prose that outlives the run) also stamps one line into its prompt, defined canonically **here** and quoted verbatim at each stamp site: *"House voice: read the `# Writing style` section of `AGENTS.md` at the repo root (worktree included) and apply it to all durable prose you write — specs, PR bodies, commit messages, tracker comments. File or section absent → skip this instruction."* The rules themselves stay in `AGENTS.md`'s `# Writing style` section (referenced, never copied — the `rendering_adaptor` charter's **Voice** section owns *what* the house voice is). **Carrier rule:** a dispatch carries the clause iff its output is durable prose, so explore/grounding subagents and the `spec` producer's clean-context verify — internal findings the orchestrator consumes, not durable prose — do **not** carry it. The `concurrency` executors quote the same one line into their own `BuildDispatch` (build subagents write PR bodies, commit messages, and park comments) and point back here. **Engine-lane fork:** an `engine:<name>` dispatch has no filesystem to read the pointer from, so append the `# Writing style` section's *contents* to the user payload instead of the pointer clause; section absent, append nothing. **Absent file or section:** the clause carries its own fallback — no park, no error, no per-dispatch logging.
-
-**Why this exists (not a hardcoded literal).** A fixed `/faff-prep` string is correct in at most one install mode — the Skill tool takes a skill *name*, and that name differs per mode. So every delegation resolves against the live available-skills list rather than a frozen literal, keying off *whatever the canonical name is* — which composes with a future skill rename without editing this rule. Human-facing "type `/faff-prep`" prose is **not** a delegation: it keeps its slash; this rule governs only Skill-tool invocations.
 
 
 ## Chaining pattern

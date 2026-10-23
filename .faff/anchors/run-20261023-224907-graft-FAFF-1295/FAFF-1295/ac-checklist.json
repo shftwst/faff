@@ -1,0 +1,374 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "With `merge-fence` registered under `Bash` only in `.claude/settings.local.json` and no `.claude/settings.json`, `faff doctor` (clean skill scan) exits 0 and prints `merge-fence PreToolUse fence present`.",
+      "verified": "test passes: exit 0, present line",
+      "passed": true,
+      "ac_id": "faff-1295#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/doctor.test.mjs::doctor: merge-fence only in settings.local.json (no settings.json) → exit 0, present, no advisory line"
+        }
+      ]
+    },
+    {
+      "ac": "With `merge-fence` only in `.claude/settings.json`, `faff doctor` still prints `merge-fence PreToolUse fence present`.",
+      "verified": "test passes",
+      "passed": true,
+      "ac_id": "faff-1295#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/doctor.test.mjs::doctor: merge-fence only in settings.json → still present"
+        }
+      ]
+    },
+    {
+      "ac": "With neither file present, the output still contains `merge-fence PreToolUse fence MISSING — run: faff hooks-ensure` and the exit is 1.",
+      "verified": "test passes: exact MISSING text, exit 1",
+      "passed": true,
+      "ac_id": "faff-1295#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/doctor.test.mjs::doctor: neither settings file → MISSING line and exit 1"
+        }
+      ]
+    },
+    {
+      "ac": "`faffHookKeysIn` is exported from `hooks-ensure.js` and returns keys in `FAFF_STOP_HOOKS` order, then `FAFF_PRE_TOOL_USE_MATCHER_GROUPS` order; `faff hooks-ensure --selftest` passes with cases for an empty object, the repo's split shown in How, a `merge-fence` under matcher `\"Write\"` only (no keys), and a non-faff command (no keys).",
+      "verified": "selftest PASS, 49 cases incl. 5 faffHookKeysIn cases",
+      "passed": true,
+      "ac_id": "faff-1295#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/hooks-ensure.test.mjs::hooks-ensure --selftest passes"
+        },
+        {
+          "kind": "command",
+          "locator": "faff hooks-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`hookSettingsAt` is exported from `gates.js`; `mergeFencePresentAt` is still exported and returns `fence_status == \"present\"`.",
+      "verified": "both exported as functions; wrapper returns fence_status === present",
+      "passed": true,
+      "ac_id": "faff-1295#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node -e 'const g=require(\"./plugin/skills/faff/bin/lib/gates\");console.log(typeof g.hookSettingsAt, typeof g.mergeFencePresentAt)'"
+        }
+      ]
+    },
+    {
+      "ac": "`faff doctor --json` carries `merge_fence_status` and `hook_settings` (`shared`, `personal`, `in_both`) in a populated run and in an empty-union (exit 2) run.",
+      "verified": "both tests pass (populated and empty-union)",
+      "passed": true,
+      "ac_id": "faff-1295#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/doctor.test.mjs::doctor --json: the hook-settings fields are present in the empty-union (exit 2) run too"
+        },
+        {
+          "kind": "test",
+          "locator": "test/link-skills-worktree.test.mjs::FAFF-675: DoctorJson is a total projection of DoctorState — every axis is reflected"
+        }
+      ]
+    },
+    {
+      "ac": "In `--json`, `merge_fence` equals `merge_fence_status == \"present\"`.",
+      "verified": "totality test asserts merge_fence mirrors merge_fence_status present",
+      "passed": true,
+      "ac_id": "faff-1295#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/link-skills-worktree.test.mjs::FAFF-675: DoctorJson is a total projection of DoctorState — every axis is reflected"
+        }
+      ]
+    },
+    {
+      "ac": "The `DoctorJson` totality test in `test/link-skills-worktree.test.mjs` lists `hookSettings` and `fenceStatus` and asserts the two new JSON fields mirror them.",
+      "verified": "accountedFor lists hookSettings, fenceStatus, hookAdvisoriesActive with mirror asserts",
+      "passed": true,
+      "ac_id": "faff-1295#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/link-skills-worktree.test.mjs::FAFF-675: DoctorJson is a total projection of DoctorState — every axis is reflected"
+        }
+      ]
+    },
+    {
+      "ac": "`.claude/settings.local.json` containing `{ not valid json` (no `settings.json`) makes doctor exit 1, print a ✗ line naming `.claude/settings.local.json` as invalid, print `merge-fence PreToolUse fence unconfirmed`, and omit `faff hooks-ensure` from the `Fix:` line.",
+      "verified": "test passes",
+      "passed": true,
+      "ac_id": "faff-1295#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/doctor.test.mjs::doctor: invalid settings.local.json alone → exit 1, ✗ line naming it, unconfirmed fence, Fix omits hooks-ensure"
+        }
+      ]
+    },
+    {
+      "ac": "The same with the invalid content in `.claude/settings.json` instead gives the same result naming that file.",
+      "verified": "test passes",
+      "passed": true,
+      "ac_id": "faff-1295#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/doctor.test.mjs::doctor: invalid settings.json alone → exit 1, ✗ line naming it, unconfirmed fence, Fix omits hooks-ensure"
+        }
+      ]
+    },
+    {
+      "ac": "An empty `.claude/settings.json` and one containing `[]` each report `state: \"invalid\"` in `--json`.",
+      "verified": "test passes",
+      "passed": true,
+      "ac_id": "faff-1295#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/doctor.test.mjs::doctor --json: an empty settings.json and one holding [] each report state invalid"
+        }
+      ]
+    },
+    {
+      "ac": "With `Bash::merge-fence` in one file and the other invalid, `merge_fence_status` is `\"present\"` and the exit is 1.",
+      "verified": "test passes",
+      "passed": true,
+      "ac_id": "faff-1295#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/doctor.test.mjs::doctor: Bash::merge-fence in one file and the other invalid → status present, exit 1"
+        }
+      ]
+    },
+    {
+      "ac": "No settings fixture (valid, invalid, absent) makes `faff doctor` exit with a stack trace or a code other than 0, 1 or 2.",
+      "verified": "test passes",
+      "passed": true,
+      "ac_id": "faff-1295#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/doctor.test.mjs::doctor: no settings fixture (valid, invalid, absent) yields a code other than 0, 1 or 2 or a stack trace"
+        }
+      ]
+    },
+    {
+      "ac": "With `runcheck` and `Bash::merge-fence` in `.claude/settings.json` and `runcheck` in `.claude/settings.local.json`, a clean-scan `faff doctor` exits 0, prints a `⚠ faff hooks in .claude/settings.json` line naming `runcheck, Bash::merge-fence` and `--shared`, and prints a `⚠ faff hooks registered in both settings files` line naming `runcheck`.",
+      "verified": "test passes with HOOKS_DEFAULT_TARGET stubbed personal",
+      "passed": true,
+      "ac_id": "faff-1295#done:14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/doctor.test.mjs::doctor: advisories active (stubbed personal default) → both ⚠ lines print, exit 0"
+        }
+      ]
+    },
+    {
+      "ac": "With faff hooks only in `.claude/settings.local.json`, neither `⚠` line prints.",
+      "verified": "test passes",
+      "passed": true,
+      "ac_id": "faff-1295#done:15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/doctor.test.mjs::doctor: faff hooks only in settings.local.json → no ⚠ line even with advisories stubbed on"
+        }
+      ]
+    },
+    {
+      "ac": "With `HOOKS_DEFAULT_TARGET` `\"shared\"` (this ticket's value), the fixture with faff hooks in both files prints neither `⚠` line, exits 0, and reports `hook_advisories_active: false` in `--json`; with it stubbed to `\"personal\"` it prints both and reports `true`.",
+      "verified": "both tests pass",
+      "passed": true,
+      "ac_id": "faff-1295#done:16",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/doctor.test.mjs::doctor: advisories inactive with the shipped default (shared) → neither ⚠ line, exit 0, hook_advisories_active false"
+        },
+        {
+          "kind": "test",
+          "locator": "test/doctor.test.mjs::doctor: advisories active (stubbed personal default) → both ⚠ lines print, exit 0"
+        }
+      ]
+    },
+    {
+      "ac": "`require(\"./hooks-ensure\").HOOKS_DEFAULT_TARGET` is `\"shared\"` after this ticket.",
+      "verified": "test asserts HOOKS_DEFAULT_TARGET === shared",
+      "passed": true,
+      "ac_id": "faff-1295#done:17",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/doctor.test.mjs::doctor: advisories inactive with the shipped default (shared) → neither ⚠ line, exit 0, hook_advisories_active false"
+        }
+      ]
+    },
+    {
+      "ac": "`hooksEnsureSelftest`'s split case reads no file from disk.",
+      "verified": "split fixture is inline literal data in hooksEnsureSelftest; no fs read",
+      "passed": true,
+      "ac_id": "faff-1295#done:18",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff hooks-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`merge-fence` registered only under matcher `\"Monitor\"` reports `merge_fence_status: \"missing\"`.",
+      "verified": "test passes",
+      "passed": true,
+      "ac_id": "faff-1295#done:19",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/doctor.test.mjs::doctor: merge-fence only under matcher Monitor → missing"
+        }
+      ]
+    },
+    {
+      "ac": "`merge-fence` registered only under matcher `\"Bash|Monitor\"`, and separately only under `\".*\"`, reports `merge_fence_status: \"present\"`.",
+      "verified": "test passes",
+      "passed": true,
+      "ac_id": "faff-1295#done:20",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/doctor.test.mjs::doctor: merge-fence under Bash|Monitor, and separately .*, → present (same code path as Bash)"
+        }
+      ]
+    },
+    {
+      "ac": "`merge-fence` registered only under a matcher that is not a valid regex (for example `\"Bash(\"`) reports `\"missing\"`, and doctor does not throw.",
+      "verified": "test passes",
+      "passed": true,
+      "ac_id": "faff-1295#done:21",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/doctor.test.mjs::doctor: merge-fence under a matcher that is not a valid regex (Bash open paren) → missing, no throw"
+        }
+      ]
+    },
+    {
+      "ac": "A `.claude/settings.json` holding `{\"env\":{\"API_TOKEN\":\"sk-test-123\"` (truncated JSON) makes doctor print `not valid JSON` for that file, and neither the human nor the `--json` output contains `sk-test-123`.",
+      "verified": "test passes; manual run: grep -c sk-test on --json output = 0",
+      "passed": true,
+      "ac_id": "faff-1295#done:22",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/doctor.test.mjs::doctor: truncated JSON holding a credential names 'not valid JSON' and never echoes the secret"
+        }
+      ]
+    },
+    {
+      "ac": "`hookSettingsAt`'s `fence_status` comes from `covers_bash_fence`, shown by the `\"Bash|Monitor\"` fixture reporting `\"present\"` through the same code path as `\"Bash\"`.",
+      "verified": "fence_status set only from covers_bash_fence in hookSettingsAt",
+      "passed": true,
+      "ac_id": "faff-1295#done:23",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/doctor.test.mjs::doctor: merge-fence under Bash|Monitor, and separately .*, → present (same code path as Bash)"
+        }
+      ]
+    },
+    {
+      "ac": "After `faff doctor` runs against fixtures holding faff and non-faff entries in both files, both files are byte-identical and their mtimes unchanged.",
+      "verified": "test passes",
+      "passed": true,
+      "ac_id": "faff-1295#done:24",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/doctor.test.mjs::doctor: read-only — both settings files stay byte-identical with unchanged mtimes"
+        }
+      ]
+    },
+    {
+      "ac": "`docs/guide/cli.md` `doctor` row names both `.claude/settings.json` and `.claude/settings.local.json`, the invalid-file finding, and the two advisory lines.",
+      "verified": "doctor row names both files, invalid-file finding, two advisory lines",
+      "passed": true,
+      "ac_id": "faff-1295#done:25",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'settings.local.json' docs/guide/cli.md"
+        }
+      ]
+    },
+    {
+      "ac": "`grep -n \"degrades to \\\"missing\\\"\" plugin/skills/faff/bin/lib/gates.js` prints nothing.",
+      "verified": "prints nothing (gates-doctor.js checked too after the FAFF-1390 split)",
+      "passed": true,
+      "ac_id": "faff-1295#done:26",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'degrades to \"missing\"' plugin/skills/faff/bin/lib/gates.js plugin/skills/faff/bin/lib/gates-doctor.js"
+        }
+      ]
+    },
+    {
+      "ac": "`test/doctor.test.mjs` and `test/link-skills-worktree.test.mjs` fence fixtures write `.claude/settings.local.json`, and both pass.",
+      "verified": "fixtures write settings.local.json; both files pass",
+      "passed": true,
+      "ac_id": "faff-1295#done:27",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/doctor.test.mjs test/link-skills-worktree.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`test/golden/doctor/single-directory.txt` and `test/golden/doctor/stale-emit.txt` are unchanged in the diff, and their golden tests pass.",
+      "verified": "goldens unchanged; golden tests pass",
+      "passed": true,
+      "ac_id": "faff-1295#done:28",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --stat origin/main...HEAD -- test/golden/"
+        },
+        {
+          "kind": "test",
+          "locator": "test/doctor.test.mjs::doctor: --target output is byte-identical to the pre-FAFF-676 golden"
+        },
+        {
+          "kind": "test",
+          "locator": "test/doctor.test.mjs::doctor: stale-emit human output is byte-identical to the golden"
+        }
+      ]
+    },
+    {
+      "ac": "`test/doctor.test.mjs` covers each DONE item under \"From HOW (behaviour)\".",
+      "verified": "every From HOW (behaviour) item maps to a passing doctor test (items 9 to 24)",
+      "passed": true,
+      "ac_id": "faff-1295#done:29",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/doctor.test.mjs"
+        }
+      ]
+    }
+  ]
+}

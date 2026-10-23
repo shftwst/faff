@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 2,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "test/doctor.test.mjs::invalid-file line pattern escapes only the first dot in the file name",
+      "title": "Invalid-file line pattern escapes only the first dot in the file name",
+      "location": "test/doctor.test.mjs:287",
+      "action": "Use replaceAll so every dot in the file name is escaped in the RegExp",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Invalid-file line pattern escapes only the first dot in the file name",
+          "location": "test/doctor.test.mjs:287",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/hooks-ensure.js::unbounded matcher string compiled as a regex in fencecoversbash",
+      "title": "Unbounded matcher string compiled as a regex in fenceCoversBash",
+      "location": "plugin/skills/faff/bin/lib/hooks-ensure.js",
+      "action": "Cap matcher length before compiling, or accept the local-file trust boundary",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The matcher comes from the operator's own settings file, the same string Claude Code compiles to decide whether the hook fires. The subject is the fixed four-character string Bash, so backtracking is bounded, and a length cap would make doctor disagree with Claude Code on a long but valid matcher. A bad pattern already falls through to not-firing.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "Unbounded matcher string compiled as a regex in fenceCoversBash",
+          "location": "plugin/skills/faff/bin/lib/hooks-ensure.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gates-doctor.js::exists-then-read race in readhooksettingsfile reads a removed file as invalid",
+      "title": "Exists-then-read race in readHookSettingsFile reads a removed file as invalid",
+      "location": "plugin/skills/faff/bin/lib/gates-doctor.js",
+      "action": "Treat ENOENT on the read as absent",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in 202334f8: the existsSync pre-check is gone and ENOENT on the read returns the absent state; a directory at the path still reads as cannot read file (EISDIR).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "Exists-then-read race in readHookSettingsFile reads a removed file as invalid",
+          "location": "plugin/skills/faff/bin/lib/gates-doctor.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gates-doctor.js::redundant invalid-file guard on the hooks-ensure fix entry in renderhuman",
+      "title": "Redundant invalid-file guard on the hooks-ensure Fix entry in renderHuman",
+      "location": "plugin/skills/faff/bin/lib/gates-doctor.js",
+      "action": "None required",
+      "location_present": true,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The guard is unreachable today because any invalid file forces an unconfirmed fence, but it states the spec rule (no hooks-ensure while a file is invalid) at the point it applies, so it is kept.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "Redundant invalid-file guard on the hooks-ensure Fix entry in renderHuman",
+          "location": "plugin/skills/faff/bin/lib/gates-doctor.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

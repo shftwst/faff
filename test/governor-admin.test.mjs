@@ -1174,4 +1174,6 @@ test("the require graph from governor-admin.js never reaches merge-gate, faff's 
   for (const banned of ["merge-gate", "config", "tracker", "harness", "engine", "next", "project-next", "run-start", "run-done", "queue-state", "lights-out", "self-intake", "scenario-matrix"]) {
     assert.ok(!names.has(banned), `${banned} must not be reachable from governor-admin`);
   }
+  // FAFF-1389: config.js is a facade over config-*.js; none of those may be reachable either.
+  assert.deepEqual([...names].filter((n) => n.startsWith("config-")), [], "no config module may be reachable from governor-admin");
 });

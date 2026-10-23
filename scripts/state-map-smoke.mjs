@@ -3,15 +3,17 @@
 // FAFF-825 and FAFF-1162 ran the steps by hand; this script runs the mechanical part of each
 // against a pinned commit and prints what a reader must still judge (step 6 attribution).
 //
-//   node scripts/state-map-smoke.mjs [--map PATH] [--prior REV ...] [--added-path P ...] [--at REV] [--since REV] [--json]
+//   node scripts/state-map-smoke.mjs [--map PATH] [--prior REV ...] [--added-path P ...] [--at REV] [--since REV [--since-map REV]] [--json]
 //
 // The pin is the commit the map's header names; `--at REV` checks the map against another commit
 // instead (to see what a re-pin must change), and step 1 then fails by design. `--prior` names an
 // earlier map revision whose row keys must survive; `--added-path` names a path the revision itself
 // adds, which step 3 cannot resolve at the pin. `--since REV` flags every `file:N` citation the
 // committed map already carries whose cited text differs between REV and the pin, which catches a
-// carried-over citation whose line moved even when no quote sits beside it. Steps 4 and 8 read the working tree's CLI and
-// sources, so the script refuses to run unless the working tree's code matches the pin.
+// carried-over citation whose line moved even when no quote sits beside it; the committed map is
+// read at `--since-map REV` (default HEAD), so a run can be repeated after the revision lands. Steps 4 and 8 read the working tree's CLI and
+// sources, so the script refuses to run unless the working tree's code matches the pin. This
+// file itself is left out of that check: it postdates the pin it was first run against.
 // Exit 0 when every step passes, 1 when any step fails, 2 on a usage or environment fault.
 import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -24,6 +26,7 @@ const MAP = opt("--map", "docs/rfc/rfc-superdomestique-runtime/v5/STATE-AUTHORIT
 const PRIORS = args.flatMap((a, i) => (a === "--prior" ? [args[i + 1]] : []));
 const AS_JSON = args.includes("--json");
 const SINCE = opt("--since", null);
+const SINCE_MAP = opt("--since-map", "HEAD");
 const POINTER_FILE = "docs/rfc/rfc-superdomestique-runtime/v5/TECHNICAL-DESIGN-v5.md";
 
 const git = (...a) => execFileSync("git", ["-C", ROOT, ...a], { encoding: "utf8", maxBuffer: 1 << 28 });
@@ -70,7 +73,7 @@ if (opt("--at")) {
   PIN = git("rev-parse", "--verify", `${opt("--at")}^{commit}`).trim();
   results[0] = { ...results[0], ok: false, detail: `${results[0].detail}; checked --at ${PIN} instead` };
 }
-const codeDrift = !gitOk("diff", "--quiet", PIN, "--", "plugin/skills/faff/bin", "eval", "scripts", "verification/external-verification", "records/spikes");
+const codeDrift = !gitOk("diff", "--quiet", PIN, "--", "plugin/skills/faff/bin", "eval", "scripts", "verification/external-verification", "records/spikes", ":(exclude)scripts/state-map-smoke.mjs");
 if (codeDrift) {
   process.stderr.write(`state-map-smoke: the working tree's code differs from the pin ${pinShort}; check out the pin first\n`);
   process.exit(2);
@@ -224,7 +227,7 @@ if (!TREE.has("scripts/link-skills.sh")) badMech.push("scripts/link-skills.sh mi
 // 7c: single-line citations name a line holding the quoted text on the same map line, and inline
 // selftest ranges start on the function's declaration and end on its closing brace.
 const badLines = [];
-const PRIOR_MAP = SINCE ? (() => { try { return git("show", `HEAD:${MAP}`); } catch { return ""; } })() : "";
+const PRIOR_MAP = SINCE ? (() => { try { return git("show", `${SINCE_MAP}:${MAP}`); } catch { return ""; } })() : "";
 let lineChecks = 0;
 body.forEach((l, i) => {
   for (const m of l.matchAll(/([A-Za-z0-9_-]+\.(?:js|mjs|md)):(\d+)(?:-(\d+))?/g)) {

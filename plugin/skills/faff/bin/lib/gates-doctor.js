@@ -30,11 +30,15 @@ const DOCTOR_SPEC = { flags: { "--target": { arity: 1 }, "--root": { arity: 1 },
 // message, because V8's JSON.parse messages quote the input and settings files carry credentials.
 function readHookSettingsFile(absPath, scope) {
   const base = { path: absPath, scope, state: "absent", error: null, covers_bash_fence: false, faff_hooks: [] };
-  if (!fs.existsSync(absPath)) return base;
   const invalid = (error) => ({ ...base, state: "invalid", error });
   let text;
+  // No existsSync pre-check: a file removed between the check and the read would read as
+  // invalid. ENOENT on the read itself is the absent state.
   try { text = fs.readFileSync(absPath, "utf8"); }
-  catch (e) { return invalid(`cannot read file (${e && e.code ? e.code : "unknown"})`); }
+  catch (e) {
+    if (e && e.code === "ENOENT") return base;
+    return invalid(`cannot read file (${e && e.code ? e.code : "unknown"})`);
+  }
   let parsed;
   try { parsed = JSON.parse(text); }
   catch { return invalid("not valid JSON"); }

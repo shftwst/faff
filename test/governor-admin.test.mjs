@@ -1176,6 +1176,8 @@ test("the require graph from governor-admin.js never reaches merge-gate, faff's 
   }
   // FAFF-1389: config.js is a facade over config-*.js; none of those may be reachable either.
   assert.deepEqual([...names].filter((n) => n.startsWith("config-")), [], "no config module may be reachable from governor-admin");
+  // FAFF-1392: contract-defs.js was unreachable through run-start; its split parts no longer all reach it.
+  assert.deepEqual([...names].filter((n) => n.startsWith("contract-defs")), [], "no contract-defs module may be reachable from governor-admin");
   // FAFF-1391: merge-gate.js is a facade over merge-gate-*.js; none of those may be reachable either.
   assert.deepEqual([...names].filter((n) => n.startsWith("merge-gate-")), [], "no merge-gate module may be reachable from governor-admin");
 });

@@ -284,7 +284,7 @@ for (const [file, key] of [["settings.local.json", "personal"], ["settings.json"
     withRoot({ [key]: "{ not valid json" }, (root) => {
       const r = doctorHuman(root);
       assert.equal(r.code, 1);
-      assert.match(r.out, new RegExp(`✗ \\.claude/${file.replace(".", "\\.")}  invalid \\(not valid JSON\\)`));
+      assert.match(r.out, new RegExp(`✗ \\.claude/${file.replaceAll(".", "\\.")}  invalid \\(not valid JSON\\)`));
       assert.match(r.out, /merge-fence PreToolUse fence unconfirmed/);
       assert.match(r.out, /1 unreadable Claude settings file\(s\)/);
       const fix = r.out.split("\n").find((l) => l.startsWith("Fix:"));

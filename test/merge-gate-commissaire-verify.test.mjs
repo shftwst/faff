@@ -17,6 +17,7 @@ import { runCli } from "./helpers/run-cli.mjs";
 import { installStubGh } from "./helpers/stub-gh.mjs";
 import { mkGovernedRun, grantedRun, swapInRunnerKey, trustToml, LEDGER } from "./helpers/governed-run.mjs";
 import { trustRepo, localTrustCtx } from "./helpers/trust-context.mjs";
+import { readMergeGateSources } from "./helpers/merge-gate-modules.mjs";
 import * as MG from "../plugin/skills/faff/bin/lib/merge-gate.js";
 import * as commissaire from "../plugin/skills/faff/bin/lib/commissaire.js";
 
@@ -65,11 +66,15 @@ const GOVERNED_PIN = (run) => ({ mode: "present", toml: trustToml([run.kp.pk_fin
 
 // --- source-level Done items ----------------------------------------------------------------------
 
-test("merge-gate.js no longer requires ./commissaire and reads nothing under commissaire/producer or governor", () => {
-  const src = readFileSync(join(LIB, "merge-gate.js"), "utf8");
-  assert.doesNotMatch(src, /require\(["']\.\/commissaire["']\)/);
-  assert.doesNotMatch(src, /["']producer["']|["']governor["']|pk\.json|governor\.json/);
-  assert.match(src, /require\("\.\/commissaire-verify"\)/);
+// FAFF-1391: merge-gate.js is a facade, so the check reads every merge-gate module; the grant legs
+// that require commissaire-verify live in merge-gate-effects.js.
+test("the merge-gate modules no longer require ./commissaire and read nothing under commissaire/producer or governor", () => {
+  const sources = readMergeGateSources(LIB);
+  for (const [file, src] of Object.entries(sources)) {
+    assert.doesNotMatch(src, /require\(["']\.\/commissaire["']\)/, file);
+    assert.doesNotMatch(src, /["']producer["']|["']governor["']|pk\.json|governor\.json/, file);
+  }
+  assert.match(sources["merge-gate-effects.js"], /require\("\.\/commissaire-verify"\)/);
 });
 
 test("readChokepointKeyRecord is retired from commissaire's exports and source", () => {

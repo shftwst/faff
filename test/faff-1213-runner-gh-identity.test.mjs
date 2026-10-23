@@ -17,6 +17,7 @@ import {
 } from "../plugin/skills/faff/bin/lib/merge-gate.js";
 import { appendEventRecord, emitGenesisRunStart, mintIssueAnchor, eventViolations } from "../plugin/skills/faff/bin/lib/events.js";
 import { resolveKnownSecretValues } from "../plugin/skills/faff/bin/lib/redact.js";
+import { readMergeGateSources } from "./helpers/merge-gate-modules.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const LIB = join(HERE, "..", "plugin", "skills", "faff", "bin", "lib");
@@ -204,11 +205,14 @@ test("redaction: token absent from events.jsonl and merge-record.json after a co
 // --- the one-chokepoint conformance grep ------------------------------------
 
 test("conformance: no bare spawnSync(\"gh\" remains outside runGh across the 9-site surface; ghJson delegates to runGh", () => {
-  const mg = readFileSync(join(LIB, "merge-gate.js"), "utf8");
+  // FAFF-1391: merge-gate.js is a facade; the count runs over every merge-gate module, and runGh
+  // and ghJson live in merge-gate-gh.js.
+  const sources = readMergeGateSources(LIB);
+  const mg = sources["merge-gate-gh.js"];
   // Every bare `gh` spawn in the emit is now inside runGh (the single chokepoint). The ONLY
   // literal spawnSync("gh" left is runGh's own body.
   const bareGh = (s) => (s.match(/spawnSync\(\s*["']gh["']/g) || []).length;
-  assert.equal(bareGh(mg), 1, "merge-gate.js: exactly one spawnSync(\"gh\" — inside runGh");
+  assert.equal(Object.values(sources).reduce((n, s) => n + bareGh(s), 0), 1, "merge-gate modules: exactly one spawnSync(\"gh\" — inside runGh");
   const runGhBody = mg.slice(mg.indexOf("function runGh("), mg.indexOf("function githubActorMatches("));
   assert.ok(/spawnSync\(\s*"gh"/.test(runGhBody), "the sole spawnSync(\"gh\" lives inside runGh");
   for (const f of ["forge-merge.js", "review-target.js", "prdr.js"]) {

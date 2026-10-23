@@ -238,4 +238,8 @@ cmsrbin=$(find ~/.claude -path '*/skills/faff/bin/commissaire' -type f 2>/dev/nu
 ln -s "$cmsrbin" ~/.local/bin/commissaire   # the same ~/.local/bin as faff
 ```
 
+A marketplace install does not put `commissaire` on PATH; link it by hand as above, or run `scripts/link-skills.sh --global` from a checkout.
+
+To roll the binary back, remove the symlink. `scripts/link-skills.sh --global --unlink` removes both `faff` and `commissaire` from `~/.local/bin` when they point into that checkout, and leaves a same-named link that points elsewhere alone; a hand-made link is removed with `rm ~/.local/bin/commissaire`. This touches only PATH. `faff commissaire …` reaches the same handler and stays available, and an installed governor runs its own copy of `bin/commissaire` by full path, so it is unaffected.
+
 It exposes the noun-verb grammar `commissaire <object> <action>` (e.g. `commissaire contract admit`, `commissaire contract status`, `commissaire effect authorize`, `commissaire audit verify`) — dispatching into the same handler `faff commissaire …` reaches, so both forms behave identically.

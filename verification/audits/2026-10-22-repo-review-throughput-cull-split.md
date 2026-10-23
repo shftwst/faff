@@ -35,10 +35,17 @@ Eight files in `bin/lib` exceed 2,000 lines: `config.js` 3,881, `contract-defs.j
 ### 1.3 The gate is slow and runs many times per build
 
 - 416 test files; 218 spawn child processes; 1,656 spawn call sites; 77 run `git init`; 11 touch docker.
-- Local gate about 11 minutes. Since FAFF-1356 only `floor(shards/4)` shards run at once because one `sentry-poller` timing test fails under load.
+- Local gate about 11 minutes (an overestimate; see the corrected action below). Since FAFF-1356 only `floor(shards/4)` shards run at once because one `sentry-poller` timing test fails under load.
 - FAFF-1356's build ran the gate seven times for its measurement procedure alone.
 
-- [ ] **Action:** move the timing-sensitive and docker tests (`sentry-poller`, `fan-out`, `heartbeat-concurrency`, `gates-*`, `governor-*-container`, `holdout-rpc-evaluate-integration`, `env`) into a serial lane and run the rest at `local_shard_concurrency = local_shards`. Expected 2 to 3x on the local gate.
+- [x] **Action:** move the timing-sensitive and docker tests into a serial lane and run the rest at full width. Expected 2 to 3x on the local gate. **Corrected 2026-10-23 (FAFF-1382):** the premise was wrong.
+  - **The gate was not 11 minutes.** Measured in a clean worktree of `main` on the 8-core host, the gate took 286 s and UNIT 242 s, the same on two runs.
+  - **The cost was CLI startup, not scheduling.** `bin/faff` loaded all 151 modules on every spawn, 230 to 290 ms against about 60 ms for one module, and the tests spawn the CLI thousands of times.
+  - **The load failures came from layered concurrency:** shards, each running Node's own pool of files.
+  - **What shipped:**
+    - Lazy module loading in `bin/faff`, which took UNIT from 242 s to 159 s.
+    - A gate-owned pool running one file per process, as wide as the core count, with only `sentry-poller` in the serial lane. That took UNIT to 138 to 148 s and the gate to 180 to 189 s.
+    - Together, about 40% off UNIT, not 2 to 3x.
 - [ ] **Action:** add an in-process mode for `runCli` in the spawn-heavy tests (`judge-trail`, `merge-gate-controlflow`, `adversarial-call`), calling the exported `cmd*` handlers instead of a fresh Node process.
 - [ ] **Action:** `faff gates run --budget-secs N --resume` with the exit-3 re-invoke idiom the spec judge already uses, so a lane can poll a long gate across foreground calls. This is orchestrator defect 3 from the last run.
 

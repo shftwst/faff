@@ -781,6 +781,108 @@ async function runShardedRung(rung, root, rung_timeout_ms, n, concurrency) {
   return aggregateShardResults(rung, shardResults, n, Date.now() - started);
 }
 
+// FAFF-1382: a glob with `**`, `*` and `?` over posix-relative paths. Node 20 (the adopter floor)
+// has no fs.globSync, so the pool enumerates its own files.
+function globToRegExp(glob) {
+  let re = "";
+  for (let i = 0; i < glob.length; i++) {
+    const c = glob[i];
+    if (c === "*" && glob[i + 1] === "*") {
+      if (glob[i + 2] === "/") { re += "(?:.*/)?"; i += 2; } else { re += ".*"; i += 1; }
+    } else if (c === "*") re += "[^/]*";
+    else if (c === "?") re += "[^/]";
+    else re += c.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+  }
+  return new RegExp(`^${re}$`);
+}
+
+// FAFF-1382: the files under `cwd` matching `glob`, as sorted posix-relative paths. Walks from the
+// glob's literal prefix and never descends into node_modules or a dot-directory, which is where
+// Node's own default discovery picks up gitignored scratch copies such as .faff/spec-review/*/.
+function listTestFiles(cwd, glob) {
+  const re = globToRegExp(glob);
+  const literal = glob.split("/").slice(0, -1);
+  const stop = literal.findIndex((seg) => /[*?]/.test(seg));
+  const base = (stop === -1 ? literal : literal.slice(0, stop)).join("/");
+  const out = [];
+  const walk = (rel) => {
+    let entries;
+    try { entries = fs.readdirSync(path.join(cwd, rel), { withFileTypes: true }); } catch { return; }
+    for (const e of entries) {
+      const r = rel ? `${rel}/${e.name}` : e.name;
+      if (e.isDirectory()) { if (e.name !== "node_modules" && !e.name.startsWith(".")) walk(r); }
+      else if (e.isFile() && re.test(r)) out.push(r);
+    }
+  };
+  walk(base);
+  return out.sort();
+}
+
+function shellQuote(s) {
+  return `'${String(s).replace(/'/g, "'\\''")}'`;
+}
+
+// FAFF-1382: worst-wins over per-file results, the same precedence as aggregateShardResults
+// (errored > fail > pass, first errored reason in run order), with the detail naming files.
+function aggregateFileResults(rung, fileResults, counts, wall_ms) {
+  let status = "pass";
+  let reason;
+  const firstErrored = fileResults.find((r) => r.status === "errored");
+  if (firstErrored) { status = "errored"; reason = firstErrored.reason; }
+  else if (fileResults.some((r) => r.status === "fail")) status = "fail";
+  const nonPass = fileResults.filter((r) => r.status !== "pass");
+  let detail;
+  if (!nonPass.length) {
+    detail = `all ${fileResults.length} files passed (${counts.pooled} pooled, ${counts.serial} serial)`;
+  } else {
+    // The tail budget is per file and the names are never cut, so every failing file is named.
+    const perFileBudget = Math.max(20, Math.floor(500 / nonPass.length));
+    detail = nonPass.map((r) => `${r.file}: ${String(r.detail || "").slice(-perFileBudget)}`).join(" | ");
+  }
+  const out = { kind: rung.kind, name: rung.name, command: rung.command, status, duration_ms: wall_ms, detail };
+  if (status === "errored" && reason) out.reason = reason;
+  return out;
+}
+
+// FAFF-1382: the gate-owned file pool. Every file matching `glob` runs as its own
+// `<command> <file>` process, `concurrency` at a time; files matching a `serial` entry then run one
+// at a time with nothing else running. Pooled files start largest first, a cheap stand-in for
+// longest first, so a long file does not start last and set the wall-clock alone. An empty match
+// is errored (no-test-files), never a vacuous pass. Results fold in run order (pooled in start
+// order, then serial), so the reported first error does not depend on completion order.
+async function runFilePoolRung(rung, root, rung_timeout_ms, { glob, serial = [], concurrency }) {
+  const started = Date.now();
+  const cwd = rungCwd(rung, root);
+  const files = listTestFiles(cwd, glob);
+  if (!files.length) {
+    return { kind: rung.kind, name: rung.name, command: rung.command, status: "errored", reason: "no-test-files", duration_ms: Date.now() - started, detail: `gates.local_test_files '${glob}' matched no files under ${cwd}` };
+  }
+  const serialRes = serial.map(globToRegExp);
+  const isSerial = (f) => serialRes.some((re) => re.test(f));
+  const size = (f) => { try { return fs.statSync(path.join(cwd, f)).size; } catch { return 0; } };
+  const pooled = files.filter((f) => !isSerial(f)).map((f) => [f, size(f)]).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).map(([f]) => f);
+  const serialFiles = files.filter(isSerial);
+  const runOne = async (f) => {
+    const t = Date.now();
+    const res = await spawnAsync(`${rung.command} ${shellQuote(f)}`, { cwd, timeoutMs: rung_timeout_ms, maxBufferBytes: MAX_RUNG_STDOUT_BYTES });
+    return { file: f, ...classifyRungResult(rung, res, Date.now() - t, rung_timeout_ms) };
+  };
+  const pooledResults = new Array(pooled.length);
+  const width = Math.min((Number.isFinite(concurrency) && concurrency >= 1) ? Math.floor(concurrency) : 1, Math.max(1, pooled.length));
+  let next = 0;
+  const worker = async () => {
+    for (;;) {
+      const slot = next++;
+      if (slot >= pooled.length) return;
+      pooledResults[slot] = await runOne(pooled[slot]);
+    }
+  };
+  await Promise.all(Array.from({ length: width }, () => worker()));
+  const serialResults = [];
+  for (const f of serialFiles) serialResults.push(await runOne(f));
+  return aggregateFileResults(rung, [...pooledResults, ...serialResults], { pooled: pooled.length, serial: serialFiles.length }, Date.now() - started);
+}
+
 // FAFF-1002: runRung is shard-aware — shard-capable commands (the local UNIT rung, once
 // normaliseLocalRungCommand's stripped CI shard is re-derived HERE, sized to this host) run as N
 // bounded-parallel shards so a >600s whole-suite process fits a foreground turn; every other rung
@@ -789,8 +891,9 @@ async function runShardedRung(rung, root, rung_timeout_ms, n, concurrency) {
 // post-merge.js's verifyPostMerge) inherit this with no change to their own calling logic — an
 // async runRung is simply awaited.
 async function runRung(rung, root) {
-  const { rung_timeout_ms, local_shards, local_shard_concurrency } = readGatesConfig(root);
+  const { rung_timeout_ms, local_shards, local_shard_concurrency, local_test_files, serial_tests, file_pool_concurrency } = readGatesConfig(root);
   if (!shardCapable(rung.command)) return runSingleSpawnSync(rung, root, rung_timeout_ms);
+  if (local_test_files) return runFilePoolRung(rung, root, rung_timeout_ms, { glob: local_test_files, serial: serial_tests, concurrency: file_pool_concurrency });
   const n = local_shards;
   if (!(n > 1)) return runSingleSpawnSync(rung, root, rung_timeout_ms);   // 1-core host: no benefit
   return runShardedRung(rung, root, rung_timeout_ms, n, local_shard_concurrency);
@@ -854,7 +957,18 @@ function readGatesConfig(root) {
   let local_shard_concurrency = defaultShardConcurrency(local_shards);
   const lsc = Math.floor(num("gates.local_shard_concurrency"));
   if (Number.isFinite(lsc) && lsc >= 1) local_shard_concurrency = lsc;
-  return { fallback, partial, exclude, max_rungs_per_kind, partial_threshold, rung_timeout_ms, local_shards, local_shard_concurrency };
+  // FAFF-1382: gates.local_test_files (a glob, relative to the rung's cwd) opts the local UNIT rung
+  // into the gate-owned file pool (runFilePoolRung); gates.serial_tests lists files or globs from
+  // that set that run one at a time after the pool drains. The pool runs one file per process, so
+  // its width defaults to the core count, not the shard default: Node's own per-process file pool
+  // (about one per core) is what multiplied the pressure under sharding. A present
+  // local_shard_concurrency still sets the width.
+  const rawFiles = get("gates.local_test_files");
+  const local_test_files = (typeof rawFiles === "string" && rawFiles.trim()) ? rawFiles.trim() : null;
+  const rawSerial = get("gates.serial_tests");
+  const serial_tests = Array.isArray(rawSerial) ? rawSerial.filter((x) => typeof x === "string" && x.trim()).map((x) => x.trim()) : [];
+  const file_pool_concurrency = (Number.isFinite(lsc) && lsc >= 1) ? lsc : safeAvailableParallelism();
+  return { fallback, partial, exclude, max_rungs_per_kind, partial_threshold, rung_timeout_ms, local_shards, local_shard_concurrency, local_test_files, serial_tests, file_pool_concurrency };
 }
 
 // FAFF-1356: a quarter of the shard count keeps peak pressure on timing-sensitive tests well below the
@@ -1375,6 +1489,38 @@ async function gatesSelftest() {
   const idxProg = 'const s=(process.argv.find(a=>a.startsWith("--test-shard"))||"").split("=")[1]||"";if(s.startsWith("1")){setTimeout(()=>{process.stdout.write("MARK1");process.exitCode=1},400)}else{process.stdout.write("MARK2");process.exitCode=1}';
   const idxRung = await runShardedRung({ kind: "UNIT", name: "unit (index order)", command: `node -e '${idxProg}' --` }, dShardPass, 1_800_000, 2, 2);
   cases.push(["shard: results folded in INDEX order regardless of completion order (MARK1 before MARK2)", idxRung.status === "fail" && idxRung.detail.startsWith("shard 1/2: MARK1") && idxRung.detail.indexOf("MARK1") < idxRung.detail.indexOf("MARK2")]);
+
+  // 5k2. FAFF-1382: the gate-owned file pool. Config resolution first, then real runs: a pooled
+  // failure folds to fail, a serial file runs only after every pooled file has finished, a
+  // dot-directory copy is never run, and an empty match is errored rather than a vacuous pass.
+  const poolCfgAbsent = readGatesConfig(mk("pool-cfg-absent", { "README.md": "hi" }));
+  cases.push(["pool: absent local_test_files → null (shard path unchanged)", poolCfgAbsent.local_test_files === null && poolCfgAbsent.serial_tests.length === 0]);
+  cases.push(["pool: width defaults to the core count, not the shard default", poolCfgAbsent.file_pool_concurrency === safeAvailableParallelism()]);
+  const poolCfgSet = readGatesConfig(mk("pool-cfg-set", { ".faffrc.yaml": "gates:\n  local_test_files: test/**/*.test.mjs\n  serial_tests:\n    - test/s.test.mjs\n  local_shard_concurrency: 3\n" }));
+  cases.push(["pool: local_test_files, serial_tests and an explicit width are read", poolCfgSet.local_test_files === "test/**/*.test.mjs" && poolCfgSet.serial_tests.join() === "test/s.test.mjs" && poolCfgSet.file_pool_concurrency === 3]);
+  cases.push(["pool: ** spans zero or more directories", globToRegExp("test/**/*.test.mjs").test("test/a.test.mjs") && globToRegExp("test/**/*.test.mjs").test("test/x/y/a.test.mjs") && !globToRegExp("test/**/*.test.mjs").test("src/test/a.test.mjs")]);
+  cases.push(["pool: a literal dot is not a wildcard", !globToRegExp("a.test.mjs").test("aXtest.mjs")]);
+
+  // The serial file records whether the pooled marker exists when it starts; the pooled file sleeps
+  // first, so the check only passes if the serial file waited for the pool to drain.
+  const dPool = mk("pool-run", {
+    "test/p.test.mjs": "import test from 'node:test'; import fs from 'node:fs'; test('p', async () => { await new Promise((r) => setTimeout(r, 300)); fs.writeFileSync('pooled.done', ''); });\n",
+    "test/s.test.mjs": "import test from 'node:test'; import assert from 'node:assert'; import fs from 'node:fs'; test('s', () => assert.ok(fs.existsSync('pooled.done')));\n",
+    ".faff/copy/stray.test.mjs": "import test from 'node:test'; import assert from 'node:assert'; test('stray', () => assert.ok(false));\n",
+    ".faffrc.yaml": "gates:\n  local_test_files: '**/*.test.mjs'\n  serial_tests:\n    - test/s.test.mjs\n",
+  });
+  const poolRun = await runRung({ kind: "UNIT", name: "unit (pool)", command: "node --test" }, dPool);
+  cases.push(["pool: serial file runs after the pool drains; dot-directory copy is skipped → pass", poolRun.status === "pass" && poolRun.detail === "all 2 files passed (1 pooled, 1 serial)"]);
+  cases.push(["pool: aggregate command stays the logical command", poolRun.command === "node --test"]);
+  const dPoolFail = mk("pool-fail", {
+    "test/a.test.mjs": "import test from 'node:test'; import assert from 'node:assert'; test('a', () => assert.ok(true));\n",
+    "test/b.test.mjs": "import test from 'node:test'; import assert from 'node:assert'; test('b', () => assert.ok(false));\n",
+    ".faffrc.yaml": "gates:\n  local_test_files: test/*.test.mjs\n",
+  });
+  const poolFail = await runRung({ kind: "UNIT", name: "unit (pool fail)", command: "node --test" }, dPoolFail);
+  cases.push(["pool: one failing file → fail, and the detail names it", poolFail.status === "fail" && poolFail.detail.startsWith("test/b.test.mjs: ")]);
+  const poolEmpty = await runRung({ kind: "UNIT", name: "unit (pool empty)", command: "node --test" }, mk("pool-empty", { ".faffrc.yaml": "gates:\n  local_test_files: test/*.test.mjs\n" }));
+  cases.push(["pool: a glob that matches nothing → errored no-test-files, never a vacuous pass", poolEmpty.status === "errored" && poolEmpty.reason === "no-test-files"]);
 
   // 5l. FAFF-1002: aggregateShardResults itself — worst-wins precedence and reason carry, driven
   // directly against fabricated per-shard results (no real process spawn needed for the pure logic).
@@ -2402,4 +2548,4 @@ function cmdSync(args) {
 }
 
 
-module.exports = { CI_COST_PENALTY, GATES_SPEC, GATES_SURFACE, GATE_COST, MAX_RUNG_STDOUT_BYTES, PARTIAL_COVERAGE_THRESHOLD, aggregateSelftest, aggregateShardResults, applyPartialPolicy, assertScanSetExpectCopiesInvariant, buildDoctorJson, capPerKind, defaultShardConcurrency, ciRunnerKind, classifyRungResult, cmdDoctor, cmdGates, cmdSync, discoverCiWorkflows, discoverCiWorkflowsReporting, discoverCiWorkflowsRunnable, discoverMakefile, discoverPkgScripts, discoverPreCommit, discoverRunnerFiles, discoverRungs, discoverRungsReporting, exclusionReason, extractRunCommands, extractRunCommandsWithContext, gateKindForName, gatesContractExtraction, gatesFallbackPolicy, gatesSelftest, gatherDoctorState, localOs, mergeFencePresentAt, normaliseLocalRungCommand, osFamily, readGatesConfig, reportKind, resolveDoctorScanSet, resolveSyncScript, runLadder, runnerKindForName, runRung, runShardedRung, runSingleSpawnSync, safeAvailableParallelism, scanDoctorDirectory, selectRunnableRungs, shardCapable, spawnAsync };
+module.exports = { CI_COST_PENALTY, GATES_SPEC, GATES_SURFACE, GATE_COST, MAX_RUNG_STDOUT_BYTES, PARTIAL_COVERAGE_THRESHOLD, aggregateFileResults, aggregateSelftest, aggregateShardResults, globToRegExp, listTestFiles, runFilePoolRung, applyPartialPolicy, assertScanSetExpectCopiesInvariant, buildDoctorJson, capPerKind, defaultShardConcurrency, ciRunnerKind, classifyRungResult, cmdDoctor, cmdGates, cmdSync, discoverCiWorkflows, discoverCiWorkflowsReporting, discoverCiWorkflowsRunnable, discoverMakefile, discoverPkgScripts, discoverPreCommit, discoverRunnerFiles, discoverRungs, discoverRungsReporting, exclusionReason, extractRunCommands, extractRunCommandsWithContext, gateKindForName, gatesContractExtraction, gatesFallbackPolicy, gatesSelftest, gatherDoctorState, localOs, mergeFencePresentAt, normaliseLocalRungCommand, osFamily, readGatesConfig, reportKind, resolveDoctorScanSet, resolveSyncScript, runLadder, runnerKindForName, runRung, runShardedRung, runSingleSpawnSync, safeAvailableParallelism, scanDoctorDirectory, selectRunnableRungs, shardCapable, spawnAsync };

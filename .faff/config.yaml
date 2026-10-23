@@ -31,6 +31,12 @@ gates:
     # `--region factory` and `--region governance` on every PR. Case-sensitive substring match.
     exclude:
         - regions selftest
+    # FAFF-1382: the local UNIT rung runs one test file per process, as many at once as there are
+    # cores, instead of Node's shards. `test/` only, so gitignored copies under `.faff/` never run.
+    # sentry-poller has failed under load twice (FAFF-1137, FAFF-1356), so it runs alone after the pool.
+    local_test_files: test/**/*.test.mjs
+    serial_tests:
+        - test/sentry-poller.test.mjs
 
 review:
     fixture_paths:

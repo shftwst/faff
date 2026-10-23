@@ -30,7 +30,19 @@ The two builds were serialised because both specs touch `plugin/skills/faff/bin/
 
 Eight files in `bin/lib` exceed 2,000 lines: `config.js` 3,881, `contract-defs.js` 3,725, `merge-gate.js` 3,184, `gates.js` 2,405, `events.js` 2,326, `lights-out.js` 2,266, `bundle.js` 2,197, `sentry.js` 2,009. Almost any two tickets touch one of them, so conflict analysis puts them in one serial group and the parallel executor runs one lane at a time.
 
-- [ ] **Action:** split `config.js`, `gates.js` and `merge-gate.js` along their existing section banners before any other refactor. Measure the effect as the share of beep-boop waves with more than one concurrent lane.
+- [x] **Action:** split `config.js`, `gates.js` and `merge-gate.js` along their existing section banners before any other refactor. Measure the effect as the share of beep-boop waves with more than one concurrent lane.
+  - **Split shipped 2026-10-23 (FAFF-1389, FAFF-1390, FAFF-1391; #1109 to #1111).** Each file is now a facade that re-exports every name it exported before, over modules that require each other directly. Function bodies moved unchanged.
+
+    | File | Before | Facade | Modules | Largest module |
+    |---|---|---|---|---|
+    | `config.js` | 3,881 | 392 | 6 | 925 |
+    | `gates.js` | 2,551 | 36 | 7 | 745 |
+    | `merge-gate.js` | 3,184 | 339 | 8 | 905 |
+
+  - **Not along banners for `config.js`.** It had one real banner, so its cuts follow cohesion.
+  - **One banner was wrong.** The FAFF-848 banner in `gates.js` said `gates run` never touches the reporting path; that has been false since FAFF-849. The banner now states what still holds, and the require graph enforces it.
+  - **Guards that named a module exactly** (`governor-admin`, `commissaire-trust`, `commissaire-standalone`, and the source-reading `merge-gate` tests) now cover the new `config-*` and `merge-gate-*` modules too.
+  - **Measurement pending.** The share of beep-boop waves with more than one concurrent lane needs runs on the split tree; none had run when this was ticked.
 
 ### 1.3 The gate is slow and runs many times per build
 

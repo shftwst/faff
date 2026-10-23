@@ -127,6 +127,47 @@ function isPresent(sub, settings) {
   return cmds.some((c) => commandInvokesFaffHook(c, sub));
 }
 
+// FAFF-1295: the file a default `faff hooks-ensure` run writes: "shared"
+// (.claude/settings.json) or "personal" (.claude/settings.local.json). Doctor reads it
+// at call time to decide whether to print its settings.json advisories, so its advice
+// follows where a default run really writes. Not a parsed flag table.
+const HOOKS_DEFAULT_TARGET = "shared";
+
+// FAFF-1295: every faff hook key a parsed settings object holds, in FAFF_STOP_HOOKS
+// order then FAFF_PRE_TOOL_USE_MATCHER_GROUPS order. Keys match the `already` list:
+// the bare name for a Stop hook, "<matcher>::<sub>" for a PreToolUse hook. Pure, no
+// I/O, built only from isPresent/isPresentInMatcher so doctor and hooks-ensure agree.
+function faffHookKeysIn(settings) {
+  const keys = [];
+  for (const sub of FAFF_STOP_HOOKS) if (isPresent(sub, settings)) keys.push(sub);
+  for (const { matcher, subs } of FAFF_PRE_TOOL_USE_MATCHER_GROUPS) {
+    for (const sub of subs) if (isPresentInMatcher(sub, settings, matcher)) keys.push(`${matcher}::${sub}`);
+  }
+  return keys;
+}
+
+// FAFF-1295: does merge-fence sit under a PreToolUse matcher that fires on the Bash tool?
+// Exactly "Bash", an empty/absent or "*" matcher, or a matcher that compiled as a regex
+// matches "Bash" (the generous reading of Claude Code's match). A matcher that is not a
+// valid regex counts only on an exact "Bash". Uses commandInvokesFaffHook for the faff test.
+function fenceCoversBash(settings) {
+  const pre = settings && settings.hooks && settings.hooks.PreToolUse;
+  if (!Array.isArray(pre)) return false;
+  for (const group of pre) {
+    if (!group || !Array.isArray(group.hooks)) continue;
+    const m = group.matcher;
+    let fires;
+    if (m === undefined || m === null || m === "" || m === "*" || m === "Bash") fires = true;
+    else if (typeof m !== "string") fires = false;
+    else {
+      try { fires = new RegExp(m).test("Bash"); } catch { fires = false; }
+    }
+    if (!fires) continue;
+    if (group.hooks.some((h) => h && typeof h.command === "string" && commandInvokesFaffHook(h.command, "merge-fence"))) return true;
+  }
+  return false;
+}
+
 // Pure planner — no I/O. present/served are subcommand-name lists; binInvocation(sub)
 // builds the command string to register. Mirrors gitignoreEnsure's pure-core shape.
 // FAFF-200: also normalizes a PRESENT faff Stop-hook whose stored command diverges
@@ -520,10 +561,35 @@ function hooksEnsureSelftest() {
     if (got !== want) fail++;
     console.log(`${got === want ? "ok  " : "FAIL"} identity '${cmd}' ~ ${sub} → ${got} (want ${want})`);
   }
-  const total = HOOKS_ENSURE_SELFTEST_CASES.length + HOOKS_ENSURE_PRE_TOOL_USE_SELFTEST_CASES.length + 2 + idCases.length;
+  // FAFF-1295: faffHookKeysIn, over fixed literal data (never read from disk: the real
+  // settings files are gitignored and absent in CI). The split fixture copies this
+  // checkout's shared/personal split.
+  const stopCmd = (s) => ({ type: "command", command: `faff ${s} --hook` });
+  const splitShared = { hooks: {
+    Stop: [{ hooks: ["prepcheck", "inflightcheck", "resumecheck", "sentrycheck", "turncheck"].map(stopCmd) }],
+    PreToolUse: [
+      { matcher: "Bash", hooks: [stopCmd("merge-fence"), stopCmd("background-fence")] },
+      { matcher: "Monitor", hooks: [stopCmd("background-fence")] }] } };
+  const splitPersonal = { hooks: { Stop: [{ hooks: [stopCmd("runcheck")] }] } };
+  const keyCases = [
+    ["empty object", {}, []],
+    ["split: shared object", splitShared,
+      ["prepcheck", "inflightcheck", "resumecheck", "sentrycheck", "turncheck", "Bash::merge-fence", "Bash::background-fence", "Monitor::background-fence"]],
+    ["split: personal object", splitPersonal, ["runcheck"]],
+    ["merge-fence under Write only", { hooks: { PreToolUse: [{ matcher: "Write", hooks: [stopCmd("merge-fence")] }] } }, []],
+    ["non-faff command", { hooks: { Stop: [{ hooks: [{ type: "command", command: "echo done" }] }],
+      PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "echo merge-fence --hook" }] }] } }, []],
+  ];
+  for (const [label, settings, want] of keyCases) {
+    const got = faffHookKeysIn(settings);
+    const ok = JSON.stringify(got) === JSON.stringify(want);
+    if (!ok) fail++;
+    console.log(`${ok ? "ok  " : "FAIL"} faffHookKeysIn: ${label} → ${JSON.stringify(got)}`);
+  }
+  const total = HOOKS_ENSURE_SELFTEST_CASES.length + HOOKS_ENSURE_PRE_TOOL_USE_SELFTEST_CASES.length + 2 + idCases.length + keyCases.length;
   console.log(`\nRESULT: ${fail ? "FAIL" : "PASS"} (${total} cases, ${fail} failed)`);
   return fail ? 1 : 0;
 }
 
 
-module.exports = { FAFF_ALL_HOOKS, FAFF_PRE_TOOL_USE_HOOKS, FAFF_PRE_TOOL_USE_MATCHER_GROUPS, FAFF_STOP_HOOKS, HOOKS_ENSURE_PRE_TOOL_USE_SELFTEST_CASES, HOOKS_ENSURE_SELFTEST_CASES, cmdHooksEnsure, commandInvokesFaffHook, hooksEnsureSelftest, isPresent, isPresentInMatcher, planPreToolUseHooks, planStopHooks, preToolUseCommands, preToolUseCommandsForMatcher, probeServes, readJsonOrEmpty, resolveHookBin, stopCommands, whichFaff };
+module.exports = { FAFF_ALL_HOOKS, FAFF_PRE_TOOL_USE_HOOKS, FAFF_PRE_TOOL_USE_MATCHER_GROUPS, FAFF_STOP_HOOKS, HOOKS_DEFAULT_TARGET, HOOKS_ENSURE_PRE_TOOL_USE_SELFTEST_CASES, HOOKS_ENSURE_SELFTEST_CASES, cmdHooksEnsure, commandInvokesFaffHook, faffHookKeysIn, fenceCoversBash, hooksEnsureSelftest, isPresent, isPresentInMatcher, planPreToolUseHooks, planStopHooks, preToolUseCommands, preToolUseCommandsForMatcher, probeServes, readJsonOrEmpty, resolveHookBin, stopCommands, whichFaff };

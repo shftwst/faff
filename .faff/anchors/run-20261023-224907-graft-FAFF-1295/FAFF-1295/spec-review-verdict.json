@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 2,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec justifies scoping doctor's fence presence to the exact key `\"Bash::merge-fence\"` with \"A `merge-fence` registered under another matcher never sees a Bash command, so reporting it missing is accurate.\" That premise is false: Claude Code PreToolUse matchers are regexes, so a fence registered under `\"Bash|Monitor\"` (or `\".*\"`) does see Bash commands and fires. Under this spec such an install flips from `present` to `missing`, exits 1, and prints \"MISSING — run: faff hooks-ensure\" for a fence that is working.",
+      "evidence": "Spec §How, \"Chosen: doctor's `merge_fence` presence is the key `\"Bash::merge-fence\"`…\"; contrast today's unscoped reader at `gates.js:1989` (`preToolUseCommands`). The spec's own failure-modes table names `\"Bash|Monitor\"` and says \"proceed\", so the behaviour is deliberate — but the sentence that justifies it is wrong, and the consequence compounds with the gateway's exit-1 handling (kernel offers `faff sync`, which registers nothing).",
+      "predicted_consequence": "An adopter who hand-registered the fence under a broader matcher gets a false \"not clean\" on every doctor run, with a remedy (`hooks-ensure`) that adds a duplicate hook rather than repairing anything — exactly the doctor/`hooks-ensure` disagreement class this ticket exists to eliminate, reintroduced at the matcher boundary.",
+      "spec_anchor": "how",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Revision 3 counts merge-fence present under any matcher that fires on the Bash tool (fenceCoversBash), with the failure mode corrected.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The spec justifies scoping doctor's fence presence to the exact key `\"Bash::merge-fence\"` with \"A `merge-fence` registered under another matcher never sees a Bash command, so reporting it missing is accurate.\" That premise is false: Claude Code PreToolUse matchers are regexes, so a fence registered under `\"Bash|Monitor\"` (or `\".*\"`) does see Bash commands and fires. Under this spec such an install flips from `present` to `missing`, exits 1, and prints \"MISSING — run: faff hooks-ensure\" for a fence that is working.",
+          "spec_anchor": "how"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The advisory lines are gated on `require(\"./hooks-ensure\").HOOKS_ENSURE_SPEC.flags[\"--shared\"]` — feature detection by introspecting a sibling module's CLI flag table. This is not a temporary shim: the spec gives no removal condition, so after FAFF-1297 lands the probe stays as a permanent seam where doctor's rendered output depends on a data structure whose purpose is argument parsing, not capability declaration.",
+      "evidence": "Spec §How, \"Chosen: the two advisory lines print only when `hooks-ensure` reports that its default write target is the personal file: `gatherDoctorState` checks `require(\"./hooks-ensure\").HOOKS_ENSURE_SPEC.flags[\\\"--shared\\\"]`…\"; failure mode 1 concedes the fragility (\"point the capability check at whatever FAFF-1297 actually exports\").",
+      "predicted_consequence": "Any future refactor of `HOOKS_ENSURE_SPEC` (renaming the flag, restructuring the spec table, FAFF-1297 itself) silently changes doctor's output; nothing fails loudly because the probe is a truthy lookup, not a contract.",
+      "spec_anchor": "how",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Revision 3 gates the advisory lines on an exported HOOKS_DEFAULT_TARGET constant that FAFF-1297 flips, not on a flag table.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The advisory lines are gated on `require(\"./hooks-ensure\").HOOKS_ENSURE_SPEC.flags[\"--shared\"]` — feature detection by introspecting a sibling module's CLI flag table. This is not a temporary shim: the spec gives no removal condition, so after FAFF-1297 lands the probe stays as a permanent seam where doctor's rendered output depends on a data structure whose purpose is argument parsing, not capability declaration.",
+          "spec_anchor": "how"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The DONE item requires `--json` to \"report `advisories_active: false`\", and the How section says it is \"recorded in the state\", but the `DoctorState` change is specified as gaining exactly **two** keys (`hookSettings`, `fenceStatus`), and the `DoctorJsonAdditions` record lists only `merge_fence_status`, `hook_settings`, and the existing `merge_fence`. A builder following WHAT literally omits the field; a tester cannot know where it lives (top-level JSON key? nested?), and the `DoctorJson` totality test's `accountedFor` set — which the spec explicitly extends with only `\"hookSettings\"` and `\"fenceStatus\"` — would not account for it, so the totality test and the DONE item pull in opposite directions.",
+      "evidence": "\"From HOW (behaviour)\" item \"…reports `advisories_active: false` in `--json`\"; \"**`DoctorState` gains two keys**\"; `RECORD DoctorJsonAdditions`; \"the totality test's `accountedFor` set (line 736) gains `\"hookSettings\"` and `\"fenceStatus\"`\".",
+      "predicted_consequence": "A build that satisfies every specified JSON field fails the DONE assertion (or the totality test fails a build that added the field), so done-ness for the advisory-gating behaviour is ambiguous until the field is named in WHAT and added to `accountedFor`.",
+      "spec_anchor": "what",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Revision 3 defines hookAdvisoriesActive and hook_advisories_active and adds them to the totality test.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The DONE item requires `--json` to \"report `advisories_active: false`\", and the How section says it is \"recorded in the state\", but the `DoctorState` change is specified as gaining exactly **two** keys (`hookSettings`, `fenceStatus`), and the `DoctorJsonAdditions` record lists only `merge_fence_status`, `hook_settings`, and the existing `merge_fence`. A builder following WHAT literally omits the field; a tester cannot know where it lives (top-level JSON key? nested?), and the `DoctorJson` totality test's `accountedFor` set — which the spec explicitly extends with only `\"hookSettings\"` and `\"fenceStatus\"` — would not account for it, so the totality test and the DONE item pull in opposite directions.",
+          "spec_anchor": "what"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The PROCEDURE for `hookSettingsAt` computes `fence_status` from the exact key — `IF \"Bash::merge-fence\" IN shared.faff_hooks OR IN personal.faff_hooks: fence_status = present` — while the \"Chosen\" paragraph in How says `fence_status` is computed by the broader `fenceCoversBash(settings)` predicate (\"used only for `fence_status`\"), and the round-1 resolution states \"`fenceCoversBash` counts a merge-fence under any matcher that fires on Bash as present.\" The spec's two normative statements about the same computation disagree. A builder implementing the pseudocode verbatim ships exactly the regression round 1 fixed (a working `\"Bash|Monitor\"` or `\".*\"` fence reported missing), caught only downstream by the DONE items rather than by the spec itself.",
+      "evidence": "Spec, \"Reading the two files\" step 4 vs. the third \"Chosen\" paragraph in \"Folding into doctor's single exit\" / How; round-1 settled item 1 in the context file.",
+      "predicted_consequence": "The first build of `hookSettingsAt` follows the pseudocode, fails the `\"Bash|Monitor\"` / `\".*\"` DONE items, and the fix is a re-derivation of which of the two contradictory normative statements governs — an avoidable churn loop on the exact axis this ticket exists to settle.",
+      "spec_anchor": "reading-the-two-files",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Revision 4 makes hookSettingsAt read covers_bash_fence, and updates decision 3 and failure mode 1 to match.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The PROCEDURE for `hookSettingsAt` computes `fence_status` from the exact key — `IF \"Bash::merge-fence\" IN shared.faff_hooks OR IN personal.faff_hooks: fence_status = present` — while the \"Chosen\" paragraph in How says `fence_status` is computed by the broader `fenceCoversBash(settings)` predicate (\"used only for `fence_status`\"), and the round-1 resolution states \"`fenceCoversBash` counts a merge-fence under any matcher that fires on Bash as present.\" The spec's two normative statements about the same computation disagree. A builder implementing the pseudocode verbatim ships exactly the regression round 1 fixed (a working `\"Bash|Monitor\"` or `\".*\"` fence reported missing), caught only downstream by the DONE items rather than by the spec itself.",
+          "spec_anchor": "reading-the-two-files"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec defines the predicate as \"a matcher that, read as Claude Code reads it (a regex), fully matches the string `Bash`.\" Whether Claude Code matches PreToolUse matchers with a full match or a partial regex test (`re.test(toolName)`, under which a matcher like `Bas` or `^Ba` fires on `Bash` but does not fully match) is never established — the Assumptions section validates only the two-file merge. If Claude Code's test is partial, doctor reports MISSING on a fence that actually fires, and `hooks-ensure` adds a duplicate `Bash` entry — the precise failure mode round 1's fix was meant to eliminate, now relocated to rarer matchers and blessed by the spec's own failure-modes table as \"proceed.\"",
+      "evidence": "Spec, third \"Chosen\" paragraph in How (\"fully matches the string `Bash`\"); Assumptions section (only the merge assumption, with its validate step); failure modes table (the `\"Monitor\"` flip is named, the partial-match case is not).",
+      "predicted_consequence": "On an install whose fence sits under a partially-matching matcher, doctor exits 1 with \"fence MISSING,\" the operator runs `hooks-ensure`, gets a harmless duplicate, and doctor still reports present only via the new entry — a self-perpetuating wrong diagnosis the spec's failure-modes table does not cover.",
+      "spec_anchor": "folding-into-doctors-single-exit",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Revision 4 uses a partial regex test, the generous reading, with a stated assumption and its validation.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The spec defines the predicate as \"a matcher that, read as Claude Code reads it (a regex), fully matches the string `Bash`.\" Whether Claude Code matches PreToolUse matchers with a full match or a partial regex test (`re.test(toolName)`, under which a matcher like `Bas` or `^Ba` fires on `Bash` but does not fully match) is never established — the Assumptions section validates only the two-file merge. If Claude Code's test is partial, doctor reports MISSING on a fence that actually fires, and `hooks-ensure` adds a duplicate `Bash` entry — the precise failure mode round 1's fix was meant to eliminate, now relocated to rarer matchers and blessed by the spec's own failure-modes table as \"proceed.\"",
+          "spec_anchor": "folding-into-doctors-single-exit"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The spec mandates that an invalid settings file's `error` field hold \"parser or fs message\" and that the human ✗ line print it as `invalid (<error>)`. Modern V8 `JSON.parse` errors embed an excerpt of the input string (e.g. `Unexpected token 'o', \"{ not valid json\" is not valid JSON`). `.claude/settings.json` / `settings.local.json` routinely carry an `env` block with API tokens and other credentials; a malformed file whose parse failure lands near such a value leaks a fragment of that value into doctor's stdout, and — via the kernel's autonomous lane, which logs doctor exit-1 findings to `.faff/logs/…` — into an on-disk log.",
+      "evidence": "WHAT, `HookSettingsFile.error` (\"parser or fs message when state = invalid\"); the human-output table row `✗ .claude/<file>  invalid (<error>) …`; kernel.md doctor-at-entry autonomous branch (logs findings to `.faff/logs/…`).",
+      "predicted_consequence": "a fragment of a credential value from a malformed settings file appears in terminal output and in `.faff/logs/` on machines running the autonomous lane.",
+      "spec_anchor": "human-output",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Revision 4 replaces the parser message with fixed error strings, with a DoD item that a token never appears in output.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The spec mandates that an invalid settings file's `error` field hold \"parser or fs message\" and that the human ✗ line print it as `invalid (<error>)`. Modern V8 `JSON.parse` errors embed an excerpt of the input string (e.g. `Unexpected token 'o', \"{ not valid json\" is not valid JSON`). `.claude/settings.json` / `settings.local.json` routinely carry an `env` block with API tokens and other credentials; a malformed file whose parse failure lands near such a value leaks a fragment of that value into doctor's stdout, and — via the kernel's autonomous lane, which logs doctor exit-1 findings to `.faff/logs/…` — into an on-disk log.",
+          "spec_anchor": "human-output"
+        }
+      ]
+    }
+  ]
+}

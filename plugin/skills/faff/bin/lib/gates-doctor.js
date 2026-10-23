@@ -8,7 +8,8 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { parseArgs, usageError } = require("./argv");
 const { loadConfig } = require("./config");
-const { commandInvokesFaffHook, preToolUseCommands } = require("./hooks-ensure");
+const hooksEnsure = require("./hooks-ensure");
+const { faffHookKeysIn, fenceCoversBash } = hooksEnsure;
 const { dig, findRoot, homeDir, mainWorktreeRoot } = require("./shared-infra");
 
 const SYNC_SPEC = { flags: { "--json": { arity: 0 }, "--dry-run": { arity: 0 }, "--script": { arity: 1 } } };
@@ -18,15 +19,53 @@ const DOCTOR_SPEC = { flags: { "--target": { arity: 1 }, "--root": { arity: 1 },
 // marketplace install) rather than symlinks to the repo — in which case shipped repo changes don't
 // go live until `link-skills.sh --global --replace`. This reads the FILESYSTEM (is <dir> a symlink?),
 // so it reports correctly even when run from a stale installed bin/faff — it is not circular.
-// FAFF-434: is the merge-fence PreToolUse hook registered under <root>/.claude/settings.json?
-// Independent of the --target skills-dir scan (a different install-health axis entirely) —
-// absent/malformed settings.json degrades to "missing", never a crash (a repo with no
-// .claude/settings.json yet is the common pre-hooks-ensure state, not a doctor fault).
+// FAFF-434/FAFF-1295: is the merge-fence PreToolUse hook registered? Claude Code merges the
+// hooks of .claude/settings.json (shared) and .claude/settings.local.json (personal), so this
+// reads both, each on its own: one bad file never hides the other's hooks. Independent of the
+// --target skills-dir scan (a different install-health axis). An absent file is the common
+// pre-hooks-ensure state, not a doctor fault. A file that exists but cannot be read is its own
+// named finding ("invalid"), never "missing": the "missing" remedy (`faff hooks-ensure`) exits 2
+// on that same file. Read-only: nothing in either file is written, normalised or deleted.
+// `error` is always a fixed string (only an fs error code is interpolated), never the parser's
+// message, because V8's JSON.parse messages quote the input and settings files carry credentials.
+function readHookSettingsFile(absPath, scope) {
+  const base = { path: absPath, scope, state: "absent", error: null, covers_bash_fence: false, faff_hooks: [] };
+  const invalid = (error) => ({ ...base, state: "invalid", error });
+  let text;
+  // No existsSync pre-check: a file removed between the check and the read would read as
+  // invalid. ENOENT on the read itself is the absent state.
+  try { text = fs.readFileSync(absPath, "utf8"); }
+  catch (e) {
+    if (e && e.code === "ENOENT") return base;
+    return invalid(`cannot read file (${e && e.code ? e.code : "unknown"})`);
+  }
+  let parsed;
+  try { parsed = JSON.parse(text); }
+  catch { return invalid("not valid JSON"); }
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return invalid("top-level value is not a JSON object");
+  }
+  return { ...base, state: "ok", covers_bash_fence: fenceCoversBash(parsed), faff_hooks: faffHookKeysIn(parsed) };
+}
+
+// Never throws. fence_status: present when either readable file holds a merge-fence under a
+// matcher that fires on Bash; else unconfirmed when a file is invalid (the fence may be in it);
+// else missing.
+function hookSettingsAt(root) {
+  const dir = path.join(root, ".claude");
+  const shared = readHookSettingsFile(path.join(dir, "settings.json"), "shared");
+  const personal = readHookSettingsFile(path.join(dir, "settings.local.json"), "personal");
+  const inPersonal = new Set(personal.faff_hooks);
+  const in_both = shared.faff_hooks.filter((k) => inPersonal.has(k));
+  let fence_status;
+  if (shared.covers_bash_fence || personal.covers_bash_fence) fence_status = "present";
+  else if (shared.state === "invalid" || personal.state === "invalid") fence_status = "unconfirmed";
+  else fence_status = "missing";
+  return { shared, personal, in_both, fence_status };
+}
+
 function mergeFencePresentAt(root) {
-  let settings;
-  try { settings = JSON.parse(fs.readFileSync(path.join(root, ".claude", "settings.json"), "utf8")); }
-  catch { return false; }
-  return preToolUseCommands(settings).some((c) => commandInvokesFaffHook(c, "merge-fence"));
+  return hookSettingsAt(root).fence_status === "present";
 }
 
 // FAFF-1172: the stale-emit install-health axis. Under the TypeScript emit layout (ADR-0132,
@@ -349,10 +388,17 @@ function gatherDoctorState(scanSet, collapseNotices, expectCopies, root, targetO
     }
   } catch { /* bin link optional — stays "absent" */ }
 
-  // FAFF-434: the merge-fence PreToolUse registration — a distinct install-health axis from
-  // the skill-link scan above (reads <root>/.claude/settings.json, not a scanned skills dir),
-  // folded into the same non-clean exit. Machine-wide: runs exactly once per invocation.
-  const fenceOk = mergeFencePresentAt(root);
+  // FAFF-434/FAFF-1295: the merge-fence PreToolUse registration — a distinct install-health axis
+  // from the skill-link scan above (reads <root>/.claude/settings.json and settings.local.json,
+  // not a scanned skills dir), folded into the same non-clean exit. An unreadable settings file
+  // is its own exit-1 cause. Machine-wide: runs exactly once per invocation. The two settings.json
+  // advisories print only when hooks-ensure's default write target is the personal file; the
+  // constant is read at call time so a test can stub it.
+  const hookSettings = hookSettingsAt(root);
+  const fenceStatus = hookSettings.fence_status;
+  const fenceOk = fenceStatus === "present";
+  const anyInvalidSettings = hookSettings.shared.state === "invalid" || hookSettings.personal.state === "invalid";
+  const hookAdvisoriesActive = hooksEnsure.HOOKS_DEFAULT_TARGET === "personal";
 
   // The plugin root this run's scan short-circuited to, or null. expectCopies is
   // scan-set-wide and (by the return-site invariant on resolveDoctorScanSet) sound only
@@ -365,12 +411,12 @@ function gatherDoctorState(scanSet, collapseNotices, expectCopies, root, targetO
   const { active: emitCheckActive, stale: staleEmits } = gatherStaleEmits(root);
 
   const anyMissingHere = scans.some((s) => s.missingHere.length > 0);
-  const exit = emptyUnion ? 2 : ((copies > 0 || dangling > 0 || intoWorktree > 0 || anyMissingHere || !fenceOk || staleEmits.length > 0) ? 1 : 0);
+  const exit = emptyUnion ? 2 : ((copies > 0 || dangling > 0 || intoWorktree > 0 || anyMissingHere || !fenceOk || anyInvalidSettings || staleEmits.length > 0) ? 1 : 0);
 
   return {
     scanSet, scans, collapseNotices, unionSize: union.size, emptyUnion,
     copies, dangling, intoWorktree, expected,
-    binFaff, fenceOk, pluginRoot, anyMissingHere, emitCheckActive, staleEmits, exit,
+    binFaff, fenceOk, hookSettings, fenceStatus, hookAdvisoriesActive, anyInvalidSettings, pluginRoot, anyMissingHere, emitCheckActive, staleEmits, exit,
   };
 }
 
@@ -405,9 +451,23 @@ function renderHuman(state) {
     out.push(`  • bin/faff  real file (copy)`);
   }
 
-  out.push(state.fenceOk
-    ? `  ✓ merge-fence PreToolUse fence present`
-    : `  ✗ merge-fence PreToolUse fence MISSING — run: faff hooks-ensure`);
+  if (state.fenceStatus === "present") out.push(`  ✓ merge-fence PreToolUse fence present`);
+  else if (state.fenceStatus === "unconfirmed") out.push(`  ✗ merge-fence PreToolUse fence unconfirmed: a settings file is unreadable (below)`);
+  else out.push(`  ✗ merge-fence PreToolUse fence MISSING — run: faff hooks-ensure`);
+  const invalidFiles = [state.hookSettings.shared, state.hookSettings.personal].filter((f) => f.state === "invalid");
+  const relSettings = (f) => `.claude/${path.basename(f.path)}`;
+  for (const f of invalidFiles) {
+    out.push(`  ✗ ${relSettings(f)}  invalid (${f.error}); fix or remove it, faff cannot read hooks from it`);
+  }
+  if (state.hookAdvisoriesActive) {
+    const sharedKeys = state.hookSettings.shared.faff_hooks;
+    if (sharedKeys.length > 0) {
+      out.push(`  ⚠ faff hooks in .claude/settings.json (a file teams often commit): ${sharedKeys.join(", ")}; expected only if this team runs faff hooks-ensure --shared, otherwise remove them by hand`);
+    }
+    if (state.hookSettings.in_both.length > 0) {
+      out.push(`  ⚠ faff hooks registered in both settings files: ${state.hookSettings.in_both.join(", ")}; remove the copy in .claude/settings.json unless this team runs faff hooks-ensure --shared`);
+    }
+  }
 
   // FAFF-1172: the stale-emit axis line. Printed only where the axis is active (the build is
   // runnable here); a skipped axis prints nothing — there is nothing to check.
@@ -428,13 +488,17 @@ function renderHuman(state) {
     for (const s of state.scans) {
       if (s.missingHere.length > 0) problems.push(`${s.missingHere.length} skill(s) missing from ${s.directory}`);
     }
-    if (!state.fenceOk) problems.push("merge-fence PreToolUse fence missing");
+    if (state.fenceStatus === "missing") problems.push("merge-fence PreToolUse fence missing");
+    else if (state.fenceStatus === "unconfirmed") problems.push("merge-fence PreToolUse fence unconfirmed");
+    if (invalidFiles.length > 0) problems.push(`${invalidFiles.length} unreadable Claude settings file(s)`);
     if (state.staleEmits.length > 0) problems.push(`${state.staleEmits.length} stale TypeScript emit(s)`);
     out.push("");
     out.push(`RESULT: ${problems.join(" + ")} — install is not clean.`);
     const fixes = [];
     if (state.copies > 0 || state.dangling > 0 || state.intoWorktree > 0 || state.anyMissingHere) fixes.push("bash scripts/link-skills.sh --global --replace --prune  (from the main checkout)");
-    if (!state.fenceOk) fixes.push("faff hooks-ensure");
+    // hooks-ensure exits 2 on an unreadable settings file, so it is not the remedy while one exists.
+    if (state.fenceStatus === "missing" && invalidFiles.length === 0) fixes.push("faff hooks-ensure");
+    for (const f of invalidFiles) fixes.push(`fix the JSON in ${relSettings(f)}`);
     if (state.staleEmits.length > 0) fixes.push("npm run build  (from plugin/skills/faff/)");
     out.push(`Fix: ${fixes.join(" && ")}`);
     console.log(out.join("\n"));
@@ -450,6 +514,12 @@ function renderHuman(state) {
   return state.exit;
 }
 
+// FAFF-1295: the hook_settings wire shape (covers_bash_fence and scope stay internal).
+function hookSettingsJson(hs) {
+  const file = (f) => ({ path: f.path, state: f.state, error: f.error, faff_hooks: f.faff_hooks });
+  return { shared: file(hs.shared), personal: file(hs.personal), in_both: hs.in_both };
+}
+
 // FAFF-675: pure state → DoctorJson object builder, no I/O — the total projection of
 // DoctorState onto the --json wire shape. Kept separate from renderJson (which owns the
 // stdout/stderr side effects) so tests can assert the object shape directly.
@@ -461,6 +531,8 @@ function buildDoctorJson(state) {
         names_found: [], live: 0, copies: 0, dangling: 0, into_worktree: 0, expected: 0, missing_here: [], findings: [],
       })),
       plugin_root: state.pluginRoot, merge_fence: state.fenceOk, bin_faff: state.binFaff,
+      merge_fence_status: state.fenceStatus, hook_advisories_active: state.hookAdvisoriesActive,
+      hook_settings: hookSettingsJson(state.hookSettings),
       emit_check: state.emitCheckActive ? "active" : "skipped",
       stale_emits: state.staleEmits.map((p) => ({ source: p.source, emit: p.emit })),
       exit: state.exit, ok: state.exit === 0,
@@ -482,6 +554,8 @@ function buildDoctorJson(state) {
       findings: s.findings,
     })),
     plugin_root: state.pluginRoot, merge_fence: state.fenceOk, bin_faff: state.binFaff,
+    merge_fence_status: state.fenceStatus, hook_advisories_active: state.hookAdvisoriesActive,
+    hook_settings: hookSettingsJson(state.hookSettings),
     emit_check: state.emitCheckActive ? "active" : "skipped",
     stale_emits: state.staleEmits.map((p) => ({ source: p.source, emit: p.emit })),
     exit: state.exit, ok: state.exit === 0,
@@ -587,4 +661,4 @@ function cmdSync(args) {
   return r.status === 0 ? 0 : (r.status === 2 ? 2 : 1);
 }
 
-module.exports = { assertScanSetExpectCopiesInvariant, buildDoctorJson, cmdDoctor, cmdSync, gatherDoctorState, mergeFencePresentAt, resolveDoctorScanSet, resolveSyncScript, scanDoctorDirectory };
+module.exports = { assertScanSetExpectCopiesInvariant, buildDoctorJson, cmdDoctor, cmdSync, gatherDoctorState, hookSettingsAt, mergeFencePresentAt, resolveDoctorScanSet, resolveSyncScript, scanDoctorDirectory };

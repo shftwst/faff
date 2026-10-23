@@ -1,15 +1,17 @@
 // FAFF-190 — `faff doctor` install-health: detects copy-installs (stale risk) vs symlinks (live).
 // Reads the filesystem, so it works even from a stale installed bin. Tested against fixture targets.
 // FAFF-434 added a SECOND, independent install-health axis — the merge-fence PreToolUse
-// registration under <--root>/.claude/settings.json — folded into the same exit code. The
+// registration under <--root>/.claude/settings.json or settings.local.json (FAFF-1295: either
+// file, both read) — folded into the same exit code. The
 // skill-link tests below are about --target only, so each passes a pre-fenced --root (a
-// temp dir, never the real repo's .claude/settings.json) to hold that axis constant at
+// temp dir, never the real repo's .claude/settings files) to hold that axis constant at
 // "present" and keep their original exit-code assertions meaningful; the fence-specific
 // behaviour (present/missing/malformed) gets its own tests further down.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, symlinkSync, writeFileSync, readFileSync, rmSync, utimesSync, existsSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { mkdtempSync, mkdirSync, symlinkSync, writeFileSync, readFileSync, rmSync, utimesSync, existsSync, statSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -51,7 +53,7 @@ function mkFixtureHome() {
 function mkFencedRootHere() {
   const root = mkdtempSync(join(tmpdir(), "doc-fence-"));
   mkdirSync(join(root, ".claude"), { recursive: true });
-  writeFileSync(join(root, ".claude", "settings.json"), JSON.stringify({
+  writeFileSync(join(root, ".claude", "settings.local.json"), JSON.stringify({
     hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "faff merge-fence --hook" }] }] },
   }, null, 2) + "\n");
   return root;
@@ -62,7 +64,7 @@ function mkFencedRootHere() {
 function mkFencedRoot() {
   const root = mkdtempSync(join(tmpdir(), "doc-fence-"));
   mkdirSync(join(root, ".claude"), { recursive: true });
-  writeFileSync(join(root, ".claude", "settings.json"), JSON.stringify({
+  writeFileSync(join(root, ".claude", "settings.local.json"), JSON.stringify({
     hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "faff merge-fence --hook" }] }] },
   }, null, 2) + "\n");
   return root;
@@ -77,7 +79,7 @@ function mkFencedRoot() {
 // is held constant, so the asserted exit code is attributable to the stale-emit axis alone.
 function writeFence(root) {
   mkdirSync(join(root, ".claude"), { recursive: true });
-  writeFileSync(join(root, ".claude", "settings.json"), JSON.stringify({
+  writeFileSync(join(root, ".claude", "settings.local.json"), JSON.stringify({
     hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "faff merge-fence --hook" }] }] },
   }, null, 2) + "\n");
 }
@@ -214,17 +216,291 @@ test("doctor: merge-fence present (registered by hooks-ensure) → exit 0 alongs
   } finally { rmSync(dir, { recursive: true, force: true }); rmSync(fenceRoot, { recursive: true, force: true }); }
 });
 
-test("doctor: malformed settings.json under --root degrades to MISSING, not a crash", () => {
-  const dir = mkdtempSync(join(tmpdir(), "doc-fence-target-"));
-  const fenceRoot = mkdtempSync(join(tmpdir(), "doc-fence-malformed-"));
+// ---- FAFF-1295: doctor reads faff's hooks from either settings file ----
+
+const FENCE_CMD = { type: "command", command: "faff merge-fence --hook" };
+const stopHook = (s) => ({ type: "command", command: `faff ${s} --hook` });
+const fenceUnder = (matcher) => ({ hooks: { PreToolUse: [{ matcher, hooks: [FENCE_CMD] }] } });
+
+// A --root with the given file contents (objects are JSON-encoded, strings written raw).
+function mkSettingsRoot({ shared, personal }) {
+  const root = mkdtempSync(join(tmpdir(), "doc-hs-"));
+  mkdirSync(join(root, ".claude"), { recursive: true });
+  const put = (name, v) => { if (v !== undefined) writeFileSync(join(root, ".claude", name), typeof v === "string" ? v : JSON.stringify(v, null, 2) + "\n"); };
+  put("settings.json", shared);
+  put("settings.local.json", personal);
+  return root;
+}
+
+// Runs doctor --json against a fresh one-link skills dir and the given root.
+function doctorJson(root, env = {}) {
+  const skills = mkSkillsTarget();
   try {
-    symlinkSync("/tmp", join(dir, "faff-graft"));
-    mkdirSync(join(fenceRoot, ".claude"), { recursive: true });
-    writeFileSync(join(fenceRoot, ".claude", "settings.json"), "{ not valid json");
-    const r = run("doctor", "--target", dir, "--root", fenceRoot);
+    const r = runEnv(env, "doctor", "--target", skills, "--root", root, "--json");
+    return { code: r.code, json: JSON.parse(r.out) };
+  } finally { rmSync(skills, { recursive: true, force: true }); }
+}
+function doctorHuman(root, env = {}) {
+  const skills = mkSkillsTarget();
+  try { return runEnv(env, "doctor", "--target", skills, "--root", root); }
+  finally { rmSync(skills, { recursive: true, force: true }); }
+}
+const withRoot = (files, fn) => {
+  const root = mkSettingsRoot(files);
+  try { return fn(root); } finally { rmSync(root, { recursive: true, force: true }); }
+};
+
+test("doctor: merge-fence only in settings.local.json (no settings.json) → exit 0, present, no advisory line", () => {
+  withRoot({ personal: fenceUnder("Bash") }, (root) => {
+    const r = doctorHuman(root);
+    assert.equal(r.code, 0);
+    assert.match(r.out, /merge-fence PreToolUse fence present/);
+    assert.doesNotMatch(r.out, /⚠ faff hooks/);
+  });
+});
+
+test("doctor: merge-fence only in settings.json → still present", () => {
+  withRoot({ shared: fenceUnder("Bash") }, (root) => {
+    const r = doctorHuman(root);
+    assert.equal(r.code, 0);
+    assert.match(r.out, /merge-fence PreToolUse fence present/);
+  });
+});
+
+test("doctor: neither settings file → MISSING line and exit 1", () => {
+  withRoot({}, (root) => {
+    const r = doctorHuman(root);
     assert.equal(r.code, 1);
-    assert.match(r.out, /merge-fence PreToolUse fence MISSING/);
-  } finally { rmSync(dir, { recursive: true, force: true }); rmSync(fenceRoot, { recursive: true, force: true }); }
+    assert.ok(r.out.includes("merge-fence PreToolUse fence MISSING — run: faff hooks-ensure"));
+    const { json } = doctorJson(root);
+    assert.equal(json.merge_fence_status, "missing");
+    assert.equal(json.hook_settings.shared.state, "absent");
+    assert.equal(json.hook_settings.personal.state, "absent");
+  });
+});
+
+for (const [file, key] of [["settings.local.json", "personal"], ["settings.json", "shared"]]) {
+  test(`doctor: invalid ${file} alone → exit 1, ✗ line naming it, unconfirmed fence, Fix omits hooks-ensure`, () => {
+    withRoot({ [key]: "{ not valid json" }, (root) => {
+      const r = doctorHuman(root);
+      assert.equal(r.code, 1);
+      assert.match(r.out, new RegExp(`✗ \\.claude/${file.replaceAll(".", "\\.")}  invalid \\(not valid JSON\\)`));
+      assert.match(r.out, /merge-fence PreToolUse fence unconfirmed/);
+      assert.match(r.out, /1 unreadable Claude settings file\(s\)/);
+      const fix = r.out.split("\n").find((l) => l.startsWith("Fix:"));
+      assert.ok(fix, "a Fix line is printed");
+      assert.doesNotMatch(fix, /faff hooks-ensure/);
+      assert.ok(fix.includes(`fix the JSON in .claude/${file}`));
+    });
+  });
+}
+
+test("doctor --json: an empty settings.json and one holding [] each report state invalid", () => {
+  for (const content of ["", "[]"]) {
+    withRoot({ shared: content }, (root) => {
+      const { code, json } = doctorJson(root);
+      assert.equal(code, 1, `content ${JSON.stringify(content)}`);
+      assert.equal(json.hook_settings.shared.state, "invalid", `content ${JSON.stringify(content)}`);
+      assert.equal(json.hook_settings.shared.error, content === "" ? "not valid JSON" : "top-level value is not a JSON object");
+    });
+  }
+});
+
+test("doctor: Bash::merge-fence in one file and the other invalid → status present, exit 1", () => {
+  withRoot({ shared: fenceUnder("Bash"), personal: "{ nope" }, (root) => {
+    const { code, json } = doctorJson(root);
+    assert.equal(json.merge_fence_status, "present");
+    assert.equal(json.merge_fence, true);
+    assert.equal(code, 1);
+    assert.equal(json.exit, 1);
+    assert.equal(json.hook_settings.personal.state, "invalid");
+  });
+});
+
+test("doctor: no settings fixture (valid, invalid, absent) yields a code other than 0, 1 or 2 or a stack trace", () => {
+  const fixtures = [
+    {}, { shared: "" }, { shared: "[]" }, { shared: "null" }, { shared: "42" }, { personal: "\"str\"" },
+    { shared: { hooks: "nope" } }, { shared: { hooks: { Stop: {}, PreToolUse: [null, 3, { matcher: 7, hooks: "x" }] } } },
+    { shared: "{ x", personal: "{ y" }, { shared: fenceUnder("Bash("), personal: { hooks: null } },
+  ];
+  for (const f of fixtures) {
+    withRoot(f, (root) => {
+      const skills = mkSkillsTarget();
+      try {
+        const r = spawnSync("node", [CLI, "doctor", "--target", skills, "--root", root], { encoding: "utf8" });
+        assert.ok([0, 1, 2].includes(r.status), `exit ${r.status} for ${JSON.stringify(f)}`);
+        assert.doesNotMatch(r.stderr, /\n\s+at /, `stack trace for ${JSON.stringify(f)}`);
+      } finally { rmSync(skills, { recursive: true, force: true }); }
+    });
+  }
+});
+
+const SPLIT = {
+  shared: { hooks: { Stop: [{ hooks: [stopHook("runcheck")] }], PreToolUse: [{ matcher: "Bash", hooks: [FENCE_CMD] }] } },
+  personal: { hooks: { Stop: [{ hooks: [stopHook("runcheck")] }] } },
+};
+
+test("doctor: advisories active (stubbed personal default) → both ⚠ lines print, exit 0", () => {
+  withRoot(SPLIT, (root) => {
+    const require = createRequire(import.meta.url);
+    const hooksEnsure = require("../plugin/skills/faff/bin/lib/hooks-ensure.js");
+    const { gatherDoctorState, buildDoctorJson } = require("../plugin/skills/faff/bin/lib/gates.js");
+    const skills = mkSkillsTarget();
+    const real = hooksEnsure.HOOKS_DEFAULT_TARGET;
+    const lines = [];
+    const origLog = console.log;
+    try {
+      hooksEnsure.HOOKS_DEFAULT_TARGET = "personal";
+      const state = gatherDoctorState([skills], [], false, root, false);
+      assert.equal(state.hookAdvisoriesActive, true);
+      assert.equal(state.exit, 0);
+      assert.equal(buildDoctorJson(state).hook_advisories_active, true);
+      assert.deepEqual(state.hookSettings.shared.faff_hooks, ["runcheck", "Bash::merge-fence"]);
+      assert.deepEqual(state.hookSettings.in_both, ["runcheck"]);
+      // Render through the real command, in-process, with the stub still in place.
+      console.log = (l) => lines.push(l);
+      const { cmdDoctor } = require("../plugin/skills/faff/bin/lib/gates.js");
+      const code = cmdDoctor(["--target", skills, "--root", root]);
+      assert.equal(code, 0);
+    } finally {
+      console.log = origLog;
+      hooksEnsure.HOOKS_DEFAULT_TARGET = real;
+      rmSync(skills, { recursive: true, force: true });
+    }
+    const out = lines.join("\n");
+    assert.match(out, /⚠ faff hooks in \.claude\/settings\.json .*: runcheck, Bash::merge-fence; .*--shared/);
+    assert.match(out, /⚠ faff hooks registered in both settings files: runcheck;/);
+  });
+});
+
+test("doctor: advisories inactive with the shipped default (shared) → neither ⚠ line, exit 0, hook_advisories_active false", () => {
+  withRoot(SPLIT, (root) => {
+    assert.equal(createRequire(import.meta.url)("../plugin/skills/faff/bin/lib/hooks-ensure.js").HOOKS_DEFAULT_TARGET, "shared");
+    const r = doctorHuman(root);
+    assert.equal(r.code, 0);
+    assert.doesNotMatch(r.out, /⚠ faff hooks/);
+    const { code, json } = doctorJson(root);
+    assert.equal(code, 0);
+    assert.equal(json.hook_advisories_active, false);
+    assert.deepEqual(json.hook_settings.shared.faff_hooks, ["runcheck", "Bash::merge-fence"]);
+    assert.deepEqual(json.hook_settings.in_both, ["runcheck"]);
+    assert.equal(json.merge_fence_status, "present");
+  });
+});
+
+test("doctor: faff hooks only in settings.local.json → no ⚠ line even with advisories stubbed on", () => {
+  withRoot({ personal: SPLIT.shared }, (root) => {
+    const require = createRequire(import.meta.url);
+    const hooksEnsure = require("../plugin/skills/faff/bin/lib/hooks-ensure.js");
+    const { gatherDoctorState } = require("../plugin/skills/faff/bin/lib/gates.js");
+    const skills = mkSkillsTarget();
+    const real = hooksEnsure.HOOKS_DEFAULT_TARGET;
+    const origLog = console.log;
+    const lines = [];
+    try {
+      hooksEnsure.HOOKS_DEFAULT_TARGET = "personal";
+      const state = gatherDoctorState([skills], [], false, root, false);
+      assert.deepEqual(state.hookSettings.shared.faff_hooks, []);
+      assert.deepEqual(state.hookSettings.in_both, []);
+      console.log = (l) => lines.push(l);
+      require("../plugin/skills/faff/bin/lib/gates.js").cmdDoctor(["--target", skills, "--root", root]);
+    } finally {
+      console.log = origLog;
+      hooksEnsure.HOOKS_DEFAULT_TARGET = real;
+      rmSync(skills, { recursive: true, force: true });
+    }
+    assert.doesNotMatch(lines.join("\n"), /⚠ faff hooks/);
+  });
+  withRoot({ personal: SPLIT.shared }, (root) => {
+    assert.doesNotMatch(doctorHuman(root).out, /⚠ faff hooks/);
+  });
+});
+
+test("doctor: merge-fence only under matcher Monitor → missing", () => {
+  withRoot({ personal: fenceUnder("Monitor") }, (root) => {
+    const { code, json } = doctorJson(root);
+    assert.equal(json.merge_fence_status, "missing");
+    assert.equal(code, 1);
+  });
+});
+
+test("doctor: merge-fence under Bash|Monitor, and separately .*, → present (same code path as Bash)", () => {
+  for (const m of ["Bash|Monitor", ".*"]) {
+    withRoot({ personal: fenceUnder(m) }, (root) => {
+      const { code, json } = doctorJson(root);
+      assert.equal(json.merge_fence_status, "present", m);
+      assert.equal(code, 0, m);
+    });
+  }
+  withRoot({ personal: fenceUnder("Bash") }, (root) => {
+    assert.equal(doctorJson(root).json.merge_fence_status, "present");
+  });
+});
+
+test("doctor: merge-fence under a matcher that is not a valid regex (Bash open paren) → missing, no throw", () => {
+  withRoot({ personal: fenceUnder("Bash(") }, (root) => {
+    const { code, json } = doctorJson(root);
+    assert.equal(json.merge_fence_status, "missing");
+    assert.equal(code, 1);
+  });
+});
+
+test("doctor: truncated JSON holding a credential names 'not valid JSON' and never echoes the secret", () => {
+  withRoot({ shared: '{"env":{"API_TOKEN":"sk-test-123"' }, (root) => {
+    const human = doctorHuman(root);
+    assert.match(human.out, /not valid JSON/);
+    assert.doesNotMatch(human.out, /sk-test-123/);
+    const skills = mkSkillsTarget();
+    try {
+      const r = runEnv({}, "doctor", "--target", skills, "--root", root, "--json");
+      assert.doesNotMatch(r.out, /sk-test-123/);
+      assert.equal(JSON.parse(r.out).hook_settings.shared.error, "not valid JSON");
+    } finally { rmSync(skills, { recursive: true, force: true }); }
+  });
+});
+
+test("doctor --json: the hook-settings fields are present in the empty-union (exit 2) run too", () => {
+  withRoot({ personal: fenceUnder("Bash") }, (root) => {
+    const emptySkills = mkdtempSync(join(tmpdir(), "doc-hs-empty-"));
+    try {
+      const r = runEnv({}, "doctor", "--target", emptySkills, "--root", root, "--json");
+      assert.equal(r.code, 2);
+      const json = JSON.parse(r.out);
+      assert.equal(json.merge_fence_status, "present");
+      assert.equal(json.merge_fence, true);
+      assert.equal(json.hook_advisories_active, false);
+      assert.deepEqual(json.hook_settings.personal.faff_hooks, ["Bash::merge-fence"]);
+      assert.deepEqual(json.hook_settings.in_both, []);
+    } finally { rmSync(emptySkills, { recursive: true, force: true }); }
+  });
+});
+
+test("doctor: read-only — both settings files stay byte-identical with unchanged mtimes", () => {
+  const mixed = { hooks: { Stop: [{ hooks: [stopHook("runcheck"), { type: "command", command: "echo hi" }] }], PreToolUse: [{ matcher: "Bash", hooks: [FENCE_CMD, { type: "command", command: "ls" }] }] }, env: { A: "b" } };
+  withRoot({ shared: mixed, personal: mixed }, (root) => {
+    const files = ["settings.json", "settings.local.json"].map((n) => join(root, ".claude", n));
+    for (const f of files) utimesSync(f, EMIT_OLD, EMIT_OLD);
+    const before = files.map((f) => [readFileSync(f, "utf8"), statSync(f).mtimeMs]);
+    doctorHuman(root);
+    doctorJson(root);
+    const after = files.map((f) => [readFileSync(f, "utf8"), statSync(f).mtimeMs]);
+    assert.deepEqual(after, before);
+  });
+});
+
+test("doctor: integration smoke — personal fence, then a broken shared file", () => {
+  withRoot({ personal: { hooks: { PreToolUse: [{ matcher: "Bash", hooks: [FENCE_CMD] }] } } }, (root) => {
+    const r = doctorJson(root);
+    assert.equal(r.code, 0);
+    assert.equal(r.json.merge_fence_status, "present");
+    assert.deepEqual(r.json.hook_settings.personal.faff_hooks, ["Bash::merge-fence"]);
+    assert.equal(r.json.hook_settings.shared.state, "absent");
+    writeFileSync(join(root, ".claude", "settings.json"), "{ broken");
+    const r2 = doctorJson(root);
+    assert.equal(r2.code, 1);
+    assert.equal(r2.json.hook_settings.shared.state, "invalid");
+    assert.equal(r2.json.merge_fence_status, "present");
+  });
 });
 
 test("doctor: both a copy install AND a missing fence are named together (exit 1)", () => {

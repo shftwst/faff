@@ -855,11 +855,20 @@ function consultRe(kernel) {
 //     runs `before` the consult (the word "before", case-insensitive — one real note capitalises it —
 //     plus a "consult" reference or a literal `faff <k>` on the line); OR
 // (b) a driver line at index d precedes a `faff <k>` consult at index c in the same file, with d < c
-//     and (c - d) <= CAPTURE_WIRING_WINDOW.
+//     and (c - d) <= CAPTURE_WIRING_WINDOW; OR
+// (c) FAFF-1394: one code span evals the driver and then runs `faff <k>` after `&&`, which orders
+//     the export before the consult by construction (sameCommandSpanRe).
 // Predicate (a) matches the eight same-sentence capture notes (driver and consult on one line, d == c);
 // predicate (b) matches project-next's genuine distinct driver line and any future correctly-separated
 // site. The old order-agnostic `Math.abs(d - c)` pairing is gone: a driver that sits after its consult
 // with no same-line "before" assertion no longer counts as wired.
+// FAFF-1394: one code span that evals `decide … --kernel <k> … --export` and then runs `faff <k>`
+// after `&&`, so the export and the consult share one shell.
+function sameCommandSpanRe(kernel) {
+  const esc = kernel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp("`eval \"\\$\\(faff decision-capture decide [^`]*--kernel\\s+" + esc +
+    "(?![\\w-])[^`]*--export\\)\"\\s*&&\\s*faff\\s+" + esc + "(?![\\w-])[^`]*`");
+}
 const beforeRe = /\bbefore\b/i;
 const consultWordRe = /\bconsult/i;
 function captureWiringUnwired(skillsDir, kernels) {
@@ -871,6 +880,7 @@ function captureWiringUnwired(skillsDir, kernels) {
     const cRe = consultRe(k);
     const kRe = flaggedKernelRe(k);
     const isDecideExport = (line) => /\bdecide\b/.test(line) && /--export\b/.test(line) && kRe.test(line);
+    const sameRe = sameCommandSpanRe(k);
     let wired = false;
     outer:
     for (const lines of perFile) {
@@ -887,6 +897,8 @@ function captureWiringUnwired(skillsDir, kernels) {
           break outer;
         }
       }
+      // (c) one command: the driver's eval, then `&& faff <k>`.
+      if (lines.some((l) => sameRe.test(l))) { wired = true; break outer; }
       // (b) distinct-line driver precedes a nearby consult (d < c, within the window).
       for (const d of decides) {
         for (const c of consults) {
@@ -897,6 +909,20 @@ function captureWiringUnwired(skillsDir, kernels) {
     if (!wired) unwired.push(k);
   }
   return unwired;
+}
+
+// FAFF-1394: each tool call runs in a fresh shell, so an `eval "$(… decide … --export)"` in one call
+// never reaches a kernel consulted in the next, and the in-kernel base reads an empty correlation_id.
+// A kernel is same-command wired iff some SKILL.md holds one code span that evals its
+// `decide … --kernel <k> … --export` and then runs `faff <k>` after `&&`.
+function captureSameCommandUnwired(skillsDir, kernels) {
+  const skillDirs = fs.readdirSync(skillsDir)
+    .filter((d) => fs.existsSync(path.join(skillsDir, d, "SKILL.md"))).sort();
+  const texts = skillDirs.map((d) => fs.readFileSync(path.join(skillsDir, d, "SKILL.md"), "utf8"));
+  return kernels.filter((k) => {
+    const span = sameCommandSpanRe(k);
+    return !texts.some((t) => span.test(t));
+  });
 }
 
 function cmdValidateAdapters(args) {
@@ -1492,6 +1518,16 @@ function cmdValidateAdapters(args) {
     } else {
       console.log(`pass  capture-wiring — all ${kernels.length} captureDecision kernels have an adjacent \`decide --export\` (FAFF-1009)`);
     }
+    const apart = captureSameCommandUnwired(skillsDir, kernels);
+    if (apart.length) {
+      failed = true;
+      console.log(`FAIL  capture-same-command (FAFF-1394)`);
+      for (const k of apart) {
+        console.log(`        ✗ kernel "${k}": no SKILL.md runs its driver and its consult in one command, \`eval "$(faff decision-capture decide … --kernel ${k} … --export)" && faff ${k} …\`. Each tool call is a fresh shell, so an export in one call never reaches a consult in the next and the base reads an empty correlation_id`);
+      }
+    } else {
+      console.log(`pass  capture-same-command — all ${kernels.length} captureDecision kernels run \`decide --export\` and the consult in one command (FAFF-1394)`);
+    }
   }
 
   for (const n of Object.keys(REGISTRY)) {
@@ -1511,4 +1547,4 @@ function cmdValidateAdapters(args) {
 }
 
 
-module.exports = { ANCHOR_PHRASES, CAPTURE_WIRING_WINDOW, DUP_BLOCK_WINDOW, DUP_SIG_MINLEN, NON_NORMATIVE, PARA_WORD_CAP, REFER_BACK, REGISTRY, RENDERING_REF, REQUIRED_METHODOLOGY_OUTPUTS, SKILL_LINE_CAP, SKILL_LINE_BASELINE, KERNEL_LINE_BASELINE, SKIP, SLOT_TYPES, STRAY_RETRO, STRAY_TRANSCRIPT, balancedCallArg, c3CalibrationFloor, captureWiringUnwired, checkAnchorBeforePrOrder, checkAnchorCommitNoBroadSwallow, checkCalibrated, checksFor, cmdIsBundled, cmdValidateAdapters, deriveCaptureKernels, extractVoicePathToken, hasUserInvocableFalse, inlineEnumLintSets, isProseLine, isParagraphLine, anchorResolves, normalizeHeading, lintGatewayManifest, lintInlineEnumRestatement, lintVoicePointer, loadSeamRegistryForLint, locateSkill, readJudgementSeam, reconcileSeam, resolveSkillsDir, validateConfigured };
+module.exports = { ANCHOR_PHRASES, CAPTURE_WIRING_WINDOW, DUP_BLOCK_WINDOW, DUP_SIG_MINLEN, NON_NORMATIVE, PARA_WORD_CAP, REFER_BACK, REGISTRY, RENDERING_REF, REQUIRED_METHODOLOGY_OUTPUTS, SKILL_LINE_CAP, SKILL_LINE_BASELINE, KERNEL_LINE_BASELINE, SKIP, SLOT_TYPES, STRAY_RETRO, STRAY_TRANSCRIPT, balancedCallArg, c3CalibrationFloor, captureSameCommandUnwired, captureWiringUnwired, checkAnchorBeforePrOrder, checkAnchorCommitNoBroadSwallow, checkCalibrated, checksFor, cmdIsBundled, cmdValidateAdapters, deriveCaptureKernels, extractVoicePathToken, hasUserInvocableFalse, inlineEnumLintSets, isProseLine, isParagraphLine, anchorResolves, normalizeHeading, lintGatewayManifest, lintInlineEnumRestatement, lintVoicePointer, loadSeamRegistryForLint, locateSkill, readJudgementSeam, reconcileSeam, resolveSkillsDir, validateConfigured };

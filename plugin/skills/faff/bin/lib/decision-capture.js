@@ -207,6 +207,19 @@ function mintCorrelationId(run, issue, kernel, wave) {
   return `${run}/${issue}/${kernel}/${w}`;
 }
 
+// FAFF-1394: `--run` names a run by its id, but an orchestrator usually carries the run dir path.
+// Accept either: a value holding a path separator is read as a run dir and reduced to its basename,
+// the same reduction the in-kernel capture applies to $FAFF_RUN_DIR. So `decide` mints the canonical
+// `<run-id>/...` id and `action` resolves the run dir the base was written to, whichever form is passed.
+function runIdOf(value) {
+  if (typeof value !== "string" || value === "") return null;
+  return /[\\/]/.test(value) ? path.basename(value.replace(/[\\/]+$/, "")) : value;
+}
+
+function runIdFromArgOrEnv(value) {
+  return runIdOf(value) || (process.env.FAFF_RUN_DIR ? path.basename(process.env.FAFF_RUN_DIR) : null);
+}
+
 // The shared {seq, sha256} causation shape check, used by every record-shape validator here.
 function causationViolations(c) {
   const v = [];
@@ -498,13 +511,13 @@ function captureDecision(args) {
 // shell-eval-able lines (FAFF_DECISION_CORRELATION_ID + FAFF_DECISION_ISSUE) for `eval "$(...)"`;
 // otherwise it prints the bare id. Pure and gate-agnostic: it only forms + prints an id (the env is
 // inert when capture is off, since captureDecisionCore / cmdActionVerb both no-op under the gate),
-// so it never reads config, touches a run dir, or writes an event. `--run` defaults to the basename
-// of $FAFF_RUN_DIR; `--wave` defaults to "1".
+// so it never reads config, touches a run dir, or writes an event. `--run` takes a run id or a run
+// dir path (runIdOf) and defaults to the basename of $FAFF_RUN_DIR; `--wave` defaults to "1".
 // ---------------------------------------------------------------------------
 function cmdDecideVerb(values) {
   const issue = values["--issue"];
   const kernel = values["--kernel"];
-  const run = values["--run"] || (process.env.FAFF_RUN_DIR ? path.basename(process.env.FAFF_RUN_DIR) : null);
+  const run = runIdFromArgOrEnv(values["--run"]);
   if (run == null) {
     process.stderr.write("faff decision-capture decide: no --run and no $FAFF_RUN_DIR — cannot mint a correlation id\n");
     return 2;
@@ -527,7 +540,7 @@ function cmdDecideVerb(values) {
 // best-effort discipline as `record`: every failure path writes a degraded note and exits 0.
 // ---------------------------------------------------------------------------
 function cmdActionVerb(values, root) {
-  const run = values["--run"];
+  const run = runIdFromArgOrEnv(values["--run"]);
   const issue = values["--issue"];
   const kernel = values["--kernel"];
   // FAFF-989: resolve the correlation id so the marker genuinely REUSES the id the base carried,
@@ -535,11 +548,11 @@ function cmdActionVerb(values, root) {
   // between the `decide` and `action` calls could silently make disagree — reopening the very
   // no-join bug this fixes). Precedence: an explicit --correlates > $FAFF_DECISION_CORRELATION_ID
   // (the exact id `decide --export` set and the base was minted with — the reuse path) > a fresh
-  // derivation from {run, issue, kernel, wave}. `runId` is the run id the caller passes (or the
-  // basename of $FAFF_RUN_DIR); a still-empty id is caught by decisionCaptureActionViolations below.
-  const runId = run || (process.env.FAFF_RUN_DIR ? path.basename(process.env.FAFF_RUN_DIR) : null);
+  // derivation from {run, issue, kernel, wave}. `run` is the run id the caller passes (reduced from a
+  // run dir path, or the basename of $FAFF_RUN_DIR); a still-empty id is caught by
+  // decisionCaptureActionViolations below.
   const envId = process.env.FAFF_DECISION_CORRELATION_ID || "";
-  const derivedId = (runId != null && issue != null && kernel != null) ? mintCorrelationId(runId, issue, kernel, values["--wave"]) : "";
+  const derivedId = (run != null && issue != null && kernel != null) ? mintCorrelationId(run, issue, kernel, values["--wave"]) : "";
   const correlation_id = values["--correlates"] != null
     ? values["--correlates"]
     : (envId !== "" ? envId : derivedId);
@@ -561,6 +574,7 @@ function cmdActionVerb(values, root) {
     catch { selected_action = values["--action"]; }
   }
 
+  if (run == null) return bestEffortFail(root, run, "no --run and no $FAFF_RUN_DIR — no run to write the marker to");
   let dir;
   try { dir = resolveRunDir(root, run, values["--root"] !== undefined); }
   catch (e) { return bestEffortFail(root, run, `run dir resolution failed: ${e && e.message}`); }

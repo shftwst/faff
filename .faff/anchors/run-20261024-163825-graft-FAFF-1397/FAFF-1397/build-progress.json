@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1397",
+  "build": {
+    "status": "complete",
+    "diff_hash": "273e1384154acb9cbc2d9e8b5a5172c5e033435dbfb59610e475c2a0aa2fba51",
+    "branch": "faff-1397-evidence-return-digests",
+    "pushed_at": "2026-10-24T17:16:34.508Z"
+  },
+  "updated_at": "2026-10-24T17:16:34.508Z"
+}

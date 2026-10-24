@@ -1,0 +1,179 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 3,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "verification/audits/2026-10-22-repo-review-throughput-cull-split.md::unrelated audit-doc checkbox edits in the faff-1397 diff",
+      "title": "unrelated audit-doc checkbox edits in the FAFF-1397 diff",
+      "location": "verification/audits/2026-10-22-repo-review-throughput-cull-split.md:108",
+      "action": "Move the audit edits (commit 100c58e1 and the audit hunk of d53b6886) to a separate docs commit or PR, or record a human instruction to keep them here as accepted-risk.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Maintainer explicitly asked for the audit-doc edits to ride along in this PR (round 1).",
+      "first_round": 1,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "unrelated audit-doc checkbox edits in the FAFF-1397 diff",
+          "location": "verification/audits/2026-10-22-repo-review-throughput-cull-split.md:108",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        },
+        {
+          "round": 2,
+          "title": "unrelated audit-doc checkbox edits in the FAFF-1397 diff",
+          "location": "verification/audits/2026-10-22-repo-review-throughput-cull-split.md:108",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        },
+        {
+          "round": 3,
+          "title": "unrelated audit-doc checkbox edits in the FAFF-1397 diff",
+          "location": "verification/audits/2026-10-22-repo-review-throughput-cull-split.md:108",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/references/l4.md::obligation 6 prose names the integrity-digest primitive the verifier no longer uses",
+      "title": "obligation 6 prose names the integrity-digest primitive the verifier no longer uses",
+      "location": "plugin/skills/faff/references/l4.md:67",
+      "action": "Reword to say verify-return re-hashes to the same leaf sha256 that faff integrity-digest hash reports, rather than with the integrity-digest primitive.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "obligation 6 prose names the integrity-digest primitive the verifier no longer uses",
+          "location": "plugin/skills/faff/references/l4.md:67",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md::pre-merge against-ledger re-verify not placed inside the parallel executor's merge lock",
+      "title": "pre-merge against-ledger re-verify not placed inside the parallel executor's merge lock",
+      "location": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md:103",
+      "action": "Name the run-grain verify and verify-return --against-ledger in Rebase-before-merge step 2 (line 78), inside the lock after CI is green on the rebased head and immediately before the floor re-confirm, and point line 103 at that step.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "pre-merge against-ledger re-verify not placed inside the parallel executor's merge lock",
+          "location": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md:103",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/evidence.js::lstat-then-readfilesync symlink race in hashregularfile",
+      "title": "lstat-then-readFileSync symlink race in hashRegularFile",
+      "location": "plugin/skills/faff/bin/lib/evidence.js:1190",
+      "action": "Open the file with O_NOFOLLOW and fstat the descriptor before hashing, in a follow-up covering both hashers.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Symlink hardening is recorded as discovered scope for a follow-up covering both hashers.",
+      "first_round": 2,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "lstat-then-readFileSync symlink race in hashRegularFile",
+          "location": "plugin/skills/faff/bin/lib/evidence.js:1190",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        },
+        {
+          "round": 3,
+          "title": "lstat-then-readFileSync symlink race in hashRegularFile",
+          "location": "plugin/skills/faff/bin/lib/evidence.js:1190",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/evidence.js::claimfromledger accepts a non-hex or sha-less ledger entry and yields a tamper verdict",
+      "title": "claimFromLedger accepts a non-hex or sha-less ledger entry and yields a tamper verdict",
+      "location": "plugin/skills/faff/bin/lib/evidence.js:1219",
+      "action": "Validate each present ledger sha against HEX64_RE and raise a WriterFault (exit 2) on a non-conforming entry.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "A malformed digest in the ledger entry now exits 2 (commit b86fa861, with a test); an omitted digest stays an explicit absence claim, per the spec.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "claimFromLedger accepts a non-hex or sha-less ledger entry and yields a tamper verdict",
+          "location": "plugin/skills/faff/bin/lib/evidence.js:1219",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/evidence.js::return and verify-return silently accept other evidence verbs' flags",
+      "title": "return and verify-return silently accept other evidence verbs' flags",
+      "location": "plugin/skills/faff/bin/lib/evidence.js:1295",
+      "action": "Reject --park, --judge-admitted, --terminal-only and --prior-dir in cmdEvidenceReturn and cmdEvidenceVerifyReturn with exit 2, as the sibling handlers do.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Both verbs refuse those flags with exit 2 (commit b86fa861, with a test).",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "return and verify-return silently accept other evidence verbs' flags",
+          "location": "plugin/skills/faff/bin/lib/evidence.js:1295",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    }
+  ]
+}

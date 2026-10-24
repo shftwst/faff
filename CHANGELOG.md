@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.44.0](https://github.com/shftwst/faff/compare/faff--v0.43.0...faff--v0.44.0) (2026-10-24)
+
+
+### Features
+
+* **spec-review:** record the ratifier on decisions — agent-chosen vs human-ratified (FAFF-1079) ([#1121](https://github.com/shftwst/faff/issues/1121)) ([e895df5](https://github.com/shftwst/faff/commit/e895df51a2d19cdfff2d6843363915c448431169))
+
+
+### Bug Fixes
+
+* **evidence:** obligation 6 returns evidence digests, not bodies (FAFF-1397) ([#1124](https://github.com/shftwst/faff/issues/1124)) ([61e84b1](https://github.com/shftwst/faff/commit/61e84b136bb647cc82d6f868e475a39bb000e162))
+
 ## [0.43.0](https://github.com/shftwst/faff/compare/faff--v0.42.0...faff--v0.43.0) (2026-10-24)
 
 

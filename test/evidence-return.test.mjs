@@ -313,3 +313,26 @@ test("neither verb creates, modifies or deletes any file", (t) => {
   assert.deepEqual(mid, snapshot(f.root));
   assert.deepEqual({ ...mid, [join(f.issueDir, AC)]: AC_BODY }, { ...before });
 });
+
+test("--against-ledger exits 2 on a malformed digest in the ledger entry, but an omitted digest is an absence claim", (t) => {
+  const bad = fixture(t, { ledger: { evidence_persisted: [{ issue: ISSUE, ac_sha256: "NOT-HEX", review_verdict_sha256: sha(RV_BODY) }] } });
+  const r = bad.against();
+  assert.equal(r.code, 2);
+  assert.equal(r.stdout, "");
+  const omitted = fixture(t, { ledger: { evidence_persisted: [{ issue: ISSUE, review_verdict_sha256: sha(RV_BODY) }] } });
+  const o = omitted.against();
+  assert.equal(o.code, 1);
+  assert.equal(line(o).files[0].result, "presence-disagreement");
+});
+
+test("return and verify-return refuse flags that belong to other evidence verbs", (t) => {
+  const f = fixture(t);
+  for (const flag of [["--park", "needs-human"], ["--prior-dir", f.root], ["--terminal-only"], ["--judge-admitted"]]) {
+    const r = runCli(["evidence", "return", ...flag, "--run-dir", f.runDir, "--issue", ISSUE], { cwd: f.root });
+    assert.equal(r.code, 2, `return ${flag[0]}`);
+    assert.equal(r.stdout, "");
+    const v = f.verify(goodClaim(), flag);
+    assert.equal(v.code, 2, `verify-return ${flag[0]}`);
+    assert.equal(v.stdout, "");
+  }
+});

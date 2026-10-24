@@ -1226,7 +1226,11 @@ function claimFromLedger(issueDir, issue) {
   const entry = [...(ledger.evidence_persisted || [])].reverse().find((e) => isObject(e) && e.issue === issue);
   if (!entry) return { noClaim: true, returned: { ac_checklist: { ...NO_DIGEST }, review_verdict: { ...NO_DIGEST } } };
   const returned = {};
-  for (const { key, shaKey } of EVIDENCE_FILES) returned[key] = typeof entry[shaKey] === "string" ? { present: true, sha256: entry[shaKey] } : { ...NO_DIGEST };
+  for (const { key, shaKey } of EVIDENCE_FILES) {
+    if (entry[shaKey] === undefined) { returned[key] = { ...NO_DIGEST }; continue; }
+    if (typeof entry[shaKey] !== "string" || !HEX64_RE.test(entry[shaKey])) throw new WriterFault(`run-ledger.json evidence_persisted entry for ${issue} has a malformed ${shaKey}`);
+    returned[key] = { present: true, sha256: entry[shaKey] };
+  }
   return { noClaim: false, returned };
 }
 
@@ -1289,10 +1293,16 @@ function evidenceVerbFail(label, code, message) {
   return code;
 }
 
+// Flags that belong to other `faff evidence` verbs; the return-by-digest verbs refuse them like their siblings do.
+const FOREIGN_RETURN_FLAGS = ["--park", "--judge-admitted", "--terminal-only", "--prior-dir"];
+const foreignReturnFlag = (values) => FOREIGN_RETURN_FLAGS.find((f) => values[f] != null && values[f] !== false);
+
 function cmdEvidenceReturn(values) {
   const label = "faff evidence return";
   if (values["--run-dir"] == null || values["--issue"] == null) return evidenceVerbFail(label, 2, "--run-dir and --issue are required");
   if (values["--against-ledger"]) return evidenceVerbFail(label, 2, "--against-ledger applies to verify-return only");
+  const foreign = foreignReturnFlag(values);
+  if (foreign) return evidenceVerbFail(label, 2, `${foreign} does not apply to evidence return`);
   try {
     process.stdout.write(JSON.stringify(evidenceReturn(values["--run-dir"], values["--issue"])) + "\n");
     return 0;
@@ -1305,6 +1315,8 @@ function cmdEvidenceReturn(values) {
 function cmdEvidenceVerifyReturn(values) {
   const label = "faff evidence verify-return";
   if (values["--run-dir"] == null || values["--issue"] == null) return evidenceVerbFail(label, 2, "--run-dir and --issue are required");
+  const foreign = foreignReturnFlag(values);
+  if (foreign) return evidenceVerbFail(label, 2, `${foreign} does not apply to evidence verify-return`);
   try {
     const issue = values["--issue"];
     const issueDir = guardWriterPaths(values["--run-dir"], issue);

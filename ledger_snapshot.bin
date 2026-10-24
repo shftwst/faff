@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "run_id": "run-20261024-044511-beepboop-list-f66619",
+  "level": "L3",
+  "admitted": [
+    "FAFF-1112"
+  ],
+  "outcomes": {},
+  "base_sha": "d78b32094e0f36ea6ced301abb5e72a779a60a2b",
+  "base_sha_required": true,
+  "owner": {
+    "status": "running",
+    "session_id": "run-20261024-044511-beepboop-list-f66619",
+    "pid": 3010984,
+    "started_at": "2026-10-24T04:45:11.534Z",
+    "last_heartbeat": "2026-10-24T04:45:11.534Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "escalate",
+      "pricing": "map"
+    },
+    "measure_root": "/Users/shftwst/workspace/shftwst/faff",
+    "measure_session_id": "6f075a2f-5921-4ffd-a020-9fb0daba7616",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-5-5": {
+        "input": 3776,
+        "output": 1605029,
+        "cache_write_5m": 0,
+        "cache_write_1h": 5896042,
+        "cache_read": 500839470
+      },
+      "claude-fable-5-1": {
+        "input": 2016,
+        "output": 140466,
+        "cache_write_5m": 0,
+        "cache_write_1h": 1168890,
+        "cache_read": 14046079
+      }
+    },
+    "tokens_at_start": 523701768
+  }
+}

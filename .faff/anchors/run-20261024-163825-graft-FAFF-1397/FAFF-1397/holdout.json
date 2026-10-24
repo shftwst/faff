@@ -1,0 +1,372 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1397",
+  "aggregate": "needs-human",
+  "code_blind": true,
+  "spawner_attested": false,
+  "attestation": null,
+  "violations": [],
+  "criteria": [
+    {
+      "id": "scenarios:1",
+      "text": "Given a dispatched lane whose ac-checklist.json contains \"<unknown>\" and \"->\"\nand whose review-verdict.json contains no angle brackets\nWhen the lane returns the line printed by `faff evidence return`\nand the dispatcher pipes that line, as received through the return channel, into `faff evidence verify-return`\nThen verify-return exits 0 with verdict \"agree\"\nand evidence_persisted carries both files' leaf sha256 values, equal to `faff integrity-digest hash` of each file\nand no park is recorded for the unit",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "needs-human",
+      "evidence_present": true,
+      "exercised": "fixture ISSUE-1/ac-checklist.json containing \"<unknown> -> & a\" and an angle-bracket-free review-verdict.json; faff evidence return --run-dir .faff/runs/r1 --issue ISSUE-1; line passed through an HTML-entity escape of < > & then piped to faff evidence verify-return; faff integrity-digest hash of each file via stdin",
+      "expected": "verify-return exit 0, verdict agree, evidence_persisted ac_sha256/review_verdict_sha256 equal to integrity-digest hash of each file, and no park recorded for the unit",
+      "observed": "escaped line identical to original; verify-return exit 0, verdict agree, park_cause null; evidence_persisted ac_sha256 9cbfc3ee...d7fa and review_verdict_sha256 2d4308d3...1a2f, both equal to integrity-digest hash output",
+      "evidence_ref": "report scenarios:1",
+      "reason": "CLI half met (exit 0, agree, digests equal integrity-digest hash, park_cause null); 'no park is recorded for the unit' is an orchestrator outcome: orchestrator clause has no exposed surface in this env (CLI-only container, no dispatcher/wave/ship)"
+    },
+    {
+      "id": "scenarios:2",
+      "text": "Given a lane returned an EvidenceReturn for ac-checklist.json and review-verdict.json\nWhen a process appends one byte to ac-checklist.json after the return and before the dispatcher's check\nThen verify-return exits 1 with verdict \"mismatch\"\nand park_cause is \"evidence-return mismatch — <issue>/ac-checklist.json (returned copy ≠ on-disk copy)\"\nand only that unit is parked; sibling units in the same wave keep running",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "needs-human",
+      "evidence_present": true,
+      "exercised": "faff evidence return on ISSUE-1, then printf x >> ISSUE-1/ac-checklist.json, then the held line piped to faff evidence verify-return; sibling ISSUE-3 in same run dir verified with its own untouched return",
+      "expected": "exit 1, verdict mismatch, park_cause 'evidence-return mismatch — ISSUE-1/ac-checklist.json (returned copy ≠ on-disk copy)', only that unit parked while siblings keep running",
+      "observed": "exit 1; verdict mismatch; ac-checklist result hash-mismatch; park_cause 'evidence-return mismatch — ISSUE-1/ac-checklist.json (returned copy ≠ on-disk copy)'; tampered_paths [ISSUE-1/ac-checklist.json]; sibling ISSUE-3 verdict agree",
+      "evidence_ref": "report scenarios:2",
+      "reason": "CLI half met (exit 1, mismatch, verbatim park_cause, verdict scoped to --issue, sibling still agrees); 'only that unit is parked; sibling units in the same wave keep running' is wave/park behaviour: orchestrator clause has no exposed surface in this env (CLI-only container, no dispatcher/wave/ship)"
+    },
+    {
+      "id": "scenarios:3",
+      "text": "Given a lane return that passed verify-return on return\nWhen ac-checklist.json is modified after that check and before the merge locus\nThen the pre-merge re-verify exits 1, the unit is parked, and slots.ship is never invoked for it",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "needs-human",
+      "evidence_present": true,
+      "exercised": "run-ledger.json with evidence_persisted entry from an agreed return; ac-checklist.json modified (one byte appended); faff evidence verify-return --against-ledger --run-dir .faff/runs/r1 --issue ISSUE-1",
+      "expected": "pre-merge re-verify exits 1, the unit is parked, slots.ship never invoked",
+      "observed": "exit 1; verdict mismatch; ac-checklist result hash-mismatch; park_cause 'evidence-return mismatch — ISSUE-1/ac-checklist.json (returned copy ≠ on-disk copy)'",
+      "evidence_ref": "report scenarios:3",
+      "reason": "CLI half met (re-verify exits 1); 'the unit is parked, and slots.ship is never invoked' is orchestrator behaviour: orchestrator clause has no exposed surface in this env (CLI-only container, no dispatcher/wave/ship)"
+    },
+    {
+      "id": "scenarios:4",
+      "text": "Given a lane whose review-verdict.json does not exist on disk\nWhen the lane's EvidenceReturn reports review_verdict as present with a sha256\nThen verify-return exits 1 with result \"presence-disagreement\" for review-verdict.json\nand park_cause is \"evidence-return mismatch — <issue>/review-verdict.json (presence disagreement)\"",
+      "holdout": true,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "run dir r2: ISSUE-2/ac-checklist.json present, review-verdict.json absent; stdin {issue:ISSUE-2, ac_checklist:{present:true, sha256:<disk hash>}, review_verdict:{present:true, sha256:'ab'x32}} to faff evidence verify-return --run-dir .faff/runs/r2 --issue ISSUE-2",
+      "expected": "exit 1, review-verdict.json result presence-disagreement, park_cause 'evidence-return mismatch — ISSUE-2/review-verdict.json (presence disagreement)'",
+      "observed": "exit 1; files[1] {file: review-verdict.json, returned_present true, disk_present false, result presence-disagreement}; park_cause 'evidence-return mismatch — ISSUE-2/review-verdict.json (presence disagreement)'",
+      "evidence_ref": "report scenarios:4",
+      "reason": null
+    },
+    {
+      "id": "scenarios:5",
+      "text": "Given a member whose return check agreed and whose evidence_persisted entry is in the ledger\nand the dispatcher's conversation has since been compacted\nWhen ac-checklist.json is modified before the merge locus\nand the dispatcher runs the run-grain verify and `faff evidence verify-return --against-ledger`\nThen verify-return exits 1 with result \"hash-mismatch\", the unit is parked, and slots.ship is never invoked",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "needs-human",
+      "evidence_present": true,
+      "exercised": "run-ledger.json evidence_persisted [stale ISSUE-1 entry, then agreed ISSUE-1 entry]; ac-checklist.json modified; faff evidence verify-return --against-ledger --run-dir .faff/runs/r1 --issue ISSUE-1 (stdin /dev/null); control: file restored, re-run",
+      "expected": "verify-return exits 1 with result hash-mismatch, the unit is parked, slots.ship never invoked",
+      "observed": "modified: exit 1, ac-checklist result hash-mismatch (returned_sha256 = last ledger entry's ac_sha256); restored control: exit 0 agree, confirming the last entry is used",
+      "evidence_ref": "report scenarios:5",
+      "reason": "CLI half met (exit 1, hash-mismatch from the ledger claim); the run-grain verify, 'the unit is parked' and 'slots.ship is never invoked' are orchestrator behaviour: orchestrator clause has no exposed surface in this env (CLI-only container, no dispatcher/wave/ship)"
+    },
+    {
+      "id": "scenarios:6",
+      "text": "Given a pr-ready member with ac-checklist.json on disk and no evidence_persisted entry in the ledger\nWhen the dispatcher runs `faff evidence verify-return --against-ledger` before the merge locus\nThen verify-return exits 1 with result \"no-claim\", the unit is never merged,\nand no integrity_tampered entry is written",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "needs-human",
+      "evidence_present": true,
+      "exercised": "run dir r2 with ISSUE-2/ac-checklist.json on disk and run-ledger.json whose evidence_persisted has only an ISSUE-9 entry (and, separately, an empty array); faff evidence verify-return --against-ledger --run-dir .faff/runs/r2 --issue ISSUE-2; ledger sha256 before/after",
+      "expected": "exit 1 with result no-claim, unit never merged, no integrity_tampered entry written",
+      "observed": "exit 1; ac-checklist result no-claim; park_cause 'evidence-return missing — ISSUE-2/ac-checklist.json (no digest returned for a file on disk)'; tampered_paths []; run-ledger.json sha256 unchanged (2f31c045...abe)",
+      "evidence_ref": "report scenarios:6",
+      "reason": "CLI half met (exit 1, no-claim, tampered_paths empty, ledger untouched); 'the unit is never merged' is merge-locus behaviour: orchestrator clause has no exposed surface in this env (CLI-only container, no dispatcher/wave/ship)"
+    },
+    {
+      "id": "scenarios:7",
+      "text": "Given an EvidenceReturn whose JSON the return channel has broken\nWhen it is piped into verify-return\nThen verify-return exits 1 with verdict \"malformed\"\nand the unit is parked with no integrity_tampered entry",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "needs-human",
+      "evidence_present": true,
+      "exercised": "faff evidence return line with every '\"' replaced by &quot; (and separately truncated to 60 chars) piped to faff evidence verify-return --run-dir .faff/runs/r1 --issue ISSUE-1",
+      "expected": "exit 1 with verdict malformed, unit parked with no integrity_tampered entry",
+      "observed": "both inputs: exit 1; verdict malformed; park_cause 'evidence-return malformed — ISSUE-1/EvidenceReturn (malformed return)'; tampered_paths []",
+      "evidence_ref": "report scenarios:7",
+      "reason": "CLI half met (exit 1, malformed, tampered_paths empty so nothing to append); 'the unit is parked' is orchestrator behaviour: orchestrator clause has no exposed surface in this env (CLI-only container, no dispatcher/wave/ship)"
+    },
+    {
+      "id": "scenarios:8",
+      "text": "Given an EvidenceReturn in the old shape, carrying ac_checklist.body instead of ac_checklist.sha256\nWhen it is piped into verify-return\nThen verify-return exits 1 with verdict \"malformed\" and never hashes the body",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "stdin {issue:ISSUE-1, ac_checklist:{present:true, body:<file text with < > &>}, review_verdict:{present:true, sha256:<correct>}} (and a variant with correct sha256 plus body) to faff evidence verify-return --run-dir .faff/runs/r1 --issue ISSUE-1",
+      "expected": "exit 1 with verdict malformed and the body never hashed",
+      "observed": "both: exit 1; verdict malformed; files [] (no returned_sha256/disk_sha256 computed); evidence_persisted null",
+      "evidence_ref": "report scenarios:8",
+      "reason": null
+    },
+    {
+      "id": "scenarios:9",
+      "text": "Neither `faff evidence return` nor `faff evidence verify-return` writes any file.",
+      "holdout": false,
+      "class": "prose",
+      "verdict": "needs-human",
+      "evidence_present": false,
+      "exercised": null,
+      "expected": null,
+      "observed": null,
+      "evidence_ref": null,
+      "reason": "prose scenario: no machine check and no delegate verifier"
+    },
+    {
+      "id": "done:1",
+      "text": "A dispatched build whose `ac-checklist.json` contains `<`, `>` and `&` passes obligation 6 with `verify-return` exit 0 when the files are untouched (first scenario).",
+      "holdout": false,
+      "class": "assertion",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "ac-checklist.json containing < > and &; faff evidence return, HTML-escape of the line, piped to faff evidence verify-return with files untouched",
+      "expected": "verify-return exit 0 (obligation 6 passes)",
+      "observed": "exit 0; verdict agree; both files result match",
+      "evidence_ref": "report done:1",
+      "reason": null
+    },
+    {
+      "id": "done:3",
+      "text": "`faff evidence return --run-dir <dir> --issue <id>` prints one JSON line matching the EvidenceReturn record, with lowercase 64-hex `sha256` for present files and `null` for absent ones, and exits 0.",
+      "holdout": false,
+      "class": "assertion",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "faff evidence return --run-dir .faff/runs/r1 --issue ISSUE-1 (both present) and --run-dir .faff/runs/r2 --issue ISSUE-2 (review-verdict.json absent)",
+      "expected": "one JSON line with keys issue, ac_checklist, review_verdict; lowercase 64-hex sha256 for present files, null for absent; exit 0",
+      "observed": "exit 0 both; r1: ac_checklist {present:true, sha256:9cbfc3ee...d7fa (64 lowercase hex)}; r2: review_verdict {present:false, sha256:null}",
+      "evidence_ref": "report done:3",
+      "reason": null
+    }
+  ],
+  "delegated": [
+    {
+      "id": "done:2",
+      "text": "No obligation 6 prose (l4.md, both executors, graft) asks any agent to compute, compare or paste a sha256 or a file body by hand.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1397#done:2"
+    },
+    {
+      "id": "done:4",
+      "text": "`faff evidence return` exits 2 with nothing on stdout when an evidence file is a symlink, when `--run-dir` is outside `.faff/runs/`, or when `--issue` fails the issue-id rule.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1397#done:4"
+    },
+    {
+      "id": "done:5",
+      "text": "`faff evidence verify-return` prints a ReturnVerdict with `files` in the order `ac-checklist.json`, `review-verdict.json`, and `issue` equal to `--issue`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1397#done:5"
+    },
+    {
+      "id": "done:6",
+      "text": "`verify-return` exit codes are 0 for `agree`, 1 for `mismatch` and `malformed`, 2 for usage, path rejection, TTY stdin, or hasher unavailable (nothing on stdout for 2).",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1397#done:6"
+    },
+    {
+      "id": "done:7",
+      "text": "`evidence_persisted` in the verdict validates against the `evidence_persisted` item schema in `run-ledger.schema.json` and is `null` when no file matched.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1397#done:7"
+    },
+    {
+      "id": "done:8",
+      "text": "Each park cause in the section 3 cause table is produced verbatim by its condition.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1397#done:8"
+    },
+    {
+      "id": "done:9",
+      "text": "`TerminalToken{issue,outcome,pr}` text is unchanged in graft and both executors; EvidenceReturn is still described as a sibling field.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1397#done:9"
+    },
+    {
+      "id": "done:10",
+      "text": "`docs/guide/cli.md` has one row each for `evidence return` and `evidence verify-return`, and `evidence.js` `USAGE` lists both.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1397#done:10"
+    },
+    {
+      "id": "done:11",
+      "text": "`l4.md` obligation 6 describes the digest-only EvidenceReturn, the `verify-return` call, the exit-code branch (0 append, 1 unit park with `integrity_tampered`, 2 unit park without), and no longer tells the dispatcher to rewrite the evidence files.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1397#done:11"
+    },
+    {
+      "id": "done:12",
+      "text": "`l4.md` obligation 7 runs obligation 5's run-grain verify and then `verify-return --against-ledger` before asserting the floor, parks on non-zero, and says \"dispatcher-verified\" where it said \"dispatcher-persisted\".",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1397#done:12"
+    },
+    {
+      "id": "done:13",
+      "text": "No obligation 6 or 7 prose tells the dispatcher to keep an EvidenceReturn in conversation context past the first check.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1397#done:13"
+    },
+    {
+      "id": "done:14",
+      "text": "`verify-return --against-ledger` reads the last `evidence_persisted` entry for `--issue`; with no entry and a file on disk it gives `no-claim`; with a missing or unparseable ledger it exits 2.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1397#done:14"
+    },
+    {
+      "id": "done:15",
+      "text": "A `malformed` verdict parks the unit without an `integrity_tampered` entry; a `mismatch` verdict appends each `tampered_paths` string to `integrity_tampered` (none for a `no-claim`-only mismatch), and the result validates against `run-ledger.schema.json`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1397#done:15"
+    },
+    {
+      "id": "done:16",
+      "text": "FAFF-517 carries a comment naming the content-carrying return it inherits (OUT OF SCOPE, first item), and keeps its tracker relation to FAFF-1397, so its prep sees the obligation from the link as well as the text.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1397#done:16"
+    },
+    {
+      "id": "done:17",
+      "text": "Graft line 884 tells a dispatched lane to return the `faff evidence return` line verbatim, or `EvidenceReturn: null` on a non-zero exit.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1397#done:17"
+    },
+    {
+      "id": "done:18",
+      "text": "The parallel executor (lines 99, 103) and sequential executor (lines 40, 42) placement prose refer to `faff evidence verify-return` and do not restate its rules.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1397#done:18"
+    },
+    {
+      "id": "done:19",
+      "text": "ADR-0077 carries the \"Return by digest (FAFF-1397 amendment)\" Consequences bullet; its Decision text is unchanged.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1397#done:19"
+    },
+    {
+      "id": "done:20",
+      "text": "Neither verb creates, modifies or deletes any file (checked by snapshotting the run dir before and after in a test).",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1397#done:20"
+    },
+    {
+      "id": "done:21",
+      "text": "No decision-kernel call site (`next`, `eligible`, `claim-verdict`, `park-verdict`, `run-start`, `run-outward`, `run-done`, `queue-state`, `project-next`) changes in the diff.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1397#done:21"
+    },
+    {
+      "id": "done:22",
+      "text": "The PR body records the two exposure-audit greps from section 4 and their results after the edit.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1397#done:22"
+    },
+    {
+      "id": "done:23",
+      "text": "stdin `null` with both files absent gives `agree`, `evidence_persisted: null`; stdin `null` with a file present gives `no-claim` and no `integrity_tampered` entry.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1397#done:23"
+    },
+    {
+      "id": "done:24",
+      "text": "A return carrying `body`, an uppercase or short hex, `present:false` with a non-null `sha256`, an extra key, or an `issue` different from `--issue` each give `malformed`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1397#done:24"
+    },
+    {
+      "id": "done:25",
+      "text": "A symlink at an evidence path gives `not-regular-file` in `verify-return`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1397#done:25"
+    },
+    {
+      "id": "done:26",
+      "text": "A new `test/evidence-return.test.mjs` (node:test, `runCli` helper, fixture pattern from `test/evidence-write.test.mjs`) covers every DONE item above that names CLI behaviour, including a round trip where the EvidenceReturn line is passed through an HTML-entity escape of `<`, `>`, `&` before `verify-return` and still agrees.",
+      "holdout": false,
+      "verification_tier": "integration",
+      "verifier": "review-merge-floor",
+      "ac_id": "faff-1397#done:26"
+    },
+    {
+      "id": "done:27",
+      "text": "`faff evidence --selftest` passes and covers one agree and one mismatch case for the new verbs.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1397#done:27"
+    },
+    {
+      "id": "done:28",
+      "text": "`faff validate-adapters` reports no new FAIL; `faff-graft/SKILL.md` stays at or under 893 lines, and `SKILL_LINE_BASELINE[\"faff-graft\"]` is lowered to the new line count if it shrank.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1397#done:28"
+    },
+    {
+      "id": "done:29",
+      "text": "New prose in the edited Markdown files uses Canadian spelling and no em dashes outside the quoted park-cause strings.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1397#done:29"
+    }
+  ]
+}

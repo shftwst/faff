@@ -1,0 +1,393 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A dispatched build whose `ac-checklist.json` contains `<`, `>` and `&` passes obligation 6 with `verify-return` exit 0 when the files are untouched (first scenario).",
+      "verified": "Round-trip test: the digest line survives HTML-entity escaping of <, > and & and verify-return agrees (exit 0).",
+      "passed": true,
+      "ac_id": "faff-1397#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::round trip: the printed line survives an HTML-entity escape of <, > and & and still agrees"
+        }
+      ]
+    },
+    {
+      "ac": "No obligation 6 prose (l4.md, both executors, graft) asks any agent to compute, compare or paste a sha256 or a file body by hand.",
+      "verified": "grep of l4.md, graft and both executors finds no raw-bytes, body-paste or hand-hash instruction for obligation 6.",
+      "passed": true,
+      "ac_id": "faff-1397#done:2",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n -i 'raw bytes|persist the returned body|held in context' l4.md faff-graft/SKILL.md faffter-*-concurrency-*/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "`faff evidence return --run-dir <dir> --issue <id>` prints one JSON line matching the EvidenceReturn record, with lowercase 64-hex `sha256` for present files and `null` for absent ones, and exits 0.",
+      "verified": "Test confirms one JSON line, lowercase 64-hex sha256, null for absent files, exit 0.",
+      "passed": true,
+      "ac_id": "faff-1397#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::return prints one EvidenceReturn line with lowercase hex digests and exits 0"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::return reports an absent file as present:false with a null sha256"
+        }
+      ]
+    },
+    {
+      "ac": "`faff evidence return` exits 2 with nothing on stdout when an evidence file is a symlink, when `--run-dir` is outside `.faff/runs/`, or when `--issue` fails the issue-id rule.",
+      "verified": "Test covers symlink, bad run dir, bad issue id and missing flags: exit 2, empty stdout.",
+      "passed": true,
+      "ac_id": "faff-1397#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::return exits 2 with nothing on stdout for a symlink, a bad run dir, a bad issue id and missing flags"
+        }
+      ]
+    },
+    {
+      "ac": "`faff evidence verify-return` prints a ReturnVerdict with `files` in the order `ac-checklist.json`, `review-verdict.json`, and `issue` equal to `--issue`.",
+      "verified": "Tests assert files order ac-checklist.json then review-verdict.json and issue taken from --issue.",
+      "passed": true,
+      "ac_id": "faff-1397#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::verify-return agrees on an untouched return and the evidence_persisted entry validates"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::the malformed family: bad JSON, legacy body, uppercase or short hex, null sha with present, extra key, other issue"
+        }
+      ]
+    },
+    {
+      "ac": "`verify-return` exit codes are 0 for `agree`, 1 for `mismatch` and `malformed`, 2 for usage, path rejection, TTY stdin, or hasher unavailable (nothing on stdout for 2).",
+      "verified": "Exit 0/1/2 covered by tests; TTY stdin checked under script(1): exit 2 with nothing on stdout.",
+      "passed": true,
+      "ac_id": "faff-1397#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::verify-return exits 2 with nothing on stdout for a rejected path, bad issue id and missing flags"
+        },
+        {
+          "kind": "command",
+          "locator": "script -qec 'faff evidence verify-return --run-dir .faff/runs/run-x --issue ISSUE-1' /dev/null"
+        }
+      ]
+    },
+    {
+      "ac": "`evidence_persisted` in the verdict validates against the `evidence_persisted` item schema in `run-ledger.schema.json` and is `null` when no file matched.",
+      "verified": "Test validates evidence_persisted against the run-ledger schema item; null when no file present.",
+      "passed": true,
+      "ac_id": "faff-1397#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::verify-return agrees on an untouched return and the evidence_persisted entry validates"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::evidence_persisted is null when no file is present and both are absent on disk"
+        }
+      ]
+    },
+    {
+      "ac": "Each park cause in the section 3 cause table is produced verbatim by its condition.",
+      "verified": "Tests assert each park cause string verbatim.",
+      "passed": true,
+      "ac_id": "faff-1397#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::a one-byte change after the return is a hash-mismatch, tampered, with the verbatim cause"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::presence disagreement in both directions is a tampered mismatch"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::stdin null with a file on disk is no-claim: a missing cause, no tampered path"
+        }
+      ]
+    },
+    {
+      "ac": "`TerminalToken{issue,outcome,pr}` text is unchanged in graft and both executors; EvidenceReturn is still described as a sibling field.",
+      "verified": "git diff shows TerminalToken lines unchanged in meaning (2 removed, 2 re-added in edited paragraphs); EvidenceReturn still a sibling field.",
+      "passed": true,
+      "ac_id": "faff-1397#done:9",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff e895df51 -- plugin/skills | grep TerminalToken"
+        }
+      ]
+    },
+    {
+      "ac": "`docs/guide/cli.md` has one row each for `evidence return` and `evidence verify-return`, and `evidence.js` `USAGE` lists both.",
+      "verified": "docs/guide/cli.md has rows for evidence return and evidence verify-return; USAGE lists both; lint-cli-doc passes.",
+      "passed": true,
+      "ac_id": "faff-1397#done:10",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff lint-cli-doc"
+        }
+      ]
+    },
+    {
+      "ac": "`l4.md` obligation 6 describes the digest-only EvidenceReturn, the `verify-return` call, the exit-code branch (0 append, 1 unit park with `integrity_tampered`, 2 unit park without), and no longer tells the dispatcher to rewrite the evidence files.",
+      "verified": "l4.md obligation 6 rewritten: digest-only return, verify-return call, exit-code branches, no file rewrite.",
+      "passed": true,
+      "ac_id": "faff-1397#done:11",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff e895df51 -- plugin/skills/faff/references/l4.md"
+        }
+      ]
+    },
+    {
+      "ac": "`l4.md` obligation 7 runs obligation 5's run-grain verify and then `verify-return --against-ledger` before asserting the floor, parks on non-zero, and says \"dispatcher-verified\" where it said \"dispatcher-persisted\".",
+      "verified": "l4.md obligation 7 re-runs the run-grain verify then verify-return --against-ledger and says dispatcher-verified.",
+      "passed": true,
+      "ac_id": "faff-1397#done:12",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff e895df51 -- plugin/skills/faff/references/l4.md"
+        }
+      ]
+    },
+    {
+      "ac": "No obligation 6 or 7 prose tells the dispatcher to keep an EvidenceReturn in conversation context past the first check.",
+      "verified": "No obligation 6/7 prose holds an EvidenceReturn in context; grep for held/hold in context finds none.",
+      "passed": true,
+      "ac_id": "faff-1397#done:13",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n -i 'held in context|hold.*in context' plugin/skills/faff/references/l4.md"
+        }
+      ]
+    },
+    {
+      "ac": "`verify-return --against-ledger` reads the last `evidence_persisted` entry for `--issue`; with no entry and a file on disk it gives `no-claim`; with a missing or unparseable ledger it exits 2.",
+      "verified": "Tests cover last-entry read, no-entry no-claim, both-absent agree, and exit 2 for missing or unparseable ledger.",
+      "passed": true,
+      "ac_id": "faff-1397#done:14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::--against-ledger agrees with the last evidence_persisted entry for the issue"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::--against-ledger with no entry and a file on disk is no-claim; with both absent it agrees"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::--against-ledger exits 2 for a missing or unparseable ledger and does not read stdin"
+        }
+      ]
+    },
+    {
+      "ac": "A `malformed` verdict parks the unit without an `integrity_tampered` entry; a `mismatch` verdict appends each `tampered_paths` string to `integrity_tampered` (none for a `no-claim`-only mismatch), and the result validates against `run-ledger.schema.json`.",
+      "verified": "Tests: malformed has empty tampered_paths; mismatch lists only changed files; mixed case lists only the hash-mismatch file.",
+      "passed": true,
+      "ac_id": "faff-1397#done:15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::a mixed no-claim and hash-mismatch run lists only the changed file as tampered"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::the malformed family: bad JSON, legacy body, uppercase or short hex, null sha with present, extra key, other issue"
+        }
+      ]
+    },
+    {
+      "ac": "FAFF-517 carries a comment naming the content-carrying return it inherits (OUT OF SCOPE, first item), and keeps its tracker relation to FAFF-1397, so its prep sees the obligation from the link as well as the text.",
+      "verified": "Comment posted on FAFF-517 (2026-10-24) naming the inherited content-carrying return; FAFF-517 related to FAFF-1397.",
+      "passed": true,
+      "ac_id": "faff-1397#done:16",
+      "verifications": [
+        {
+          "kind": "human"
+        }
+      ]
+    },
+    {
+      "ac": "Graft line 884 tells a dispatched lane to return the `faff evidence return` line verbatim, or `EvidenceReturn: null` on a non-zero exit.",
+      "verified": "faff-graft/SKILL.md Returned evidence paragraph tells the lane to return the faff evidence return line verbatim, or null on non-zero exit.",
+      "passed": true,
+      "ac_id": "faff-1397#done:17",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff e895df51 -- plugin/skills/faff-graft/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "The parallel executor (lines 99, 103) and sequential executor (lines 40, 42) placement prose refer to `faff evidence verify-return` and do not restate its rules.",
+      "verified": "Both executors' placement prose refers to faff evidence verify-return and points to obligation 6/7 for the rules.",
+      "passed": true,
+      "ac_id": "faff-1397#done:18",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff e895df51 -- plugin/skills/faffter-dark-concurrency-parallel/SKILL.md plugin/skills/faffter-noon-concurrency-sequential/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "ADR-0077 carries the \"Return by digest (FAFF-1397 amendment)\" Consequences bullet; its Decision text is unchanged.",
+      "verified": "ADR-0077 gains the Return by digest (FAFF-1397 amendment) bullet; Decision text unchanged; adr validate passes.",
+      "passed": true,
+      "ac_id": "faff-1397#done:19",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff adr validate"
+        }
+      ]
+    },
+    {
+      "ac": "Neither verb creates, modifies or deletes any file (checked by snapshotting the run dir before and after in a test).",
+      "verified": "Test snapshots the run dir before and after both verbs: unchanged.",
+      "passed": true,
+      "ac_id": "faff-1397#done:20",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::neither verb creates, modifies or deletes any file"
+        }
+      ]
+    },
+    {
+      "ac": "No decision-kernel call site (`next`, `eligible`, `claim-verdict`, `park-verdict`, `run-start`, `run-outward`, `run-done`, `queue-state`, `project-next`) changes in the diff.",
+      "verified": "git diff --stat touches no decision-kernel module or call site.",
+      "passed": true,
+      "ac_id": "faff-1397#done:21",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --stat e895df51"
+        }
+      ]
+    },
+    {
+      "ac": "The PR body records the two exposure-audit greps from section 4 and their results after the edit.",
+      "verified": "Both exposure-audit greps re-run after the edit; results recorded in the PR body.",
+      "passed": true,
+      "ac_id": "faff-1397#done:22",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -rn -i -E 'sha-?256' plugin/skills --include=*.md | grep -i -E 'return|subagent|lane'"
+        }
+      ]
+    },
+    {
+      "ac": "stdin `null` with both files absent gives `agree`, `evidence_persisted: null`; stdin `null` with a file present gives `no-claim` and no `integrity_tampered` entry.",
+      "verified": "Tests cover stdin null with both absent (agree, null entry) and with a file present (no-claim, no tamper entry).",
+      "passed": true,
+      "ac_id": "faff-1397#done:23",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::stdin null with both files absent agrees and persists nothing"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::stdin null with a file on disk is no-claim: a missing cause, no tampered path"
+        }
+      ]
+    },
+    {
+      "ac": "A return carrying `body`, an uppercase or short hex, `present:false` with a non-null `sha256`, an extra key, or an `issue` different from `--issue` each give `malformed`.",
+      "verified": "Test covers legacy body, uppercase and short hex, null-sha-with-present, extra key and another issue: all malformed.",
+      "passed": true,
+      "ac_id": "faff-1397#done:24",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::the malformed family: bad JSON, legacy body, uppercase or short hex, null sha with present, extra key, other issue"
+        }
+      ]
+    },
+    {
+      "ac": "A symlink at an evidence path gives `not-regular-file` in `verify-return`.",
+      "verified": "Test: a symlink at an evidence path is not-regular-file.",
+      "passed": true,
+      "ac_id": "faff-1397#done:25",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::a symlink at an evidence path is not-regular-file and tampered"
+        }
+      ]
+    },
+    {
+      "ac": "A new `test/evidence-return.test.mjs` (node:test, `runCli` helper, fixture pattern from `test/evidence-write.test.mjs`) covers every DONE item above that names CLI behaviour, including a round trip where the EvidenceReturn line is passed through an HTML-entity escape of `<`, `>`, `&` before `verify-return` and still agrees.",
+      "verified": "test/evidence-return.test.mjs: 22 tests pass, including the HTML-escape round trip; mutation checks on no-claim, tampered_paths, not-regular-file, the ledger hex check and the foreign-flag refusal each fail a test.",
+      "passed": true,
+      "ac_id": "faff-1397#done:26",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/evidence-return.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`faff evidence --selftest` passes and covers one agree and one mismatch case for the new verbs.",
+      "verified": "faff evidence --selftest: OK, with one agree and one mismatch case.",
+      "passed": true,
+      "ac_id": "faff-1397#done:27",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff evidence --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`faff validate-adapters` reports no new FAIL; `faff-graft/SKILL.md` stays at or under 893 lines, and `SKILL_LINE_BASELINE[\"faff-graft\"]` is lowered to the new line count if it shrank.",
+      "verified": "validate-adapters passes; faff-graft/SKILL.md is 892 lines, under its 893 baseline (no shrink, baseline unchanged).",
+      "passed": true,
+      "ac_id": "faff-1397#done:28",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "New prose in the edited Markdown files uses Canadian spelling and no em dashes outside the quoted park-cause strings.",
+      "verified": "New prose is Canadian English; the only added em dashes are park-cause separators or sentences edited in place that already had them.",
+      "passed": true,
+      "ac_id": "faff-1397#done:29",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff e895df51 -- '*.md' | grep '^+'"
+        }
+      ]
+    }
+  ]
+}

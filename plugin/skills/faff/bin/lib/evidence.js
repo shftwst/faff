@@ -32,6 +32,7 @@ const { EvidenceRefusal, collateReviewRounds, parseSpecReviewComment, resolvedRo
 const { redactKnownSecrets, resolveKnownSecretValues } = require("./redact");
 const { assignFindingIds, normaliseFindingPath, normaliseFindingTitle } = require("./finding-id");
 const { parseAcId } = require("./ac-id");
+const crypto = require("node:crypto");
 
 const SPEC_VERSION = "v0.3";
 const BUNDLE_DIR = path.resolve(HERE, "..", "contracts", "evidence-v0.3");
@@ -39,7 +40,7 @@ const BUNDLE_DIR = path.resolve(HERE, "..", "contracts", "evidence-v0.3");
 const EVIDENCE_SPEC = { flags: {
   "--json": { arity: 0 }, "--selftest": { arity: 0 }, "--require-evidence-schema": { arity: 0 },
   "--run-dir": { arity: 1 }, "--issue": { arity: 1 }, "--terminal-only": { arity: 0 },
-  "--candidate-schemas": { arity: 1 }, "--park": { arity: 1 }, "--judge-admitted": { arity: 0 }, "--prior-dir": { arity: 1 },
+  "--candidate-schemas": { arity: 1 }, "--park": { arity: 1 }, "--judge-admitted": { arity: 0 }, "--prior-dir": { arity: 1 }, "--against-ledger": { arity: 0 },
 }, positionals: { min: 0, max: null, name: "argument(s)" } };
 
 // Per-line validators for the JSONL files the schema subset cannot fully express. A jsonl
@@ -1162,6 +1163,166 @@ function cmdEvidenceRender(values, name) {
   }
 }
 
+// --- return by digest (FAFF-1397) -------------------------------------------
+//
+// `faff evidence return` (lane side) prints the per-file leaf sha256 of the two per-issue evidence files;
+// `faff evidence verify-return` (dispatcher side) re-hashes them and compares. Both are read-only: they
+// write no file, so they add no member to the Class A writer roster and can be re-run before the merge
+// locus. The hash is a leaf sha256 of the file's bytes; nothing here compares file bodies.
+
+const EVIDENCE_FILES = [
+  { key: "ac_checklist", name: "ac-checklist.json", shaKey: "ac_sha256" },
+  { key: "review_verdict", name: "review-verdict.json", shaKey: "review_verdict_sha256" },
+];
+const HEX64_RE = /^[0-9a-f]{64}$/;
+const NO_DIGEST = { present: false, sha256: null };
+
+function lstatOrNull(abs) {
+  try { return fs.lstatSync(abs); } catch (e) {
+    if (e.code === "ENOENT" || e.code === "ENOTDIR") return null;
+    throw new WriterFault(`cannot stat ${path.basename(abs)}: ${e.code || e.message}`);
+  }
+}
+
+// Leaf sha256 of a regular file's bytes (the digest `faff integrity-digest hash` reports). In-process, because
+// the governance region may not require the factory-region integrity-digest module. A read fault is exit 2,
+// never a verdict.
+function hashRegularFile(abs) {
+  try { return crypto.createHash("sha256").update(fs.readFileSync(abs)).digest("hex"); } catch (e) { throw new WriterFault(`cannot hash ${path.basename(abs)}: ${e.code || e.message}`); }
+}
+
+function evidenceReturn(runDir, issue) {
+  const issueDir = guardWriterPaths(runDir, issue);
+  const out = { issue };
+  for (const { key, name } of EVIDENCE_FILES) {
+    const abs = path.join(issueDir, name);
+    const st = lstatOrNull(abs);
+    if (st === null) { out[key] = { ...NO_DIGEST }; continue; }
+    if (!st.isFile()) throw new WriterFault(`${name} is not a regular file`);
+    out[key] = { present: true, sha256: hashRegularFile(abs) };
+  }
+  return out;
+}
+
+const hasExactKeys = (o, keys) => isObject(o) && Object.keys(o).length === keys.length && keys.every((k) => Object.hasOwn(o, k));
+
+function wellFormedReturn(p, issue) {
+  if (!hasExactKeys(p, ["issue", "ac_checklist", "review_verdict"]) || p.issue !== issue) return false;
+  return EVIDENCE_FILES.every(({ key }) => {
+    const d = p[key];
+    if (!hasExactKeys(d, ["present", "sha256"]) || typeof d.present !== "boolean") return false;
+    return d.present ? typeof d.sha256 === "string" && HEX64_RE.test(d.sha256) : d.sha256 === null;
+  });
+}
+
+// The claim to verify against: { noClaim, returned } where returned maps each key to an EvidenceDigest.
+function claimFromLedger(issueDir, issue) {
+  const ledgerPath = path.join(path.dirname(issueDir), "run-ledger.json");
+  let ledger;
+  try { ledger = JSON.parse(fs.readFileSync(ledgerPath, "utf8")); } catch (e) {
+    throw new WriterFault(`run-ledger.json is missing or does not parse (${e.code || "parse error"})`);
+  }
+  if (!isObject(ledger) || (ledger.evidence_persisted !== undefined && !Array.isArray(ledger.evidence_persisted))) throw new WriterFault("run-ledger.json is not a ledger object");
+  const entry = [...(ledger.evidence_persisted || [])].reverse().find((e) => isObject(e) && e.issue === issue);
+  if (!entry) return { noClaim: true, returned: { ac_checklist: { ...NO_DIGEST }, review_verdict: { ...NO_DIGEST } } };
+  const returned = {};
+  for (const { key, shaKey } of EVIDENCE_FILES) returned[key] = typeof entry[shaKey] === "string" ? { present: true, sha256: entry[shaKey] } : { ...NO_DIGEST };
+  return { noClaim: false, returned };
+}
+
+function claimFromStdin(text, issue) {
+  let parsed;
+  try { parsed = JSON.parse(text); } catch { return { malformed: true }; }
+  if (parsed === null) return { noClaim: true, returned: { ac_checklist: { ...NO_DIGEST }, review_verdict: { ...NO_DIGEST } } };
+  if (!wellFormedReturn(parsed, issue)) return { malformed: true };
+  return { noClaim: false, returned: parsed };
+}
+
+const RESULT_CAUSE = {
+  "presence-disagreement": "presence disagreement",
+  "hash-mismatch": "returned copy ≠ on-disk copy",
+  "not-regular-file": "on-disk copy is not a regular file",
+  "no-claim": "no digest returned for a file on disk",
+};
+
+function verifyReturn(issueDir, issue, claim) {
+  const base = { issue, files: [], evidence_persisted: null, park_cause: null, paths: [], tampered_paths: [] };
+  if (claim.malformed) {
+    return { verdict: "malformed", ...base, park_cause: `evidence-return malformed — ${issue}/EvidenceReturn (malformed return)`, paths: EVIDENCE_FILES.map((f) => `${issue}/${f.name}`) };
+  }
+  const files = [];
+  const entry = { issue };
+  for (const { key, name, shaKey } of EVIDENCE_FILES) {
+    const r = claim.returned[key];
+    const abs = path.join(issueDir, name);
+    const st = lstatOrNull(abs);
+    const diskPresent = st !== null;
+    const row = { file: name, returned_present: r.present, disk_present: diskPresent, returned_sha256: r.sha256, disk_sha256: null, result: null };
+    if (diskPresent && !st.isFile()) row.result = "not-regular-file";
+    else if (claim.noClaim && diskPresent) row.result = "no-claim";
+    else if (r.present !== diskPresent) row.result = "presence-disagreement";
+    else if (!diskPresent) row.result = "absent-both";
+    else {
+      row.disk_sha256 = hashRegularFile(abs);
+      row.result = row.disk_sha256 === r.sha256 ? "match" : "hash-mismatch";
+      if (row.result === "match") entry[shaKey] = row.disk_sha256;
+    }
+    files.push(row);
+  }
+  const failing = files.filter((f) => f.result !== "match" && f.result !== "absent-both");
+  if (failing.length === 0) {
+    return { verdict: "agree", ...base, files, evidence_persisted: Object.keys(entry).length > 1 ? entry : null };
+  }
+  const first = failing[0];
+  const label = first.result === "no-claim" ? "missing" : "mismatch";
+  const rel = (f) => `${issue}/${f.file}`;
+  return {
+    verdict: "mismatch", ...base, files,
+    park_cause: `evidence-return ${label} — ${rel(first)} (${RESULT_CAUSE[first.result]})`,
+    paths: failing.map(rel),
+    tampered_paths: failing.filter((f) => f.result !== "no-claim").map(rel),
+  };
+}
+
+function evidenceVerbFail(label, code, message) {
+  process.stderr.write(`${label}: ${message}\n`);
+  return code;
+}
+
+function cmdEvidenceReturn(values) {
+  const label = "faff evidence return";
+  if (values["--run-dir"] == null || values["--issue"] == null) return evidenceVerbFail(label, 2, "--run-dir and --issue are required");
+  if (values["--against-ledger"]) return evidenceVerbFail(label, 2, "--against-ledger applies to verify-return only");
+  try {
+    process.stdout.write(JSON.stringify(evidenceReturn(values["--run-dir"], values["--issue"])) + "\n");
+    return 0;
+  } catch (e) {
+    if (e instanceof WriterFault) return evidenceVerbFail(label, 2, e.message);
+    throw e;
+  }
+}
+
+function cmdEvidenceVerifyReturn(values) {
+  const label = "faff evidence verify-return";
+  if (values["--run-dir"] == null || values["--issue"] == null) return evidenceVerbFail(label, 2, "--run-dir and --issue are required");
+  try {
+    const issue = values["--issue"];
+    const issueDir = guardWriterPaths(values["--run-dir"], issue);
+    let claim;
+    if (values["--against-ledger"]) claim = claimFromLedger(issueDir, issue);
+    else {
+      if (process.stdin.isTTY) return evidenceVerbFail(label, 2, "expects the EvidenceReturn JSON (or null) on stdin; nothing was piped");
+      claim = claimFromStdin(readStdin(), issue);
+    }
+    const verdict = verifyReturn(issueDir, issue, claim);
+    process.stdout.write(JSON.stringify(verdict) + "\n");
+    return verdict.verdict === "agree" ? 0 : 1;
+  } catch (e) {
+    if (e instanceof WriterFault) return evidenceVerbFail(label, 2, e.message);
+    throw e;
+  }
+}
+
 // --- selftest ---------------------------------------------------------------
 
 function exampleSchemaName(file) {
@@ -1211,6 +1372,14 @@ function evidenceSelftest() {
     check("the ac-checklist writer refuses an empty criteria list", acChecklistWriterViolations(anchoredAcChecklist({ all_verified: true, criteria: [] }), "FAFF-1").length === 1);
     const review = anchoredTerminalReview({ signal: "pass", adversarial_outcome: "chain-outage-skipped", findings: [{ title: "x", location: "a.js:1", severity: "minor" }] });
     check("the terminal-only review writer's document passes its schema", validateAgainstSchema(review, schemaFor("review-verdict.json")).length === 0);
+    // FAFF-1397: return-by-digest agrees on untouched files and reports a hash mismatch after a change.
+    const issueDir = build("return", { "ac-checklist.json": "<unknown> -> &\n", "review-verdict.json": "{}\n" });
+    const digests = { issue: "ISSUE-1" };
+    for (const { key, name } of EVIDENCE_FILES) digests[key] = { present: true, sha256: hashRegularFile(path.join(issueDir, name)) };
+    check("return-by-digest agrees on untouched files", verifyReturn(issueDir, "ISSUE-1", claimFromStdin(JSON.stringify(digests), "ISSUE-1")).verdict === "agree");
+    fs.appendFileSync(path.join(issueDir, "ac-checklist.json"), "x");
+    const changed = verifyReturn(issueDir, "ISSUE-1", claimFromStdin(JSON.stringify(digests), "ISSUE-1"));
+    check("return-by-digest reports a hash mismatch after a change", changed.verdict === "mismatch" && changed.files[0].result === "hash-mismatch" && changed.tampered_paths.length === 1);
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }
@@ -1226,7 +1395,7 @@ function evidenceSelftest() {
 // flag exits 2 just as schema-unavailable does, so probing flags could not tell the two apart.
 const CAPABILITIES = { validate: ["require-evidence-schema", "candidate-schemas"] };
 
-const USAGE = "usage: faff evidence validate <anchor-dir> [--require-evidence-schema] [--json] [--candidate-schemas <dir>]\n       faff evidence capabilities --json\n       faff evidence write spec-review-verdict --run-dir <dir> --issue <id>   (comment or spec text on stdin)\n       faff evidence write ac-checklist --run-dir <dir> --issue <id>   ({all_verified, criteria?: [{ac, verified, passed, ac_id?, verifications?}]} on stdin)\n       faff evidence render ac-checklist --run-dir <dir> --issue <id>   (prints the PR-body Acceptance Criteria block)\n       faff evidence record-review-round --run-dir <dir> --issue <id> [--prior-dir <dir>]   (one review-verdict block on stdin)\n       faff evidence write review-verdict --run-dir <dir> --issue <id> [--park needs-human|unavailable | --judge-admitted]   (collates review-rounds/)\n       faff evidence write review-verdict --terminal-only --run-dir <dir> --issue <id>   (terminal review-verdict block on stdin; manual recovery)\n       faff evidence --selftest\n";
+const USAGE = "usage: faff evidence validate <anchor-dir> [--require-evidence-schema] [--json] [--candidate-schemas <dir>]\n       faff evidence capabilities --json\n       faff evidence write spec-review-verdict --run-dir <dir> --issue <id>   (comment or spec text on stdin)\n       faff evidence write ac-checklist --run-dir <dir> --issue <id>   ({all_verified, criteria?: [{ac, verified, passed, ac_id?, verifications?}]} on stdin)\n       faff evidence render ac-checklist --run-dir <dir> --issue <id>   (prints the PR-body Acceptance Criteria block)\n       faff evidence record-review-round --run-dir <dir> --issue <id> [--prior-dir <dir>]   (one review-verdict block on stdin)\n       faff evidence write review-verdict --run-dir <dir> --issue <id> [--park needs-human|unavailable | --judge-admitted]   (collates review-rounds/)\n       faff evidence write review-verdict --terminal-only --run-dir <dir> --issue <id>   (terminal review-verdict block on stdin; manual recovery)\n       faff evidence return --run-dir <dir> --issue <id>   (prints the EvidenceReturn digest line for a dispatched lane to return)\n       faff evidence verify-return [--against-ledger] --run-dir <dir> --issue <id>   (verifies the returned digests on stdin, or the ledger entry, against the files on disk)\n       faff evidence --selftest\n";
 
 function cmdEvidence(args) {
   const parsed = parseArgs(args, EVIDENCE_SPEC);
@@ -1241,6 +1410,8 @@ function cmdEvidence(args) {
     }
     if (sub === "write" && anchorDir && rest.length === 0) return cmdEvidenceWrite(values, anchorDir);
     if (sub === "record-review-round" && !anchorDir) return cmdRecordReviewRound(values);
+    if (sub === "return" && !anchorDir) return cmdEvidenceReturn(values);
+    if (sub === "verify-return" && !anchorDir) return cmdEvidenceVerifyReturn(values);
     if (sub === "render" && anchorDir && rest.length === 0) return cmdEvidenceRender(values, anchorDir);
     if (sub !== "validate" || !anchorDir || rest.length > 0) {
       process.stderr.write(USAGE);

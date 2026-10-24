@@ -105,7 +105,7 @@ The ten largest A plus C collapses, ranked by prose removed:
 | 9 | `faff spec-review round` / `hold` | prep round write, convergence, outage rules (122 to 130, 208 to 210, 233 to 298) | ~90 | round write-then-pipe order and hold-file counters |
 | 10 | `faff run-start assemble` | beep-boop run-start trigger (139 to 163) | ~26 | signal assembler |
 
-- [ ] **Action, first:** `faff land`. It is the one place a prose misstep reaches `main`, and the `concurrency` executors must call the same command so the dispatch-cut path cannot drift.
+- [x] **Action, first:** `faff land`. It is the one place a prose misstep reaches `main`, and the `concurrency` executors must call the same command so the dispatch-cut path cannot drift. Done 2026-10-24: FAFF-1396 (#1119), first used live on FAFF-1112 (#1120), where it returned `ready` on its first call.
 - [ ] **Action, second:** the run lifecycle trio (`run open/close`, `checkpoint`, `run summary`). Almost all pure reads of the run directory.
 - [ ] **Action, third:** `prep attach`, `spec commit`, `collate-evidence --from-judge`. Under 300 lines of code; closes two of the five logged defects and the twice-recurring silent non-attach that `prepcheck` exists for.
 - [ ] Each collapse lowers the matching `SKILL_LINE_BASELINE` entry and keeps or relocates the `ANCHOR_PHRASES` sentences, or `validate-adapters` reports RATCHET and the gain is not locked in.
@@ -130,7 +130,7 @@ The 80 most recently created titles are almost all faff fixing faff (anchor mint
 
 - [ ] **Action:** discovered scope below High becomes a comment on the parent, not a ticket.
 - [ ] **Action:** one triage pass over the 134 project-less issues: project, priority, or close.
-- [ ] **Action:** cancel P-FAFF-73 (capability/role model replaces slots, 8 issues) and P-FAFF-74 (grounding slot, 3 issues). Both are platform construction the v5 master defers until Gate 1.
+- [x] **Action:** cancel P-FAFF-73 (capability/role model replaces slots, 8 issues) and P-FAFF-74 (grounding slot, 3 issues). Both are platform construction the v5 master defers until Gate 1. Done 2026-10-22: both projects and all 11 issues cancelled.
 
 ### 1.6 Commit mix since 2026-09-22
 
@@ -239,7 +239,7 @@ Cull by collapsing the vocabulary, not by deleting folders.
 - [ ] `concurrency_max: 1` replaces `faffter-noon-concurrency-sequential`.
 - [ ] Shrink the configurable surface from 17 slots to 5 (`spec`, `spec_review`, `review`, `methodology`, `concurrency`). The rest become internal steps until a second user asks to swap one.
 - [ ] Rename the `faffter-noon`, `faffter-dark` and `faffidavit` prefixes to plain names (spec, spec-review, review, methodology-agile, concurrency, rendering, routing). Update the eval anchors and the `REGISTRY` in `validate-adapters.js` lines 16 to 36.
-- [ ] Cancel P-FAFF-73 and P-FAFF-74.
+- [x] Cancel P-FAFF-73 and P-FAFF-74. Done 2026-10-22 (see 1.5).
 
 ## Part 4: the split
 

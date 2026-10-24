@@ -1,0 +1,390 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A repo with `.github/ISSUE_TEMPLATE/bug_report.md` yields that file in the `bug` candidate set, where before the ticket it yielded nothing.",
+      "verified": "bug_report.md in bug set (smoke test)",
+      "passed": true,
+      "ac_id": "faff-1112#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::smoke: bug_report.md lands in the bug set with normalised flow labels"
+        }
+      ]
+    },
+    {
+      "ac": "The scan produces identical output for the same tree whether `tracking.tracker` is `linear`, `github`, or unset — it never reads that key.",
+      "verified": "output identical for tracker linear vs github",
+      "passed": true,
+      "ac_id": "faff-1112#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::output is independent of tracking.tracker"
+        }
+      ]
+    },
+    {
+      "ac": "No input causes the scan to throw at its caller; a missing directory, an unreadable file and a malformed fence each resolve to a recorded miss at exit 0.",
+      "verified": "missing dir / unreadable file / no-fence each a recorded miss at exit 0",
+      "passed": true,
+      "ac_id": "faff-1112#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::no templates at all: exit 0, zero candidates, zero notes"
+        },
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::an unreadable file is dropped, noted, and the scan continues"
+        }
+      ]
+    },
+    {
+      "ac": "`plugin/skills/faff/bin/lib/github-templates.js` exists, carries exactly one `// === region:factory — github-templates — FAFF-1112 … ===` banner, and `faff regions check` passes.",
+      "verified": "module exists with one region banner; faff regions check passes",
+      "passed": true,
+      "ac_id": "faff-1112#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::module purity: fixed require set, no literal taxonomy list, one region banner"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        }
+      ]
+    },
+    {
+      "ac": "The module is plain `.js` with no `.ts` sibling, and `build-manifest.json` is unchanged.",
+      "verified": "plain .js, no .ts sibling, build-manifest.json untouched (git status shows neither)",
+      "passed": true,
+      "ac_id": "faff-1112#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git status --short -- plugin/skills/faff/build-manifest.json 'plugin/skills/faff/bin/lib/*.ts'"
+        }
+      ]
+    },
+    {
+      "ac": "Its require set is exactly `node:fs`, `node:path`, `./argv`, `./shared-infra`, `./native-map` — no `child_process`, no network module, no governance module.",
+      "verified": "require set is exactly the five modules",
+      "passed": true,
+      "ac_id": "faff-1112#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::module purity: fixed require set, no literal taxonomy list, one region banner"
+        }
+      ]
+    },
+    {
+      "ac": "The six faff-type tokens appear in the module only via `FAFF_TYPES` imported from `./native-map`; the module contains no literal list of the six.",
+      "verified": "taxonomy via FAFF_TYPES import, no literal six-list",
+      "passed": true,
+      "ac_id": "faff-1112#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::module purity: fixed require set, no literal taxonomy list, one region banner"
+        }
+      ]
+    },
+    {
+      "ac": "Every emitted candidate satisfies `universal === (type === null)` and `universal === true` implies `form === \"bare\"`.",
+      "verified": "universal===(type===null), universal implies bare",
+      "passed": true,
+      "ac_id": "faff-1112#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::ordering, no dedup, non-markdown and nested handling"
+        }
+      ]
+    },
+    {
+      "ac": "`faff github-templates scan --type <unknown>` exits 2 as a usage error and emits no candidate set.",
+      "verified": "unknown --type exits 2, no candidate set",
+      "passed": true,
+      "ac_id": "faff-1112#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::unknown --type is a usage error (exit 2) and emits no candidate set"
+        }
+      ]
+    },
+    {
+      "ac": "`--type <t>` returns every candidate whose `type` is `t` plus every `universal` candidate, and nothing else.",
+      "verified": "--type t returns type t plus universal only",
+      "passed": true,
+      "ac_id": "faff-1112#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::ordering, no dedup, non-markdown and nested handling"
+        },
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::holdout: a classifying bare file is a single-type candidate"
+        }
+      ]
+    },
+    {
+      "ac": "`--type default` returns exactly the universal candidates, and the type gate never emits `default` for any input.",
+      "verified": "--type default returns only universal; gate never emits default",
+      "passed": true,
+      "ac_id": "faff-1112#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::--type default with only typed directory templates is empty"
+        },
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::bare fence-less file is a universal candidate in all six type sets"
+        }
+      ]
+    },
+    {
+      "ac": "A directory-form `*.md` that fails to classify appears in `dropped` with reason `unclassified` and in no candidate set.",
+      "verified": "directory-form unclassified dropped, in no set",
+      "passed": true,
+      "ac_id": "faff-1112#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::directory-form file with no signal is dropped, never universal"
+        }
+      ]
+    },
+    {
+      "ac": "A bare `.github/ISSUE_TEMPLATE.md` that fails to classify is a candidate for all six types with `type: null, universal: true`.",
+      "verified": "bare unclassified is universal for all six types",
+      "passed": true,
+      "ac_id": "faff-1112#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::bare fence-less file is a universal candidate in all six type sets"
+        }
+      ]
+    },
+    {
+      "ac": "A bare `.github/ISSUE_TEMPLATE.md` that does classify is a single-type candidate with `universal: false`.",
+      "verified": "bare classifying is single-type, universal false",
+      "passed": true,
+      "ac_id": "faff-1112#done:14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::holdout: a classifying bare file is a single-type candidate"
+        }
+      ]
+    },
+    {
+      "ac": "`normalize_labels` returns `[\"bug\",\"triage\"]` for each of `labels: [bug, triage]`, `labels: [\"bug\",\"triage\"]`, `labels: '[bug, triage]'`, and the block-sequence form; `[\"bug\"]` for `labels: bug`; and `[]` for an absent, empty, boolean or numeric value.",
+      "verified": "label shapes normalise as specified",
+      "passed": true,
+      "ac_id": "faff-1112#done:15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::labels shapes all normalise to the same list"
+        }
+      ]
+    },
+    {
+      "ac": "`classify` resolves `labels` before `name` before `about`, and a template named `RFC proposal` classifies `spike`, not `feature`.",
+      "verified": "labels>name>about; RFC proposal is spike",
+      "passed": true,
+      "ac_id": "faff-1112#done:16",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::signal precedence is labels, then name, then about"
+        },
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::holdout: RFC proposal classifies spike, not feature"
+        }
+      ]
+    },
+    {
+      "ac": "Candidate output is sorted with `universal` last and otherwise by repo-relative path in byte order, so two runs over the same tree produce byte-identical output.",
+      "verified": "universal last, path byte order, deterministic",
+      "passed": true,
+      "ac_id": "faff-1112#done:17",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::ordering, no dedup, non-markdown and nested handling"
+        }
+      ]
+    },
+    {
+      "ac": "`config.yml` and `config.yaml` are dropped with reason `excluded-config`, case-insensitively, and the bare-form arm still runs when the directory holds nothing else.",
+      "verified": "config.yml/yaml dropped case-insensitively; bare arm still runs",
+      "passed": true,
+      "ac_id": "faff-1112#done:18",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::config.yml only: dropped as excluded-config, bare arm still evaluated"
+        }
+      ]
+    },
+    {
+      "ac": "A non-`.md` file in the directory is dropped with reason `not-markdown`; a nested directory is skipped with no `dropped` entry.",
+      "verified": "non-.md dropped not-markdown; nested dir silent",
+      "passed": true,
+      "ac_id": "faff-1112#done:19",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::ordering, no dedup, non-markdown and nested handling"
+        }
+      ]
+    },
+    {
+      "ac": "An unreadable file is dropped with reason `unreadable`, recorded in `notes`, and the scan completes over the remaining entries.",
+      "verified": "unreadable dropped, noted, scan continues",
+      "passed": true,
+      "ac_id": "faff-1112#done:20",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::an unreadable file is dropped, noted, and the scan continues"
+        }
+      ]
+    },
+    {
+      "ac": "A `*.md` file with no front-matter fence parses to all-null signals rather than reading the markdown body as key lines.",
+      "verified": "no-fence file parses to null signals",
+      "passed": true,
+      "ac_id": "faff-1112#done:21",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::a fence-less body is not read as key lines"
+        }
+      ]
+    },
+    {
+      "ac": "Two directory templates classifying to the same type both appear in that type's candidate set — the scan does not deduplicate.",
+      "verified": "same-type directory templates both kept",
+      "passed": true,
+      "ac_id": "faff-1112#done:22",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::ordering, no dedup, non-markdown and nested handling"
+        }
+      ]
+    },
+    {
+      "ac": "`faff github-templates scan` is reachable from the `faff` entrypoint via a `COMMANDS` entry.",
+      "verified": "verb reachable via COMMANDS entry",
+      "passed": true,
+      "ac_id": "faff-1112#done:23",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::smoke: bug_report.md lands in the bug set with normalised flow labels"
+        }
+      ]
+    },
+    {
+      "ac": "`REGION_MAP` maps `github-templates` to `factory` and `REGION_SELFTEST_ARGV` invokes its `--selftest`; `faff regions selftest --region factory` passes.",
+      "verified": "REGION_MAP + REGION_SELFTEST_ARGV; regions selftest factory passes",
+      "passed": true,
+      "ac_id": "faff-1112#done:24",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions selftest --region factory"
+        }
+      ]
+    },
+    {
+      "ac": "`DISPATCH_SURFACES` in `cli-surface.js` carries a `github-templates` surface declaring the `scan` subcommand and the `--type` / `--json` / `--root` / `--selftest` flags.",
+      "verified": "DISPATCH_SURFACES carries github-templates surface; lint-cli-coverage/doc pass",
+      "passed": true,
+      "ac_id": "faff-1112#done:25",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-doc"
+        }
+      ]
+    },
+    {
+      "ac": "`docs/guide/cli.md` carries a row for the verb and `faff lint-cli-doc` passes bidirectionally.",
+      "verified": "docs/guide/cli.md row; lint-cli-doc passes (139 documented)",
+      "passed": true,
+      "ac_id": "faff-1112#done:26",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-doc"
+        }
+      ]
+    },
+    {
+      "ac": "`faff lint-cli-coverage` passes, satisfied by `test/github-templates.test.mjs`.",
+      "verified": "lint-cli-coverage passes (139 covered)",
+      "passed": true,
+      "ac_id": "faff-1112#done:27",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-coverage"
+        }
+      ]
+    },
+    {
+      "ac": "The spec records a `**Chosen:**` for the shared-versus-duplicate classifier question, and the module imports `FAFF_TYPES` rather than re-literalling the taxonomy.",
+      "verified": "spec records Chosen for the classifier question; module imports FAFF_TYPES",
+      "passed": true,
+      "ac_id": "faff-1112#done:28",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::module purity: fixed require set, no literal taxonomy list, one region banner"
+        }
+      ]
+    },
+    {
+      "ac": "The spec records a `**Chosen:**` for the `parseYamlSubset` flow-sequence precursor, `labels` stays in scope, and `shared-infra.js` is unchanged by this ticket's diff.",
+      "verified": "spec records Chosen for the flow-sequence precursor; labels in scope; shared-infra.js absent from diff",
+      "passed": true,
+      "ac_id": "faff-1112#done:29",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --stat origin/main -- plugin/skills/faff/bin/lib/shared-infra.js"
+        }
+      ]
+    },
+    {
+      "ac": "Two scenarios document the `default`-type path — the empty case and the universal-candidate case — and both are covered by tests.",
+      "verified": "default-type scenarios (empty + universal) covered by tests",
+      "passed": true,
+      "ac_id": "faff-1112#done:30",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::--type default with only typed directory templates is empty"
+        },
+        {
+          "kind": "test",
+          "locator": "test/github-templates.test.mjs::bare fence-less file is a universal candidate in all six type sets"
+        }
+      ]
+    }
+  ]
+}

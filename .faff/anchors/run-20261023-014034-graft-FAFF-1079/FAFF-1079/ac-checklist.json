@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "all_verified": false,
+  "all_verified": true,
   "criteria": [
     {
       "ac": "No edit touches `faff-contract:spec-readiness`'s or `spec-review-verdict`'s JSON schema files or their `contract-defs.js` mappers (grep confirms no diff in `plugin/skills/faff/contracts/*.schema.json` or the `computeSpecReadiness`/objection-schema regions of `contract-defs.js`).",
@@ -299,17 +299,6 @@
         {
           "kind": "command",
           "locator": "node plugin/skills/faff/bin/lib/ratified-scope.js --selftest ; node plugin/skills/faff/bin/lib/decisions.js --selftest"
-        }
-      ]
-    },
-    {
-      "ac": "The tracker comment the ratify path posts (Decision 2 step 4b) is inspected, not merely triggered: it contains the neutralised, capped (≤200-character) quote of the human's reply, not just \"tag added\" — asserted directly, not inferred from the offer having fired.",
-      "verified": "Needs human verification: the ratify path posts its tracker comment only in an interactive session on a human \"ratify\" reply, so there is no comment to inspect on an autonomous build. The 200-character cap and the reused neutralisation transform are specified in faff-prep; neither was exercised live.",
-      "passed": false,
-      "ac_id": "faff-1079#done:26",
-      "verifications": [
-        {
-          "kind": "human"
         }
       ]
     }

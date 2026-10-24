@@ -15,7 +15,7 @@ const fs = require("node:fs");
 //   kind: regular | symlink | directory | other | absent; bytes is a Buffer iff kind is regular.
 // `constants` is a test-only seam (fs.constants properties are non-writable). Throws a plain Error when
 // either flag is missing (dropping one silently reopens a hole), when open fails for any reason other than
-// absent or a symlink, and when fstat or the read fails. fs.* is called through the module object so a
+// absent, a symlink or a special file, and when fstat or the read fails. fs.* is called through the module object so a
 // test can wrap it.
 function readLeafNoFollow(abs, constants = fs.constants) {
   const { O_NOFOLLOW, O_NONBLOCK } = constants;
@@ -35,6 +35,9 @@ function readLeafNoFollow(abs, constants = fs.constants) {
       throw new Error(`cannot open ${abs}: ${e.code || e.message}`);
     }
     if (lst.isSymbolicLink()) return { kind: "symlink", bytes: null };
+    // A socket fails a no-follow open (ENXIO) before fstat can see it; a stable special file is still
+    // "other", never a fault. A regular file or directory that failed to open stays a fault.
+    if (lst.isSocket() || lst.isFIFO() || lst.isCharacterDevice() || lst.isBlockDevice()) return { kind: "other", bytes: null };
     throw new Error(`cannot open ${abs}: ${e.code || e.message}`);
   }
   try {

@@ -102,7 +102,8 @@ function walkLeaves(absDir) {
 // (append-only by construction): record {length, prefix_sha256}. A directory member records a
 // per-sub-leaf digest/symlink map (which-file granularity). A plain file records its sha256 (or a
 // symlink marker). A member that doesn't exist yet is recorded absent (a freeze must catch
-// appear/disappear/symlink-swap, not only content edits). lstat throughout — never follows a symlink.
+// appear/disappear/symlink-swap, not only content edits). The lstat only routes; the leaf read's own
+// descriptor decides what is hashed, so a symlink is never followed.
 // Internal form of snapshotMember that also returns the events bytes, so the prefix check in
 // diffAgainstManifest reuses the one read instead of opening the file again.
 function snapshotMemberRead(abs, isEvents) {

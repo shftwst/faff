@@ -8,6 +8,7 @@ import { createRequire } from "node:module";
 import { constants, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createServer } from "node:net";
 
 const require = createRequire(import.meta.url);
 const { readLeafNoFollow } = require("../plugin/skills/faff/bin/lib/leaf-read.js");
@@ -46,6 +47,15 @@ test("a FIFO with no writer returns kind other without blocking", (t) => {
   // Run in a child with a timeout: a blocking open would hang the child, not this test process.
   const out = execFileSync(process.execPath, ["-e", `const {readLeafNoFollow:r}=require(${JSON.stringify(require.resolve("../plugin/skills/faff/bin/lib/leaf-read.js"))});process.stdout.write(JSON.stringify(r(process.argv[1])))`, join(d, "fifo")], { timeout: 15000, encoding: "utf8" });
   assert.deepEqual(JSON.parse(out), { kind: "other", bytes: null });
+});
+
+test("a Unix socket, which a no-follow open refuses with ENXIO, returns kind other rather than a fault", async (t) => {
+  const d = dir(t);
+  const sock = join(d, "s.sock");
+  const server = createServer();
+  await new Promise((resolve) => server.listen(sock, resolve));
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  assert.deepEqual(readLeafNoFollow(sock), { kind: "other", bytes: null });
 });
 
 test("a missing path and a path under a regular file return kind absent", (t) => {

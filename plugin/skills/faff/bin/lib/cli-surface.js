@@ -30,6 +30,7 @@ const { EVENTS_SURFACE } = require("./events");
 const { FIXTURES_SURFACE } = require("./fixtures");
 const { GATES_SURFACE } = require("./gates");
 const { MANIFEST_SURFACE } = require("./manifest");
+const { GITHUB_TEMPLATES_SURFACE } = require("./github-templates");
 const { NATIVE_MAP_SURFACE } = require("./native-map");
 const { PRDR_SURFACE } = require("./prdr");
 const { PRD_SURFACE } = require("./prd");
@@ -56,6 +57,7 @@ const DISPATCH_SURFACES = {
   fixtures: FIXTURES_SURFACE,
   gates: GATES_SURFACE,
   manifest: MANIFEST_SURFACE,
+  "github-templates": GITHUB_TEMPLATES_SURFACE,
   "native-map": NATIVE_MAP_SURFACE,
   prdr: PRDR_SURFACE,
   prd: PRD_SURFACE,

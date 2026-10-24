@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/github-templates.js::usage string lists the six taxonomy tokens literally (github_templates_usage)",
+      "title": "Usage string lists the six taxonomy tokens literally (GITHUB_TEMPLATES_USAGE)",
+      "location": "plugin/skills/faff/bin/lib/github-templates.js",
+      "action": "Build the usage string from FAFF_TYPES and widen the purity test",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Usage now derives from FAFF_TYPES.join; the purity test rejects any contiguous six-token list.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Usage string lists the six taxonomy tokens literally (GITHUB_TEMPLATES_USAGE)",
+          "location": "plugin/skills/faff/bin/lib/github-templates.js",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/github-templates.js::normalizelabels returns a junk label for an unterminated flow sequence",
+      "title": "normalizeLabels returns a junk label for an unterminated flow sequence",
+      "location": "plugin/skills/faff/bin/lib/github-templates.js",
+      "action": "Return [] for a value that opens a flow sequence without closing it",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Unterminated flow sequence now yields [], covered by a selftest case.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "normalizeLabels returns a junk label for an unterminated flow sequence",
+          "location": "plugin/skills/faff/bin/lib/github-templates.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/github-templates.js::scan follows symlinks and can block on a fifo (isfile)",
+      "title": "Scan follows symlinks and can block on a FIFO (isFile)",
+      "location": "plugin/skills/faff/bin/lib/github-templates.js",
+      "action": "Use lstat so only regular files are read",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "isFile uses lstatSync; a symlinked template is skipped, covered by a selftest case.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Scan follows symlinks and can block on a FIFO (isFile)",
+          "location": "plugin/skills/faff/bin/lib/github-templates.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/github-templates.js::front-matter closing fence is not line-anchored",
+      "title": "Front-matter closing fence is not line-anchored",
+      "location": "plugin/skills/faff/bin/lib/github-templates.js",
+      "action": "Anchor the closing fence to a line",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The spec fixes the validate-adapters fence idiom as the Chosen approach; a truncated parse can only lose signals, which resolves to UNCLASSIFIED.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Front-matter closing fence is not line-anchored",
+          "location": "plugin/skills/faff/bin/lib/github-templates.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/github-templates.js::word-boundary classifier can match inside hyphenated label text",
+      "title": "Word-boundary classifier can match inside hyphenated label text",
+      "location": "plugin/skills/faff/bin/lib/github-templates.js",
+      "action": "Document the false-positive tolerance",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The ordered, word-bounded table is the spec's Chosen classifier; a stricter whole-token match would reject the spec's own name/about prose signals.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Word-boundary classifier can match inside hyphenated label text",
+          "location": "plugin/skills/faff/bin/lib/github-templates.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

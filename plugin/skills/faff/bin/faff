@@ -93,6 +93,7 @@ const { cmdLintCliDoc } = lazy(() => require("./lib/lint-cli-doc"), ["cmdLintCli
 const { cmdLintRefs } = lazy(() => require("./lib/lint-refs"), ["cmdLintRefs"]);
 const { cmdMergeFence } = lazy(() => require("./lib/merge-fence"), ["cmdMergeFence"]);
 const { cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdPrCreate } = lazy(() => require("./lib/merge-gate"), ["cmdBranchProtectionCheck", "cmdGithubAuthCheck", "cmdMergeGate", "cmdPrCreate"]);
+const { cmdGithubTemplates } = lazy(() => require("./lib/github-templates"), ["cmdGithubTemplates"]);
 const { cmdNativeMap } = lazy(() => require("./lib/native-map"), ["cmdNativeMap"]);
 const { cmdNext } = lazy(() => require("./lib/next"), ["cmdNext"]);
 const { cmdParkHistory } = lazy(() => require("./lib/park-history"), ["cmdParkHistory"]);
@@ -232,6 +233,7 @@ const COMMANDS = {
   "evidence-readiness": cmdEvidenceReadiness,
   "landing-comment": cmdLandingComment,
   "harness": (args) => cmdHarness(args, COMMANDS),
+  "github-templates": cmdGithubTemplates,
   "native-map": cmdNativeMap,
   "next": cmdNext,
   "project-next": cmdProjectNext,

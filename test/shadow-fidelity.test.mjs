@@ -156,18 +156,105 @@ test("--non-default-policy-run is repeatable (finding-2 regression)", () => {
   assert.equal(r.code, 0, r.err || r.out); // two occurrences must NOT be a duplicate-flag error
 });
 
-test("the committed FAFF-826 report reproduces from a clean context", () => {
+test("the committed FAFF-826 report reproduces from a clean context, bare, against its pinned map", () => {
   const dir = join(REPO, "verification", "reports", "FAFF-826-coordination-fidelity");
-  const mapRoot = join(REPO, "test", "fixtures", "faff-826-map-root");
-  // Byte copy of `git show 48be132d:docs/rfc/rfc-superdomestique-runtime/v5/STATE-AUTHORITY-MAP-v5.md`, the map revision the report was produced under.
-  const mapBytes = readFileSync(join(mapRoot, "docs", "rfc", "rfc-superdomestique-runtime", "v5", "STATE-AUTHORITY-MAP-v5.md"));
-  assert.equal(sha256(mapBytes), "7a21e429b7e143023c6ea9ca0ac30e70099f5a777e8ef53d1ad37b29daba3389");
-  const r = run(REPO, ["shadow-fidelity", "reproduce", "--dir", dir, "--root", mapRoot]);
+  const r = run(REPO, ["shadow-fidelity", "reproduce", "--dir", dir]);
   assert.equal(r.code, 0, r.err || r.out);
+  const repro = JSON.parse(r.out);
+  assert.equal(repro.map.pinned, true);
+  // the sidecar pins the map revision the report was produced under (FAFF-825's `48be132d`)
+  assert.equal(repro.map.sha256, "7a21e429b7e143023c6ea9ca0ac30e70099f5a777e8ef53d1ad37b29daba3389");
   // the committed corpus digest must match its manifest
   const manifest = JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8"));
   const corpusBytes = readFileSync(join(dir, "decision-corpus.jsonl"));
   assert.equal(manifest.corpus_sha256, sha256(corpusBytes));
+});
+
+// FAFF-1194 — a scratch root whose map classifies `eligible` and `run-outward` as decision
+// kernels, so revising either row changes the study's scope.
+const MAP_REL = join("docs", "rfc", "rfc-superdomestique-runtime", "v5", "STATE-AUTHORITY-MAP-v5.md");
+const miniMap = (outwardBucket) => [
+  "## Classification table",
+  "",
+  "| Command | Region | Bucket | Why |",
+  "|---|---|---|---|",
+  "| `eligible` | factory | decision-kernel | pure |",
+  `| \`run-outward\` | factory | ${outwardBucket} | pure |`,
+  "",
+].join("\n");
+
+function pinnedReport({ git }) {
+  const root = scratch();
+  mkdirSync(dirname(join(root, MAP_REL)), { recursive: true });
+  writeFileSync(join(root, MAP_REL), miniMap("decision-kernel"));
+  if (git) {
+    const g = (...a) => execFileSync("git", ["-C", root, ...a], { encoding: "utf8" });
+    g("init", "-q");
+    g("add", MAP_REL);
+    g("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "map");
+  }
+  const corpus = join(root, "corpus.jsonl");
+  writeFileSync(corpus, [
+    rec("eligible", { labels: ["faff-automate"], automationDefault: "opt-in", trackerPresent: true }, "eligible"),
+    rec("run-outward", { targetRaw: { container: "acme", repo: "x", source: "resolved" }, selfRaw: { container: "self", repo: "y", is_self: false } }, "outward-adopter"),
+  ].join("\n") + "\n");
+  const outDir = join(root, "report");
+  const r = run(root, ["shadow-fidelity", "run", "--corpus", corpus, "--out", outDir, "--root", root]);
+  assert.equal(r.code, 0, r.err || r.out);
+  // revise the map after the run: run-outward leaves decision-kernel, so the live scope changes
+  writeFileSync(join(root, MAP_REL), miniMap("harness-and-skill-orchestration"));
+  return { root, outDir };
+}
+
+test("run --out pins the map in manifest.json", () => {
+  const { outDir } = pinnedReport({ git: true });
+  const manifest = JSON.parse(readFileSync(join(outDir, "manifest.json"), "utf8"));
+  assert.equal(manifest.map.path, "docs/rfc/rfc-superdomestique-runtime/v5/STATE-AUTHORITY-MAP-v5.md");
+  assert.equal(manifest.map.sha256, sha256(miniMap("decision-kernel")));
+  assert.match(manifest.map.commit, /^[0-9a-f]{40}$/);
+  assert.deepEqual(manifest.map.decision_kernel_commands, ["eligible", "run-outward"]);
+});
+
+test("reproduce still verifies a result after the map is revised, reading the pinned map from git", () => {
+  const { root, outDir } = pinnedReport({ git: true });
+  const r = run(root, ["shadow-fidelity", "reproduce", "--dir", outDir, "--root", root]);
+  assert.equal(r.code, 0, r.err || r.out);
+  const repro = JSON.parse(r.out);
+  assert.equal(repro.reproduced, true);
+  assert.equal(repro.map.verified_by, "git");
+});
+
+test("without git history, reproduce uses the recorded set and says it is unverified", () => {
+  const { root, outDir } = pinnedReport({ git: false });
+  const manifest = JSON.parse(readFileSync(join(outDir, "manifest.json"), "utf8"));
+  assert.equal(manifest.map.commit, null);
+  const r = run(root, ["shadow-fidelity", "reproduce", "--dir", outDir, "--root", root]);
+  assert.equal(r.code, 0, r.err || r.out);
+  const repro = JSON.parse(r.out);
+  assert.equal(repro.map.verified_by, null);
+  assert.match(repro.map.unverified_reason, /differs from the pin/);
+});
+
+test("a pinned set that disagrees with the pinned map is refused (exit 1)", () => {
+  const { root, outDir } = pinnedReport({ git: true });
+  const mPath = join(outDir, "manifest.json");
+  const manifest = JSON.parse(readFileSync(mPath, "utf8"));
+  manifest.map.decision_kernel_commands = ["eligible"];
+  writeFileSync(mPath, JSON.stringify(manifest, null, 2) + "\n");
+  const r = run(root, ["shadow-fidelity", "reproduce", "--dir", outDir, "--root", root]);
+  assert.equal(r.code, 1, r.out);
+  assert.match(r.err, /does not match the pinned map/);
+});
+
+test("control: without a pin, the same revision breaks reproduce (the FAFF-1194 failure)", () => {
+  const { root, outDir } = pinnedReport({ git: true });
+  const mPath = join(outDir, "manifest.json");
+  const manifest = JSON.parse(readFileSync(mPath, "utf8"));
+  delete manifest.map;
+  writeFileSync(mPath, JSON.stringify(manifest, null, 2) + "\n");
+  const r = run(root, ["shadow-fidelity", "reproduce", "--dir", outDir, "--root", root]);
+  assert.equal(r.code, 1, r.out);
+  assert.match(r.err, /differ from the published result/);
 });
 
 // The decision-kernel set the shadow study scopes itself by, as the live map classifies it.

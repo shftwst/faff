@@ -128,7 +128,7 @@ Linear FAFF team on 2026-10-22:
 
 The 80 most recently created titles are almost all faff fixing faff (anchor mint, punt-scan, config check, holdout cage, evaluator posture). Each shipped ticket files two to four follow-ups through discovered scope.
 
-- [ ] **Action:** discovered scope below High becomes a comment on the parent, not a ticket.
+- [x] **Action:** discovered scope below High becomes a comment on the parent, not a ticket. **Declined 2026-10-24 (maintainer):** a comment on a closed parent hides discovered scope. Every concrete item stays a ticket; set a priority at filing instead, so the backlog is triageable rather than smaller.
 - [ ] **Action:** one triage pass over the 134 project-less issues: project, priority, or close.
 - [x] **Action:** cancel P-FAFF-73 (capability/role model replaces slots, 8 issues) and P-FAFF-74 (grounding slot, 3 issues). Both are platform construction the v5 master defers until Gate 1. Done 2026-10-22: both projects and all 11 issues cancelled.
 

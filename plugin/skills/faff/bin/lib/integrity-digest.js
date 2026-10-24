@@ -15,6 +15,7 @@ const path = require("node:path");
 const fs = require("node:fs");
 const { spawnSync } = require("node:child_process");
 const { correctiveIntegrityDirs } = require("./corrective-integrity");
+const { readLeafNoFollow } = require("./leaf-read");
 
 const MANIFEST_VERSION = "d1";
 // The same-uid tool-poisoning MITIGATION (not elimination): every hasher is an ABSOLUTE root-owned
@@ -63,14 +64,18 @@ function sha256(bytes) {
   return m[1];
 }
 
-// Digest a regular file, or record a SYMLINK without ever following it. A symlink where evidence
-// should be is itself a same-uid tamper (redirecting the hash to a lane-stable external file is
-// the cheapest bypass), so we NEVER `readFileSync` through one — we record its target instead, so
-// a file→symlink swap (or a re-pointed link) reads as tampering. lstat, never stat.
-function digestLeaf(abs) {
-  const lst = fs.lstatSync(abs);
-  if (lst.isSymbolicLink()) return { symlink: true, target: fs.readlinkSync(abs) };
-  return { sha256: sha256(fs.readFileSync(abs)) };
+// Read ONE content leaf through a single no-follow descriptor read (FAFF-1400): the descriptor, not an
+// earlier lstat, decides what the path is, and only a regular file's bytes are hashed. A symlink (even one
+// swapped in after a pre-check) is recorded by its target, never followed, so a file->symlink swap reads
+// as tampering. Returns { absent: true } for a path that vanished, else { rec, bytes } where `bytes` is
+// set only for a regular file. A directory or special file where a file was expected throws: a hash that
+// could not be computed must never read as verified, and every caller already fails closed on a throw.
+function snapshotLeaf(abs) {
+  const leaf = readLeafNoFollow(abs);
+  if (leaf.kind === "absent") return { absent: true };
+  if (leaf.kind === "symlink") return { rec: { symlink: true, target: fs.readlinkSync(abs) }, bytes: null };
+  if (leaf.kind !== "regular") throw new Error(`${abs} is not a regular file`);
+  return { rec: { sha256: sha256(leaf.bytes) }, bytes: leaf.bytes };
 }
 
 // Recursively list leaf entries under a directory (relative, sorted), lstat-only so a symlinked
@@ -98,21 +103,30 @@ function walkLeaves(absDir) {
 // per-sub-leaf digest/symlink map (which-file granularity). A plain file records its sha256 (or a
 // symlink marker). A member that doesn't exist yet is recorded absent (a freeze must catch
 // appear/disappear/symlink-swap, not only content edits). lstat throughout — never follows a symlink.
-function snapshotMember(abs, isEvents) {
+// Internal form of snapshotMember that also returns the events bytes, so the prefix check in
+// diffAgainstManifest reuses the one read instead of opening the file again.
+function snapshotMemberRead(abs, isEvents) {
   let lst;
-  try { lst = fs.lstatSync(abs); } catch { return { present: false }; }
-  if (lst.isSymbolicLink()) return { present: true, symlink: true, target: fs.readlinkSync(abs) };
-  if (isEvents) {
-    const bytes = fs.readFileSync(abs);
-    return { present: true, events: { length: bytes.length, prefix_sha256: sha256(bytes) } };
-  }
-  if (lst.isDirectory()) {
+  try { lst = fs.lstatSync(abs); } catch { return { rec: { present: false }, bytes: null }; }
+  // The lstat only routes (symlink to readlink, directory to the walk); every content read below is a
+  // leaf read whose own descriptor decides, never this stale stat.
+  if (lst.isSymbolicLink()) return { rec: { present: true, symlink: true, target: fs.readlinkSync(abs) }, bytes: null };
+  if (!isEvents && lst.isDirectory()) {
     const files = {};
-    for (const f of walkLeaves(abs)) files[f.sub] = f.symlink ? { symlink: true, target: fs.readlinkSync(f.abs) } : { sha256: sha256(fs.readFileSync(f.abs)) };
-    return { present: true, dir: true, files };
+    for (const f of walkLeaves(abs)) {
+      if (f.symlink) { files[f.sub] = { symlink: true, target: fs.readlinkSync(f.abs) }; continue; }
+      const leaf = snapshotLeaf(f.abs);
+      if (!leaf.absent) files[f.sub] = leaf.rec;
+    }
+    return { rec: { present: true, dir: true, files }, bytes: null };
   }
-  return { present: true, sha256: sha256(fs.readFileSync(abs)) };
+  const leaf = snapshotLeaf(abs);
+  if (leaf.absent) return { rec: { present: false }, bytes: null };
+  if (leaf.rec.symlink) return { rec: { present: true, ...leaf.rec }, bytes: null };
+  if (isEvents) return { rec: { present: true, events: { length: leaf.bytes.length, prefix_sha256: leaf.rec.sha256 } }, bytes: leaf.bytes };
+  return { rec: { present: true, ...leaf.rec }, bytes: leaf.bytes };
 }
+function snapshotMember(abs, isEvents) { return snapshotMemberRead(abs, isEvents).rec; }
 
 // The manifest the caller holds in context. `members` keyed by path RELATIVE to runDir (portable
 // + readable). One resolver: correctiveIntegrityDirs — never a second hand-written list.
@@ -153,13 +167,15 @@ function diffAgainstManifest(runDir, manifest) {
   const diffs = [];
   for (const [rel, was] of Object.entries(manifest.members || {})) {
     if (!relWithinRunDir(rel)) { diffs.push(String(rel) + " (invalid member path — outside run dir)"); continue; }
-    const now = snapshotMember(path.join(runDir, rel), isEventsRel(rel));
+    const read = snapshotMemberRead(path.join(runDir, rel), isEventsRel(rel));
+    const now = read.rec;
     if (!!was.present !== !!now.present) { diffs.push(rel + (was.present ? " (disappeared)" : " (appeared)")); continue; }
     if (!was.present) continue;
     if (was.symlink || now.symlink) {
       if (!leafEq(was, now)) diffs.push(rel + (!!was.symlink !== !!now.symlink ? " (symlink swapped)" : " (symlink re-pointed)"));
     } else if (was.events) {
-      const bytes = fs.readFileSync(path.join(runDir, rel));
+      const bytes = read.bytes;
+      if (!bytes) throw new Error(`${rel} is not a regular file`);
       const okPrefix = bytes.length >= was.events.length && sha256(bytes.subarray(0, was.events.length)) === was.events.prefix_sha256;
       if (!okPrefix) diffs.push(rel + (bytes.length < was.events.length ? " (truncated)" : " (prefix rewritten)"));
     } else if (was.dir) {

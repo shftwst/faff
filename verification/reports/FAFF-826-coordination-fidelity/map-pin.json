@@ -1,0 +1,19 @@
+{
+  "path": "docs/rfc/rfc-superdomestique-runtime/v5/STATE-AUTHORITY-MAP-v5.md",
+  "sha256": "7a21e429b7e143023c6ea9ca0ac30e70099f5a777e8ef53d1ad37b29daba3389",
+  "commit": "48be132d18250345c8cb6df567006334d1cdfdad",
+  "decision_kernel_commands": [
+    "claim-verdict",
+    "decision-capture",
+    "eligible",
+    "next",
+    "park-verdict",
+    "project-next",
+    "queue-state",
+    "run-done",
+    "run-ledger",
+    "run-outward",
+    "run-start",
+    "state"
+  ]
+}

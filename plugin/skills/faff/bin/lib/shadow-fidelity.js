@@ -19,6 +19,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { spawnSync } = require("child_process");
 
 // The nine in-scope decision kernels — imported, never reimplemented.
 const { nextStep } = require("./next");
@@ -424,15 +425,69 @@ function analyzeCorpus(records, opts = {}) {
 // ---------------------------------------------------------------------------
 const STATE_AUTHORITY_MAP_REL = path.join("docs", "rfc", "rfc-superdomestique-runtime", "v5", "STATE-AUTHORITY-MAP-v5.md");
 
-function readMapDecisionKernelCommands(root) {
-  const p = path.join(root, STATE_AUTHORITY_MAP_REL);
-  const raw = fs.readFileSync(p, "utf8"); // throws if absent — set-aside derivation depends on it (fail-loud)
+function parseMapDecisionKernelCommands(raw) {
   const out = [];
   for (const line of raw.split("\n")) {
     const m = line.match(/^\|\s*`([a-z][a-z0-9-]*)`\s*\|\s*[a-z-]+\s*\|\s*decision-kernel\s*\|/);
     if (m) out.push(m[1]);
   }
   return out.sort();
+}
+
+function readMapDecisionKernelCommands(root) {
+  const p = path.join(root, STATE_AUTHORITY_MAP_REL);
+  const raw = fs.readFileSync(p, "utf8"); // throws if absent — set-aside derivation depends on it (fail-loud)
+  return parseMapDecisionKernelCommands(raw);
+}
+
+// ---------------------------------------------------------------------------
+// Map pin (FAFF-1194). A result is analysed against one map revision, so `run --out`
+// records that revision in manifest.json and `reproduce` analyses against the recorded
+// command set, never the live map. The pin carries the map's sha256, the commit whose
+// map has those bytes (null when the working-tree map differs from HEAD's), and the
+// parsed decision-kernel set. `reproduce` verifies the set against the pinned bytes,
+// read from the live map when its digest still matches, else by `git show <commit>`;
+// when neither is available it reproduces from the recorded set and says it is
+// unverified. A pre-FAFF-1194 result carries its pin in a `map-pin.json` sidecar.
+// ---------------------------------------------------------------------------
+const MAP_PIN_PATH = STATE_AUTHORITY_MAP_REL.split(path.sep).join("/");
+
+function gitShowMap(root, commit) {
+  const r = spawnSync("git", ["-C", root, "show", `${commit}:${MAP_PIN_PATH}`], { encoding: "buffer", maxBuffer: 64 * 1024 * 1024 });
+  return r.status === 0 ? r.stdout : null;
+}
+
+function mapPinFor(root) {
+  let bytes;
+  try { bytes = fs.readFileSync(path.join(root, STATE_AUTHORITY_MAP_REL)); }
+  catch (e) { return { path: MAP_PIN_PATH, sha256: null, commit: null, decision_kernel_commands: [], unavailable: e.message }; }
+  const digest = sha256(bytes);
+  const head = spawnSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" });
+  const headSha = head.status === 0 ? head.stdout.trim() : null;
+  const headBytes = headSha ? gitShowMap(root, headSha) : null;
+  const commit = headBytes && sha256(headBytes) === digest ? headSha : null;
+  return { path: MAP_PIN_PATH, sha256: digest, commit, decision_kernel_commands: parseMapDecisionKernelCommands(bytes.toString("utf8")) };
+}
+
+// -> { commands, verified_by: "live"|"git"|null, reason } or { error } when the pinned
+// bytes are found but disagree with the pin.
+function resolvePinnedMap(pin, root) {
+  const commands = [].concat(pin.decision_kernel_commands || []);
+  if (!pin.sha256) return { commands, verified_by: null, reason: pin.unavailable || "the pin records no map digest" };
+  let bytes = null, by = null;
+  try {
+    const live = fs.readFileSync(path.join(root, STATE_AUTHORITY_MAP_REL));
+    if (sha256(live) === pin.sha256) { bytes = live; by = "live"; }
+  } catch { /* absent live map: fall through to git */ }
+  if (!bytes && pin.commit) {
+    const shown = gitShowMap(root, pin.commit);
+    if (shown && sha256(shown) !== pin.sha256) return { error: `git show ${pin.commit}:${MAP_PIN_PATH} has sha256 ${sha256(shown)}, the pin records ${pin.sha256}` };
+    if (shown) { bytes = shown; by = "git"; }
+  }
+  if (!bytes) return { commands, verified_by: null, reason: pin.commit ? `commit ${pin.commit} is not available in ${root}` : "the live map differs from the pin and the pin records no commit" };
+  const parsed = parseMapDecisionKernelCommands(bytes.toString("utf8"));
+  if (JSON.stringify(parsed) !== JSON.stringify(commands)) return { error: "the pinned decision-kernel set does not match the pinned map" };
+  return { commands, verified_by: by, reason: null };
 }
 
 // ---------------------------------------------------------------------------
@@ -602,7 +657,7 @@ function cmdRunVerb(values, root) {
       const corpusOut = path.join(out, "decision-corpus.jsonl");
       fs.writeFileSync(corpusOut, corpusBytes);
       const runIds = [...new Set(records.map((r) => r && r.run_id).filter(Boolean))].sort();
-      const manifest = { version: "decision-corpus-1", record_count: records.length, corpus_sha256: sha256(corpusBytes), run_ids: runIds };
+      const manifest = { version: "decision-corpus-1", record_count: records.length, corpus_sha256: sha256(corpusBytes), run_ids: runIds, map: mapPinFor(root) };
       fs.writeFileSync(path.join(out, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
       fs.writeFileSync(path.join(out, "result.json"), JSON.stringify(full, null, 2) + "\n");
     } catch (e) {
@@ -640,7 +695,21 @@ function cmdReproduceVerb(values, root) {
   try { records = parseCorpus(corpusBytes); }
   catch (e) { process.stderr.write(`faff shadow-fidelity reproduce: committed corpus is not valid JSONL: ${e.message}\n`); return 2; }
 
-  const { commands } = resolveMapCommands(root);
+  let pin = manifest.map || null;
+  if (!pin) {
+    try { pin = JSON.parse(fs.readFileSync(path.join(dir, "map-pin.json"), "utf8")); }
+    catch (e) { if (e.code !== "ENOENT") { process.stderr.write(`faff shadow-fidelity reproduce: cannot read map-pin.json in ${dir}: ${e.message}\n`); return 2; } }
+  }
+  let commands, mapReport;
+  if (pin) {
+    const resolved = resolvePinnedMap(pin, root);
+    if (resolved.error) { process.stderr.write(`faff shadow-fidelity reproduce: ${resolved.error}\n`); return 1; }
+    commands = resolved.commands;
+    mapReport = { pinned: true, sha256: pin.sha256, commit: pin.commit, verified_by: resolved.verified_by, ...(resolved.reason ? { unverified_reason: resolved.reason } : {}) };
+  } else {
+    commands = resolveMapCommands(root).commands;
+    mapReport = { pinned: false };
+  }
   const nonDefaultPolicyRuns = [].concat(values["--non-default-policy-run"] || []);
   const recomputed = analyzeCorpus(records, { mapDecisionKernelCommands: commands, knownNonDefaultPolicyRuns: nonDefaultPolicyRuns });
 
@@ -650,7 +719,7 @@ function cmdReproduceVerb(values, root) {
     process.stderr.write("faff shadow-fidelity reproduce: corpus-derived outputs differ from the published result.json\n");
     return 1;
   }
-  console.log(JSON.stringify({ reproduced: true, corpus_sha256: digest, record_count: records.length, cost_snapshot_read_back: !!published.cost }));
+  console.log(JSON.stringify({ reproduced: true, corpus_sha256: digest, record_count: records.length, cost_snapshot_read_back: !!published.cost, map: mapReport }));
   return 0;
 }
 
@@ -675,7 +744,8 @@ function shadowFidelitySelftest() {
   let fail = 0;
   const ok = (name, cond) => { if (!cond) { fail++; console.log(`FAIL ${name}`); } else console.log(`ok   ${name}`); };
 
-  // The map's decision-kernel command set, as the live map classifies it (twelve).
+  // A decision-kernel command set: the twelve the map classified at `48be132d`, when the
+  // FAFF-826 result was produced. The live map classifies fourteen.
   const MAP_DK = ["claim-verdict", "decision-capture", "eligible", "next", "park-verdict", "project-next", "queue-state", "run-done", "run-ledger", "run-outward", "run-start", "state"];
 
   // Envelope helper: a captured record with a given coverage/version, defaulting to a
@@ -867,6 +937,9 @@ module.exports = {
   analyzeCorpus,
   corpusDerived,
   readMapDecisionKernelCommands,
+  parseMapDecisionKernelCommands,
+  mapPinFor,
+  resolvePinnedMap,
   snapshotCost,
   parseCorpus,
   cmdShadowFidelity,

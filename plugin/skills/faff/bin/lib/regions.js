@@ -308,6 +308,10 @@ const REGION_MAP = {
   // config (emitScalar), argv, shared-infra (parseYamlSubset/dig/findRoot) — a persist-only
   // writer with no MCP/env/network, sibling of config init/set → factory.
   "native-map": "factory",
+  // github-templates — FAFF-1112: the pure offline GitHub issue-template scanner. Requires only
+  // node:fs/path, argv, shared-infra (parseYamlSubset/findRoot) and native-map (FAFF_TYPES) — no
+  // MCP/env/network/git, sibling of native-map → factory.
+  "github-templates": "factory",
   "fixtures": "factory",
   "env": "factory",
   // eval — FAFF-752: the advisory touched-surface→affected-KIND-subset deriver. Reuses
@@ -554,6 +558,7 @@ const REGION_SELFTEST_ARGV = {
   "manifest": ["manifest", "validate", "--selftest"],
   "conventions": ["conventions", "--selftest"],
   "native-map": ["native-map", "set", "--selftest"],
+  "github-templates": ["github-templates", "--selftest"],
   "fixtures": ["fixtures", "--selftest"],
   "env": ["env", "--selftest"],
   "scenario-matrix": ["scenario-matrix", "--selftest"],

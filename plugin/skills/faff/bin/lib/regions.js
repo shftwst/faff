@@ -366,6 +366,9 @@ const REGION_MAP = {
   // contract-defs.js) and reuses merge-gate.js's own ghJson/ghRepoSlug gh-shell helpers — the same
   // family as merge-gate/post-merge-check, for the identical reason.
   "ci-triage": "factory",
+  // FAFF-1396: land drives graft's landing loop over merge-gate's observeCi and ci-triage's
+  // runCiTriage (factory identifiers), the same family as ci-triage and merge-gate.
+  land: "factory",
   // FAFF-363: governance-check references the SAME factory identifiers merge-gate does
   // (readAcComplete/readReviewVerdict/readHoldout from merge-gate.js, which themselves
   // call contract-defs.js's computeReviewVerdict) — for the identical reason merge-gate
@@ -588,6 +591,7 @@ const REGION_SELFTEST_ARGV = {
   "github-auth-check": ["github-auth-check", "--selftest"],
   "post-merge-check": ["post-merge-check", "--selftest"],
   "ci-triage": ["ci-triage", "--selftest"],
+  land: ["land", "--selftest"],
   "governance-check": ["governance-check", "--selftest"],
   "evidence-readiness": ["evidence-readiness", "--selftest"],
   "landing-comment": ["landing-comment", "--selftest"],

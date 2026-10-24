@@ -177,7 +177,8 @@ test("module purity: fixed require set, no literal taxonomy list, one region ban
   const src = readFileSync(MODULE, "utf8");
   const reqs = [...src.matchAll(/require\("([^"]+)"\)/g)].map((m) => m[1]).sort();
   assert.deepEqual(reqs, ["./argv", "./native-map", "./shared-infra", "node:fs", "node:path"]);
-  assert.ok(!/"bug",\s*"feature",\s*"spike"/.test(src), "taxonomy must come from FAFF_TYPES");
+  assert.ok(!/\bbug\W{1,4}feature\W{1,4}spike\b/i.test(src), "taxonomy must come from FAFF_TYPES");
+  assert.ok(!/\bchore\W{1,4}epic\W{1,4}default\b/i.test(src), "taxonomy must come from FAFF_TYPES");
   assert.equal((src.match(/^\/\/ === region:factory — github-templates — FAFF-1112/gm) || []).length, 1);
 });
 

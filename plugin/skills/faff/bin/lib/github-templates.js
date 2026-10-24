@@ -69,7 +69,7 @@ const GITHUB_TEMPLATES_SURFACE = {
 };
 
 const GITHUB_TEMPLATES_USAGE =
-  "usage: faff github-templates scan [--type <bug|feature|spike|chore|epic|default>] [--json] [--root DIR]";
+  `usage: faff github-templates scan [--type <${FAFF_TYPES.join("|")}>] [--json] [--root DIR]`;
 
 // ---------------------------------------------------------------------------
 // Front matter. Never throws.

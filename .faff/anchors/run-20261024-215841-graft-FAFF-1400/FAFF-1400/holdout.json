@@ -1,0 +1,256 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1400",
+  "aggregate": "needs-human",
+  "code_blind": true,
+  "spawner_attested": false,
+  "attestation": null,
+  "violations": [],
+  "criteria": [
+    {
+      "id": "scenarios:1",
+      "text": "Given an issue dir whose review-verdict.json is a regular file holding bytes A\nAnd a claim carrying the digest of bytes B, held in a file elsewhere\nWhen verify-return's pre-check sees the regular file and the path is then replaced by a symlink to the B file before the read\nThen the review-verdict.json row is not-regular-file, and never match\nAnd the verdict is mismatch with <issue>/review-verdict.json in tampered_paths\nAnd the digest of bytes B never appears as disk_sha256",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "needs-human",
+      "evidence_present": false,
+      "exercised": null,
+      "expected": null,
+      "observed": null,
+      "evidence_ref": null,
+      "reason": "needs the in-process swap-on-first-touch stub (a swap landing between the pre-check and the read inside one process); not deterministically reproducible from outside the container. Supplementary out-of-process evidence in report: static symlink swap of review-verdict.json gives row not-regular-file, disk_sha256 null, verdict mismatch, tampered_paths [ISS-1/review-verdict.json], exit 1; an 80-run concurrent swap loop (A regular <-> symlink to B, claim B) gave match=0, not-regular-file=48, hash-mismatch=30, 2 exit-2 faults (`cannot hash review-verdict.json: cannot open ...: ELOOP`), B digest never seen as disk_sha256; the loop cannot prove the window was reached (report section 1)."
+    },
+    {
+      "id": "scenarios:2",
+      "text": "Given a held integrity-digest manifest recording run-ledger.json with the digest of bytes B\nAnd run-ledger.json on disk now holds tampered bytes A, with an external copy of bytes B elsewhere\nWhen verify's pre-check sees the regular file and the path is then replaced by a symlink to the B copy before the read\nThen verify reports run-ledger.json as \"symlink swapped\" and exits 1, and never reports digest-verified",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "needs-human",
+      "evidence_present": false,
+      "exercised": null,
+      "expected": null,
+      "observed": null,
+      "evidence_ref": null,
+      "reason": "needs the in-process swap-on-first-touch stub (a swap landing between the pre-check and the read inside one process); not deterministically reproducible from outside the container. Supplementary out-of-process evidence in report: static swap of run-ledger.json for a symlink to the B copy gave `tampered — run-ledger.json (symlink swapped)`, exit 1; the mid-call race window itself cannot be forced from outside (report section 2)."
+    },
+    {
+      "id": "scenarios:3",
+      "text": "Given a run dir whose <issue>/holdout.json member path holds a FIFO with no writer\nWhen faff integrity-digest snapshot --run-dir <run_dir> --issue <issue> runs\nThen it exits 2 within a few seconds with stderr naming holdout.json, and prints no manifest",
+      "holdout": true,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "mkfifo /work/.faff/runs/r3/ISS-3/holdout.json (no writer); timeout 20 node /opt/faff/bin/faff integrity-digest snapshot --run-dir /work/.faff/runs/r3 --issue ISS-3 (plain and --json)",
+      "expected": "exit 2 within a few seconds, stderr naming holdout.json, no manifest on stdout",
+      "observed": "exit 2 in <1s (both forms); stderr `.../ISS-3/holdout.json is not a regular file`; stdout 0 bytes",
+      "evidence_ref": "report section 3",
+      "reason": null
+    },
+    {
+      "id": "scenarios:4",
+      "text": "For a stable regular file, `faff evidence return`'s `ac_checklist.sha256`, the per-issue snapshot's `<issue>/ac-checklist.json` sha256, and `faff integrity-digest hash` over the file's bytes MUST be equal.",
+      "holdout": false,
+      "class": "assertion",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "faff evidence return --run-dir /work/.faff/runs/r1 --issue ISS-1; faff integrity-digest snapshot --run-dir /work/.faff/runs/r1 --issue ISS-1 --json; faff integrity-digest hash < ISS-1/ac-checklist.json (cross-checked with sha256sum)",
+      "expected": "ac_checklist.sha256 == snapshot ISS-1/ac-checklist.json sha256 == integrity-digest hash",
+      "observed": "all three 19c6fc741c60153bdd29313d524dc72798b23dedba202ca65aabf0288fb28df2 (sha256sum agrees)",
+      "evidence_ref": "report section 4",
+      "reason": null
+    },
+    {
+      "id": "scenarios:5",
+      "text": "With `O_NOFOLLOW` or `O_NONBLOCK` absent from the constants object, the leaf read MUST throw and MUST NOT open the path.",
+      "holdout": false,
+      "class": "assertion",
+      "verdict": "needs-human",
+      "evidence_present": false,
+      "exercised": null,
+      "expected": null,
+      "observed": null,
+      "evidence_ref": null,
+      "reason": "requires passing a constants object into the leaf-read primitive in-process (a test-only seam); the CLI exposes no surface to inject constants, so a code-blind out-of-process evaluator cannot exercise it"
+    },
+    {
+      "id": "done:11",
+      "text": "The same stubbed swap on a sub-leaf of `corrective/` returns an entry naming `corrective/<file>`, and on `events.jsonl` returns an entry for `events.jsonl`.",
+      "holdout": false,
+      "class": "assertion",
+      "verdict": "needs-human",
+      "evidence_present": false,
+      "exercised": null,
+      "expected": null,
+      "observed": null,
+      "evidence_ref": null,
+      "reason": "requires the in-process swap-on-first-touch stub on a corrective/ sub-leaf and events.jsonl driving diffAgainstManifest directly; no CLI surface reproduces a deterministic mid-call swap"
+    },
+    {
+      "id": "done:17",
+      "text": "For one stable regular `ac-checklist.json`, a test asserts `faff evidence return`'s sha256, the per-issue `faff integrity-digest snapshot` sha256 for `<issue>/ac-checklist.json`, and `faff integrity-digest hash` over the file's bytes are equal.",
+      "holdout": false,
+      "class": "assertion",
+      "verdict": "needs-human",
+      "evidence_present": false,
+      "exercised": null,
+      "expected": null,
+      "observed": null,
+      "evidence_ref": null,
+      "reason": "criterion requires a repository test to exist that asserts the equality; a code-blind evaluator cannot inspect the test suite. The underlying equality itself was exercised and met under scenarios:4"
+    }
+  ],
+  "delegated": [
+    {
+      "id": "done:1",
+      "text": "Neither `evidence.js` nor `integrity-digest.js` hashes bytes obtained by a by-path `readFileSync` of an evidence or member path; every hashed byte comes from a leaf read whose `fstat` reported a regular file.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1400#done:1"
+    },
+    {
+      "id": "done:2",
+      "text": "No new result string, park cause, manifest field or `MANIFEST_VERSION` change is introduced.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1400#done:2"
+    },
+    {
+      "id": "done:3",
+      "text": "A new helper-only module under `plugin/skills/faff/bin/lib/` carries a `region:governance` banner, requires no local module from the factory region, and exports the leaf read with the `LeafRead` shape in section 3.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1400#done:3"
+    },
+    {
+      "id": "done:4",
+      "text": "`evidence.js` and `integrity-digest.js` both require that module, and `faff regions check` exits 0.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1400#done:4"
+    },
+    {
+      "id": "done:5",
+      "text": "The leaf read opens with `O_RDONLY | O_NOFOLLOW | O_NONBLOCK` and throws without opening when the constants object it is given lacks a numeric `O_NOFOLLOW`, and separately when it lacks a numeric `O_NONBLOCK` (two unit tests, each passing a constants object missing one).",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1400#done:5"
+    },
+    {
+      "id": "done:6",
+      "text": "Leaf read unit tests: a regular file returns `regular` with its exact bytes; a symlink to a regular file returns `symlink` with null bytes; a directory returns `directory`; a FIFO with no writer returns `other` without blocking; a missing path and a path under a regular file return `absent`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1400#done:6"
+    },
+    {
+      "id": "done:7",
+      "text": "Leaf read called directly on a symlink whose target holds valid JSON returns `symlink` and never the target's bytes.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1400#done:7"
+    },
+    {
+      "id": "done:8",
+      "text": "`faff evidence verify-return` (driven through `cmdEvidence`) under the swap-on-first-touch stub on `review-verdict.json` (on-disk bytes A, target and claim bytes B) returns verdict `mismatch` with `review-verdict.json` in `tampered_paths`, a row result of `not-regular-file`, and a `disk_sha256` that is not B's digest.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1400#done:8"
+    },
+    {
+      "id": "done:9",
+      "text": "`faff evidence return` (driven through `cmdEvidence`) under the same stub throws the `review-verdict.json is not a regular file` fault; it never returns B's digest.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1400#done:9"
+    },
+    {
+      "id": "done:10",
+      "text": "`diffAgainstManifest` under the swap-on-first-touch stub on `run-ledger.json` (held manifest records B's digest, on-disk bytes A, target bytes B) returns an entry for `run-ledger.json`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1400#done:10"
+    },
+    {
+      "id": "done:12",
+      "text": "A FIFO at a member path makes `buildManifest` throw a fault naming the path, and `faff integrity-digest snapshot` exits 2 without hanging.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1400#done:12"
+    },
+    {
+      "id": "done:13",
+      "text": "`verifyAndRecord` over a held manifest when a member has become a FIFO records `verification-unavailable` and exits 2.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1400#done:13"
+    },
+    {
+      "id": "done:14",
+      "text": "`digestLeaf` is removed from `integrity-digest.js`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1400#done:14"
+    },
+    {
+      "id": "done:15",
+      "text": "Each new race test fails when run against the pre-change modules, and fails on its behavioural assertion (the pre-change code reports a clean `match` or `digest-verified`), never on a load error, missing export or `TypeError`. The build agent records each failing assertion message in the PR description.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1400#done:15"
+    },
+    {
+      "id": "done:16",
+      "text": "Each race test asserts its swap stub fired (call counter at least one for the target path, and the path changed kind after the call); the new module and both hashers reach `lstatSync` and `openSync` through the `fs` module object, never a destructured binding.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1400#done:16"
+    },
+    {
+      "id": "done:18",
+      "text": "`faff integrity-digest --selftest` and `faff evidence --selftest` pass.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1400#done:18"
+    },
+    {
+      "id": "done:19",
+      "text": "`test/evidence-return.test.mjs`, `test/integrity-digest.test.mjs`, `test/corrective.test.mjs`, `test/bundle.test.mjs` and `test/merge-gate-controlflow.test.mjs` pass unchanged apart from added tests.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1400#done:19"
+    },
+    {
+      "id": "done:20",
+      "text": "A snapshot of a stable fixture tree is byte-identical before and after the change.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1400#done:20"
+    },
+    {
+      "id": "done:21",
+      "text": "The parent-component (intermediate directory) symlink race is recorded as a `confidence: concrete` entry in `discovered-scope.json` and named in the PR description.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1400#done:21"
+    }
+  ]
+}

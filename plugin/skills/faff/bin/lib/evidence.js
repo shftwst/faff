@@ -32,6 +32,7 @@ const { EvidenceRefusal, collateReviewRounds, parseSpecReviewComment, resolvedRo
 const { redactKnownSecrets, resolveKnownSecretValues } = require("./redact");
 const { assignFindingIds, normaliseFindingPath, normaliseFindingTitle } = require("./finding-id");
 const { parseAcId } = require("./ac-id");
+const { readLeafNoFollow } = require("./leaf-read");
 const crypto = require("node:crypto");
 
 const SPEC_VERSION = "v0.3";
@@ -1177,29 +1178,32 @@ const EVIDENCE_FILES = [
 const HEX64_RE = /^[0-9a-f]{64}$/;
 const NO_DIGEST = { present: false, sha256: null };
 
-function lstatOrNull(abs) {
-  try { return fs.lstatSync(abs); } catch (e) {
-    if (e.code === "ENOENT" || e.code === "ENOTDIR") return null;
-    throw new WriterFault(`cannot stat ${path.basename(abs)}: ${e.code || e.message}`);
-  }
+// One no-follow descriptor read per evidence file (FAFF-1400): presence, regular-ness and the bytes all come
+// from the same open, so a swap after any earlier look cannot redirect the hash. Returns
+// { kind, sha256 } where sha256 is the leaf sha256 of the bytes (the digest `faff integrity-digest hash`
+// reports) iff kind is "regular". In-process, because the governance region may not require the
+// factory-region integrity-digest module. A read fault is exit 2, never a verdict.
+function readEvidenceLeaf(abs) {
+  let leaf;
+  try { leaf = readLeafNoFollow(abs); } catch (e) { throw new WriterFault(`cannot hash ${path.basename(abs)}: ${e.code || e.message}`); }
+  return { kind: leaf.kind, sha256: leaf.kind === "regular" ? crypto.createHash("sha256").update(leaf.bytes).digest("hex") : null };
 }
 
-// Leaf sha256 of a regular file's bytes (the digest `faff integrity-digest hash` reports). In-process, because
-// the governance region may not require the factory-region integrity-digest module. A read fault is exit 2,
-// never a verdict.
+// Leaf sha256 of a file that must be regular (the selftest fixtures).
 function hashRegularFile(abs) {
-  try { return crypto.createHash("sha256").update(fs.readFileSync(abs)).digest("hex"); } catch (e) { throw new WriterFault(`cannot hash ${path.basename(abs)}: ${e.code || e.message}`); }
+  const leaf = readEvidenceLeaf(abs);
+  if (leaf.kind !== "regular") throw new WriterFault(`${path.basename(abs)} is not a regular file`);
+  return leaf.sha256;
 }
 
 function evidenceReturn(runDir, issue) {
   const issueDir = guardWriterPaths(runDir, issue);
   const out = { issue };
   for (const { key, name } of EVIDENCE_FILES) {
-    const abs = path.join(issueDir, name);
-    const st = lstatOrNull(abs);
-    if (st === null) { out[key] = { ...NO_DIGEST }; continue; }
-    if (!st.isFile()) throw new WriterFault(`${name} is not a regular file`);
-    out[key] = { present: true, sha256: hashRegularFile(abs) };
+    const leaf = readEvidenceLeaf(path.join(issueDir, name));
+    if (leaf.kind === "absent") { out[key] = { ...NO_DIGEST }; continue; }
+    if (leaf.kind !== "regular") throw new WriterFault(`${name} is not a regular file`);
+    out[key] = { present: true, sha256: leaf.sha256 };
   }
   return out;
 }
@@ -1259,15 +1263,15 @@ function verifyReturn(issueDir, issue, claim) {
   for (const { key, name, shaKey } of EVIDENCE_FILES) {
     const r = claim.returned[key];
     const abs = path.join(issueDir, name);
-    const st = lstatOrNull(abs);
-    const diskPresent = st !== null;
+    const leaf = readEvidenceLeaf(abs);
+    const diskPresent = leaf.kind !== "absent";
     const row = { file: name, returned_present: r.present, disk_present: diskPresent, returned_sha256: r.sha256, disk_sha256: null, result: null };
-    if (diskPresent && !st.isFile()) row.result = "not-regular-file";
+    if (diskPresent && leaf.kind !== "regular") row.result = "not-regular-file";
     else if (claim.noClaim && diskPresent) row.result = "no-claim";
     else if (r.present !== diskPresent) row.result = "presence-disagreement";
     else if (!diskPresent) row.result = "absent-both";
     else {
-      row.disk_sha256 = hashRegularFile(abs);
+      row.disk_sha256 = leaf.sha256;
       row.result = row.disk_sha256 === r.sha256 ? "match" : "hash-mismatch";
       if (row.result === "match") entry[shaKey] = row.disk_sha256;
     }

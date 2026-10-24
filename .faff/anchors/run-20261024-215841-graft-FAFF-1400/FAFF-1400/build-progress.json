@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1400",
+  "build": {
+    "status": "complete",
+    "diff_hash": "7c2d9a55648f3d48603ff434600a46c417e1e7621fe3857ee5c508ce22ee69f5",
+    "branch": "faff-1400-symlink-safe-leaf-read",
+    "pushed_at": "2026-10-24T22:33:56.041Z"
+  },
+  "updated_at": "2026-10-24T22:33:56.041Z"
+}

@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "verdict": "revise",
+  "final_verdict": "approve",
+  "rounds_total": 4,
+  "objections": [
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The procedure's step 1 throws only when `O_NOFOLLOW` \"is not a number\"; `O_NONBLOCK` is never guarded. The spec's own rationale for `O_NONBLOCK` is \"never wait on a FIFO\", and its holdout scenario requires `snapshot` to exit 2 \"within a few seconds\" on a FIFO with no writer. But `undefined | flags` silently drops `O_NONBLOCK` exactly as it drops `O_NOFOLLOW` — the failure mode the spec itself names as an anti-pattern (\"any default that opens without the flag\"). A constants object (the test seam the spec mandates) carrying a numeric `O_NOFOLLOW` but no `O_NONBLOCK` passes step 1, opens the FIFO blocking, and the holdout scenario's \"exits 2 within a few seconds\" becomes an indefinite hang — a denial-of-service against the custody-verify path (`verifyAndRecord` never records, the merge gate stalls).",
+      "evidence": "`PROCEDURE readLeafNoFollow` step 1 (\"IF constants.O_NOFOLLOW is not a number: THROW\"); the WHAT table row \"Open flags\" (\"`O_NONBLOCK` has no effect on regular-file reads, and a FIFO is then refused as `other` after `fstat`\"); the holdout scenario (\"exits 2 within a few seconds\"); the anti-pattern \"`fs.constants.O_NOFOLLOW || 0`, or any default that opens without the flag\".",
+      "predicted_consequence": "a FIFO planted at a member path blocks `faff integrity-digest snapshot`/`verify`/`verify --record-result` indefinitely instead of exiting 2, stalling the merge-gate custody verdict.",
+      "spec_anchor": "the-leaf-read",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The procedure's step 1 throws only when `O_NOFOLLOW` \"is not a number\"; `O_NONBLOCK` is never guarded. The spec's own rationale for `O_NONBLOCK` is \"never wait on a FIFO\", and its holdout scenario requires `snapshot` to exit 2 \"within a few seconds\" on a FIFO with no writer. But `undefined | flags` silently drops `O_NONBLOCK` exactly as it drops `O_NOFOLLOW` — the failure mode the spec itself names as an anti-pattern (\"any default that opens without the flag\"). A constants object (the test seam the spec mandates) carrying a numeric `O_NOFOLLOW` but no `O_NONBLOCK` passes step 1, opens the FIFO blocking, and the holdout scenario's \"exits 2 within a few seconds\" becomes an indefinite hang — a denial-of-service against the custody-verify path (`verifyAndRecord` never records, the merge gate stalls).",
+          "spec_anchor": "the-leaf-read"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The prescribed swap-on-pre-check stub works only if the modules read `lstatSync` off the `node:fs` module object at call time. A correct-looking build that destructures (`const { lstatSync } = require(\"node:fs\")`) in the new leaf-read module or in `snapshotMember` never sees the stub: the swap never fires, the open succeeds on the untouched regular file, the digest is A, the claim carries B, and the assertion \"never clean, and B's digest never appears\" passes trivially without exercising the race at all. The spec's stated detection for a vacuous race test — \"the same test, run against the pre-change module, also passes\" — does not fire here, because the pre-change code (`evidence.js`'s `lstatOrNull` does `fs.lstatSync(...)`) uses property access, so the pre-change run genuinely fails and the DONE check \"each new race test fails when run against the pre-change modules\" is satisfied while the fixed-code test proves nothing.",
+      "evidence": "`### The race tested deterministically` (chosen stub mechanism); DONE items \"`verifyReturn` under the swap-on-pre-check stub…\", \"`diffAgainstManifest` under the swap-on-pre-check stub…\", and \"Each new race test fails when run against the pre-change modules\"; the failure-mode bullet \"the race test passes because it never reached the window\".",
+      "predicted_consequence": "done cannot be decided for the central race behaviour — a build can tick every race DONE item with tests that never reach the swap window, and the spec's named detection method reports the tests as sound.",
+      "spec_anchor": "how-is-the-race-tested-deterministically",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The prescribed swap-on-pre-check stub works only if the modules read `lstatSync` off the `node:fs` module object at call time. A correct-looking build that destructures (`const { lstatSync } = require(\"node:fs\")`) in the new leaf-read module or in `snapshotMember` never sees the stub: the swap never fires, the open succeeds on the untouched regular file, the digest is A, the claim carries B, and the assertion \"never clean, and B's digest never appears\" passes trivially without exercising the race at all. The spec's stated detection for a vacuous race test — \"the same test, run against the pre-change module, also passes\" — does not fire here, because the pre-change code (`evidence.js`'s `lstatOrNull` does `fs.lstatSync(...)`) uses property access, so the pre-change run genuinely fails and the DONE check \"each new race test fails when run against the pre-change modules\" is satisfied while the fixed-code test proves nothing.",
+          "spec_anchor": "how-is-the-race-tested-deterministically"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec accepts two valid implementations for `evidence.js` — one with a routing pre-check, and one with \"no pre-check at all\" that opens before the swap fires and hashes A (`hash-mismatch`). But the mandated test mechanism is a swap-on-`lstat` stub, and in a no-pre-check implementation the leaf read never calls `lstatSync` on the target path when the file is a regular file at open time: `open` succeeds, so step 2b's confirmatory `lstat` (the module's only lstat on the path) never runs, the stub never fires, and no swap ever happens. The DONE item \"Each race test asserts its swap stub fired (call counter at least one for the target path…)\" therefore cannot be met by one of the two implementations the spec explicitly blesses, and the only way to satisfy it is to add an `lstat` pre-check to `evidence.js`'s hash path that the spec says pre-checks must never be the authority for — or to quietly weaken the checklist item.",
+      "evidence": "HOW §\"How is the race tested deterministically?\" (\"an evidence implementation with no pre-check at all, opens before the swap fires and hashes A (`hash-mismatch`)… which holds for both valid implementations\") versus the DONE item \"Each race test asserts its swap stub fired (call counter at least one for the target path, and the path changed kind after the call)\".",
+      "predicted_consequence": "The build agent either adds an lstat pre-check to `evidence.js` purely to make the stub fire (reintroducing the stale-stat routing the design says is never authoritative), or records a DONE item as satisfied that structurally cannot be, so the \"race tests fail on pre-change code\" verification is asserted rather than demonstrated for the evidence half.",
+      "spec_anchor": "from-how-behaviour",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The spec accepts two valid implementations for `evidence.js` — one with a routing pre-check, and one with \"no pre-check at all\" that opens before the swap fires and hashes A (`hash-mismatch`). But the mandated test mechanism is a swap-on-`lstat` stub, and in a no-pre-check implementation the leaf read never calls `lstatSync` on the target path when the file is a regular file at open time: `open` succeeds, so step 2b's confirmatory `lstat` (the module's only lstat on the path) never runs, the stub never fires, and no swap ever happens. The DONE item \"Each race test asserts its swap stub fired (call counter at least one for the target path…)\" therefore cannot be met by one of the two implementations the spec explicitly blesses, and the only way to satisfy it is to add an `lstat` pre-check to `evidence.js`'s hash path that the spec says pre-checks must never be the authority for — or to quietly weaken the checklist item.",
+          "spec_anchor": "from-how-behaviour"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "major",
+      "claim": "DONE requires every race test to assert its stub fired (\"call counter at least one for the target path\"), but the spec explicitly allows an evidence implementation with no pre-check at all (\"opens before the swap fires and hashes A (`hash-mismatch)`\", section 6 rationale). In that implementation the leaf read performs no `lstat` of the target path before reading — the open succeeds on the still-regular file, bytes A are hashed, and step 2b's `lstat` only runs on an open failure, which never happens. The stub counter for the target path stays at zero, so a correct build following the permitted no-pre-check route fails its own DONE criterion.",
+      "evidence": "\"From HOW (behaviour): Each race test asserts its swap stub fired (call counter at least one for the target path, and the path changed kind after the call)\" vs. section 6 \"How is the race tested deterministically?\" — \"or, in an evidence implementation with no pre-check at all, opens before the swap fires and hashes A (`hash-mismatch`)\".",
+      "predicted_consequence": "a builder who takes the spec's own sanctioned no-pre-check route cannot satisfy the DONE checklist as written; the checklist item is undecidable/satisfiable only under one of two allowed designs, so done-ness for the race tests depends on an implementation choice the spec leaves open.",
+      "spec_anchor": "from-how-behaviour",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "DONE requires every race test to assert its stub fired (\"call counter at least one for the target path\"), but the spec explicitly allows an evidence implementation with no pre-check at all (\"opens before the swap fires and hashes A (`hash-mismatch)`\", section 6 rationale). In that implementation the leaf read performs no `lstat` of the target path before reading — the open succeeds on the still-regular file, bytes A are hashed, and step 2b's `lstat` only runs on an open failure, which never happens. The stub counter for the target path stays at zero, so a correct build following the permitted no-pre-check route fails its own DONE criterion.",
+          "spec_anchor": "from-how-behaviour"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The DONE criterion \"Each new race test fails when run against the pre-change modules\" is decidable only if the test can actually execute against the pre-change code. The spec explicitly permits the builder to satisfy testability by *exporting* `evidenceReturn`/`verifyReturn` from `evidence.js` — but the pre-change module has no such export, so a test written against the new export cannot load against the pre-change module at all. A module-load error makes the check trivially \"pass\" while proving nothing about the race window, which is exactly the vacuous-test failure mode the spec's own HOW section warns against (\"the same test, run against the pre-change module, also passes … the test is vacuous\" — here the inverse: it cannot even run, and a load error is indistinguishable from a behavioural fail unless the check says which).",
+      "evidence": "DONE item \"Each new race test fails when run against the pre-change modules (the build agent records this check in the PR description)\"; HOW §\"How is the race tested deterministically?\" — \"exporting them for the test (or driving `cmdEvidence` in-process with captured stdout) is acceptable\".",
+      "predicted_consequence": "the PR-description check can be satisfied by a test that throws `evidenceReturn is not a function` on pre-change code, so the recorded \"fails on pre-change\" evidence does not establish the tests exercise the race window at all.",
+      "spec_anchor": "how",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The DONE criterion \"Each new race test fails when run against the pre-change modules\" is decidable only if the test can actually execute against the pre-change code. The spec explicitly permits the builder to satisfy testability by *exporting* `evidenceReturn`/`verifyReturn` from `evidence.js` — but the pre-change module has no such export, so a test written against the new export cannot load against the pre-change module at all. A module-load error makes the check trivially \"pass\" while proving nothing about the race window, which is exactly the vacuous-test failure mode the spec's own HOW section warns against (\"the same test, run against the pre-change module, also passes … the test is vacuous\" — here the inverse: it cannot even run, and a load error is indistinguishable from a behavioural fail unless the check says which).",
+          "spec_anchor": "how"
+        }
+      ]
+    }
+  ]
+}

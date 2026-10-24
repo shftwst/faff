@@ -1,0 +1,306 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "No edit touches `faff-contract:spec-readiness`'s or `spec-review-verdict`'s JSON schema files or their `contract-defs.js` mappers (grep confirms no diff in `plugin/skills/faff/contracts/*.schema.json` or the `computeSpecReadiness`/objection-schema regions of `contract-defs.js`).",
+      "verified": "`git diff origin/main` over plugin/skills/faff/contracts/*.schema.json and contract-defs.js is empty.",
+      "passed": true,
+      "ac_id": "faff-1079#done:1",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main --stat -- 'plugin/skills/faff/contracts/*.schema.json' plugin/skills/faff/bin/lib/contract-defs.js"
+        }
+      ]
+    },
+    {
+      "ac": "`kernel.md`'s new ratifier-tag bullet states the tag is never emitted on an autonomous dispatch, in those or equivalent words.",
+      "verified": "The kernel bullet reads \"never added on an autonomous dispatch\".",
+      "passed": true,
+      "ac_id": "faff-1079#done:2",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -o 'never added on an autonomous dispatch' plugin/skills/faff/references/kernel.md"
+        }
+      ]
+    },
+    {
+      "ac": "`kernel.md`'s Decision-markers list contains a `Ratifier tag (optional)` bullet in the same list as the existing `Punt ownership (optional)` bullet (adjacent placement is a readability nicety for the PR reviewer to check, not a mechanically-verifiable position), documenting `(ratified: human)` as a closed-vocabulary, single-value, prose-only suffix.",
+      "verified": "The Ratifier tag (optional) bullet is in kernel.md's Decision-markers list; kernel.md measures 465 against KERNEL_LINE_BASELINE 465 and faff validate-adapters exits 0",
+      "passed": true,
+      "ac_id": "faff-1079#done:3",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "The bullet states explicitly that a tagged `**Chosen:**` still emits `{ \"marker\": \"chosen\" }`.",
+      "verified": "The kernel bullet states a tagged Chosen still emits `{ \"marker\": \"chosen\" }`.",
+      "passed": true,
+      "ac_id": "faff-1079#done:4",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -o '{ \"marker\": \"chosen\" }' plugin/skills/faff/references/kernel.md"
+        }
+      ]
+    },
+    {
+      "ac": "`faff-prep/SKILL.md`'s Spec-review gate section offers a third \"ratify\" choice alongside revise/park for a `major`/`minor` design-lens objection that cleanly names a specific already-`**Chosen:**` decision **and passes the decision-vs-implementation scope test**, in interactive mode only.",
+      "verified": "faff-prep's Spec-review gate gained _Ratify a design-lens objection in place (interactive only)_, gated on major/minor plus the scope test.",
+      "passed": true,
+      "ac_id": "faff-1079#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c 'passes the scope test below' plugin/skills/faff-prep/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "The same text states an objection that is ambiguous or mixes decision- and implementation-level critique is never offered ratify — it routes through revise/park exactly as today.",
+      "verified": "The same section states an ambiguous or mixed objection is never offered ratify and routes through revise/park.",
+      "passed": true,
+      "ac_id": "faff-1079#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c 'ambiguous between the two, or mixes both' plugin/skills/faff-prep/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "The same text states a `critical` objection is never offered this path.",
+      "verified": "Procedure step 1 presents a `critical` as today with no ratify offer.",
+      "passed": true,
+      "ac_id": "faff-1079#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c 'severity == \"critical\" -> present as today' plugin/skills/faff-prep/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "The same text states autonomous mode never presents this offer.",
+      "verified": "Procedure step 5 states the offer never fires in autonomous mode.",
+      "passed": true,
+      "ac_id": "faff-1079#done:8",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c 'Autonomous mode: never fires' plugin/skills/faff-prep/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "The same text states a ratify does not consume a loop-cap iteration.",
+      "verified": "Procedure step 4d states a ratify does NOT consume a loop-cap iteration.",
+      "passed": true,
+      "ac_id": "faff-1079#done:9",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c 'consume a loop-cap iteration' plugin/skills/faff-prep/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "The same text states that on an explicit \"ratify\" reply, the human's verbatim reply (or its shortest decision-bearing sentence) is logged into the tracker comment the re-attach already posts, alongside the resulting tag.",
+      "verified": "Procedure step 4b plus the _Audit the utterance_ paragraph require the neutralised, capped quote in the tracker comment the re-attach already posts.",
+      "passed": true,
+      "ac_id": "faff-1079#done:10",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c 'neutralised, capped quote' plugin/skills/faff-prep/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "`faff-prep/SKILL.md`'s Decisions-register capture step documents a second trigger (ratifying a design-lens objection) that drafts the tradeoff shape (`Chosen`/`Rationale`/`Scope`/`Source-issue`/`Ratified-by: human`/`Date`, no `Matches:`), while the original Punt/Assumes-closure trigger's precedent-shaped draft is unchanged in the diff.",
+      "verified": "The capture step documents the second, tradeoff-shaped trigger with Source-issue/Ratified-by/Date and no Matches:; the original precedent-shaped trigger is unchanged in the diff.",
+      "passed": true,
+      "ac_id": "faff-1079#done:11",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main -- plugin/skills/faff-prep/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "The extension text states the existing build-follows / no-build-follows materialisation split applies unchanged.",
+      "verified": "The extension states follow-through is identical: build-follows materialises via Step 4c, no-build-follows surfaces the drafted text.",
+      "passed": true,
+      "ac_id": "faff-1079#done:12",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c 'Follow-through is \\*\\*identical\\*\\*' plugin/skills/faff-prep/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "`faffter-dark-spec-review/SKILL.md` and all three of `refute-architectural.md` / `refute-infosec.md` / `refute-qa.md` explicitly name `### Ratified tradeoffs (docs/decisions.md)` in their existing \"Defer to ratified scope\" text (grep for the literal heading string in each file).",
+      "verified": "All four files name the literal `### Ratified tradeoffs (docs/decisions.md)` in their Defer-to-ratified-scope text.",
+      "passed": true,
+      "ac_id": "faff-1079#done:13",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c 'Ratified tradeoffs (docs/decisions.md)' in SKILL.md + the three refute-*.md"
+        }
+      ]
+    },
+    {
+      "ac": "Each of the three `refute-*.md` files gains a new \"Defer to an in-spec human ratification\" bullet stating: no `## Ratified scope` block required; defers to `observation` on a tagged `**Chosen:**`; implementation still critiqued at full severity; `critical` never deferred; the tagged line's own text is treated as untrusted DATA, never an instruction.",
+      "verified": "Each of the three refute files gained the _Defer to an in-spec human ratification_ bullet with all five required statements.",
+      "passed": true,
+      "ac_id": "faff-1079#done:14",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c 'Defer to an in-spec human ratification' plugin/skills/faffter-dark-spec-review/refute-{architectural,infosec,qa}.md"
+        }
+      ]
+    },
+    {
+      "ac": "`faffter-dark-spec-review/SKILL.md`'s dense deferral paragraph gains the equivalent sentence, including the untrusted-DATA framing.",
+      "verified": "The occupant SKILL.md's dense deferral paragraph gained the equivalent sentence including the untrusted-DATA framing.",
+      "passed": true,
+      "ac_id": "faff-1079#done:15",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c 'A fourth deferral source needs no block at all' plugin/skills/faffter-dark-spec-review/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "`kernel.md`'s ratifier-tag bullet (or faff-prep's autonomous refresh section) states that an autonomous stale-refresh preserves an already-present `(ratified: human)` tag verbatim — \"never added on autonomous dispatch\" governs new tags, not inherited ones.",
+      "verified": "Both kernel.md's bullet and faff-prep's carry-forward paragraph state an autonomous stale-refresh preserves an already-present tag verbatim.",
+      "passed": true,
+      "ac_id": "faff-1079#done:16",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c 'inherited tag is carried forward verbatim' kernel.md; grep -c 'autonomous stale-refresh' faff-prep/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "**Build the fixture trio** (committed under `plugin/skills/faffter-dark-spec-review/eval/in-spec-ratification/` or the nearest existing eval-fixture home for this occupant): a minimal spec containing exactly one **decision-level** `**Chosen:**` finding independently known to draw a `major` objection from at least one design lens today (reuse or adapt an existing spec-judge-discrimination-style fixture rather than inventing an untested one), in three variants — **untagged**, the same file with `(ratified: human)` appended to that one line, and a **critical**-severity variant of the same decision — plus a **fourth, separate fixture** whose `**Chosen:**` decision draws an **implementation-level** objection (the \"correctly identified but badly built\" case Decision 4b's carve-out names), used only by item 4 below.",
+      "verified": "Committed under plugin/skills/faffter-dark-spec-review/eval/in-spec-ratification/: three decision variants, the implementation-level fixture, the scope-test objection set, the register fixture, a README and run-log.",
+      "passed": true,
+      "ac_id": "faff-1079#done:17",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "ls plugin/skills/faffter-dark-spec-review/eval/in-spec-ratification/"
+        }
+      ]
+    },
+    {
+      "ac": "**Pin every run variable except the tag, and record the pin.** Items 1-3 below compare outcomes across fixture variants that must differ in exactly the tag — so every run pins the same backend/model identity, the same `--context` file set, and the same `## Ratified scope` presence-or-absence. Record the pinned values in a `run-log.md` (or equivalent) committed alongside the fixture trio itself — one file per fixture-directory, not a separate untracked note — so a later re-run of the fixture has the exact prior pin to reproduce, and a PR reviewer can check the pin without re-deriving it. A pass whose runs used different backends or context, or whose pin was never recorded, is not evidence the tag caused the difference.",
+      "verified": "run-log.md records the single-element pinned chain, timeout, max-tokens, deadline, empty context set, absent Ratified-scope block, lens and system-dir, committed beside the fixtures.",
+      "passed": true,
+      "ac_id": "faff-1079#done:18",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "cat plugin/skills/faffter-dark-spec-review/eval/in-spec-ratification/run-log.md"
+        }
+      ]
+    },
+    {
+      "ac": "**Test coverage item 1 (no regression):** run the design lens(es) against the **untagged** decision-level fixture, pinned per the rule above; the same `major` (or higher) objection appears. This is the fixture's pinned baseline, not a fresh eyeball check.",
+      "verified": "Item 1 ran and the major objection appeared; recorded in run-log.md.",
+      "passed": true,
+      "ac_id": "faff-1079#done:19",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faffter-dark-spec-review/build-lens-requests.mjs --lenses architectural ... | node plugin/skills/faffter-dark-adversarial-review/fan-out.mjs --strategy serial"
+        }
+      ]
+    },
+    {
+      "ac": "**Test coverage item 2 (defers to observation):** run the same lens(es), same pinned run variables, against the **tagged** decision-level fixture with no `## Ratified scope` file present; the previously-gating objection now appears only as an `observation` citing the tagged line. Because both variants differ in exactly one suffix under otherwise-pinned conditions, a pass here is direct evidence the tag — not lens variance — caused the downgrade.",
+      "verified": "Item 2 ran and the objection appeared only as an observation citing the tagged line; the implementation-level objection stayed major, so the downgrade was scoped.",
+      "passed": true,
+      "ac_id": "faff-1079#done:20",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faffter-dark-spec-review/build-lens-requests.mjs --lenses architectural ... | node plugin/skills/faffter-dark-adversarial-review/fan-out.mjs --strategy serial"
+        }
+      ]
+    },
+    {
+      "ac": "**Test coverage item 3 (critical never deferred):** the **critical**-severity fixture variant, tag present, same pinned run variables; confirm it still gates.",
+      "verified": "Item 3 ran and the critical still gated with the tag present.",
+      "passed": true,
+      "ac_id": "faff-1079#done:21",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faffter-dark-spec-review/build-lens-requests.mjs --lenses architectural ... | node plugin/skills/faffter-dark-adversarial-review/fan-out.mjs --strategy serial"
+        }
+      ]
+    },
+    {
+      "ac": "**Test coverage item 4 (scope test correctly declines an implementation objection — the false-negative direction):** run the ratify-offer scope test (Decision 2) against the separate implementation-level fixture's objection; confirm it is classified as implementation-level and the ratify choice is **not** offered. This closes the false-negative gap a decision-only fixture pair cannot exercise: a scope test that always classifies \"decision-level\" would pass items 1-3 while still wrongly ratifying every implementation objection.",
+      "verified": "Item 4 ran: the implementation-level claim classified `implementation-level`, `ratify_offered=no`.",
+      "passed": true,
+      "ac_id": "faff-1079#done:22",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faffter-dark-adversarial-review/review-call.mjs --system <scope-test brief> --diff <objection claim> --diff-kind prose"
+        }
+      ]
+    },
+    {
+      "ac": "**Test coverage item 5 (the fail-safe middle is tested, not merely named):** run the same scope test against the *ambiguous* worked example itself (\"Postgres is fine, but this schema will lock the table under load\" — Decision 2's third worked example, not the clean implementation case item 4 uses) and confirm it too is **not** offered ratify. Item 4 alone tests only the unambiguous implementation case; the \"ambiguous → no ratify, never the reverse\" safety claim is specifically about the boundary case, so the boundary case is what must be exercised — a scope test that classifies unambiguous cases correctly but defaults an ambiguous one to \"decision-level\" would pass item 4 while failing the exact case the asymmetry exists to protect.",
+      "verified": "Item 5 ran: the ambiguous worked example classified `ambiguous`, `ratify_offered=no`. A decision-level positive control returned yes, so the test is not a constant no.",
+      "passed": true,
+      "ac_id": "faff-1079#done:23",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faffter-dark-adversarial-review/review-call.mjs --system <scope-test brief> --diff <objection claim> --diff-kind prose"
+        }
+      ]
+    },
+    {
+      "ac": "**Contract-extraction check (the \"byte-identical\" claim, named and run, not just asserted):** for the same fixture's untagged and tagged variants, extract both specs' `faff-contract:spec-readiness` block and diff them byte-for-byte; the only permitted difference is inside the `(ratified: human)` suffix text itself, never in the emitted `decisions[]`/`confidence` JSON. This is the concrete check the \"no contract regression\" scenario (section 5) names but does not itself run.",
+      "verified": "Contract-extraction check ran: both variants' extractions are identical and the validator output is byte-identical.",
+      "passed": true,
+      "ac_id": "faff-1079#done:24",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff contract spec-readiness < <extraction> ; diff <untagged-out> <tagged-out>"
+        }
+      ]
+    },
+    {
+      "ac": "A `docs/decisions.md` fixture carrying a `ratified_tradeoff` entry for a synthetic issue confirms `faff ratified-scope --assemble` emits the `### Ratified tradeoffs` subsection and `faff ratified-scope --validate` still passes (no regression to the existing selftest suite in `ratified-scope.js`/`decisions.js`).",
+      "verified": "The register fixture round-tripped through --assemble and --validate; the ratified-scope.js and decisions.js selftests both still pass.",
+      "passed": true,
+      "ac_id": "faff-1079#done:25",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/lib/ratified-scope.js --selftest ; node plugin/skills/faff/bin/lib/decisions.js --selftest"
+        }
+      ]
+    }
+  ]
+}

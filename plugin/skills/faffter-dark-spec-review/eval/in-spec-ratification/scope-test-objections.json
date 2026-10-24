@@ -1,0 +1,36 @@
+{
+  "_comment": "Scope-test inputs for the ratify offer's decision-vs-implementation classification. Each claim is classified by the scope test; `expected_ratify_offered` is the oracle. The two non-decision-level rows are the ones that matter: a scope test that always answers 'decision-level' passes a decision-only fixture pair while wrongly ratifying every implementation objection.",
+  "cases": [
+    {
+      "id": "decision-level",
+      "fixture": "spec-decision-untagged.md",
+      "severity": "major",
+      "lens": "architectural",
+      "claim": "A new .faff/backend-cache.json duplicates a per-spec surface the pin sidecar already owns; the chain should live beside the reviewer identity it belongs to, not in a second file with its own lifecycle.",
+      "spec_anchor": "decision-1-cache-the-resolved-chain-in-a-new-per-run-json-file",
+      "classification": "decision-level",
+      "expected_ratify_offered": true
+    },
+    {
+      "id": "implementation-level",
+      "fixture": "spec-implementation.md",
+      "severity": "major",
+      "lens": "architectural",
+      "claim": "Caching in the pin sidecar is the right home, but the specified truncate-then-write has no atomic rename, so a crash mid-write leaves the sidecar empty and loses the round-1 reviewer identity too.",
+      "spec_anchor": "decision-1-cache-the-resolved-chain-in-the-existing-pin-sidecar",
+      "classification": "implementation-level",
+      "expected_ratify_offered": false
+    },
+    {
+      "id": "ambiguous-mixed",
+      "fixture": "spec-decision-untagged.md",
+      "severity": "major",
+      "lens": "architectural",
+      "claim": "Postgres is fine, but this schema will lock the table under load.",
+      "spec_anchor": "decision-1-cache-the-resolved-chain-in-a-new-per-run-json-file",
+      "classification": "ambiguous",
+      "expected_ratify_offered": false,
+      "note": "The fail-safe middle worked example verbatim. Ambiguous resolves to no ratify, never the reverse."
+    }
+  ]
+}

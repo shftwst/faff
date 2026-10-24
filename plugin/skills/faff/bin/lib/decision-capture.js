@@ -387,19 +387,56 @@ function captureEnabled(root) {
   return dig(data, "capture.decision_kernel") === "on";
 }
 
+const REASON_MAX_BYTES = 1024;
+const TRUNCATION_MARKER = "...[truncated]";
+
+// Collapse line breaks and control characters to one space and bound the UTF-8 size, so a
+// caller-supplied value can never split a stderr line or bloat a note.
+function lineSafe(value) {
+  const s = String(value).replace(/[\u0000-\u001F\u007F-\u009F\u2028\u2029]+/g, " ").trim();
+  if (Buffer.byteLength(s, "utf8") <= REASON_MAX_BYTES) return s;
+  const budget = REASON_MAX_BYTES - Buffer.byteLength(TRUNCATION_MARKER, "utf8");
+  let prefix = "";
+  let bytes = 0;
+  for (const ch of s) {
+    const n = Buffer.byteLength(ch, "utf8");
+    if (bytes + n > budget) break;
+    prefix += ch;
+    bytes += n;
+  }
+  return prefix + TRUNCATION_MARKER;
+}
+
 // BEST-EFFORT-FAIL (spec §4): write the reason to stderr AND a degraded-capture note under
 // `.faff/logs/`, then ALWAYS return 0 — a capture-path defect must never surface as a
 // non-zero exit an orchestrator could trip on. The note write is itself wrapped so a
 // logging fault can never escalate into the very propagation this exists to prevent.
-function bestEffortFail(root, run, reason) {
-  process.stderr.write(`faff decision-capture record: degraded capture — ${reason}\n`);
+function bestEffortFail(root, run, reason, fields = {}) {
+  const safeReason = lineSafe(reason);
+  process.stderr.write(`faff decision-capture record: degraded capture — ${safeReason}\n`);
   try {
     const logsDir = path.join(root, ".faff", "logs");
     fs.mkdirSync(logsDir, { recursive: true });
-    const note = { ts: new Date().toISOString(), run: run || null, note: "degraded-capture", reason: String(reason) };
+    const note = { ts: new Date().toISOString(), run: run || null, note: "degraded-capture", reason: safeReason, ...fields };
     fs.appendFileSync(path.join(logsDir, "decision-capture.jsonl"), JSON.stringify(note) + "\n");
   } catch { /* best-effort: a logging fault must never propagate either */ }
   return 0;
+}
+
+function rulePhrase(rules) {
+  if (rules.length === 0) return "run-event schema";
+  return `${rules.join(" and ")} ${rules.length === 1 ? "rule" : "rules"}`;
+}
+
+// A refusal by the write core is a suppressed capture and names the rule; any other append
+// failure keeps the generic reason.
+function reportAppendFailure(root, run, e, eventType, kernel) {
+  if (e && e.code === "EVENT_SCHEMA") {
+    const rules = Array.isArray(e.rules) && e.rules.length ? e.rules : [];
+    const reason = `capture suppressed: ${eventType} event for kernel ${kernel} refused by the ${rulePhrase(rules)}: ${(e.violations || []).join("; ")}`;
+    return bestEffortFail(root, run, reason, { event_type: eventType, kernel: lineSafe(kernel), rules });
+  }
+  return bestEffortFail(root, run, "journal append failed: " + (e && e.message));
 }
 
 function cmdRecordVerb(values, root) {
@@ -486,7 +523,7 @@ function cmdRecordVerb(values, root) {
   try {
     record = appendEventRecord(dir, run, { phase: "run", type: "decision-capture", issue, data });
   } catch (e) {
-    return bestEffortFail(root, run, `journal append failed: ${e && e.message}`);
+    return reportAppendFailure(root, run, e, "decision-capture", kernel);
   }
   console.log(JSON.stringify({ seq: record.seq, coverage }));
   return 0;
@@ -520,12 +557,10 @@ function captureDecisionCore({ kernel, normalised_inputs, verdict, issue } = {})
 
   if (!runDirEnv) { bestEffortFail(root, run, "no $FAFF_RUN_DIR — standalone call, no substrate to capture into"); return; }
   const correlation_id = process.env.FAFF_DECISION_CORRELATION_ID || "";
-  // FAFF-989 (Part B): an empty correlation_id yields a base no action marker can ever join —
-  // it lands `action_uncaptured` and grades nothing. Surface that loud via the degraded-capture
-  // note instead of appending a silent orphan. The append STILL happens below (suppressing it is
-  // a deferred, separate FAFF-956 contract-change decision, out of scope here); call bestEffortFail
-  // for its note+stderr side effect only and fall through — capture stays best-effort and never
-  // changes the kernel's exit code or stdout.
+  // FAFF-989: an empty correlation_id yields a base no action marker can join. Note it and still
+  // append; suppressing that append is the half of the FAFF-956 call that remains deferred.
+  // The other half is decided: the write core refuses an empty issue (FAFF-1353), and the append's
+  // catch reports it as a suppressed capture.
   if (correlation_id === "") {
     bestEffortFail(root, run, "base record has empty correlation_id — no action marker can join it; capture is ungradeable");
   }
@@ -551,7 +586,7 @@ function captureDecisionCore({ kernel, normalised_inputs, verdict, issue } = {})
 
   try {
     appendEventRecord(dir, run, { phase: "run", type: "decision-capture", issue: issueVal, data });
-  } catch (e) { bestEffortFail(root, run, `journal append failed: ${e && e.message}`); return; }
+  } catch (e) { reportAppendFailure(root, run, e, "decision-capture", kernel); return; }
   // NO stdout: the authoritative kernel already printed its verdict; capture is a side effect.
 }
 
@@ -687,7 +722,7 @@ function cmdActionVerb(values, root) {
   try {
     record = appendEventRecord(dir, run, { phase: "run", type: "decision-capture-action", issue, data });
   } catch (e) {
-    return bestEffortFail(root, run, `journal append failed: ${e && e.message}`);
+    return reportAppendFailure(root, run, e, "decision-capture-action", kernel);
   }
   console.log(JSON.stringify({ seq: record.seq, correlation_id }));
   return 0;
@@ -1110,6 +1145,8 @@ module.exports = {
   buildBaseRecord,
   mintCorrelationId,
   captureDecision,
+  lineSafe,
+  reportAppendFailure,
   classifyCoverage,
   cmdDecisionCapture,
   collectAnchorRecordDirs,

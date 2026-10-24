@@ -102,6 +102,8 @@ function normalizeLabels(value) {
     let s = value.trim();
     if (s.startsWith("[") && s.endsWith("]")) {
       s = s.slice(1, -1);
+    } else if (s.startsWith("[")) {
+      return []; // an unterminated flow sequence is a malformation, never a label
     } else {
       return s === "" ? [] : [s];
     }
@@ -156,8 +158,10 @@ function isDirectory(abs) {
   try { return fs.statSync(abs).isDirectory(); } catch { return false; }
 }
 
+// lstat, not stat: a symlink (possibly pointing outside the tree) or a FIFO is not a regular
+// file, so it is skipped rather than read (a FIFO read would block the scan indefinitely).
 function isFile(abs) {
-  try { return fs.statSync(abs).isFile(); } catch { return false; }
+  try { return fs.lstatSync(abs).isFile(); } catch { return false; }
 }
 
 const byteCompare = (a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b));
@@ -344,6 +348,12 @@ function githubTemplatesSelftest() {
     check("labels: empty / boolean / number / absent",
       eq(lab("labels: []"), []) && eq(lab("labels: true"), []) && eq(lab("labels: 3"), []) && eq(parseFrontMatter(fm(["name: x"])).labels, []));
     check("labels: single-element flow", eq(lab("labels: [bug]"), ["bug"]));
+    check("labels: unterminated flow is a miss", eq(lab("labels: [bug, triage"), []));
+    {
+      const sl = mk({ ".github/ISSUE_TEMPLATE/real.md": fm(["name: Bug"]) });
+      fs.symlinkSync(path.join(sl, ".github/ISSUE_TEMPLATE/real.md"), path.join(sl, ".github/ISSUE_TEMPLATE/link.md"));
+      check("symlinked template is skipped, not read", eq(scan(sl).candidates.map((c) => c.path), [".github/ISSUE_TEMPLATE/real.md"]));
+    }
 
     if (process.getuid && process.getuid() !== 0) {
       const un = mk({ ".github/ISSUE_TEMPLATE/ok.md": fm(["name: Bug"]), ".github/ISSUE_TEMPLATE/locked.md": fm(["name: Bug"]) });

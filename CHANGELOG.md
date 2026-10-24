@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.43.0](https://github.com/shftwst/faff/compare/faff--v0.42.0...faff--v0.43.0) (2026-10-24)
+
+
+### Features
+
+* **dod:** a DoD item checked by a test file or a module export goes to the test floor (FAFF-1360) ([#1098](https://github.com/shftwst/faff/issues/1098)) ([a0e443e](https://github.com/shftwst/faff/commit/a0e443e8a42807bc6bd500b13ef20270a0574922))
+* **github-templates:** discover and parse GitHub-native issue templates (FAFF-1112) ([#1120](https://github.com/shftwst/faff/issues/1120)) ([8cebceb](https://github.com/shftwst/faff/commit/8cebceb498fd0a66dc731305bddfe89f06dd3468))
+* **land:** move graft's bounded landing loop from prose into faff land (FAFF-1396) ([#1119](https://github.com/shftwst/faff/issues/1119)) ([a30b650](https://github.com/shftwst/faff/commit/a30b65040e3fded0a206d8d36807a1d3aab83cfc))
+
+
+### Bug Fixes
+
+* **beep-boop:** a shared directory alone is not a collision when specs name different files (FAFF-1393) ([#1114](https://github.com/shftwst/faff/issues/1114)) ([ed375a1](https://github.com/shftwst/faff/commit/ed375a14ceb9898b809c4d6b33199a0570198806))
+* **decision-capture:** mint distinct ids for repeated consults in one run (FAFF-1394) ([#1117](https://github.com/shftwst/faff/issues/1117)) ([d78b320](https://github.com/shftwst/faff/commit/d78b32094e0f36ea6ced301abb5e72a779a60a2b))
+* **decision-capture:** pair captures when the run is a path or the consult is a separate call (FAFF-1394) ([#1115](https://github.com/shftwst/faff/issues/1115)) ([2f5fae4](https://github.com/shftwst/faff/commit/2f5fae466e66618744523ea83c8ff64495787ce5))
+* **doctor:** read faff hooks from both Claude settings files (FAFF-1295) ([#1116](https://github.com/shftwst/faff/issues/1116)) ([a0727c0](https://github.com/shftwst/faff/commit/a0727c036cc3a5693e8d8926668afaadf4f99cd2))
+* **economics:** a resumed run's cost spans every epoch (FAFF-933) ([#1100](https://github.com/shftwst/faff/issues/1100)) ([d521b1a](https://github.com/shftwst/faff/commit/d521b1a033a180cf9ecb86ed6c9b98981311da70))
+* **shadow-fidelity:** pin the map revision a result was produced under (FAFF-1194) ([#1118](https://github.com/shftwst/faff/issues/1118)) ([9fe39d8](https://github.com/shftwst/faff/commit/9fe39d8decb997662e5cd772b2d29113cdf5a1d5))
+
+
+### Performance Improvements
+
+* **gates:** drop three per-invocation costs from the local gate (FAFF-1383) ([#1106](https://github.com/shftwst/faff/issues/1106)) ([5317e62](https://github.com/shftwst/faff/commit/5317e629e10c2731171525a5b0cd58abbd680c93))
+* **gates:** lazy-load CLI modules and pool test files one per process (FAFF-1382) ([#1104](https://github.com/shftwst/faff/issues/1104)) ([6289d8f](https://github.com/shftwst/faff/commit/6289d8fe7a516f2922c81a9ba47f96ec09b09a28))
+
 ## [0.42.0](https://github.com/shftwst/faff/compare/faff--v0.41.0...faff--v0.42.0) (2026-10-21)
 
 

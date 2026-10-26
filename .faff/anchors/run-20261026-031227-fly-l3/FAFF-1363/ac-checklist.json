@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "`faff-graft/SKILL.md` Step 6 `holdout_offer`'s skip condition reads `judged_count == 0` (no `AND integration_count == 0` conjunct).",
+      "verified": "test/faff-1363-holdout-skip-rule.test.mjs::FAFF-1363: Step 6 holdout_offer skips on judged_count == 0 alone — pass",
+      "passed": true,
+      "ac_id": "faff-1363#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1363-holdout-skip-rule.test.mjs::FAFF-1363: Step 6 holdout_offer skips on judged_count == 0 alone"
+        }
+      ]
+    },
+    {
+      "ac": "`faff-graft/SKILL.md` Step 6's marker invariant comment reads `judged_count==0 ⇒ skip` (no `AND integration_count==0` conjunct).",
+      "verified": "test/faff-1363-holdout-skip-rule.test.mjs::FAFF-1363: faff-graft/SKILL.md no longer states the old two-count skip rule anywhere — pass",
+      "passed": true,
+      "ac_id": "faff-1363#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1363-holdout-skip-rule.test.mjs::FAFF-1363: faff-graft/SKILL.md no longer states the old two-count skip rule anywhere"
+        }
+      ]
+    },
+    {
+      "ac": "`faff-graft/SKILL.md` Step 8c `holdout_run`'s skip condition (the SOLE live gate) reads `judged_count == 0` (no `AND integration_count == 0` conjunct).",
+      "verified": "test/faff-1363-holdout-skip-rule.test.mjs::FAFF-1363: Step 8c holdout_run — the SOLE live skip gate — skips on judged_count == 0 alone — pass",
+      "passed": true,
+      "ac_id": "faff-1363#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1363-holdout-skip-rule.test.mjs::FAFF-1363: Step 8c holdout_run — the SOLE live skip gate — skips on judged_count == 0 alone"
+        }
+      ]
+    },
+    {
+      "ac": "`faff-graft/SKILL.md` Step 10's absent-verdict prose no longer says \"nothing judged and no integration-tier criterion\"; it names \"nothing judged — including an integration-tier-only spec\" and states the skip is never mistaken for a missing verdict on a declined-but-judgeable spec.",
+      "verified": "test/faff-1363-holdout-skip-rule.test.mjs::FAFF-1363: Step 10's absent-verdict prose no longer implies an integration-tier criterion blocks the skip — pass",
+      "passed": true,
+      "ac_id": "faff-1363#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1363-holdout-skip-rule.test.mjs::FAFF-1363: Step 10's absent-verdict prose no longer implies an integration-tier criterion blocks the skip"
+        }
+      ]
+    },
+    {
+      "ac": "`faff validate-adapters` passes (no FAIL on `faff-graft`'s line cap; the SKILL_LINE_BASELINE ratchet is unaffected since the edits are line-count-neutral).",
+      "verified": "command `node plugin/skills/faff/bin/faff validate-adapters` — exit 0, RESULT: PASS (21 slot skills linted), faff-graft line count unchanged (892 wc -l / 893 by split)",
+      "passed": true,
+      "ac_id": "faff-1363#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "`faff dod classify`'s computation of `judged_count`/`integration_count`/`delegated_count` is byte-for-byte unchanged (no edits to `admissibility.js`); the FAFF-1291 selftest at `admissibility.js:1112` still passes.",
+      "verified": "git diff --stat HEAD confirms admissibility.js untouched; `faff dod --selftest` — ok (includes the FAFF-1291 judged_count/integration_count/delegated_count pinned case)",
+      "passed": true,
+      "ac_id": "faff-1363#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff dod --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`test/dod.test.mjs:264`'s stale comment (\"an integration-only spec is not skipped by graft\") is corrected to reflect the new behaviour; its assertions (`judged_count===0`, `integration_count===1`) are unchanged.",
+      "verified": "git diff test/dod.test.mjs shows only the comment string changed; `node --test test/dod.test.mjs` — 20/20 pass",
+      "passed": true,
+      "ac_id": "faff-1363#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/dod.test.mjs::dod classify (FAFF-1291): an explicit integration fence on a prose DONE-adjacent unit still wins; an all-prose spec is not skipped"
+        }
+      ]
+    },
+    {
+      "ac": "A new test `test/faff-1363-holdout-skip-rule.test.mjs` asserts, against the live committed `faff-graft/SKILL.md`: (a) the old buggy string `judged_count == 0 AND integration_count == 0` no longer appears anywhere in the file; (b) both the Step 6 and Step 8c procedure blocks contain a `judged_count == 0` skip condition; (c) re-exercises `faff dod classify` on an integration-tier-only fixture to confirm `judged_count === 0` and `integration_count > 0` — the live facts the corrected rule depends on.",
+      "verified": "node --test test/faff-1363-holdout-skip-rule.test.mjs — 6/6 pass",
+      "passed": true,
+      "ac_id": "faff-1363#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1363-holdout-skip-rule.test.mjs::FAFF-1363: faff-graft/SKILL.md no longer states the old two-count skip rule anywhere"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1363-holdout-skip-rule.test.mjs::FAFF-1363: Step 6 holdout_offer skips on judged_count == 0 alone"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1363-holdout-skip-rule.test.mjs::FAFF-1363: Step 8c holdout_run — the SOLE live skip gate — skips on judged_count == 0 alone"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1363-holdout-skip-rule.test.mjs::FAFF-1363: faff dod classify facts — an integration-tier-only spec has judged_count 0 and integration_count > 0 (the live input the corrected rule depends on)"
+        }
+      ]
+    }
+  ]
+}

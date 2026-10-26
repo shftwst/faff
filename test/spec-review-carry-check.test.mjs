@@ -159,6 +159,24 @@ test("makePathExists: a genuine relative path under root exists, and root itself
   });
 });
 
+// Adversarial-review finding (round 1, minor): every other test builds `root` straight from
+// `mkdtempSync`, never through a symlink — on a host where the tmp dir itself is reached via a
+// symlink (macOS's /var -> /private/var is the canonical case), a real path-move under a
+// symlinked root must still resolve `pathExists` to true. `makePathExists` realpaths BOTH the
+// root and the candidate before comparing, so this already works; this test makes that
+// positive case explicit rather than leaving it to inference from the symlink-ESCAPE tests above.
+test("makePathExists: a genuine move under a root reached THROUGH a symlink still resolves true", () => {
+  withTmp((dir) => {
+    const real = join(dir, "real-root");
+    mkdirSync(join(real, "docs"), { recursive: true });
+    writeFileSync(join(real, "docs", "x.md"), "x");
+    const linkedRoot = join(dir, "linked-root");
+    symlinkSync(real, linkedRoot);
+    const pathExists = makePathExists(linkedRoot);
+    assert.equal(pathExists("docs/x.md"), true);
+  });
+});
+
 test("CLI carry-check: both paths exist → exit 1, path-move-unverified", () => {
   withTmp((dir) => {
     mkdirSync(join(dir, "docs", "design"), { recursive: true });

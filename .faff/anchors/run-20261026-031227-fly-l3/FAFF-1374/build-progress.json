@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1374",
+  "build": {
+    "status": "complete",
+    "diff_hash": "af1a894bdc77f53929a94cdf2b5fd038750c04325c9f7abf556ad947d3dc6f48",
+    "branch": "faff-1374-the-merge-gate-level-message-names-the-runs-actual-level",
+    "pushed_at": "2026-10-26T05:02:09.497Z"
+  },
+  "updated_at": "2026-10-26T05:02:09.497Z"
+}

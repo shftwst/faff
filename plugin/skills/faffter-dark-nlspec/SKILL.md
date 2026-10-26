@@ -150,6 +150,8 @@ This is the same language as holdout BDD; a holdout is just the withheld subset 
 
 **Selection rules.** Marking is optional — zero holdouts is fully valid. Mark a minority (guideline one-in-three, never more than half, and never all — the builder must retain at least one visible scenario). A holdout must verify behaviour the WHAT/HOW body already requires, never be the sole statement of a requirement — prefer a different concrete instantiation of a stated rule (other values, another path) over introducing new behaviour only a holdout states. DONE items are never marked.
 
+Never make a Scenarios unit's check a repository test file passing — the holdout cannot read or run one. Restate the behaviour as an observable Given/When/Then and put the test-file check in its own DONE item instead.
+
 ### 6. DESIGN DECISION RATIONALE
 
 Collect all decisions made throughout the spec. For each:

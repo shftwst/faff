@@ -713,6 +713,25 @@ function renderCodeSurfaceWarning(adv) {
   return s;
 }
 
+// --- scenarios code-surface advisory (FAFF-1364) ---
+// Pure: Scenarios units whose check is a repository test file, or null when there are none. Mirrors
+// codeSurfaceAdvisory but filters source==="scenarios" and does NOT filter on verification_tier — a
+// Scenarios test-file unit stays running-stack (ADR-0140: no verifier other than the holdout receives
+// a Scenarios unit by id, so there is nowhere to retier it to). Reuses codeSurfaceSignal, never a
+// second pattern (FAFF-1360's TEST_FILE_TOKEN_RE stays the one detection home).
+function scenariosCodeSurfaceAdvisory(specText) {
+  let classified;
+  try { classified = dodClassify(specText); } catch (e) { return null; }
+  const items = classified.criteria.filter((c) => c.source === "scenarios" && codeSurfaceSignal(c.text) === "test-file");
+  if (items.length === 0) return null;
+  return { count: items.length, items };
+}
+
+function renderScenariosCodeSurfaceWarning(adv) {
+  const trunc = (s) => String(s).replace(/\s+/g, " ").trim().slice(0, 50);
+  return `scenarios-code-surface advisory: ${adv.count} Scenarios unit(s) name a repository test file the code-blind holdout cannot run; restate the behaviour as an observable Given/When/Then and move the test-file check to a DONE item: ${adv.items.map((c) => trunc(c.text)).join(" | ")}`;
+}
+
 // Render the single-line advisory (deterministic "oracle-less-assertion advisory:" prefix). Items
 // whitespace-collapsed + truncated ~50 chars, mirroring renderProseDoneWarning's style.
 function renderOracleLessWarning(adv) {
@@ -745,6 +764,8 @@ function admissibleVerdict(specText, lightsOut) {
   if (adv && adv.allProseDone && adv.judged === 0) warnings.push("prose-DONE advisory: every DONE item is loose prose and nothing is judged, so nothing in DONE will be judged code-blind (it rests on the AC checklist and review)");  // FAFF-1291
   const surfaceAdv = codeSurfaceAdvisory(specText);        // FAFF-1360: advisory only; never flips admissible
   if (surfaceAdv) warnings.push(renderCodeSurfaceWarning(surfaceAdv));
+  const scenAdv = scenariosCodeSurfaceAdvisory(specText);  // FAFF-1364: advisory only; never flips admissible
+  if (scenAdv) warnings.push(renderScenariosCodeSurfaceWarning(scenAdv));
   const admissible = checks.every((c) => c.pass);
   const reasons = checks.filter((c) => !c.pass).map((c) => c.detail);
   return { admissible, reasons, checks, warnings };
@@ -811,6 +832,12 @@ function admissibleSelftest() {
     { name: "FAFF-304 born-verifiable-DONE-no-advisory", text: ADMISSIBLE_GOOD, lights: true, wantAdmissible: true, wantAdvisory: false },
     { name: "FAFF-304 duplicate-annotation-present (2 restate a scenario)", text: ADMISSIBLE_DUP_DONE, lights: true, wantAdmissible: true, wantAdvisory: true, wantAdvisoryCount: 3, wantDuplicate: true },
     { name: "FAFF-304 advisory-never-flips-admissible (prose DONE stays admissible)", text: ADMISSIBLE_PROSE_DONE, lights: true, wantAdmissible: true, wantAdvisory: true },
+    // FAFF-1364: a Scenarios unit whose check is a repository test file fires the new advisory,
+    // never flipping admissible. A CLI-only Scenarios unit and a well-formed GWT unit yield no
+    // scenarios-code-surface warning — the signal is narrow (test-file token only).
+    { name: "FAFF-1364 scenarios-code-surface-fires (test-file in Scenarios)", text: "## Scenarios\n```\nGiven a\nWhen b\nThen `test/a.test.mjs` MUST pass\n```\n\n## 8. DONE\n\n- [ ] the parser returns >=1 item\n", lights: true, wantAdmissible: true, wantWarnMatch: /^scenarios-code-surface advisory:/ },
+    { name: "FAFF-1364 scenarios-code-surface-silent (CLI-only Scenarios unit)", text: "## Scenarios\n```\nGiven a\nThen `faff x` MUST exit 0\n```\n\n## 8. DONE\n\n- [ ] the parser returns >=1 item\n", lights: true, wantAdmissible: true, wantNoScenariosSurfaceWarn: true },
+    { name: "FAFF-1364 scenarios-code-surface-silent (well-formed GWT)", text: ADMISSIBLE_GOOD, lights: true, wantAdmissible: true, wantNoScenariosSurfaceWarn: true },
   ];
   let failed = 0;
   for (const c of cases) {
@@ -821,6 +848,7 @@ function admissibleSelftest() {
     if (ok && c.wantWarn === false) ok = v.warnings.length === 0;
     if (ok && c.wantWarnMatch) ok = v.warnings.some((w) => c.wantWarnMatch.test(w));    // FAFF-306
     if (ok && c.wantNoLevelWarn) ok = !v.warnings.some((w) => /different levels/.test(w));  // FAFF-306
+    if (ok && c.wantNoScenariosSurfaceWarn) ok = !v.warnings.some((w) => w.startsWith("scenarios-code-surface advisory:"));  // FAFF-1364
     // FAFF-304: the prose-DONE punt-prediction advisory (a warnings[] string, never gating)
     const advWarn = v.warnings.find((w) => w.startsWith("prose-DONE advisory:"));
     if (ok && c.wantAdvisory === true) ok = !!advWarn;
@@ -1708,4 +1736,4 @@ function cmdSpecReviewLenses(args) {
 }
 
 
-module.exports = { ADMISSIBLE_DUP_DONE, ADMISSIBLE_GOOD, ADMISSIBLE_GOOD_NUMBERED, ADMISSIBLE_PROSE_DONE, ADMISSIBLE_SPEC, BANNED_VAGUE, DOD_CLASSIFY_SPEC, DOD_SPLIT_SPEC, DOD_SURFACE, DUP_THRESHOLD, HOLDOUT_RECORD_SPEC, HOLDOUT_SURFACE, HOLDOUT_VERDICTS_SPEC, HOLDOUT_VERDICT_SPEC, INTEGRATION_TIER_MARKERS, INTERNAL_SUBJECT_MARKERS, OBSERVABLE_TOKENS, PROSE_DONE_STOPWORDS, SCENARIOS_HEADING_RE, SPEC_REVIEW_ALL_LENSES, SPEC_REVIEW_LENSES_SPEC, SPEC_REVIEW_SURFACE_FIRES, SPEC_REVIEW_SURFACE_TAGS, acceptanceSection, admissibleSelftest, admissibleVerdict, classifyAcceptanceCriteria, classifyCriterion, cmdAdmissible, codeSurfaceAdvisory, codeSurfaceSignal, cmdDod, cmdDodSplit, cmdHoldout, cmdHoldoutRecord, cmdHoldoutVerdict, cmdSpecReviewLenses, detectRunnableCheck, dodClassify, dodSelftest, dodSplit, doneScenariosLevelWarning, firstHeadingLevelMatching, hasObservableOracle, headingLevel, holdoutRemovalSpans, holdoutVerdictsSelftest, isConfidenceLine, isDoneHeading, isHoldoutFenceOpen, isIntegrationFenceOpen, matchesBannedVague, opensContractFence, oracleLessAdvisory, parseDoneChecklist, parseScenarios, prdHasComparator, proseDoneAdvisory, proseDoneContainment, proseDoneTokens, renderCodeSurfaceWarning, renderOracleLessWarning, renderProseDoneWarning, resolveVerificationTier, scenariosBoundaryStop, sectionBody, sectionBodyRange, selectLenses, specReviewLensesSelftest };
+module.exports = { ADMISSIBLE_DUP_DONE, ADMISSIBLE_GOOD, ADMISSIBLE_GOOD_NUMBERED, ADMISSIBLE_PROSE_DONE, ADMISSIBLE_SPEC, BANNED_VAGUE, DOD_CLASSIFY_SPEC, DOD_SPLIT_SPEC, DOD_SURFACE, DUP_THRESHOLD, HOLDOUT_RECORD_SPEC, HOLDOUT_SURFACE, HOLDOUT_VERDICTS_SPEC, HOLDOUT_VERDICT_SPEC, INTEGRATION_TIER_MARKERS, INTERNAL_SUBJECT_MARKERS, OBSERVABLE_TOKENS, PROSE_DONE_STOPWORDS, SCENARIOS_HEADING_RE, SPEC_REVIEW_ALL_LENSES, SPEC_REVIEW_LENSES_SPEC, SPEC_REVIEW_SURFACE_FIRES, SPEC_REVIEW_SURFACE_TAGS, acceptanceSection, admissibleSelftest, admissibleVerdict, classifyAcceptanceCriteria, classifyCriterion, cmdAdmissible, codeSurfaceAdvisory, codeSurfaceSignal, cmdDod, cmdDodSplit, cmdHoldout, cmdHoldoutRecord, cmdHoldoutVerdict, cmdSpecReviewLenses, detectRunnableCheck, dodClassify, dodSelftest, dodSplit, doneScenariosLevelWarning, firstHeadingLevelMatching, hasObservableOracle, headingLevel, holdoutRemovalSpans, holdoutVerdictsSelftest, isConfidenceLine, isDoneHeading, isHoldoutFenceOpen, isIntegrationFenceOpen, matchesBannedVague, opensContractFence, oracleLessAdvisory, parseDoneChecklist, parseScenarios, prdHasComparator, proseDoneAdvisory, proseDoneContainment, proseDoneTokens, renderCodeSurfaceWarning, renderOracleLessWarning, renderProseDoneWarning, renderScenariosCodeSurfaceWarning, resolveVerificationTier, scenariosBoundaryStop, scenariosCodeSurfaceAdvisory, sectionBody, sectionBodyRange, selectLenses, specReviewLensesSelftest };

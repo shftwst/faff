@@ -117,13 +117,17 @@ test("FAFF-1399: --selftest exercises the full table and reports PASS", () => {
 // behaviour. Scoped to exact, hard-to-drift phrases so a later prose edit that genuinely changes the
 // fallback or convention trips the guard rather than silently diverging from the spec's DONE.
 
-test("FAFF-1399: an absent `priority` (vague, or a legacy pre-feature entry) files with no tracker priority and no comment — documented at every filing call site", () => {
+test("FAFF-1399: an absent `priority` (vague, or a legacy pre-feature entry) files with no tracker priority and no comment — documented at every filing call site that reads a stored priority", () => {
   const graft = readFileSync(GRAFT_SKILL, "utf8");
   const beepboop = readFileSync(BEEPBOOP_SKILL, "utf8");
-  const tidy = readFileSync(TIDY_SKILL, "utf8");
   assert.match(graft, /priority.*is.*absent.*files exactly as before/s, "Step 12 must document the absent-priority fallback");
   assert.match(beepboop, /priority.*is.*absent.*files exactly as before/s, "beep-boop §10 sub-step 5 must document the absent-priority fallback");
-  assert.match(tidy, /chain-gap/i, "tidy's chain-gap section must still exist to carry the priority wiring");
+});
+
+test("FAFF-1399: tidy's chain-gap filing documents the --source chain-gap wiring and its own CLI-failure fallback (it computes priority fresh, so it never reads a stored `absent`)", () => {
+  const tidy = readFileSync(TIDY_SKILL, "utf8");
+  assert.match(tidy, /--source chain-gap/, "tidy must call the priority CLI with --source chain-gap");
+  assert.match(tidy, /CLI failure degrades to no tracker priority \+ no comment/, "tidy must document its own CLI-failure-at-filing-time fallback");
 });
 
 test("FAFF-1399: the priority-reason comment is documented as write-once — never edited or re-posted", () => {

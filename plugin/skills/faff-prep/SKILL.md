@@ -544,7 +544,7 @@ Then offer a three-way choice (not passive text) — a surviving OFFER gate, per
 
 > "What next? (iterate / build / park)"
 
-- **iterate** — revise the spec (loop back to Step 2 of Scenario A); once the revised spec is produced and re-attached, run the **Decisions-register reconcile step** (above) before returning to this offer — a revision can change the design out from under an already-captured intent, regardless of which confidence branch the revision lands in
+- **iterate** — revise the spec (loop back to Step 2 of Scenario A); once the revised spec is produced and re-attached, run the **Decisions-register reconcile step** (above) before returning to this offer — a revision can change the design out from under an already-captured intent, regardless of which confidence branch the revision lands in. **Carry-check:** when Step 2a found no challenge or resolution, save the spec restored at Step 1 as `$scratch/refresh-before.md`, the revised spec as `$scratch/refresh-after.md`, and run the same `faff spec-review carry-check` gate Path 1 runs (above) — exit 0 tells the user "review carried forward: paths only" and lists the path moves; any other exit runs the Spec-review gate as today
 - **build** — invoke the `faff-graft` skill via the Skill tool on `ISSUE-XX` (only if spec is fresh)
 - **park** — stop here; apply the shared Park / Unpark protocol (tag `faff-parked`, log the cause) so `/faff-wtf`'s _Parked work_ section resurfaces it. The spec stays on the issue.
 
@@ -621,7 +621,15 @@ If an existing spec is present and:
 - The original design decisions still hold against the current codebase **and** against any post-spec challenges/resolutions
 - Changes are limited to shipped blockers, minor drift, context comments to fold in as annotations, or comment-thread resolutions that close out an existing Punt/Assumes — none of which invalidate the approach
 
-→ produce a refreshed spec with changes annotated (cite each post-spec comment that drove a change or was folded in as context), **re-stamp the provenance line** (fresh `date` + currently-resolved `producer`/`adaptor`, `mode := autonomous`; see _Provenance stamp (populate at attach)_), **validate per the _spec contract_** (every decision section has a canonical marker), **re-run the Spec-review gate** on the refreshed spec (a substantive refresh can change the approach, so the retained verdict is re-earned — route per that section; a non-`approve` parks/loops rather than silently reattaching), run the **Decisions-register reconcile step** (above) against the refreshed spec, then reattach to the issue and keep it where it is (Todo stays Todo).
+→ produce a refreshed spec with changes annotated (cite each post-spec comment that drove a change or was folded in as context), **re-stamp the provenance line** (fresh `date` + currently-resolved `producer`/`adaptor`, `mode := autonomous`; see _Provenance stamp (populate at attach)_), **validate per the _spec contract_** (every decision section has a canonical marker), then run the **carry-check gate** below to decide whether the Spec-review gate actually needs to re-run.
+
+**Carry-check gate — keep the prior review when the refresh is paths-only.** Runs only when Step 2a's comment scan (above) found no challenge and no resolution — a challenge or resolution always re-reviews, per the gateway's human-curation rule.
+
+- **The call.** Save the spec text read at the top of this path to `$scratch/refresh-before.md` and the just-produced refreshed spec to `$scratch/refresh-after.md` (`$scratch` from `faff spec-review-dir`), then run `faff spec-review carry-check --before $scratch/refresh-before.md --after $scratch/refresh-after.md --root <repo root>` (`docs/guide/cli.md`). Log the printed JSON line.
+- **Exit 0 (carry).** Keep the retained `spec-review:` line unchanged, run no lens, write no round record. Post a `## Spec-review evidence` comment: the line `refresh: paths only, review carried forward`, one bullet per `path_moves` entry, then — only when it passes `faff contract spec-review-verdict` and its digest matches — the newest earlier evidence comment's fenced block and `sha256:` line copied verbatim (git-only: write the same under the spec's own `## Spec-review evidence` heading).
+- **Exit 1 or 2 (no carry).** **Re-run the Spec-review gate** on the refreshed spec exactly as today (a substantive refresh can change the approach, so the retained verdict is re-earned — route per that section; a non-`approve` parks/loops rather than silently reattaching).
+- **The refresh note.** When the refresh only fixes paths, write exactly `> Revised on <today>: paths refreshed` as its note; any other annotation is content and forces the gate.
+- **Either way**, run the **Decisions-register reconcile step** (above) against the refreshed spec, then reattach to the issue and keep it where it is (Todo stays Todo).
 
 If refreshing the spec would require changing an architectural decision, a core interface, or the overall approach — including when a post-spec comment **challenges** a core decision — → **park** (not a safe auto-refresh; the conversation needs human resolution).
 

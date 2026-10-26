@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/bundle.js::toctou gap between the trust probe and the occupant's first git operation",
+      "title": "TOCTOU gap between the trust probe and the occupant's first git operation",
+      "location": "plugin/skills/faff/bin/lib/bundle.js",
+      "action": "Documented as an accepted, pre-existing property shared with the config-driven path; out of scope per spec FAFF-1016 section 2 (deeper fetch sandboxing excluded).",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The identical check-then-act window already exists on the pre-existing config-driven resolveBundleStore(root) path (it also reads config/decides the occupant, then calls gitRemoteBundleStore(root), which re-resolves .git discovery at that later moment) -- this diff does not introduce a new gap, only a new, narrower code path that shares the same filesystem-level property. The spec's own section 2 explicitly excludes 'sandboxing the git-remote fetch itself' as a separate, later hardening. The threat requires local write access to the exact root the operator pointed at, which is the scenario the gate's containment+origin check already targets.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "TOCTOU gap between the trust probe and the occupant's first git operation",
+          "location": "plugin/skills/faff/bin/lib/bundle.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/bundle.js::refusal gave no diagnostic hint when the underlying probe failed for a benign reason",
+      "title": "Refusal gave no diagnostic hint when the underlying probe failed for a benign reason",
+      "location": "plugin/skills/faff/bin/lib/bundle.js",
+      "action": "Fixed: isGitRemoteRootTrusted/gitWorktreeTop/gitOriginUrl now accept an optional diag array that collects {probe,dir,stderr} on a probe failure; the verify action's refusal message appends a trailing (git: ...) hint when diag is non-empty, while the pinned refusal substring stays byte-identical.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Cheap, additive, non-breaking fix (optional 3rd parameter; every 2-arg caller and every existing boolean-return selftest assertion is unchanged). Verified by two new selftest assertions distinguishing a probe-failure hint from a clean containment/origin mismatch (no hint) -- both at the direct-function and CLI level.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Refusal gave no diagnostic hint when the underlying probe failed for a benign reason",
+          "location": "plugin/skills/faff/bin/lib/bundle.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/bundle.js::git-remote origin equality is an exact-string compare, refusing equivalent url forms",
+      "title": "git-remote origin equality is an exact-string compare, refusing equivalent URL forms",
+      "location": "plugin/skills/faff/bin/lib/bundle.js",
+      "action": "Accepted as a deliberate over-strictness in the same family the spec itself ratified (the linked-worktree refusal, FAFF-1016 section 2) -- not fixed in this PR.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The spec's own words: the origin check 'cannot independently reject a containment-passing root' -- path-containment (top-level equality) is the load-bearing check; origin equality is the explicit, machine-checkable statement of the fetch-target invariant, not an independent gate. A URL-form variant (trailing slash, ssh-vs-https) of the SAME remote is refused only when top-level containment ALREADY passed, i.e. only as additional (not weaker) strictness. Normalising URL forms is a reasonable future enhancement but not required by this ticket's three ratified decisions.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "git-remote origin equality is an exact-string compare, refusing equivalent URL forms",
+          "location": "plugin/skills/faff/bin/lib/bundle.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/bundle.js::dead, unasserted fixture variable in the scenario 3c selftest block",
+      "title": "Dead, unasserted fixture variable in the Scenario 3c selftest block",
+      "location": "plugin/skills/faff/bin/lib/bundle.js",
+      "action": "Fixed: removed the dead noOrigin3c line (its own comment already redirected to the bareNoOrigin3c fixture actually used).",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Trivial, zero-risk cleanup; confirmed via a clean re-run of the full selftest (109/109 checks).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Dead, unasserted fixture variable in the Scenario 3c selftest block",
+          "location": "plugin/skills/faff/bin/lib/bundle.js",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    }
+  ]
+}

@@ -9,7 +9,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, realpathSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, realpathSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -181,6 +181,52 @@ test("--local idempotent: a second run is a byte-identical no-op", () => {
     const first = readFileSync(join(dir, ".git", "info", "exclude"));
     run(dir, "gitignore-ensure", "--local");
     assert.deepEqual(readFileSync(join(dir, ".git", "info", "exclude")), first, "exclude file byte-identical after a re-run");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// ---------------------------------------------------------------------------
+// FAFF-1385 — `--local` resolves its target via `git rev-parse --git-path
+// info/exclude` (never a hand-built `<root>/.git/info/exclude` join), so it works
+// identically from a linked worktree (where `.git` is a file, not a directory) and
+// reports — rather than fabricates a stray tree for — a non-repo directory.
+// ---------------------------------------------------------------------------
+
+test("--local from a linked worktree writes the MAIN repo's common-dir info/exclude, and git check-ignore confirms it from the worktree", () => {
+  const dir = gitSeed();
+  const wtDir = join(dirname(dir), `${dir.split("/").pop()}-wt`);
+  try {
+    execFileSync("git", ["-C", dir, "config", "user.email", "faff-selftest@example.com"]);
+    execFileSync("git", ["-C", dir, "config", "user.name", "faff-selftest"]);
+    writeFileSync(join(dir, "README.md"), "x\n");
+    execFileSync("git", ["-C", dir, "add", "README.md"]);
+    execFileSync("git", ["-C", dir, "commit", "-q", "-m", "init"]);
+    execFileSync("git", ["-C", dir, "worktree", "add", "--detach", wtDir]);
+
+    const res = JSON.parse(run(wtDir, "gitignore-ensure", "--local", "--json"));
+    assert.equal(res.no_repo, false);
+    assert.equal(res.path, join(dir, ".git", "info", "exclude"), "the target is the MAIN repo's info/exclude, not <worktree>/.git/info/exclude");
+    assert.ok(statSync(join(wtDir, ".git")).isFile(), "sanity: the worktree's own .git is a file, not a directory, so a hand-built join would be wrong");
+    const raw = readFileSync(join(dir, ".git", "info", "exclude"), "utf8");
+    assert.match(raw, /^\.faff\/$/m, "the pattern landed on the main repo's exclude file");
+    assert.ok(isIgnored(wtDir, ".faff/config.local.yaml"), "git check-ignore confirms it from the worktree");
+  } finally {
+    spawnSync("git", ["-C", dir, "worktree", "remove", "--force", wtDir]);
+    rmSync(wtDir, { recursive: true, force: true });
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("--local outside a git repository exits 0, reports no git repo, and writes no file", () => {
+  const dir = seed();
+  try {
+    const res = JSON.parse(run(dir, "gitignore-ensure", "--local", "--json"));
+    assert.equal(res.no_repo, true);
+    assert.equal(res.path, null);
+    assert.deepEqual(res.added, []);
+    assert.equal(res.faff_dir, null);
+    assert.ok(!existsSync(join(dir, ".git")), "no stray .git tree is fabricated");
+    const text = run(dir, "gitignore-ensure", "--local");
+    assert.match(text, /not a git repository/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1271",
+  "build": {
+    "status": "complete",
+    "diff_hash": "f18ae38d070502294d553ddbaa9a4b26a4db2ce0d5ef8a60aa3bee179e8d811b",
+    "branch": "faff-1271-carry-spec-review-approval-forward-on-a-refresh-that-changes-only-paths",
+    "pushed_at": "2026-10-26T05:17:12.224Z"
+  },
+  "updated_at": "2026-10-26T05:17:12.224Z"
+}

@@ -1,0 +1,302 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "Given a spec with an OUT OF SCOPE item \"Scrub asymmetry\" and a Punt tagged (decides: architecture) (non-blocking) / When the Punt is wrapped so both tags sit on a second physical line, at any space where the continuation line does not itself start with a terminator (a leading hyphen, >, |, #, or a numbered-list opener ends the logical line by design) / Then punt-scan reports the same topic, decides, non_blocking, out_of_scope_crossref, and eligible as for the single-line Punt",
+      "verified": "selftest rows \"wrapped tags (the ticket repro) → identical to single-line\" and the wrap property test pass",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::punt-scan selftest table: every case passes"
+        },
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::the ticket repro Punt wrapped at every space, with each separator, reads as the single-line form"
+        }
+      ]
+    },
+    {
+      "ac": "Given the same OUT OF SCOPE item and a Punt whose topic names it, with the OUT OF SCOPE name split across the wrap / When punt-scan runs / Then out_of_scope_crossref is true and the Punt is eligible, as it is when unwrapped",
+      "verified": "selftest row \"wrapped topic: OUT OF SCOPE name split across the wrap → crossref and eligible\" passes",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::punt-scan selftest table: every case passes"
+        }
+      ]
+    },
+    {
+      "ac": "Given a Punt with no (non-blocking) tag, then a blank line, then a separate paragraph containing \"(non-blocking)\" / When punt-scan runs / Then non_blocking is false and the Punt counts as blocking, so the following paragraph's tag is not absorbed",
+      "verified": "selftest row \"following paragraph after a blank line is not absorbed\" passes",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::punt-scan selftest table: every case passes"
+        }
+      ]
+    },
+    {
+      "ac": "Given a Punt with no tag, directly followed by a Chosen marker line carrying \"(non-blocking)\", with no blank line between / When punt-scan runs / Then non_blocking is false and blocking_open_count is 1",
+      "verified": "selftest row \"Chosen marker carrying the tag, no blank line → not absorbed\" passes (blocking_open_count 1)",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::punt-scan selftest table: every case passes"
+        }
+      ]
+    },
+    {
+      "ac": "Given a Punt tag alone on its line, with the topic and a (non-blocking) tag on the next line, and a crossref to an OUT OF SCOPE item / When punt-scan runs / Then it reports one marker with that topic and the Punt is eligible",
+      "verified": "selftest rows \"bare tag, topic and tag on the next line → one marker\" passes",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::punt-scan selftest table: every case passes"
+        }
+      ]
+    },
+    {
+      "ac": "Given an untagged Punt directly followed, with no blank line, by a block quote, a table row, a fence line, a thematic break, a Decision marker, an indented Chosen marker, or a bold-led Rationale line, each carrying (non-blocking) / When punt-scan runs for each / Then the Punt is blocking every time, because each of those lines ends the logical line",
+      "verified": "selftest terminator rows (block quote, table row, fence, thematic break, Decision, indented Chosen, bold-led label) all stay blocking; mutation check showed the rows fail when a terminator is removed",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::punt-scan selftest table: every case passes"
+        }
+      ]
+    },
+    {
+      "ac": "A wrapped, untagged, un-crossreferenced Punt still counts as blocking: the tag requirement and the crossref requirement are both still enforced.",
+      "verified": "selftest rows \"wrapped untagged Punt → still blocking\" and \"wrapped tag without crossref → still blocking\" pass",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::punt-scan selftest table: every case passes"
+        }
+      ]
+    },
+    {
+      "ac": "The wrapped repro in the ticket (the Punt wrapped after \"ticket\", tags on line two) yields `{topic, decides: \"architecture\", non_blocking: true, out_of_scope_crossref: true, eligible: true}`, identical to the single-line form, with `eligible_count` 1 and `blocking_open_count` 0.",
+      "verified": "wrapped repro yields decides architecture, non_blocking true, crossref true, eligible true, counts 1/0; identical to single-line (selftest row + CLI smoke byte-identical)",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::punt-scan selftest table: every case passes"
+        },
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::CLI smoke: wrapping the repro Punt leaves the JSON byte-identical; a blank-separated paragraph tag is not absorbed"
+        }
+      ]
+    },
+    {
+      "ac": "The eligibility line in `puntScan` is unchanged: a wrapped Punt lacking the tag, or lacking the crossref, is still blocking.",
+      "verified": "eligible line untouched (git diff); wrapped Punt without the tag or without the crossref stays blocking (two selftest rows)",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::punt-scan selftest table: every case passes"
+        }
+      ]
+    },
+    {
+      "ac": "A line is a terminator for each of the nine rows of the terminator table. A table-driven selftest row set takes one untagged Punt directly followed by a line of each kind carrying `(non-blocking)` and proves the Punt stays blocking: blank line then paragraph, heading, `**Punt:**`, `**Chosen:**`, `**Decision:**`, `**Assumes:**`, an indented `**Chosen:**`, a bold-led line such as `**Rationale:**`, a fence line, a list-item opener, a block quote, a table row, and a thematic break.",
+      "verified": "all terminator rows covered by the generated TERMINATOR_CASES selftest rows plus blank/whitespace-only/heading/next-Punt/Chosen/Assumes/list rows; all pass",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::punt-scan selftest table: every case passes"
+        }
+      ]
+    },
+    {
+      "ac": "`puntScan`'s return shape and the exports of `punt-scan.js` are unchanged, and `eligible_count + blocking_open_count == punts.length` holds on every row.",
+      "verified": "return shape and exports unchanged (export-keys test); invariant eligible+blocking==punts.length checked on every selftest row",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::exports are unchanged in shape"
+        },
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::punt-scan selftest table: every case passes"
+        }
+      ]
+    },
+    {
+      "ac": "A wrapped-tag row, a wrapped-topic (crossref across the wrap) row, and a three-line-span row each read identically to the unwrapped Punt.",
+      "verified": "wrapped-tag, wrapped-topic and three-line-span selftest rows pass",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::punt-scan selftest table: every case passes"
+        }
+      ]
+    },
+    {
+      "ac": "A row where a following paragraph after a blank line carries `(non-blocking)` shows `non_blocking: false` for the Punt before it.",
+      "verified": "blank-line paragraph row passes (non_blocking false)",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::punt-scan selftest table: every case passes"
+        }
+      ]
+    },
+    {
+      "ac": "A row where a `**Chosen:**` line carrying `(non-blocking)` directly follows a Punt without a blank line shows the Punt still blocking.",
+      "verified": "Chosen-without-blank-line row passes (Punt still blocking)",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::punt-scan selftest table: every case passes"
+        }
+      ]
+    },
+    {
+      "ac": "Two adjacent Punts with no blank line between them read as two markers.",
+      "verified": "adjacent Punts row \"two adjacent Punts, no blank line → two markers\" passes",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::punt-scan selftest table: every case passes"
+        }
+      ]
+    },
+    {
+      "ac": "A bare `**Punt:**` tag with its topic on the next line reads as one marker with that topic.",
+      "verified": "bare-tag row passes: one marker with the next-line topic",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::punt-scan selftest table: every case passes"
+        }
+      ]
+    },
+    {
+      "ac": "A wrapped Punt in CRLF input reads identically to the LF form.",
+      "verified": "CRLF row \"CRLF wrapped Punt → identical to the LF form\" passes",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::punt-scan selftest table: every case passes"
+        }
+      ]
+    },
+    {
+      "ac": "Taking the ticket's repro Punt as the text, wrapping it at every space, with each of three separators (`\\n`, `\\r\\n`, `\\n` plus two spaces), yields a result identical to the single-line form. That text has no wrap point whose continuation starts with a terminator, so the property holds unconditionally for it; a test text that does have one must exclude those points, as Scenario 1 does.",
+      "verified": "property test wraps the repro at every space with three separators and asserts deepEqual to the single-line result",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::the ticket repro Punt wrapped at every space, with each separator, reads as the single-line form"
+        }
+      ]
+    },
+    {
+      "ac": "After the change, `punt-scan.js` holds exactly one rule for what opens a list item. The builder recorded which FAFF-1351 branch applied, in the PR description. If FAFF-1351 had landed, the list-item row calls `opensListItem`, the next-marker row calls `matchPuntStart`, and the three combined rows pass: a listed Punt wrapped with its tags on line two reads identically to the single-line form, a listed Punt followed by a listed Chosen line carrying `(non-blocking)` does not absorb it, and two adjacent listed Punts stay two markers.",
+      "verified": "landed branch applied: opensListItem (built from the one LIST_ITEM_PREFIX) is the list-item row, matchPuntStart is the next-marker row; the three combined listed rows pass; source holds a single list-item rule (test asserts one digit-run definition); branch recorded in the PR body",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::punt-scan.js holds exactly one rule for what opens a list item"
+        },
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::punt-scan selftest table: every case passes"
+        }
+      ]
+    },
+    {
+      "ac": "Obtain the old scanner from the base commit (`git show <base>:plugin/skills/faff/bin/lib/punt-scan.js` into a temporary file), then run the old and new scanner over every file in `records/specs/`: every file whose `eligible_count` rises is named in the PR description with a statement of which fact the continuation supplied: a tag on a continuation line, or a crossref created by absorbed text. A rise whose tag sat on the Punt's first line is an over-absorption finding: it blocks merge until the terminator set is tightened for a structural shape, or until a reviewer records that the lending line is ordinary same-paragraph prose. Assert the corpus holds more than zero files before trusting a clean run.",
+      "verified": "old scanner from base 8bcd5611 vs new over 903 files in records/specs: 2 files differ (topic extension only), 0 eligible_count rises, 0 count changes; corpus size asserted > 0",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git show 8bcd5611:plugin/skills/faff/bin/lib/punt-scan.js > /tmp/punt-scan-old.js; node <differential script requiring the old and new punt-scan.js over every file in records/specs/>"
+        }
+      ]
+    },
+    {
+      "ac": "The `punt-scan` row in `docs/guide/cli.md` states that a marker is read over its logical line, with the terminator set named.",
+      "verified": "docs/guide/cli.md punt-scan row states the logical-line reading and names the terminator set",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff 8bcd5611 -- docs/guide/cli.md"
+        }
+      ]
+    },
+    {
+      "ac": "`test/punt-scan.test.mjs` passes and holds the wrap-at-every-space property test.",
+      "verified": "node --test test/punt-scan.test.mjs: 41 pass, 0 fail; includes the wrap-at-every-space property test",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/punt-scan.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`faff punt-scan --selftest` and `faff regions selftest --region factory` pass.",
+      "verified": "faff punt-scan --selftest PASS (58 cases) and faff regions selftest --region factory PASS (122 members)",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff punt-scan --selftest"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions selftest --region factory"
+        }
+      ]
+    }
+  ]
+}

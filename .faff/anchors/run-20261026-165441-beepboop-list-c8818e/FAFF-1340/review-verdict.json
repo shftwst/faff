@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/punt-scan.js::thematic break with trailing text is absorbed (thematic_break_re anchored)",
+      "title": "Thematic break with trailing text is absorbed (THEMATIC_BREAK_RE anchored)",
+      "location": "plugin/skills/faff/bin/lib/punt-scan.js",
+      "action": "Drop the end anchor so a line opening with a break run ends the logical line",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Break pattern no longer anchored; two selftest rows put the tag on the break line itself (commit 1150a05d).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Thematic break with trailing text is absorbed (THEMATIC_BREAK_RE anchored)",
+          "location": "plugin/skills/faff/bin/lib/punt-scan.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/punt-scan.js::emphasis-led continuation line is absorbed (endslogicalline)",
+      "title": "Emphasis-led continuation line is absorbed (endsLogicalLine)",
+      "location": "plugin/skills/faff/bin/lib/punt-scan.js",
+      "action": "None; the spec's terminator table does not name emphasis-led lines",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "A dash-spaced run like '- - - done' is already a list-item opener and ends the line; an italic-led line can be a legitimate wrapped topic, and the spec's terminator table is the decided boundary.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Emphasis-led continuation line is absorbed (endsLogicalLine)",
+          "location": "plugin/skills/faff/bin/lib/punt-scan.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/punt-scan.js::setext underline and html block lines are not terminators",
+      "title": "Setext underline and HTML block lines are not terminators",
+      "location": "plugin/skills/faff/bin/lib/punt-scan.js",
+      "action": "None; outside the spec's decided terminator set",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Not named by the spec's terminator table; recorded as a known boundary limit.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Setext underline and HTML block lines are not terminators",
+          "location": "plugin/skills/faff/bin/lib/punt-scan.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/punt-scan.test.mjs::source-text assertion on list_item_prefix spelling",
+      "title": "Source-text assertion on LIST_ITEM_PREFIX spelling",
+      "location": "test/punt-scan.test.mjs",
+      "action": "None; the spec's DoD asks for the single-rule check",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The spec DONE item requires exactly one list-item rule; behavioural equality tests also cover the invariant.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Source-text assertion on LIST_ITEM_PREFIX spelling",
+          "location": "test/punt-scan.test.mjs",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "records/specs::corpus differential not recorded in the diff",
+      "title": "Corpus differential not recorded in the diff",
+      "location": "records/specs",
+      "action": "Record the differential in the PR description",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Ran old vs new over 903 files: 2 differ by topic extension, 0 eligible rises, 0 count changes; recorded in the PR body.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Corpus differential not recorded in the diff",
+          "location": "records/specs",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    }
+  ]
+}

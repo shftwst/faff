@@ -205,3 +205,81 @@ test("CLI: two listed untagged Punts report blocking_open_count 2 (the ticket re
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// --- FAFF-1340: a wrapped Punt reads as its logical line ---
+const WRAP_OOS_SECTION = "## OUT OF SCOPE\n\n- **Scrub asymmetry** — deferred to its own ticket.\n\n## Open Questions\n\n";
+// The ticket's repro Punt. No wrap point in it puts a terminator at the start of a continuation line.
+const WRAP_PUNT_TEXT = "scrub asymmetry in the window comparison, left to its own ticket (decides: architecture) (non-blocking)";
+const WRAP_SINGLE_LINE = WRAP_OOS_SECTION + "**Punt:** " + WRAP_PUNT_TEXT + "\n";
+
+test("the ticket repro Punt wrapped at every space, with each separator, reads as the single-line form", () => {
+  const expected = puntScan(WRAP_SINGLE_LINE);
+  assert.equal(expected.eligible_count, 1);
+  assert.equal(expected.blocking_open_count, 0);
+  assert.equal(expected.punts[0].decides, "architecture");
+  const words = WRAP_PUNT_TEXT.split(" ");
+  let wrapPoints = 0;
+  for (const sep of ["\n", "\r\n", "\n  "]) {
+    for (let k = 1; k < words.length; k++) {
+      const wrapped = words.slice(0, k).join(" ") + sep + words.slice(k).join(" ");
+      assert.deepEqual(puntScan(WRAP_OOS_SECTION + "**Punt:** " + wrapped + "\n"), expected, `wrap before word ${k} with ${JSON.stringify(sep)}`);
+      wrapPoints++;
+    }
+  }
+  assert.ok(wrapPoints >= 3 * (words.length - 1));
+});
+
+test("the same property holds for a listed Punt and an indented listed Punt", () => {
+  const expected = puntScan(WRAP_SINGLE_LINE);
+  const words = WRAP_PUNT_TEXT.split(" ");
+  for (const [prefix, indent] of [["- ", "  "], ["1. ", "   "], ["    - ", "      "]]) {
+    for (let k = 1; k < words.length; k++) {
+      const wrapped = words.slice(0, k).join(" ") + "\n" + indent + words.slice(k).join(" ");
+      assert.deepEqual(puntScan(WRAP_OOS_SECTION + prefix + "**Punt:** " + wrapped + "\n"), expected);
+    }
+  }
+});
+
+test("two wrapped Punts separated by a blank line stay two markers and the counts add up", () => {
+  const r = puntScan(WRAP_OOS_SECTION + "**Punt:** scrub asymmetry\nin the window comparison\n\n**Punt:** cron vs queue\n");
+  assert.equal(r.punts.length, 2);
+  assert.equal(r.eligible_count + r.blocking_open_count, r.punts.length);
+});
+
+test("punt-scan.js holds exactly one rule for what opens a list item", () => {
+  const src = fs.readFileSync(path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "..", "plugin", "skills", "faff", "bin", "lib", "punt-scan.js",
+  ), "utf8");
+  // The ordered-marker digit run is written once: in LIST_ITEM_PREFIX.
+  assert.equal(src.split("\\\\d{1,9}").length - 1, 1);
+  assert.equal(src.split("const LIST_ITEM_PREFIX").length - 1, 1);
+});
+
+test("exports are unchanged in shape", () => {
+  assert.deepEqual(Object.keys(mod).sort(), [
+    "PUNT_SCAN_CASES", "cmdPuntScan", "extractOutOfScopeItemKeys", "matchPuntStart",
+    "puntScan", "puntScanSelftest", "runPuntScanCases", "slugTokenRunContains",
+  ]);
+});
+
+test("CLI smoke: wrapping the repro Punt leaves the JSON byte-identical; a blank-separated paragraph tag is not absorbed", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "punt-scan-wrap-"));
+  try {
+    const single = path.join(dir, "single.md");
+    const wrapped = path.join(dir, "wrapped.md");
+    fs.writeFileSync(single, WRAP_SINGLE_LINE);
+    fs.writeFileSync(wrapped, WRAP_OOS_SECTION + "**Punt:** scrub asymmetry in the window comparison, left to its own ticket\n(decides: architecture) (non-blocking)\n");
+    const a = runCli(["punt-scan", single]);
+    const b = runCli(["punt-scan", wrapped]);
+    assert.equal(a.code, 0);
+    assert.equal(a.stdout, b.stdout);
+    const apart = path.join(dir, "apart.md");
+    fs.writeFileSync(apart, "**Punt:** cron vs queue — needs human\n\nA separate paragraph (non-blocking).\n");
+    const out = JSON.parse(runCli(["punt-scan", apart]).stdout);
+    assert.equal(out.punts[0].non_blocking, false);
+    assert.equal(out.blocking_open_count, 1);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

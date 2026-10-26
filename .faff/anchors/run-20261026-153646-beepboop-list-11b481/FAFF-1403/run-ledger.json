@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "run_id": "run-20261026-153646-beepboop-list-11b481",
+  "level": "L3",
+  "admitted": ["FAFF-1403"],
+  "outcomes": {},
+  "base_sha": "e373de2ecd3ab2047e6fc5b624b9cdb25b21af01",
+  "base_sha_required": true,
+  "owner": {
+    "status": "running",
+    "session_id": "run-20261026-153646-beepboop-list-11b481",
+    "pid": 364,
+    "started_at": "2026-10-26T15:36:46.489Z",
+    "last_heartbeat": "2026-10-26T15:36:46.489Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "escalate",
+      "pricing": "map"
+    },
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "67634650-5393-4f4d-b417-ae8903441bc0",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 58,
+        "output": 17263,
+        "cache_write_5m": 0,
+        "cache_write_1h": 442106,
+        "cache_read": 4581924
+      }
+    },
+    "tokens_at_start": 5041351,
+    "tokens_at_last_event": {
+      "input": 240,
+      "output": 186716,
+      "cache_write_5m": 0,
+      "cache_write_1h": 851074,
+      "cache_read": 31337763
+    }
+  }
+}

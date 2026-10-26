@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1403",
+  "build": {
+    "status": "complete",
+    "diff_hash": "387fbdf9ae02882a6e18f47f8bffbdc3688b16834b7490b6d91a437a24274251",
+    "branch": "faff-1403-fix-hyphenated-max-tokens-key-spelling",
+    "pushed_at": "2026-10-26T16:15:55.244Z"
+  },
+  "updated_at": "2026-10-26T16:15:55.244Z"
+}

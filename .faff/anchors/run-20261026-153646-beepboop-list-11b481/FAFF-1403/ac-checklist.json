@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "all_verified": false,
+  "criteria": [
+    {
+      "ac": "The `adversarial.spec_judge` sub-block's token-cap key is spelled `max_tokens` (underscore), value `15000`, with its `refs:` list unchanged.",
+      "verified": "faff config get adversarial.spec_judge.max_tokens -> 15000 (exit 0); adversarial.spec_judge.refs -> openrouter-deepseek-v4-flash-reasoning,openrouter-gemma (unchanged)",
+      "passed": true,
+      "ac_id": "faff-1403#done:1",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff config get adversarial.spec_judge.max_tokens"
+        },
+        {
+          "kind": "command",
+          "locator": "faff config get adversarial.spec_judge.refs"
+        }
+      ]
+    },
+    {
+      "ac": "The `adversarial.build_judge` sub-block's token-cap key is spelled `max_tokens` (underscore), value `15000`, with its `refs:` list unchanged.",
+      "verified": "faff config get adversarial.build_judge.max_tokens -> 15000 (exit 0); adversarial.build_judge.refs -> openrouter-deepseek-v4-flash-reasoning,openrouter-gemma (unchanged)",
+      "passed": true,
+      "ac_id": "faff-1403#done:2",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff config get adversarial.build_judge.max_tokens"
+        },
+        {
+          "kind": "command",
+          "locator": "faff config get adversarial.build_judge.refs"
+        }
+      ]
+    },
+    {
+      "ac": "No `max-tokens` (hyphen) key remains in either sub-block.",
+      "verified": "faff config get adversarial.spec_judge.max-tokens and adversarial.build_judge.max-tokens both exit 3 (absent)",
+      "passed": true,
+      "ac_id": "faff-1403#done:3",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff config get adversarial.spec_judge.max-tokens"
+        },
+        {
+          "kind": "command",
+          "locator": "faff config get adversarial.build_judge.max-tokens"
+        }
+      ]
+    },
+    {
+      "ac": "`faff config get adversarial.spec_judge.max_tokens` returns `15000` and exits 0 (not exit 3).",
+      "verified": "ran the command directly: prints 15000, exit 0",
+      "passed": true,
+      "ac_id": "faff-1403#done:4",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff config get adversarial.spec_judge.max_tokens"
+        }
+      ]
+    },
+    {
+      "ac": "`faff config get adversarial.build_judge.max_tokens` returns `15000` and exits 0 (not exit 3).",
+      "verified": "ran the command directly: prints 15000, exit 0",
+      "passed": true,
+      "ac_id": "faff-1403#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff config get adversarial.build_judge.max_tokens"
+        }
+      ]
+    },
+    {
+      "ac": "`faff config get adversarial.spec_judge.max-tokens` exits non-zero (inert key removed).",
+      "verified": "ran the command directly: exit 3",
+      "passed": true,
+      "ac_id": "faff-1403#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff config get adversarial.spec_judge.max-tokens"
+        }
+      ]
+    },
+    {
+      "ac": "`faff config get adversarial.build_judge.max-tokens` exits non-zero (inert key removed).",
+      "verified": "ran the command directly: exit 3",
+      "passed": true,
+      "ac_id": "faff-1403#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff config get adversarial.build_judge.max-tokens"
+        }
+      ]
+    },
+    {
+      "ac": "`faff config get adversarial.code_review.max_tokens` still returns `15000`.",
+      "verified": "ran the command directly: prints 15000, exit 0 (sibling untouched)",
+      "passed": true,
+      "ac_id": "faff-1403#done:8",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff config get adversarial.code_review.max_tokens"
+        }
+      ]
+    },
+    {
+      "ac": "`faff config get adversarial.spec_review.max_tokens` still returns `15000`.",
+      "verified": "ran the command directly: prints 15000, exit 0 (sibling untouched)",
+      "passed": true,
+      "ac_id": "faff-1403#done:9",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff config get adversarial.spec_review.max_tokens"
+        }
+      ]
+    },
+    {
+      "ac": "The diff touches only the two key tokens — no other lines in `.faff/config.yaml` change.",
+      "verified": "git diff e373de2e..HEAD -- .faff/config.yaml shows exactly 2 insertions/2 deletions, both the max-tokens->max_tokens key-token lines; no other lines changed",
+      "passed": true,
+      "ac_id": "faff-1403#done:10",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff e373de2e..HEAD -- .faff/config.yaml"
+        }
+      ]
+    },
+    {
+      "ac": "A live spec-review judge dispatch against a case that previously returned `reconstruction empty/failed` at the 2000-token fallback no longer truncates at the same point. This is a one-time manual confirmation that the restored 15000-token budget takes effect; it is a config typo fix, not a code defect, so no new automated test is added.",
+      "verified": "Needs human verification: the spec itself designates this a manual spot-check against a live judge dispatch, not an automated test; no trusted command source directs this in the spec, and it requires observing a real adversarial run outcome.",
+      "passed": false,
+      "ac_id": "faff-1403#done:11",
+      "verifications": [
+        {
+          "kind": "human"
+        }
+      ]
+    }
+  ]
+}

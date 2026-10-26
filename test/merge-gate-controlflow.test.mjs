@@ -310,10 +310,14 @@ test("F3: already-MERGED at L4 with an unmet floor → exit 1 refuse (the retros
 });
 
 test("FAFF-1374: already-MERGED at L3 (declared-unattended) with an unmet floor → exit 1 refuse NAMES L3, never a hardcoded L4", () => {
-  // Same shape as the L4 test above, but the run is resolved to L3 via a declared-unattended
-  // config (autonomous.unattended:true), which is the OTHER path (besides L4) resolveIntegrity
-  // can fire unasserted-refuse from. The refusal message must interpolate the run's actual
-  // resolved level, not the literal "L4" string the pre-fix code always printed.
+  // Same shape as the L4 test above, but the run is resolved to L3 via the anchor
+  // (anchorLevel: "L3" below), with the OTHER unasserted-refuse-triggering condition —
+  // a declared-unattended config (autonomous.unattended:true) — supplied separately via
+  // the written .faffrc.yaml. Without that config write resolveIntegrity's `unattended`
+  // stays false at L3 and the leg resolves to "unasserted-ok" (no refusal at all, verified
+  // by temporarily removing the write and observing exit 0); the config is what makes the
+  // leg fire on this non-L4 run, while the anchor is what makes it say "L3". Together they
+  // exercise the exact non-L4 unasserted-refuse path the message interpolation must name.
   const runDir = seedRunDir("merge-ok"); // AC + review pass; no holdout artifact, no integrity declaration
   writeFileSync(join(runDir, ".faffrc.yaml"), "autonomous:\n  unattended: true\n");
   const { env, sentinel } = stubGhEnv({ prState: "MERGED", anchorLevel: "L3" });

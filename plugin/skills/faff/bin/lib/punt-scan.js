@@ -106,7 +106,10 @@ const BOLD_LED_RE = /^\s*\*\*\S/;
 const FENCE_RE = /^\s*(?:`{3,}|~{3,})/;
 const BLOCK_QUOTE_RE = /^\s*>/;
 const TABLE_ROW_RE = /^\s*\|/;
-const THEMATIC_BREAK_RE = /^\s*(?:(?:-\s*){3,}|(?:\*\s*){3,}|(?:_\s*){3,})$/;
+// A run of three or more of one break character (spaces allowed) at line start. Deliberately not
+// anchored at the end: a line that opens with a break run is in doubt, and a line in doubt ends the
+// continuation, so a trailing remark never lets the line lend its tag.
+const THEMATIC_BREAK_RE = /^\s*(?:(?:-\s*){3,}|(?:\*\s*){3,}|(?:_\s*){3,})/;
 
 // PURE: true iff the physical line ends a Punt's logical line and is never absorbed into it
 // (FAFF-1340). The set is the safety boundary: an over-greedy continuation could absorb a
@@ -199,6 +202,8 @@ const TERMINATOR_LINES = [
   ["block quote", "> a quote (non-blocking)"],
   ["table row", "| a | b (non-blocking) |"],
   ["thematic break", "---\n(non-blocking)"],
+  ["thematic break carrying the tag on its own line", "--- (non-blocking)"],
+  ["asterisk break carrying the tag on its own line", "*** see below (non-blocking)"],
   ["spaced thematic break", "* * *\n(non-blocking)"],
   ["blank line then paragraph", "\n(non-blocking) a separate paragraph"],
   ["whitespace-only line then paragraph", "   \n(non-blocking) a separate paragraph"],

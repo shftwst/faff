@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A Path 1 refresh whose only differences are verified directory moves, line references, the stamp, the `build-tier:` line and the fixed refresh note runs no spec-review lens and keeps its retained `spec-review:` line byte-identical",
+      "verified": "Carried refreshes keep the retained `spec-review:` line byte-identical and run no lens, per classifyRefresh (approval field equality asserted in tests and the Path 1 SKILL.md wiring).",
+      "passed": true,
+      "ac_id": "faff-1271#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-refresh-carry.test.mjs::verified directory move carries (reason paths-only)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-refresh-carry.test.mjs::stamp date and build-tier change alone → carry (both volatile)"
+        }
+      ]
+    },
+    {
+      "ac": "Any other difference runs the Spec-review gate exactly as before this change",
+      "verified": "No code change to the spec-review gate module itself; every no-carry classification exits 1, falling through to the unchanged \"re-run the Spec-review gate as today\" prose branch.",
+      "passed": true,
+      "ac_id": "faff-1271#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-refresh-carry.test.mjs::a DONE item edit → content-changed, first_divergence names the DONE heading"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff spec-review --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`spec-refresh-carry.js` exports `classifyRefresh` and `normaliseSpec`, carries a `region:factory` header, and does no I/O",
+      "verified": "spec-refresh-carry.js exports classifyRefresh + normaliseSpec, carries a region:factory header, and its only require is heading-slug.js (no fs/process/network I/O in the module).",
+      "passed": true,
+      "ac_id": "faff-1271#done:3",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n module.exports plugin/skills/faff/bin/lib/spec-refresh-carry.js"
+        },
+        {
+          "kind": "command",
+          "locator": "grep -n region:factory plugin/skills/faff/bin/lib/spec-refresh-carry.js"
+        }
+      ]
+    },
+    {
+      "ac": "`faff spec-review carry-check --before F --after F` prints one `CarryResult` JSON line with the fields in section 3 and exits 0 on carry, 1 on any no-carry reason, 2 (empty stdout) on a usage error or unreadable file; tests cover the exit-2 path",
+      "verified": "The CLI prints one CarryResult JSON line and exits 0/1/2 per reason; the exit-2 (unreadable/missing-flag) path is covered.",
+      "passed": true,
+      "ac_id": "faff-1271#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-carry-check.test.mjs::CLI carry-check: unreadable --before/--after → exit 2, nothing on stdout"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-carry-check.test.mjs::CLI carry-check: missing --before or --after → exit 2, nothing on stdout"
+        }
+      ]
+    },
+    {
+      "ac": "`docs/guide/cli.md` has a `spec-review carry-check` row and `faff lint-cli-doc` passes",
+      "verified": "docs/guide/cli.md carries the spec-review carry-check row and faff lint-cli-doc passes.",
+      "passed": true,
+      "ac_id": "faff-1271#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-doc"
+        }
+      ]
+    },
+    {
+      "ac": "The `spec-review` selftest covers `carry-check` carry and no-carry cases",
+      "verified": "specReviewSelftest() carries carry-check carry and no-carry cases and the whole selftest still passes.",
+      "passed": true,
+      "ac_id": "faff-1271#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff spec-review --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "Tests cover each change class: verified directory move (carry), move whose old path still exists (no carry, `path-move-unverified`), move where neither path exists (no carry), basename rename (no carry), `:N`, `#LN` and `line N` references (carry), one line with both a path and a line-reference change (carry, both counters incremented), one line with two path changes (carry, `paths` incremented once, two `path_moves`), stamp and `build-tier:` change (carry), fixed refresh note added (carry), refresh note with extra text (no carry), earlier free-text note edited (no carry), prose edit outside any decision section (no carry), `**Chosen:**`, `**Punt:**` and `**Assumes:**` line edits (no carry), acceptance criterion edit (no carry), DONE item edit (no carry), URL change (no carry), table padding change (carry), CRLF line endings (carry)",
+      "verified": "Every enumerated change class has its own dedicated test in test/spec-refresh-carry.test.mjs.",
+      "passed": true,
+      "ac_id": "faff-1271#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/spec-refresh-carry.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "Tests cover `pathExists`: a symlink inside the root pointing outside it, an absolute token and a `..` escape all count as not existing",
+      "verified": "pathExists is tested directly for a symlink escaping root, an absolute token, and a .. escape, each against a genuinely-existing real target to prove the containment check (not mere absence) is what rejects them.",
+      "passed": true,
+      "ac_id": "faff-1271#done:8",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/spec-review-carry-check.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "Tests cover each no-carry reason: `no-prior-approval`, `approval-line-changed` (including an after spec with no spec-review line), `confidence-changed`, `content-changed` with the expected `first_divergence.section` (including a length-mismatch divergence), and `path-move-unverified`",
+      "verified": "Every no-carry reason (no-prior-approval, approval-line-changed incl. after-has-none, confidence-changed, content-changed incl. a length-mismatch divergence, path-move-unverified) has a dedicated test.",
+      "passed": true,
+      "ac_id": "faff-1271#done:9",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/spec-refresh-carry.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`faff-prep/SKILL.md` Path 1 saves the before spec, runs `carry-check` after stamping and before the gate, skips the gate on exit 0, and runs the gate on exit 1 or 2",
+      "verified": "Path 1 (faff-prep/SKILL.md) saves refresh-before/after, runs carry-check after stamping+validate and before the gate, and routes exit 0 vs exit 1/2 as specified.",
+      "passed": true,
+      "ac_id": "faff-1271#done:10",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n \"Carry-check gate\" plugin/skills/faff-prep/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "Path 1 runs `carry-check` only when the post-spec comment scan found no challenge and no resolution",
+      "verified": "The carry-check gate subsection states it runs only when Step 2a found no challenge or resolution.",
+      "passed": true,
+      "ac_id": "faff-1271#done:11",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n \"found no challenge and no resolution\" plugin/skills/faff-prep/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "Scenario B `iterate` runs the same step and tells the user when review was carried forward",
+      "verified": "Scenario B iterate bullet extended in place to run the same carry-check gate and tell the user on a carry.",
+      "passed": true,
+      "ac_id": "faff-1271#done:13",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n \"Carry-check:\" plugin/skills/faff-prep/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "On carry, prep posts a `## Spec-review evidence` comment that starts with `refresh: paths only, review carried forward`, lists the path moves, and byte-copies the newest earlier evidence block with its `sha256:` line only when that block passes `faff contract spec-review-verdict` and its digest matches; git-only mode writes the carry line and moves under the spec's own evidence heading; a digest mismatch after posting is logged and does not block",
+      "verified": "The exit-0 bullet specifies the evidence-comment opening line, the path-move bullets, and the conditional byte-copy of the newest earlier evidence block gated on faff contract spec-review-verdict + digest match.",
+      "passed": true,
+      "ac_id": "faff-1271#done:14",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n \"review carried forward\" plugin/skills/faff-prep/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "The last `spec-review:` line wins when there are several",
+      "verified": "The last spec-review: line wins when several are present, confirmed against a before-spec fixture carrying two such lines.",
+      "passed": true,
+      "ac_id": "faff-1271#done:15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-refresh-carry.test.mjs::the last spec-review: line wins when there are several"
+        }
+      ]
+    },
+    {
+      "ac": "`faff validate-adapters` passes, with any `SKILL_LINE_BASELINE` raise for faff-prep carrying a one-clause FAFF-1271 note",
+      "verified": "faff validate-adapters passes; the raised SKILL_LINE_BASELINE.faff-prep entry carries a one-clause note naming the change (the ticket number itself lives only in that .js registry comment, outside lint-refs enforced-prose scope).",
+      "passed": true,
+      "ac_id": "faff-1271#done:17",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        },
+        {
+          "kind": "command",
+          "locator": "grep -n \"faff-prep.: 688\" plugin/skills/faff/bin/lib/validate-adapters.js"
+        }
+      ]
+    }
+  ]
+}

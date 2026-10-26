@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "`decideFloor`'s `unasserted-refuse` blocker interpolates `f.level` instead of the literal `L4`",
+      "verified": "test: merge-gate-selftest.js::integrity: unasserted-refuse at L3 names L3, not a hardcoded L4 (mergeGateSelftest exit 0)",
+      "passed": true,
+      "ac_id": "faff-1374#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "plugin/skills/faff/bin/lib/merge-gate-selftest.js::integrity: unasserted-refuse at L3 names L3, not a hardcoded L4"
+        }
+      ]
+    },
+    {
+      "ac": "`alreadyMergedReconcile`'s `unasserted-refuse` reason interpolates the `level` parameter instead of the literal `L4`",
+      "verified": "test: merge-gate-controlflow.test.mjs::FAFF-1374: already-MERGED at L3 (declared-unattended) with an unmet floor → exit 1 refuse NAMES L3, never a hardcoded L4 (pass)",
+      "passed": true,
+      "ac_id": "faff-1374#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/merge-gate-controlflow.test.mjs::FAFF-1374: already-MERGED at L3 (declared-unattended) with an unmet floor → exit 1 refuse NAMES L3, never a hardcoded L4"
+        }
+      ]
+    },
+    {
+      "ac": "An `unasserted-refuse` refusal on an L2 or L3 run names that level (e.g. `decideFloor({ ..., level: \"L3\", integrity: \"unasserted-refuse\" })` blocker contains `at L3`)",
+      "verified": "test: both new L3 tests (merge-gate-selftest.js decideFloor check + merge-gate-controlflow.test.mjs alreadyMergedReconcile check) assert the blocker/reason text contains 'at L3'",
+      "passed": true,
+      "ac_id": "faff-1374#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "plugin/skills/faff/bin/lib/merge-gate-selftest.js::integrity: unasserted-refuse at L3 names L3, not a hardcoded L4"
+        },
+        {
+          "kind": "test",
+          "locator": "test/merge-gate-controlflow.test.mjs::FAFF-1374: already-MERGED at L3 (declared-unattended) with an unmet floor → exit 1 refuse NAMES L3, never a hardcoded L4"
+        }
+      ]
+    },
+    {
+      "ac": "An `unasserted-refuse` refusal on an L4 run still reads `at L4` (existing `/unasserted at L4/` assertions remain green)",
+      "verified": "test: pre-existing L4 assertions in merge-gate-selftest.js (line ~88,92) and merge-gate-controlflow.test.mjs (8 /unasserted at L4/ assertions) all remain green after the interpolation change",
+      "passed": true,
+      "ac_id": "faff-1374#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "plugin/skills/faff/bin/lib/merge-gate-selftest.js::integrity: unasserted-refuse names the FAFF-325 blocker"
+        },
+        {
+          "kind": "test",
+          "locator": "test/merge-gate-controlflow.test.mjs::F3: already-MERGED at L4 with an unmet floor → exit 1 refuse (the retrospective floor re-derives the L4-gated legs), NO merge-record"
+        }
+      ]
+    },
+    {
+      "ac": "A test pins the refusal message text for at least two levels — the existing L4 assertion plus a new non-L4 (L2 or L3) assertion.",
+      "verified": "test: added next to the existing L4 decideFloor check in merge-gate-selftest.js, and a parallel alreadyMergedReconcile fixture in merge-gate-controlflow.test.mjs — both pin L3 alongside the pre-existing L4 pins",
+      "passed": true,
+      "ac_id": "faff-1374#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "plugin/skills/faff/bin/lib/merge-gate-selftest.js::integrity: unasserted-refuse at L3 names L3, not a hardcoded L4"
+        },
+        {
+          "kind": "test",
+          "locator": "test/merge-gate-controlflow.test.mjs::FAFF-1374: already-MERGED at L3 (declared-unattended) with an unmet floor → exit 1 refuse NAMES L3, never a hardcoded L4"
+        }
+      ]
+    },
+    {
+      "ac": "The committed `.js` emit is rebuilt only if a `.ts` source changed (these two files are plain `.js`; no rebuild expected)",
+      "verified": "command: ls plugin/skills/faff/bin/lib/contract-defs-floor.ts plugin/skills/faff/bin/lib/merge-gate-floor.ts — neither exists, confirming both are plain .js with no .ts source; no rebuild performed",
+      "passed": true,
+      "ac_id": "faff-1374#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "ls plugin/skills/faff/bin/lib/contract-defs-floor.ts plugin/skills/faff/bin/lib/merge-gate-floor.ts"
+        }
+      ]
+    },
+    {
+      "ac": "Verified by grep that no stale `at L4` merge-gate refusal wording remains in `docs/guide/cli.md`; if any is found, correct it to match the interpolated message.",
+      "verified": "command: grep -n \"at L4|unasserted|corrective-artifact|FAFF-325\" docs/guide/cli.md — only row 95's unrelated `corrective` command row matches; no stale merge-gate refusal wording present, so no doc edit was needed",
+      "passed": true,
+      "ac_id": "faff-1374#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n \"at L4\\|unasserted\\|corrective-artifact\\|FAFF-325\" docs/guide/cli.md"
+        }
+      ]
+    },
+    {
+      "ac": "`test/merge-gate-selftest.js`, `test/merge-gate-controlflow.test.mjs`, `test/merge-gate-local.test.mjs`, and `test/faff-895-pr-custody-basis.test.mjs` all stay green (byte-identical L4 behaviour)",
+      "verified": "test: mergeGateSelftest() exit 0; merge-gate-controlflow.test.mjs 55/55 pass; merge-gate-local.test.mjs + faff-895-pr-custody-basis.test.mjs 38/38 pass combined",
+      "passed": true,
+      "ac_id": "faff-1374#done:8",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node -e \"require('./plugin/skills/faff/bin/lib/merge-gate-selftest.js').mergeGateSelftest().then(c=>process.exit(c))\""
+        },
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/merge-gate-controlflow.test.mjs"
+        },
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/merge-gate-local.test.mjs test/faff-895-pr-custody-basis.test.mjs"
+        }
+      ]
+    }
+  ]
+}

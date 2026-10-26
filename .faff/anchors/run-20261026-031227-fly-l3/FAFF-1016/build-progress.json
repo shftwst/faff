@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1016",
+  "build": {
+    "status": "complete",
+    "diff_hash": "7dbdca62422cbea020eb6babeceaedee3dea4ba5f3e33fe163d534209ab51562",
+    "branch": "faff-1016-bundle-verification-for-external-captures-must-not-inherit",
+    "pushed_at": "2026-10-26T05:05:02.608Z"
+  },
+  "updated_at": "2026-10-26T05:05:02.608Z"
+}

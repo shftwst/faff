@@ -13,6 +13,13 @@
 // item, optionally with a dispositions file folded in, and `--comment` renders the whole carried
 // comment with its sha256 line. The collator and renderer live in the governance module
 // `evidence-collate.js`; this verb is the thin factory shell over them.
+//
+// `faff spec-review carry-check --before F --after F [--root DIR]` (FAFF-1271) is the deterministic
+// gate that lets a stale-refresh whose diff is only a verified directory move, a line reference,
+// the provenance stamp, the `build-tier:` line, or the fixed refresh-note line keep its prior
+// review instead of re-running the whole Spec-review gate. The classifier is the pure
+// `spec-refresh-carry.js` module; this verb is the thin I/O shell (two file reads + the on-disk
+// existence checks `classifyRefresh`'s injected `pathExists` needs) over it.
 // ===========================================================================
 
 "use strict";
@@ -23,6 +30,7 @@ const { parseArgs, usageError } = require("./argv");
 const { SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES } = require("./review-vocab");
 const { resolveKnownSecretValues } = require("./redact");
 const { findRoot } = require("./shared-infra");
+const { classifyRefresh } = require("./spec-refresh-carry");
 const {
   EvidenceRefusal, applyDispositions, collateSpecReviewRounds, extractSpecReviewEvidence, renderSpecReviewComment,
 } = require("./evidence-collate");
@@ -52,8 +60,43 @@ function routeRejectApproach(record) {
   return { route: { destination: "prep", reason: "no-methodology-major", carried_design_objections: [] } };
 }
 
-const SPEC_REVIEW_SPEC = { flags: { "--selftest": { arity: 0 }, "--file": { arity: 1 }, "--dir": { arity: 1 }, "--dispositions": { arity: 1 }, "--comment": { arity: 0 } }, positionals: { min: 0, max: 1, name: "verb selector" } };
-const SPEC_REVIEW_USAGE = "usage: faff spec-review (extract-evidence [--file <spec> | --file -] | collate-evidence --dir <scratch> [--dispositions <file>] [--comment] | route [--file <verdict.json> | --file -])";
+const SPEC_REVIEW_SPEC = { flags: { "--selftest": { arity: 0 }, "--file": { arity: 1 }, "--dir": { arity: 1 }, "--dispositions": { arity: 1 }, "--comment": { arity: 0 }, "--before": { arity: 1 }, "--after": { arity: 1 }, "--root": { arity: 1 } }, positionals: { min: 0, max: 1, name: "verb selector" } };
+const SPEC_REVIEW_USAGE = "usage: faff spec-review (extract-evidence [--file <spec> | --file -] | collate-evidence --dir <scratch> [--dispositions <file>] [--comment] | carry-check --before <file> --after <file> [--root <dir>] | route [--file <verdict.json> | --file -])";
+const CARRY_CHECK_USAGE = "usage: faff spec-review carry-check --before <file> --after <file> [--root <dir>]";
+
+// makePathExists(root) -> pathExists(token) -> boolean. The sole I/O the carry-check verb adds
+// on top of classifyRefresh's two file reads: joins a repo-relative token to `root`, resolves its
+// real path (following symlinks), and returns true only when it exists AND that real path lies
+// inside root's own real path. An absolute token, a ".." escape, or a symlink pointing outside
+// root all resolve the same way here (the relative-path containment check catches every one
+// uniformly) — none of them count as existing. No git.
+function makePathExists(root) {
+  let realRoot;
+  try { realRoot = fs.realpathSync(root); } catch { return () => false; }
+  return function pathExists(token) {
+    if (path.isAbsolute(token)) return false;
+    const joined = path.join(root, token);
+    let real;
+    try { real = fs.realpathSync(joined); } catch { return false; }
+    const rel = path.relative(realRoot, real);
+    return rel !== "" && rel !== ".." && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel);
+  };
+}
+
+function cmdCarryCheck(values) {
+  const fail = (code, message) => { process.stderr.write(`faff spec-review carry-check: ${message}\n`); return code; };
+  if (values["--before"] == null || values["--after"] == null) return fail(2, "--before <file> and --after <file> are required");
+  let beforeText;
+  let afterText;
+  try { beforeText = fs.readFileSync(values["--before"], "utf8"); } catch (e) { return fail(2, `cannot read ${values["--before"]}: ${e.message}`); }
+  try { afterText = fs.readFileSync(values["--after"], "utf8"); } catch (e) { return fail(2, `cannot read ${values["--after"]}: ${e.message}`); }
+  let root;
+  try { root = values["--root"] || findRoot(); } catch (e) { return fail(2, `cannot resolve --root: ${e.message}`); }
+  const pathExists = makePathExists(root);
+  const result = classifyRefresh(beforeText, afterText, pathExists);
+  process.stdout.write(JSON.stringify(result) + "\n");
+  return result.carry ? 0 : 1;
+}
 
 function cmdCollateEvidence(values) {
   const fail = (code, message) => { process.stderr.write(`faff spec-review collate-evidence: ${message}\n`); return code; };
@@ -86,6 +129,10 @@ function cmdSpecReview(args) {
   if (errors.length) return usageError(errors, SPEC_REVIEW_USAGE);
   const action = positionals[0];
   if (action === "collate-evidence") return cmdCollateEvidence(values);
+  if (action === "carry-check") {
+    if (positionals.length > 1) return usageError([{ code: "too-many-positionals", detail: "unexpected argument(s)" }], CARRY_CHECK_USAGE);
+    return cmdCarryCheck(values);
+  }
   if (action === "route") {
     const routePath = values["--file"];
     const fromFile = routePath != null && routePath !== "-";
@@ -105,7 +152,7 @@ function cmdSpecReview(args) {
     return 0;
   }
   if (action !== "extract-evidence") {
-    process.stderr.write("faff spec-review: expected: extract-evidence | collate-evidence | route (or --selftest)\n");
+    process.stderr.write("faff spec-review: expected: extract-evidence | collate-evidence | carry-check | route (or --selftest)\n");
     return 2;
   }
   const filePath = values["--file"];
@@ -193,6 +240,65 @@ function specReviewSelftest() {
     } finally { fs.rmSync(t, { recursive: true, force: true }); }
   }
 
+  // --- carry-check: paths-only refresh keeps its prior review ---
+  {
+    const os = require("node:os");
+    const t = fs.mkdtempSync(path.join(os.tmpdir(), "faff-carry-"));
+    try {
+      fs.mkdirSync(path.join(t, "docs", "archive", "design"), { recursive: true });
+      fs.writeFileSync(path.join(t, "docs", "archive", "design", "x.md"), "x");
+      const beforeFile = path.join(t, "before.md");
+      const afterFile = path.join(t, "after.md");
+      const before = [
+        "> Spec: faffter-dark-nlspec . 2026-10-10",
+        "",
+        "**Chosen:** see docs/design/x.md",
+        "",
+        "build-tier: standard",
+        "confidence: high",
+        "spec-review: approve",
+      ].join("\n");
+      const after = [
+        "> Spec: faffter-dark-nlspec . 2026-10-14",
+        "",
+        "**Chosen:** see docs/archive/design/x.md",
+        "",
+        "> Revised on 2026-10-14: paths refreshed",
+        "",
+        "build-tier: complex",
+        "confidence: high",
+        "spec-review: approve",
+      ].join("\n");
+      fs.writeFileSync(beforeFile, before);
+      fs.writeFileSync(afterFile, after);
+
+      const origWrite = process.stdout.write.bind(process.stdout);
+      let stdout = "";
+      process.stdout.write = (s) => { stdout += String(s); return true; };
+      let code;
+      try { code = cmdSpecReview(["carry-check", "--before", beforeFile, "--after", afterFile, "--root", t]); } finally { process.stdout.write = origWrite; }
+      ok("carry-check: verified directory move → exit 0, carry:true", code === 0 && JSON.parse(stdout).carry === true && JSON.parse(stdout).reason === "paths-only");
+
+      // No carry: the old path still exists too (unverified move).
+      fs.mkdirSync(path.join(t, "docs", "design"), { recursive: true });
+      fs.writeFileSync(path.join(t, "docs", "design", "x.md"), "x");
+      stdout = "";
+      process.stdout.write = (s) => { stdout += String(s); return true; };
+      try { code = cmdSpecReview(["carry-check", "--before", beforeFile, "--after", afterFile, "--root", t]); } finally { process.stdout.write = origWrite; }
+      ok("carry-check: both paths exist → exit 1, path-move-unverified", code === 1 && JSON.parse(stdout).reason === "path-move-unverified");
+
+      ok("carry-check without --before/--after → exit 2", cmdSpecReview(["carry-check", "--after", afterFile]) === 2 && cmdSpecReview(["carry-check", "--before", beforeFile]) === 2);
+      ok("carry-check unreadable file → exit 2, nothing printed", (() => {
+        let out = "";
+        const w = process.stdout.write.bind(process.stdout);
+        process.stdout.write = (s) => { out += String(s); return true; };
+        let c;
+        try { c = cmdSpecReview(["carry-check", "--before", path.join(t, "no-such.md"), "--after", afterFile]); } finally { process.stdout.write = w; }
+        return c === 2 && out === "";
+      })());
+    } finally { fs.rmSync(t, { recursive: true, force: true }); }
+  }
+
   // --- route: severity-aware reject-approach destination ---
   {
     const rv = (objections, extra) => JSON.stringify({ verdict: "reject-approach", objections, ...extra });
@@ -208,4 +314,4 @@ function specReviewSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { routeRejectApproach, extractSpecReviewEvidence, cmdSpecReview, specReviewSelftest };
+module.exports = { routeRejectApproach, extractSpecReviewEvidence, cmdSpecReview, specReviewSelftest, makePathExists };

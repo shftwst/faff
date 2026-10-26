@@ -127,7 +127,7 @@ function alreadyMergedReconcile(emit, runDir, issue, pr, headSha, level, integri
   const holdoutLeg = resolveHoldoutLeg(runDir, issue);
   if (holdoutLeg.holdout_posture === "strict" && holdoutLeg.holdout !== "meets-spec") reasons.push(`holdout guarantee (strict): ${holdoutLeg.holdout}`);
   if (integrity.state === "violated") reasons.push("corrective-artifact integrity violated");
-  if (integrity.state === "unasserted-refuse") reasons.push("corrective-artifact integrity unasserted at L4");
+  if (integrity.state === "unasserted-refuse") reasons.push(`corrective-artifact integrity unasserted at ${level}`);
   if (reasons.length === 0) {
     writeMergeRecord(runDir, issue, pr, headSha, integrity.display);
     return emit({ verdict: "merge-ok", merged: true, blockers: [], ci_state: "not-observed-already-merged", head_sha: headSha, integrity: integrity.display, note: "already merged" }, 0);

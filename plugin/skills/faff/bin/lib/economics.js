@@ -1561,7 +1561,7 @@ function cmdEconomics(args) {
     } else {
       let dominant = null, topLine = null;
       if (measuredSource === "transcript") {
-        const { records } = readRunTranscriptRecords(root, process.env, runStartMs);
+        const { records } = readRunTranscriptRecords(root, effectiveEnv, runStartMs);
         dominant = economicsDominantModel(records);
         topLine = measuredTotal;
       }
@@ -1586,7 +1586,7 @@ function cmdEconomics(args) {
     const dominant = economicsDominantModel(flat);
     bd = economicsPhaseBreakdown(files, windows, priceMap, dominant, measuredTotal, malformed);
   } else {
-    const { records } = readRunTranscriptRecords(root, process.env, runStartMs);
+    const { records } = readRunTranscriptRecords(root, effectiveEnv, runStartMs);
     if (byAxis === "mcp") {
       bd = economicsMcpBreakdown(records, priceMap, economicsDominantModel(records));
     } else {

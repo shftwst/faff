@@ -1902,3 +1902,158 @@ test("FAFF-933 (adversarial C1): the effort warning stays silent when there are 
     assert.ok(!e.warnings.some(effortWarn), `estimate path must not claim the top line spans epochs: ${JSON.stringify(e.warnings)}`);
   } finally { g.cleanup(); }
 });
+
+// ---------------------------------------------------------------------------
+// FAFF-1380 — `--by` breakdowns must read `effectiveEnv` (the FAFF-560-resolved
+// session), not ambient `process.env`, at the `--by effort` call site
+// (economics.js:1564) and the generic class/model/day/mcp call site
+// (economics.js:1589). The `--by phase` branch already did this; these tests
+// are its no-ambient-session siblings for the other axes. Each fixture below
+// is the canonical FAFF-933 resumed 2-epoch ledger (EPOCH0_500 closed + an
+// open span) with NO `CLAUDE_CODE_SESSION_ID` in the test environment — the
+// resumed-but-no-ambient-session case the top-line-only FAFF-933 precedence
+// test (above) never exercises with a `--by` flag. Pre-fix, `process.env`
+// resolves to no session at all here, so every one of these assertions fails
+// against the un-patched code (confirmed via the pre-fix baseline run noted
+// in the issue's prep findings). Per the spec-review-revised DONE section,
+// day/mcp/effort never fold a closed span (FAFF-933, out of scope here), so
+// their assertions target the field the fix actually changes for that axis,
+// not a templated "closed-span tokens in the rows" claim that is false by
+// design for those three.
+// ---------------------------------------------------------------------------
+
+test("FAFF-1380: --by class and --by model fold the closed span and reconcile to the epoch-spanning total with NO ambient session set", () => {
+  const f = fixture({ rc: null, ledger: twoEpochLedger([EPOCH0_500, openSpan("epoch-1")]) });
+  try {
+    const cfg = withRecords(f.root, f.root, "epoch-1", {
+      "epoch-1.jsonl": [{ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 80, output_tokens: 20 } }, timestamp: "2026-08-29T15:00:00Z" }],
+    });
+    // No CLAUDE_CODE_SESSION_ID — the regression this ticket closes.
+    const rModel = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "model", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg });
+    assert.equal(rModel.code, 0, rModel.err);
+    const eModel = JSON.parse(rModel.out);
+    assert.equal(eModel.breakdown.reconciliation.reconciles, true,
+      `model axis must reconcile against the epoch-spanning total with no ambient session, got ${JSON.stringify(eModel.breakdown.reconciliation)}`);
+    assert.equal(eModel.breakdown.reconciliation.grand_total, 600);
+    const byKey = Object.fromEntries(eModel.breakdown.rows.map((x) => [x.key, x]));
+    assert.ok(byKey["claude-opus-4-8"], "the closed span's model must appear as a row");
+    assert.equal(byKey["claude-opus-4-8"].total, 500);
+
+    const rClass = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "class", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg });
+    assert.equal(rClass.code, 0, rClass.err);
+    const eClass = JSON.parse(rClass.out);
+    assert.equal(eClass.breakdown.reconciliation.reconciles, true,
+      `class axis must reconcile against the epoch-spanning total with no ambient session, got ${JSON.stringify(eClass.breakdown.reconciliation)}`);
+    assert.equal(eClass.breakdown.reconciliation.grand_total, 600);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-1380: --by day reads the open span's transcript (not empty) with NO ambient session set, reconciling against the resuming-epoch-only total", () => {
+  const f = fixture({ rc: null, ledger: twoEpochLedger([EPOCH0_500, openSpan("epoch-1")]) });
+  try {
+    const cfg = withRecords(f.root, f.root, "epoch-1", {
+      "epoch-1.jsonl": [{ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 80, output_tokens: 20 } }, timestamp: "2026-08-29T15:00:00Z" }],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "day", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    // `day` never folds the closed span (out of scope, FAFF-933) — its own
+    // reconciliation target is the resuming-epoch-only total (100), not the
+    // run-scoped tokens_total (600). Pre-fix: no records read -> grand_total 0.
+    assert.equal(e.breakdown.reconciliation.grand_total, 100,
+      `pre-fix this reads 0 (no records under no ambient session); got ${JSON.stringify(e.breakdown.reconciliation)}`);
+    assert.equal(e.breakdown.reconciliation.top_line_total, 100);
+    assert.equal(e.breakdown.reconciliation.reconciles, true);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-1380: --by mcp carries the open span's tool-call rows with NO ambient session set (reconciles is a vacuous zero-row identity, never the discriminator)", () => {
+  const f = fixture({ rc: null, ledger: twoEpochLedger([EPOCH0_500, openSpan("epoch-1")]) });
+  try {
+    const cfg = withRecords(f.root, f.root, "epoch-1", {
+      "epoch-1.jsonl": [{
+        message: {
+          model: "claude-sonnet-4-6",
+          usage: { input_tokens: 80, output_tokens: 20 },
+          content: [{ type: "tool_use", id: "tu-1", name: "mcp__linear__get_issue", input: { id: "FAFF-1" } }],
+        },
+        timestamp: "2026-08-29T15:00:00Z",
+      }, {
+        message: { content: [{ type: "tool_result", tool_use_id: "tu-1", content: "ok" }] },
+        timestamp: "2026-08-29T15:00:01Z",
+      }],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "mcp", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    // Do NOT assert reconciliation.reconciles — it holds trivially (0 === 0) over
+    // zero rows too, so it is true both pre- and post-fix and proves nothing.
+    assert.equal(e.breakdown.rows.length, 1,
+      `pre-fix this reads 0 rows (no records under no ambient session); got ${JSON.stringify(e.breakdown.rows)}`);
+    const row = e.breakdown.rows[0];
+    assert.equal(row.tool, "linear__get_issue");
+    assert.equal(row.call_count, 1);
+    assert.ok(row.request_bytes > 0, "request_bytes must be non-zero");
+    assert.ok(row.response_bytes > 0, "response_bytes must be non-zero");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-1380: --by effort resolves the real dominant model and a priced row with NO ambient session set (events_token_total is NOT the discriminator)", () => {
+  const f = fixture({ rc: null, ledger: twoEpochLedger([EPOCH0_500, openSpan("epoch-1")]) });
+  try {
+    writeFileSync(join(f.runDir, "events.jsonl"), [
+      { schema: 1, run_id: "run-test", seq: 0, ts: "2026-08-29T10:00:00Z", type: "run-start", data: {} },
+      { schema: 1, run_id: "run-test", seq: 1, ts: "2026-08-29T15:00:00Z", type: "issue-outcome", issue: "FAFF-1", data: { effort: "low", tokens: { input: 80, output: 20, cache_write: 0, cache_read: 0 }, tokens_source: "transcript" } },
+    ].map((x) => JSON.stringify(x)).join("\n") + "\n");
+    const cfg = withRecords(f.root, f.root, "epoch-1", {
+      "epoch-1.jsonl": [{ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 80, output_tokens: 20 } }, timestamp: "2026-08-29T15:00:00Z" }],
+    });
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--by", "effort", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    // Do NOT assert reconciliation.events_token_total/top_line_total — both derive
+    // from events.jsonl and the already-correct top-line measuredTotal, unchanged
+    // by this fix. The dominant model + priced row are what the fix changes.
+    assert.equal(e.breakdown.priced_at_model, "claude-sonnet-4-6",
+      `pre-fix this is null (no records read under no ambient session); got ${JSON.stringify(e.breakdown)}`);
+    const lowRow = e.breakdown.rows.find((x) => x.key === "low");
+    assert.ok(lowRow, `expected a "low" effort row, got ${JSON.stringify(e.breakdown.rows)}`);
+    assert.notEqual(lowRow.cost, null, "pre-fix every row's cost is unpriced (null) with no dominant model resolved");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-1380: --session-id selects the breakdown's transcript too, not just the top line's, with NO ambient session set", () => {
+  const f = fixture({ rc: null, ledger: twoEpochLedger([EPOCH0_500, openSpan("epoch-1")]) });
+  try {
+    // other-sess's model (haiku) is deliberately distinct from both EPOCH0_500's
+    // closed-span model (opus — folded into the model axis regardless of which
+    // transcript the open half reads) and epoch-1's own model (sonnet), so the
+    // row this test checks cannot be confused with either.
+    const cfg = withRecords(f.root, f.root, "other-sess", {
+      "other-sess.jsonl": [{ message: { model: "claude-haiku-4-5", usage: { input_tokens: 70 } }, timestamp: "2026-08-29T15:00:00Z" }],
+      "epoch-1.jsonl": [{ message: { model: "claude-sonnet-4-6", usage: { input_tokens: 80, output_tokens: 20 } }, timestamp: "2026-08-29T15:00:00Z" }],
+    });
+    // No ambient CLAUDE_CODE_SESSION_ID at all — only the --session-id flag names
+    // the session. Pre-fix, both patched branches ignored the flag and fell
+    // through to the (absent) ambient session, reading no records at all.
+    const r = run(["economics", "--run-dir", f.runDir, "--root", f.root, "--session-id", "other-sess", "--by", "model", "--json"],
+      { CLAUDE_CONFIG_DIR: cfg });
+    assert.equal(r.code, 0, r.err);
+    const e = JSON.parse(r.out);
+    const byKey = Object.fromEntries(e.breakdown.rows.map((x) => [x.key, x]));
+    // other-sess's model (haiku, 70 tokens) must appear — NOT epoch-1's sonnet
+    // row, which would mean the flag was ignored in favour of the (absent)
+    // ambient env. The closed span's own model (opus, 500) still folds in
+    // regardless (FAFF-933, unaffected by this fix) — mirrors the existing
+    // FAFF-933 --session-id override test's 500+70=570 top-line total.
+    assert.ok(byKey["claude-haiku-4-5"], `expected other-sess's model row, got ${JSON.stringify(e.breakdown.rows)}`);
+    assert.equal(byKey["claude-haiku-4-5"].total, 70);
+    assert.ok(!byKey["claude-sonnet-4-6"], "the open span's own session must NOT be read once --session-id overrides it");
+    assert.equal(e.breakdown.reconciliation.grand_total, 570);
+  } finally { f.cleanup(); }
+});

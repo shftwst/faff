@@ -1947,6 +1947,14 @@ test("FAFF-1380: --by class and --by model fold the closed span and reconcile to
     assert.equal(eClass.breakdown.reconciliation.reconciles, true,
       `class axis must reconcile against the epoch-spanning total with no ambient session, got ${JSON.stringify(eClass.breakdown.reconciliation)}`);
     assert.equal(eClass.breakdown.reconciliation.grand_total, 600);
+    // Reconciling arithmetic alone cannot catch a misclassified fold (one class
+    // inflated, another deflated, same sum) — assert the actual per-class rows the
+    // closed span's model->class projection must produce: epoch-0's 400 input / 100
+    // output summed with the open span's 80 / 20 (mirrors the existing FAFF-933
+    // "--by class folds via the model->class projection" test's own assertions).
+    const classByKey = Object.fromEntries(eClass.breakdown.rows.map((x) => [x.key, x]));
+    assert.equal(classByKey.input.total, 480, "the closed span's model/class tokens must appear in the input row");
+    assert.equal(classByKey.output.total, 120, "the closed span's model/class tokens must appear in the output row");
   } finally { f.cleanup(); }
 });
 

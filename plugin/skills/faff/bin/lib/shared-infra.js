@@ -564,6 +564,24 @@ function mainWorktreeRoot(root) {
   return path.basename(commonDir) === ".git" ? path.dirname(commonDir) : null;
 }
 
+// FAFF-1385: the exclude file `gitignore-ensure --local` writes to, resolved through
+// git's own `--git-path` plumbing rather than a hand-built `<root>/.git/info/exclude`
+// join. In a linked git worktree `.git` is a file pointing at the main repo, not a
+// directory, so the hand-built path is wrong there; `--git-path` resolves to the
+// shared common dir's `info/exclude` in every layout (main checkout, linked worktree,
+// separate git dir), the same discipline `mainWorktreeRoot` above applies to run-dir
+// resolution. Returns null outside a repo — no exclude file to own. Read-only: one
+// `git rev-parse`, no writes. `--git-path` output is cwd-relative, so a relative
+// result is resolved against `root`; an already-absolute result (observed on some
+// git/platform combinations) passes through unchanged.
+function resolveInfoExcludeFile(root) {
+  const r = spawnSync("git", ["-C", root, "rev-parse", "--git-path", "info/exclude"], { encoding: "utf8" });
+  if (r.status !== 0) return null;
+  const out = (r.stdout || "").trim();
+  if (!out) return null;
+  return path.isAbsolute(out) ? out : path.resolve(root, out);
+}
+
 // FAFF-580: the one place faff resolves the user's home directory. `HOME` first
 // (the POSIX case), `USERPROFILE` as a fallback, `""` when neither is set — a
 // verbatim generalisation of budget.js's transcriptBaseDir, the most complete
@@ -804,4 +822,4 @@ function writeOwnerOnlyJson(target, value) {
   }
 }
 
-module.exports = { CANONICAL_CONFIG, CANONICAL_EXAMPLE_CONFIG, CANONICAL_OVERLAY_CONFIG, CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, DEPRECATED_CONFIG, DEPRECATED_OVERLAY_CONFIG, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG, RUN_HEARTBEAT_STALE_SECS_DEFAULT, SELF_INTAKE_REASONS, cliPosixGuard, containerParent, decideSelfIntake, deepMergeConfig, dig, ensureOwnerOnlyDir, findConfig, findConfigIn, findConfigLocation, findNamedIn, findOverlay, findOverlayIn, findOverlayLocation, findRoot, homeDir, isInsideRoot, isPlainConfigMap, isSafeAnchorRelPath, latestRunDir, mainWorktreeRoot, normalizeSelfIntakeSelf, normalizeSelfIntakeTarget, parseAncestry, parseConfigMapStrict, parseOverlayStrict, parseYamlSubset, readBaseConfigStrict, readLedger, requiresSelfConsistencyStamp, resolveLedgerOrFault, resolveRunDir, runGovernedDispatch, selectNamed, scalar, sortRunDirsByMtimeDesc, stripInlineComment, subtreeContains, writeOwnerOnlyJson, HERE, ENTRYPOINT };
+module.exports = { CANONICAL_CONFIG, CANONICAL_EXAMPLE_CONFIG, CANONICAL_OVERLAY_CONFIG, CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, DEPRECATED_CONFIG, DEPRECATED_OVERLAY_CONFIG, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG, RUN_HEARTBEAT_STALE_SECS_DEFAULT, SELF_INTAKE_REASONS, cliPosixGuard, containerParent, decideSelfIntake, deepMergeConfig, dig, ensureOwnerOnlyDir, findConfig, findConfigIn, findConfigLocation, findNamedIn, findOverlay, findOverlayIn, findOverlayLocation, findRoot, homeDir, isInsideRoot, isPlainConfigMap, isSafeAnchorRelPath, latestRunDir, mainWorktreeRoot, normalizeSelfIntakeSelf, normalizeSelfIntakeTarget, parseAncestry, parseConfigMapStrict, parseOverlayStrict, parseYamlSubset, readBaseConfigStrict, readLedger, requiresSelfConsistencyStamp, resolveInfoExcludeFile, resolveLedgerOrFault, resolveRunDir, runGovernedDispatch, selectNamed, scalar, sortRunDirsByMtimeDesc, stripInlineComment, subtreeContains, writeOwnerOnlyJson, HERE, ENTRYPOINT };

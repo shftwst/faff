@@ -123,7 +123,7 @@ function decideFloor(f) {
   const holdoutPosture = f.holdout_posture || (f.level === "L4" ? "strict" : "pass-through");
   if (holdoutPosture === "strict" && f.holdout !== "meets-spec") blockers.push(`holdout guarantee (strict): ${f.holdout} (need meets-spec)`);
   if (f.integrity === "violated") blockers.push("corrective-artifact integrity violated (FAFF-325): the FAFF_INTEGRITY_BOUNDARY attestation failed verification (forged/tampered) — refused at every level");
-  if (f.integrity === "unasserted-refuse") blockers.push("corrective-artifact integrity unasserted at L4 (FAFF-325): no trusted attestation declaration — refused (defence-in-depth; the run-start preflight should already have caught this)");
+  if (f.integrity === "unasserted-refuse") blockers.push(`corrective-artifact integrity unasserted at ${f.level} (FAFF-325): no trusted attestation declaration — refused (defence-in-depth; the run-start preflight should already have caught this)`);
   if (f.decision_grant === "absent-or-invalid") blockers.push("Commissaire protected-effect decision absent or invalid for a governed effect (FAFF-828): the chokepoint could not verify a covering Ed25519-signed grant — refused before the effect");
   if (f.dependency_gate === "blocked") blockers.push("stacked dependency PR not yet merged (FAFF-1077): a branch-stacked dependent must not merge before its dependency's PR merges");
   return { verdict: blockers.length === 0 ? "merge-ok" : "refuse", blockers };

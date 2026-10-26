@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "scenariosCodeSurfaceAdvisory(specText) returns {count, items} listing every source=\"scenarios\" criterion with codeSurfaceSignal(c.text) === \"test-file\", and null when there are none; it does not filter on verification_tier.",
+      "verified": "test/faff-1364-scenarios-code-surface.test.mjs scenarios 1/2 + admissibleSelftest's 3 new FAFF-1364 cases — pass",
+      "passed": true,
+      "ac_id": "faff-1364#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1364-scenarios-code-surface.test.mjs::scenario 1: a lights-out spec with a test-file Scenarios unit warns exactly once, naming it, without flipping admissible"
+        }
+      ]
+    },
+    {
+      "ac": "renderScenariosCodeSurfaceWarning(adv) returns one line beginning scenarios-code-surface advisory: that names each offending unit truncated to ~50 chars.",
+      "verified": "node admissible --selftest case 'FAFF-1364 scenarios-code-surface-fires' asserts wantWarnMatch /^scenarios-code-surface advisory:/ — pass",
+      "passed": true,
+      "ac_id": "faff-1364#done:2",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff admissible --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "admissibleVerdict under --lights-out pushes the rendered advisory into warnings[]; the admissible boolean is checks.every(c => c.pass) and is byte-for-byte unaffected by the presence of the advisory.",
+      "verified": "test/faff-1364-scenarios-code-surface.test.mjs scenario 4 (with-it vs without — admissible identical) — pass",
+      "passed": true,
+      "ac_id": "faff-1364#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1364-scenarios-code-surface.test.mjs::scenario 4: the warning is a pure function of lights-out — a test-file Scenarios unit without --lights-out emits no warning, and admissible/criteria/judged_count are byte-identical to the Scenarios unit removed"
+        }
+      ]
+    },
+    {
+      "ac": "Without --lights-out, no scenarios-code-surface advisory: warning is emitted.",
+      "verified": "test/faff-1364-scenarios-code-surface.test.mjs scenario 4's plain (non-lights-out) assertion — pass",
+      "passed": true,
+      "ac_id": "faff-1364#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1364-scenarios-code-surface.test.mjs::scenario 4: the warning is a pure function of lights-out — a test-file Scenarios unit without --lights-out emits no warning, and admissible/criteria/judged_count are byte-identical to the Scenarios unit removed"
+        }
+      ]
+    },
+    {
+      "ac": "scenariosCodeSurfaceAdvisory and renderScenariosCodeSurfaceWarning are added to admissibility.js module.exports.",
+      "verified": "grep + require() typeof check: both export as 'function'",
+      "passed": true,
+      "ac_id": "faff-1364#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node -e \"const m=require('./plugin/skills/faff/bin/lib/admissibility.js'); console.log(typeof m.scenariosCodeSurfaceAdvisory, typeof m.renderScenariosCodeSurfaceWarning)\""
+        }
+      ]
+    },
+    {
+      "ac": "faffter-dark-nlspec/SKILL.md SCENARIOS section and faffter-noon-spec/SKILL.md Scenarios section each gain one sentence: never make a Scenarios unit's check a repository test file passing; restate the behaviour as an observable Given/When/Then and move the test-file check to its own DONE item.",
+      "verified": "grep confirms the exact sentence present in both files",
+      "passed": true,
+      "ac_id": "faff-1364#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n \"Never make a Scenarios unit's check a repository test file\" plugin/skills/faffter-noon-spec/SKILL.md plugin/skills/faffter-dark-nlspec/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "faffter-noon-spec-review/SKILL.md QA lens and faffter-dark-spec-review/refute-qa.md each gain guidance that a Scenarios unit whose check is a repository test file passing is unverifiable by the code-blind holdout and must be raised (routing to revise).",
+      "verified": "grep confirms the guidance present in both occupants",
+      "passed": true,
+      "ac_id": "faff-1364#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'unverifiable by the code-blind holdout' plugin/skills/faffter-noon-spec-review/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "resolveVerificationTier is unchanged; faff dod --selftest passes, including the pinned case at admissibility.js:1142 (a Scenarios unit naming a test file stays running-stack).",
+      "verified": "git diff shows resolveVerificationTier untouched; node plugin/skills/faff/bin/faff dod --selftest — ok",
+      "passed": true,
+      "ac_id": "faff-1364#done:8",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff dod --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "test/faff-1360-code-surface-done-tier.test.mjs passes unchanged.",
+      "verified": "node --test test/faff-1360-code-surface-done-tier.test.mjs — 6/6 pass",
+      "passed": true,
+      "ac_id": "faff-1364#done:9",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1360-code-surface-done-tier.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "Pure-function selftest cases added (in admissibleSelftest or dodSelftest): a Scenarios test-file unit yields a non-null advisory naming it; a CLI-only Scenarios unit and a well-formed GWT unit yield null.",
+      "verified": "node admissible --selftest — 17/17 pass, including the 3 new FAFF-1364 cases (fires / CLI-only silent / well-formed-GWT silent)",
+      "passed": true,
+      "ac_id": "faff-1364#done:10",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff admissible --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "A new CLI test test/faff-1364-scenarios-code-surface.test.mjs (mirroring the FAFF-1360 template) asserts the four Scenarios above via faff admissible --lights-out/faff dod classify.",
+      "verified": "node --test test/faff-1364-scenarios-code-surface.test.mjs — 5/5 pass",
+      "passed": true,
+      "ac_id": "faff-1364#done:11",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1364-scenarios-code-surface.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "faff validate-adapters and faff regions check pass after the SKILL.md and admissibility.js edits.",
+      "verified": "both commands exit 0 (validate-adapters: PASS, 21 slot skills linted; regions check: PASS)",
+      "passed": true,
+      "ac_id": "faff-1364#done:12",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        }
+      ]
+    }
+  ]
+}

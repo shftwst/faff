@@ -90,6 +90,9 @@ async function mergeGateSelftest() {
   check("integrity: violated at L4 → refuse too", F({ level: "L4", holdout: "meets-spec", integrity: "violated" }).verdict === "refuse");
   check("integrity: violated names the FAFF-325 blocker", /corrective-artifact integrity violated/.test(F({ integrity: "violated" }).blockers.join(" ")));
   check("integrity: unasserted-refuse names the FAFF-325 blocker", /unasserted at L4/.test(F({ level: "L4", holdout: "meets-spec", integrity: "unasserted-refuse" }).blockers.join(" ")));
+  // FAFF-1374: the message names the run's ACTUAL resolved level, not a hardcoded "L4" — an L3 run
+  // (e.g. a declared-unattended config) that reaches unasserted-refuse must read "at L3", never "at L4".
+  check("integrity: unasserted-refuse at L3 names L3, not a hardcoded L4", /unasserted at L3/.test(F({ level: "L3", integrity: "unasserted-refuse" }).blockers.join(" ")));
   // FAFF-1077 dependency_gate leg: absent/not-applicable/satisfied never block; blocked refuses.
   check("dependency_gate: undefined (unset) → no-op, all-green still merge-ok", F({}).verdict === "merge-ok");
   check("dependency_gate: not-applicable → merge-ok", F({ dependency_gate: "not-applicable" }).verdict === "merge-ok");

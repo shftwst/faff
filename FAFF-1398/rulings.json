@@ -1,0 +1,26 @@
+[
+  {
+    "proposition_id": "4-how",
+    "outcome": "AFFIRM_SPEC",
+    "rationale": "Argument A's material premise is that faff-prep has no flow in which an operator hands prep a spec body to attach and gate, and that the runbook therefore forces an improvised invocation that risks exercising a different attach/re-attach sequence than FAFF-1079 shipped. This premise is not supported by the reconstruction. The reconstruction establishes that the deliverable is a human running the path once and recording the transcript, that the ratify branch never fires without a human present, and that the fixture is attached to a scratch issue and the gate run against it. The reconstruction does not establish, and the repository facts do not show, that faff-prep lacks any attach path for an operator-supplied spec body; the reconstruction's own existing-behaviour section describes the gate presenting a three-choice offer on an attached spec, and the spec's own design-decision rationale (byte-for-byte vs unedited attach) was revised precisely because the attach path is known to write a provenance stamp — implying an operator-supplied attach flow exists. Argument A's claim that Scenario B runs the gate only on the iterate branch is an assertion about SKILL.md internals that the reconstruction neither confirms nor contradicts; it is an undeterminable fact, not a settled premise. More decisively, Argument A's predicted consequence — that the DONE item is 'unmeetable as written' — is speculative and not concrete: it does not identify a checkable failure against the governing requirements, only a possibility that the gate might not fire against the fixture, which the spec already handles with a bounded 3-attempt retry and a named fixture-drift finding. That is a designed-for stochastic outcome, not a defect. Argument B restates the runbook as a human-driven, non-automated procedure and cites the spec's own decision rationale; its reasoning is consistent with the valid-solution properties (literal human present, decidable DONE items, verbatim recording, independent transform oracle, scratch issue, bounded failure state, bare-word edge case as legitimate outcome). Argument B does not independently rebut Argument A's attach-path concern, but it does not need to: the concern fails on its own merits because it rests on an unestablished premise about faff-prep's internal flows and predicts only a hand-wavy 'risks exercising a different sequence' rather than a concrete, checkable violation. Neither position establishes a material defect; the decision at 4-how is sound with respect to software architecture and design.",
+    "correction": null,
+    "synthesis_sources": [],
+    "prd_gap_citation": "",
+    "lens": "",
+    "severity": "",
+    "conformant": true,
+    "violations": []
+  },
+  {
+    "proposition_id": "ctx-p-05-phase2",
+    "outcome": "AFFIRM_SPEC",
+    "rationale": "The proposition concerns the decision to mark no GWT as holdout in section 5. According to the reconstruction, the holdout convention is optional and is intended for use when a code-blind automated evaluator is in the loop. This ticket's deliverable is a human recording of a live session, and the reconstruction confirms that no automated evaluator exists for this specific path. Therefore, the decision to mark no holdout is consistent with the requirements and the nature of the deliverable. Argument A critiques the decidability of the second scenario's 'Then' clause (the use of 'may'), but this is a critique of the scenario's wording, not the holdout decision itself. Argument B is a summary of the spec and offers no objection.",
+    "correction": null,
+    "synthesis_sources": [],
+    "prd_gap_citation": "",
+    "lens": "",
+    "severity": "",
+    "conformant": true,
+    "violations": []
+  }
+]

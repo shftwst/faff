@@ -1,0 +1,199 @@
+# FAFF-1398 — Verify the ratify path's tracker comment carries the neutralised quote of the human's reply
+
+nlspec for FAFF-1398, for a human operator running `/faff-prep` interactively and any later auditor of the ratify path's tracker-comment behaviour.
+
+## 1. WHY
+
+FAFF-1079 shipped faff-prep's interactive **ratify** choice at the Spec-review gate: a present human can tell prep to keep a `**Chosen:**` decision settled over a `major`/`minor` design-lens objection, instead of looping the producer. One sub-step of that behaviour — step 4b of the ratify PROCEDURE (`faff-prep/SKILL.md` → "Ratify a design-lens objection in place") — requires the re-attach comment prep posts to carry the **neutralised, capped (≤200-character) quote of the human's own reply**, never a bare placeholder like "tag added." That sub-step is pure LLM-authored prose executed inside a live interactive session; there is no deterministic function to unit-test it against.
+
+FAFF-1079's own build ran with no human at the gate, so this one criterion — "inspect the actual comment text, don't just confirm the offer fired" — could not be checked at build time and was split out by operator decision as this ticket. FAFF-1398 adds no code: its entire deliverable is a human running the ratify path once, reading the real transcript, and recording what it says.
+
+**This ticket builds nothing.** The code path under test already shipped in FAFF-1079. A build agent that reads this spec and tries to add a harness, mock, or scripted-input wrapper around the interactive prompt is solving a problem this spec explicitly does not have — see Out of scope.
+
+**The assertion is on content, not occurrence.** Per the issue's acceptance text, "the offer fired" is not sufficient evidence; the comment's actual text must be read and quoted back on the ticket.
+
+| System | Language | Relevance |
+|---|---|---|
+| `plugin/skills/faff-prep/SKILL.md` → "Ratify a design-lens objection in place" | prose (SKILL.md) | Defines the procedure under test, including step 4b (the comment-quoting rule) and step 5 (autonomous mode never fires) |
+| `plugin/skills/faffter-dark-spec-review/eval/in-spec-ratification/spec-decision-untagged.md` | fixture spec (prose) | The committed fixture this runbook attaches, built to reliably draw decision-level `major` objections |
+| `plugin/skills/faffter-dark-spec-review/eval/in-spec-ratification/README.md`, `run-log.md` | docs | State explicitly that this fixture set exercises a different mechanism (tag-deference) and does not exercise step 4b |
+
+This sits entirely inside the human-task lane of FAFF-1079's shipped ratify feature; it adds no code to `faff-prep`, `faff-graft`, or `faff-tidy`.
+
+## 2. OUT OF SCOPE
+
+- **A scripted/headless harness that supplies "ratify" as a canned reply.** Why excluded: faff-prep's own PROCEDURE states the ratify branch "never fires" in autonomous mode — there is no human to answer. No scripted-input mode, flag, or harness exists anywhere in this repo (`faff-prep`, `faff-graft`, `faff-beep-boop`, or the CLI) that could supply a canned reply and still count as a faithful exercise of the interactive branch; a canned reply would test a mock, not the claim. Extension point: none exists today — if one is ever built, it is its own ticket, not a retrofit here.
+- **Re-validating or changing the ratify procedure itself.** Why excluded: FAFF-1079 is Done; this ticket verifies one of its criteria, it does not reopen the design. Extension point: a defect found during this verification is a new bug ticket against FAFF-1079's behaviour.
+- **The `in-spec-ratification` eval fixture set's own regression checks** (whether a design lens reads a `(ratified: human)` tag and defers). Why excluded: a different, already-exercised mechanism, per that README. Extension point: already owned by `plugin/skills/faffter-dark-spec-review/eval/in-spec-ratification/README.md`.
+- **Wiring this verification into CI or an eval harness for future re-runs.** Why excluded: the behaviour under test is pure LLM-authored prose with no deterministic hook today. Extension point: if a genuine non-interactive stand-in is ever built (see Open Questions), a CI-wired re-check could be added then.
+
+## 3. WHAT
+
+| Term | Definition |
+|---|---|
+| Ratify | The interactive-only choice at the Spec-review gate letting a present human keep a `**Chosen:**` decision settled over a `major`/`minor` design-lens objection, without looping the producer |
+| Step 4b | The sub-step of faff-prep's ratify PROCEDURE requiring the re-attach comment to carry the neutralised, capped quote of the human's reply |
+| Neutralised, capped quote | The same structural-neutralisation `faff ratified-scope --fold-resolutions` applies (newline collapse, secret-shaped-value redaction, imperative-sentence scrub) to the reply, then the shortest sentence stating the decision, hard-capped at 200 characters with `…` truncation |
+| `(ratified: human)` tag | The marker faff-prep appends to a `**Chosen:**` line once the human replies "ratify" |
+
+No type definitions or API surfaces — this spec describes a human procedure, not a code change.
+
+**Decision: how is this ticket's acceptance criterion exercised?**
+Options: (a) a scripted/headless harness supplying a canned "ratify" reply, treating its output as evidence; (b) a live `/faff-prep` interactive session with a human operator typing "ratify," reading the real posted comment.
+
+**Chosen:** (b), a live interactive session with a human operator. Rationale: no scripted-input harness for a faff-prep interactive session exists in this repo (grep across `test/*.test.mjs` and `plugin/skills/faff/bin/lib/*.js` finds no code implementing or testing step 4b; the PROCEDURE itself states the ratify branch never fires without a human present). A simulated reply would exercise a mock, not the interactive code path the criterion needs verified.
+
+**Anti-pattern:** building a canned-reply wrapper to "unblock" this ticket from automation. Why: it would produce a comment, but not one produced by the code path FAFF-1398 exists to inspect — passing the letter of the ticket while failing its purpose.
+
+## 4. HOW
+
+A three-step human runbook, run once, by a human operator, inside a real `/faff-prep` session on a scratch issue. No orchestration, no automation.
+
+```
+PROCEDURE verify_ratify_tracker_comment():
+  1. Open an interactive /faff-prep session against a scratch issue (never a
+     real tracked issue — this run's only purpose is to trigger the gate).
+  2. Attach, as the scratch issue's spec, the content of the committed
+     fixture plugin/skills/faffter-dark-spec-review/eval/in-spec-ratification/spec-decision-untagged.md,
+     unedited (do not change any decision, wording, or structure in the
+     fixture file itself). Note: faff-prep's own attach path unconditionally
+     writes a provenance-stamp blockquote directly under the H1 at attach
+     time (`faff-prep/SKILL.md` → "Provenance stamp (populate at attach)")
+     — the attached copy will therefore carry that stamp line in addition
+     to the fixture's own pinned-run stamp; that is expected, not a
+     deviation from this runbook, and is not itself something to flag.
+     Note also: this fixture carries TWO **Chosen:** decisions
+     (Decision 1: cache-file-vs-sidecar; Decision 2: never-expire); the
+     committed regression run recorded TWO `major` objections against it,
+     at least one confirmed decision-level (Decision 1). Each run is a
+     stochastic LLM sample, not a guarantee — do not assume in advance
+     which decision(s) draw an objection this run.
+  3. Run the Spec-review gate on that attached spec.
+  4. FOR EACH design-lens objection the gate presents as a three-choice
+     offer (revise / park / ratify):
+     a. Reply with the word "ratify" as the trigger (the literal word the
+        issue's own acceptance text names), naturally extended with a
+        short clause stating why the decision stands — e.g. "ratify, this
+        was already settled in review" — the way an operator would
+        normally use this gate. A reply that is only the bare word
+        "ratify" with no further clause is also a valid thing to try
+        once and record (see the note under DONE): the neutralisation
+        transform step 4b applies (newline collapse, secret-scrub, an
+        imperative-sentence scrub, then extraction of the shortest
+        sentence stating the decision) scrubs a bare imperative with no
+        decision content, which can legitimately leave nothing to quote.
+        That is a real observable outcome of this verification, not a
+        runbook error — record whichever reply form was used and exactly
+        what came out the other side.
+  5. AFTER each ratify branch completes (faff-prep's PROCEDURE step 4a-4e):
+     a. Read the re-attach comment faff-prep posted on the scratch issue.
+     b. Read the spec's **Chosen:** line(s) on the now-updated attachment.
+  6. Record on FAFF-1398 (not the scratch issue):
+     a. Which decision line(s) (Decision 1 and/or Decision 2) received a
+        ratify offer, and which the human actually ratified.
+     b. The full text of the resulting tracker comment(s), verbatim.
+     c. Confirmation (yes/no) that each such comment contains a
+        neutralised, capped (<=200 character) quote of the human's own
+        reply — not the bare string "tag added" or any other placeholder.
+     d. Confirmation (yes/no) that each ratified **Chosen:** line now
+        reads "... (ratified: human)".
+     e. The verifier decides whether the posted quote reflects the
+        documented transform (not an ad hoc paraphrase) by independently
+        applying the same steps to the exact reply text that was typed —
+        newline collapse, secret-shaped-value redaction, imperative-
+        sentence scrub, then the shortest sentence stating the decision,
+        capped at 200 characters — and comparing the result to what the
+        comment actually shows. This is the oracle for "neutralised";
+        without running it the confirmation in step 6c is unfounded.
+```
+
+**Edge cases:**
+- If the only objection(s) raised are `critical`, the ratify offer never appears (the severity floor is unconditional) — the fixture is built to draw `major`, so this is not expected; if it occurs, restart with a fresh scratch issue rather than editing the fixture.
+- If the scope test classifies an objection as ambiguous/implementation-level, no ratify offer appears for it — that objection proceeds through revise/park as normal and is not part of this verification; record it on FAFF-1398 as an observation, not a failure, provided **at least one** decision-level objection still produced a ratify offer this run.
+- If no objection in a given run is decision-level at all (the fixture draws zero ratifiable offers), the fixture no longer exercises this path for that attempt. Retry once more with a fresh scratch issue. **Bound:** after three total attempts (the original plus two retries) with zero decision-level ratify offers, stop — record that outcome on FAFF-1398 as a possible fixture-drift finding (name the objections each attempt actually drew) rather than retrying further.
+- If the human's reply to the ratify offer is the bare word "ratify" with no further clause, the neutralisation transform's imperative-sentence scrub may leave no sentence to quote, so the posted comment's quote may legitimately come out empty or absent. This is not a runbook failure to route around — it is itself the thing DONE asks to be recorded: note in step 6 whether the reply carried a decision-stating clause beyond the trigger word, and what the comment showed in each case.
+
+## 5. Scenarios
+
+Given the fixture spec `spec-decision-untagged.md` is attached to a scratch issue and the Spec-review gate runs against it in an interactive `/faff-prep` session
+When a design-lens objection fires at `major` or `minor` against one of the spec's `**Chosen:**` decisions, classifies as decision-level, and the human replies with the trigger word "ratify" plus a short decision-stating clause
+Then the tracker comment faff-prep posts on re-attach contains a neutralised, capped (≤200-character) quote drawn from that clause, not a placeholder such as "tag added"
+
+Given the human instead replies with the bare word "ratify" and no further clause
+When the spec is re-attached
+Then the posted comment's quote may legitimately be empty or absent, because the neutralisation transform's imperative-sentence scrub has nothing but an imperative to scrub — record this outcome rather than treating it as a runbook defect
+
+Given a ratify reply has been accepted for a given decision
+When the spec is re-attached
+Then that decision's `**Chosen:**` line reads with a trailing `(ratified: human)` tag
+
+No holdout is marked — see Design decision rationale.
+
+## 6. Design decision rationale
+
+**Should any Scenario above be marked a holdout?**
+Options: mark one GWT as holdout per the optional convention; mark none.
+**Chosen:** mark none. Rationale: a holdout is withheld for a code-blind automated evaluator to grade later. This ticket's entire deliverable is a human directly reading the transcript and recording the result by hand — there is no automated evaluator in the loop to withhold anything from.
+
+**Should the runbook require the fixture attach "byte-for-byte"?**
+Options: require byte-for-byte attach (the original wording); require unedited fixture content, acknowledging faff-prep's own provenance stamp lands on the attached copy.
+**Chosen:** the latter. Rationale: `faff-prep/SKILL.md`'s attach path unconditionally writes a provenance-stamp blockquote under the H1 at every attach point — a "byte-for-byte" instruction was unsatisfiable as originally written and risked reading as a runbook defect rather than expected behaviour. (Revised 2026-10-26 — spec-review round 1, architectural lens, minor.)
+
+**Should the runbook's prescribed reply be the bare word "ratify," and should an empty resulting quote count as a failure?**
+Options: keep the bare-word reply and treat an empty quote as a defect to report; extend the reply to a trigger word plus a short decision-stating clause (how the gate is actually used), and treat a bare-word reply's empty quote as a legitimate recorded outcome rather than a defect.
+**Chosen:** the latter. Rationale: `faff-prep/SKILL.md`'s ratify PROCEDURE neutralises the reply (including an imperative-sentence scrub) before extracting the shortest sentence that states the decision — a bare imperative with no decision content has nothing left to extract. The issue's own text uses "ratify" as the trigger word, not as a constraint that the reply carry nothing else; a clause-bearing reply is the realistic way the gate is used, and testing the bare-word edge case is worth doing once and recording honestly rather than silently working around it. (Revised 2026-10-26 — spec-review round 1, QA lens, major.)
+
+**How does the verifier decide a posted quote is "neutralised" rather than an ad hoc paraphrase?**
+Options: leave it to the verifier's judgement; name the transform as a literal oracle the verifier re-runs by hand against their own reply text.
+**Chosen:** the latter — HOW step 6e. Rationale: the transform is fully specified (newline collapse, secret-scrub, imperative-scrub, shortest-decision-sentence extraction, 200-char cap) and therefore mechanically reproducible by the verifier; naming it removes the ambiguity two verifiers could otherwise reach opposite conclusions over. (Revised 2026-10-26 — spec-review round 1, QA lens, minor.)
+
+**Should the stochastic fixture-drift retry be unbounded?**
+Options: unbounded retry until a decision-level objection fires; a fixed bound with a named fallback finding.
+**Chosen:** the latter — three total attempts, then record a possible-drift finding. Rationale: an unbounded retry has no observable failure state; a bound makes "the fixture has drifted" a decidable outcome rather than a permanently-open wait. (Revised 2026-10-26 — spec-review round 1, QA lens, minor.)
+
+## 7. Open questions and assumptions
+
+**Open Questions:**
+- **Punt:** Who, and when, performs the live `/faff-prep` interactive session this spec describes, and records the result on FAFF-1398? — needs human. This is the ticket's sole open item, and it is **blocking**: no DONE item below closes without it, and no autonomous build agent can discharge it (faff-prep's PROCEDURE step 5: the ratify branch never fires without a human present). This is not a design ambiguity resolvable by reasoning — it is a scheduling/execution gap that only elapses when a human actually runs the session. `**Assumes:**` would understate this: there is nothing here for a build agent to validate before starting, the gap is the action itself.
+
+**Assumptions:**
+- **Assumes:** `plugin/skills/faffter-dark-spec-review/eval/in-spec-ratification/spec-decision-untagged.md` still reliably draws at least one decision-level `major`/`minor` objection, unmodified, at run time. Validation: confirmed present and matching the content quoted above as of this spec's authoring; re-confirm with `git log -1 --format=%H -- plugin/skills/faffter-dark-spec-review/eval/in-spec-ratification/spec-decision-untagged.md` immediately before running (see HOW edge case: a drifted fixture is the failure this guards against).
+- **Assumes:** `faff-prep/SKILL.md` → "Ratify a design-lens objection in place" is still shipped and unchanged at run time. Validation: re-read that section immediately before running; if step 4b's wording has changed, re-derive the HOW step 6 recording checklist from the current text rather than this spec's copy.
+
+## 8. Done
+
+### From WHY
+- [ ] A human operator has run the live interactive `/faff-prep` session described in HOW against a scratch issue (not a tracked production issue) with the exact fixture spec attached.
+
+### From WHAT (decision)
+- [ ] No scripted/headless/canned-reply substitute was used in place of a literal human "ratify" reply.
+
+### From HOW (the runbook)
+- [ ] The scratch issue's spec-review gate offered ratify (revise / park / ratify) against at least one `major`/`minor` decision-level design-lens objection naming one of the fixture's `**Chosen:**` decisions — within the 3-attempt bound (HOW edge cases).
+- [ ] The human operator's reply to that offer carried the trigger word "ratify"; the exact reply text (trigger word alone, or trigger word plus clause) is recorded verbatim on FAFF-1398.
+- [ ] The resulting re-attach comment was read in full and its exact text is recorded verbatim on FAFF-1398.
+- [ ] The comment text's quote is checked against the independently-applied transform (HOW step 6e), and the result — quote present and matching, quote absent because the reply carried no decision-stating clause, or quote present but not matching the transform — is recorded explicitly on FAFF-1398. Explicitly **not** just the bare string "tag added", and not inferred from the offer having fired.
+- [ ] The ratified decision's `**Chosen:**` line is confirmed (on FAFF-1398) to read "... (ratified: human)" after the reply.
+
+### From Open Questions
+- [ ] The blocking Punt (who/when runs the session) is resolved by the fact of the session having been run and recorded — this item self-closes only when the DONE items above are checked by an actual human, never by inference.
+
+**Eval coverage:** not applicable — this ticket introduces no LLM-judgement seam; the seam under test (step 4b) already shipped under FAFF-1079.
+
+**Integration smoke test:** not applicable — no code path exists to smoke-test; the "integration" is the human operator correctly following the procedure once, end to end.
+
+## 9. Appendices
+
+**Appendix A — exact acceptance text (verbatim, for copy-paste fidelity):**
+> The tracker comment the ratify path posts (FAFF-1079 spec, Decision 2 step 4b) contains the neutralised, capped (≤200-character) quote of the human's reply, not just "tag added". This is asserted directly, not inferred from the offer having fired.
+> The spec's `**Chosen:**` line carries `(ratified: human)` after the reply.
+> Record the result, with the comment's text, on this ticket.
+
+**Appendix B — repo precedent for this ticket's shape:** FAFF-1164 ("Ratify addendum decision 6...") carried the same `Human-task` label and closed Done by a human directly recording a decision as a tracker comment — no code built, no PR opened. Same deliverable shape FAFF-1398 follows.
+
+confidence: medium
+
+```faff-contract:spec-readiness
+{ "confidence": "medium",
+  "decisions": [ { "marker": "chosen" }, { "marker": "chosen" }, { "marker": "chosen" }, { "marker": "chosen" }, { "marker": "chosen" }, { "marker": "chosen" }, { "marker": "punt" }, { "marker": "assumes" }, { "marker": "assumes" } ] }
+```

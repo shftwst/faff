@@ -1,0 +1,47 @@
+[
+  {
+    "claim": "The runbook instructs the operator to \"Attach, as the scratch issue's spec, the content of the committed fixture … Run the Spec-review gate on that attached spec\" (HOW steps 2–3). But faff-prep has no flow in which an operator hands prep a spec body to attach and gate. The fresh-spec path (Scenario A) always delegates production to the `spec` slot — prep would produce its *own* spec for the scratch issue, not attach the fixture. The existing-spec path (Scenario B) restores a found spec but only runs the Spec-review gate on the **iterate** branch of the Step-3 offer. Neither maps to \"attach the fixture, then run the gate.\" The operator must improvise a path the spec never establishes — most plausibly pre-posting the fixture as a comment and driving prep into Scenario B → iterate — and that improvised path is exactly the code path under test, so an improvised invocation risks exercising a different attach/re-attach sequence than the one FAFF-1079 shipped.",
+    "evidence": "HOW PROCEDURE steps 2–3 vs `faff-prep/SKILL.md` → Scenario A Step 2 (\"Dispatch the configured `spec` slot … as a producer subagent\") and Scenario B Step 3 (the gate runs only after an **iterate** revision, not on a restored spec).",
+    "predicted_consequence": "the human runs the session, prep produces its own spec for the scratch issue (or the gate never fires against the fixture), and the DONE item \"the gate offered ratify against at least one decision-level objection naming one of the fixture's `**Chosen:**` decisions\" is unmeetable as written — the verification records a result from a different code path than the one the ticket exists to inspect.",
+    "spec_anchor": "4-how",
+    "lens": "architectural",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "Steps 5a and 6b require reading and quoting \"the re-attach comment faff-prep posted on the scratch issue.\" In git-only mode there is no tracker and no comment — prep writes the spec to `.faff/specs/<issue-id>.md` and the ratify audit quote lands in a log, not a comment. The spec never states which tracker (or that tracker mode at all) the session must run in, so the primary evidence artifact the DONE items check may not exist depending on the environment the operator happens to run in.",
+    "evidence": "HOW step 5a / 6b; `faff-prep/SKILL.md` → \"Tracker-less (git-only) mode\" (\"there is no issue to comment on — so prep can't attach the spec the usual way\").",
+    "predicted_consequence": "an operator in a git-only-configured repo completes the session and finds no comment to quote, making DONE items 5–7 undecidable without a re-run in a different environment.",
+    "spec_anchor": "4-how",
+    "lens": "architectural",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "HOW step 6e has the verifier \"independently apply the same steps to the exact reply text that was typed … by hand.\" But the transform is not fully specified in prose — \"secret-shaped-value redaction\" and \"imperative-sentence scrub\" are named, not defined — and the spec's own rationale claims it is \"mechanically reproducible.\" The same neutralisation is implemented in code: `faff ratified-scope --fold-resolutions` applies the identical structural-neutralisation function to tracker values (the spec itself cites this in §1 and in the ratify PROCEDURE's audit step). Piping the reply through that CLI (or defining the scrub precisely) would make the oracle deterministic; hand-application reintroduces exactly the two-verifiers-disagree ambiguity the step was revised to remove.",
+    "evidence": "HOW step 6e; §6 \"How does the verifier decide a posted quote is 'neutralised'…\" (\"the transform is fully specified … and therefore mechanically reproducible by the verifier\"); `faff-prep/SKILL.md` → \"Audit the utterance\" (the transform is \"the identical function, reused, never reimplemented\" — i.e. it exists as code).",
+    "predicted_consequence": "two verifiers applying \"imperative-sentence scrub\" by hand to the same reply reach different oracle strings, and the DONE item \"quote present and matching\" becomes judgement-dependent — the opposite of what the step's revision intended.",
+    "spec_anchor": "6-design-decision-rationale",
+    "lens": "architectural",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The spec mandates that the exact reply text typed at the ratify offer — the trigger word plus the operator's free-form clause (\"ratify, this was already settled because …\") — be \"recorded verbatim on FAFF-1398\" (HOW step 6 / DONE item). The same spec elsewhere establishes that this reply must pass through structural neutralisation (newline collapse, secret-shaped-value redaction, imperative scrub) before it becomes tracker DATA — that is precisely the step-4b behaviour under test. But the verbatim-audit copy is written to the tracker **without** that transform, by construction. If the operator's natural reply happens to embed a secret-shaped value (a token pasted in mid-sentence, an internal hostname+credential, a one-line \"this was settled when we rotated X=…\"), it lands on a real tracker ticket un-redacted, in the very artifact class the spec's own rationale says must be neutralised before it becomes tracker DATA. The spec causes this: the verbatim recording is a named requirement, not a careless build choice.",
+    "evidence": "HOW step 6 / DONE: \"the exact reply text (trigger word alone, or trigger word plus clause) is recorded verbatim on FAFF-1398\"; contrast with WHAT's definition of \"Neutralised, capped quote\" and the step-4b rationale (\"audit the utterance … neutralised before it is written, never raw\").",
+    "predicted_consequence": "a secret-shaped or credential-bearing substring from the operator's interactive reply is persisted un-redacted on the FAFF-1398 tracker ticket, permanently visible to every tracker reader.",
+    "spec_anchor": "how",
+    "lens": "infosec",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The second scenario's \"Then\" clause — \"the posted comment's quote **may** legitimately be empty or absent\" — states a possibility, not a checkable result. A verifier following the runbook cannot decide pass/fail against it: any comment content (empty quote, absent quote, a quote present anyway) is consistent with \"may\". This is the one scenario whose whole purpose is to pin down the bare-word edge case, and as written it decides nothing.",
+    "evidence": "`## 5. Scenarios`, second Given/When/Then block (\"Given the human instead replies with the bare word 'ratify'…\").",
+    "predicted_consequence": "the verifier cannot mark this scenario passed or failed; the bare-word edge case the spec deliberately chose to test (Design decision rationale, QA-lens major revision) is exercised but produces no decidable record, so the round-1 QA fix is undone in the scenarios while surviving in the DONE text.",
+    "spec_anchor": "5-scenarios",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  }
+]

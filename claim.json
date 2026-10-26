@@ -1,0 +1,15 @@
+{
+  "issue": "FAFF-1374",
+  "owner": {
+    "status": "running",
+    "epoch": 1,
+    "session_id": "run-20261026-031227-fly-l3",
+    "pid": 6897,
+    "started_at": "2026-10-26T04:05:47.291Z",
+    "last_heartbeat": "2026-10-26T04:05:47.291Z"
+  },
+  "machine_id": "12427d08-78fd-422e-a841-bd7c2d890655",
+  "heartbeating": true,
+  "claim_epoch": 0,
+  "claimed_at": "2026-10-26T04:05:47.540Z"
+}

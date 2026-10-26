@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1364",
+  "build": {
+    "status": "complete",
+    "diff_hash": "80c8018933af5560b72a3732db0e3c53550a8a883b6d82bcc78a0410714dc027",
+    "branch": "faff-1364-spec-review-flags-a-scenarios-unit-that-names-a-test-file",
+    "pushed_at": "2026-10-26T06:23:00.722Z"
+  },
+  "updated_at": "2026-10-26T06:23:00.722Z"
+}

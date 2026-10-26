@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "test/faff-1364-scenarios-code-surface.test.mjs::scenario 4 claimed byte-identical verdicts but only asserted the admissible boolean",
+      "title": "Scenario 4 claimed byte-identical verdicts but only asserted the admissible boolean",
+      "location": "test/faff-1364-scenarios-code-surface.test.mjs:74",
+      "action": "Added comparisons of checks, non-scenarios-surface warnings, and classify's judged_count/criteria.length.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": null,
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Valid; the test's own stated intent (byte-identical) was broader than its single boolean assertion. Fixed in commit 1a22c39d.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Scenario 4 claimed byte-identical verdicts but only asserted the admissible boolean",
+          "location": "test/faff-1364-scenarios-code-surface.test.mjs:74",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/faff-1364-scenarios-code-surface.test.mjs::no negative test pins the deliberate export-signal exclusion",
+      "title": "No negative test pins the deliberate export-signal exclusion",
+      "location": "test/faff-1364-scenarios-code-surface.test.mjs",
+      "action": "Added a regression test asserting an export-signal Scenarios unit is not flagged.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": null,
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Valid; the OUT OF SCOPE decision to fire only on codeSurfaceSignal===\"test-file\" was unpinned by any test. Fixed in commit 1a22c39d.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "No negative test pins the deliberate export-signal exclusion",
+          "location": "test/faff-1364-scenarios-code-surface.test.mjs",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/admissibility.js::scenarioscodesurfaceadvisory re-runs dodclassify a fourth time per verdict",
+      "title": "scenariosCodeSurfaceAdvisory re-runs dodClassify a fourth time per verdict",
+      "location": "plugin/skills/faff/bin/lib/admissibility.js",
+      "action": "Accepted as-is; mirrors the pre-existing proseDoneAdvisory/codeSurfaceAdvisory re-parse pattern, which this ticket's spec scoped itself to replicate rather than refactor.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": null,
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Correctness is unaffected (confirmed by the reviewer's own predicted_consequence: 'not separately stated'); redundant parsing is pre-existing architecture (codeSurfaceAdvisory and proseDoneAdvisory already do this), and the spec's OUT OF SCOPE section explicitly confines this ticket to the four new functions, not a refactor of the shared advisory-calling pattern.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "scenariosCodeSurfaceAdvisory re-runs dodClassify a fourth time per verdict",
+          "location": "plugin/skills/faff/bin/lib/admissibility.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

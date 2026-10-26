@@ -9,6 +9,10 @@ Attack the spec's testability and done-ness:
   vague ("works well", "is robust") with no pass/fail line?
 - **Scenario coverage** — do the scenarios cover the main behaviour AND the edge cases the spec itself
   names (failure modes, boundary counts, empty/oversized inputs)? Name a behaviour with no scenario.
+- **Holdout-unobservable Scenarios unit** — is a `## Scenarios` unit's check a repository test file
+  passing (e.g. "`` `test/a.test.mjs` MUST pass ``")? The code-blind holdout cannot read or run a test
+  file — raise it, so the author restates the behaviour as an observable Given/When/Then and moves the
+  test-file check to its own DONE item.
 - **Acceptance gap** — is there a DONE item with no corresponding scenario, or a scenario that asserts
   something the DONE criteria never required (scope creep into the tests)?
 - **Oracle problem** — for each acceptance criterion, what exactly would you run/observe, and what is

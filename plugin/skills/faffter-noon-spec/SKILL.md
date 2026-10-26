@@ -69,6 +69,7 @@ Motivation to verifiable done, in four phases. Every non-trivial decision carrie
 - This is the same language as holdout BDD; a holdout is just the withheld subset of these scenarios.
 - **Anti-pattern:** restating the DONE checklist as Given-When-Then. Why: DONE already mirrors the body; scenarios sharpen the WHAT's main objectives, they don't duplicate DONE. The dedicated section + complexity bar exist to avoid exactly this.
 - **Marking a holdout (optional).** Withhold a scenario from the builder for the code-blind evaluator by marking it in place — a fenced GWT block whose fence-info is `holdout` (```` ```holdout ```` / `~~~holdout`), or a bullet prefixed `holdout:` (stripped before classification). Mark a minority (never more than half, never all — the builder keeps at least one visible scenario), and only a scenario whose behaviour the body already requires — never the sole statement of a requirement. DONE items are never marked.
+- Never make a Scenarios unit's check a repository test file passing — the holdout cannot read or run one. Restate the behaviour as an observable Given/When/Then and put the test-file check in its own DONE item instead.
 
 ### 4. DONE — Definition of Done (closed-loop)
 

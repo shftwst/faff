@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "test/economics.test.mjs::no-ambient-session premise unenforced in new tests",
+      "title": "No-ambient-session premise unenforced in new tests",
+      "location": "test/economics.test.mjs",
+      "action": "none needed — run() helper builds a clean child env by construction",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "run() helper (top of test/economics.test.mjs) constructs the child env from HOME/PATH plus explicit overrides only; CLAUDE_CODE_SESSION_ID cannot leak in from the parent process.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "No-ambient-session premise unenforced in new tests",
+          "location": "test/economics.test.mjs",
+          "severity": "major",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/economics.test.mjs::mint-time precedence level untested at breakdown call sites",
+      "title": "Mint-time precedence level untested at breakdown call sites",
+      "location": "test/economics.test.mjs",
+      "action": "none needed — effectiveEnv is a single pre-resolved value; call-site logic cannot diverge by precedence level",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "effectiveEnv is computed once at economics.js:1259 before either call site runs; the fix is reading-effectiveEnv-at-all, not per-precedence-level logic, and effectiveEnv's own resolution is out of scope per spec section 2.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Mint-time precedence level untested at breakdown call sites",
+          "location": "test/economics.test.mjs",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/economics.test.mjs::--by class half asserted only reconciliation arithmetic",
+      "title": "--by class half asserted only reconciliation arithmetic",
+      "location": "test/economics.test.mjs",
+      "action": "add per-class row assertions",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "added classByKey.input.total===480 / classByKey.output.total===120 assertions in this review round's commit.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "--by class half asserted only reconciliation arithmetic",
+          "location": "test/economics.test.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/economics.test.mjs::post-fix totals couple tests to faff-933 fold arithmetic",
+      "title": "Post-fix totals couple tests to FAFF-933 fold arithmetic",
+      "location": "test/economics.test.mjs",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "acceptable coupling; a future fold-semantics change would appropriately need to touch these fixtures too.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Post-fix totals couple tests to FAFF-933 fold arithmetic",
+          "location": "test/economics.test.mjs",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/economics.test.mjs::mcp fixture's tool_result record carries no model/usage fields",
+      "title": "mcp fixture's tool_result record carries no model/usage fields",
+      "location": "test/economics.test.mjs",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "matches real transcript shape; economicsMcpBreakdown iterates every record for message.content independent of usage/model presence (economics.js ~667-686).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "mcp fixture's tool_result record carries no model/usage fields",
+          "location": "test/economics.test.mjs",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

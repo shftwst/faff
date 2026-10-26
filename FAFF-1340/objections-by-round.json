@@ -1,0 +1,59 @@
+[
+  {
+    "round": 1,
+    "window_start": 1,
+    "objections": [
+      {
+        "lens": "architectural",
+        "severity": "minor",
+        "claim": "The two-branch builder instruction decides by grepping for the exact identifiers `matchPuntStart` and `opensListItem`, but FAFF-1351 is Backlog and its spec is not in context — the spec merely asserts \"FAFF-1351 defines two helpers, `matchPuntStart(line)` and `opensListItem(line)`\" as fact about an API it cannot control. The whole composition contract (the landed-branch behaviour, the three combined rows, the DONE record of which branch applied) hinges on a string match against an unbuilt surface.",
+        "evidence": "Section 4, \"Composition with FAFF-1351\": \"the builder's first act is to open `punt-scan.js` and look for `matchPuntStart` and `opensListItem`\"; the not-landed branch's comment instruction \"FAFF-1351 replaces it with `opensListItem`\".",
+        "predicted_consequence": "If FAFF-1351 lands first under any different naming, the grep misses, the builder correctly takes the not-landed branch — but since FAFF-1351 has already landed, nobody ever executes the \"FAFF-1351 replaces it\" comment, and `punt-scan.js` permanently carries two parallel Punt-start/list-item recognisers (the local `LIST_ITEM_OPENER_RE` plus the sibling's helpers). Behaviour stays correct, but the duplicate-recogniser drift is exactly what the composition section was built to prevent, and nothing in either ticket's DONE catches it.",
+        "spec_anchor": "`4-how-behavior`"
+      },
+      {
+        "lens": "infosec",
+        "severity": "minor",
+        "claim": "The spec's safety argument (\"every wrap error is fail-safe … extending a topic is monotone\") holds for the *old* defect but is inverted for the *new* one, and the spec only half-closes it. `slugTokenRunContains` is a containment test, so **extending** a topic by absorbing continuation lines is monotone toward `out_of_scope_crossref: true`, not away from it. The failure-modes list names only the absorbed-`(non-blocking)` half of the fail-open path; it never names the other half: a blocking Punt directly followed (no blank line) by an ordinary prose sentence that happens to mention an OUT OF SCOPE item name — which is exactly the shape of a \"deferred to a future ticket\" discussion paragraph. Both absorbed facts combine and the Punt flips `eligible`, the one direction the module exists to prevent. The terminator set does not cover this: a plain prose sentence is not a terminator under any of the eight rows, by design.",
+        "evidence": "\"Direction of the defect\" paragraph (`extending a topic is monotone`); the terminator table in the-terminator-set row of `# 3. WHAT: Vocabulary, Types, and Interfaces`; the failure-modes bullet in `# 4. HOW: Behavior` names only `a literal (non-blocking)` absorption, not crossref creation; `slugTokenRunContains` in `plugin/skills/faff/bin/lib/punt-scan.js` is containment-based.",
+        "predicted_consequence": "a Punt whose topic was meant to be one clause absorbs an adjacent same-paragraph sentence naming an OUT OF SCOPE item; combined with an absorbed or inline `(non-blocking)` tag, `eligible_count` rises and `blocking_open_count` drops, so routing treats an unresolved decision as settled. Checkable: the DONE corpus differential (\"no file's `eligible_count` rises unless … genuinely wrapped\") would flag it — but that check is the only control, it is one-shot at build time, and nothing in the spec requires the differential to distinguish *crossref-created-by-absorption* from *tag-carried-on-a-continuation* when naming the file.",
+        "spec_anchor": "how-behavior"
+      },
+      {
+        "lens": "QA",
+        "severity": "minor",
+        "claim": "The DONE criterion asserts \"A line is a terminator for each of the eight rows of the terminator table,\" but the selftest rows it demands cover only five (blank, heading, next `**Punt:**`, `**Chosen:**`, list-item opener). Fence, block quote, table row, and thematic break — and the `**Decision:**` alias named in the next-marker row — have no required test row, so a build could implement those four terminators wrongly (e.g. a fence line absorbed into a continuation) and still tick every DONE box.",
+        "evidence": "`### From WHAT` second bullet vs. the eight-row terminator table in `## 4. HOW: Behavior`; no scenario in `## 5. SCENARIOS` exercises any of the four either.",
+        "predicted_consequence": "A fence, quote, table, or thematic-break line containing a literal `(non-blocking)` gets absorbed into a preceding Punt's logical line, flipping it eligible — exactly the over-absorption the spec names as its one regression risk — with no test failing.",
+        "spec_anchor": "how-behavior"
+      }
+    ]
+  },
+  {
+    "round": 2,
+    "window_start": 1,
+    "objections": [
+      {
+        "lens": "architectural",
+        "severity": "minor",
+        "claim": "The terminator table — the spec's named \"safety boundary\" — closes the continuation on `**Punt:**`, `**Chosen:**`, `**Decision:**`, and `**Assumes:**` only. But the nlspec format is dense with other bold-led lines (`**Rating note.**`, `**Open Questions.**`, `**The failure:**`, `**How you'd know:**`), and the spec's own design principle says \"When a line is in doubt, it ends the continuation.\" An enumerated allowlist of four is the opposite of that principle: every bold-led line not on the list is, by default, absorbed. The general rule — any line starting a non-empty bold token — is simultaneously simpler (one regex instead of a four-way alternation that FAFF-1351 must then partially replace with `matchPuntStart`) and strictly safer, since a wrapped Punt topic never begins with bold text, so the wider rule can only end continuations earlier, which the spec itself establishes as the safe direction.",
+        "evidence": "Terminator table row \"Next marker\" (Section 3) vs the design principle \"The terminator set is the safety boundary… When a line is in doubt, it ends the continuation\" (Section 1), and failure mode 1, which names exactly this hazard class — \"an unrelated line that is not a terminator and that contains a literal `(non-blocking)`\" — then leaves it open pending a corpus hit.",
+        "predicted_consequence": "A Punt directly followed (no blank line) by a non-enumerated bold-led line absorbs it; if that line quotes or carries `(non-blocking)` — plausible in a format whose prose discusses the tag itself — the Punt goes eligible, which is the wave-through FAFF-1078 closed. The corpus differential does not control for this on the scanner's post-landing input, since it runs only over `records/specs/` and never over tracker-attached spec bodies, which the spec's own Open Questions section names as real scanner input.",
+        "spec_anchor": "3-what-vocabulary-types-and-interfaces"
+      },
+      {
+        "lens": "QA",
+        "severity": "minor",
+        "claim": "Scenario 1 conditions equivalence on \"at any space where the continuation line does not itself start with a terminator (a leading hyphen, >, |, #, or a numbered-list opener ends the logical line by design)\". The DONE property test states the same property unconditionally: \"Wrapping a Punt at every space in its text, with each of three separators … yields a result identical to the single-line form.\" These cannot both be the requirement. If any wrap position in the chosen Punt text produces a terminator-leading continuation line (e.g. a space before an ASCII-hyphen dash, or before a digit in a `(decides: 2 options)`-shaped suffix), the unconditional property test fails by design, and a builder must either weaken the test silently or conclude the build is wrong.",
+        "evidence": "`### From HOW (behaviour)` last bullet vs. the first scenario in `### 5. SCENARIOS`.",
+        "predicted_consequence": "the property test is either unsatisfiable as written or implemented with an unstated carve-out, so a reviewer cannot tell whether a failing wrap position is a defect or the specified terminator behaviour — done cannot be decided for that row without guessing which of the two statements governs.",
+        "spec_anchor": "from-how-behaviour"
+      }
+    ]
+  },
+  {
+    "round": 3,
+    "window_start": 1,
+    "objections": []
+  }
+]

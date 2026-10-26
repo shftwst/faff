@@ -1,0 +1,10 @@
+[
+  {
+    "proposition_id": "p-01",
+    "outcome": "AFFIRM_SPEC",
+    "rationale": "The objecting position rests on a misreading of the smoke test. The spec's step 4 does not say 'de-prefix every line'; it says 'De-prefix only the three Punt lines (leave the OUT OF SCOPE bullet exactly as it is, because the extractor is unchanged and still needs its dash bullet), and re-run.' The reconstruction confirms this: the byte-identical assertion applies after de-prefixing only the three Punt lines, with the OUT OF SCOPE dash bullet left intact. Therefore B's claimed failure mode — that de-prefixing destroys the OUT OF SCOPE key, loses the crossref, and drops eligible_count from 1 to 0 — does not follow from the procedure as written. Because the OUT OF SCOPE bullet is explicitly preserved, the unchanged extractor still produces the key, the star-listed tagged Punt retains its crossref, eligible_count remains 1, and the step-5 byte-identical assertion is decidable. B's predicted consequence describes a build that follows a procedure the spec does not contain. No material, checkable testing or QA defect against the governing requirements or valid-solution properties is established.",
+    "correction": null,
+    "synthesis_sources": [],
+    "prd_gap_citation": ""
+  }
+]

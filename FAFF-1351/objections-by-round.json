@@ -1,0 +1,60 @@
+[
+  {
+    "round": 1,
+    "window_start": 1,
+    "objections": [
+      {
+        "lens": "architectural",
+        "severity": "major",
+        "claim": "The spec's central invariant — a listed Punt and its de-prefixed twin produce byte-identical `PuntScanResult` — is not actually guaranteed by the design as written. The prefix is consumed by `matchPuntStart`, but the remainder it returns is then fed through the existing topic/slug/crossref pipeline. For the eligible case (listed Punt + bare tag + OUT OF SCOPE crossref), the crossref check runs `slugTokenRunContains(topicSlug, oosKey)`. The topic is derived from the remainder, which is identical whether or not the prefix was present. So far so good. But the spec's own DONE criterion \"A listed Punt and the same words without the prefix produce byte-identical `faff punt-scan` output, for each of the seven prefixes\" is tested only against the seven prefixes in the parametrised test. The nested case (indented four spaces under a parent item) is listed as one of the seven prefixes in the selftest table, but the parametrised test in section 4 says \"one parametrised test over the seven prefixes (dash, star, plus, `1.`, `2)`, and two indented variants such as a nested item carries)\". That is only six distinct forms plus one nested variant — the nested variant is not a prefix, it is a prefix plus indentation. The spec conflates \"prefix\" with \"indentation + prefix\" and never tests the nested case against the byte-identical invariant. If the nested case produces a different topic (e.g. because the indentation is not stripped from the remainder), the invariant fails silently and the DONE criterion is unmet.",
+        "evidence": "Section 4 \"Tests\" — \"one parametrised test over the seven prefixes (dash, star, plus, `1.`, `2)`, and two indented variants such as a nested item carries)\"; Section 8 DONE — \"A listed Punt and the same words without the prefix produce byte-identical `faff punt-scan` output, for each of the seven prefixes.\"",
+        "predicted_consequence": "The nested listed Punt (indented under a parent item) either (a) is not covered by the parametrised test, so the invariant is untested for the one form most likely to carry indentation into the remainder, or (b) the test is written to include it but the spec's own list of \"seven prefixes\" is internally inconsistent, so a builder cannot know which forms the DONE criterion actually covers. Either way, the byte-identical invariant is not established for the nested case, and the spec's own DONE checklist cannot be verified as written.",
+        "spec_anchor": "how-behaviour"
+      },
+      {
+        "lens": "architectural",
+        "severity": "minor",
+        "claim": "The DONE criterion is either vacuous (the change is monotone by design, so the criterion always passes) or untestable (no baseline capture mechanism is specified). Either way it does not test what the spec claims it tests.",
+        "evidence": "Section 8 DONE — \"Running the scanner over every file in `records/specs/` before and after shows no input whose `blocking_open_count` decreased.\"",
+        "predicted_consequence": "A builder either skips the check (it is trivially true) or implements a baseline comparison that flags the 56 newly-blocking specs as a regression, contradicting the spec's own failure-mode section which says \"proceed. That is the correction, not a regression.\"",
+        "spec_anchor": "done-definition-of-done"
+      }
+    ]
+  },
+  {
+    "round": 2,
+    "window_start": 1,
+    "objections": [
+      {
+        "lens": "architectural",
+        "severity": "major",
+        "claim": "The spec's central testable property — that a listed Punt and its de-prefixed twin produce byte-identical `PuntScanResult` — is not established by the design as written. The spec claims the leading `\\s*` sits outside the capture group so indentation never reaches the remainder, but the regex `^\\s*(?:[-*+]|\\d{1,9}[.)])\\s*\\*\\*Punt:\\*\\*\\s*(.+)$` consumes *all* leading whitespace before the optional prefix. For a nested form like `    - **Punt:** foo`, the `\\s*` greedily consumes the four spaces, then the prefix group consumes `- `, and the remainder is `foo` — fine. But for a *bare* line-start Punt with indentation, e.g. `    **Punt:** foo`, the `\\s*` consumes the four spaces and the remainder is `foo` — also fine. The problem is the *de-prefixed twin* of a nested listed Punt: the spec's DONE item says \"a listed Punt and the same words without the prefix produce byte-identical output\" — but \"without the prefix\" for a nested form means the indentation remains (`    **Punt:** foo`), and that *does* produce the same remainder. So the invariant holds for the seven forms as enumerated. However, the spec's own test row \"nested dash\" uses \"four spaces then `- `\" and the parametrised test asserts `puntScan(form + body)` deep-equals `puntScan(body)` — where `body` is the bare line-start form with *no* indentation. For the nested forms, `form + body` is `    - **Punt:** …` and `body` is `**Punt:** …` — these produce identical remainders, so the test passes. The gap is narrower: the spec never tests the *de-prefixed but still indented* twin (`    **Punt:** …` vs `    - **Punt:** …`), which is the actual \"same words without the prefix\" reading for a nested item. Both produce the same remainder, so the design is sound — but the spec's invariant statement is sloppier than its test, and a builder following the DONE item literally (\"same words without the prefix\") could write a test that fails for nested forms if they interpret \"without the prefix\" as \"strip the prefix but keep the indent\" and compare against the *flush-left* bare form. This is a spec-text ambiguity that can produce a red build through no fault of the design.",
+        "evidence": "Section 3 regex composition; Section 8 DONE item \"A listed Punt and the same words without the prefix produce byte-identical `faff punt-scan` output, for each of the seven accepted forms\"; Section 5 scenario \"the same Punt text written once as a plain line and once behind each list form\".",
+        "predicted_consequence": "A builder reads \"without the prefix\" for the nested-dash form as `    **Punt:** …` (indent kept, prefix removed), compares against the flush-left bare form, and the byte-identical assertion fails — forcing a spec re-read mid-build or a test that silently tests the wrong comparison.",
+        "spec_anchor": "what-types-and-interfaces"
+      },
+      {
+        "lens": "architectural",
+        "severity": "minor",
+        "claim": "The spec exports `opensListItem` \"so that any continuation-aware parse (FAFF-1340) decides 'this line opens a list item' from the one definition rather than restating the marker rule\" — but FAFF-1340 is explicitly out of scope and may never land. The selftest row \"opens a list item\" tests it, and the DONE item requires it exported, but nothing in the shipped change set calls it. This is a speculative seam: it adds a public surface (an exported function) with zero in-tree consumers, and the spec's own \"state the recognition rule once\" principle is already satisfied by `LIST_ITEM_PREFIX` being a named fragment that both `matchPuntStart` and `opensListItem` compose from. The export is not needed to keep the rule in one place — the fragment does that. The only thing the export buys is a call-site for a future ticket that the spec itself cannot know will land. If FAFF-1340 is cancelled or re-scoped, `opensListItem` is permanent dead API on a module whose consumers are documented as read-only.",
+        "evidence": "Section 3 \"A second exported helper, `opensListItem(line) -> Boolean` … It exists so that any continuation-aware parse (FAFF-1340) decides…\"; Section 2 OUT OF SCOPE \"Continuation lines of a wrapped Punt. Why excluded: that is FAFF-1340's half\".",
+        "predicted_consequence": "`opensListItem` ships unused; a later lint or API-surface review flags it, and the removal is a second change to a module that this spec claims is a single-file unit.",
+        "spec_anchor": "what-types-and-interfaces"
+      }
+    ]
+  },
+  {
+    "round": 3,
+    "window_start": 1,
+    "objections": [
+      {
+        "lens": "QA",
+        "severity": "major",
+        "claim": "The integration smoke test asserts that de-prefixing \"every line\" and re-running yields byte-identical JSON, but the spec's own frozen `extractOutOfScopeItemKeys` (a DONE invariant: \"unchanged\") requires a dash-bulleted `- **name**` line to emit an OUT OF SCOPE key. De-prefixing the OUT OF SCOPE bullet destroys the key, the star-listed tagged Punt loses its crossref, and `eligible_count` drops from 1 to 0 — so step 5's byte-identical assertion fails on a correct build. If \"every line\" was meant to exclude the OUT OF SCOPE bullet, the procedure does not say so, and the acceptance step cannot be decided.",
+        "evidence": "The `PROCEDURE smoke()` block under \"### Repository checks\" / DONE: steps 4–5 (\"De-prefix every line and re-run. ASSERT the printed JSON is byte-identical to step 2\") combined with the invariant \"extractOutOfScopeItemKeys is unchanged\" and the extractor's `^\\s*-\\s+\\*\\*` shape shown in the reference file.",
+        "predicted_consequence": "A builder following the smoke test literally either ships a \"fix\" that also widens the extractor (violating another DONE item) or reports the smoke test as failing on a correct implementation; the acceptance procedure cannot decide done-ness for the integration check.",
+        "spec_anchor": "repository-checks"
+      }
+    ]
+  }
+]

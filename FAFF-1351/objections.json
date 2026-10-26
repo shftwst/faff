@@ -1,0 +1,11 @@
+[
+  {
+    "claim": "The integration smoke test asserts that de-prefixing \"every line\" and re-running yields byte-identical JSON, but the spec's own frozen `extractOutOfScopeItemKeys` (a DONE invariant: \"unchanged\") requires a dash-bulleted `- **name**` line to emit an OUT OF SCOPE key. De-prefixing the OUT OF SCOPE bullet destroys the key, the star-listed tagged Punt loses its crossref, and `eligible_count` drops from 1 to 0 — so step 5's byte-identical assertion fails on a correct build. If \"every line\" was meant to exclude the OUT OF SCOPE bullet, the procedure does not say so, and the acceptance step cannot be decided.",
+    "evidence": "The `PROCEDURE smoke()` block under \"### Repository checks\" / DONE: steps 4–5 (\"De-prefix every line and re-run. ASSERT the printed JSON is byte-identical to step 2\") combined with the invariant \"extractOutOfScopeItemKeys is unchanged\" and the extractor's `^\\s*-\\s+\\*\\*` shape shown in the reference file.",
+    "predicted_consequence": "A builder following the smoke test literally either ships a \"fix\" that also widens the extractor (violating another DONE item) or reports the smoke test as failing on a correct implementation; the acceptance procedure cannot decide done-ness for the integration check.",
+    "spec_anchor": "repository-checks",
+    "lens": "QA",
+    "severity": "major",
+    "contested_source": false
+  }
+]

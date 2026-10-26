@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "run_id": "run-20261026-131701-beepboop-list-f0d18c",
+  "level": "L3",
+  "admitted": [
+    "FAFF-1399",
+    "FAFF-1380"
+  ],
+  "outcomes": {
+    "FAFF-1398": "parked"
+  },
+  "outcome_details": {
+    "FAFF-1398": {
+      "verdict": "needs-decision-first",
+      "root_cause_class": "punt-not-closed",
+      "reconsider": "human",
+      "disposition": "parked",
+      "note": "medium-confidence spec; DoD requires a live human-interactive ratify session; resolve-attempt failed (no autonomous path)"
+    }
+  },
+  "discovered_scope_filed": 1,
+  "base_sha": "d20ca68edfb2b1a4adf4ac8e17c66198f1a2bd70",
+  "base_sha_required": true,
+  "owner": {
+    "status": "running",
+    "session_id": "run-20261026-131701-beepboop-list-f0d18c",
+    "pid": 490,
+    "started_at": "2026-10-26T13:17:01.623Z",
+    "last_heartbeat": "2026-10-26T13:17:01.623Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "escalate",
+      "pricing": "map"
+    },
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "82f32159-d130-40f2-8352-377da09c3608",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 60,
+        "output": 20020,
+        "cache_write_5m": 0,
+        "cache_write_1h": 426748,
+        "cache_read": 4498463
+      }
+    },
+    "tokens_at_start": 4945291,
+    "tokens_at_last_event": {
+      "input": 354,
+      "output": 159623,
+      "cache_write_5m": 0,
+      "cache_write_1h": 748452,
+      "cache_read": 42023500
+    }
+  },
+  "capabilities": {
+    "FAFF-1380": {
+      "sut_env_stood": false
+    }
+  }
+}

@@ -1,0 +1,29 @@
+[
+  {
+    "claim": "The spec's containment argument rests entirely on tier routing (`resolveVerificationTier` ignores class for non-DONE sources), but `classifyCriterion`'s class label is itself a consumed output with its own routing semantics. `cmdDod`'s own docstring in the supplied file states the classifier exists \"for the evaluator to decide which it may machine-judge (scenario/assertion) vs force to needs-human (prose).\" A Scenarios unit whose only `<`/`>` is a placeholder — e.g. \"Then `faff state <issue>` resolves an issue's local state\" — currently classifies `assertion` and is machine-judgeable by the code-blind holdout (which can absolutely exercise a CLI verb). After the change it classifies `prose`, and the evaluator forces it to `needs-human`. The spec's claim \"The class label on a Scenarios unit therefore changes no verifier. Only DONE items move\" is wrong: the verifier (tier) is unchanged, but the *judged set* shrinks, in the exact misroute direction the ticket exists to fix — items leave the holdout that the holdout could observe.",
+    "evidence": "`plugin/skills/faff/bin/lib/admissibility.js`, `cmdDod` docstring (\"which it may machine-judge (scenario/assertion) vs force to needs-human (prose)\"); spec §3 \"Routing is unchanged for Scenarios units\" and §2 \"Scenarios-unit *routing* is not re-opened.\"",
+    "predicted_consequence": "The first placeholder-bearing Scenarios unit in a committed spec is punted `needs-human` by the evaluator despite being holdout-observable, contradicting the spec's own \"Only DONE items move\" and shrinking the judged set the FAFF-1270 goal depends on; the before/after measurement in the DONE section (which counts only DONE items) will not even detect it.",
+    "spec_anchor": "routing-is-unchanged-for-scenarios-units",
+    "lens": "architectural",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The mask `<[A-Za-z0-9-]+>` fires on any fully-bracketed alphanumeric token, and the text it masks is written by the same producer agent whose delivered feature the holdout later judges — an actor this system explicitly distrusts (spawner-attestation ratchets, code-blind evaluation, \"a hand-authored `met` can never reach a record through this path\"). Any real comparison written with a closing bracket — \"p99 latency MUST be <200ms>\", \"requests <1000>/s\", \"retries <3>\" — matches the mask in full (`200ms`, `1000`, `3` are all inside `[A-Za-z0-9-]+`), leaves no surviving operator, classifies `prose`, and routes `delegated` to the AC checklist, which is filled by the build's own reviewer. The item silently leaves the judged set; the holdout can return `meets-spec` on the remainder and the merge gate opens with the regression never exercised code-blind. The spec's stated bounds — the tight charset, \"requires a closing `>` so no operator fragment is ever masked\" — are precisely the shape the spec author controls, and the historical measurement over committed specs constrains past authors, not a future one. The design also adds no advisory, flag, or output marker when the mask fires, so the move is invisible to every downstream audit. This is a fail-open path in the merge gate the design creates, not a careless-build risk.",
+    "evidence": "§The placeholder shape (\"an opening `<`, one or more letters/digits/hyphens, a closing `>`, with nothing else between the brackets\"); §Failure modes (\"A mis-masked real comparison would silently leave the holdout … the tight `<[A-Za-z0-9-]+>` shape (requires a closing bracket) is what bounds this\"); §6-design-decision-rationale (\"the mask hits no real comparison in committed specs\" — a backward-looking control offered as the bound).",
+    "predicted_consequence": "a real threshold or behavioural assertion is dropped from the holdout's judged set with no signal; the holdout returns `meets-spec`; the merge gate passes with the regression verified only by the build's own self-attested AC checklist.",
+    "spec_anchor": "the-placeholder-shape",
+    "lens": "infosec",
+    "severity": "blocker",
+    "contested_source": false
+  },
+  {
+    "claim": "The measurement DONE item's safety value rests on recording \"the placeholder-only delta,\" but \"placeholder-only\" is identified using the very mask under test — a mis-masked real comparison is counted as placeholder-only by construction. The measurement is therefore circular: it reports the safe answer even when a real comparison was masked, so it cannot serve as the evidence that \"no real comparison reclassified.\" The delta items must be classified by a mask-independent method (e.g. manual review of every moved item against the unmasked text) for the control to bite.",
+    "evidence": "§Measurement (\"the before/after count of `assertion`-class DONE items and the placeholder-only delta are recorded\"); §6-design-decision-rationale (\"the mask hits no real comparison in committed specs; the crude-parser figure above is supporting evidence, not the gate\").",
+    "predicted_consequence": "the gate the spec relies on to prove the mask safe confirms safety even when a real comparison left the holdout.",
+    "spec_anchor": "measurement",
+    "lens": "infosec",
+    "severity": "minor",
+    "contested_source": false
+  }
+]

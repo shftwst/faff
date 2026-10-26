@@ -1,0 +1,486 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A repo seeded with `.faff/.gitignore` containing only `!/anchors/`, run through `faff gitignore-ensure`, prints a warning naming `!/anchors/` and the `/*` line.",
+      "verified": "gitignoreEnsureSelftest 'dead written file: a repo seeded with only `!/anchors/` is still written' + 'seeded `!/anchors/`, warns naming `!/anchors/` and the `/*` line' — both ok",
+      "passed": true,
+      "ac_id": "faff-1309#done:1",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gitignore-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "A repo seeded with `.faff/.gitignore` containing only `*` prints a warning naming `!/anchors/` and `!/templates/` and the `*` line — the shape that today reports `ok: true` with exit 0.",
+      "verified": "gitignoreEnsureSelftest 'dead written file: a repo seeded with only `*` warns naming both subtree carve-outs and the `*` line' — ok",
+      "passed": true,
+      "ac_id": "faff-1309#done:2",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gitignore-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "The existing selftest guard that `/*` sits at a lower index than every negation *in the constant* is still present and still passing, unmodified.",
+      "verified": "gitignoreEnsureSelftest 'faff-dir set: `/*` is at a lower index than every negation' — unmodified, still ok",
+      "passed": true,
+      "ac_id": "faff-1309#done:3",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gitignore-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "A new guard asserts the property over the **written file** for a repo that brought its own lines, not only for a fresh repo.",
+      "verified": "gitignoreEnsureSelftest 'dead written file: ...' (2 cases) + 'fresh repo via gitignoreEnsure: no shadowed-negation warning' — the written-file guard, not just the constant",
+      "passed": true,
+      "ac_id": "faff-1309#done:4",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gitignore-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "A pure, exported predicate over `.faff/.gitignore` text returns rows in `FAFF_DIR_GITIGNORE_PATTERNS` order, each carrying the negation, the offending catch-all line, its 1-based line number, and a `kind` of `\"deep\"` or `\"positional\"`.",
+      "verified": "gitignoreEnsureSelftest's 'shadowed: ...' rows construct and assert {negation, catch_all, catch_all_line_number, kind} directly — all ok",
+      "passed": true,
+      "ac_id": "faff-1309#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gitignore-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "Returns `[]` for `null`, `undefined`, a number, a non-string object, and a string with no catch-all line.",
+      "verified": "gitignoreEnsureSelftest 'shadowed: non-strings yield []' + 'a string with no catch-all line yields []' — ok",
+      "passed": true,
+      "ac_id": "faff-1309#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gitignore-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "Each of `*`, `**`, `/**`, `**/*`, `**/**`, `/**/*` placed **above** a correctly-ordered block yields a `kind: \"deep\"` row for `!/anchors/` and `!/templates/` and **no row** for the five file carve-outs.",
+      "verified": "gitignoreEnsureSelftest loop over FAFF_DIR_DEEP_CATCHALLS: '`${deep}` above a correct block warns only the two subtree carve-outs, kind deep' — ok for all six spellings",
+      "passed": true,
+      "ac_id": "faff-1309#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gitignore-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "Each of those six placed **below** a correctly-ordered block yields the two deep rows plus `kind: \"positional\"` rows for all five file carve-outs.",
+      "verified": "gitignoreEnsureSelftest loop: '`${deep}` below a correct block warns all seven (2 deep + 5 positional)' — ok for all six spellings",
+      "passed": true,
+      "ac_id": "faff-1309#done:8",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gitignore-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`/*` above every negation yields no row. `/*` below the whole block yields `kind: \"positional\"` rows for **every** carve-out whose last occurrence precedes it — seven rows, not one.",
+      "verified": "gitignoreEnsureSelftest '`/*` above every negation yields []' + '`/*` below the whole block warns all seven carve-outs, all positional' — ok",
+      "passed": true,
+      "ac_id": "faff-1309#done:9",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gitignore-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`/*` inserted immediately below `!/anchors/` in an otherwise correct block yields positional rows for exactly those carve-outs above it, and none for those below.",
+      "verified": "gitignoreEnsureSelftest 'a second `/*` inserted below `!/anchors/` warns only what sits above it' — ok",
+      "passed": true,
+      "ac_id": "faff-1309#done:10",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gitignore-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "File text `!/anchors/` · `/*` · `!/anchors/` yields no row; file text `!/anchors/` · `!/anchors/` · `/*` yields exactly one row, for `!/anchors/`.",
+      "verified": "gitignoreEnsureSelftest '`!/anchors/` · `/*` · `!/anchors/` (repeated, last wins) yields []' + '...yields exactly one row for `!/anchors/`' — both ok",
+      "passed": true,
+      "ac_id": "faff-1309#done:11",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gitignore-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "File text `*` · `!/anchors/` · `!/anchors/**` yields no row for `!/anchors/`; a correct block with `*` on top and `!/anchors/**` appended yields a deep row for `!/templates/` and none for `!/anchors/`.",
+      "verified": "gitignoreEnsureSelftest '`*` · `!/anchors/` · `!/anchors/**` yields no row for `!/anchors/`' + '`*` on top + a correct block + `!/anchors/**` appended warns `!/templates/` ... and not `!/anchors/`' — both ok",
+      "passed": true,
+      "ac_id": "faff-1309#done:12",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gitignore-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "A line `  *` or a leading-tab `*` yields no row, and neither does a leading-whitespace negation.",
+      "verified": "gitignoreEnsureSelftest '`  *` (leading spaces) above a correct block yields []' + 'a leading-tab `*` above a correct block yields []' — both ok",
+      "passed": true,
+      "ac_id": "faff-1309#done:14",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gitignore-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "Trailing whitespace and a trailing CR do not change the verdict; blank and `#`-prefixed lines are skipped.",
+      "verified": "gitignoreEnsureSelftest 'trailing whitespace/CR do not change the verdict' + 'blank and `#`-prefixed lines are skipped' — both ok",
+      "passed": true,
+      "ac_id": "faff-1309#done:15",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gitignore-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "A carve-out spelled `!/anchors` without its trailing slash is recognised as that carve-out, matching `gitignoreHasPattern`'s folding.",
+      "verified": "gitignoreEnsureSelftest '`!/anchors` without its trailing slash is recognised as that carve-out' — ok",
+      "passed": true,
+      "ac_id": "faff-1309#done:16",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gitignore-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`*/`, `/*/`, `*/*`, `/*/**` and an explicit `/anchors/` yield no row in either position, each pinned as an accepted gap by a row that fails if the predicate widens.",
+      "verified": "gitignoreEnsureSelftest gap-spelling loop (4 spellings x 2 positions) all ok; real-git oracle table rows for the same spellings (pinned gap:true) also pass",
+      "passed": true,
+      "ac_id": "faff-1309#done:17",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/impure/gitignore-ensure-set.test.mjs::FAFF-1309 oracle: `*/` above → ..."
+        }
+      ]
+    },
+    {
+      "ac": "`plugin/skills/faff/bin/lib/gitignore-ensure.js` still imports only `fs`, `os`, `path` and `shared-infra` — no `child_process`.",
+      "verified": "gitignoreEnsureSelftest \"this module's own top-of-file require lines name only fs/os/path/argv/shared-infra\" — ok",
+      "passed": true,
+      "ac_id": "faff-1309#done:18",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gitignore-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`gitignoreEnsure` reads `.faff/.gitignore` back after writing it and appends one warning per dead file to `warnings`.",
+      "verified": "code inspection: gitignoreEnsure's non-local branch reads faffDir.path back and pushes shadowedFaffDirWarning when non-empty; gitignoreEnsureSelftest's two 'dead written file' tests exercise this end to end",
+      "passed": true,
+      "ac_id": "faff-1309#done:19",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gitignore-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "Exactly one warning is emitted for a dead file, listing every shadowed carve-out with its offending line and line number.",
+      "verified": "gitignoreEnsureSelftest 'dead written file: seeded `!/anchors/`, warns naming `!/anchors/` and the `/*` line' asserts warnings.length === 1 (one message, not one per row)",
+      "passed": true,
+      "ac_id": "faff-1309#done:20",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gitignore-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "The warning's hand fix is per-kind: positional rows say \"move the `/*` above every carve-out, or add the negation again below it\"; deep rows say \"delete the line, or replace it with `/*` above every carve-out\".",
+      "verified": "code inspection: shadowedFaffDirRowMessage's positional/deep remedy text matches the spec's own table verbatim",
+      "passed": true,
+      "ac_id": "faff-1309#done:21",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n shadowedFaffDirRowMessage plugin/skills/faff/bin/lib/gitignore-ensure.js"
+        }
+      ]
+    },
+    {
+      "ac": "The warning never says \"delete the earlier negation\", never tells the operator to move a deep catch-all, and never tells them to respell one in place.",
+      "verified": "gitignoreEnsureSelftest 'shadowed warning: never says \"delete the earlier negation\", never tells the operator to move a deep catch-all, never \"respell ... in place\"' — ok",
+      "passed": true,
+      "ac_id": "faff-1309#done:22",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gitignore-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "For each remedy arm the message can print, a test applies it literally to a seeded dead file and asserts that real git then reports every carve-out committable **and** that a re-run prints no warning.",
+      "verified": "real-git scenario: 'a bare `*` above a correctly-ordered block ... applying the printed fix (delete the `*` line) silences the next run' — applies the remedy literally and re-measures with real git",
+      "passed": true,
+      "ac_id": "faff-1309#done:23",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/impure/gitignore-ensure-set.test.mjs::FAFF-1309 scenario: a bare `*` above a correctly-ordered block — deep warning naming both subtree carve-outs; applying the printed fix (delete the `*` line) silences the next run"
+        }
+      ]
+    },
+    {
+      "ac": "The warning is produced by a builder other than `hazardWarning`, and `hazardWarning`'s text is unchanged.",
+      "verified": "code inspection: shadowedFaffDirWarning is a distinct function from hazardWarning; hazardWarning's body is byte-unchanged in this diff (git diff confirms no edits to it)",
+      "passed": true,
+      "ac_id": "faff-1309#done:24",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main...HEAD -- plugin/skills/faff/bin/lib/gitignore-ensure.js"
+        }
+      ]
+    },
+    {
+      "ac": "`faff gitignore-ensure` exits 0 on a dead file and the file is still written; only a write error still exits 2.",
+      "verified": "real-git test 'FAFF-1309: faff gitignore-ensure exit code stays 0 and the file is still written on every dead-file shape' — pass",
+      "passed": true,
+      "ac_id": "faff-1309#done:25",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/impure/gitignore-ensure-set.test.mjs::FAFF-1309: faff gitignore-ensure exit code stays 0 and the file is still written on every dead-file shape"
+        }
+      ]
+    },
+    {
+      "ac": "The `--json` shape is unchanged: `{path, created, added, already, faff_dir, warnings}`, with the new message appearing as a string in `warnings`.",
+      "verified": "code inspection: the return shape adds no new key; every oracle/scenario test above reads warnings/faff_dir/added/already via the unchanged --json shape",
+      "passed": true,
+      "ac_id": "faff-1309#done:26",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gitignore-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`faff gitignore-ensure --local` creates no `.faff/.gitignore`, reports `faff_dir` as `null`, and reports `warnings` as `[]`.",
+      "verified": "pre-existing selftest cases ('local: faff_dir is null and warnings empty', FAFF-1299 --local test) are unaffected — the --local branch returns before .faff/.gitignore is touched, untouched by this diff",
+      "passed": true,
+      "ac_id": "faff-1309#done:27",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gitignore-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "Every row of section 5's oracle table is a test row, asserting git's verdict on a nested payload (`.faff/anchors/run-1/FAFF-1/events.jsonl`), a flat payload (`.faff/templates/spec.md`) and a direct-child file (`.faff/config.yaml`), alongside the detector's verdict.",
+      "verified": "test/impure/gitignore-ensure-set.test.mjs's FAFF_1309_ORACLE_ROWS loop (26 rows) + FAFF_1309_LITERAL_ROWS (4 rows) — every row of spec section 5's table, asserting git's anchors/templates/config verdicts alongside the detector's — all pass",
+      "passed": true,
+      "ac_id": "faff-1309#done:28",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/impure/gitignore-ensure-set.test.mjs::FAFF-1309 oracle: ..."
+        }
+      ]
+    },
+    {
+      "ac": "`seedFaffFiles` seeds a flat `.faff/templates/` payload so the nested-versus-flat distinction is observable.",
+      "verified": "code inspection: seedFaffFiles now seeds .faff/templates/spec.md (a flat payload) alongside the nested .faff/anchors/... payload",
+      "passed": true,
+      "ac_id": "faff-1309#done:29",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n seedFaffFiles test/impure/gitignore-ensure-set.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "The oracle uses `git check-ignore -q` or `git status --porcelain -uall`, never `check-ignore -v`'s exit code, and runs git with `cwd` set to the repo.",
+      "verified": "code inspection: gitCheckIgnore() uses `git check-ignore -q`, never -v's exit code, with cwd: dir",
+      "passed": true,
+      "ac_id": "faff-1309#done:30",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n gitCheckIgnore test/impure/gitignore-ensure-set.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "Every `gap: true` row fails if the predicate is widened to cover it without the row being updated.",
+      "verified": "FAFF_1309_ORACLE_ROWS rows marked gap:true assert `!deadFinding` alongside the real git block — a predicate widened to cover the gap without updating the row would flip this assertion",
+      "passed": true,
+      "ac_id": "faff-1309#done:31",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/impure/gitignore-ensure-set.test.mjs::FAFF-1309 oracle: `*/` above → ..."
+        }
+      ]
+    },
+    {
+      "ac": "In every shape, `.faff/runs/r.json` stays ignored and the exit code is 0.",
+      "verified": "every oracle row asserts `gitCheckIgnore(dir, '.faff/runs/run-1/events.jsonl')` stays true, and the CLI calls throughout exit 0 (asserted via spawnSync status / execFileSync non-throw)",
+      "passed": true,
+      "ac_id": "faff-1309#done:32",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/impure/gitignore-ensure-set.test.mjs::FAFF-1309 oracle: `*/` above → ..."
+        }
+      ]
+    },
+    {
+      "ac": "A fresh repo, after `faff gitignore-ensure`, produces no warnings at all.",
+      "verified": "gitignoreEnsureSelftest 'fresh repo via gitignoreEnsure: no shadowed-negation warning' + real-git 'FAFF-1309: a fresh repo, after faff gitignore-ensure, produces no warnings at all' — both ok/pass",
+      "passed": true,
+      "ac_id": "faff-1309#done:33",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gitignore-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "Re-running `faff gitignore-ensure` against an already-correct repo leaves `.faff/.gitignore` byte-identical.",
+      "verified": "real-git test 'FAFF-1309: re-running gitignore-ensure against an already-correct repo leaves .faff/.gitignore byte-identical' — pass",
+      "passed": true,
+      "ac_id": "faff-1309#done:34",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/impure/gitignore-ensure-set.test.mjs::FAFF-1309: re-running gitignore-ensure against an already-correct repo leaves .faff/.gitignore byte-identical"
+        }
+      ]
+    },
+    {
+      "ac": "`readFaffIgnoreFacts` supplies the text of `.faff/.gitignore`, or `null` when absent or unreadable, through the same failure-swallowing wrapper as the existing three facts.",
+      "verified": "config-check.js's faffIgnore selftest harness 'faffDirGitignoreText omitted → no dead-carve-out finding' + 'faffDirGitignoreText absent-as-null (unreadable) → no finding' — ok",
+      "passed": true,
+      "ac_id": "faff-1309#done:35",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff config check --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`computeConfigCheck` emits one `severity: \"warn\"` finding on surface `.faff/.gitignore` when the supplied text is dead, naming the shadowed carve-outs.",
+      "verified": "config-check.js selftest 'a dead faffDirGitignoreText → one warn finding on .faff/.gitignore naming the shadowed carve-out, exit 1' — ok",
+      "passed": true,
+      "ac_id": "faff-1309#done:36",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff config check --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "The finding is a no-op when the new fact is absent, matching how `faffDirPresent` and `faffDirGitignorePresent` already behave.",
+      "verified": "config-check.js selftest 'faffDirGitignoreText omitted → no dead-carve-out finding' — ok (mirrors the existing faffDirPresent/faffDirGitignorePresent no-op behaviour)",
+      "passed": true,
+      "ac_id": "faff-1309#done:37",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff config check --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`faff config check` in the dead state reports the finding and exits 1; with a correctly ordered file it reports no such finding and exits 0.",
+      "verified": "real-git test/config-two-file.test.mjs: 'a hand-seeded `.faff/.gitignore` reading `!/anchors/` then `/*` is dead — one warn finding ...' (exit 1) and 'a correctly-ordered `.faff/.gitignore` → no dead-carve-out finding, exit 0' — both pass",
+      "passed": true,
+      "ac_id": "faff-1309#done:38",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/config-two-file.test.mjs::config check: a hand-seeded `.faff/.gitignore` reading `!/anchors/` then `/*` is dead — one warn finding naming `!/anchors/`, and `git check-ignore` confirms the anchor is really ignored"
+        }
+      ]
+    },
+    {
+      "ac": "The finding does not co-fire with `dirUnderignoreFinding`'s run-state messages, since `.faff/runs` stays ignored in every dead shape; it *may* co-occur with `UNDERIGNORE_UNTRACKED_MESSAGE`, and a test pins that both appear for a file that is both uncommitted and dead.",
+      "verified": "config-check.js selftest 'dead file does not co-fire with the run-state (none/ineffective) messages' + 'dead AND uncommitted → both findings fire (two distinct faults)' — both ok",
+      "passed": true,
+      "ac_id": "faff-1309#done:39",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff config check --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "Faff's own repository produces no new finding — its `.faff/.gitignore` is correctly ordered.",
+      "verified": "manual run: `faff config check --json` against this repository's own committed .faff/.gitignore — {\"ok\":true,\"findings\":[],\"skipped\":[]}",
+      "passed": true,
+      "ac_id": "faff-1309#done:40",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff config check --json"
+        }
+      ]
+    },
+    {
+      "ac": "The `gitignore-ensure` row in `docs/guide/cli.md` describes the second warning class alongside the existing root-line one, and still states that the exit code stays 0.",
+      "verified": "docs/guide/cli.md's gitignore-ensure row updated to describe the second warning class and restate the exit-code-stays-0 property; `faff lint-cli-doc` passes",
+      "passed": true,
+      "ac_id": "faff-1309#done:41",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-doc"
+        }
+      ]
+    }
+  ]
+}

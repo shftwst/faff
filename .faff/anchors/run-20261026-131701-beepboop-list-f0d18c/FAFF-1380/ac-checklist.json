@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "economics.js:1564 (the --by effort branch's readRunTranscriptRecords call) passes effectiveEnv, not process.env.",
+      "verified": "Direct code read confirms line 1564 reads `readRunTranscriptRecords(root, effectiveEnv, runStartMs)`.",
+      "passed": true,
+      "ac_id": "faff-1380#done:1",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "sed -n '1564p' plugin/skills/faff/bin/lib/economics.js"
+        }
+      ]
+    },
+    {
+      "ac": "economics.js:1589 (the generic branch serving --by class|model|day|mcp) passes effectiveEnv, not process.env.",
+      "verified": "Direct code read confirms line 1589 reads `readRunTranscriptRecords(root, effectiveEnv, runStartMs)`.",
+      "passed": true,
+      "ac_id": "faff-1380#done:2",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "sed -n '1589p' plugin/skills/faff/bin/lib/economics.js"
+        }
+      ]
+    },
+    {
+      "ac": "No other line in either branch, and no line in the --by phase branch, changes.",
+      "verified": "git diff against the pre-build HEAD shows exactly two changed lines in economics.js (1564 and 1589), both process.env -> effectiveEnv substitutions; the phase branch (line 1581) is untouched.",
+      "passed": true,
+      "ac_id": "faff-1380#done:3",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff HEAD~1 -- plugin/skills/faff/bin/lib/economics.js"
+        }
+      ]
+    },
+    {
+      "ac": "New test — --by class and --by model: a resumed-run fixture with no CLAUDE_CODE_SESSION_ID asserts reconciliation.reconciles === true against the epoch-spanning total and the closed span's model/class tokens appear in the rows. Pre-fix fails.",
+      "verified": "Test added and passes post-fix; confirmed to fail pre-fix (grand_total 500 vs target 600) via git-stash bisection of economics.js.",
+      "passed": true,
+      "ac_id": "faff-1380#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-1380: --by class and --by model fold the closed span and reconcile to the epoch-spanning total with NO ambient session set"
+        }
+      ]
+    },
+    {
+      "ac": "New test — --by day: same fixture, asserts reconciliation.reconciles === true against the resuming-epoch-only total (100) and grand_total === 100. Pre-fix fails.",
+      "verified": "Test added and passes post-fix; confirmed to fail pre-fix (grand_total 0) via git-stash bisection.",
+      "passed": true,
+      "ac_id": "faff-1380#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-1380: --by day reads the open span's transcript (not empty) with NO ambient session set, reconciling against the resuming-epoch-only total"
+        }
+      ]
+    },
+    {
+      "ac": "New test — --by mcp: same fixture with an mcp tool_use/tool_result pair, asserts rows.length > 0 and the row carries the expected call_count/bytes (NOT reconciliation.reconciles, which is vacuously true over zero rows too). Pre-fix fails.",
+      "verified": "Test added and passes post-fix; confirmed to fail pre-fix (0 rows) via git-stash bisection.",
+      "passed": true,
+      "ac_id": "faff-1380#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-1380: --by mcp carries the open span's tool-call rows with NO ambient session set (reconciles is a vacuous zero-row identity, never the discriminator)"
+        }
+      ]
+    },
+    {
+      "ac": "New test — --by effort: same fixture plus an effort-tagged events.jsonl dispatch, asserts priced_at_model equals the fixture's dominant model (non-null) and a row's cost is non-null (NOT reconciliation.events_token_total/top_line_total, unchanged by this fix). Pre-fix fails.",
+      "verified": "Test added and passes post-fix; confirmed to fail pre-fix (priced_at_model null, row cost null) via git-stash bisection.",
+      "passed": true,
+      "ac_id": "faff-1380#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-1380: --by effort resolves the real dominant model and a priced row with NO ambient session set (events_token_total is NOT the discriminator)"
+        }
+      ]
+    },
+    {
+      "ac": "New test: the same resumed-run fixture, with --session-id <other-session> and a transcript under <other-session>, run with --by class (or --by model), asserts the breakdown's rows come from <other-session>'s transcript — not the open span's.",
+      "verified": "Test added and passes post-fix; confirmed to fail pre-fix (flag ignored, no row for the named session) via git-stash bisection.",
+      "passed": true,
+      "ac_id": "faff-1380#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-1380: --session-id selects the breakdown's transcript too, not just the top line's, with NO ambient session set"
+        }
+      ]
+    },
+    {
+      "ac": "The full existing test/economics.test.mjs suite passes unchanged.",
+      "verified": "node --test test/economics.test.mjs: 88/88 passing (83 pre-existing + 5 new FAFF-1380 tests), confirming the single-session effectiveEnv-is-process.env case stays byte-identical.",
+      "passed": true,
+      "ac_id": "faff-1380#done:9",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/economics.test.mjs"
+        }
+      ]
+    }
+  ]
+}

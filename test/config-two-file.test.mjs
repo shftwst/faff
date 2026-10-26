@@ -424,6 +424,36 @@ test("config check: a correct `--local` install (.git/info/exclude has `.faff/`,
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+// FAFF-1309 — the standing dead-carve-out finding, one real-run case (the pure predicate
+// rows live in gitignore-ensure.js's own selftest and config-check.js's faffIgnore
+// harness; this is the real-git proof that `faff config check` actually surfaces it).
+test("config check: a hand-seeded `.faff/.gitignore` reading `!/anchors/` then `/*` is dead — one warn finding naming `!/anchors/`, and `git check-ignore` confirms the anchor is really ignored", () => {
+  const dir = faffIgnoreDir({ gitignore: "", faffDir: true, innerGitignore: "!/anchors/\n/*\n" });
+  try {
+    git(dir, "add", "-f", ".faff/.gitignore"); git(dir, "commit", "-q", "-m", "commit inner (dead)");
+    mkdirSync(join(dir, ".faff", "anchors", "run1"), { recursive: true });
+    writeFileSync(join(dir, ".faff", "anchors", "run1", "a.json"), "{}\n");
+    const r = run(dir, "config", "check");
+    assert.equal(r.code, 1, r.out + r.err);
+    assert.match(r.out, /warn +\.faff\/\.gitignore:/);
+    assert.ok(r.out.includes("!/anchors/"));
+    assert.ok(r.out.includes("faff gitignore-ensure"));
+    assert.equal(findingsOn(dir, ".faff/.gitignore").length, 1);
+    const blocked = spawnSync("git", ["check-ignore", "-q", ".faff/anchors/run1/a.json"], { cwd: dir }).status === 0;
+    assert.ok(blocked, "the fault is real: git really does ignore the committed anchor");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("config check: a correctly-ordered `.faff/.gitignore` → no dead-carve-out finding, exit 0", () => {
+  const dir = faffIgnoreDir({ gitignore: "", faffDir: true, innerGitignore: INNER_GITIGNORE });
+  try {
+    git(dir, "add", "-f", ".faff/.gitignore"); git(dir, "commit", "-q", "-m", "commit inner (correct)");
+    const r = run(dir, "config", "check");
+    assert.equal(r.code, 0, r.out + r.err);
+    assert.equal(findingsOn(dir, ".faff/.gitignore").length, 0);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 test("config check smoke: over-ignore, then under-ignore none / ineffective-or-untracked / committed", () => {
   const dir = faffIgnoreDir({ gitignore: ".faff/\n" });
   try {

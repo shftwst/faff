@@ -6,7 +6,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { backendsConfigCheckFindings } = require("./backends");
-const { gitignoreDirHazardLines, gitignoreMentionsFaffDir } = require("./gitignore-ensure");
+const { gitignoreDirHazardLines, gitignoreMentionsFaffDir, shadowedFaffDirNegations } = require("./gitignore-ensure");
 const { CANONICAL_CONFIG, CANONICAL_OVERLAY_CONFIG, DEPRECATED_CONFIG, DEPRECATED_OVERLAY_CONFIG, deepMergeConfig, dig, findConfigLocation, findOverlayLocation, isInsideRoot, isPlainConfigMap, parseConfigMapStrict, parseOverlayStrict } = require("./shared-infra");
 const { configFileLabel, fmt, gitInRepo, gitIsIgnored, gitIsTracked } = require("./config-core");
 const { REMOVED_TREES, legacyTreeError } = require("./config-dispatch");
@@ -152,6 +152,27 @@ function dirUnderignoreFinding({ rootGitignore, faffDirPresent, faffDirGitignore
   return finding(UNDERIGNORE_UNTRACKED_MESSAGE);
 }
 
+// PURE: finding 3 (FAFF-1309). FAFF-1301 exists because a bootstrap-time warning never
+// reaches a repo already in the bad state — `gitignore-ensure` is first-run only, so a
+// repo that brought its own dead `.faff/.gitignore` (or hand-edited it after a clean
+// run) gets no warning ever again without this standing check. A no-op when the fact
+// is absent, matching how `faffDirPresent`/`faffDirGitignorePresent` already behave —
+// and it reads the file's TEXT, never a git probe, so it shares the writer's own pure
+// predicate (`shadowedFaffDirNegations`) rather than re-deriving "is this file dead".
+// Independent of `dirUnderignoreFinding` above: that asks whether `.faff/runs` is
+// ignored at all; this asks whether the committed carve-outs survive. `.faff/runs`
+// stays ignored in every dead shape measured (a deep or positional catch-all re-covers
+// it the same way it covers everything else), so the two never name the same fault —
+// though this MAY co-occur with `UNDERIGNORE_UNTRACKED_MESSAGE` (a file can be both
+// uncommitted and dead, two distinct faults needing two distinct fixes).
+function faffDirDeadFinding(faffDirGitignoreText) {
+  if (typeof faffDirGitignoreText !== "string") return null;
+  const shadowed = shadowedFaffDirNegations(faffDirGitignoreText);
+  if (shadowed.length === 0) return null;
+  const names = shadowed.map((r) => `\`${r.negation}\``).join(", ");
+  return { severity: "warn", surface: ".faff/.gitignore", message: `\`.faff/.gitignore\` leaves ${shadowed.length === 1 ? "a carve-out" : "carve-outs"} dead — git's last matching rule shadows ${names}. Run \`faff gitignore-ensure\` to see the hand fix for each shadowed carve-out.` };
+}
+
 // PURE: known-key (schema) lint over a document's TOP-LEVEL key NAMES only — values are
 // never inspected (value-shape validation is out of scope, FAFF-794 §2). Classifies each
 // top-level key as flat-dotted (name contains ".", the unreachable-literal-key mistake
@@ -186,7 +207,9 @@ function knownKeyLint(doc, fileLabel, knownSet) {
 // `probes` supplies { inRepo, isIgnored(rel), isTracked(rel) } (nullable inRepo).
 // FAFF-1301: rootGitignore (text | null), faffDirPresent and faffDirGitignorePresent are
 // optional filesystem facts; absent, the two .faff ignore-posture findings are no-ops.
-function computeConfigCheck({ root, basePath, baseDoc, baseTier, staleBasePath, overlayPath, overlayDoc, overlayTier, staleOverlayPath, legacyBase, legacyOverlay, baseParseError, probes, rootGitignore, faffDirPresent, faffDirGitignorePresent }) {
+// FAFF-1309: faffDirGitignoreText (text | null) is a fourth, independently-optional fact —
+// the text of `.faff/.gitignore` itself, feeding the standing dead-carve-out finding.
+function computeConfigCheck({ root, basePath, baseDoc, baseTier, staleBasePath, overlayPath, overlayDoc, overlayTier, staleOverlayPath, legacyBase, legacyOverlay, baseParseError, probes, rootGitignore, faffDirPresent, faffDirGitignorePresent, faffDirGitignoreText }) {
   const findings = [];
   const skipped = [];
   const rel = (p) => configFileLabel(root, p);
@@ -259,6 +282,8 @@ function computeConfigCheck({ root, basePath, baseDoc, baseTier, staleBasePath, 
   if (overIgnore) findings.push(overIgnore);
   const underIgnore = dirUnderignoreFinding({ rootGitignore, faffDirPresent, faffDirGitignorePresent, probes });
   if (underIgnore) findings.push(underIgnore);
+  const faffDirDead = faffDirDeadFinding(faffDirGitignoreText);
+  if (faffDirDead) findings.push(faffDirDead);
 
   // Check 4: secret scan over both files' scalar leaves (redacted output).
   if (baseDoc) findings.push(...scanDocForSecrets(baseDoc, baseLabel || CANONICAL_CONFIG));
@@ -320,6 +345,10 @@ function readFaffIgnoreFacts(root) {
     rootGitignore: attempt(() => fs.readFileSync(path.join(root, ".gitignore"), "utf8"), null),
     faffDirPresent: attempt(() => fs.statSync(path.join(root, ".faff")).isDirectory(), false),
     faffDirGitignorePresent: attempt(() => fs.statSync(path.join(root, ".faff", ".gitignore")).isFile(), false),
+    // FAFF-1309: the text itself, independently of the three existence facts above —
+    // read through the same swallow-everything wrapper (absent/unreadable -> null, the
+    // standing finding's own no-op case).
+    faffDirGitignoreText: attempt(() => fs.readFileSync(path.join(root, ".faff", ".gitignore"), "utf8"), null),
   };
 }
 
@@ -381,7 +410,7 @@ function cmdConfigCheck(args, root) {
   }
 
   const inRepo = gitInRepo(root);
-  const { rootGitignore, faffDirPresent, faffDirGitignorePresent } = readFaffIgnoreFacts(root);
+  const { rootGitignore, faffDirPresent, faffDirGitignorePresent, faffDirGitignoreText } = readFaffIgnoreFacts(root);
   const probes = {
     inRepo,
     isIgnored: (relPath) => gitIsIgnored(root, relPath),
@@ -392,7 +421,7 @@ function cmdConfigCheck(args, root) {
     basePath, baseDoc, baseTier: baseLocation && baseLocation.tier, staleBasePath: staleLocationPath(root, baseLocation, DEPRECATED_CONFIG),
     overlayPath, overlayDoc, overlayTier: overlayLocation && overlayLocation.tier, staleOverlayPath: staleLocationPath(root, overlayLocation, DEPRECATED_OVERLAY_CONFIG),
     legacyBase, legacyOverlay, baseParseError, probes,
-    rootGitignore, faffDirPresent, faffDirGitignorePresent,
+    rootGitignore, faffDirPresent, faffDirGitignorePresent, faffDirGitignoreText,
   });
 
   if (json) {
@@ -629,6 +658,27 @@ function configCheckSelftest() {
     check("faff-ignore: faffDirPresent omitted → no probe sees a .faff path", faffPathCalls.length === 0);
     r = faffIgnore({ rootGitignore: ".faff/\n", faffDirPresent: true, faffDirGitignorePresent: false, probes: runStateIgnored });
     check("faff-ignore: hazard line with run state still ignored → finding 1 only", r.findings.length === 1 && r.findings[0].surface === ".gitignore");
+
+    // --- FAFF-1309: the standing dead-carve-out finding, fed by faffDirGitignoreText ---
+    check("faff-ignore: faffDirGitignoreText omitted → no dead-carve-out finding", onInner(faffIgnore({})).length === 0);
+    check("faff-ignore: faffDirGitignoreText absent-as-null (unreadable) → no finding", onInner(faffIgnore({ faffDirGitignoreText: null })).length === 0);
+    check("faff-ignore: a correctly-ordered faffDirGitignoreText → no finding, exit 0", onInner(faffIgnore({ faffDirGitignoreText: "/*\n!/.gitignore\n!/anchors/\n!/templates/\n!/decisions.md\n!/conventions.md\n!/config.yaml\n!/config.example.yaml\n" })).length === 0 && faffIgnore({ faffDirGitignoreText: "/*\n!/.gitignore\n!/anchors/\n!/templates/\n!/decisions.md\n!/conventions.md\n!/config.yaml\n!/config.example.yaml\n" }).exit === 0);
+    r = faffIgnore({ faffDirGitignoreText: "!/anchors/\n/*\n" });
+    check("faff-ignore: a dead faffDirGitignoreText → one warn finding on .faff/.gitignore naming the shadowed carve-out, exit 1", onInner(r).length === 1 && onInner(r)[0].severity === "warn" && onInner(r)[0].message.includes("!/anchors/") && r.exit === 1);
+    check("faff-ignore: the dead-carve-out finding names faff gitignore-ensure", onInner(r)[0].message.includes("faff gitignore-ensure"));
+    {
+      // The dead-carve-out finding (asks: do the carve-outs survive?) must not co-fire
+      // with dirUnderignoreFinding's run-state messages (asks: is .faff/runs ignored at
+      // all?) — measured true in every dead shape, since a deep or positional catch-all
+      // re-covers .faff/runs the same way it covers everything else. It MAY co-occur
+      // with UNDERIGNORE_UNTRACKED_MESSAGE (a file can be both dead and uncommitted).
+      const deadButRunStateIgnored = { faffDirPresent: true, faffDirGitignorePresent: true, faffDirGitignoreText: "!/anchors/\n/*\n", probes: runStateIgnored };
+      const r2 = faffIgnore(deadButRunStateIgnored);
+      check("faff-ignore: dead file does not co-fire with the run-state (none/ineffective) messages", onInner(r2).length === 1 && !onInner(r2)[0].message.includes("ignores faff's run state") && !onInner(r2)[0].message.includes("does not ignore"));
+      const deadAndUntracked = { ...untracked, faffDirGitignoreText: "!/anchors/\n/*\n" };
+      const r3 = faffIgnore(deadAndUntracked);
+      check("faff-ignore: dead AND uncommitted → both findings fire (two distinct faults)", onInner(r3).length === 2 && onInner(r3).some((f) => f.message.includes("NOT committed")) && onInner(r3).some((f) => f.message.includes("!/anchors/")));
+    }
   }
   // --- FAFF-1302: config files under .faff/ -----------------------------------
   {

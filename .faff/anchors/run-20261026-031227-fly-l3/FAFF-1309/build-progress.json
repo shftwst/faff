@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1309",
+  "build": {
+    "status": "complete",
+    "diff_hash": "7118d12e0c916a9d22d419a943457aac8d0b9a02abab7162f711339bcb64a411",
+    "branch": "faff-1309-gitignore-ensure-can-append-after-a-pre-existing-negation",
+    "pushed_at": "2026-10-26T05:50:11.053Z"
+  },
+  "updated_at": "2026-10-26T05:50:11.053Z"
+}

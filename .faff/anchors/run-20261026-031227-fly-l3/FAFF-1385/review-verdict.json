@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "adversarial_outcome": "chain-outage-skipped",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": []
+}

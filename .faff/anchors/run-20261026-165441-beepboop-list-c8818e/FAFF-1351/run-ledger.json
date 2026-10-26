@@ -14,16 +14,12 @@
     {
       "issue_id": "FAFF-1350",
       "root_cause_class": "punt-not-closed",
-      "timestamp": "2026-10-26T17:00:58Z",
-      "reconsider": "human",
-      "cited_input": null
+      "timestamp": "2026-10-26T17:00:58Z"
     },
     {
       "issue_id": "FAFF-1352",
       "root_cause_class": "other",
-      "timestamp": "2026-10-26T17:06:00Z",
-      "reconsider": "human",
-      "cited_input": null
+      "timestamp": "2026-10-26T17:06:00Z"
     }
   ],
   "claimed_by_peer": [

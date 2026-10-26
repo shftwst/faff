@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "docs/guide/cli.md::cli.md row overclaims list-prefix coverage for a doubled prefix",
+      "title": "cli.md row overclaims list-prefix coverage for a doubled prefix",
+      "location": "docs/guide/cli.md",
+      "action": "state that a single list prefix is recognised",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Row now says one list prefix and that a doubled prefix is not recognised.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "cli.md row overclaims list-prefix coverage for a doubled prefix",
+          "location": "docs/guide/cli.md",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "records/specs/2026-10-26-FAFF-1351-punt-scan-reads-a-punt-written-as-a-list-item-design.md::spec out of scope bullet misstates the list-marker asymmetry",
+      "title": "spec OUT OF SCOPE bullet misstates the list-marker asymmetry",
+      "location": "records/specs/2026-10-26-FAFF-1351-punt-scan-reads-a-punt-written-as-a-list-item-design.md",
+      "action": "correct the bullet to name the item-side gap",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The committed spec is the prep artefact and the code is correct; the extractor-widening ticket will read the extractor, not this prose.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "spec OUT OF SCOPE bullet misstates the list-marker asymmetry",
+          "location": "records/specs/2026-10-26-FAFF-1351-punt-scan-reads-a-punt-written-as-a-list-item-design.md",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/punt-scan.js::listed punt inside out of scope mints crossref key punt in extractoutofscopeitemkeys",
+      "title": "listed Punt inside OUT OF SCOPE mints crossref key punt in extractOutOfScopeItemKeys",
+      "location": "plugin/skills/faff/bin/lib/punt-scan.js",
+      "action": "skip marker tokens in the extractor name capture",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Pre-existing and out of scope by the spec (extractor unchanged); recorded as discovered scope.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "listed Punt inside OUT OF SCOPE mints crossref key punt in extractOutOfScopeItemKeys",
+          "location": "plugin/skills/faff/bin/lib/punt-scan.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/punt-scan.js::continuation contract names chosen/assumes markers with no shared detector",
+      "title": "continuation contract names Chosen/Assumes markers with no shared detector",
+      "location": "plugin/skills/faff/bin/lib/punt-scan.js",
+      "action": "narrow the comment or promote a shared marker fragment",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The spec requires this contract comment verbatim; Chosen/Assumes detection belongs to FAFF-1340.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "continuation contract names Chosen/Assumes markers with no shared detector",
+          "location": "plugin/skills/faff/bin/lib/punt-scan.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

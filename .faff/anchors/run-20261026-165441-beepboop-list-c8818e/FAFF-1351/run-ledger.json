@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "run_id": "run-20261026-165441-beepboop-list-c8818e",
+  "level": "L3",
+  "admitted": [
+    "FAFF-1351",
+    "FAFF-1340"
+  ],
+  "outcomes": {
+    "FAFF-1350": "parked",
+    "FAFF-1352": "parked"
+  },
+  "park_records": [
+    {
+      "issue_id": "FAFF-1350",
+      "root_cause_class": "punt-not-closed",
+      "timestamp": "2026-10-26T17:00:58Z",
+      "reconsider": "human",
+      "cited_input": null
+    },
+    {
+      "issue_id": "FAFF-1352",
+      "root_cause_class": "other",
+      "timestamp": "2026-10-26T17:06:00Z",
+      "reconsider": "human",
+      "cited_input": null
+    }
+  ],
+  "claimed_by_peer": [
+    "FAFF-1403"
+  ],
+  "discovered_scope_filed": 0,
+  "base_sha": "e373de2ecd3ab2047e6fc5b624b9cdb25b21af01",
+  "base_sha_required": true,
+  "owner": {
+    "status": "running",
+    "session_id": "run-20261026-165441-beepboop-list-c8818e",
+    "pid": 814,
+    "started_at": "2026-10-26T16:54:41.649Z",
+    "last_heartbeat": "2026-10-26T16:54:41.649Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "escalate",
+      "price_per_mtok": 0,
+      "pricing": "map"
+    },
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "544dfd3a-d488-4c8f-a760-ee69e4f6ae5b",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 136,
+        "output": 105993,
+        "cache_write_5m": 0,
+        "cache_write_1h": 1021969,
+        "cache_read": 12437805
+      }
+    },
+    "tokens_at_start": 13565903,
+    "tokens_at_last_event": {
+      "input": 310,
+      "output": 313427,
+      "cache_write_5m": 0,
+      "cache_write_1h": 1426411,
+      "cache_read": 39668138
+    }
+  }
+}

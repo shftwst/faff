@@ -22,7 +22,8 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { findRoot } = require("./shared-infra");
+const { spawnSync } = require("node:child_process");
+const { findRoot, resolveInfoExcludeFile } = require("./shared-infra");
 
 // FAFF-1302: the root set is empty. faff's config files live under `.faff/`, so every
 // rule about them is in `.faff/.gitignore` and faff adds nothing to the project's own
@@ -168,12 +169,22 @@ function hazardWarning(root, line) {
     `Fix by hand: change \`${line}\` to \`.faff/*\`.`;
 }
 
-// FAFF-1062: `--local` writes only `.git/info/exclude`. Standard mode writes the root
-// `.gitignore` and (FAFF-1299) `.faff/.gitignore`, then warns about hazardous root lines.
+// FAFF-1062: `--local` writes only `.git/info/exclude` — FAFF-1385: resolved through
+// git's own `--git-path` plumbing (`resolveInfoExcludeFile`), never a hand-built
+// `<root>/.git/info/exclude` join, so this works identically from a linked worktree
+// (where `.git` is a file, not a directory) and a main checkout. Outside a git repo
+// there is no exclude file to own: write nothing and signal `no_repo` up to the
+// command layer rather than fabricating a stray `.git/info/exclude` tree. Standard
+// mode writes the root `.gitignore` and (FAFF-1299) `.faff/.gitignore`, then warns
+// about hazardous root lines — untouched by this change.
 function gitignoreEnsure(root, local = false) {
   if (local) {
-    const result = ensureOneTarget(path.join(root, ".git", "info", "exclude"), FAFF_GITIGNORE_PATTERNS_LOCAL);
-    return { ...result, faff_dir: null, warnings: [] };
+    const target = resolveInfoExcludeFile(root);
+    if (target === null) {
+      return { path: null, no_repo: true, created: false, added: [], already: [], faff_dir: null, warnings: [] };
+    }
+    const result = ensureOneTarget(target, FAFF_GITIGNORE_PATTERNS_LOCAL);
+    return { ...result, no_repo: false, faff_dir: null, warnings: [] };
   }
   const rootTarget = path.join(root, ".gitignore");
   const result = ensureOneTarget(rootTarget, FAFF_GITIGNORE_PATTERNS);
@@ -199,6 +210,16 @@ function gitignoreEnsureSelftest() {
     try { return fn(dir); }
     finally { fs.rmSync(dir, { recursive: true, force: true }); }
   };
+  // FAFF-1385: `--local` now resolves its target via `git rev-parse --git-path`
+  // (`resolveInfoExcludeFile`), so its selftest cases need a REAL repo — a hand-made
+  // `.git/info/` directory is no longer a git repo as far as `git rev-parse` is
+  // concerned. `git init -q` is enough; no commit, no config, no HEAD history needed
+  // for this plumbing command.
+  const withGitRepo = (fn) => withTmp((dir) => {
+    const r = spawnSync("git", ["-C", dir, "init", "-q"], { encoding: "utf8" });
+    if (r.status !== 0) throw new Error(`faff gitignore-ensure selftest: \`git init\` failed: ${r.stderr || r.error}`);
+    return fn(dir);
+  });
   const lineIndex = (raw, s) => raw.split("\n").findIndex((l) => l.trim() === s);
 
   // Pure pattern-set contract (checkable without fs) ────────────────────────────
@@ -312,11 +333,12 @@ function gitignoreEnsureSelftest() {
   check("local set contains no `.faffrc`-stemmed entry", FAFF_GITIGNORE_PATTERNS_LOCAL.every((p) => !p.includes(".faffrc")));
   check("local set does NOT carry the anchors carve-out negation", !FAFF_GITIGNORE_PATTERNS_LOCAL.includes("!.faff/anchors/"));
 
-  // FAFF-1062 — --local writes .git/info/exclude, standard mode unaffected ──────
-  withTmp((dir) => {
-    fs.mkdirSync(path.join(dir, ".git", "info"), { recursive: true });
+  // FAFF-1062/FAFF-1385 — --local resolves via `git rev-parse --git-path info/exclude`
+  // and writes there; standard mode unaffected ──────
+  withGitRepo((dir) => {
     const res = gitignoreEnsure(dir, true);
-    check("local: target is .git/info/exclude", res.path === path.join(dir, ".git", "info", "exclude"));
+    check("local: no_repo is false in a real repo", res.no_repo === false);
+    check("local: target is the repo's info/exclude", res.path === path.join(dir, ".git", "info", "exclude"));
     const raw = fs.readFileSync(res.path, "utf8");
     check("local: no `.faffrc` line written", !raw.includes(".faffrc"));
     check("local: `.faff/` appended (not `.faff/*`)", res.added.includes(".faff/") && lineIndex(raw, ".faff/") !== -1);
@@ -326,19 +348,54 @@ function gitignoreEnsureSelftest() {
     check("local: no `.faff/` directory or `.faff/.gitignore` created", !fs.existsSync(path.join(dir, ".faff")));
     check("local: faff_dir is null and warnings empty", res.faff_dir === null && res.warnings.length === 0);
   });
-  withTmp((dir) => {
-    fs.mkdirSync(path.join(dir, ".git", "info"), { recursive: true });
+  withGitRepo((dir) => {
     fs.writeFileSync(path.join(dir, ".gitignore"), ".faff/\n");
     const res = gitignoreEnsure(dir, true);
     check("local: a hazardous root line yields no warning", res.warnings.length === 0 && res.faff_dir === null);
   });
 
+  // FAFF-1385 — outside a git repository, --local reports it and writes nothing
+  // (never fabricates a stray .git/info/exclude tree).
+  withTmp((dir) => {
+    const res = gitignoreEnsure(dir, true);
+    check("local/no-repo: no_repo is true", res.no_repo === true);
+    check("local/no-repo: path is null", res.path === null);
+    check("local/no-repo: nothing added/already and no faff_dir/warnings", res.added.length === 0 && res.already.length === 0 && res.faff_dir === null && res.warnings.length === 0);
+    check("local/no-repo: no .git directory created", !fs.existsSync(path.join(dir, ".git")));
+  });
+
+  // FAFF-1385 — a linked worktree resolves its common dir's info/exclude, not a
+  // (nonexistent) `<worktree>/.git/info/exclude` — the bug this issue fixes.
+  // `git worktree add` needs a resolvable HEAD, so this case commits once first
+  // (the other --local cases above need no commit — plain `git init` is enough
+  // for `git rev-parse --git-path`).
+  withGitRepo((dir) => {
+    spawnSync("git", ["-C", dir, "config", "user.email", "faff-selftest@example.com"], { encoding: "utf8" });
+    spawnSync("git", ["-C", dir, "config", "user.name", "faff-selftest"], { encoding: "utf8" });
+    fs.writeFileSync(path.join(dir, "README.md"), "x\n");
+    spawnSync("git", ["-C", dir, "add", "README.md"], { encoding: "utf8" });
+    spawnSync("git", ["-C", dir, "commit", "-q", "-m", "init"], { encoding: "utf8" });
+    const wtDir = path.join(dir, "..", `${path.basename(dir)}-wt`);
+    const add = spawnSync("git", ["-C", dir, "worktree", "add", "--detach", wtDir], { encoding: "utf8" });
+    try {
+      check("worktree: `git worktree add` succeeded", add.status === 0);
+      const res = gitignoreEnsure(wtDir, true);
+      check("worktree: target is the MAIN repo's info/exclude, not <worktree>/.git/info/exclude", res.path === path.join(dir, ".git", "info", "exclude"));
+      check("worktree: `.faff/` written", res.added.includes(".faff/"));
+      const raw = fs.readFileSync(res.path, "utf8");
+      check("worktree: pattern lands on the main repo's exclude file", lineIndex(raw, ".faff/") !== -1);
+    } finally {
+      spawnSync("git", ["-C", dir, "worktree", "remove", "--force", wtDir], { encoding: "utf8" });
+      fs.rmSync(wtDir, { recursive: true, force: true });
+    }
+  });
+
   // FAFF-1062 — .git/info/exclude carrying only git's default comment preamble is
   // treated the same as a populated .gitignore (append logic handles an all-comments file).
-  withTmp((dir) => {
-    fs.mkdirSync(path.join(dir, ".git", "info"), { recursive: true });
+  withGitRepo((dir) => {
+    const target = path.join(dir, ".git", "info", "exclude");
     const preamble = "# git ls-files --others --exclude-from=.git/info/exclude\n# Lines that start with '#' are comments.\n";
-    fs.writeFileSync(path.join(dir, ".git", "info", "exclude"), preamble);
+    fs.writeFileSync(target, preamble);
     const res = gitignoreEnsure(dir, true);
     const raw = fs.readFileSync(res.path, "utf8");
     check("local/all-comments: preamble preserved", raw.startsWith(preamble));
@@ -347,8 +404,7 @@ function gitignoreEnsureSelftest() {
   });
 
   // FAFF-1062 — idempotent re-run on .git/info/exclude.
-  withTmp((dir) => {
-    fs.mkdirSync(path.join(dir, ".git", "info"), { recursive: true });
+  withGitRepo((dir) => {
     gitignoreEnsure(dir, true);
     const before = fs.readFileSync(path.join(dir, ".git", "info", "exclude"), "utf8");
     const res2 = gitignoreEnsure(dir, true);
@@ -397,6 +453,15 @@ function cmdGitignoreEnsure(args) {
   } catch (e) {
     process.stderr.write(`faff gitignore-ensure: ${e.message}\n`);
     return 2;
+  }
+
+  if (result.no_repo) {
+    if (asJson) {
+      console.log(JSON.stringify(result, null, 2));
+    } else {
+      console.log("not a git repository — no .git/info/exclude to update; wrote nothing");
+    }
+    return 0;
   }
 
   if (asJson) {

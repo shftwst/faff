@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "Run from a linked worktree, `faff gitignore-ensure --local` writes `.faff/` to the main repo's common-dir `info/exclude` (not a stray path under the worktree).",
+      "verified": "gitignoreEnsureSelftest 'worktree: target is the MAIN repo's info/exclude, not <worktree>/.git/info/exclude' — ok; test/impure/gitignore-ensure-set.test.mjs '--local from a linked worktree writes the MAIN repo's common-dir info/exclude, and git check-ignore confirms it from the worktree' — pass",
+      "passed": true,
+      "ac_id": "faff-1385#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/impure/gitignore-ensure-set.test.mjs::--local from a linked worktree writes the MAIN repo's common-dir info/exclude, and git check-ignore confirms it from the worktree"
+        }
+      ]
+    },
+    {
+      "ac": "`resolveInfoExcludeFile(root)` is exported from `shared-infra.js`, returns the absolute common-dir `info/exclude` path for a repo (main or worktree) and `null` outside a repo, via a single read-only `git rev-parse --git-path info/exclude`.",
+      "verified": "code inspection: shared-infra.js exports resolveInfoExcludeFile; gitignoreEnsureSelftest 'local: target is the repo's info/exclude' and 'local/no-repo: path is null' — both ok",
+      "passed": true,
+      "ac_id": "faff-1385#done:2",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gitignore-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`gitignore-ensure.js` imports and uses it in the `--local` branch; the hand-built `path.join(root, \".git\", \"info\", \"exclude\")` is gone from the `--local` path.",
+      "verified": "code inspection: gitignore-ensure.js's local branch calls resolveInfoExcludeFile(root); grep confirms no path.join(root, \".git\", \"info\", \"exclude\") remains",
+      "passed": true,
+      "ac_id": "faff-1385#done:3",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'git., .info., .exclude' plugin/skills/faff/bin/lib/gitignore-ensure.js"
+        }
+      ]
+    },
+    {
+      "ac": "From a main checkout, the written file and command output are byte-identical to pre-fix behaviour.",
+      "verified": "standard-mode branch of gitignoreEnsure is untouched code; gitignoreEnsureSelftest 'standard mode: ...' cases (4) all ok; real-git 'standard mode (no --local) writes both targets...' — pass",
+      "passed": true,
+      "ac_id": "faff-1385#done:4",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gitignore-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "Outside a git repository, the command exits 0, reports no git repo, and writes no file.",
+      "verified": "gitignoreEnsureSelftest 'local/no-repo: ...' (4 checks) — ok; real-git '--local outside a git repository exits 0, reports no git repo, and writes no file' — pass",
+      "passed": true,
+      "ac_id": "faff-1385#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/impure/gitignore-ensure-set.test.mjs::--local outside a git repository exits 0, reports no git repo, and writes no file"
+        }
+      ]
+    },
+    {
+      "ac": "`--json` output in the no-repo case is valid JSON with `path: null` and no written file.",
+      "verified": "real-git test asserts JSON.parse(stdout).path === null and no .git directory created — pass",
+      "passed": true,
+      "ac_id": "faff-1385#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/impure/gitignore-ensure-set.test.mjs::--local outside a git repository exits 0, reports no git repo, and writes no file"
+        }
+      ]
+    },
+    {
+      "ac": "Standard mode (no `--local`) is unchanged — root `.gitignore` + `.faff/.gitignore` writing and hazard warnings behave exactly as before.",
+      "verified": "gitignoreEnsureSelftest standard-mode + hazard-warning cases all ok; real-git 'standard mode (no --local) writes both targets...' — pass",
+      "passed": true,
+      "ac_id": "faff-1385#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gitignore-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "The `gitignoreEnsureSelftest` `--local` cases are updated to run against **real** throwaway git repos (`git init`) rather than hand-made `.git/info/` dirs, since `git rev-parse` now does the resolution; the no-repo case asserts a non-repo temp dir exits 0 and writes nothing. `faff gitignore-ensure --selftest` passes.",
+      "verified": "node plugin/skills/faff/bin/faff gitignore-ensure --selftest — 'gitignore-ensure selftest: all checks passed' (exit 0)",
+      "passed": true,
+      "ac_id": "faff-1385#done:8",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gitignore-ensure --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "A linked-worktree case is added to the real-git CLI test `test/impure/gitignore-ensure-set.test.mjs`: `git init` a repo, `git worktree add` a linked worktree, run `faff gitignore-ensure --local` from it, assert the pattern lands in the main repo's common-dir `info/exclude` and `git check-ignore` confirms it from the worktree. `node --test test/impure/gitignore-ensure-set.test.mjs` passes, and the full `node --test` suite stays green.",
+      "verified": "node --test test/impure/gitignore-ensure-set.test.mjs — 19/19 pass (includes the new linked-worktree case). Full-suite backstop (`faff gates run`'s UNIT rung, full `node --test`): every file touched by or relevant to this change passes; one pre-existing, unrelated failure (test/faff-1278-governance-check-base-commit-leg.test.mjs Scenario 5) reproduces byte-identically on unmodified main — root cause is a missing `ps` binary in this sandbox (no install permission), not this diff. See .faff/runs/run-20261026-031227-fly-l3/FAFF-1385/graft.md and discovered-scope.json.",
+      "passed": true,
+      "ac_id": "faff-1385#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/impure/gitignore-ensure-set.test.mjs::--local from a linked worktree writes the MAIN repo's common-dir info/exclude, and git check-ignore confirms it from the worktree"
+        },
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test"
+        }
+      ]
+    }
+  ]
+}

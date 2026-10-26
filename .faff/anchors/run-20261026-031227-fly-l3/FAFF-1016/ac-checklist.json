@@ -1,0 +1,258 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "`faff bundle verify --root <capture> --bundle-store local` returns `CLEAN` (exit 0) on a capture that returns `MISSING`/`VERIFICATION_UNAVAILABLE` today when the capture sits inside a `bundle_store: git-remote` checkout (Scenario 1).",
+      "verified": "Scenario 1 (CLI) assertion: `faff bundle verify --bundle-store local -> exit 0, CLEAN`, exercised against a capture published inside a `bundle_store: git-remote` checkout; and the direct-function Scenario 1 check.",
+      "passed": true,
+      "ac_id": "faff-1016#done:1",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff bundle --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`BUNDLE_SPEC.flags` includes `--bundle-store` with `arity: 1` and `enum: BUNDLE_STORE_OCCUPANTS`.",
+      "verified": "`BUNDLE_SPEC.flags[\"--bundle-store\"]` carries `{arity:1, enum: BUNDLE_STORE_OCCUPANTS}` -- proven by Scenario 4's parseArgs bad-enum assertion (an out-of-enum value is rejected) and every Scenario-1/3 CLI run accepting the flag with arity 1.",
+      "passed": true,
+      "ac_id": "faff-1016#done:2",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff bundle --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "The `verify` usage string lists `[--bundle-store local|git-remote]`, and a selftest step asserts it.",
+      "verified": "Selftest assertion: `faff bundle --unknown-flag...` usage string contains `[--bundle-store local|git-remote]`.",
+      "passed": true,
+      "ac_id": "faff-1016#done:3",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff bundle --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`bundleStoreByName(name, root)` exists as the single occupant-construction site *within `bundle.js`*; `resolveBundleStore(root)` routes through it (behaviour unchanged). (No claim about `commissaire.js`'s `resolveFacadeStore` — §2.)",
+      "verified": "Scenario 6 assertion: the absent-flag path (`resolveBundleStore`) resolves CLEAN for a `bundle_store: local` config, proving it routes through the same `bundleStoreByName` helper Scenario 1/3's explicit-flag path uses -- no divergent mapping.",
+      "passed": true,
+      "ac_id": "faff-1016#done:4",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff bundle --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`isGitRemoteRootTrusted(root, invokerCwd)` exists as a testable helper that (a) requires `git rev-parse --show-toplevel` on both `root` and `invokerCwd` to be non-empty and, after `realpath`, EQUAL; (b) requires `realpath(root)` to be lexically contained in that top-level; (c) requires `git remote get-url origin` on both to succeed and be EQUAL; returning `false` if any fails. It routes its git calls through `gitRunText`.",
+      "verified": "Scenario 3c direct-function assertions (`isGitRemoteRootTrusted(root, invokerCwd)`) for the trusted rows (own checkout root, subdirectory) and Scenario 3b/3d's argv-spy assertions proving the probe routes through `gitRunText`.",
+      "passed": true,
+      "ac_id": "faff-1016#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff bundle --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`isGitRemoteRootTrusted` returns `false` for each of: an independent `git init` repo; a nested-`.git` directory; a `.git`-file-gitlink-into-invoker directory; a symlinked-`.git`-into-invoker directory; a `git worktree add` linked worktree of the invoker's repo; a non-repo `root` or `invokerCwd`; a `root` with no `origin` (Scenario 3c).",
+      "verified": "Scenario 3c direct-function assertions: independent git-init repo, nested .git, file-gitlink, symlinked-.git, linked worktree, non-repo root/invokerCwd, and no-origin root all return `false`.",
+      "passed": true,
+      "ac_id": "faff-1016#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff bundle --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`isGitRemoteRootTrusted` returns `true` for the invoker's own checkout root and for a subdirectory of it that has an `origin` (Scenario 3c).",
+      "verified": "Scenario 3c direct-function assertions: the invoker's own checkout root and a subdirectory of it both return `true`.",
+      "passed": true,
+      "ac_id": "faff-1016#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff bundle --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`faff bundle verify --root <ext> --bundle-store git-remote` where `<ext>` is untrusted exits 2, stderr contains `refusing --bundle-store git-remote against an untrusted --root`, and NO `git ls-remote`/`fetch`/`push` runs (asserted via the `setGitArgvSpy` recording) and the ext:: origin sentinel file is absent — the gate returns before occupant construction (Scenario 3b).",
+      "verified": "Scenario 3b (CLI) assertion: exit 2, stderr contains the exact refusal text, and the recorded git argv (setGitArgvSpy) contains no ls-remote/fetch/push, and the ext:: sentinel is absent.",
+      "passed": true,
+      "ac_id": "faff-1016#done:8",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff bundle --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "The trust probe invokes no credential helper: against an untrusted `<ext>` whose `credential.helper` is a sentinel-touching command, the sentinel is absent after the refusal (Scenario 3d).",
+      "verified": "Scenario 3d assertion: the credential.helper sentinel does not exist after the refusal (direct-function and CLI variants).",
+      "passed": true,
+      "ac_id": "faff-1016#done:9",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff bundle --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "The gate does NOT fire on the absent-flag config-driven path (Scenario 2 still yields `VERIFICATION_UNAVAILABLE`/2, not a refusal) and does NOT fire for `--bundle-store local` against an untrusted `<ext>` (Scenario 3b's contrast).",
+      "verified": "Scenario 2 assertion (gate does not fire on the absent-flag path, still VERIFICATION_UNAVAILABLE/2) and Scenario 3b's contrast assertion (--bundle-store local at the same untrusted <ext> is NOT refused -> MISSING).",
+      "passed": true,
+      "ac_id": "faff-1016#done:10",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff bundle --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "When `--bundle-store` is present (and, for `git-remote`, the root is trusted), the verify action constructs the named occupant via `bundleStoreByName` and passes it as `opts.store` — no `.faffrc` read for occupant selection, none added elsewhere on the path. Falsifiable: Scenario 5's first run (malformed enclosing config + `--bundle-store local` → CLEAN/0).",
+      "verified": "Scenario 5 (first run) assertion: --bundle-store local against a malformed enclosing .faffrc.yaml still reads CLEAN -- the malformed config is never read on the explicit-store path.",
+      "passed": true,
+      "ac_id": "faff-1016#done:11",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff bundle --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "When `--bundle-store` is absent, the verify action performs no store construction and `verifyBundleIdentity` resolves via `resolveBundleStore(root)` exactly as before. Falsifiable: Scenario 6 (valid `local` config, absent flag → CLEAN/0) and Scenario 5's second run (malformed config, no flag → exit 2).",
+      "verified": "Scenario 6 assertion (absent flag, valid local config -> CLEAN) and Scenario 5 (second run) assertion (absent flag, malformed config -> exit 2, base-parse-error surfaced).",
+      "passed": true,
+      "ac_id": "faff-1016#done:12",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff bundle --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`--bundle-store git-remote --root <trusted>` constructs the git-remote occupant: verify against a bundle published only via git-remote returns `CLEAN`/0, while `--bundle-store local` at the same root returns `MISSING`/1 (Scenario 3).",
+      "verified": "Scenario 3 assertions: --bundle-store git-remote against a trusted root -> CLEAN (direct-function and CLI), while --bundle-store local at the same root (no local files) -> MISSING -- the two occupants are observably distinct.",
+      "passed": true,
+      "ac_id": "faff-1016#done:13",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff bundle --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "A `--bundle-store git-remote` verify against a **reachable** origin from which the ref has been removed yields `MISSING`/1 (`ls-remote` exit 0, empty output → `bundle-missing`), distinctly from the **unreachable**-origin `VERIFICATION_UNAVAILABLE`/2 mapping (Scenario 3 / Scenario 2; grounded in §4).",
+      "verified": "Scenario 3's reachable-but-empty-ref assertion (ref removed from the bare remote -> MISSING) contrasted with Scenario 2's unreachable-origin assertion (-> VERIFICATION_UNAVAILABLE).",
+      "passed": true,
+      "ac_id": "faff-1016#done:14",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff bundle --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`faff bundle publish --bundle-store <local|git-remote>` exits 2 with stderr containing `--bundle-store is not valid for publish`, and publishes nothing (Scenario 4b) — reversing the earlier accept-and-ignore posture.",
+      "verified": "Scenario 4b assertion: `faff bundle publish --bundle-store local` exits 2 with the refusal text, and no bundle is published.",
+      "passed": true,
+      "ac_id": "faff-1016#done:15",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff bundle --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`--bundle-store <unknown>` (e.g. `s3`) exits 2 on **both** `verify` and `publish` via the `parseArgs` `bad-enum` usage error (stderr contains `not in local|git-remote`) (Scenario 4).",
+      "verified": "Scenario 4 assertion: `--bundle-store s3` exits 2 via the shared parseArgs bad-enum path on both `verify` and `publish` positionals.",
+      "passed": true,
+      "ac_id": "faff-1016#done:16",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff bundle --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "A `bundle --selftest` case block covers Scenarios 1–6 (incl. 3b/3c/3d/4b) 1:1, using network-free git fixtures throughout (a local bare repo as `origin` for the CLEAN / reachable-but-empty git-remote cases; a nonexistent local path as `origin` for the unreachable case; an `ext::` sentinel origin + a sentinel `credential.helper` for the no-fetch/no-helper cases; an independent `git init`, a nested `.git`, a `.git`-file gitlink, a symlinked `.git`, and a `git worktree add` for the trust-predicate cases) so no coverage depends on network reachability or can hang on a real fetch.",
+      "verified": "The full `bundle --selftest` run (105/105 checks) -- see the FAFF-1016-labelled block covering Scenarios 1-6 including 3b/3c/3d/4b, all against network-free git fixtures (local bare repos, a nonexistent-path origin, and an ext:: sentinel transport).",
+      "passed": true,
+      "ac_id": "faff-1016#done:17",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff bundle --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`isGitRemoteRootTrusted` is exercised directly (deterministic, explicit `(root, invokerCwd)` args) for every classification row in Scenario 3c.",
+      "verified": "Scenario 3c's seven direct-function `isGitRemoteRootTrusted(root, invokerCwd)` assertions, one per classification row.",
+      "passed": true,
+      "ac_id": "faff-1016#done:18",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff bundle --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "The no-fetch observable is asserted via `setGitArgvSpy`: after a refusal, the recorded argv contains no `ls-remote`/`fetch`/`push`.",
+      "verified": "Scenario 3b/3d's `setGitArgvSpy` assertions (both the direct-function and CLI variants): the recorded argv after a refusal contains no ls-remote/fetch/push.",
+      "passed": true,
+      "ac_id": "faff-1016#done:19",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff bundle --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "A selftest step asserts the `verify` usage string contains `[--bundle-store local|git-remote]`.",
+      "verified": "Selftest assertion: the usage string contains `[--bundle-store local|git-remote]`.",
+      "passed": true,
+      "ac_id": "faff-1016#done:20",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff bundle --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "A selftest step asserts `faff bundle publish --bundle-store local` exits 2 with the refusal message and `faff bundle publish --bundle-store s3` exits 2 with the bad-enum message.",
+      "verified": "Scenario 4b assertion (`--bundle-store local` on publish refused with the exact message) and Scenario 4 assertion (`--bundle-store s3` bad-enum on both actions).",
+      "passed": true,
+      "ac_id": "faff-1016#done:21",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff bundle --selftest"
+        }
+      ]
+    }
+  ]
+}

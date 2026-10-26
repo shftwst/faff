@@ -995,9 +995,93 @@ function resolveBundleStoreName(root) {
   return BUNDLE_STORE_OCCUPANTS.includes(value) ? value : "local"; // unrecognised occupant name -> fail-safe to the local default, never a distributing guess
 }
 
-function resolveBundleStore(root) {
-  const name = resolveBundleStoreName(root);
+// FAFF-1016 — the single occupant-construction home within bundle.js: both the config-driven
+// path (resolveBundleStore) and the explicit `--bundle-store` CLI override (cmdBundle's verify
+// action) route through this, so they can never map a token to a different occupant from each
+// other. Does NOT extend to commissaire.js's own resolveFacadeStore (that site already diverges
+// by refusing git-remote in-process — FAFF-999 — and reconciling the two is out of scope here).
+function bundleStoreByName(name, root) {
+  // name is an already-validated occupant token (local | git-remote)
   return name === "git-remote" ? gitRemoteBundleStore(root) : localBundleStore(root);
+}
+
+function resolveBundleStore(root) {
+  return bundleStoreByName(resolveBundleStoreName(root), root);
+}
+
+// ---------------------------------------------------------------------------
+// FAFF-1016 — the git-remote fetch-target trust gate. An explicit `--bundle-store git-remote`
+// on `bundle verify` newly makes the git-remote occupant reachable against an ARBITRARY --root;
+// every git op that occupant performs runs as `git -C <root> … origin …`, so the actual fetch
+// target is whatever `origin` git's OWN discovery resolves from `<root>` — not a URL faff ever
+// reads. This gate guarantees that resolution lands on the invoker's own vetted checkout before
+// the occupant is ever constructed. Both probes are read-only local git queries (no fetch, no
+// credential helper, no hook) and route through gitRunText so the argv-recording seam
+// (setGitArgvSpy) can prove no remote-contacting op ran on a refusal.
+//
+// Load-bearing invariant: STRICT PATH-CONTAINMENT of `root` inside the invoker's own
+// working-tree top-level (`--show-toplevel`), not git-common-dir equality. A nested checkout, a
+// `.git`-file gitlink, or a symlinked `.git` each make `root` its OWN top-level even though their
+// common-dir resolves (through the indirection) to the invoker's `.git` — which is exactly why a
+// common-dir predicate falsely trusts them. The resolved-origin-URL equality check states the
+// fetch-target invariant explicitly and guards a future loosening of the structural check; it
+// cannot independently reject a containment-passing root (same top-level implies same config).
+// ---------------------------------------------------------------------------
+
+// Read-only local git; no network, no credential helper, no hook. Returns the realpath'd
+// working-tree top-level git associates with `dir`, or null when `dir` is not inside one.
+// `diag`, when an array, gets one {probe, dir, stderr} pushed on a non-zero/empty exit — never
+// consulted on the hot (trusted) path; purely additive for a refusal-time diagnostic hint (e.g.
+// git's own "detected dubious ownership" / safe.directory message), so a benign probe failure
+// doesn't read identically to a genuinely hostile root.
+function gitWorktreeTop(dir, diag) {
+  const r = gitRunText(dir, ["rev-parse", "--show-toplevel"]);
+  if (r.status !== 0 || r.error || !(r.stdout || "").trim()) {
+    if (Array.isArray(diag)) diag.push({ probe: "rev-parse --show-toplevel", dir, stderr: ((r.stderr && r.stderr.toString("utf8")) || "").trim() });
+    return null;
+  }
+  try { return fs.realpathSync((r.stdout || "").trim()); } catch { return null; }
+}
+
+// Read-only local git; no network, no credential helper, no hook. Returns the configured
+// `origin` URL for `dir`, or null when absent ("No such remote 'origin'" -> non-zero exit).
+// `diag`: see gitWorktreeTop above — same additive, refusal-time-only diagnostic collection.
+function gitOriginUrl(dir, remoteName = "origin", diag) {
+  const r = gitRunText(dir, ["remote", "get-url", remoteName]);
+  if (r.status !== 0 || r.error) {
+    if (Array.isArray(diag)) diag.push({ probe: `remote get-url ${remoteName}`, dir, stderr: ((r.stderr && r.stderr.toString("utf8")) || "").trim() });
+    return null;
+  }
+  const u = (r.stdout || "").trim();
+  return u === "" ? null : u;
+}
+
+// Lexical containment test over ALREADY-realpath'd absolute paths. Equal paths count as
+// contained (an omitted --root defaults to findRoot(cwd), which legitimately IS the invoker's
+// own checkout top-level). Deliberately distinct from shared-infra's isInsideRoot, which
+// excludes the equal-path case for its own (in-place file-edit) callers.
+function isPathContained(childReal, parentReal) {
+  const rel = path.relative(parentReal, childReal);
+  return rel === "" || (!path.isAbsolute(rel) && !rel.startsWith(".."));
+}
+
+// `diag`, when an array, collects {probe,dir,stderr} entries for any failing probe below — see
+// gitWorktreeTop/gitOriginUrl. The return contract is unchanged for every existing (2-arg) caller
+// and every selftest assertion (a bare boolean); `diag` is a strictly additive 3rd parameter the
+// CLI's refusal path alone supplies, to surface *why* a probe failed (e.g. a benign safe.directory
+// ownership mismatch) without weakening or alluding to the trust decision itself.
+function isGitRemoteRootTrusted(root, invokerCwd, diag) {
+  const invokerTop = gitWorktreeTop(invokerCwd, diag);
+  const rootTop = gitWorktreeTop(root, diag);
+  if (invokerTop === null || rootTop === null) return false; // either side not in a working tree
+  if (invokerTop !== rootTop) return false; // nested checkout / gitlink / symlink / other worktree
+  let rootReal;
+  try { rootReal = fs.realpathSync(root); } catch { return false; }
+  if (!isPathContained(rootReal, invokerTop)) return false; // symlink escape
+  const invokerOrigin = gitOriginUrl(invokerCwd, "origin", diag);
+  const rootOrigin = gitOriginUrl(root, "origin", diag);
+  if (invokerOrigin === null || rootOrigin === null) return false; // no origin -> nothing safe to fetch
+  return invokerOrigin === rootOrigin; // explicit fetch-target invariant
 }
 
 // ---------------------------------------------------------------------------
@@ -1116,6 +1200,11 @@ const BUNDLE_SPEC = {
     "--boundary-kind": { arity: 1, enum: BUNDLE_BOUNDARY_KINDS },
     "--boundary-key": { arity: 1 },
     "--run-id": { arity: 1 }, "--run-segment-id": { arity: 1 }, "--boundary-seq": { arity: 1 },
+    // FAFF-1016 — verify-only (publish explicitly REJECTS it below, never accept-and-ignore).
+    // A single shared CommandSpec is parsed once for both actions (argv.js cannot mark a flag
+    // unknown-to-one-action-only), so an inapplicable-but-well-formed value is caught by the
+    // action body, not here; a malformed value (outside the enum) is still caught here, shared.
+    "--bundle-store": { arity: 1, enum: BUNDLE_STORE_OCCUPANTS },
   },
   positionals: { min: 0, max: 1, name: "action" },
 };
@@ -1123,12 +1212,20 @@ const BUNDLE_SPEC = {
 function cmdBundle(args) {
   if (args.includes("--selftest")) return bundleSelftest();
   const { values, positionals, errors } = parseArgs(args, BUNDLE_SPEC);
-  if (errors.length) return usageError(errors, "usage: faff bundle <publish|verify> [--run-dir DIR] [--boundary-kind issue-merge-floor|run-close] [--boundary-key KEY] [--run-id ID --run-segment-id N] [--root DIR] [--json]");
+  if (errors.length) return usageError(errors, "usage: faff bundle <publish|verify> [--run-dir DIR] [--boundary-kind issue-merge-floor|run-close] [--boundary-key KEY] [--run-id ID --run-segment-id N] [--root DIR] [--bundle-store local|git-remote] [--json]");
   const action = positionals[0];
   const json = !!values["--json"];
   const root = values["--root"] || findRoot();
 
   if (action === "publish") {
+    // FAFF-1016 — fail-closed rejection, not accept-and-ignore: publish resolves its store from
+    // config inside a live run, so an operator-supplied --bundle-store can never be honoured.
+    // Consistent with FAFF-576's fail-closed parsing posture; does NOT lean on the --run-id /
+    // --run-segment-id precedent (those stay accept-and-ignore on publish — out of scope here).
+    if (values["--bundle-store"] !== undefined) {
+      process.stderr.write("faff bundle publish: --bundle-store is not valid for publish (publish resolves its store from config inside a live run); it is a verify-only flag\n");
+      return 2; // fail closed, before publishBundle ever runs
+    }
     const runDir = values["--run-dir"];
     const boundaryKind = values["--boundary-kind"];
     const boundaryKey = values["--boundary-key"];
@@ -1165,9 +1262,37 @@ function cmdBundle(args) {
     }
     if (!/^-?\d+$/.test(run_segment_id)) { process.stderr.write("faff bundle verify: --run-segment-id must be an integer\n"); return 2; }
     const identity = { run_id, run_segment_id: Number(run_segment_id), boundary_kind: boundaryKind, boundary_key: boundaryKey };
+
+    // FAFF-1016 — the explicit --bundle-store override. Absent -> byte-for-byte unchanged
+    // (verifyBundleIdentity falls back to resolveBundleStore(root), config-driven, walk-up
+    // included). Present + "local" -> construct directly, no config read for occupant selection.
+    // Present + "git-remote" -> gate on isGitRemoteRootTrusted BEFORE constructing the occupant
+    // or performing any git operation against `origin` — refuse fail-closed on an untrusted root.
+    const storeName = values["--bundle-store"]; // already enum-validated by parseArgs, or undefined
+    const verifyOpts = { root };
+    if (storeName === "git-remote") {
+      const trustDiag = [];
+      if (!isGitRemoteRootTrusted(root, process.cwd(), trustDiag)) {
+        // trustDiag is non-empty only when an underlying git probe itself failed (e.g. a
+        // safe.directory ownership mismatch) rather than a clean containment/origin mismatch —
+        // surface that raw detail as a hint so a benign probe failure doesn't read identically
+        // to a genuinely hostile root. Never weakens the refusal: the pinned substring below is
+        // always present verbatim; this is an optional trailing diagnostic line only.
+        const hint = trustDiag.length ? ` (git: ${trustDiag[0].probe} in ${trustDiag[0].dir} — ${trustDiag[0].stderr || "no stderr"})` : "";
+        process.stderr.write(
+          `faff bundle verify: refusing --bundle-store git-remote against an untrusted --root ${root} — ` +
+          `git would resolve 'origin' from that directory, not from your checkout; use --bundle-store local to verify an external capture in place${hint}\n`
+        );
+        return 2; // fail closed, BEFORE any origin git op / occupant build
+      }
+    }
+    if (storeName !== undefined) {
+      verifyOpts.store = bundleStoreByName(storeName, root); // explicit occupant; NO config read
+    }
+
     let result;
     try {
-      result = verifyBundleIdentity(identity, { root });
+      result = verifyBundleIdentity(identity, verifyOpts);
     } catch (e) {
       process.stderr.write(`faff bundle verify: ${e.message}\n`);
       return 2;
@@ -1493,6 +1618,400 @@ function bundleSelftest() {
   } finally {
     fs.rmSync(claimTmp, { recursive: true, force: true });
   }
+
+  // ---------------------------------------------------------------------------
+  // FAFF-1016 — `--bundle-store` override on `verify`, the git-remote fetch-target trust gate,
+  // and `publish`'s fail-closed rejection. Scenario numbers below match the FAFF-1016 spec.
+  // All fixtures are network-free (local bare repos, a nonexistent-path "origin", or an ext::
+  // sentinel transport that would touch a marker file if ever actually invoked).
+  // ---------------------------------------------------------------------------
+  {
+    const os1016 = require("node:os");
+    const captureCli1016 = (fn) => {
+      const origLog = console.log, origOut = process.stdout.write, origErr = process.stderr.write;
+      let stdout = "", stderr = "";
+      console.log = (...a) => { stdout += a.join(" ") + "\n"; };
+      process.stdout.write = (chunk) => { stdout += chunk; return true; };
+      process.stderr.write = (chunk) => { stderr += chunk; return true; };
+      let result;
+      try { result = fn(); } finally { console.log = origLog; process.stdout.write = origOut; process.stderr.write = origErr; }
+      return { result, stdout, stderr };
+    };
+    const withCwd1016 = (dir, fn) => {
+      const prev = process.cwd();
+      process.chdir(dir);
+      try { return fn(); } finally { process.chdir(prev); }
+    };
+
+    // --- Scenario 1 & 2: a CLEAN local capture sitting inside a checkout whose config sets
+    // bundle_store: git-remote, origin pointing at a NONEXISTENT local path (network-free,
+    // deterministic, never hangs). ---
+    const s12Tmp = fs.mkdtempSync(path.join(os1016.tmpdir(), "faff-1016-s12-"));
+    try {
+      const checkout = path.join(s12Tmp, "checkout");
+      const capture = path.join(checkout, "cap");
+      fs.mkdirSync(capture, { recursive: true });
+      spawnSync("git", ["-C", checkout, "init", "-q"]);
+      spawnSync("git", ["-C", checkout, "remote", "add", "origin", path.join(s12Tmp, "nonexistent.git")]);
+      fs.writeFileSync(path.join(checkout, ".faffrc.yaml"), "bundle_store: git-remote\n");
+
+      const run_id12 = "run-selftest-1016-s12";
+      const runDir12 = path.join(capture, ".faff", "runs", run_id12);
+      fs.mkdirSync(runDir12, { recursive: true });
+      fs.writeFileSync(path.join(runDir12, "run-ledger.json"), JSON.stringify({ admitted: ["FAFF-1"], outcomes: { "FAFF-1": "shipped" }, owner: { epoch: 0, status: "done" } }));
+      fs.writeFileSync(path.join(runDir12, "events.jsonl"), '{"schema":1,"run_id":"' + run_id12 + '","seq":0,"ts":"2026-01-01T00:00:00.000Z","phase":"run","type":"run-start"}\n');
+      fs.mkdirSync(path.join(runDir12, "FAFF-1"), { recursive: true });
+      fs.writeFileSync(path.join(runDir12, "FAFF-1", "ac-checklist.json"), '{"all_verified":true}');
+      const mintFn12 = require("./events").mintIssueAnchor;
+      const mint12 = mintFn12(runDir12, "FAFF-1", path.join(capture, ".faff", "anchors", run_id12, "FAFF-1"));
+      ok(mint12.ok === true, "FAFF-1016 selftest fixture (Scenario 1/2): anchor minted cleanly");
+
+      const localStore12 = localBundleStore(capture);
+      const pub12 = publishBundle(runDir12, "issue-merge-floor", "FAFF-1", { root: capture, store: localStore12, boundarySeq: 0 });
+      ok(pub12.ok === true, "FAFF-1016 selftest fixture (Scenario 1/2): capture published via the local occupant");
+
+      // Scenario 1 — --bundle-store local reads the capture in place -> CLEAN/0, regardless of
+      // the enclosing checkout's bundle_store: git-remote.
+      const verdict1 = verifyBundleIdentity(pub12.identity, { root: capture, store: bundleStoreByName("local", capture) });
+      ok(verdict1.verdict === "CLEAN", `FAFF-1016 Scenario 1: --bundle-store local reads the capture in place -> CLEAN (got ${verdict1.verdict}/${verdict1.cause})`);
+      ok(bundleExitCode(verdict1.verdict) === 0, "FAFF-1016 Scenario 1: exit code 0");
+
+      // Scenario 2 (regression guard) — WITHOUT --bundle-store, config-driven resolution walks
+      // up to the checkout's bundle_store: git-remote, whose origin is unreachable ->
+      // VERIFICATION_UNAVAILABLE/2 — opposite verdict/exit from Scenario 1 at the SAME root. The
+      // code gate must NOT fire on this absent-flag path.
+      const verdict2 = verifyBundleIdentity(pub12.identity, { root: capture }); // opts.store absent -> resolveBundleStore(root)
+      ok(verdict2.verdict === "VERIFICATION_UNAVAILABLE", `FAFF-1016 Scenario 2: absent-flag config-driven path resolves git-remote and reports VERIFICATION_UNAVAILABLE against the unreachable origin (got ${verdict2.verdict}/${verdict2.cause})`);
+      ok(bundleExitCode(verdict2.verdict) === 2, "FAFF-1016 Scenario 2: exit code 2, distinct from Scenario 1's exit 0 at the same root");
+
+      // Same pair, exercised through the real CLI dispatcher (cmdBundle) so the --bundle-store
+      // flag wiring itself (not just the underlying functions) is pinned, including the usage
+      // string's new [--bundle-store local|git-remote] token.
+      const cli1 = withCwd1016(capture, () => captureCli1016(() => cmdBundle([
+        "verify", "--root", capture, "--bundle-store", "local",
+        "--run-id", pub12.identity.run_id, "--run-segment-id", String(pub12.identity.run_segment_id),
+        "--boundary-kind", pub12.identity.boundary_kind, "--boundary-key", pub12.identity.boundary_key, "--json",
+      ])));
+      ok(cli1.result === 0 && JSON.parse(cli1.stdout).verdict === "CLEAN", `FAFF-1016 Scenario 1 (CLI): faff bundle verify --bundle-store local -> exit 0, CLEAN (got exit=${cli1.result}, stdout=${cli1.stdout.trim()})`);
+
+      const cli2 = withCwd1016(capture, () => captureCli1016(() => cmdBundle([
+        "verify", "--root", capture,
+        "--run-id", pub12.identity.run_id, "--run-segment-id", String(pub12.identity.run_segment_id),
+        "--boundary-kind", pub12.identity.boundary_kind, "--boundary-key", pub12.identity.boundary_key, "--json",
+      ])));
+      ok(cli2.result === 2 && JSON.parse(cli2.stdout).verdict === "VERIFICATION_UNAVAILABLE", `FAFF-1016 Scenario 2 (CLI): faff bundle verify WITHOUT --bundle-store -> exit 2, VERIFICATION_UNAVAILABLE (got exit=${cli2.result}, stdout=${cli2.stdout.trim()})`);
+    } finally {
+      fs.rmSync(s12Tmp, { recursive: true, force: true });
+    }
+
+    // --- Scenario 5: no config read for occupant selection, proven against a MALFORMED
+    // enclosing .faffrc.yaml (a top-level YAML sequence, fails parseConfigMapStrict). ---
+    const s5Tmp = fs.mkdtempSync(path.join(os1016.tmpdir(), "faff-1016-s5-"));
+    try {
+      const checkout5 = path.join(s5Tmp, "checkout");
+      const capture5 = path.join(checkout5, "cap");
+      fs.mkdirSync(capture5, { recursive: true });
+      spawnSync("git", ["-C", checkout5, "init", "-q"]);
+      // Publish BEFORE the enclosing config turns malformed: publishBundle's own build step
+      // (unrelated to this change) reads governance config from `root` for secret redaction,
+      // so it must run against a well-formed (or absent) config. Only once the capture is
+      // already published do we corrupt the enclosing .faffrc.yaml, to isolate "does verify's
+      // occupant-selection path re-read it" from "can publish tolerate a malformed one".
+      const run_id5 = "run-selftest-1016-s5";
+      const runDir5 = path.join(capture5, ".faff", "runs", run_id5);
+      fs.mkdirSync(runDir5, { recursive: true });
+      fs.writeFileSync(path.join(runDir5, "run-ledger.json"), JSON.stringify({ admitted: ["FAFF-1"], outcomes: { "FAFF-1": "shipped" }, owner: { epoch: 0, status: "done" } }));
+      fs.writeFileSync(path.join(runDir5, "events.jsonl"), '{"schema":1,"run_id":"' + run_id5 + '","seq":0,"ts":"2026-01-01T00:00:00.000Z","phase":"run","type":"run-start"}\n');
+      fs.mkdirSync(path.join(runDir5, "FAFF-1"), { recursive: true });
+      fs.writeFileSync(path.join(runDir5, "FAFF-1", "ac-checklist.json"), '{"all_verified":true}');
+      require("./events").mintIssueAnchor(runDir5, "FAFF-1", path.join(capture5, ".faff", "anchors", run_id5, "FAFF-1"));
+      const localStore5 = localBundleStore(capture5);
+      const pub5 = publishBundle(runDir5, "issue-merge-floor", "FAFF-1", { root: capture5, store: localStore5, boundarySeq: 0 });
+      ok(pub5.ok === true, "FAFF-1016 selftest fixture (Scenario 5): capture published via the local occupant");
+
+      fs.writeFileSync(path.join(checkout5, ".faffrc.yaml"), "- not\n- a\n- mapping\n"); // NOW malformed: a sequence, not a map
+
+      // First run — --bundle-store local bypasses occupant-selection config entirely -> CLEAN/0,
+      // the malformed .faffrc.yaml is never read on this path.
+      const verdict5a = verifyBundleIdentity(pub5.identity, { root: capture5, store: bundleStoreByName("local", capture5) });
+      ok(verdict5a.verdict === "CLEAN", `FAFF-1016 Scenario 5 (first run): --bundle-store local against a malformed enclosing config -> CLEAN (got ${verdict5a.verdict}/${verdict5a.cause})`);
+
+      // Second run — WITHOUT --bundle-store, resolveBundleStore(root) reads the malformed config
+      // and throws base-parse-error, surfaced as exit 2 by the verify action's catch.
+      const cli5b = withCwd1016(capture5, () => captureCli1016(() => cmdBundle([
+        "verify", "--root", capture5,
+        "--run-id", pub5.identity.run_id, "--run-segment-id", String(pub5.identity.run_segment_id),
+        "--boundary-kind", pub5.identity.boundary_kind, "--boundary-key", pub5.identity.boundary_key,
+      ])));
+      ok(cli5b.result === 2, `FAFF-1016 Scenario 5 (second run): WITHOUT --bundle-store against the same malformed config -> exit 2 (got ${cli5b.result})`);
+      ok(/malformed|base-parse-error/.test(cli5b.stderr), `FAFF-1016 Scenario 5 (second run): stderr surfaces the config fault (got ${JSON.stringify(cli5b.stderr)})`);
+    } finally {
+      fs.rmSync(s5Tmp, { recursive: true, force: true });
+    }
+
+    // --- Scenario 6: the default (absent-flag) path still constructs the LOCAL occupant for a
+    // VALID enclosing config (bundle_store: local, or no bundle_store key at all). ---
+    const s6Tmp = fs.mkdtempSync(path.join(os1016.tmpdir(), "faff-1016-s6-"));
+    try {
+      const checkout6 = path.join(s6Tmp, "checkout");
+      const capture6 = path.join(checkout6, "cap");
+      fs.mkdirSync(capture6, { recursive: true });
+      spawnSync("git", ["-C", checkout6, "init", "-q"]);
+      fs.writeFileSync(path.join(checkout6, ".faffrc.yaml"), "bundle_store: local\n");
+
+      const run_id6 = "run-selftest-1016-s6";
+      const runDir6 = path.join(capture6, ".faff", "runs", run_id6);
+      fs.mkdirSync(runDir6, { recursive: true });
+      fs.writeFileSync(path.join(runDir6, "run-ledger.json"), JSON.stringify({ admitted: ["FAFF-1"], outcomes: { "FAFF-1": "shipped" }, owner: { epoch: 0, status: "done" } }));
+      fs.writeFileSync(path.join(runDir6, "events.jsonl"), '{"schema":1,"run_id":"' + run_id6 + '","seq":0,"ts":"2026-01-01T00:00:00.000Z","phase":"run","type":"run-start"}\n');
+      fs.mkdirSync(path.join(runDir6, "FAFF-1"), { recursive: true });
+      fs.writeFileSync(path.join(runDir6, "FAFF-1", "ac-checklist.json"), '{"all_verified":true}');
+      require("./events").mintIssueAnchor(runDir6, "FAFF-1", path.join(capture6, ".faff", "anchors", run_id6, "FAFF-1"));
+      const localStore6 = localBundleStore(capture6);
+      const pub6 = publishBundle(runDir6, "issue-merge-floor", "FAFF-1", { root: capture6, store: localStore6, boundarySeq: 0 });
+      ok(pub6.ok === true, "FAFF-1016 selftest fixture (Scenario 6): capture published via the local occupant");
+
+      const verdict6 = verifyBundleIdentity(pub6.identity, { root: capture6 }); // opts.store absent -> resolveBundleStore -> bundleStoreByName("local", ...)
+      ok(verdict6.verdict === "CLEAN", `FAFF-1016 Scenario 6: absent-flag path with a valid local config still reads CLEAN (got ${verdict6.verdict}/${verdict6.cause})`);
+    } finally {
+      fs.rmSync(s6Tmp, { recursive: true, force: true });
+    }
+
+    // --- Scenario 3 / 3c (trusted rows) — a bundle published ONLY via the git-remote occupant
+    // into a local bare "origin", with <dir> the invoker's OWN checkout (isGitRemoteRootTrusted
+    // true) and no local .faff/bundles files present at <dir>. ---
+    const s3Tmp = fs.mkdtempSync(path.join(os1016.tmpdir(), "faff-1016-s3-"));
+    try {
+      const bareRemote3 = path.join(s3Tmp, "remote.git");
+      const dir3 = path.join(s3Tmp, "invoker");
+      fs.mkdirSync(dir3, { recursive: true });
+      spawnSync("git", ["init", "--bare", "-q", bareRemote3]);
+      spawnSync("git", ["-C", dir3, "init", "-q"]);
+      spawnSync("git", ["-C", dir3, "config", "user.email", "faff-selftest@example.com"]);
+      spawnSync("git", ["-C", dir3, "config", "user.name", "faff-selftest"]);
+      spawnSync("git", ["-C", dir3, "remote", "add", "origin", bareRemote3]);
+
+      ok(isGitRemoteRootTrusted(dir3, dir3) === true, "FAFF-1016 Scenario 3c: the invoker's own checkout root is trusted");
+      const sub3 = path.join(dir3, "sub");
+      fs.mkdirSync(sub3, { recursive: true });
+      ok(isGitRemoteRootTrusted(sub3, dir3) === true, "FAFF-1016 Scenario 3c: a subdirectory of the invoker's own checkout is trusted");
+
+      const run_id3 = "run-selftest-1016-s3";
+      const runDir3 = path.join(dir3, ".faff", "runs", run_id3);
+      fs.mkdirSync(runDir3, { recursive: true });
+      fs.writeFileSync(path.join(runDir3, "run-ledger.json"), JSON.stringify({ admitted: ["FAFF-9"], outcomes: {}, owner: { epoch: 0, status: "running" } }));
+      fs.writeFileSync(path.join(runDir3, "events.jsonl"), '{"schema":1,"run_id":"' + run_id3 + '","seq":0,"ts":"2026-01-01T00:00:00.000Z","phase":"run","type":"run-start"}\n');
+      require("./events").mintIssueAnchor(runDir3, "FAFF-9", path.join(dir3, ".faff", "anchors", run_id3, "FAFF-9"));
+
+      const gstore3 = bundleStoreByName("git-remote", dir3);
+      const gpub3 = publishBundle(runDir3, "issue-merge-floor", "FAFF-9", { root: dir3, store: gstore3, boundarySeq: 0 });
+      ok(gpub3.ok === true, `FAFF-1016 selftest fixture (Scenario 3): git-remote publish succeeds against a trusted root (got ${JSON.stringify(gpub3)})`);
+
+      const verdict3 = verifyBundleIdentity(gpub3.identity, { root: dir3, store: bundleStoreByName("git-remote", dir3) });
+      ok(verdict3.verdict === "CLEAN", `FAFF-1016 Scenario 3: --bundle-store git-remote against a TRUSTED root -> CLEAN (got ${verdict3.verdict}/${verdict3.cause})`);
+
+      // By contrast, --bundle-store local at the SAME <dir> (no local files) -> MISSING/1 — the
+      // two occupants are observably distinct.
+      const verdict3local = verifyBundleIdentity(gpub3.identity, { root: dir3, store: bundleStoreByName("local", dir3) });
+      ok(verdict3local.verdict === "MISSING", `FAFF-1016 Scenario 3: --bundle-store local at the same trusted <dir> (no local files) -> MISSING, distinct occupant (got ${verdict3local.verdict})`);
+
+      // Through the real CLI dispatcher too, including the untrusted-vs-trusted gate decision.
+      const cli3 = withCwd1016(dir3, () => captureCli1016(() => cmdBundle([
+        "verify", "--root", dir3, "--bundle-store", "git-remote",
+        "--run-id", gpub3.identity.run_id, "--run-segment-id", String(gpub3.identity.run_segment_id),
+        "--boundary-kind", gpub3.identity.boundary_kind, "--boundary-key", gpub3.identity.boundary_key, "--json",
+      ])));
+      ok(cli3.result === 0 && JSON.parse(cli3.stdout).verdict === "CLEAN", `FAFF-1016 Scenario 3 (CLI): faff bundle verify --bundle-store git-remote against a trusted root -> exit 0, CLEAN (got exit=${cli3.result}, stdout=${cli3.stdout.trim()})`);
+
+      // Reachable-but-empty ref (the ref removed from the bare remote) -> MISSING/1, distinct
+      // from Scenario 2's unreachable-origin VERIFICATION_UNAVAILABLE/2.
+      const ref3 = bundleRefName(gpub3.identity);
+      spawnSync("git", ["-C", bareRemote3, "update-ref", "-d", ref3]);
+      const verdict3missing = verifyBundleIdentity(gpub3.identity, { root: dir3, store: bundleStoreByName("git-remote", dir3) });
+      ok(verdict3missing.verdict === "MISSING", `FAFF-1016 Scenario 3: a REACHABLE origin with the ref removed -> MISSING (bundle-missing), distinct from unreachable's VERIFICATION_UNAVAILABLE (got ${verdict3missing.verdict})`);
+    } finally {
+      fs.rmSync(s3Tmp, { recursive: true, force: true });
+    }
+
+    // --- Scenario 3c (untrusted rows) — every named escape MUST read false, exercised directly
+    // (deterministic, explicit (root, invokerCwd) args). ---
+    const s3cTmp = fs.mkdtempSync(path.join(os1016.tmpdir(), "faff-1016-s3c-"));
+    try {
+      const invoker3c = path.join(s3cTmp, "invoker");
+      fs.mkdirSync(invoker3c, { recursive: true });
+      spawnSync("git", ["-C", invoker3c, "init", "-q"]);
+      spawnSync("git", ["-C", invoker3c, "remote", "add", "origin", "https://example.com/own.git"]);
+
+      // (a) an independent `git init` repo with its own origin.
+      const independent3c = path.join(s3cTmp, "independent");
+      fs.mkdirSync(independent3c, { recursive: true });
+      spawnSync("git", ["-C", independent3c, "init", "-q"]);
+      spawnSync("git", ["-C", independent3c, "remote", "add", "origin", "https://example.com/other.git"]);
+      ok(isGitRemoteRootTrusted(independent3c, invoker3c) === false, "FAFF-1016 Scenario 3c: an independent git init repo with its own origin is untrusted");
+
+      // (b) a directory carrying its own nested .git.
+      const nested3c = path.join(invoker3c, "nested");
+      fs.mkdirSync(nested3c, { recursive: true });
+      spawnSync("git", ["-C", nested3c, "init", "-q"]);
+      spawnSync("git", ["-C", nested3c, "remote", "add", "origin", "https://example.com/nested.git"]);
+      ok(isGitRemoteRootTrusted(nested3c, invoker3c) === false, "FAFF-1016 Scenario 3c: a directory carrying its own nested .git is untrusted (the round-1 defect)");
+
+      // (c) a directory whose .git is a FILE gitlink into the invoker's checkout.
+      const gitlink3c = path.join(s3cTmp, "gitlink");
+      fs.mkdirSync(gitlink3c, { recursive: true });
+      fs.writeFileSync(path.join(gitlink3c, ".git"), `gitdir: ${path.join(invoker3c, ".git")}\n`);
+      ok(isGitRemoteRootTrusted(gitlink3c, invoker3c) === false, "FAFF-1016 Scenario 3c: a .git-file gitlink into the invoker's checkout is untrusted (top-level is itself, though common-dir resolves to the invoker's)");
+
+      // (d) a directory whose .git is a SYMLINK into the invoker's checkout — origin resolves to
+      // the invoker's OWN url (an origin-only test would falsely trust it); path-containment refuses it.
+      const symlink3c = path.join(s3cTmp, "symlink");
+      fs.mkdirSync(symlink3c, { recursive: true });
+      fs.symlinkSync(path.join(invoker3c, ".git"), path.join(symlink3c, ".git"));
+      ok(gitOriginUrl(symlink3c) === gitOriginUrl(invoker3c), "FAFF-1016 selftest fixture (Scenario 3c/d): the symlinked-.git root's origin resolves to the invoker's own URL");
+      ok(isGitRemoteRootTrusted(symlink3c, invoker3c) === false, "FAFF-1016 Scenario 3c: a symlinked-.git root is untrusted despite its origin matching the invoker's own (path-containment, not origin-identity, is load-bearing)");
+
+      // (e) a `git worktree add` linked worktree of the invoker's own repo — different
+      // top-level, deliberate reversal (spec §2): refused even though it shares git-common-dir + origin.
+      spawnSync("git", ["-C", invoker3c, "commit", "--allow-empty", "-q", "-m", "seed"]);
+      const linkedWt3c = path.join(s3cTmp, "linked-wt");
+      spawnSync("git", ["-C", invoker3c, "worktree", "add", "-q", linkedWt3c, "-b", "faff-1016-selftest-linked"]);
+      ok(isGitRemoteRootTrusted(linkedWt3c, invoker3c) === false, "FAFF-1016 Scenario 3c: a git-worktree-add linked worktree of the invoker's repo is untrusted (different top-level — deliberate reversal)");
+
+      // (f) root or invokerCwd not inside any working tree, or root has no origin.
+      const notARepo3c = path.join(s3cTmp, "not-a-repo");
+      fs.mkdirSync(notARepo3c, { recursive: true });
+      ok(isGitRemoteRootTrusted(notARepo3c, invoker3c) === false, "FAFF-1016 Scenario 3c: a root outside any working tree is untrusted");
+      ok(isGitRemoteRootTrusted(invoker3c, notARepo3c) === false, "FAFF-1016 Scenario 3c: an invokerCwd outside any working tree is untrusted");
+      const bareNoOrigin3c = path.join(s3cTmp, "no-origin-repo");
+      fs.mkdirSync(bareNoOrigin3c, { recursive: true });
+      spawnSync("git", ["-C", bareNoOrigin3c, "init", "-q"]);
+      ok(gitOriginUrl(bareNoOrigin3c) === null, "FAFF-1016 selftest fixture (Scenario 3c): a repo with no configured origin reads null");
+      ok(isGitRemoteRootTrusted(bareNoOrigin3c, bareNoOrigin3c) === false, "FAFF-1016 Scenario 3c: a root with no origin is untrusted (nothing safe to fetch)");
+
+      // The optional 3rd `diag` param (refusal-time diagnostic hint, added in response to an
+      // adversarial-review finding): populated only when an underlying git PROBE itself failed
+      // (e.g. "not a repo" below), never for a clean containment/origin mismatch — so a benign
+      // probe failure (such as a safe.directory ownership mismatch) is distinguishable from a
+      // structurally-sound-but-untrusted root, without changing the boolean return contract.
+      const diagNotARepo = [];
+      ok(isGitRemoteRootTrusted(notARepo3c, invoker3c, diagNotARepo) === false && diagNotARepo.length > 0 && diagNotARepo[0].probe === "rev-parse --show-toplevel",
+        `FAFF-1016: the optional diag param records the failing probe for a non-repo root (got ${JSON.stringify(diagNotARepo)})`);
+      const diagCleanMismatch = [];
+      ok(isGitRemoteRootTrusted(independent3c, invoker3c, diagCleanMismatch) === false && diagCleanMismatch.length === 0,
+        `FAFF-1016: the diag param stays empty for a clean containment mismatch (both sides resolve fine, they just differ) — never implies a probe failure (got ${JSON.stringify(diagCleanMismatch)})`);
+    } finally {
+      fs.rmSync(s3cTmp, { recursive: true, force: true });
+    }
+
+    // --- Scenario 3b / 3d — an UNTRUSTED root is refused before any remote-contacting git op,
+    // and the probe invokes neither a fetch nor a credential helper (born-verifiable no-fetch). ---
+    const s3bTmp = fs.mkdtempSync(path.join(os1016.tmpdir(), "faff-1016-s3b-"));
+    try {
+      const invoker3b = path.join(s3bTmp, "invoker");
+      fs.mkdirSync(invoker3b, { recursive: true });
+      spawnSync("git", ["-C", invoker3b, "init", "-q"]);
+      spawnSync("git", ["-C", invoker3b, "remote", "add", "origin", "https://example.com/own.git"]);
+
+      const sentinelOrigin = path.join(s3bTmp, "SENTINEL_ORIGIN_TOUCHED");
+      const sentinelHelper = path.join(s3bTmp, "SENTINEL_HELPER_TOUCHED");
+      const ext3b = path.join(s3bTmp, "ext");
+      fs.mkdirSync(ext3b, { recursive: true });
+      spawnSync("git", ["-C", ext3b, "init", "-q"]);
+      // A git `ext::` transport that would touch a sentinel file if the transport is EVER
+      // invoked (network-free; it would egress/hang if actually contacted). Also wires a
+      // credential.helper that touches a SECOND sentinel if it is ever invoked.
+      spawnSync("git", ["-C", ext3b, "remote", "add", "origin", `ext::sh -c "touch '${sentinelOrigin}'; exit 1"`]);
+      spawnSync("git", ["-C", ext3b, "config", "credential.helper", `!sh -c "touch '${sentinelHelper}'"`]);
+
+      const spy3b = [];
+      setGitArgvSpy(spy3b);
+      const trusted3b = isGitRemoteRootTrusted(ext3b, invoker3b);
+      setGitArgvSpy(null);
+      ok(trusted3b === false, "FAFF-1016 Scenario 3b: an untrusted --root with a hostile ext:: origin is refused");
+      const remoteVerbs3b = spy3b.filter((a) => ["ls-remote", "fetch", "push"].includes(a[0]));
+      ok(remoteVerbs3b.length === 0, `FAFF-1016 Scenario 3b/3d: the trust probe issues NO ls-remote/fetch/push (got ${JSON.stringify(spy3b)})`);
+      ok(!fs.existsSync(sentinelOrigin), "FAFF-1016 Scenario 3b: the ext:: origin sentinel does NOT exist — the probe never contacted it");
+      ok(!fs.existsSync(sentinelHelper), "FAFF-1016 Scenario 3d: the credential.helper sentinel does NOT exist — the probe invoked no credential helper");
+
+      // Through the real CLI dispatcher: refused, exit 2, with the exact refusal text, and the
+      // same no-fetch / no-sentinel assertions.
+      const spyCli3b = [];
+      setGitArgvSpy(spyCli3b);
+      const cli3b = withCwd1016(invoker3b, () => captureCli1016(() => cmdBundle([
+        "verify", "--root", ext3b, "--bundle-store", "git-remote",
+        "--run-id", "run-selftest-1016-s3b", "--run-segment-id", "0",
+        "--boundary-kind", "issue-merge-floor", "--boundary-key", "FAFF-1",
+      ])));
+      setGitArgvSpy(null);
+      ok(cli3b.result === 2, `FAFF-1016 Scenario 3b (CLI): refused with exit 2 (got ${cli3b.result})`);
+      ok(cli3b.stderr.includes("refusing --bundle-store git-remote against an untrusted --root"), `FAFF-1016 Scenario 3b (CLI): stderr names the refusal (got ${JSON.stringify(cli3b.stderr)})`);
+      const remoteVerbsCli3b = spyCli3b.filter((a) => ["ls-remote", "fetch", "push"].includes(a[0]));
+      ok(remoteVerbsCli3b.length === 0, `FAFF-1016 Scenario 3b (CLI): no ls-remote/fetch/push ran before the refusal (got ${JSON.stringify(spyCli3b)})`);
+      ok(!fs.existsSync(sentinelOrigin) && !fs.existsSync(sentinelHelper), "FAFF-1016 Scenario 3b/3d (CLI): neither sentinel exists after the CLI refusal");
+
+      // By contrast, --bundle-store local at the SAME untrusted <ext> is NOT refused — it reads
+      // the tree in place (MISSING/1 for an absent bundle; the gate constrains only git-remote).
+      const verdictExtLocal = verifyBundleIdentity({ run_id: "run-selftest-1016-s3b", run_segment_id: 0, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1" }, { root: ext3b, store: bundleStoreByName("local", ext3b) });
+      ok(verdictExtLocal.verdict === "MISSING", `FAFF-1016 Scenario 3b (contrast): --bundle-store local at the same untrusted <ext> is NOT refused -> MISSING for an absent bundle (got ${verdictExtLocal.verdict})`);
+
+      // CLI diagnostic-hint check: a root that fails the underlying PROBE itself (not a repo at
+      // all) gets a trailing "(git: ...)" hint on the same pinned refusal; a clean containment
+      // mismatch (ext3b, above) does NOT — both still contain the pinned substring unchanged.
+      const notARepoCli = path.join(s3bTmp, "not-a-repo-cli");
+      fs.mkdirSync(notARepoCli, { recursive: true });
+      const cliHint = withCwd1016(invoker3b, () => captureCli1016(() => cmdBundle([
+        "verify", "--root", notARepoCli, "--bundle-store", "git-remote",
+        "--run-id", "run-selftest-1016-s3b-hint", "--run-segment-id", "0",
+        "--boundary-kind", "issue-merge-floor", "--boundary-key", "FAFF-1",
+      ])));
+      ok(cliHint.result === 2 && cliHint.stderr.includes("refusing --bundle-store git-remote against an untrusted --root") && cliHint.stderr.includes("(git:"),
+        `FAFF-1016: a probe-failure refusal (non-repo root) carries the trailing diagnostic hint, same pinned substring intact (got ${JSON.stringify(cliHint.stderr)})`);
+      const cli3bNoHint = cli3b.stderr; // captured earlier against ext3b (clean containment mismatch)
+      ok(!cli3bNoHint.includes("(git:"), `FAFF-1016: a clean containment/origin mismatch carries NO diagnostic hint (got ${JSON.stringify(cli3bNoHint)})`);
+    } finally {
+      fs.rmSync(s3bTmp, { recursive: true, force: true });
+    }
+
+    // --- Scenario 4 / 4b — invalid --bundle-store value (shared bad-enum, both actions), and
+    // publish's fail-closed rejection of a well-formed value. ---
+    {
+      const { errors: errV } = parseArgs(["verify", "--root", "/tmp", "--bundle-store", "s3"], BUNDLE_SPEC);
+      ok(errV.length === 1 && errV[0].code === "bad-enum" && /s3 not in local\|git-remote/.test(errV[0].detail), `FAFF-1016 Scenario 4: --bundle-store s3 on verify is rejected at parse time via the shared bad-enum path (got ${JSON.stringify(errV)})`);
+      const { errors: errP } = parseArgs(["publish", "--run-dir", "/tmp", "--bundle-store", "s3"], BUNDLE_SPEC);
+      ok(errP.length === 1 && errP[0].code === "bad-enum" && /s3 not in local\|git-remote/.test(errP[0].detail), `FAFF-1016 Scenario 4: --bundle-store s3 on publish is likewise rejected via the SAME shared bad-enum path (got ${JSON.stringify(errP)})`);
+
+      // 4b — publish REJECTS a well-formed value (fail-closed, not accept-and-ignore).
+      const s4bTmp = fs.mkdtempSync(path.join(os1016.tmpdir(), "faff-1016-s4b-"));
+      try {
+        const runDir4b = path.join(s4bTmp, "run-4b");
+        fs.mkdirSync(runDir4b, { recursive: true });
+        fs.writeFileSync(path.join(runDir4b, "run-ledger.json"), JSON.stringify({ admitted: ["FAFF-1"], outcomes: { "FAFF-1": "shipped" }, owner: { epoch: 0, status: "done" } }));
+        fs.writeFileSync(path.join(runDir4b, "events.jsonl"), '{"schema":1,"run_id":"run-4b","seq":0,"ts":"2026-01-01T00:00:00.000Z","phase":"run","type":"run-start"}\n');
+        fs.mkdirSync(path.join(runDir4b, "FAFF-1"), { recursive: true });
+        fs.writeFileSync(path.join(runDir4b, "FAFF-1", "ac-checklist.json"), '{"all_verified":true}');
+        require("./events").mintIssueAnchor(runDir4b, "FAFF-1", path.join(s4bTmp, ".faff", "anchors", "run-4b", "FAFF-1"));
+
+        const cli4b = withCwd1016(s4bTmp, () => captureCli1016(() => cmdBundle(["publish", "--run-dir", runDir4b, "--boundary-kind", "issue-merge-floor", "--boundary-key", "FAFF-1", "--bundle-store", "local"])));
+        ok(cli4b.result === 2, `FAFF-1016 Scenario 4b: publish --bundle-store local exits 2 (got ${cli4b.result})`);
+        ok(cli4b.stderr.includes("--bundle-store is not valid for publish"), `FAFF-1016 Scenario 4b: stderr names the refusal (got ${JSON.stringify(cli4b.stderr)})`);
+        ok(!fs.existsSync(path.join(s4bTmp, ".faff", "bundles")), "FAFF-1016 Scenario 4b: NO bundle is published when --bundle-store is rejected");
+      } finally {
+        fs.rmSync(s4bTmp, { recursive: true, force: true });
+      }
+    }
+
+    // --- usage string carries the new flag (DOD: "a selftest step asserts it"). ---
+    {
+      const { errors: errUsage } = parseArgs(["--unknown-flag-for-usage-check"], BUNDLE_SPEC);
+      ok(errUsage.length > 0, "FAFF-1016 selftest fixture: an unknown flag trips the usage path");
+      // cmdBundle itself builds the usage string inline; assert it directly here since
+      // cmdBundle's early-return for unknown flags doesn't surface it via captureCli easily
+      // without a real invocation — exercise that invocation directly.
+      const cliUsage = captureCli1016(() => cmdBundle(["--unknown-flag-for-usage-check"]));
+      ok(cliUsage.result === 2 && cliUsage.stderr.includes("[--bundle-store local|git-remote]"), `FAFF-1016: the verify/publish usage string lists [--bundle-store local|git-remote] (got ${JSON.stringify(cliUsage.stderr)})`);
+    }
+  }
+
 
   // --- CLI exit-code mapping ---
   ok(bundleExitCode("CLEAN") === 0, "bundleExitCode: CLEAN -> 0");
@@ -2188,6 +2707,7 @@ module.exports = {
   REQUIRED_MEMBERS_B1, REQUIRED_MEMBERS_B2, requiredMembersFor,
   canonicalJSON, validateIdentityForHandle, buildBundle, classifyBundle, deriveSupersededBy,
   localBundleStore, gitRemoteBundleStore, bundleRefName, resolveBundleStoreName, resolveBundleStore,
+  bundleStoreByName, isGitRemoteRootTrusted, gitWorktreeTop, gitOriginUrl,
   publishBundle, verifyBundleIdentity, bundleExitCode, cmdBundle, bundleSelftest,
   recoveryClaimRefName, recoveryClaimStore, pushClaimCommit, buildClaimCommit, gitReadClaimManifest,
   gitRemoteTransport, localRefTransport, setGitArgvSpy,

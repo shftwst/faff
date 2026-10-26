@@ -384,8 +384,17 @@ function gitignoreEnsureSelftest() {
   check("mentions: a file with no .faff line yields false", gitignoreMentionsFaffDir("node_modules/\n# .faff/\n!.faff/\n") === false);
 
   // FAFF-1309 — shadowedFaffDirNegations: a pure predicate over the written-file text,
-  // never a git probe (`gitignore-ensure.js` imports only fs/os/path/shared-infra). ──
-  check("shadowed: this module's own top-of-file require lines name only fs/os/path/argv/shared-infra", fs.readFileSync(__filename, "utf8").split("\n").filter((l) => /^const .* = require\(/.test(l)).every((l) => /"(node:fs|node:os|node:path|\.\/shared-infra|\.\/argv)"/.test(l)));
+  // never a git probe. FAFF-1385 added `node:child_process` to this module for
+  // --local's git-backed info/exclude resolution and the worktree-selftest harness,
+  // not for shadowedFaffDirNegations itself — so the module's require set is now
+  // fs/os/path/child_process/argv/shared-infra, and this check instead proves
+  // shadowedFaffDirNegations's own function body never calls `spawnSync` or any
+  // other git-backed helper: it only operates on the text it's given. ──
+  const SELF_SOURCE = fs.readFileSync(__filename, "utf8");
+  const SHADOWED_FN_START = SELF_SOURCE.indexOf("function shadowedFaffDirNegations");
+  const SHADOWED_FN_BODY = SELF_SOURCE.slice(SHADOWED_FN_START, SHADOWED_FN_START + SELF_SOURCE.slice(SHADOWED_FN_START).indexOf("\n}\n"));
+  check("shadowed: this module's own top-of-file require lines name only fs/os/path/child_process/argv/shared-infra", SELF_SOURCE.split("\n").filter((l) => /^const .* = require\(/.test(l)).every((l) => /"(node:fs|node:os|node:path|node:child_process|\.\/shared-infra|\.\/argv)"/.test(l)));
+  check("shadowed: shadowedFaffDirNegations's own function body never calls spawnSync or any git-backed helper", !/spawnSync/.test(SHADOWED_FN_BODY));
   check("shadowed: non-strings yield []", JSON.stringify(shadowedFaffDirNegations(null)) === "[]" && JSON.stringify(shadowedFaffDirNegations(undefined)) === "[]" && JSON.stringify(shadowedFaffDirNegations(42)) === "[]" && JSON.stringify(shadowedFaffDirNegations({})) === "[]");
   check("shadowed: a string with no catch-all line yields []", shadowedFaffDirNegations("!/anchors/\n!/templates/\n").length === 0);
   const CORRECT_BLOCK = FAFF_DIR_GITIGNORE_PATTERNS.join("\n") + "\n"; // /* then the seven negations, in order

@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1385",
+  "build": {
+    "status": "complete",
+    "diff_hash": "6266cdba60462c4dec00db6aff26801cd634b545b1c43adb235406bd1112d513",
+    "branch": "faff-1385-gitignore-ensure-local-finds-the-exclude-file-through-git-so",
+    "pushed_at": "2026-10-26T05:09:08.004Z"
+  },
+  "updated_at": "2026-10-26T05:09:08.004Z"
+}

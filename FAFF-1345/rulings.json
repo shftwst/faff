@@ -1,0 +1,13 @@
+[
+  {
+    "proposition_id": "FAFF-1345-warning-emission-site",
+    "outcome": "UPHOLD_REVIEW",
+    "rationale": "The reconstruction establishes the scoping requirement as binding: the AC and the DONE item mandate that the new ambiguity warnings are emitted from the `cmdDod` command layer, not from `dodClassify`, because `dodClassify` is shared with `faff admissible` via `proseDoneAdvisory` / `oracleLessAdvisory` / `codeSurfaceAdvisory` / `scenariosCodeSurfaceAdvisory`. The DONE item is explicit and checkable: 'The new warnings are emitted from the `cmdDod` command layer, not from `dodClassify`; `faff admissible` ... prints none of them.' §3 and the HOW procedure agree. Argument A rests entirely on §6's single 'Chosen:' line ('emitted by `dodClassify`'), and its defence of that option attributes to it the property that it 'scopes the warning to `dod classify`' — a premise the reconstruction contradicts, since `dodClassify` is invoked four times under `faff admissible`, so emission inside it would print the `dod classify:`-branded warning under `admissible`, i.e. the exact cross-command leak the AC forbids. Argument A's material predicate fails against the reconstruction. Argument B identifies a genuine internal contradiction between §6's Chosen line and §3, the HOW procedure, and the DONE item, with a concrete, checkable predicted consequence: a builder following the marked decision in §6 ships the leaky version and `faff admissible` prints up to four `dod classify:` stderr lines, failing the DONE item. This is a material defect, and the correction is bounded by the governing requirements, which already settle the correct answer — this is an editorial contradiction, not a product/policy gap and not a taste call. The required correction is to amend §6's 'Chosen:' line (and its supporting bullet) to state emission from the `cmdDod` command layer, consistent with §3, HOW step 3, and the DONE item.",
+    "correction": {
+      "summary": "Amend §6 'Where does the ambiguity warning live?' so its 'Chosen:' line — and the option bullet it selects — state that the pure `doneHeadingWarnings(specText)` helper is emitted by the `cmdDod` command handler, not by `dodClassify`, matching §3, HOW step 3, and the DONE item. Remove the false attribution that emission inside `dodClassify` 'scopes the warning to `dod classify`'; `dodClassify` is shared with `faff admissible` via the four advisory call sites.",
+      "verification": "helper emitted from the `cmdDod` command layer, never from `dodClassify`"
+    },
+    "synthesis_sources": [],
+    "prd_gap_citation": ""
+  }
+]

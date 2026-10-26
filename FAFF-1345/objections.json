@@ -1,0 +1,38 @@
+[
+  {
+    "claim": "The spec presents the shared-predicate narrowing as fixing both the DONE start-match and the \"Scenarios over-stop\" simultaneously, but never analyses what happens to the Scenarios section content that the over-stop used to exclude. After the fix, on exactly the spec shape this ticket targets (`### The trust shift for prose DONE items` before `## 7. DONE — Definition of Done`), `sectionBodyRange`'s boundary walk no longer stops at the near-miss heading — it now runs the Scenarios body all the way to the real DONE heading. That body now *contains* the near-miss heading line and any prose paragraphs under it, and `classifyAcceptanceCriteria` turns every such line into a criterion: the heading line matches none of the skip rules (blank / italic-placeholder / blockquote / bullet / `Given`), so it lands as a `source:\"scenarios\"`, `class:\"prose\"` phantom criterion — which per FAFF-1291 is tiered `running-stack` with `verifier:\"holdout\"`, i.e. the code-blind holdout is handed a criterion that is literally a section heading. The pre-fix behaviour excluded this content; the post-fix behaviour invents it, on the ticket's own motivating case, and the spec's three-edit plan, failure-mode analysis, and DONE items never mention it.",
+    "evidence": "Spec §1 \"Design principle — one recogniser, three callers … Narrowing it in place simultaneously fixes the `dod classify` start-match and the Scenarios over-stop\"; §4 \"Three edits in `admissibility.js`, all in the recogniser block\"; and the supplied `admissibility.js` where `scenariosBoundaryStop` (the only DONE-keyed Scenarios stop) calls `isDoneHeading`, and `classifyAcceptanceCriteria` promotes any non-blank, non-bullet, non-`Given` body line to a unit (\"a bare leading prose/assertion line\").",
+    "predicted_consequence": "Running the spec's own smoke-test spec shape through `faff dod classify` post-fix returns the two DONE items **plus** one or more new phantom `scenarios:*` prose criteria (the near-miss heading text and intervening prose), which flow into `judged_count`, into the holdout's judged set as a heading-shaped criterion, and into `dod split`/`admissible` counts — a new wrong-output regression introduced by the fix for the hidden-DONE bug, undetectable by any of the spec's planned selftest assertions.",
+    "spec_anchor": "design-principle--one-recogniser-three-callers",
+    "lens": "architectural",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The rationale section's resolution of \"Where does the ambiguity warning live?\" states the chosen option as \"a pure `doneHeadingWarnings(specText)` helper **emitted by `dodClassify`**\", while §3's design decision, the HOW procedure, and the DONE item all mandate emission from the `cmdDod` command layer precisely because emitting from `dodClassify` leaks the `dod classify:`-branded warning into `faff admissible` (via `proseDoneAdvisory` / `oracleLessAdvisory` / `codeSurfaceAdvisory` / `scenariosCodeSurfaceAdvisory`) and violates the scoped-to-`dod-classify` AC. A builder resolving the ambiguity from §6 alone implements the leaky option.",
+    "evidence": "§3 \"Design decision — keep both pure functions pure; emit the warning from the `cmdDod` command layer\"; DONE item \"The new warnings are emitted from the `cmdDod` command layer, not from `dodClassify`\"; versus §6 \"**Chosen:** a pure `doneHeadingWarnings(specText)` helper emitted by `dodClassify`.\"",
+    "predicted_consequence": "A builder following §6's \"Chosen\" line ships the warning inside `dodClassify`, and `faff admissible` prints up to four `dod classify:` stderr lines per run — the exact cross-command leak the AC forbids — failing the DONE item \"…`faff admissible` … prints none of them\".",
+    "spec_anchor": "6-design-decision-rationale",
+    "lens": "architectural",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The spec correctly identifies heading text as attacker-influenceable spec content and mandates that every interpolated heading pass through the whitespace-collapse-and-truncate idiom before reaching stderr. That idiom (as the spec itself describes it: \"collapse every whitespace run (incl. newlines) to a single space, then truncate to ~60 chars\") neutralises log-line forging and flooding but does nothing about ANSI/CSI escape sequences embedded in the heading. A spec heading such as `## DONE\\x1b[2J\\x1b[?25l…` — or one crafted to move the cursor and overwrite prior output — passes through collapse-and-truncate intact and is emitted raw by `cmdDod`'s new `process.stderr.write(w + \"\\n\")`. The threat is reached by any untrusted contributor able to write a spec heading that flows through `faff dod classify` in a captured or TTY-attached transcript.",
+    "evidence": "\"Heading text is untrusted\" paragraph in `### 3. WHAT`, which claims the idiom \"stops a multi-line or overlong heading from forging extra `dod classify:` log lines or flooding a captured transcript\" — it claims line-forging safety, not control-character safety, and the new emission point in `### 4. HOW` (`process.stderr.write(w + \"\\n\")`) prints the resulting string verbatim.",
+    "predicted_consequence": "Terminal escape injection into the stderr stream of `faff dod classify` runs (and any CI log that captures it) from a malicious spec heading — cosmetic-to-moderate: overwritten log lines, hidden text in captured transcripts. No privilege or data impact.",
+    "spec_anchor": "3-what",
+    "lens": "infosec",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The detector fires on any heading that contains \"done\", is not recognised as a DONE heading, and has checklist items under it — with no exclusion for headings nested *within* the recognised DONE section. For such a heading the items ARE already classified (parseDoneChecklist includes sub-headings under the DONE heading), yet the warning asserts the opposite.",
+    "evidence": "`doneHeadingWarnings` pseudocode in \"The ambiguity detector\" (### 3. WHAT); the warning string \"rename it to a DONE heading (e.g. '## DONE') so its items are classified\". Concrete shape: `## 7. DONE — Definition of Done` followed by `### Items already done` with `- [ ]` items beneath it — the sub-heading contains \"done\", is not a DONE heading by the new regex, has checklist items, so the warning fires even though every item under it is classified.",
+    "predicted_consequence": "`faff dod classify` emits a warning whose advice (\"so its items are classified\") is false for that spec, training operators to ignore the warning — the exact trust erosion the advisory channel exists to avoid. A selftest over this shape would currently fail only by accident of fixture choice; the spec's fixtures never place a \"done\"-containing sub-heading inside the DONE section.",
+    "spec_anchor": "3-what",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  }
+]

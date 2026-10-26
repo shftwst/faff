@@ -1,0 +1,202 @@
+# FAFF-1345 — Recognise the DONE section by its leading word, not any mention of "done"
+
+> Spec: faffter-dark-nlspec · 2026-10-26 · autonomous · claude-code/unknown · confidence: high. Full spec on Linear FAFF-1345.
+> build-tier: standard
+
+This spec is for the build agent and human reviewers. It fixes the DONE-section recogniser in `plugin/skills/faff/bin/lib/admissibility.js` so `faff dod classify`, `faff admissible`, and `faff dod split` stop mistaking a body heading that merely contains the word "done" for the real DONE checklist, and warn loudly instead of silently returning zero criteria.
+
+## 1. WHY
+
+The whole pipeline reads one predicate to decide where the DONE checklist begins. `isDoneHeading` matches **any** heading that contains the word "done" anywhere in its text, and `parseDoneChecklist` anchors the DONE section on the **first** such heading. A prose body heading like `### The trust shift for prose DONE items` therefore wins over the real `## 7. DONE — Definition of Done`, the parser stops at the wrong place, and `faff dod classify` returns zero DONE criteria with no warning.
+
+The failure is silent and downstream-amplified. Graft Step 8 builds the acceptance-criteria checklist from those criteria, so a spec with this shape ships an empty checklist and the code-blind holdout sees no DONE items to judge or delegate. It is not hypothetical: during the build of FAFF-1291 this hid all 27 DONE items until the offending heading was renamed by hand.
+
+**Design principle — one recogniser, three callers.** The predicate is the single source of truth FAFF-306 established so `faff admissible` (the Scenarios boundary), `faff dod classify`, and `faff dod split` agree on the DONE heading by construction. The fix narrows that one predicate; it never forks a second rule into one caller. Narrowing it in place simultaneously fixes the `dod classify` start-match and the Scenarios over-stop (a body "done" heading could previously end the Scenarios section early too), so the three callers stay in agreement.
+
+**Design principle — a silent empty result is the real defect.** Returning zero DONE criteria is sometimes correct (a spec legitimately has no DONE section). The harm is that the caller cannot tell "no DONE section" from "DONE section hidden by a near-miss heading". The fix must make the hidden-section case **observable** without changing the exit code the caller branches on.
+
+**Reference context.**
+
+| System | Language | Relevance |
+|---|---|---|
+| `plugin/skills/faff/bin/lib/admissibility.js` → `isDoneHeading` (≈L482) | JavaScript | The over-matching predicate this spec narrows. Plain `.js`, no `.ts` sibling — no `tsc` build step. |
+| `parseDoneChecklist` (≈L571), `dodClassify` (≈L284), `dodSplit` (≈L397) | JavaScript | `dod classify` / `dod split` consumers — key the DONE section start on `isDoneHeading`. |
+| `scenariosBoundaryStop` (≈L503), `parseScenarios` (≈L537) | JavaScript | `admissible` consumer — uses `isDoneHeading` as a Scenarios-section stop. |
+| `SCENARIOS_HEADING_RE` (≈L464) | JavaScript | The sibling recogniser whose leading-word-after-optional-number shape this fix mirrors. |
+| `doneScenariosLevelWarning` (≈L524), `dodSelftest` (≈L957), `admissibleSelftest` (≈L813) | JavaScript | The existing stderr-warning idiom and the selftest harness the ACs are proven in. |
+
+**Scope.** A one-predicate correctness fix in the DoD-admissibility recogniser; it changes no command's interface, flags, exit codes, or JSON shape.
+
+## Already shipped against this surface
+
+Related, already-Done work on this recogniser — context so the build does not redo it. None supersedes this ticket's premise (confirmed live: `isDoneHeading` in HEAD is still `/\bdone\b/i`, the over-match).
+
+- **FAFF-306** (Done) — added the shared `scenariosBoundaryStop` so `admissible` and `dod classify` agree on where the Scenarios section ends. It established the single-source recogniser invariant this fix preserves, but it did **not** narrow `isDoneHeading` — the over-match remains.
+- **FAFF-300** (Done) — made heading matching recognise numbered forms (`## N. SCENARIOS` / `## N. DONE`). The optional-list-number tolerance this fix keeps comes from there.
+- **FAFF-1291** (Done) — the build during which this defect was discovered (it hid all 27 DONE items until a heading was renamed). Discovery context, not a prior fix.
+
+## 2. OUT OF SCOPE
+
+- **Rewriting the Scenarios recogniser (`SCENARIOS_HEADING_RE`).** Why excluded: it already anchors on the leading word after an optional number and is not implicated. Extension point: the same `admissibility.js` recogniser block if a future issue unifies the two into one builder.
+- **Changing exit codes or JSON output of `dod classify` / `dod split` / `admissible`.** Why excluded: the ACs require the exit code to stay unchanged; the new signal is stderr-only. Extension point: `cmdDod` (≈L897) if a future issue wants a non-zero exit on a hidden DONE section.
+- **A spec linter / autofix that renames offending body headings.** Why excluded: this issue only needs detection and a warning. Extension point: a new `faff` lint subcommand.
+- **Making `admissible` and `dod split` emit the new hidden-section warning too.** Why excluded: the AC scopes the warning to `dod classify`, and emitting it from three commands would triple-print on the same spec. Extension point: lift the detector into each command's I/O layer if a future issue wants parity.
+
+## 3. WHAT
+
+**Vocabulary.**
+
+| Term | Definition |
+|---|---|
+| DONE heading | An ATX heading whose text, after an optional leading list number (`7.` / `7)`), **begins with** the word "done" — e.g. `## DONE`, `## 7. DONE`, `### 8. DONE`, `## 8. DONE — Definition of Done`. |
+| Near-miss heading | A heading that contains the word "done" but is **not** a DONE heading (the word is not the leading token) — e.g. `### The trust shift for prose DONE items`. |
+| Checklist item | A line matching the existing `- [ ]` / `- [x]` pattern `^\s*[-*+]\s+\[[ xX]\]\s+`. |
+
+**The recogniser change.** `isDoneHeading(line)` currently returns `headingLevel(line) > 0 && /\bdone\b/i.test(line)` — "done" anywhere. It becomes: a heading whose text, after an optional leading list number, has "done" as its first word.
+
+```
+FUNCTION isDoneHeading(line):
+  # mirrors SCENARIOS_HEADING_RE: ^\s*#{1,6}\s+(?:\d+[.)]\s+)?scenarios\b , with "done"
+  RETURN line matches /^\s*#{1,6}\s+(?:\d+[.)]\s+)?done\b/i
+```
+
+The trailing `\b` (not `$`) is load-bearing: real specs almost always write `## N. DONE — Definition of Done`, so the predicate must accept a descriptive suffix after the leading word. Anchoring "done" to the **start** of the heading text (after the optional number) is exactly what excludes a near-miss like `### The trust shift for prose DONE items`, whose first word is "The".
+
+**The ambiguity detector.** A pure helper returns human-readable warning strings; the one I/O caller (`dod classify`) emits them. It mirrors `doneScenariosLevelWarning`, which already returns a `string[]` for a caller to print.
+
+```
+FUNCTION doneHeadingWarnings(specText) -> string[]:
+  headings := all ATX headings outside code fences, each with {text, level, section_has_checklist_items}
+  recognised := headings where isDoneHeading(text)
+  warnings := []
+  IF recognised.length > 1:
+     warnings.push("dod classify: more than one DONE section heading — using the first (" + show(first) + "); also saw " + show(others))
+  FOR h in headings where NOT isDoneHeading(h.text)
+                      AND h.text contains the word "done" (case-insensitive)
+                      AND h.section_has_checklist_items:
+     warnings.push("dod classify: checklist items under a heading not recognised as DONE (" + show(h.text) + ") — rename it to a DONE heading (e.g. '## DONE') so its items are classified")
+  RETURN warnings
+
+# show(s): the SAME neutralise-before-print transform the file's existing advisories use
+# (renderProseDoneWarning / renderCodeSurfaceWarning / renderOracleLessWarning): collapse every
+# whitespace run (incl. newlines) to a single space, then truncate to ~60 chars with an ellipsis.
+# Reuse that helper verbatim — do not print heading text raw.
+```
+
+- "more than one DONE section heading" covers the AC's *more than one heading could be the DONE section*.
+- "checklist items under a heading not recognised as DONE" covers the AC's *`- [ ]` items under a heading that is not recognised* — and fires precisely on the FAFF-1291 shape (`### The trust shift for prose DONE items` with checkboxes under it before the real DONE section).
+- **Heading text is untrusted.** A heading string is attacker-influenceable spec content, so every interpolated heading (`<first>`, `<others>`, `<h.text>`) is passed through the file's existing whitespace-collapse-and-truncate idiom (`show` above) before it reaches stderr — never printed raw. This matches `renderProseDoneWarning` / `renderCodeSurfaceWarning`, which already neutralise their interpolated spec text, and stops a multi-line or overlong heading from forging extra `dod classify:` log lines or flooding a captured transcript.
+
+**Design decision — leading-word anchor, not whole-text equality. Chosen:** recognise "done" as the leading word of the heading text (after an optional list number). The ticket's wording ("the word done as the whole heading text") reads as strict equality, but the real corpus contradicts a strict reading: committed/produced specs overwhelmingly write `## N. DONE — Definition of Done`, and both default spec producers title the section that way. Whole-text equality would stop recognising nearly every real DONE section — a far worse regression than the bug being fixed. The leading-word anchor satisfies all three stated ACs (`## DONE`, `## 7. DONE`, `### 8. DONE` all pass), matches the sibling `SCENARIOS_HEADING_RE` shape, and excludes the mid-heading near-miss. This is a factual reconciliation of the ticket wording against observable producer output, not a taste call.
+
+**Design decision — keep both pure functions pure; emit the warning from the `cmdDod` command layer. Chosen:** the ambiguity detection lives in a pure `doneHeadingWarnings(specText)` helper (no I/O), and the **`cmdDod` command handler** (the one that implements `dod classify`, ≈L897) emits each warning via `process.stderr.write(...)` after it calls `dodClassify`. This is the load-bearing scoping choice: `dodClassify` is **not** `dod classify`'s private engine — it is reused by `proseDoneAdvisory`, `oracleLessAdvisory`, `codeSurfaceAdvisory`, and `scenariosCodeSurfaceAdvisory` (≈L655–L724), which run under `faff admissible`. Emitting from inside `dodClassify` would print the `dod classify:`-branded warning under `faff admissible` too (up to once per internal call) — exactly the cross-command leak the AC's "scoped to `dod classify`" requirement forbids. Emitting from `cmdDod` scopes the warning to the `dod classify` command alone. Both `parseDoneChecklist` and `dodClassify` stay free of this new I/O (`parseDoneChecklist` is documented "Pure — no I/O" and is reused by `admissible` and `dod split`). `cmdDod` already returns exit 0 on any successful parse (≈L924), so a new stderr line cannot change the exit code.
+
+## 4. HOW
+
+**Approach.** Three edits in `admissibility.js`, all in the recogniser block, plus selftest cases.
+
+1. Narrow `isDoneHeading` to the leading-word regex above. Because it is the shared predicate, this fixes `parseDoneChecklist`'s start-match (`dod classify`, `dod split`) and `scenariosBoundaryStop` (`admissible`) together.
+2. Add the pure `doneHeadingWarnings(specText)` helper beside `doneScenariosLevelWarning` (reusing the existing whitespace-collapse-and-truncate idiom for interpolated heading text).
+3. In `cmdDod` (the `dod classify` command handler, ≈L897), after it calls `dodClassify`, emit each `doneHeadingWarnings` string via `process.stderr.write(...)`. Do not touch `dodClassify` itself (it is shared with `admissible`), and do not alter any return value, counts, or exit code.
+
+```
+PROCEDURE cmd_dod_classify(args):                                  # the `dod classify` command, ≈L897
+  1. r := dodClassify(specText, { issue })                         # unchanged — pure, no new I/O here
+  2. print JSON(r) to stdout                                       # unchanged
+  3. FOR w in doneHeadingWarnings(specText):
+        process.stderr.write(w + "\n")                             # NEW — command layer only, not admissible
+  4. RETURN 0                                                      # unchanged — warnings never gate
+```
+
+**Failure modes.**
+
+- **The failure:** the leading-word anchor mis-recognises — either too tight (a legitimate DONE section titled unusually is missed, so its count drops to zero) or too loose (a body heading that genuinely leads with "done", e.g. `## Done and dusted: the retro`, is wrongly accepted as the DONE section). **How you'd know:** the two sides reveal differently, and only one is caught by the new warning. *Too tight:* the missed heading contains "done" without leading on it, so it falls into the near-miss branch and the new stderr warning fires (the designed-in safety net) — or a selftest over the real heading forms fails. *Too loose:* a heading that leads with "done" **is** recognised, so no near-miss warning fires — this case is caught only by a selftest or by a human noticing the wrong section was read, not by the warning. **What it means:** proceed — the too-tight direction self-surfaces; the too-loose direction is a known, accepted residual (a leading-"done" body heading is rare and the spec corpus does not contain one), narrowed in a follow-up only if a real case appears. The warning is honestly a safety net for the too-tight direction, not for every mis-recognition.
+- **The failure:** a spec legitimately has `- [ ]` items under a non-DONE heading (e.g. a WHAT table of checkboxes), triggering a spurious near-miss warning. **How you'd know:** the warning fires on a spec a human considers correct. **What it means:** narrow — gate the near-miss warning on the heading also *containing* the word "done" (done above), so an unrelated checkbox section does not warn.
+
+**Anti-pattern:** adding a second DONE regex inside `parseDoneChecklist` or `scenariosBoundaryStop`. Why: it forks the FAFF-306 single source and re-opens the admissible-vs-classify disagreement this file exists to prevent.
+
+**Anti-pattern:** raising the exit code when a near-miss is detected. Why: the AC fixes the exit code as unchanged; callers branch on it, and the signal is deliberately advisory (stderr only).
+
+## 5. SCENARIOS
+
+```
+Given a spec with `### The trust shift for prose DONE items` (a near-miss heading) appearing before the real `## 7. DONE — Definition of Done`
+When `faff dod classify` runs over it
+Then every `- [ ]` item under `## 7. DONE` is returned as a DONE criterion (none are hidden)
+```
+
+```
+Given the same spec with checklist items sitting under the near-miss heading
+When `faff dod classify` runs over it
+Then a warning naming the unrecognised heading is written to stderr, and the exit code is 0
+```
+
+- The DONE heading forms `## DONE`, `## 7. DONE`, `### 8. DONE`, and `## 8. DONE — Definition of Done` are each recognised as the DONE section (assertion over `isDoneHeading`).
+- A heading whose text does not begin with "done" after an optional list number (`### The trust shift for prose DONE items`) is NOT recognised as a DONE heading (assertion over `isDoneHeading`).
+
+## 6. DESIGN DECISION RATIONALE
+
+**How strictly should a DONE heading be matched?**
+- *Any mention of "done"* (status quo): over-matches body prose headings — the bug.
+- *Whole heading text equals "done"* (ticket's literal wording): would stop recognising `## N. DONE — Definition of Done`, i.e. almost every real spec — a worse regression.
+- *Leading word "done" after an optional list number* (mirrors `SCENARIOS_HEADING_RE`): excludes mid-heading near-misses, accepts the real `— Definition of Done` suffix, satisfies every stated AC.
+- **Chosen:** leading-word anchor — `/^\s*#{1,6}\s+(?:\d+[.)]\s+)?done\b/i`. At the time of writing, the committed/produced spec corpus and both default spec producers title the section `## N. DONE — Definition of Done`, which a whole-text rule would break; revisit only if the house DONE heading convention changes.
+
+**Where does the ambiguity warning live?**
+- *Inside `parseDoneChecklist`*: breaks its documented purity and triple-prints across the three callers that reuse it.
+- *Inside `dodClassify` via a pure helper*: keeps the recogniser/parser pure, scopes the warning to `dod classify` (per the AC), and reuses the existing `process.stderr.write` idiom.
+- **Chosen:** a pure `doneHeadingWarnings(specText)` helper emitted by `dodClassify`.
+
+## 7. OPEN QUESTIONS AND ASSUMPTIONS
+
+**Open Questions:** none — the one decision the ticket wording left ambiguous (whole-text vs leading-word) is resolved above against observable producer output, which is a matter of fact, not an open product/architecture call.
+
+**Assumptions:**
+- **Assumes:** the house DONE-section heading convention is "DONE" as the leading word (optionally numbered, optionally with a descriptive suffix). Validate before building: `grep -rhoE '^#{1,6}[[:space:]]+([0-9]+[.)][[:space:]]+)?[A-Za-z].*' records/specs/ docs/specs/` and confirm DONE sections lead with "DONE"; the build already relies on this (the corpus was checked during prep and holds).
+
+## 8. DONE
+
+### From WHY
+- [ ] A spec with a near-miss heading (`### The trust shift for prose DONE items`) before `## 7. DONE — Definition of Done` returns every `- [ ]` item under the real DONE heading from `faff dod classify` (none hidden).
+- [ ] The narrowed `isDoneHeading` is still the single shared predicate — `admissible`, `dod classify`, and `dod split` read the same DONE boundary (no second DONE regex is introduced).
+
+### From WHAT (recogniser)
+- [ ] `isDoneHeading` returns true for `## DONE`, `## 7. DONE`, `### 8. DONE`, and `## 8. DONE — Definition of Done`.
+- [ ] `isDoneHeading` returns false for `### The trust shift for prose DONE items` (the word "done" not leading).
+
+### From HOW (warning + exit code)
+- [ ] When checklist items sit under a heading containing "done" that is not recognised as a DONE heading, `faff dod classify` writes a stderr warning naming that heading.
+- [ ] When more than one heading is recognised as a DONE section, `faff dod classify` writes a stderr warning that it is using the first.
+- [ ] Interpolated heading text in every new warning is whitespace-collapsed and truncated (the existing `renderProseDoneWarning` / `renderCodeSurfaceWarning` idiom) — never printed raw.
+- [ ] `faff dod classify`'s exit code is unchanged (still 0 on a successful parse) whether or not a warning fires.
+- [ ] The new warnings are emitted from the `cmdDod` command layer, not from `dodClassify`; `faff admissible` (which calls `dodClassify` via `proseDoneAdvisory` / `oracleLessAdvisory` / `codeSurfaceAdvisory` / `scenariosCodeSurfaceAdvisory`) prints none of them.
+- [ ] Both `parseDoneChecklist` and `dodClassify` remain free of this new I/O; the warning strings are produced by the pure `doneHeadingWarnings` helper.
+
+### From tests
+- [ ] `dodSelftest` gains cases proving: the hidden-by-near-miss spec now classifies all DONE items; `## DONE` / `## 7. DONE` / `### 8. DONE` / `## 8. DONE — Definition of Done` are recognised; the near-miss heading is not; `doneHeadingWarnings` returns a near-miss warning for the near-miss-with-checklist spec and a "more than one DONE section" warning for a two-DONE-heading spec; and an overlong / multi-line heading is collapsed-and-truncated in the emitted string. `faff dod --selftest` passes.
+- [ ] `admissibleSelftest` gains a case proving a near-miss body heading no longer ends the Scenarios section early. `faff admissible --selftest` passes.
+
+**Integration smoke test:**
+```
+PROCEDURE smoke:
+  1. Write a temp spec: a `## Scenarios` block, then `### The trust shift for prose DONE items`
+     with no checklist, then `## 7. DONE — Definition of Done` with two `- [ ]` items.
+  2. Run: faff dod classify --spec <temp> --json ; capture stdout + exit code.
+  3. Expect: exit 0; JSON criteria include both DONE items (source "done").
+  4. Move the two `- [ ]` items under the near-miss heading and delete `## 7. DONE`.
+  5. Run again; expect exit 0 AND a stderr line naming the unrecognised heading.
+```
+
+## Methodology critique
+
+Methodology: faffter-dark-methodology-agile-delivery
+
+- **Right-sized (principle 4).** No issues. One concern — narrow a single shared predicate and add its ambiguity warning — comfortably inside a 1–3 day unit (in practice under a day). Nothing to split or merge.
+- **Workstream fit (principles 1 + 5).** No issues. A cohesive correctness fix to the DoD-admissibility recogniser; it lands project-less in Backlog per the default-landing rule, which is correct for a standalone bug fix — no outcome project to force it into.
+- **Surfaced dependencies (principle 6).** No issues. The one piece of prior art it builds on, FAFF-306's shared recogniser, is already Done, so no open blocker link is needed; there are no implicit cross-ticket dependencies.
+- **Risk profile (principle 7).** No issues. The change is a pure-function narrowing with selftest coverage and a designed-in stderr safety net, reversible by `git revert`. No novel integration or external dependency — no de-risking spike warranted.
+
+```faff-contract:spec-readiness
+{ "confidence": "high",
+  "decisions": [ { "marker": "chosen" }, { "marker": "chosen" }, { "marker": "assumes" } ] }
+```

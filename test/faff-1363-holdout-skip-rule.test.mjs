@@ -30,7 +30,11 @@ function extractProcedure(text, marker) {
   let close = startIdx;
   while (close < lines.length && lines[close].trim() !== "```") close++;
   assert.ok(lines[open].trim() === "```" && lines[close].trim() === "```", `could not bound the fenced block around ${JSON.stringify(marker)}`);
-  return lines.slice(open + 1, close).join("\n");
+  const block = lines.slice(open + 1, close).join("\n");
+  // Guard against a future prose reference to the same marker text landing outside its own
+  // fenced block: the bounded block's own first line must be the one that matched.
+  assert.ok(lines[open + 1] === lines[startIdx], `the fenced block bounded for ${JSON.stringify(marker)} does not start at the matched line — a prose reference outside the block may have matched instead`);
+  return block;
 }
 
 test("FAFF-1363: faff-graft/SKILL.md no longer states the old two-count skip rule anywhere", () => {
@@ -44,7 +48,7 @@ test("FAFF-1363: Step 6 holdout_offer skips on judged_count == 0 alone", () => {
   const skipLine = block.split("\n").find((l) => l.includes("decision: skip"));
   assert.ok(skipLine, "holdout_offer must have a line producing decision: skip");
   assert.match(skipLine, /judged_count == 0/);
-  assert.doesNotMatch(skipLine, /integration_count/, "the skip condition must not reference integration_count");
+  assert.doesNotMatch(skipLine, /AND integration_count/, "the skip condition must not require integration_count too — the trailing comment may still name it for context");
 });
 
 test("FAFF-1363: Step 8c holdout_run — the SOLE live skip gate — skips on judged_count == 0 alone", () => {

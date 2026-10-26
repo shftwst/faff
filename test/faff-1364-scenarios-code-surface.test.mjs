@@ -81,7 +81,18 @@ test("scenario 4: the warning is a pure function of lights-out — a test-file S
   const without = specFile(root, ["## Scenarios", "", "```", "Given a", "When b", "Then c", "```", "", "## 8. DONE", "", "- [ ] the parser returns >=1 item", ""].join("\n"), "without.md");
   const withV = admissible(root, withIt, true);
   const withoutV = admissible(root, without, true);
+  // Byte-identical means the FULL verdict shape matches, not just the admissible boolean — compare
+  // checks (ids + pass) and the non-scenarios-surface warnings too, so a regression that corrupts
+  // the verdict payload while keeping the boolean stable (e.g. the advisory leaking into `checks`)
+  // is caught.
   assert.equal(withV.admissible, withoutV.admissible);
+  assert.deepEqual(withV.checks.map((c) => ({ id: c.id, pass: c.pass })), withoutV.checks.map((c) => ({ id: c.id, pass: c.pass })));
+  const nonSurfaceWarnings = (v) => v.warnings.filter((w) => !w.startsWith("scenarios-code-surface advisory:"));
+  assert.deepEqual(nonSurfaceWarnings(withV), nonSurfaceWarnings(withoutV));
+  const withC = classify(root, withIt);
+  const withoutC = classify(root, without);
+  assert.equal(withC.judged_count, withoutC.judged_count);
+  assert.equal(withC.criteria.length, withoutC.criteria.length);
   rmSync(root, { recursive: true, force: true });
 });
 
@@ -93,5 +104,16 @@ test("CLI-only Scenarios unit (no test-file token) stays running-stack and emits
   assert.equal(scen.verification_tier, "running-stack");
   const v = admissible(root, spec, true);
   assert.equal(scenariosSurfaceWarnings(v).length, 0);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test("OUT OF SCOPE pin: an export-signal Scenarios unit (codeSurfaceSignal === \"export\") is deliberately NOT flagged — the advisory is scoped to test-file only", () => {
+  const root = scratch();
+  const spec = specFile(root, ["## Scenarios", "", "```", "Given a build", "When the module loads", "Then `fooHelper` is exported from `lib/bar.js`", "```", "", "## 8. DONE", "", "- [ ] the parser returns >=1 item", ""].join("\n"));
+  const c = classify(root, spec);
+  const scen = c.criteria.find((x) => x.source === "scenarios");
+  assert.equal(scen.verification_tier, "running-stack", "an export-signal Scenarios unit still stays running-stack — classify/tier is unchanged");
+  const v = admissible(root, spec, true);
+  assert.equal(scenariosSurfaceWarnings(v).length, 0, "the advisory fires on codeSurfaceSignal === \"test-file\" only (OUT OF SCOPE: export-in-Scenarios is a future extension point, not this ticket)");
   rmSync(root, { recursive: true, force: true });
 });

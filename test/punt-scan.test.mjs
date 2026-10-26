@@ -17,7 +17,7 @@ const mod = require(path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "..", "plugin", "skills", "faff", "bin", "lib", "punt-scan.js",
 ));
-const { puntScan, puntScanSelftest, runPuntScanCases, extractOutOfScopeItemKeys, slugTokenRunContains } = mod;
+const { puntScan, puntScanSelftest, runPuntScanCases, extractOutOfScopeItemKeys, slugTokenRunContains, matchPuntStart } = mod;
 
 // --- the baked selftest table runs green (no tracker, no network, no clock) ---
 test("punt-scan selftest table: every case passes", () => {
@@ -136,4 +136,72 @@ test("CLI emits PuntScanResult JSON on stdout for a spec file", () => {
 
 test("CLI exits 2 on a missing/unreadable spec file", () => {
   assert.equal(runCli(["punt-scan", path.join(os.tmpdir(), "no-such-punt-scan-spec.md")]).code, 2);
+});
+
+// --- FAFF-1351: a Punt written as a list item is the same Punt ---
+// The seven accepted forms, enumerated once: the text placed before the bold token.
+const LIST_FORMS = [
+  ["dash", "- "],
+  ["star", "* "],
+  ["plus", "+ "],
+  ["ordered dot", "1. "],
+  ["ordered paren", "2) "],
+  ["nested dash", "    - "],
+  ["nested ordered", "  1. "],
+];
+
+const OOS_PREFIX = "## OUT OF SCOPE\n\n- **Repeat-park collapse** — deferred.\n\n## Open Questions\n\n";
+const PUNT_BODIES = [
+  "**Punt:** repeat-park collapse — needs human (decides: architecture) (non-blocking)\n",
+  "**Punt:** cron vs queue — needs human\n",
+];
+
+for (const [name, form] of LIST_FORMS) {
+  for (const body of PUNT_BODIES) {
+    test(`${name}: a listed Punt equals its flush-left twin (${body.slice(0, 24).trim()}…)`, () => {
+      // The twin is the same body with everything before the bold token removed.
+      assert.deepEqual(puntScan(OOS_PREFIX + form + body), puntScan(OOS_PREFIX + body));
+      assert.equal(puntScan(OOS_PREFIX + form + body).punts.length, 1);
+    });
+  }
+}
+
+test("matchPuntStart returns the remainder without the prefix or the indentation", () => {
+  for (const [, form] of LIST_FORMS) {
+    assert.equal(matchPuntStart(`${form}**Punt:** cron vs queue (non-blocking)`), "cron vs queue (non-blocking)");
+  }
+  assert.equal(matchPuntStart("**Punt:** bare"), "bare");
+  assert.equal(matchPuntStart("   **Punt:** indented"), "indented");
+});
+
+test("matchPuntStart rejects non-Punt-start lines", () => {
+  assert.equal(matchPuntStart("- **Chosen:** pino"), null);
+  assert.equal(matchPuntStart("- **Chosen:** pino — an earlier **Punt:** is closed"), null);
+  assert.equal(matchPuntStart("- `**Punt:**` marks an open decision"), null);
+  assert.equal(matchPuntStart("1234567890. **Punt:** ten digits is not a marker"), null);
+  assert.equal(matchPuntStart("-**Punt:** fused dash is not a marker, as before"), null);
+  assert.equal(matchPuntStart(""), null);
+});
+
+test("a listed Punt tagged non-blocking with an OUT OF SCOPE crossref is eligible", () => {
+  const r = puntScan(OOS_PREFIX + "- **Punt:** repeat-park collapse — needs human (non-blocking)\n");
+  assert.equal(r.punts[0].eligible, true);
+  assert.equal(r.eligible_count, 1);
+  assert.equal(r.blocking_open_count, 0);
+});
+
+test("CLI: two listed untagged Punts report blocking_open_count 2 (the ticket repro)", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "punt-scan-listed-"));
+  try {
+    const specFile = path.join(dir, "spec.md");
+    fs.writeFileSync(specFile, "- **Punt:** first open decision\n- **Punt:** second open decision\n");
+    const r = runCli(["punt-scan", specFile]);
+    assert.equal(r.code, 0);
+    const out = JSON.parse(r.stdout);
+    assert.equal(out.punts.length, 2);
+    assert.equal(out.blocking_open_count, 2);
+    assert.equal(out.eligible_count, 0);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });

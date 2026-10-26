@@ -22,7 +22,14 @@ const fs = require("fs");
 const { headingSlug, headingText } = require("./heading-slug");
 const { parseArgs, usageError } = require("./argv");
 
-const PUNT_LINE_RE = /^\s*\*\*Punt:\*\*\s*(.+)$/;
+// The ONE place the list-marker rule is written: a bullet (`-`, `*`, `+`) or an ordered marker
+// (one to nine digits, then `.` or `)`), followed by whitespace. These are the CommonMark
+// list-item markers; the required whitespace keeps the bold token's own leading `**` from
+// ever being read as a marker.
+const LIST_ITEM_PREFIX = "(?:[-*+]|\\d{1,9}[.)])\\s+";
+// A Punt start: optional indentation, at most one list-item prefix, then the bold token. The
+// leading `\s*` sits outside the capture group, so indentation never reaches the remainder.
+const PUNT_LINE_RE = new RegExp("^\\s*(?:" + LIST_ITEM_PREFIX + ")?\\*\\*Punt:\\*\\*\\s*(.+)$");
 const NON_BLOCKING_RE = /\(non-blocking\)/;
 const DECIDES_RE = /\(decides:\s*([^)]+)\)/;
 
@@ -70,16 +77,31 @@ function slugTokenRunContains(topicSlug, oosKey) {
   return ("-" + topicSlug + "-").includes("-" + oosKey + "-");
 }
 
-// PURE: markdown spec text -> PuntScanResult. One PuntMarker per `**Punt:**` line, in
-// document order.
+// PURE: one physical line -> the remainder after the bold `**Punt:**` token (list prefix and
+// indentation already consumed), or null when the line does not open a Punt. Stateless: it
+// looks at one line only. The list prefix is presentation and the Punt is content, so a
+// listed Punt and its de-prefixed twin yield the same remainder.
+//
+// Contract for any continuation-aware parse added on top of this (FAFF-1340): a Punt's
+// continuation ends at a blank line, a heading, the next Punt start (listed or not, decided
+// by calling this function), a Chosen or Assumes marker (listed or not), or any line that
+// opens a list item (tested from LIST_ITEM_PREFIX, never a restated marker rule). A list can
+// interrupt a paragraph in markdown, and absorbing a neighbouring item could pull a
+// `(non-blocking)` tag from an unrelated decision onto a blocking one.
+function matchPuntStart(line) {
+  const m = String(line).match(PUNT_LINE_RE);
+  return m ? m[1] : null;
+}
+
+// PURE: markdown spec text -> PuntScanResult. One PuntMarker per Punt-start line (a
+// `**Punt:**` line, optionally behind a list marker), in document order.
 function puntScan(specText) {
   const oosKeys = extractOutOfScopeItemKeys(specText);
   const punts = [];
 
   for (const line of String(specText).split(/\r?\n/)) {
-    const m = line.match(PUNT_LINE_RE);
-    if (!m) continue;
-    const rest = m[1];
+    const rest = matchPuntStart(line);
+    if (rest === null) continue;
 
     const nonBlocking = NON_BLOCKING_RE.test(rest);
     const decidesMatch = rest.match(DECIDES_RE);
@@ -183,6 +205,60 @@ const PUNT_SCAN_CASES = [
 **Punt:** standing-park collapse — needs human (non-blocking)
 `, (r, keys) => keys.has("standing-park-collapse") && keys.size === 1
       && r.punts[0].eligible === true && r.eligible_count === 1],
+
+  // --- a Punt written as a list item (FAFF-1351): the prefix is presentation, the Punt is content ---
+  ["dash bullet → one blocking Punt", `- **Punt:** cron vs queue — needs human
+`, (r) => r.punts.length === 1 && r.blocking_open_count === 1
+      && r.punts[0].topic === "cron vs queue — needs human"],
+
+  ["star bullet → identical marker", `* **Punt:** cron vs queue — needs human
+`, (r) => r.punts.length === 1 && r.punts[0].topic === "cron vs queue — needs human" && r.punts[0].eligible === false],
+
+  ["plus bullet → identical marker", `+ **Punt:** cron vs queue — needs human
+`, (r) => r.punts.length === 1 && r.punts[0].topic === "cron vs queue — needs human" && r.punts[0].eligible === false],
+
+  ["ordered dot → identical marker", `1. **Punt:** cron vs queue — needs human
+`, (r) => r.punts.length === 1 && r.punts[0].topic === "cron vs queue — needs human" && r.punts[0].eligible === false],
+
+  ["ordered paren → identical marker", `2) **Punt:** cron vs queue — needs human
+`, (r) => r.punts.length === 1 && r.punts[0].topic === "cron vs queue — needs human" && r.punts[0].eligible === false],
+
+  ["nested dash → identical marker", `    - **Punt:** cron vs queue — needs human
+`, (r) => r.punts.length === 1 && r.punts[0].topic === "cron vs queue — needs human" && r.punts[0].eligible === false],
+
+  ["nested ordered → identical marker", `  1. **Punt:** cron vs queue — needs human
+`, (r) => r.punts.length === 1 && r.punts[0].topic === "cron vs queue — needs human" && r.punts[0].eligible === false],
+
+  ["ten-digit ordered marker → no Punt", `1234567890. **Punt:** cron vs queue — needs human
+`, (r) => r.punts.length === 0 && r.blocking_open_count === 0],
+
+  ["listed and eligible → non-blocking with crossref", `## OUT OF SCOPE
+
+- **Repeat-park collapse** — deferred.
+
+## Open Questions
+
+- **Punt:** repeat-park collapse — needs human (non-blocking)
+`, (r) => r.punts.length === 1 && r.punts[0].eligible === true
+      && r.eligible_count === 1 && r.blocking_open_count === 0],
+
+  ["listed, tag order → identical markers", `- **Punt:** cron vs queue — needs human (decides: architecture) (non-blocking)
+- **Punt:** cron vs queue — needs human (non-blocking) (decides: architecture)
+`, (r) => r.punts.length === 2 && JSON.stringify(r.punts[0]) === JSON.stringify(r.punts[1])
+      && r.punts[0].decides === "architecture" && r.punts[0].non_blocking === true],
+
+  ["the ticket repro → two listed untagged Punts block", `- **Punt:** first open decision
+- **Punt:** second open decision
+`, (r) => r.punts.length === 2 && r.blocking_open_count === 2 && r.eligible_count === 0],
+
+  ["inline mention on a listed Chosen line → no Punt", `- **Chosen:** pino — the earlier **Punt:** is closed
+`, (r) => r.punts.length === 0],
+
+  ["backticked token → no Punt", `- \`**Punt:**\` marks an open decision
+`, (r) => r.punts.length === 0],
+
+  ["listed Chosen marker → no Punt", `- **Chosen:** pino
+`, (r) => r.punts.length === 0],
 ];
 
 function runPuntScanCases() {
@@ -237,6 +313,7 @@ module.exports = {
   PUNT_SCAN_CASES,
   cmdPuntScan,
   extractOutOfScopeItemKeys,
+  matchPuntStart,
   puntScan,
   puntScanSelftest,
   runPuntScanCases,

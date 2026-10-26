@@ -1030,17 +1030,28 @@ function resolveBundleStore(root) {
 
 // Read-only local git; no network, no credential helper, no hook. Returns the realpath'd
 // working-tree top-level git associates with `dir`, or null when `dir` is not inside one.
-function gitWorktreeTop(dir) {
+// `diag`, when an array, gets one {probe, dir, stderr} pushed on a non-zero/empty exit — never
+// consulted on the hot (trusted) path; purely additive for a refusal-time diagnostic hint (e.g.
+// git's own "detected dubious ownership" / safe.directory message), so a benign probe failure
+// doesn't read identically to a genuinely hostile root.
+function gitWorktreeTop(dir, diag) {
   const r = gitRunText(dir, ["rev-parse", "--show-toplevel"]);
-  if (r.status !== 0 || r.error || !(r.stdout || "").trim()) return null;
+  if (r.status !== 0 || r.error || !(r.stdout || "").trim()) {
+    if (Array.isArray(diag)) diag.push({ probe: "rev-parse --show-toplevel", dir, stderr: ((r.stderr && r.stderr.toString("utf8")) || "").trim() });
+    return null;
+  }
   try { return fs.realpathSync((r.stdout || "").trim()); } catch { return null; }
 }
 
 // Read-only local git; no network, no credential helper, no hook. Returns the configured
 // `origin` URL for `dir`, or null when absent ("No such remote 'origin'" -> non-zero exit).
-function gitOriginUrl(dir, remoteName = "origin") {
+// `diag`: see gitWorktreeTop above — same additive, refusal-time-only diagnostic collection.
+function gitOriginUrl(dir, remoteName = "origin", diag) {
   const r = gitRunText(dir, ["remote", "get-url", remoteName]);
-  if (r.status !== 0 || r.error) return null;
+  if (r.status !== 0 || r.error) {
+    if (Array.isArray(diag)) diag.push({ probe: `remote get-url ${remoteName}`, dir, stderr: ((r.stderr && r.stderr.toString("utf8")) || "").trim() });
+    return null;
+  }
   const u = (r.stdout || "").trim();
   return u === "" ? null : u;
 }
@@ -1054,16 +1065,21 @@ function isPathContained(childReal, parentReal) {
   return rel === "" || (!path.isAbsolute(rel) && !rel.startsWith(".."));
 }
 
-function isGitRemoteRootTrusted(root, invokerCwd) {
-  const invokerTop = gitWorktreeTop(invokerCwd);
-  const rootTop = gitWorktreeTop(root);
+// `diag`, when an array, collects {probe,dir,stderr} entries for any failing probe below — see
+// gitWorktreeTop/gitOriginUrl. The return contract is unchanged for every existing (2-arg) caller
+// and every selftest assertion (a bare boolean); `diag` is a strictly additive 3rd parameter the
+// CLI's refusal path alone supplies, to surface *why* a probe failed (e.g. a benign safe.directory
+// ownership mismatch) without weakening or alluding to the trust decision itself.
+function isGitRemoteRootTrusted(root, invokerCwd, diag) {
+  const invokerTop = gitWorktreeTop(invokerCwd, diag);
+  const rootTop = gitWorktreeTop(root, diag);
   if (invokerTop === null || rootTop === null) return false; // either side not in a working tree
   if (invokerTop !== rootTop) return false; // nested checkout / gitlink / symlink / other worktree
   let rootReal;
   try { rootReal = fs.realpathSync(root); } catch { return false; }
   if (!isPathContained(rootReal, invokerTop)) return false; // symlink escape
-  const invokerOrigin = gitOriginUrl(invokerCwd);
-  const rootOrigin = gitOriginUrl(root);
+  const invokerOrigin = gitOriginUrl(invokerCwd, "origin", diag);
+  const rootOrigin = gitOriginUrl(root, "origin", diag);
   if (invokerOrigin === null || rootOrigin === null) return false; // no origin -> nothing safe to fetch
   return invokerOrigin === rootOrigin; // explicit fetch-target invariant
 }
@@ -1254,12 +1270,21 @@ function cmdBundle(args) {
     // or performing any git operation against `origin` — refuse fail-closed on an untrusted root.
     const storeName = values["--bundle-store"]; // already enum-validated by parseArgs, or undefined
     const verifyOpts = { root };
-    if (storeName === "git-remote" && !isGitRemoteRootTrusted(root, process.cwd())) {
-      process.stderr.write(
-        `faff bundle verify: refusing --bundle-store git-remote against an untrusted --root ${root} — ` +
-        "git would resolve 'origin' from that directory, not from your checkout; use --bundle-store local to verify an external capture in place\n"
-      );
-      return 2; // fail closed, BEFORE any origin git op / occupant build
+    if (storeName === "git-remote") {
+      const trustDiag = [];
+      if (!isGitRemoteRootTrusted(root, process.cwd(), trustDiag)) {
+        // trustDiag is non-empty only when an underlying git probe itself failed (e.g. a
+        // safe.directory ownership mismatch) rather than a clean containment/origin mismatch —
+        // surface that raw detail as a hint so a benign probe failure doesn't read identically
+        // to a genuinely hostile root. Never weakens the refusal: the pinned substring below is
+        // always present verbatim; this is an optional trailing diagnostic line only.
+        const hint = trustDiag.length ? ` (git: ${trustDiag[0].probe} in ${trustDiag[0].dir} — ${trustDiag[0].stderr || "no stderr"})` : "";
+        process.stderr.write(
+          `faff bundle verify: refusing --bundle-store git-remote against an untrusted --root ${root} — ` +
+          `git would resolve 'origin' from that directory, not from your checkout; use --bundle-store local to verify an external capture in place${hint}\n`
+        );
+        return 2; // fail closed, BEFORE any origin git op / occupant build
+      }
     }
     if (storeName !== undefined) {
       verifyOpts.store = bundleStoreByName(storeName, root); // explicit occupant; NO config read
@@ -1857,12 +1882,23 @@ function bundleSelftest() {
       fs.mkdirSync(notARepo3c, { recursive: true });
       ok(isGitRemoteRootTrusted(notARepo3c, invoker3c) === false, "FAFF-1016 Scenario 3c: a root outside any working tree is untrusted");
       ok(isGitRemoteRootTrusted(invoker3c, notARepo3c) === false, "FAFF-1016 Scenario 3c: an invokerCwd outside any working tree is untrusted");
-      const noOrigin3c = path.join(invoker3c, "sub-no-origin-check"); // subdir; still shares invoker's origin — use a bare separate repo with no origin instead
       const bareNoOrigin3c = path.join(s3cTmp, "no-origin-repo");
       fs.mkdirSync(bareNoOrigin3c, { recursive: true });
       spawnSync("git", ["-C", bareNoOrigin3c, "init", "-q"]);
       ok(gitOriginUrl(bareNoOrigin3c) === null, "FAFF-1016 selftest fixture (Scenario 3c): a repo with no configured origin reads null");
       ok(isGitRemoteRootTrusted(bareNoOrigin3c, bareNoOrigin3c) === false, "FAFF-1016 Scenario 3c: a root with no origin is untrusted (nothing safe to fetch)");
+
+      // The optional 3rd `diag` param (refusal-time diagnostic hint, added in response to an
+      // adversarial-review finding): populated only when an underlying git PROBE itself failed
+      // (e.g. "not a repo" below), never for a clean containment/origin mismatch — so a benign
+      // probe failure (such as a safe.directory ownership mismatch) is distinguishable from a
+      // structurally-sound-but-untrusted root, without changing the boolean return contract.
+      const diagNotARepo = [];
+      ok(isGitRemoteRootTrusted(notARepo3c, invoker3c, diagNotARepo) === false && diagNotARepo.length > 0 && diagNotARepo[0].probe === "rev-parse --show-toplevel",
+        `FAFF-1016: the optional diag param records the failing probe for a non-repo root (got ${JSON.stringify(diagNotARepo)})`);
+      const diagCleanMismatch = [];
+      ok(isGitRemoteRootTrusted(independent3c, invoker3c, diagCleanMismatch) === false && diagCleanMismatch.length === 0,
+        `FAFF-1016: the diag param stays empty for a clean containment mismatch (both sides resolve fine, they just differ) — never implies a probe failure (got ${JSON.stringify(diagCleanMismatch)})`);
     } finally {
       fs.rmSync(s3cTmp, { recursive: true, force: true });
     }
@@ -1917,6 +1953,21 @@ function bundleSelftest() {
       // the tree in place (MISSING/1 for an absent bundle; the gate constrains only git-remote).
       const verdictExtLocal = verifyBundleIdentity({ run_id: "run-selftest-1016-s3b", run_segment_id: 0, boundary_kind: "issue-merge-floor", boundary_key: "FAFF-1" }, { root: ext3b, store: bundleStoreByName("local", ext3b) });
       ok(verdictExtLocal.verdict === "MISSING", `FAFF-1016 Scenario 3b (contrast): --bundle-store local at the same untrusted <ext> is NOT refused -> MISSING for an absent bundle (got ${verdictExtLocal.verdict})`);
+
+      // CLI diagnostic-hint check: a root that fails the underlying PROBE itself (not a repo at
+      // all) gets a trailing "(git: ...)" hint on the same pinned refusal; a clean containment
+      // mismatch (ext3b, above) does NOT — both still contain the pinned substring unchanged.
+      const notARepoCli = path.join(s3bTmp, "not-a-repo-cli");
+      fs.mkdirSync(notARepoCli, { recursive: true });
+      const cliHint = withCwd1016(invoker3b, () => captureCli1016(() => cmdBundle([
+        "verify", "--root", notARepoCli, "--bundle-store", "git-remote",
+        "--run-id", "run-selftest-1016-s3b-hint", "--run-segment-id", "0",
+        "--boundary-kind", "issue-merge-floor", "--boundary-key", "FAFF-1",
+      ])));
+      ok(cliHint.result === 2 && cliHint.stderr.includes("refusing --bundle-store git-remote against an untrusted --root") && cliHint.stderr.includes("(git:"),
+        `FAFF-1016: a probe-failure refusal (non-repo root) carries the trailing diagnostic hint, same pinned substring intact (got ${JSON.stringify(cliHint.stderr)})`);
+      const cli3bNoHint = cli3b.stderr; // captured earlier against ext3b (clean containment mismatch)
+      ok(!cli3bNoHint.includes("(git:"), `FAFF-1016: a clean containment/origin mismatch carries NO diagnostic hint (got ${JSON.stringify(cli3bNoHint)})`);
     } finally {
       fs.rmSync(s3bTmp, { recursive: true, force: true });
     }

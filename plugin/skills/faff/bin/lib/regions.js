@@ -188,6 +188,10 @@ const REGION_MAP = {
   "labels": "factory",
   "label": "factory",
   "eligible": "factory",
+  // discovered-scope-priority — the shared discovered-scope priority lookup (relationship x
+  // source x gate_defect -> high|medium|low). Pure total function, same shape as eligible/
+  // contain -> factory.
+  "discovered-scope-priority": "factory",
   "claim-verdict": "factory",
   // park-verdict — FAFF-835: the stale-park validity function. Pure age-less
   // predicate (status + signals → verdict, no tracker/clock) — same shape as
@@ -518,6 +522,7 @@ const REGION_SELFTEST_ARGV = {
   "labels": ["labels", "--selftest"],
   "label": ["label", "--selftest"],
   "eligible": ["eligible", "--selftest"],
+  "discovered-scope-priority": ["discovered-scope-priority", "--selftest"],
   "claim-verdict": ["claim-verdict", "--selftest"],
   "park-verdict": ["park-verdict", "--selftest"],
   "punt-scan": ["punt-scan", "--selftest"],

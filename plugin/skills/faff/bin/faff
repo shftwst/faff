@@ -67,6 +67,7 @@ const { cmdDisposition } = lazy(() => require("./lib/disposition"), ["cmdDisposi
 const { cmdEconomics } = lazy(() => require("./lib/economics"), ["cmdEconomics"]);
 const { cmdBuildProgress, cmdEffects, cmdLandingProgress, cmdReviewProgress } = lazy(() => require("./lib/effects"), ["cmdBuildProgress", "cmdEffects", "cmdLandingProgress", "cmdReviewProgress"]);
 const { cmdEligible } = lazy(() => require("./lib/eligible"), ["cmdEligible"]);
+const { cmdDiscoveredScopePriority } = lazy(() => require("./lib/discovered-scope-priority"), ["cmdDiscoveredScopePriority"]);
 const { cmdEvidence } = lazy(() => require("./lib/evidence"), ["cmdEvidence"]);
 const { cmdEngine } = lazy(() => require("./lib/engine"), ["cmdEngine"]);
 const { cmdEnv } = lazy(() => require("./lib/env"), ["cmdEnv"]);
@@ -204,6 +205,7 @@ const COMMANDS = {
   "labels": cmdLabels,
   "label": cmdLabel,
   "eligible": cmdEligible,
+  "discovered-scope-priority": cmdDiscoveredScopePriority,
   "claim-verdict": cmdClaimVerdict,
   "park-verdict": cmdParkVerdict,
   "punt-scan": cmdPuntScan,

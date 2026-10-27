@@ -157,6 +157,44 @@ test("verify finds the committed spec by filename when the run directory holds n
   assert.equal(none.json().reason, "no-committed-spec");
 });
 
+test("verify with two committed specs and no record is errored and lists both", () => {
+  const f = fixture();
+  mkdirSync(join(f.wt, "docs", "specs"), { recursive: true });
+  writeFileSync(join(f.wt, "docs", "specs", "2026-10-01-EX-3-a-design.md"), builderView(f));
+  writeFileSync(join(f.wt, "docs", "specs", "2026-10-02-EX-3-b-design.md"), builderView(f));
+  git(f.wt, "add", "-A");
+  git(f.wt, "commit", "-qm", "two specs");
+  const r = verify(f, { noRunDir: true });
+  assert.equal(r.status, 2);
+  assert.equal(r.json().reason, "ambiguous-committed-spec");
+  assert.equal(r.json().paths.length, 2);
+});
+
+test("already-committed names the commit that added the spec, not the branch tip", () => {
+  const f = fixture();
+  const first = commit(f).json();
+  writeFileSync(join(f.wt, "docs", "later.txt"), "later\n");
+  git(f.wt, "add", "-A");
+  git(f.wt, "commit", "-qm", "later work");
+  const again = commit(f).json();
+  assert.equal(again.token, "already-committed");
+  assert.equal(again.commit, first.commit);
+});
+
+test("a spec that is not valid UTF-8 is refused when withholding would alter its bytes", () => {
+  const f = fixture();
+  writeFileSync(f.specFile, Buffer.concat([Buffer.from(SPEC), Buffer.from([0xff, 0xfe, 0x0a])]));
+  const r = commit(f);
+  assert.equal(r.status, 2);
+  assert.equal(r.json().reason, "builder-split-failed");
+  assert.ok(!existsSync(join(f.wt, "docs", "specs")));
+  const plain = fixture({ spec: "# plain\n" });
+  writeFileSync(plain.specFile, Buffer.from([0x23, 0x20, 0xff, 0x0a]));
+  const ok = commit(plain).json();
+  assert.equal(ok.token, "committed");
+  assert.ok(readFileSync(join(plain.wt, ok.path)).equals(readFileSync(plain.specFile)));
+});
+
 test("verify refuses a record whose path leaves the spec directory", () => {
   const f = fixture();
   commit(f);

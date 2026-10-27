@@ -53,7 +53,9 @@ function matchingSpecNames(names, issue) {
 function builderBytes(sourceBuf) {
   const text = sourceBuf.toString("utf8");
   const split = dodSplit(text, "builder").text;
-  return split === text ? sourceBuf : Buffer.from(split, "utf8");
+  if (split === text) return sourceBuf;
+  if (!Buffer.from(text, "utf8").equals(sourceBuf)) throw new Error("spec is not valid UTF-8, so withholding scenarios would alter its bytes");
+  return Buffer.from(split, "utf8");
 }
 
 function holdoutsWithheld(sourceBuf) {
@@ -184,15 +186,13 @@ function runSpecCommit(opts, deps) {
     const differing = blobs.find((b) => !b.blob || !b.blob.equals(builder));
     if (differing) return result(issue, "needs-judgement", { reason: "committed-spec-differs", path: differing.p, paths: existing.paths });
     const first = existing.paths[0];
-    let commit = null;
+    const log = deps.git(worktree, ["log", "-1", "--format=%H", "--", first]);
+    const commit = log.status === 0 ? log.stdout.toString("utf8").trim() : "";
     if (!deps.exists(recordPath(runDir, issue))) {
-      const log = deps.git(worktree, ["log", "-1", "--format=%H", "--", first]);
-      commit = log.status === 0 ? log.stdout.toString("utf8").trim() : "";
       const rec = record({ path: first, commit });
       return result(issue, "already-committed", { path: first, commit, source_check: rec.source_check });
     }
-    const head = deps.git(worktree, ["rev-parse", "HEAD"]);
-    return result(issue, "already-committed", { path: first, commit: head.stdout.toString("utf8").trim() });
+    return result(issue, "already-committed", { path: first, commit });
   }
 
   const abs = path.join(worktree, rel);
@@ -208,11 +208,12 @@ function runSpecCommit(opts, deps) {
   const subject = commitSubject(deps.commitScheme(worktree), issue, collapseTitle(title));
   const add = deps.git(worktree, ["add", "--", rel]);
   const commit = add.status === 0 ? deps.git(worktree, ["commit", "-m", subject, "--", rel]) : add;
+  const failedStep = add.status === 0 ? "git-commit-failed" : "git-add-failed";
   if (commit.status !== 0) {
     deps.git(worktree, ["reset", "-q", "--", rel]);
     if (created) { try { deps.unlink(abs); } catch { /* already gone */ } }
     const line = commit.stderr.split("\n").find((l) => l.trim()) || "";
-    return errored(issue, `git-commit-failed (exit ${commit.status})${line ? `: ${line.trim()}` : ""}`);
+    return errored(issue, `${failedStep} (exit ${commit.status})${line ? `: ${line.trim()}` : ""}`);
   }
   const sha = deps.git(worktree, ["rev-parse", "HEAD"]).stdout.toString("utf8").trim();
   const rec = record({ path: rel, commit: sha });
@@ -279,7 +280,8 @@ function cmdSpec(args, deps) {
 
   const d = deps || defaultDeps();
   const base = { issue, specPath: values["--spec"], worktree: values["--worktree"], runDir: values["--run-dir"] || null };
-  const res = isCommit ? runSpecCommit({ ...base, title, prepRoot: values["--prep-root"] || null }, d) : runSpecVerify(base, d);
+  let res;
+  try { res = isCommit ? runSpecCommit({ ...base, title, prepRoot: values["--prep-root"] || null }, d) : runSpecVerify(base, d); } catch (e) { res = errored(issue, `unexpected: ${e && e.message ? e.message : e}`); }
   emit(res, !!values["--json"], verb);
   if (res.token === "errored") return 2;
   return res.token === "mismatch" ? 1 : 0;

@@ -13,6 +13,9 @@ Attack the spec's testability and done-ness:
   passing (e.g. "`` `test/a.test.mjs` MUST pass ``")? The code-blind holdout cannot read or run a test
   file — raise it, so the author restates the behaviour as an observable Given/When/Then and moves the
   test-file check to its own DONE item.
+- **Prose Scenarios unit** — does a `## Scenarios` unit have no observable `Then` (and no `MUST` or
+  comparator)? The code-blind holdout cannot judge it, and a holdout-marked one is also hidden from the
+  builder, so it checks nothing — raise it and name the unit, so the verdict routes to `revise`.
 - **Acceptance gap** — is there a DONE item with no corresponding scenario, or a scenario that asserts
   something the DONE criteria never required (scope creep into the tests)?
 - **Oracle problem** — for each acceptance criterion, what exactly would you run/observe, and what is

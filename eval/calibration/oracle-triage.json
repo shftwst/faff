@@ -22,10 +22,10 @@
       "resolved-elsewhere",
       "prdr-yagni"
     ],
-    "case_count": 52,
+    "case_count": 53,
     "root_cause_note": "The 2026-07-02 tracker scores (0.00-0.40) were produced by a mis-instructed harness: the 7 non-holdout kinds had no driver arm in eval/cli-driver.mjs and fell through to the tidy-pass default, so the model emitted tidy fields while the grader read empty env.architecture/verdict/objections/findings. Those scores are void as calibration evidence. This triage judges each oracle on fixture-vs-oracle terms only, independent of the void scores; the driver arms are fixed in the same PR so the operator's re-baseline sweep measures a correctly-instructed harness.",
     "class_counts": {
-      "sound": 42,
+      "sound": 43,
       "oracle-defect": 10,
       "needs-evidence": 0,
       "suspected-genuine-miss": 0
@@ -568,6 +568,14 @@
       "class": "sound",
       "triage_ticket": "FAFF-936",
       "rationale": "The lens_bounds oracle { must_object: [infosec], may_object: [architectural, QA] } is correct. The embedded `## Ratified scope` block settles only the unauthenticated public redirect as a ratified goal, so a bare 'this resolve endpoint has no authentication' objection is deferred as a goal-as-goal observation. But the spec independently carries genuine criticals the goal does NOT settle — it logs the caller's `Authorization: Bearer <token>` header verbatim and unlinks a request-controlled `render_path` unvalidated (path traversal / arbitrary delete) — and a `critical` is never deferred regardless of subsection kind. infosec must still object; architectural/QA may pile on; methodology stays silent. Sound — the guard fixture that fails if a rendered ratified goal widens the deferral to the critical."
+    },
+    {
+      "case_id": "refutation-spec-017",
+      "kind": "refutation-spec",
+      "grader_shape": "closed-set: above-minor objecting-lens set (env.objections)",
+      "class": "sound",
+      "triage_ticket": "FAFF-1293",
+      "rationale": "The lens_bounds oracle { must_object: [QA] } with no may_object is correct. The spec is a small read-only CLI change that is otherwise clean (existing read-only accessor, no writes, no network, populated and decidable DONE), so architectural, infosec and methodology have nothing to raise. The one planted flaw is a holdout-fenced Scenarios block with a Given and a When but no Then: `faff dod classify` puts it in the prose class with holdout true, so the code-blind holdout cannot judge it and the builder never sees it. QA must raise it above minor, naming the unit; any other lens objecting above minor FAILs the bounded case. Sound — the fixture for the QA lens's prose-Scenarios-unit guidance."
     }
   ]
 }

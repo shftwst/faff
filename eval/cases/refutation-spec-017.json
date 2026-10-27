@@ -1,0 +1,16 @@
+{
+  "id": "refutation-spec-017",
+  "kind": "refutation-spec",
+  "fixture": {
+    "spec": "WHY: operators need to see which feature flags are enabled for a workspace without reading config files. WHAT: a `flags list` CLI subcommand that prints one line per enabled flag for the current workspace, sorted by flag name, and exits 0; an unknown workspace exits 2 with the message `unknown workspace`. HOW: read the workspace's flag table through the existing read-only config accessor, filter to enabled flags, sort ascending, print `<name>` per line. No writes, no network, no new dependency.\n## Scenarios\n```\nGiven a workspace `alpha` with flags `beta` enabled and `gamma` disabled\nWhen `flags list --workspace alpha` runs\nThen stdout is exactly `beta` followed by a newline, and the exit code is 0\n```\n\n```holdout\nGiven a workspace `alpha` with several flags enabled\nWhen `flags list --workspace alpha` runs\n```\n\n- `flags list --workspace nowhere` MUST print `unknown workspace` to stderr and exit 2\n\n## DONE\n- [ ] `flags list --workspace alpha` MUST print only the enabled flags, one per line, sorted ascending, and exit 0\n- [ ] `flags list --workspace nowhere` MUST print `unknown workspace` to stderr and exit 2\n- [ ] `flags list` MUST perform no writes and make no network calls"
+  },
+  "question": "Refute this spec across the enabled lenses; emit objections {lens,severity} or approve.",
+  "oracle": {
+    "lens_bounds": {
+      "must_object": [
+        "QA"
+      ]
+    }
+  },
+  "_comment": "PROSE HOLDOUT SCENARIO (FAFF-1293). Otherwise-clean, small read-only CLI spec: the design is sound (existing read-only accessor, no writes, no network), the visible Given/When/Then and the unknown-workspace bullet are born verifiable, and DONE is populated with decidable items (FAFF-1243), so architectural, infosec and methodology have nothing to raise. The one planted flaw is the ```holdout block: it has a Given and a When but no Then, so `faff dod classify` puts it in the prose class with holdout true. The code-blind holdout cannot judge a prose Scenarios unit and the builder never sees a holdout-marked one, so it checks nothing; the QA lens must raise it above minor, naming the unit, so the verdict routes to revise. lens_bounds with must_object [QA] and no may_object: QA must object, and any other lens objecting above minor FAILs the case. Recording a baseline is a separate, human-supervised step."
+}

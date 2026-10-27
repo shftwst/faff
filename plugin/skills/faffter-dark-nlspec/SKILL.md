@@ -152,6 +152,8 @@ This is the same language as holdout BDD; a holdout is just the withheld subset 
 
 Never make a Scenarios unit's check a repository test file passing — the holdout cannot read or run one. Restate the behaviour as an observable Given/When/Then and put the test-file check in its own DONE item instead.
 
+Every Scenarios unit needs an observable `Then`, or for a non-functional objective a `MUST` or comparator: a prose unit (no `Then`, no `MUST`, no comparator) cannot be judged code-blind, and a holdout-marked prose unit is also withheld from the builder, so it checks nothing.
+
 ### 6. DESIGN DECISION RATIONALE
 
 Collect all decisions made throughout the spec. For each:

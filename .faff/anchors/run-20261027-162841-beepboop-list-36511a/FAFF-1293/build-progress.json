@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1293",
+  "build": {
+    "status": "complete",
+    "diff_hash": "a88f850e720fd11e0b725d1b9ce8c025861046e16353cb335ab261d432a158bd",
+    "branch": "FAFF-1293-spec-review-refuses-holdout-scenarios-prose",
+    "pushed_at": "2026-10-27T17:35:17.250Z"
+  },
+  "updated_at": "2026-10-27T17:35:17.250Z"
+}

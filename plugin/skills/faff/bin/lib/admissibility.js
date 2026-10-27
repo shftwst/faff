@@ -732,6 +732,27 @@ function renderScenariosCodeSurfaceWarning(adv) {
   return `scenarios-code-surface advisory: ${adv.count} Scenarios unit(s) name a repository test file the code-blind holdout cannot run; restate the behaviour as an observable Given/When/Then and move the test-file check to a DONE item: ${adv.items.map((c) => trunc(c.text)).join(" | ")}`;
 }
 
+// --- scenarios prose advisory (FAFF-1293) ---
+// Pure: Scenarios units dodClassify puts in the prose class (no Then, no MUST, no comparator), in classify
+// order, or null when there are none. A prose Scenarios unit has no delegate verifier (ADR-0140: the AC
+// checklist receives DONE items by id, never Scenarios units) and a holdout-marked one is also withheld
+// from the builder view, so it checks nothing. Reads dodClassify's class/holdout fields only — never a
+// second prose detector (classifyCriterion stays the one class rule). Advisory: never flips admissible.
+function scenariosProseAdvisory(specText) {
+  let classified;
+  try { classified = dodClassify(specText); } catch (e) { return null; }
+  const items = classified.criteria.filter((c) => c.source === "scenarios" && c.class === "prose");
+  if (items.length === 0) return null;
+  return { count: items.length, holdout: items.filter((c) => c.holdout === true).length, items };
+}
+
+function renderScenariosProseWarning(adv) {
+  const trunc = (s) => String(s).replace(/\s+/g, " ").trim().slice(0, 50);
+  const clause = adv.holdout >= 1 ? `; ${adv.holdout} of them are holdout-marked and withheld from the builder, so they check nothing` : "";
+  const named = adv.items.map((c) => `${c.id}${c.holdout === true ? " (holdout)" : ""} ${trunc(c.text)}`).join(" | ");
+  return `scenarios-prose advisory: ${adv.count} Scenarios unit(s) are prose (no Then, no MUST or comparator) and cannot be judged code-blind${clause}; restate each as a Given/When/Then with an observable Then: ${named}`;
+}
+
 // Render the single-line advisory (deterministic "oracle-less-assertion advisory:" prefix). Items
 // whitespace-collapsed + truncated ~50 chars, mirroring renderProseDoneWarning's style.
 function renderOracleLessWarning(adv) {
@@ -766,6 +787,8 @@ function admissibleVerdict(specText, lightsOut) {
   if (surfaceAdv) warnings.push(renderCodeSurfaceWarning(surfaceAdv));
   const scenAdv = scenariosCodeSurfaceAdvisory(specText);  // FAFF-1364: advisory only; never flips admissible
   if (scenAdv) warnings.push(renderScenariosCodeSurfaceWarning(scenAdv));
+  const proseAdv = scenariosProseAdvisory(specText);       // FAFF-1293: advisory only; never flips admissible
+  if (proseAdv) warnings.push(renderScenariosProseWarning(proseAdv));
   const admissible = checks.every((c) => c.pass);
   const reasons = checks.filter((c) => !c.pass).map((c) => c.detail);
   return { admissible, reasons, checks, warnings };
@@ -838,6 +861,11 @@ function admissibleSelftest() {
     { name: "FAFF-1364 scenarios-code-surface-fires (test-file in Scenarios)", text: "## Scenarios\n```\nGiven a\nWhen b\nThen `test/a.test.mjs` MUST pass\n```\n\n## 8. DONE\n\n- [ ] the parser returns >=1 item\n", lights: true, wantAdmissible: true, wantWarnMatch: /^scenarios-code-surface advisory:/ },
     { name: "FAFF-1364 scenarios-code-surface-silent (CLI-only Scenarios unit)", text: "## Scenarios\n```\nGiven a\nThen `faff x` MUST exit 0\n```\n\n## 8. DONE\n\n- [ ] the parser returns >=1 item\n", lights: true, wantAdmissible: true, wantNoScenariosSurfaceWarn: true },
     { name: "FAFF-1364 scenarios-code-surface-silent (well-formed GWT)", text: ADMISSIBLE_GOOD, lights: true, wantAdmissible: true, wantNoScenariosSurfaceWarn: true },
+    // FAFF-1293: a holdout-fenced Given/When block with no Then is a prose Scenarios unit — the advisory names it
+    // with the (holdout) tag and never flips admissible. A well-formed GWT unit and a MUST assertion bullet stay silent.
+    { name: "FAFF-1293 scenarios-prose-fires (holdout Given/When, no Then)", text: "## Scenarios\n```\nGiven a\nWhen b\nThen c MUST hold\n```\n\n```holdout\nGiven a withheld case\nWhen the CLI runs\n```\n\n## 8. DONE\n\n- [ ] the parser returns >=1 item\n", lights: true, wantAdmissible: true, wantWarnMatch: /^scenarios-prose advisory: 1 Scenarios unit\(s\).*; 1 of them are holdout-marked.*scenarios:2 \(holdout\) Given a withheld case/ },
+    { name: "FAFF-1293 scenarios-prose-silent (well-formed GWT)", text: ADMISSIBLE_GOOD, lights: true, wantAdmissible: true, wantNoScenariosProseWarn: true },
+    { name: "FAFF-1293 scenarios-prose-silent (MUST assertion bullet)", text: "## Scenarios\n\n- p99 latency MUST be < 200ms\n\n## 8. DONE\n\n- [ ] the parser returns >=1 item\n", lights: true, wantAdmissible: true, wantNoScenariosProseWarn: true },
   ];
   let failed = 0;
   for (const c of cases) {
@@ -849,6 +877,7 @@ function admissibleSelftest() {
     if (ok && c.wantWarnMatch) ok = v.warnings.some((w) => c.wantWarnMatch.test(w));    // FAFF-306
     if (ok && c.wantNoLevelWarn) ok = !v.warnings.some((w) => /different levels/.test(w));  // FAFF-306
     if (ok && c.wantNoScenariosSurfaceWarn) ok = !v.warnings.some((w) => w.startsWith("scenarios-code-surface advisory:"));  // FAFF-1364
+    if (ok && c.wantNoScenariosProseWarn) ok = !v.warnings.some((w) => w.startsWith("scenarios-prose advisory:"));  // FAFF-1293
     // FAFF-304: the prose-DONE punt-prediction advisory (a warnings[] string, never gating)
     const advWarn = v.warnings.find((w) => w.startsWith("prose-DONE advisory:"));
     if (ok && c.wantAdvisory === true) ok = !!advWarn;
@@ -1736,4 +1765,4 @@ function cmdSpecReviewLenses(args) {
 }
 
 
-module.exports = { ADMISSIBLE_DUP_DONE, ADMISSIBLE_GOOD, ADMISSIBLE_GOOD_NUMBERED, ADMISSIBLE_PROSE_DONE, ADMISSIBLE_SPEC, BANNED_VAGUE, DOD_CLASSIFY_SPEC, DOD_SPLIT_SPEC, DOD_SURFACE, DUP_THRESHOLD, HOLDOUT_RECORD_SPEC, HOLDOUT_SURFACE, HOLDOUT_VERDICTS_SPEC, HOLDOUT_VERDICT_SPEC, INTEGRATION_TIER_MARKERS, INTERNAL_SUBJECT_MARKERS, OBSERVABLE_TOKENS, PROSE_DONE_STOPWORDS, SCENARIOS_HEADING_RE, SPEC_REVIEW_ALL_LENSES, SPEC_REVIEW_LENSES_SPEC, SPEC_REVIEW_SURFACE_FIRES, SPEC_REVIEW_SURFACE_TAGS, acceptanceSection, admissibleSelftest, admissibleVerdict, classifyAcceptanceCriteria, classifyCriterion, cmdAdmissible, codeSurfaceAdvisory, codeSurfaceSignal, cmdDod, cmdDodSplit, cmdHoldout, cmdHoldoutRecord, cmdHoldoutVerdict, cmdSpecReviewLenses, detectRunnableCheck, dodClassify, dodSelftest, dodSplit, doneScenariosLevelWarning, firstHeadingLevelMatching, hasObservableOracle, headingLevel, holdoutRemovalSpans, holdoutVerdictsSelftest, isConfidenceLine, isDoneHeading, isHoldoutFenceOpen, isIntegrationFenceOpen, matchesBannedVague, opensContractFence, oracleLessAdvisory, parseDoneChecklist, parseScenarios, prdHasComparator, proseDoneAdvisory, proseDoneContainment, proseDoneTokens, renderCodeSurfaceWarning, renderOracleLessWarning, renderProseDoneWarning, renderScenariosCodeSurfaceWarning, resolveVerificationTier, scenariosBoundaryStop, scenariosCodeSurfaceAdvisory, sectionBody, sectionBodyRange, selectLenses, specReviewLensesSelftest };
+module.exports = { ADMISSIBLE_DUP_DONE, ADMISSIBLE_GOOD, ADMISSIBLE_GOOD_NUMBERED, ADMISSIBLE_PROSE_DONE, ADMISSIBLE_SPEC, BANNED_VAGUE, DOD_CLASSIFY_SPEC, DOD_SPLIT_SPEC, DOD_SURFACE, DUP_THRESHOLD, HOLDOUT_RECORD_SPEC, HOLDOUT_SURFACE, HOLDOUT_VERDICTS_SPEC, HOLDOUT_VERDICT_SPEC, INTEGRATION_TIER_MARKERS, INTERNAL_SUBJECT_MARKERS, OBSERVABLE_TOKENS, PROSE_DONE_STOPWORDS, SCENARIOS_HEADING_RE, SPEC_REVIEW_ALL_LENSES, SPEC_REVIEW_LENSES_SPEC, SPEC_REVIEW_SURFACE_FIRES, SPEC_REVIEW_SURFACE_TAGS, acceptanceSection, admissibleSelftest, admissibleVerdict, classifyAcceptanceCriteria, classifyCriterion, cmdAdmissible, codeSurfaceAdvisory, codeSurfaceSignal, cmdDod, cmdDodSplit, cmdHoldout, cmdHoldoutRecord, cmdHoldoutVerdict, cmdSpecReviewLenses, detectRunnableCheck, dodClassify, dodSelftest, dodSplit, doneScenariosLevelWarning, firstHeadingLevelMatching, hasObservableOracle, headingLevel, holdoutRemovalSpans, holdoutVerdictsSelftest, isConfidenceLine, isDoneHeading, isHoldoutFenceOpen, isIntegrationFenceOpen, matchesBannedVague, opensContractFence, oracleLessAdvisory, parseDoneChecklist, parseScenarios, prdHasComparator, proseDoneAdvisory, proseDoneContainment, proseDoneTokens, renderCodeSurfaceWarning, renderOracleLessWarning, renderProseDoneWarning, renderScenariosCodeSurfaceWarning, renderScenariosProseWarning, resolveVerificationTier, scenariosBoundaryStop, scenariosCodeSurfaceAdvisory, scenariosProseAdvisory, sectionBody, sectionBodyRange, selectLenses, specReviewLensesSelftest };

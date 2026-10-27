@@ -1,0 +1,176 @@
+{
+  "schema_version": 1,
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 5,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The judge-stage resume re-derives `--diff` from the remote-backed three-dot diff of the restored branch, but the pre-hold `--assemble` calls hashed a *different* byte stream — Step 9's in-drain review diff (`git diff \"$base...HEAD\"` over the worktree). Whenever the dialogue loop took even one **fix** round before the judge ran (the normal path into the judge), those fix commits are unpushed, so the remote diff lacks them and `pre_ruling_diff_sha` cannot match; the ledger is swept and every ruling is re-spent. Independently, any merge to `origin/<default>` during the hold moves the three-dot merge base and changes the diff bytes even with a fully-pushed branch. The spec's own justification — \"the diff the build-progress checkpoint hashed and Step 3 just validated\" — is unsound: the checkpoint was written at Step 8b *before* the dialogue loop, so Step 3's hash check validates against the pre-fix remote state and says nothing about whether the pre-hold judge's diff matches. The design therefore only appears to solve the stated problem; in the common case it degrades to exactly today's behaviour (fresh pass, all calls re-spent), which is the waste the WHY section exists to eliminate.",
+      "evidence": "Spec §4 \"Graft routes a judge-stage resume into the judge\" step 3b–3c and the **Chosen:** under \"Which diff does the resumed judge get?\"; §2 OUT OF SCOPE (\"Fix commits are not pushed per round today\"); §6 rationale \"the build-progress diff, on the resume path only\". The in-drain diff source is `git diff \"$base...HEAD\"` (faff-graft SKILL, Remote-backed review diff), the resume source is `git diff \"$base...$fref\"` — different commit tips whenever a fix round ran.",
+      "predicted_consequence": "Most real judge-stage resumes print `resumed: false` on their first `--assemble`, sweep the persisted ledger, and re-run Phase 1 + Phase 2 for every case — the feature ships but silently no-ops on the path it was built for, and the builder cannot fix it without changing the spec because the diff source is pinned in prose and in a DONE item.",
+      "spec_anchor": "graft-routes-a-judge-stage-resume-into-the-judge",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The judge-stage resume re-derives `--diff` from the remote-backed three-dot diff of the restored branch, but the pre-hold `--assemble` calls hashed a *different* byte stream — Step 9's in-drain review diff (`git diff \"$base...HEAD\"` over the worktree). Whenever the dialogue loop took even one **fix** round before the judge ran (the normal path into the judge), those fix commits are unpushed, so the remote diff lacks them and `pre_ruling_diff_sha` cannot match; the ledger is swept and every ruling is re-spent. Independently, any merge to `origin/<default>` during the hold moves the three-dot merge base and changes the diff bytes even with a fully-pushed branch. The spec's own justification — \"the diff the build-progress checkpoint hashed and Step 3 just validated\" — is unsound: the checkpoint was written at Step 8b *before* the dialogue loop, so Step 3's hash check validates against the pre-fix remote state and says nothing about whether the pre-hold judge's diff matches. The design therefore only appears to solve the stated problem; in the common case it degrades to exactly today's behaviour (fresh pass, all calls re-spent), which is the waste the WHY section exists to eliminate.",
+          "spec_anchor": "graft-routes-a-judge-stage-resume-into-the-judge"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The resume procedure pins the exact `--assemble` argument list (`--dir --issue --diff --reopen-for-hold`, explicitly \"no --run-id, no --window-start\") and is silent about `--acceptance-criteria`/`--repository-evidence` — yet the failure-modes section contemplates \"an acceptance-criteria or repository-evidence file whose contents changed between drains\" as a mismatch cause, implying the pre-hold calls may carry them. If they were supplied pre-hold, the resumed call's *omission* (not a content change) alone forces a fresh pass every time, and the spec's stated remedy (\"pin whichever input moved\") cannot even name the moved input because the resume arm never forwards it.",
+      "evidence": "Spec §4 procedure `resume_build_review_dialogue` step 3c (the pinned command); §4 Failure modes, first bullet (\"an acceptance-criteria or repository-evidence file whose contents changed between drains\").",
+      "predicted_consequence": "A builder following the pinned command produces a judge-stage resume that mismatch-sweeps on every drain for any issue whose pre-hold judge used those flags, with no spec-stated way to reproduce the identity.",
+      "spec_anchor": "graft-routes-a-judge-stage-resume-into-the-judge",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The resume procedure pins the exact `--assemble` argument list (`--dir --issue --diff --reopen-for-hold`, explicitly \"no --run-id, no --window-start\") and is silent about `--acceptance-criteria`/`--repository-evidence` — yet the failure-modes section contemplates \"an acceptance-criteria or repository-evidence file whose contents changed between drains\" as a mismatch cause, implying the pre-hold calls may carry them. If they were supplied pre-hold, the resumed call's *omission* (not a content change) alone forces a fresh pass every time, and the spec's stated remedy (\"pin whichever input moved\") cannot even name the moved input because the resume arm never forwards it.",
+          "spec_anchor": "graft-routes-a-judge-stage-resume-into-the-judge"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The bound paragraph asserts \"Per case and per phase, attempts never exceed `(graft.build_review_hold_limit + 1) × (graft.build_judge_retry_limit + 1)`: one budget for the original pass plus one per distinct hold.\" That arithmetic does not hold on the mismatch path the spec's own Failure modes section describes. When the resumed worktree's diff differs from the pre-hold judge's (the acknowledged lost-fix-commits case until FAFF-1325), a single hold's drain can consume **two** full attempt budgets for one hold count: call 1 mismatches, sweeps, starts a fresh pass (budget 1); if that call exits 3, the chunk loop re-invokes, the fresh ledger now matches, `resumed` becomes true, and `--reopen-for-hold <n>` fires (budget 2) — both inside the same hold. Worst case across the issue is then `(hold_limit + 2)` budgets (original pass + one mismatch-generation pass + one reopen per hold), not `hold_limit + 1`. The property is still finite and bounded, so this is not a safety hole — but the stated invariant is false, and the methodology critique says the DONE items pin this bound with tests; a test encoded from the stated arithmetic fails on exactly the path the spec's Failure modes tells the builder to expect.",
+      "evidence": "\"### Assemble reopens once per hold\" — the Bound paragraph; cross-referenced with \"### Failure modes\" (\"the resumed judge's identity does not match the persisted ledger after all… The expected cause is a fix round before the hold whose commits did not survive\") and the resume arm's live-diff recapture (`resume_build_review_dialogue` step 3c), which is what makes the mismatch reachable.",
+      "predicted_consequence": "a bound-pinning test fails (or the bound is silently not tested) on the fix-round-before-hold path; the spec ships asserting a safety constant that its own failure-mode narrative exceeds.",
+      "spec_anchor": "assemble-reopens-once-per-hold",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The bound paragraph asserts \"Per case and per phase, attempts never exceed `(graft.build_review_hold_limit + 1) × (graft.build_judge_retry_limit + 1)`: one budget for the original pass plus one per distinct hold.\" That arithmetic does not hold on the mismatch path the spec's own Failure modes section describes. When the resumed worktree's diff differs from the pre-hold judge's (the acknowledged lost-fix-commits case until FAFF-1325), a single hold's drain can consume **two** full attempt budgets for one hold count: call 1 mismatches, sweeps, starts a fresh pass (budget 1); if that call exits 3, the chunk loop re-invokes, the fresh ledger now matches, `resumed` becomes true, and `--reopen-for-hold <n>` fires (budget 2) — both inside the same hold. Worst case across the issue is then `(hold_limit + 2)` budgets (original pass + one mismatch-generation pass + one reopen per hold), not `hold_limit + 1`. The property is still finite and bounded, so this is not a safety hole — but the stated invariant is false, and the methodology critique says the DONE items pin this bound with tests; a test encoded from the stated arithmetic fails on exactly the path the spec's Failure modes tells the builder to expect.",
+          "spec_anchor": "assemble-reopens-once-per-hold"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The park-class table assigns \"unbound or missing reconstruction on resume\" to `final` — the never-reopened class — but that park is not \"the case's own content\"; it is a torn or tampered store, exactly the class of disagreement the spec elsewhere refuses loudly. A store that carries `ledger.json` (with `judge_progress.reconstruction` set) but loses `recon-<case_id>.json` yields a permanent `final` park on that case, and the reopen machinery — whose stated criterion is \"only reopen what a later drain can fix\" — can never repair it, even though the fix is one Phase-1 call.",
+      "evidence": "Design principle \"**Only reopen what a later drain can fix.** A case parked because of its own content … would fail the same way again, so it stays parked.\" vs. the park-site table row \"`dispatchOne`: … unbound or missing reconstruction on resume … → `final`\". The same spec refuses a judge-stage store missing the *ledger* on precisely this torn-store reasoning (\"a hold record and store that disagree have been tampered with or torn, and silently downgrading would hide it\") — but silently final-parks a store missing the *reconstruction*.",
+      "predicted_consequence": "A store that loses one `recon-*.json` (external tampering, a manual store edit, a partial out-of-band copy) permanently parks that case as `final`; every subsequent hold's reopen skips it, and the build ends in a `needs-human` park that a single Phase-1 re-run would have avoided. Fail-safe in direction, but the classification contradicts the principle the reopen design is built on, and the first extension that wants \"reopen recoverable parks\" has to special-case this row.",
+      "spec_anchor": "`build-judge-evidence-assemble-park-classes-and-reopen-for-hold`",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The park-class table assigns \"unbound or missing reconstruction on resume\" to `final` — the never-reopened class — but that park is not \"the case's own content\"; it is a torn or tampered store, exactly the class of disagreement the spec elsewhere refuses loudly. A store that carries `ledger.json` (with `judge_progress.reconstruction` set) but loses `recon-<case_id>.json` yields a permanent `final` park on that case, and the reopen machinery — whose stated criterion is \"only reopen what a later drain can fix\" — can never repair it, even though the fix is one Phase-1 call.",
+          "spec_anchor": "`build-judge-evidence-assemble-park-classes-and-reopen-for-hold`"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "Every scenario in `## Scenarios` exercises the CLI verbs (`resume-store stash/restore`, `build-judge-evidence --assemble`) in isolation. None exercises the routing this spec exists to change: that a restored `dialogue.stage == \"judge\"` record sends the resumed build into the chunked judge loop instead of the dialogue loop. The routing lives only in prose edits to `faff-graft/SKILL.md`, and its DONE items are checked by file inspection, not by any Given/When/Then.",
+      "evidence": "`### From HOW (graft prose)` DONE items (\"line 204's arm branches on `dialogue.stage`…\", \"the resume arm's `--assemble` invocation is Step 9's invocation verbatim plus `--reopen-for-hold`\") versus the five `resume-store`/`--assemble` scenarios and one holdout scenario, none of which involve graft's resume arm.",
+      "predicted_consequence": "A build could pass every scenario and still leave the `cause: build-review-dialogue` arm unbranched (or branch on the wrong field), and no named check would fail — the routing regression the whole ticket targets would ship undetected by the scenario suite. The prose DONE items catch it only if the reviewer reads the file; the spec's own scenario layer would not.",
+      "spec_anchor": "5-scenarios",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "Every scenario in `## Scenarios` exercises the CLI verbs (`resume-store stash/restore`, `build-judge-evidence --assemble`) in isolation. None exercises the routing this spec exists to change: that a restored `dialogue.stage == \"judge\"` record sends the resumed build into the chunked judge loop instead of the dialogue loop. The routing lives only in prose edits to `faff-graft/SKILL.md`, and its DONE items are checked by file inspection, not by any Given/When/Then.",
+          "spec_anchor": "5-scenarios"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The record constraint says `stage == \"judge\"` **IFF** `<issue-dir>/build-review/judge/ledger.json` is a regular file at stash time, but the stash procedure only writes `stage` \"whenever `record.dialogue` is written\", and `record.dialogue` is written only when `nextRoundNumber > 1`. A stash where the ledger exists but `build-review/` holds no round file (so `n == 1`, reachable via a `review-outage` cause on an issue dir whose round files are gone but whose `judge/` survived) leaves `stage` absent, which \"reads as dialogue\" — violating the IFF as written. A tester implementing `holdRecordProblem` or `prove_stage` from the constraint alone would reject this state; one implementing from the procedure would accept it. The spec does not say which.",
+      "evidence": "`### Hold record: the new stage field` — the CONSTRAINT line vs. the stash bullet \"stash writes `stage` whenever it writes `dialogue` (both causes)\"; the stash procedure's step 4.",
+      "predicted_consequence": "Two builders can ship different validators for the same record shape; a `read`/`restore` exit-2 on a state the stash itself produced would be indistinguishable from corruption, and the DONE item \"`holdRecordProblem` accepts an absent `stage`\" cannot be decided for this state without knowing which reading is intended.",
+      "spec_anchor": "hold-record-the-new-stage-field",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The record constraint says `stage == \"judge\"` **IFF** `<issue-dir>/build-review/judge/ledger.json` is a regular file at stash time, but the stash procedure only writes `stage` \"whenever `record.dialogue` is written\", and `record.dialogue` is written only when `nextRoundNumber > 1`. A stash where the ledger exists but `build-review/` holds no round file (so `n == 1`, reachable via a `review-outage` cause on an issue dir whose round files are gone but whose `judge/` survived) leaves `stage` absent, which \"reads as dialogue\" — violating the IFF as written. A tester implementing `holdRecordProblem` or `prove_stage` from the constraint alone would reject this state; one implementing from the procedure would accept it. The spec does not say which.",
+          "spec_anchor": "hold-record-the-new-stage-field"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The holdout MUST-scenario is only satisfiable if the first `--assemble` call did **not** carry `--reopen-for-hold 1`, but it describes the second call as \"identical\" to the first — which, read naturally, means the first call carried the flag too. Under that reading, `reopened_for_holds` already holds `1`, the reopen procedure returns `[]` at step 3, and the scenario's MUST (\"MUST print every case in `reopened`\") is unmeetable without breaking the idempotence that scenario 3 (\"a third time with --reopen-for-hold 1 → nothing is reopened\") and the DONE item (\"A second call with the same `n` reopens nothing\") pin. The spec as written contains two acceptance clauses that cannot both pass under one reading of the holdout.",
+      "evidence": "`## 5. SCENARIOS` holdout block (\"a second identical call with --reopen-for-hold 1 MUST print every case in `reopened`\") vs. `### Assemble reopens once per hold` step 3 (\"IF n IN done -> return []\") and the third scenario in the same section.",
+      "predicted_consequence": "the test written from the holdout fails against the procedure as specified (or the builder quietly drops idempotence to satisfy it, breaking the chunk-loop `attempts_remaining` monotonicity the anti-pattern warns about).",
+      "spec_anchor": "scenarios",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "judge AFFIRM_SPEC: Argument A's defect claim rests on reading the holdout's 'a second identical call with --reopen-for-hold 1' maximally literally, such that the first call also carried the flag and therefore already consumed the hold budget, making the MUST unmeetable. That reading contradicts the spec's own parallel construction in scenario 2 ('called again with unchanged inputs and --reopen-for-hold 1'), which establishes the section's consistent convention: the repeated call has the same substantive inputs (same dir, issue, diff — so the ledger identity matches and the call resumes) with the flag as the delta. The holdout's 'identical' is the same convention abbreviated, and the scenario's evident purpose — testing that backend-chain parks are reopened by a subsequent flagged call, exactly as scenario 2 tests outage parks — confirms the first call established the parked state without the flag. Under that coherent reading the holdout is fully satisfiable and checkable: the second call resumes (the flag does not feed adjudicationIdentity), n=1 is not yet in reopened_for_holds, step 5 reopens every backend-chain-parked entry, resets its failed-phase counters, the still-unset backend re-park applies park_class 'backend-chain' with no review-call spawned, the summary prints every case in `reopened`, and the ledger records reopen_count 1 and reopened_for_holds [1]. This is consistent with scenario 3's idempotence (a subsequent third call with the same n reopens nothing), the DONE items, and invariant (3) of the reconstruction. Argument A's predicted consequence — a test written from the holdout fails against the procedure — does not materialize, because a test implementing the scenario as structured (first call parks, second call adds the flag, exactly as scenario 2's tested pattern) passes; the consequence materializes only under the literal reading that contradicts the scenario's purpose and the section's parallel construction. The remaining 'identical' wording is a minor imprecision, not an OR-escape or undecidability: each scenario block asserts one branch, and the section is jointly decidable and consistent with the DONE edge cases (stage derivation, missing-ledger refusal, outage/backend-chain reopen, final-park non-reopen, idempotence, hold-limit overrun, fresh-ledger recording, unchanged park_cause). The objecting position has not established a material defect.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "The holdout MUST-scenario is only satisfiable if the first `--assemble` call did **not** carry `--reopen-for-hold 1`, but it describes the second call as \"identical\" to the first — which, read naturally, means the first call carried the flag too. Under that reading, `reopened_for_holds` already holds `1`, the reopen procedure returns `[]` at step 3, and the scenario's MUST (\"MUST print every case in `reopened`\") is unmeetable without breaking the idempotence that scenario 3 (\"a third time with --reopen-for-hold 1 → nothing is reopened\") and the DONE item (\"A second call with the same `n` reopens nothing\") pin. The spec as written contains two acceptance clauses that cannot both pass under one reading of the holdout.",
+          "spec_anchor": "scenarios"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The WHAT block states `CONSTRAINT stage is present exactly when dialogue is present`, but no DONE item requires `holdRecordProblem` (or any reader) to reject a record that carries `stage` without a `dialogue` object, and no scenario exercises that shape. The DONE items only pin absent-stage acceptance and out-of-enum rejection. A hand-crafted or torn record with `stage: \"judge\"` and no `dialogue` would pass validation, and `restore`'s `prove_stage` keys off `rec.dialogue.stage`, so it would silently skip the judge-ledger proof too — the exact torn-store shape the spec elsewhere refuses fail-closed.",
+      "evidence": "`### Hold record: the new stage field` CONSTRAINT line vs. `### From WHAT (hold record)` DONE items (only \"accepts an absent stage\", \"accepts dialogue and judge\", \"rejects any other value\").",
+      "predicted_consequence": "a malformed record with `stage` but no `dialogue` restores as a legacy dialogue hold; the judge-ledger existence proof never runs, and the resume routes into the dialogue loop on a store the spec's own constraint says is invalid — undetectable by any test the DONE items mandate.",
+      "spec_anchor": "hold-record-the-new-stage-field",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "judge UPHOLD_REVIEW, correction applied: Extend the hold-record validation so that `holdRecordProblem` rejects, with exit 2, any hold record that carries a `stage` field but has no `dialogue` object (the malformed side of the `stage is present exactly when dialogue is present` invariant), and add a named `test/resume-store.test.mjs` case for this shape so `restore` cannot treat it as a legacy dialogue hold and skip the judge-ledger proof.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "The WHAT block states `CONSTRAINT stage is present exactly when dialogue is present`, but no DONE item requires `holdRecordProblem` (or any reader) to reject a record that carries `stage` without a `dialogue` object, and no scenario exercises that shape. The DONE items only pin absent-stage acceptance and out-of-enum rejection. A hand-crafted or torn record with `stage: \"judge\"` and no `dialogue` would pass validation, and `restore`'s `prove_stage` keys off `rec.dialogue.stage`, so it would silently skip the judge-ledger proof too — the exact torn-store shape the spec elsewhere refuses fail-closed.",
+          "spec_anchor": "hold-record-the-new-stage-field"
+        }
+      ]
+    }
+  ]
+}

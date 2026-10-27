@@ -1442,3 +1442,358 @@ test("computeCriticalFreeLatestFloor: a round-2 critical carrying a round-1 crit
   assert.equal(carried, true);
   assert.equal(carried, repeated);
 });
+
+// --- FAFF-1249: park_class, --reopen-for-hold and the reopened summary field -----------------
+
+const withHold = (t, limit = 2) => ({ ...t.deps, resolveBuildReviewHoldLimit: () => limit, ...(t.extra || {}) });
+const respondOk = (args) => (isPhase1Args(args) ? { code: 0, stdout: RECON_STDOUT, stderr: "" } : { code: 0, stdout: VERDICT_STDOUT, stderr: "" });
+const writeLedger = (tmp, ledger) => writeFileSync(join(tmp, "judge", "ledger.json"), JSON.stringify(ledger));
+
+test("constants: the hold limit default matches config.js DEFAULTS, and the resolver falls back on invalid values", () => {
+  const { DEFAULTS } = require("../plugin/skills/faff/bin/lib/config.js");
+  assert.equal(bje.DEFAULT_BUILD_REVIEW_HOLD_LIMIT, 2);
+  assert.equal(DEFAULTS["graft.build_review_hold_limit"], String(bje.DEFAULT_BUILD_REVIEW_HOLD_LIMIT));
+  assert.equal(bje.resolveBuildReviewHoldLimit({}), 2);
+  assert.equal(bje.resolveBuildReviewHoldLimit({ graft: { build_review_hold_limit: "4" } }), 4);
+  assert.equal(bje.resolveBuildReviewHoldLimit({ graft: { build_review_hold_limit: "abc" } }), 2);
+});
+
+test("park_class: exhausted Phase-1 retries park as outage, with the park_cause string unchanged", async () => {
+  await withTmp(async (tmp) => {
+    const br = writeBrRounds(tmp, ["a.js::x"]);
+    const t = trackedDeps({ respond: () => ({ code: 5, stdout: "", stderr: "" }), deps: { judgeDispatchDisposition: async () => "retry" } });
+    assert.equal((await callAssemble(tmp, br, { "--retry-limit": "1" }, t.deps)).code, 0);
+    const e = readLedger(tmp).entries["f-01"];
+    assert.equal(e.park_class, "outage");
+    assert.equal(e.park_cause, 'phase-1 dispatch disposition "retry" (exit 5)');
+  });
+});
+
+test("park_class: exhausted Phase-2 retries park as outage", async () => {
+  await withTmp(async (tmp) => {
+    const br = writeBrRounds(tmp, ["a.js::x"]);
+    const t = trackedDeps({ respond: ({ args }) => (isPhase1Args(args) ? { code: 0, stdout: RECON_STDOUT, stderr: "" } : { code: 8, stdout: "", stderr: "" }), deps: { judgeDispatchDisposition: async (x) => (x === 0 ? "ruling" : "retry") } });
+    assert.equal((await callAssemble(tmp, br, { "--retry-limit": "0" }, t.deps)).code, 0);
+    const e = readLedger(tmp).entries["f-01"];
+    assert.equal(e.park_class, "outage");
+    assert.match(e.park_cause, /^phase-2 dispatch disposition "retry"/);
+  });
+});
+
+test("park_class: an attempt killed before it recorded an exit parks as outage on the next call", async () => {
+  await withTmp(async (tmp) => {
+    const br = writeBrRounds(tmp, ["a.js::x"]);
+    const t0 = trackedDeps(); t0.clk.step = 400;
+    assert.equal((await callAssemble(tmp, br, {}, t0.deps)).code, 3);
+    const ledger = readLedger(tmp);
+    ledger.entries["f-01"].judge_progress = { phase1_attempts: 3, phase2_attempts: 0, last_exit: null, reconstruction: null };
+    delete ledger.entries["f-01"].ruling;
+    writeLedger(tmp, ledger);
+    const t = trackedDeps();
+    assert.equal((await callAssemble(tmp, br, { "--retry-limit": "2" }, t.deps)).code, 0);
+    assert.equal(t.calls.length, 0);
+    const e = readLedger(tmp).entries["f-01"];
+    assert.equal(e.park_class, "outage");
+    assert.match(e.park_cause, /did not complete/);
+  });
+});
+
+test("park_class: an unset or malformed backend chain parks as backend-chain", async () => {
+  for (const result of [{ error: "unset" }, { error: "malformed", detail: "bad ref" }]) {
+    await withTmp(async (tmp) => {
+      const br = writeBrRounds(tmp, ["a.js::x"]);
+      const t = trackedDeps({ deps: { resolveAdversarialBackends: () => result } });
+      assert.equal((await callAssemble(tmp, br, {}, t.deps)).code, 0);
+      assert.equal(readLedger(tmp).entries["f-01"].park_class, "backend-chain");
+    });
+  }
+});
+
+test("park_class: every other dispatch park is final", async () => {
+  const scenarios = {
+    "phase-1 park disposition": { respond: () => ({ code: 2, stdout: "", stderr: "" }) },
+    "invalid reconstruction": { respond: () => ({ code: 0, stdout: "too short", stderr: "" }) },
+    "phase-2 park disposition": { respond: ({ args }) => (isPhase1Args(args) ? { code: 0, stdout: RECON_STDOUT, stderr: "" } : { code: 2, stdout: "", stderr: "" }) },
+    "unparseable verdict block": { respond: ({ args }) => (isPhase1Args(args) ? { code: 0, stdout: RECON_STDOUT, stderr: "" } : { code: 0, stdout: "no block here", stderr: "" }) },
+  };
+  for (const [name, over] of Object.entries(scenarios)) {
+    await withTmp(async (tmp) => {
+      const br = writeBrRounds(tmp, ["a.js::x"]);
+      const t = trackedDeps({ ...over, deps: { judgeDispatchDisposition: async (x) => (x === 0 ? "ruling" : "park") } });
+      assert.equal((await callAssemble(tmp, br, {}, t.deps)).code, 0, name);
+      const e = readLedger(tmp).entries["f-01"];
+      assert.equal(e.resolution, "parked", name);
+      assert.equal(e.park_class, "final", name);
+    });
+  }
+});
+
+test("park_class: a missing reconstruction on resume is final", async () => {
+  await withTmp(async (tmp) => {
+    const br = writeBrRounds(tmp, ["a.js::x"]);
+    const t0 = trackedDeps(); t0.clk.step = 400;
+    assert.equal((await callAssemble(tmp, br, {}, t0.deps)).code, 3);
+    rmSync(join(tmp, "judge", "recon-f-01.json"));
+    const t = trackedDeps();
+    assert.equal((await callAssemble(tmp, br, {}, t.deps)).code, 0);
+    assert.equal(readLedger(tmp).entries["f-01"].park_class, "final");
+  });
+});
+
+test("park_class: an assemble-time park carries none", async () => {
+  await withTmp(async (tmp) => {
+    const br = join(tmp, "br"); mkdirSync(br);
+    writeFileSync(join(br, "round-1.json"), JSON.stringify({
+      signal: "needs-human",
+      findings: [{ severity: "critical", location: "a.js:1", title: "X" }],
+      author_replies: [],
+    }));
+    writeFileSync(join(br, "round-2.json"), JSON.stringify({
+      signal: "needs-human",
+      findings: [{ severity: "critical", location: "a.js:1", title: "X" }],
+      author_replies: [{ finding_ref: "a.js::x", kind: "rebuttal", rebuttal_text: "normal\n@@ -1,3 +1,4 @@\ninjected diff marker" }],
+    }));
+    writeFileSync(join(tmp, "diff.txt"), "diff --git a/a.js b/a.js\n@@ -1,1 +1,1 @@\n-old\n+new\n");
+    const t = trackedDeps();
+    const r = await callAssemble(tmp, br, {}, t.deps);
+    assert.equal(r.code, 0);
+    const parked = Object.values(readLedger(tmp).entries).filter((e) => e.resolution === "parked");
+    assert.ok(parked.length > 0, "the fixture must park at assemble time");
+    for (const e of parked) assert.equal(e.park_class, undefined);
+    assert.equal(t.calls.length, 0);
+  });
+});
+
+// Two cases: f-01 ruled OVERTURN on the first pass, f-02 parked as an outage on Phase 1 (no reconstruction).
+async function twoCaseOutageFixture(tmp) {
+  const br = writeBrRounds(tmp, ["a.js::x", "b.js::y"]);
+  const t = trackedDeps({
+    respond: ({ cid, args }) => (cid === "f-02" ? { code: 5, stdout: "", stderr: "" } : respondOk(args)),
+    deps: { judgeDispatchDisposition: async (x) => (x === 0 ? "ruling" : "retry") },
+  });
+  assert.equal((await callAssemble(tmp, br, { "--retry-limit": "2" }, t.deps)).code, 0);
+  const l = readLedger(tmp);
+  assert.equal(l.entries["f-01"].resolution, "overturned");
+  assert.equal(l.entries["f-02"].park_class, "outage");
+  return br;
+}
+
+test("--reopen-for-hold: an outage park is dispatched again from attempt 1, a ruled case is left alone, and a repeat of the same hold reopens nothing", async () => {
+  await withTmp(async (tmp) => {
+    const br = await twoCaseOutageFixture(tmp);
+    const t = trackedDeps();
+    const r = await callAssemble(tmp, br, { "--reopen-for-hold": "1" }, withHold(t));
+    assert.equal(r.code, 0);
+    assert.equal(r.out.resumed, true);
+    assert.deepEqual(r.out.reopened, ["f-02"]);
+    assert.deepEqual(t.calls.map((c) => [c.cid, c.phase]), [["f-02", 1], ["f-02", 2]], "f-01 is not dispatched, f-02 restarts at Phase 1");
+    const l = readLedger(tmp);
+    assert.deepEqual(l.reopened_for_holds, [1]);
+    assert.equal(l.entries["f-02"].reopen_count, 1);
+    assert.equal(l.entries["f-02"].resolution, "overturned");
+    assert.equal(l.entries["f-02"].park_cause, undefined);
+    assert.equal(l.entries["f-02"].park_class, undefined);
+    assert.equal(l.entries["f-02"].judge_progress.phase1_attempts, 1, "reset to zero, then one attempt");
+
+    const again = trackedDeps();
+    const r2 = await callAssemble(tmp, br, { "--reopen-for-hold": "1" }, withHold(again));
+    assert.deepEqual(r2.out.reopened, []);
+    assert.equal(again.calls.length, 0);
+    assert.deepEqual(readLedger(tmp).reopened_for_holds, [1]);
+  });
+});
+
+test("--reopen-for-hold: a second hold count reopens a park that failed again, and the hold is recorded", async () => {
+  await withTmp(async (tmp) => {
+    const br = await twoCaseOutageFixture(tmp);
+    const failing = trackedDeps({ respond: () => ({ code: 5, stdout: "", stderr: "" }), deps: { judgeDispatchDisposition: async () => "retry" } });
+    const r1 = await callAssemble(tmp, br, { "--reopen-for-hold": "1", "--retry-limit": "2" }, withHold(failing));
+    assert.deepEqual(r1.out.reopened, ["f-02"]);
+    assert.equal(readLedger(tmp).entries["f-02"].park_class, "outage");
+    assert.equal(failing.calls.length, 3, "a full budget of retryLimit + 1 attempts for the hold");
+    const ok2 = trackedDeps();
+    const r2 = await callAssemble(tmp, br, { "--reopen-for-hold": "2", "--retry-limit": "2" }, withHold(ok2));
+    assert.deepEqual(r2.out.reopened, ["f-02"]);
+    const l = readLedger(tmp);
+    assert.deepEqual(l.reopened_for_holds, [1, 2]);
+    assert.equal(l.entries["f-02"].reopen_count, 2);
+  });
+});
+
+test("--reopen-for-hold: a reopened case with a persisted reconstruction resets only Phase 2 and makes no Phase-1 call", async () => {
+  await withTmp(async (tmp) => {
+    const br = writeBrRounds(tmp, ["a.js::x"]);
+    const t0 = trackedDeps({ respond: ({ args }) => (isPhase1Args(args) ? { code: 0, stdout: RECON_STDOUT, stderr: "" } : { code: 5, stdout: "", stderr: "" }), deps: { judgeDispatchDisposition: async (x) => (x === 0 ? "ruling" : "retry") } });
+    assert.equal((await callAssemble(tmp, br, { "--retry-limit": "1" }, t0.deps)).code, 0);
+    const parked = readLedger(tmp).entries["f-01"];
+    assert.equal(parked.park_class, "outage");
+    assert.equal(parked.judge_progress.reconstruction, "recon-f-01.json");
+    const reconBefore = readFileSync(join(tmp, "judge", "recon-f-01.json"), "utf8");
+    const t = trackedDeps();
+    const r = await callAssemble(tmp, br, { "--reopen-for-hold": "1", "--retry-limit": "1" }, withHold(t));
+    assert.deepEqual(r.out.reopened, ["f-01"]);
+    assert.deepEqual(t.calls.map((c) => c.phase), [2], "no Phase-1 call");
+    const e = readLedger(tmp).entries["f-01"];
+    assert.equal(e.judge_progress.phase1_attempts, 1, "Phase 1 attempts untouched");
+    assert.equal(e.judge_progress.phase2_attempts, 1);
+    assert.equal(readFileSync(join(tmp, "judge", "recon-f-01.json"), "utf8"), reconBefore);
+  });
+});
+
+test("--reopen-for-hold: a backend-chain park is reopened and re-parked with its class and a reopen_count, with no call made", async () => {
+  await withTmp(async (tmp) => {
+    const br = writeBrRounds(tmp, ["a.js::x", "b.js::y"]);
+    const unset = { resolveAdversarialBackends: () => ({ error: "unset" }) };
+    const first = trackedDeps({ deps: unset });
+    assert.equal((await callAssemble(tmp, br, {}, first.deps)).code, 0);
+    const t = trackedDeps({ deps: unset });
+    const r = await callAssemble(tmp, br, { "--reopen-for-hold": "1" }, withHold(t));
+    assert.deepEqual(r.out.reopened, ["f-01", "f-02"]);
+    assert.equal(t.calls.length, 0);
+    const l = readLedger(tmp);
+    for (const cid of ["f-01", "f-02"]) {
+      assert.equal(l.entries[cid].resolution, "parked");
+      assert.equal(l.entries[cid].park_class, "backend-chain");
+      assert.equal(l.entries[cid].reopen_count, 1);
+      assert.match(l.entries[cid].park_cause, /backend config unset/);
+    }
+  });
+});
+
+test("--reopen-for-hold: final parks and parks with no class are never reopened", async () => {
+  await withTmp(async (tmp) => {
+    const br = writeBrRounds(tmp, ["a.js::x", "b.js::y"]);
+    const first = trackedDeps({ respond: ({ cid }) => (cid === "f-01" ? { code: 0, stdout: "no block", stderr: "" } : { code: 2, stdout: "", stderr: "" }), deps: { judgeDispatchDisposition: async (x) => (x === 0 ? "ruling" : "park") } });
+    assert.equal((await callAssemble(tmp, br, {}, first.deps)).code, 0);
+    const ledger = readLedger(tmp);
+    assert.equal(ledger.entries["f-01"].park_class, "final");
+    delete ledger.entries["f-02"].park_class; // a ledger written before park_class existed
+    writeLedger(tmp, ledger);
+    const causes = ["f-01", "f-02"].map((cid) => ledger.entries[cid].park_cause);
+    const t = trackedDeps();
+    const r = await callAssemble(tmp, br, { "--reopen-for-hold": "1" }, withHold(t));
+    assert.deepEqual(r.out.reopened, []);
+    assert.equal(t.calls.length, 0);
+    const l = readLedger(tmp);
+    assert.deepEqual(["f-01", "f-02"].map((cid) => l.entries[cid].park_cause), causes);
+    assert.ok(["f-01", "f-02"].every((cid) => l.entries[cid].resolution === "parked"));
+    assert.deepEqual(l.reopened_for_holds, [1], "the hold is still recorded");
+  });
+});
+
+test("--reopen-for-hold: a fresh ledger records the hold and reopens nothing, and a later matching call does not reopen either", async () => {
+  await withTmp(async (tmp) => {
+    const br = writeBrRounds(tmp, ["a.js::x"]);
+    const t = trackedDeps({ respond: () => ({ code: 5, stdout: "", stderr: "" }), deps: { judgeDispatchDisposition: async () => "retry" } });
+    t.clk.step = 600;
+    const r1 = await callAssemble(tmp, br, { "--reopen-for-hold": "1", "--retry-limit": "2" }, withHold(t));
+    assert.equal(r1.code, 3);
+    assert.equal(r1.out.resumed, false);
+    assert.deepEqual(r1.out.reopened, []);
+    assert.deepEqual(readLedger(tmp).reopened_for_holds, [1]);
+    let last;
+    for (let i = 0; i < 4; i++) { last = await callAssemble(tmp, br, { "--reopen-for-hold": "1", "--retry-limit": "2" }, withHold(t)); assert.deepEqual(last.out.reopened, []); if (last.code !== 3) break; }
+    assert.equal(t.calls.length, 3, "retryLimit + 1 attempts across the chunk calls: the matching resume reopened nothing");
+    assert.equal(readLedger(tmp).entries["f-01"].park_class, "outage");
+  });
+});
+
+test("--reopen-for-hold: a hold count above graft.build_review_hold_limit reopens and records nothing, and warns", async () => {
+  await withTmp(async (tmp) => {
+    const br = await twoCaseOutageFixture(tmp);
+    const before = readLedger(tmp);
+    const t = trackedDeps();
+    const r = await callAssemble(tmp, br, { "--reopen-for-hold": "3" }, withHold(t, 2));
+    assert.equal(r.code, 0);
+    assert.deepEqual(r.out.reopened, []);
+    assert.match(r.err, /build_review_hold_limit \(2\)/);
+    assert.equal(t.calls.length, 0);
+    const l = readLedger(tmp);
+    assert.equal(l.reopened_for_holds, undefined);
+    assert.deepEqual(l.entries["f-02"], before.entries["f-02"]);
+  });
+});
+
+test("--reopen-for-hold: 0, -1, abc and 1.5 are usage errors (exit 2) that write nothing", async () => {
+  await withTmp(async (tmp) => {
+    const br = writeBrRounds(tmp, ["a.js::x"]);
+    for (const bad of ["0", "-1", "abc", "1.5", ""]) {
+      const r = await callAssemble(tmp, br, { "--reopen-for-hold": bad }, trackedDeps().deps);
+      assert.equal(r.code, 2, `value ${JSON.stringify(bad)}`);
+      assert.ok(!existsSync(join(tmp, "judge")), `value ${JSON.stringify(bad)}`);
+    }
+  });
+});
+
+test("the summary always carries reopened, [] without the flag", async () => {
+  await withTmp(async (tmp) => {
+    const br = writeBrRounds(tmp, ["a.js::x"]);
+    const r = await callAssemble(tmp, br, {}, trackedDeps().deps);
+    assert.deepEqual(r.out.reopened, []);
+    assert.equal(r.out.resumed, false);
+    const again = await callAssemble(tmp, br, {}, trackedDeps().deps);
+    assert.deepEqual(again.out.reopened, []);
+  });
+});
+
+test("adjudicationIdentity ignores the reopen fields, so a reopened ledger still resumes", async () => {
+  await withTmp(async (tmp) => {
+    const br = await twoCaseOutageFixture(tmp);
+    const before = bje.adjudicationIdentity(readLedger(tmp));
+    await callAssemble(tmp, br, { "--reopen-for-hold": "1" }, withHold(trackedDeps()));
+    assert.equal(bje.adjudicationIdentity(readLedger(tmp)), before);
+    assert.equal((await callAssemble(tmp, br, {}, trackedDeps().deps)).out.resumed, true);
+  });
+});
+
+test("integration: an outage park survives stash and restore, and the resumed --assemble reopens it and --admit admits", async () => {
+  await withTmp(async (tmp) => {
+    const runA = join(tmp, "runA"); const runB = join(tmp, "runB"); const store = join(tmp, "store");
+    const issueDir = join(runA, "TEST-1");
+    const br = join(issueDir, "build-review"); mkdirSync(br, { recursive: true });
+    for (const n of [1, 2]) {
+      writeFileSync(join(br, `round-${n}.json`), JSON.stringify({ signal: "needs-human", findings: [{ finding_id: "a.js::x", severity: "critical", location: "a.js:1", title: "X" }], author_replies: [] }));
+    }
+    writeFileSync(join(tmp, "diff.txt"), "diff --git a/a.js b/a.js\n@@ -1,1 +1,1 @@\n-old\n+new\n");
+    const run = async (dir, extra, deps) => {
+      const lines = []; const log = console.log;
+      console.log = (s) => { lines.push(String(s)); };
+      let code;
+      try { code = await Promise.resolve(bje.cmdAssemble({ "--dir": dir, "--issue": "TEST-1", "--diff": join(tmp, "diff.txt"), ...extra }, deps)); } finally { console.log = log; }
+      return { code, out: JSON.parse(lines[lines.length - 1]) };
+    };
+    const down = { ...fakeDepsAlwaysOverturn(), runReviewCall: () => ({ code: 5, stdout: "", stderr: "" }), judgeDispatchDisposition: async (x) => (x === 0 ? "ruling" : "retry") };
+    await run(br, {}, down);
+    assert.equal(JSON.parse(readFileSync(join(br, "judge", "ledger.json"), "utf8")).entries["f-01"].park_class, "outage");
+
+    const stash = runCli(["resume-store", "stash", "--run-dir", runA, "--issue", "TEST-1", "--cause", "build-review-dialogue", "--fix-rounds-used", "1", "--rebuttal-rounds-used", "0", "--store-root", store]);
+    assert.equal(stash.code, 0, stash.stderr);
+    const held = JSON.parse(stash.stdout);
+    assert.equal(held.dialogue.stage, "judge");
+    assert.equal(held.dialogue.hold_count, 1);
+    mkdirSync(runB);
+    const back = runCli(["resume-store", "restore", "--run-dir", runB, "--issue", "TEST-1", "--store-root", store]);
+    assert.equal(back.code, 0, back.stderr);
+
+    const brB = join(runB, "TEST-1", "build-review");
+    const r = await run(brB, { "--reopen-for-hold": String(held.dialogue.hold_count) }, { ...fakeDepsAlwaysOverturn(), resolveBuildReviewHoldLimit: () => 2 });
+    assert.equal(r.code, 0);
+    assert.equal(r.out.resumed, true);
+    assert.deepEqual(r.out.reopened, ["f-01"]);
+    assert.ok(!existsSync(join(brB, "round-3.json")), "no reviewer round ran");
+    assert.equal(runCli(["build-judge-evidence", "--admit", "--dir", brB, "--level", "L3", "--run-dir", runB]).code, 0);
+  });
+});
+
+test("--reopen-for-hold: the reopened ledger is on disk before the first dispatch of the call", async () => {
+  await withTmp(async (tmp) => {
+    const br = await twoCaseOutageFixture(tmp);
+    let seen = null;
+    const t = trackedDeps({ respond: ({ args }) => { if (!seen) seen = readLedger(tmp); return respondOk(args); } });
+    await callAssemble(tmp, br, { "--reopen-for-hold": "1" }, withHold(t));
+    assert.deepEqual(seen.reopened_for_holds, [1]);
+    assert.equal(seen.entries["f-02"].resolution, "pending");
+    assert.equal(seen.entries["f-02"].reopen_count, 1);
+    assert.equal(seen.entries["f-02"].park_class, undefined);
+  });
+});

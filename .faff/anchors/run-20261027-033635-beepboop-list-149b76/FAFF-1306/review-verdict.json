@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/lights-out.js::run-dir discard defeated by lock artifacts in the mint refusal path",
+      "title": "Run-dir discard defeated by lock artifacts in the mint refusal path",
+      "location": "plugin/skills/faff/bin/lib/lights-out.js",
+      "action": "Keep the non-recursive discard (FAFF-1280 rule); the schema check runs before any write and a foreign lock file is not this mint's to delete",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "mutateLedgerUnderLock validates before it writes, so a schema refusal leaves the dir empty; a lock-exhaustion failure in a freshly exclusive-created dir means a foreign holder owns any lock file, which the non-recursive helper correctly leaves and reports on stderr. Same behaviour as init-self-drain and spec Decision 5.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Run-dir discard defeated by lock artifacts in the mint refusal path",
+          "location": "plugin/skills/faff/bin/lib/lights-out.js",
+          "severity": "major",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/lights-out.js::non-json mint refusal prints no banner",
+      "title": "Non-JSON mint refusal prints no banner",
+      "location": "plugin/skills/faff/bin/lib/lights-out.js",
+      "action": "Print pf.banner before the refusal line, or accept the single-line form",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The spec names init-self-drain's single stderr line as the model and the --json shape as the contract; a banner would diverge from the sibling and add output the spec does not ask for.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Non-JSON mint refusal prints no banner",
+          "location": "plugin/skills/faff/bin/lib/lights-out.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/lights-out.js::lazy require inside the finally block could mask the refusal",
+      "title": "Lazy require inside the finally block could mask the refusal",
+      "location": "plugin/skills/faff/bin/lib/lights-out.js",
+      "action": "Hoist the require",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "mintLightsOut already requires ./run-ledger unguarded earlier in the same function (resolveMintBaseSha), so the module is loaded and cached before the finally runs.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Lazy require inside the finally block could mask the refusal",
+          "location": "plugin/skills/faff/bin/lib/lights-out.js",
+          "severity": "observation",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/lights-out.js::dead conditional in the genesis refusal message",
+      "title": "Dead conditional in the genesis refusal message",
+      "location": "plugin/skills/faff/bin/lib/lights-out.js",
+      "action": "Drop the ternary",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Mirrors init-self-drain's message construction verbatim; harmless.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Dead conditional in the genesis refusal message",
+          "location": "plugin/skills/faff/bin/lib/lights-out.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

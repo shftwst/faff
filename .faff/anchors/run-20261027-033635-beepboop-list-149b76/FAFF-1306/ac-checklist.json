@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "**ac-1** — a schema-refused ledger write in a lights-out mint exits `1`, writes a named message, emits `{ proceed: false, level: \"L4\", error }` under `--json`, and leaves no run directory under `.faff/runs/` (tmp-root test added, asserting exit code, JSON shape, and run-dir absence)",
+      "verified": "exit 1, JSON shape and absent run dir asserted; 6/6 lights-out-mint-refusal tests and full UNIT rung pass",
+      "passed": true,
+      "ac_id": "faff-1306#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/lights-out-mint-refusal.test.mjs::a schema-refused ledger write is a structured exit-1 refusal and leaves no run dir"
+        }
+      ]
+    },
+    {
+      "ac": "**ac-2** — a `LEDGER_LOCKED` lock-acquisition failure in a lights-out mint exits `3` with a named refusal (not an uncaught stack trace) and the same `--json` refusal shape, and leaves no run directory (tmp-root test added)",
+      "verified": "exit 3 named refusal (no stack frames), JSON shape and absent run dir asserted",
+      "passed": true,
+      "ac_id": "faff-1306#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/lights-out-mint-refusal.test.mjs::a LEDGER_LOCKED failure is a named exit-3 refusal, not a stack trace, and leaves no run dir"
+        }
+      ]
+    },
+    {
+      "ac": "**ac-3** — a genesis-emit failure in a lights-out mint exits `3` with a named refusal and the `--json` refusal shape, and the ledger-bearing run directory is not removed (in-process `cmdLightsOut` test with `emitGenesisRunStart` stubbed to throw, matching `init-self-drain`'s genesis path; the retained orphan is Decision 5's documented, out-of-scope limitation)",
+      "verified": "exit 3 named refusal; ledger-bearing run dir kept with no run-start genesis event",
+      "passed": true,
+      "ac_id": "faff-1306#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/lights-out-mint-refusal.test.mjs::a genesis-emit failure is an exit-3 refusal that keeps the ledger-bearing run dir"
+        }
+      ]
+    },
+    {
+      "ac": "**ac-4** — a successful lights-out mint is byte-for-byte unchanged: exit `0`, `proceed: true` / `level: \"L4\"` JSON payload, same banner, and a run dir holding `run-ledger.json` plus the genesis `events.jsonl` chain (tmp-root success test added)",
+      "verified": "exit 0, proceed:true, level L4, run-ledger.json plus run-start genesis chain on disk",
+      "passed": true,
+      "ac_id": "faff-1306#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/lights-out-mint-refusal.test.mjs::a successful lights-out mint is unchanged: exit 0, proceed:true, ledger and genesis chain on disk"
+        }
+      ]
+    },
+    {
+      "ac": "**ac-5** — `discardUnmintedRunDir`'s message template is generalised to `faff <command>:`; the `init-interactive` and `init-self-drain` sites emit byte-identical stderr to today and the new lights-out site reports a `faff lights-out:` prefix (assertion/test added)",
+      "verified": "EPERM stderr byte-identical for both run-ledger labels and faff lights-out: for the new site",
+      "passed": true,
+      "ac_id": "faff-1306#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-ledger-mint-refusal.test.mjs::discardUnmintedRunDir reports any other rmdir error without throwing"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-ledger-mint-refusal.test.mjs::discardUnmintedRunDir takes the label after \"faff\", so the lights-out mint reports faff lights-out: (FAFF-1306)"
+        }
+      ]
+    }
+  ]
+}

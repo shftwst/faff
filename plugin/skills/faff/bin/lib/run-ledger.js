@@ -272,13 +272,14 @@ function cmdRunLedger(args) {
 
 // FAFF-1280: a refused mint removes the run dir it created, so nothing is left under .faff/runs/.
 // Non-recursive on purpose: a non-empty dir holds content that is not this mint's to delete.
-// Never throws, so the caller's exit code is unchanged.
+// Never throws, so the caller's exit code is unchanged. `command` is the label after "faff"
+// (e.g. "run-ledger init-self-drain", "lights-out"), so each mint reports its own prefix.
 function discardUnmintedRunDir(runDir, command) {
   try {
     fs.rmdirSync(runDir);
   } catch (e) {
     if (e && e.code === "ENOENT") return;
-    process.stderr.write(`faff run-ledger ${command}: could not remove ${runDir} (${(e && e.code) || "unknown error"}); it holds no ledger\n`);
+    process.stderr.write(`faff ${command}: could not remove ${runDir} (${(e && e.code) || "unknown error"}); it holds no ledger\n`);
   }
 }
 
@@ -379,7 +380,7 @@ function initInteractive(values) {
     }
     landed = true;
   } finally {
-    if (createdRunDir && !landed) discardUnmintedRunDir(runDir, "init-interactive");
+    if (createdRunDir && !landed) discardUnmintedRunDir(runDir, "run-ledger init-interactive");
   }
 
   // Emit the genesis run-start onto the events chain via the shared FAFF-966 helper (never a
@@ -526,7 +527,7 @@ function initSelfDrain(values) {
     landed = true;
   } finally {
     // The exclusive mkdir above guarantees this call created the dir.
-    if (!landed) discardUnmintedRunDir(runDir, "init-self-drain");
+    if (!landed) discardUnmintedRunDir(runDir, "run-ledger init-self-drain");
   }
 
   // The ledger write above and this genesis emit are TWO locked operations, not one critical

@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1404",
+  "build": {
+    "status": "complete",
+    "diff_hash": "efbbdb97a574ba60d32b490c61700c210036a567d64f43d5c0fc9daeeb9c255a",
+    "branch": "faff-1404-faff-spec-commit-and-faff-spec-verify-graft-commits-the",
+    "pushed_at": "2026-10-27T17:51:55.660Z"
+  },
+  "updated_at": "2026-10-27T17:51:55.660Z"
+}

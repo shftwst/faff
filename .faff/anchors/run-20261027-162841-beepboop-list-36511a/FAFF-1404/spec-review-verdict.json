@@ -1,0 +1,198 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 2,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The existing-spec check in step 4 looks only at HEAD, but step 5 unconditionally writes `worktree/rel` and step 7's failure path deletes \"the file written in step 5\". If an untracked file already sits at `rel` (a resumed worktree where a previous attempt wrote the spec but never committed it, or a lane's uncommitted draft at the same date/issue/slug path), the command overwrites it, and on a failed `git commit` it deletes what is now the only copy — silently destroying bytes the command did not author.",
+      "evidence": "PROCEDURE spec_commit steps 4, 5 and 7 (section 4.1); the failure-mode table and edge cases do not cover an untracked occupant of `rel`.",
+      "predicted_consequence": "a resumed build with an uncommitted spec draft at the same path loses that draft with no trace in `spec-commit.json` or the token output; recovery requires reading git's reflog-less untracked state, i.e. it is unrecoverable.",
+      "spec_anchor": "41-faff-spec-commit",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Step 5 never overwrites a file at rel: identical bytes are committed as they are, different bytes return needs-judgement:uncommitted-file-at-path; a failed commit deletes only a file this call created.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The existing-spec check in step 4 looks only at HEAD, but step 5 unconditionally writes `worktree/rel` and step 7's failure path deletes \"the file written in step 5\". If an untracked file already sits at `rel` (a resumed worktree where a previous attempt wrote the spec but never committed it, or a lane's uncommitted draft at the same date/issue/slug path), the command overwrites it, and on a failed `git commit` it deletes what is now the only copy — silently destroying bytes the command did not author.",
+          "spec_anchor": "41-faff-spec-commit"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The spec mandates the issue id go into the filename \"exactly as passed\" and be used as the glob body `dir/*-<issue>-*.md`. An issue id containing `/`, `..`, or glob metacharacters (`*`, `?`, `[`) is unvalidated untrusted input (it originates from the tracker) driving both a write path (step 5 writes `worktree/rel`, which can escape the spec-docs directory or the worktree) and a glob whose match set the `already-committed` / `needs-judgement` decisions rest on. The spec establishes no validation or charset constraint on this input, and calls out the \"exactly as passed\" behaviour as deliberate.",
+      "evidence": "§4.1 step 3 (\"rel := dir/<today YYYY-MM-DD>-<issue>-<slug>-design.md # issue id exactly as passed\") and step 4's glob; the slug is sanitized but the issue id is not.",
+      "predicted_consequence": "a crafted issue id writes the spec file outside `spec-docs-path` (e.g. over an unrelated repo file), or makes the existing-spec glob match an attacker-chosen file and return `already-committed` without any commit occurring.",
+      "spec_anchor": "4.1-faff-spec-commit",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Step 0 validates --issue against ^[A-Za-z][A-Za-z0-9]*-[0-9]+$ (exit 2 otherwise), the existing-spec match uses no shell glob, and rel must resolve inside the spec directory.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The spec mandates the issue id go into the filename \"exactly as passed\" and be used as the glob body `dir/*-<issue>-*.md`. An issue id containing `/`, `..`, or glob metacharacters (`*`, `?`, `[`) is unvalidated untrusted input (it originates from the tracker) driving both a write path (step 5 writes `worktree/rel`, which can escape the spec-docs directory or the worktree) and a glob whose match set the `already-committed` / `needs-judgement` decisions rest on. The spec establishes no validation or charset constraint on this input, and calls out the \"exactly as passed\" behaviour as deliberate.",
+          "spec_anchor": "4.1-faff-spec-commit"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The routing table maps `verified` and `mismatch` for verify but not `errored`. Verify can legitimately return `errored` (no record, no committed file, ambiguous glob match). A lane that routes \"on its token\" per the Step 8 rewrite has no specified action for `errored`, so the enforcement gate (\"do not grade ACs against a rewritten spec\") can be bypassed by an error path — the exact fail-open shape the gate exists to prevent. Commit's `errored` is mapped (\"refuse the build\"); verify's is not, and the asymmetry looks like an omission, not a choice.",
+      "evidence": "Token routing table (§3) lists only `verified`/`mismatch` for spec verify; §4.5 gives `errored` reason \"no-committed-spec\"; §4.4 Step 8 says \"call `faff spec verify` and route on its token\".",
+      "predicted_consequence": "a build whose committed spec is missing or ambiguous proceeds to Step 8 and grades ACs against whatever spec file the lane finds, recreating the logged defect the command was built to catch.",
+      "spec_anchor": "token-routing-what-the-skill-does",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The routing table maps spec verify errored like mismatch: verify fails closed and ACs are not graded; a DONE item checks the Step 8 prose.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The routing table maps `verified` and `mismatch` for verify but not `errored`. Verify can legitimately return `errored` (no record, no committed file, ambiguous glob match). A lane that routes \"on its token\" per the Step 8 rewrite has no specified action for `errored`, so the enforcement gate (\"do not grade ACs against a rewritten spec\") can be bypassed by an error path — the exact fail-open shape the gate exists to prevent. Commit's `errored` is mapped (\"refuse the build\"); verify's is not, and the asymmetry looks like an omission, not a choice.",
+          "spec_anchor": "token-routing-what-the-skill-does"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "Step 6 builds the subject from the raw title (`\"docs(<issue>): add spec for <title>\"`). The title comes from the tracker and is not constrained to a single line; an embedded newline lets a tracker-supplied string add arbitrary body/trailer lines to a commit the repo's conventions machinery did not author (e.g. forged `Reviewed-by:`/`Co-authored-by:` trailers that downstream tooling or humans read as attestation).",
+      "evidence": "§4.1 step 6; no sanitization of `title` is stated anywhere in the procedure.",
+      "predicted_consequence": "a commit on the build branch carrying attacker-chosen trailer lines, indistinguishable from conventionally-authored metadata.",
+      "spec_anchor": "4.1-faff-spec-commit",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Step 0 collapses whitespace and control characters in the title to single spaces, so the commit subject is one line; a DONE item checks no extra message lines.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "Step 6 builds the subject from the raw title (`\"docs(<issue>): add spec for <title>\"`). The title comes from the tracker and is not constrained to a single line; an embedded newline lets a tracker-supplied string add arbitrary body/trailer lines to a commit the repo's conventions machinery did not author (e.g. forged `Reviewed-by:`/`Co-authored-by:` trailers that downstream tooling or humans read as attestation).",
+          "spec_anchor": "4.1-faff-spec-commit"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The slice delivers a recorded field whose non-default value is unreachable until a *later, blocked* ticket lands, so the increment ships with its most interesting output permanently inert — the delivery-shape version of speculative work.",
+      "evidence": "Spec §4.1: \"Until FAFF-1406 lands, the prep marker has no `spec_sha256` field, so `source_check` is `no-marker` on every build. That is expected and is not a failure.\" The methodology critique's risk profile confirms this (\"`source_check` stays advisory and is `no-marker` until FAFF-1406 lands\") and FAFF-1406 is blocked by this ticket, so the `match`/`mismatch` branches are dead on arrival in every build this ticket can ship.",
+      "predicted_consequence": "The DONE item \"`source_check` is `match`, `mismatch` or `no-marker` according to the prep marker's `spec_sha256`\" is only exercisable via synthetic fixtures, never against a real prep-produced marker; if FAFF-1406's field format drifts, the mismatch surfaces only after both tickets land, in a build, rather than at either ticket's gate. not separately stated as a risk in the spec.",
+      "spec_anchor": "45-edge-cases",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The spec_sha256 field contract (lowercase hex sha256 of the staged bytes) is fixed in 4.1, a fixture test exercises match and mismatch now, FAFF-1406 must add a real-marker match check, and a failure-mode row covers format drift.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The slice delivers a recorded field whose non-default value is unreachable until a *later, blocked* ticket lands, so the increment ships with its most interesting output permanently inert — the delivery-shape version of speculative work.",
+          "spec_anchor": "45-edge-cases"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec's causal story is \"an agent was told, in prose, to perform a deterministic step by hand: copy a spec without changing it,\" and the fix is \"bytes are written by the command, not relayed by the agent.\" But the *first* copy in the chain — Step 2's capture to `.faff/graft/<ISSUE>/captured-spec.md` — remains exactly such a prose-instructed agent hand-copy (\"exactly as read\" from the tracker comment body). A lane that paraphrases at capture produces a captured file whose builder view is faithfully committed and cleanly verified: `spec commit` and `spec verify` both pass, and the whole byte-identity guarantee holds *relative to a possibly-wrong source*. The only check over that link is `source_check`, which is (a) advisory by the spec's own choice, and (b) dead (`no-marker`) until FAFF-1406 lands — so at ship time nothing in the shipped system constrains capture fidelity at all. The spec names Linear-side markdown normalization as the reason the check is advisory, but never names the agent-paraphrase-at-capture residual, which is the same class of failure the defect log records.",
+      "evidence": "§1 WHY (\"The model this spec turns on\", \"Bytes are written by the command, not relayed by the agent\"); §4.4 \"Step 2: save the captured spec … exactly as read\"; §4.1 \"Chosen: the source check is advisory\".",
+      "predicted_consequence": "a lane that condenses the spec *at capture* rather than at commit gets a `committed` + `verified` pair and grades ACs against the paraphrase — the exact logged defect, relocated one step upstream and now invisible until FAFF-1406, and unblocked even then. A one-line spec edit (state the residual explicitly in §4.4/§4.6 and make capture fidelity a named failure mode) closes it without changing the design.",
+      "spec_anchor": "44-how",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The Step 2 capture is named as the one remaining agent-written copy and listed in the failure modes as this ticket's accepted residual risk, made visible by FAFF-1406 and blocking by FAFF-1407.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The spec's causal story is \"an agent was told, in prose, to perform a deterministic step by hand: copy a spec without changing it,\" and the fix is \"bytes are written by the command, not relayed by the agent.\" But the *first* copy in the chain — Step 2's capture to `.faff/graft/<ISSUE>/captured-spec.md` — remains exactly such a prose-instructed agent hand-copy (\"exactly as read\" from the tracker comment body). A lane that paraphrases at capture produces a captured file whose builder view is faithfully committed and cleanly verified: `spec commit` and `spec verify` both pass, and the whole byte-identity guarantee holds *relative to a possibly-wrong source*. The only check over that link is `source_check`, which is (a) advisory by the spec's own choice, and (b) dead (`no-marker`) until FAFF-1406 lands — so at ship time nothing in the shipped system constrains capture fidelity at all. The spec names Linear-side markdown normalization as the reason the check is advisory, but never names the agent-paraphrase-at-capture residual, which is the same class of failure the defect log records.",
+          "spec_anchor": "44-how"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "Step 4's existing-spec detection is a literal case-insensitive substring test (`-<issue>-`) over filenames, not a delimiter-aware parse. A slug produced from another issue's title can embed the substring: title \"fix EX-3 flake\" for issue FAFF-9 yields `…-faff-9-fix-ex-3-flake-design.md`, which contains `-ex-3-`. A later `spec commit --issue EX-3` treats that file as EX-3's committed spec; since its bytes differ from EX-3's builder view, the command returns `needs-judgement:committed-spec-differs` and refuses a legitimate first commit for EX-3. Worse direction: if the bytes happened to match, the command returns `already-committed` and `spec-commit.json` records another issue's file as EX-3's spec path, which Step 8's verify then blesses and hands to `dod classify --spec` — the graded ACs would be sourced from the wrong document. The spec's own rationale for case-insensitivity (mixed-case ids in `records/specs/`) shows the author knew ids appear inside free-form filenames but did not constrain the match to the filename's issue field.",
+      "evidence": "§4.1 step 4 (\"keep the names that contain `-<issue>-` as a literal, case-insensitive substring\"); the filename grammar in §4.1 step 3 puts the slug, also derived from tracker-supplied title text, adjacent to the issue id with only hyphens as delimiters.",
+      "predicted_consequence": "a legitimate build is blocked (`needs-judgement` park) or, in the byte-coincidence case, ACs are graded against the wrong issue's spec — the exact class of defect this spec exists to prevent, reintroduced via the matcher.",
+      "spec_anchor": "4.1-faff-spec-commit",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The existing-spec match parses the filename grammar and reads only the id directly after the date, so an id inside another issue's slug never matches; an edge case and DONE item cover it.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "Step 4's existing-spec detection is a literal case-insensitive substring test (`-<issue>-`) over filenames, not a delimiter-aware parse. A slug produced from another issue's title can embed the substring: title \"fix EX-3 flake\" for issue FAFF-9 yields `…-faff-9-fix-ex-3-flake-design.md`, which contains `-ex-3-`. A later `spec commit --issue EX-3` treats that file as EX-3's committed spec; since its bytes differ from EX-3's builder view, the command returns `needs-judgement:committed-spec-differs` and refuses a legitimate first commit for EX-3. Worse direction: if the bytes happened to match, the command returns `already-committed` and `spec-commit.json` records another issue's file as EX-3's spec path, which Step 8's verify then blesses and hands to `dod classify --spec` — the graded ACs would be sourced from the wrong document. The spec's own rationale for case-insensitivity (mixed-case ids in `records/specs/`) shows the author knew ids appear inside free-form filenames but did not constrain the match to the filename's issue field.",
+          "spec_anchor": "4.1-faff-spec-commit"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "`spec verify` resolves the target file from `run_dir/<issue>/spec-commit.json .path` and then reads `worktree/path` and `HEAD:path` with no stated requirement that `path` resolve inside the spec-docs directory (or the worktree at all). The record is a file on disk in the run directory, outside the worktree, and the threat model of this very spec is a lane that edits files it should not. A tampered or stale record pointing at `../…` lets verify compare — and on success, bless and hand to `dod classify` — a file the grader was never meant to read. The byte comparison against the re-split captured spec limits the damage (the pointed-to file must still byte-match the builder view), so this is hardening, not a bypass today, but the spec establishes a trust decision (\"pass the verified `path` to `faff dod classify --spec`\") on the strength of an input whose writer it does not constrain.",
+      "evidence": "§4.2 step 2 (\"`path := run_dir/<issue>/spec-commit.json .path` if that record exists\"); contrast §4.1 step 3, which does specify realpath containment for the commit side.",
+      "predicted_consequence": "verify can return `verified` with a `path` outside the spec directory, and the skill prose routes that path straight into AC grading.",
+      "spec_anchor": "4.2-faff-spec-verify-before-ac-verification",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "spec verify requires the path, from the record or the HEAD match, to resolve inside the spec directory, else errored path-outside-spec-dir; a DONE item covers it.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "`spec verify` resolves the target file from `run_dir/<issue>/spec-commit.json .path` and then reads `worktree/path` and `HEAD:path` with no stated requirement that `path` resolve inside the spec-docs directory (or the worktree at all). The record is a file on disk in the run directory, outside the worktree, and the threat model of this very spec is a lane that edits files it should not. A tampered or stale record pointing at `../…` lets verify compare — and on success, bless and hand to `dod classify` — a file the grader was never meant to read. The byte comparison against the re-split captured spec limits the damage (the pointed-to file must still byte-match the builder view), so this is hardening, not a bypass today, but the spec establishes a trust decision (\"pass the verified `path` to `faff dod classify --spec`\") on the strength of an input whose writer it does not constrain.",
+          "spec_anchor": "4.2-faff-spec-verify-before-ac-verification"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "Step 4 of `spec_commit` says \"a file has bytes == builder → token already-committed; any file differs → token needs-judgement\", but when HEAD holds two or more files matching `-<issue>-` for the same issue — one byte-identical to the builder view and one not — the two rules conflict and the spec never states which wins. A tester cannot state the expected token for that state.",
+      "evidence": "`PROCEDURE spec_commit` step 4; DONE item \"spec commit with a differing committed spec for the issue already in HEAD returns `needs-judgement`\".",
+      "predicted_consequence": "a test fixture with one matching and one divergent committed spec yields a token the spec does not determine; two builders can legitimately return `already-committed` or `needs-judgement` and both claim DONE.",
+      "spec_anchor": "41-faff-spec-commit",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Step 4 now states that any differing match wins over an identical one: needs-judgement:committed-spec-differs listing every match; an edge case and DONE item cover it.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "Step 4 of `spec_commit` says \"a file has bytes == builder → token already-committed; any file differs → token needs-judgement\", but when HEAD holds two or more files matching `-<issue>-` for the same issue — one byte-identical to the builder view and one not — the two rules conflict and the spec never states which wins. A tester cannot state the expected token for that state.",
+          "spec_anchor": "41-faff-spec-commit"
+        }
+      ]
+    }
+  ]
+}

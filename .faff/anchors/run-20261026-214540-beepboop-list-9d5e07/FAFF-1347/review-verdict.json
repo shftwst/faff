@@ -1,0 +1,208 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/events.js::witness-absent refusal produces the stricter whole-file verdict, framed as a dos",
+      "title": "witness-absent refusal produces the stricter whole-file verdict, framed as a DoS",
+      "location": "plugin/skills/faff/bin/lib/events.js",
+      "action": "none — no change (false positive)",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "By design: an absent witness falls back to whole-file (gates every row) — the SAFE, stricter direction the spec mandates (§ edge cases). A PR deleting its own anchor witness only makes its OWN merge stricter; not an opened hole.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "witness-absent refusal produces the stricter whole-file verdict, framed as a DoS",
+          "location": "plugin/skills/faff/bin/lib/events.js",
+          "severity": "major",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/events.js::chain-silent corroboration is a pr-authored self-consistency check",
+      "title": "chain-silent corroboration is a PR-authored self-consistency check",
+      "location": "plugin/skills/faff/bin/lib/events.js",
+      "action": "none — accepted risk per operator-ratified spec residual",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Operator-ratified residual (spec round 5, 2026-10-21): the corroborations are explicitly self-consistency checks among PR-authored bytes, not cryptographic proofs. chain-silent is a fail-closed conservative choice (admitted-but-undispatched does not narrow), never claimed as a security control.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "chain-silent corroboration is a PR-authored self-consistency check",
+          "location": "plugin/skills/faff/bin/lib/events.js",
+          "severity": "major",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/events.js::ledgerisbound fold is flippable by re-minting from an edited run-ledger + fresh ledger-write",
+      "title": "ledgerIsBound fold is flippable by re-minting from an edited run-ledger + fresh ledger-write",
+      "location": "plugin/skills/faff/bin/lib/events.js",
+      "action": "none — accepted risk per operator-ratified spec residual",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The spec names this EXACT residual (lines 255/802): an actor who rewrites events.jsonl and rehashes run-ledger.json into a FRESH ledger-write row produces a coherent forged anchor — accepted by operator decision 2026-10-21. mintIssueAnchor byte-copies (never recomputes the fold), so the forgery is the named wholesale-anchor-control residual, not a new one.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "ledgerIsBound fold is flippable by re-minting from an edited run-ledger + fresh ledger-write",
+          "location": "plugin/skills/faff/bin/lib/events.js",
+          "severity": "major",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/evidence.js::legacy-cutoff ts is a pr-editable timestamp",
+      "title": "legacy-cutoff ts is a PR-editable timestamp",
+      "location": "plugin/skills/faff/bin/lib/evidence.js",
+      "action": "none — accepted risk per operator-ratified spec residual",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The spec explicitly describes the run-dir leg as a run-close/local-feedback check, NOT a trusted gate (line 387/403): it runs the PR-authored in-checkout binary and cannot fire in faff CI (.faff/runs gitignored). Backdating is the named wholesale-forgery residual; the cost is a wrong signal on an untrusted local leg, never a CI bypass. Accepted risk.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "legacy-cutoff ts is a PR-editable timestamp",
+          "location": "plugin/skills/faff/bin/lib/evidence.js",
+          "severity": "major",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/events.js::whitespace-only issue is writable by the current writer, contradicting the faff-1353 assumes",
+      "title": "whitespace-only issue is writable by the current writer, contradicting the FAFF-1353 Assumes",
+      "location": "plugin/skills/faff/bin/lib/events.js",
+      "action": "none — no change (false positive)",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Designed behavior: the spec (line 220) explicitly notes issueScopedViolations accepts whitespace-only, which is PRECISELY why classify_row routes it to UNADMITTED_ISSUE (gating in every anchor). The Assumes covers absent/null/empty; whitespace is a separate, handled class. No contract violation.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "whitespace-only issue is writable by the current writer, contradicting the FAFF-1353 Assumes",
+          "location": "plugin/skills/faff/bin/lib/events.js",
+          "severity": "major",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/evidence.js::singleissue uses admitted union outcomes keys, treating a 1-admitted run with a stray outcome as multi-issue",
+      "title": "singleIssue uses admitted UNION outcomes keys, treating a 1-admitted run with a stray outcome as multi-issue",
+      "location": "plugin/skills/faff/bin/lib/evidence.js",
+      "action": "none — no change (false positive)",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Matches the spec definition exactly: the ledger issue set is the union of admitted and outcomes keys (§ vocabulary; resolve_scope), the same set anchor-run derives its mint loop from. An issue with an outcome genuinely has an anchor, so the hostage argument holds; not a gap.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "singleIssue uses admitted UNION outcomes keys, treating a 1-admitted run with a stray outcome as multi-issue",
+          "location": "plugin/skills/faff/bin/lib/evidence.js",
+          "severity": "major",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/governance-check.js::run-dir leg detail is not escapeworkflowdata-escaped on the --summary-md path",
+      "title": "run-dir leg detail is not escapeWorkflowData-escaped on the --summary-md path",
+      "location": "plugin/skills/faff/bin/lib/governance-check.js",
+      "action": "none — no change (false positive)",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "summary-md is $GITHUB_STEP_SUMMARY markdown, not a workflow command; only stdout ::error:: lines are workflow commands, and renderGovernanceCheckAnnotations applies escapeWorkflowData to the whole reason (incl. detail). An accepted scope value is token-shape-gated so it can never carry ::/%/control chars. The DoD injection AC (FAFF-1::error::injected) passes.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "run-dir leg detail is not escapeWorkflowData-escaped on the --summary-md path",
+          "location": "plugin/skills/faff/bin/lib/governance-check.js",
+          "severity": "major",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/events.js::anchor-run self-verify spawn uses --legacy-policy pass, suppressing a mixed-chain warn on success",
+      "title": "anchor-run self-verify spawn uses --legacy-policy pass, suppressing a mixed-chain warn on success",
+      "location": "plugin/skills/faff/bin/lib/events.js",
+      "action": "none — accepted risk per operator-ratified spec residual",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Pre-existing, unchanged: the per-subdir self-verify already uses --legacy-policy pass; the new run-dir spawn mirrors it for consistency and gates only on the evidence_schema leg. Surfacing integrity warns from the run-dir spawn is out of this ticket scope.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "anchor-run self-verify spawn uses --legacy-policy pass, suppressing a mixed-chain warn on success",
+          "location": "plugin/skills/faff/bin/lib/events.js",
+          "severity": "major",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

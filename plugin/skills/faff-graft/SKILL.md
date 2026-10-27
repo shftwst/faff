@@ -380,7 +380,7 @@ The **full suite + lint** backstop already ran once as Step 7.5's UNIT and LINT 
 
 The PR description's `## Acceptance Criteria` block is printed by `faff evidence render ac-checklist` from the written anchor. Never hand-write it.
 
-- **Source.** Take the AC list from `faff dod classify --spec <path from spec verify> --issue <ISSUE> --json`: its `done` criteria in order, each with `text` and the qualified `ac_id` (for example `faff-1287#ac-3`).
+- **Source.** Take the AC list from `faff dod classify --spec <spec> --issue <ISSUE> --json` (`<spec>` is the worktree file at the `path` from `spec verify`): its `done` criteria in order, each with `text` and the qualified `ac_id` (for example `faff-1287#ac-3`).
 - **Verify and note.** Tick each AC as its verification passes, with a one-line `verified` note (test result, or command + observed result). An AC that cannot be auto-verified (visual, subjective, auth-required) stays unticked with `"Needs human verification: <reason>"`.
 - **Record methods.** `verifications` lists each method used: `{ "kind": "test", "locator": "<file>::<test title>" }` (repo-relative file, the test's own title), `{ "kind": "command", "locator": "<exact command>" }`, or `{ "kind": "human" }` (no locator).
 - **Secrets.** A `command` locator names a secret by environment variable (`$TOKEN`), never by value. It is committed in the anchor and published in the PR body.

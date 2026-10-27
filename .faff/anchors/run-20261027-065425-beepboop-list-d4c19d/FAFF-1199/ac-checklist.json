@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "all_verified": false,
+  "criteria": [
+    {
+      "ac": "`budget.js` `PRICE_PER_MTOK` has rows for `claude-opus-5-5` (4/20/5/8/0.2), `claude-sonnet-5-5` (2/10/2.5/4/0.1), `claude-fable-5-1` (10/50/12.5/20/0.25), each with all five classes `{input, output, cache_write_5m, cache_write_1h, cache_read}`.",
+      "verified": "Needs human verification: the committed figure matches the spec, but the spec's decision (decides: product) reserves confirmation of these rates against Anthropic's published pricing (platform.claude.com) to a human spot-check at merge — a code-blind check cannot verify external pricing. [budget.js rows present with the spec values; budget --selftest asserts them]",
+      "passed": false,
+      "ac_id": "faff-1199#done:1",
+      "verifications": [
+        {
+          "kind": "human"
+        }
+      ]
+    },
+    {
+      "ac": "`eval/tokenomics.mjs` `RATES` has rows `claude-opus-5-5` `{in:4,out:20}`, `claude-sonnet-5-5` `{in:2,out:10}`, `claude-fable-5-1` `{in:10,out:50}`.",
+      "verified": "Needs human verification: the committed figure matches the spec, but the spec's decision (decides: product) reserves confirmation of these rates against Anthropic's published pricing (platform.claude.com) to a human spot-check at merge — a code-blind check cannot verify external pricing. [tokenomics RATES rows present with spec values + read_mult]",
+      "passed": false,
+      "ac_id": "faff-1199#done:2",
+      "verifications": [
+        {
+          "kind": "human"
+        }
+      ]
+    },
+    {
+      "ac": "`scripts/token-breakdown.mjs` `PRICE_PER_MTOK` has rows `claude-opus-5-5` `{input:4,output:20,cache_write:5,cache_read:0.2}`, `claude-sonnet-5-5` `{input:2,output:10,cache_write:2.5,cache_read:0.1}`, `claude-fable-5-1` `{input:10,output:50,cache_write:12.5,cache_read:0.25}`.",
+      "verified": "Needs human verification: the committed figure matches the spec, but the spec's decision (decides: product) reserves confirmation of these rates against Anthropic's published pricing (platform.claude.com) to a human spot-check at merge — a code-blind check cannot verify external pricing. [token-breakdown PRICE_PER_MTOK rows present with spec values]",
+      "passed": false,
+      "ac_id": "faff-1199#done:3",
+      "verifications": [
+        {
+          "kind": "human"
+        }
+      ]
+    },
+    {
+      "ac": "`faff economics` prices a `claude-opus-5-5` workload at the committed rates and no longer reports it unpriced/null.",
+      "verified": "Needs human verification: the committed figure matches the spec, but the spec's decision (decides: product) reserves confirmation of these rates against Anthropic's published pricing (platform.claude.com) to a human spot-check at merge — a code-blind check cannot verify external pricing. [economicsPriceForModel('claude-opus-5-5') returns {4,20,5,8,0.2}, not null — mechanism verified]",
+      "passed": false,
+      "ac_id": "faff-1199#done:4",
+      "verifications": [
+        {
+          "kind": "human"
+        }
+      ]
+    },
+    {
+      "ac": "`tokenomics.mjs` `billCalls` applies a per-row `read_mult` for the cache-read leg (0.05 for opus-5-5 / sonnet-5-5, 0.025 for fable-5-1), defaulting to `CACHE_MULT.read` (0.1) when a row omits it; write legs unchanged.",
+      "verified": "verified: smoke + test/eval-tokenomics.test.mjs — billCalls reads per-row read_mult, defaults to CACHE_MULT.read (0.1) when a row omits it, write legs untouched.",
+      "passed": true,
+      "ac_id": "faff-1199#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/eval-tokenomics.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "A `tokenomics` bench run on a pre-existing model (`claude-opus-4-8`) is unchanged by this edit.",
+      "verified": "verified: opus-4-8 cache-read leg = $0.50 (unchanged) via smoke; test/eval-tokenomics.test.mjs green.",
+      "passed": true,
+      "ac_id": "faff-1199#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/eval-tokenomics.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`budget.js` was edited directly (no `.ts` sibling; no build step), `PRICE_TABLE_AS_OF` bumped to `2026-10-27`.",
+      "verified": "verified: budget.js has no .ts sibling; PRICE_TABLE_AS_OF bumped to '2026-10-27' (edited directly, no build step).",
+      "passed": true,
+      "ac_id": "faff-1199#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep PRICE_TABLE_AS_OF plugin/skills/faff/bin/lib/budget.js"
+        }
+      ]
+    },
+    {
+      "ac": "`token-breakdown.mjs` provenance comment and `pricing.source` string no longer assert a universal 0.1× cache-read rule.",
+      "verified": "verified: token-breakdown.mjs provenance comment and pricing.source string no longer assert a universal 0.1x cache-read rule.",
+      "passed": true,
+      "ac_id": "faff-1199#done:8",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n pricing scripts/token-breakdown.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "No new unlisted-model warning was added; each consumer's existing fallback is unchanged.",
+      "verified": "verified: diff adds only rows + the read_mult hook + comments; no new unlisted-model warning; priceFor/economicsPriceForModel/rateFor fallbacks unchanged.",
+      "passed": true,
+      "ac_id": "faff-1199#done:9",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff — no console.warn/unpriced additions"
+        }
+      ]
+    },
+    {
+      "ac": "`budget.js` `conservativePriceRow` per-class maxima are unchanged after the additions (governor fail-safe preserved).",
+      "verified": "verified: budget --selftest asserts conservativePriceRow per-class maxima unchanged (10/50/12.5/20/1.0) after the additions.",
+      "passed": true,
+      "ac_id": "faff-1199#done:10",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff budget --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`budget.js` selftest passes, including (added) assertions that `economicsPriceForModel` returns the committed rows for the three new model IDs.",
+      "verified": "verified: budget --selftest PASS (110 checks, 0 failed) incl new economicsPriceForModel row assertions for the three models.",
+      "passed": true,
+      "ac_id": "faff-1199#done:11",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff budget --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`faff regions check` / the repo's standard lint pass stays green.",
+      "verified": "verified: regions check, validate-adapters, lint-refs, lint-cli-doc all PASS.",
+      "passed": true,
+      "ac_id": "faff-1199#done:12",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        }
+      ]
+    }
+  ]
+}

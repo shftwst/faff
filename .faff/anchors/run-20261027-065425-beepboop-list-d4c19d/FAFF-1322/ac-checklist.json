@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A hand-read of a dot-separated .faff/ YAML overlay variant (cat .faff/config.dev.yaml) is flagged",
+      "verified": "unit test asserts cat .faff/config.dev.yaml matches HANDREAD",
+      "passed": true,
+      "ac_id": "faff-1322#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/validate-adapters.test.mjs::FAFF-1322: HANDREAD flags the whole .faff/config spelling class, excludes non-config shapes"
+        }
+      ]
+    },
+    {
+      "ac": "A hand-read of a hyphen-joined variant (cat .faff/config-dev.yaml) is flagged",
+      "verified": "unit test asserts cat .faff/config-dev.yaml matches HANDREAD",
+      "passed": true,
+      "ac_id": "faff-1322#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/validate-adapters.test.mjs::FAFF-1322: HANDREAD flags the whole .faff/config spelling class, excludes non-config shapes"
+        }
+      ]
+    },
+    {
+      "ac": "A hand-read of extensionless .faff/config and variants (cat .faff/config, .config.local, .config-dev) is flagged",
+      "verified": "unit test asserts all three extensionless forms match HANDREAD",
+      "passed": true,
+      "ac_id": "faff-1322#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/validate-adapters.test.mjs::FAFF-1322: HANDREAD flags the whole .faff/config spelling class, excludes non-config shapes"
+        }
+      ]
+    },
+    {
+      "ac": "The .faff/config alternative of HANDREAD is the completeness pattern; verb prefix and .faffrc alternative byte-identical",
+      "verified": "grep confirms const HANDREAD = /...config(?:[.-][\\w.-]*)?(?![\\w.-/])/ with verb prefix and .faffrc unchanged",
+      "passed": true,
+      "ac_id": "faff-1322#done:4",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'const HANDREAD =' plugin/skills/faff/bin/lib/validate-adapters.js"
+        }
+      ]
+    },
+    {
+      "ac": "The canonical names (cat .faff/config.yaml, cat .faff/config.local.yaml) are still flagged (no regression)",
+      "verified": "unit test asserts both canonical names match HANDREAD",
+      "passed": true,
+      "ac_id": "faff-1322#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/validate-adapters.test.mjs::FAFF-1322: HANDREAD flags the whole .faff/config spelling class, excludes non-config shapes"
+        }
+      ]
+    },
+    {
+      "ac": "A path under .faff/config/ (config/extra.yaml) and a longer word (configuration.yaml) are NOT flagged",
+      "verified": "unit test asserts both do NOT match HANDREAD",
+      "passed": true,
+      "ac_id": "faff-1322#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/validate-adapters.test.mjs::FAFF-1322: HANDREAD flags the whole .faff/config spelling class, excludes non-config shapes"
+        }
+      ]
+    },
+    {
+      "ac": "A verb-free prose mention of .faff/config and the sanctioned faff config get are NOT flagged",
+      "verified": "unit test asserts both do NOT match HANDREAD",
+      "passed": true,
+      "ac_id": "faff-1322#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/validate-adapters.test.mjs::FAFF-1322: HANDREAD flags the whole .faff/config spelling class, excludes non-config shapes"
+        }
+      ]
+    },
+    {
+      "ac": "A .faff/config.example.yaml line is NOT flagged (existing .example line-skip precedes the match)",
+      "verified": "code inspection: line 1048 if(line.includes(.example)) continue precedes line 1049 line.match(HANDREAD)",
+      "passed": true,
+      "ac_id": "faff-1322#done:8",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'includes(\".example\")\\|line.match(HANDREAD)' plugin/skills/faff/bin/lib/validate-adapters.js"
+        }
+      ]
+    },
+    {
+      "ac": "HANDREAD is exported from validate-adapters.js",
+      "verified": "unit test imports HANDREAD from the module and asserts against it; module.exports lists HANDREAD",
+      "passed": true,
+      "ac_id": "faff-1322#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/validate-adapters.test.mjs::FAFF-1322: HANDREAD flags the whole .faff/config spelling class, excludes non-config shapes"
+        }
+      ]
+    },
+    {
+      "ac": "A unit test in test/validate-adapters.test.mjs asserts every row of the case table and runs in the suite",
+      "verified": "the FAFF-1322 test asserts all 15 FLAG + 4 NO_FLAG rows; ran as part of node --test",
+      "passed": true,
+      "ac_id": "faff-1322#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/validate-adapters.test.mjs::FAFF-1322: HANDREAD flags the whole .faff/config spelling class, excludes non-config shapes"
+        }
+      ]
+    },
+    {
+      "ac": "The full test suite passes, including the real-shipped-tree regression guard",
+      "verified": "gate ladder UNIT rung (node --import ./test/hermetic-env.mjs --test) passed; faff validate-adapters exits 0 on the real tree",
+      "passed": true,
+      "ac_id": "faff-1322#done:11",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    }
+  ]
+}

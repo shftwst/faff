@@ -1,0 +1,37 @@
+[
+  {
+    "round": 1,
+    "window_start": 1,
+    "objections": [
+      {
+        "lens": "architectural",
+        "severity": "minor",
+        "claim": "The spec's \"single source of truth — the schema now enforces the bound\" argument is only true when the bundled schema actually loads. The repo's evidence layer has a *designed* degrade path (evidence.js logRecordChecker/noteSchemaUnavailable, and commissaire.ts's own comment). Today conclusionRangeViolations is appended to the check result regardless of unavailable, so a three-item evidence_seq_range is still refused even when the bundle cannot be loaded. Deleting the function and its wiring makes the degrade path accept an over-long conclusion range on a path the spec never names.",
+        "evidence": "Spec rationale section on removing conclusionRangeViolations; commissaire.ts recordSchemaCheck.",
+        "predicted_consequence": "In any run where the evidence bundle is unavailable, a conclusion with >2 seq values is written where the current code refuses it.",
+        "spec_anchor": "should-the-writer-side-conclusionrangeviolations-check-be-kept-as-belt-and-braces"
+      },
+      {
+        "lens": "infosec",
+        "severity": "major",
+        "claim": "Today the evidence_seq_range length bound is enforced unconditionally by conclusionRangeViolations. The spec deletes it and relocates the invariant entirely into the schema check, which has an explicit fail-open degrade when the bundle cannot be loaded. After this change, in degraded mode a conclusion record carrying a three-item evidence_seq_range is HMAC-signed and appended with no length check anywhere.",
+        "evidence": "Spec section 4 and the rationale to remove conclusionRangeViolations; commissaire.ts recordSchemaCheck/refuseOffSchema/noteUnavailable.",
+        "predicted_consequence": "During a schema-unavailable run, a conclusion with evidence_seq_range longer than two items is signed, chained, and persisted; audit replay reports it verified.",
+        "spec_anchor": "how-behaviour"
+      },
+      {
+        "lens": "QA",
+        "severity": "minor",
+        "claim": "The spec requires that adding maxItems where none existed classifies as non-additive, yet no Given/When/Then scenario exercises that transition. A build could ship directional handling that catches raise/remove but lets the add case through, and every named scenario still passes.",
+        "evidence": "DONE item on maxItems added where absent; failure mode in section 4; scenario set covers raise, lower, and remove only.",
+        "predicted_consequence": "The add-where-absent case has no scenario, so a holdout or reviewer cannot decide that DONE item from the scenarios alone.",
+        "spec_anchor": "how-behaviour"
+      }
+    ]
+  },
+  {
+    "round": 2,
+    "window_start": 1,
+    "objections": []
+  }
+]

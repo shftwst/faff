@@ -137,6 +137,22 @@ const NON_NORMATIVE = /non-normative|gateway wins/i;
 // skill that drops the rule entirely.
 const RENDERING_REF = /rendering_adaptor|Universal-routing|→\s*\*?\*?Rendering|gateway['’]s? \*?\*?Rendering/;
 
+// FAFF-50 / FAFF-1322: CLI-only config access — no skill may hand-read a config file with a shell
+// command; config is resolved via `faff config`. Conservative: flags only an explicit shell read with
+// cat/head/tail/grep/sed/awk/less (never a prose mention) of either the deprecated root-tier `.faffrc*`
+// or the whole `.faff/config…` spelling class — dot/hyphen-separated variants and the bare
+// extensionless name, with or without a `.yaml`/`.yml` suffix. The `.faff/config` alternative
+// `(?:[.-][\w.-]*)?(?![\w.\-/])` is a conservative tripwire over that class: it flags every
+// dot/hyphen-separated `.faff/config` variant and the bare extensionless name (a skill has no
+// business shell-reading one). Scope is deliberately dot/hyphen-separated per the spec, so a bare
+// word continuation (`.faff/config_local`, `.faff/config2`) is not a variant and stays unflagged;
+// the `(?![\w.\-/])` lookahead
+// still excludes a path under a `.faff/config/` directory (a `/` after `config`) and a longer word
+// like `.faff/configuration.yaml` (a letter after `config`, no separator). The `.example` line-skip
+// in the scan loop below (independent of this pattern) is what exempts `.faff/config.example.yaml`.
+// Exported so test/validate-adapters.test.mjs can unit-test the pattern directly.
+const HANDREAD = /\b(?:cat|head|tail|less|grep|sed|awk)\b[^\n]*(?:\.faffrc(?:\.ya?ml)?\b|\.faff\/config(?:[.-][\w.-]*)?(?![\w.\-/]))/;
+
 // FAFF-598: derive the inline-enum-restatement lint's value sets from CONTRACT_DESCRIBES — the SAME
 // data `faff contract <name> --describe` renders — never a hand-copied list of its own. One set per
 // lintable (default true; the sole false today is spec-readiness's producer-authored marker dialect)
@@ -1025,10 +1041,8 @@ function cmdValidateAdapters(args) {
       }
     }
   }
-  // FAFF-50: CLI-only config access — no skill may hand-read the rc file with a shell command;
-  // config is resolved via `faff config`. Conservative: flags only an explicit shell read of
-  // the config files (.faffrc*, .faff/config*.yaml) with cat/head/tail/grep/sed/awk/less, never a prose mention.
-  const HANDREAD = /\b(?:cat|head|tail|less|grep|sed|awk)\b[^\n]*(?:\.faffrc(?:\.ya?ml)?\b|\.faff\/config(?:\.local)?\.ya?ml\b)/;
+  // FAFF-50: CLI-only config access — scan each SKILL.md for a shell hand-read of a config file via
+  // the module-scoped HANDREAD guard (defined + documented above); config is resolved via `faff config`.
   const allSkills = fs.readdirSync(skillsDir)
     .filter((d) => fs.existsSync(path.join(skillsDir, d, "SKILL.md"))).sort();
   for (const name of allSkills) {
@@ -1547,4 +1561,4 @@ function cmdValidateAdapters(args) {
 }
 
 
-module.exports = { ANCHOR_PHRASES, CAPTURE_WIRING_WINDOW, DUP_BLOCK_WINDOW, DUP_SIG_MINLEN, NON_NORMATIVE, PARA_WORD_CAP, REFER_BACK, REGISTRY, RENDERING_REF, REQUIRED_METHODOLOGY_OUTPUTS, SKILL_LINE_CAP, SKILL_LINE_BASELINE, KERNEL_LINE_BASELINE, SKIP, SLOT_TYPES, STRAY_RETRO, STRAY_TRANSCRIPT, balancedCallArg, c3CalibrationFloor, captureSameCommandUnwired, captureWiringUnwired, checkAnchorBeforePrOrder, checkAnchorCommitNoBroadSwallow, checkCalibrated, checksFor, cmdIsBundled, cmdValidateAdapters, deriveCaptureKernels, extractVoicePathToken, hasUserInvocableFalse, inlineEnumLintSets, isProseLine, isParagraphLine, anchorResolves, normalizeHeading, lintGatewayManifest, lintInlineEnumRestatement, lintVoicePointer, loadSeamRegistryForLint, locateSkill, readJudgementSeam, reconcileSeam, resolveSkillsDir, validateConfigured };
+module.exports = { ANCHOR_PHRASES, CAPTURE_WIRING_WINDOW, DUP_BLOCK_WINDOW, DUP_SIG_MINLEN, HANDREAD, NON_NORMATIVE, PARA_WORD_CAP, REFER_BACK, REGISTRY, RENDERING_REF, REQUIRED_METHODOLOGY_OUTPUTS, SKILL_LINE_CAP, SKILL_LINE_BASELINE, KERNEL_LINE_BASELINE, SKIP, SLOT_TYPES, STRAY_RETRO, STRAY_TRANSCRIPT, balancedCallArg, c3CalibrationFloor, captureSameCommandUnwired, captureWiringUnwired, checkAnchorBeforePrOrder, checkAnchorCommitNoBroadSwallow, checkCalibrated, checksFor, cmdIsBundled, cmdValidateAdapters, deriveCaptureKernels, extractVoicePathToken, hasUserInvocableFalse, inlineEnumLintSets, isProseLine, isParagraphLine, anchorResolves, normalizeHeading, lintGatewayManifest, lintInlineEnumRestatement, lintVoicePointer, loadSeamRegistryForLint, locateSkill, readJudgementSeam, reconcileSeam, resolveSkillsDir, validateConfigured };

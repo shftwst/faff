@@ -416,3 +416,18 @@ test("FAFF-1322: HANDREAD flags the whole .faff/config spelling class, excludes 
     assert.doesNotMatch(line, HANDREAD, `expected HANDREAD NOT to flag: ${line}`);
   }
 });
+
+// FAFF-1322: the spec §8 integration smoke test — drive the WHOLE validator (scan loop + the
+// module-scoped HANDREAD + the `.example` line-skip) over one-line SKILL.md bodies, not just the
+// exported regex in isolation. This is what catches a scan loop that stopped referencing the guard
+// (the isolated-regex test above would stay green while the lint silently went dead).
+test("FAFF-1322: the hand-read guard fires end-to-end over a one-line SKILL.md (integration smoke)", () => {
+  const flagged = runOne("cat .faff/config.dev.yaml\n");
+  assert.ok(has(flagged, "config access"), "a .faff/config.dev.yaml hand-read must trip the config-access guard");
+  const dirPath = runOne("cat .faff/config/extra.yaml\n");
+  assert.equal(has(dirPath, "config access"), false, "a read under .faff/config/ must NOT trip the guard");
+  const cli = runOne("faff config get appetite\n");
+  assert.equal(has(cli, "config access"), false, "the sanctioned faff config get must NOT trip the guard");
+  const exampleSkip = runOne("cat .faff/config.example.yaml\n");
+  assert.equal(has(exampleSkip, "config access"), false, "a .example config line is skipped before the guard");
+});

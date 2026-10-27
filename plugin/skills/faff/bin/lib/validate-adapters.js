@@ -142,8 +142,11 @@ const RENDERING_REF = /rendering_adaptor|Universal-routing|→\s*\*?\*?Rendering
 // cat/head/tail/grep/sed/awk/less (never a prose mention) of either the deprecated root-tier `.faffrc*`
 // or the whole `.faff/config…` spelling class — dot/hyphen-separated variants and the bare
 // extensionless name, with or without a `.yaml`/`.yml` suffix. The `.faff/config` alternative
-// `(?:[.-][\w.-]*)?(?![\w.\-/])` is a conservative completeness tripwire: it deliberately flags any
-// `.faff/config*` read (a skill has no business shell-reading one), and the `(?![\w.\-/])` lookahead
+// `(?:[.-][\w.-]*)?(?![\w.\-/])` is a conservative tripwire over that class: it flags every
+// dot/hyphen-separated `.faff/config` variant and the bare extensionless name (a skill has no
+// business shell-reading one). Scope is deliberately dot/hyphen-separated per the spec, so a bare
+// word continuation (`.faff/config_local`, `.faff/config2`) is not a variant and stays unflagged;
+// the `(?![\w.\-/])` lookahead
 // still excludes a path under a `.faff/config/` directory (a `/` after `config`) and a longer word
 // like `.faff/configuration.yaml` (a letter after `config`, no separator). The `.example` line-skip
 // in the scan loop below (independent of this pattern) is what exempts `.faff/config.example.yaml`.

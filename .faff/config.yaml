@@ -143,12 +143,12 @@ adversarial:
   spec_review:
     max_tokens: 15000
   spec_judge:
-    max-tokens: 15000
+    max_tokens: 15000
     refs:
       - openrouter-deepseek-v4-flash-reasoning
       - openrouter-gemma
   build_judge:
-    max-tokens: 15000
+    max_tokens: 15000
     refs:
       - openrouter-deepseek-v4-flash-reasoning
       - openrouter-gemma

@@ -45,6 +45,7 @@ const { containerCheck, hostSocketProbe, realFsq } = require("./container-check"
 const { isSafeRunId } = require("./contain");
 const { correctiveIntegrityProbe } = require("./corrective-integrity");
 const { appendEventRecord, appendRecordUnderLock, emitGenesisRunStart } = require("./events");
+const { resolveFaffVersion } = require("./faff-version"); // FAFF-1395
 // FAFF-1077: observeForgeMerge is factored into the shared forge-merge module (imported by the
 // merge-order interlock in merge-gate.js too); lights-out's resume reconcile keeps calling it here.
 const { observeForgeMerge } = require("./forge-merge");
@@ -1190,6 +1191,7 @@ function mintLightsOut({ root, cfg, json, get, pf, envelope, metering, correctiv
       pid: process.pid,
       started_at: nowIso,
       last_heartbeat: nowIso,
+      faff_version: resolveFaffVersion().version, // FAFF-1395
     },
   };
   // FAFF-575: the mint routes through the same locked core as every other ledger
@@ -1380,7 +1382,7 @@ function resumeLightsOut({ root, cfg, binPath, json, checkOnly, get, unreachable
       // resurrect — and a null fresh also skips the fence, so falling back to the
       // pre-lock copy here would bypass the takeover guard entirely.
       if (!fresh) return null;
-      const applied = applyResumeToLedger(fresh, { nowIso, sessionId, pid: process.pid, priorState, plan, budgetSessions });
+      const applied = applyResumeToLedger(fresh, { nowIso, sessionId, pid: process.pid, priorState, plan, budgetSessions, faffVersion: resolveFaffVersion().version });
       epoch = applied.epoch;
       return applied.ledger;
     }, { epoch: priorEpoch, session_id: (ledger.owner && ledger.owner.session_id) || null });

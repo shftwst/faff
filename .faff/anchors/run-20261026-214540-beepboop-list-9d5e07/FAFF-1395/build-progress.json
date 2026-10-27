@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "issue": "FAFF-1395",
+  "build": {
+    "status": "complete",
+    "diff_hash": "e48675ed74b793b74cf10a946c99fbaa3f5b603330e2d076796812e25c93b0c8",
+    "branch": "faff-1395-runs-preps-and-grafts-record-which-faff-version-wrote-them",
+    "pushed_at": "2026-10-27T00:31:50.900Z"
+  },
+  "updated_at": "2026-10-27T00:31:50.900Z"
+}

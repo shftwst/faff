@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/evidence.js::run-event.schema.json is not classified additive by classifyschemachange",
+      "title": "run-event.schema.json is not classified additive by classifySchemaChange",
+      "location": "plugin/skills/faff/bin/lib/evidence.js:386",
+      "action": "Teach walkSchemaChange to diff discriminator.mapping values, then assert additivity for run-event.schema.json",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "A pre-existing limitation of the classifier, which compares a discriminator by equality, so any new event data key hits it. The spec lists events/run-start for additivity, and the new test asserts that and checks run-event for the property. The repo's governance-check runs the evidence-schema leg in report mode, so the base-commit leg never fails on it. Filed as discovered scope rather than widening this PR to a classifier change.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "run-event.schema.json is not classified additive by classifySchemaChange",
+          "location": "plugin/skills/faff/bin/lib/evidence.js:386",
+          "severity": "major",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/evidence.js::writerunstate restamp comment is not backed by stripversion",
+      "title": "writeRunState restamp comment is not backed by stripVersion",
+      "location": "plugin/skills/faff/bin/lib/evidence.js:254",
+      "action": "Strip faff_version alongside schema_version in stripVersion",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "stripVersion now drops faff_version with schema_version, so a restamp never reads as a changed path.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "writeRunState restamp comment is not backed by stripVersion",
+          "location": "plugin/skills/faff/bin/lib/evidence.js:254",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/contract-defs-evidence.js::downstream readers of custody-verdict and merge-record may reject the new key",
+      "title": "Downstream readers of custody-verdict and merge-record may reject the new key",
+      "location": "plugin/skills/faff/bin/lib/contract-defs-evidence.js:294",
+      "action": "Confirm the readers are key-tolerant or add an admission test",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "computeCustodyVerdictAdmission checks run_id, issue, classification and the digest, with no closed key set; disposition.js reads merge-record fields by name. The end-to-end custody tests (faff-893, faff-895) admit a stamped verdict through merge-gate and pass.",
+      "disposition_rationale": "Both readers pick fields by name; no closed key set exists.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Downstream readers of custody-verdict and merge-record may reject the new key",
+          "location": "plugin/skills/faff/bin/lib/contract-defs-evidence.js:294",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-ledger.js::stale byte-identical comment on the l2 genesis in run-ledger.js",
+      "title": "Stale byte-identical comment on the L2 genesis in run-ledger.js",
+      "location": "plugin/skills/faff/bin/lib/run-ledger.js:386",
+      "action": "Update the comment to the new genesis data shape",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Comment rewritten to state the L2 genesis data is exactly { faff_version }.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Stale byte-identical comment on the L2 genesis in run-ledger.js",
+          "location": "plugin/skills/faff/bin/lib/run-ledger.js:386",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    }
+  ]
+}

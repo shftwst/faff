@@ -31,6 +31,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { DEFAULTS, loadConfig, resolveLabelPrefix, resolveControlLabels } = require("./config");
 const { dig, findRoot } = require("./shared-infra");
+const { resolveFaffVersion } = require("./faff-version"); // FAFF-1395
 
 const PROVENANCE_SCHEMA = 2;            // FAFF-220: bump 1→2 — record gains the optional `initiated` audit field.
 const INTAKE_VIA = new Set(["jot", "backfill", "fast_track"]);
@@ -300,6 +301,9 @@ function cmdIntakeRecord(args) {
   }
 
   marker.schema = PROVENANCE_SCHEMA;
+  // FAFF-1395: every intake-record write restamps the release that wrote it, beside `schema`. The
+  // no-downgrade path above returns before this line, so that marker keeps whatever it had.
+  marker.faff_version = resolveFaffVersion().version;
   marker.intake = { via, ts: new Date().toISOString(), ...(via === "fast_track" ? { reason: reason.trim() } : {}) };
   // FAFF-220: stamp `initiated` only when supplied (a valid mode). When absent we leave the key
   // exactly as load-or-init found it — merge-preserving any prior value — and never set it to

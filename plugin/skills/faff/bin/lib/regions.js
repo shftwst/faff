@@ -66,6 +66,9 @@ const REGION_MAP = {
   // governance — the flight recorder + interlocks (the extractable layer)
   "runcheck": "governance",
   "heartbeat": "governance",
+  // version — FAFF-1395: the one release-version resolver (faff-version.js). Requires only node:fs +
+  // node:path (no local module), so governance writers can require it without crossing into factory.
+  "version": "governance",
   "events": "governance",
   "evidence": "governance",
   "effects": "governance",
@@ -475,6 +478,7 @@ const REGION_SELFTEST_ARGV = {
   // governance — every member MUST carry a runnable selftest
   "runcheck": ["runcheck", "--selftest"],
   "heartbeat": ["heartbeat", "--selftest"],
+  "version": ["version", "--selftest"],
   "events": ["events", "--selftest"],
   "evidence": ["evidence", "--selftest"],
   "effects": ["effects", "--selftest"],

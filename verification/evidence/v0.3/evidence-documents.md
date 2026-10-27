@@ -15,6 +15,17 @@ FAFF-1259.
 | `spec-review-verdict.json` | `spec-review-verdict-anchored` | `faff evidence write spec-review-verdict`, called by graft Step 9b | FAFF-1267 |
 | `holdout.json` | `holdout-anchored` | `holdout_step` | FAFF-1259 |
 
+## The `faff_version` field
+
+Every document in the table above, and each `owner` and `owner_history` entry of the run ledger,
+accepts an optional string `faff_version` (FAFF-1395): the faff plugin release that wrote it, such
+as `0.42.0`, or `unknown` when the release could not be resolved. The writers stamp it directly
+after `schema_version`. A document written before FAFF-1395 has no such field, and is still valid.
+`build-progress.json` and `landing-progress.json` carry the release of whichever writer wrote them
+last; the other documents carry the release that wrote them. In the ledger it sits in `owner`, so a
+resume records the resuming release in the new owner and keeps the earlier owner's in
+`owner_history`. The addition is optional and does not change `schema_version`.
+
 ## Run ledger
 
 Only `schema_version` and `run_id` are required, because the ledger is written by CLI code and

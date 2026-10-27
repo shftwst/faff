@@ -30,13 +30,16 @@ a writer to its line validator and leaves `evidence-schema-unavailable.json` in 
 
 ### Event `data`
 
+The genesis `run-start` written by `emitGenesisRunStart` carries `faff_version` (FAFF-1395), the faff
+plugin release that minted the run. Older runs have no such key.
+
 Each event type accepts every phase. Keys marked * are required. The telemetry tags are
 `tokens`, `tokens_source`, `ledger_sha256_before`, `ledger_sha256_after`, `effort`, `gate`,
 `rework_turns`, `dropped_keys` and `forbidden_side_effect`.
 
 | Type | `data` | Keys | Telemetry tags |
 |---|---|---|---|
-| `run-start` | optional | `level`, `mode`, `requested`, `containment`, `branch_protection`, `issue_count`, `count`, `admitted`, `routed_out`, `issues`, `list`, `note` | yes |
+| `run-start` | optional | `level`, `faff_version`, `mode`, `requested`, `containment`, `branch_protection`, `issue_count`, `count`, `admitted`, `routed_out`, `issues`, `list`, `note` | yes |
 | `run-end` | optional | `stop_reason`, `shipped`, `parked` | yes |
 | `tidy-done` | optional | `scope`, `park_labels_cleared`, `prep_candidates` | yes |
 | `issue-admitted` | optional | `verdict`, `confidence`, `build_tier` | yes |

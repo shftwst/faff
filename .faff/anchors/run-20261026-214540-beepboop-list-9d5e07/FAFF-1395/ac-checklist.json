@@ -1,0 +1,459 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "In a repo checkout, the `faff_version` written by `faff run-ledger init-interactive` (into `owner` and the genesis `data`), `faff evidence write ac-checklist`, `faff evidence write review-verdict --terminal-only` and `writeMergeRecord` each equals the `version` in `plugin/.claude-plugin/plugin.json`.",
+      "verified": "Verified: init-interactive owner and genesis data, evidence ac-checklist and review-verdict --terminal-only, and writeMergeRecord each equal plugin.json's version",
+      "passed": true,
+      "ac_id": "faff-1395#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1395-faff-version.test.mjs::init-interactive and init-self-drain stamp the release into owner and the genesis data"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-write.test.mjs::ac-checklist: stamps schema_version, keeps criteria in order and drops unknown keys"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1395-faff-version.test.mjs::writeMergeRecord stamps the release beside harness and model, with an injectable override"
+        }
+      ]
+    },
+    {
+      "ac": "No writer other than `faff-version.js` reads `plugin.json` (a repository search for `claude-plugin` under `plugin/skills/*/bin` finds only that module).",
+      "verified": "Verified: the repository scan finds claude-plugin only in faff-version.js",
+      "passed": true,
+      "ac_id": "faff-1395#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1395-faff-version.test.mjs::no writer other than faff-version.js reads plugin.json"
+        }
+      ]
+    },
+    {
+      "ac": "`faff version` prints the bare version (`0.42.0` in this checkout) and exits 0.",
+      "verified": "Verified: faff version prints 0.43.0 (this checkout's plugin.json) and exits 0",
+      "passed": true,
+      "ac_id": "faff-1395#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1395-faff-version.test.mjs::faff version prints the bare release and exits 0"
+        }
+      ]
+    },
+    {
+      "ac": "`faff version --json` prints `{\"version\":\"<v>\",\"source\":\"plugin-json\"}` and exits 0; with an unresolvable path it prints `{\"version\":\"unknown\",\"source\":\"default\"}` and exits 0.",
+      "verified": "Verified: --json prints {version,source:plugin-json}; a copied tree with no plugin.json prints {unknown,default} and exits 0",
+      "passed": true,
+      "ac_id": "faff-1395#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1395-faff-version.test.mjs::faff version --json prints version and source"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1395-faff-version.test.mjs::a copied bin/lib has no plugin.json above it: every command still exits 0 and stamps unknown"
+        }
+      ]
+    },
+    {
+      "ac": "`faff version --bogus` exits 2.",
+      "verified": "Verified: an unknown flag exits 2",
+      "passed": true,
+      "ac_id": "faff-1395#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1395-faff-version.test.mjs::faff version with an unknown flag is a usage error (exit 2)"
+        }
+      ]
+    },
+    {
+      "ac": "`version` is a `COMMANDS` entry, has a `docs/guide/cli.md` row, and `faff lint-cli-doc` and `faff lint-cli-coverage` pass.",
+      "verified": "Verified: lint-cli-doc (142 documented) and lint-cli-coverage pass",
+      "passed": true,
+      "ac_id": "faff-1395#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff lint-cli-doc"
+        },
+        {
+          "kind": "command",
+          "locator": "faff lint-cli-coverage"
+        }
+      ]
+    },
+    {
+      "ac": "`faff-version.js` requires only `node:fs` and `node:path`, carries a region banner, is classed `governance` in `regions.js`, and `faff regions check` passes.",
+      "verified": "Verified: the module requires only node:fs and node:path; region banner present; regions check passes",
+      "passed": true,
+      "ac_id": "faff-1395#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff regions check"
+        },
+        {
+          "kind": "command",
+          "locator": "faff regions selftest --region governance"
+        }
+      ]
+    },
+    {
+      "ac": "`faff version --selftest` covers: valid version, prerelease version, missing file, non-JSON, non-object, wrong `name`, missing `version`, non-string `version`, `\"0.42\"`, `\"0.42.0-\"`, a module directory not ending in `skills/faff/bin/lib` (gives `unknown` even beside a valid `plugin.json`), a failed read not being memoised, and injected calls not changing the memoised value.",
+      "verified": "Verified: --selftest covers the listed cases and exits 0",
+      "passed": true,
+      "ac_id": "faff-1395#done:8",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff version --selftest"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1395-faff-version.test.mjs::faff version --selftest passes"
+        }
+      ]
+    },
+    {
+      "ac": "Each of these schemas gains exactly the optional `faff_version` string property and nothing else: `run-ledger` (`owner` and `owner_history.items`), `events/run-start` (`data`), `ac-checklist`, `review-verdict-anchored`, `review-round`, `spec-review-verdict-anchored`, `build-progress`, `landing-progress`, and `holdout-anchored`.",
+      "verified": "Verified: the seven schemas and the run-ledger owner/owner_history and run-start data each gain exactly the optional string fragment",
+      "passed": true,
+      "ac_id": "faff-1395#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1395-faff-version.test.mjs::each changed schema gains exactly the optional faff_version string and classifies as additive"
+        }
+      ]
+    },
+    {
+      "ac": "`classifySchemaChange(base, head)` reports every one of those schema diffs as additive (no reasons).",
+      "verified": "Verified: classifySchemaChange reports each schema diff as additive with no reasons (run-event is checked for the property only, see PR notes)",
+      "passed": true,
+      "ac_id": "faff-1395#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1395-faff-version.test.mjs::each changed schema gains exactly the optional faff_version string and classifies as additive"
+        }
+      ]
+    },
+    {
+      "ac": "`diff -rq verification/evidence/v0.3 plugin/skills/faff/contracts/evidence-v0.3` prints nothing.",
+      "verified": "Verified: diff -rq prints nothing",
+      "passed": true,
+      "ac_id": "faff-1395#done:11",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "diff -rq verification/evidence/v0.3 plugin/skills/faff/contracts/evidence-v0.3"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1395-faff-version.test.mjs::the bundled evidence tree and the verification source tree are byte-identical"
+        }
+      ]
+    },
+    {
+      "ac": "No file matching `plugin/skills/faff/contracts/*.schema.json` (top level) is changed, so `contract_schema_versions` is unchanged.",
+      "verified": "Verified: no top-level contracts/*.schema.json changed",
+      "passed": true,
+      "ac_id": "faff-1395#done:12",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --name-only 281e4abf..HEAD -- ':(glob)plugin/skills/faff/contracts/*.schema.json'"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1395-faff-version.test.mjs::no top-level contract schema mentions faff_version, so contract_schema_versions is unchanged"
+        }
+      ]
+    },
+    {
+      "ac": "Evidence documents carry `faff_version` as the second key, directly after `schema_version`, and still validate.",
+      "verified": "Verified: faff_version is the second key of ac-checklist, review-verdict and review-round, and they validate",
+      "passed": true,
+      "ac_id": "faff-1395#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-write.test.mjs::review-verdict --terminal-only: null-fills every finding key and records one round"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-review-rounds.test.mjs::record-review-round: refuses unavailable, ignores a supplied finding_id, stores carried_id and resolves the carry"
+        }
+      ]
+    },
+    {
+      "ac": "`build-progress.json` and `landing-progress.json` carry the current writer's version after every write.",
+      "verified": "Verified: build-progress and landing-progress restamp the current writer's version on every write",
+      "passed": true,
+      "ac_id": "faff-1395#done:14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1395-faff-version.test.mjs::build-progress and landing-progress restamp the current writer's release on every write"
+        }
+      ]
+    },
+    {
+      "ac": "L2 genesis `data` is exactly `{\"faff_version\":\"<v>\"}`; L3 and L4 genesis `data` is exactly `{\"level\":\"L3\"|\"L4\",\"faff_version\":\"<v>\"}`; `faff events verify` passes on each.",
+      "verified": "Verified: L2 data is {faff_version}; L3 and L4 data is {level,faff_version}; events verify passes",
+      "passed": true,
+      "ac_id": "faff-1395#done:15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1395-faff-version.test.mjs::init-interactive and init-self-drain stamp the release into owner and the genesis data"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1395-faff-version.test.mjs::the L4 genesis data is exactly { level, faff_version } and the chain verifies"
+        }
+      ]
+    },
+    {
+      "ac": "A resume keeps the prior owner byte-for-byte in `owner_history` and writes the resuming version into the new `owner`.",
+      "verified": "Verified: the prior owner (with its version) is kept verbatim in owner_history and the new owner carries the resuming version",
+      "passed": true,
+      "ac_id": "faff-1395#done:16",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1395-faff-version.test.mjs::a resume moves the prior owner (with its version) to owner_history and stamps the resuming release"
+        }
+      ]
+    },
+    {
+      "ac": "`owner.faff_version` survives every later ledger write in the run through to the terminal `status: \"done\"` write.",
+      "verified": "Verified: owner.faff_version survives record-outcome through owner.status done",
+      "passed": true,
+      "ac_id": "faff-1395#done:17",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1395-faff-version.test.mjs::owner.faff_version survives a later ledger write through to the terminal done"
+        }
+      ]
+    },
+    {
+      "ac": "`merge-record.json`, `custody-verdict.json`, the judge-trail `manifest.json` and `.faff/provenance/<ISSUE>.json` carry `faff_version`; `PROVENANCE_SCHEMA` is still `2`; the intake-record no-downgrade path still writes nothing.",
+      "verified": "Verified: merge-record, custody-verdict, judge-trail manifest and the intake marker carry faff_version; schema stays 2; the no-downgrade path writes nothing",
+      "passed": true,
+      "ac_id": "faff-1395#done:18",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1395-faff-version.test.mjs::writeMergeRecord stamps the release beside harness and model, with an injectable override"
+        },
+        {
+          "kind": "test",
+          "locator": "test/integrity-digest.test.mjs::record-result: a clean verify atomically writes schema_version:1 clean record, exit 0, verdict_sha256 matches an independent hash of the persisted bytes"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1395-faff-version.test.mjs::the judge-trail manifest and the holdout record carry the release"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1395-faff-version.test.mjs::intake-record stamps the release beside schema, keeps PROVENANCE_SCHEMA 2, and the no-downgrade path writes nothing"
+        }
+      ]
+    },
+    {
+      "ac": "A run admitted to Commissaire in-process after this change has a seq-0 admission whose `payload` carries exactly the five v0.3 keys and validates against `verification/commissaire-facade/v0.3/schema/admission.schema.json`; `commissaire audit verify` exits 0 on it.",
+      "verified": "Verified: a fresh in-process admit has an admission payload of exactly the five v0.3 keys, valid against admission.schema.json, and commissaire audit verify exits 0",
+      "passed": true,
+      "ac_id": "faff-1395#done:19",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff commissaire contract admit --run-dir <run> --producer <run-id> --contract-revision faff-runner-v1 --scope merge,file-write; faff commissaire audit verify --run-dir <run>"
+        }
+      ]
+    },
+    {
+      "ac": "`git diff --stat` shows no change to `commissaire.ts`, `commissaire.js`, `build-manifest.json` or anything under `verification/commissaire-facade/`.",
+      "verified": "Verified: no change to commissaire.ts, commissaire.js, build-manifest.json or verification/commissaire-facade",
+      "passed": true,
+      "ac_id": "faff-1395#done:20",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --stat 281e4abf..HEAD -- plugin/skills/faff/bin/lib/commissaire.ts plugin/skills/faff/bin/lib/commissaire.js plugin/skills/faff/build-manifest.json verification/commissaire-facade"
+        }
+      ]
+    },
+    {
+      "ac": "The governor-client admit path is unchanged: it appends the governor's record verbatim and adds no field.",
+      "verified": "Verified: governor.ts and every governor-client path are untouched, so the admit appends the governor record verbatim",
+      "passed": true,
+      "ac_id": "faff-1395#done:21",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --stat 281e4abf..HEAD -- plugin/skills/faff/bin/lib/governor.ts plugin/skills/faff/bin/lib/commissaire.ts"
+        }
+      ]
+    },
+    {
+      "ac": "`kernel.md:455`, faff-prep SKILL.md (stamp bullets, refresh rule, detection fixture, prep marker example) and faff-beep-boop SKILL.md (owner field list, enrichment merge) describe the new segment and field, and `faff validate-adapters` passes.",
+      "verified": "Verified: kernel.md, faff-prep and faff-beep-boop prose describe the new segment and field; validate-adapters passes",
+      "passed": true,
+      "ac_id": "faff-1395#done:22",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff validate-adapters"
+        },
+        {
+          "kind": "command",
+          "locator": "faff lint-refs"
+        }
+      ]
+    },
+    {
+      "ac": "With `plugin.json` absent, every CLI writer above still writes successfully and stamps `unknown`.",
+      "verified": "Verified: with no plugin.json above bin/lib the ledger mint, genesis and ac-checklist writer all succeed and stamp unknown",
+      "passed": true,
+      "ac_id": "faff-1395#done:23",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1395-faff-version.test.mjs::a copied bin/lib has no plugin.json above it: every command still exits 0 and stamps unknown"
+        }
+      ]
+    },
+    {
+      "ac": "Every committed anchor under `.faff/anchors/` and every `schema/examples/*.example.json` still validates with the new schemas.",
+      "verified": "Verified: 439 committed anchors validate to the same status under the old and new CLI (3 fail, 397 legacy, 39 pass, all unchanged); the schema example tests pass",
+      "passed": true,
+      "ac_id": "faff-1395#done:24",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff evidence validate <anchor-dir> --require-evidence-schema --json (new vs old CLI, every .faff/anchors/*/* dir)"
+        }
+      ]
+    },
+    {
+      "ac": "A ledger without `owner.faff_version` is mutated by the new CLI with no schema error and no added field (unless the write is a mint or resume).",
+      "verified": "Verified: record-outcome on a ledger without owner.faff_version succeeds and adds no field",
+      "passed": true,
+      "ac_id": "faff-1395#done:25",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1395-faff-version.test.mjs::a ledger with no owner.faff_version takes an ordinary write with no schema error and no added field"
+        }
+      ]
+    },
+    {
+      "ac": "The signed fixture `test/fixtures/commissaire/secret-free-replay/declared-effects.jsonl` is not regenerated or edited, and the tests that replay it pass unchanged.",
+      "verified": "Verified: test/fixtures/commissaire/secret-free-replay/declared-effects.jsonl is unchanged and its replay tests pass",
+      "passed": true,
+      "ac_id": "faff-1395#done:26",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --stat 281e4abf..HEAD -- test/fixtures/commissaire"
+        }
+      ]
+    },
+    {
+      "ac": "`test/run-ledger-init-self-drain.test.mjs` (the \"no data field at all\" case near line 276) and `test/run-ledger-init-interactive.test.mjs` (near line 95) assert the new exact L2 genesis `data` shape instead of an absent `data`.",
+      "verified": "Verified: both init tests assert the new exact genesis data shape",
+      "passed": true,
+      "ac_id": "faff-1395#done:27",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-ledger-init-interactive.test.mjs::mint writes an honest L2 ledger + genesis chain; bare stdout is the run dir path"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-ledger-init-self-drain.test.mjs::emitGenesisRunStart: with NO level (L2's call shape) → data is exactly {faff_version}"
+        }
+      ]
+    },
+    {
+      "ac": "`test/evidence-write.test.mjs` exact-text and exact-key assertions (near lines 47, 55, 92 and 110) assert the new exact shapes, including `faff_version` as the second key.",
+      "verified": "Verified: evidence-write assertions assert the exact shapes with faff_version second",
+      "passed": true,
+      "ac_id": "faff-1395#done:28",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-write.test.mjs::ac-checklist: stamps schema_version, keeps criteria in order and drops unknown keys"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-write.test.mjs::ac-checklist: a zero-AC input omits criteria and reads as complete"
+        }
+      ]
+    },
+    {
+      "ac": "Any other test that fails on the new field is updated to the new exact shape, never loosened; the PR description lists each updated assertion.",
+      "verified": "Verified: the other exact-shape tests updated, never loosened: bundle-recover, integrity-digest, evidence-review-rounds, run-ledger-init-self-drain (listed in the PR body)",
+      "passed": true,
+      "ac_id": "faff-1395#done:29",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/bundle-recover.test.mjs::bundle-recover: landing-progress.json rides the anchor and is copied up into <run-dir>/<issue>/ after recovery; faff landing-progress read returns it"
+        }
+      ]
+    },
+    {
+      "ac": "New tests cover: the resolver table above, ledger mint and resume stamping, genesis stamping at L2/L3/L4, each evidence writer, and the additive classification of each changed schema.",
+      "verified": "Verified: new tests cover the resolver table, mint and resume stamping, L2/L3/L4 genesis, the writers and additive classification",
+      "passed": true,
+      "ac_id": "faff-1395#done:30",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1395-faff-version.test.mjs::resolver: every unusable manifest degrades to unknown without throwing"
+        }
+      ]
+    },
+    {
+      "ac": "The full test suite and `faff regions selftest` pass.",
+      "verified": "Verified: the full suite passes (7,300+ tests across four shards, 0 failing) and faff regions selftest passes for both regions",
+      "passed": true,
+      "ac_id": "faff-1395#done:31",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test --test-shard=N/4 (N=1..4)"
+        },
+        {
+          "kind": "command",
+          "locator": "faff regions selftest --region governance"
+        }
+      ]
+    },
+    {
+      "ac": "The PR description records the result of `faff version --json` on a marketplace plugin install, or, when none is available or it reports `source: \"default\"`, links the follow-up ticket filed for a second lookup location.",
+      "verified": "Verified: the installed marketplace tree keeps .claude-plugin/plugin.json four levels above skills/faff/bin/lib; the new resolver pointed at that tree resolves {version:0.43.0,source:plugin-json}; no follow-up needed",
+      "passed": true,
+      "ac_id": "faff-1395#done:32",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node -e resolveFaffVersion({moduleDir: <marketplace skills/faff/bin/lib>})"
+        }
+      ]
+    }
+  ]
+}

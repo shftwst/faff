@@ -14,6 +14,10 @@ const { emitGenesisRunStart } = require("../plugin/skills/faff/bin/lib/events.js
 const { readAcComplete, readReviewVerdict } = require("../plugin/skills/faff/bin/lib/merge-gate.js");
 const { computeReviewVerdict } = require("../plugin/skills/faff/bin/lib/contract-defs.js");
 const { validateAgainstSchema } = require("../plugin/skills/faff/bin/lib/contract-engine.js");
+const { resolveFaffVersion } = require("../plugin/skills/faff/bin/lib/faff-version.js");
+
+// FAFF-1395: every anchored evidence document carries the writing release as its second key.
+const FAFF_VERSION = resolveFaffVersion().version;
 
 const SCHEMAS = join(import.meta.dirname, "..", "plugin", "skills", "faff", "contracts", "evidence-v0.3", "schema");
 const schema = (name) => JSON.parse(readFileSync(join(SCHEMAS, `${name}.schema.json`), "utf8"));
@@ -44,7 +48,7 @@ test("ac-checklist: stamps schema_version, keeps criteria in order and drops unk
   const w = f.ac({ ac_complete: true, criteria: CRITERIA.map((c) => ({ ...c, extra: 1 })), all_verified: true, note: "x" });
   assert.equal(w.code, 0, w.stderr);
   assert.equal(w.stdout.trim(), f.out("ac-checklist.json"));
-  assert.equal(readFileSync(f.out("ac-checklist.json"), "utf8"), JSON.stringify({ schema_version: 1, all_verified: true, criteria: CRITERIA.map((c) => ({ ...c, ac_id: null, verifications: null })) }, null, 2) + "\n");
+  assert.equal(readFileSync(f.out("ac-checklist.json"), "utf8"), JSON.stringify({ schema_version: 1, faff_version: FAFF_VERSION, all_verified: true, criteria: CRITERIA.map((c) => ({ ...c, ac_id: null, verifications: null })) }, null, 2) + "\n");
   assert.deepEqual(validateAgainstSchema(f.read("ac-checklist.json"), schema("ac-checklist")), []);
   assert.equal(readAcComplete(f.runDir, ISSUE), true);
 });
@@ -52,7 +56,7 @@ test("ac-checklist: stamps schema_version, keeps criteria in order and drops unk
 test("ac-checklist: a zero-AC input omits criteria and reads as complete", (t) => {
   const f = fixture(t);
   assert.equal(f.ac({ all_verified: true }).code, 0);
-  assert.deepEqual(f.read("ac-checklist.json"), { schema_version: 1, all_verified: true });
+  assert.deepEqual(f.read("ac-checklist.json"), { schema_version: 1, faff_version: FAFF_VERSION, all_verified: true });
   assert.equal(readAcComplete(f.runDir, ISSUE), true);
 });
 
@@ -89,7 +93,7 @@ test("review-verdict --terminal-only: null-fills every finding key and records o
   const w = f.review({ signal: "pass", findings: [FINDING, { title: "Second", severity: "observation", extra: 1 }, {}], unknown: true });
   assert.equal(w.code, 0, w.stderr);
   const doc = f.read("review-verdict.json");
-  assert.deepEqual(Object.keys(doc), ["schema_version", "signal", "rounds_total", "round_history", "findings"]);
+  assert.deepEqual(Object.keys(doc), ["schema_version", "faff_version", "signal", "rounds_total", "round_history", "findings"]);
   assert.equal(doc.rounds_total, 1);
   assert.equal(doc.round_history, "terminal-only");
   assert.deepEqual(doc.findings.map((x) => x.finding_id), ["src/a.js::missing null check", "nolocation::second", "round-1#2"]);
@@ -107,7 +111,7 @@ test("review-verdict --terminal-only: keeps adversarial_outcome, and the merge f
   assert.equal(f.review({ signal: "pass", adversarial_outcome: "chain-outage-skipped", findings: [FINDING] }).code, 0);
   const doc = f.read("review-verdict.json");
   assert.equal(doc.adversarial_outcome, "chain-outage-skipped");
-  assert.deepEqual(Object.keys(doc).slice(0, 3), ["schema_version", "signal", "adversarial_outcome"]);
+  assert.deepEqual(Object.keys(doc).slice(0, 4), ["schema_version", "faff_version", "signal", "adversarial_outcome"]);
   assert.deepEqual(validateAgainstSchema(doc, schema("review-verdict-anchored")), []);
   assert.equal(readReviewVerdict(f.runDir, ISSUE), "pass");
   assert.deepEqual(computeReviewVerdict(doc).contractData.violations, []);

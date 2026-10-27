@@ -19,6 +19,8 @@ const require = createRequire(import.meta.url);
 const { resolveAnchorLevel, anchorRefusal, readAcComplete, readReviewVerdict } =
   require("../plugin/skills/faff/bin/lib/merge-gate.js");
 const { verifyChain, verifyExitCode } = require("../plugin/skills/faff/bin/lib/events.js");
+const { resolveFaffVersion } = require("../plugin/skills/faff/bin/lib/faff-version.js");
+const FAFF_VERSION = resolveFaffVersion().version; // FAFF-1395
 
 const ISSUE = "TEST-1";
 
@@ -90,14 +92,15 @@ test("mint writes an honest L2 ledger + genesis chain; bare stdout is the run di
   assert.deepEqual(led.outcomes, {});
   assert.equal(led.owner.status, "running");
   assert.ok(led.owner.pid && led.owner.started_at && led.owner.last_heartbeat);
+  assert.equal(led.owner.faff_version, FAFF_VERSION, "FAFF-1395: the mint stamps the release into owner");
   assert.equal(verifyExitCode(verifyChain(runDir), "fail"), 0, "genesis chain verifies");
-  // FAFF-966 regression assertion: the run-start's shape is BYTE-PRESERVED after the
+  // FAFF-966 regression assertion: the run-start shape after the
   // `emitGenesisRunStart` extraction — this L2 mint has never carried a `data.level` field
   // (unlike L4's), and still doesn't, routed through the shared helper with no `level` arg.
   const events = readFileSync(path.join(runDir, "events.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
   const runStart = events.find((e) => e.type === "run-start");
   assert.ok(runStart, "a run-start event is present");
-  assert.equal(runStart.data, undefined, "L2's genesis carries no data.level — byte-preserved");
+  assert.deepEqual(runStart.data, { faff_version: FAFF_VERSION }, "L2's genesis carries no data.level, only the release version");
   rmSync(root, { recursive: true, force: true });
 });
 

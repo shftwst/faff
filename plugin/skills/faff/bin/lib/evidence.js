@@ -32,6 +32,7 @@ const { EvidenceRefusal, collateReviewRounds, parseSpecReviewComment, resolvedRo
 const { redactKnownSecrets, resolveKnownSecretValues } = require("./redact");
 const { assignFindingIds, normaliseFindingPath, normaliseFindingTitle } = require("./finding-id");
 const { parseAcId } = require("./ac-id");
+const { resolveFaffVersion, stampFaffVersion } = require("./faff-version");
 const crypto = require("node:crypto");
 
 const SPEC_VERSION = "v0.3";
@@ -246,9 +247,15 @@ function eventDataKeys(type) {
   return data && data.properties ? Object.keys(data.properties) : null;
 }
 
+// FAFF-1395: every anchored writer stamps the release that wrote the document as its second key,
+// straight after schema_version ("unknown" when unresolved, never omitted).
+const withFaffVersion = (doc) => stampFaffVersion(doc, resolveFaffVersion().version);
+
+// FAFF-1395: faff_version is writer provenance restamped on every write, so it is stripped with
+// schema_version and a restamp never reads as a changed path of its own.
 const stripVersion = (doc) => {
   if (!isObject(doc)) return doc;
-  const { schema_version: _ignored, ...rest } = doc;
+  const { schema_version: _ignored, faff_version: _stamp, ...rest } = doc;
   return rest;
 };
 
@@ -586,7 +593,7 @@ const nullable = (v) => (typeof v === "string" ? v : null);
 // anchoredSpecReview(collated) -> the v1 anchored document: every documented key present, null when
 // absent, unknown keys dropped, keys in schema order.
 function anchoredSpecReview(collated) {
-  return {
+  return withFaffVersion({
     schema_version: 1,
     verdict: collated.verdict,
     final_verdict: collated.final_verdict,
@@ -605,7 +612,7 @@ function anchoredSpecReview(collated) {
       last_round: o.last_round,
       occurrences: o.occurrences.map((occ) => ({ round: occ.round, severity: occ.severity, claim: nullable(occ.claim), spec_anchor: nullable(occ.spec_anchor) })),
     })),
-  };
+  });
 }
 
 function specReviewWriterViolations(doc) {
@@ -663,7 +670,7 @@ const orNull = (v) => (v === undefined ? null : v);
 // `criteria` present only when the input carries it; each criterion carries `ac_id` and
 // `verifications`, null when the input omits them.
 function anchoredAcChecklist(input) {
-  const doc = { schema_version: 1, all_verified: input.all_verified };
+  const doc = withFaffVersion({ schema_version: 1, all_verified: input.all_verified });
   if ("criteria" in input) {
     doc.criteria = Array.isArray(input.criteria)
       ? input.criteria.map((c) => (isObject(c) ? { ...pick(c, ["ac", "verified", "passed"]), ac_id: orNull(c.ac_id), verifications: orNull(c.verifications) } : c))
@@ -766,7 +773,7 @@ const TERMINAL_ONLY_WRITER = "faff evidence write review-verdict --terminal-only
 // recorded: one round, every finding raised and settled in it, every documented key present.
 function anchoredTerminalReview(block) {
   const findings = Array.isArray(block.findings) ? block.findings : block.findings === undefined ? [] : block.findings;
-  const doc = { schema_version: 1, signal: block.signal };
+  const doc = withFaffVersion({ schema_version: 1, signal: block.signal });
   if (block.adversarial_outcome !== undefined) doc.adversarial_outcome = block.adversarial_outcome;
   doc.rounds_total = 1;
   doc.round_history = "terminal-only";
@@ -1005,7 +1012,7 @@ function recordReviewRound(runDir, issue, text, secrets, priorDir) {
     return roundFinding(f, at, carried, warnings);
   });
   const adversarialOutcome = enumOrNull(block.adversarial_outcome, ["chain-outage-skipped"], "adversarial_outcome", warnings);
-  const doc = { schema_version: 1, round: n, signal: block.signal, adversarial_outcome: adversarialOutcome, findings };
+  const doc = withFaffVersion({ schema_version: 1, round: n, signal: block.signal, adversarial_outcome: adversarialOutcome, findings });
   const ids = resolvedRoundIds([...existing, doc]).pop();
   findings.forEach((f, i) => { f.finding_id = ids[i]; });
   const violations = validateAgainstSchema(doc, roundSchema()).map(tidy);
@@ -1062,7 +1069,7 @@ function writeCollatedReviewVerdict(runDir, issue, secrets, mode) {
   } else {
     signal = terminal.signal;
   }
-  const doc = { schema_version: 1, signal };
+  const doc = withFaffVersion({ schema_version: 1, signal });
   if (terminal !== null && terminal.adversarial_outcome === "chain-outage-skipped") doc.adversarial_outcome = terminal.adversarial_outcome;
   if (mode.judgeAdmitted) doc.admitted_by = "build-judge";
   doc.rounds_total = rounds.length;

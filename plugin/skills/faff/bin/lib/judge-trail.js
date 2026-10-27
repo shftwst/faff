@@ -41,6 +41,7 @@ const crypto = require("node:crypto");
 const { spawnSync } = require("node:child_process");
 const { parseArgs, usageError } = require("./argv");
 const { findRoot } = require("./shared-infra");
+const { resolveFaffVersion } = require("./faff-version"); // FAFF-1395
 const { canonicalJSON, resolveBundleStoreName } = require("./bundle");
 const { sha256Text } = require("./spec-judge-casefile");
 const { roundFilesInDir } = require("./spec-review-convergence");
@@ -291,6 +292,7 @@ function buildIssueSubtree(runDir, issue, specReviewDir, judgeDir) {
 
   const manifestCore = {
     schema_version: SCHEMA_VERSION,
+    faff_version: resolveFaffVersion().version, // FAFF-1395 — covered by witness_sha like every core key
     issue,
     run_id: path.basename(runDir),
     built_spec_sha: builtSpecSha,

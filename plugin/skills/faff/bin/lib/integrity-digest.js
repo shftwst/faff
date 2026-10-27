@@ -15,6 +15,7 @@ const path = require("node:path");
 const fs = require("node:fs");
 const { spawnSync } = require("node:child_process");
 const { correctiveIntegrityDirs } = require("./corrective-integrity");
+const { resolveFaffVersion } = require("./faff-version"); // FAFF-1395
 
 const MANIFEST_VERSION = "d1";
 // The same-uid tool-poisoning MITIGATION (not elimination): every hasher is an ABSOLUTE root-owned
@@ -395,6 +396,7 @@ function verifyAndRecord({ runDir, manifest, issueContext, mergeState, recordRes
 
   const base = {
     schema_version: 1,
+    faff_version: resolveFaffVersion().version, // FAFF-1395
     run_id: path.basename(runDir),
     issue: issueContext,
     verified_at: new Date().toISOString(),

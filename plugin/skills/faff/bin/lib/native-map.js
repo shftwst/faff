@@ -245,13 +245,20 @@ function cmdNativeMapSet(values, root) {
   // The existence guard runs ahead of the --dry-run return so a preview predicts the real run:
   // each branch that would refuse or no-op a real run is an advisory on stderr under --dry-run.
   const dryRun = !!values["--dry-run"];
-  // Resolved for its deprecation notice, which must fire under --dry-run too. The shadow check
-  // below looks at the deprecated map directly: the resolver answers the canonical directory
-  // whenever that exists, which would hide a map still sitting in the deprecated one.
-  nativeMapReadRel(root, data);
   const deprecatedDir = deprecatedTemplatesRel(data);
   const deprecatedRel = deprecatedDir && `${deprecatedDir}/${NATIVE_MAP_FILE}`;
   const targetPath = path.join(root, writeRel);
+  // The directory-level deprecation notice is a side effect of nativeMapReadRel; it must fire under
+  // --dry-run too. The shadow check below reads the deprecated map directly (the resolver answers
+  // the canonical directory whenever it exists, which would hide a map still in the deprecated one).
+  // But when the file-level guard is about to engage — canonical map file absent and a deprecated
+  // map file present — it names the exact file and its per-file move, so the generic whole-directory
+  // notice would be a second, redundant migration command for the one situation. Gate the trigger on
+  // the guard's own entry predicate so the notice is suppressed precisely when, and only when, that
+  // branch runs (covering the refuse/advisory, left-in-place, fallback and shadowed sub-cases).
+  const guardEngages = !fs.existsSync(targetPath)
+    && deprecatedRel && fs.existsSync(path.join(root, deprecatedRel));
+  if (!guardEngages) nativeMapReadRel(root, data);
   const refuse = (message) => {
     if (!dryRun) { process.stderr.write(`faff native-map set: ${message}\n`); return 2; }
     process.stderr.write(`faff native-map set --dry-run (advisory, a real run would refuse): ${message}\n`);
@@ -280,6 +287,11 @@ function cmdNativeMapSet(values, root) {
       if (code !== null) return code;
     } else {
       leftInPlace = deprecatedRel;
+      if (dryRun) {
+        process.stderr.write(
+          `faff native-map set --dry-run (advisory, a real run would write ${writeRel} ` +
+          `and leave the deprecated ${deprecatedRel} in place): remove the old file once nothing needs it.\n`);
+      }
     }
   }
 

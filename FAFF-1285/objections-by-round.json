@@ -1,0 +1,70 @@
+[
+  {
+    "round": 1,
+    "window_start": 1,
+    "objections": [
+      {
+        "lens": "architectural",
+        "severity": "major",
+        "claim": "The spec asserts that reusing `phase2_attempts` as the shape-miss retry counter \"persisted before each attempt, exactly as transport retries do\" means \"a resumed run does not re-spend the single shape-miss retry.\" It cannot. `phase2_attempts` is already incremented by `runPhase` for *transport* attempts (exits 5/8 retries inside its own loop), and the spec's own `rule_phase2` pseudocode carries a *separate local* `attempt` counter for shape-misses — a variable that dies with the process. On resume, `phase2_attempts = 2` is indistinguishable between \"one transport retry, shape-miss not yet spent\" and \"one shape-miss retry spent\"; `last_exit` is 0 in both cases. The spec names two mechanisms that contradict each other and neither delivers the property it claims.",
+        "evidence": "Spec §3 \"Judge progress record (extended)\" and §4 edge case \"Resume mid-retry: `phase2_attempts` is persisted before each attempt, so a resumed run continues from the recorded count and never re-spends the single shape-miss retry\"; the `rule_phase2` pseudocode's local `attempt` variable; `runPhase` in `build-judge-evidence.js` bumps `phase${phase}_attempts` for every attempt including transport retries.",
+        "predicted_consequence": "A build interrupted mid-adjudication resumes and re-dispatches phase 2 past the once-bound (or, if the builder instead derives the count from `phase2_attempts`, parks a proposition whose shape-miss retry was never spent) — the exact \"never re-spends the retry\" guarantee the spec lists as a DONE item fails on the resume path.",
+        "spec_anchor": "how-behavior"
+      },
+      {
+        "lens": "architectural",
+        "severity": "major",
+        "claim": "The spec's `compute_critical_free_latest_floor` pseudocode pushes `critical_unruled` / `critical_not_overturned` per standing critical, but in the actual architecture the floor function returns a tri-state boolean and it is `admitBuildRollup` — not the floor computation — that generates the `floor_veto` strings from `floors.critical_free_latest !== true`. Emitting per-critical veto values therefore requires either changing `admitBuildRollup`'s floor-input contract (documented as \"tri-state — true / false / null\") or having `cmdAdmit` post-rewrite `result.floor_veto` after the roll-up, contradicting the roll-up's own output. The spec's architecture section localises the change to \"`computeCriticalFreeLatestFloor` + the admit command\" and never mentions `admitBuildRollup`, yet the specified AdmitResult is unproducible within the named surfaces.",
+        "evidence": "Spec §4 \"Distinct floor veto + parked causes\" pseudocode and §2/§4 architecture sentence (\"The change is localised to the phase-2 branch of `dispatchOne`, `computeCriticalFreeLatestFloor` + the admit command, …\"); `admitBuildRollup` in `build-judge-casefile.js` (\"floors — { critical_free_latest }: tri-state … floor_veto.push(...)\" and \"this module never re-derives it\").",
+        "predicted_consequence": "The builder must silently widen the `floors` contract of a module the spec declares outside its change set (breaking its documented tri-state interface and tests), or bolt a post-hoc `floor_veto` rewrite into `cmdAdmit` that diverges from the spec's own pseudocode — either way the shipped seam no longer matches the spec, and the next reader of `admitBuildRollup`'s contract is misled.",
+        "spec_anchor": "how-behavior"
+      },
+      {
+        "lens": "QA",
+        "severity": "minor",
+        "claim": "The spec's pseudocode keeps the shape-miss retry count in a local `attempt` variable inside `rule_phase2`, but the DONE criteria and edge-case list assert \"a resumed run continues from the recorded count and never re-spends the single shape-miss retry.\" Nothing in the record described (`judge_progress` carries only `phase1_attempts`, `phase2_attempts`, `last_exit`, `reconstruction`) records that a shape-miss occurred. After an exit-3 stop mid-retry (the call budget running out between the two shape-miss attempts is exactly the scenario `runPhase`'s budget gate produces), a resumed run re-enters phase 2 with `resolution: \"pending\"`, `ruling: null`, and no persisted marker distinguishing \"first reply was a shape-miss\" from \"phase 2 never ran\" — so it cannot know the retry is already spent, and the pseudocode's local counter is gone with the process.",
+        "evidence": "HOW pseudocode `PROCEDURE rule_phase2` (`attempt := 0` local, never persisted); edge case \"Resume mid-retry: `phase2_attempts` is persisted before each attempt, so a resumed run … never re-spends the single shape-miss retry\"; DONE \"phase2_attempts is persisted before each attempt, so a resumed run does not re-spend the shape-miss retry.\"",
+        "predicted_consequence": "The resume test the DONE criteria imply (inject a shape-miss, then an exit-3 stop, then resume, and assert no third phase-2 attempt) fails against the described mechanism, or the builder must invent persistence the spec never names (e.g. a `judge_progress.shape_misses` field) — two builders can build different things and both claim the DONE line.",
+        "spec_anchor": "how-behavior"
+      }
+    ]
+  },
+  {
+    "round": 2,
+    "window_start": 1,
+    "objections": [
+      {
+        "lens": "architectural",
+        "severity": "major",
+        "claim": "The spec's `rule_phase2` pseudocode routes the shape-miss re-dispatch through `runPhase`, and `runPhase`'s first act is the transport-budget gate `n >= retryLimit + 1` over `phase2_attempts` — the very counter the spec says the shape-miss budget is \"deliberately separate\" from. The two budgets are not actually independent: every shape-miss re-dispatch consumes a transport attempt slot, and a shape-miss re-dispatch is refused outright once `phase2_attempts` is exhausted, even though the shape-miss counter (`phase2_shape_miss_attempts`) still has budget left.",
+        "evidence": "Spec §4 `rule_phase2` pseudocode (\"r2 := runPhase(phase=2, entry, case)\" inside the retry LOOP; \"transport retries (exits 5/8) are handled inside runPhase and are unchanged\") against `runPhase` in `build-judge-evidence.js`, which checks `if (n >= retryLimit + 1) return { exhausted: true, ... }` before every attempt using `phase${phase}_attempts`. The spec's own design-decision table claims \"Retry once (fixed) … a second small constant beside the transport budget\" and the anti-pattern forbids \"reusing graft.build_judge_retry_limit\" — but the mandated mechanism shares it anyway.",
+        "predicted_consequence": "In the exact FAFF-1266-style replay where phase 2 burned transport retries (exits 5/8) before finally exiting 0 with no block, `phase2_attempts` already equals `retryLimit + 1`; the shape-miss re-dispatch hits `runPhase`'s exhausted gate and returns `exhausted` with cause derived from `last_exit = 0` — so the DONE item \"the judge re-dispatches phase 2\" silently fails and the park carries a transport-flavoured cause, not `judge did not rule —`. The builder cannot fix this without deviating from the spec's pseudocode (e.g. bypassing `runPhase` for the re-dispatch), which the spec does not license.",
+        "spec_anchor": "how-behavior"
+      },
+      {
+        "lens": "architectural",
+        "severity": "minor",
+        "claim": "`compute_critical_free_latest_floor(standingIds, rulings)` indexes `rulings[id]` with entries of `standingIds`, but in the real code `standingIds` are resolved **finding ids** from the round chain while `rulings` is keyed by **case id** (`cid`). The spec names the new lists `List<cid>` yet derives them from finding-id-keyed standing criticals; as written the pseudocode cannot produce them.",
+        "evidence": "Spec §4 `compute_critical_free_latest_floor` (\"unruled := [ id in standingIds where rulings[id] == null ]\", lists typed `List<cid>`) against `computeCriticalFreeLatestFloor` in `build-judge-evidence.js`, where `standingIds` come from `latestIds[i].id` (finding ids) and `overturnedIds` is built by mapping `entry.finding_id` — the existing tri-state only works because it compares finding-id to finding-id via the ledger entries, never `rulings[findingId]`.",
+        "predicted_consequence": "A builder following the pseudocode literally produces lists that are always empty (no `rulings` key matches a finding id), so every not-overturned critical falls back to the legacy single push and the `critical_unruled` distinction never fires — the ticket's headline legibility fix is dead on arrival, caught only if a test asserts the veto value.",
+        "spec_anchor": "floor-input-contract-extended"
+      },
+      {
+        "lens": "infosec",
+        "severity": "major",
+        "claim": "The spec's chosen design has faff-graft source the acceptance criteria fed to the judge from \"the committed spec's acceptance-criteria / DONE content it already holds\" — and the committed spec is authored by the very agent whose critical finding is being adjudicated. The acceptance criteria are not neutral context: the phase-2 prompt instructs the judge to distinguish \"an actual defect (a concrete, checkable failure **against the acceptance criteria**)\" from \"a product or policy question the acceptance criteria do not settle\", and phase 1 reconstructs requirements *from* them. By making the author's own spec the sole source of the judge's governing frame, the design hands the author a channel to pre-frame the adjudication: AC prose that narrows what counts as a defect, declares the contested behaviour out of scope, or asserts the finding's target behaviour is acceptable will steer both the reconstruction and the rule. The scrub layer (`scrubSpecField`) only strips enumerated directive phrases and secrets; it does nothing against substantive framing bias, which needs no directive phrasing at all. The spec grants adjudication authority on the strength of an input without establishing who can write that input or that it is independent of the party being ruled against — exactly the case where silence about a trust decision is the threat.",
+        "evidence": "\"Design decision — the acceptance-criteria source at graft time. **Chosen:** faff-graft passes `--acceptance-criteria <file>` … sourcing the text from the committed spec's acceptance-criteria / DONE content it already holds\"; the phase-2 prompt's \"against the acceptance criteria or the valid-solution properties\" defect test; `assembleBuildCaseFiles` places the criteria verbatim (post-scrub) into `reconstruction_context.acceptance_criteria`.",
+        "predicted_consequence": "An author under review writes AC/DONE text that frames the disputed behaviour as intended; phase 1 reconstructs requirements that contradict the reviewer's finding; phase 2 rules OVERTURN against author-authored criteria; the merge gate auto-admits a real defect with no human in the loop.",
+        "spec_anchor": "design-decision-the-acceptance-criteria-source-at-graft-time"
+      },
+      {
+        "lens": "QA",
+        "severity": "minor",
+        "claim": "One of the four named changes (faff-graft passing `--acceptance-criteria <file>` from the committed spec) is required by a DONE item but asserted by no scenario: the Scenarios section covers only the *empty* case (the `holdout` unit), never the case where criteria resolve and the flag is passed. A builder could ship a passthrough that never fires (or always omits the flag) and satisfy every listed scenario.",
+        "evidence": "DONE item \"faff-graft passes `--acceptance-criteria <file>` to `faff build-judge-evidence --assemble` from the committed spec, omitting the flag only when no text resolves\" (section `done-definition-of-done`); Scenarios section has no Given/When/Then for the positive path.",
+        "predicted_consequence": "done cannot be decided by the spec's own test set for the passthrough's main path — only the fallback (empty marker) is covered, so a build that omits the flag unconditionally passes all named scenarios while failing the DONE item.",
+        "spec_anchor": "done-definition-of-done"
+      }
+    ]
+  }
+]

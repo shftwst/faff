@@ -1,0 +1,38 @@
+[
+  {
+    "claim": "Step 8a's failure rule says \"IF the step fails … write no settings file … RETURN 2\", unconditionally. The spec's stated rationale for failing loud is \"the ignore rule is what makes the personal file safe to write; writing it after a failed rule would recreate the leak\" — a rationale that only justifies blocking **when a write would follow**. As written, a repo where `.git/info` (or the common-dir exclude, in a worktree) is not writable — a sandboxed container, a read-only bind-mounted checkout — gets exit 2 from every `hooks-ensure` run forever, including the idempotent no-op run where `added` and `normalized` are both empty and no settings write was ever going to happen. The command's core function (report presence, plan hooks) is held hostage to an advisory ignore line it does not need to write.",
+    "evidence": "`### 4. How` step 8a (\"IF the step fails … RETURN 2. Never continue to step 9\") and the immediately preceding **Chosen:** paragraph, whose justification is scoped to \"before any write\".",
+    "predicted_consequence": "prep/beep-boop first-run flows in any environment with an unwritable exclude path fail outright with no remedy the spec offers (the tracked case at least names two ways out; this one names none), and the DONE item \"When the exclude file cannot be written … exits 2 and creates no settings file\" is satisfied even for runs that would have written nothing — shipping a permanently broken command as \"correct\".",
+    "spec_anchor": "how",
+    "lens": "architectural",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "Step 5 of `ensureClaudeLocalSettingsIgnored` resolves the exclude file with a fresh inline `git rev-parse --git-path info/exclude` plus a `path.resolve`, and the spec justifies inline probes \"matching `config.js:2622-2634`\". But `gitignore-ensure.js` already imports `resolveInfoExcludeFile` from `shared-infra` (FAFF-1385) for exactly this resolution — including the linked-worktree common-dir case the spec's own DONE item (\"writes the exclude line to the main repo's common-dir `info/exclude`\") demands. Two resolution paths for the same file in one module is the seam the spec elsewhere calls a defect. Worse, the Out-of-scope bullet names \"the existing `--local` branch joins `root/.git/info/exclude` by hand (`gitignore-ensure.js:175`) … a separate defect\" — but the supplied `gitignore-ensure.js` has no such hand-join; FAFF-1385 replaced it with `resolveInfoExcludeFile`. The spec's context is stale, and the design duplicates a helper it already has rather than the one it invents.",
+    "evidence": "`### gitignore-ensure` step 5 and the inline-probes bullet; Out-of-scope bullet \"gitignore-ensure --local resolving .git/info/exclude …\"; supplied `gitignore-ensure.js` imports `{ findRoot, resolveInfoExcludeFile }` and uses it in the `--local` branch.",
+    "predicted_consequence": "the first divergence between the two resolution paths (e.g. a future fix to worktree or `GIT_DIR` handling applied to one and not the other) puts the `claude_local` step and the `--local` mode on different exclude files in the same repo; the phantom out-of-scope defect also gets filed as a ticket (per the methodology critique's m2) for code that is already correct.",
+    "spec_anchor": "gitignore-ensure",
+    "lens": "architectural",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "Step 5 of `ensureClaudeLocalSettingsIgnored` builds the ignore line as `\"/\" + prefix + rel`, where `prefix` comes verbatim from `git rev-parse --show-prefix`. A checkout path containing gitignore-active characters (`[`, `]`, `*`, `?`, backslash, or a directory whose name makes the line glob-shaped) produces a pattern that does not literally match `.claude/settings.local.json` — or matches unintended paths. The procedure writes the line and returns `added` without re-running `git check-ignore` to confirm the rule took effect, so the run reports success while the file remains unignored.",
+    "evidence": "Spec §4 \"gitignore-ensure\", PROCEDURE `ensureClaudeLocalSettingsIgnored` steps 5–7: `pattern = \"/\" + prefix + rel`, append, `RETURN { status: added, ... }` — no post-write verification step. The check-ignore probe (step 4) runs only *before* the write.",
+    "predicted_consequence": "On a repo rooted at a path with a glob-active character, `faff hooks-ensure` writes machine-specific absolute hook paths into `.claude/settings.local.json`, reports `claude_local.status: \"added\"`, and the file is still committable by `git add -A` — the exact leak this ticket exists to close, now with a green status line. Fix is in-place: escape the pattern (or verify with a post-write `check-ignore` and fail to exit 2 if it does not match).",
+    "spec_anchor": "gitignore-ensure",
+    "lens": "infosec",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The scenario asserting the union-presence behaviour also asserts that faff hooks already present in `settings.json` ARE added to `settings.local.json` — the exact behaviour rule 4 forbids — so no conforming build can pass it.",
+    "evidence": "Scenario 2: \"Given .claude/settings.json holds faff's runcheck and prepcheck Stop hooks … plus a non-faff Stop hook and a 'permissions' key … Then settings.local.json gains only the four missing Stop hooks and **both fence groups**\". The seed file holds no PreToolUse groups, but per rule 4 (\"Presence is read from both targets. A hook present in either is never added again\") `Bash::merge-fence` is present in the other file and must NOT be added to `settings.local.json`. Likewise the scenario's expected `already`/`present_elsewhere` lists name only runcheck and prepcheck, omitting `Bash::merge-fence`, which step 8's definition places in both.",
+    "predicted_consequence": "A build that correctly implements union presence fails this scenario; a build tuned to pass it violates the spec's central rule. The scenario cannot arbitrate correctness.",
+    "spec_anchor": "scenarios",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  }
+]

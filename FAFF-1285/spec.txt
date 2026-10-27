@@ -1,0 +1,293 @@
+# Build judge: retry a missing phase-2 verdict block, and tell "did not rule" apart from "upheld the critical"
+
+> Spec: faffter-dark-nlspec · 2026-10-27 · autonomous · claude-code/unknown · confidence: high. Full spec on Linear FAFF-1285.
+> build-tier: complex
+
+This spec is for the build agent and human reviewers. It addresses FAFF-1285: the build-review adversarial judge treats a phase-2 reply that exits 0 but carries no verdict block as if the critical were upheld, with no retry. The fix makes an un-parseable phase-2 reply retryable once, gives the resulting park a cause and an admit-roll-up signal that say "the judge did not rule" (distinct from "the judge upheld the critical"), and feeds the build's acceptance criteria into the phase-1 reconstruction context so phase 2 is prompted against the real requirements instead of silently falling back to a fixture's spec.
+
+## 1. WHY — Problem and Principles
+
+**The load-bearing model.** The build judge adjudicates a code-review critical in two phases per finding ("proposition"): phase 1 blindly reconstructs the requirements, phase 2 rules. The *only* signal that lets the admit roll-up overturn a critical is a phase-2 reply that parses into a `faff-contract:build-judge-verdict` block with `outcome: OVERTURN`. Any other phase-2 result — a transport failure, a reply with no block, a malformed block — is a non-overturn, and the critical stands. The judge therefore has two very different ways to "not overturn": it can *rule* UPHOLD (it considered the finding and agreed), or it can *fail to rule at all* (it never produced a usable verdict). Today both collapse to the same outcome, and a failure-to-rule is silently indistinguishable from a reasoned uphold.
+
+**Problem statement.** On the FAFF-1266 build, phase 2 exited 0 but returned no verdict block; the judge recorded `park_cause: "phase-2 verdict block: no-verdict-block"`, `admit-result.json` reported `admit:false` with floor veto `critical_not_overturned`, and a human had to override the merge gate — yet the judge had never actually ruled, and nothing retried the one reply that happened to come back the wrong shape. This change retries an un-parseable phase-2 reply once, parks with a cause that says the judge did not rule, surfaces that distinction in `admit-result.json`, and stops the phase-1 reconstruction being fed an empty acceptance-criteria field.
+
+**Design principles.**
+
+- **A shape-miss on an exit-0 reply is a different signal from a transport outage.** Transport retries (exits 5/8) ride the existing `graft.build_judge_retry_limit` budget because a backend may be down for a while. A reply that *arrived* (exit 0) but lacks a parseable block is most often a one-off formatting slip by the model; one extra attempt clears it, and a *persistent* shape-miss means the prompt or parser is wrong, not that more attempts will help. So the shape-miss retry is bounded tight (once), not to the transport budget.
+- **Failure-to-rule must never masquerade as a ruling.** A park because the judge produced no verdict is an absence of judgement, not a judgement to uphold. The admit roll-up and its floor veto must carry that distinction through to the human, or the override the human is asked for is uninformed.
+- **A silent fallback is a bug even when it does not crash.** Phase 1 reconstructing requirements from an empty acceptance-criteria field, then falling back to the fixture's own embedded spec, is a silent substitution that can push phase 2 off the expected output shape. The empty case must either be fixed (pass the real criteria) or be explicitly recorded, never silent.
+
+**Reference context.**
+
+| System | Language | Relevance |
+|---|---|---|
+| `plugin/skills/faff/bin/lib/build-judge-evidence.js` | JS (CJS, committed, no `.ts` emit) | The judge dispatcher — phase loop, phase-2 parse, park causes, admit command |
+| `plugin/skills/faff/bin/lib/build-judge-casefile.js` | JS | Case-file assembly (`assembleBuildCaseFiles`, `cmdAssemble`) and admit roll-up (`admitBuildRollup`, `computeCriticalFreeLatestFloor`) |
+| `plugin/skills/faff/bin/lib/adversarial-judge-scrub.js` | JS | `parseVerdictBlock` (shared with the spec judge) |
+| `plugin/skills/faffter-dark-adversarial-review/adjudicate-build-phase2-rule.md` | prompt | Phase-2 system prompt |
+| `plugin/skills/faff-graft/SKILL.md` | skill prose | The graft build-review step that invokes `faff build-judge-evidence --assemble` |
+| `plugin/skills/faff/bin/lib/config-core.js` | JS | `graft.build_judge_retry_limit` default (the transport-retry twin of `prep.spec_review_judge_retry_limit`) |
+
+**Scope statement.** This sits inside the autonomous build-review merge gate (faff-graft Step 9 adjudication), on the path between a code-review critical and an auto-merge-or-park decision.
+
+## 2. OUT OF SCOPE
+
+- **Piping the parsed phase-2 ruling through `faff contract build-judge-verdict`.** Why excluded: the build path currently accepts a JSON-parseable block verbatim and only checks `outcome === "OVERTURN"`; an out-of-enum-but-valid-JSON outcome becomes `resolution: "pending"` and is treated as unresolved. That is a separate validation gap from the missing-block bug this ticket names. Extension point: `dispatchOne` in `build-judge-evidence.js`, right after `parseVerdictBlock` succeeds — the module already defines an unused `runFaff`/`FAFF_BIN` seam to call the contract.
+- **No-ruling park L3 escalation route** — whether a no-ruling park at L3 re-enters the author↔reviewer round-trip instead of escalating to a human. Why excluded: that is an architecture decision about where a failure-to-rule escalates, separable from making the park correct and legible; the core fix is valuable whichever destination is later chosen. Extension point: the admit/park handling in faff-graft's build-review loop (the `faff-awaiting-adjudication` / round-trip-cap machinery). Tracked as the open question below.
+- **Changing transport-level retry (exits 5/8).** Why excluded: that path already works and is bounded by `graft.build_judge_retry_limit`; this ticket only adds a retry for the exit-0-but-unparseable case.
+
+## 3. WHAT — Vocabulary, Types, and Interfaces
+
+**Vocabulary.**
+
+| Term | Definition |
+|---|---|
+| Proposition | One standing code-review finding the judge adjudicates (e.g. `f-01`), tracked by a case id (`cid`). |
+| Shape-miss | A phase-2 reply that exits 0 (the call succeeded) but whose stdout does not parse into exactly one verdict block — i.e. `parseVerdictBlock` returns `no-verdict-block`, `multiple-verdict-blocks`, or `malformed-verdict-block`. |
+| Ruling | A phase-2 reply that parses into one valid `faff-contract:build-judge-verdict` block. |
+| No-ruling park | A proposition parked because the judge never produced a ruling (a shape-miss that survived its retry), as opposed to a proposition the judge ruled UPHOLD on. |
+
+**Phase-2 parse result (today, in `parseVerdictBlock`).** Returns one of: `{ ok:true, json }` (a ruling); `{ park:true, cause:"no-verdict-block" }`; `{ park:true, failLoud:true, cause:"multiple-verdict-blocks" }`; `{ park:true, failLoud:true, cause:"malformed-verdict-block", detail }`. This function is unchanged by this spec — the retry and classification live in the caller.
+
+**Judge progress record (extended).** The per-proposition `entry.judge_progress` today carries `{ phase1_attempts, phase2_attempts, last_exit, reconstruction }`. `phase2_attempts` is **already bumped by `runPhase` for every phase-2 dispatch, transport retries (exits 5/8) included**, so it cannot double as the shape-miss counter — after a mid-adjudication stop a `phase2_attempts` of 2 is ambiguous between "one transport retry, shape-miss not yet spent" and "one shape-miss retry spent" (`last_exit` is 0 in both). Add a **distinct** field `phase2_shape_miss_attempts` (default 0), bumped and persisted on `entry.judge_progress` **before** each shape-miss re-dispatch exactly as `phase2_attempts` is for transport attempts. A resumed run reads `phase2_shape_miss_attempts`, not `phase2_attempts`, so it never re-spends the single shape-miss retry and never mistakes an unspent retry for a spent one.
+
+**Admit roll-up result (`admit-result.json`, extended).** Shape today: `{ admit, resolved, unresolved, parked, product_boundary, floor_veto, level }`, built by `admitBuildRollup` in `build-judge-casefile.js`. Two additions, both additive:
+
+```
+RECORD AdmitResult:
+  ...existing fields unchanged...
+  floor_veto: List<String>        # see distinct veto values below
+  parked_causes: Map<cid, String> # NEW: cid -> the ledger park_cause, for every cid in `parked`
+```
+
+**Floor-input contract (extended).** Today `computeCriticalFreeLatestFloor` (in `build-judge-evidence.js`) returns the tri-state `critical_free_latest` (true / false / null) and `admitBuildRollup` receives it as `floors = { critical_free_latest }` and is the sole site that pushes the `floor_veto` strings (`floors.critical_free_latest === false ? "critical_not_overturned" : "floor_input_degraded"`). `admitBuildRollup` never re-derives the floor (determinism-first — no round-record walk inside the roll-up), so the per-critical distinction cannot be invented there. The fix therefore extends the floor input **additively**, computed where the rulings already are (`computeCriticalFreeLatestFloor`) and consumed in `admitBuildRollup`:
+
+```
+RECORD FloorInput:          # the `floors` object admitBuildRollup receives
+  critical_free_latest: Bool|Null        # unchanged — still drives the admit boolean (=== true)
+  standing_unruled_ids: List<cid>        # NEW: standing criticals with rulings[cid] == null (no ruling)
+  standing_ruled_not_overturned_ids: List<cid>  # NEW: standing criticals ruled UPHOLD / PRODUCT_BOUNDARY
+```
+
+Both new lists are optional/additive; an absent pair preserves today's behaviour (the single `critical_not_overturned` / `floor_input_degraded` push). The **admit boolean is unchanged** — it is still `critical_free_latest === true` plus the existing blocking/product-boundary quantifier.
+
+**Floor-veto values (distinguished).** `admitBuildRollup`, reading the extended floor input, emits per standing-and-not-overturned critical:
+
+- `critical_not_overturned` — a `cid` in `standing_ruled_not_overturned_ids`: the judge *ruled* and did not OVERTURN (an UPHOLD, or a PRODUCT_BOUNDARY that leaves the critical standing).
+- `critical_unruled` — NEW: a `cid` in `standing_unruled_ids`: the critical's proposition is parked with no ruling (`rulings[cid] === null` — a shape-miss that survived retry).
+- `floor_input_degraded` — unchanged: a null/degraded floor input (`critical_free_latest === null`), and the fallback when the new lists are absent and `critical_free_latest === false`.
+
+**Design decision — the shape-miss retry bound.**
+
+| Option | Pro | Con |
+|---|---|---|
+| Retry once (fixed) | Matches the ticket AC exactly; clears a one-off formatting slip; a persistent miss parks fast rather than looping | A second small constant beside the transport budget |
+| Reuse `graft.build_judge_retry_limit` (default 2) | One knob for all judge retries | Contradicts the ticket AC ("second miss parks"); a shape-miss is a different signal from a transport outage, so sharing the outage budget is wrong |
+
+**Chosen:** retry a phase-2 shape-miss exactly once, then park. — A shape-miss on an exit-0 reply is a formatting slip, not an outage; one extra attempt is the right amount of forgiveness, and it matches the ticket's stated acceptance criterion. The retry count is a named constant (`PHASE2_SHAPE_MISS_RETRIES = 1`), deliberately *not* the transport `graft.build_judge_retry_limit`.
+
+**Design decision — the acceptance-criteria source at graft time.**
+
+**Chosen:** faff-graft passes `--acceptance-criteria <file>` to `faff build-judge-evidence --assemble`, sourcing the text from the committed spec's acceptance-criteria / DONE content it already holds; when no acceptance-criteria text is resolvable, graft omits the flag and the assembler records the empty case explicitly (below) rather than silently. — The assembler already accepts `--acceptance-criteria`; the only gap is that graft never passes it. Making the empty case explicit discharges the "or record why they were empty" half of the ticket.
+
+**Explicit-empty marker (assembler).** When `acceptance_criteria` resolves empty, `assembleBuildCaseFiles` sets `reconstruction_context.acceptance_criteria_empty = true` (and leaves `acceptance_criteria` as `""`). Phase 1's reconstruction and the recon record thus carry a visible "no criteria were supplied" flag instead of an indistinguishable empty string.
+
+## 4. HOW — Behavior
+
+**Architecture and approach.** The change touches: the phase-2 branch of `dispatchOne` plus `runPhase` (its progress record, the persisted shape-miss counter, and a new `skip_transport_budget_gate` param so the shape-miss re-dispatch is not refused by the transport-budget exhaustion gate); `computeCriticalFreeLatestFloor` (compute the per-critical classification), `admitBuildRollup` (emit the distinct veto strings from the extended floor input), and `cmdAdmit` (write `parked_causes`); `assembleBuildCaseFiles` + `cmdAssemble` (the explicit-empty marker); and the faff-graft build-review step (passing `--acceptance-criteria`). `parseVerdictBlock` is untouched.
+
+**Phase-2 shape-miss retry.** Today `dispatchOne` parks immediately on `!parsed.ok`. Instead:
+
+```
+PROCEDURE rule_phase2(entry, case, retries = PHASE2_SHAPE_MISS_RETRIES):
+  # transport retries (exits 5/8) are handled inside runPhase and are unchanged.
+  # The shape-miss count is PERSISTED on entry.judge_progress.phase2_shape_miss_attempts
+  # (NOT the process-local, NOT phase2_attempts) so a resume reads the true remaining budget.
+  p := entry.judge_progress
+  skip_budget := false   # first dispatch obeys the transport budget as today
+  LOOP:
+    # runPhase gains a `skip_transport_budget_gate` param (default false). On a shape-miss
+    # re-dispatch it is TRUE, so the re-dispatch is NOT refused by runPhase's
+    # `phase2_attempts >= retryLimit + 1` exhaustion gate — the shape-miss retry is bounded ONLY
+    # by phase2_shape_miss_attempts, fully independent of the transport budget. (It still bumps
+    # phase2_attempts and honours the per-attempt stream timeout; only the exhaustion REFUSAL is
+    # skipped, so a FAFF-1266 build that already burned the transport budget still gets its one
+    # shape-miss re-dispatch rather than a spurious transport-flavoured park.)
+    r2 := runPhase(phase=2, entry, case, skip_transport_budget_gate = skip_budget)
+    IF r2.disposition != "ruling":                 # transport park/retry already resolved inside runPhase
+      RETURN parkedOutcome(`phase-2 dispatch disposition "${r2.disposition}" (exit ${r2.res.code})`)
+    parsed := parseVerdictBlock(r2.res.stdout, "build-judge-verdict")
+    IF parsed.ok:
+      outcome := parsed.json.outcome
+      RETURN { ruling: parsed.json, resolution: (outcome == "OVERTURN" ? "overturned" : "pending"), cause: null }
+    # shape-miss (no-verdict-block / multiple / malformed), exit 0
+    IF p.phase2_shape_miss_attempts < retries:
+      p.phase2_shape_miss_attempts := p.phase2_shape_miss_attempts + 1   # bump + PERSIST entry.judge_progress BEFORE re-dispatch
+      persist(entry)
+      skip_budget := true    # the re-dispatch bypasses the transport-budget exhaustion gate
+      CONTINUE               # re-dispatch phase 2, same inputs; phase-1 reconstruction already bound
+    RETURN parkedOutcome(`judge did not rule — phase-2 verdict block: ${parsed.cause} (after ${p.phase2_shape_miss_attempts + 1} attempts)`, no_ruling = true)
+```
+
+- The retry re-dispatches phase 2 with the same inputs (the phase-1 reconstruction is already bound); it does not re-run phase 1.
+- The shape-miss re-dispatch passes `skip_transport_budget_gate = true` so `runPhase`'s `phase2_attempts >= retryLimit + 1` exhaustion refusal is bypassed for it — otherwise a build that had already spent its transport budget (exits 5/8) before the exit-0 shape-miss would be refused the re-dispatch and park with a transport-flavoured cause instead of `judge did not rule —`. Only the exhaustion refusal is skipped; the per-attempt stream timeout and the `phase2_attempts` bump are unchanged.
+- `parkedOutcome` gains a `no_ruling` flag so the ledger entry records that this park is an absence of a ruling (`rulings[cid]` stays `null`). The park cause string begins `judge did not rule — ` so it is greppable and legible, and the admit roll-up keys the distinct veto off `rulings[cid] === null`, not off the string.
+- A `multiple-verdict-blocks` / `malformed-verdict-block` miss is retried on the same terms (all three are shape-misses); the retry is cheap and these are equally likely to be a one-off slip.
+
+**Distinct floor veto + parked causes.**
+
+```
+# computeCriticalFreeLatestFloor already has standingIds (criticals in the latest round) and rulings.
+# It returns the unchanged tri-state PLUS the additive classification lists.
+PROCEDURE compute_critical_free_latest_floor(standingIds, rulings) -> FloorInput:
+  overturnedIds := { id : rulings[id]?.outcome == "OVERTURN" }
+  unruled := [ id in standingIds where rulings[id] == null ]
+  ruled_not_overturned := [ id in standingIds where rulings[id] != null AND id NOT IN overturnedIds ]
+  RETURN {
+    critical_free_latest: standingIds.every(id -> overturnedIds.has(id)),   # unchanged — drives admit
+    standing_unruled_ids: unruled,
+    standing_ruled_not_overturned_ids: ruled_not_overturned
+  }
+
+# admitBuildRollup consumes the extended FloorInput and is the sole floor_veto writer (unchanged home).
+PROCEDURE admit_floor_veto(floors):
+  IF floors.critical_free_latest != true:          # admit still fails closed here
+    IF floors.standing_unruled_ids present OR floors.standing_ruled_not_overturned_ids present:
+      FOR id IN floors.standing_unruled_ids:               push floor_veto "critical_unruled"
+      FOR id IN floors.standing_ruled_not_overturned_ids:  push floor_veto "critical_not_overturned"
+    ELSE:   # legacy / absent lists -> today's single push
+      push floor_veto (floors.critical_free_latest == false ? "critical_not_overturned" : "floor_input_degraded")
+```
+
+- In `cmdAdmit`, build `parked_causes: { cid -> entry.park_cause }` for every `cid` in `parked`, and write it into `admit-result.json`. The admit boolean and the `parked`/`unresolved`/`resolved` partition are unchanged — only the *reasons* become legible.
+- Deduplicate `floor_veto` values if a prior test asserted uniqueness; otherwise append per standing critical (match existing behaviour).
+
+**Acceptance-criteria passthrough (graft).** In faff-graft's build-review assemble call, resolve the issue's acceptance-criteria text from the committed spec (the same spec graft already read), write it to a temp file, and pass `--acceptance-criteria <file>`. If no text resolves, omit the flag; the assembler then sets `acceptance_criteria_empty: true`.
+
+**Edge cases and error handling.**
+
+- Transport failure during the retry dispatch: handled by `runPhase`'s existing transport-retry loop (exits 5/8, `graft.build_judge_retry_limit`); a transport park returns the existing `phase-2 dispatch disposition …` cause, not the no-ruling cause.
+- Resume mid-retry (including an exit-3 call-budget stop between the two shape-miss attempts): `phase2_shape_miss_attempts` is persisted on `entry.judge_progress` before each shape-miss re-dispatch, so a resumed run reads the true remaining shape-miss budget and never re-spends the single retry — and, because it is a *distinct* field from `phase2_attempts`, it is never confounded with a transport retry.
+- The retry succeeds (second reply parses): a normal ruling flows on; no park, no distinct veto.
+- `acceptance_criteria_empty` is advisory context only — it never changes the admit decision or forces a park; it makes the empty fallback visible in the recon record.
+
+**Failure modes.**
+
+- **The failure:** the shape-miss is not a formatting slip but a structural prompt/parser mismatch, so the one retry also misses and every such build parks — the retry adds a wasted call without fixing anything. **How you'd know:** no-ruling parks keep recurring across builds with `after 2 attempts` in the cause, and the replay test's "retry succeeds" variant is the only green path. **What it means:** narrow — the real fix is the prompt or parser, and the retry is only a stopgap; a recurring `critical_unruled` is the signal to open that work.
+- **The failure:** passing acceptance criteria changes phase 2's output shape for the worse (the reconstruction gets longer/noisier and the model drops the block). **How you'd know:** no-ruling parks *rise* after the passthrough lands, not fall. **What it means:** proceed but watch — the explicit-empty marker lets you correlate parks with whether criteria were present.
+
+**Anti-pattern:** reusing `graft.build_judge_retry_limit` for the shape-miss retry. Why: it conflates an exit-0 formatting slip with a transport outage and breaks the ticket's "second miss parks" criterion.
+
+**Anti-pattern:** keying the distinct veto off the park-cause string. Why: the string is for humans; the roll-up must key off `rulings[cid] === null` so a reworded cause never silently changes gate behaviour.
+
+## 5. Scenarios
+
+```
+Given a standing code-review critical and a phase-2 reply that exits 0 with no verdict block
+When the build judge adjudicates the proposition
+Then it re-dispatches phase 2 once, and if the second reply also has no block it parks the proposition with a cause beginning "judge did not rule —"
+```
+
+```
+Given a phase-2 first reply with no verdict block and a second reply that parses into a valid OVERTURN block
+When the build judge adjudicates the proposition
+Then the retry produces a ruling, the proposition is overturned, and no no-ruling park is recorded
+```
+
+```
+Given a build whose only standing critical was parked with no ruling
+When the admit roll-up runs
+Then admit-result.json carries floor_veto "critical_unruled" (not "critical_not_overturned") and a parked_causes entry for that cid
+```
+
+```
+Given a build whose only standing critical was ruled UPHOLD by the judge
+When the admit roll-up runs
+Then admit-result.json carries floor_veto "critical_not_overturned" and no "critical_unruled"
+```
+
+```
+Given a build-review assemble invoked with resolvable acceptance-criteria text from the committed spec
+When faff-graft runs the assemble step
+Then it passes --acceptance-criteria <file> and the reconstruction context's acceptance_criteria holds that text (not empty) and acceptance_criteria_empty is absent/false
+```
+
+```
+Given a standing critical whose phase-2 first reply exits 0 with no block AFTER the transport retry budget (graft.build_judge_retry_limit) is already exhausted
+When the judge re-dispatches phase 2 for the shape-miss
+Then the re-dispatch is not refused by the transport-budget gate and, on a second shape-miss, the proposition parks with the "judge did not rule —" cause (never a transport-flavoured cause)
+```
+
+```holdout
+Given a build-review assemble invoked with no resolvable acceptance-criteria text
+When the case files are assembled
+Then the reconstruction context records acceptance_criteria_empty true rather than an indistinguishable empty string
+```
+
+## 6. Design Decision Rationale
+
+**How tightly should an exit-0-but-unparseable phase-2 reply be retried?** Options: retry once (fixed constant) vs reuse the transport budget `graft.build_judge_retry_limit`. **Chosen:** retry once (`PHASE2_SHAPE_MISS_RETRIES = 1`). — A shape-miss on a successful call is a formatting slip, best given exactly one more chance; a persistent miss is a prompt/parser defect that retrying cannot fix, so parking fast (and loudly, via `critical_unruled`) surfaces it. Matches the ticket AC. At the time of writing, transport retries and shape-miss retries are deliberately separate budgets; revisit if a single judge-retry knob is later wanted.
+
+**How should the admit roll-up express "the judge did not rule"?** Options: a new floor-veto value vs only the existing `parked[]` array. **Chosen:** a new `critical_unruled` floor-veto value *and* a `parked_causes` map, keyed off `rulings[cid] === null`. — The `parked[]` array already existed but the floor veto (the thing a human reads when asked to override) lumped unruled with upheld; the new value and the cause map make the override decision informed without changing the admit boolean.
+
+**Where do the acceptance criteria come from at graft time?** Options: pass from the committed spec vs mine them elsewhere vs leave empty. **Chosen:** graft passes `--acceptance-criteria` from the spec it already holds, and the assembler marks a genuinely-empty case explicitly. — The flag and assembler support already exist; only the graft call site was missing, and the explicit marker discharges the ticket's "or record why they were empty".
+
+## 7. Open Questions and Assumptions
+
+**Open Questions.**
+
+- **Punt:** (non-blocking) (decides: architecture) No-ruling park L3 escalation route — should a no-ruling park at L3 re-enter the author↔reviewer round-trip (like a fixable critical) instead of escalating straight to a human? The core fix (retry + legible cause + distinct veto + AC passthrough) is complete and valuable regardless; this only changes *where* an unruled critical escalates. Cross-referenced under OUT OF SCOPE. Leaving it open does not block the build.
+
+**Assumptions.**
+
+- **Assumes:** faff-graft already has the issue's acceptance-criteria text in hand when it runs the build-review assemble (it read the committed spec earlier in the graft flow). Validation: before building the passthrough, confirm in `plugin/skills/faff-graft/SKILL.md` that the spec/DoD text is available at the Step-9 build-review seam; if it is not, the explicit-empty path already covers the fallback, so the change degrades safely rather than failing.
+
+## 8. DONE — Definition of Done
+
+### From WHY
+- [ ] A phase-2 reply that exits 0 with no verdict block no longer parks on the first miss; the judge re-dispatches phase 2.
+
+### From WHAT (types / interfaces)
+- [ ] `admit-result.json` includes a `parked_causes` map (`cid` → park cause) covering every `cid` in `parked`.
+- [ ] `computeCriticalFreeLatestFloor` returns the unchanged tri-state `critical_free_latest` plus additive `standing_unruled_ids` / `standing_ruled_not_overturned_ids` lists; `admitBuildRollup` reads them and pushes `critical_unruled` for a standing critical whose `rulings[cid]` is null and `critical_not_overturned` for one ruled non-OVERTURN. The admit boolean is unchanged, and an absent pair of lists preserves today's single-push behaviour.
+- [ ] `assembleBuildCaseFiles` sets `reconstruction_context.acceptance_criteria_empty = true` when no acceptance-criteria text is supplied.
+
+### From HOW (behaviour)
+- [ ] A phase-2 shape-miss (no-verdict-block, multiple-verdict-blocks, or malformed-verdict-block) is retried exactly once; a second shape-miss parks the proposition.
+- [ ] The resulting park cause begins `judge did not rule —` and names the underlying `parseVerdictBlock` cause and the attempt count.
+- [ ] A parked-no-ruling proposition leaves `rulings[cid]` null and the admit roll-up classifies it as `critical_unruled`, distinct from an UPHOLD's `critical_not_overturned`.
+- [ ] The admit boolean and the resolved/unresolved/parked partition are unchanged by this change (only reasons become legible).
+- [ ] faff-graft passes `--acceptance-criteria <file>` to `faff build-judge-evidence --assemble` from the committed spec, omitting the flag only when no text resolves.
+
+### From HOW (edge cases)
+- [ ] A distinct `phase2_shape_miss_attempts` counter on `judge_progress` is persisted before each shape-miss re-dispatch; a run resumed after an exit-3 stop between attempts reads it and does not re-spend the retry, and it is never confused with the transport `phase2_attempts`.
+- [ ] The shape-miss re-dispatch passes `skip_transport_budget_gate = true`, so a proposition whose transport retry budget (`graft.build_judge_retry_limit`) was already exhausted still gets its one shape-miss re-dispatch and, on a second miss, parks with the `judge did not rule —` cause — never refused by the transport-budget gate into a transport-flavoured park.
+- [ ] A transport failure during the retry returns the existing transport park cause, not the no-ruling cause.
+
+### From Scenarios (tests)
+- [ ] A test injects a phase-2 reply (exit 0) with no block on both attempts and asserts the proposition parks with the `judge did not rule —` cause (the recorded-FAFF-1266-style replay).
+- [ ] A test injects a phase-2 first reply with no block and a second valid OVERTURN block and asserts a ruling is produced and the proposition overturned.
+- [ ] A test asserts `admit-result.json` carries `critical_unruled` + a `parked_causes` entry for an unruled critical, and `critical_not_overturned` (without `critical_unruled`) for an UPHELD critical.
+- [ ] A test asserts that, with the transport retry budget already exhausted, an exit-0 shape-miss still triggers the re-dispatch (not a transport-budget refusal) and a second miss parks with the `judge did not rule —` cause.
+- [ ] A test asserts the positive acceptance-criteria passthrough: when AC text resolves, faff-graft passes `--acceptance-criteria <file>` and the reconstruction context's `acceptance_criteria` holds that text with `acceptance_criteria_empty` absent/false (the pass condition for the passthrough DONE item's main path).
+
+### Integration smoke test
+```
+1. Assemble one case with a standing critical and no acceptance-criteria file.
+2. Stub phase 1 -> valid reconstruction; stub phase 2 -> exit 0, prose, no block (both attempts).
+3. Run dispatch + admit.
+4. Assert: proposition parked with "judge did not rule —" cause; admit-result.json has
+   floor_veto "critical_unruled" and parked_causes[cid] set; recon context has
+   acceptance_criteria_empty true.
+```
+
+confidence: high
+
+## Methodology critique
+
+*Agile-delivery lens, issue-critique (autonomous, non-gating).*
+
+- **Right-sized?** One cohesive 1–3 day unit. The four changes (shape-miss retry, `critical_unruled` veto + `parked_causes`, acceptance-criteria passthrough, tests) all serve one bug in one subsystem and ship together; splitting them would strand the park-legibility change without the retry it describes. No split, no merge. No issues.
+- **Workstream fit?** Sits in the build-judge reliability line alongside the shipped FAFF-996/1244/1245/1246/1248 work; outcome-named and cohesive. No issues.
+- **Deps surfaced?** FAFF-1279 (removes the fixture-data trigger) is related, not blocking — the ticket correctly states the defect stands on its own, so no blocker link is missing. The acceptance-criteria passthrough spans faff-graft's SKILL.md, surfaced in the Assumes with a validation step. No implicit unlinked dep. No issues.
+- **Risk profile?** Standard. No novel integration or external dependency; the one genuine risk (a structural prompt/parser mismatch rather than a stochastic slip) is named as a failure mode with its observable, so no de-risking spike is warranted. No issues.

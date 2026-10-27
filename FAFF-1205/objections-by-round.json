@@ -1,0 +1,54 @@
+[
+  {
+    "round": 1,
+    "window_start": 1,
+    "objections": [
+      {
+        "lens": "architectural",
+        "severity": "major",
+        "claim": "The spec's load-bearing rationale for option (b) is that it \"matches both sibling parsers\" and \"the three parsers converge rather than diverge.\" That is true of `holdoutRemovalSpans` but not of `parseScenarios`: `parseScenarios` deliberately counts `Given` lines *inside* fences (`if (/^\\s*Given\\b/i.test(line)) { count++; continue; }` — \"in-fence GWT included\") before its `if (fence) continue;`. Post-fix, a fence containing two blank-line-separated GWT blocks forms ONE `scenario` criterion in `dodClassify` (all in-fence lines merge into one unit) while `parseScenarios` counts TWO. The fix converges with one sibling and newly diverges from the other — recreating exactly the cross-parser-disagreement defect class FAFF-306 closed and this spec claims to eliminate.",
+        "evidence": "Spec §\"Design principles\" (\"One boundary rule for in-fence content, shared with the sibling parsers… Divergence between these three is the defect\") and §\"Design decision\" option (b); context file `parseScenarios` (Given-count precedes the fence skip, comment \"a Given line counts one GWT group (in-fence GWT included)\").",
+        "predicted_consequence": "The spec's own test-floor invariant (\"the scenario count reported by `dodClassify` … equals the count reported by `parseScenarios` for the same spec\") fails for any spec with two scenarios in one fence; `faff admissible`'s R1 count and `faff dod classify`'s scenario count disagree on such specs — the same admissible-vs-classify desync FAFF-306 was about.",
+        "spec_anchor": "design-decision-scope-of-the-in-fence-suppression"
+      },
+      {
+        "lens": "architectural",
+        "severity": "major",
+        "claim": "The amended procedure captures `fenceHoldout`/`fenceTier` into the unit only \"IF no current unit open.\" A fence that opens while a unit opened outside the fence is still live (e.g. `Given x` / `When y` / `Then output:` / ` ```holdout ` / body) appends its lines to the pre-existing unit, which was opened with `holdout:false` — so a `holdout`-marked fence tags nothing. The spec's DONE item asserts \"a ` ```holdout ` fenced scenario is still tagged `holdout:true`\", but its own pseudocode does not guarantee that for this reachable shape, and the edge-case list never analyses fence-opens-mid-unit for tagging. Meanwhile `holdoutRemovalSpans` removes the whole fence span keyed on the info string alone, independent of classification.",
+        "evidence": "Spec §\"HOW — Behavior\" pseudocode step 2a (\"IF no current unit open: … curHoldout := fenceHoldout\") and DONE \"The fence-open capture of `holdout` / `integration` tier state is preserved\"; context file `holdoutRemovalSpans` (removes `fenceStart..close` whenever `isHoldoutFenceOpen`, regardless of unit tagging).",
+        "predicted_consequence": "For that shape, `dodClassify(full)` reports the merged unit as visible (`holdout:false`) while `dodSplit(builder)` still removes the fence lines — the FAFF-275 selftest invariant \"builder-view classification == full minus holdout criteria\" breaks, and holdout-intent content can be presented to the code-blind builder as ordinary visible scenario text.",
+        "spec_anchor": "how-behavior"
+      },
+      {
+        "lens": "infosec",
+        "severity": "minor",
+        "claim": "The fix makes *every* in-fence line pure continuation with no boundary rule firing. If a fence-open marker appears without a matching close — a stray ```` ``` ```` in prose, a four-backtick typo, a fence whose close lands past the section boundary — `fence` stays true for the rest of the `## Scenarios` body, and every subsequent criterion (bullets, `Given` blocks, assertions) is appended into one giant unit. The spec's own edge-case list treats this as benign (\"flushes one trailing unit without error\"), but the consequence is a silent collapse of the judged set: N criteria become 1, `counts` drops, and the code-blind holdout now judges a single merged blob instead of the individual criteria the gate was enforcing. This is a fail-open degradation of verification granularity caused by the spec's rule, not by a careless build — the spec explicitly specifies the unterminated-fence behaviour as acceptable.",
+        "evidence": "§4 HOW, edge case \"Unterminated fence … `fence` stays true to the section boundary; all remaining lines append to the current unit; `pushCur()` flushes it. No crash, no infinite loop\" — presented as safe without addressing the criteria-count collapse. The sibling parsers cited as precedent (`holdoutRemovalSpans`, `parseScenarios`) do not have this exposure in the same way: `holdoutRemovalSpans` only removes a span when a *close* is seen (`if (fenceHoldout) spans.push(...)` on the close branch), so an unterminated holdout fence removes nothing rather than merging everything.",
+        "predicted_consequence": "a spec with one stray/unclosed fence marker in the Scenarios body reports `counts.scenario` (or one merged class) instead of its true criterion count; the holdout's judged set shrinks silently with no warning, weakening the merge-gate floor for that spec.",
+        "spec_anchor": "4-how-behavior"
+      }
+    ]
+  },
+  {
+    "round": 2,
+    "window_start": 1,
+    "objections": [
+      {
+        "lens": "architectural",
+        "severity": "major",
+        "claim": "The amended `classifyAcceptanceCriteria` pseudocode pushes the current unit when a **marked fence opens**, but does nothing at fence **close** beyond `fence := false; clear fenceHoldout + fenceTier`. The marked-fence unit therefore stays open after the close marker, and any out-of-fence continuation line (non-blank, non-bullet, non-`Given` — e.g. an `And …` wrap or trailing prose) appends to it. `holdoutRemovalSpans` removes only the `[open..close]` span, so those trailing lines survive in the builder view as a visible unit while the full classification marks them `holdout:true` — exactly the `dodClassify(full)` vs `dodSplit(builder)` desync the spec pins as its third DONE criterion and its second named failure mode.",
+        "evidence": "§4 pseudocode step 1 (\"ELSE (closing): fence := false; clear fenceHoldout + fenceTier\" — no `pushCur()`) and step 3 (\"otherwise → append to current unit\"); contrast `holdoutRemovalSpans` (context file, ~line 376: the removal span ends at the close marker). The spec's own edge case (\"Marked fence opening mid-unit … the fence content is its own `holdout:true` unit\") and DONE item (\"the builder view equals the full set minus the holdout unit\") assert the invariant the pseudocode violates.",
+        "predicted_consequence": "Any spec with a continuation line directly after a ` ```holdout `/` ```integration ` close (no intervening blank line) fails the FAFF-275 coherence selftest the spec itself mandates (`builder-view classification == full minus holdout criteria`), and the builder view shows text the full spec withholds — the builder sees holdout-adjacent criterion content. Fixing it requires a spec-level rule (push the marked unit at fence-close, mirroring `holdoutRemovalSpans`' span end), not a build-time choice.",
+        "spec_anchor": "4-how-behavior"
+      },
+      {
+        "lens": "QA",
+        "severity": "minor",
+        "claim": "The spec requires the `dod classify: unterminated fence …` stderr advisory, but its own constraints make every emission site contradictory. §3 pins `classifyAcceptanceCriteria`'s signature as unchanged `(sectionText) -> Array<{text, kind, holdout, tier}>` — a pure unit list with no channel to carry an advisory back to a caller. §4's pseudocode nevertheless places \"emit the unterminated-fence advisory\" *inside* `classify_acceptance_criteria`, which is also called by `dodSplit` (so a `dod split` run would emit the advisory too — never stated as intended or not) and by every in-memory `dodSelftest` invocation (stderr noise in the selftest the spec says must stay green). The cited precedent (\"mirroring the existing `doneAdvisories` stderr convention\") is emitted in `dodClassify`, not in the pure parser — so the spec points at two incompatible sites.",
+        "evidence": "DONE item \"An unterminated fence emits the `dod classify: unterminated fence …` stderr advisory…\"; §4 pseudocode step \"IF fence is still true at end: emit the unterminated-fence advisory\"; §3 \"keeps its signature `(sectionText: string) -> Array<{text, kind, holdout, tier}>`\".",
+        "predicted_consequence": "A builder must either violate the no-signature-change constraint, emit stderr from a function the file's own comments call pure (double-emitting via `dodSplit` and polluting selftest output), or silently drop the DONE item. Two builders following this spec can ship different observable behaviour (advisory on `dod split` or not) while both passing the DONE check as written.",
+        "spec_anchor": "4-how-behavior"
+      }
+    ]
+  }
+]

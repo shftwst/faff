@@ -1,0 +1,40 @@
+[
+  {
+    "proposition_id": "p2ctx-p-01",
+    "outcome": "UPHOLD_REVIEW",
+    "rationale": "Argument B establishes a material defect in the HOW section's architecture. The reconstruction confirms that `runPhase` bumps `phase2_attempts` for every phase-2 dispatch (transport retries included) and gates on `graft.build_judge_retry_limit`, while the spec's own `rule_phase2` pseudocode routes the shape-miss re-dispatch through `runPhase`. The spec explicitly mandates separate budgets and forbids reusing the transport limit, yet the mandated mechanism (calling `runPhase` for the re-dispatch) subjects the shape-miss retry to the transport-budget exhaustion gate. This is a concrete, checkable failure: if `phase2_attempts` has reached `retryLimit + 1` (e.g., after transport retries on the FAFF-1266-style build), the shape-miss re-dispatch is refused by `runPhase` before it can execute, so the DONE item 'the judge re-dispatches phase 2' silently fails and the park carries a transport-flavoured cause rather than 'judge did not rule —'. This violates the spec's own anti-pattern rule and its distinct-budget invariant, making it a requirement violation rather than a design preference. Argument A does not address this specific mechanism flaw. The correction is bounded: the shape-miss re-dispatch must bypass the transport-budget exhaustion check in `runPhase`.",
+    "correction": {
+      "summary": "Modify the phase-2 shape-miss retry path so the re-dispatch bypasses `runPhase`'s transport-budget exhaustion gate (or add a flag to `runPhase` to skip that gate for shape-miss retries). This ensures the single shape-miss retry is independent of `phase2_attempts` and `graft.build_judge_retry_limit`, as the spec's design principles and DONE criteria require, and that the park cause is correctly 'judge did not rule —' even when transport retries were previously exhausted.",
+      "verification": "shape-miss re-dispatch bypasses the transport-budget exhaustion check"
+    },
+    "synthesis_sources": [],
+    "prd_gap_citation": ""
+  },
+  {
+    "proposition_id": "floor-input-contract-extended",
+    "outcome": "AFFIRM_SPEC",
+    "rationale": "Argument A's material premise — that `standingIds` are finding ids while `rulings` is keyed by `cid`, making the pseudocode's `rulings[id]` lookup always miss — is not supported by the reconstruction. The reconstruction explicitly lists as undeterminable whether `standingIds` / `rulings` are the real parameters of `computeCriticalFreeLatestFloor` and whether the asserted code structures exist as described. The spec's contract and DONE items specify the semantic keying off `rulings[cid] === null` and additive lists; A's predicted empty-list failure depends on unverified repository facts. Argument B offers no argument. No material defect is established.",
+    "correction": null,
+    "synthesis_sources": [],
+    "prd_gap_citation": ""
+  },
+  {
+    "proposition_id": "design-decision-the-acceptance-criteria-source-at-graft-time",
+    "outcome": "AFFIRM_SPEC",
+    "rationale": "Argument A's material premise — that the committed spec is authored by the very agent whose finding is being adjudicated and is attacker-controllable in the graft flow — is listed in the reconstruction as an undeterminable fact ('whether the committed spec's acceptance-criteria/DONE content is attacker-controllable in the graft flow … determines the prompt-injection exposure'), so the reconstruction cannot support it and the premise does not stand. The spec's chosen design satisfies every valid-solution property the reconstruction states: the text is sourced from the committed spec (the same source graft already reads, so no new trust boundary is introduced), it is model-facing data handled under the no-execute floor, it cannot alter the admit decision or the floor-veto classification (advisory-only; the admit boolean remains `critical_free_latest === true` plus the existing quantifier), and the empty case is explicit (`acceptance_criteria_empty: true`) rather than silent. Argument A's predicted consequence is a speculative chain — author writes framing AC text, phase 1 reconstructs contradictory requirements, phase 2 rules OVERTURN, gate auto-admits a real defect — that depends on the undeterminable attacker-controllability premise and on unstated assumptions about the judge's susceptibility to framing; it predicts no concrete, checkable failure and is a hypothetical attack scenario rather than a requirement violation. The absence of an argued defence (Argument B) does not itself establish a defect. The decision is sound with respect to security under the governing requirements.",
+    "correction": null,
+    "synthesis_sources": [],
+    "prd_gap_citation": ""
+  },
+  {
+    "proposition_id": "done-definition-of-done",
+    "outcome": "UPHOLD_REVIEW",
+    "rationale": "The governing precedent holds that a DONE criterion is born-verifiable when a test or an observation can decide it and the spec names what would be run and the pass condition; a decidable item merely lacking a 1:1 scenario is taste-level, but an item whose main path is covered by no named test or observation is not decidable as written. The DONE item 'faff-graft passes --acceptance-criteria <file> ... omitting the flag only when no text resolves' has its positive path (flag passed when text resolves) asserted by no scenario, no integration smoke test, and no named observation: the holdout unit and the smoke test both cover only the empty case (acceptance_criteria_empty true), and the four other scenarios concern the retry and veto behaviour, not the passthrough. Argument A's predicted consequence is concrete and checkable — a build that omits the flag unconditionally passes every named scenario while failing the DONE item — which is a real defect under the born-verifiable bar, not a taste-level 1:1-scenario objection. Argument B offers no defence. The correction is bounded by the existing precedent: name a test for the positive passthrough path and its pass condition.",
+    "correction": {
+      "summary": "Add a scenario (or extend the integration smoke test) covering the positive passthrough path: when acceptance-criteria text resolves, faff-graft passes --acceptance-criteria <file> and the criteria reach the reconstruction context, with the pass condition stated. This makes the DONE item 'faff-graft passes --acceptance-criteria <file> ... omitting the flag only when no text resolves' born-verifiable by naming what would be run and the pass condition for its main path, closing the gap where an unconditional omission of the flag passes every named scenario.",
+      "verification": "the flag is passed when acceptance-criteria text resolves"
+    },
+    "synthesis_sources": [],
+    "prd_gap_citation": ""
+  }
+]

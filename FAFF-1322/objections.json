@@ -1,0 +1,20 @@
+[
+  {
+    "claim": "The spec's first design principle is \"Cover the whole variant class, not a fixed list,\" and the chosen two-arm pattern is justified as matching \"exactly the config spellings (`.yaml`/`.yml` variants and the bare file).\" But the two arms are disjoint in a way the spec never reconciles: arm 1 requires a mandatory `.ya?ml` suffix, and arm 2's lookahead `(?![\\w.\\-/])` rejects anything following `config` with a `.` — which is exactly what an extensionless *variant* begins with. So `cat .faff/config.local` and `cat .faff/config-dev` (no `.yaml` suffix) match neither arm and pass the guard silently. This is not hypothetical: FAFF-1302's own overlay file is `.faff/config.local.yaml`, and an extensionless spelling of it is the most sensitive file in the set (the overlay \"may hold machine-local values\" per the config-under-faff-dir tests) — precisely the file a hand-read guard exists to protect. The spec's case table omits every extensionless-variant row, so the unit test it mandates will never discover the gap; the DONE item \"cover the whole variant class\" is asserted by prose and contradicted by the pattern.",
+    "evidence": "§3 \"The pattern\" — arm 2 is `(?![\\w.\\-/])`, which cannot accept `.local`/`-dev` extensionless; the §3 case table has `cat .faff/config` (bare) but no `cat .faff/config.local` row; §1 principle \"Cover the whole variant class, not a fixed list.\"",
+    "predicted_consequence": "a `SKILL.md` line `grep slots .faff/config.local` passes the FAFF-50 guard green while hand-reading the machine-local overlay — a fail-open path in the lint for the highest-sensitivity config file, invisible to the spec's own test because the case table doesn't enumerate it.",
+    "spec_anchor": "the-pattern",
+    "lens": "infosec",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "DONE requires \"A `.faff/config.example.yaml` line is NOT flagged (existing `.example` line-skip)\", but the §3 case table — which the DONE item says the unit test \"asserts every row of\" — contains no `.example` row. As specified, the test that pins the carve-out never exercises it; the carve-out's regression protection rests on scenario 5's prose only, and the spec's own \"authoritative\" framing of the table is undercut.",
+    "evidence": "DONE item \"A `.faff/config.example.yaml` line is NOT flagged\"; §3 case table (no `.example` row); §4 step 3 (\"asserting the §3 case table, line by line\").",
+    "predicted_consequence": "a build can pass the specified unit test while the `.example` line-skip has been dropped or reordered below the regex match, and the DONE item is checked off without any test deciding it.",
+    "spec_anchor": "8-done-definition-of-done",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  }
+]

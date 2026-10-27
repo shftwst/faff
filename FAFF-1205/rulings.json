@@ -1,0 +1,21 @@
+[
+  {
+    "proposition_id": "FAFF-1205",
+    "outcome": "UPHOLD_REVIEW",
+    "rationale": "Argument B establishes a material defect. The spec's pseudocode closes the outer unit at a marked fence-open but never closes the marked-fence unit at the fence-close. Therefore any non-boundary line after the close marker (e.g. an 'And …' wrap or trailing prose) is appended to the holdout/integration unit. In the full classification that trailing text is marked holdout:true, but holdoutRemovalSpans removes only the [open..close] span, so dodSplit(builder) leaves that text visible. This violates the FAFF-275 full-minus-holdout invariant and the DONE item requiring the fence's content to be its own tagged unit. This is a concrete, checkable failure, not a taste call. The required correction is bounded by the existing requirements: at a marked fence-close, pushCur() before clearing fence state; plain fence-close remains non-closing to preserve the motivating plain-fence case.",
+    "correction": {
+      "summary": "Amend the fence-close branch so that when the closing fence is marked (holdout/integration), pushCur() fires before clearing fence state, closing the marked-fence unit exactly at the close marker. Plain fence-close remains non-closing so a plain fenced example stays inside its enclosing GWT unit. This ensures the marked fence is its own tagged unit and out-of-fence continuation after a marked fence starts a fresh unit, preserving the FAFF-275 full-minus-holdout invariant.",
+      "verification": "IF closing AND marked: pushCur()"
+    },
+    "synthesis_sources": [],
+    "prd_gap_citation": ""
+  },
+  {
+    "proposition_id": "FAFF-1205",
+    "outcome": "AFFIRM_SPEC",
+    "rationale": "Argument A does not establish a material defect. Its central premise — that the unchanged `classifyAcceptanceCriteria` signature makes stderr emission contradictory — conflates a pure return type with a prohibition on side effects; the spec requires an advisory to be emitted, not returned, and stderr is a valid side channel. The claim that `dodSplit` or `dodSelftest` would emit unwanted noise is speculative: the spec never states that those consumers must be silent, and stderr output does not by itself fail a selftest. The `doneAdvisories` precedent is cited as a style reference, not as a mandate that the advisory be emitted only in `dodClassify`. The spec's pseudocode explicitly places the emission inside `classifyAcceptanceCriteria`, giving a concrete, testable site for the DONE item; this satisfies the born-verifiable bar. No requirement violation or undecidable criterion follows from Argument A's reasoning.",
+    "correction": null,
+    "synthesis_sources": [],
+    "prd_gap_citation": ""
+  }
+]

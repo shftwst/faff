@@ -1,0 +1,21 @@
+[
+  {
+    "round": 1,
+    "window_start": 1,
+    "objections": [
+      {
+        "lens": "QA",
+        "severity": "minor",
+        "claim": "The spec's edge-case bullet claims `faff config --absolute get appetite` resolves cmd to get and fires the guard identically. But cmd is not derived from parseArgs positionals — cmdConfig builds rest with its own loop that strips only --root, so rest[0] for that invocation is the literal string --absolute, CONFIG_SURFACE.subcommands[\"--absolute\"] is undefined, the guard does not fire, and the command falls through to expected one of …. The spec's stated edge-case outcome contradicts the implementation it prescribes.",
+        "evidence": "Edge cases bullet Flag ordering vs the PROCEDURE step 3 and the unchanged rest-building loop in cmdConfig.",
+        "predicted_consequence": "a builder following the PROCEDURE verbatim fails the spec's own edge-case assertion; a tester cannot decide which of the two contradictory specified behaviours is the acceptance bar.",
+        "spec_anchor": "how-behavior"
+      }
+    ]
+  },
+  {
+    "round": 2,
+    "window_start": 1,
+    "objections": []
+  }
+]

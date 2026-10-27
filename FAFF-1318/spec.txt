@@ -1,0 +1,152 @@
+# Spec: FAFF-1318 — Two coverage gaps in the templates-path resolver
+
+> Spec: faffter-dark-nlspec · 2026-10-27 · autonomous · claude-code/unknown · confidence: high. Full spec on Linear FAFF-1318.
+
+This spec addresses FAFF-1318 for the build agent and human reviewers. It closes two subprocess-level test-coverage gaps left by FAFF-1300's templates-path resolver work. It is a test-only change: no production code under `plugin/skills/faff/bin/lib/` is touched, and no observable behaviour changes.
+
+## 1. WHY — Problem and Principles
+
+**The load-bearing model.** FAFF-1300's DONE items require every resolver ladder case to be pinned by a real CLI subprocess test — a case that spawns the shipped `faff` binary and asserts its stdout/stderr/exit — because the once-per-process deprecation-notice latch is only honest across fresh processes. Two ladder cases are today asserted only in-process (by `--selftest`) or folded into a multi-assertion test, leaving no standalone subprocess regression guard for them.
+
+**Problem statement.** The configured-value branch of the templates-path **read** path, and the relative configured value, are correct today but under-covered: the configured read branch has only `--selftest` coverage (no CLI subprocess test like every other ladder case), and the relative configured value is asserted only inside the multi-case `--absolute` test, not as a standalone case. Without a dedicated subprocess assertion, a future regression in either branch would pass CI.
+
+**Design principles.**
+
+- **Reuse the file's existing harness, never a parallel one.** Each new case uses the test helpers already in its file (`runFull`/`run`, `SET_ARGS`, `writeMap`, `BUG_PAYLOAD`, `tmpDir`/`tmpRoot`, `cli`) so the fresh-process-per-case property FAFF-1300 relies on is preserved by construction.
+- **Assert the gap, not the whole ladder.** Each case asserts exactly the uncovered property (the resolved path plus notice-suppression for the configured read; the relative-value resolution for the relative case) — not a re-test of branches already covered.
+
+**Reference context.**
+
+| System | Language | Relevance |
+|---|---|---|
+| `test/native-map.test.mjs` | Node test (`.mjs`) | Houses the `native-map get`/`set` subprocess ladder; gap 1's case is added here, in the FAFF-1300 section |
+| `test/templates-path.test.mjs` | Node test (`.mjs`) | Houses the `config templates-path` subprocess ladder; gap 2's relative case is added here |
+| `plugin/skills/faff/bin/lib/config-core.js` | JavaScript | `resolveTemplatesPath` — a configured value is returned trimmed of a trailing slash and never emits a deprecation notice |
+| `plugin/skills/faff/bin/lib/native-map.js` | JavaScript | `nativeMapReadRel` resolves the read path through `resolveTemplatesPath`; `get` prints the resolved `path` |
+
+**Scope statement.** This sits entirely in the test suite for FAFF-1300's templates-path resolver — it adds coverage, changing no resolver behaviour.
+
+## 2. OUT OF SCOPE
+
+- **Any change to resolver behaviour** — Why excluded: both behaviours are already correct; this ticket only adds assertions. Extension point: `plugin/skills/faff/bin/lib/config-core.js` (`resolveTemplatesPath`) if behaviour ever needs to change under a separate ticket.
+- **The `--selftest` in-process check for the configured read** — Why excluded: it stays as-is; the new subprocess case complements it, it does not replace it. Extension point: `plugin/skills/faff/bin/lib/native-map.js` `--selftest` block.
+- **New config keys or new CLI flags** — Why excluded: no interface change is needed to close either gap. Extension point: n/a.
+
+## 3. WHAT — Vocabulary, Types, and Interfaces
+
+**Vocabulary.**
+
+| Term | Definition |
+|---|---|
+| Configured read path | `native-map get` resolving its map location through a set `tracking.templates_path`, rather than the canonical/deprecated directory fallback |
+| Relative configured value | A `tracking.templates_path` whose value is a relative path (e.g. `../shared/tpl`), as opposed to an absolute one (e.g. `/etc/faff`) |
+| Deprecation notice | The stderr line `faff: template overrides at .faff-templates/ are deprecated…`; a configured value suppresses it entirely |
+
+No new types, flags, or public interfaces are introduced. The observable surfaces under test are the existing CLI outputs:
+
+- `native-map get --type bug --json` → stdout JSON `{ type, id, name, path }`; stderr carries the deprecation notice only when the fallback ladder resolved to the deprecated directory.
+- `config templates-path [--absolute] --root <root>` → stdout a single whitespace-free line (the resolved relative path, or the root-joined path under `--absolute`); stderr silent for a configured value.
+
+**Design decisions.**
+
+- Where to place each case and what helpers to reuse. **Chosen:** add gap 1's case to `test/native-map.test.mjs` inside the FAFF-1300 section (after the existing configured-`set` test at the `set --json with tracking.templates_path` case), reusing `SET_ARGS`, `BUG_PAYLOAD`, `runFull`, and `tmpDir`; add gap 2's case to `test/templates-path.test.mjs` adjacent to the existing `--absolute` case, reusing `cli`, `tmpRoot`, and `mk`. Rationale: colocating with the sibling cases keeps the ladder readable and inherits the fresh-process-per-case guarantee.
+- The configured value to use for gap 1. **Chosen:** `records/tpl/` — the same value the existing configured-`set` test uses, so the write and read cases read as a pair.
+
+## 4. HOW — Behavior
+
+**Gap 1 — configured read path, subprocess case (`test/native-map.test.mjs`).** Write a configured `tracking.templates_path`, write the map through `set` (which lands it at the configured directory), then `get` it and assert the resolved read path and silent stderr.
+
+```
+PROCEDURE test_configured_read_path():
+  1. dir := tmpDir()
+  2. write `.faffrc.yaml` with "tracking:\n  templates_path: records/tpl/\n"
+  3. run SET_ARGS with BUG_PAYLOAD      # lands at records/tpl/native-templates.yaml
+     assert exit 0
+  4. r := runFull(dir, ["native-map", "get", "--type", "bug", "--json"])   # runFull captures stderr
+  5. assert r.code == 0
+  6. assert JSON.parse(r.out) deep-equals
+       { type: "bug", id: "tmpl_bug_123", name: "Bug Report", path: "records/tpl/native-templates.yaml" }
+  7. assert r.err == ""                 # configured value suppresses the deprecation notice
+```
+
+**Gap 2 — relative configured value, standalone case (`test/templates-path.test.mjs`).** Assert a relative configured value resolves to the trimmed relative path in the default form, root-joined under `--absolute`, with silent stderr — mirroring the existing absolute case's shape as a dedicated test.
+
+```
+PROCEDURE test_relative_configured_value():
+  1. root := tmpRoot(); elsewhere := tmpRoot()
+  2. write `.faffrc.yaml` under root with "tracking:\n  templates_path: ../shared/tpl\n"
+  3. default form, run from root:
+       r := cli(["config", "templates-path", "--root", root], root)
+       assert r.stdout == "../shared/tpl\n"     # trailing-slash-trimmed relative value, verbatim
+       assert r.stderr == ""
+  4. --absolute form, run from an unrelated cwd:
+       a := cli(["config", "templates-path", "--absolute", "--root", root], elsewhere)
+       assert a.stdout == join(root, "../shared/tpl") + "\n"
+  5. clean up both tmp roots
+```
+
+**Edge cases.**
+
+- `runFull` (spawnSync) is required for gap 1 — the `run` helper (execFileSync) does not surface success-path stderr, so a notice-suppression assertion needs `runFull`.
+- Fresh process per case keeps the once-per-process notice latch clean; no `resetTemplatesDeprecationNotice` call is needed from the subprocess tests.
+- A configured value is returned with its trailing slash stripped (`resolveTemplatesPath` trims `/+$`), so gap 2's default-form assertion expects `../shared/tpl`, not `../shared/tpl/`.
+
+**Anti-pattern:** asserting the configured read path only through `--selftest`. Why: the in-process latch is reset within one process, so it cannot catch a cross-process regression the shipped CLI would exhibit — the subprocess case is the point.
+
+**Anti-pattern:** re-testing the canonical/deprecated fallback ladder in these cases. Why: those branches are already covered; each new case must assert only its own uncovered property.
+
+## 5. SCENARIOS
+
+The objectives are trivial test-presence assertions below the complexity bar (no non-obvious observable), so no Given-When-Then scenarios are emitted. The DONE checklist below is the verifiable surface.
+
+## 6. DESIGN DECISION RATIONALE
+
+**Which test helper surfaces the deprecation-notice assertion?**
+- Options: `run` (execFileSync — drops success-path stderr) vs `runFull` (spawnSync — captures stderr).
+- **Chosen:** `runFull` for gap 1 — asserting "no notice" requires observing stderr, which only `runFull` surfaces.
+
+**Standalone relative case vs extending the existing `--absolute` multi-assertion test?**
+- Options: fold another assertion into the existing `--absolute` test vs a dedicated case.
+- **Chosen:** a dedicated case — the DONE item calls for a standalone relative case matching the absolute case's shape, and a dedicated test fails with a clear name when the relative branch regresses.
+
+## 7. OPEN QUESTIONS AND ASSUMPTIONS
+
+**Open Questions:** none.
+
+**Assumptions:** none beyond the current committed code, which the explore step read directly (`resolveTemplatesPath`'s configured-value branch, `native-map get`'s JSON output shape, and the existing test helpers). The build agent validates by running `node --test test/native-map.test.mjs test/templates-path.test.mjs` and seeing the two new cases pass.
+
+## 8. DONE — Definition of Done
+
+### From WHY
+- [ ] The configured read branch of `native-map get` is pinned by a real CLI subprocess test (not only `--selftest`).
+- [ ] The relative configured value has a standalone subprocess test case.
+
+### From WHAT / HOW (gap 1 — `test/native-map.test.mjs`)
+- [ ] A new test configures `tracking.templates_path: records/tpl/`, writes the map via `set`, then asserts `native-map get --type bug --json` stdout deep-equals `{ type: "bug", id: "tmpl_bug_123", name: "Bug Report", path: "records/tpl/native-templates.yaml" }`.
+- [ ] The same test asserts the `get` stderr is empty (deprecation notice suppressed by the configured value), using the stderr-capturing helper (`runFull`).
+- [ ] The new case reuses the file's existing helpers (`SET_ARGS`, `BUG_PAYLOAD`, `runFull`, `tmpDir`) rather than introducing a parallel harness.
+
+### From WHAT / HOW (gap 2 — `test/templates-path.test.mjs`)
+- [ ] A new standalone test configures a relative `tracking.templates_path` (`../shared/tpl`) and asserts the default-form stdout is `../shared/tpl\n` with empty stderr.
+- [ ] The same test asserts the `--absolute` form stdout is `join(root, "../shared/tpl") + "\n"` when run from an unrelated working directory.
+- [ ] The new case sits adjacent to the existing `--absolute` case and reuses `cli`/`tmpRoot`.
+
+### Verification
+- [ ] `node --test test/native-map.test.mjs test/templates-path.test.mjs` passes with the two new cases present and green.
+
+**Integration smoke test:**
+
+```
+Given the repo at HEAD with the two new test cases added
+When `node --test test/native-map.test.mjs test/templates-path.test.mjs` runs
+Then both files pass, including the configured-read-path and relative-configured-value cases
+```
+
+confidence: high
+build-tier: standard
+spec-review: approve
+
+```faff-contract:spec-readiness
+{ "confidence": "high",
+  "decisions": [ { "marker": "chosen" }, { "marker": "chosen" }, { "marker": "chosen" }, { "marker": "chosen" } ] }
+```

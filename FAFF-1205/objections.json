@@ -1,0 +1,20 @@
+[
+  {
+    "claim": "The amended `classifyAcceptanceCriteria` pseudocode pushes the current unit when a **marked fence opens**, but does nothing at fence **close** beyond `fence := false; clear fenceHoldout + fenceTier`. The marked-fence unit therefore stays open after the close marker, and any out-of-fence continuation line (non-blank, non-bullet, non-`Given` — e.g. an `And …` wrap or trailing prose) appends to it. `holdoutRemovalSpans` removes only the `[open..close]` span, so those trailing lines survive in the builder view as a visible unit while the full classification marks them `holdout:true` — exactly the `dodClassify(full)` vs `dodSplit(builder)` desync the spec pins as its third DONE criterion and its second named failure mode.",
+    "evidence": "§4 pseudocode step 1 (\"ELSE (closing): fence := false; clear fenceHoldout + fenceTier\" — no `pushCur()`) and step 3 (\"otherwise → append to current unit\"); contrast `holdoutRemovalSpans` (context file, ~line 376: the removal span ends at the close marker). The spec's own edge case (\"Marked fence opening mid-unit … the fence content is its own `holdout:true` unit\") and DONE item (\"the builder view equals the full set minus the holdout unit\") assert the invariant the pseudocode violates.",
+    "predicted_consequence": "Any spec with a continuation line directly after a ` ```holdout `/` ```integration ` close (no intervening blank line) fails the FAFF-275 coherence selftest the spec itself mandates (`builder-view classification == full minus holdout criteria`), and the builder view shows text the full spec withholds — the builder sees holdout-adjacent criterion content. Fixing it requires a spec-level rule (push the marked unit at fence-close, mirroring `holdoutRemovalSpans`' span end), not a build-time choice.",
+    "spec_anchor": "4-how-behavior",
+    "lens": "architectural",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "The spec requires the `dod classify: unterminated fence …` stderr advisory, but its own constraints make every emission site contradictory. §3 pins `classifyAcceptanceCriteria`'s signature as unchanged `(sectionText) -> Array<{text, kind, holdout, tier}>` — a pure unit list with no channel to carry an advisory back to a caller. §4's pseudocode nevertheless places \"emit the unterminated-fence advisory\" *inside* `classify_acceptance_criteria`, which is also called by `dodSplit` (so a `dod split` run would emit the advisory too — never stated as intended or not) and by every in-memory `dodSelftest` invocation (stderr noise in the selftest the spec says must stay green). The cited precedent (\"mirroring the existing `doneAdvisories` stderr convention\") is emitted in `dodClassify`, not in the pure parser — so the spec points at two incompatible sites.",
+    "evidence": "DONE item \"An unterminated fence emits the `dod classify: unterminated fence …` stderr advisory…\"; §4 pseudocode step \"IF fence is still true at end: emit the unterminated-fence advisory\"; §3 \"keeps its signature `(sectionText: string) -> Array<{text, kind, holdout, tier}>`\".",
+    "predicted_consequence": "A builder must either violate the no-signature-change constraint, emit stderr from a function the file's own comments call pure (double-emitting via `dodSplit` and polluting selftest output), or silently drop the DONE item. Two builders following this spec can ship different observable behaviour (advisory on `dod split` or not) while both passing the DONE check as written.",
+    "spec_anchor": "4-how-behavior",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  }
+]

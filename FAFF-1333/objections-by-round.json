@@ -1,0 +1,91 @@
+[
+  {
+    "round": 1,
+    "window_start": 1,
+    "objections": [
+      {
+        "lens": "architectural",
+        "severity": "major",
+        "claim": "The spec's single load-bearing assumption — checkAnchorDir validating the staging directory is equivalent to validating --dest because validateAnchorDir has no dependence on the directory's own name — is contradicted by the supplied validator itself. resolveAnchorScope (events.js, FAFF-1347) has an unconditional step: if path.basename(anchorDir) !== proposed return accepted:null refusals:[PATH_DISAGREES]. A staging dir minted via mkdtemp(os.tmpdir()+faff-audit-anchor-) has a random basename that never equals the anchored issue, so the scope resolver refuses to narrow, and validateAnchorEventsScoped falls back to WHOLE-FILE judgement — every row gating, including rows belonging to other admitted issues in the same run. At the real --dest (basename = the issue) the same bytes narrow correctly and those rows are excluded. The staged verdict and the placed verdict diverge deterministically on every multi-issue run.",
+        "evidence": "Spec section 7 Assumptions and section 4 Failure modes; events.js resolveAnchorScope PATH_DISAGREES unconditional, validateAnchorEventsScoped whole-file fallback.",
+        "predicted_consequence": "A conforming per-unit anchor from a multi-issue run — exactly the FAFF-1015 external-consumer case — is falsely refused with exit 4 because another issue's rows gate whole-file in staging but would be scoped out at --dest. Fail-closed so nothing invalid ships, but the command is unusable for its stated audience on any multi-issue run, and the single-issue DONE smoke test cannot catch it.",
+        "spec_anchor": "assumptions"
+      },
+      {
+        "lens": "infosec",
+        "severity": "minor",
+        "claim": "The staged-and-placed-byte-identical invariant holds only for an absent/empty --dest. On the re-mint path the spec pins (cpSync recursive matching today's in-place overwrite), cpSync merges into the existing dest, so files left by a prior mint survive unvalidated into the committed tree: checkAnchorDir judged staging, but the committed anchor is staging plus residue. AC2 is false on this path. The sibling audit export refuses a non-empty --dest for precisely this reason.",
+        "evidence": "Spec section 4 edge case re-mint; contrast cmdAuditExport in commissaire.ts refusing non-empty --dest.",
+        "predicted_consequence": "A non-conforming file planted at --dest before a re-mint rides into the committed anchor behind a mint that exited 0. Backstopped only by CI; same trust domain, so degraded assurance rather than a cross-trust bypass.",
+        "spec_anchor": "how-behavior"
+      },
+      {
+        "lens": "QA",
+        "severity": "minor",
+        "claim": "The core policy table and DONE make refusal on error (including schema_unavailable carry) first-class, with a dedicated refusal line format, but no Given/When/Then scenario exercises that branch: all four scenarios cover fail, pass, legacy, no-events. A tester cannot decide whether the fail-closed error behaviour works nor whether the error-line format is honoured.",
+        "evidence": "DONE item on error/schema_unavailable refusal; emit_refusal step 1; failure mode fail-closed on schema_unavailable.",
+        "predicted_consequence": "A build that only refuses on fail and waves through error/schema_unavailable passes every named scenario, silently reopening the unchecked-mint hole; done cannot be decided for the error branch.",
+        "spec_anchor": "8-done-definition-of-done"
+      }
+    ]
+  },
+  {
+    "round": 2,
+    "window_start": 1,
+    "objections": [
+      {
+        "lens": "architectural",
+        "severity": "major",
+        "claim": "The disposition table and every planned fixture judge *ungoverned* anchors. But `mintIssueAnchor` (events.js, FAFF-976) also byte-copies `commissaire/producer/pk.json` into the anchor whenever the run is governed — and `audit anchor` exists precisely for the governed external-consumer case (FAFF-1015). `validateAnchorDir`/`checkAnchorDir` walk the anchor recursively and mark every file without a manifest entry `unschemaed` → status `fail` → per this spec, **refuse**. The spec never states whether `commissaire/producer/pk.json` (or the nested directory layout) is a named entry in the bundled twelve-file manifest, and no DONE test seeds a governed run. If the manifest does not name it, the design refuses *every* governed mint — the exact population the command serves — while passing only ungoverned ones.",
+        "evidence": "Spec §3 disposition table (fail → refuse) and §8 test list (conforming v0.3, legacy, multi-issue, error-branch, re-mint — none governed); events.js FAFF-976 pk.json copy; evidence.js `validateAnchorDir` \"unschemaed\" fail path and twelve-file manifest; commissaire.ts `cmdAuditAnchor` serving the external-consumer seam.",
+        "predicted_consequence": "The first governed (pk.json-carrying) run's anchor mint exits 4 with an `unschemaed` refusal; discovered only after ship, by a consumer — or silently never, because no test exercises it.",
+        "spec_anchor": "what-types-interfaces"
+      },
+      {
+        "lens": "architectural",
+        "severity": "minor",
+        "claim": "Step 8a runs `rmSync(dest, { recursive: true, force })` on an arbitrary caller-supplied path before the copy. Today `audit anchor` never deletes anything (`mintIssueAnchor` only writes/copies files); after this change, a typo'd or mis-scoped `--dest` that happens to pass validation is silently wiped and replaced. The spec motivates replace against *residue within an anchor* but never constrains what `--dest` may be (e.g. must look like a prior anchor dir, be empty, or sit under `.faff/anchors`), unlike sibling `audit export`, which at least refuses a non-empty dest.",
+        "evidence": "Spec §4 procedure step 8a and the \"Replace `--dest`, don't merge into it\" paragraph; comparison to `audit export`'s dest-not-empty refusal in the same paragraph.",
+        "predicted_consequence": "A one-character `--dest` mistake destroys an unrelated directory tree on a passing mint, with exit 0 and a success JSON; not separately stated beyond that.",
+        "spec_anchor": "replace-dest-dont-merge-into-it"
+      },
+      {
+        "lens": "infosec",
+        "severity": "major",
+        "claim": "The procedure turns `audit anchor` from a command that only *creates* files into one that *recursively destroys* a caller-supplied path, and the only guard anywhere near `--dest` is the basename-segment check on the *default* dest derivation. An explicit `--dest` is validated for nothing. `--dest <runDir>` (or an ancestor such as `.faff` / `.faff/runs`) passes every check in the procedure: the mint reads the run dir into staging, validation passes, and step 8a then deletes the run dir — including `commissaire/governor/governor.json` (SK + master_secret), `commissaire/producer/` admission material, and the live ledger — before `cpSync` replaces it with the anchor copy. The spec's own guard culture (the `--unit-id` shape guard, the \"no resolvable root\" guard, the dest-basename segment check) makes the absence of a dest guard conspicuous, and the spec explicitly considered and *rejected* the safe alternative (refusing a non-empty dest, as `audit export` does) for re-mint ergonomics without adding any compensating guard. Neither the procedure nor the DONE criteria require one, so a builder following the spec ships the unguarded delete.",
+        "evidence": "`PROCEDURE audit_anchor_tail` step 8a (`rmSync(dest, recursive, force)`), \"Replace `--dest`, don't merge into it\" paragraph, and the \"Which `checkAnchorDir` statuses refuse?\" rationale in the diff; contrast the guarded `--unit-id` handling and the `audit export` non-empty-dest refusal the spec cites.",
+        "predicted_consequence": "a mis-typed or scripted `--dest` (e.g. `--dest \"$RUN_DIR\"` or `--dest .faff`) on a conforming run recursively deletes the run dir — the hash-chained ledger, the event log, and the governor's signing key material — replacing governance state with a partial anchor copy; the run's custody and audit trail are unrecoverable from the run dir.",
+        "spec_anchor": "4-how-behavior"
+      },
+      {
+        "lens": "infosec",
+        "severity": "minor",
+        "claim": "Step 8 orders `rmSync(dest)` *then* `cpSync(inner → dest)`. If the copy fails partway (ENOSPC, EACCES on a pre-existing entry, any IO fault), the command exits non-zero with `--dest` destroyed or partially populated and the previously minted anchor gone. The spec rejected a direct `rename` from tmp for EXDEV but never considered the same-filesystem fix: copy staging into a temp sibling of `dest`, then `rm dest`, then `rename` — which makes placement atomic without materialising anything on a refusal. As written, a re-mint that fails mid-copy is strictly worse than today's overwrite-in-place, which at least never removed the old tree first.",
+        "evidence": "`PROCEDURE audit_anchor_tail` steps 8a–8b; the \"Why staging in `os.tmpdir()` and a recursive copy (not a rename)\" paragraph addresses only the staging→dest EXDEV case, not placement atomicity.",
+        "predicted_consequence": "an interrupted re-mint leaves `--dest` empty or torn and the prior (possibly already staged-for-commit) anchor unrecoverable, with the command's non-zero exit the only signal.",
+        "spec_anchor": "4-how-behavior"
+      },
+      {
+        "lens": "infosec",
+        "severity": "minor",
+        "claim": "`legacy` is detected purely by the *absence* of `schema_version` in the run dir's evidence — bytes the run's producer writes. Any run whose evidence would fail v0.3 validation can be re-emitted with `schema_version` stripped and mint at exit 0, converting the ticket's headline refusal (exit 4, \"not caught later by CI\") back into exactly the late-CI-failure state the WHY says this change closes. The asymmetry is internal to the spec: an unloadable schema bundle refuses (fail closed), but a producer-side downgrade to the unchecked class mints (fail open). The backward-compatibility rationale is real, but nothing in the disposition distinguishes an honest pre-v0.3 run from a stripped one — and `evidence.js` already ships the pattern for making that distinction (the FAFF-1353 merge-cutoff timestamp used to grant legacy relief), so the hardening is a small in-place edit: qualify the `legacy`→mint disposition with a temporal cutoff (e.g. the run's genesis `run-start` predates the v0.3 cutover), mirroring `evaluateRunDirEventsSchema`'s `legacy_relief`.",
+        "evidence": "the Mint-disposition table (\"legacy → **mint**\") and the \"Which `checkAnchorDir` statuses refuse?\" rationale; DONE pins \"the existing schema-1 round-trip still mints exit 0 (legacy)\".",
+        "predicted_consequence": "a run dir carrying non-conforming v0.3 evidence with `schema_version` stripped mints with exit 0 and is only rejected later by CI under `evidence-schema: require` — the exact outcome the spec's problem statement says it eliminates.",
+        "spec_anchor": "3-what-vocabulary-types-and-interfaces"
+      },
+      {
+        "lens": "QA",
+        "severity": "minor",
+        "claim": "The HOW section and DONE both require that on a schema refusal a *pre-existing* `--dest` is left untouched (\"On a refusal, nothing exists under `--dest` or its parent … and any pre-existing `--dest` is left untouched\"), but no scenario exercises refusal against a pre-existing `--dest`. Scenario 1 seeds a fresh dest; the re-mint scenario only covers the *pass* branch against a pre-existing dest.",
+        "evidence": "DONE bullet under \"From HOW (behaviour)\"; Scenarios section — the refusal scenarios all run with no prior `--dest`.",
+        "predicted_consequence": "A build that `rmSync`s or truncates `--dest` before validating (e.g. cleanup hoisted above the disposition check) passes every named scenario while destroying a consumer's pre-existing anchor on every refusal — the exact regression the DONE item exists to prevent — and no named test catches it.",
+        "spec_anchor": "5-scenarios"
+      }
+    ]
+  },
+  {
+    "round": 3,
+    "window_start": 1,
+    "objections": []
+  }
+]

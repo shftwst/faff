@@ -1,0 +1,197 @@
+# Spec: two output-clarity fixes in `native-map set`'s deprecated-map path (FAFF-1319)
+
+> Spec: faffter-dark-nlspec · 2026-10-27 · autonomous · claude-code/unknown · confidence: high. Full spec on Linear FAFF-1319.
+
+This is the build spec for FAFF-1319, for the coding agent that will implement it and the human reviewing the result. It fixes two notice-design nits in the deprecated-map output of `faff native-map set`: a dry-run preview that does not predict the "left in place" outcome, and two migration commands that surface together for one situation. Both are output clarity only — nothing is mis-written today, no printed command is wrong for the state it prints in, and no file content changes.
+
+## Already shipped against this surface
+
+- **FAFF-1300 — "Template overrides live in .faff/templates/"** (Done, 2026-10-16). Built the entire native-map deprecated-map path this ticket refines: the canonical/deprecated resolution, the `--dry-run` advisory rule, the refuse/no-op/left-in-place branches, and the directory- and file-level deprecation notices. These two nits were surfaced by FAFF-1300's own adversarial review pass and **deliberately deferred** to this follow-up ticket; they are **not** superseded — both reproduce from the code as it stands. This spec touches only the follow-on output clarity, never FAFF-1300's write path.
+
+## 1. WHY — Problem and Principles
+
+**Load-bearing model:** `faff native-map set` resolves a *canonical* write target (`.faff/templates/native-templates.yaml`) and separately checks whether a *deprecated* copy still sits at `.faff-templates/native-templates.yaml`. Two independent pieces of code can speak to stderr in that deprecated-map window: a generic **directory-level** deprecation notice emitted by the config read-resolver (`resolveTemplatesPath` → `emitTemplatesDeprecationNotice`), and a **file-level** guard inside `cmdNativeMapSet` that refuses, advises, or (under `--force`) leaves the old file in place. The two nits are both about what that pair says, and when.
+
+**Problem statement.** FAFF-1300 set the rule that each branch which would refuse or no-op a real run becomes an advisory on stderr under `--dry-run`; the refusal branches honour it but the `--force` "left in place" outcome does not, so `--dry-run --force` over a deprecated-only map previews silently and the operator only learns the old file survives after a real run. Separately, when a map exists only at the deprecated location, the resolver's directory-level notice (`git mv .faff-templates .faff/templates`) and the guard's file-level remedy (`mkdir -p .faff/templates && git mv <file> <file>`) both print, so the operator sees two migration commands for one situation and must work out which applies. This change adds the missing dry-run advisory and suppresses the redundant directory-level notice in that window.
+
+**Design principles.**
+
+**Mirror the existing advisory conventions, do not invent new ones.** The guard already prints `faff native-map set --dry-run (advisory, …): …` for its refuse and no-op branches and a real-run `native-map set: <rel> is deprecated and was left in place; remove it once nothing needs it.` line. The new dry-run advisory reuses that voice and that wording rather than introducing a fresh format.
+
+**Keep the blast radius at the call site.** The directory-level notice is owned by `config-core.js` and is also emitted (correctly) by `native-map get` and by other template consumers. This fix must not weaken the notice for those callers; it changes only whether `cmdNativeMapSet` triggers it, so `config-core.js` is not modified.
+
+**Do not lose a genuine migration nudge.** Suppression applies only where the file-level guard already names the specific file and its correct move. Where the deprecated directory holds overrides but not the native-map file, the guard does not engage and the directory-level notice must still fire.
+
+**Reference context.**
+
+| System | Language | Relevance |
+|---|---|---|
+| `plugin/skills/faff/bin/lib/native-map.js` | CommonJS (`.js`, no `.ts` sibling) | `cmdNativeMapSet` — the guard and advisory logic that changes |
+| `plugin/skills/faff/bin/lib/config-core.js` | CommonJS (`.js`) | `resolveTemplatesPath` / `emitTemplatesDeprecationNotice` — directory-level notice source; **read, not modified** |
+| `plugin/skills/faff/bin/lib/config.js` | CommonJS (`.js`) | Façade re-exporting config-core; `native-map` imports the resolver through it |
+| `test/native-map.test.mjs` | `node:test` (ESM) | Black-box real-CLI tests; home of both coverage gaps and the one pinned test to update |
+
+**Scope statement.** This sits entirely inside the `faff native-map set` command's existing deprecated-map branch; it is a localised output change, not a new surface.
+
+## 2. OUT OF SCOPE
+
+- **`native-map get`'s directory-level notice** — Why excluded: `get` legitimately emits the deprecation notice when it reads through the deprecated fallback (pinned by the tests at `native-map.test.mjs:367` and `:377`); it has no competing file-level remedy. Extension point: none needed — leave `cmdNativeMapGet` and its resolver call untouched.
+- **The directory-level notice text and the shadowed-vs-fallback message selection** — Why excluded: `TEMPLATES_DEPRECATED_MSG` / `TEMPLATES_SHADOWED_MSG` in `config-core.js` are correct for their states; this change is about when `set` triggers them, not their wording. Extension point: `config-core.js:347-361` if the text is ever revised.
+- **The file-level remedy wording and the `deprecated_left_in_place` JSON field** — Why excluded: both are correct as written; the field is merely untested. Extension point: `cmdNativeMapSet`'s guard (`native-map.js:276-279`) and JSON assembly (`:298`).
+- **Any change to what is written to disk** — Why excluded: this is output clarity only; the write path, round-trip verify, and canonical write target are unchanged.
+
+## 3. WHAT — Behaviour surfaces
+
+**Vocabulary.**
+
+| Term | Definition |
+|---|---|
+| Canonical map | `.faff/templates/native-templates.yaml` — the write target when `tracking.templates_path` is unset |
+| Deprecated map | `.faff-templates/native-templates.yaml` — the legacy location `set` never writes to but checks for |
+| Directory-level notice | The generic `template overrides at .faff-templates/ are deprecated … (git mv .faff-templates .faff/templates) …` line from `resolveTemplatesPath` |
+| File-level guard | The `else if (deprecatedRel && exists)` branch in `cmdNativeMapSet` that refuses / advises / leaves-in-place and prints the per-file `mkdir -p … && git mv <file> <file>` remedy |
+| Guard-engages window | Canonical map file absent **and** deprecated map file present (`tracking.templates_path` unset) — exactly when the file-level guard owns the deprecated-map message |
+
+No new types, flags, or config keys. `cmdNativeMapSet`'s signature, exit codes, stdout success/JSON shape, and the `--dry-run`/`--force` flags are all unchanged. Only two additions to stderr behaviour and one removal of a redundant stderr line in the guard-engages window.
+
+**Observable surface after the change.**
+
+- `--dry-run --force` over a deprecated-only map: exit 0, writes nothing, prints the canonical-header preview to stdout (unchanged), and now also prints one advisory to stderr predicting that a real run would write the canonical file and leave the deprecated one in place.
+- Any `set` invocation in the guard-engages window (dry-run or real, forced or not): the directory-level notice no longer prints; only the file-level guard's own line(s) appear.
+- `set` where the deprecated *directory* exists but the deprecated *map file* does not (guard does not engage): the directory-level notice still prints, unchanged.
+
+## 4. HOW — Behaviour
+
+**Architecture and approach.** Both fixes live in `cmdNativeMapSet` (`native-map.js:208-305`). The directory-level notice is triggered today by a side-effect-only call `nativeMapReadRel(root, data)` at line 251 whose return value is discarded. That call currently sits *before* `deprecatedRel` (line 253) and `targetPath` (line 254) are computed. To gate it on whether the file-level guard will engage, move the trigger to *after* those two are computed and wrap it in a condition. `deprecatedDir`, `deprecatedRel`, and `targetPath` are pure computations with no ordering dependency on the notice, so the move is safe and leaves the shadow check (which reads `deprecatedTemplatesRel` directly, not the discarded read-rel) untouched.
+
+**Suppress the directory-level notice when the guard engages.**
+
+```
+PROCEDURE trigger_directory_notice(root, data, targetPath, deprecatedRel):
+  # Runs AFTER deprecatedRel and targetPath are computed (currently native-map.js:253-254),
+  # replacing the unconditional side-effect call at line 251.
+  guardEngages = NOT exists(targetPath)
+                 AND deprecatedRel is non-null
+                 AND exists(join(root, deprecatedRel))
+  IF guardEngages:
+    # The file-level guard will name the exact deprecated file and its per-file move;
+    # the generic directory-level notice would be a second, whole-directory migration
+    # command for the same situation. Skip it.
+    do nothing
+  ELSE:
+    nativeMapReadRel(root, data)   # side-effect-only: emits the directory notice if applicable
+```
+
+The guard-engages condition is exactly the entry condition of the existing `else if (deprecatedRel && fs.existsSync(path.join(root, deprecatedRel)))` branch (reached only when `fs.existsSync(targetPath)` is false). Reusing the identical predicate keeps the two in lockstep: the notice is suppressed precisely when, and only when, that branch runs — covering the no-`--force` refuse/advisory sub-case, the `--force` left-in-place sub-case, and both fallback and shadowed directory states.
+
+**Predict the left-in-place outcome under `--dry-run`.** In the `--force` arm of the guard (`native-map.js:281-283`), where `leftInPlace = deprecatedRel` is set, add a dry-run advisory:
+
+```
+ELSE:                                   # values["--force"] is set
+  leftInPlace = deprecatedRel
+  IF dryRun:
+    stderr <- "faff native-map set --dry-run (advisory, a real run would write "
+              + writeRel + " and leave the deprecated " + deprecatedRel
+              + " in place): remove the old file once nothing needs it.\n"
+```
+
+This mirrors the real-run stdout line at `native-map.js:302` and the advisory prefix used by the `refuse` closure (`:257`) and the no-op advisory (`:264`). Under `--dry-run` the existing early return at line 286-289 still fires (preview to stdout, exit 0); `leftInPlace` is not otherwise read in the dry-run path, so the advisory is the sole new signal.
+
+**Combined behaviour, `--dry-run --force` over a deprecated-only map.** The notice trigger is skipped (guard engages), the `--force` arm sets `leftInPlace` and emits the new dry-run advisory, then the dry-run return prints the preview. Net stderr: the single left-in-place advisory, with no directory-level `git mv .faff-templates .faff/templates` line.
+
+**Edge cases.**
+
+- `tracking.templates_path` configured: `deprecatedTemplatesRel(data)` returns null, so `deprecatedRel` is null, `guardEngages` is false, and `nativeMapReadRel` is still called (which, with a configured key, emits no notice anyway). Unchanged.
+- Deprecated directory present but deprecated map file absent: `guardEngages` false → directory notice still fires; guard does not run. Preserves the migration nudge for other overrides.
+- Shadowed state (both directories exist) with the canonical map file absent and the deprecated map file present: `guardEngages` true → both the shadowed directory notice and the (redundant) whole-directory command are suppressed; the file-level per-file remedy still prints. The test at `:405` asserts the file-level remedy is present and the whole-directory command absent, so it stays green.
+- Canonical map file present (differing, no `--force`): `guardEngages` false (targetPath exists) → directory notice unchanged; this branch's refuse concerns the canonical file, not a migration, so there is no collision to fix here.
+
+**Anti-pattern:** reimplementing the canonical/deprecated/shadowed state detection inside `native-map.js` to decide suppression. Why: `config-core.js` owns that logic (`templatesFallbackRel`); duplicating it invites drift. Gating the existing resolver call on the guard's own predicate needs no state re-derivation.
+
+**Anti-pattern:** editing `emitTemplatesDeprecationNotice` or the notice text in `config-core.js` to solve the collision. Why: that notice is correct and shared by `get` and other consumers; the collision is specific to `set`'s guard window and belongs at `set`'s call site.
+
+## 5. Scenarios
+
+```
+Given a repo whose only native-map lives at .faff-templates/native-templates.yaml (no .faff/ directory, tracking.templates_path unset)
+When the operator runs `faff native-map set --team FAFF --tracker linear --dry-run --force` with a valid mappings payload on stdin
+Then the command exits 0, writes no file (no .faff/ directory is created), prints the canonical-header preview to stdout, and prints one stderr advisory stating a real run would write .faff/templates/native-templates.yaml and leave .faff-templates/native-templates.yaml in place
+```
+
+```holdout
+Given a repo whose only native-map lives at .faff-templates/native-templates.yaml (no .faff/ directory, tracking.templates_path unset)
+When the operator runs `faff native-map set --team FAFF --tracker linear` (no --force) with a valid payload on stdin
+Then the command exits 2 and its full stderr contains the file-level remedy `git mv .faff-templates/native-templates.yaml .faff/templates/native-templates.yaml` but does NOT contain the whole-directory command `git mv .faff-templates .faff/templates`
+```
+
+## 6. Design decision rationale
+
+**Which remedy for the paired migration commands: suppress the directory-level notice, or state the pairing in the notice text?**
+- *Suppress* — remove the redundant whole-directory command in the guard-engages window. Pro: the operator sees exactly one, correct, per-file command; no new prose to maintain; smallest output. Con: the directory notice disappears in that window (acceptable — the guard's remedy is strictly more specific and correct).
+- *State the pairing* — reword one notice to acknowledge the other. Pro: no control-flow change. Con: leaves two commands on screen and adds explanatory prose the operator must still parse; does not remove the ambiguity, only annotates it.
+- **Chosen:** Suppress. It eliminates the confusion at its source rather than annotating it, keeps output minimal, and costs only one guard condition at the existing call site. (decides: architecture)
+
+**How wide should suppression be — only the fallback state, or whenever the guard engages (including shadowed)?**
+- *Fallback-only* — suppress just `TEMPLATES_DEPRECATED_MSG`, keep `TEMPLATES_SHADOWED_MSG`. Pro: retains the "don't move the whole directory" warning. Con: requires `native-map` to know the directory state, duplicating or exporting `config-core` internals; in the shadowed window the file-level remedy already specifies the exact per-file move, so the warning is redundant too.
+- *Whenever the guard engages* — one predicate, suppress the directory notice (either message) across both states. Pro: single condition, reuses the guard's own entry predicate, no new `config-core` exports; matches the issue's phrasing ("suppress … when the file-level guard is about to speak"). Con: drops the shadowed warning in this window, but the per-file remedy it coexists with is correct and complete.
+- **Chosen:** Whenever the guard engages. Simpler, no cross-module coupling, and the file-level remedy fully covers the operator in both states. (decides: architecture)
+
+**Where and how to phrase the dry-run left-in-place advisory.**
+- **Chosen:** Inline in the `--force` arm of the guard, reusing the `faff native-map set --dry-run (advisory, …): …` prefix and echoing the real-run line's wording (`write <canonical> and leave the deprecated <file> in place; remove the old file once nothing needs it`). Rationale: symmetry with the refuse/no-op advisories FAFF-1300 established and with the existing real-run success line; no new output format.
+
+## 7. Open questions and assumptions
+
+**Open questions:** none — both remedies are decided above.
+
+**Assumptions.**
+
+- **Assumes:** The `test/native-map.test.mjs` helpers `runFull` (surfaces success-path stderr), `tmpDir`, `writeDeprecatedMap`, `SET_ARGS`, `BUG_PAYLOAD`, `MAP_REL`, and `DEPRECATED_MAP_REL` exist and behave as the existing tests use them. Validation: confirmed present at `native-map.test.mjs:19-40` and used by the tests at `:393-448`; the builder should re-read them before adding cases.
+
+## 8. DONE — Definition of Done
+
+### From WHY / HOW (dry-run left-in-place advisory)
+- [ ] Running `native-map set --dry-run --force` over a repo whose only map is at `.faff-templates/native-templates.yaml` exits 0, creates no `.faff/` directory, and prints the canonical-header preview to stdout.
+- [ ] That same invocation prints exactly one stderr advisory, prefixed `faff native-map set --dry-run (advisory,`, that names both the canonical path to be written and the deprecated path to be left in place.
+
+### From HOW (suppress the paired directory-level notice)
+- [ ] For any `set` invocation in the guard-engages window (canonical map file absent, deprecated map file present, `tracking.templates_path` unset) — dry-run or real, `--force` or not — the full stderr contains no `git mv .faff-templates .faff/templates` whole-directory command.
+- [ ] The file-level per-file remedy `mkdir -p .faff/templates && git mv .faff-templates/native-templates.yaml .faff/templates/native-templates.yaml` still prints in the no-`--force` refuse case (exit 2), unchanged.
+- [ ] A `set` run where the deprecated *directory* exists but `.faff-templates/native-templates.yaml` does not still emits the directory-level deprecation notice (guard does not engage).
+
+### From HOW (no regressions)
+- [ ] The directory-level notice behaviour of `native-map get` is unchanged (the tests at `native-map.test.mjs:367` and `:377` pass without modification).
+- [ ] `config-core.js` is not modified.
+
+### Tests (repository test file — closes the two coverage gaps)
+- [ ] `test/native-map.test.mjs` gains a `--dry-run --force` deprecated-only case asserting exit 0, no `.faff/` created, the stdout preview, the presence of the left-in-place advisory on stderr, and the absence of the whole-directory `git mv .faff-templates .faff/templates` command.
+- [ ] `test/native-map.test.mjs` gains (or extends `:417`) a real `set --force --json` deprecated-only case asserting the JSON line carries `deprecated_left_in_place: ".faff-templates/native-templates.yaml"`.
+- [ ] The pinned test at `native-map.test.mjs:435` ("… carries the shadowed-map advisory plus the deprecation notice") is updated: it must no longer assert the directory-level `template overrides at .faff-templates/ are deprecated` notice is present under `set --dry-run`, and should instead assert the file-level advisory is present and the whole-directory `git mv .faff-templates .faff/templates` command is absent from the full stderr.
+- [ ] `node --test test/native-map.test.mjs` passes, and `faff native-map set --selftest` still exits 0 (the in-module selftest at `native-map.js:383-451` is untouched and remains green).
+
+**Integration smoke test.**
+
+```
+PROCEDURE smoke():
+  dir = fresh temp repo
+  writeDeprecatedMap(dir)                       # only .faff-templates/native-templates.yaml exists
+  r = runFull(dir, SET_ARGS + ["--dry-run", "--force"], BUG_PAYLOAD)
+  ASSERT r.code == 0
+  ASSERT NOT exists(join(dir, ".faff"))         # nothing written
+  ASSERT r.out starts with "# .faff/templates/native-templates.yaml "
+  ASSERT r.err contains "(advisory," AND contains "left in place"
+  ASSERT r.err does NOT contain "git mv .faff-templates .faff/templates"
+```
+
+## Methodology critique
+
+**Right-sized? (P4)** — No issues. Two nits, but both are output-clarity tweaks inside the same deprecated-map guard window, landing as one ~6-line change to `cmdNativeMapSet`. They are conceptually independent yet always ship together, so this is a correct *merge*, not a split: splitting would fragment a single 6-line edit into two ticket-as-micro units with no independent deliverable. Comfortably inside the 1-3 day bar.
+
+**Workstream fit? (P1 + P5)** — No issues. One cohesive concern (stderr clarity in the one `native-map set` deprecated-map path), outcome-shaped title. Project-less in Backlog is the correct default landing for a small follow-up — there is no standalone sequencable outcome here to justify forming or joining a container, and auto-filing it would just inflate a project without adding legibility.
+
+**Deps surfaced? (P6)** — No issues. The sole prerequisite, FAFF-1300, is Done, so it does not gate and needs no blocker link; the follow-up relationship is already captured in the spec. `config-core.js` is declared read-only and `native-map.js` is the only write target, so there is no implicit cross-ticket dependency left unsurfaced.
+
+**Risk profile? (P7)** — No issues. Low-severity stderr wording fixes in an existing path, both decisions closed as `**Chosen:**`, no open punts, confidence high. No novel integration and no external dependency, so there is nothing to de-risk — a spike would be overhead on a closed, well-understood change.
+
+confidence: high
+spec-review: approve
+build-tier: standard

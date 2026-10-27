@@ -1,0 +1,74 @@
+[
+  {
+    "round": 1,
+    "window_start": 1,
+    "objections": [
+      {
+        "lens": "architectural",
+        "severity": "minor",
+        "claim": "The spec asserts the widened pattern \"declines to match `.faff/configuration…`\" because \"the widened class requires a `.` separator before each extra segment,\" and that \"other `config`-prefixed words — not matched.\" The second claim is false. Because the trailing `(?:\\.ya?ml)?` is optional and `\\b` follows it, the pattern matches bare `.faff/config` wherever a word boundary holds after `config` — i.e. before any non-word character. So `.faff/config-notes.md`, `.faff/config.lock`, `.faff/config.json`, `.faff/config-helper.sh` all match via the zero-segments/empty-extension arm; the `(?:\\.[\\w-]+)*` group is almost entirely dead weight. The `configuration` claim happens to be true (no boundary between `g` and `u`), but the spec's stated mechanism is not what produces the behaviour, and the \"other config-prefixed words — not matched\" edge-case line is wrong as written.",
+        "evidence": "§3 WHAT, \"Design decision — the widened pattern\" and §4 \"Edge cases\" (`\\.faff\\/config(?:\\.[\\w-]+)*(?:\\.ya?ml)?\\b`; \"not matched: the widened class requires a `.` separator before each extra segment\").",
+        "predicted_consequence": "the DONE-derived case table (§8: \"asserts the match/no-match case table above\") is built from the spec's inaccurate edge-case prose and omits the hyphenated/dotted-suffix cases the pattern actually matches; a future reader trusting the spec's precision rationale will mis-predict the lint's behaviour, and the first `.faff/config-*` false positive (or deliberate flag) will look like a regex bug rather than documented behaviour.",
+        "spec_anchor": "design-decision-the-widened-pattern"
+      }
+    ]
+  },
+  {
+    "round": 2,
+    "window_start": 1,
+    "objections": [
+      {
+        "lens": "architectural",
+        "severity": "minor",
+        "claim": "The spec's stated purpose for arm 1 is to stop re-narrowing — it claims the two-arm class \"matches the whole YAML overlay-variant class\" and covers \"any future YAML overlay variant\". But arm 1's segment class is `(?:\\.[\\w-]+)*`, which only admits **dot-prefixed** segments. A hyphen-joined variant spelling — `cat .faff/config-dev.yaml` — matches neither arm: arm 1 needs a `.` before each segment (after `config` the next char is `-`, so zero segments then `\\.ya?ml` fails), and arm 2's lookahead `(?![\\w.-])` rejects the `-`. That is exactly the same coverage-gap class the spec exists to close, one keystroke-style variant away from recurring. The spec pins this exact regex in DONE, so the builder cannot widen it during the build.",
+        "evidence": "§3 \"The pattern\" and the option-(c) rationale (\"covers … any future YAML overlay variant\"); §8 DONE item pinning `\\.faff\\/config(?:(?:\\.[\\w-]+)*\\.ya?ml\\b|(?![\\w.-]))`.",
+        "predicted_consequence": "the first `config-<suffix>.yaml` overlay variant a team adopts is hand-readable undetected, and the guard re-narrows again — the precise regression this spec files against FAFF-1302.",
+        "spec_anchor": "the-pattern"
+      }
+    ]
+  },
+  {
+    "round": 3,
+    "window_start": 1,
+    "objections": [
+      {
+        "lens": "architectural",
+        "severity": "minor",
+        "claim": "The extensionless arm `(?![\\w.-])` treats `/` as a permitted terminator, so the widened pattern flags reads of anything under a `.faff/config/` directory — exactly the \"non-config reads whose path merely starts `.faff/config`\" class the spec's design principles forbid.",
+        "evidence": "Spec §3, chosen pattern `\\.faff\\/config(?:(?:[.-][\\w.-]*)?\\.ya?ml\\b|(?![\\w.-]))`; the principle \"The guard must NOT start flagging non-config reads whose path merely starts `.faff/config`\". For `cat .faff/config/extra.yaml`, after `config` comes `/`, which is not in `[\\w.-]`, so arm 2 matches — while the current pattern (`\\.ya?ml` required immediately) does not. The spec's negative-case enumeration (`.json`, `.lock`, `-notes.md`, `configuration.yaml`) and its mandated unit-test case table both omit this class, so a builder following the spec verbatim ships it with green tests.",
+        "predicted_consequence": "A plausible future layout (config fragments under `.faff/config/`) makes the lint false-positive on legitimate reads; the mandated case table passes anyway, so the regression is invisible to the spec's own tests until a shipped `SKILL.md` or a fixture trips it. Fix is a one-character lookahead widening (`(?![\\w.\\-/])`) plus one negative case — a small in-place spec edit.",
+        "spec_anchor": "3-what-vocabulary-types-and-interfaces"
+      },
+      {
+        "lens": "QA",
+        "severity": "minor",
+        "claim": "DONE requires \"The canonical names (`.faff/config.yaml`, `.faff/config.local.yaml`) are still flagged (no regression)\", and the HOW step says the unit test asserts \"the full match/no-match case table below\" — but the only enumerated cases (§5 scenarios) contain the dot-variant, hyphen-variant, extensionless, `.json`, prose, and `.example` cases. Neither canonical name appears as a positive case anywhere a tester can enumerate, so the \"case table\" the test must cover is not fully specified.",
+        "evidence": "DONE item \"The canonical names … are still flagged (no regression)\" vs the §5 scenario list, which never exercises `.faff/config.yaml` or `.faff/config.local.yaml`.",
+        "predicted_consequence": "a build could pass every named scenario and every named negative case while the rewritten two-arm pattern accidentally drops the original canonical matches (e.g. a botched variant group that no longer accepts the bare `.yaml` suffix), and the new unit test would still be green — the regression the DONE item explicitly guards is untested by the spec's own test plan.",
+        "spec_anchor": "8-done-definition-of-done"
+      }
+    ]
+  },
+  {
+    "round": 4,
+    "window_start": 1,
+    "objections": [
+      {
+        "lens": "infosec",
+        "severity": "minor",
+        "claim": "The spec's first design principle is \"Cover the whole variant class, not a fixed list,\" and the chosen two-arm pattern is justified as matching \"exactly the config spellings (`.yaml`/`.yml` variants and the bare file).\" But the two arms are disjoint in a way the spec never reconciles: arm 1 requires a mandatory `.ya?ml` suffix, and arm 2's lookahead `(?![\\w.\\-/])` rejects anything following `config` with a `.` — which is exactly what an extensionless *variant* begins with. So `cat .faff/config.local` and `cat .faff/config-dev` (no `.yaml` suffix) match neither arm and pass the guard silently. This is not hypothetical: FAFF-1302's own overlay file is `.faff/config.local.yaml`, and an extensionless spelling of it is the most sensitive file in the set (the overlay \"may hold machine-local values\" per the config-under-faff-dir tests) — precisely the file a hand-read guard exists to protect. The spec's case table omits every extensionless-variant row, so the unit test it mandates will never discover the gap; the DONE item \"cover the whole variant class\" is asserted by prose and contradicted by the pattern.",
+        "evidence": "§3 \"The pattern\" — arm 2 is `(?![\\w.\\-/])`, which cannot accept `.local`/`-dev` extensionless; the §3 case table has `cat .faff/config` (bare) but no `cat .faff/config.local` row; §1 principle \"Cover the whole variant class, not a fixed list.\"",
+        "predicted_consequence": "a `SKILL.md` line `grep slots .faff/config.local` passes the FAFF-50 guard green while hand-reading the machine-local overlay — a fail-open path in the lint for the highest-sensitivity config file, invisible to the spec's own test because the case table doesn't enumerate it.",
+        "spec_anchor": "the-pattern"
+      },
+      {
+        "lens": "QA",
+        "severity": "minor",
+        "claim": "DONE requires \"A `.faff/config.example.yaml` line is NOT flagged (existing `.example` line-skip)\", but the §3 case table — which the DONE item says the unit test \"asserts every row of\" — contains no `.example` row. As specified, the test that pins the carve-out never exercises it; the carve-out's regression protection rests on scenario 5's prose only, and the spec's own \"authoritative\" framing of the table is undercut.",
+        "evidence": "DONE item \"A `.faff/config.example.yaml` line is NOT flagged\"; §3 case table (no `.example` row); §4 step 3 (\"asserting the §3 case table, line by line\").",
+        "predicted_consequence": "a build can pass the specified unit test while the `.example` line-skip has been dropped or reordered below the regex match, and the DONE item is checked off without any test deciding it.",
+        "spec_anchor": "8-done-definition-of-done"
+      }
+    ]
+  }
+]

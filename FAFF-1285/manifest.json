@@ -1,0 +1,21 @@
+{
+  "schema_version": 3,
+  "faff_version": "0.43.0",
+  "issue": "FAFF-1285",
+  "run_id": "run-20261027-065425-beepboop-list-d4c19d",
+  "built_spec_sha": "b270ce80dfc4ea72187e3a51f140e5ebe7172ac2910c3778b1ffac796ed85c83",
+  "spec_blob": "spec.txt",
+  "objections": "objections.json",
+  "objections_by_round": "objections-by-round.json",
+  "objections_by_round_truncated": false,
+  "objections_by_round_dropped_rounds": 0,
+  "rulings": "rulings.json",
+  "admit_result": "admit-result.json",
+  "outcome": "park",
+  "lenses": [
+    "QA",
+    "architectural",
+    "infosec"
+  ],
+  "witness_sha": "609a7a5adb2903d55260525eb9a02b987cf17a47877b91014c94f6569c06eff8"
+}

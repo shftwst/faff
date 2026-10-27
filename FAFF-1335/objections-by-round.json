@@ -1,0 +1,142 @@
+[
+  {
+    "round": 1,
+    "window_start": 1,
+    "objections": [
+      {
+        "lens": "architectural",
+        "severity": "major",
+        "claim": "The spec's mtime decision states the holdout/build-progress relative ordering \"survives untouched\" because \"neither file is regenerated\" — but the spec's own park procedure regenerates `build-progress.json` at step 3 (`faff build-progress write … --build-complete --diff-hash …`), stamping it with the park time. `holdout.json` was last written at Step 8c, before review, so after the park the stashed pair has `holdout.json` strictly **older** than `build-progress.json` — exactly the ordering `readHoldout` (merge-gate/mint) rejects. The stash faithfully preserves a broken ordering via `keepStat`.",
+        "evidence": "`post_review_park` step 3 (\"recompute diff_hash … `faff build-progress write`\") vs the decision \"How is holdout/build-progress mtime freshness preserved across the stash?\" (\"carry both files, regenerate neither\") and the carried-set table row \"`holdout.json` … not re-run on resume\". The mint floor requirement is stated in the same spec (\"`readHoldout` … rejects a `holdout.json` not strictly newer than `build-progress.json`\").",
+        "predicted_consequence": "every resumed-and-shipped run fails the holdout freshness check at mint, so AC3 (\"the minted anchor passes `faff evidence validate --require-evidence-schema` with exit 0\") cannot be met as specified; the builder must change the spec (re-run the holdout at park, reorder the checkpoint write, or relax the freshness rule) — none of which the spec permits.",
+        "spec_anchor": "how-is-holdoutbuild-progress-mtime-freshness-preserved-across-the-stash"
+      },
+      {
+        "lens": "architectural",
+        "severity": "minor",
+        "claim": "The `park-after-review` resume arm says \"re-run Steps 7.5 + 8\", and Step 8c (the code-blind holdout) is a numbered sub-step of Step 8 — yet the carried-set table and the mtime decision both assert `holdout.json` is \"not re-run on resume\". The spec does not say which sub-steps of Step 8 the resumed run executes, so the builder cannot tell whether the holdout re-runs (fixing the mtime inversion but contradicting the table, and re-executing a code-blind holdout the spec says is skipped) or does not (preserving the inversion above).",
+        "evidence": "`resume_at_review` step 4 (\"re-run Steps 7.5 + 8\") vs carried-set table row `holdout.json` (\"not re-run on resume\") and the DONE item \"Steps 4–8c are skipped for them\" phrasing in the mtime decision.",
+        "predicted_consequence": "two builders following the same spec produce runs that differ in whether a code-blind holdout executes on a resumed run — one carries a stale-freshness-violating holdout, the other silently re-runs a holdout the spec's evidence-continuity rationale says is carried, not regenerated.",
+        "spec_anchor": "where-the-stash-is-consumed-step-3-resume"
+      },
+      {
+        "lens": "infosec",
+        "severity": "major",
+        "claim": "The park procedure's step 2 commits \"any working-tree review fixes\" and pushes the branch. Review fixes land *after* Step 7's guarded commit, so the working tree at park time is exactly the accumulated-untracked-files state Step 7's allowlist + `faff stage-guard` exists to contain (the PR #258 `.env` vector the spec's own Step 7 names). The spec delegates the commit to \"the park protocol's WIP commit already does this\" — but the park protocol as summarised in the spec's own context (\"WIP commit, flip PR to draft, tracker comment, `faff-parked` tag, log entry\") carries no stage-guard, and the spec never requires one at this new push site. A review-fix session that produced a scratch file, a copied config, or a local `.env` gets committed wholesale and pushed to origin — a secret leak to a durable remote, which is strictly worse than the Step-7 case the spec guards (a local commit) because the push is irreversible.",
+        "evidence": "`PROCEDURE post_review_park` step 2: \"commit any working-tree review fixes (the park protocol's WIP commit already does this) / git push origin <branch>\"; contrast Step 7's \"Guard before commit — `faff stage-guard --worktree . --mode assert` … Only commit + proceed to Step 8b when it exits 0\", which is scoped to the build commit and never extended to the park push.",
+        "predicted_consequence": "a secret-class file present in the post-review working tree is committed by the park WIP commit and pushed to `origin/<branch>` without the stage-guard assertion, leaking it to the remote and to every PR/CI consumer of that branch.",
+        "spec_anchor": "where-the-stash-happens-the-post-review-park-path"
+      },
+      {
+        "lens": "infosec",
+        "severity": "minor",
+        "claim": "The Step-3 resume gate attaches the stashed evidence to the branch on the strength of \"freshly-recomputed diff_hash == stored build.diff_hash\". The spec specifies the mismatch and gone-branch arms (discard) but is silent on what happens when the recompute itself *fails* — `remote-diff-base.sh` exits non-zero, the fetch fails, or `git diff` errors. A trust decision keyed on a computation must state its failure disposition; \"error → treat as match\" is a plausible careless build (the value is \"available\", just unverified) and would attach the stashed rounds to an unverified branch — the exact wrong-evidence outcome the gate exists to prevent.",
+        "evidence": "`PROCEDURE resume_at_review` step 2: \"validate: branch resolves on origin AND freshly-recomputed diff_hash == stored build.diff_hash / mismatch OR gone branch → rm -rf … fresh rebuild\". No arm for recompute error; contrast the park procedure, which does specify its push-failure arm.",
+        "predicted_consequence": "a re-dispatch under a remote/fetch outage restores the stashed review rounds against a branch whose diff was never verified, and the collated verdict asserts findings about code that was never checked.",
+        "spec_anchor": "where-the-stash-is-consumed-step-3-resume"
+      },
+      {
+        "lens": "QA",
+        "severity": "minor",
+        "claim": "The spec's central new mechanism — the \"stash marker label\" — is referenced by the park procedure (step 5), the Step-3 consult gate, the discard path, the terminal-disposition cleanup, the tidy-sweep assumption, and the integration smoke test (\"the stash marker label is present\"), but no label name (or single derivation rule) is ever specified. A tester cannot assert \"the marker is present\" at the park and \"the marker gates the consult\" at resume unless both arms use the same string, and nothing in the spec pins that string.",
+        "evidence": "DONE items \"The stash marker label is applied additively and coexists with `faff-parked`\" and \"The Step-3 store-consult gate fires when the stash marker is present\"; smoke test step 2; §6 decision \"a persistent, additive stash marker label gates the consult\".",
+        "predicted_consequence": "A build can apply one label name at the park arm and gate on a different (or mis-derived) name at the Step-3 arm; every per-arm unit check passes, the re-dispatch silently falls through to a fresh rebuild, and AC1 fails only in the untested integration path. The smoke test itself cannot be written without inventing the name.",
+        "spec_anchor": "where-the-stash-is-consumed-step-3-resume"
+      },
+      {
+        "lens": "QA",
+        "severity": "minor",
+        "claim": "The `holdout`-tagged scenario's \"Then\" requires that \"the stash marker label [is] removed\". The code-blind holdout runs in a cage with no tracker access, so the label-removal half of that scenario is not observable by the very unit tagged for it; only the store-directory removal and the round-1 rebuild are.",
+        "evidence": "The second scenario in `## 5. Scenarios` (`holdout` block), and DONE item \"On a mismatched or gone branch, both the store and the stash marker are removed\".",
+        "predicted_consequence": "The holdout cannot decide the scenario as written; either the scenario is unrunnable in the holdout harness or the label assertion is silently dropped, leaving the marker-orphaning failure mode (a marker pointing at a deleted store, which the spec itself says would cause the next drain to `needs-human` park) unverified.",
+        "spec_anchor": "5-scenarios"
+      },
+      {
+        "lens": "QA",
+        "severity": "minor",
+        "claim": "The spec's git-only paragraph says the park-time push no-ops and \"restore still resumes\", but the Step-3 consult gate fires only on `faff-awaiting-review` / `awaiting-adjudication` / the stash marker label — and git-only mode has no tracker, so no marker label can ever be applied or read. As written, the git-only resume path is unreachable, and no scenario or DONE item covers how the consult gate fires without a tracker.",
+        "evidence": "\"### Edge cases and error handling\" git-only bullet vs. the Step-3 gate widening in \"### Where the stash is consumed: Step 3 resume\".",
+        "predicted_consequence": "A build satisfies every tracker-mode AC while the git-only resume path is dead code; the spec's own git-only claim (\"restore still resumes\") cannot be decided by any test, because the trigger condition it depends on cannot exist in that mode.",
+        "spec_anchor": "edge-cases-and-error-handling"
+      },
+      {
+        "lens": "QA",
+        "severity": "minor",
+        "claim": "The spec names the failed push as a distinct branch (\"IF push fails: rm -rf …; apply faff-parked; return needs-human\") and gives it a DONE item (\"A failed park-time push parks `needs-human` with no stash left behind\"), but no Given/When/Then scenario exercises it — and it is the load-bearing safety valve for the push-at-park decision the spec calls the feature's correctness claim.",
+        "evidence": "Procedure step 2 in \"### Where the stash happens: the post-review park path\"; DONE item under \"From HOW (post-review park)\".",
+        "predicted_consequence": "The one branch whose failure ships wrong evidence (a stash whose hash matches a fix-less branch) is the one branch with no verifiable scenario; a build that skips the `rm -rf` on push failure passes every named scenario.",
+        "spec_anchor": "where-the-stash-happens-the-post-review-park-path"
+      }
+    ]
+  },
+  {
+    "round": 2,
+    "window_start": 1,
+    "objections": [
+      {
+        "lens": "architectural",
+        "severity": "major",
+        "claim": "The spec makes the park-time push load-bearing (\"Abandon the feature's correctness claim if that push is ever made conditional\") while sourcing the push step from Step 8b \"verbatim\" — and Step 8b's push is gated on `faff config get graft.push_at_build_complete -d true`, a gate that exists precisely for repos whose CI fires on every branch push. The spec never resolves the fork. If the builder reuses the machinery verbatim (including the gate), then on a `push_at_build_complete: off` repo the park does not push, the stashed `build.diff_hash` is computed against a pre-fix `origin/<branch>`, the Step-3 hash gate *matches*, and the restored rounds — which record findings as `fixed` — attach to a branch missing the fixes: exactly the failure mode the spec's own Failure modes names, shipped silently. If the builder instead pushes unconditionally, the park violates the repo's explicit config contract and fires CI on every branch push, the cost that config exists to prevent. Either branch is wrong, and the spec text supports both readings.",
+        "evidence": "`post_review_park` step 2-3 (\"Step 2-3 reuse the Step-8b stage-guard + push + `build-progress write` machinery verbatim (faff-graft/SKILL.md ~404-419)\") vs the Failure-modes paragraph (\"Abandon the feature's correctness claim if that push is ever made conditional\") vs Step 8b's own gating clause.",
+        "predicted_consequence": "on any repo with `graft.push_at_build_complete: off`, a re-dispatched parked run ships a collated `review-verdict.json` asserting fixed findings over a diff that lacks the fixes, and the hash gate that was supposed to prevent this passes clean.",
+        "spec_anchor": "where-the-stash-happens-the-post-review-park-path"
+      },
+      {
+        "lens": "infosec",
+        "severity": "major",
+        "claim": "The post-review park procedure orders `faff stage-guard --worktree . --mode assert` *before* any staging, then commits via \"the park protocol's WIP commit\". `stage-guard` checks **staged** paths only; at the point the procedure invokes it, the post-review working tree has not been staged, so the guard inspects an empty index and passes vacuously. The subsequent WIP commit is by convention a bulk commit (not the Step-7 selective allowlist — the spec never restates the \"never `git add -A`\" rule for this site), so untracked scratch files are committed and pushed to `origin` irreversibly while the spec's parenthetical asserts they were \"behind the guard\". The spec's named control is defeated by the spec's own ordering.",
+        "evidence": "Spec procedure `post_review_park` step 2; faff-graft/SKILL.md Step 7 staging rule (\"stage SELECTIVELY, never `git add -A`\") is not carried into the park procedure.",
+        "predicted_consequence": "a secret-class or scratch file present in the post-review working tree is bulk-committed and pushed to origin at park time, with the stage-guard having reported exit 0 — an irreversible secret leak the spec claims its guard prevents.",
+        "spec_anchor": "where-the-stash-happens-the-post-review-park-path"
+      },
+      {
+        "lens": "infosec",
+        "severity": "minor",
+        "claim": "The Step-3 consult gate fires on the presence of the `faff-review-stashed` label (tracker mode), designated machine-writable but with no writer-establishment rule on a shared/multi-tenant tracker. Any party with tracker write access can apply the marker to an arbitrary eligible issue; the re-dispatch then takes the marker-gated path (store absent → forced needs-human park; store present with stale hash → forced discard-and-rebuild). The dispositions are fail-safe, so not a bypass, but a new remote-triggerable park/discard vector granted on an unauthenticated input.",
+        "evidence": "Spec vocabulary (\"Stash marker (`faff-review-stashed`) … machine-writable (not tracker-owned)\"); `resume_at_review` step 1 (marker present + store missing → needs-human park).",
+        "predicted_consequence": "a tracker writer can force a needs-human park (or a stash discard) on any automation-eligible issue by applying one label, with no faff-side validation that the marker was faff-written.",
+        "spec_anchor": "how-does-the-step-3-store-consult-gate-widen-to-cover-a-parked-then-unparked-issue"
+      },
+      {
+        "lens": "methodology",
+        "severity": "major",
+        "claim": "The spec's Scope statement promises it changes \"the resume store … the per-issue park and resume prose in faff-graft/SKILL.md, and nothing … beyond what those two already call\" — but the design requires a new control-label role (`review-stashed`) registered in the `faff labels` manifest (a `labels.js`/config change in neither named file), and the spec's own Assumptions concede a possible tidy-side change. The increment is at least three files wide, possibly four, while its scope line claims two.",
+        "evidence": "Spec Scope vs the DONE item \"The `faff-review-stashed` control label (role `review-stashed`) is in the `faff labels` manifest\" and Assumption 2's tidy fallback.",
+        "predicted_consequence": "The build discovers mid-increment that `labels.js` (and possibly tidy) must change, so the slice either silently exceeds its declared scope or the Step-3 consult gate ships with a marker that no writer ever applies — the re-dispatch falls through to a fresh rebuild and AC1 fails.",
+        "spec_anchor": "2-out-of-scope"
+      },
+      {
+        "lens": "methodology",
+        "severity": "major",
+        "claim": "The marker-label decision is tagged `(decides: architecture)` and the whole Step-3 consult gate keys on it, yet both of its premises — additive machine-writable label coexistence, and tidy's stale-label sweep enumerating control labels generically — are unvalidated and pushed into \"the first hour of the build\" per the critique. If either fails, the documented fallback (a universal issue-keyed store probe) is a different gate architecture, not a parameter tweak — the spec's central HOW decision gets re-litigated mid-build.",
+        "evidence": "Methodology critique risk profile; spec Assumptions and the \"What is the stash marker's concrete name\" decision.",
+        "predicted_consequence": "A mid-build architecture switch on a decision the spec itself labels architectural — the increment cannot ship as plotted and re-enters prep, or ships with a consult gate that never fires for tracker-mode issues.",
+        "spec_anchor": "7-open-questions-and-assumptions"
+      },
+      {
+        "lens": "methodology",
+        "severity": "minor",
+        "claim": "The critique could not judge workstream fit (no project/container in the input) and only conditionally endorses the sibling cluster; the spec ships anyway without recording the home check as a DONE item or a pre-build step.",
+        "evidence": "Methodology critique \"Workstream fit?\".",
+        "predicted_consequence": "not separately stated",
+        "spec_anchor": "methodology-critique"
+      },
+      {
+        "lens": "QA",
+        "severity": "minor",
+        "claim": "The spec does not state whether the three new exclusions (`review-verdict.json`, `review-progress.json`, `holdout.json`) are scoped to the `park-after-review` cause or added to `carriedTopLevel`'s unconditional exclusion list. `carriedTopLevel(dir)` today takes no cause parameter, and the DONE item reads naturally as modifying the function globally while the table implies per-cause scoping. A tester cannot decide which is correct.",
+        "evidence": "DONE item under From WHAT (resume store); carried-set table.",
+        "predicted_consequence": "A build that adds the three files to the unconditional exclusion list passes every park-after-review DONE item while every `review-outage` stash silently drops `review-progress.json`, resetting `outage_retries` to 0 each hold and looping the outage hold unboundedly — the exact failure the spec names as the reason the counter is carried; nothing in the ACs catches it.",
+        "spec_anchor": "from-what-resume-store"
+      },
+      {
+        "lens": "QA",
+        "severity": "minor",
+        "claim": "The edge-case bullet commits to git-only resume (\"the git-only resume path is reachable and restore still resumes\"), but the resume procedure's validation step names only `origin` — \"validate: branch resolves on origin AND …\" — and a git-only repo has no origin. No scenario and no DONE item covers git-only resume, so the described arm is internally inconsistent with the procedure text and completely unasserted.",
+        "evidence": "\"Git-only mode\" bullet under Edge cases; resume procedure step 2; DONE section has no git-only criterion.",
+        "predicted_consequence": "A build passes every AC while the git-only re-dispatch always takes the mismatch/gone arm (the branch cannot resolve on origin), discards the stash, and rebuilds from round 1 — the described git-only resume never fires, undetectable by any test in the spec.",
+        "spec_anchor": "edge-cases-and-error-handling"
+      }
+    ]
+  }
+]

@@ -1,0 +1,214 @@
+# Spec — Narrow the EEXIST/ENOTDIR catch in `cmdConfig` to the config-write path (FAFF-1321)
+
+> Spec: faffter-dark-nlspec · 2026-10-27 · autonomous · claude-code/unknown · confidence: high. Full spec on Linear FAFF-1321.
+
+This spec is for the build agent implementing FAFF-1321, and for the human reviewer confirming the scope. It describes a narrow, low-severity correctness fix in the `faff config` command surface: an error catch that is broader than the fault it was written for, and how to tighten it to exactly that fault.
+
+## 1. WHY — Problem and Principles
+
+**The load-bearing model.** `cmdConfig` wraps the body of every config subcommand in one `try`/`catch`. The catch's final clause turns *any* `EEXIST` or `ENOTDIR` thrown anywhere in that body into a clean `exit 2` with a config-flavoured message. That clause was written for exactly one filesystem operation — the `mkdirSync` that creates the `.faff` directory when a config file is written — but because it lives at the subcommand level and tests only the error *code*, it silently claims every other filesystem error of those two codes as well. The fix moves the detection to that one operation so the catch can only fire for the fault it names.
+
+**Problem statement.** FAFF-1302 added a catch so that a `.faff` existing as a regular file produces a clean `exit 2` instead of a Node stack trace when a writer tries to create the config under it; it does that correctly. But the catch sits at the `cmdConfig` level and matches only `e.code === "EEXIST" || e.code === "ENOTDIR"`, so an `EEXIST`/`ENOTDIR` raised by any other filesystem op inside any config verb would surface as `exit 2` carrying a raw `fs` message with no faff context — a future error misreported as a `.faff`-is-a-file problem. This change narrows the detection to the config-write path so only that fault is caught there.
+
+**Design principles.**
+
+**Preserve the FAFF-1302 behaviour exactly on the write path.** A `.faff` that exists as a regular file must still make `config init`, `config set`, and `config unset` exit `2` with no stack trace. The narrowing may improve the message but must not regress this outcome or the exit code.
+
+**Honest fall-through for everything else.** After narrowing, an `EEXIST`/`ENOTDIR` from a non-write operation (for example a `--create` docs-path `mkdir` against a path that is itself a regular file) must *not* be reported as a config-directory problem. Letting it fall through to its pre-FAFF-1302 behaviour is the correct, honest signal that it is a different fault — reverting a mis-report is the point of this issue, not a regression.
+
+**Follow the existing tagged-error convention.** The config surface has no shared `fail()`/`die()` and no error class. Its house style for a recognised fault is `throw new Error("<tag>")` with extra props, caught in `cmdConfig` and matched on `e.message` (see the `legacy-config-name`, `multiple-config`, `base-parse-error` branches). The fix should fit that pattern rather than introduce a new mechanism.
+
+**Reference context.**
+
+| System | Language | Relevance |
+|---|---|---|
+| `plugin/skills/faff/bin/lib/config.js` | Plain JS (no `.ts` sibling) | Holds `cmdConfig` and its `try`/`catch`; the branch to change is at lines 382–385, the `try` spans 73–387 |
+| `plugin/skills/faff/bin/lib/config-write.js` | Plain JS | Holds `writeConfigFile` (lines 96–99), the single write choke point reached by `init`/`set`/`unset` |
+| `plugin/skills/faff/bin/lib/config-core.js` | Plain JS | Holds `resolveDocsPath` (line 326) and `resolveTemplatesPath` (line 392) — the `--create` `mkdir`s that are the real over-catch sites today |
+| `test/config-under-faff-dir.test.mjs` | Node test (`.mjs`) | Existing FAFF-1302 test at lines 222–229 (covers only `config set`); where the new cases go |
+
+These modules are plain JavaScript with no TypeScript source, so there is **no build step** — edit `config.js` and `config-write.js` directly. `config.js` carries `region:factory` markers; keep all edits inside the existing regions so the region lint passes.
+
+**Scope statement.** This is a localised correctness fix within the `faff config` command dispatcher; it changes where one error is detected, not what any config verb does on the happy path.
+
+## 2. OUT OF SCOPE
+
+- **Clean handling of `--create` docs/templates path `mkdir` failures.** When `docs`, `docs/specs`, or the templates directory is itself a regular file, `config spec-docs-path --create` (and its siblings) raise `EEXIST`/`ENOTDIR` from `resolveDocsPath`/`resolveTemplatesPath`. After this fix they fall through to a Node stack trace — their pre-FAFF-1302 behaviour. **Why excluded:** no reachable path is known to need them clean, and giving each `--create` verb its own clean exit is a separate, larger task. **Extension point:** a future issue would wrap the `fs.mkdirSync` at `config-core.js:326` and `:392` in the same tagged-error style and add matching `cmdConfig` branches.
+- **Changing the exit code or any happy-path output of any config verb.** **Why excluded:** this issue is strictly about over-breadth of one catch. **Extension point:** none — unrelated.
+- **Broadening the write-path handling to other `fs` errors (`EACCES`, `ENOSPC`, …).** **Why excluded:** FAFF-1302 scoped itself to the `.faff`-is-a-file fault (`EEXIST`/`ENOTDIR`); widening the error set is a new decision. **Extension point:** the same choke point in `writeConfigFile` is where additional codes would be recognised if a future issue calls for it.
+
+## 3. WHAT — Vocabulary, Types, and Interfaces
+
+**Vocabulary.**
+
+| Term | Definition |
+|---|---|
+| Config-write path | The single flow `cmdConfigInit` / `cmdConfigSet` / `cmdConfigUnset` → `writeConfigFile(target, text)`, where `fs.mkdirSync(path.dirname(target), { recursive: true })` creates the `.faff` directory. |
+| Over-catch | The current behaviour where the `cmdConfig`-level catch claims `EEXIST`/`ENOTDIR` from operations other than the config-write `mkdir`. |
+| Tagged error | The house pattern `throw new Error("<tag>")` with extra properties, matched in `cmdConfig`'s catch on `e.message`. |
+
+**The tagged error this fix introduces.**
+
+```
+ERROR config-dir-not-a-dir:            # thrown from writeConfigFile's mkdir only
+  message: "config-dir-not-a-dir"      # the match tag cmdConfig keys on
+  dir:     String                      # path.dirname(target), for the message (e.g. <root>/.faff)
+  detail:  String                      # the original fs error message, preserved for context
+  code:    String                      # the original "EEXIST" | "ENOTDIR", preserved
+```
+
+The exact property names (`dir`, `detail`, `code`) are an implementation detail the builder may adjust to match the nearest existing tagged error's shape; what matters is that the original errno message is preserved so the operator still sees it, and that the failing directory is available to the message.
+
+**Design decision — where to narrow.** Two remedies are on the table (the issue names both): catch the `mkdir` fault at the write choke point and re-throw it as a tagged error, or keep the `cmdConfig`-level catch but additionally match on the failing target (`e.path`/`e.syscall`) being the config directory.
+
+- *Tagged error at the choke point:* detection sits on exactly the one operation; the `cmdConfig` branch becomes a tag match consistent with its five sibling branches; the message gains faff context for free. Cost: a small change in two files.
+- *Target-match at the catch:* one file touched, but the match is fragile — `recursive` `mkdir` sets `e.path` to a path component that varies with the failing tier (canonical `.faff` vs an in-place deprecated edit targeting the root), and it leaves the detection coupled to every other op in the `try`.
+
+**Chosen:** tagged error at the write choke point — it narrows to exactly the intended operation, matches the established `e.message` convention, and is robust to the varying `mkdir` target.
+
+**Design decision — message text.** Today the branch prints `faff config: <raw errno message>` (e.g. `faff config: ENOTDIR: not a directory, mkdir '/x/.faff'`), which never mentions that `.faff` is a file. At the choke point the fix knows the operation is config-directory creation, so it can name the fault.
+
+**Chosen:** emit a faff-context message that states the config directory cannot be created because a file of that name exists, and still includes the original errno detail — e.g. `faff config: cannot create the config directory <dir> — a file of that name exists, not a directory (<original errno message>)`. Exit stays `2`.
+
+## 4. HOW — Behaviour
+
+**Approach.** Two edits, both inside existing `region:factory` blocks:
+
+1. In `writeConfigFile` (`config-write.js:96–99`), wrap the `mkdirSync` so an `EEXIST`/`ENOTDIR` from it is re-thrown as the `config-dir-not-a-dir` tagged error carrying the failing directory and the original message/code. Any other error propagates unchanged.
+2. In `cmdConfig`'s catch (`config.js`), replace the current `if (e.code === "EEXIST" || e.code === "ENOTDIR")` branch (lines 382–385) with a branch matching `e.message === "config-dir-not-a-dir"` that writes the faff-context message and returns `2`. The trailing `throw e` is unchanged.
+
+**Behaviour summary.** After the change, the clean `exit 2` fires only when the config-write `mkdir` fails because `.faff` is a file; every other `EEXIST`/`ENOTDIR` reaches `throw e` and behaves as it did before FAFF-1302 existed.
+
+```
+PROCEDURE writeConfigFile(target, text):
+  1. dir := path.dirname(target)
+  2. TRY fs.mkdirSync(dir, { recursive: true })
+     CATCH e:
+       a. IF e.code is "EEXIST" or "ENOTDIR":
+            throw TaggedError("config-dir-not-a-dir", { dir, detail: e.message, code: e.code })
+       b. ELSE: re-throw e unchanged
+  3. fs.writeFileSync(target, text)      # unchanged
+```
+
+```
+PROCEDURE cmdConfig catch (replacing lines 382-385):
+  ... existing legacy-config-name / multiple-config / overlay / base-parse-error branches unchanged ...
+  IF e.message == "config-dir-not-a-dir":
+     write to stderr:
+       "faff config: cannot create the config directory " + <dir> +
+       " — a file of that name exists, not a directory (" + e.detail + ")\n"
+     return 2
+  throw e                                 # unchanged — all other errors, including raw EEXIST/ENOTDIR
+```
+
+**Edge cases.**
+- **Deprecated-tier in-place edit (`--local` or a resolved `.faffrc*` target).** `resolveWriteTarget` may target a path whose `dirname` is the repo root (an existing directory); `mkdirSync` is then a no-op and throws nothing — unchanged, correct.
+- **Both plain and `--local` canonical writers hit `.faff`.** `CANONICAL_CONFIG` is `.faff/config.yaml` and `CANONICAL_OVERLAY_CONFIG` is `.faff/config.local.yaml`, so for a repo with no existing config the `mkdir` target is `.faff` in both cases; both must produce the clean exit when `.faff` is a file.
+- **`--dry-run` / `--selftest` writers.** `init`/`set`/`unset` never reach `writeConfigFile` under these flags, so the new path is not exercised — unchanged.
+- **Read-only verbs with `.faff` as a file.** Resolvers use `existsSync` (which returns `false`, not throw), so `config path`, `config get`, `config resolved`, etc. still succeed or return their normal no-config code (e.g. `config path` → exit 3) — unaffected and must stay so.
+
+**Failure modes.**
+- **The failure:** the tagged error is thrown but not matched — e.g. the `cmdConfig` branch is left keyed on `e.code` while `writeConfigFile` now throws a tag, or vice versa. **How you'd know:** the FAFF-1302 test (and the new positive cases) would fail with a Node stack trace and exit `1` instead of a clean exit `2`. **What it means:** the two edits are out of sync — fix the match.
+- **The failure:** the catch block is edited outside a `region:factory` marker. **How you'd know:** the region lint fails in CI. **What it means:** move the edit back inside the existing region.
+
+**Anti-pattern:** keeping the `e.code === "EEXIST" || e.code === "ENOTDIR"` test at the `cmdConfig` level "as a safety net" alongside the new tagged branch. Why: that is the exact over-catch this issue removes — it would re-introduce the mis-report for every non-write op.
+
+**Anti-pattern:** wrapping the whole `writeConfigFile` body (including `writeFileSync`) or broadening to other error codes. Why: the fault FAFF-1302 names is the directory-creation `mkdir`; widening re-opens the breadth problem in a new place.
+
+## 5. Scenarios
+
+```
+Given a git repo where `.faff` exists as a regular file (not a directory)
+When `faff config init` is run
+Then the command exits 2, prints no Node stack trace, and its stderr names the config directory as a file that already exists
+```
+
+```
+Given a git repo where `.faff` exists as a regular file
+When `faff config set logging full` is run (canonical write target .faff/config.yaml)
+Then the command exits 2 with no stack trace (the preserved FAFF-1302 behaviour)
+```
+
+```holdout
+Given a git repo where `.faff` exists as a regular file
+When `faff config unset appetite` is run
+Then the command exits 2, prints no Node stack trace, and its stderr names the config directory as a file that already exists
+```
+
+```
+Given a git repo with NO `.faff` present but with `docs` existing as a regular file
+When `faff config spec-docs-path --create` is run (its mkdir of docs/specs raises ENOTDIR)
+Then the failure is NOT reported as the config-directory-is-a-file clean exit 2 — it falls through unchanged (a Node stack trace / non-2 exit), confirming the catch no longer over-claims
+```
+
+The `config unset` scenario is withheld as a holdout: it is a second concrete instantiation of the write-path rule the two visible positive scenarios already state, not a new requirement.
+
+## 6. Design Decision Rationale
+
+**Where should the narrowing happen — the write choke point or the subcommand catch?**
+- *Option: re-throw a tagged error from `writeConfigFile`'s `mkdir`.* Pro: detection is bound to the one operation; the `cmdConfig` branch becomes a tag match like its five siblings; message gains context. Con: touches two files.
+- *Option: keep the `cmdConfig` catch and add a target match (`e.path`/`e.syscall`).* Pro: one file. Con: `recursive` `mkdir`'s `e.path` varies by tier, so the match is fragile, and detection stays coupled to every other op in the `try`.
+- **Chosen:** tagged error at the write choke point — robust and convention-matching.
+
+**What should the message say?**
+- *Option: keep printing the raw errno message.* Con: never states that `.faff` is a file; the FAFF-1302 message gap persists.
+- *Option: a faff-context message naming the config directory, retaining the errno detail.* Pro: clear to the operator, costs nothing now that detection is at the choke point.
+- **Chosen:** faff-context message that names the directory and keeps the original errno detail; exit stays `2`.
+
+**Should `--create` docs/templates `mkdir` failures also be handled cleanly now?**
+- *Option: handle them in this issue.* Con: scope creep — each `--create` verb would need its own tagged throw and branch, and no reachable path is known to need it.
+- *Option: leave them to fall through (their pre-FAFF-1302 behaviour).* Pro: keeps the fix tight and is the honest signal that they are a different fault; the behaviour is unchanged from before FAFF-1302.
+- **Chosen:** leave them to fall through; record the extension point under OUT OF SCOPE.
+
+## 7. Open Questions and Assumptions
+
+**Open Questions.** None — every decision above is closed.
+
+**Assumptions.** None requiring external validation. All referenced symbols, line numbers, and the canonical config paths were confirmed against the repository during exploration.
+
+## 8. DONE — Definition of Done
+
+### From WHY (preserve FAFF-1302 on the write path)
+- [ ] With `.faff` as a regular file, `faff config set logging full` exits `2` with no `    at ` stack-trace line (the existing test at `test/config-under-faff-dir.test.mjs:222–229` still passes).
+- [ ] With `.faff` as a regular file, `faff config init` exits `2` with no stack trace.
+- [ ] With `.faff` as a regular file, `faff config unset <key>` exits `2` with no stack trace.
+- [ ] With `.faff` as a regular file, `faff config set logging full --local` (overlay write target `.faff/config.local.yaml`) exits `2` with no stack trace.
+
+### From WHAT (tagged error + message)
+- [ ] `writeConfigFile` re-throws an `EEXIST`/`ENOTDIR` from its `mkdirSync` as a `config-dir-not-a-dir`-tagged error that carries the failing directory and the original errno message; any other `mkdirSync` error propagates unchanged.
+- [ ] `cmdConfig`'s catch matches that tag (not `e.code`) and writes a message naming the config directory as an existing file while still including the original errno detail, then returns `2`.
+
+### From HOW (narrowing / honest fall-through)
+- [ ] The `e.code === "EEXIST" || e.code === "ENOTDIR"` test is removed from the `cmdConfig`-level catch; the only remaining catch of those codes is the one at `writeConfigFile`'s `mkdir`.
+- [ ] With no `.faff` present and `docs` as a regular file, `faff config spec-docs-path --create` is NOT reported as the config-directory clean exit 2 (it falls through to a stack trace / non-2 exit).
+- [ ] Read-only verbs with `.faff` as a file are unaffected (e.g. `faff config path` exits `3` with no config, no error).
+
+### Repository-test and structural checks (not holdout-judgeable)
+- [ ] New test cases are added to `test/config-under-faff-dir.test.mjs` covering `config init`, `config unset`, and `config set --local` (positive, exit 2, no stack trace) plus the `spec-docs-path --create` negative case; `node --test test/config-under-faff-dir.test.mjs` passes.
+- [ ] All edits in `config.js` and `config-write.js` sit inside existing `region:factory` markers and the region lint passes.
+
+### Integration smoke test
+```
+PROCEDURE smoke:
+  1. mkdir a fresh git repo; write `.faff` as a regular file containing "not a directory\n"
+  2. run `faff config set logging full`
+  3. ASSERT exit code == 2
+  4. ASSERT stderr contains no "    at " line (no stack trace)
+  5. ASSERT stderr names the config directory / mentions a file where a directory is expected
+```
+
+## Methodology critique
+
+Methodology: faffter-dark-methodology-agile-delivery
+
+**Right-sized?** No issues. Single ~1-day correctness fix: two edits (tag the mkdir in `writeConfigFile`, match the tag in the `cmdConfig` catch) that only make sense together, plus their tests — one coherent unit, nothing to split or merge.
+
+**Workstream fit?** No issues. Loose in project-less Backlog, which is the correct default landing for a standalone low-severity fix with no outcome stream to sequence it into; no cohesion smell.
+
+**Deps surfaced?** No issues. The spec references FAFF-1302 (which added the catch at `config.js:382`), but that work is already shipped and present in the tree — it is historical context, not an open prerequisite, so no missing blocker link. The spec notes no open punts and no external assumptions.
+
+**Risk profile?** No issues. Confidence is high, both edits sit inside existing `region:factory` blocks on a well-understood error-handling path, no new runnable surface and no new dependencies, and the tag-match change aligns the FAFF-1302 branch with the `e.message` pattern the surrounding branches already use. Positive and negative tests are added. No novel-integration or external-dep risk, so no de-risking spike is warranted.
+
+confidence: high
+spec-review: approve
+build-tier: complex

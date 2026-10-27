@@ -1,0 +1,38 @@
+[
+  {
+    "claim": "the caged path (evaluate-call.mjs) calls the strict WRITER buildHoldoutRecord directly, which refuses a code-less fresh emission into a criteria:[] fail-closed record before the contract sees it, so the absent-code tolerance never applies to the evaluator block and the env-gap distinction is erased in the skew case the rollout paragraph claims is benign.",
+    "evidence": "",
+    "predicted_consequence": null,
+    "spec_anchor": "4-how-behaviour",
+    "lens": "architectural",
+    "severity": "major",
+    "contested_source": false
+  },
+  {
+    "claim": "DONE writer bullets contradict: stamps reason_code vs refuses a block missing it — a builder could implement a silently-defaulting writer.",
+    "evidence": "",
+    "predicted_consequence": null,
+    "spec_anchor": "8-done-definition-of-done",
+    "lens": "architectural",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "a refused record does not stamp the salvageable codes; a no-surface emission that trips a cross-field rule is re-written as a generic fail-closed needs-human with needs_human_reasons absent, folding an env gap into undifferentiated human-only.",
+    "evidence": "",
+    "predicted_consequence": null,
+    "spec_anchor": "from-how-behaviour",
+    "lens": "infosec",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "two incompatible rules for when needs_human_reasons appears (emitted whenever >=1 needs-human vs omit when empty); a legacy needs-human block with counts=={} makes the gate-output DONE acceptance undecidable.",
+    "evidence": "",
+    "predicted_consequence": null,
+    "spec_anchor": "deriving-needs_human_reasons-gate-rollup",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  }
+]

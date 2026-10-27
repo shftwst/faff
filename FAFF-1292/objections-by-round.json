@@ -1,0 +1,56 @@
+[
+  {
+    "round": 1,
+    "window_start": 1,
+    "objections": [
+      {
+        "lens": "architectural",
+        "severity": "minor",
+        "claim": "The spec asserts holdout blocks/records are ephemeral per-run artifacts with no cross-version migration, but .faff/holdout/<key>.json is a cross-run store re-read and re-validated through computeHoldoutVerdict on every invocation; a pre-change record carrying a needs-human criterion lacks reason_code, so once the new biconditional constraint lands every such stored record becomes contract-rejected rather than the needs-human value it carried.",
+        "spec_anchor": "open-questions-and-assumptions"
+      },
+      {
+        "lens": "methodology",
+        "severity": "minor",
+        "claim": "reason_code mandatory-iff-needs-human is not purely additive for the caged dispatch path: the inner evaluator emission and the writer refusal rule must move in lockstep; until they do, a caged run's block is refused into a fail-closed needs-human record. An operational sequencing dependency the reference-context table and Already-shipped section never name.",
+        "spec_anchor": "edge-cases-and-error-handling"
+      },
+      {
+        "lens": "QA",
+        "severity": "minor",
+        "claim": "Smoke step 3 cannot produce needs_human_reasons {no-surface:1} because the hand-built block lacks criterion ids and buildHoldoutRecord refuses any block whose criterion ids do not match the running-stack judged set from faff dod classify, writing a fail-closed record with criteria:[] from which the gate emits no needs_human_reasons.",
+        "spec_anchor": "8-done-definition-of-done"
+      }
+    ]
+  },
+  {
+    "round": 2,
+    "window_start": 1,
+    "objections": [
+      {
+        "lens": "architectural",
+        "severity": "major",
+        "claim": "the caged path (evaluate-call.mjs) calls the strict WRITER buildHoldoutRecord directly, which refuses a code-less fresh emission into a criteria:[] fail-closed record before the contract sees it, so the absent-code tolerance never applies to the evaluator block and the env-gap distinction is erased in the skew case the rollout paragraph claims is benign.",
+        "spec_anchor": "4-how-behaviour"
+      },
+      {
+        "lens": "architectural",
+        "severity": "minor",
+        "claim": "DONE writer bullets contradict: stamps reason_code vs refuses a block missing it — a builder could implement a silently-defaulting writer.",
+        "spec_anchor": "8-done-definition-of-done"
+      },
+      {
+        "lens": "infosec",
+        "severity": "minor",
+        "claim": "a refused record does not stamp the salvageable codes; a no-surface emission that trips a cross-field rule is re-written as a generic fail-closed needs-human with needs_human_reasons absent, folding an env gap into undifferentiated human-only.",
+        "spec_anchor": "from-how-behaviour"
+      },
+      {
+        "lens": "QA",
+        "severity": "minor",
+        "claim": "two incompatible rules for when needs_human_reasons appears (emitted whenever >=1 needs-human vs omit when empty); a legacy needs-human block with counts=={} makes the gate-output DONE acceptance undecidable.",
+        "spec_anchor": "deriving-needs_human_reasons-gate-rollup"
+      }
+    ]
+  }
+]

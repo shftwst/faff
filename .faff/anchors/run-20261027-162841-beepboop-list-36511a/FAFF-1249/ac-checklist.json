@@ -1,0 +1,442 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A build held while the judge was mid-assemble resumes into `--assemble`, not a reviewer round: between `faff resume-store restore` exiting 0 and the first `--admit` call, no new `round-<n>.json` appears in `build-review/`.",
+      "verified": "integration test passes: restore then resumed --assemble reopens the case, no round-3.json appears, --admit exits 0",
+      "passed": true,
+      "ac_id": "faff-1249#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/build-judge-evidence.test.mjs::integration: an outage park survives stash and restore, and the resumed --assemble reopens it and --admit admits"
+        }
+      ]
+    },
+    {
+      "ac": "`graft.build_review_hold_limit` still bounds the judge-stage path: a third consecutive judge-stage hold at the default limit of 2 parks `needs-human`.",
+      "verified": "hold-limit bound is graft's existing hold_count >= limit park; the resume arm prose keeps hold_count seeded and counted, and --reopen-for-hold above the limit reopens nothing (tested)",
+      "passed": true,
+      "ac_id": "faff-1249#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/build-judge-evidence.test.mjs::--reopen-for-hold: a hold count above graft.build_review_hold_limit reopens and records nothing, and warns"
+        }
+      ]
+    },
+    {
+      "ac": "`stash` writes `dialogue.stage` whenever it writes `dialogue`, for either cause: `\"judge\"` when `build-review/judge/ledger.json` is a regular file in the issue dir, `\"dialogue\"` otherwise (absent, a directory or a symlink). A record with no `dialogue` carries no `stage`.",
+      "verified": "stash tests pass for stage judge/dialogue and both causes",
+      "passed": true,
+      "ac_id": "faff-1249#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::stash records stage judge when the judge ledger is a regular file, for either cause"
+        },
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::stash records stage dialogue when the judge ledger is absent, a directory or a symlink"
+        },
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::a stash with no round files carries no dialogue and so no stage, whatever judge/ holds"
+        }
+      ]
+    },
+    {
+      "ac": "`stash` takes no new flag; `stage` is never read from argv.",
+      "verified": "stash given --stage exits 2; stage is derived from disk only",
+      "passed": true,
+      "ac_id": "faff-1249#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::stash takes no stage flag"
+        }
+      ]
+    },
+    {
+      "ac": "`holdRecordProblem` accepts an absent `stage`, accepts `\"dialogue\"` and `\"judge\"`, and rejects any other value (`read` and `restore` exit 2).",
+      "verified": "accepts absent/dialogue/judge, rejects other values with exit 2 on read and restore",
+      "passed": true,
+      "ac_id": "faff-1249#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::a hold record whose stage is not dialogue or judge exits 2 on read and restore, leaving the run dir unchanged"
+        },
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::a dialogue-stage record restores without a judge ledger"
+        }
+      ]
+    },
+    {
+      "ac": "Torn-record check: a hold record with a `stage` present but no `dialogue` object is rejected, so `read` and `restore` exit 2 and the run dir is unchanged.",
+      "verified": "stage outside a dialogue object exits 2 on read and restore, run dir unchanged",
+      "passed": true,
+      "ac_id": "faff-1249#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::a hold record with a stage outside a dialogue object exits 2 on read and restore, leaving the run dir unchanged"
+        }
+      ]
+    },
+    {
+      "ac": "A pre-change record with no `stage` restores and reads exactly as before.",
+      "verified": "a legacy record without stage reads and restores as before",
+      "passed": true,
+      "ac_id": "faff-1249#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::a legacy hold record without stage reads and restores as before"
+        }
+      ]
+    },
+    {
+      "ac": "`restore` exits 1 with the run dir unchanged when the record says `judge` and the stashed store has no `build-review/judge/ledger.json`.",
+      "verified": "stashed judge-stage store without ledger refused, exit 1, run dir unchanged",
+      "passed": true,
+      "ac_id": "faff-1249#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::restore of a judge-stage record refuses with the run dir unchanged when the stashed store has no judge ledger"
+        }
+      ]
+    },
+    {
+      "ac": "`restore` exits 1 with the run dir unchanged when the staged copy has no judge ledger (checked like `proveRounds`' staged check).",
+      "verified": "staged copy without ledger refused, run dir unchanged",
+      "passed": true,
+      "ac_id": "faff-1249#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/resume-store.test.mjs::restore of a judge-stage record refuses with the run dir unchanged when the staged copy has no judge ledger"
+        }
+      ]
+    },
+    {
+      "ac": "Every dispatch-time park writes `park_class`: `outage` for `runPhase` exhaustion (both cause shapes), `backend-chain` for an unset or malformed backend chain, `final` for every other dispatch park.",
+      "verified": "park_class asserted at outage (phase 1, phase 2, killed attempt), backend-chain (unset, malformed) and final sites",
+      "passed": true,
+      "ac_id": "faff-1249#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/build-judge-evidence.test.mjs::park_class: exhausted Phase-1 retries park as outage, with the park_cause string unchanged"
+        },
+        {
+          "kind": "test",
+          "locator": "test/build-judge-evidence.test.mjs::park_class: exhausted Phase-2 retries park as outage"
+        },
+        {
+          "kind": "test",
+          "locator": "test/build-judge-evidence.test.mjs::park_class: an unset or malformed backend chain parks as backend-chain"
+        },
+        {
+          "kind": "test",
+          "locator": "test/build-judge-evidence.test.mjs::park_class: every other dispatch park is final"
+        }
+      ]
+    },
+    {
+      "ac": "Assemble-time parks from `assembleBuildCaseFiles` carry no `park_class`.",
+      "verified": "assemble-time park carries no park_class",
+      "passed": true,
+      "ac_id": "faff-1249#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/build-judge-evidence.test.mjs::park_class: an assemble-time park carries none"
+        }
+      ]
+    },
+    {
+      "ac": "`--reopen-for-hold` accepts an integer >= 1; any other value is a usage error, exit 2, with no file written.",
+      "verified": "0, -1, abc, 1.5 and empty are exit 2 and write no judge dir",
+      "passed": true,
+      "ac_id": "faff-1249#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/build-judge-evidence.test.mjs::--reopen-for-hold: 0, -1, abc and 1.5 are usage errors (exit 2) that write nothing"
+        }
+      ]
+    },
+    {
+      "ac": "`adjudicationIdentity` is byte-identical to before (the new fields do not affect resume).",
+      "verified": "identity unchanged by reopen fields; reopened ledger still resumes",
+      "passed": true,
+      "ac_id": "faff-1249#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/build-judge-evidence.test.mjs::adjudicationIdentity ignores the reopen fields, so a reopened ledger still resumes"
+        }
+      ]
+    },
+    {
+      "ac": "The summary always carries `reopened` (`[]` when nothing was reopened); every existing field keeps its meaning.",
+      "verified": "summary always carries reopened",
+      "passed": true,
+      "ac_id": "faff-1249#done:14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/build-judge-evidence.test.mjs::the summary always carries reopened, [] without the flag"
+        }
+      ]
+    },
+    {
+      "ac": "`park_cause` strings are byte-identical to before.",
+      "verified": "existing exhausted-cause string assertions still pass unchanged",
+      "passed": true,
+      "ac_id": "faff-1249#done:15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/build-judge-evidence.test.mjs::cmdAssemble: always-retry across calls makes exactly retryLimit + 1 Phase-1 calls and parks with the single-call cause"
+        }
+      ]
+    },
+    {
+      "ac": "With `--reopen-for-hold n` on a resumed ledger, every `outage` or `backend-chain` parked entry becomes `pending`, loses `park_cause` and `park_class`, gains `reopen_count + 1`, and is dispatched in the same call.",
+      "verified": "outage park becomes pending, loses cause/class, gains reopen_count and is dispatched in the same call",
+      "passed": true,
+      "ac_id": "faff-1249#done:16",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/build-judge-evidence.test.mjs::--reopen-for-hold: an outage park is dispatched again from attempt 1, a ruled case is left alone, and a repeat of the same hold reopens nothing"
+        }
+      ]
+    },
+    {
+      "ac": "A reopened entry with a persisted reconstruction resets only `phase2_attempts`, keeps `recon-<case_id>.json`, and makes no Phase-1 call.",
+      "verified": "reconstruction kept, only phase 2 reset, no Phase-1 call",
+      "passed": true,
+      "ac_id": "faff-1249#done:17",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/build-judge-evidence.test.mjs::--reopen-for-hold: a reopened case with a persisted reconstruction resets only Phase 2 and makes no Phase-1 call"
+        }
+      ]
+    },
+    {
+      "ac": "A reopened entry without a reconstruction resets both phase counters and starts at Phase 1.",
+      "verified": "without a reconstruction both counters reset and Phase 1 runs",
+      "passed": true,
+      "ac_id": "faff-1249#done:18",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/build-judge-evidence.test.mjs::--reopen-for-hold: an outage park is dispatched again from attempt 1, a ruled case is left alone, and a repeat of the same hold reopens nothing"
+        }
+      ]
+    },
+    {
+      "ac": "`final` parks and entries with no `park_class` are never reopened.",
+      "verified": "final and class-less parks never reopened",
+      "passed": true,
+      "ac_id": "faff-1249#done:19",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/build-judge-evidence.test.mjs::--reopen-for-hold: final parks and parks with no class are never reopened"
+        }
+      ]
+    },
+    {
+      "ac": "A second call with the same `n` reopens nothing; `ledger.reopened_for_holds` holds `n` once.",
+      "verified": "same n twice reopens nothing; reopened_for_holds holds n once",
+      "passed": true,
+      "ac_id": "faff-1249#done:20",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/build-judge-evidence.test.mjs::--reopen-for-hold: an outage park is dispatched again from attempt 1, a ruled case is left alone, and a repeat of the same hold reopens nothing"
+        }
+      ]
+    },
+    {
+      "ac": "A call with `n` above `graft.build_review_hold_limit` reopens nothing, records nothing and prints a stderr warning; the call otherwise proceeds.",
+      "verified": "n above the limit reopens nothing, records nothing, warns on stderr",
+      "passed": true,
+      "ac_id": "faff-1249#done:21",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/build-judge-evidence.test.mjs::--reopen-for-hold: a hold count above graft.build_review_hold_limit reopens and records nothing, and warns"
+        }
+      ]
+    },
+    {
+      "ac": "On a fresh (non-resumed) ledger the flag reopens nothing and sets `reopened_for_holds` to `[n]`, so a later call with the same `n` that resumes that ledger reopens nothing either.",
+      "verified": "fresh ledger records [n], later matching call reopens nothing",
+      "passed": true,
+      "ac_id": "faff-1249#done:22",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/build-judge-evidence.test.mjs::--reopen-for-hold: a fresh ledger records the hold and reopens nothing, and a later matching call does not reopen either"
+        }
+      ]
+    },
+    {
+      "ac": "A reopened `backend-chain` entry whose chain is still unset is re-parked with `park_class: \"backend-chain\"` and no review-call is spawned.",
+      "verified": "backend-chain entry re-parked with class and reopen_count 1, zero calls",
+      "passed": true,
+      "ac_id": "faff-1249#done:23",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/build-judge-evidence.test.mjs::--reopen-for-hold: a backend-chain park is reopened and re-parked with its class and a reopen_count, with no call made"
+        }
+      ]
+    },
+    {
+      "ac": "The ledger with the reopen applied is persisted before the first dispatch of that call.",
+      "verified": "ledger snapshot read inside the first dispatch already holds the reopen",
+      "passed": true,
+      "ac_id": "faff-1249#done:24",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/build-judge-evidence.test.mjs::--reopen-for-hold: the reopened ledger is on disk before the first dispatch of the call"
+        }
+      ]
+    },
+    {
+      "ac": "faff-graft line 204's `build-review-dialogue` arm branches on `dialogue.stage`: `judge` goes to the chunked judge loop with `--reopen-for-hold <hold_count>` on every `--assemble` call, then `--admit`; `dialogue` or absent re-enters the dialogue loop as today.",
+      "verified": "SKILL.md Step 3 build-review-dialogue arm now branches on dialogue.stage (judge to chunked judge loop with --reopen-for-hold on every call then --admit; dialogue or absent to the dialogue loop)",
+      "passed": true,
+      "ac_id": "faff-1249#done:25",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'dialogue.stage' plugin/skills/faff-graft/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "The resumed judge's `--assemble` arguments carry no `--run-id`, `--window-start`, `--acceptance-criteria` or `--repository-evidence` (matching Step 9 today).",
+      "verified": "resume arm states Step 9's invocation verbatim with no --run-id, --window-start, --acceptance-criteria or --repository-evidence",
+      "passed": true,
+      "ac_id": "faff-1249#done:26",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'verbatim' plugin/skills/faff-graft/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "faff-graft's judge-stage resume arm captures `--diff` with the Remote-backed review diff block in the resumed worktree, and line 501 names that same block as the in-drain judge's `--diff` source.",
+      "verified": "resume arm recaptures --diff with the Remote-backed review diff block; the would-be-park judge paragraph names that block as the in-drain source",
+      "passed": true,
+      "ac_id": "faff-1249#done:27",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'Remote-backed review diff' plugin/skills/faff-graft/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "The resume arm's `--assemble` invocation is Step 9's invocation verbatim plus `--reopen-for-hold`; the prose states the two must carry the same flag set.",
+      "verified": "the prose states the resume invocation is Step 9's verbatim plus --reopen-for-hold and that any difference changes the ledger identity",
+      "passed": true,
+      "ac_id": "faff-1249#done:28",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'reopen-for-hold' plugin/skills/faff-graft/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "faff-graft's `built-but-not-admitted` return value names the judge-stage resume.",
+      "verified": "the built-but-not-admitted return value names the judge-stage resume",
+      "passed": true,
+      "ac_id": "faff-1249#done:29",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'or the judge when' plugin/skills/faff-graft/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "`faff validate-adapters` passes; any `SKILL_LINE_BASELINE[\"faff-graft\"]` change is exact and carries a `FAFF-1249` note.",
+      "verified": "validate-adapters passes with the faff-graft baseline raised exactly 892 to 894 and a FAFF-1249 note",
+      "passed": true,
+      "ac_id": "faff-1249#done:30",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "`docs/guide/cli.md` documents `dialogue.stage` on the `resume-store` row, and `--reopen-for-hold`, `park_class` and `reopened` on the `build-judge-evidence` row.",
+      "verified": "cli.md resume-store and build-judge-evidence rows document stage, --reopen-for-hold, park_class and reopened; lint-cli-doc passes",
+      "passed": true,
+      "ac_id": "faff-1249#done:31",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-doc"
+        }
+      ]
+    },
+    {
+      "ac": "`test/resume-store.test.mjs` covers: stage `judge` and `dialogue` at stash; a symlinked ledger reads as `dialogue`; a legacy record without `stage`; an out-of-enum `stage` (exit 2); a `stage` with no `dialogue` object (exit 2); the stashed and staged missing-ledger refusals.",
+      "verified": "all required resume-store test cases present and passing",
+      "passed": true,
+      "ac_id": "faff-1249#done:32",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/resume-store.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`test/build-judge-evidence.test.mjs` covers: `park_class` at each park site; reopen of `outage` with and without a reconstruction; reopen of `backend-chain` re-parking with no spawn; `final` and absent-class never reopened; idempotence on a repeated `n`; a fresh ledger records `n` and a later matching call does not reopen; the usage error; `park_cause` strings unchanged (the existing FAFF-1244 exhausted-cause assertion still passes).",
+      "verified": "all required build-judge-evidence test cases present and passing",
+      "passed": true,
+      "ac_id": "faff-1249#done:33",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/build-judge-evidence.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`faff resume-store --selftest` and the full `node --test test/` suite pass.",
+      "verified": "resume-store selftest passes and the full suite ran green as the gate ladder UNIT rung",
+      "passed": true,
+      "ac_id": "faff-1249#done:34",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff resume-store --selftest"
+        },
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test"
+        }
+      ]
+    }
+  ]
+}

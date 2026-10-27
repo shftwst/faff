@@ -1,0 +1,183 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/build-judge-evidence.js::stale hold count accepted by reopenforhold",
+      "title": "Stale hold count accepted by reopenForHold",
+      "location": "plugin/skills/faff/bin/lib/build-judge-evidence.js",
+      "action": "Cross-check --reopen-for-hold against the hold record.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The CLI has no access to the hold record (hold.json stays in the store, never in the run dir). The spec's Failure modes section names a wrong hold count and bounds it: each value reopens at most once and values above graft.build_review_hold_limit reopen nothing.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Stale hold count accepted by reopenForHold",
+          "location": "plugin/skills/faff/bin/lib/build-judge-evidence.js",
+          "severity": "major",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/build-judge-evidence.js::reopen resets attempt counters per call",
+      "title": "Reopen resets attempt counters per call",
+      "location": "plugin/skills/faff/bin/lib/build-judge-evidence.js",
+      "action": "Track a per-hold attempt budget.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "refuted",
+      "refutation": "reopenForHold returns early when n is in reopened_for_holds",
+      "disposition_rationale": "The reset runs once per hold count, guarded by reopened_for_holds, and attempts are persisted before each attempt, so later chunk calls count on from the reset. Tests: a repeated n reopens nothing; a second hold count gets one full budget of retryLimit + 1 attempts.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Reopen resets attempt counters per call",
+          "location": "plugin/skills/faff/bin/lib/build-judge-evidence.js",
+          "severity": "major",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/resume-store.js::provestage checks ledger presence only",
+      "title": "proveStage checks ledger presence only",
+      "location": "plugin/skills/faff/bin/lib/resume-store.js",
+      "action": "Validate the ledger's contents at restore.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "refuted",
+      "refutation": "adjudicationIdentity is the mechanical backstop (spec section 4)",
+      "disposition_rationale": "The spec fixes the check at presence. A mismatched or torn ledger fails the adjudication identity in --assemble and starts a fresh pass over the shipping code, never a wrong admit.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "proveStage checks ledger presence only",
+          "location": "plugin/skills/faff/bin/lib/resume-store.js",
+          "severity": "major",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/build-judge-evidence.js::reopened_for_holds records n when nothing reopened",
+      "title": "reopened_for_holds records n when nothing reopened",
+      "location": "plugin/skills/faff/bin/lib/build-judge-evidence.js",
+      "action": "Record n only when an entry was reopened.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "The spec's reopen procedure step 6 requires recording n even when nothing was reopened; this is what makes the flag idempotent. The stale-n scenario it fears is the first finding.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "reopened_for_holds records n when nothing reopened",
+          "location": "plugin/skills/faff/bin/lib/build-judge-evidence.js",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/resume-store.js::stage derived from source dir rather than staged copy",
+      "title": "stage derived from source dir rather than staged copy",
+      "location": "plugin/skills/faff/bin/lib/resume-store.js",
+      "action": "Derive stage from lock.stage after the copy.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The spec derives stage from the same src dir; nothing writes the issue dir while a stash runs (the build turn has ended), so the race is not reachable.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "stage derived from source dir rather than staged copy",
+          "location": "plugin/skills/faff/bin/lib/resume-store.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/build-judge-evidence.js::reopen-for-hold cannot tell first hold from later one",
+      "title": "reopen-for-hold cannot tell first hold from later one",
+      "location": "plugin/skills/faff/bin/lib/build-judge-evidence.js",
+      "action": "Cross-check against the hold record.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Duplicate of the first finding; no new defect.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "reopen-for-hold cannot tell first hold from later one",
+          "location": "plugin/skills/faff/bin/lib/build-judge-evidence.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/build-judge-evidence.js::fresh ledger records n before the pass completes",
+      "title": "Fresh ledger records n before the pass completes",
+      "location": "plugin/skills/faff/bin/lib/build-judge-evidence.js",
+      "action": "Defer recording n until the pass completes.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "refuted",
+      "refutation": "runPhase parks only on exhaustion",
+      "disposition_rationale": "A case only parks as an outage after its full retryLimit + 1 attempts, so a parked entry in a fresh pass has already spent that hold's budget; an interrupted pass leaves the entry pending, not parked.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Fresh ledger records n before the pass completes",
+          "location": "plugin/skills/faff/bin/lib/build-judge-evidence.js",
+          "severity": "observation",
+          "disposition": "refuted"
+        }
+      ]
+    }
+  ]
+}

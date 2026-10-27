@@ -10,7 +10,7 @@ This file records every run considered for the post-fix stratum, as `protocol-v2
 
 ## Where the records are
 
-All runs below ran on `fly-ci-l3-runner` (stratum S3). Their run directories and streams live on the runner's state volume (`faff-state` Docker volume, `runs/` and `streams/`). The count was read from a fork of that volume on 2026-10-27; the fork was destroyed afterwards. The corpus for grading has to be extracted from the volume again; it is not committed yet.
+All runs below ran on `fly-ci-l3-runner` (stratum S3). Their run directories and streams live on the runner's state volume (`faff-state` Docker volume, `runs/` and `streams/`). The count was read from a fork of that volume on 2026-10-27; the fork was destroyed afterwards. The corpus was extracted from a second fork of the volume on 2026-10-27 and is committed in `verification/reports/FAFF-974-post-fix-fidelity/` (`decision-corpus.jsonl`, sha256 `1310d43e…87b8fbcd`, 128 records: 75 base records and 53 action markers from 16 of the 30 included runs; the other 14 made no decisions). Its `manifest.json` lists the 30 included run ids and the sha256 of the archive the runs were copied from. The corpus holds only included runs, kept apart from the pre-fix pilot corpus as FAFF-974 requires.
 
 No beep-boop run on the operator's machine started inside the window, so S2 is empty.
 

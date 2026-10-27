@@ -210,8 +210,19 @@ function classifyAcceptanceCriteria(sectionText) {
   for (const raw of lines) {
     const line = raw.replace(/\s+$/, "");
     if (/^\s*(?:```|~~~)/.test(line)) {                          // drop fence markers, keep content
-      if (!fence) { fence = true; fenceHoldout = isHoldoutFenceOpen(line); fenceTier = isIntegrationFenceOpen(line) ? "integration" : null; }
-      else { fence = false; fenceHoldout = false; fenceTier = null; }
+      if (!fence) {
+        fence = true; fenceHoldout = isHoldoutFenceOpen(line); fenceTier = isIntegrationFenceOpen(line) ? "integration" : null;
+        if (fenceHoldout || fenceTier) pushCur();                // FAFF-1205: a marked fence-open closes any unit opened outside — the fence content is its own tagged unit (holdoutRemovalSpans parity)
+      } else {
+        if (fenceHoldout || fenceTier) pushCur();                // FAFF-1205: a marked fence-close closes the marked unit exactly at the close marker, so trailing out-of-fence lines start a fresh unit ([open..close] span-end parity); a plain fence-close stays non-closing
+        fence = false; fenceHoldout = false; fenceTier = null;
+      }
+      continue;
+    }
+    if (fence) {                                                 // FAFF-1205: in-fence — only an in-fence Given splits; no blank/list/italic/blockquote boundary fires inside a fence
+      if (/^\s*Given\b/i.test(line)) { pushCur(); cur = line.trim(); curHoldout = fenceHoldout; curTier = fenceTier; }  // parseScenarios parity: an in-fence Given counts
+      else if (cur != null) { cur += "\n" + line.trim(); }       // pure continuation of the current unit (blank/list/italic/blockquote no longer fragment)
+      else { cur = line.trim(); curHoldout = fenceHoldout; curTier = fenceTier; }  // first in-fence line with no open unit starts one
       continue;
     }
     if (line.trim() === "") { pushCur(); continue; }             // blank closes a unit
@@ -231,6 +242,8 @@ function classifyAcceptanceCriteria(sectionText) {
     if (cur != null) cur += "\n" + line.trim();                  // continuation (When/Then/And/wrap)
     else { cur = line.trim(); curHoldout = fence && fenceHoldout; curTier = fence ? fenceTier : null; }  // a bare leading prose/assertion line
   }
+  // FAFF-1205: an unterminated fence collapses trailing non-Given lines into one unit — surface it loudly rather than a quiet fail-open (mirrors the dodClassify doneAdvisories stderr convention).
+  if (fence) process.stderr.write("dod classify: unterminated fence in Scenarios section (criteria after the stray fence may be merged)\n");
   pushCur();
   return units.map((u) => ({ text: u.text, kind: classifyCriterion(u.text), holdout: u.holdout, tier: u.tier }));
 }
@@ -1206,6 +1219,47 @@ function dodSelftest() {
   check("FAFF-1360: a holdout:-prefixed DONE item keeps its text, holdout false, and is integration", hp && hp.text.startsWith("holdout:") && hp.holdout === false && hp.verification_tier === "integration");
   const lineRange = dodClassify(["## Scenarios", "", "- `faff x` MUST exit 0", "", "## 8. DONE", "", "- [ ] `test/decision-capture.test.mjs:172-215` MUST pass", ""].join("\n"));
   check("FAFF-1360: a test-file token with a line range is integration", lineRange.criteria.find((c) => c.source === "done").verification_tier === "integration");
+
+  // --- FAFF-1205: a fenced example embedded in a scenario stays one unit (no in-fence fragmentation) ---
+  // (i) plain fence with an internal blank line → exactly one `scenario`, no phantom in-fence `prose` (the integration smoke test).
+  const smoke1205 = "## Scenarios\n\nGiven x\nWhen y\nThen the file reads:\n```yaml\na: 1\n\nb: 2\n```\n\n## 2. DONE\n- [ ] the key is removed";
+  const r1205 = dodClassify(smoke1205);
+  const scen1205 = r1205.criteria.filter((c) => c.source === "scenarios");
+  check("FAFF-1205: a plain fenced scenario with an internal blank line is one scenario criterion", r1205.counts.scenario === 1 && scen1205.length === 1 && scen1205[0].class === "scenario");
+  check("FAFF-1205: no in-fence fragment becomes its own prose criterion", !r1205.criteria.some((c) => c.text === "b: 2") && !scen1205.some((c) => c.class === "prose"));
+  check("FAFF-1205: dodClassify scenario count equals parseScenarios for the fenced-example spec", scen1205.filter((c) => c.class === "scenario").length === parseScenarios(smoke1205));
+  // (ii) two blank-line-separated Given/When/Then blocks inside ONE fence → two `scenario` criteria, == parseScenarios (parseScenarios parity).
+  const twoGiven1205 = ["## Scenarios", "", "```", "Given one thing", "When a", "Then b", "", "Given another thing", "When c", "Then d", "```", "", "## 8. DONE", "", "- [ ] the parser returns >=1 item"].join("\n");
+  const tg1205 = dodClassify(twoGiven1205);
+  const tgScen1205 = tg1205.criteria.filter((c) => c.source === "scenarios" && c.class === "scenario");
+  check("FAFF-1205: two Given blocks in one fence form two scenario criteria == parseScenarios == 2", tgScen1205.length === 2 && tgScen1205.length === parseScenarios(twoGiven1205) && parseScenarios(twoGiven1205) === 2);
+  // (iii) a holdout fence opening mid-unit → its own holdout:true unit, the preceding scenario stays visible, dod split --view builder == full minus the holdout unit (holdoutRemovalSpans parity).
+  const midHoldout1205 = ["## Scenarios", "", "Given a visible scenario", "When it runs", "Then it stays visible", "```holdout", "Given a withheld scenario", "When it runs", "Then it is withheld", "```", "", "## 8. DONE", "", "- [ ] the parser returns >=1 item"].join("\n");
+  const mh1205 = dodClassify(midHoldout1205);
+  const mhScen1205 = mh1205.criteria.filter((c) => c.source === "scenarios");
+  check("FAFF-1205: a mid-unit holdout fence is its own holdout:true unit, preceding scenario stays visible", mhScen1205.some((c) => c.class === "scenario" && c.holdout === true && /is withheld/.test(c.text)) && mhScen1205.some((c) => c.class === "scenario" && c.holdout === false && /stays visible/.test(c.text)));
+  const mhBuilderText1205 = dodSplit(midHoldout1205, "builder").text;
+  check("FAFF-1205: builder view == full minus the holdout unit (no preceding scenario text removed)", withoutId(dodClassify(mhBuilderText1205).criteria) === withoutId(mh1205.criteria.filter((c) => !c.holdout)) && /stays visible/.test(mhBuilderText1205) && !/is withheld/.test(mhBuilderText1205));
+  // (iv) an unterminated fence → the stderr advisory fires and Given blocks before AND after the stray fence still count.
+  let utCaptured1205 = "";
+  const origStderrWrite1205 = process.stderr.write;
+  process.stderr.write = (s) => { utCaptured1205 += s; return true; };
+  let utUnits1205;
+  try {
+    utUnits1205 = classifyAcceptanceCriteria(["Given before the fence", "When a", "Then b", "", "```", "Given inside the stray fence", "When c", "Then d", "", "trailing prose with no close"].join("\n"));
+  } finally {
+    process.stderr.write = origStderrWrite1205;
+  }
+  check("FAFF-1205: an unterminated fence emits the stderr advisory", /unterminated fence in Scenarios section/.test(utCaptured1205));
+  check("FAFF-1205: Given blocks before and after the stray fence both count under an unterminated fence", utUnits1205.filter((u) => u.kind === "scenario").length === 2);
+  // (v) a fenced example containing a `- ` list line does not fragment the scenario.
+  const listInFence1205 = "## Scenarios\n\nGiven x\nWhen y\nThen the config reads:\n```yaml\nitems:\n  - one\n  - two\n```\n\n## 8. DONE\n\n- [ ] the parser returns >=1 item";
+  const lf1205 = dodClassify(listInFence1205).criteria.filter((c) => c.source === "scenarios");
+  check("FAFF-1205: a fenced example with a `- ` list line does not fragment the scenario", lf1205.length === 1 && lf1205[0].class === "scenario");
+  // (vi) a standalone fenced block with no preceding Given forms a single unit classed by its own text.
+  const standalone1205 = "## Scenarios\n\n```\nThe output MUST equal 42\n```\n\n## 8. DONE\n\n- [ ] the parser returns >=1 item";
+  const sa1205 = dodClassify(standalone1205).criteria.filter((c) => c.source === "scenarios");
+  check("FAFF-1205: a standalone fenced block with no preceding Given forms one unit classed by its own text", sa1205.length === 1 && sa1205[0].class === "assertion");
 
   if (failed) { console.log(`dod --selftest: FAIL (${failed} failed)`); return 1; }
   console.log("dod --selftest: ok"); return 0;

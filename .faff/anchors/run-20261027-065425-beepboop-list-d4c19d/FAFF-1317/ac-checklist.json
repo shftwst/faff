@@ -1,0 +1,166 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "--absolute remains declared in CONFIG_SPEC; configVerbList output and the cli-surface flag union are unchanged (no new selftest failures)",
+      "verified": "faff cli-surface --selftest -> PASS (142 verbs); --absolute still parses, no drift",
+      "passed": true,
+      "ac_id": "faff-1317#done:1",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff cli-surface --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "faff config get appetite --absolute exits 2, prints no config value, exact stderr line",
+      "verified": "exit 2, stdout empty, stderr exactly 'faff config get: --absolute is a `templates-path`-only flag and is not accepted by `get`'",
+      "passed": true,
+      "ac_id": "faff-1317#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/config-flags.test.mjs::non-honouring verb (get): --absolute is refused with the templates-path-only message"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff config get appetite --absolute"
+        }
+      ]
+    },
+    {
+      "ac": "another non-honouring verb (path) with --absolute exits 2 with the analogous message",
+      "verified": "faff config path --absolute -> exit 2, 'faff config path: --absolute is a `templates-path`-only flag and is not accepted by `path`'",
+      "passed": true,
+      "ac_id": "faff-1317#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/config-flags.test.mjs::another non-honouring verb (path): the analogous refusal with the verb substituted in both positions"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff config path --absolute"
+        }
+      ]
+    },
+    {
+      "ac": "faff config templates-path --absolute still exits 0 and prints the absolute templates path",
+      "verified": "exit 0, prints absolute path (root joined); behaviour unchanged",
+      "passed": true,
+      "ac_id": "faff-1317#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/config-flags.test.mjs::templates-path --absolute still prints the absolute path (behaviour unchanged)"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff config templates-path --absolute --root ."
+        }
+      ]
+    },
+    {
+      "ac": "faff config templates-path (no flag) still prints the repo-relative templates path",
+      "verified": "exit 0, prints .faff/templates",
+      "passed": true,
+      "ac_id": "faff-1317#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/config-flags.test.mjs::templates-path with no flag still prints the repo-relative path"
+        }
+      ]
+    },
+    {
+      "ac": "faff config bogus-verb --absolute exits 2 with the existing expected-one-of message, not the --absolute refusal",
+      "verified": "exit 2, stderr 'faff config: expected one of ...', not the refusal",
+      "passed": true,
+      "ac_id": "faff-1317#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/config-flags.test.mjs::unknown verb + --absolute falls through to the expected-one-of message (not the refusal)"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff config bogus-verb --absolute"
+        }
+      ]
+    },
+    {
+      "ac": "faff config constructor --absolute (inherited-property name) exits 2 with expected-one-of, not the refusal (proves Object.hasOwn)",
+      "verified": "constructor/toString/__proto__/hasOwnProperty all -> exit 2, expected-one-of, not refusal",
+      "passed": true,
+      "ac_id": "faff-1317#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/config-flags.test.mjs::inherited-property name + --absolute falls through to expected-one-of (proves Object.hasOwn)"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff config constructor --absolute"
+        }
+      ]
+    },
+    {
+      "ac": "faff config --absolute get appetite (flag before verb) exits 2 via the expected-one-of fallthrough, unchanged",
+      "verified": "exit 2, cmd is literal --absolute, expected-one-of message",
+      "passed": true,
+      "ac_id": "faff-1317#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/config-flags.test.mjs::--absolute before the verb: cmd is the literal --absolute, falls through to expected-one-of"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff config --absolute get appetite"
+        }
+      ]
+    },
+    {
+      "ac": "faff config get appetite --absolute=x exits 2 as a gate parse/arity error (unchanged)",
+      "verified": "exit 2, 'bad-arity: flag --absolute takes no value' gate error, not the refusal",
+      "passed": true,
+      "ac_id": "faff-1317#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/config-flags.test.mjs::--absolute=x is a gate arity error before the guard is reached"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff config get appetite --absolute=x"
+        }
+      ]
+    },
+    {
+      "ac": "A node:test case spawns the real CLI asserting refusal, templates-path success, unknown-verb fallthrough, and the inherited-property case",
+      "verified": "new test/config-flags.test.mjs (8 cases) ran green in the UNIT rung of faff gates run",
+      "passed": true,
+      "ac_id": "faff-1317#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/config-flags.test.mjs::non-honouring verb (get): --absolute is refused with the templates-path-only message"
+        }
+      ]
+    },
+    {
+      "ac": "If docs/guide/cli.md config row implies --absolute is general, clarify it to templates-path-only (skip if already scoped)",
+      "verified": "docs/guide/cli.md config row already scopes --absolute within the templates-path clause ('templates-path [--create] [--absolute]'); no change needed",
+      "passed": true,
+      "ac_id": "faff-1317#done:11",
+      "verifications": [
+        {
+          "kind": "human"
+        }
+      ]
+    }
+  ]
+}

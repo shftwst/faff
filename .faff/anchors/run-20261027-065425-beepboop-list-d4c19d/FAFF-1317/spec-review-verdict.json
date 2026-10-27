@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "verdict": "revise",
+  "final_verdict": "approve",
+  "rounds_total": 2,
+  "objections": [
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The spec's edge-case bullet claims `faff config --absolute get appetite` resolves cmd to get and fires the guard identically. But cmd is not derived from parseArgs positionals — cmdConfig builds rest with its own loop that strips only --root, so rest[0] for that invocation is the literal string --absolute, CONFIG_SURFACE.subcommands[\"--absolute\"] is undefined, the guard does not fire, and the command falls through to expected one of …. The spec's stated edge-case outcome contradicts the implementation it prescribes.",
+      "evidence": "Edge cases bullet Flag ordering vs the PROCEDURE step 3 and the unchanged rest-building loop in cmdConfig.",
+      "predicted_consequence": "a builder following the PROCEDURE verbatim fails the spec's own edge-case assertion; a tester cannot decide which of the two contradictory specified behaviours is the acceptance bar.",
+      "spec_anchor": "how-behavior",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Round-1 QA minor (the flag-ordering edge case contradicted the prescribed rest/cmd handling). Fixed in place: the spec now states the flag-after-verb form fires the guard and the flag-before-verb form falls through to 'expected one of …' unchanged (both exit 2). Round-2 re-review returned approve with all four lenses clear.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The spec's edge-case bullet claims `faff config --absolute get appetite` resolves cmd to get and fires the guard identically. But cmd is not derived from parseArgs positionals — cmdConfig builds rest with its own loop that strips only --root, so rest[0] for that invocation is the literal string --absolute, CONFIG_SURFACE.subcommands[\"--absolute\"] is undefined, the guard does not fire, and the command falls through to expected one of …. The spec's stated edge-case outcome contradicts the implementation it prescribes.",
+          "spec_anchor": "how-behavior"
+        }
+      ]
+    }
+  ]
+}

@@ -153,6 +153,18 @@ const RENDERING_REF = /rendering_adaptor|Universal-routing|→\s*\*?\*?Rendering
 // Exported so test/validate-adapters.test.mjs can unit-test the pattern directly.
 const HANDREAD = /\b(?:cat|head|tail|less|grep|sed|awk)\b[^\n]*(?:\.faffrc(?:\.ya?ml)?\b|\.faff\/config(?:[.-][\w.-]*)?(?![\w.\-/]))/;
 
+// FAFF-1207: the `faff commissaire` facade accepts `--issue` only as a deprecated one-release alias of
+// `--unit-id` (FAFF-1167); any skill prose that passes `--issue` on a commissaire invocation re-arms the
+// stderr deprecation notice on every governed graft. This guard fires on the INVOCATION SHAPE — a faff
+// binary token DIRECTLY followed by `commissaire`, then (same line, no backtick in between) a `--issue`
+// flag — never on mere co-occurrence of the words, and never on the dozen other commands whose own
+// current `--issue` flag is correct (effects / run-ledger / build-claim / landing-claim / worktree-* /
+// corrective / spec-review-dir / decision-capture / post-merge-check / bundle-recover). Anchoring
+// `commissaire` immediately after the binary is what excludes every one of those. A single lazy
+// `[^`\n]*?` run (no nesting) keeps it ReDoS-free; the backtick exclusion stops a match leaking across
+// two separate backticked commands on one line.
+const COMMISSAIRE_ISSUE_RE = /(?<![\w.-])"?\$?faff"?\s+commissaire\b[^`\n]*?\s--issue\b/i;
+
 // FAFF-598: derive the inline-enum-restatement lint's value sets from CONTRACT_DESCRIBES — the SAME
 // data `faff contract <name> --describe` renders — never a hand-copied list of its own. One set per
 // lintable (default true; the sole false today is spec-readiness's producer-authored marker dialect)
@@ -189,6 +201,25 @@ function lintInlineEnumRestatement(skillText) {
       if (set.values.every((v) => tokens.has(v))) {
         findings.push(`line ${i + 1}: inline enum restatement of ${set.contract}.${set.field} — point at \`faff contract ${set.contract} --describe\` instead (FAFF-598)`);
       }
+    }
+  }
+  return findings;
+}
+
+// FAFF-1207: one finding per line whose content is a `faff commissaire` invocation passing the
+// deprecated `--issue` alias (see COMMISSAIRE_ISSUE_RE for the invocation-shape anchor). Pure — input
+// is one file's text; returns [] for any file with no such invocation (including clean `--unit-id`
+// lines and every non-commissaire `--issue`). Per-line, mirroring the FAFF-1198 removed-dispatch-key
+// scan, because the commissaire facade invocations in skill prose are always single-line commands.
+function lintCommissaireUnitId(text) {
+  const findings = [];
+  const lines = text.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    // No `.example` skip (unlike the HANDREAD / FAFF-598 scans): a commissaire `--issue` invocation
+    // is a regression whether or not the line also names an example path, and the FAFF-1198 lint this
+    // mirrors has no such skip either. Keeping the scan unconditional closes that false-negative hole.
+    if (COMMISSAIRE_ISSUE_RE.test(lines[i])) {
+      findings.push(`line ${i + 1}: \`--issue\` is the deprecated commissaire alias; pass \`--unit-id\` (FAFF-1207)`);
     }
   }
   return findings;
@@ -1150,6 +1181,18 @@ function cmdValidateAdapters(args) {
       for (const h of hits) console.log(`        ✗ ${h}`);
     }
   }
+  // FAFF-1207: commissaire `--issue` guard. Reuses the FAFF-1198 dispatchProseFiles set (every SKILL.md
+  // + every references/*.md), so references prose is covered and the label convention is identical.
+  // FAILs any skill-prose file that passes the deprecated `--issue` alias on a `faff commissaire`
+  // invocation, while leaving every other command's own current `--issue` flag untouched.
+  for (const { name, rel, file } of dispatchProseFiles) {
+    const findings = lintCommissaireUnitId(fs.readFileSync(file, "utf8"));
+    if (findings.length) {
+      failed = true;
+      console.log(`FAIL  ${rel === "SKILL.md" ? name : `${name}/${rel}`} (commissaire --issue)`);
+      for (const f of findings) console.log(`        ✗ ${f}`);
+    }
+  }
   // FAFF-598: inline-enum-restatement lint — a skill hand-restating a lintable fixed-contract enum's
   // full value set (with per-value meaning) is exactly the drift class FAFF-582 caught; the remedy is
   // always the same pointer. Reuses allSkills above.
@@ -1561,4 +1604,4 @@ function cmdValidateAdapters(args) {
 }
 
 
-module.exports = { ANCHOR_PHRASES, CAPTURE_WIRING_WINDOW, DUP_BLOCK_WINDOW, DUP_SIG_MINLEN, HANDREAD, NON_NORMATIVE, PARA_WORD_CAP, REFER_BACK, REGISTRY, RENDERING_REF, REQUIRED_METHODOLOGY_OUTPUTS, SKILL_LINE_CAP, SKILL_LINE_BASELINE, KERNEL_LINE_BASELINE, SKIP, SLOT_TYPES, STRAY_RETRO, STRAY_TRANSCRIPT, balancedCallArg, c3CalibrationFloor, captureSameCommandUnwired, captureWiringUnwired, checkAnchorBeforePrOrder, checkAnchorCommitNoBroadSwallow, checkCalibrated, checksFor, cmdIsBundled, cmdValidateAdapters, deriveCaptureKernels, extractVoicePathToken, hasUserInvocableFalse, inlineEnumLintSets, isProseLine, isParagraphLine, anchorResolves, normalizeHeading, lintGatewayManifest, lintInlineEnumRestatement, lintVoicePointer, loadSeamRegistryForLint, locateSkill, readJudgementSeam, reconcileSeam, resolveSkillsDir, validateConfigured };
+module.exports = { ANCHOR_PHRASES, CAPTURE_WIRING_WINDOW, COMMISSAIRE_ISSUE_RE, DUP_BLOCK_WINDOW, DUP_SIG_MINLEN, HANDREAD, NON_NORMATIVE, PARA_WORD_CAP, REFER_BACK, REGISTRY, RENDERING_REF, REQUIRED_METHODOLOGY_OUTPUTS, SKILL_LINE_CAP, SKILL_LINE_BASELINE, KERNEL_LINE_BASELINE, SKIP, SLOT_TYPES, STRAY_RETRO, STRAY_TRANSCRIPT, balancedCallArg, c3CalibrationFloor, captureSameCommandUnwired, captureWiringUnwired, checkAnchorBeforePrOrder, checkAnchorCommitNoBroadSwallow, checkCalibrated, checksFor, cmdIsBundled, cmdValidateAdapters, deriveCaptureKernels, extractVoicePathToken, hasUserInvocableFalse, inlineEnumLintSets, isProseLine, isParagraphLine, anchorResolves, normalizeHeading, lintCommissaireUnitId, lintGatewayManifest, lintInlineEnumRestatement, lintVoicePointer, loadSeamRegistryForLint, locateSkill, readJudgementSeam, reconcileSeam, resolveSkillsDir, validateConfigured };

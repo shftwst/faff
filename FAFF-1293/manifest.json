@@ -1,0 +1,16 @@
+{
+  "schema_version": 3,
+  "issue": "FAFF-1293",
+  "run_id": "run-20261027-162841-beepboop-list-36511a",
+  "built_spec_sha": "ce6a4255e06594b33f33aa61178ea9a0341fd8d1f29f2fae36f690f966d403b1",
+  "spec_blob": "spec.txt",
+  "objections": "objections.json",
+  "objections_by_round": "objections-by-round.json",
+  "objections_by_round_truncated": false,
+  "objections_by_round_dropped_rounds": 0,
+  "rulings": "rulings.json",
+  "admit_result": null,
+  "outcome": "no-judge",
+  "lenses": [],
+  "witness_sha": "21421283734587ecbe9bba9d490351f15e57bbd8a2ee3f5f90bed7559bb36f6e"
+}

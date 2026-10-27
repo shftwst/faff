@@ -1,0 +1,20 @@
+[
+  {
+    "claim": "The holdout MUST-scenario is only satisfiable if the first `--assemble` call did **not** carry `--reopen-for-hold 1`, but it describes the second call as \"identical\" to the first — which, read naturally, means the first call carried the flag too. Under that reading, `reopened_for_holds` already holds `1`, the reopen procedure returns `[]` at step 3, and the scenario's MUST (\"MUST print every case in `reopened`\") is unmeetable without breaking the idempotence that scenario 3 (\"a third time with --reopen-for-hold 1 → nothing is reopened\") and the DONE item (\"A second call with the same `n` reopens nothing\") pin. The spec as written contains two acceptance clauses that cannot both pass under one reading of the holdout.",
+    "evidence": "`## 5. SCENARIOS` holdout block (\"a second identical call with --reopen-for-hold 1 MUST print every case in `reopened`\") vs. `### Assemble reopens once per hold` step 3 (\"IF n IN done -> return []\") and the third scenario in the same section.",
+    "predicted_consequence": "the test written from the holdout fails against the procedure as specified (or the builder quietly drops idempotence to satisfy it, breaking the chunk-loop `attempts_remaining` monotonicity the anti-pattern warns about).",
+    "spec_anchor": "scenarios",
+    "lens": "architectural",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "The WHAT block states `CONSTRAINT stage is present exactly when dialogue is present`, but no DONE item requires `holdRecordProblem` (or any reader) to reject a record that carries `stage` without a `dialogue` object, and no scenario exercises that shape. The DONE items only pin absent-stage acceptance and out-of-enum rejection. A hand-crafted or torn record with `stage: \"judge\"` and no `dialogue` would pass validation, and `restore`'s `prove_stage` keys off `rec.dialogue.stage`, so it would silently skip the judge-ledger proof too — the exact torn-store shape the spec elsewhere refuses fail-closed.",
+    "evidence": "`### Hold record: the new stage field` CONSTRAINT line vs. `### From WHAT (hold record)` DONE items (only \"accepts an absent stage\", \"accepts dialogue and judge\", \"rejects any other value\").",
+    "predicted_consequence": "a malformed record with `stage` but no `dialogue` restores as a legacy dialogue hold; the judge-ledger existence proof never runs, and the resume routes into the dialogue loop on a store the spec's own constraint says is invalid — undetectable by any test the DONE items mandate.",
+    "spec_anchor": "hold-record-the-new-stage-field",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  }
+]

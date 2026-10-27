@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1283",
+  "build": {
+    "status": "complete",
+    "diff_hash": "a8aaf172dfdcc1940cf06ae5c8b13d39df561594c1ab43cbb2f201f42fb93a4c",
+    "branch": "faff-1283-schema-validator-supports-maxitems",
+    "pushed_at": "2026-10-27T02:23:01.371Z"
+  },
+  "updated_at": "2026-10-27T02:23:01.371Z"
+}

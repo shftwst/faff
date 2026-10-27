@@ -70,6 +70,19 @@ function cmdConfig(args) {
   }
   root = root || findRoot();
   const cmd = rest[0];
+  // FAFF-1317: --absolute is honoured only by `templates-path` (FAFF-1300). It lives in the
+  // shared CONFIG_SPEC so the gate still parses it (keeping configVerbList / the cli-surface flag
+  // union unchanged), but accepting-but-ignoring it on every other verb is the drift the codebase
+  // refuses elsewhere (native-map set --type, bundle publish --bundle-store). Refuse it on known
+  // non-honouring verbs with the native-map message shape. Read the VALIDATED gate value (never
+  // rest.includes), so a malformed `--absolute=x` stays a gate arity error. Use Object.hasOwn (own
+  // key only) — a plain subcommands[cmd] index would match inherited Object.prototype names
+  // (constructor/toString/__proto__/…) and wrongly fire; an unknown verb falls through to the
+  // existing `expected one of …` message below.
+  if (gate.values["--absolute"] && Object.hasOwn(CONFIG_SURFACE.subcommands, cmd) && cmd !== "templates-path") {
+    process.stderr.write(`faff config ${cmd}: --absolute is a \`templates-path\`-only flag and is not accepted by \`${cmd}\`\n`);
+    return 2;
+  }
   try {
     if (cmd === "path") {
       // FAFF-387: multi-line — each resolved file on its own line, base first;

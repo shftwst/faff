@@ -23,6 +23,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { parseArgs, usageError } = require("./argv");
 const { validateAgainstSchema, validateAgainstSchemaDetailed } = require("./contract-engine");
+const events = require("./events"); // FAFF-1347: live module ref so classifyRow is honoured via module.exports (test-double substitution)
 const { appendEventRecord, eventViolations, splitPhysicalLines } = require("./events");
 const { declaredEffectViolations } = require("./effects");
 const { HERE, findRoot, mainWorktreeRoot } = require("./shared-infra");
@@ -148,6 +149,128 @@ function validateJsonlFile(file, schema, lineValidator) {
     for (const message of new Set(found)) violations.push(`line ${n}: ${message}`);
   });
   return tornTail ? { violations, torn_tail: true } : { violations };
+}
+
+// FAFF-1347: scoped validation of an anchor's events.jsonl. Validation stays WHOLE-FILE in that
+// every line is still parsed and classified; what changes is which classifications contribute
+// GATING violations. The chain and witness are untouched — only the conformance verdict is scoped
+// to the anchored issue. Returns the validateJsonlFile shape extended with the scope block
+// (scope, scope_refusals, and — when narrowing applied — the three residue counts +
+// unattributable_gating). A refusal applies no narrowing and judges whole-file exactly as today.
+function readAnchorLedgerObj(anchorDir) {
+  try { return JSON.parse(fs.readFileSync(path.join(anchorDir, "run-ledger.json"), "utf8")); }
+  catch { return null; }
+}
+
+function validateAnchorEventsScoped(file, schema, lineValidator, anchorDir, profile) {
+  const bytes = readBytes(file);
+  if (!bytes) return { violations: ["unreadable file"], scope: null, scope_refusals: [] };
+  const { lines, lastHasNewline } = splitPhysicalLines(bytes);
+  const parsedLines = lines.map((buf, index) => ({ n: index + 1, parsed: parseJson(buf), isLast: index === lines.length - 1 }));
+  const records = parsedLines.filter((x) => x.parsed.ok && isObject(x.parsed.value)).map((x) => x.parsed.value);
+  const scopeRes = events.resolveAnchorScope(anchorDir, records, profile); // the ONE shared scope resolver
+  const violations = [];
+  let tornTail = false;
+  const perLineValidate = (value, n) => {
+    const found = [...validateAgainstSchema(value, schema).map(tidy), ...lineValidator(value)];
+    for (const message of new Set(found)) violations.push(`line ${n}: ${message}`);
+  };
+  // Unparseable line: a gating violation in BOTH verdicts (it carries no type/issue, so it cannot be
+  // classified out; a torn FINAL line is tolerated exactly as validateJsonlFile does).
+  const handleUnparsed = ({ parsed, n, isLast }) => {
+    if (parsed.ok && isObject(parsed.value)) return false;
+    if (!parsed.ok) { if (isLast && !lastHasNewline) tornTail = true; else violations.push(`line ${n}: not valid JSON`); return true; }
+    violations.push(`line ${n}: not a JSON object`); return true;
+  };
+
+  if (scopeRes.accepted === null) {
+    // No narrowing — whole-file judgement, every row gating, exactly as today.
+    for (const pl of parsedLines) { if (handleUnparsed(pl)) continue; perLineValidate(pl.parsed.value, pl.n); }
+    const out = { violations, scope: null, scope_refusals: scopeRes.refusals };
+    return tornTail ? { ...out, torn_tail: true } : out;
+  }
+
+  const admitted = events.admittedIssueSet(readAnchorLedgerObj(anchorDir));
+  const singleIssue = events.ledgerIsBound(anchorDir, records) && admitted.size === 1;
+  let out_of_scope_rows = 0, unadmitted_issue_rows = 0, unattributable_rows = 0;
+  for (const pl of parsedLines) {
+    if (handleUnparsed(pl)) continue;
+    const scope = events.classifyRow(pl.parsed.value, scopeRes.accepted, admitted, profile); // the ONE shared predicate
+    if (scope === events.ROW_SCOPE.OWN || scope === events.ROW_SCOPE.RUN) {
+      perLineValidate(pl.parsed.value, pl.n);
+    } else if (scope === events.ROW_SCOPE.UNADMITTED_ISSUE) {
+      unadmitted_issue_rows++; perLineValidate(pl.parsed.value, pl.n); // gating like an OWN row, bound or not
+    } else if (scope === events.ROW_SCOPE.OTHER_ISSUE) {
+      out_of_scope_rows++; // another admitted issue's row — judged by ITS anchor, no violations here
+    } else { // UNATTRIBUTABLE
+      unattributable_rows++;
+      if (singleIssue) perLineValidate(pl.parsed.value, pl.n); // gates only when the bound ledger names one issue
+    }
+  }
+  const out = {
+    violations, scope: scopeRes.accepted, scope_refusals: [],
+    out_of_scope_rows, unadmitted_issue_rows, unattributable_rows, unattributable_gating: singleIssue,
+  };
+  return tornTail ? { ...out, torn_tail: true } : out;
+}
+
+// FAFF-1347: FAFF-1353 merged to main at 2026-10-20T17:51:18Z. A run whose first run-start row
+// predates that AND whose ledger admits more than one issue carries honest unattributable rows
+// written by the pre-FAFF-1353 writer; the run-dir leg reports those as advisory rather than
+// gating (the legacy cutoff — the same rule MIXED_CUTOFF applies in the committed tracked-anchor
+// test). One committed value; moving it is a reviewed change. It reads a writer-authored ts
+// (best-effort — honest clock skew near the cutoff can grant or deny relief; the cost is a wrong
+// signal on a local, untrusted leg, never a CI bypass).
+const FAFF_1353_MERGE_CUTOFF_MS = Date.parse("2026-10-20T17:51:18Z");
+
+// The run-dir whole-file evidence_schema judgement (spec §4 PROCEDURE run_dir_evidence_schema_leg).
+// Judges run_dir/events.jsonl WHOLE-FILE: every row parsed, every row gating, no scope narrowing,
+// through the SAME classifier (events.classifyRow, narrowing off: acceptedIssue=null) — EXCEPT the
+// legacy cutoff, under which an issue-scoped-type row with absent/null/empty issue is advisory, not
+// gating. Returns { pass, gating:[{line,type,issue}], advisory:[{line,type,issue}], legacy_relief,
+// schema_unavailable?, where? }. The CALLER (governance-check) formats the leg + sanitises detail.
+function evaluateRunDirEventsSchema(runDir, { profile = activeProfile() } = {}) {
+  let schema;
+  try {
+    const loaded = bundleFor(BUNDLE_DIR);
+    const entry = loaded.manifest.files["events.jsonl"];
+    schema = entry && loaded.schemas.get(entry.schema);
+    if (!schema) return { pass: false, gating: [], advisory: [], legacy_relief: false, schema_unavailable: true, where: "events.jsonl" };
+  } catch (e) {
+    if (e instanceof SchemaUnavailable) return { pass: false, gating: [], advisory: [], legacy_relief: false, schema_unavailable: true, where: e.where };
+    throw e;
+  }
+  const bytes = readBytes(path.join(runDir, "events.jsonl"));
+  if (!bytes) return { pass: true, gating: [], advisory: [], legacy_relief: false, unreadable: true };
+  const { lines, lastHasNewline } = splitPhysicalLines(bytes);
+  const parsedLines = lines.map((buf, index) => ({ n: index + 1, parsed: parseJson(buf), isLast: index === lines.length - 1 }));
+  const records = parsedLines.filter((x) => x.parsed.ok && isObject(x.parsed.value)).map((x) => x.parsed.value);
+  const ledger = readAnchorLedgerObj(runDir);
+  const admitted = events.admittedIssueSet(ledger);
+  // Legacy cutoff: the run's first run-start row (lowest seq) predates FAFF-1353's merge AND the
+  // ledger admits more than one issue. No run-start row / unparseable ts / unreadable ledger → no relief.
+  let firstRunStart = null;
+  for (const r of records) {
+    if (r && r.type === "run-start" && Number.isInteger(r.seq)) {
+      if (firstRunStart === null || r.seq < firstRunStart.seq) firstRunStart = r;
+    }
+  }
+  const startMs = firstRunStart && typeof firstRunStart.ts === "string" ? Date.parse(firstRunStart.ts) : NaN;
+  const legacy_relief = !Number.isNaN(startMs) && startMs < FAFF_1353_MERGE_CUTOFF_MS && admitted.size > 1;
+  const gating = [], advisory = [];
+  for (const { n, parsed, isLast } of parsedLines) {
+    if (!parsed.ok) { if (isLast && !lastHasNewline) continue; gating.push({ line: n, type: null, issue: null }); continue; }
+    if (!isObject(parsed.value)) { gating.push({ line: n, type: null, issue: null }); continue; }
+    const value = parsed.value;
+    const found = [...validateAgainstSchema(value, schema).map(tidy), ...eventViolations(value, true)];
+    if (found.length === 0) continue;
+    const scope = events.classifyRow(value, null, admitted, profile); // narrowing off
+    const issue = value.issue;
+    const emptyIssue = issue === undefined || issue === null || issue === "";
+    const relieved = legacy_relief && scope === events.ROW_SCOPE.UNATTRIBUTABLE && emptyIssue;
+    (relieved ? advisory : gating).push({ line: n, type: typeof value.type === "string" ? value.type : null, issue: emptyIssue ? "" : issue });
+  }
+  return { pass: gating.length === 0, gating, advisory, legacy_relief };
 }
 
 // ---------------------------------------------------------------------------
@@ -460,10 +583,24 @@ function validateAnchorDir(anchorDir, opts = {}) {
     if (!entry) return { path: rel, status: "unschemaed", violations: ["no manifest entry for this file"] };
     const file = path.join(anchorDir, rel);
     const schema = schemas.get(entry.schema);
-    const result = entry.format === "jsonl" ? validateJsonlFile(file, schema, LINE_VALIDATORS[rel]) : validateJsonFile(file, schema);
+    // FAFF-1347: events.jsonl inside an anchor dir is judged SCOPED to the anchored issue (and to
+    // nothing else — every other manifest file is per-issue by construction, judged exactly as today).
+    const result = rel === "events.jsonl"
+      ? validateAnchorEventsScoped(file, schema, LINE_VALIDATORS[rel], anchorDir, activeProfile())
+      : entry.format === "jsonl" ? validateJsonlFile(file, schema, LINE_VALIDATORS[rel]) : validateJsonFile(file, schema);
     const out = { path: rel, status: result.violations.length === 0 ? "ok" : "fail", violations: result.violations };
     if (withCandidate) out.schema_source = sourceOf.get(entry.schema);
     if (result.torn_tail) out.torn_tail = true;
+    if (rel === "events.jsonl") {
+      out.scope = result.scope;
+      out.scope_refusals = result.scope_refusals;
+      if (result.scope !== null) {
+        out.out_of_scope_rows = result.out_of_scope_rows;
+        out.unadmitted_issue_rows = result.unadmitted_issue_rows;
+        out.unattributable_rows = result.unattributable_rows;
+        out.unattributable_gating = result.unattributable_gating;
+      }
+    }
     return out;
   });
   return report(entries.every((e) => e.status === "ok") ? "pass" : "fail", entries);
@@ -515,7 +652,24 @@ function checkAnchorDir(anchorDir, opts = {}) {
   const files = report.files
     .filter((f) => f.status !== "ok")
     .map((f) => ({ path: sanitiseDisplay(f.path), status: f.status, violations: Array.isArray(f.violations) ? f.violations.length : 0 }));
-  return { status: report.status, files, reason: null, schema_unavailable: false };
+  // FAFF-1347: the per-file scope block survives the fold for the events.jsonl entry WHATEVER its
+  // status (including ok — a correctly-narrowed passing anchor produces exactly that), as typed
+  // values + closed-set literals only. Violation text and exception messages are still dropped.
+  const eventsEntry = report.files.find((f) => f.path === "events.jsonl");
+  let events_scope = null;
+  if (eventsEntry && "scope" in eventsEntry) {
+    events_scope = {
+      scope: eventsEntry.scope === null ? null : sanitiseDisplay(eventsEntry.scope),
+      scope_refusals: Array.isArray(eventsEntry.scope_refusals) ? eventsEntry.scope_refusals.map(sanitiseDisplay) : [],
+    };
+    if (eventsEntry.scope !== null) {
+      events_scope.out_of_scope_rows = eventsEntry.out_of_scope_rows;
+      events_scope.unadmitted_issue_rows = eventsEntry.unadmitted_issue_rows;
+      events_scope.unattributable_rows = eventsEntry.unattributable_rows;
+      events_scope.unattributable_gating = eventsEntry.unattributable_gating;
+    }
+  }
+  return { status: report.status, files, reason: null, schema_unavailable: false, events_scope };
 }
 
 // The file paths the bundled manifest names; throws SchemaUnavailable when the manifest cannot be used.
@@ -1454,7 +1608,7 @@ function cmdEvidence(args) {
 
 module.exports = {
   CAPABILITIES, EVIDENCE_SPEC, SCHEMA_UNAVAILABLE_MARKER, SchemaUnavailable, WriterFault, acChecklistWriterViolations, announceSchemaUnavailable, anchoredAcChecklist,
-  anchoredTerminalReview, checkAnchorDir, classifySchemaChange, cmdEvidence, eventDataKeys, evidenceSelftest, exitCodeFor,
+  anchoredTerminalReview, checkAnchorDir, classifySchemaChange, cmdEvidence, eventDataKeys, evaluateRunDirEventsSchema, evidenceSelftest, exitCodeFor,
   recordReviewRound, writeCollatedReviewVerdict,
   guardWriterPaths, introducedViolations, logRecordChecker, manifestFileNames, noteSchemaUnavailable, preloadEvidenceSchemas,
   renderAcChecklist, resetEvidenceSchemaCache, sanitiseDisplay, validateAnchorDir, validateEvidenceDocument, writeAcChecklist, writeEvidenceFile,

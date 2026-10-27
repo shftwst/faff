@@ -862,6 +862,107 @@ function eventsLedgerFold(dir, records, base) {
   return null;
 }
 
+// ===========================================================================
+// FAFF-1347: the anchor-scope classifier — ONE shared predicate, consulted by the scoped
+// per-issue evidence verdict (evidence.js) and the run-dir whole-file leg (governance-check.js,
+// the same export with narrowing off). The integrity unit of a per-issue anchor stays the run
+// (the whole chain + witness are byte-identical); only the CONFORMANCE verdict is scoped to the
+// anchored issue. Classification reads ONLY a row's `type`, `issue` and (for a sentinel row)
+// `data.kernel`, plus the admitted issue set — never `seq`, `ts` or position in the file.
+// ===========================================================================
+
+// The five classifications every row falls into (spec §3 ENUM RowScope). Closed set.
+const ROW_SCOPE = Object.freeze({
+  OWN: "OWN", RUN: "RUN", OTHER_ISSUE: "OTHER_ISSUE",
+  UNADMITTED_ISSUE: "UNADMITTED_ISSUE", UNATTRIBUTABLE: "UNATTRIBUTABLE",
+});
+
+// The seven closed-set refusal literals (spec §3 ENUM ScopeRefusal). A refusal applies no
+// narrowing and never embeds a proposed or chain-authored value.
+const SCOPE_REFUSALS = Object.freeze({
+  WITNESS_ABSENT: "witness-absent", ISSUE_ABSENT: "issue-absent", ISSUE_MALFORMED: "issue-malformed",
+  LEDGER_UNAVAILABLE: "ledger-unavailable", LEDGER_DISAGREES: "ledger-disagrees",
+  CHAIN_SILENT: "chain-silent", PATH_DISAGREES: "path-disagrees",
+});
+
+// FAFF-1347: the path-safety token shape the proposed anchored issue must match — the SAME
+// permissive shape evidence.js's ISSUE_ID_RE and heartbeat.js use (a path guard, not the strict
+// tracker-id shape at ac-id.js): identity is established by path agreement (test 4), not a regex.
+const SCOPE_ISSUE_TOKEN_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
+// The sentinel + run-level-kernel lists the classifier reads: the active profile's own keys when
+// present, else DELIVERY_PROFILE's value for the omitted optional key (never a literal at the
+// classifier, so an override profile that renames the sentinel changes classification with no
+// validator edit).
+function profileScopeLists(profile) {
+  const sentinels = Array.isArray(profile.run_subject_sentinels) ? profile.run_subject_sentinels : DELIVERY_PROFILE.run_subject_sentinels;
+  const kernels = Array.isArray(profile.run_level_decision_kernels) ? profile.run_level_decision_kernels : DELIVERY_PROFILE.run_level_decision_kernels;
+  return { issueScoped: profile.issue_scoped_types, sentinels, kernels };
+}
+
+// The admitted issue set a run-ledger admits: the union of `admitted` and the `outcomes` keys —
+// the same set `anchor-run` derives its mint loop from.
+function admittedIssueSet(ledger) {
+  const admitted = ledger && Array.isArray(ledger.admitted) ? ledger.admitted : [];
+  const outcomeKeys = ledger && ledger.outcomes && typeof ledger.outcomes === "object" && !Array.isArray(ledger.outcomes)
+    ? Object.keys(ledger.outcomes) : [];
+  return new Set([...admitted, ...outcomeKeys]);
+}
+
+// classifyRow (spec §4 PROCEDURE classify_row). `admittedIssues` is a Set. Pure; no I/O.
+function classifyRow(row, acceptedIssue, admittedIssues, profile = activeProfile()) {
+  const { issueScoped, sentinels, kernels } = profileScopeLists(profile);
+  const type = row && row.type;
+  if (!issueScoped.includes(type)) return ROW_SCOPE.RUN;               // 1. run-scoped by type
+  const issue = row ? row.issue : undefined;
+  if (sentinels.includes(issue)) {                                     // 2. a sentinel claim
+    const kernel = row.data && typeof row.data === "object" && !Array.isArray(row.data) ? row.data.kernel : undefined;
+    return kernels.includes(kernel) ? ROW_SCOPE.RUN : ROW_SCOPE.UNATTRIBUTABLE;
+  }
+  if (issue === undefined || issue === null || issue === "") return ROW_SCOPE.UNATTRIBUTABLE; // 3.
+  if (issue === acceptedIssue) return ROW_SCOPE.OWN;                   // 4. the anchored issue
+  if (/^\s+$/.test(issue) || !admittedIssues.has(issue)) return ROW_SCOPE.UNADMITTED_ISSUE; // 5. (read as written)
+  return ROW_SCOPE.OTHER_ISSUE;                                        // 6. another admitted issue
+}
+
+// ledgerIsBound (spec §4 PROCEDURE ledger_is_bound). Reuses eventsLedgerFold's hash-match core —
+// the LAST ledger-write row's recorded ledger_sha256 must equal the SHA-256 of the anchor's own
+// byte-copied run-ledger.json. Never a forked comparison.
+function ledgerIsBound(anchorDir, chainRecords) {
+  let lastLw = null;
+  for (const r of chainRecords) if (r && r.type === "ledger-write") lastLw = r;
+  if (!lastLw) return false;
+  let bytes;
+  try { bytes = fs.readFileSync(path.join(anchorDir, "run-ledger.json")); } catch { return false; }
+  const recorded = lastLw.data && typeof lastLw.data === "object" ? lastLw.data.ledger_sha256 : undefined;
+  return recorded === sha256Hex(bytes);
+}
+
+// resolveAnchorScope (spec §4 PROCEDURE resolve_scope). Reads the proposed anchored issue from the
+// anchor's OWN chain-head.json `issue` field and accepts it ONLY when all four corroborations hold;
+// any failure records the matching ScopeRefusal literal, applies NO narrowing, and the caller judges
+// the file whole-file exactly as today. Every refusal is fail-closed (a wrong corroboration costs
+// only lost narrowing, never an opened hole). Returns { accepted: <issue>|null, refusals: [...] }.
+function resolveAnchorScope(anchorDir, chainRecords, profile = activeProfile()) {
+  let head;
+  try { head = JSON.parse(fs.readFileSync(path.join(anchorDir, "chain-head.json"), "utf8")); }
+  catch { return { accepted: null, refusals: [SCOPE_REFUSALS.WITNESS_ABSENT] }; }            // 1a
+  if (head === null || typeof head !== "object" || Array.isArray(head)) return { accepted: null, refusals: [SCOPE_REFUSALS.WITNESS_ABSENT] };
+  const proposed = head.issue;
+  if (typeof proposed !== "string" || proposed === "") return { accepted: null, refusals: [SCOPE_REFUSALS.ISSUE_ABSENT] }; // 1b
+  const { sentinels } = profileScopeLists(profile);
+  if (!SCOPE_ISSUE_TOKEN_RE.test(proposed) || proposed.includes("..") || sentinels.includes(proposed)) {
+    return { accepted: null, refusals: [SCOPE_REFUSALS.ISSUE_MALFORMED] };                   // 2a
+  }
+  let ledger;
+  try { ledger = JSON.parse(fs.readFileSync(path.join(anchorDir, "run-ledger.json"), "utf8")); }
+  catch { return { accepted: null, refusals: [SCOPE_REFUSALS.LEDGER_UNAVAILABLE] }; }        // 3a
+  if (!admittedIssueSet(ledger).has(proposed)) return { accepted: null, refusals: [SCOPE_REFUSALS.LEDGER_DISAGREES] }; // 3b
+  if (!chainRecords.some((r) => r && r.issue === proposed)) return { accepted: null, refusals: [SCOPE_REFUSALS.CHAIN_SILENT] }; // 4
+  if (path.basename(anchorDir) !== proposed) return { accepted: null, refusals: [SCOPE_REFUSALS.PATH_DISAGREES] }; // 5 (unconditional)
+  return { accepted: proposed, refusals: [] };                                               // 6
+}
+
 // FAFF-621: the shared verifier body — composes walkPhysicalChain with the witness
 // cross-check (chain-head.json / effects-chain-head.json) and, for events only, the
 // run-ledger fold. Both ledgers' verifiers are thin wrappers over this, so the genesis/prev
@@ -1501,6 +1602,25 @@ function cmdEvents(args) {
         try { fs.rmSync(dest, { recursive: true, force: true }); } catch { /* best-effort cleanup */ }
         return 1;
       }
+    }
+
+    // FAFF-1347: ADDITIONALLY judge the LIVE run dir's events.jsonl whole-file (the run-close,
+    // residue-visible leg — spec §4 anchor_run_self_verify). This is a git-only run-close check,
+    // NOT a trusted gate (it runs the in-checkout binary the PR authors), that stops a run committing
+    // a poisoned anchor set. It gates SPECIFICALLY on the evidence_schema leg (via --json), never on
+    // the whole run-dir verdict: a git-only close legitimately anchors non-shipped issues (parked/
+    // errored) whose merge_floor/liveness legs would otherwise FAIL the run-dir sweep and wrongly wipe
+    // a healthy mint. The legacy cutoff is applied inside the leg. On a non-pass leg (or an
+    // unparseable/failed spawn) wipe the whole dest tree and exit non-zero, reporting per-line detail.
+    const rd = spawnSync(process.execPath, [ENTRYPOINT, "governance-check", "--run-dir", dirArg, "--require-evidence-schema", "--legacy-policy", "pass", "--level", selfVerifyLevel, "--json"], { encoding: "utf8" });
+    let schemaLeg = null;
+    try { const v = JSON.parse(rd.stdout || ""); const run = Array.isArray(v.runs) ? v.runs.find((x) => x.run_dir === dirArg) || v.runs[0] : null; schemaLeg = run && run.legs ? run.legs.evidence_schema : null; }
+    catch { schemaLeg = null; }
+    if (!schemaLeg || schemaLeg.pass !== true) {
+      const detail = schemaLeg ? schemaLeg.detail : `run-dir evidence-schema judgement unavailable (governance-check exit ${rd.status})`;
+      process.stderr.write(`faff events anchor-run: run-dir evidence-schema leg failed for ${dirArg}: ${detail}\n${rd.stderr || ""}`);
+      try { fs.rmSync(dest, { recursive: true, force: true }); } catch { /* best-effort cleanup */ }
+      return 1;
     }
 
     console.log(`events anchor-run: ${dirArg} → ${dest} (${mintedDirs.length} issue(s) minted + self-verified${summaryCopied ? ", summary.md" : ""})`);
@@ -2327,4 +2447,4 @@ function eventsSelftest() {
 }
 
 
-module.exports = { RUNNER_IDENTITY_CREDENTIAL_SOURCES, DISPATCH_ALLOWED_DATA_KEYS, DISPATCH_KINDS, EFFORT_LEVELS, EVENTS_SPEC, EVENTS_SURFACE, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, DECISION_CAPTURE_COVERAGE_VALUES, HEX64_RE, QUALITY_GATE_CATCHES, TAIL_WINDOW_BYTES, appendEventRecord, appendRecordUnderLock, appendRecordsUnderLock, parseJsonlEntries, cmdEvents, computeChainHead, emitGenesisRunStart, eventLineCount, eventViolations, eventsSelftest, issueScopedViolations, mintIssueAnchor, seqFinding, sha256Hex, splitPhysicalLines, tailReadNextSeq, tailReadState, validateAnchorGenesis, verifyChain, verifyEffectsChain, walkPhysicalChain, verifyExitCode };
+module.exports = { RUNNER_IDENTITY_CREDENTIAL_SOURCES, DISPATCH_ALLOWED_DATA_KEYS, DISPATCH_KINDS, EFFORT_LEVELS, EVENTS_SPEC, EVENTS_SURFACE, EVENT_ISSUE_SCOPED, EVENT_LEDGER_OUTCOMES, EVENT_PHASES, EVENT_TYPES, DECISION_CAPTURE_COVERAGE_VALUES, HEX64_RE, QUALITY_GATE_CATCHES, TAIL_WINDOW_BYTES, appendEventRecord, appendRecordUnderLock, appendRecordsUnderLock, parseJsonlEntries, cmdEvents, computeChainHead, emitGenesisRunStart, eventLineCount, eventViolations, eventsSelftest, issueScopedViolations, mintIssueAnchor, seqFinding, sha256Hex, splitPhysicalLines, tailReadNextSeq, tailReadState, validateAnchorGenesis, verifyChain, verifyEffectsChain, walkPhysicalChain, verifyExitCode, ROW_SCOPE, SCOPE_REFUSALS, classifyRow, resolveAnchorScope, ledgerIsBound, admittedIssueSet };

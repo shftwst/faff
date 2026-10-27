@@ -1,0 +1,534 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "For a fixture reproducing the four-issue run's shape, a per-issue anchor minted for any one of its issues passes `faff evidence validate <anchor> --require-evidence-schema` with exit 0, where the unscoped validator exits 1 with one violation per unattributable row. Coverage: a new `test/faff-1347-anchor-event-scope.test.mjs`, building its fixture through `test/helpers/evidence-anchor-fixtures.mjs`, never by reading or writing a live run directory.",
+      "verified": "passing: node --test test/faff-1347-anchor-event-scope.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:1",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1347-anchor-event-scope.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "Each of a multi-issue run's per-issue anchors passes independently, and no anchor's exit code changes when a different issue's rows are made non-conforming. Coverage: the same new test file.",
+      "verified": "passing: node --test test/faff-1347-anchor-event-scope.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:2",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1347-anchor-event-scope.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "A row whose `type` is not in the active profile's `issue_scoped_types` classifies run-scoped and contributes gating violations in every per-issue anchor. Coverage: the new test file, plus a case in `test/evidence-validate.test.mjs`.",
+      "verified": "passing: node --test test/evidence-validate.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:3",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/evidence-validate.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "A row of an issue-scoped type whose `issue` is the sentinel and whose `data.kernel` is one of the profile's run-level decision kernels classifies run-scoped. Coverage: the new test file.",
+      "verified": "passing: node --test test/faff-1347-anchor-event-scope.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:4",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1347-anchor-event-scope.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "The same row with a `data.kernel` outside that list classifies unattributable and is counted, not treated as run-scoped. Coverage: the new test file.",
+      "verified": "passing: node --test test/faff-1347-anchor-event-scope.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1347-anchor-event-scope.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "A row of an issue-scoped type whose `issue` equals the accepted anchored issue contributes gating violations. Coverage: the new test file.",
+      "verified": "passing: node --test test/faff-1347-anchor-event-scope.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1347-anchor-event-scope.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "A row of an issue-scoped type whose `issue` is a different issue id in the admitted issue set contributes no violations and increments `out_of_scope_rows`. Coverage: the new test file.",
+      "verified": "passing: node --test test/faff-1347-anchor-event-scope.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1347-anchor-event-scope.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "A row of an issue-scoped type whose `issue` is a non-empty value outside the admitted issue set (`FAFF-9999`), or whitespace-only (`\" \"`, `\"\\t\"`), classifies `UNADMITTED_ISSUE` in every per-issue anchor of a two-issue run: it increments `unadmitted_issue_rows` and never `out_of_scope_rows`, its violations gate whether or not the ledger is bound, a non-conforming such row fails both issues' anchors, and the same row made conforming passes both. Coverage: the new test file, one case per value.",
+      "verified": "passing: node --test test/faff-1347-anchor-event-scope.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:8",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1347-anchor-event-scope.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`unadmitted_issue_rows` survives `checkAnchorDir` with the other scope fields and appears in `governance-check`'s text renderer, `--summary-md` and `--json` output. Coverage: `test/evidence.test.mjs` and `test/governance-check.test.mjs`.",
+      "verified": "passing: node --test test/evidence.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:9",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/evidence.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "A row of an issue-scoped type whose `issue` is absent, null or empty increments `unattributable_rows`, and contributes gating violations if and only if the ledger is bound and names exactly one issue. Coverage: the new test file, with one case per combination of boundness and cardinality.",
+      "verified": "passing: node --test test/faff-1347-anchor-event-scope.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:10",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1347-anchor-event-scope.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`run_subject_sentinels` and `run_level_decision_kernels` are optional array-of-strings keys of the governance profile, in `validateProfileShape`'s closed top-level vocabulary but not in `PROFILE_TOP_ARRAY_KEYS`; `DELIVERY_PROFILE` carries `[\"__run__\"]` and `[\"queue-state\", \"run-start\", \"run-done\", \"run-outward\"]`; and an override profile that renames the sentinel or drops a kernel changes the classification with no edit to the validator. Coverage: a profile-override test following the existing pattern in `test/events.test.mjs`, plus a `validateProfileShape` case for each new key of the wrong type (refused) and each new key absent (accepted).",
+      "verified": "passing: node --test test/events.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:11",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/events.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "An override profile file that predates the two keys still passes `validateProfileShape` with no violations, `activeProfile` returns it without throwing, and the classifier then uses `DELIVERY_PROFILE`'s sentinel and kernel values. Coverage: the same profile-override test, using a copy of `DELIVERY_PROFILE` with both keys deleted.",
+      "verified": "passing: node --test test/faff-1347-anchor-event-scope.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:12",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1347-anchor-event-scope.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "Adding an event type to `issue_scoped_types` changes the classification with no edit to the validator. Coverage: the same profile-override test.",
+      "verified": "passing: node --test test/faff-1347-anchor-event-scope.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:13",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1347-anchor-event-scope.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "The classification ignores `seq`, `ts` and file position: reordering a chain's rows, with `prev` links and the witness recomputed so the chain still verifies, changes no verdict. Coverage: the new test file.",
+      "verified": "passing: node --test test/faff-1347-anchor-event-scope.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:14",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1347-anchor-event-scope.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`scope_refusals` entries are drawn from the seven closed-set literals only, and a `chain-head.json` `issue` carrying a control character or a `::` sequence produces `issue-malformed` with no part of the proposed value in the rendered output. Coverage: the new test file.",
+      "verified": "passing: node --test test/faff-1347-anchor-event-scope.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:15",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1347-anchor-event-scope.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "A per-issue anchor's `events.jsonl` is byte-identical to the run's `events.jsonl` after the change. Coverage: `test/events-chain.test.mjs`.",
+      "verified": "passing: node --test test/events-chain.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:16",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/events-chain.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`chain-head.json`'s `head_seq`, `head_sha256`, `line_count` and `schema_floor` are unchanged from the values today's mint produces for the same run. Coverage: `test/events-chain.test.mjs`, and `test/effects-chain.test.mjs` for the effects witness.",
+      "verified": "passing: node --test test/events-chain.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:17",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/events-chain.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`run-ledger.json` and `declared-effects.jsonl` remain byte-copied unfiltered, and `effects-chain-head.json` remains computed over the unfiltered effects buffer. Coverage: `test/effects-chain.test.mjs`.",
+      "verified": "passing: node --test test/effects-chain.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:18",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/effects-chain.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`faff events verify` and `governance-check`'s integrity leg report the same verdict for an anchor minted before and after the change. Coverage: `test/events-chain.test.mjs`.",
+      "verified": "passing: node --test test/events-chain.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:19",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/events-chain.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "The scoped verdict resolves its proposed issue from the anchor's `chain-head.json` `issue` field, with no new flag at any call site, and `faff evidence validate <dir> --require-evidence-schema --json` run with no `--issue` produces the scoped verdict. Coverage: the new test file, and `test/faff-1278-governance-check-base-commit-leg.test.mjs`.",
+      "verified": "passing: node --test test/faff-1278-governance-check-base-commit-leg.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:20",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1278-governance-check-base-commit-leg.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "Each of the seven refusal literals, triggered in isolation, produces no narrowing, a null `scope`, exactly that one literal in `scope_refusals`, and a verdict identical to the unscoped validator's over the same bytes. For `ledger-unavailable` there are three cases: `run-ledger.json` absent, unreadable, and not valid JSON; none reports `ledger-disagrees`. Coverage: the new test file, one case per literal.",
+      "verified": "passing: node --test test/faff-1347-anchor-event-scope.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:21",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1347-anchor-event-scope.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "The path-agreement corroboration applies to every anchor directory regardless of basename shape: an anchor at `<anchors>/<run>/notanissue/` whose `chain-head.json` names a real admitted issue of the run is judged whole-file. Coverage: the new test file.",
+      "verified": "passing: node --test test/faff-1347-anchor-event-scope.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:22",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1347-anchor-event-scope.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "The token-shape corroboration uses the path-safety token shape, and a lowercase or dotted bare-token issue id that agrees with its directory basename, its ledger and its chain narrows successfully. Coverage: the new test file.",
+      "verified": "passing: node --test test/faff-1347-anchor-event-scope.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:23",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1347-anchor-event-scope.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "An anchor directory with no `chain-head.json`, or whose `chain-head.json` carries no usable `issue`, is judged whole-file with every row gating. Coverage: the new test file, and a case in `test/evidence-validate.test.mjs`.",
+      "verified": "passing: node --test test/evidence-validate.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:24",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/evidence-validate.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`checkAnchorDir` carries the per-file scope block for an `events.jsonl` entry whatever its status, including `ok`, while still dropping violation text and exception messages. Coverage: a case in `test/evidence.test.mjs` asserting both halves.",
+      "verified": "passing: node --test test/evidence.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:25",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/evidence.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "The scope identity, the refusal literals and the residue counts appear in `governance-check`'s text renderer and its `--summary-md` output, not only in `--json`. Coverage: `test/governance-check.test.mjs`.",
+      "verified": "passing: node --test test/governance-check.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:26",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/governance-check.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "Every per-line violation detail string of both legs passes `sanitiseDisplay`, and passes `escapeWorkflowData` before entering a workflow command: a judged row whose `issue` value is `FAFF-1::error::injected` produces no `::` sequence in the annotation output and appears nowhere verbatim in the text or `--summary-md` output. Coverage: the new test file and `test/governance-check.test.mjs`.",
+      "verified": "passing: node --test test/governance-check.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:27",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/governance-check.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`governance-check --run-dir <dir> --require-evidence-schema` fails when the run's `events.jsonl` carries a row of an issue-scoped type with an empty `issue`, with the leg named in the verdict's reasons alongside the offending line numbers, and the same invocation without the flag is report-only and exits 0. Coverage: `test/governance-check.test.mjs` and the `evaluateRunDir` selftest cases in `governance-check.js`.",
+      "verified": "passing: node --test test/governance-check.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:28",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/governance-check.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "The leg's per-line detail reaches the leg's `detail` string and the `--json` verdict, and `anchor-run`'s self-verify reports it to stderr. Coverage: `test/governance-check.test.mjs` and the `anchor-run` selftest cases.",
+      "verified": "passing: node --test test/governance-check.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:29",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/governance-check.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`faff events anchor-run` spawns the run-dir judgement with the evidence-schema leg gating, and on a non-zero exit wipes the whole `dest` tree and exits non-zero. Coverage: the `anchor-run` selftest cases, matching the existing wipe-on-failure assertions.",
+      "verified": "passing: node --test test/faff-1347-anchor-event-scope.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:30",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1347-anchor-event-scope.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "Given a run chain whose only non-issue subject is a corroborated sentinel row, `anchor-run` exits 0 and mints every issue's anchor. Coverage: the same selftest cases.",
+      "verified": "passing: node --test test/faff-1347-anchor-event-scope.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:31",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1347-anchor-event-scope.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "Legacy cutoff at the run-dir leg: a two-issue run minted the way real mints are (`ledger-write` at seq 0, `run-start` at seq 1) whose `run-start` `ts` is `2026-10-20T17:51:17Z` and whose chain carries one row of an issue-scoped type with an empty `issue` passes `governance-check --run-dir <dir> --require-evidence-schema`, reporting the row as advisory, and `anchor-run` exits 0 and mints both anchors. The same run with its `run-start` `ts` at `2026-10-20T17:51:18Z` or later fails both, as does a single-issue run with the earlier `ts`, and a legacy two-issue run whose only violation is a non-conforming row with a non-empty `issue` still fails. Coverage: `test/governance-check.test.mjs` and the `anchor-run` selftest cases.",
+      "verified": "passing: node --test test/governance-check.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:32",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/governance-check.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`anchor-run`'s existing refusals are unchanged: a missing `ledger-write` event exits 1, an `eventsLedgerFold` mismatch exits 1, a missing `events.jsonl` exits 3, and a mint failure wipes `dest`. Coverage: the existing `anchor-run` selftest cases, re-run unmodified.",
+      "verified": "passing: node --test test/faff-1347-anchor-event-scope.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:33",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1347-anchor-event-scope.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "The classification is a single named export of `events.js`, and both the per-issue scoped verdict and the run-dir whole-file leg reach it through that one export. Asserted by substitution over an explicit fixture: a chain of three parsed rows, one conforming `OWN` row, one conforming run-scoped row, and one non-conforming `OTHER_ISSUE` row at a known line number. The scoped verdict reports no gating line numbers; the same path with narrowing off reports exactly that one line number; and when the export is replaced with a double that returns `OWN` for every row, the scoped verdict reports that same one line number too. A build with a second divergent classifier on either path fails at least one of the three.",
+      "verified": "passing: node --test test/faff-1347-anchor-event-scope.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:34",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1347-anchor-event-scope.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "The run-dir leg is that same export with narrowing off, not a second classifier: for one fixture buffer, the scoped and unscoped reports differ only in the violation set and the scope fields. Coverage: the new test file.",
+      "verified": "passing: node --test test/faff-1347-anchor-event-scope.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:35",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1347-anchor-event-scope.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`faff events anchor`'s `--issue` shape validation, the FAFF-958 ledger-fold drift refusal, and the FAFF-1155 floor-incomplete exit 3 are unchanged. Coverage: `test/events-anchor-genesis-guard.test.mjs` and `test/faff-1155-anchor-floor-required.test.mjs`, re-run unmodified.",
+      "verified": "passing: node --test test/events-anchor-genesis-guard.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:36",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/events-anchor-genesis-guard.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "The post-mint `warnOnEvidenceSchema` check remains warn-only and still never changes the exit code, now reporting the scoped verdict. Coverage: `test/faff-1263-evidence-warn-only-mint.test.mjs`.",
+      "verified": "passing: node --test test/faff-1263-evidence-warn-only-mint.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:37",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1263-evidence-warn-only-mint.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`faff events append` still refuses an issue-scoped type with no `issue`, unchanged. Coverage: `test/events.test.mjs`.",
+      "verified": "passing: node --test test/events.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:38",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/events.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "No file under `decision-capture`'s write path is modified by this change, and `decision-capture`'s best-effort posture is unchanged: no kernel's exit code or stdout changes. Coverage: `test/decision-capture.test.mjs` and `test/decision-capture-wiring.test.mjs`, re-run unmodified.",
+      "verified": "passing: node --test test/decision-capture.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:39",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/decision-capture.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "Every git-tracked anchor still passes the committed tracked-anchor walk, with no change to `MIXED_CUTOFF` and no addition to `MIXED_ANCHORS`. Coverage: `test/evidence-validate.test.mjs`, re-run unmodified.",
+      "verified": "passing: node --test test/evidence-validate.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:40",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/evidence-validate.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "An unparseable line is a gating violation in both the scoped and the whole-file verdict. Coverage: the new test file.",
+      "verified": "passing: node --test test/faff-1347-anchor-event-scope.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:41",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1347-anchor-event-scope.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "A torn final line is tolerated in both verdicts. Coverage: `test/evidence-validate.test.mjs`.",
+      "verified": "passing: node --test test/evidence-validate.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:42",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/evidence-validate.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "For a single-issue graft run with a bound ledger, the scoped verdict and exit code are identical to the unscoped validator's for the same anchor. Coverage: the new test file.",
+      "verified": "passing: node --test test/faff-1347-anchor-event-scope.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:43",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1347-anchor-event-scope.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "An anchor whose own issue's rows carry a violation still fails, the narrowing having changed nothing about it. Coverage: the new test file.",
+      "verified": "passing: node --test test/faff-1347-anchor-event-scope.test.mjs",
+      "passed": true,
+      "ac_id": "faff-1347#done:44",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1347-anchor-event-scope.test.mjs"
+        }
+      ]
+    }
+  ]
+}

@@ -209,7 +209,10 @@ test("a failing evidence document sets the leg to fail without changing pass, ex
     assert.equal(b.code, g.code);
     assert.equal(b.verdict.pass, g.verdict.pass);
     assert.deepEqual(b.verdict.reasons, g.verdict.reasons);
-    assert.match(b.verdict.runs[0].legs.evidence_schema.detail, /^1 file\(s\) non-conforming: review-verdict\.json$/);
+    // FAFF-1347: the anchor's events.jsonl scope block is folded into the leg detail. This v03
+    // fixture's anchor dest is not named for the chain-head issue, so the scope resolves refused
+    // (whole-file judgement, byte-identical verdict to before) and the clause records that.
+    assert.match(b.verdict.runs[0].legs.evidence_schema.detail, /^1 file\(s\) non-conforming: review-verdict\.json( \[events scope: [^\]]*\])?$/);
   } finally { cleanup(good); cleanup(bad); }
 });
 
@@ -247,23 +250,24 @@ test("file names with :: or | are neutralised in text, json and summary markdown
   } finally { cleanup(f); }
 });
 
-test("run-dir results carry no evidence_schema leg and render without it", () => {
+// FAFF-1347: evaluateRunDir now carries a run-dir evidence_schema leg (report-only by default,
+// gating under --require-evidence-schema). A run dir with no events.jsonl is vacuously clean.
+test("run-dir results carry a report-only evidence_schema leg that renders", () => {
   const f = fixture("v03");
   try {
-    const gov = require("../plugin/skills/faff/bin/lib/governance-check.js");
-    assert.equal(typeof gov.evaluateAnchorDir, "function");
     f.mint();
-    const anchorRun = gov.evaluateAnchorDir(f.dest);
-    assert.ok(anchorRun.legs.evidence_schema);
     const ledger = JSON.parse(example("run-ledger"));
     const liveDir = path.join(f.root, ".faff", "runs", "live");
     mkdirSync(liveDir, { recursive: true });
     writeFileSync(path.join(liveDir, "run-ledger.json"), JSON.stringify(ledger));
     const r = runCli(["governance-check", "--run-dir", liveDir, "--json"], { cwd: f.root });
     const parsed = JSON.parse(r.stdout);
-    assert.equal(parsed.runs[0].legs.evidence_schema, undefined);
+    const leg = parsed.runs[0].legs.evidence_schema;
+    assert.ok(leg);
+    assert.equal(leg.report_only, true);
+    assert.equal(leg.status, "pass");
     const text = runCli(["governance-check", "--run-dir", liveDir], { cwd: f.root });
-    assert.doesNotMatch(text.stdout, /evidence_schema/);
+    assert.match(text.stdout, /evidence_schema/);
   } finally { cleanup(f); }
 });
 

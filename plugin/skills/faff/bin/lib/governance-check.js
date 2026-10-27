@@ -41,7 +41,7 @@ const { FLOOR_LEVELS } = require("./contract-defs");
 const { verifyAuthLeg, hasGovernanceContext, expectedRunIdForDir } = require("./commissaire");
 const { findRoot, readLedger } = require("./shared-infra");
 const { computeChainHead, sha256Hex, verifyChain, verifyEffectsChain } = require("./events");
-const { checkAnchorDir, sanitiseDisplay } = require("./evidence");
+const { checkAnchorDir, evaluateRunDirEventsSchema, sanitiseDisplay } = require("./evidence");
 
 // ---------------------------------------------------------------------------
 // Leg: budget — the ledger envelope + the LAST recorded budget-checkpoint event.
@@ -335,7 +335,61 @@ function evidenceSchemaLeg(dir, requireSchema = false) {
   const detail = check.status === "pass" ? "all files conform to v0.3"
     : check.status === "legacy" ? "legacy anchor (no evidence document carries schema_version)"
     : `${files.length} file(s) non-conforming: ${files.slice(0, 3).map((f) => f.path).join(", ")}`;
-  return { ...gating, status: check.status, files, detail: sanitiseDisplay(detail) };
+  // FAFF-1347: carry the anchor's events.jsonl scope block (scope identity, refusal literals,
+  // residue counts) so it reaches the text / --summary-md / --json renderers, not just --json. The
+  // scope clause is folded into `detail` (the string every renderer already prints) AND kept as the
+  // typed `events_scope` block in --json. Every spliced value is already sanitised by checkAnchorDir.
+  const es = check.events_scope;
+  let scopeClause = "";
+  if (es) {
+    scopeClause = es.scope === null
+      ? ` [events scope: refused (${es.scope_refusals.join(", ") || "none"})]`
+      : ` [events scope: ${es.scope}; out-of-scope ${es.out_of_scope_rows}, unadmitted ${es.unadmitted_issue_rows}, unattributable ${es.unattributable_rows}${es.unattributable_gating ? " (gating)" : " (advisory)"}]`;
+  }
+  const leg = { ...gating, status: check.status, files, detail: sanitiseDisplay(detail) + scopeClause };
+  if (es) leg.events_scope = es;
+  return leg;
+}
+
+// FAFF-1347: the run-dir whole-file evidence_schema leg. Judges run_dir/events.jsonl WHOLE-FILE
+// through the SAME classifier with narrowing off (evidence.evaluateRunDirEventsSchema), gating under
+// `--require-evidence-schema` and report-only otherwise (the same posture the anchor-dir evidence
+// leg takes). Described as a run-close and local-feedback check, NOT a trusted gate: both call sites
+// (the action's head step, anchor-run's self-verify) run the in-checkout binary the PR authors, and
+// no run dir is committed in this repo. Every per-line value is sanitised; the annotation path
+// additionally escapeWorkflowData's the whole reason.
+const RUN_DIR_SCHEMA_DETAIL_MAX = 10;
+function runDirEvidenceSchemaLeg(runDir, requireSchema = false) {
+  let r;
+  try { r = evaluateRunDirEventsSchema(runDir, {}); }
+  catch (e) {
+    const name = e && typeof e.name === "string" && /^[A-Za-z][A-Za-z0-9_$]{0,63}$/.test(e.name) ? e.name : "Error";
+    const base = requireSchema ? { report_only: false, pass: false } : { report_only: true };
+    return { ...base, status: "error", detail: sanitiseDisplay(`validator error: ${name}`), violating_lines: [], advisory_lines: [], legacy_relief: false };
+  }
+  if (r.schema_unavailable) {
+    const base = requireSchema ? { report_only: false, pass: false } : { report_only: true };
+    return { ...base, status: "error", detail: sanitiseDisplay(`schema-unavailable ${r.where}`), violating_lines: [], advisory_lines: [], legacy_relief: false };
+  }
+  const base = requireSchema ? { report_only: false, pass: r.pass } : { report_only: true };
+  const fmtEntry = (e) => e.type === null
+    ? `line ${e.line} (unparseable)`
+    : `line ${e.line} (${sanitiseDisplay(e.type)}, issue=${sanitiseDisplay(String(e.issue))})`;
+  const violating_lines = r.gating.map(fmtEntry);
+  const advisory_lines = r.advisory.map(fmtEntry);
+  const status = r.pass ? "pass" : "fail";
+  let detail;
+  if (r.pass) {
+    detail = r.advisory.length
+      ? `all rows gating-clean; ${r.advisory.length} advisory under the legacy cutoff`
+      : "all rows conform (whole-file)";
+  } else {
+    const shown = violating_lines.slice(0, RUN_DIR_SCHEMA_DETAIL_MAX);
+    const more = violating_lines.length > RUN_DIR_SCHEMA_DETAIL_MAX ? ` (+${violating_lines.length - RUN_DIR_SCHEMA_DETAIL_MAX} more)` : "";
+    detail = `${r.gating.length} violating line(s): ${shown.join("; ")}${more}`
+      + (r.advisory.length ? `; ${r.advisory.length} advisory under the legacy cutoff` : "");
+  }
+  return { ...base, status, detail: sanitiseDisplay(detail), violating_lines, advisory_lines, legacy_relief: r.legacy_relief };
 }
 
 // ---------------------------------------------------------------------------
@@ -533,13 +587,18 @@ function evaluateRunDir(runDir, opts) {
   // run dir carries a valid chain by construction; an absent events.jsonl → verified.
   const integrity = evaluateIntegrityLeg(runDir, opts.legacyPolicy || "pass");
 
-  const pass = completeness.pass && budget.pass && merge_floor.pass && liveness.pass && integrity.pass;
+  // FAFF-1347: the run-dir whole-file evidence_schema leg. Gating under --require-evidence-schema,
+  // report-only otherwise — so a report-only leg never changes `pass`.
+  const evidence_schema = runDirEvidenceSchemaLeg(runDir, !!opts.requireEvidenceSchema);
+
+  const pass = completeness.pass && budget.pass && merge_floor.pass && liveness.pass && integrity.pass
+    && (evidence_schema.report_only || evidence_schema.pass);
 
   return {
     run_id: label,
     run_dir: runDir,
     issues_checked: issues,
-    legs: { completeness, budget, merge_floor, coherence, liveness, integrity },
+    legs: { completeness, budget, merge_floor, coherence, liveness, integrity, evidence_schema },
     pass,
   };
 }
@@ -766,7 +825,7 @@ function cmdGovernanceCheck(args) {
   const nowMs = Date.now();
   const results = [];
   for (const d of runDirs) {
-    const r = evaluateRunDir(d, { issue: issueFlag, level: levelFlag, nowMs, root, legacyPolicy });
+    const r = evaluateRunDir(d, { issue: issueFlag, level: levelFlag, nowMs, root, legacyPolicy, requireEvidenceSchema: !!values["--require-evidence-schema"] });
     if (r.malformed) {
       process.stderr.write(`faff governance-check: ${r.run_dir}: ${r.error}\n`);
       return 2;

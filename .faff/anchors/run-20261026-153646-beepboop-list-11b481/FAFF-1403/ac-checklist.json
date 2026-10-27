@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "all_verified": false,
+  "all_verified": true,
   "criteria": [
     {
       "ac": "The `adversarial.spec_judge` sub-block's token-cap key is spelled `max_tokens` (underscore), value `15000`, with its `refs:` list unchanged.",
@@ -136,8 +136,8 @@
     },
     {
       "ac": "A live spec-review judge dispatch against a case that previously returned `reconstruction empty/failed` at the 2000-token fallback no longer truncates at the same point. This is a one-time manual confirmation that the restored 15000-token budget takes effect; it is a config typo fix, not a code defect, so no new automated test is added.",
-      "verified": "Needs human verification: the spec itself designates this a manual spot-check against a live judge dispatch, not an automated test; no trusted command source directs this in the spec, and it requires observing a real adversarial run outcome.",
-      "passed": false,
+      "verified": "Human spot-check PASS (operator-confirmed 2026-10-27): replayed FAFF-1398's spec-review judge Phase-1 reconstructions (run-20261026-131701-beepboop-list-f0d18c) that failed at the 2000-token fallback, same backends/context/spec, --max-tokens 15000: p-03 was empty (finish_reason=length), now exit 0, 6,167 bytes, all 4 sections, no truncation; p-04 was truncated (294 bytes), now exit 0, 6,903 bytes, all 4 sections, no truncation",
+      "passed": true,
       "ac_id": "faff-1403#done:11",
       "verifications": [
         {

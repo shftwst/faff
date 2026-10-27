@@ -2,12 +2,35 @@
   "schema_version": 1,
   "run_id": "run-20261026-153646-beepboop-list-11b481",
   "level": "L3",
-  "admitted": ["FAFF-1403"],
-  "outcomes": {},
+  "admitted": [
+    "FAFF-1403"
+  ],
+  "outcomes": {
+    "FAFF-1403": "pr-open"
+  },
+  "outcome_details": {
+    "FAFF-1403": {
+      "pr": 1135,
+      "url": "https://github.com/shftwst/faff/pull/1135",
+      "head_sha": "5503bc4befc25a0d6d483436a275b467b8c12ed1",
+      "reason": "merge floor not autonomously satisfiable: ci-red (dco: spec commit 71394f82 missing Signed-off-by; governance-check: merge_floor leg — ac-checklist incomplete) and 1 of 11 DONE items is a spec-designated manual spot-check (live judge dispatch) that needs human verification. Fix is correct + minimal; review passed; not merged.",
+      "human_followups": [
+        "DCO: git rebase --signoff main on the branch (spec commit 71394f82 lacks the trailer), then re-anchor + force-push — or sign off at merge.",
+        "Manual AC: run a live spec-review judge dispatch against a previously-truncating case to confirm the restored 15000-token budget no longer truncates (spec DONE spot-check)."
+      ]
+    }
+  },
+  "evidence_persisted": [
+    {
+      "issue": "FAFF-1403",
+      "ac_sha256": "dad725f1c76e0f6e5798486b9caf6f6712115a51853486c476d9f982c356c08f",
+      "review_verdict_sha256": "e593111b165f9c01c1dcbedcee3a76340fb996674a1918aec5541a6be0ca45bd"
+    }
+  ],
   "base_sha": "e373de2ecd3ab2047e6fc5b624b9cdb25b21af01",
   "base_sha_required": true,
   "owner": {
-    "status": "running",
+    "status": "done",
     "session_id": "run-20261026-153646-beepboop-list-11b481",
     "pid": 364,
     "started_at": "2026-10-26T15:36:46.489Z",
@@ -15,6 +38,7 @@
     "harness": "claude-code",
     "model": "unknown"
   },
+  "stop_reason": "queue-drained",
   "budget": {
     "envelope": {
       "ceilings": {
@@ -37,11 +61,11 @@
     },
     "tokens_at_start": 5041351,
     "tokens_at_last_event": {
-      "input": 240,
-      "output": 186716,
+      "input": 525,
+      "output": 451200,
       "cache_write_5m": 0,
-      "cache_write_1h": 851074,
-      "cache_read": 31337763
+      "cache_write_1h": 1279721,
+      "cache_read": 95008957
     }
   }
 }

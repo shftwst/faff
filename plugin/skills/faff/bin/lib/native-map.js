@@ -278,7 +278,9 @@ function cmdNativeMapSet(values, root) {
       const code = refuse(`${writeRel} already exists with different content; re-run with --force to overwrite.`);
       if (code !== null) return code;
     }
-  } else if (deprecatedRel && fs.existsSync(path.join(root, deprecatedRel))) {
+  } else if (guardEngages) {
+    // Same predicate that suppressed the directory-level notice above — consumed here (not
+    // re-derived) so the suppression and the file-level guard can never drift out of lockstep.
     if (!values["--force"]) {
       const code = refuse(
         `a map already exists at ${deprecatedRel}; it is deprecated and would be shadowed by ${writeRel}. ` +

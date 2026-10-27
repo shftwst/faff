@@ -414,6 +414,20 @@ test("set with a deprecated-only map and a canonical directory already holding a
   assert.ok(!r.err.includes("git mv .faff-templates .faff/templates"));
 });
 
+test("set with a deprecated directory present but NO deprecated map file: the guard does not engage, so the directory-level notice still fires and the canonical map is written", () => {
+  const dir = tmpDir();
+  // .faff-templates/ holds some OTHER override but not native-templates.yaml → guardEngages is false.
+  mkdirSync(join(dir, ".faff-templates"), { recursive: true });
+  writeFileSync(join(dir, ".faff-templates", "bug.md"), "## other override\n");
+  const r = runFull(dir, SET_ARGS, BUG_PAYLOAD);
+  assert.equal(r.code, 0, r.err);
+  // The migration nudge for the other overrides is preserved (guard did not engage).
+  assert.match(r.err, /template overrides at \.faff-templates\/ are deprecated/);
+  assert.ok(r.err.includes("git mv .faff-templates .faff/templates"), "the whole-directory notice must still fire when the guard does not engage");
+  // The canonical map is written (the deprecated map file was absent, so there was nothing to shadow).
+  assert.ok(existsSync(join(dir, MAP_REL)), "the canonical map is written");
+});
+
 test("set --force with a deprecated-only map writes the canonical path, leaves the old file, and names it", () => {
   const dir = tmpDir();
   writeDeprecatedMap(dir);

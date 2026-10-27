@@ -408,6 +408,7 @@ const base = () => ({
     m: { type: "object", additionalProperties: { type: "string" } },
     o: { type: "object", additionalProperties: false, properties: { x: { type: "string" } } },
     open: { type: "object", properties: {} },
+    r: { type: "array", maxItems: 2, items: { type: "integer" } },
     d: { type: "object", discriminator: { field: "k", mapping: { one: { type: "object", additionalProperties: false, properties: { k: { type: "string" } } } } } },
   },
 });
@@ -421,6 +422,9 @@ const additiveCases = {
   "new optional object property with a typed, closed map value": (h) => { h.properties.n = { type: "object", additionalProperties: { type: "string" } }; return h; },
   "new optional closed object property": (h) => { h.properties.n = { type: "object", additionalProperties: false, properties: { q: { type: "integer" } } }; return h; },
   "new optional array property with closed typed items": (h) => { h.properties.n = { type: "array", items: { type: "string" } }; return h; },
+  "maxItems raised": (h) => { h.properties.r.maxItems = 3; return h; },
+  "maxItems removed": (h) => { delete h.properties.r.maxItems; return h; },
+  "new optional array property carrying maxItems": (h) => { h.properties.n = { type: "array", maxItems: 2, items: { type: "string" } }; return h; },
 };
 const nonAdditiveCases = {
   "new property in required": (h) => { h.properties.n = closedString; h.required.push("n"); return h; },
@@ -434,6 +438,9 @@ const nonAdditiveCases = {
   "new object property without closure": (h) => { h.properties.n = { type: "object", properties: {} }; return h; },
   "new property on a node with no additionalProperties": (h) => { h.properties.open.properties.k = closedString; return h; },
   "new optional property inside a discriminator mapping": (h) => { h.properties.d.discriminator.mapping.one.properties.k2 = closedString; return h; },
+  "maxItems lowered": (h) => { h.properties.r.maxItems = 1; return h; },
+  "maxItems added where absent": (h) => { h.properties.a.type = "array"; h.properties.a.items = { type: "string" }; h.properties.a.maxItems = 2; return h; },
+  "maxItems changed to a non-number": (h) => { h.properties.r.maxItems = "3"; return h; },
   "minLength added": (h) => { h.properties.a.minLength = 1; return h; },
   "const added": (h) => { h.properties.a.const = "z"; return h; },
   "additionalProperties false to true": (h) => { h.additionalProperties = true; return h; },

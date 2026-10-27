@@ -1,0 +1,218 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "`contract-engine.js` rejects an array longer than `maxItems` with reason `<where>: expected at most <N> items, got <M>`, inside the array branch, ignoring `maxItems` for non-arrays.",
+      "verified": "maxItems fixture rows pass against contract-engine.js in the parity test; fail case reads 'expected at most 2 items, got 3'",
+      "passed": true,
+      "ac_id": "faff-1283#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/validator-parity.test.mjs::validator-parity: maxItems fails"
+        }
+      ]
+    },
+    {
+      "ac": "`validate-schema.mjs` carries the identical check with the identical reason string.",
+      "verified": "same fixture table runs through validate-schema.mjs with identical reason string",
+      "passed": true,
+      "ac_id": "faff-1283#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/validator-parity.test.mjs::validator-parity: maxItems fails"
+        }
+      ]
+    },
+    {
+      "ac": "The validator-parity test has a new `maxItems` fixture row and both copies return equal results.",
+      "verified": "four maxItems rows (fails, fails on strings, passes, ignored for non-arrays) added to the shared CASES table; both copies equal",
+      "passed": true,
+      "ac_id": "faff-1283#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/validator-parity.test.mjs::validator-parity: maxItems passes"
+        }
+      ]
+    },
+    {
+      "ac": "`conformed_to_contract.schema.json` and `accepted_under_contract.schema.json` each carry `maxItems: 2` on `evidence_seq_range` beside `minItems: 2`.",
+      "verified": "both authored sources carry maxItems: 2 beside minItems: 2 (git diff)",
+      "passed": true,
+      "ac_id": "faff-1283#done:4",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff main -- verification/evidence/v0.3/schema/commissaire"
+        }
+      ]
+    },
+    {
+      "ac": "The stale sentence is removed from `conformed_to_contract.schema.json`'s description; the other's is unchanged.",
+      "verified": "sentence removed from conformed_to_contract description only",
+      "passed": true,
+      "ac_id": "faff-1283#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff main -- verification/evidence/v0.3/schema/commissaire/conformed_to_contract.schema.json"
+        }
+      ]
+    },
+    {
+      "ac": "`node scripts/evidence-v0.3-compose.mjs` has been run; generated schema + bundled mirror regenerated and committed; `--check` exits 0.",
+      "verified": "composer run; --check prints 'up to date', exit 0",
+      "passed": true,
+      "ac_id": "faff-1283#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node scripts/evidence-v0.3-compose.mjs --check"
+        }
+      ]
+    },
+    {
+      "ac": "`\"maxItems\"` is a member of `SUBSET_KEYWORDS` in `evidence.js`.",
+      "verified": "maxItems added to SUBSET_KEYWORDS",
+      "passed": true,
+      "ac_id": "faff-1283#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-validate.test.mjs::classifySchemaChange: maxItems raised is additive"
+        }
+      ]
+    },
+    {
+      "ac": "`classifySchemaChange` reports a raised and a removed `maxItems` as additive.",
+      "verified": "raise and removal classified additive, reasons empty",
+      "passed": true,
+      "ac_id": "faff-1283#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-validate.test.mjs::classifySchemaChange: maxItems raised is additive"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-validate.test.mjs::classifySchemaChange: maxItems removed is additive"
+        }
+      ]
+    },
+    {
+      "ac": "`classifySchemaChange` reports a lowered and an added-where-absent `maxItems` as non-additive, each reason beginning with a `/` JSON pointer, no schema value.",
+      "verified": "lower and added-where-absent classified non-additive, reasons start with a / pointer",
+      "passed": true,
+      "ac_id": "faff-1283#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-validate.test.mjs::classifySchemaChange: maxItems lowered is non-additive and the reasons name a pointer, not a value"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-validate.test.mjs::classifySchemaChange: maxItems added where absent is non-additive and the reasons name a pointer, not a value"
+        }
+      ]
+    },
+    {
+      "ac": "The existing property test passes for the new additive maxItems case(s).",
+      "verified": "property test iterates the additive table, now including maxItems raised/removed",
+      "passed": true,
+      "ac_id": "faff-1283#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-validate.test.mjs::property test: for each additive pair, every document valid under base is valid under head"
+        }
+      ]
+    },
+    {
+      "ac": "`conclusionRangeViolations` is deleted from `commissaire.ts`, its call removed from `recordSchemaCheck`, the stale comment gone.",
+      "verified": "conclusionRangeViolations and its call and comment deleted; tsc clean",
+      "passed": true,
+      "ac_id": "faff-1283#done:11",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git grep -c conclusionRangeViolations -- plugin"
+        }
+      ]
+    },
+    {
+      "ac": "`governor.ts` confirmed to hold no separate length check.",
+      "verified": "governor.ts only constructs [Math.min, Math.max]; no length check (grep)",
+      "passed": true,
+      "ac_id": "faff-1283#done:12",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n evidence_seq_range plugin/skills/faff/bin/lib/governor.ts"
+        }
+      ]
+    },
+    {
+      "ac": "`commissaire.js` and `build-manifest.json` rebuilt and committed; `faff regions check` passes.",
+      "verified": "emit rebuilt with npm run build; build-manifest.json updated; regions check PASS",
+      "passed": true,
+      "ac_id": "faff-1283#done:13",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        }
+      ]
+    },
+    {
+      "ac": "A conclusion record whose `evidence_seq_range` holds three integers is refused by the schema check with reason `payload.evidence_seq_range: expected at most 2 items, got 3` (verb exits 2, nothing written).",
+      "verified": "fake-governor three-seq conclusion refused with the schema reason, exit 2",
+      "passed": true,
+      "ac_id": "faff-1283#done:14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-payload-writers.test.mjs::governor: a verdict record the schema refuses parks governor-record-unverified without retrying, and a conclusion holding three seqs does too"
+        }
+      ]
+    },
+    {
+      "ac": "The three-seq conclusion writer test is updated to assert the new schema reason and still asserts exit 2 / record-unverified / no ledger line.",
+      "verified": "writer test now asserts 'payload.evidence_seq_range: expected at most 2 items, got 3', exit 2, no new ledger line",
+      "passed": true,
+      "ac_id": "faff-1283#done:15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-payload-writers.test.mjs::governor: a verdict record the schema refuses parks governor-record-unverified without retrying, and a conclusion holding three seqs does too"
+        }
+      ]
+    },
+    {
+      "ac": "A test confirms the schema-unavailable path early-returns before any length check.",
+      "verified": "new test: with the schema bundle missing a three-seq conclusion is recorded with no range check, marker written",
+      "passed": true,
+      "ac_id": "faff-1283#done:16",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-payload-writers.test.mjs::governor: with declared-effect.schema.json missing a three-seq conclusion is not length-checked (the degrade path returns before any range check)"
+        }
+      ]
+    },
+    {
+      "ac": "Every committed declared-effects conclusion record still validates; valid example fixtures still validate.",
+      "verified": "567 committed schema-3 declared-effects records across 200 anchors validate; full unit suite green",
+      "passed": true,
+      "ac_id": "faff-1283#done:17",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test"
+        }
+      ]
+    }
+  ]
+}

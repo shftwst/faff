@@ -2287,7 +2287,7 @@
             },
             "conformed_to_contract": {
               "title": "declared-effects.jsonl schema-3 record, kind_of_entry conformed_to_contract",
-              "description": "Commissaire's terminal conclusion (commissaire.ts cmdTerminalVerdict, governor.ts conclude). The writer also checks that evidence_seq_range holds exactly two integers.",
+              "description": "Commissaire's terminal conclusion (commissaire.ts cmdTerminalVerdict, governor.ts conclude).",
               "type": "object",
               "additionalProperties": false,
               "required": [
@@ -2373,6 +2373,7 @@
                     "evidence_seq_range": {
                       "type": "array",
                       "minItems": 2,
+                      "maxItems": 2,
                       "items": {
                         "type": "integer"
                       }
@@ -2472,6 +2473,7 @@
                     "evidence_seq_range": {
                       "type": "array",
                       "minItems": 2,
+                      "maxItems": 2,
                       "items": {
                         "type": "integer"
                       }

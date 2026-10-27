@@ -1,0 +1,29 @@
+[
+  {
+    "proposition_id": "FAFF-1306-scenarios-test-mechanism-reaches-mint",
+    "outcome": "UPHOLD_REVIEW",
+    "rationale": "The reconstruction establishes as a valid-solution property that the scenarios' test mechanism must actually reach mintLightsOut; a harness that stops at a preflight refusal cannot decide any of scenarios 1–4's mint assertions. Argument B identifies a concrete, checkable failure mode for the spec's chosen mechanism: cmdLightsOut builds knownCommands from its second parameter, and a caller that does not thread faff's COMMANDS registry makes all seven CLI-backed guardrails read absent, so the preflight refuses before the mint. That is a material defect, not a taste call: the predicted consequence — the in-process invocation described cannot exercise the mint path — is concrete and falsifiable, and it breaks born-verifiability of AC1–AC4 under the governing block's precedent. The reconstruction cannot independently confirm the uncited signature claim (repository evidence is empty), and the two positions are not reconcilable on the evidence: if Argument B holds, the spec's test mechanism silently verifies only the preflight; if it does not, the mechanism is sound. Because the proposition is blocking and the technical fact cannot be settled here, the safe course is a bounded correction within the already-established valid-solution property rather than affirming a potentially unverifiable mechanism. The correction stays within existing requirements: it requires the spec's stated harness to thread the registry so the preflight is admitted and the mint is genuinely reached — no new product or policy choice is implicated.",
+    "correction": {
+      "summary": "The scenarios' shared test mechanism must invoke cmdLightsOut with the full COMMANDS registry passed in its second parameter (threading faff's registry), so all seven CLI-backed guardrails read correctly and the preflight is admitted to the mint rather than refusing before mintLightsOut is reached; state this in the shared test-mechanism preamble and in the Verification surface.",
+      "verification": "thread the full COMMANDS registry into cmdLightsOut's second parameter"
+    },
+    "synthesis_sources": [],
+    "prd_gap_citation": "",
+    "lens": "",
+    "severity": "",
+    "conformant": true,
+    "violations": []
+  },
+  {
+    "proposition_id": "FAFF-1306-p-02",
+    "outcome": "AFFIRM_SPEC",
+    "rationale": "Argument B rests on the factual premise that the shared test-mechanism paragraph omits threading the COMMANDS registry into cmdLightsOut. That premise is false on the spec under review: the paragraph expressly says 'The invocation must thread the full COMMANDS registry into cmdLightsOut's second parameter so all seven CLI-backed guardrails read present (FAFF-899 floor) and the preflight is admitted to the mint rather than refusing before mintLightsOut is reached.' That is exactly the FAFF-899 floor the reconstruction identifies as necessary for scenarios 1-4 to reach the mint rather than merely exercising a preflight refusal. The demanded correction is therefore already present in the spec, so the objecting position has not established a material defect. Argument A's enumeration of fixture provisions is incomplete if read as the sole mechanism, but that incompleteness is remedied by the same spec sentence; an argument-side omission is not a spec defect when the spec itself supplies the missing requirement.",
+    "correction": null,
+    "synthesis_sources": [],
+    "prd_gap_citation": "",
+    "lens": "",
+    "severity": "",
+    "conformant": true,
+    "violations": []
+  }
+]

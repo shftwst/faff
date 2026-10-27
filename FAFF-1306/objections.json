@@ -1,0 +1,20 @@
+[
+  {
+    "claim": "The 'complete set the preflight needs' claim is false for the in-process path: cmdLightsOut(args, commands) builds knownCommands from its second parameter; a caller that does not thread faff's COMMANDS registry makes all seven CLI-backed guardrails read absent (FAFF-899 floor), so the preflight refuses before mintLightsOut is called.",
+    "evidence": "",
+    "predicted_consequence": null,
+    "spec_anchor": "scenarios",
+    "lens": "architectural",
+    "severity": "minor",
+    "contested_source": false
+  },
+  {
+    "claim": "Same: the test-mechanism paragraph claims completeness but omits threading the COMMANDS registry into cmdLightsOut, so scenarios 1-4 stubs never fire; spec must name passing the full COMMANDS registry as bin/faff does.",
+    "evidence": "",
+    "predicted_consequence": null,
+    "spec_anchor": "scenarios",
+    "lens": "QA",
+    "severity": "minor",
+    "contested_source": false
+  }
+]

@@ -1,0 +1,56 @@
+[
+  {
+    "round": 1,
+    "window_start": 1,
+    "objections": [
+      {
+        "lens": "architectural",
+        "severity": "major",
+        "claim": "Decision 5 genesis-failure deferral to FAFF-1305 is a scope mismatch; lights-out genesis orphan is unowned and leaves a live owner.status:running ledger that the live-higher-level guard trips on.",
+        "spec_anchor": "decision-5-cleanup-rule-reuse-faff-1280s-helper-discard-only-an-un-landed-dir"
+      },
+      {
+        "lens": "QA",
+        "severity": "major",
+        "claim": "Scenarios drive faff lights-out past the L4 preflight on a tmp root with no stubbing seam named; init-self-drain mint has no preflight so the cited test model does not transfer; AC1-AC4 not decidable.",
+        "spec_anchor": "verification-surface"
+      },
+      {
+        "lens": "QA",
+        "severity": "minor",
+        "claim": "AC5 non-ENOENT discard branch not reliably producible by a black-box tmp-root test; no stubbing mechanism named.",
+        "spec_anchor": "scenario-the-discard-message-prefix-is-generalised-without-changing-the-existing-two-sites"
+      }
+    ]
+  },
+  {
+    "round": 2,
+    "window_start": 1,
+    "objections": [
+      {
+        "lens": "QA",
+        "severity": "minor",
+        "claim": "The named harness config (budget.tokens ceiling + autonomous.engine_bounded:true) is under-specified: it omits the fuller tmpRoot() fixture (slots review/spec_review occupants, gates.fallback: fail-closed, on_estimate_only: warn) needed to pass budget-metering (FAFF-428) and dial-coherence (FAFF-298), so scenarios 1-4 are not executable exactly as the parenthetical describes.",
+        "spec_anchor": "scenarios"
+      }
+    ]
+  },
+  {
+    "round": 3,
+    "window_start": 1,
+    "objections": [
+      {
+        "lens": "architectural",
+        "severity": "minor",
+        "claim": "The 'complete set the preflight needs' claim is false for the in-process path: cmdLightsOut(args, commands) builds knownCommands from its second parameter; a caller that does not thread faff's COMMANDS registry makes all seven CLI-backed guardrails read absent (FAFF-899 floor), so the preflight refuses before mintLightsOut is called.",
+        "spec_anchor": "scenarios"
+      },
+      {
+        "lens": "QA",
+        "severity": "minor",
+        "claim": "Same: the test-mechanism paragraph claims completeness but omits threading the COMMANDS registry into cmdLightsOut, so scenarios 1-4 stubs never fire; spec must name passing the full COMMANDS registry as bin/faff does.",
+        "spec_anchor": "scenarios"
+      }
+    ]
+  }
+]

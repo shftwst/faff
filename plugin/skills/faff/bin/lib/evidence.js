@@ -251,9 +251,11 @@ function eventDataKeys(type) {
 // straight after schema_version ("unknown" when unresolved, never omitted).
 const withFaffVersion = (doc) => stampFaffVersion(doc, resolveFaffVersion().version);
 
+// FAFF-1395: faff_version is writer provenance restamped on every write, so it is stripped with
+// schema_version and a restamp never reads as a changed path of its own.
 const stripVersion = (doc) => {
   if (!isObject(doc)) return doc;
-  const { schema_version: _ignored, ...rest } = doc;
+  const { schema_version: _ignored, faff_version: _stamp, ...rest } = doc;
   return rest;
 };
 

@@ -383,9 +383,8 @@ function initInteractive(values) {
   }
 
   // Emit the genesis run-start onto the events chain via the shared FAFF-966 helper (never a
-  // hand-duplicated emit) — byte-identical to before the extraction: no `data.level` (this L2
-  // mint has never carried one; see the regression assertion in
-  // run-ledger-init-interactive.test.mjs).
+  // hand-duplicated emit). The L2 mint passes no `level`, so its genesis data is exactly
+  // { faff_version } (FAFF-1395; see the assertion in run-ledger-init-interactive.test.mjs).
   emitGenesisRunStart(runDir);
   // FAFF-1213: record the run-level GitHub runner identity right after genesis (run-start), so it
   // rides mintIssueAnchor into the committed anchor Gate 1 reads. Lazy require (cycle-safe) +

@@ -44,6 +44,7 @@ const { cmdBundle, cmdBuildClaim, cmdLandingClaim } = lazy(() => require("./lib/
 const { cmdBundleRecover } = lazy(() => require("./lib/bundle-recover"), ["cmdBundleRecover"]);
 const { cmdCiTriage } = lazy(() => require("./lib/ci-triage"), ["cmdCiTriage"]);
 const { cmdLand } = lazy(() => require("./lib/land"), ["cmdLand"]);
+const { cmdSpec } = lazy(() => require("./lib/spec-commit"), ["cmdSpec"]);
 const { cmdClaimVerdict } = lazy(() => require("./lib/claim-verdict"), ["cmdClaimVerdict"]);
 const { cmdParkVerdict } = lazy(() => require("./lib/park-verdict"), ["cmdParkVerdict"]);
 const { cmdPuntScan } = lazy(() => require("./lib/punt-scan"), ["cmdPuntScan"]);
@@ -232,6 +233,7 @@ const COMMANDS = {
   "github-auth-check": cmdGithubAuthCheck,
   "ci-triage": cmdCiTriage,
   land: cmdLand,
+  spec: cmdSpec,
   "post-merge-check": cmdPostMergeCheck,
   "pr-body": cmdPrBody,
   "governance-check": cmdGovernanceCheck,

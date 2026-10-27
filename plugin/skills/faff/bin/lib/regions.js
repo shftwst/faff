@@ -376,6 +376,9 @@ const REGION_MAP = {
   // FAFF-1396: land drives graft's landing loop over merge-gate's observeCi and ci-triage's
   // runCiTriage (factory identifiers), the same family as ci-triage and merge-gate.
   land: "factory",
+  // FAFF-1404: spec commit/verify reuse admissibility's dodSplit, config-core's spec-docs-path resolver and
+  // conventions' commit_subject scheme (factory) plus the governance faff-version resolver.
+  spec: "factory",
   // FAFF-363: governance-check references the SAME factory identifiers merge-gate does
   // (readAcComplete/readReviewVerdict/readHoldout from merge-gate.js, which themselves
   // call contract-defs.js's computeReviewVerdict) — for the identical reason merge-gate
@@ -601,6 +604,7 @@ const REGION_SELFTEST_ARGV = {
   "post-merge-check": ["post-merge-check", "--selftest"],
   "ci-triage": ["ci-triage", "--selftest"],
   land: ["land", "--selftest"],
+  spec: ["spec", "--selftest"],
   "governance-check": ["governance-check", "--selftest"],
   "evidence-readiness": ["evidence-readiness", "--selftest"],
   "landing-comment": ["landing-comment", "--selftest"],

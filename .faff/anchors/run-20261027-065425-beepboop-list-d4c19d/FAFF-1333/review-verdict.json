@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/commissaire.ts::staging dir symlink/race in os.tmpdir",
+      "title": "Staging dir symlink/race in os.tmpdir",
+      "location": "plugin/skills/faff/bin/lib/commissaire.ts:605",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "mkdtempSync creates a 0700 owner-only staging dir; no other local user can create <staging>/<issue> inside it, so the predicted symlink race is unreachable. Standard secure-temp pattern used across the codebase.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Staging dir symlink/race in os.tmpdir",
+          "location": "plugin/skills/faff/bin/lib/commissaire.ts:605",
+          "severity": "major",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/commissaire.ts::checkanchordir({}) scope leg / multi-issue fixture vacuity",
+      "title": "checkAnchorDir({}) scope leg / multi-issue fixture vacuity",
+      "location": "plugin/skills/faff/bin/lib/commissaire.ts:616",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Primary claim false: the FAFF-1347 events_scope leg is always-on in validateAnchorDir (evidence.js:591 unconditionally validates events.jsonl scoped); {} does not disable it (verified: events_scope.scope==FAFF-A, out_of_scope_rows==1). Valid secondary point fixed: the multi-issue fixture now gives FAFF-B an evidence-invalid row that gates whole-file, so the exit-0 mint for FAFF-A proves scope narrowing non-vacuously.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "checkAnchorDir({}) scope leg / multi-issue fixture vacuity",
+          "location": "plugin/skills/faff/bin/lib/commissaire.ts:616",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/commissaire.ts::exit 4 collides with commissaire admit exit 4",
+      "title": "Exit 4 collides with commissaire admit exit 4",
+      "location": "plugin/skills/faff/bin/lib/commissaire.ts:618",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Spec-closed decision (Chosen: 4). Both admit-4 and anchor-4 mean 'nothing written'; 4 is distinct from audit anchor's own usage(2)/no-events(3) so a schema refusal stays machine-distinguishable within the subcommand; no shared caller in-repo branches on the bare binary exit across subcommands.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Exit 4 collides with commissaire admit exit 4",
+          "location": "plugin/skills/faff/bin/lib/commissaire.ts:618",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/commissaire.ts::cpsync placement is not atomic (partial tree on mid-copy failure)",
+      "title": "cpSync placement is not atomic (partial tree on mid-copy failure)",
+      "location": "plugin/skills/faff/bin/lib/commissaire.ts:625",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Identical to today's mintIssueAnchor direct-write placement; a cpSync throw propagates to a non-zero exit, never a false exit 0. Spec explicitly rejected rename (EXDEV) and rmSync (destructive); atomic placement is named out-of-scope hardening. CI evidence-schema:require is the whole-tree backstop.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "cpSync placement is not atomic (partial tree on mid-copy failure)",
+          "location": "plugin/skills/faff/bin/lib/commissaire.ts:625",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/commissaire.ts::--root bypasses the no-resolvable-root guard",
+      "title": "--root bypasses the no-resolvable-root guard",
+      "location": "plugin/skills/faff/bin/lib/commissaire.ts:534",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Pre-existing behaviour unchanged by this diff; the no-resolvable-root guard only ever applied to the default (no --root) path by design. Out of scope for FAFF-1333.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "--root bypasses the no-resolvable-root guard",
+          "location": "plugin/skills/faff/bin/lib/commissaire.ts:534",
+          "severity": "observation",
+          "disposition": "refuted"
+        }
+      ]
+    }
+  ]
+}

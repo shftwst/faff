@@ -1,0 +1,218 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A per-unit anchor carrying v0.3 evidence that fails its schema is refused at mint (exit 4), not written and caught later by CI.",
+      "verified": "Verified: commissaire selftest RUN-FAIL fixture: schema-failing v0.3 run-ledger refused at mint with exit 4",
+      "passed": true,
+      "ac_id": "faff-1333#done:1",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff commissaire --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`checkAnchorDir` status `fail`, `error`, and `error`-with-`schema_unavailable` each cause a refusal; `pass` and `legacy` each mint.",
+      "verified": "Verified: selftest unit asserts auditAnchorRefuses: pass/legacy mint, fail/error (incl schema_unavailable) refuse",
+      "passed": true,
+      "ac_id": "faff-1333#done:2",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff commissaire --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "A schema refusal exits `4` (or the chosen non-colliding code); usage/shape/dest still exit `2`; no-events/genesis-invalid still exit `3`; a successful mint still exits `0`.",
+      "verified": "Verified: selftest asserts exit 4 on schema refusal; existing round-trip asserts exit 2 (unit-id/no-root) and 3 (no-events) and 0 (mint)",
+      "passed": true,
+      "ac_id": "faff-1333#done:3",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff commissaire --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "On exit 0 the stdout JSON is unchanged: `{minted:true, issue, unit_id, dest, head, copied_floor_files, effects_anchored}` with the real `--dest`.",
+      "verified": "Verified: selftest RUN-OK asserts stdout minted:true with the real --dest; existing round-trip asserts head.schema_floor",
+      "passed": true,
+      "ac_id": "faff-1333#done:4",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff commissaire --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`audit anchor` mints into an **issue-named** subdir `<os.tmpdir()/…>/<issue>`, validates *that* dir with `checkAnchorDir`, and copies it into `--dest` only on a `pass`/`legacy` disposition; the staging dir is removed in every path.",
+      "verified": "Verified: code mints <staging>/<issue>, validates that dir, cpSync only on pass/legacy, rmSync staging in finally; multi-issue fixture proves issue-named scope",
+      "passed": true,
+      "ac_id": "faff-1333#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff commissaire --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "Placement is a plain `cpSync` overwrite-in-place (today's behaviour); the command **never** deletes a caller-supplied path (no `rmSync`/`rename` of `--dest`).",
+      "verified": "Verified: code uses cpSync overwrite-in-place, no rmSync/rename of --dest; re-mint fixture confirms",
+      "passed": true,
+      "ac_id": "faff-1333#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff commissaire --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "On a refusal, nothing exists under `--dest` or its parent (including the default `anchors/<seg>` parent) when `--dest` did not previously exist, and any pre-existing `--dest` is left entirely untouched.",
+      "verified": "Verified: RUN-FAIL fixture asserts neither <dest> nor its parent exists after a refusal; re-mint fixture asserts a pre-existing <dest> is byte-for-byte unchanged",
+      "passed": true,
+      "ac_id": "faff-1333#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff commissaire --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "The implementation reuses `mintIssueAnchor` (no second byte-copy) and `checkAnchorDir` (no second validator); `evidence` is required lazily in the new tail.",
+      "verified": "Verified: code reuses mintIssueAnchor + checkAnchorDir, require(./evidence) lazily in the tail",
+      "passed": true,
+      "ac_id": "faff-1333#done:8",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff commissaire --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "The refusal writes one summary line naming `--dest` plus up to 5 `  <path>: <status>, <N> violation(s)` lines (and a `(+N more files)` line past 5), via `sanitiseDisplay`, with no violation text or field values at any verbosity.",
+      "verified": "Verified: selftest unit on auditAnchorRefusalLines: 7-file fixture caps at 5 + summary + (+2 more files)",
+      "passed": true,
+      "ac_id": "faff-1333#done:9",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff commissaire --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "The `error`/`schema_unavailable` refusal line prints only `checkAnchorDir`'s sanitised `reason`.",
+      "verified": "Verified: selftest unit asserts the error branch prints only checkAnchorDir sanitised reason in the error <issue>: <reason> format",
+      "passed": true,
+      "ac_id": "faff-1333#done:10",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff commissaire --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "The edit is made in `commissaire.ts` and the committed `commissaire.js` emit + `build-manifest.json` are regenerated (`cd plugin/skills/faff && npm install && npm run build`) and committed; `faff regions check` passes.",
+      "verified": "Verified: edit in commissaire.ts; commissaire.js emit + build-manifest.json regenerated via npm run build; faff regions check passes",
+      "passed": true,
+      "ac_id": "faff-1333#done:11",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "cd plugin/skills/faff && npm run build"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        }
+      ]
+    },
+    {
+      "ac": "The `audit anchor` selftest block in `commissaire.ts` (around the emit's `commissaire.js:1769`) is extended: a run seeded with a schema-violating v0.3 `run-ledger.json` (carrying a `schema_version`) refuses with exit 4 and leaves nothing at `--dest` or its parent; the existing schema-1 round-trip still mints exit 0 (legacy); a conforming v0.3 anchor mints and `faff evidence validate --require-evidence-schema <dest>` exits 0.",
+      "verified": "Verified: selftest extended: RUN-FAIL refuses exit 4 leaving nothing; schema-1 round-trip mints legacy exit 0; RUN-OK mints and evidence validate --require-evidence-schema exits 0",
+      "passed": true,
+      "ac_id": "faff-1333#done:12",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff commissaire --selftest"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff evidence validate --require-evidence-schema <dest>"
+        }
+      ]
+    },
+    {
+      "ac": "A **multi-issue** fixture: a run whose `events.jsonl` carries rows for two admitted issues, each conforming under its own scope, mints exit 0 for one unit-id (proving the issue-named staging dir scopes identically to `--dest`, not whole-file-gating the other issue's rows). This fixture is the guard against the architectural staging-divergence defect.",
+      "verified": "Verified: RUN-MULTI fixture (two admitted issues) mints exit 0 for FAFF-A, the other issue scoped out",
+      "passed": true,
+      "ac_id": "faff-1333#done:13",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff commissaire --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "An **error-branch** test: `checkAnchorDir` returning status `error` (incl. `schema_unavailable`) refuses with exit 4 and the `error <issue>: <reason>` line format, leaving nothing at `--dest`.",
+      "verified": "Verified: selftest unit error-branch test asserts refuse + error <issue>: <reason> line",
+      "passed": true,
+      "ac_id": "faff-1333#done:14",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff commissaire --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "A **governed-run** fixture: a run carrying `commissaire/producer/pk.json` (the FAFF-976 byte-copy) mints exit 0 — proving a governed anchor (the external-consumer case) is judged normally by the manifest, not auto-refused as `unschemaed`.",
+      "verified": "Verified: RUN-GOV fixture carrying commissaire/producer/pk.json mints exit 0 and carries pk.json into <dest>",
+      "passed": true,
+      "ac_id": "faff-1333#done:15",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff commissaire --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "A **refusal-against-pre-existing-`--dest`** test: a schema-failing re-mint against an existing `--dest` exits 4 and leaves the prior `--dest` entirely untouched (the pre-write refusal governs; placement is never reached).",
+      "verified": "Verified: re-mint fixture: schema-failing re-mint over a conforming <dest> exits 4 and leaves the prior <dest> byte-for-byte unchanged",
+      "passed": true,
+      "ac_id": "faff-1333#done:16",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff commissaire --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "A CLI-level check confirms the refusal stderr contains no evidence field value (counts/paths/statuses only).",
+      "verified": "Verified: RUN-FAIL CLI stderr asserts no field value (bogus_extra_field absent); counts/paths/statuses only",
+      "passed": true,
+      "ac_id": "faff-1333#done:17",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff commissaire --selftest"
+        }
+      ]
+    }
+  ]
+}

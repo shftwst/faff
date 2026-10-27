@@ -82,4 +82,12 @@ Counted over every run in the table above, including the excluded ones; the per-
 | `claim-verdict` | 0 | 0 |
 | `park-verdict` | 0 | 0 |
 
-Under the stopping rule, a gradeable kernel still at zero is reported as zero-denominator, and the gate can narrow to the kernels with evidence. `run-start` and `run-outward` have base records but no action marker on any of them, which points to an instrumentation gap rather than an absence of decisions.
+Under the stopping rule, a gradeable kernel still at zero is reported as zero-denominator, and the gate can narrow to the kernels with evidence.
+
+### Correction: the `run-start` and `run-outward` records are test captures
+
+An earlier version of this file said these two kernels had base records with no action marker, pointing to an instrumentation gap. That was wrong. All 11 records come from `run-20261026-031227-fly-l3`, carry issue `__run__` and no correlation id, target the test fixtures `acme/widget`, `ADOPT-1` and `demo`, and were written within 2.3 seconds (05:07:18 to 05:07:21Z) while four builds were running. They are captures from test processes inside a build that inherited the run's environment, not orchestration decisions (FAFF-1411). At L3 the runner is not expected to consult either kernel, so the real count of those decisions is zero. `claim-verdict` and `park-verdict` were never consulted. The counts in the table above still include the 11 test records; whether the report excludes them is the sitter's decision.
+
+### Real decisions with no action marker
+
+Of the remaining 63 base records in the corpus (`next` 40, `eligible` 23), 22 have no action marker: `eligible` 14 and `next` 8. They are not spread at random. They sit on drains that declined to act: `FAFF-1318` again and again (`next` prescribed `graft`, and no drain admitted it), and In Review issues re-checked and skipped (`FAFF-1205`, `FAFF-1207`, `FAFF-1292`, `FAFF-1403`). A skip that is not an eligibility refusal records no action marker by design. Grading only the joined pairs would therefore measure agreement where the run acted and leave out the cases where it declined, which is where divergence would show.

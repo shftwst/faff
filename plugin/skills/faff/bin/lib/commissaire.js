@@ -520,15 +520,33 @@ function cmdAuditVerify(flags) {
     console.log(JSON.stringify(out));
     return auth.pass ? 0 : 1;
 }
-// FAFF-1015: `audit anchor` — mints ONE per-issue anchor subdir through the standalone Commissaire
-// facade alone, closing the one governance leg (the anchor mint) that otherwise forces an external
-// consumer to shell out to the `faff` binary. Dispatches straight into `mintIssueAnchor` (the SAME
-// shared byte-copy core `faff events anchor` / `anchor-run` use — imported via the existing
-// `require("./events")` edge above, never a second byte-copy/witness) — deliberately WITHOUT
-// `anchor-run`'s self-verify or merge-floor assertion, because an external consumer legitimately has
-// no `ac-checklist.json` / `review-verdict.json` and must not forge them. This action is not a
-// run-close bundle builder: it writes one issue's subdir, never assembles or reads a whole anchor tree
-// (that is `audit seal`'s / the consumer's job — spec §2).
+// Mint-disposition (spec §3): mint on `pass`/`legacy`; refuse on `fail` and `error` (the latter
+// includes the `schema_unavailable` fault, carried on an `error`). Refusing `error` fails CLOSED on
+// the one seam — an unavailable/faulting validator — where minting unchecked is the exact bug this
+// closes. `legacy` mints unqualified, matching every other anchor path's `--legacy-policy pass`
+// disposition (so the schema-1 round-trip and the external pre-v0.3 consumer still mint as today).
+function auditAnchorRefuses(status) {
+    return status === "fail" || status === "error";
+}
+// The redacted refusal lines (spec §4 PROCEDURE emit_refusal): a one-line summary naming `--dest`,
+// then up to 5 `  <path>: <status>, <N> violation(s)` lines (and a `(+N more files)` line past 5),
+// mirroring `warnOnEvidenceSchema`'s cap. `check.reason` / `check.files[].path` are already sanitised
+// by `checkAnchorDir`; `issue`/`dest` are passed through `sanitise` (evidence.sanitiseDisplay) here.
+// Returned as lines (not written) so the disposition is unit-testable without capturing a subprocess.
+function auditAnchorRefusalLines(check, issue, dest, sanitise) {
+    const who = sanitise(issue);
+    const dst = sanitise(dest);
+    if (check.status === "error") {
+        // Only checkAnchorDir's own sanitised reason — never a re-derived report (spec anti-pattern).
+        return [`faff commissaire audit anchor: evidence-schema refusal: error ${who}: ${check.reason}; nothing written to ${dst}`];
+    }
+    const lines = [`faff commissaire audit anchor: evidence-schema refusal: ${check.status} ${who} (${check.files.length} non-conforming file(s)); nothing written to ${dst}`];
+    for (const f of check.files.slice(0, 5))
+        lines.push(`  ${f.path}: ${f.status}, ${f.violations} violation(s)`);
+    if (check.files.length > 5)
+        lines.push(`  (+${check.files.length - 5} more files)`);
+    return lines;
+}
 function cmdAuditAnchor(flags) {
     const runDir = requireRunDir(flags, "audit anchor");
     if (!runDir)
@@ -569,21 +587,65 @@ function cmdAuditAnchor(flags) {
         }
         dest = path.join(root, ".faff", "anchors", seg, issue);
     }
-    const result = mintIssueAnchor(runDir, issue, dest);
-    if (!result.ok) {
-        process.stderr.write(`faff commissaire audit anchor: ${result.message}\n`);
-        return result.code === "no-events" ? 3 : 2;
+    // FAFF-1333: mint into an ISSUE-named staging dir OUTSIDE the --dest subtree, validate THAT dir, and
+    // place it under --dest only on a mint disposition. The inner basename MUST equal the issue:
+    // `checkAnchorDir` folds in the FAFF-1347 events_scope leg, whose `resolveAnchorScope` keys off
+    // `path.basename(anchorDir)` (a mismatch → PATH_DISAGREES → whole-file gating), so validating a
+    // random mkdtemp root would diverge from --dest's verdict on a multi-issue run. Staging in
+    // os.tmpdir() keeps every byte out of the --dest subtree until a pass (so a refusal leaves nothing
+    // under --dest or its default anchors/<seg> parent); the recursive copy — not a rename — avoids EXDEV
+    // and carries the nested commissaire/producer/pk.json layout intact. mintIssueAnchor (the SAME
+    // byte-copy core) and checkAnchorDir (the ONE validator) are reused unchanged; the only new surface
+    // is this stage → validate → place wrapper.
+    // dest is resolved above (explicit --dest, or the default computed in the if-block); this guard
+    // narrows it to string by control flow (never a cast — no `!`/`as` may cross an input boundary) and
+    // captures it before the try (TS resets let-narrowing inside a try). The branch is unreachable today.
+    if (dest === undefined) {
+        process.stderr.write("faff commissaire audit anchor: internal error — --dest unresolved\n");
+        return 2;
     }
-    console.log(JSON.stringify({
-        minted: true,
-        issue,
-        unit_id: issue,
-        dest,
-        head: result.head,
-        copied_floor_files: result.copiedFloorFiles,
-        effects_anchored: result.effectsAnchored,
-    }));
-    return 0;
+    const destPath = dest;
+    const staging = fs.mkdtempSync(path.join(os.tmpdir(), "faff-audit-anchor-"));
+    try {
+        const inner = path.join(staging, issue); // basename(inner) === issue — load-bearing (scope leg)
+        const result = mintIssueAnchor(runDir, issue, inner); // SAME core as today; writes only under staging
+        if (!result.ok) {
+            // no-events / genesis-invalid: mintIssueAnchor refused before writing; validation never runs and
+            // the existing exit 3 / 2 mapping is preserved. --dest was never touched (staging only).
+            process.stderr.write(`faff commissaire audit anchor: ${result.message}\n`);
+            return result.code === "no-events" ? 3 : 2;
+        }
+        const { checkAnchorDir, sanitiseDisplay } = require("./evidence"); // lazy — keeps the module load graph unchanged
+        const check = checkAnchorDir(inner, {}); // validate the ISSUE-named dir, never the tmp root
+        if (auditAnchorRefuses(check.status)) {
+            for (const line of auditAnchorRefusalLines(check, issue, destPath, sanitiseDisplay))
+                process.stderr.write(line + "\n");
+            return 4; // NEW — schema refusal, distinct from usage (2) and no-events (3)
+        }
+        // pass / legacy → place under --dest. cpSync is the identical overwrite-in-place mintIssueAnchor
+        // does today (create-only — never deletes a caller-supplied path), so a pre-existing --dest is
+        // overwritten-in-place exactly as before and a refusal above never reached this copy. The copy
+        // source is the staged <issue> dir, so what lands at --dest is byte-for-byte the tree just validated.
+        fs.cpSync(inner, destPath, { recursive: true });
+        console.log(JSON.stringify({
+            minted: true,
+            issue,
+            unit_id: issue,
+            dest: destPath, // the REAL --dest, never the staging dir
+            head: result.head,
+            copied_floor_files: result.copiedFloorFiles,
+            effects_anchored: result.effectsAnchored,
+        }));
+        return 0;
+    }
+    finally {
+        // Best-effort — the disposition is already authoritative (--dest reflects it; the exit code
+        // reflects it), so a cleanup fault must not change either. Scratch only; --dest is never here.
+        try {
+            fs.rmSync(staging, { recursive: true, force: true });
+        }
+        catch { /* scratch cleanup is best-effort */ }
+    }
 }
 // --- CLI shell --------------------------------------------------------------------------
 function usage() {
@@ -604,7 +666,7 @@ function usage() {
         "  audit verify      --run-dir DIR [--governor-dir D] [--producer-dir D] [--run-id ID] [--base REF [--trust-transport remote|local] [--repo OWNER/NAME]] [--json]   (secret-free replay of the auth leg; exit 0 pass / 1 verify-fail / 2 setup)\n" +
         "      --base reads .commissaire/trust.toml from REF: remote (default, needs --repo) via gh api, local via git show. Only trust.source \"remote-base\" with key_classification \"pinned\" is evidence of a pinned governor;\n" +
         "      \"local-ref\" and \"not-read\" never are. signer_fingerprint is bound to the seq-0 admission; pk_fingerprint is read from pk.json and is unauthenticated.\n" +
-        "  audit anchor      --run-dir DIR --unit-id U [--dest DIR] [--root R]   (mint ONE per-unit anchor subdir via mintIssueAnchor; no self-verify, no merge-floor gate)\n" +
+        "  audit anchor      --run-dir DIR --unit-id U [--dest DIR] [--root R]   (mint ONE per-unit anchor subdir via mintIssueAnchor; evidence-schema validated at mint — refuses exit 4 on a schema-failing/unvalidatable anchor, writing nothing under --dest; no self-verify, no merge-floor gate)\n" +
         "  governor start    [--key-dir D] [--socket P] [--listen HOST:PORT [--listen-allow-dns NAME|IP | --listen-unrestricted]] [--socket-group-access]   (run the out-of-process governor; the only holder of the signing key; a non-loopback --listen needs one of the two)\n" +
         "  governor rotate   [--key-dir D]   (mint a new signing keypair, keep the root secret, archive the prior fingerprint)\n" +
         "  governor install  --runner-user U --from-tag faff--vX.Y.Z [--admin-user U] [--key-dir D] [--socket-dir D] [--install-prefix D] [--node P] [--json]   (Linux, run as root: install the governor as its own OS user behind a systemd service)\n" +
@@ -1825,6 +1887,125 @@ function commissaireSelftest() {
                 fail(`audit anchor: no resolvable root should exit 2, got ${r4.status}: ${r4.stderr}`);
             if (fs.existsSync(noRootDest) || fs.existsSync(path.join(noRepoCwd, ".faff")))
                 fail("audit anchor: no resolvable root must write nothing");
+        }
+        finally {
+            fs.rmSync(tmp, { recursive: true, force: true });
+        }
+    }
+    // --- `audit anchor` evidence-schema validation at mint (FAFF-1333) ---
+    // The mint is now gated by checkAnchorDir: a schema-failing anchor is refused at mint (exit 4),
+    // writing nothing under --dest/parent; a conforming/legacy anchor still mints exit 0 as today.
+    {
+        // Unit: the mint-disposition predicate (spec §3) — pass/legacy mint; fail/error (incl.
+        // schema_unavailable, carried on an error) refuse.
+        if (auditAnchorRefuses("pass"))
+            fail("audit anchor: `pass` must mint, not refuse");
+        if (auditAnchorRefuses("legacy"))
+            fail("audit anchor: `legacy` must mint, not refuse");
+        if (!auditAnchorRefuses("fail"))
+            fail("audit anchor: `fail` must refuse");
+        if (!auditAnchorRefuses("error"))
+            fail("audit anchor: `error` must refuse (fail closed)");
+        // Unit: the redacted refusal-line builder (spec §4 PROCEDURE emit_refusal). The error branch
+        // (incl. schema_unavailable) uses the `error <issue>: <reason>` format and prints only
+        // checkAnchorDir's sanitised reason; the fail branch caps the per-file list at 5.
+        const { sanitiseDisplay } = require("./evidence");
+        const errLines = auditAnchorRefusalLines({ status: "error", files: [], reason: "schema-unavailable events.jsonl", schema_unavailable: true }, "FAFF-1", "/d/anchors/seg/FAFF-1", sanitiseDisplay);
+        if (errLines.length !== 1 || !/evidence-schema refusal: error FAFF-1: schema-unavailable events\.jsonl; nothing written to \/d\/anchors\/seg\/FAFF-1$/.test(errLines[0] ?? "")) {
+            fail(`audit anchor: error refusal line wrong: ${JSON.stringify(errLines)}`);
+        }
+        const manyFiles = Array.from({ length: 7 }, (_v, i) => ({ path: `f${i}.json`, status: "fail", violations: i + 1 }));
+        const failLines = auditAnchorRefusalLines({ status: "fail", files: manyFiles, reason: null, schema_unavailable: false }, "FAFF-1", "/d/out", sanitiseDisplay);
+        if (!/evidence-schema refusal: fail FAFF-1 \(7 non-conforming file\(s\)\); nothing written to \/d\/out$/.test(failLines[0] ?? ""))
+            fail(`audit anchor: fail refusal summary wrong: ${failLines[0]}`);
+        if (failLines.length !== 7)
+            fail(`audit anchor: fail refusal must cap at 5 files + summary + overflow = 7 lines, got ${failLines.length}`);
+        if ((failLines[1] ?? "") !== "  f0.json: fail, 1 violation(s)")
+            fail(`audit anchor: fail per-file line wrong: ${failLines[1]}`);
+        if ((failLines[6] ?? "") !== "  (+2 more files)")
+            fail(`audit anchor: fail overflow line wrong: ${failLines[6]}`);
+        const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "faff-commissaire-anchor-schema-"));
+        try {
+            const ts = new Date().toISOString();
+            const runStart = (id) => ({ schema: 1, run_id: id, seq: 0, ts, phase: "run", type: "run-start" });
+            const issueRow = (id, seq, issue) => ({ schema: 1, run_id: id, seq, ts, phase: "build", type: "issue-outcome", issue, data: { outcome: "shipped" } });
+            const jsonl = (rows) => rows.map((r) => JSON.stringify(r)).join("\n") + "\n";
+            // seedRun writes events.jsonl + run-ledger.json (+ optional extra files keyed by relpath).
+            const seedRun = (name, rows, ledger, extra = {}) => {
+                const dir = path.join(tmp, name);
+                fs.mkdirSync(dir, { recursive: true });
+                fs.writeFileSync(path.join(dir, "events.jsonl"), jsonl(rows));
+                fs.writeFileSync(path.join(dir, "run-ledger.json"), JSON.stringify(ledger) + "\n");
+                for (const [rel, content] of Object.entries(extra)) {
+                    fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+                    fs.writeFileSync(path.join(dir, rel), content);
+                }
+                return dir;
+            };
+            const run = (a) => spawnSync(process.execPath, [ENTRYPOINT, "commissaire", "audit", "anchor", ...a], { encoding: "utf8" });
+            // (1) schema-failing v0.3 run-ledger (carries schema_version but an unknown top-level field) →
+            // refuse exit 4; nothing at --dest or its parent; the refusal names the file + a count only.
+            const failRun = seedRun("RUN-FAIL", [runStart("RUN-FAIL")], { schema_version: 1, run_id: "RUN-FAIL", admitted: ["FAFF-1"], bogus_extra_field: true });
+            const failDest = path.join(tmp, "fail-out", "FAFF-1");
+            const rf = run(["--run-dir", failRun, "--unit-id", "FAFF-1", "--dest", failDest]);
+            if (rf.status !== 4)
+                fail(`audit anchor: schema-failing anchor should exit 4, got ${rf.status}: ${rf.stderr}`);
+            if (fs.existsSync(failDest) || fs.existsSync(path.dirname(failDest)))
+                fail("audit anchor: a schema refusal must leave nothing at --dest or its parent");
+            if (!/evidence-schema refusal: fail FAFF-1 \(1 non-conforming file\(s\)\); nothing written to/.test(rf.stderr))
+                fail(`audit anchor: fail refusal summary line missing: ${rf.stderr}`);
+            if (!/run-ledger\.json: fail, 1 violation\(s\)/.test(rf.stderr))
+                fail(`audit anchor: fail per-file line missing: ${rf.stderr}`);
+            // Redaction: the refusal carries counts/paths/statuses only — never the offending field name.
+            if (/bogus_extra_field/.test(rf.stderr))
+                fail("audit anchor: refusal stderr leaked a field value (bogus_extra_field)");
+            // (2) conforming v0.3 anchor → mint exit 0 AND `faff evidence validate --require-evidence-schema` exits 0.
+            const okRun = seedRun("RUN-OK", [runStart("RUN-OK"), issueRow("RUN-OK", 1, "FAFF-1")], { schema_version: 1, run_id: "RUN-OK", admitted: ["FAFF-1"], outcomes: { "FAFF-1": "shipped" } });
+            const okDest = path.join(tmp, "ok-out", "FAFF-1");
+            const ro = run(["--run-dir", okRun, "--unit-id", "FAFF-1", "--dest", okDest]);
+            if (ro.status !== 0)
+                fail(`audit anchor: conforming v0.3 anchor should mint exit 0, got ${ro.status}: ${ro.stderr}`);
+            let okOut = null;
+            try {
+                okOut = JSON.parse(ro.stdout.trim());
+            }
+            catch { /* */ }
+            if (!okOut || okOut.minted !== true || okOut.dest !== okDest)
+                fail(`audit anchor: conforming mint stdout wrong (got ${ro.stdout.trim()})`);
+            const rv = spawnSync(process.execPath, [ENTRYPOINT, "evidence", "validate", "--require-evidence-schema", okDest], { encoding: "utf8" });
+            if (rv.status !== 0)
+                fail(`audit anchor: minted conforming anchor must pass evidence validate --require-evidence-schema (exit ${rv.status}: ${rv.stdout}${rv.stderr})`);
+            // (3) multi-issue fixture: two admitted issues, each conforming under its own scope → mint exit 0
+            // for one unit-id (the other issue's rows are scoped out, not whole-file-gated). This is the
+            // guard against the staging-divergence defect: the issue-named staging dir narrows exactly as --dest.
+            const multiRun = seedRun("RUN-MULTI", [runStart("RUN-MULTI"), issueRow("RUN-MULTI", 1, "FAFF-A"), issueRow("RUN-MULTI", 2, "FAFF-B")], { schema_version: 1, run_id: "RUN-MULTI", admitted: ["FAFF-A", "FAFF-B"], outcomes: { "FAFF-A": "shipped", "FAFF-B": "shipped" } });
+            const rm = run(["--run-dir", multiRun, "--unit-id", "FAFF-A", "--dest", path.join(tmp, "multi-out", "FAFF-A")]);
+            if (rm.status !== 0)
+                fail(`audit anchor: conforming multi-issue anchor should mint exit 0 (scoped), got ${rm.status}: ${rm.stderr}`);
+            // (4) governed-run fixture: a run carrying commissaire/producer/pk.json (the FAFF-976 byte-copy),
+            // otherwise conforming → mint exit 0 (pk.json is a named manifest entry, judged normally).
+            const pk = JSON.stringify({ pk: "a".repeat(64), pk_fingerprint: "b".repeat(64) }) + "\n";
+            const govRun = seedRun("RUN-GOV", [runStart("RUN-GOV"), issueRow("RUN-GOV", 1, "FAFF-1")], { schema_version: 1, run_id: "RUN-GOV", admitted: ["FAFF-1"], outcomes: { "FAFF-1": "shipped" } }, { "commissaire/producer/pk.json": pk });
+            const govDest = path.join(tmp, "gov-out", "FAFF-1");
+            const rg = run(["--run-dir", govRun, "--unit-id", "FAFF-1", "--dest", govDest]);
+            if (rg.status !== 0)
+                fail(`audit anchor: conforming governed anchor (pk.json) should mint exit 0, got ${rg.status}: ${rg.stderr}`);
+            if (!fs.existsSync(path.join(govDest, "commissaire", "producer", "pk.json")))
+                fail("audit anchor: governed mint must carry commissaire/producer/pk.json");
+            // (5) refusal against a pre-existing --dest: a schema-failing re-mint leaves the prior --dest
+            // entirely untouched (the pre-write refusal governs; placement is never reached).
+            const preDest = path.join(tmp, "remint-out", "FAFF-1");
+            const r5a = run(["--run-dir", okRun, "--unit-id", "FAFF-1", "--dest", preDest]);
+            if (r5a.status !== 0)
+                fail(`audit anchor: re-mint setup mint should exit 0, got ${r5a.status}: ${r5a.stderr}`);
+            const beforeEvents = fs.readFileSync(path.join(preDest, "events.jsonl"));
+            const beforeHead = fs.readFileSync(path.join(preDest, "chain-head.json"));
+            const r5b = run(["--run-dir", failRun, "--unit-id", "FAFF-1", "--dest", preDest]);
+            if (r5b.status !== 4)
+                fail(`audit anchor: schema-failing re-mint should exit 4, got ${r5b.status}: ${r5b.stderr}`);
+            if (!fs.readFileSync(path.join(preDest, "events.jsonl")).equals(beforeEvents) || !fs.readFileSync(path.join(preDest, "chain-head.json")).equals(beforeHead)) {
+                fail("audit anchor: a schema-failing re-mint must leave the pre-existing --dest byte-for-byte unchanged");
+            }
         }
         finally {
             fs.rmSync(tmp, { recursive: true, force: true });

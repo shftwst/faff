@@ -16,7 +16,7 @@
     "bin/lib/commissaire-governor-client.ts": "90e01905816c4e12ea1a24eab1ed9b6d6e6106c29bb322e3988ca50b6604604b",
     "bin/lib/commissaire-trust.ts": "c2d4bffa2f153db70746395cf708195cc11ba0aa51b5ccc25e9f181c08555a65",
     "bin/lib/commissaire-verify.ts": "acd14993082da3d214eda5fc69b604e0bdb5ce654de2733d0e25876e64756114",
-    "bin/lib/commissaire.ts": "3233c3ba475241e926d2a7a9c1d66e2cb47b813c3995fa3d86dc336001aa67ed",
+    "bin/lib/commissaire.ts": "608e14f4f46e3aa9b1ce088c863c33e75d02c42dafcee6ff190017643712d565",
     "bin/lib/decision-policy.ts": "bdae9ebbaf8b55c1434c6d5e2e19f1e242e73399cd1a470a823faadc2a5edc85",
     "bin/lib/governor-admin.ts": "e8acab0a5166c8138265c9cd514f86269ca932a80be746e963588e863946bc02",
     "bin/lib/governor-install.ts": "964bcf08fbe828afbe96da644db691aebfaa8c31c9b2d4ccde36ecce1be7e7d7",
@@ -30,7 +30,7 @@
     "bin/lib/commissaire-governor-client.js": "9e14c9ebe762d860b0249f853dd308a4abc3ef9d3e92a416d1ad8decd44d0885",
     "bin/lib/commissaire-trust.js": "c69b5fb8ffb57c7195bc795b1aeb6a77c90e3145457a5b6b78da94589c197572",
     "bin/lib/commissaire-verify.js": "18fb7d91fdf58433053a543580bb0d6225d133255a7ee53c90f1f97c512292d7",
-    "bin/lib/commissaire.js": "1a5e135dc5d24a98e74556a006b11521fc49d95c4768c179e5ed33c3acc372f2",
+    "bin/lib/commissaire.js": "922949eb7d4016592ee2c8f4e143e7420b59ba5f5812469c1f58d33376796bb6",
     "bin/lib/decision-policy.js": "f734a0f4a670ebd738bf476e0b5c9c9f6a44c59c1dafca1c5d31c3bb33a43095",
     "bin/lib/governor-admin.js": "fc92a97038713648e89fba10f9a33545c218c85353cc571905bc472c346160ee",
     "bin/lib/governor-install.js": "3798f447ba92c5660b89a7e90c2cfff0043257159b2a5023bb5b002328a8a12c",
@@ -40,5 +40,5 @@
     "bin/lib/producer-auth.js": "6ef8d8a93c885992b0f58c3156f1e2df96518cbedd4df95cd7e2b72fa9009baf",
     "bin/lib/result.js": "09f1ec919a2ff84a38e1fe1e8ac5ed983ddabb90f75bfa8647cfccce561ff03e"
   },
-  "output_digest": "62117514701ad37dac0cff4134807311083bf8d80f41161818fad2dd880a5118"
+  "output_digest": "b6684ae308a9fe9a7d1a4ee23640f55e69eab316549d6c958fbe385883c698ce"
 }

@@ -14,6 +14,7 @@ import { createRequire } from "node:module";
 import { runCli } from "./helpers/run-cli.mjs";
 
 const require = createRequire(import.meta.url);
+const { resolveFaffVersion } = require("../plugin/skills/faff/bin/lib/faff-version.js");
 const { resolveHasher, SHA256_CANDIDATES, verifyAndRecord, custodyVerdictPath, atomicWriteVerdictBytes } = require("../plugin/skills/faff/bin/lib/integrity-digest.js");
 
 function evidenceDir() {
@@ -240,8 +241,10 @@ test("record-result: a clean verify atomically writes schema_version:1 clean rec
     assert.deepEqual(rec.paths, []);
     assert.equal(rec.merge_state_at_verification, "pre-merge");
     assert.ok(!Number.isNaN(Date.parse(rec.verified_at)));
-    // NO authorship/actor field, ever.
-    assert.deepEqual(Object.keys(rec).sort(), ["classification", "detail", "issue", "merge_state_at_verification", "paths", "run_id", "schema_version", "verified_at"]);
+    // FAFF-1395: the writing release rides as the second key; still NO authorship/actor field, ever.
+    assert.equal(rec.faff_version, resolveFaffVersion().version);
+    assert.deepEqual(Object.keys(rec).slice(0, 2), ["schema_version", "faff_version"]);
+    assert.deepEqual(Object.keys(rec).sort(), ["classification", "detail", "faff_version", "issue", "merge_state_at_verification", "paths", "run_id", "schema_version", "verified_at"]);
     // NOT added to the manifest it was produced from (the manifest was already frozen before this ran).
     assert.ok(!("custody-verdict.json" in JSON.parse(held).members));
   } finally { rmSync(rd, { recursive: true, force: true }); }

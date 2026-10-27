@@ -20,6 +20,7 @@ const path = require("node:path");
 const { validateAgainstSchema } = require("./contract-engine");
 const { redactKnownSecrets, resolveKnownSecretValues } = require("./redact");
 const { HERE } = require("./shared-infra");
+const { resolveFaffVersion } = require("./faff-version"); // FAFF-1395
 
 const SCHEMA_PATH = path.resolve(HERE, "..", "contracts", "evidence-v0.3", "schema", "holdout-anchored.schema.json");
 const KEY_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
@@ -207,6 +208,7 @@ function normaliseAttestation(att) {
 function failClosed(top, refusals, delegated, blockViolations) {
   const doc = {
     schema_version: 1,
+    faff_version: resolveFaffVersion().version, // FAFF-1395
     issue: top.issue,
     aggregate: "needs-human",
     code_blind: top.code_blind === true,
@@ -265,6 +267,7 @@ function buildHoldoutRecord(block, opts) {
   const rawCriteria = Array.isArray(block.criteria) ? block.criteria : [];
   const top = {
     schema_version: 1,
+    faff_version: resolveFaffVersion().version, // FAFF-1395
     issue,
     aggregate: block.aggregate,
     code_blind: envelope ? envelope.code_blind === true : block.code_blind === true,

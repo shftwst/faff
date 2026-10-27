@@ -17,6 +17,10 @@
       ],
       "description": "evidence document version; stamped by the writer"
     },
+    "faff_version": {
+      "type": "string",
+      "description": "faff plugin release version that wrote this document (FAFF-1395); \"unknown\" when unresolved; absent on documents written before FAFF-1395"
+    },
     "all_verified": {
       "type": "boolean"
     },

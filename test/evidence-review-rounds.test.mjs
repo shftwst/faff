@@ -15,6 +15,7 @@ const { readReviewVerdict } = require("../plugin/skills/faff/bin/lib/merge-gate.
 const { collateReviewRounds } = require("../plugin/skills/faff/bin/lib/evidence-collate.js");
 const { computeReviewVerdict, contractReviewVerdict } = require("../plugin/skills/faff/bin/lib/contract-defs.js");
 const { validateAgainstSchema } = require("../plugin/skills/faff/bin/lib/contract-engine.js");
+const { resolveFaffVersion } = require("../plugin/skills/faff/bin/lib/faff-version.js");
 
 const SCHEMAS = join(import.meta.dirname, "..", "plugin", "skills", "faff", "contracts", "evidence-v0.3", "schema");
 const schema = (name) => JSON.parse(readFileSync(join(SCHEMAS, `${name}.schema.json`), "utf8"));
@@ -190,7 +191,8 @@ test("scenario: the terminal round's adversarial_outcome reaches review-verdict.
   assert.equal(f.round(1).adversarial_outcome, "chain-outage-skipped");
   assert.equal(f.write().code, 0);
   assert.equal(f.verdict().adversarial_outcome, "chain-outage-skipped");
-  assert.deepEqual(Object.keys(f.verdict()).slice(0, 3), ["schema_version", "signal", "adversarial_outcome"]);
+  assert.deepEqual(Object.keys(f.verdict()).slice(0, 4), ["schema_version", "faff_version", "signal", "adversarial_outcome"]);
+  assert.equal(f.verdict().faff_version, resolveFaffVersion().version);
 });
 
 test("scenario: a resume into a fresh run dir numbers on from the restored rounds", (t) => {
@@ -224,7 +226,8 @@ test("record-review-round: refuses unavailable, ignores a supplied finding_id, s
   assert.equal(rec.findings[0].carried_id, "P1");
   assert.equal(rec.findings[0].finding_id, "a.js::leaks fd");
   assert.deepEqual(validateAgainstSchema(rec, schema("review-round")), []);
-  assert.deepEqual(Object.keys(rec), ["schema_version", "round", "signal", "adversarial_outcome", "findings"]);
+  assert.deepEqual(Object.keys(rec), ["schema_version", "faff_version", "round", "signal", "adversarial_outcome", "findings"]);
+  assert.equal(rec.faff_version, resolveFaffVersion().version);
 });
 
 test("record-review-round: an out-of-enum value is written as null with a warning that hides the value", (t) => {

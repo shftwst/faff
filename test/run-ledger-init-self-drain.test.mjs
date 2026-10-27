@@ -19,6 +19,8 @@ const require = createRequire(import.meta.url);
 const { resolveAnchorLevel, readAcComplete, readReviewVerdict } =
   require("../plugin/skills/faff/bin/lib/merge-gate.js");
 const { emitGenesisRunStart, verifyChain, verifyExitCode } = require("../plugin/skills/faff/bin/lib/events.js");
+const { resolveFaffVersion } = require("../plugin/skills/faff/bin/lib/faff-version.js");
+const FAFF_VERSION = resolveFaffVersion().version; // FAFF-1395
 
 // A child env WITHOUT the ambient orchestrator run so the mint's live-higher-level guard is
 // inert unless a case sets FAFF_RUN_DIR itself.
@@ -84,6 +86,7 @@ test("mint writes an honest L3 ledger + genesis chain; bare stdout is the run di
   assert.deepEqual(led.outcomes, {});
   assert.equal(led.owner.status, "running");
   assert.ok(led.owner.pid && led.owner.started_at && led.owner.last_heartbeat);
+  assert.equal(led.owner.faff_version, FAFF_VERSION, "FAFF-1395: the mint stamps the release into owner");
   assert.equal(verifyExitCode(verifyChain(runDir), "fail"), 0, "genesis chain verifies");
   rmSync(root, { recursive: true, force: true });
 });
@@ -99,7 +102,8 @@ test("the mint's genesis: seq 0 ledger-write (prev == SHA-256(run_id)), seq 1 ru
   assert.equal(lines[0].prev, runIdHash, "the PHYSICAL seq-0 record's prev is SHA-256(run_id) — the load-bearing genesis invariant (ADR-0084), regardless of its TYPE");
   assert.ok(lines.some((r) => r.type === "run-start"), "a run-start record is present in the genesis window");
   const runStart = lines.find((r) => r.type === "run-start");
-  assert.deepEqual(runStart.data, { level: "L3" });
+  assert.deepEqual(runStart.data, { level: "L3", faff_version: FAFF_VERSION });
+  assert.deepEqual(Object.keys(runStart.data), ["level", "faff_version"], "level stays first");
   rmSync(root, { recursive: true, force: true });
 });
 
@@ -267,19 +271,19 @@ test("emitGenesisRunStart: with a level → schema 2, seq/prev CLI-computed, dat
   assert.equal(rec.seq, 0);
   assert.equal(rec.phase, "run");
   assert.equal(rec.type, "run-start");
-  assert.deepEqual(rec.data, { level: "L4" });
+  assert.deepEqual(rec.data, { level: "L4", faff_version: FAFF_VERSION });
+  assert.deepEqual(Object.keys(rec.data), ["level", "faff_version"], "level stays first");
   assert.equal(rec.prev, require("node:crypto").createHash("sha256").update(Buffer.from(runId, "utf8")).digest("hex"));
   assert.equal(verifyExitCode(verifyChain(runDir), "fail"), 0);
   rmSync(root, { recursive: true, force: true });
 });
 
-test("emitGenesisRunStart: with NO level (L2's call shape) → no data field at all — byte-preserved", () => {
+test("emitGenesisRunStart: with NO level (L2's call shape) → data is exactly {faff_version}", () => {
   const root = mkTmp("faff-966-helper-");
   const runDir = mkBareRunDir(root, "run-helper-l2");
   const rec = emitGenesisRunStart(runDir);
   assert.equal(rec.type, "run-start");
-  assert.equal(rec.data, undefined, "L2's genesis has never carried data.level");
-  assert.equal(Object.prototype.hasOwnProperty.call(rec, "data"), false, "the key itself is absent, not merely undefined-valued");
+  assert.deepEqual(rec.data, { faff_version: FAFF_VERSION }, "L2's genesis carries no data.level, only the release version");
   rmSync(root, { recursive: true, force: true });
 });
 
@@ -287,6 +291,6 @@ test("emitGenesisRunStart: L3's call shape (init-self-drain) → data:{level:'L3
   const root = mkTmp("faff-966-helper-");
   const runDir = mkBareRunDir(root, "run-helper-l3");
   const rec = emitGenesisRunStart(runDir, { level: "L3" });
-  assert.deepEqual(rec.data, { level: "L3" });
+  assert.deepEqual(rec.data, { level: "L3", faff_version: FAFF_VERSION });
   rmSync(root, { recursive: true, force: true });
 });

@@ -6,6 +6,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const { resolveFaffVersion } = require("./faff-version"); // FAFF-1395
 const { spawnSync } = require("node:child_process");
 const { FLOOR_LEVELS, computeCustodyVerdictAdmission, computeLaneBoundary, computeReviewVerdict, holdoutGateResult, requiresSelfConsistencyStamp, resolveHoldoutPosture } = require("./contract-defs");
 const { realFsq } = require("./container-check");
@@ -185,7 +186,10 @@ function mergeRecordPath(runDir, issue) {
 // convention as harness.js's own lazy `require("./config")`). A resolution fault degrades to
 // omitting both fields (mirrors the prep-marker's owner-omit-when-unset rule) rather than
 // blocking the merge-record write the rest of `faff merge-gate` depends on.
-function writeMergeRecord(runDir, issue, pr, headSha, integrity, identity, githubActor) {
+// FAFF-1395: also stamps `faff_version` (the plugin release) beside harness/model. `faffVersion` is
+// injectable (tests only); the real call path resolves it via the single faff-version resolver, and an
+// unresolved version is written as "unknown", never omitted.
+function writeMergeRecord(runDir, issue, pr, headSha, integrity, identity, githubActor, faffVersion) {
   try {
     const dir = path.join(runDir, issue);
     fs.mkdirSync(dir, { recursive: true });
@@ -195,6 +199,7 @@ function writeMergeRecord(runDir, issue, pr, headSha, integrity, identity, githu
       try { id = require("./harness").harnessIdentify(); } catch { id = null; }
     }
     if (id && id.harness) { record.harness = id.harness; record.model = id.model; }
+    record.faff_version = faffVersion === undefined ? resolveFaffVersion().version : faffVersion;
     // FAFF-1213: record the acting GitHub identity as a NON-authoritative convenience copy
     // — login + credential_source only, NEVER the token. Resolved internally (lazy, like the
     // harness identity above) unless injected (tests). A resolution fault omits the field.

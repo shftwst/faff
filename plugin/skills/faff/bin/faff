@@ -83,6 +83,7 @@ const { cmdEvidenceReadiness } = lazy(() => require("./lib/evidence-readiness"),
 const { cmdLandingComment } = lazy(() => require("./lib/landing-comment"), ["cmdLandingComment"]);
 const { cmdProfiles } = lazy(() => require("./lib/governance-profile"), ["cmdProfiles"]);
 const { cmdHarness } = lazy(() => require("./lib/harness"), ["cmdHarness"]);
+const { cmdVersion } = lazy(() => require("./lib/faff-version"), ["cmdVersion"]);
 const { cmdHeartbeat } = lazy(() => require("./lib/heartbeat"), ["cmdHeartbeat"]);
 const { cmdHooksEnsure } = lazy(() => require("./lib/hooks-ensure"), ["cmdHooksEnsure"]);
 const { cmdJudgeTrail, cmdJudgeHistory } = lazy(() => require("./lib/judge-trail"), ["cmdJudgeTrail", "cmdJudgeHistory"]);
@@ -237,6 +238,7 @@ const COMMANDS = {
   "evidence-readiness": cmdEvidenceReadiness,
   "landing-comment": cmdLandingComment,
   "harness": (args) => cmdHarness(args, COMMANDS),
+  "version": cmdVersion,
   "github-templates": cmdGithubTemplates,
   "native-map": cmdNativeMap,
   "next": cmdNext,

@@ -33,6 +33,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { parseArgs, requireFlags, usageError } = require("./argv");
 const { spawnSync } = require("node:child_process");
+const { resolveFaffVersion } = require("./faff-version"); // FAFF-1395
 const EVENTS_SPEC = { flags: {
   "--selftest": { arity: 0 }, "--tokens": { arity: 0 }, "--json": { arity: 0 },
   "--root": { arity: 1 }, "--run": { arity: 1 }, "--ts": { arity: 1 }, "--file": { arity: 1 },
@@ -706,14 +707,17 @@ function appendEventRecord(dir, run, payload, ts, opts) {
 //
 // `level` (optional): when supplied, stamped as `data.level` (the L4-ratification
 // corroboration field, FAFF-930) — `mintLightsOut` passes `"L4"`, the new `init-self-drain`
-// verb passes `"L3"`. `init-interactive`'s L2 mint omits it (byte-preserved: its shipped
-// genesis has never carried `data.level`, and this extraction changes no caller's emitted
-// bytes — see the regression assertions in run-ledger-init-interactive.test.mjs /
-// lights-out.test.mjs).
+// verb passes `"L3"`. `init-interactive`'s L2 mint omits it.
+//
+// FAFF-1395: every genesis also carries `data.faff_version` (the release that minted the run),
+// built as { level?, faff_version } so `level` stays first. The record is hash-chained and written
+// once, so the version is never refreshed; an unresolved version is written as "unknown".
 function emitGenesisRunStart(runDir, { level } = {}) {
   return appendRecordUnderLock(runDir, (seq, _prevRecord, prevHash) => {
     const record = { schema: 2, run_id: path.basename(runDir), seq, ts: new Date().toISOString(), prev: prevHash, phase: "run", type: "run-start" };
-    if (level !== undefined) record.data = { level };
+    record.data = level !== undefined
+      ? { level, faff_version: resolveFaffVersion().version }
+      : { faff_version: resolveFaffVersion().version };
     return record;
   });
 }

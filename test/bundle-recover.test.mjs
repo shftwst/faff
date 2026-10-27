@@ -346,7 +346,7 @@ test("bundle-recover: landing-progress.json rides the anchor and is copied up in
     // `faff landing-progress read <run-dir> <issue>` returns the record unchanged.
     const read = runCli(["landing-progress", "read", path.join(freshRoot, ".faff", "runs", run_id), "FAFF-1"], { cwd: freshRoot });
     assert.equal(read.code, 0, read.stderr);
-    assert.deepEqual(JSON.parse(read.stdout), { schema_version: 1, ...landingRecord });
+    assert.deepEqual(JSON.parse(read.stdout), { schema_version: 1, faff_version: resolveFaffVersion().version, ...landingRecord });
   } finally {
     rmSync(root, { recursive: true, force: true });
     rmSync(freshRoot, { recursive: true, force: true });

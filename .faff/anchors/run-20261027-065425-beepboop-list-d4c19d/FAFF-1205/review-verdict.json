@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/admissibility.js::unterminated-fence advisory emitted from the shared classifyacceptancecriteria helper",
+      "title": "unterminated-fence advisory emitted from the shared classifyAcceptanceCriteria helper",
+      "location": "plugin/skills/faff/bin/lib/admissibility.js:233",
+      "action": "keep spec-mandated placement; advisory-only side effect",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Placement inside classifyAcceptanceCriteria is spec-mandated (section 4 pseudocode); the round-2 QA objection on this exact point was judge-ruled AFFIRM_SPEC. Advisory-only stderr side effect: changes no returned text, breaks the byte-identical no-op text guarantee in no way, and fails no selftest.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "unterminated-fence advisory emitted from the shared classifyAcceptanceCriteria helper",
+          "location": "plugin/skills/faff/bin/lib/admissibility.js:233",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/admissibility.js::no negative test pinning the advisory stays silent for well-formed fences",
+      "title": "no negative test pinning the advisory stays silent for well-formed fences",
+      "location": "plugin/skills/faff/bin/lib/admissibility.js (dodSelftest)",
+      "action": "add a no-advisory assertion over terminated plain/holdout/two-Given fences",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added dodSelftest case (vii): captures stderr around dodClassify of smoke/two-Given/mid-holdout well-formed specs and asserts no unterminated-fence advisory.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "no negative test pinning the advisory stays silent for well-formed fences",
+          "location": "plugin/skills/faff/bin/lib/admissibility.js (dodSelftest)",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/admissibility.js::multi-given marked-fence coherence invariant untested",
+      "title": "multi-Given marked-fence coherence invariant untested",
+      "location": "plugin/skills/faff/bin/lib/admissibility.js (dodSelftest)",
+      "action": "add a two-Given holdout fence coherence case",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added dodSelftest case (viii): a holdout fence with two Given blocks yields two holdout:true scenario criteria and builder view == full minus both.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "multi-Given marked-fence coherence invariant untested",
+          "location": "plugin/skills/faff/bin/lib/admissibility.js (dodSelftest)",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/admissibility.js::pre-existing out-of-fence given-continuation vs holdout-bullet span mismatch",
+      "title": "pre-existing out-of-fence Given-continuation vs holdout-bullet span mismatch",
+      "location": "plugin/skills/faff/bin/lib/admissibility.js (holdoutRemovalSpans)",
+      "action": "none in this PR",
+      "location_present": true,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Finding states it is pre-existing and not introduced by this change; holdoutRemovalSpans is explicitly out of scope (spec section 2). Recorded as vague discovered-scope.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "pre-existing out-of-fence Given-continuation vs holdout-bullet span mismatch",
+          "location": "plugin/skills/faff/bin/lib/admissibility.js (holdoutRemovalSpans)",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

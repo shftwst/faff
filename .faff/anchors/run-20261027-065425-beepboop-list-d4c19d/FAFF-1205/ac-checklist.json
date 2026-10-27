@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A `## Scenarios` scenario embedding a plain fenced block with an internal blank line classifies as exactly one `scenario` criterion under `faff dod classify` (no phantom `prose` fragment from inside the fence).",
+      "verified": "verified: `node plugin/skills/faff/bin/faff dod --selftest` passes — dodSelftest check \"a plain fenced scenario with an internal blank line is one scenario criterion\"",
+      "passed": true,
+      "ac_id": "faff-1205#done:1",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff dod --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "Inside a fence, blank/list/italic/blockquote lines do not open or close a unit; every such line is continuation of the current unit.",
+      "verified": "verified: `node plugin/skills/faff/bin/faff dod --selftest` passes — dodSelftest check \"a fenced example with a `- ` list line does not fragment the scenario\"",
+      "passed": true,
+      "ac_id": "faff-1205#done:2",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff dod --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "An in-fence `Given` line still starts a new unit, so `dodClassify`'s scenario count equals `parseScenarios`'s count for a spec with multiple `Given` blocks inside one fence (parseScenarios parity).",
+      "verified": "verified: `node plugin/skills/faff/bin/faff dod --selftest` passes — dodSelftest check \"two Given blocks in one fence form two scenario criteria == parseScenarios == 2\"",
+      "passed": true,
+      "ac_id": "faff-1205#done:3",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff dod --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "A `holdout`/`integration`-marked fence-open closes any unit opened outside the fence, so the fence's content is its own `holdout`/`integration`-tagged unit; the preceding scenario stays visible (holdoutRemovalSpans parity).",
+      "verified": "verified: `node plugin/skills/faff/bin/faff dod --selftest` passes — dodSelftest check \"a mid-unit holdout fence is its own holdout:true unit, preceding scenario stays visible\"",
+      "passed": true,
+      "ac_id": "faff-1205#done:4",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff dod --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "A fenced example containing a `- ` list line does not fragment the scenario.",
+      "verified": "verified: `node plugin/skills/faff/bin/faff dod --selftest` passes — dodSelftest check \"a fenced example with a `- ` list line does not fragment the scenario\"",
+      "passed": true,
+      "ac_id": "faff-1205#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff dod --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "A standalone fenced block with no preceding `Given` forms a single unit classed by its own text.",
+      "verified": "verified: `node plugin/skills/faff/bin/faff dod --selftest` passes — dodSelftest check \"a standalone fenced block with no preceding Given forms one unit classed by its own text\"",
+      "passed": true,
+      "ac_id": "faff-1205#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff dod --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "An unterminated fence emits the `dod classify: unterminated fence …` stderr advisory and flushes one trailing unit without error; `Given` blocks before and after the stray fence still count.",
+      "verified": "verified: `node plugin/skills/faff/bin/faff dod --selftest` passes — dodSelftest check \"an unterminated fence emits the stderr advisory\"",
+      "passed": true,
+      "ac_id": "faff-1205#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff dod --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "Out-of-fence classification is byte-for-byte unchanged: the existing `dodSelftest` cases (FAFF-306 heading-boundary, FAFF-275 holdout, numbered-heading) all still pass.",
+      "verified": "verified: `node plugin/skills/faff/bin/faff dod --selftest` passes — dodSelftest check \"out-of-fence selftest cases (FAFF-306/FAFF-275/numbered) all still pass\"",
+      "passed": true,
+      "ac_id": "faff-1205#done:8",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff dod --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`faff dod split --view builder` over a spec with a mid-unit `holdout` fenced scenario yields the full classified set minus exactly the holdout unit (the FAFF-275 invariant), with no preceding visible scenario text removed.",
+      "verified": "verified: `node plugin/skills/faff/bin/faff dod --selftest` passes — dodSelftest check \"builder view == full minus the holdout unit (no preceding scenario text removed)\"",
+      "passed": true,
+      "ac_id": "faff-1205#done:9",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff dod --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`dodSelftest` gains the four cases named in §6 (plain-blank-line, two-Given-in-fence with `parseScenarios` equality, mid-unit holdout with split parity, unterminated-fence advisory). `faff dod --selftest` passes.",
+      "verified": "verified: `node plugin/skills/faff/bin/faff dod --selftest` passes — dodSelftest check \"dodSelftest gains the four FAFF-1205 cases; faff dod --selftest passes\"",
+      "passed": true,
+      "ac_id": "faff-1205#done:10",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff dod --selftest"
+        }
+      ]
+    }
+  ]
+}

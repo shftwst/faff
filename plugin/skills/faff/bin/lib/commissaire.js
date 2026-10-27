@@ -169,13 +169,8 @@ function recordSchemaCheck() {
         const r = check(rec);
         if (r.unavailable)
             return { violations: [], unavailable: str(r.unavailable) ?? "declared-effects.jsonl" };
-        return { violations: [...r.violations, ...conclusionRangeViolations(rec)], unavailable: null };
+        return { violations: r.violations, unavailable: null };
     };
-}
-// The subset validator has no maxItems, so the writer holds the conclusion range to two seqs.
-function conclusionRangeViolations(rec) {
-    const range = conclusionKindOf(rec) !== null && isRecord(rec.payload) ? rec.payload.evidence_seq_range : undefined;
-    return Array.isArray(range) && range.length > 2 ? ["payload.evidence_seq_range: expected exactly 2 items"] : [];
 }
 function refuseOffSchema(verdict) {
     if (verdict.violations.length === 0)

@@ -399,7 +399,25 @@ test("governor: a verdict record the schema refuses parks governor-record-unveri
     const c = com(runDir, env, ["verdict", "conclude", "--unit-id", "FAFF-1"]);
     assert.equal(c.code, 2, c.out + c.err);
     assert.equal(JSON.parse(c.out).reason, "governor-record-unverified");
-    assert.match(c.err, /evidence_seq_range: expected exactly 2 items/);
+    assert.match(c.err, /payload\.evidence_seq_range: expected at most 2 items, got 3/);
     assert.deepEqual(lines(ledger).map((e) => e.kind_of_entry), ["admission", "effect-decision-request"]);
+  });
+});
+
+test("governor: with declared-effect.schema.json missing a three-seq conclusion is not length-checked (the degrade path returns before any range check)", { skip: SKIP_GOVERNOR }, async () => {
+  await withFakeGovernor("bad-verdict", async ({ runDir, env }) => {
+    const copy = pluginCopy((schemaDir) => rmSync(join(schemaDir, "declared-effect.schema.json")));
+    try {
+      const run2 = (args) => run(copy.bin, ["commissaire", ...args, "--run-dir", runDir], { env, input: "" });
+      assert.equal(run2(["admit", "--producer", "P1", "--contract-revision", "r1", "--scope", "merge"]).code, 0);
+      const rd = run(copy.bin, ["commissaire", "request-decision", "--producer", "P1", "--unit-id", "FAFF-1", "--step", "merge", "--run-dir", runDir], { env, input: JSON.stringify({ effect: { kind: "merge", target: "main" } }) });
+      assert.equal(rd.code, 0, rd.out + rd.err);
+      const c = run2(["verdict", "conclude", "--unit-id", "FAFF-1"]);
+      assert.equal(c.code, 0, c.out + c.err);
+      assert.ok(!/evidence_seq_range/.test(c.err), "no writer-side range check ran");
+      assert.equal(JSON.parse(readFileSync(join(runDir, MARKER), "utf8")).writer, "commissaire");
+      const lastKind = lines(join(runDir, "declared-effects.jsonl")).at(-1).kind_of_entry;
+      assert.equal(lastKind, "conformed_to_contract");
+    } finally { rmSync(copy.dir, { recursive: true, force: true }); }
   });
 });

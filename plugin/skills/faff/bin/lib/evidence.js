@@ -434,7 +434,7 @@ function introducedViolations(anchorPath, before, after, violations, rawBefore, 
 const ANNOTATION_KEYWORDS = new Set(["description", "title", "$comment", "examples"]);
 const SUBSET_KEYWORDS = new Set([
   "$schema", "$id", "type", "required", "properties", "enum", "additionalProperties", "items",
-  "minItems", "pattern", "discriminator",
+  "minItems", "maxItems", "pattern", "discriminator",
 ]);
 
 const deepEqual = (a, b) => {
@@ -482,7 +482,8 @@ function walkSchemaChange(base, head, segs, reasons) {
   }
   const keys = new Set([...Object.keys(base), ...Object.keys(head)].filter((k) => !ANNOTATION_KEYWORDS.has(k)));
   for (const key of keys) {
-    if (!(key in head)) { reasons.push(`${at}: keyword "${key}" removed`); continue; }
+    // maxItems is a loosening bound: removing it, or raising it, accepts a superset of the base documents.
+    if (!(key in head)) { if (key !== "maxItems") reasons.push(`${at}: keyword "${key}" removed`); continue; }
     if (!(key in base)) { reasons.push(`${at}: keyword "${key}" added`); continue; }
     const b = base[key];
     const h = head[key];
@@ -497,6 +498,8 @@ function walkSchemaChange(base, head, segs, reasons) {
       }
     } else if ((key === "items" || key === "additionalProperties") && isObject(b) && isObject(h)) {
       walkSchemaChange(b, h, [...segs, key], reasons);
+    } else if (key === "maxItems" && typeof b === "number" && typeof h === "number") {
+      if (h < b) reasons.push(`${pointerOf([...segs, key])}: ${key} changed`);
     } else if (!deepEqual(b, h)) {
       reasons.push(`${pointerOf([...segs, key])}: ${key} changed`);
     }

@@ -105,6 +105,9 @@ export function validateAgainstSchema(data, schema, path = "") {
     if (typeof schema.minItems === "number" && data.length < schema.minItems) {
       errs.push(`${where}: expected at least ${schema.minItems} items, got ${data.length}`);
     }
+    if (typeof schema.maxItems === "number" && data.length > schema.maxItems) {
+      errs.push(`${where}: expected at most ${schema.maxItems} items, got ${data.length}`);
+    }
     if (schema.items) {
       data.forEach((item, i) => errs.push(...validateAgainstSchema(item, schema.items, `${where}[${i}]`)));
     }

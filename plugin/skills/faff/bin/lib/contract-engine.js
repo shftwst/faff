@@ -106,6 +106,9 @@ function validateAgainstSchemaDetailed(data, schema, path = "", segs = []) {
     if (typeof schema.minItems === "number" && data.length < schema.minItems) {
       add(segs, `${where}: expected at least ${schema.minItems} items, got ${data.length}`);
     }
+    if (typeof schema.maxItems === "number" && data.length > schema.maxItems) {
+      add(segs, `${where}: expected at most ${schema.maxItems} items, got ${data.length}`);
+    }
     if (schema.items) {
       data.forEach((item, i) => errs.push(...validateAgainstSchemaDetailed(item, schema.items, `${where}[${i}]`, [...segs, i])));
     }

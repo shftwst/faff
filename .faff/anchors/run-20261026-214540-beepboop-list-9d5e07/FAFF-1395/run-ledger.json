@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "run_id": "run-20261026-214540-beepboop-list-9d5e07",
+  "level": "L3",
+  "admitted": [
+    "FAFF-1395",
+    "FAFF-1347"
+  ],
+  "outcomes": {
+    "FAFF-1306": "routed-out",
+    "FAFF-1283": "routed-out"
+  },
+  "outcome_details": {
+    "FAFF-1306": { "disposition": "inadmissible", "reasons": ["0 born-verifiable scenario(s) (need >=1)", "0 DONE checklist item(s) (need >=1)"] },
+    "FAFF-1283": { "disposition": "inadmissible", "reasons": ["1 vague DONE item(s): The validator-parity test has a new `maxItems` fix"] }
+  },
+  "base_sha": "281e4abf96e40cb364c9dd6caed0ee1c3bb456ed",
+  "base_sha_required": true,
+  "owner": {
+    "status": "running",
+    "session_id": "run-20261026-214540-beepboop-list-9d5e07",
+    "pid": 336,
+    "started_at": "2026-10-26T21:45:40.817Z",
+    "last_heartbeat": "2026-10-26T21:45:40.817Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "budget": {
+    "measure_session_id": "b704b40d-4e26-4676-ab8f-afe800554bb0",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 106,
+        "output": 61465,
+        "cache_write_5m": 0,
+        "cache_write_1h": 771917,
+        "cache_read": 8507357
+      }
+    },
+    "tokens_at_start": 9340845,
+    "tokens_at_last_event": {
+      "input": 208,
+      "output": 220977,
+      "cache_write_5m": 0,
+      "cache_write_1h": 951804,
+      "cache_read": 22172218
+    }
+  }
+}

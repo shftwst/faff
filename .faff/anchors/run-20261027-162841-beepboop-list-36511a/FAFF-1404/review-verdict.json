@@ -1,0 +1,209 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-commit.js::already-committed result names the branch tip as the spec commit",
+      "title": "already-committed result names the branch tip as the spec commit",
+      "location": "plugin/skills/faff/bin/lib/spec-commit.js",
+      "action": "resolve the introducing commit with git log in both arms",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "already-committed now returns git log -1 for the spec path in both arms; covered by a new test",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "already-committed result names the branch tip as the spec commit",
+          "location": "plugin/skills/faff/bin/lib/spec-commit.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-commit.js::spec-docs-path resolved without create semantics",
+      "title": "spec-docs-path resolved without create semantics",
+      "location": "plugin/skills/faff/bin/lib/spec-commit.js",
+      "action": "resolve with create",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "resolveDocsPath picks the directory from config or the existence of docs/ and doc/ before it creates anything, so create only adds a mkdir; the command creates the same directory lazily at write time and writes nothing on needs-judgement",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "spec-docs-path resolved without create semantics",
+          "location": "plugin/skills/faff/bin/lib/spec-commit.js",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-commit.js::unexpected throw after a successful commit escapes without a typed token",
+      "title": "unexpected throw after a successful commit escapes without a typed token",
+      "location": "plugin/skills/faff/bin/lib/spec-commit.js",
+      "action": "catch and print errored",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "cmdSpec now converts any throw into an errored token with reason unexpected; verify falls back to the HEAD filename scan if the record was not written",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "unexpected throw after a successful commit escapes without a typed token",
+          "location": "plugin/skills/faff/bin/lib/spec-commit.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-commit.js::git add failure reported as git-commit-failed",
+      "title": "git add failure reported as git-commit-failed",
+      "location": "plugin/skills/faff/bin/lib/spec-commit.js",
+      "action": "report git-add-failed",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "the reason now names the step that failed",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "git add failure reported as git-commit-failed",
+          "location": "plugin/skills/faff/bin/lib/spec-commit.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-commit.js::builderbytes re-encodes a non-utf-8 spec that has holdouts",
+      "title": "builderBytes re-encodes a non-UTF-8 spec that has holdouts",
+      "location": "plugin/skills/faff/bin/lib/spec-commit.js",
+      "action": "refuse when the decode is lossy",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "a lossy decode with a real split now errors as builder-split-failed; a marker-free non-UTF-8 spec still commits its own bytes; both covered by a new test",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "builderBytes re-encodes a non-UTF-8 spec that has holdouts",
+          "location": "plugin/skills/faff/bin/lib/spec-commit.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/spec-commit.test.mjs::no test for ambiguous-committed-spec",
+      "title": "no test for ambiguous-committed-spec",
+      "location": "test/spec-commit.test.mjs",
+      "action": "add a two-match fixture",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "new test covers two committed specs with no record",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "no test for ambiguous-committed-spec",
+          "location": "test/spec-commit.test.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-commit.js::check-to-commit gap on a shared worktree",
+      "title": "check-to-commit gap on a shared worktree",
+      "location": "plugin/skills/faff/bin/lib/spec-commit.js",
+      "action": "none",
+      "location_present": true,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "graft holds one writer per worktree (per-issue isolation) and verify re-checks before grading",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "check-to-commit gap on a shared worktree",
+          "location": "plugin/skills/faff/bin/lib/spec-commit.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-commit.js::holdouts_withheld is 0 when classification throws",
+      "title": "holdouts_withheld is 0 when classification throws",
+      "location": "plugin/skills/faff/bin/lib/spec-commit.js",
+      "action": "none",
+      "location_present": true,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "the spec types the field as Int and it is advisory; dodSplit would already have thrown on the same input",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "holdouts_withheld is 0 when classification throws",
+          "location": "plugin/skills/faff/bin/lib/spec-commit.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

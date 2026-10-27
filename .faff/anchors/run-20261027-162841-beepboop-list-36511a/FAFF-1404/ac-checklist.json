@@ -1,0 +1,351 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "Graft's committed spec equals `faff dod split --view builder` of the captured spec, byte for byte, including trailing newlines.",
+      "verified": "passes (byte for byte, no-marker spec with 0/1/3 trailing newlines; holdout view equals dod split)",
+      "passed": true,
+      "ac_id": "faff-1404#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::commit writes the builder view byte for byte as a one-path commit and records it"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::a spec with nothing to withhold is committed with its trailing newlines intact"
+        }
+      ]
+    },
+    {
+      "ac": "The committed filename carries the issue id exactly as passed to `--issue` (an uppercase id stays uppercase).",
+      "verified": "passes (filename keeps ex-3 / EX-3 case as passed)",
+      "passed": true,
+      "ac_id": "faff-1404#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::the issue id keeps its case in the filename"
+        }
+      ]
+    },
+    {
+      "ac": "`faff spec commit` and `faff spec verify` accept the flags in section 3; an unknown flag or a missing required flag exits 2.",
+      "verified": "passes (unknown flag, each missing required flag, bad verb all exit 2)",
+      "passed": true,
+      "ac_id": "faff-1404#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::bad usage exits 2"
+        }
+      ]
+    },
+    {
+      "ac": "`--json` output for each call matches `SpecResult`, and `token` is always one of the listed values.",
+      "verified": "passes (every --json result token is in the closed set)",
+      "passed": true,
+      "ac_id": "faff-1404#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::every --json result carries a token from the closed set"
+        }
+      ]
+    },
+    {
+      "ac": "`spec-commit.json` carries every `SpecCommitRecord` field.",
+      "verified": "passes (record keys are exactly the SpecCommitRecord fields)",
+      "passed": true,
+      "ac_id": "faff-1404#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::commit writes the builder view byte for byte as a one-path commit and records it"
+        }
+      ]
+    },
+    {
+      "ac": "Every typed token exits 0 except `errored` (exit 2) and `spec verify`'s `mismatch` (exit 1).",
+      "verified": "passes (errored exits 2, verify mismatch exits 1, all other tokens exit 0)",
+      "passed": true,
+      "ac_id": "faff-1404#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::verify passes after commit, then fails on a committed rewrite and an uncommitted one"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::an unreadable spec is errored and nothing is written"
+        }
+      ]
+    },
+    {
+      "ac": "spec commit's commit contains exactly one path, and its subject follows the resolved `commit_subject` scheme (`conventional` and `bare-imperative` both covered).",
+      "verified": "passes (one path in the commit; conventional and bare-imperative subjects)",
+      "passed": true,
+      "ac_id": "faff-1404#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::commit writes the builder view byte for byte as a one-path commit and records it"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::the subject follows the resolved commit_subject scheme"
+        }
+      ]
+    },
+    {
+      "ac": "A second spec commit with the same input returns `already-committed` and creates no commit.",
+      "verified": "passes (HEAD unchanged on the second call)",
+      "passed": true,
+      "ac_id": "faff-1404#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::the same commit again is already-committed and changes nothing"
+        }
+      ]
+    },
+    {
+      "ac": "spec commit with a differing committed spec for the issue already in HEAD returns `needs-judgement` with reason `committed-spec-differs` and writes nothing.",
+      "verified": "passes (needs-judgement committed-spec-differs, HEAD and directory untouched)",
+      "passed": true,
+      "ac_id": "faff-1404#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::a differing committed spec for the issue is needs-judgement and nothing is written"
+        }
+      ]
+    },
+    {
+      "ac": "A failed `git commit` leaves no new file in the worktree and returns `errored`.",
+      "verified": "passes (hook-rejected commit: errored, no new file, nothing staged)",
+      "passed": true,
+      "ac_id": "faff-1404#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::a failed git commit leaves no new file, nothing staged, and keeps a file that already existed"
+        }
+      ]
+    },
+    {
+      "ac": "An `--issue` value outside `^[A-Za-z][A-Za-z0-9]*-[0-9]+$` (for example `../x-1` or `EX-*`) exits 2 and writes nothing.",
+      "verified": "passes (../x-1, EX-*, newline and other bad ids exit 2, nothing written)",
+      "passed": true,
+      "ac_id": "faff-1404#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::a bad --issue exits 2 and writes nothing"
+        }
+      ]
+    },
+    {
+      "ac": "A `--title` containing a newline produces a single-line commit subject, and the commit message has no extra lines.",
+      "verified": "passes (one-line subject, message has no extra lines)",
+      "passed": true,
+      "ac_id": "faff-1404#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::a multi-line title gives a one-line subject and no extra message lines"
+        }
+      ]
+    },
+    {
+      "ac": "An untracked file at `rel` with different bytes returns `needs-judgement` with reason `uncommitted-file-at-path` and is left byte-identical; with identical bytes, the file is committed and the token is `committed`.",
+      "verified": "passes (different bytes: needs-judgement and file untouched; identical bytes: committed)",
+      "passed": true,
+      "ac_id": "faff-1404#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::an untracked file at the target path is kept if it differs and committed if it is identical"
+        }
+      ]
+    },
+    {
+      "ac": "A failed `git commit` never deletes a file that existed before the call.",
+      "verified": "passes (pre-existing identical file survives a failed commit)",
+      "passed": true,
+      "ac_id": "faff-1404#done:14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::a failed git commit leaves no new file, nothing staged, and keeps a file that already existed"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::pure core: a failed commit unstages and removes only the file it created"
+        }
+      ]
+    },
+    {
+      "ac": "A committed spec for another issue whose slug contains this issue's id (`…-FAFF-9-fix-ex-3-flake-design.md` for `--issue EX-3`) is not treated as a match.",
+      "verified": "passes (FAFF-9 ... ex-3 slug is not a match)",
+      "passed": true,
+      "ac_id": "faff-1404#done:15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::a committed spec for another issue whose slug names this id is not a match"
+        }
+      ]
+    },
+    {
+      "ac": "With two committed files for the issue, one identical to the builder view and one not, spec commit returns `needs-judgement` with reason `committed-spec-differs` and lists both.",
+      "verified": "passes (needs-judgement listing both paths)",
+      "passed": true,
+      "ac_id": "faff-1404#done:16",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::one identical committed file does not hide a divergent one"
+        }
+      ]
+    },
+    {
+      "ac": "`source_check` is `match`, `mismatch` or `no-marker` according to the prep marker's `spec_sha256`, is `no-marker` when that field is absent, and never changes the token. A fixture marker whose `spec_sha256` is the lowercase hex sha256 of the captured spec gives `match`.",
+      "verified": "passes (match, mismatch, no-marker; token unchanged; --prep-root)",
+      "passed": true,
+      "ac_id": "faff-1404#done:17",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::source_check reads the prep marker's spec_sha256 and never changes the token"
+        }
+      ]
+    },
+    {
+      "ac": "spec verify returns `mismatch` with `differs: [\"head\"]` for a committed rewrite and `[\"working-tree\"]` for an uncommitted one.",
+      "verified": "passes (committed rewrite with restored working file gives [head]; uncommitted gives [working-tree]; both checked out gives both)",
+      "passed": true,
+      "ac_id": "faff-1404#done:18",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::verify passes after commit, then fails on a committed rewrite and an uncommitted one"
+        }
+      ]
+    },
+    {
+      "ac": "Graft's Step 8 prose routes verify's `errored` the same as `mismatch`: ACs are not graded.",
+      "verified": "Step 8 prose routes mismatch (exit 1) and errored (exit 2) together to \"grade nothing\"; checked by reading plugin/skills/faff-graft/SKILL.md Step 8",
+      "passed": true,
+      "ac_id": "faff-1404#done:19",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n \"Check the committed spec first\" plugin/skills/faff-graft/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "spec verify with a `spec-commit.json` whose `path` resolves outside the spec directory returns `errored` with reason `path-outside-spec-dir`.",
+      "verified": "passes (relative, absolute and non-spec record paths give path-outside-spec-dir)",
+      "passed": true,
+      "ac_id": "faff-1404#done:20",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::verify refuses a record whose path leaves the spec directory"
+        }
+      ]
+    },
+    {
+      "ac": "`faff regions check` passes with `spec-commit.js` carrying a `region:factory … FAFF-1404` banner.",
+      "verified": "passes",
+      "passed": true,
+      "ac_id": "faff-1404#done:21",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        }
+      ]
+    },
+    {
+      "ac": "`faff lint-cli-doc` and `faff lint-cli-coverage` pass with the new `docs/guide/cli.md` row.",
+      "verified": "both pass (143 subcommands documented and covered)",
+      "passed": true,
+      "ac_id": "faff-1404#done:22",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-doc"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-coverage"
+        }
+      ]
+    },
+    {
+      "ac": "`faff spec --selftest` exits 0 and is wired in `REGION_SELFTEST_ARGV`.",
+      "verified": "selftest exits 0; REGION_SELFTEST_ARGV entry in regions.js",
+      "passed": true,
+      "ac_id": "faff-1404#done:23",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff spec --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`faff-graft/SKILL.md` Step 2 saves the captured spec to `.faff/graft/<ISSUE>/captured-spec.md`.",
+      "verified": "Step 2 Capture the spec sentence names .faff/graft/<ISSUE>/captured-spec.md",
+      "passed": true,
+      "ac_id": "faff-1404#done:24",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n \"captured-spec.md\" plugin/skills/faff-graft/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "`faff-graft/SKILL.md` Step 4 calls `faff spec commit`, Step 8 calls `faff spec verify` before sourcing the AC list, and neither step contains the `builder_view=$(` shell capture.",
+      "verified": "Step 4 calls spec commit, Step 8 calls spec verify before the AC list; builder_view=$( count is 0",
+      "passed": true,
+      "ac_id": "faff-1404#done:25",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c \"builder_view=\\$(\" plugin/skills/faff-graft/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "`SKILL_LINE_BASELINE` for `faff-graft` equals the file's new size, `ANCHOR_PHRASES` is unchanged, and `faff validate-adapters` reports no RATCHET and no FAIL for that skill.",
+      "verified": "baseline 892 = wc -l 891 + 1; ANCHOR_PHRASES untouched; validate-adapters reports no RATCHET and no FAIL",
+      "passed": true,
+      "ac_id": "faff-1404#done:26",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "`test/spec-commit.test.mjs` exists, runs under `node --test`, and passes. It follows `test/land.test.mjs`: a pure core driven with fake deps, plus real CLI runs on a `mkdtempSync` fixture repo.",
+      "verified": "22 tests pass under node --test",
+      "passed": true,
+      "ac_id": "faff-1404#done:27",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/spec-commit.test.mjs"
+        }
+      ]
+    }
+  ]
+}

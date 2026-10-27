@@ -76,7 +76,7 @@ If the issue doesn't exist, tell the user and stop.
 
 Check the issue for an attached spec. Follow the shared **Spec discovery** rule in the sibling `faff/references/tracker.md` — look in tracker comments, the main description/body, committed `docs/` paths, and (git-only mode) the `.faff/specs/<issue-id>.md` store. A hit in any of those counts as the spec.
 
-- **Spec exists:** Issue is prepped. Proceed to step 3. Per the shared Spec discovery rule, a hit in the description/body only counts when it is an actual formalised spec — a plain description, however well-defined, is **not** a spec. (This is the same call `faff next` makes: with a spec present it returns `graft` (proceed); with no spec, `prep` — consult it per gateway → **Next-step transition** rather than re-deriving, then act as below.)
+- **Spec exists:** Issue is prepped. Proceed to step 3. Per the shared Spec discovery rule, a hit in the description/body only counts when it is an actual formalised spec — a plain description, however well-defined, is **not** a spec. (This is the same call `faff next` makes: with a spec present it returns `graft` (proceed); with no spec, `prep` — consult it per gateway → **Next-step transition** rather than re-deriving, then act as below.) **Capture the spec.** Save it, exactly as read, to `.faff/graft/<ISSUE>/captured-spec.md` in the main checkout (git-only mode: a byte copy of `.faff/specs/<ISSUE>.md`), before the worktree exists. Steps 4 and 8 read this file and never the tracker text again. Copy, never summarise: both commands compare against this file.
 - **Tracker configured/pinned but unreachable this session (fail loud — not "no spec").** If the tracker is pinned or configured (or the prep marker `.faff/prep/<ISSUE>.json` says `attached:true`) but tracker-based discovery (locations 1–3) returned nothing **because the connector could not be reached** — a pinned tracker whose tools discovery never surfaced, or a read that failed — do **not** treat it as unprepped and do **not** silently drop to git-only. Fail loud with a distinct **"tracker configured/pinned but connector not reachable this session"** message (gateway → Tracker availability resolution, step 4) and stop. The remedy is to make the connector reachable (or, under a deferred-tool harness, run the harness's tool-discovery), then re-invoke `/faff-graft` — not to re-prep a spec that already exists. A passing prep marker attests attach *happened*, not that the spec is *reachable this session*, so it is never on its own sufficient to proceed past an unreachable connector.
 - **No spec (none of those sources, and the tracker _was_ reachable):** In interactive mode, yes/no gate: "No spec found in comments, description, docs, or the git-only store. Run `/faff-prep ISSUE-XX` first? (y/n)". On confirm, invoke the `faff-prep` skill via the Skill tool (resolve per gateway → **Sibling-skill invocation**). On deny, stop. (A surviving OFFER gate, per gateway → **Interactive next-step offer**.)
 
@@ -235,25 +235,19 @@ actual=$(git -C "$wt" rev-parse --show-toplevel)
 
 **Step 4: Commit spec to feature branch**
 
-Pull the spec content from wherever Step 2's **Spec discovery** found it — a tracker comment, the committed docs path, or (git-only mode, no tracker MCP) the `.faff/specs/<issue-id>.md` store faff-prep wrote — and commit it to the feature branch. This is the first commit on the branch — the spec ships with the code it describes. (In git-only mode the `.faff/specs/` file is the source; committing it here is what moves the spec into the repo, so the "ships with the PR" property holds with or without a tracker. Note `.faff/specs/` lives in the **main checkout**, not this worktree — so capture the spec content back at Step 2, before the worktree exists, and write that captured content here rather than re-reading the file from inside the worktree.)
-
-Resolve and create the target directory mechanically with the bundled resolver (see the gateway's **Spec docs location**):
+`faff spec commit` writes the builder view of the captured spec into the worktree and commits only that file. It is the first commit on the branch, so the spec ships with the code it describes. The command commits the builder view and never the full spec; the agent never writes, retypes or pipes the spec's bytes. It names the file `<spec-docs-path>/YYYY-MM-DD-<issue-id>-<slug>-design.md`, takes the subject from the `commit_subject` convention (Step 4c and the merge-time ADR renumber reuse that scheme), and records the digest in `<run-dir>/<ISSUE>/spec-commit.json`.
 
 ```bash
-faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff/bin/faff")
-dir=$("$faff" config spec-docs-path --create)
-builder_view=$(printf '%s' "$captured_full_spec" | "$faff" dod split --spec - --view builder) || { echo "FATAL: dod split --view builder exited non-zero — refusing to commit (never fall back to the full spec)"; exit 1; }
+"$faff" spec commit --issue <ISSUE-XX> --title "<issue title>" --spec "$repo_root/.faff/graft/<ISSUE-XX>/captured-spec.md" --worktree "$wt" --run-dir "$run_dir" --json
 ```
 
-This reads `tracking.spec_docs_path` from `.faff/config.yaml` and, when unset, applies the default rule (`docs/specs` if `docs/` exists, else `doc/specs` if `doc/` exists, else creates `docs/` and uses `docs/specs`). **Commit `$builder_view`, never the raw captured spec** — the split strips any `holdout:`-marked scenarios (byte-identical pass-through for a marker-free spec) so the worktree-resident builder never sees them; the full spec stays recoverable only from the tracker (git-only: `.faff/specs/<issue-id>.md`). A **`--view builder` exit 2** (the non-zero branch above) is fail-loud — refuse the commit outright and log the cause, never fall back to committing the full spec; a non-gating over-withholding advisory the CLI may print to stderr is logged, never blocking. Commit `$builder_view` to:
+| Token | Action |
+|---|---|
+| `committed`, `already-committed` | Continue to Step 5. |
+| `needs-judgement` (`committed-spec-differs`, `uncommitted-file-at-path`) | Autonomous: park needs-human naming `path`. Interactive: surface the path(s). |
+| `errored` (exit 2) | Refuse the build and log `reason`. Never commit the full spec instead. |
 
-- `$dir/YYYY-MM-DD-<issue-id>-<slug>-design.md`
-
-Derive `<slug>` from the issue title (lowercase, hyphens, no special chars). Use today's date for `YYYY-MM-DD`.
-
-**Commit message — resolved via the discovered convention, replacing the previously-hardcoded string.** `scheme=$("$faff" conventions get commit_subject)` (resolved once here; Step 4c and the merge-time ADR renumber below reuse this same value rather than re-mining): `conventional` (the faff default) formats `docs(<issue-id>): add spec for <issue title>` — today's message, byte-identical when the repo signals nothing; `bare-imperative` formats `Add spec for <issue title> (<issue-id>)`.
-
-This commit happens once. If the user re-runs graft on the same issue (existing worktree), skip this step.
+`source_check` in the result is advisory: log it to `graft.md`, never route on it. If the worktree already existed (a re-run), skip this step.
 
 **Step 4b: Materialise ADR promotions (body authored by the `adr` slot).** Resolve `adr_docs_path=$("$faff" config adr-docs-path)` once; every git path operation below uses it, while `faff adr` resolves it internally. If `faff config get adr.mode` ≠ `off` **and** an `## ADR promotion intent` intent is located — **comment-first:** the issue's tracker `## ADR promotion intent` comment (written by faff-prep) when one exists; **else** (git-only, or a tracker with no such comment) the committed spec file Step 4 just wrote, at `$(faff config spec-docs-path)/YYYY-MM-DD-<issue>-<slug>-design.md`, read via `faff adr extract-intent --file <that path>` (exit 0 → the extracted section is the intent; exit 1 no section present, or exit 2 the file is unreadable → log and treat the intent as ABSENT, never crash graft). **The tracker comment always wins:** when present, the spec body is never consulted, so tracker-mode output stays byte-identical to before this fallback existed — materialise each listed decision as an ADR on this feature branch — graft owns the branch, so the ADR ships in the PR alongside the code (the spec's "travels with the code, PR-reviewable" property). For each listed decision:
 
@@ -371,6 +365,8 @@ faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff
 
 Before the PR is considered done, every acceptance criterion must be verified.
 
+**Check the committed spec first.** Before sourcing the AC list, run `faff spec verify --issue <ISSUE> --spec "$repo_root/.faff/graft/<ISSUE>/captured-spec.md" --worktree "$wt" --run-dir "$run_dir" --json`. `verified` → grade against its `path`. `mismatch` (exit 1) or `errored` (exit 2) → grade nothing: autonomous parks needs-human naming `differs` or `reason`; interactive surfaces it.
+
 **The runner is already resolved by Step 7.5 — don't re-resolve or re-run it.** Step 7.5's `faff gates discover` is the **single** runner resolver (it reads the same trusted sources: `CLAUDE.md` test/lint command, `package.json` scripts, a `Makefile` target, pre-commit, runner files in `script/`, `scripts/` and `bin/`, CI config). Step 8 **consumes** the ladder's UNIT-rung result (the full-suite run) and LINT-rung result rather than resolving and running them a second time — one resolver, one suite run. If Step 7.5 found no runner at all (`discovery: none`), that is the `needs-human` signal here — not a silent skip or an assumed `npm test`.
 
 For each AC in the spec:
@@ -384,7 +380,7 @@ The **full suite + lint** backstop already ran once as Step 7.5's UNIT and LINT 
 
 The PR description's `## Acceptance Criteria` block is printed by `faff evidence render ac-checklist` from the written anchor. Never hand-write it.
 
-- **Source.** Take the AC list from `faff dod classify --spec <spec> --issue <ISSUE> --json`: its `done` criteria in order, each with `text` and the qualified `ac_id` (for example `faff-1287#ac-3`).
+- **Source.** Take the AC list from `faff dod classify --spec <spec> --issue <ISSUE> --json` (`<spec>` is the worktree file at the `path` from `spec verify`): its `done` criteria in order, each with `text` and the qualified `ac_id` (for example `faff-1287#ac-3`).
 - **Verify and note.** Tick each AC as its verification passes, with a one-line `verified` note (test result, or command + observed result). An AC that cannot be auto-verified (visual, subjective, auth-required) stays unticked with `"Needs human verification: <reason>"`.
 - **Record methods.** `verifications` lists each method used: `{ "kind": "test", "locator": "<file>::<test title>" }` (repo-relative file, the test's own title), `{ "kind": "command", "locator": "<exact command>" }`, or `{ "kind": "human" }` (no locator).
 - **Secrets.** A `command` locator names a secret by environment variable (`$TOKEN`), never by value. It is committed in the anchor and published in the PR body.

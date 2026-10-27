@@ -47,13 +47,19 @@ const CLASS_LABEL = {
 };
 
 // --- pricing (USD per 1M tokens) -----------------------------------------------
-// Source: claude-api skill model table (cached 2026-06-24). Cache classes derived
-// from the documented caching economics: cache_write = 1.25x input (5-min TTL),
-// cache_read = 0.1x input. CONFIGURABLE — swap when rates change. Sonnet 5 has an
-// intro rate of $2/$10 input/output through 2026-08-31; the standard rate is used
-// here and the intro delta is noted in the report so the figure is a conservative
-// (upper-bound) cost. `unknown` model prices at 0 (cannot attribute).
+// Source: Anthropic published pricing page (reconfirmed 2026-10-27). `cache_write`
+// is the 5-minute (1.25x input) rate. `cache_read` is NOT a universal 0.1x of input:
+// current models read lower — claude-opus-5-5 / claude-sonnet-5-5 at 0.05x and
+// claude-fable-5-1 at 0.025x — so the stored `cache_read` value per row already
+// encodes the correct rate (do not re-derive it from a flat multiplier). CONFIGURABLE
+// — swap when rates change. Sonnet 5 has an intro rate of $2/$10 input/output through
+// 2026-08-31; the standard rate is used here and the intro delta is noted in the report
+// so the figure is a conservative (upper-bound) cost. `unknown` model prices at 0.
 const PRICE_PER_MTOK = {
+  // Current generation (FAFF-1199); cache_read already encodes the 0.05x / 0.025x rate.
+  "claude-opus-5-5": { input: 4, output: 20, cache_write: 5, cache_read: 0.2 },
+  "claude-sonnet-5-5": { input: 2, output: 10, cache_write: 2.5, cache_read: 0.1 },
+  "claude-fable-5-1": { input: 10, output: 50, cache_write: 12.5, cache_read: 0.25 },
   "claude-fable-5": { input: 10, output: 50, cache_write: 12.5, cache_read: 1.0 },
   "claude-opus-4-8": { input: 5, output: 25, cache_write: 6.25, cache_read: 0.5 },
   "claude-opus-4-7": { input: 5, output: 25, cache_write: 6.25, cache_read: 0.5 },
@@ -451,7 +457,7 @@ export function analyze(rawRecords) {
 
   return {
     corpus: { records_with_usage: recordsWithUsage, records_missing_model: recordsMissingModel },
-    pricing: { source: "claude-api skill (cached 2026-06-24); cache_write=1.25x input, cache_read=0.1x input", per_mtok: PRICE_PER_MTOK },
+    pricing: { source: "Anthropic published pricing page (reconfirmed 2026-10-27); cache_write=1.25x input; cache_read varies by model (0.1x legacy, 0.05x opus-5-5/sonnet-5-5, 0.025x fable-5-1 — encoded per row)", per_mtok: PRICE_PER_MTOK },
     reconciliation: { grand_total: grand.total, flat_sum: flatReconcile, reconciles: grand.total === flatReconcile },
     grand,
     by_class: { input: byClass.input, output: byClass.output, cache_write: byClass.cache_write, cache_read: byClass.cache_read, cost: byClassCost },

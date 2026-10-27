@@ -94,7 +94,24 @@ function resolveWriteTarget(root, local) {
 }
 
 function writeConfigFile(target, text) {
-  fs.mkdirSync(path.dirname(target), { recursive: true });
+  const dir = path.dirname(target);
+  // FAFF-1321: narrow the EEXIST/ENOTDIR detection to exactly this mkdir — the single fault
+  // FAFF-1302 was written for (a `.faff` that exists as a regular file). Re-throw it as a
+  // `config-dir-not-a-dir` tagged error (the config surface's house pattern — matched on
+  // `e.message` in cmdConfig, like its legacy-config-name / multiple-config siblings) carrying
+  // the failing directory + the original errno detail; any other mkdir error propagates unchanged.
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+  } catch (e) {
+    if (e.code === "EEXIST" || e.code === "ENOTDIR") {
+      const tagged = new Error("config-dir-not-a-dir");
+      tagged.dir = dir;
+      tagged.detail = e.message;
+      tagged.code = e.code;
+      throw tagged;
+    }
+    throw e;
+  }
   fs.writeFileSync(target, text);
 }
 

@@ -5,7 +5,7 @@
 // ===========================================================================
 
 const { schemaCheck } = require("./contract-engine");
-const { delegationViolations, deriveHoldoutAggregate } = require("./holdout-record");   // FAFF-1291: factory -> governance is the legal direction
+const { HOLDOUT_REASON_CODES, delegationViolations, deriveHoldoutAggregate } = require("./holdout-record");   // FAFF-1291: factory -> governance is the legal direction
 
 
 // --- holdout-verdict (FAFF-34) ---
@@ -69,7 +69,21 @@ function computeHoldoutVerdict(extraction, opts = {}) {
     const evidence_present = obj.evidence_present === true;
     if (klass === "prose" && obj.verdict !== "needs-human") violations.push(`criteria[${i}] is prose but verdict is ${JSON.stringify(obj.verdict)} — prose must be needs-human (ADR-0029)`);
     if ((obj.verdict === "met" || obj.verdict === "unmet") && !evidence_present) violations.push(`criteria[${i}] verdict ${obj.verdict} has no evidence (evidence_present false)`);
-    return { class: klass, verdict, evidence_present };
+    const mapped = { class: klass, verdict, evidence_present };
+    // FAFF-1292: reason_code is additive — it rides into contractData ONLY when the input carries one
+    // (the delegated/spawner_attested precedent). The CONTRACT layer is TOLERANT of an ABSENT code on a
+    // needs-human criterion so a pre-change cross-run record re-validates as the needs-human it always
+    // carried (the writer is the strict half). A PRESENT code is still rule-checked.
+    const hasReasonCode = Object.prototype.hasOwnProperty.call(obj, "reason_code") && obj.reason_code !== null && obj.reason_code !== undefined;
+    if (hasReasonCode) {
+      const rc = obj.reason_code;
+      mapped.reason_code = rc;
+      if (!HOLDOUT_REASON_CODES.includes(rc)) violations.push(`criteria[${i}].reason_code ${JSON.stringify(rc)} not in {${HOLDOUT_REASON_CODES.join(",")}}`);
+      if (obj.verdict === "met" || obj.verdict === "unmet") violations.push(`criteria[${i}] verdict ${obj.verdict} carries a reason_code — a judged criterion has no "why unjudged"`);
+      if (klass === "prose" && rc !== "human-only") violations.push(`criteria[${i}] is prose but reason_code is ${JSON.stringify(rc)} — prose must be human-only`);
+      if ((klass === "scenario" || klass === "assertion") && obj.verdict === "needs-human" && rc === "human-only") violations.push(`criteria[${i}] is born-verifiable (${klass}) but reason_code is human-only — a born-verifiable criterion is never human-only`);
+    }
+    return mapped;
   });
 
   // aggregate — an out-of-enum echoed value coerces to needs-human (NEVER meets-spec).
@@ -647,16 +661,36 @@ function computeHoldoutVerdictsMap(association, files, opts = {}) {
 // the `faff-graft` Step-10 call-site. `pass` ⇔ well-formed ∧ code_blind:true ∧ zero violations ∧
 // aggregate==="meets-spec"; EVERYTHING else (fails/gaps/needs-human/non-blind/incoherent/malformed) is
 // `block`. Fail-closed by construction — this never returns `pass` on doubt. Pure over the parsed block.
+// FAFF-1292: the gate's per-reason rollup. Counts the reason_codes present among the block's
+// needs-human criteria; a needs-human criterion with a legacy ABSENT/unknown code counts under
+// "unspecified" (so a blocking legacy record is never indistinguishable from a passing one). Decidable
+// on every input, legacy records included. Empty object ⇔ zero needs-human criteria. Derived SOLELY from
+// contractData.criteria — never a second parse (the one-source rule), and never touches the aggregate or
+// the pass/block decision (reporting detail only).
+function rollupNeedsHumanReasons(criteria) {
+  const counts = {};
+  for (const c of criteria) {
+    if (c.verdict !== "needs-human") continue;
+    const key = HOLDOUT_REASON_CODES.includes(c.reason_code) ? c.reason_code : "unspecified";
+    counts[key] = (counts[key] || 0) + 1;
+  }
+  return counts;
+}
+
 function holdoutGateResult(block, opts = {}) {
   const { contractData, failLoud } = computeHoldoutVerdict(block, opts);
   if (failLoud) return { gate: "block", reason: "contract-rejected", detail: failLoud };
+  // needs_human_reasons rides along whenever >=1 needs-human criterion exists, regardless of the
+  // pass/block decision; it is absent iff there are zero needs-human criteria.
+  const needs_human_reasons = rollupNeedsHumanReasons(contractData.criteria);
+  const withReasons = (res) => (Object.keys(needs_human_reasons).length > 0 ? { ...res, needs_human_reasons } : res);
   if (contractData.violations.length > 0 || block.code_blind !== true) {
-    return { gate: "block", reason: "contract-rejected", aggregate: contractData.aggregate, code_blind: contractData.code_blind, violations: contractData.violations };
+    return withReasons({ gate: "block", reason: "contract-rejected", aggregate: contractData.aggregate, code_blind: contractData.code_blind, violations: contractData.violations });
   }
   if (contractData.aggregate !== "meets-spec") {
-    return { gate: "block", reason: contractData.aggregate, aggregate: contractData.aggregate, code_blind: true };
+    return withReasons({ gate: "block", reason: contractData.aggregate, aggregate: contractData.aggregate, code_blind: true });
   }
-  return { gate: "pass", reason: "meets-spec", aggregate: "meets-spec", code_blind: true };
+  return withReasons({ gate: "pass", reason: "meets-spec", aggregate: "meets-spec", code_blind: true });
 }
 
-module.exports = { HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, computeHoldoutVerdict, contractHoldoutVerdict, LANE_BOUNDARY_LANES, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_HOST, LANE_BOUNDARY_ACCESS, computeLaneBoundary, contractLaneBoundary, CUSTODY_CLASSIFICATIONS, CUSTODY_MERGE_STATES, CUSTODY_VERDICT_SCHEMA_VERSION, CUSTODY_DETAIL_MAX, computeCustodyVerdict, classifyCustodyVerdictBytes, computeCustodyVerdictAdmission, BUNDLE_VERDICTS, BUNDLE_BOUNDARY_KINDS, computeBundleVerdict, contractBundleVerdict, RECOVERY_DISPOSITIONS, computeRecoveryDispositionVerdict, contractRecoveryDispositionVerdict, SCENARIO_RECORD_DISPOSITIONS, computeScenarioRecordVerdict, contractScenarioRecordVerdict, computeHoldoutVerdictsMap, holdoutGateResult };
+module.exports = { HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, HOLDOUT_REASON_CODES, rollupNeedsHumanReasons, computeHoldoutVerdict, contractHoldoutVerdict, LANE_BOUNDARY_LANES, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_HOST, LANE_BOUNDARY_ACCESS, computeLaneBoundary, contractLaneBoundary, CUSTODY_CLASSIFICATIONS, CUSTODY_MERGE_STATES, CUSTODY_VERDICT_SCHEMA_VERSION, CUSTODY_DETAIL_MAX, computeCustodyVerdict, classifyCustodyVerdictBytes, computeCustodyVerdictAdmission, BUNDLE_VERDICTS, BUNDLE_BOUNDARY_KINDS, computeBundleVerdict, contractBundleVerdict, RECOVERY_DISPOSITIONS, computeRecoveryDispositionVerdict, contractRecoveryDispositionVerdict, SCENARIO_RECORD_DISPOSITIONS, computeScenarioRecordVerdict, contractScenarioRecordVerdict, computeHoldoutVerdictsMap, holdoutGateResult };

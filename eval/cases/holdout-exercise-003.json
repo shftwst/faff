@@ -18,7 +18,8 @@
       { "request": "GET http://env:8080/health",
         "response": "200 OK; body {\"status\":\"ok\"}" }
     ] },
-  "question": "Classify each DoD criterion met / unmet / needs-human from the raw recordings, and for each criterion report what you exercised, what you expected and what you observed (or why no check ran).",
+  "question": "Classify each DoD criterion met / unmet / needs-human from the raw recordings, and for each criterion report what you exercised, what you expected and what you observed (or why no check ran). For a needs-human criterion, also report a reason_code: human-only for a prose unit a human must judge, or no-surface for a born-verifiable criterion the environment exposed no reachable surface for.",
   "oracle": { "closed_set": [
     "crit-r4d:met", "crit-u7e:met", "crit-h2c:needs-human", "crit-p6n:needs-human",
-    "crit-r4d:detail-ok", "crit-u7e:detail-ok", "crit-h2c:detail-ok", "crit-p6n:detail-ok" ] } }
+    "crit-r4d:detail-ok", "crit-u7e:detail-ok", "crit-h2c:detail-ok", "crit-p6n:detail-ok",
+    "crit-h2c:reason-human-only", "crit-p6n:reason-no-surface" ] } }

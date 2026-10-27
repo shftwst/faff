@@ -88,8 +88,8 @@ test("ac-2: a FAFF-1279-shaped spec (one no-surface assertion, a When-only unit,
   assert.equal(classify.verification_tier_counts.delegated, 22);
   const b = block([
     met("scenarios:1"),
-    { id: "scenarios:2", text: "When the flag is absent, the output is unchanged", holdout: false, class: "prose", verdict: "needs-human", evidence_present: false, exercised: null, expected: null, observed: null, evidence_ref: null, reason: "prose scenario: no machine check and no delegate verifier" },
-    { id: "done:1", text: "d", holdout: false, class: "assertion", verdict: "needs-human", evidence_present: false, exercised: null, expected: null, observed: null, evidence_ref: null, reason: "no surface" },
+    { id: "scenarios:2", text: "When the flag is absent, the output is unchanged", holdout: false, class: "prose", verdict: "needs-human", evidence_present: false, exercised: null, expected: null, observed: null, evidence_ref: null, reason: "prose scenario: no machine check and no delegate verifier", reason_code: "human-only" },
+    { id: "done:1", text: "d", holdout: false, class: "assertion", verdict: "needs-human", evidence_present: false, exercised: null, expected: null, observed: null, evidence_ref: null, reason: "no surface", reason_code: "no-surface" },
   ], { aggregate: "needs-human" });
   const r = record(root, ["--issue", "FAFF-1", "--spec", spec], b);
   assert.equal(r.status, 0, r.stderr);
@@ -255,7 +255,7 @@ test("ac-30: an all-prose spec is not skipped; an integration-only spec is not s
   // the holdout for the all-prose spec ends needs-human: the prose Scenarios unit is recorded needs-human
   const root = repo();
   const spec = withSpec(root, "## Scenarios\n\nThe copy feels friendly\n\n## 8. DONE\n\n- [ ] Operators like the flow\n");
-  const r = record(root, ["--issue", "FAFF-1", "--spec", spec], block([{ id: "scenarios:1", text: "The copy feels friendly", holdout: false, class: "prose", verdict: "needs-human", evidence_present: false, exercised: null, expected: null, observed: null, evidence_ref: null, reason: "prose scenario: no machine check and no delegate verifier" }], { aggregate: "needs-human" }));
+  const r = record(root, ["--issue", "FAFF-1", "--spec", spec], block([{ id: "scenarios:1", text: "The copy feels friendly", holdout: false, class: "prose", verdict: "needs-human", evidence_present: false, exercised: null, expected: null, observed: null, evidence_ref: null, reason: "prose scenario: no machine check and no delegate verifier", reason_code: "human-only" }], { aggregate: "needs-human" }));
   assert.equal(r.status, 0, r.stderr);
   assert.equal(read(storeFile(root, "FAFF-1")).aggregate, "needs-human");
   rmSync(root, { recursive: true, force: true });

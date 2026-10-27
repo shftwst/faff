@@ -13,7 +13,7 @@ const { RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS } = require("./run-start");
 const { ARCHITECTURE_RECOMMENDATIONS, BUILD_JUDGE_OUTCOMES, MARKER_CLASS, SPEC_JUDGE_OUTCOMES } = require("./contract-defs-review");
 const { CI_TRIAGE_ACTIONS, CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_FAULT_DOMAIN_SOURCES, CI_TRIAGE_ORIGIN, CI_TRIAGE_TRANSIENCE, ENV_HANDLE_STATUSES, GATE_RUNG_KINDS, GATE_RUNG_STATUSES, POST_MERGE_VERIFICATION_VERDICTS, ROOT_CAUSES, ROUTING_VERDICTS } = require("./contract-defs-delivery");
 const { ADR_CHALLENGE_OUTCOMES, DISTANCE_CLASSES, PRDR_ACTORS, PRDR_BY_LEVEL, PRDR_DISPOSITIONS, PRDR_SUPERSEDES, PRDR_YAGNI_PROPOSAL_VERDICTS, PRD_READINESS_LICENCES, PRD_READINESS_REASONS, PRD_READINESS_VERDICTS } = require("./contract-defs-prd");
-const { BUNDLE_BOUNDARY_KINDS, BUNDLE_VERDICTS, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_HOST, LANE_BOUNDARY_LANES, RECOVERY_DISPOSITIONS, SCENARIO_RECORD_DISPOSITIONS } = require("./contract-defs-evidence");
+const { BUNDLE_BOUNDARY_KINDS, BUNDLE_VERDICTS, HOLDOUT_AGGREGATES, HOLDOUT_CLASSES, HOLDOUT_VERDICTS, HOLDOUT_REASON_CODES, LANE_BOUNDARY_ACCESS, LANE_BOUNDARY_CONTAINERS, LANE_BOUNDARY_HOST, LANE_BOUNDARY_LANES, RECOVERY_DISPOSITIONS, SCENARIO_RECORD_DISPOSITIONS } = require("./contract-defs-evidence");
 const { L4_ENVELOPE_LEVELS, L4_ENVELOPE_OP_KINDS, L4_ENVELOPE_PROVENANCE, RUN_TERMINATION_POLICY_SOURCES } = require("./contract-defs-run");
 const { CI_STATES, FLOOR_DECISION_GRANTS, FLOOR_DEPENDENCY_GATES, FLOOR_HOLDOUTS, FLOOR_LEVELS, FLOOR_REVIEW_VERDICTS, NO_CI_POLICIES } = require("./contract-defs-floor");
 
@@ -433,9 +433,25 @@ const CONTRACT_DESCRIBES = {
       // `aggregate` above stays lintable (the closed 4-value routing enum the merge floor reads).
       { field: "criteria[].class", enum: HOLDOUT_CLASSES, lintable: false, semantics: { scenario: "an end-to-end behavioural scenario from the spec's DoD", assertion: "a narrower, machine-checkable assertion", prose: "a Scenarios unit that can't be machine-judged — its verdict MUST be needs-human, never machine-decided. A prose DONE item is not judged at all: faff dod classify tiers it delegated and it appears in delegated[] with the verifier ac-checklist" } },
       { field: "criteria[].verdict", enum: HOLDOUT_VERDICTS, lintable: false, semantics: { met: "the criterion was verified satisfied, with evidence", unmet: "the criterion was verified unsatisfied, with evidence", "needs-human": "the criterion could not be machine-judged (mandatory for class:prose)" } },
+      // FAFF-1292: reason_code is lintable:false — like class/verdict, the evaluator WRITES it per needs-human
+      // criterion it emits (not a routing verdict a consumer branches on). Exactly one value, human-only, is
+      // "a human must look"; the other four are environment/infra reachability gaps that fail closed and
+      // direct the operator to fix the env and re-run. Present iff verdict is needs-human.
+      { field: "criteria[].reason_code", enum: HOLDOUT_REASON_CODES, lintable: false, semantics: {
+        "human-only": "a prose Scenarios unit: no machine check, no delegate verifier — a human must look (the one genuine human-judgement case)",
+        "no-surface": "a born-verifiable criterion the provisioned env exposed no reachable surface for — an environment-provisioning gap (fix the env and re-run), distinct from human-only",
+        "wire-error": "a top-level WireError on the session-RPC transport mid-exercise — an infrastructure fault, not a human-judgement call",
+        "credentials-unavailable": "credentials were supplied but no auth header was derivable (unrecognised scheme or missing secret) — an environment gap",
+        "env-not-ready": "the env/endpoint was not available when the criterion was exercised — an environment gap distinct from no-surface (the surface was never exposed)",
+      } },
     ],
     coercions: [
       "an out-of-enum aggregate → coerced to needs-human (never meets-spec)",
+      "a reason_code not in the enum → conformant:false (exit 1, never exit 2)",
+      "a met/unmet criterion carrying a reason_code → conformant:false (a judged criterion has no \"why unjudged\")",
+      "a class:prose criterion whose reason_code is not human-only → conformant:false (prose is the only human-only case)",
+      "a born-verifiable (scenario/assertion) needs-human criterion claiming reason_code human-only → conformant:false (a born-verifiable criterion is never human-only)",
+      "a needs-human criterion with an ABSENT reason_code → TOLERATED (exit 0) — legacy/unspecified back-compat for a pre-change cross-run record; the writer (faff holdout record) is the strict half that requires a code on a fresh emission",
       "code_blind ≠ true → conformant:false — a non-blind verdict is structurally inadmissible regardless of aggregate (exit 0 requires code_blind:true AND the aggregate matching the criteria's derivation)",
       "a class:prose criterion with verdict ≠ needs-human → conformant:false (prose is never machine-judged)",
       "a class:prose criterion with a done:N id in criteria → conformant:false (a prose DONE item is delegated to the AC checklist, never judged)",

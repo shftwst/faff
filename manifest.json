@@ -1,0 +1,41 @@
+{
+  "version": "b2",
+  "identity": {
+    "run_id": "run-20261027-065425-beepboop-list-d4c19d",
+    "run_segment_id": 0,
+    "boundary_kind": "issue-merge-floor",
+    "boundary_key": "FAFF-1205",
+    "boundary_seq": 4
+  },
+  "members": {
+    "ledger_snapshot": {
+      "sha256": "a77d761cf43ee5f16eb1edd20be2ff3d444fef919d73aa48ea7b37c236dfed02",
+      "bytes_len": 1945
+    },
+    "admitted_outcomes": {
+      "sha256": "9360f82a1c320d6bdd5d0bb5248054d0ea53f5232d6366e0ed752d0179155932",
+      "bytes_len": 204
+    },
+    "anchors": {
+      "sha256": "0f6d4b8b39d2f2f1257b59deb44fe6b5374fc9d791ae9adf0f0ac6f1601bc4a2",
+      "bytes_len": 101584
+    },
+    "artifact_manifest": {
+      "sha256": "79a789a63b100963849d96d1184a7b28198b795668a198ef4858b11dd267c4dc",
+      "bytes_len": 729
+    },
+    "last_safe_boundary": {
+      "sha256": "5252b34baece05ba640ff82b5f8a998a80fd6051fb9bc281703db5101115293e",
+      "bytes_len": 212
+    },
+    "redaction": {
+      "sha256": "1eb5f70792348320ff6a8b6aaa8e69c4cc70b078fddc29e67549f0e6f3744892",
+      "bytes_len": 57
+    },
+    "contract_fingerprint": {
+      "sha256": "4b59f6c01afc9d4ff20e401cc77aedcba88031cf5d49e899dccaff0ee48d8839",
+      "bytes_len": 2530
+    }
+  },
+  "bundle_manifest_digest": "166efb16841103403509a74259041000b6f91b1b2c4c4a7ec4e9fcf5889b58fb"
+}

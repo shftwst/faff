@@ -1708,6 +1708,10 @@ function commissaireSelftest(): number {
       const ts = new Date().toISOString();
       const runStart = (id: string) => ({ schema: 1, run_id: id, seq: 0, ts, phase: "run", type: "run-start" });
       const issueRow = (id: string, seq: number, issue: string) => ({ schema: 1, run_id: id, seq, ts, phase: "build", type: "issue-outcome", issue, data: { outcome: "shipped" } });
+      // A valid envelope (mintIssueAnchor's genesis/chain check passes) carrying an evidence-INVALID
+      // data.outcome: it gates under whole-file judgement but is scoped OUT when the anchor narrows to
+      // another issue. Used to make the multi-issue fixture NON-VACUOUS (see below).
+      const badIssueRow = (id: string, seq: number, issue: string) => ({ schema: 1, run_id: id, seq, ts, phase: "build", type: "issue-outcome", issue, data: { outcome: "not-a-valid-outcome-enum" } });
       const jsonl = (rows: object[]) => rows.map((r) => JSON.stringify(r)).join("\n") + "\n";
       // seedRun writes events.jsonl + run-ledger.json (+ optional extra files keyed by relpath).
       const seedRun = (name: string, rows: object[], ledger: object, extra: Record<string, string> = {}): string => {
@@ -1745,12 +1749,16 @@ function commissaireSelftest(): number {
       const rv = spawnSync(process.execPath, [ENTRYPOINT, "evidence", "validate", "--require-evidence-schema", okDest], { encoding: "utf8" });
       if (rv.status !== 0) fail(`audit anchor: minted conforming anchor must pass evidence validate --require-evidence-schema (exit ${rv.status}: ${rv.stdout}${rv.stderr})`);
 
-      // (3) multi-issue fixture: two admitted issues, each conforming under its own scope → mint exit 0
-      // for one unit-id (the other issue's rows are scoped out, not whole-file-gated). This is the
-      // guard against the staging-divergence defect: the issue-named staging dir narrows exactly as --dest.
-      const multiRun = seedRun("RUN-MULTI", [runStart("RUN-MULTI"), issueRow("RUN-MULTI", 1, "FAFF-A"), issueRow("RUN-MULTI", 2, "FAFF-B")], { schema_version: 1, run_id: "RUN-MULTI", admitted: ["FAFF-A", "FAFF-B"], outcomes: { "FAFF-A": "shipped", "FAFF-B": "shipped" } });
+      // (3) multi-issue fixture: two admitted issues; FAFF-A conforms, and FAFF-B carries an
+      // evidence-INVALID row. Minting for FAFF-A exits 0 ONLY because the issue-named staging dir
+      // (basename FAFF-A) narrows the scope leg to FAFF-A and scopes FAFF-B's row OUT — exactly as
+      // --dest would. This is deliberately NON-VACUOUS: FAFF-B's invalid row WOULD gate under
+      // whole-file judgement (what a random mkdtemp-root basename triggers via PATH_DISAGREES), so a
+      // pass here cannot be explained by "both rows happen to be valid" — it proves the narrowing.
+      // That is the guard against the staging-divergence defect the spec names load-bearing.
+      const multiRun = seedRun("RUN-MULTI", [runStart("RUN-MULTI"), issueRow("RUN-MULTI", 1, "FAFF-A"), badIssueRow("RUN-MULTI", 2, "FAFF-B")], { schema_version: 1, run_id: "RUN-MULTI", admitted: ["FAFF-A", "FAFF-B"], outcomes: { "FAFF-A": "shipped", "FAFF-B": "shipped" } });
       const rm = run(["--run-dir", multiRun, "--unit-id", "FAFF-A", "--dest", path.join(tmp, "multi-out", "FAFF-A")]);
-      if (rm.status !== 0) fail(`audit anchor: conforming multi-issue anchor should mint exit 0 (scoped), got ${rm.status}: ${rm.stderr}`);
+      if (rm.status !== 0) fail(`audit anchor: conforming multi-issue anchor should mint exit 0 (FAFF-A scoped, FAFF-B's invalid row scoped out), got ${rm.status}: ${rm.stderr}`);
 
       // (4) governed-run fixture: a run carrying commissaire/producer/pk.json (the FAFF-976 byte-copy),
       // otherwise conforming → mint exit 0 (pk.json is a named manifest entry, judged normally).

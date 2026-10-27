@@ -1260,6 +1260,19 @@ function dodSelftest() {
   const standalone1205 = "## Scenarios\n\n```\nThe output MUST equal 42\n```\n\n## 8. DONE\n\n- [ ] the parser returns >=1 item";
   const sa1205 = dodClassify(standalone1205).criteria.filter((c) => c.source === "scenarios");
   check("FAFF-1205: a standalone fenced block with no preceding Given forms one unit classed by its own text", sa1205.length === 1 && sa1205[0].class === "assertion");
+  // (vii) a well-formed terminated fence (plain, mid-unit holdout, two-Given) emits NO unterminated-fence advisory — pins the advisory silent for the shapes the other cases exercise (adversarial-review finding).
+  let noAdv1205 = "";
+  const origStderr1205b = process.stderr.write;
+  process.stderr.write = (s) => { noAdv1205 += s; return true; };
+  try { dodClassify(smoke1205); dodClassify(twoGiven1205); dodClassify(midHoldout1205); } finally { process.stderr.write = origStderr1205b; }
+  check("FAFF-1205: a well-formed terminated fence emits no unterminated-fence advisory", !/unterminated fence in Scenarios section/.test(noAdv1205));
+  // (viii) a marked holdout fence with TWO Given blocks → two holdout:true scenario criteria, and builder view == full minus both (coherence holds even though classify is finer than the one removal span) (adversarial-review finding).
+  const twoGivenHoldout1205 = ["## Scenarios", "", "Given a visible scenario", "When it runs", "Then it stays visible", "```holdout", "Given withheld one", "When a", "Then x", "", "Given withheld two", "When b", "Then y", "```", "", "## 8. DONE", "", "- [ ] the parser returns >=1 item"].join("\n");
+  const tgh1205 = dodClassify(twoGivenHoldout1205);
+  const tghHoldout1205 = tgh1205.criteria.filter((c) => c.source === "scenarios" && c.holdout === true && c.class === "scenario");
+  const tghBuilderText1205 = dodSplit(twoGivenHoldout1205, "builder").text;
+  check("FAFF-1205: a two-Given holdout fence forms two holdout:true scenario criteria", tghHoldout1205.length === 2);
+  check("FAFF-1205: a two-Given holdout fence builder view == full minus both holdout criteria", withoutId(dodClassify(tghBuilderText1205).criteria) === withoutId(tgh1205.criteria.filter((c) => !c.holdout)) && !/withheld one|withheld two/.test(tghBuilderText1205) && /stays visible/.test(tghBuilderText1205));
 
   if (failed) { console.log(`dod --selftest: FAIL (${failed} failed)`); return 1; }
   console.log("dod --selftest: ok"); return 0;

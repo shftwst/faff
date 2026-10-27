@@ -1,0 +1,15 @@
+{
+  "issue": "FAFF-1283",
+  "owner": {
+    "status": "running",
+    "epoch": 1,
+    "session_id": "run-20261027-020353-beepboop-list-18aac9",
+    "pid": 1853,
+    "started_at": "2026-10-27T02:14:31.993Z",
+    "last_heartbeat": "2026-10-27T02:14:31.993Z"
+  },
+  "machine_id": "1e523ec6-48c9-4449-8466-ec78e223cf91",
+  "heartbeating": true,
+  "claim_epoch": 0,
+  "claimed_at": "2026-10-27T02:14:32.263Z"
+}

@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "run_id": "run-20261027-065425-beepboop-list-d4c19d",
+  "level": "L3",
+  "admitted": [
+    "FAFF-1321",
+    "FAFF-1317",
+    "FAFF-1319",
+    "FAFF-1322",
+    "FAFF-1333",
+    "FAFF-1207",
+    "FAFF-1199",
+    "FAFF-1205",
+    "FAFF-1292"
+  ],
+  "outcomes": {
+    "FAFF-1318": "routed-out",
+    "FAFF-1199": "pr-open",
+    "FAFF-1322": "shipped",
+    "FAFF-1317": "shipped",
+    "FAFF-1333": "shipped",
+    "FAFF-1205": "pr-open"
+  },
+  "base_sha": "291af234bd164d945332c67b68ad9861d237451b",
+  "base_sha_required": true,
+  "owner": {
+    "status": "running",
+    "session_id": "run-20261027-065425-beepboop-list-d4c19d",
+    "pid": 465,
+    "started_at": "2026-10-27T06:54:25.187Z",
+    "last_heartbeat": "2026-10-27T09:33:30.759Z",
+    "faff_version": "0.43.0",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "stop",
+      "pricing": "map"
+    },
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "9fbc8a63-22ac-4886-8ab9-1447c3c59056",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 64,
+        "output": 33115,
+        "cache_write_5m": 0,
+        "cache_write_1h": 584942,
+        "cache_read": 3840284
+      }
+    },
+    "tokens_at_start": 4458405,
+    "tokens_at_last_event": {
+      "input": 682,
+      "output": 827884,
+      "cache_write_5m": 0,
+      "cache_write_1h": 1575742,
+      "cache_read": 100549158
+    }
+  },
+  "outcome_details": {
+    "FAFF-1318": {
+      "routed_out_reason": "inadmissible: 0 born-verifiable scenarios (--lights-out DoD floor); pure test-coverage ticket, not holdout-verifiable"
+    },
+    "FAFF-1199": {
+      "pr": 1142,
+      "reason": "held for human pricing spot-check (merge-gate refused: ACs not all verified — external pricing facts)"
+    },
+    "FAFF-1322": {
+      "pr": 1143,
+      "merge_sha": "913a08db7a3d5a8e4fd7e61ce9ebfd22410d4bfc"
+    },
+    "FAFF-1317": {
+      "pr": 1144,
+      "merge_sha": "a6b0051fe7c43f3e5641bbba19a3ad39fbc1aec1"
+    },
+    "FAFF-1333": {
+      "pr": 1145,
+      "merge_sha": "7c2961c4b8de8d28f08fa6863e3fefa1cb3a14aa"
+    },
+    "FAFF-1205": {
+      "pr": 1146,
+      "reason": "green+mergeable; merge-gate refused on FAFF-325 corrective-integrity floor (attestation unasserted this run) — held for trusted/human land"
+    }
+  }
+}

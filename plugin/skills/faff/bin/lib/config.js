@@ -391,9 +391,12 @@ function cmdConfig(args) {
       process.stderr.write(`faff config: ${e.file} failed to parse (${e.detail}) — a malformed base is never a silent default (FAFF-577).\n`);
       return 2;
     }
-    // FAFF-1302: `.faff` exists as a regular file, so a writer cannot create the config under it.
-    if (e.code === "EEXIST" || e.code === "ENOTDIR") {
-      process.stderr.write(`faff config: ${e.message}\n`);
+    // FAFF-1302/FAFF-1321: `.faff` exists as a regular file, so writeConfigFile's mkdir cannot
+    // create the config directory under it. Match the `config-dir-not-a-dir` tag writeConfigFile
+    // throws (not a bare `e.code`), so only that one config-write mkdir fault is caught here — an
+    // EEXIST/ENOTDIR from any other op falls through to `throw e`, its pre-FAFF-1302 behaviour.
+    if (e.message === "config-dir-not-a-dir") {
+      process.stderr.write(`faff config: cannot create the config directory ${e.dir} — a file of that name exists, not a directory (${e.detail})\n`);
       return 2;
     }
     throw e;

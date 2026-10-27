@@ -73,7 +73,7 @@ test("a dialogue held at round 2 and restored into a fresh run dir resumes at ro
   const store = join(tmp, "store");
   dialogueRun(a);
   const held = ok(runCli(stashArgs(a, store)));
-  assert.deepEqual(held.dialogue, { hold_count: 1, next_round: 3, fix_rounds_used: 1, rebuttal_rounds_used: 1 });
+  assert.deepEqual(held.dialogue, { hold_count: 1, next_round: 3, fix_rounds_used: 1, rebuttal_rounds_used: 1, stage: "judge" });
   fs.mkdirSync(b);
   const back = ok(runCli(restoreArgs(b, store)));
   assert.equal(back.dialogue.next_round, 3);
@@ -364,6 +364,146 @@ test("copies keep mtimes, so holdout.json stays newer than build-progress.json",
   const mtime = (n) => fs.statSync(join(b, ISSUE, n)).mtimeMs;
   assert.equal(mtime("build-progress.json"), Date.parse("2026-01-01T00:00:00Z"));
   assert.equal(mtime("holdout.json"), Date.parse("2026-01-01T00:00:05Z"));
+}));
+
+// FAFF-1249 — the hold record states whether the build judge was mid-assemble.
+const holdRecord = (dialogue, extra = {}) => ({ schema_version: 1, issue: ISSUE, cause: "build-review-dialogue", stashed_at: "2026-10-27T00:00:00Z", carried: ["build-review/round-1.json", "build-review/round-2.json"], dialogue, ...extra });
+const dialogueOf = (extra = {}) => ({ hold_count: 1, next_round: 3, fix_rounds_used: 0, rebuttal_rounds_used: 0, ...extra });
+
+// A store with two rounds and a hold record, plus optionally a judge ledger.
+function handStore(store, rec, { ledger = false } = {}) {
+  write(join(store, ISSUE, "build-review", "round-1.json"), {});
+  write(join(store, ISSUE, "build-review", "round-2.json"), {});
+  if (ledger) write(join(store, ISSUE, "build-review", "judge", "ledger.json"), {}, 0o600);
+  write(join(store, ISSUE, "hold.json"), rec);
+}
+
+test("stash records stage judge when the judge ledger is a regular file, for either cause", () => withTmp((tmp) => {
+  const a = join(tmp, "A");
+  const store = join(tmp, "store");
+  dialogueRun(a);
+  const held = ok(runCli(stashArgs(a, store)));
+  assert.equal(held.dialogue.stage, "judge");
+  assert.equal(held.dialogue.next_round, 3);
+  assert.equal(held.dialogue.hold_count, 1);
+  assert.equal(ok(runCli(readArgs(store))).dialogue.stage, "judge", "read prints the record unchanged");
+  const outage = ok(runCli(stashArgs(a, store, "review-outage")));
+  assert.equal(outage.dialogue.stage, "judge");
+}));
+
+test("stash records stage dialogue when the judge ledger is absent, a directory or a symlink", () => withTmp((tmp) => {
+  const store = join(tmp, "store");
+  const absent = join(tmp, "absent");
+  dialogueRun(absent);
+  fs.rmSync(join(absent, ISSUE, "build-review", "judge"), { recursive: true });
+  assert.equal(ok(runCli(stashArgs(absent, store))).dialogue.stage, "dialogue");
+
+  const asDir = join(tmp, "dir");
+  dialogueRun(asDir);
+  fs.rmSync(join(asDir, ISSUE, "build-review", "judge", "ledger.json"));
+  fs.mkdirSync(join(asDir, ISSUE, "build-review", "judge", "ledger.json"));
+  assert.equal(ok(runCli(stashArgs(asDir, store))).dialogue.stage, "dialogue");
+
+  const linked = join(tmp, "link");
+  dialogueRun(linked);
+  const ledger = join(linked, ISSUE, "build-review", "judge", "ledger.json");
+  fs.rmSync(ledger);
+  write(join(tmp, "elsewhere.json"), {});
+  fs.symlinkSync(join(tmp, "elsewhere.json"), ledger);
+  assert.equal(ok(runCli(stashArgs(linked, store))).dialogue.stage, "dialogue", "a symlinked ledger is not followed");
+}));
+
+test("a stash with no round files carries no dialogue and so no stage, whatever judge/ holds", () => withTmp((tmp) => {
+  const a = join(tmp, "A");
+  const store = join(tmp, "store");
+  write(join(a, ISSUE, "build-progress.json"), {});
+  write(join(a, ISSUE, "build-review", "judge", "ledger.json"), {});
+  const held = ok(runCli(stashArgs(a, store, "review-outage", [])));
+  assert.equal(held.dialogue, undefined);
+  assert.equal(held.stage, undefined);
+}));
+
+test("stash takes no stage flag", () => withTmp((tmp) => {
+  const a = join(tmp, "A");
+  dialogueRun(a);
+  assert.equal(runCli([...stashArgs(a, join(tmp, "store")), "--stage", "judge"]).code, 2);
+}));
+
+test("a legacy hold record without stage reads and restores as before", () => withTmp((tmp) => {
+  const store = join(tmp, "store");
+  const b = join(tmp, "B");
+  handStore(store, holdRecord(dialogueOf()));
+  assert.equal(ok(runCli(readArgs(store))).dialogue.stage, undefined);
+  const back = ok(runCli(restoreArgs(b, store)));
+  assert.equal(back.dialogue.stage, undefined);
+  assert.ok(fs.existsSync(join(b, ISSUE, "build-review", "round-2.json")));
+}));
+
+test("a hold record whose stage is not dialogue or judge exits 2 on read and restore, leaving the run dir unchanged", () => withTmp((tmp) => {
+  const store = join(tmp, "store");
+  const b = join(tmp, "B");
+  handStore(store, holdRecord(dialogueOf({ stage: "adjudication" })), { ledger: true });
+  write(join(b, ISSUE, "build-progress.json"), "older");
+  const before = snapshot(b);
+  assert.equal(runCli(readArgs(store)).code, 2);
+  const r = runCli(restoreArgs(b, store));
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /stage/);
+  assert.deepEqual(snapshot(b), before);
+}));
+
+test("a hold record with a stage outside a dialogue object exits 2 on read and restore, leaving the run dir unchanged", () => withTmp((tmp) => {
+  const b = join(tmp, "B");
+  for (const [name, rec] of Object.entries({
+    "top-level stage beside a dialogue": holdRecord(dialogueOf(), { stage: "judge" }),
+    "stage with no dialogue": holdRecord(undefined, { stage: "judge" }),
+  })) {
+    const store = join(tmp, name.replace(/ /g, "-"));
+    handStore(store, rec, { ledger: true });
+    write(join(b, ISSUE, "build-progress.json"), "older");
+    const before = snapshot(b);
+    assert.equal(runCli(readArgs(store)).code, 2, name);
+    assert.equal(runCli(restoreArgs(b, store)).code, 2, name);
+    assert.deepEqual(snapshot(b), before, name);
+  }
+}));
+
+test("restore of a judge-stage record refuses with the run dir unchanged when the stashed store has no judge ledger", () => withTmp((tmp) => {
+  const a = join(tmp, "A");
+  const b = join(tmp, "B");
+  const store = join(tmp, "store");
+  dialogueRun(a);
+  ok(runCli(stashArgs(a, store)));
+  fs.rmSync(join(store, ISSUE, "build-review", "judge", "ledger.json"));
+  write(join(b, ISSUE, "build-progress.json"), "older");
+  const before = snapshot(b);
+  const r = runCli(restoreArgs(b, store));
+  assert.equal(r.code, 1);
+  assert.match(r.stderr, /stashed judge-stage store without a judge ledger/);
+  assert.deepEqual(snapshot(b), before);
+  assert.ok(!fs.existsSync(join(b, ISSUE, "build-review")));
+}));
+
+test("restore of a judge-stage record refuses with the run dir unchanged when the staged copy has no judge ledger", () => withTmp((tmp) => {
+  const a = join(tmp, "A");
+  const b = join(tmp, "B");
+  const storeRoot = join(tmp, "store");
+  dialogueRun(a);
+  ok(runCli(stashArgs(a, storeRoot)));
+  write(join(b, ISSUE, "build-progress.json"), "older");
+  const before = snapshot(b);
+  assert.throws(
+    () => rs.restore({ runDir: b, issue: ISSUE, storeRoot, afterStageCopy: (rstage) => fs.rmSync(join(rstage, "build-review", "judge", "ledger.json")) }),
+    (e) => e.code === rs.EXIT.refused && /staged judge-stage store without a judge ledger/.test(e.message),
+  );
+  assert.deepEqual(snapshot(b), before);
+}));
+
+test("a dialogue-stage record restores without a judge ledger", () => withTmp((tmp) => {
+  const store = join(tmp, "store");
+  const b = join(tmp, "B");
+  handStore(store, holdRecord(dialogueOf({ stage: "dialogue" })));
+  assert.equal(ok(runCli(restoreArgs(b, store))).dialogue.stage, "dialogue");
 }));
 
 test("resume-store --selftest passes", () => {

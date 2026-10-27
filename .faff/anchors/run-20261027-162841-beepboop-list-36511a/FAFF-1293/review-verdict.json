@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "eval/cases/refutation-spec-017.json::refutation-spec-017 oracle lists no tolerated extra lenses",
+      "title": "refutation-spec-017 oracle lists no tolerated extra lenses",
+      "location": "eval/cases/refutation-spec-017.json",
+      "action": "No change: keep must_object [QA] with no may_object as the spec requires.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The spec fixes the oracle as lens_bounds {must_object: [QA]} with no may_object (DONE item 14), and the case comment states that any other lens objecting above minor fails the case on purpose.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "refutation-spec-017 oracle lists no tolerated extra lenses",
+          "location": "eval/cases/refutation-spec-017.json",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "eval/review-bench/lenses/refute-qa.md::the two refute-qa.md copies are kept in sync by hand only",
+      "title": "the two refute-qa.md copies are kept in sync by hand only",
+      "location": "eval/review-bench/lenses/refute-qa.md",
+      "action": "No change: the lens copy is already guarded by test/review-bench-lens-parity.test.mjs.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "test/review-bench-lens-parity.test.mjs asserts the lens copy is byte-identical to the canonical file and that the committed request payloads embed the current lens text; both tests pass.",
+      "disposition_rationale": "The reviewer did not see the parity test; it exists and passes.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "the two refute-qa.md copies are kept in sync by hand only",
+          "location": "eval/review-bench/lenses/refute-qa.md",
+          "severity": "observation",
+          "disposition": "refuted"
+        }
+      ]
+    }
+  ]
+}

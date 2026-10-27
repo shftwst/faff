@@ -1,0 +1,222 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "`scenariosProseAdvisory(specText)` returns `{count, holdout, items}` listing every `source=\"scenarios\"`, `class=\"prose\"` criterion in classify order, and returns `null` when there are none or when `dodClassify` throws.",
+      "verified": "scenario 1 + 4 tests and admissibleSelftest pass: items listed in classify order, null when none",
+      "passed": true,
+      "ac_id": "faff-1293#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1293-scenarios-prose-advisory.test.mjs::scenario 1: a holdout-fenced Given/When block with no Then warns exactly once, naming scenarios:2 (holdout), and admissible stays true with exit 0"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff admissible --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`renderScenariosProseWarning(adv)` returns one line beginning `scenarios-prose advisory:`. It names each unit as its id, then ` (holdout)` for a holdout-marked unit, then the first 50 whitespace-collapsed characters of its text. It includes the holdout clause only when `holdout >= 1`.",
+      "verified": "warning line shape, (holdout) tag, 50-char truncation and holdout clause asserted by scenario 1, scenario 4 and the visible-prose-unit test",
+      "passed": true,
+      "ac_id": "faff-1293#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1293-scenarios-prose-advisory.test.mjs::scenario 4: a visible no-Then bullet and a holdout bullet are both named; only the holdout one is tagged, and the holdout clause counts one"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1293-scenarios-prose-advisory.test.mjs::a visible (non-holdout) prose unit alone omits the holdout clause"
+        }
+      ]
+    },
+    {
+      "ac": "Under `--lights-out`, `faff admissible` MUST emit the `scenarios-prose advisory:` line directly after any `scenarios-code-surface advisory:` line, and its `admissible` value and exit code MUST equal those for the same spec with the prose unit removed.",
+      "verified": "line follows the code-surface line and admissible/checks/other warnings equal those with the prose unit removed",
+      "passed": true,
+      "ac_id": "faff-1293#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1293-scenarios-prose-advisory.test.mjs::order: the scenarios-prose line follows the scenarios-code-surface line"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1293-scenarios-prose-advisory.test.mjs::the advisory never flips admissible or the exit code: verdict, checks and other warnings equal those with the prose unit removed"
+        }
+      ]
+    },
+    {
+      "ac": "Without `--lights-out`, `faff admissible` MUST emit no `scenarios-prose advisory:` line.",
+      "verified": "no warnings at all without --lights-out",
+      "passed": true,
+      "ac_id": "faff-1293#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1293-scenarios-prose-advisory.test.mjs::scenario 3: without --lights-out the same spec emits no warnings at all"
+        }
+      ]
+    },
+    {
+      "ac": "`scenariosProseAdvisory` and `renderScenariosProseWarning` are added to `admissibility.js`'s `module.exports`.",
+      "verified": "both names present in module.exports",
+      "passed": true,
+      "ac_id": "faff-1293#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node -e \"const a=require('./plugin/skills/faff/bin/lib/admissibility.js');process.exit(typeof a.scenariosProseAdvisory==='function'&&typeof a.renderScenariosProseWarning==='function'?0:1)\""
+        }
+      ]
+    },
+    {
+      "ac": "`faffter-noon-spec/SKILL.md` _Self-review before returning_ runs `faff admissible --lights-out --spec - --json` on the draft before the reviewer pass. It treats each `scenarios-prose advisory:` and `scenarios-code-surface advisory:` warning as a `major` finding to fix before self-rating, and it records a failed command in the review record without blocking.",
+      "verified": "self-review section carries the deterministic Scenarios check paragraph naming both prefixes, the major finding rule and the failed-command note",
+      "passed": true,
+      "ac_id": "faff-1293#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n \"Deterministic Scenarios check\" plugin/skills/faffter-noon-spec/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "The Scenarios sections of `faffter-noon-spec/SKILL.md` and `faffter-dark-nlspec/SKILL.md` each gain the one-sentence rule that every Scenarios unit needs an observable `Then`, or a `MUST` or comparator for a non-functional objective.",
+      "verified": "one-sentence rule added to both producers' Scenarios sections",
+      "passed": true,
+      "ac_id": "faff-1293#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n \"Every Scenarios unit needs an observable\" plugin/skills/faffter-noon-spec/SKILL.md plugin/skills/faffter-dark-nlspec/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "`faffter-noon-spec-review/SKILL.md`'s QA lens row and `faffter-dark-spec-review/refute-qa.md` each gain guidance to raise a Scenarios unit with no observable `Then` (and no `MUST` or comparator), naming the unit and noting that a holdout-marked one checks nothing, so the verdict routes to `revise`.",
+      "verified": "QA row and refute-qa.md carry the guidance",
+      "passed": true,
+      "ac_id": "faff-1293#done:8",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n \"no observable .Then\" plugin/skills/faffter-noon-spec-review/SKILL.md plugin/skills/faffter-dark-spec-review/refute-qa.md"
+        }
+      ]
+    },
+    {
+      "ac": "`eval/review-bench/lenses/refute-qa.md` is byte-identical to the edited `refute-qa.md`, and `eval/review-bench/requests/qa.json` and `eval/review-bench/requests-shared-prefix/qa.json` are regenerated by `node eval/review-bench/build-requests.mjs`.",
+      "verified": "lens copy byte-identical, payloads regenerated, parity tests pass",
+      "passed": true,
+      "ac_id": "faff-1293#done:9",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "cmp plugin/skills/faffter-dark-spec-review/refute-qa.md eval/review-bench/lenses/refute-qa.md"
+        },
+        {
+          "kind": "test",
+          "locator": "test/review-bench-lens-parity.test.mjs::committed request payloads embed the current lens text"
+        }
+      ]
+    },
+    {
+      "ac": "`faff dod classify` MUST still report a prose Scenarios unit as `verification_tier: \"running-stack\"` and `verifier: \"holdout\"`, and `faff dod --selftest` and `faff admissible --selftest` MUST exit 0.",
+      "verified": "classify keeps the prose Scenarios unit running-stack/holdout; both selftests exit 0",
+      "passed": true,
+      "ac_id": "faff-1293#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1293-scenarios-prose-advisory.test.mjs::classify is unchanged: a prose Scenarios unit stays class prose, holdout true, running-stack tier, holdout verifier"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff dod --selftest"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff admissible --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`test/faff-1364-scenarios-code-surface.test.mjs` and `test/review-bench-lens-parity.test.mjs` MUST pass.",
+      "verified": "both files pass",
+      "passed": true,
+      "ac_id": "faff-1293#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/review-bench-lens-parity.test.mjs::spec-review lens copies are byte-identical to canonical"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1364-scenarios-code-surface.test.mjs::scenario 1: a lights-out spec with a test-file Scenarios unit warns exactly once, naming it, without flipping admissible"
+        }
+      ]
+    },
+    {
+      "ac": "`admissibleSelftest` gains cases where a holdout-fenced `Given`/`When` block with no `Then` yields the advisory tagged `(holdout)`, a well-formed Given/When/Then unit yields no advisory, and an assertion bullet with `MUST` yields no advisory.",
+      "verified": "three selftest cases added and passing (20 cases)",
+      "passed": true,
+      "ac_id": "faff-1293#done:12",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff admissible --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "A new `test/faff-1293-scenarios-prose-advisory.test.mjs` (mirroring the FAFF-1364 test) checks the four Scenarios above through `faff admissible`, using fixtures with no fenced example that contains an internal blank line.",
+      "verified": "new test file covers the four Scenarios plus edge cases; fixtures avoid internal blank lines in fences",
+      "passed": true,
+      "ac_id": "faff-1293#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1293-scenarios-prose-advisory.test.mjs::scenario 2: only well-formed Given/When/Then Scenarios units emit no scenarios-prose warning"
+        }
+      ]
+    },
+    {
+      "ac": "`eval/cases/refutation-spec-017.json` is a `refutation-spec` case with an otherwise-clean spec containing one holdout-marked prose Scenarios unit, and its oracle is `{\"lens_bounds\": {\"must_object\": [\"QA\"]}}`. The eval loader accepts it with no grader change.",
+      "verified": "case added, oracle as specified, eval loader and triage tests accept it",
+      "passed": true,
+      "ac_id": "faff-1293#done:14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/eval-grader.test.mjs::all eval/cases load and validate"
+        },
+        {
+          "kind": "test",
+          "locator": "test/oracle-triage.test.mjs::FAFF-670 per-kind set equality: every in-scope kind's entries cover exactly its case files (both directions)"
+        }
+      ]
+    },
+    {
+      "ac": "`faff validate-adapters` and `faff regions check` MUST exit 0 after the `SKILL.md`, lens and `admissibility.js` edits.",
+      "verified": "validate-adapters and regions check exit 0",
+      "passed": true,
+      "ac_id": "faff-1293#done:15",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        }
+      ]
+    }
+  ]
+}

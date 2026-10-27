@@ -17,7 +17,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "..");
 const BIN = join(REPO, "plugin", "skills", "faff", "bin", "faff");
 const require = createRequire(import.meta.url);
-const { SKILL_LINE_BASELINE, ANCHOR_PHRASES } = require(join(REPO, "plugin", "skills", "faff", "bin", "lib", "validate-adapters.js"));
+const { SKILL_LINE_BASELINE, ANCHOR_PHRASES, HANDREAD } = require(join(REPO, "plugin", "skills", "faff", "bin", "lib", "validate-adapters.js"));
 
 // Run validate-adapters over a throwaway skills dir of {dirName: SKILL.md body} fixtures.
 // Fixture dir names are NOT faffter-/faffidavit-/faff- prefixed (unless a test needs the gateway
@@ -379,4 +379,40 @@ test("FAFF-584: the real gateway's duplicate ## Routing has been deduped — no 
   // Scoped to the "Routing" heading specifically — other pre-existing, out-of-scope ambiguous
   // headings elsewhere in the tree are not this ticket's concern (WARN-severity, non-blocking).
   assert.equal(/heading "Routing"/.test(r.stdout), false, "the gateway's ## Routing / ## Routing fallbacks split must not read as ambiguous");
+});
+
+// FAFF-1322: the hand-read guard's `.faff/config` spelling-completeness class. The exported HANDREAD
+// const is the regex the scan loop matches each (non-`.example`) SKILL.md line against; these rows are
+// the authoritative §3 case table from the spec — every `.faff/config…` variant + extensionless form
+// flags, genuine non-config shapes (a dir path, a longer word) and verb-free prose do not.
+test("FAFF-1322: HANDREAD flags the whole .faff/config spelling class, excludes non-config shapes", () => {
+  const FLAG = [
+    "cat .faff/config.yaml",          // canonical
+    "cat .faff/config.local.yaml",    // canonical overlay
+    "cat .faff/config.dev.yaml",      // dot YAML variant
+    "cat .faff/config-dev.yaml",      // hyphen YAML variant
+    "cat .faff/config.local.dev.yaml",// multi-segment variant
+    "cat .faff/config.yml",           // .yml spelling
+    "cat .faff/config",               // extensionless
+    "cat .faff/config.local",         // extensionless variant
+    "cat .faff/config-dev",           // extensionless hyphen variant
+    "grep foo .faff/config",          // other read verb
+    "cat .faff/config.json",          // conservative tripwire — any .faff/config* read
+    "cat .faff/config.lock",          // conservative tripwire
+    "cat .faff/config-notes.md",      // conservative tripwire
+    "cat .faffrc.yaml",               // deprecated tier, unchanged
+    "cat .faffrc",                    // deprecated extensionless, unchanged
+  ];
+  const NO_FLAG = [
+    "cat .faff/config/extra.yaml",    // path under a config dir
+    "cat .faff/configuration.yaml",   // longer word, no separator
+    "faff config get appetite",       // the sanctioned CLI, no .faff/ path
+    "see docs about .faff/config layout", // prose, no read verb
+  ];
+  for (const line of FLAG) {
+    assert.match(line, HANDREAD, `expected HANDREAD to flag: ${line}`);
+  }
+  for (const line of NO_FLAG) {
+    assert.doesNotMatch(line, HANDREAD, `expected HANDREAD NOT to flag: ${line}`);
+  }
 });

@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "test/native-map.test.mjs::missing regression test for the guard-not-engaged case in cmdnativemapset",
+      "title": "missing regression test for the guard-not-engaged case in cmdNativeMapSet",
+      "location": "test/native-map.test.mjs",
+      "action": "add a case: .faff-templates/ holds a non-map file, assert the directory notice still fires and the canonical map is written",
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added test 'set with a deprecated directory present but NO deprecated map file ...' covering spec DONE:5; suite now 36 pass.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "missing regression test for the guard-not-engaged case in cmdNativeMapSet",
+          "location": "test/native-map.test.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/native-map.js::guardengages predicate re-derived in the file-level else-if branch",
+      "title": "guardEngages predicate re-derived in the file-level else-if branch",
+      "location": "plugin/skills/faff/bin/lib/native-map.js:274",
+      "action": "have the else-if consume the guardEngages variable instead of recomputing the condition",
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Changed branch to `else if (guardEngages)` so suppression and the guard are literally the same predicate (true lockstep).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "guardEngages predicate re-derived in the file-level else-if branch",
+          "location": "plugin/skills/faff/bin/lib/native-map.js:274",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/native-map.js::shadowed-state suppression drops the other-overrides-ignored signal",
+      "title": "shadowed-state suppression drops the other-overrides-ignored signal",
+      "location": "plugin/skills/faff/bin/lib/native-map.js",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Spec-recorded trade-off (6, decision 'whenever the guard engages'): the per-file remedy is correct and complete for the map file; sibling overrides are out of scope for this ticket.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "shadowed-state suppression drops the other-overrides-ignored signal",
+          "location": "plugin/skills/faff/bin/lib/native-map.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/native-map.js::dry-run advisory trailing clause phrased differently from the real-run line",
+      "title": "dry-run advisory trailing clause phrased differently from the real-run line",
+      "location": "plugin/skills/faff/bin/lib/native-map.js",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Wording is verbatim from the spec HOW pseudocode ('remove the old file once nothing needs it'); mirrors the advisory prefix convention as the spec directs. Cosmetic only.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "dry-run advisory trailing clause phrased differently from the real-run line",
+          "location": "plugin/skills/faff/bin/lib/native-map.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/native-map.js::no security/concurrency/data-integrity exposure introduced",
+      "title": "no security/concurrency/data-integrity exposure introduced",
+      "location": "plugin/skills/faff/bin/lib/native-map.js",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Confirmation finding: stderr-only change, pre-write existsSync probes, no new input parsed, config-core.js untouched. No action.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "no security/concurrency/data-integrity exposure introduced",
+          "location": "plugin/skills/faff/bin/lib/native-map.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "Running `native-map set --dry-run --force` over a repo whose only map is at `.faff-templates/native-templates.yaml` exits 0, creates no `.faff/` directory, and prints the canonical-header preview to stdout.",
+      "verified": "Live exercise: exit 0, no .faff/ dir, stdout canonical-header preview (LIVE 1); + new node:test case",
+      "passed": true,
+      "ac_id": "faff-1319#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/native-map.test.mjs::set --dry-run --force on a deprecated-only map exits 0, previews, writes nothing, advises the left-in-place outcome, and suppresses the whole-directory notice"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff native-map set --team FAFF --tracker linear --dry-run --force --root <tmp>"
+        }
+      ]
+    },
+    {
+      "ac": "That same invocation prints exactly one stderr advisory, prefixed `faff native-map set --dry-run (advisory,`, that names both the canonical path to be written and the deprecated path to be left in place.",
+      "verified": "Live exercise: exactly one advisory prefixed `faff native-map set --dry-run (advisory,` naming both canonical and deprecated paths (LIVE 1)",
+      "passed": true,
+      "ac_id": "faff-1319#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/native-map.test.mjs::set --dry-run --force on a deprecated-only map exits 0, previews, writes nothing, advises the left-in-place outcome, and suppresses the whole-directory notice"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff native-map set --team FAFF --tracker linear --dry-run --force --root <tmp>"
+        }
+      ]
+    },
+    {
+      "ac": "For any `set` invocation in the guard-engages window (canonical map file absent, deprecated map file present, `tracking.templates_path` unset) — dry-run or real, `--force` or not — the full stderr contains no `git mv .faff-templates .faff/templates` whole-directory command.",
+      "verified": "No whole-directory `git mv .faff-templates .faff/templates` in guard-engages window: tests at :393/:405/:435 + new dry-run/real force cases",
+      "passed": true,
+      "ac_id": "faff-1319#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/native-map.test.mjs::set with a map only at the deprecated path exits 2 without --force: nothing written, file-level remedy, destination absent"
+        }
+      ]
+    },
+    {
+      "ac": "The file-level per-file remedy `mkdir -p .faff/templates && git mv .faff-templates/native-templates.yaml .faff/templates/native-templates.yaml` still prints in the no-`--force` refuse case (exit 2), unchanged.",
+      "verified": "File-level remedy prints in no-force refuse (exit 2): test :393 + LIVE 3",
+      "passed": true,
+      "ac_id": "faff-1319#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/native-map.test.mjs::set with a map only at the deprecated path exits 2 without --force: nothing written, file-level remedy, destination absent"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff native-map set --team FAFF --tracker linear --root <tmp>"
+        }
+      ]
+    },
+    {
+      "ac": "A `set` run where the deprecated *directory* exists but `.faff-templates/native-templates.yaml` does not still emits the directory-level deprecation notice (guard does not engage).",
+      "verified": "Deprecated dir present but map file absent -> directory notice still fires, canonical written (LIVE 2, guard does not engage)",
+      "passed": true,
+      "ac_id": "faff-1319#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff native-map set --team FAFF --tracker linear --root <tmp-with-.faff-templates-but-no-map>"
+        }
+      ]
+    },
+    {
+      "ac": "The directory-level notice behaviour of `native-map get` is unchanged (the tests at `native-map.test.mjs:367` and `:377` pass without modification).",
+      "verified": "native-map get directory-notice tests at :367/:377 pass unchanged in the UNIT rung",
+      "passed": true,
+      "ac_id": "faff-1319#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/native-map.test.mjs::get falls back to the deprecated map: path reported, notice on stderr, stdout still valid JSON"
+        }
+      ]
+    },
+    {
+      "ac": "`config-core.js` is not modified.",
+      "verified": "git diff origin/main...HEAD shows config-core.js not in the changed-files set",
+      "passed": true,
+      "ac_id": "faff-1319#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --name-only origin/main...HEAD"
+        }
+      ]
+    },
+    {
+      "ac": "`test/native-map.test.mjs` gains a `--dry-run --force` deprecated-only case asserting exit 0, no `.faff/` created, the stdout preview, the presence of the left-in-place advisory on stderr, and the absence of the whole-directory `git mv .faff-templates .faff/templates` command.",
+      "verified": "New --dry-run --force deprecated-only test added",
+      "passed": true,
+      "ac_id": "faff-1319#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/native-map.test.mjs::set --dry-run --force on a deprecated-only map exits 0, previews, writes nothing, advises the left-in-place outcome, and suppresses the whole-directory notice"
+        }
+      ]
+    },
+    {
+      "ac": "`test/native-map.test.mjs` gains (or extends `:417`) a real `set --force --json` deprecated-only case asserting the JSON line carries `deprecated_left_in_place: \".faff-templates/native-templates.yaml\"`.",
+      "verified": "New --force --json deprecated-only test asserting deprecated_left_in_place added",
+      "passed": true,
+      "ac_id": "faff-1319#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/native-map.test.mjs::set --force --json on a deprecated-only map carries deprecated_left_in_place in the JSON line"
+        }
+      ]
+    },
+    {
+      "ac": "The pinned test at `native-map.test.mjs:435` (\"… carries the shadowed-map advisory plus the deprecation notice\") is updated: it must no longer assert the directory-level `template overrides at .faff-templates/ are deprecated` notice is present under `set --dry-run`, and should instead assert the file-level advisory is present and the whole-directory `git mv .faff-templates .faff/templates` command is absent from the full stderr.",
+      "verified": "Pinned :435 test updated: no longer asserts the directory notice; asserts file-level advisory present and whole-directory command absent",
+      "passed": true,
+      "ac_id": "faff-1319#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/native-map.test.mjs::set --dry-run on a deprecated-only map exits 0, writes nothing, carries the shadowed-map advisory, and suppresses the whole-directory notice"
+        }
+      ]
+    },
+    {
+      "ac": "`node --test test/native-map.test.mjs` passes, and `faff native-map set --selftest` still exits 0 (the in-module selftest at `native-map.js:383-451` is untouched and remains green).",
+      "verified": "node --test test/native-map.test.mjs -> 35 pass 0 fail; native-map set --selftest -> RESULT: PASS (exit 0)",
+      "passed": true,
+      "ac_id": "faff-1319#done:11",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/native-map.test.mjs"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff native-map set --selftest"
+        }
+      ]
+    }
+  ]
+}

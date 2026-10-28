@@ -71,14 +71,14 @@ inputs:
     default: "L3"
   evidence-schema:
     description: >-
-      How evidence-schema findings on the PR's anchors are treated (FAFF-1278): "report" (the
-      default) runs the base-commit evidence leg and the head verb's report-only leg and never
-      fails on a schema finding; "require" passes --require-evidence-schema to the head verb and
-      fails on the base-commit leg. Integrity findings of the base-commit leg (anchor discovery
-      failed, an anchor path left unvalidated, an edit to a committed anchor, no trusted
-      validator) fail under either value.
+      How evidence-schema findings on the PR's anchors are treated (FAFF-1278, FAFF-1261):
+      "require" (the default) passes --require-evidence-schema to the head verb and fails on the
+      base-commit leg; "report" runs the base-commit evidence leg and the head verb's report-only
+      leg and never fails on a schema finding. Integrity findings of the base-commit leg (anchor
+      discovery failed, an anchor path left unvalidated, an edit to a committed anchor, no
+      trusted validator) fail under either value.
     required: false
-    default: "report"
+    default: "require"
 
 outputs:
   verdict:

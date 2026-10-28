@@ -36,6 +36,7 @@ const { parseAcId } = require("./ac-id");
 const { resolveFaffVersion, stampFaffVersion } = require("./faff-version");
 const { readLeafNoFollow } = require("./leaf-read");
 const crypto = require("node:crypto");
+const { holdoutConstraintViolations } = require("./holdout-record");
 
 const SPEC_VERSION = "v0.3";
 const BUNDLE_DIR = path.resolve(HERE, "..", "contracts", "evidence-v0.3");
@@ -563,6 +564,21 @@ function resolveSchemaSet(base, candidateDir) {
   return { schemas, sourceOf, rejected };
 }
 
+// FAFF-1261: the holdout binding. A holdout.json is bound to the anchor by the issue in chain-head.json
+// (which the mint computes), and carries the writer-only constraints the schema cannot express. The
+// schema check already ran, so only the constraint half runs here. Messages name key paths, never ids.
+function holdoutBindingViolations(anchorDir, file) {
+  const doc = parseJson(readBytes(file) || Buffer.alloc(0));
+  if (!doc.ok) return [];
+  const out = [];
+  const head = parseJson(readBytes(path.join(anchorDir, "chain-head.json")) || Buffer.alloc(0));
+  if (!head.ok || !isObject(head.value) || !isObject(doc.value) || typeof head.value.issue !== "string" || doc.value.issue !== head.value.issue) {
+    out.push("holdout.json: issue does not match anchor issue");
+  }
+  out.push(...holdoutConstraintViolations(doc.value));
+  return out;
+}
+
 // Pure of side effects beyond reading the anchor directory. Throws SchemaUnavailable when the
 // bundled manifest or a schema it names cannot be used.
 function validateAnchorDir(anchorDir, opts = {}) {
@@ -592,6 +608,7 @@ function validateAnchorDir(anchorDir, opts = {}) {
     const result = rel === "events.jsonl"
       ? validateAnchorEventsScoped(file, schema, LINE_VALIDATORS[rel], anchorDir, activeProfile())
       : entry.format === "jsonl" ? validateJsonlFile(file, schema, LINE_VALIDATORS[rel]) : validateJsonFile(file, schema);
+    if (rel === "holdout.json") result.violations.push(...holdoutBindingViolations(anchorDir, file));
     const out = { path: rel, status: result.violations.length === 0 ? "ok" : "fail", violations: result.violations };
     if (withCandidate) out.schema_source = sourceOf.get(entry.schema);
     if (result.torn_tail) out.torn_tail = true;
@@ -674,6 +691,12 @@ function checkAnchorDir(anchorDir, opts = {}) {
     }
   }
   return { status: report.status, files, reason: null, schema_unavailable: false, events_scope };
+}
+
+// The evidence documents (versioned by their own schema_version field) the bundled manifest names.
+function evidenceDocumentFiles(opts = {}) {
+  const { manifest } = loadBundle(opts.bundleDir || BUNDLE_DIR);
+  return Object.entries(manifest.files).filter(([, e]) => e.versioned_by === "field").map(([name]) => name);
 }
 
 // The file paths the bundled manifest names; throws SchemaUnavailable when the manifest cannot be used.
@@ -884,13 +907,25 @@ function acChecklistWriterViolations(doc, issue) {
   return out;
 }
 
+// FAFF-1261: the write path alone requires an id on every present criterion. It is not part of
+// acChecklistWriterViolations, which renderAcChecklist also runs over checklists written earlier; the
+// schema, the mint and the readers keep accepting a null id. Names the criterion index, never a value.
+function acIdRequiredViolations(doc) {
+  if (!Array.isArray(doc.criteria)) return [];
+  const out = [];
+  doc.criteria.forEach((c, i) => {
+    if (isObject(c) && typeof c.ac_id !== "string") out.push(`criteria[${i}].ac_id: required (take it from faff dod classify --issue)`);
+  });
+  return out;
+}
+
 // writeAcChecklist(runDir, issue, text, secrets) -> { written } | { refused: [message] }.
 function writeAcChecklist(runDir, issue, text, secrets) {
   const issueDir = guardWriterPaths(runDir, issue);
   const input = parseStdinObject(text);
   if (input === null) return { refused: [NOT_AN_OBJECT] };
   const doc = anchoredAcChecklist(redactKnownSecrets(input, secrets));
-  const violations = [...validateAgainstSchema(doc, schemaFor("ac-checklist.json")).map(tidy), ...acChecklistWriterViolations(doc, issue)];
+  const violations = [...validateAgainstSchema(doc, schemaFor("ac-checklist.json")).map(tidy), ...acChecklistWriterViolations(doc, issue), ...acIdRequiredViolations(doc)];
   if (violations.length > 0) return { refused: violations };
   return { written: writeEvidenceFile(issueDir, "ac-checklist.json", doc) };
 }
@@ -1573,9 +1608,9 @@ function evidenceSelftest() {
 
 // What this CLI's `evidence validate` can do. CI reads it from a base commit's CLI, because an unknown
 // flag exits 2 just as schema-unavailable does, so probing flags could not tell the two apart.
-const CAPABILITIES = { validate: ["require-evidence-schema", "candidate-schemas"] };
+const CAPABILITIES = { validate: ["require-evidence-schema", "candidate-schemas", "holdout-binding"] };
 
-const USAGE = "usage: faff evidence validate <anchor-dir> [--require-evidence-schema] [--json] [--candidate-schemas <dir>]\n       faff evidence capabilities --json\n       faff evidence write spec-review-verdict --run-dir <dir> --issue <id>   (comment or spec text on stdin)\n       faff evidence write ac-checklist --run-dir <dir> --issue <id>   ({all_verified, criteria?: [{ac, verified, passed, ac_id?, verifications?}]} on stdin)\n       faff evidence render ac-checklist --run-dir <dir> --issue <id>   (prints the PR-body Acceptance Criteria block)\n       faff evidence record-review-round --run-dir <dir> --issue <id> [--prior-dir <dir>]   (one review-verdict block on stdin)\n       faff evidence write review-verdict --run-dir <dir> --issue <id> [--park needs-human|unavailable | --judge-admitted]   (collates review-rounds/)\n       faff evidence write review-verdict --terminal-only --run-dir <dir> --issue <id>   (terminal review-verdict block on stdin; manual recovery)\n       faff evidence return --run-dir <dir> --issue <id>   (prints the EvidenceReturn digest line for a dispatched lane to return)\n       faff evidence verify-return [--against-ledger] --run-dir <dir> --issue <id>   (verifies the returned digests on stdin, or the ledger entry, against the files on disk)\n       faff evidence --selftest\n";
+const USAGE = "usage: faff evidence validate <anchor-dir> [--require-evidence-schema] [--json] [--candidate-schemas <dir>]\n       faff evidence capabilities --json\n       faff evidence write spec-review-verdict --run-dir <dir> --issue <id>   (comment or spec text on stdin)\n       faff evidence write ac-checklist --run-dir <dir> --issue <id>   ({all_verified, criteria?: [{ac, verified, passed, ac_id, verifications?}]} on stdin)\n       faff evidence render ac-checklist --run-dir <dir> --issue <id>   (prints the PR-body Acceptance Criteria block)\n       faff evidence record-review-round --run-dir <dir> --issue <id> [--prior-dir <dir>]   (one review-verdict block on stdin)\n       faff evidence write review-verdict --run-dir <dir> --issue <id> [--park needs-human|unavailable | --judge-admitted]   (collates review-rounds/)\n       faff evidence write review-verdict --terminal-only --run-dir <dir> --issue <id>   (terminal review-verdict block on stdin; manual recovery)\n       faff evidence return --run-dir <dir> --issue <id>   (prints the EvidenceReturn digest line for a dispatched lane to return)\n       faff evidence verify-return [--against-ledger] --run-dir <dir> --issue <id>   (verifies the returned digests on stdin, or the ledger entry, against the files on disk)\n       faff evidence --selftest\n";
 
 function cmdEvidence(args) {
   const parsed = parseArgs(args, EVIDENCE_SPEC);
@@ -1617,7 +1652,7 @@ module.exports = {
   CAPABILITIES, EVIDENCE_SPEC, SCHEMA_UNAVAILABLE_MARKER, SchemaUnavailable, WriterFault, acChecklistWriterViolations, announceSchemaUnavailable, anchoredAcChecklist,
   anchoredTerminalReview, checkAnchorDir, classifySchemaChange, cmdEvidence, eventDataKeys, evaluateRunDirEventsSchema, evidenceSelftest, exitCodeFor,
   recordReviewRound, writeCollatedReviewVerdict,
-  guardWriterPaths, introducedViolations, logRecordChecker, manifestFileNames, noteSchemaUnavailable, preloadEvidenceSchemas,
+  guardWriterPaths, introducedViolations, logRecordChecker, evidenceDocumentFiles, manifestFileNames, noteSchemaUnavailable, preloadEvidenceSchemas,
   renderAcChecklist, resetEvidenceSchemaCache, sanitiseDisplay, validateAnchorDir, validateEvidenceDocument, writeAcChecklist, writeEvidenceFile,
   writeSpecReviewVerdict, writeTerminalReviewVerdict,
 };

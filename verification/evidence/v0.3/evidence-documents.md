@@ -68,13 +68,14 @@ carry a fixed key set: a field with no value is `null`, never absent. The one ex
 `[]` and `null`.
 
 Each `ac-checklist` criterion also carries `ac_id` and `verifications` (FAFF-1287), both optional
-in the schema and always written, `null` when unknown. Anchors written before then lack them and
-still validate.
+in the schema. The writer always writes both; `verifications` is `null` when unknown. Anchors
+written before then lack them, and anchors whose criteria carry `ac_id: null` (FAFF-1300 to
+FAFF-1302) exist too; all still validate.
 
 - `ac_id` is the qualified id `<lowercase ticket>#<local id>`, for example `faff-1287#ac-3`. The
   local id is the `[ac-N]` authored on the spec's DONE line, or `done:N` when the line has none.
-  Either every criterion carries one or none does, ids are unique, and the ticket part matches
-  the issue.
+  The writer requires an id on every criterion (FAFF-1261), ids are unique, and the ticket part
+  matches the issue. The schema still allows `null`, so older anchors keep validating.
 - `verifications` lists how the criterion was verified, one `{kind, locator?}` entry per method.
   `kind` is `test` (locator `<file>::<test title>`), `command` (locator is the exact command) or
   `human` (no locator). The writer enforces these per-kind rules, because the schema subset

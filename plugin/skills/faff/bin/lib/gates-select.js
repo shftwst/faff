@@ -307,6 +307,7 @@ async function runBudgetedLadder(root, opts) {
     }
   }
   const unitsTotal = plans.reduce((n, p) => n + p.units.length, 0);
+  if (opts.afterSetup) await opts.afterSetup();                       // a test seam: slow setup
   const persist = () => writeProgress(root, {
     schema: PROGRESS_SCHEMA, tree, plan, written_at: new Date(now()).toISOString(), calls,
     done: [...done.values()].sort((a, b) => a.rung_index - b.rung_index), rung_ms,

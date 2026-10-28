@@ -4,11 +4,14 @@
 // at least a second of slack either side of every boundary, so a loaded host stays deterministic.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, symlinkSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CLI = join(HERE, "..", "plugin", "skills", "faff", "bin", "faff");
@@ -254,4 +257,78 @@ test("with neither flag, a run neither reads, writes nor deletes a progress file
   assert.equal(r.status, 0);
   assert.equal("resumed" in r.json, false);
   assert.equal(readFileSync(progressFile(dir), "utf8"), "sentinel");
+});
+
+test("a finished run that discarded progress reports resumed.discarded and one call", () => {
+  const dir = repo(pkg({ lint: "sleep 1", test: "sleep 6" }));
+  assert.equal(gates(dir, ["--budget-secs", "3"]).status, 3);
+  writeFileSync(join(dir, "untracked.txt"), "edit\n");
+  const r = gates(dir, ["--json", "--resume", "--budget-secs", "20"]);
+  assert.equal(r.status, 0, r.stdout);
+  assert.deepEqual(r.json.resumed, { calls: 1, discarded: "tree-changed" });
+});
+
+test("units recorded in matching progress are not run again", () => {
+  const mark = join(mkdtempSync(join(tmpdir(), "faff-gates-mark-")), "runs.log");
+  const dir = repo(pkg({ lint: `echo run >> ${mark} && sleep 1`, test: "sleep 6" }));
+  assert.equal(gates(dir, ["--budget-secs", "3"]).status, 3);
+  assert.equal(gates(dir, ["--resume", "--budget-secs", "20"]).status, 0);
+  assert.equal(readFileSync(mark, "utf8"), "run\n");
+});
+
+test("a required rung that fails after a resume ends the ladder with exit 1 and deletes the progress", () => {
+  const dir = repo(pkg({ lint: "sleep 1", test: "sleep 4 && false" }));
+  assert.equal(gates(dir, ["--budget-secs", "2"]).status, 3);
+  assert.equal(existsSync(progressFile(dir)), true);
+  const r = gates(dir, ["--json", "--resume", "--budget-secs", "10"]);
+  assert.equal(r.status, 1);
+  assert.equal(r.json.signal, "fail");
+  assert.equal(existsSync(progressFile(dir)), false);
+});
+
+// A CI `run: node --test` step is the shard-capable UNIT rung the file pool splits.
+const POOL_CI = "on: pull_request\njobs:\n  t:\n    runs-on: ubuntu-latest\n    steps:\n      - run: node --test\n";
+const quickTest = `import { test } from "node:test";\n// ${"padding ".repeat(40)}\ntest("quick", () => {});\n`;
+const slowTest = `import { test } from "node:test";\ntest("slow", async () => { await new Promise((r) => setTimeout(r, 12000)); });\n`;
+
+test("editing an ignored pool test file between calls reports plan-changed", () => {
+  const dir = repo({
+    ".github/workflows/ci.yml": POOL_CI,
+    ".gitignore": "t/local.test.mjs\n",
+    ".faff/config.yaml": "gates:\n  local_test_files: t/*.test.mjs\n  local_shard_concurrency: 1\n",
+    "t/a.test.mjs": quickTest,
+    "t/b.test.mjs": slowTest,
+  });
+  writeFileSync(join(dir, "t", "local.test.mjs"), `import { test } from "node:test";\ntest("local", () => {});\n`);
+  assert.equal(gates(dir, ["--budget-secs", "3"]).status, 3);
+  writeFileSync(join(dir, "t", "local.test.mjs"), `import { test } from "node:test";\ntest("local edited", () => {});\n`);
+  assert.equal(gates(dir, ["--json", "--resume", "--budget-secs", "3"]).json.discarded, "plan-changed");
+});
+
+test("progress is rewritten after each recorded unit, so a killed call keeps what it finished", async () => {
+  const dir = repo({
+    ".github/workflows/ci.yml": POOL_CI,
+    ".faff/config.yaml": "gates:\n  local_test_files: t/*.test.mjs\n  local_shard_concurrency: 1\n",
+    "t/a.test.mjs": quickTest,
+    "t/b.test.mjs": slowTest,
+  });
+  const child = spawn("node", [CLI, "gates", "run", "--root", dir, "--budget-secs", "60"], { env: env(), stdio: "ignore" });
+  const deadline = Date.now() + 20000;
+  while (!existsSync(progressFile(dir)) && Date.now() < deadline) await new Promise((r) => setTimeout(r, 100));
+  child.kill("SIGKILL");
+  await new Promise((r) => child.on("exit", r));
+  const units = readProgress(dir).done.map((u) => u.unit);
+  assert.deepEqual(units, ["file:t/a.test.mjs"]);
+});
+
+test("setup time before the first unit does not shorten that unit's ceiling", async () => {
+  const { runBudgetedLadder } = require("../plugin/skills/faff/bin/lib/gates-select.js");
+  const dir = repo(pkg({ lint: "sleep 3" }));
+  // Setup takes 3 s, longer than the 2 s budget. Measured from the call's start the 4 s ceiling would
+  // cut the 3 s unit after 1 s; measured on the call clock, the unit finishes inside it.
+  const afterSetup = () => new Promise((r) => setTimeout(r, 3000));
+  const res = await runBudgetedLadder(dir, { budgetSecs: 2, resume: false, afterSetup });
+  assert.ok(res.outcome, JSON.stringify(res));
+  assert.ok(res.outcome.setup_ms >= 3000);
+  assert.equal(res.outcome.rungs[0].status, "pass");
 });

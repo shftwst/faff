@@ -1,0 +1,324 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 3,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "`from_judge` derives each ledger proposition's objection key as `<latest round>#<i>` where `i` is the proposition's index in `ledger.order`. But `readStandingResidue` returns the objections *at or after* `window_start` — a suffix of the round when `window_start > 0`. In that case residue[i] is round objection `#(window_start + i)`, not `#i`, so the lookup either misses (exit 1 on a legitimate run) or — worse — matches a *different, earlier* objection whose lens and severity happen to coincide, and maps the wrong objection's disposition into the evidence record.",
+      "evidence": "§4.2 procedure step 5 (`key := \"<n>#<i>\"`) and the preamble (\"the i-th objection of the latest round file at or after `window_start`\"); the spec nowhere establishes that `window_start` is always 0, and the ledger \"keeps `window_start` but not the objection key\" precisely because it can be nonzero.",
+      "predicted_consequence": "on any run where the judge's window starts mid-round, `collate-evidence --from-judge` either exits 1 spuriously (the spec's own failure-mode table would misread this as \"--assemble changed\") or writes a disposition attributed to the wrong objection — a wrong governance record with no signal.",
+      "spec_anchor": "how-42-collate-evidence-from-judge",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "window_start is a round number, not an objection index: readStandingResidue returns the whole objection list of the latest in-window round, and collate keys the same list zero-based. Section 4.2 now says so.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "`from_judge` derives each ledger proposition's objection key as `<latest round>#<i>` where `i` is the proposition's index in `ledger.order`. But `readStandingResidue` returns the objections *at or after* `window_start` — a suffix of the round when `window_start > 0`. In that case residue[i] is round objection `#(window_start + i)`, not `#i`, so the lookup either misses (exit 1 on a legitimate run) or — worse — matches a *different, earlier* objection whose lens and severity happen to coincide, and maps the wrong objection's disposition into the evidence record.",
+          "spec_anchor": "how-42-collate-evidence-from-judge"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "§4.2's Chosen states `fixed` requires \"the same `correctionApplied` test `admitRollup` uses, run against the same `--spec`, so the evidence comment can never call a proposition fixed when admission called it unresolved.\" But nothing in the design verifies that the `--spec` bytes passed to `--from-judge` are the bytes `--assemble` judged. The ledger records `window_start` but no spec digest (per the spec's own account), and prep re-stamps the file before every re-post, so the local file can legitimately drift between the judge's assembly and the disposition build. `correctionApplied` against drifted bytes flips `fixed`↔`open` arbitrarily relative to what admission decided.",
+      "evidence": "§4.2 Chosen paragraph; §4.1's re-stage rule (\"Any edit to the spec after a stage … is followed by a fresh stage\"); the AttachMarker carries `spec_sha256` but the judge ledger, as described, carries no digest to compare against.",
+      "predicted_consequence": "a revise-round re-stamp between `--assemble` and `--from-judge` produces an evidence comment that marks a proposition `fixed` (or leaves `open`) contrary to the admission ruling — the exact divergence the Chosen claims is impossible, and the builder cannot close it without a spec change (record the judged spec's digest in the ledger and compare).",
+      "spec_anchor": "how-42-collate-evidence-from-judge",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added a Chosen and a test: a re-stage cannot change a correctionApplied result, because the stamp and build-tier lines never carry a 24-plus-character verification literal; --spec is the file passed to --admit, run at the same seam.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "§4.2's Chosen states `fixed` requires \"the same `correctionApplied` test `admitRollup` uses, run against the same `--spec`, so the evidence comment can never call a proposition fixed when admission called it unresolved.\" But nothing in the design verifies that the `--spec` bytes passed to `--from-judge` are the bytes `--assemble` judged. The ledger records `window_start` but no spec digest (per the spec's own account), and prep re-stamps the file before every re-post, so the local file can legitimately drift between the judge's assembly and the disposition build. `correctionApplied` against drifted bytes flips `fixed`↔`open` arbitrarily relative to what admission decided.",
+          "spec_anchor": "how-42-collate-evidence-from-judge"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The design principle says \"Any path that reads a spec writes the open marker before it can fail,\" and step 3 says the marker is written \"BEFORE any other step.\" Yet step 1 reads the spec and can fail (`errored`, \"no marker written\") before step 3 runs, and step 2 reads the existing marker first. The principle as stated is false for the unreadable-spec path, and the \"BEFORE any other step\" phrasing is wrong on its own numbering.",
+      "evidence": "§4.1 procedure steps 1–3 vs the \"The marker is written first\" principle in §1 and the step-3 parenthetical.",
+      "predicted_consequence": "not separately stated — the unreadable-spec path arguably *should* leave no marker (there is nothing to attach), so the fix is a wording correction, not a redesign; but as written a builder following the principle literally would move the marker write above step 1 and change behaviour the DONE items don't pin.",
+      "spec_anchor": "how-41-faff-prep-attach",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Reworded the marker-first principle and step 3: once a spec is read, the marker is written before any step that can fail; an unreadable spec writes none.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The design principle says \"Any path that reads a spec writes the open marker before it can fail,\" and step 3 says the marker is written \"BEFORE any other step.\" Yet step 1 reads the spec and can fail (`errored`, \"no marker written\") before step 3 runs, and step 2 reads the existing marker first. The principle as stated is false for the unreadable-spec path, and the \"BEFORE any other step\" phrasing is wrong on its own numbering.",
+          "spec_anchor": "how-41-faff-prep-attach"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "When no marker exists, `park` writes `{issue, spec_produced:true, attached:false}` and then sets `disposition:\"parked\"`. The resulting record asserts that a spec was produced for this issue when the procedure's own first step proves none was staged. That is a forged provenance entry in the same file family graft's `source_check` and prepcheck's classification read, and it is reachable by a single agent call with no spec ever existing.",
+      "evidence": "`PROCEDURE park(issue): 1. Read the marker. Missing → write { issue, spec_produced:true, attached:false }.` (section 4.1); prepcheck classification reads this marker (`bin/lib/prepcheck.js` listed in Reference context).",
+      "predicted_consequence": "An audit/prepcheck trail shows `spec_produced: true` for an issue whose spec was never staged; the false assertion is persisted atomically and survives until manually cleaned.",
+      "spec_anchor": "41-faff-prep-attach",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "--park on a missing or unproduced marker now returns errored no-staged-spec and writes nothing; DONE item added.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "When no marker exists, `park` writes `{issue, spec_produced:true, attached:false}` and then sets `disposition:\"parked\"`. The resulting record asserts that a spec was produced for this issue when the procedure's own first step proves none was staged. That is a forged provenance entry in the same file family graft's `source_check` and prepcheck's classification read, and it is reachable by a single agent call with no spec ever existing.",
+          "spec_anchor": "41-faff-prep-attach"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The critique's deps-surfaced finding says two related links are \"worth adding\" — FAFF-1407 (which only has data once this ticket writes `spec_sha256`) and FAFF-1349 (whose length preflight would live in this ticket's stage procedure) — but the spec carries neither as a real dependency edge; they appear only as out-of-scope bullets with extension points.",
+      "evidence": "Methodology critique, \"Deps surfaced (principle 6)\": \"Two related links are missing and worth adding: FAFF-1407 … and FAFF-1349's length preflight would live in this ticket's stage procedure.\" Spec §2 lists both under OUT OF SCOPE with extension points, but no `blocks`/`blocked-by` edge is specified anywhere in the diff.",
+      "predicted_consequence": "FAFF-1407 can be picked up and made `source_check` blocking while this ticket is still open, shipping a blocking check against a field nothing writes — every build records `mismatch`/`no-marker` and the gate fails on all traffic. The pipeline cannot see the ordering because no edge exists.",
+      "spec_anchor": "out-of-scope",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "OUT OF SCOPE now records the edge FAFF-1407 blocked by FAFF-1406 for the operator to add at attach.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The critique's deps-surfaced finding says two related links are \"worth adding\" — FAFF-1407 (which only has data once this ticket writes `spec_sha256`) and FAFF-1349 (whose length preflight would live in this ticket's stage procedure) — but the spec carries neither as a real dependency edge; they appear only as out-of-scope bullets with extension points.",
+          "spec_anchor": "out-of-scope"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The critique names self-hosting as a risk to \"sequence around\" — the first prep on the new command should be attended before any unattended prep drain uses it — but the spec records this nowhere: no DONE item, no rollout step, no prose change in `faff-prep/SKILL.md` instructs an attended first run. The slice ships the rewritten attach ritual with no guard on its own first execution.",
+      "evidence": "Methodology critique, \"Risk profile (principle 7)\": \"this rewrites the attach ritual every prep runs, including the marker `prepcheck --hook` blocks on. Make the first prep on the new command an attended one before any unattended prep drain uses it.\" The spec's DONE section and §4.4 prose rewrites contain no corresponding item.",
+      "predicted_consequence": "The first unattended prep after merge runs the new stage/confirm path with no human watching; if stage or confirm misbehaves against the real tracker, the marker is left open and the unattended drain parks or stalls — exactly the failure class the marker exists to catch, now triggered by the change itself.",
+      "spec_anchor": "done",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added section 4.5 Rollout and a DONE item: the PR states the first prep after merge is attended, before any unattended drain uses the command.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The critique names self-hosting as a risk to \"sequence around\" — the first prep on the new command should be attended before any unattended prep drain uses it — but the spec records this nowhere: no DONE item, no rollout step, no prose change in `faff-prep/SKILL.md` instructs an attended first run. The slice ships the rewritten attach ritual with no guard on its own first execution.",
+          "spec_anchor": "done"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The spec's WHY states the model is \"a command can guarantee … a byte-exact record, and prose cannot,\" yet the tracker path's byte-exactness rests entirely on prose (\"Every post is staged\"). `--confirm` takes no `--spec` and the `AttachMarker` record has no `spec_path` field, so confirm cannot re-hash the spec file against the marker's `spec_sha256` and refuse on drift. The one seam where the command could mechanically guarantee \"the posted bytes are the staged bytes\" is left to agent discipline — the exact class of failure (silent non-attach / digest mismatch) this ticket was cut to eliminate.",
+      "evidence": "`AttachMarker` type in section 3 (no `spec_path`); `PROCEDURE confirm(issue, comment_id)` in 4.1 sets only `attached`, `comment_id`, `attached_at`; the \"Every post is staged\" bullet; the failure-mode row \"The agent posts something other than `body_path` → Tighten the prose.\"",
+      "predicted_consequence": "an agent that edits the spec after stage (a revise tweak, a stray fix) and then confirms without re-staging posts bytes that differ from `spec_sha256`; graft's `source_check` reports `mismatch` — the advisory-only signal FAFF-1407 must not block on — and the mismatch is indistinguishable from Linear's markdown normalization, the other listed failure mode. The two causes become confounded on real runs.",
+      "spec_anchor": "how-41-faff-prep-attach",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The marker records body_path; confirm re-hashes it against spec_sha256 and returns errored spec-changed-since-stage on drift, leaving the marker open. DONE item added.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The spec's WHY states the model is \"a command can guarantee … a byte-exact record, and prose cannot,\" yet the tracker path's byte-exactness rests entirely on prose (\"Every post is staged\"). `--confirm` takes no `--spec` and the `AttachMarker` record has no `spec_path` field, so confirm cannot re-hash the spec file against the marker's `spec_sha256` and refuse on drift. The one seam where the command could mechanically guarantee \"the posted bytes are the staged bytes\" is left to agent discipline — the exact class of failure (silent non-attach / digest mismatch) this ticket was cut to eliminate.",
+          "spec_anchor": "how-41-faff-prep-attach"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The routing table sends `errored` (autonomous) to \"park,\" and `--park` is specified to refuse when no staged marker exists (\"Park never writes a marker that claims a spec was produced\"). In git-only mode the marker *is* the park record, so the two errored paths that write no marker — step 1's unreadable spec, and the CLI-skew \"no parseable token\" case — leave the agent with no way to record a park: `--park` returns `errored: no-staged-spec`, and the prose rewrite removes the marker JSON schema from `faff-prep/SKILL.md`, so the agent can no longer hand-write one either.",
+      "evidence": "stage step 1 (\"Unreadable → errored, no marker written\"), `PROCEDURE park` step 1, the token-routing table's `errored` row, section 4.4 (\"no longer contains the marker JSON schema\"), and the git-only park-record decision in 4.1.",
+      "predicted_consequence": "an autonomous git-only prep pointed at a bad spec path (or hitting install skew) dead-ends: it can neither stage nor park, so `prepcheck --hook` has nothing to catch and the run either hangs or the agent improvises a marker the spec no longer documents.",
+      "spec_anchor": "token-routing-what-the-skill-does",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The errored row now routes a no-marker error in autonomous mode to the prep log and an errored return, which the caller treats as a park.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The routing table sends `errored` (autonomous) to \"park,\" and `--park` is specified to refuse when no staged marker exists (\"Park never writes a marker that claims a spec was produced\"). In git-only mode the marker *is* the park record, so the two errored paths that write no marker — step 1's unreadable spec, and the CLI-skew \"no parseable token\" case — leave the agent with no way to record a park: `--park` returns `errored: no-staged-spec`, and the prose rewrite removes the marker JSON schema from `faff-prep/SKILL.md`, so the agent can no longer hand-write one either.",
+          "spec_anchor": "token-routing-what-the-skill-does"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "`from_judge` step 3 exits 1 when \"residue length != ledger.order length,\" but section 4.6 says `--from-judge` with `order: []` exits 0 with every key `open`. These can only both hold if an empty ledger implies an empty residue, which the spec never establishes (it does not say `window_start` for an empty ledger points past all rounds).",
+      "evidence": "`PROCEDURE from_judge` step 3 vs. the \"`--from-judge` with an empty ledger\" bullet in 4.6.",
+      "predicted_consequence": "a builder must pick an interpretation; the wrong one makes the documented exit-0 case exit 1 on a real empty-ledger run, and the test suite written from 4.6 will disagree with the one written from the procedure.",
+      "spec_anchor": "46-edge-cases",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Edge case reworded: --assemble writes an empty ledger only for an empty residue, so lengths agree; an empty ledger with a non-empty residue exits 1.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "`from_judge` step 3 exits 1 when \"residue length != ledger.order length,\" but section 4.6 says `--from-judge` with `order: []` exits 0 with every key `open`. These can only both hold if an empty ledger implies an empty residue, which the spec never establishes (it does not say `window_start` for an empty ledger points past all rounds).",
+          "spec_anchor": "46-edge-cases"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "`prep attach` builds `.faff/prep/<ISSUE>.json` and, under `--git-only`, `.faff/specs/<issue>.md` directly from the `--issue` flag. The spec never constrains the issue ID's shape, so a value like `../../foo` or an absolute-looking ID escapes the `.faff` tree, and the git-only branch writes attacker-chosen bytes (the stamped spec) outside the intended directory. The spec shows it is thinking about flag hygiene (`--comment-id` explicitly unchecked, `--gate-history` integer-checked) but is silent on the one flag that reaches a filesystem path.",
+      "evidence": "§3 Commands block; §4.1 step 3 and step 9 (\"write the stamped bytes to `<root>/.faff/specs/<issue>.md`\"); §4.6 edge cases (checks `--gate-history` and `--comment-id` but not `--issue`).",
+      "predicted_consequence": "a mistyped or hostile `--issue` value causes the marker or the git-only spec copy to be written outside `.faff/`, clobbering an unrelated file in the checkout; `prepcheck --hook` then watches a path that is not the one written, so the open-marker guarantee silently misses.",
+      "spec_anchor": "46-what",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "--issue must match the spec-commit ISSUE_RE or the call exits 2 before any path is built; DONE item covers ../x and EX-1/..",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "`prep attach` builds `.faff/prep/<ISSUE>.json` and, under `--git-only`, `.faff/specs/<issue>.md` directly from the `--issue` flag. The spec never constrains the issue ID's shape, so a value like `../../foo` or an absolute-looking ID escapes the `.faff` tree, and the git-only branch writes attacker-chosen bytes (the stamped spec) outside the intended directory. The spec shows it is thinking about flag hygiene (`--comment-id` explicitly unchecked, `--gate-history` integer-checked) but is silent on the one flag that reaches a filesystem path.",
+          "spec_anchor": "46-what"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "confirm flips `attached:true` on the strength of any string passed as `--comment-id` (\"stored as given, not format-checked\"). Nothing in the command or the CLI can or does verify a post occurred, so a confused or drifting agent can close the marker with a placeholder id and the spec never reaches the tracker while `prepcheck` reports attached. The spec's own rationale (\"a confirm cites a real result rather than an intention\") asserts exactly the property the design cannot deliver, since the CLI never sees the tracker.",
+      "evidence": "§4.1 PROCEDURE confirm; §4.1 Chosen (\"Requiring the tracker's id means a confirm cites a real result\"); §4.6 \"`--comment-id`: stored as given, not format-checked\".",
+      "predicted_consequence": "a marker closed without a real post leaves the tracker missing the spec while every local gate (`prepcheck`, graft `source_check` against a captured copy) reads green — the same silent non-attach the marker exists to catch, now laundered through the confirm step.",
+      "spec_anchor": "41-faff-prep-attach",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The CLI cannot see the tracker by invariant, so it cannot prove a post. The Chosen now says so; the id is recorded for audit, confirm re-hashes the staged body, and a spec that never reached the tracker is found by graft Step 2 discovery, which routes back to prep.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "confirm flips `attached:true` on the strength of any string passed as `--comment-id` (\"stored as given, not format-checked\"). Nothing in the command or the CLI can or does verify a post occurred, so a confused or drifting agent can close the marker with a placeholder id and the spec never reaches the tracker while `prepcheck` reports attached. The spec's own rationale (\"a confirm cites a real result rather than an intention\") asserts exactly the property the design cannot deliver, since the CLI never sees the tracker.",
+          "spec_anchor": "41-faff-prep-attach"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The critique flags two missing dependency links; the spec converts one (FAFF-1407 blocked by FAFF-1406) into a tracker edge, but the second (FAFF-1349's length preflight living in this ticket's stage procedure) is left as a rationale note with no ordering edge, so the pipeline cannot see that FAFF-1349 builds on this slice's stage procedure.",
+      "evidence": "Methodology critique, \"Deps surfaced (principle 6)\": \"Two related links are missing and worth adding: FAFF-1407 … and FAFF-1349's length preflight would live in this ticket's stage procedure.\" Spec §2 records the FAFF-1407 edge (\"Record that as a tracker edge: FAFF-1407 blocked by FAFF-1406\") but mentions FAFF-1349 only as an extension point with no edge.",
+      "predicted_consequence": "FAFF-1349 can be picked up and planned against a stage procedure that does not yet exist, repeating the exact \"blocker has no writer\" sequencing miss the spec itself guards against for FAFF-1407.",
+      "spec_anchor": "out-of-scope",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "OUT OF SCOPE now records the edge FAFF-1349 blocked by FAFF-1406 for the operator to add at attach.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The critique flags two missing dependency links; the spec converts one (FAFF-1407 blocked by FAFF-1406) into a tracker edge, but the second (FAFF-1349's length preflight living in this ticket's stage procedure) is left as a rationale note with no ordering edge, so the pipeline cannot see that FAFF-1349 builds on this slice's stage procedure.",
+          "spec_anchor": "out-of-scope"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec's central claim for the disposition table is that \"the evidence comment can never call a proposition fixed when admission called it unresolved\" — but that guarantee holds only if `--spec` is byte-for-byte the file `--admit` judged. The spec pins the input procedurally (\"prep runs `--from-judge` at the same terminal seam, before any edit except a re-stage\") and pins a re-stamp test, yet the ledger already carries `pre_ruling_spec_content` (the spec itself reasons about it when arguing the re-stage cannot flip `correctionApplied`), and no check compares the supplied `--spec` against it. A stale file, a wrong path, or a content edit between admit and collate produces dispositions that contradict the rulings, silently, at exit 0 — exactly the defect class this ticket exists to close.",
+      "evidence": "§4.2 \"Chosen: `--spec` is the spec file passed to `spec-judge-evidence --admit`…\" and the re-stage rationale paragraph; the ledger's `pre_ruling_spec_content` is named in that same paragraph but only used in argument, not as a check.",
+      "predicted_consequence": "a prep that runs `--from-judge` after a revise-round content edit (not just a re-stamp) posts an evidence comment whose `fixed`/`refuted` labels disagree with the judge's admission, and nothing in the pipeline flags it.",
+      "spec_anchor": "how-4-2-collate-evidence-from-judge",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Not detectable today: --admit persists no digest of the spec it judged. The guarantee is scoped to the same file, the prose keeps the calls adjacent, and recording the digest is named in OUT OF SCOPE as a follow-up ticket.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The spec's central claim for the disposition table is that \"the evidence comment can never call a proposition fixed when admission called it unresolved\" — but that guarantee holds only if `--spec` is byte-for-byte the file `--admit` judged. The spec pins the input procedurally (\"prep runs `--from-judge` at the same terminal seam, before any edit except a re-stage\") and pins a re-stamp test, yet the ledger already carries `pre_ruling_spec_content` (the spec itself reasons about it when arguing the re-stage cannot flip `correctionApplied`), and no check compares the supplied `--spec` against it. A stale file, a wrong path, or a content edit between admit and collate produces dispositions that contradict the rulings, silently, at exit 0 — exactly the defect class this ticket exists to close.",
+          "spec_anchor": "how-4-2-collate-evidence-from-judge"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The confidence segment of the provenance stamp is taken verbatim from the spec file (\"token of the last standalone `confidence:` line outside fences\") at step 5, before `computeSpecReadiness` runs at step 7. On `invalid`, step 7 explicitly writes the stamped spec back to `spec_path` — so a spec whose confidence line carries arbitrary text (extra `·` separators, a forged tail, control characters) gets that text embedded into a `> Spec:` blockquote on disk, in the exact line every downstream reader treats as machine-authored provenance. The closed-set check happens only inside the readiness contract; the stamp itself never constrains the value to `high|medium|low|unknown`.",
+      "evidence": "§4.1 PROCEDURE stage step 5 (\"confidence := token of the last standalone … line\") and step 7 (\"violations → write the stamped spec back\"); §3 AttachResult types `confidence` as the closed four-value set, but nothing applies that set at stamp-build time.",
+      "predicted_consequence": "a malformed or forged provenance line persists in the spec (and in `spec_sha256`/`body_path`) after an `invalid` stage; if a later human or agent fixes only the readiness block and re-posts without a fresh stage, the tracker comment carries a provenance stamp whose fields don't parse as specified.",
+      "spec_anchor": "how-41-faff-prep-attach",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The stamp now takes the confidence token only when it is exactly high, medium or low, else unknown; no other text from the line enters the stamp.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The confidence segment of the provenance stamp is taken verbatim from the spec file (\"token of the last standalone `confidence:` line outside fences\") at step 5, before `computeSpecReadiness` runs at step 7. On `invalid`, step 7 explicitly writes the stamped spec back to `spec_path` — so a spec whose confidence line carries arbitrary text (extra `·` separators, a forged tail, control characters) gets that text embedded into a `> Spec:` blockquote on disk, in the exact line every downstream reader treats as machine-authored provenance. The closed-set check happens only inside the readiness contract; the stamp itself never constrains the value to `high|medium|low|unknown`.",
+          "spec_anchor": "how-41-faff-prep-attach"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The DONE item \"The `build-tier:` value equals what `faff tier <file> [--gate-history N]` prints for the same text\" does not say whether \"the same text\" is the original spec file or the stamped spec after stage writes it back. The procedure computes the tier at step 6, after the stamp is built but before the stamped text is written back at step 7/8, so a tester cannot state the oracle unambiguously: run `faff tier` on the pre-stage bytes or the post-stage bytes? If `extractSpecFeatures` is sensitive to the inserted `> Spec:` or `build-tier:` lines, the two readings give different expected values and the AC becomes undecidable as written.",
+      "evidence": "DONE item under \"From HOW (prep attach)\": \"The `build-tier:` value equals what `faff tier <file> [--gate-history N]` prints for the same text.\"; procedure step 6 in section 4.1.",
+      "predicted_consequence": "A test written against the pre-stage reading could fail a correct build (or pass an incorrect one) whenever stamping changes the feature extraction input; the pass/fail line for this AC depends on an unstated choice.",
+      "spec_anchor": "how",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Step 6 computes the tier over the text with the build-tier line in place; the DONE item names the written-back file as the oracle, including at a spec_lines boundary.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The DONE item \"The `build-tier:` value equals what `faff tier <file> [--gate-history N]` prints for the same text\" does not say whether \"the same text\" is the original spec file or the stamped spec after stage writes it back. The procedure computes the tier at step 6, after the stamp is built but before the stamped text is written back at step 7/8, so a tester cannot state the oracle unambiguously: run `faff tier` on the pre-stage bytes or the post-stage bytes? If `extractSpecFeatures` is sensitive to the inserted `> Spec:` or `build-tier:` lines, the two readings give different expected values and the AC becomes undecidable as written.",
+          "spec_anchor": "how"
+        }
+      ]
+    }
+  ]
+}

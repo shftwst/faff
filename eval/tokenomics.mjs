@@ -27,6 +27,14 @@ export const GATEWAY_SKILL = join(REPO_ROOT, "plugin", "skills", "faff", "SKILL.
 // Sonnet 5 introductory pricing ($2/$10 through 2026-08-31) is available via RATES override; the
 // stable list figure ($3/$15) is the default so the bench doesn't drift when the intro window ends.
 export const RATES = {
+  // Current generation (FAFF-1199). `read_mult` is this row's cache-read multiplier
+  // against base input, overriding the flat CACHE_MULT.read: 0.05x for opus-5-5 /
+  // sonnet-5-5, 0.025x for fable-5-1 (the legacy 0.1x no longer holds for these).
+  // Write multipliers (1.25x 5m / 2x 1h) are unchanged. Rates from Anthropic's
+  // published pricing page, reconfirmed 2026-10-27.
+  "claude-opus-5-5": { in: 4.0, out: 20.0, read_mult: 0.05 },
+  "claude-sonnet-5-5": { in: 2.0, out: 10.0, read_mult: 0.05 },
+  "claude-fable-5-1": { in: 10.0, out: 50.0, read_mult: 0.025 },
   "claude-opus-4-8": { in: 5.0, out: 25.0 },
   "claude-opus-5": { in: 5.0, out: 25.0 },
   "claude-opus-4-7": { in: 5.0, out: 25.0 },
@@ -142,7 +150,10 @@ export function billCalls(calls, rates = RATES) {
     const pin = r.in / 1e6;
     const pout = r.out / 1e6;
     const cwOther = Math.max(0, c.cw - c.cw1h - c.cw5m); // un-bucketed writes → treat as 1h (observed default)
-    const read = c.cr * CACHE_MULT.read * pin;
+    // Per-row cache-read multiplier (FAFF-1199), defaulting to the flat CACHE_MULT.read
+    // so every pre-existing model prices identically; only the write legs stay flat.
+    const readMult = typeof r.read_mult === "number" ? r.read_mult : CACHE_MULT.read;
+    const read = c.cr * readMult * pin;
     const write = (c.cw1h + cwOther) * CACHE_MULT.write_1h * pin + c.cw5m * CACHE_MULT.write_5m * pin;
     const input = c.in * pin;
     const output = c.out * pout;

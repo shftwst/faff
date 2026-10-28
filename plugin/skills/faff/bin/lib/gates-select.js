@@ -391,6 +391,9 @@ async function runBudgetedLadder(root, opts) {
       if (agg.status === "errored") { needsHuman = true; continue; }
       if (p.rung.required && agg.status === "fail") { failed = true; break; }
     }
+  } catch (e) {
+    cutAll();                                                           // a write failure stops the call; nothing keeps running
+    throw e;
   } finally {
     for (const t of timers) clearTimeout(t);
   }

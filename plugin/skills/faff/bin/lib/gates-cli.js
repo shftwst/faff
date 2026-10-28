@@ -95,7 +95,10 @@ async function runBudgeted(root, values, json) {
     if (values["--budget-secs"] !== undefined || values["--resume"] || json) {
       return usageError([{ code: "invalid-value", detail: "--clear-progress takes only --root" }], GATES_USAGE);
     }
-    clearProgress(root);
+    try { clearProgress(root); } catch (e) {
+      if (e instanceof GatesProgressError) return fail(e.reason, e.detail);
+      throw e;
+    }
     return 0;
   }
   let budgetSecs = null;

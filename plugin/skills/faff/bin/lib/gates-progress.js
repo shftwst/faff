@@ -236,6 +236,13 @@ function knownSecrets(root) {
 
 // Write progress atomically: a temp file created O_EXCL in the checked directory, then rename.
 function writeProgress(root, progress, secretValues) {
+  try { writeProgressUnchecked(root, progress, secretValues); } catch (e) {
+    if (e instanceof GatesProgressError) throw e;
+    throw new GatesProgressError("progress-write-failed", e.code || e.message);
+  }
+}
+
+function writeProgressUnchecked(root, progress, secretValues) {
   checkProgressDir(root, { create: true });
   ensureProgressIgnored(root);
   const body = {
@@ -249,16 +256,22 @@ function writeProgress(root, progress, secretValues) {
   fs.renameSync(tmp, progressPath(root));
 }
 
-// Delete the progress file and any temp files beside it. Never follows a symlinked directory.
+// Delete the progress file and any temp files beside it. Never follows a symlinked directory. A
+// failure to list or delete is a progress-clear-failed error, never a silent success: graft clears
+// progress so that no output tail is left at rest.
 function clearProgress(root) {
   let present;
   try { present = checkProgressDir(root); } catch { return false; }
   if (!present) return false;
   const dir = progressDir(root);
+  let names;
+  try { names = fs.readdirSync(dir); } catch (e) { throw new GatesProgressError("progress-clear-failed", `cannot list .faff/gates: ${e.code || e.message}`); }
   let removed = false;
-  for (const name of fs.readdirSync(dir)) {
+  for (const name of names) {
     if (name === PROGRESS_FILE || name.startsWith(`${PROGRESS_FILE}.tmp-`)) {
-      try { fs.unlinkSync(path.join(dir, name)); removed = true; } catch { /* already gone */ }
+      try { fs.unlinkSync(path.join(dir, name)); removed = true; } catch (e) {
+        if (e.code !== "ENOENT") throw new GatesProgressError("progress-clear-failed", `cannot delete ${name}: ${e.code || e.message}`);
+      }
     }
   }
   return removed;

@@ -122,3 +122,15 @@ test("the grace is the smaller of 60 seconds and the budget", () => {
   assert.equal(P.graceSecs(2), 2);
   assert.equal(P.graceSecs(420), 60);
 });
+
+test("clearing progress in a directory it cannot list is a progress-clear-failed error, not a silent success", () => {
+  const dir = repo();
+  mkdirSync(join(dir, ".faff", "gates"), { recursive: true });
+  writeFileSync(P.progressPath(dir), "{}");
+  chmodSync(join(dir, ".faff", "gates"), 0o000);
+  try {
+    assert.throws(() => P.clearProgress(dir), (e) => e instanceof P.GatesProgressError && e.reason === "progress-clear-failed");
+  } finally {
+    chmodSync(join(dir, ".faff", "gates"), 0o700);
+  }
+});

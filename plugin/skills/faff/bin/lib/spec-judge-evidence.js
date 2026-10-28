@@ -437,19 +437,23 @@ function cmdSpecJudgeAcceptBar(args) {
 // ===========================================================================
 
 // Read the standing residue (the latest in-window round's objections) from the round records.
-// Returns { objections } on success, { unreadable:true } (fail-safe park) or { malformed:true }
-// (fail-loud) mirroring the bundle mode's two fail directions.
+// Returns { objections, n } on success (n is that round's number, null when no round is in the
+// window), { unreadable:true } (fail-safe park) or { malformed:true } (fail-loud) mirroring the
+// bundle mode's two fail directions. FAFF-1406: exported so `collate-evidence --from-judge` maps
+// propositions onto the very round `--assemble` read.
 function readStandingResidue(dir, windowStart) {
   let files;
   try { files = roundFilesInDir(dir).filter((f) => f.n >= windowStart); }
   catch { return { unreadable: true }; }
   let latest = null;
+  let n = null;
   for (const f of files) {
     const read = readRoundRecord(f.path);
     if (read.malformed || read.missing) return { malformed: true, path: f.path, why: read.malformed || "vanished" };
     latest = read.record || {};
+    n = f.n;
   }
-  return { objections: latest && Array.isArray(latest.objections) ? latest.objections : [] };
+  return { objections: latest && Array.isArray(latest.objections) ? latest.objections : [], n };
 }
 
 // Resolve the serving backend identity + the reputation flagged[] list (best-effort; absence →
@@ -669,6 +673,7 @@ function cmdRestamp(values) {
 
 module.exports = {
   cmdSpecJudgeEvidence,
+  readStandingResidue,
   cmdSpecJudgeAcceptBar,
   computeAcceptBar,
   infosecMajorFree,

@@ -106,7 +106,7 @@ function shardCapable(command) {
 // own maxBuffer/ENOBUFS behaviour), and enforces timeoutMs by killing the child and tagging the
 // result exactly like spawnSync's own timeout does. Resolves to the SAME {error, status, signal,
 // stdout, stderr} shape classifyRungResult already consumes — one classifier, two producers.
-function spawnAsync(command, { cwd, timeoutMs, maxBufferBytes }) {
+function spawnAsync(command, { cwd, timeoutMs, maxBufferBytes, cutHandle }) {
   return new Promise((resolve) => {
     let child;
     try {
@@ -159,6 +159,10 @@ function spawnAsync(command, { cwd, timeoutMs, maxBufferBytes }) {
     if (Number.isFinite(timeoutMs) && timeoutMs > 0) {
       timer = setTimeout(() => { timedOut = true; killGroup("SIGTERM"); }, timeoutMs);
     }
+    // FAFF-1405: a budgeted gate run can cut a unit. The caller's stop signal is the only source of
+    // a cut, so a cut is never mistaken for the rung timeout and never classified as a result.
+    let cutRequested = false;
+    if (cutHandle) cutHandle.cut = () => { if (!settled && !cutRequested) { cutRequested = true; killGroup("SIGTERM"); } };
 
     const onChunk = (isStdout) => (chunk) => {
       const len = chunk.length;
@@ -173,7 +177,8 @@ function spawnAsync(command, { cwd, timeoutMs, maxBufferBytes }) {
     if (child.stderr) child.stderr.on("data", onChunk(false));
     child.on("error", (err) => settle({ error: err, status: null, signal: null, stdout, stderr }));
     child.on("close", (code, signal) => {
-      if (overflowed) settle({ error: { code: "ENOBUFS" }, status: null, signal, stdout, stderr });
+      if (cutRequested) settle({ cut: true, error: null, status: null, signal, stdout, stderr });
+      else if (overflowed) settle({ error: { code: "ENOBUFS" }, status: null, signal, stdout, stderr });
       else if (timedOut) settle({ error: { code: "ETIMEDOUT" }, status: null, signal, stdout, stderr });
       else settle({ error: null, status: code, signal, stdout, stderr });
     });
@@ -349,6 +354,60 @@ async function runFilePoolRung(rung, root, rung_timeout_ms, { glob, serial = [],
 // path, byte-identical to before this ticket. Both existing callers (runLadder in gates-select.js, and
 // post-merge.js's verifyPostMerge) inherit this with no change to their own calling logic — an
 // async runRung is simply awaited.
+// FAFF-1405: the units a rung runs as, in the order runRung would run them. A unit is one process:
+// the whole rung, one file of the file pool (pooled files largest first, then the serial files), or
+// one shard. The same branch order as runRung, so a budgeted run splits a rung exactly as an
+// unbudgeted run executes it.
+function listRungUnits(rung, root, cfg) {
+  const { local_shards, local_test_files, serial_tests } = cfg;
+  const whole = { mode: "whole", units: [{ id: "whole", command: rung.command }] };
+  if (!shardCapable(rung.command)) return whole;
+  if (local_test_files) {
+    const cwd = rungCwd(rung, root);
+    const files = listTestFiles(cwd, local_test_files);
+    if (!files.length) return { mode: "whole", units: [{ id: "whole", command: rung.command, noFiles: `gates.local_test_files '${local_test_files}' matched no files under ${cwd}` }] };
+    const serialRes = serial_tests.map(globToRegExp);
+    const isSerial = (f) => serialRes.some((re) => re.test(f));
+    const size = (f) => { try { return fs.statSync(path.join(cwd, f)).size; } catch { return 0; } };
+    const pooled = files.filter((f) => !isSerial(f)).map((f) => [f, size(f)]).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).map(([f]) => f);
+    const units = [
+      ...pooled.map((f) => ({ id: `file:${f}`, file: f, command: `${rung.command} ${shellQuote(f)}`, serial: false })),
+      ...files.filter(isSerial).map((f) => ({ id: `file:${f}`, file: f, command: `${rung.command} ${shellQuote(f)}`, serial: true })),
+    ];
+    return { mode: "pool", units };
+  }
+  const n = local_shards;
+  if (!(n > 1)) return whole;
+  return { mode: "shard", units: Array.from({ length: n }, (_, i) => ({ id: `shard:${i + 1}/${n}`, index: i + 1, command: `${rung.command} --test-shard=${i + 1}/${n}` })) };
+}
+
+// Run one unit asynchronously so it can be cut. Resolves { cut: true } when cut, else a classified
+// result carrying the unit's file or shard index for the rung aggregators.
+async function runUnit(rung, unit, root, rung_timeout_ms, cutHandle) {
+  if (unit.noFiles) return { kind: rung.kind, name: rung.name, command: rung.command, status: "errored", reason: "no-test-files", duration_ms: 0, detail: unit.noFiles };
+  const started = Date.now();
+  const res = await spawnAsync(unit.command, { cwd: rungCwd(rung, root), timeoutMs: rung_timeout_ms, maxBufferBytes: MAX_RUNG_STDOUT_BYTES, cutHandle });
+  if (res.cut) return { cut: true, duration_ms: Date.now() - started };
+  const r = classifyRungResult(rung, res, Date.now() - started, rung_timeout_ms);
+  if (unit.file) r.file = unit.file;
+  if (unit.index) r.index = unit.index;
+  return r;
+}
+
+// Fold a rung's unit results (in unit order) back into one rung result, exactly as the unbudgeted
+// executor does for the same mode.
+function aggregateUnits(rung, mode, units, results, wall_ms) {
+  if (mode === "pool") {
+    const serial = units.filter((u) => u.serial).length;
+    return aggregateFileResults(rung, results, { pooled: units.length - serial, serial }, wall_ms);
+  }
+  if (mode === "shard") return aggregateShardResults(rung, results, results.length, wall_ms);
+  const r = results[0];
+  const out = { kind: rung.kind, name: rung.name, command: rung.command, status: r.status, duration_ms: wall_ms, detail: r.detail };
+  if (r.reason) out.reason = r.reason;
+  return out;
+}
+
 async function runRung(rung, root) {
   const { rung_timeout_ms, local_shards, local_shard_concurrency, local_test_files, serial_tests, file_pool_concurrency } = readGatesConfig(root);
   if (!shardCapable(rung.command)) return runSingleSpawnSync(rung, root, rung_timeout_ms);
@@ -358,4 +417,4 @@ async function runRung(rung, root) {
   return runShardedRung(rung, root, rung_timeout_ms, n, local_shard_concurrency);
 }
 
-module.exports = { MAX_RUNG_STDOUT_BYTES, aggregateFileResults, aggregateShardResults, classifyRungResult, globToRegExp, listTestFiles, runFilePoolRung, runRung, runShardedRung, runSingleSpawnSync, rungCwd, shardCapable, spawnAsync };
+module.exports = { MAX_RUNG_STDOUT_BYTES, aggregateFileResults, aggregateUnits, listRungUnits, runUnit, aggregateShardResults, classifyRungResult, globToRegExp, listTestFiles, runFilePoolRung, runRung, runShardedRung, runSingleSpawnSync, rungCwd, shardCapable, spawnAsync };

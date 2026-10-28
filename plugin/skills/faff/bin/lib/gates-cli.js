@@ -14,8 +14,10 @@ const { CI_COST_PENALTY, GATE_COST, ciRunnerKind, discoverCiWorkflows, discoverR
 const { discoverRungsReporting, extractRunCommandsWithContext, reportKind } = require("./gates-report");
 const { aggregateShardResults, globToRegExp, runRung, runShardedRung, rungCwd, shardCapable } = require("./gates-exec");
 const { aggregateSelftest, applyPartialPolicy, capPerKind, exclusionReason, runLadder, selectRunnableRungs } = require("./gates-select");
+const { GatesProgressError, MAX_BUDGET_SECS, clearProgress, isGitWorkTree } = require("./gates-progress");
 
-const GATES_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--root": { arity: 1 } }, positionals: { min: 0, max: 1, name: "action" } };
+const GATES_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--root": { arity: 1 }, "--budget-secs": { arity: 1 }, "--resume": { arity: 0 }, "--clear-progress": { arity: 0 } }, positionals: { min: 0, max: 1, name: "action" } };
+const GATES_USAGE = "usage: faff gates <discover|run> [--json] [--root DIR] [--budget-secs N] [--resume]\n       faff gates run --clear-progress [--root DIR]";
 // FAFF-628 — declared grammar. Neither `discover` nor `run` unconditionally requires a flag
 // today (both default from --root/findRoot()).
 const GATES_SURFACE = {
@@ -35,7 +37,7 @@ function gatesContractExtraction(outcome) {
 async function cmdGates(args) {
   if (args.includes("--selftest")) return gatesSelftest();
   const { values, positionals, errors } = parseArgs(args, GATES_SPEC);
-  if (errors.length) return usageError(errors, "usage: faff gates <discover|run> [--json] [--root DIR]");
+  if (errors.length) return usageError(errors, GATES_USAGE);
   const action = positionals[0];
   const json = !!values["--json"];
   const root = values["--root"] || findRoot();
@@ -52,6 +54,10 @@ async function cmdGates(args) {
     for (const r of rungs) console.log(`  ${String(r.cost_rank).padStart(3)}  ${r.kind.padEnd(16)} ${r.command}   [${r.source}]`);
     console.log(`coverage: recognised ${coverage.recognised_steps} / eligible ${coverage.eligible_steps} steps (${coverage.ratio.toFixed(2)})`);
     return 0;
+  }
+
+  if (action === "run" && (values["--budget-secs"] !== undefined || values["--resume"] || values["--clear-progress"])) {
+    return runBudgeted(root, values, json);
   }
 
   if (action === "run") {
@@ -78,6 +84,78 @@ async function cmdGates(args) {
 
   process.stderr.write("faff gates: expected one of: discover | run (or --selftest)\n");
   return 2;
+}
+
+// FAFF-1405: `faff gates run --budget-secs N` / `--resume` / `--clear-progress`. Exit 3 means the
+// budget ran out with units still to run: the progress is saved and the caller re-invokes with
+// --resume. An incomplete call prints no contract block, so nothing can read it as a verdict.
+async function runBudgeted(root, values, json) {
+  const fail = (reason, detail) => { process.stderr.write(`faff gates run: ${reason}: ${detail}\n`); return 2; };
+  if (values["--clear-progress"]) {
+    if (values["--budget-secs"] !== undefined || values["--resume"] || json) {
+      return usageError([{ code: "invalid-value", detail: "--clear-progress takes only --root" }], GATES_USAGE);
+    }
+    try { clearProgress(root); } catch (e) {
+      if (e instanceof GatesProgressError) return fail(e.reason, e.detail);
+      throw e;
+    }
+    return 0;
+  }
+  let budgetSecs = null;
+  const raw = values["--budget-secs"];
+  if (raw !== undefined) {
+    const n = Number(raw);
+    if (!/^\d+$/.test(String(raw)) || !Number.isInteger(n) || n < 1 || n > MAX_BUDGET_SECS) {
+      return usageError([{ code: "invalid-value", detail: `--budget-secs expects an integer from 1 to ${MAX_BUDGET_SECS}` }], GATES_USAGE);
+    }
+    budgetSecs = n;
+  }
+  if (!isGitWorkTree(root)) return fail("not-a-git-work-tree", "--budget-secs and --resume need a git work tree");
+  if (budgetSecs === null) {
+    const cfg = readGatesConfig(root);
+    budgetSecs = cfg.run_budget_secs;
+    if (cfg.run_budget_secs_raw !== null && cfg.run_budget_secs_raw > MAX_BUDGET_SECS) {
+      process.stderr.write(`faff gates run: gates.run_budget_secs ${cfg.run_budget_secs_raw} is above ${MAX_BUDGET_SECS}; clamped to ${MAX_BUDGET_SECS}\n`);
+    }
+  }
+  let res;
+  try {
+    res = await runLadder(root, { budgetSecs, resume: !!values["--resume"] });
+  } catch (e) {
+    if (e instanceof GatesProgressError) return fail(e.reason, e.detail);
+    throw e;
+  }
+  if (res.incomplete) {
+    const { incomplete, ...rest } = res;
+    const out = { status: "incomplete", ...rest };
+    if (!out.discarded) delete out.discarded;
+    if (json) console.log(JSON.stringify(out, null, 2));
+    else {
+      if (out.discarded) console.log(`progress discarded: ${out.discarded}`);
+      console.log(`gate ladder: incomplete (budget ${out.budget_secs}s): ${out.units_done} of ${out.units_total} units done; run again with --resume`);
+    }
+    return 3;
+  }
+  return printOutcome(res.outcome, json);
+}
+
+// Print a finished GatesOutcome and its contract block; exit 0 pass, 1 otherwise.
+function printOutcome(outcome, json) {
+  const extraction = gatesContractExtraction(outcome);
+  const block = "```faff-contract:quality-gates\n" + JSON.stringify(extraction) + "\n```";
+  if (json) {
+    console.log(JSON.stringify({ ...outcome, contract: extraction }, null, 2));
+  } else {
+    console.log(`gate ladder: signal=${outcome.signal} discovery=${outcome.discovery}`);
+    for (const r of outcome.rungs) console.log(`  ${r.status.padEnd(8)} ${r.kind.padEnd(16)} ${r.command}  (${r.duration_ms}ms)`);
+    if (outcome.discovery === "none") console.log("  no declared engineering gates found; ran none");
+    for (const ex of outcome.exclusions || []) console.log(`  excluded (${ex.reason}): ${ex.command}`);
+    if (outcome.coverage) console.log(`  runnable coverage: recognised ${outcome.coverage.recognised_steps} / eligible ${outcome.coverage.eligible_steps} steps (${outcome.coverage.ratio.toFixed(2)})`);
+    if (outcome.partialWarning) console.log(`  [warn] partial coverage: runnable coverage below gates.partial_threshold; ran the recognised subset (gates.partial: warn)`);
+    if (outcome.resumed) console.log(`  resumed: ${outcome.resumed.calls} call${outcome.resumed.calls === 1 ? "" : "s"}${outcome.resumed.discarded ? `, progress discarded: ${outcome.resumed.discarded}` : ""}`);
+    console.log(block);
+  }
+  return outcome.signal === "pass" ? 0 : 1;
 }
 
 async function gatesSelftest() {

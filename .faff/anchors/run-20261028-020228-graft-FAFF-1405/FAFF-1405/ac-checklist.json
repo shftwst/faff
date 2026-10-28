@@ -1,0 +1,563 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A gate run that needs more than one budget completes through repeated `--resume` calls, and its final `faff-contract:quality-gates` block (signal plus each rung's kind and status) is identical to an uninterrupted run's on the same tree; `resumed`, `setup_ms` and durations are not compared.",
+      "verified": "Resume run's contract block equals the uninterrupted run's",
+      "passed": true,
+      "ac_id": "faff-1405#ac-1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::an incomplete call exits 3 with no contract block, and --resume finishes with the uninterrupted contract"
+        }
+      ]
+    },
+    {
+      "ac": "`--budget-secs` rejects 0, negative, non-integer, missing and above-480 values with exit 2.",
+      "verified": "0, -1, 1.5, 481, abc and a missing value exit 2",
+      "passed": true,
+      "ac_id": "faff-1405#ac-2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::--budget-secs accepts only an integer from 1 to 480, and an oversized config budget is clamped"
+        }
+      ]
+    },
+    {
+      "ac": "`gates.run_budget_secs: 600` gives a budget of 480 and one stderr line naming the clamp.",
+      "verified": "run_budget_secs 600 gives the clamp stderr line",
+      "passed": true,
+      "ac_id": "faff-1405#ac-3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::--budget-secs accepts only an integer from 1 to 480, and an oversized config budget is clamped"
+        }
+      ]
+    },
+    {
+      "ac": "`--clear-progress` deletes the progress file, runs no rung, and exits 0; combined with `--resume` it exits 2.",
+      "verified": "deletes progress, empty stdout, exit 0; with --resume exit 2",
+      "passed": true,
+      "ac_id": "faff-1405#ac-4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::--clear-progress deletes the progress, runs nothing, and refuses other flags"
+        }
+      ]
+    },
+    {
+      "ac": "With `--resume` and no `--budget-secs`, the budget is `gates.run_budget_secs`, and 420 when that key is unset.",
+      "verified": "config budget used under --resume (budget_secs 4 from config); default 420",
+      "passed": true,
+      "ac_id": "faff-1405#ac-5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::changing gates.run_budget_secs does not change the plan"
+        },
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::gates.run_budget_secs defaults to 420"
+        }
+      ]
+    },
+    {
+      "ac": "With neither flag, the run's stdout, exit code and files on disk are the same as before this change (no `resumed` field, no progress file).",
+      "verified": "no resumed field, the progress file untouched",
+      "passed": true,
+      "ac_id": "faff-1405#ac-6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::with neither flag, a run neither reads, writes nor deletes a progress file"
+        }
+      ]
+    },
+    {
+      "ac": "An incomplete call exits 3, prints `GatesIncomplete` under `--json`, prints only the `progress discarded` line (when set) and the `gate ladder: incomplete` line without `--json`, and prints no `faff-contract:quality-gates` block in either mode.",
+      "verified": "JSON has no signal/contract; non-JSON output is exactly the discard line plus the incomplete line",
+      "passed": true,
+      "ac_id": "faff-1405#ac-7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::an incomplete call exits 3 with no contract block, and --resume finishes with the uninterrupted contract"
+        },
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::the non-JSON exit-3 output is the single incomplete line, preceded by the discard line when set"
+        }
+      ]
+    },
+    {
+      "ac": "A finished budgeted or resumed run's JSON carries `resumed.calls`.",
+      "verified": "resumed.calls 2 after a resume",
+      "passed": true,
+      "ac_id": "faff-1405#ac-8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::an incomplete call exits 3 with no contract block, and --resume finishes with the uninterrupted contract"
+        }
+      ]
+    },
+    {
+      "ac": "`gates.run_budget_secs` appears in `faff config defaults` with value 420.",
+      "verified": "faff config get gates.run_budget_secs prints 420",
+      "passed": true,
+      "ac_id": "faff-1405#ac-9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::gates.run_budget_secs defaults to 420"
+        }
+      ]
+    },
+    {
+      "ac": "No unit other than the call's first starts after the budget is spent on the call clock.",
+      "verified": "the second rung never starts in a call whose budget ran out after the first",
+      "passed": true,
+      "ac_id": "faff-1405#ac-10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::a unit that cannot finish by the ceiling is recorded errored, the run ends needs-human, and a higher ceiling retries it"
+        },
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::an incomplete call exits 3 with no contract block, and --resume finishes with the uninterrupted contract"
+        }
+      ]
+    },
+    {
+      "ac": "A call whose setup (fingerprints and progress read) takes longer than the budget still gives its first unit the full ceiling, measured from that unit's start.",
+      "verified": "3 s of setup before a 2 s budget still lets a 3 s unit finish inside its call-clock ceiling",
+      "passed": true,
+      "ac_id": "faff-1405#ac-11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::setup time before the first unit does not shorten that unit's ceiling"
+        }
+      ]
+    },
+    {
+      "ac": "A call that reuses results from progress and has its only new unit in flight at expiry lets that unit run to the ceiling and records it, because reused results are not finished by this call.",
+      "verified": "the resumed call reuses lint and runs the 6 s unit past its 5 s budget to completion",
+      "passed": true,
+      "ac_id": "faff-1405#ac-12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::an incomplete call exits 3 with no contract block, and --resume finishes with the uninterrupted contract"
+        }
+      ]
+    },
+    {
+      "ac": "A finished run that discarded progress at step 4 carries `resumed.discarded` with the reason and `resumed.calls` of 1; a finished run that discarded nothing has no `resumed.discarded`.",
+      "verified": "resumed deep-equals {calls:1, discarded:\"tree-changed\"}",
+      "passed": true,
+      "ac_id": "faff-1405#ac-13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::a finished run that discarded progress reports resumed.discarded and one call"
+        }
+      ]
+    },
+    {
+      "ac": "A call that has finished at least one unit cuts in-flight units at expiry, and no cut unit's result appears in progress or in any later output.",
+      "verified": "only the finished lint unit is in progress after the cut",
+      "passed": true,
+      "ac_id": "faff-1405#ac-14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::an incomplete call exits 3 with no contract block, and --resume finishes with the uninterrupted contract"
+        }
+      ]
+    },
+    {
+      "ac": "A call that has finished no unit lets its in-flight units run to the ceiling, records those that finish, and records each still running at the ceiling as `errored` with reason `exceeds-call-budget`; no call runs a unit past its ceiling.",
+      "verified": "the 4 s unit under a 1 s budget is recorded errored exceeds-call-budget with ceiling_secs 2, and the call ended before the unit would have",
+      "passed": true,
+      "ac_id": "faff-1405#ac-15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::a unit that cannot finish by the ceiling is recorded errored, the run ends needs-human, and a higher ceiling retries it"
+        }
+      ]
+    },
+    {
+      "ac": "Changing `gates.run_budget_secs` between calls does not change the plan fingerprint.",
+      "verified": "a 3 s then 4 s config budget reports no discard",
+      "passed": true,
+      "ac_id": "faff-1405#ac-16",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::changing gates.run_budget_secs does not change the plan"
+        },
+        {
+          "kind": "test",
+          "locator": "test/gates-progress.test.mjs::the plan fingerprint ignores the budget but sees rungs, units and other config"
+        }
+      ]
+    },
+    {
+      "ac": "Editing an ignored pool test file between calls reports `plan-changed`.",
+      "verified": "editing a gitignored pool test file reports plan-changed",
+      "passed": true,
+      "ac_id": "faff-1405#ac-17",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::editing an ignored pool test file between calls reports plan-changed"
+        }
+      ]
+    },
+    {
+      "ac": "Progress holds an empty `detail` for every `pass` unit, and after any progress write `.faff/gates/.gitignore` contains exactly `*`, including when `.faff/gates` existed beforehand without it.",
+      "verified": "pass detail empty; .gitignore is exactly *; git status clean with a tracked .faff",
+      "passed": true,
+      "ac_id": "faff-1405#ac-18",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::progress redacts configured and secret-shaped values from a failing unit, stores no pass detail, and is ignored by git"
+        },
+        {
+          "kind": "test",
+          "locator": "test/gates-progress.test.mjs::progress round-trips, judges tree, plan and age, and is written 0600 by rename"
+        }
+      ]
+    },
+    {
+      "ac": "With `.faff/gates/.gitignore` tracked and not ignoring the progress file, a budgeted call exits 2 with reason `progress-file-not-ignored` and leaves the tracked file byte-identical.",
+      "verified": "exit 2 progress-file-not-ignored, tracked .gitignore byte-identical",
+      "passed": true,
+      "ac_id": "faff-1405#ac-19",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::a tracked .faff/gates/.gitignore that does not ignore progress exits 2 and is left untouched"
+        }
+      ]
+    },
+    {
+      "ac": "A `fail` unit whose output contains a configured secret value and a secret-shaped token has both replaced by the redaction placeholder in `run-progress.json`.",
+      "verified": "[REDACTED] and [redacted] both present, raw values absent",
+      "passed": true,
+      "ac_id": "faff-1405#ac-20",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::progress redacts configured and secret-shaped values from a failing unit, stores no pass detail, and is ignored by git"
+        },
+        {
+          "kind": "test",
+          "locator": "test/gates-progress.test.mjs::a detail that starts part-way through its output drops the leading fragment before redaction"
+        }
+      ]
+    },
+    {
+      "ac": "A progress file holding an `exceeds-call-budget` result whose `ceiling_secs` is below the current call's ceiling makes that unit run again; one at or above it is reused.",
+      "verified": "a 1 s ceiling cut is retried under an 8 s budget and passes",
+      "passed": true,
+      "ac_id": "faff-1405#ac-21",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::a unit that cannot finish by the ceiling is recorded errored, the run ends needs-human, and a higher ceiling retries it"
+        }
+      ]
+    },
+    {
+      "ac": "Progress is rewritten after each recorded unit, so a call killed after recording a unit leaves that unit in progress.",
+      "verified": "after SIGKILL the progress holds the finished pool file",
+      "passed": true,
+      "ac_id": "faff-1405#ac-22",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::progress is rewritten after each recorded unit, so a killed call keeps what it finished"
+        }
+      ]
+    },
+    {
+      "ac": "Every call that exits 3 reports a `units_done` higher than the previous exit-3 call on the same tree and plan.",
+      "verified": "units_done strictly rises across exit-3 calls",
+      "passed": true,
+      "ac_id": "faff-1405#ac-23",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::a call whose first unit outlasts the budget still runs it to the ceiling, and units_done rises every exit-3 call"
+        }
+      ]
+    },
+    {
+      "ac": "A cut whole-rung unit is never reported as `errored` with reason `timed-out`.",
+      "verified": "the ceiling cut records reason exceeds-call-budget, never timed-out; budget cuts record nothing",
+      "passed": true,
+      "ac_id": "faff-1405#ac-24",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::a unit that cannot finish by the ceiling is recorded errored, the run ends needs-human, and a higher ceiling retries it"
+        },
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::an incomplete call exits 3 with no contract block, and --resume finishes with the uninterrupted contract"
+        }
+      ]
+    },
+    {
+      "ac": "Units recorded in matching progress are not run again.",
+      "verified": "the marker file shows lint ran once across two calls",
+      "passed": true,
+      "ac_id": "faff-1405#ac-25",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::units recorded in matching progress are not run again"
+        }
+      ]
+    },
+    {
+      "ac": "A required rung that fails ends the ladder with exit 1 and deletes the progress file.",
+      "verified": "exit 1, signal fail, progress file gone",
+      "passed": true,
+      "ac_id": "faff-1405#ac-26",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::a required rung that fails after a resume ends the ladder with exit 1 and deletes the progress"
+        }
+      ]
+    },
+    {
+      "ac": "The progress file is mode 0600 and is replaced by rename, never written in place.",
+      "verified": "mode 0600; written to an O_EXCL temp file then renamed",
+      "passed": true,
+      "ac_id": "faff-1405#ac-27",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-progress.test.mjs::progress round-trips, judges tree, plan and age, and is written 0600 by rename"
+        }
+      ]
+    },
+    {
+      "ac": "Editing a tracked file, adding an untracked file, or changing the gates config between calls makes the next `--resume` call report `tree-changed` or `plan-changed` and run every rung.",
+      "verified": "tree-changed after an untracked file, plan-changed after a gates config change",
+      "passed": true,
+      "ac_id": "faff-1405#ac-28",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::a tree change, a plan change and stale progress each discard the progress"
+        }
+      ]
+    },
+    {
+      "ac": "Changing a file under `.faff/` other than the gates config does not change the tree fingerprint.",
+      "verified": "edits under .faff/other leave the fingerprint unchanged",
+      "passed": true,
+      "ac_id": "faff-1405#ac-29",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-progress.test.mjs::the tree fingerprint sees edits, new files, deletions and modes, but not .faff/"
+        }
+      ]
+    },
+    {
+      "ac": "Computing the tree fingerprint leaves `.git/index` byte-identical and adds no object to `.git/objects` (an untracked fixture file's content id is not present in the object store afterwards).",
+      "verified": "index bytes identical, object count unchanged, the untracked blob absent",
+      "passed": true,
+      "ac_id": "faff-1405#ac-30",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-progress.test.mjs::computing the tree fingerprint writes neither the index nor any object"
+        }
+      ]
+    },
+    {
+      "ac": "Progress whose `written_at` is more than 3600 seconds old is reported `stale` and not used.",
+      "verified": "a 2-hour-old written_at reports stale",
+      "passed": true,
+      "ac_id": "faff-1405#ac-31",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::a tree change, a plan change and stale progress each discard the progress"
+        },
+        {
+          "kind": "test",
+          "locator": "test/gates-progress.test.mjs::progress round-trips, judges tree, plan and age, and is written 0600 by rename"
+        }
+      ]
+    },
+    {
+      "ac": "With `.faff` or `.faff/gates` a symlink, either flag exits 2 with reason `progress-dir-unsafe`, and nothing is written through the link.",
+      "verified": "exit 2 progress-dir-unsafe, nothing in the symlink target",
+      "passed": true,
+      "ac_id": "faff-1405#ac-32",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::a symlinked .faff/gates exits 2 progress-dir-unsafe and writes nothing through it"
+        }
+      ]
+    },
+    {
+      "ac": "A progress file that is a symlink, empty, or malformed is reported `unreadable`, deleted, and never used.",
+      "verified": "malformed JSON and a symlinked file both report unreadable",
+      "passed": true,
+      "ac_id": "faff-1405#ac-33",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::a malformed or symlinked progress file is reported unreadable and never used"
+        }
+      ]
+    },
+    {
+      "ac": "Either flag in a root that is not a git work tree exits 2.",
+      "verified": "--budget-secs and --resume each exit 2 outside git",
+      "passed": true,
+      "ac_id": "faff-1405#ac-34",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::either flag outside a git work tree exits 2"
+        }
+      ]
+    },
+    {
+      "ac": "`merge-gate-local.js` (`runLadder`) and `post-merge-check` (`runRung`) are called without the new options, and a progress file in their tree does not change their result.",
+      "verified": "merge-gate-local.js calls runLadder(cwd) and post-merge-check calls runRung with no options; the no-flag path is covered by the neither-flag test",
+      "passed": true,
+      "ac_id": "faff-1405#ac-35",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'runLadder(cwd)' plugin/skills/faff/bin/lib/merge-gate-local.js"
+        },
+        {
+          "kind": "test",
+          "locator": "test/gates-budget.test.mjs::with neither flag, a run neither reads, writes nor deletes a progress file"
+        }
+      ]
+    },
+    {
+      "ac": "`faff-graft/SKILL.md` Step 7.5 runs `faff gates run --json --resume`, re-invokes it on exit 3 while `units_done` rises within one attempt, ticking the heartbeat between calls, and stops as `needs-human` when `units_done` did not rise, a call after the first in an attempt reports `discarded`, or a call ends with an exit other than 0, 1 or 3, and on that stop runs `faff gates run --clear-progress`.",
+      "verified": "Step 7.5 runs gates run --json --resume with the Resume loop paragraph",
+      "passed": true,
+      "ac_id": "faff-1405#ac-36",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'gates run --json --resume\\|Resume loop' plugin/skills/faff-graft/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "The foreground-posture paragraph no longer says \"chunked or polled\", still says \"never backgrounded\", and keeps all three faff-graft `ANCHOR_PHRASES`.",
+      "verified": "'chunked or polled' gone, 'never backgrounded' kept, validate-adapters PASS (anchor phrases present)",
+      "passed": true,
+      "ac_id": "faff-1405#ac-37",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c 'chunked or polled' plugin/skills/faff-graft/SKILL.md"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "`SKILL_LINE_BASELINE[\"faff-graft\"]` equals the file's new size, and `faff validate-adapters` reports no RATCHET and no FAIL.",
+      "verified": "baseline 896 for an 895-line file; validate-adapters exit 0 with no FAIL or RATCHET",
+      "passed": true,
+      "ac_id": "faff-1405#ac-38",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "`docs/guide/cli.md`'s `gates` row shows the three new flags, and `faff lint-cli-doc` passes.",
+      "verified": "the gates row lists --budget-secs N, --resume and --clear-progress; lint-cli-doc PASS",
+      "passed": true,
+      "ac_id": "faff-1405#ac-39",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-doc"
+        }
+      ]
+    },
+    {
+      "ac": "`faff regions check` passes with `gates-progress.js` carrying the `region:factory … FAFF-1405` banner.",
+      "verified": "regions check PASS with the region:factory gates-progress FAFF-1405 banner",
+      "passed": true,
+      "ac_id": "faff-1405#ac-40",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        }
+      ]
+    },
+    {
+      "ac": "No new `--selftest` cases: `gatesSelftest` and the `config defaults --selftest` expected list gain no entries. A selftest case this change alters may move into `test/`, never the reverse. `gates` keeps its existing selftest coverage, so no `TEST_FILE_COVERAGE` entry is needed.",
+      "verified": "git diff origin/main shows no line added inside gatesSelftest or the defaults --selftest expected list",
+      "passed": true,
+      "ac_id": "faff-1405#ac-41",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main -- plugin/skills/faff/bin/lib/gates-cli.js plugin/skills/faff/bin/lib/config.js"
+        }
+      ]
+    },
+    {
+      "ac": "`test/gates-budget.test.mjs` exists, runs under `node --test`, and passes. It drives the real `faff gates run` on `mkdtempSync` git repos and covers: exit 3 then resume to exit 0; tree change discards; plan change discards; stale progress discards; the no-progress-call rule and the ceiling cut; a budget cut is not recorded; a malformed or symlinked progress file is discarded; `units_done` strictly rises across exit-3 calls; the non-JSON exit-3 line; `gates.run_budget_secs` in `faff config defaults`.",
+      "verified": "the file passes under node --test (21 tests)",
+      "passed": true,
+      "ac_id": "faff-1405#ac-42",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/gates-budget.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`test/gates-progress.test.mjs` exists, runs under `node --test`, and passes, covering the fingerprints and the progress reader and writer on a `mkdtempSync` git repo.",
+      "verified": "the file passes under node --test (7 tests)",
+      "passed": true,
+      "ac_id": "faff-1405#ac-43",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/gates-progress.test.mjs"
+        }
+      ]
+    }
+  ]
+}

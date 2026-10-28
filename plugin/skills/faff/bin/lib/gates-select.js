@@ -9,7 +9,8 @@ const os = require("node:os");
 const { localOs, readGatesConfig } = require("./gates-config");
 const { CI_COST_PENALTY, GATE_COST, ciRunnerKind, discoverMakefile, discoverPkgScripts, discoverPreCommit, discoverRunnerFiles, mergeRunnerTier, normaliseLocalRungCommand } = require("./gates-discover");
 const { extractRunCommandsWithContext, reportKind } = require("./gates-report");
-const { runRung } = require("./gates-exec");
+const { aggregateUnits, listRungUnits, runRung, runUnit, rungCwd } = require("./gates-exec");
+const { checkProgressDir, clearProgress, contentIds, ensureProgressIgnored, graceSecs, judgeProgress, knownSecrets, planFingerprint, progressPath, readProgress, treeFingerprint, writeProgress, PROGRESS_SCHEMA } = require("./gates-progress");
 
 // ===========================================================================
 // FAFF-849 (639b) — the EXECUTION path consumes the wider REPORTING recogniser (848's
@@ -236,7 +237,8 @@ function applyPartialPolicy(signal, discovery, coverage, cfg) {
 // FAFF-849 (639b): rungs now come from selectRunnableRungs (the filtered/bounded reporting set),
 // and a runnable-coverage-below-threshold `partial` verdict consults gates.partial via
 // applyPartialPolicy as a final, never-lowering signal adjustment.
-async function runLadder(root) {
+async function runLadder(root, opts) {
+  if (opts) return runBudgetedLadder(root, opts);
   const cfg = readGatesConfig(root);
   const { rungs, discovery, coverage, exclusions } = selectRunnableRungs(root, cfg);
   const results = [];
@@ -259,4 +261,157 @@ async function runLadder(root) {
   return { signal: finalSignal, discovery, coverage, exclusions, rungs: results, partialWarning };
 }
 
-module.exports = { aggregateSelftest, applyPartialPolicy, capPerKind, discoverCiWorkflowsRunnable, exclusionReason, osFamily, runLadder, selectRunnableRungs };
+// FAFF-1405: the budgeted, resumable ladder behind `faff gates run --budget-secs N` / `--resume`.
+// Same rungs, same order and the same rules as runLadder, but run unit by unit (a whole rung, a pool
+// file, or a shard) against a wall-clock budget measured on the call clock, which starts when the
+// call's first unit starts. No unit but the first starts after the budget. At expiry a call that has
+// finished a unit cuts its in-flight units and discards them; a call that has finished none lets them
+// run to the ceiling and records any still running there as errored "exceeds-call-budget", so every
+// incomplete call records at least one new unit. Progress is rewritten after every recorded unit.
+// Returns { incomplete: true, ... } or { outcome } (a GatesOutcome plus resumed and setup_ms).
+async function runBudgetedLadder(root, opts) {
+  const now = opts.now || Date.now;
+  const callStart = now();
+  const budgetSecs = opts.budgetSecs;
+  const budgetMs = budgetSecs * 1000;
+  const ceilingSecs = budgetSecs + graceSecs(budgetSecs);
+  const ceilingMs = ceilingSecs * 1000;
+  const cfg = readGatesConfig(root);
+  const { rungs, discovery, coverage, exclusions } = selectRunnableRungs(root, cfg);
+  const plans = rungs.map((rung) => ({ rung, ...listRungUnits(rung, root, cfg) }));
+  for (const p of plans) {
+    if (p.mode !== "pool") continue;
+    const cwd = rungCwd(p.rung, root);
+    const ids = contentIds(root, p.units.map((u) => path.join(cwd, u.file)));
+    p.units.forEach((u, i) => { u.content = ids[i]; });
+  }
+  const tree = treeFingerprint(root);
+  const plan = planFingerprint(plans, cfg);
+  checkProgressDir(root, { create: true });
+  ensureProgressIgnored(root);
+  const { prior, discarded } = opts.resume ? judgeProgress(readProgress(root), tree, plan, callStart) : { prior: null, discarded: null };
+  if (discarded) clearProgress(root);
+  const secrets = knownSecrets(root);
+  const calls = (prior ? prior.calls : 0) + 1;
+  const rung_ms = {};
+  if (prior) for (const [k, v] of Object.entries(prior.rung_ms)) if (Number.isFinite(v)) rung_ms[k] = v;
+
+  const keyOf = (ri, u) => `${ri}|${u.id}`;
+  const done = new Map();
+  if (prior) {
+    for (const rec of prior.done) {
+      // A ceiling cut is reused only when it was cut at a ceiling at least as high as this call's,
+      // so raising the budget retries the unit.
+      if (rec.reason === "exceeds-call-budget" && !(rec.ceiling_secs >= ceilingSecs)) continue;
+      done.set(`${rec.rung_index}|${rec.unit}`, rec);
+    }
+  }
+  const unitsTotal = plans.reduce((n, p) => n + p.units.length, 0);
+  if (opts.afterSetup) await opts.afterSetup();                       // a test seam: slow setup
+  const persist = () => writeProgress(root, {
+    schema: PROGRESS_SCHEMA, tree, plan, written_at: new Date(now()).toISOString(), calls,
+    done: [...done.values()].sort((a, b) => a.rung_index - b.rung_index), rung_ms,
+  }, secrets);
+
+  let clockStart = null;
+  let newRecords = 0;
+  let expired = false;
+  let ceilingHit = false;
+  const inflight = new Set();
+  const timers = [];
+  const cutAll = () => { for (const h of inflight) if (h.cut) h.cut(); };
+  const armTimers = () => {
+    timers.push(setTimeout(() => {
+      expired = true;
+      if (newRecords > 0) { cutAll(); return; }
+      timers.push(setTimeout(() => { ceilingHit = true; cutAll(); }, Math.max(0, ceilingMs - budgetMs)));
+    }, budgetMs));
+  };
+  const canStart = () => clockStart === null || (!expired && now() - clockStart < budgetMs);
+  const runOne = async (ri, p, u) => {
+    if (clockStart === null) { clockStart = now(); armTimers(); }
+    const handle = {};
+    inflight.add(handle);
+    const r = await runUnit(p.rung, u, root, cfg.rung_timeout_ms, handle);
+    inflight.delete(handle);
+    let rec;
+    if (r.cut) {
+      if (!ceilingHit) return;                                        // a budget cut: discarded
+      rec = { rung_index: ri, unit: u.id, status: "errored", reason: "exceeds-call-budget", ceiling_secs: ceilingSecs, duration_ms: r.duration_ms,
+        detail: `${u.id} was still running at the ${ceilingSecs}s call ceiling; raise the budget or split the unit` };
+    } else {
+      rec = { rung_index: ri, unit: u.id, status: r.status, duration_ms: r.duration_ms, detail: r.detail || "" };
+      if (r.reason) rec.reason = r.reason;
+    }
+    done.set(keyOf(ri, u), rec);
+    newRecords += 1;
+    persist();
+  };
+  const runList = async (ri, p, list, width) => {
+    let next = 0;
+    const worker = async () => {
+      while (next < list.length && canStart()) await runOne(ri, p, list[next++]);
+    };
+    await Promise.all(Array.from({ length: Math.max(1, Math.min(width, list.length)) }, () => worker()));
+  };
+
+  const results = [];
+  let needsHuman = false;
+  let failed = false;
+  let incomplete = false;
+  try {
+    for (let ri = 0; ri < plans.length; ri++) {
+      const p = plans[ri];
+      const todo = p.units.filter((u) => !done.has(keyOf(ri, u)));
+      if (todo.length) {
+        const rungStart = now();
+        if (p.mode === "pool") {
+          await runList(ri, p, todo.filter((u) => !u.serial), cfg.file_pool_concurrency);
+          if (p.units.filter((u) => !u.serial).every((u) => done.has(keyOf(ri, u)))) {
+            await runList(ri, p, todo.filter((u) => u.serial), 1);
+          }
+        } else if (p.mode === "shard") {
+          await runList(ri, p, todo, cfg.local_shard_concurrency);
+        } else {
+          await runList(ri, p, todo, 1);
+        }
+        rung_ms[ri] = (rung_ms[ri] || 0) + (now() - rungStart);
+      }
+      if (!p.units.every((u) => done.has(keyOf(ri, u)))) { incomplete = true; break; }
+      const unitResults = p.units.map((u) => {
+        const rec = done.get(keyOf(ri, u));
+        const r = { kind: p.rung.kind, name: p.rung.name, command: p.rung.command, status: rec.status, duration_ms: rec.duration_ms, detail: rec.detail };
+        if (rec.reason) r.reason = rec.reason;
+        if (u.file) r.file = u.file;
+        if (u.index) r.index = u.index;
+        return r;
+      });
+      const agg = aggregateUnits(p.rung, p.mode, p.units, unitResults, rung_ms[ri] || 0);
+      results.push(agg);
+      if (agg.status === "errored") { needsHuman = true; continue; }
+      if (p.rung.required && agg.status === "fail") { failed = true; break; }
+    }
+  } catch (e) {
+    cutAll();                                                           // a write failure stops the call; nothing keeps running
+    throw e;
+  } finally {
+    for (const t of timers) clearTimeout(t);
+  }
+  const setup_ms = (clockStart === null ? now() : clockStart) - callStart;
+  if (incomplete) {
+    persist();                                                        // carries the final rung_ms
+    return { incomplete: true, budget_secs: budgetSecs, units_done: done.size, units_total: unitsTotal, progress: progressPath(root), setup_ms, discarded };
+  }
+  clearProgress(root);
+  let signal = "pass";
+  if (failed) signal = "fail";
+  else if (discovery === "none") signal = cfg.fallback === "fail-closed" ? "needs-human" : "pass";
+  else if (needsHuman) signal = "needs-human";
+  const resumed = { calls };
+  if (discarded) resumed.discarded = discarded;
+  if (failed) return { outcome: { signal, discovery, coverage, exclusions, rungs: results, resumed, setup_ms } };
+  const { signal: finalSignal, partialWarning } = applyPartialPolicy(signal, discovery, coverage, cfg);
+  return { outcome: { signal: finalSignal, discovery, coverage, exclusions, rungs: results, partialWarning, resumed, setup_ms } };
+}
+
+module.exports = { runBudgetedLadder, aggregateSelftest, applyPartialPolicy, capPerKind, discoverCiWorkflowsRunnable, exclusionReason, osFamily, runLadder, selectRunnableRungs };

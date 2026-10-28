@@ -68,7 +68,15 @@ function readGatesConfig(root) {
   const rawSerial = get("gates.serial_tests");
   const serial_tests = Array.isArray(rawSerial) ? rawSerial.filter((x) => typeof x === "string" && x.trim()).map((x) => x.trim()) : [];
   const file_pool_concurrency = (Number.isFinite(lsc) && lsc >= 1) ? lsc : safeAvailableParallelism();
-  return { fallback, partial, exclude, max_rungs_per_kind, partial_threshold, rung_timeout_ms, local_shards, local_shard_concurrency, local_test_files, serial_tests, file_pool_concurrency };
+  // FAFF-1405: gates.run_budget_secs, the budget a `faff gates run --resume` call runs under when no
+  // --budget-secs is given. Absent, non-numeric or below 1 gives the default; above the maximum is
+  // clamped (the raw value is returned so the CLI can name the clamp), since a larger budget's ceiling
+  // would pass the 600-second foreground tool cap.
+  let run_budget_secs = 420;
+  const rb = Math.floor(num("gates.run_budget_secs"));
+  const run_budget_secs_raw = Number.isFinite(rb) ? rb : null;
+  if (Number.isFinite(rb) && rb >= 1) run_budget_secs = Math.min(rb, 480);
+  return { fallback, partial, exclude, max_rungs_per_kind, partial_threshold, rung_timeout_ms, local_shards, local_shard_concurrency, local_test_files, serial_tests, file_pool_concurrency, run_budget_secs, run_budget_secs_raw };
 }
 
 // FAFF-1356: a quarter of the shard count keeps peak pressure on timing-sensitive tests well below the

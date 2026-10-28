@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "issue": "FAFF-1405",
+  "build": {
+    "status": "complete",
+    "diff_hash": "fd1ac11dc1af0a8291cbef04cbab69af3c2463717786ed0ae4da86d49d3885c8",
+    "branch": "faff-1405-gates-run-budget-resume",
+    "pushed_at": "2026-10-28T02:44:34.637Z"
+  },
+  "updated_at": "2026-10-28T02:44:34.637Z"
+}

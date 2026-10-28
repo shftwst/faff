@@ -442,7 +442,7 @@ function sha256Hex(bytes) { return createHash("sha256").update(Buffer.from(bytes
 
 function writeCustodyVerdict(runDir, issue, over = {}) {
   const record = {
-    schema_version: 1, run_id: basename(runDir), issue, classification: "clean",
+    schema_version: 1, faff_version: "0.44.0", run_id: basename(runDir), issue, classification: "clean",
     paths: [], detail: "digest-verified", verified_at: "2026-08-15T00:00:00.000Z",
     merge_state_at_verification: "pre-merge", ...over,
   };
@@ -593,7 +593,7 @@ function seedL4RunGreen(runDir, issue) {
 // A schema-clean custody-verdict.json at the canonical per-issue path + its sha256 (matching custodyHashBytes).
 function writeCleanCustodyVerdict(runDir, issue) {
   const record = JSON.stringify({
-    schema_version: 1, run_id: basename(runDir), issue,
+    schema_version: 1, faff_version: "0.44.0", run_id: basename(runDir), issue,
     verified_at: "2026-08-20T00:00:00.000Z", merge_state_at_verification: "pre-merge",
     classification: "clean", paths: [], detail: "digest-verified — no diffs against the held manifest",
   });

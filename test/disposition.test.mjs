@@ -295,7 +295,7 @@ test("--selftest runs the pure classifier fixture table and passes", () => {
 function writeCustodyVerdict(runDir, issue, over = {}) {
   mkdirSync(join(runDir, issue), { recursive: true });
   const record = {
-    schema_version: 1, run_id: "run-t", issue, classification: "clean",
+    schema_version: 1, faff_version: "0.44.0", run_id: "run-t", issue, classification: "clean",
     paths: [], detail: "digest-verified", verified_at: "2026-08-15T00:00:00.000Z",
     merge_state_at_verification: "pre-merge", ...over,
   };

@@ -228,8 +228,9 @@ function contractLaneBoundary(extraction) {
 // and the pure gate `faff merge-gate` binds a dispatched merge to. Structural trust, not authorship
 // (ADR the spec cites): the digest establishes byte continuity from verify-and-record to merge-gate,
 // never a same-uid process-identity claim — so this record NEVER carries an author/actor/signer field,
-// enforced below both by an explicit allow-list of keys and (belt-and-braces) the JSON schema's
-// additionalProperties:false. `computeCustodyVerdict` is the PURE shape/enum validator (the
+// enforced below by an explicit allow-list of keys (the only gate: no JSON schema exists for this
+// record). The one provenance key it admits is `faff_version` (FAFF-1395 writer stamp, FAFF-1424):
+// optional, so a pre-stamp verdict stays valid, and bounded to a release string. `computeCustodyVerdict` is the PURE shape/enum validator (the
 // review-verdict/lane-boundary precedent: fail-loud only on a non-object extraction; every other
 // malformation is a violation, never a thrown error) — it never touches fs or a digest. Digest/identity
 // binding (which DOES need caller-supplied bytes + an externally-held expected sha256) lives in the two
@@ -240,7 +241,8 @@ const CUSTODY_CLASSIFICATIONS = ["clean", "tamper", "verification-unavailable"];
 const CUSTODY_MERGE_STATES = ["pre-merge", "post-merge"];
 const CUSTODY_VERDICT_SCHEMA_VERSION = 1;
 const CUSTODY_DETAIL_MAX = 4000; // CONSTRAINT: detail is bounded (spec) — generous enough for a diffAgainstManifest path list, never unbounded.
-const CUSTODY_VERDICT_FIELDS = ["schema_version", "run_id", "issue", "classification", "paths", "detail", "verified_at", "merge_state_at_verification"];
+const CUSTODY_VERDICT_FIELDS = ["schema_version", "faff_version", "run_id", "issue", "classification", "paths", "detail", "verified_at", "merge_state_at_verification"];
+const CUSTODY_FAFF_VERSION_RE = /^[0-9A-Za-z][0-9A-Za-z.+-]{0,63}$/; // a release such as 0.44.0, a pre-release/build suffix, or "unknown"
 
 function computeCustodyVerdict(extraction) {
   if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) {
@@ -248,9 +250,13 @@ function computeCustodyVerdict(extraction) {
   }
   const violations = [];
   // No authorship/actor field, ever (CONSTRAINT) — an unexpected key (author, actor, signer, writer, …)
-  // is a shape violation here, defence-in-depth ahead of the JSON schema's additionalProperties:false.
+  // is a shape violation here.
   for (const k of Object.keys(extraction)) {
     if (!CUSTODY_VERDICT_FIELDS.includes(k)) violations.push(`unexpected field ${JSON.stringify(k)} (no authorship/actor field is ever admitted)`);
+  }
+  if (Object.prototype.hasOwnProperty.call(extraction, "faff_version")
+    && (typeof extraction.faff_version !== "string" || !CUSTODY_FAFF_VERSION_RE.test(extraction.faff_version))) {
+    violations.push("faff_version must be a release string (letters, digits, '.', '+', '-'; at most 64 characters)");
   }
   const schema_version = extraction.schema_version;
   if (schema_version !== CUSTODY_VERDICT_SCHEMA_VERSION) violations.push(`schema_version ${JSON.stringify(schema_version)} !== ${CUSTODY_VERDICT_SCHEMA_VERSION}`);

@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1363",
+  "build": {
+    "status": "complete",
+    "diff_hash": "42f6eb1822580125096596479564212ddd8946fde521b53a3575f2b6b76a461a",
+    "branch": "faff-1363-graft-decides-whether-to-run-the-holdout-when-a-spec-has",
+    "pushed_at": "2026-10-26T05:55:15.862Z"
+  },
+  "updated_at": "2026-10-26T05:55:15.862Z"
+}

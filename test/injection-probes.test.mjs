@@ -33,6 +33,7 @@ import { join, basename, dirname } from "node:path";
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { runCli } from "./helpers/run-cli.mjs";
+import { readMergeGateSources } from "./helpers/merge-gate-modules.mjs";
 
 const require = createRequire(import.meta.url);
 const mergeGate = require("../plugin/skills/faff/bin/lib/merge-gate.js");
@@ -136,7 +137,8 @@ test("P-S1-a [S1/blocked-by-construction]: poisoned-spec `--merge-args --admin` 
 // itself. So no spec-content path can feed decideFloor. A spec-AC that WROTE a forged artifact is
 // therefore just S2 (covered below), never a direct merge lever. Disposition: blocked-by-construction.
 test("P-S1-b [S1/blocked-by-construction]: merge-gate reads no spec content — the carve-out's sandbox grant has no merge-decision path", () => {
-  const src = readFileSync(join(process.cwd(), "plugin/skills/faff/bin/lib/merge-gate.js"), "utf8");
+  // FAFF-1391: merge-gate.js is a facade; read every merge-gate module, so a spec read cannot hide in one.
+  const src = Object.values(readMergeGateSources(join(process.cwd(), "plugin/skills/faff/bin/lib"))).join("\n");
   // The floor legs are the ONLY decision inputs; none of them is the spec.
   assert.ok(/readAcComplete\(/.test(src) && /readReviewVerdict\(/.test(src) && /readHoldout\(/.test(src) && /observeCi\(/.test(src),
     "the floor is AC + review + holdout artifacts + an independent CI observation");

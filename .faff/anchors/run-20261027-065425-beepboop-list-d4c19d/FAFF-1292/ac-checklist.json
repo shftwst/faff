@@ -1,0 +1,382 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A `needs-human` criterion's cause is machine-distinguishable: a born-verifiable (`scenario`/`assertion`) criterion that could not be reached carries `reason_code: no-surface`, distinct from a `prose` criterion's `reason_code: human-only`.",
+      "verified": "contract golden reason-code-* fixtures + holdout --selftest gr1 distinguish born-verifiable no-surface from prose human-only",
+      "passed": true,
+      "ac_id": "faff-1292#done:1",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff holdout --selftest"
+        },
+        {
+          "kind": "test",
+          "locator": "test/contract-golden.test.mjs::golden contract cases"
+        }
+      ]
+    },
+    {
+      "ac": "The aggregate and the merge-gate pass/block decision are unchanged by `reason_code`: a block carrying a `no-surface` `needs-human` criterion still does not pass (`faff holdout verdict` returns `block`).",
+      "verified": "reason_code never enters deriveHoldoutAggregate (verdicts only) nor the gate pass/block; a no-surface needs-human block still returns gate=block; full suite incl merge-gate/holdout-verdicts green",
+      "passed": true,
+      "ac_id": "faff-1292#done:2",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "printf '%s' '{\"aggregate\":\"needs-human\",\"code_blind\":true,\"violations\":[],\"criteria\":[{\"class\":\"assertion\",\"verdict\":\"needs-human\",\"evidence_present\":false,\"reason_code\":\"no-surface\"}]}' | faff holdout verdict --issue X (gate=block)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/holdout-verdicts.test.mjs::gate + bridge unchanged"
+        }
+      ]
+    },
+    {
+      "ac": "`HOLDOUT_REASON_CODES` = `[\"human-only\",\"no-surface\",\"wire-error\",\"credentials-unavailable\",\"env-not-ready\"]` is defined and exported in `contract-defs-evidence.js`.",
+      "verified": "HOLDOUT_REASON_CODES = [human-only,no-surface,wire-error,credentials-unavailable,env-not-ready] defined in holdout-record.js and re-exported from contract-defs-evidence.js",
+      "passed": true,
+      "ac_id": "faff-1292#done:3",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node -e require(contract-defs-evidence).HOLDOUT_REASON_CODES"
+        }
+      ]
+    },
+    {
+      "ac": "`faff contract holdout-verdict` accepts (exit 0) a block whose `needs-human` criterion of class `assertion` carries `reason_code: no-surface` and whose aggregate is `needs-human`.",
+      "verified": "CLI accepts (exit 0) assertion needs-human no-surface, aggregate needs-human",
+      "passed": true,
+      "ac_id": "faff-1292#done:4",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "echo <block> | faff contract holdout-verdict -> exit 0"
+        }
+      ]
+    },
+    {
+      "ac": "`faff contract holdout-verdict` **accepts** (exit 0) a block whose `needs-human` criterion has **no** `reason_code` (legacy cross-run record back-compat) and leaves its `needs-human` verdict intact — it is never reclassified `contract-rejected`.",
+      "verified": "CLI accepts (exit 0) a needs-human criterion with no reason_code (legacy tolerated), verdict intact",
+      "passed": true,
+      "ac_id": "faff-1292#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "echo <block,absent code> | faff contract holdout-verdict -> exit 0"
+        }
+      ]
+    },
+    {
+      "ac": "`faff contract holdout-verdict` rejects (exit 1) a block where a `needs-human` criterion carries an out-of-enum `reason_code`.",
+      "verified": "CLI rejects (exit 1) out-of-enum reason_code",
+      "passed": true,
+      "ac_id": "faff-1292#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "echo <bogus code> | faff contract holdout-verdict -> exit 1"
+        }
+      ]
+    },
+    {
+      "ac": "`faff contract holdout-verdict` rejects (exit 1) a block where a `met` or `unmet` criterion carries a `reason_code`.",
+      "verified": "CLI rejects (exit 1) a met/unmet criterion carrying reason_code",
+      "passed": true,
+      "ac_id": "faff-1292#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "echo <met+code> | faff contract holdout-verdict -> exit 1"
+        }
+      ]
+    },
+    {
+      "ac": "`faff contract holdout-verdict` rejects (exit 1) a block where a `class: prose` criterion's `reason_code` is not `human-only`.",
+      "verified": "CLI rejects (exit 1) a prose criterion whose reason_code != human-only",
+      "passed": true,
+      "ac_id": "faff-1292#done:8",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "echo <prose no-surface> | faff contract holdout-verdict -> exit 1"
+        }
+      ]
+    },
+    {
+      "ac": "`faff contract holdout-verdict` rejects (exit 1) a block where a `class: scenario`/`assertion` `needs-human` criterion carries `reason_code: human-only`.",
+      "verified": "CLI rejects (exit 1) a scenario/assertion needs-human claiming human-only",
+      "passed": true,
+      "ac_id": "faff-1292#done:9",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "echo <assertion human-only> | faff contract holdout-verdict -> exit 1"
+        }
+      ]
+    },
+    {
+      "ac": "A non-object extraction remains the only fail-loud (exit 2) case; an out-of-enum `reason_code` is exit 1, never exit 2.",
+      "verified": "non-object extraction is the only fail-loud (exit 2); out-of-enum reason_code is exit 1",
+      "passed": true,
+      "ac_id": "faff-1292#done:10",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "echo [] | faff contract holdout-verdict -> exit 2; bogus code -> exit 1"
+        }
+      ]
+    },
+    {
+      "ac": "`holdout-verdict.schema.json` criteria items permit an optional `reason_code` string property (not in `required`; `additionalProperties:false` still holds).",
+      "verified": "holdout-verdict.schema.json criteria items permit optional reason_code string (not required; additionalProperties:false holds)",
+      "passed": true,
+      "ac_id": "faff-1292#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/contract-golden.test.mjs::reason-code fixtures"
+        },
+        {
+          "kind": "command",
+          "locator": "schema file inspection"
+        }
+      ]
+    },
+    {
+      "ac": "`holdout-anchored.schema.json` criteria items carry a `reason_code` of type `[\"string\",\"null\"]` alongside the unchanged free-text `reason`.",
+      "verified": "holdout-anchored.schema.json criteria items carry reason_code type [string,null]; both copies byte-identical",
+      "passed": true,
+      "ac_id": "faff-1292#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-v0.3.test.mjs::bundled copy byte-identical"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1342-holdout-delegated-schema.test.mjs::ac-1 schema copies"
+        }
+      ]
+    },
+    {
+      "ac": "`faff holdout verdict --issue <id> --json` over a block with one `no-surface` and one `human-only` `needs-human` criterion emits `needs_human_reasons: { \"no-surface\": 1, \"human-only\": 1 }` and `gate: \"block\"`.",
+      "verified": "gate over one no-surface + one human-only emits needs_human_reasons {no-surface:1,human-only:1} and gate=block",
+      "passed": true,
+      "ac_id": "faff-1292#done:13",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff holdout verdict --issue FAFF-T1 -> {no-surface:1,human-only:1}, block"
+        }
+      ]
+    },
+    {
+      "ac": "`faff holdout verdict --issue <id> --json` over a legacy block whose only `needs-human` criterion carries **no** `reason_code` emits `needs_human_reasons: { \"unspecified\": 1 }` and `gate: \"block\"` — a blocking legacy record is never indistinguishable from a passing one.",
+      "verified": "gate over a legacy absent-code needs-human emits needs_human_reasons {unspecified:1} and gate=block",
+      "passed": true,
+      "ac_id": "faff-1292#done:14",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff holdout verdict --issue LEG -> {unspecified:1}, block"
+        }
+      ]
+    },
+    {
+      "ac": "`needs_human_reasons` is absent from the output **iff** the block has zero `needs-human` criteria (regardless of `reason_code` presence).",
+      "verified": "needs_human_reasons absent iff zero needs-human criteria",
+      "passed": true,
+      "ac_id": "faff-1292#done:15",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff holdout verdict --issue FAFF-T3 (all met) -> no needs_human_reasons key"
+        }
+      ]
+    },
+    {
+      "ac": "`faff holdout record` stamps `reason_code` onto each persisted `needs-human` criterion and leaves it `null` on `met`/`unmet` criteria.",
+      "verified": "writer stamps reason_code on needs-human criteria, null on met/unmet",
+      "passed": true,
+      "ac_id": "faff-1292#done:16",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/holdout-delegation.test.mjs::ac-2 no-surface/human-only"
+        },
+        {
+          "kind": "command",
+          "locator": "faff holdout --selftest (holdout-record)"
+        }
+      ]
+    },
+    {
+      "ac": "`faff holdout record` refuses (writes a fail-closed `needs-human` record) a **newly-emitted** block whose `needs-human` criterion has no `reason_code`, or that violates a `reason_code` cross-field rule, naming the offending criterion by key path, never by value. (The writer is strict on fresh emissions; the contract's absent-code tolerance is a read-side re-validation property only.)",
+      "verified": "writer refuses (fail-closed needs-human record) a fresh needs-human criterion with no reason_code or a cross-field violation, naming the key path",
+      "passed": true,
+      "ac_id": "faff-1292#done:17",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff holdout --selftest (reason_code refused cases)"
+        }
+      ]
+    },
+    {
+      "ac": "A pre-change record re-read from `.faff/holdout/<key>.json` whose `needs-human` criterion lacks `reason_code` re-validates (via `computeHoldoutVerdict` on `faff holdout verdicts`/`verdict --issue`) as `needs-human` — not `contract-rejected` — and its bridge `skipped[]` reason and PRDR coverage value are unchanged from pre-change behaviour.",
+      "verified": "a pre-change record with no reason_code re-validates via holdoutGateResult as needs-human (not contract-rejected); bridge skipped[] reason unchanged",
+      "passed": true,
+      "ac_id": "faff-1292#done:18",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff holdout verdict --issue LEG -> reason needs-human, not contract-rejected"
+        }
+      ]
+    },
+    {
+      "ac": "The graft Step 10 _Holdout gate_ block (`plugin/skills/faff-graft/SKILL.md`) names the environment-gap (`no-surface`/`wire-error`/`credentials-unavailable`/`env-not-ready`) `needs-human` criteria apart from the `human-only` ones in the park message.",
+      "verified": "graft Step 10 Holdout gate block names env-gap (no-surface/wire-error/credentials-unavailable/env-not-ready) apart from human-only in the park message",
+      "passed": true,
+      "ac_id": "faff-1292#done:19",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep environment-gap plugin/skills/faff-graft/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "The graft `pr-open-for-human` outcome text (~line 873) distinguishes an environment-gap holdout block from a human-only one.",
+      "verified": "graft pr-open-for-human outcome text distinguishes an environment-gap holdout block from a human-only one",
+      "passed": true,
+      "ac_id": "faff-1292#done:20",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep needs_human_reasons/environment-gap in pr-open-for-human entry"
+        }
+      ]
+    },
+    {
+      "ac": "The beep-boop run-report roll-up (`plugin/skills/faff-beep-boop/SKILL.md` ~line 673) surfaces the no-surface (environment-gap) subset apart from human-only.",
+      "verified": "beep-boop run-report roll-up names the no-surface (environment-gap) subset apart from human-only",
+      "passed": true,
+      "ac_id": "faff-1292#done:21",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep environment-gap plugin/skills/faff-beep-boop/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "`faffter-noon-evaluate/SKILL.md` instructs the evaluator to write a `reason_code` from the closed vocabulary on every `needs-human` criterion (prose → `human-only`; no reachable surface → `no-surface`; WireError → `wire-error`; underivable credentials → `credentials-unavailable`; endpoint unavailable → `env-not-ready`), keeping the free-text `reason`.",
+      "verified": "faffter-noon-evaluate/SKILL.md instructs the evaluator to write a reason_code from the closed vocabulary per needs-human criterion, keeping free-text reason",
+      "passed": true,
+      "ac_id": "faff-1292#done:22",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep reason_code plugin/skills/faffter-noon-evaluate/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "The `holdout-verdict` describe entry in `contract-defs-describe.js` gains a `reason_code` `values` group whose `semantics` keys exactly equal `HOLDOUT_REASON_CODES`, and `faff contract holdout-verdict --describe` prints each code.",
+      "verified": "holdout-verdict describe gains a reason_code values group whose semantics keys equal HOLDOUT_REASON_CODES; --describe prints each code",
+      "passed": true,
+      "ac_id": "faff-1292#done:23",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/contract-describe.test.mjs::describe coverage"
+        },
+        {
+          "kind": "command",
+          "locator": "faff contract holdout-verdict --describe"
+        }
+      ]
+    },
+    {
+      "ac": "`docs/guide/cli.md`, `docs/reference/GLOSSARY.md`, `faff/references/kernel.md` (evaluator slot row) and `faff/references/l4.md` are updated where they restate the holdout reason causes, with no CLI-doc-drift lint failure (`lint-cli-doc`, `lint-cli-coverage`, `test/scaffolder-cli-surface-drift.test.mjs`).",
+      "verified": "docs (cli.md, GLOSSARY.md, kernel.md evaluator row) updated; no CLI-doc-drift lint failure",
+      "passed": true,
+      "ac_id": "faff-1292#done:24",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff lint-cli-doc / lint-cli-coverage -> PASS"
+        }
+      ]
+    },
+    {
+      "ac": "`holdoutVerdictsSelftest`/`dodSelftest` (admissibility.js) and `holdoutRecordSelftest` (holdout-record.js) cover `reason_code`: acceptance of a valid code, and refusal of each cross-field violation.",
+      "verified": "holdoutVerdictsSelftest/dodSelftest and holdoutRecordSelftest cover reason_code acceptance + each cross-field refusal",
+      "passed": true,
+      "ac_id": "faff-1292#done:25",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff holdout --selftest; faff dod --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "The golden fixtures for `holdout-verdict` in `contract-defs-registry.js` (and `test/golden/contracts/cases.json`) gain conformant and non-conformant `reason_code` cases.",
+      "verified": "golden fixtures for holdout-verdict gain conformant and non-conformant reason_code cases",
+      "passed": true,
+      "ac_id": "faff-1292#done:26",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/contract-golden.test.mjs::golden reason-code fixtures"
+        }
+      ]
+    },
+    {
+      "ac": "`test/contract-describe.test.mjs`, `test/contract-golden.test.mjs`, `test/holdout-record.test.mjs`, `test/holdout-delegation.test.mjs` (its ad-hoc `reason:\"no surface\"` criterion gains `reason_code:\"no-surface\"`), `test/holdout-verdicts.test.mjs`, `test/evaluate-call.test.mjs`, `test/dod.test.mjs` and the evidence-v0.3 schema tests pass with the new field.",
+      "verified": "contract-describe/contract-golden/holdout-record/holdout-delegation/holdout-verdicts/evaluate-call/dod and evidence-v0.3 schema tests pass with the new field",
+      "passed": true,
+      "ac_id": "faff-1292#done:27",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "full suite::node --test -> 7409 pass 0 fail"
+        }
+      ]
+    },
+    {
+      "ac": "`eval/grader.mjs` (reuses `holdoutRecordViolations`) and the holdout eval corpora (`eval/cases/holdout-*.json`, `eval/cases-live/*`, `eval/cases-seeded/*`) still pass; a `no-surface` vs `human-only` oracle token is added where a corpus case scores the distinction.",
+      "verified": "eval/grader.mjs reuses holdoutRecordViolations and holdout corpora pass; a no-surface vs human-only oracle token added to a corpus case",
+      "passed": true,
+      "ac_id": "faff-1292#done:28",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/eval-grader.test.mjs::holdout-exercise check_detail"
+        }
+      ]
+    },
+    {
+      "ac": "The evaluator's `reason_code` assignment is an LLM-judgement seam (part of the existing `holdout`/`holdout-exercise` seams). A DONE-registered eval case asserts the no-surface vs human-only distinction on a seeded holdout corpus case, with its grader `KIND` + seam-registry row recorded in this ticket (baseline acceptance is a separate human step).",
+      "verified": "DONE-registered eval case holdout-exercise-003 asserts the no-surface vs human-only distinction (reason-no-surface / reason-human-only oracle tokens); grader KIND=holdout-exercise, seam=holdout/holdout-exercise. Baseline acceptance is a separate human step per the spec.",
+      "passed": true,
+      "ac_id": "faff-1292#done:29",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "eval/cases/holdout-exercise-003.json::reason-distinction oracle"
+        },
+        {
+          "kind": "human"
+        }
+      ]
+    }
+  ]
+}

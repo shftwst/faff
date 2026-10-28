@@ -22,6 +22,7 @@ const {
 } = require("../plugin/skills/faff/bin/lib/bundle-recover.js");
 const { publishBundle, localBundleStore, gitRemoteBundleStore } = require("../plugin/skills/faff/bin/lib/bundle.js");
 const { mintIssueAnchor } = require("../plugin/skills/faff/bin/lib/events.js");
+const { resolveFaffVersion } = require("../plugin/skills/faff/bin/lib/faff-version.js");
 
 // --- --selftest (the pure-core table + a full local-store round trip) ---
 test("bundle-recover --selftest: pure cores + the local-store discover/verify/reconstruct/preview round trip pass", () => {
@@ -339,12 +340,13 @@ test("bundle-recover: landing-progress.json rides the anchor and is copied up in
     const landedPath = path.join(freshRoot, ".faff", "runs", run_id, "FAFF-1", "landing-progress.json");
     assert.ok(existsSync(landedPath));
     // FAFF-1258: the legacy record is stamped on restore (the anchor copy above stays immutable legacy).
-    assert.deepEqual(JSON.parse(readFileSync(landedPath, "utf8")), { schema_version: 1, ...landingRecord });
+    // FAFF-1395: the restore writer restamps faff_version with the current writer's release (second key).
+    assert.deepEqual(JSON.parse(readFileSync(landedPath, "utf8")), { schema_version: 1, faff_version: resolveFaffVersion().version, ...landingRecord });
 
     // `faff landing-progress read <run-dir> <issue>` returns the record unchanged.
     const read = runCli(["landing-progress", "read", path.join(freshRoot, ".faff", "runs", run_id), "FAFF-1"], { cwd: freshRoot });
     assert.equal(read.code, 0, read.stderr);
-    assert.deepEqual(JSON.parse(read.stdout), { schema_version: 1, ...landingRecord });
+    assert.deepEqual(JSON.parse(read.stdout), { schema_version: 1, faff_version: resolveFaffVersion().version, ...landingRecord });
   } finally {
     rmSync(root, { recursive: true, force: true });
     rmSync(freshRoot, { recursive: true, force: true });

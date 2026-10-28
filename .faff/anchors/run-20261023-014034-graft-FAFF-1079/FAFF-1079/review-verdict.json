@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faffter-dark-spec-review/refute-architectural.md::in-spec ratification tag is self-attested",
+      "title": "in-spec ratification tag is self-attested",
+      "location": "plugin/skills/faffter-dark-spec-review/refute-architectural.md",
+      "action": "none; accepted bound",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "operator decision 2026-09-25 on this issue accepted the spec as-is: every residual objection restates the LLM-judged-prose shape the ticket's scope rules out (no contract change); fail-safe, non-critical blast radius",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "in-spec ratification tag is self-attested",
+          "location": "plugin/skills/faffter-dark-spec-review/refute-architectural.md",
+          "severity": "major",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff-prep/SKILL.md::decision-vs-implementation scope test is an llm classification",
+      "title": "decision-vs-implementation scope test is an LLM classification",
+      "location": "plugin/skills/faff-prep/SKILL.md",
+      "action": "none; accepted bound",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "operator decision 2026-09-25 on this issue accepted the spec as-is: every residual objection restates the LLM-judged-prose shape the ticket's scope rules out (no contract change); fail-safe, non-critical blast radius",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "decision-vs-implementation scope test is an LLM classification",
+          "location": "plugin/skills/faff-prep/SKILL.md",
+          "severity": "major",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff-prep/SKILL.md::audit-trail neutralisation transform not defined",
+      "title": "audit-trail neutralisation transform not defined",
+      "location": "plugin/skills/faff-prep/SKILL.md",
+      "action": "none",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "refuted",
+      "refutation": "the reused transform is neutralise() at plugin/skills/faff/bin/lib/ratified-scope.js:181, deterministic and already covering newline collapse, secret redaction and directive scrub",
+      "disposition_rationale": "verified in the tree",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "audit-trail neutralisation transform not defined",
+          "location": "plugin/skills/faff-prep/SKILL.md",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff-prep/SKILL.md::revise carry-forward of the tag is prose, not mechanical",
+      "title": "revise carry-forward of the tag is prose, not mechanical",
+      "location": "plugin/skills/faff-prep/SKILL.md",
+      "action": "none; accepted bound",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "operator decision 2026-09-25 on this issue accepted the spec as-is: every residual objection restates the LLM-judged-prose shape the ticket's scope rules out (no contract change); fail-safe, non-critical blast radius",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "revise carry-forward of the tag is prose, not mechanical",
+          "location": "plugin/skills/faff-prep/SKILL.md",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

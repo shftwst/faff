@@ -149,6 +149,14 @@ const DELIVERY_PROFILE = {
   ],
   outcome_required_types: ["issue-outcome"],
   ledger_outcomes: ["shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget", "claimed-by-peer", "superseded", "parked-window"],
+  // FAFF-1347: the anchor-scope classifier's two single-sourced lists. `run_subject_sentinels`
+  // is the set of literal `issue` values a run-level subject writes (the `__run__` sentinel);
+  // `run_level_decision_kernels` is the set of `data.kernel` names that legitimately carry that
+  // sentinel (so an unattributable row cannot spoof run-scope by claiming the sentinel string).
+  // OPTIONAL top-level keys (NOT in PROFILE_TOP_ARRAY_KEYS): an override profile that predates
+  // them still validates, and the classifier reads DELIVERY_PROFILE's value for an omitted key.
+  run_subject_sentinels: ["__run__"],
+  run_level_decision_kernels: ["queue-state", "run-start", "run-done", "run-outward"],
   sentry: {
     // stall_window_secs REFERENCES runcheck's RUN_HEARTBEAT_STALE_SECS_DEFAULT
     // (now sourced from shared-infra to break the require cycle) rather than
@@ -214,6 +222,13 @@ const PROFILE_TOP_ARRAY_KEYS = [
   "terminal_states", "event_phases", "event_types",
   "issue_scoped_types", "outcome_required_types", "ledger_outcomes",
 ];
+// FAFF-1347: optional array-of-strings top-level keys. Unlike PROFILE_TOP_ARRAY_KEYS (every
+// member REQUIRED — a missing one is a `missing required key` violation), these are checked ONLY
+// when present, and must then be an array of strings. This is what lets an override profile that
+// predates the keys validate clean (and `activeProfile` return it) rather than every governance
+// command exiting 2 on a key the profile never heard of — while the anchor-scope classifier reads
+// DELIVERY_PROFILE's value for the omitted key.
+const PROFILE_TOP_OPTIONAL_ARRAY_KEYS = ["run_subject_sentinels", "run_level_decision_kernels"];
 const PROFILE_SENTRY_THRESHOLD_KEYS = ["thrash_n", "failure_k", "stall_window_secs", "run_elapsed_ceiling_secs", "estimate_metering_exposure_secs"];
 const PROFILE_SENTRY_THRASH_KEYS = ["start_type", "ship_type", "ship_outcome"];
 const PROFILE_SENTRY_FAILURE_KEYS = ["park_type", "outcome_type", "errored_outcome"];
@@ -225,13 +240,17 @@ const PROFILE_SENTRY_PROGRESS_KEYS = ["forward_types"];
 function validateProfileShape(p) {
   if (p === null || typeof p !== "object" || Array.isArray(p)) return ["profile must be a JSON object"];
   const v = [];
-  const allowedTop = new Set([...PROFILE_TOP_ARRAY_KEYS, "sentry"]);
+  const allowedTop = new Set([...PROFILE_TOP_ARRAY_KEYS, ...PROFILE_TOP_OPTIONAL_ARRAY_KEYS, "sentry"]);
   for (const k of Object.keys(p)) {
     if (!allowedTop.has(k)) v.push(`unknown top-level key '${k}' (closed vocabulary — not a declared profile field)`);
   }
   for (const k of PROFILE_TOP_ARRAY_KEYS) {
     if (!(k in p)) { v.push(`missing required key: ${k}`); continue; }
     if (!isArrOfStrings(p[k])) v.push(`${k}: must be an array of strings`);
+  }
+  // FAFF-1347: optional keys — checked only when present (an absent one is accepted).
+  for (const k of PROFILE_TOP_OPTIONAL_ARRAY_KEYS) {
+    if (k in p && !isArrOfStrings(p[k])) v.push(`${k}: must be an array of strings`);
   }
   if (!("sentry" in p)) { v.push("missing required key: sentry"); return v; }
   const s = p.sentry;
@@ -478,6 +497,6 @@ function profilesSelftest() {
 
 module.exports = {
   DELIVERY_PROFILE, GovernanceProfileError, PROFILES_SPEC, PROFILES_SURFACE, PROFILE_SENTRY_FAILURE_KEYS, PROFILE_SENTRY_THRASH_KEYS,
-  PROFILE_SENTRY_THRESHOLD_KEYS, PROFILE_SENTRY_PROGRESS_KEYS, PROFILE_TOP_ARRAY_KEYS, SECOND_PROFILE,
+  PROFILE_SENTRY_THRESHOLD_KEYS, PROFILE_SENTRY_PROGRESS_KEYS, PROFILE_TOP_ARRAY_KEYS, PROFILE_TOP_OPTIONAL_ARRAY_KEYS, SECOND_PROFILE,
   activeProfile, cmdProfiles, isArrOfStrings, isFiniteNum, profilesSelftest, validateProfileShape,
 };

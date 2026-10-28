@@ -3,7 +3,7 @@
 // ac-1 and ac-6 pin the two schema copies, the docs and the changelog. ac-2 and ac-3 run the
 // classifier and the FAFF-1278 base-commit leg (the real `run:` bodies of the governance-check
 // Action) against a base commit that still carries the OLD holdout-anchored schema. ac-4 validates
-// the example and four malformed rows. ac-5 compares the four holdout anchors committed before delegated[] under the
+// the example and four malformed rows. ac-5 compares the four committed holdout anchors under the
 // old and the new schema. The leg helpers are the FAFF-1278 test's, which exports none.
 
 import { test } from "node:test";
@@ -242,13 +242,16 @@ test("ac-4: a delegated row with an extra key, a wrong tier, a wrong verifier or
 
 // --- ac-5 -----------------------------------------------------------------------------------------
 
-test("ac-5: the four holdout anchors committed before delegated[] give the same evidence validate result under the old and new schema", () => {
-  const preDelegated = ["FAFF-1197", "FAFF-1198", "FAFF-1201", "FAFF-1279"];
+// The four holdout anchors committed before the delegated[] schema change. Anchors committed later are
+// written under the new schema only (they may carry delegated[]), so they are not part of this comparison.
+const PRE_CHANGE_HOLDOUT_ANCHORS = ["FAFF-1197", "FAFF-1198", "FAFF-1201", "FAFF-1279"];
+
+test("ac-5: the four committed holdout anchors give the same evidence validate result under the old and new schema", () => {
   const anchors = readdirSync(path.join(repoRoot, ANCHORS)).map((run) => path.join(ANCHORS, run))
     .flatMap((runDir) => readdirSync(path.join(repoRoot, runDir)).map((issue) => path.join(runDir, issue)))
-    .filter((dir) => preDelegated.includes(path.basename(dir)))
+    .filter((dir) => PRE_CHANGE_HOLDOUT_ANCHORS.includes(path.basename(dir)))
     .filter((dir) => { try { readFileSync(path.join(repoRoot, dir, "holdout.json")); return true; } catch { return false; } });
-  assert.deepEqual(anchors.map((d) => path.basename(d)).sort(), preDelegated);
+  assert.deepEqual(anchors.map((d) => path.basename(d)).sort(), PRE_CHANGE_HOLDOUT_ANCHORS);
   const bundle = oldBundle();
   for (const dir of anchors) {
     const before = evidence.validateAnchorDir(path.join(repoRoot, dir), { bundleDir: bundle });

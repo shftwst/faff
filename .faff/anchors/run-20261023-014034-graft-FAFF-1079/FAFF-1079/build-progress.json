@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1079",
+  "build": {
+    "status": "complete",
+    "diff_hash": "df48fe0bdf76c75d0cb99c6710661a8ae48fd35fc0031ce4fa5d2899db330f5d",
+    "branch": "FAFF-1079-record-the-ratifier-on-decisions-agent-chosen-vs-human-ratified",
+    "pushed_at": "2026-10-24T13:29:51.747Z"
+  },
+  "updated_at": "2026-10-24T13:29:51.747Z"
+}

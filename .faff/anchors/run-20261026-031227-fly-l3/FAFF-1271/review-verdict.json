@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "test/spec-review-carry-check.test.mjs::happy-path verified-move coverage claim is inaccurate",
+      "title": "Happy-path verified-move coverage claim is inaccurate",
+      "location": "test/spec-review-carry-check.test.mjs",
+      "action": "No action needed — refuted; the verified-move happy path is already covered by \"CLI carry-check: verified directory move → exit 0, one JSON line\" and by multiple cases in test/spec-refresh-carry.test.mjs (e.g. \"verified directory move carries (reason paths-only)\").",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "The finding claims the only positive-path assertion in the diff is a trivial pathExists('docs/x.md')===true unit test. That is false: test/spec-review-carry-check.test.mjs already has a dedicated CLI-level test exercising the exact verified-move happy path end to end, and test/spec-refresh-carry.test.mjs has several more at the classifier level.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Happy-path verified-move coverage claim is inaccurate",
+          "location": "test/spec-review-carry-check.test.mjs",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/spec-review-carry-check.test.mjs::symlinked carry-check root not explicitly exercised by a genuine-move test",
+      "title": "Symlinked carry-check root not explicitly exercised by a genuine-move test",
+      "location": "test/spec-review-carry-check.test.mjs",
+      "action": "Added a dedicated test proving a genuine move under a root reached through a symlink still resolves true, closing the coverage gap.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "makePathExists already realpaths both root and the candidate before comparing (plugin/skills/faff/bin/lib/spec-review.js), so a symlinked-root happy path already worked; the finding's real, actionable kernel was the missing explicit test, which commit e32f5936 added.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Symlinked carry-check root not explicitly exercised by a genuine-move test",
+          "location": "test/spec-review-carry-check.test.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review.js::toctou between the two existence probes in carry-check",
+      "title": "TOCTOU between the two existence probes in carry-check",
+      "location": "plugin/skills/faff/bin/lib/spec-review.js",
+      "action": "Accepted as a documented, fail-safe-direction limitation; no code change.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The finding itself states the direction is fail-safe: a filesystem change between the two existence probes can only flip a verified move to unverified (re-review), never the reverse. A one-shot CLI classifying prep-authored spec files is not a target worth adding locking/retry machinery for; the risk is accepted.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "TOCTOU between the two existence probes in carry-check",
+          "location": "plugin/skills/faff/bin/lib/spec-review.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/spec-review-carry-check.test.mjs::windows portability of the symlink-based containment tests",
+      "title": "Windows portability of the symlink-based containment tests",
+      "location": "test/spec-review-carry-check.test.mjs",
+      "action": "Accepted; consistent with the existing codebase-wide convention of unguarded symlinkSync in tests, out of scope for this change.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Over ten other existing test files in this repo already use fs.symlinkSync with no win32 guard (e.g. test/doctor.test.mjs, test/resume-store.test.mjs, test/bundle.test.mjs). Singling out this PR's three new symlink tests for Windows-specific handling would be inconsistent with the rest of the suite and is a separate, repo-wide concern.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Windows portability of the symlink-based containment tests",
+          "location": "test/spec-review-carry-check.test.mjs",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-refresh-carry.js::path-move-unverified reason string conflates \"both exist\" with an unverified move",
+      "title": "path-move-unverified reason string conflates \"both exist\" with an unverified move",
+      "location": "plugin/skills/faff/bin/lib/spec-refresh-carry.js",
+      "action": "Accepted as a cosmetic naming nit; the exit code and fail-safe direction are correct, so the reason string is left unchanged.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The finding itself calls this harmless. Both the both-exist and neither-exists cases are genuinely \"not a verified move\", which is exactly what the reason name states; a consumer reading path_moves[].verified already gets the precise signal.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "path-move-unverified reason string conflates \"both exist\" with an unverified move",
+          "location": "plugin/skills/faff/bin/lib/spec-refresh-carry.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/spec-review-carry-check.test.mjs::pathexists('.') test pins an implementation detail (rel === \"\")",
+      "title": "pathExists('.') test pins an implementation detail (rel === \"\")",
+      "location": "test/spec-review-carry-check.test.mjs",
+      "action": "Accepted; left as-is given the low risk and the test's own inline comment already explaining the invariant it checks.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The asserted behaviour (root itself is never a valid move target) is the actual spec-level property path-move-unverified-ness depends on; the test's comment already documents why, so the coupling to the internal rel===\"\" shape is intentional and low-cost to fix forward if the resolver ever changes.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "pathExists('.') test pins an implementation detail (rel === \"\")",
+          "location": "test/spec-review-carry-check.test.mjs",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

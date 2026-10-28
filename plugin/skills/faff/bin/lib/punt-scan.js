@@ -22,7 +22,17 @@ const fs = require("fs");
 const { headingSlug, headingText } = require("./heading-slug");
 const { parseArgs, usageError } = require("./argv");
 
-const PUNT_LINE_RE = /^\s*\*\*Punt:\*\*\s*(.+)$/;
+// The ONE place the list-marker rule is written: a bullet (`-`, `*`, `+`) or an ordered marker
+// (one to nine digits, then `.` or `)`), followed by whitespace. These are the CommonMark
+// list-item markers; the required whitespace keeps the bold token's own leading `**` from
+// ever being read as a marker.
+const LIST_ITEM_PREFIX = "(?:[-*+]|\\d{1,9}[.)])\\s+";
+// A Punt start: optional indentation, at most one list-item prefix, then the bold token. The
+// leading `\s*` sits outside the capture group, so indentation never reaches the remainder.
+// The remainder may be empty: a tag alone on its line is a Punt whose topic is on the next line.
+const PUNT_LINE_RE = new RegExp("^\\s*(?:" + LIST_ITEM_PREFIX + ")?\\*\\*Punt:\\*\\*\\s*(.*)$");
+// A line that opens a list item: optional indentation, then the one list-item prefix above.
+const LIST_ITEM_OPENER_RE = new RegExp("^\\s*" + LIST_ITEM_PREFIX);
 const NON_BLOCKING_RE = /\(non-blocking\)/;
 const DECIDES_RE = /\(decides:\s*([^)]+)\)/;
 
@@ -70,16 +80,77 @@ function slugTokenRunContains(topicSlug, oosKey) {
   return ("-" + topicSlug + "-").includes("-" + oosKey + "-");
 }
 
-// PURE: markdown spec text -> PuntScanResult. One PuntMarker per `**Punt:**` line, in
-// document order.
+// PURE: one physical line -> the remainder after the bold `**Punt:**` token (list prefix and
+// indentation already consumed), or null when the line does not open a Punt. Stateless: it
+// looks at one line only. The list prefix is presentation and the Punt is content, so a
+// listed Punt and its de-prefixed twin yield the same remainder.
+//
+// The remainder is "" for a tag alone on its line; null only when the line opens no Punt.
+function matchPuntStart(line) {
+  const m = String(line).match(PUNT_LINE_RE);
+  return m ? m[1] : null;
+}
+
+// PURE: true iff the line opens a list item. Built from LIST_ITEM_PREFIX, the one list-item
+// rule in this module; the terminator set below calls it and never restates the rule.
+function opensListItem(line) {
+  return LIST_ITEM_OPENER_RE.test(String(line));
+}
+
+// A Chosen, Decision (the contract's alias for Chosen) or Assumes marker at line start. A
+// listed one is already a list-item opener; this row names the unlisted marker explicitly.
+const DECISION_MARKER_RE = /^\s*\*\*(?:Chosen|Decision|Assumes):\*\*/;
+const HEADING_RE = /^\s*#+(?:\s|$)/;
+// Any line leading with a non-empty bold token: a label (`**Rationale:**`), never a wrapped topic.
+const BOLD_LED_RE = /^\s*\*\*\S/;
+const FENCE_RE = /^\s*(?:`{3,}|~{3,})/;
+const BLOCK_QUOTE_RE = /^\s*>/;
+const TABLE_ROW_RE = /^\s*\|/;
+// A run of three or more of one break character (spaces allowed) at line start. Deliberately not
+// anchored at the end: a line that opens with a break run is in doubt, and a line in doubt ends the
+// continuation, so a trailing remark never lets the line lend its tag.
+const THEMATIC_BREAK_RE = /^\s*(?:(?:-\s*){3,}|(?:\*\s*){3,}|(?:_\s*){3,})/;
+
+// PURE: true iff the physical line ends a Punt's logical line and is never absorbed into it
+// (FAFF-1340). The set is the safety boundary: an over-greedy continuation could absorb a
+// `(non-blocking)` from an unrelated line and wave a blocking Punt through. Every row only
+// ever ends a continuation earlier, which makes a Punt look more blocking, never less; when a
+// line is in doubt, it ends the continuation.
+function endsLogicalLine(line) {
+  return /^\s*$/.test(line)                // blank line (a whitespace-only line included)
+    || HEADING_RE.test(line)               // heading
+    || matchPuntStart(line) !== null       // next Punt, listed or not
+    || DECISION_MARKER_RE.test(line)       // Chosen / Decision / Assumes marker
+    || BOLD_LED_RE.test(line)              // bold-led label
+    || FENCE_RE.test(line)                 // code fence
+    || opensListItem(line)                 // any list-item opener, which includes a listed marker
+    || BLOCK_QUOTE_RE.test(line)           // block quote
+    || TABLE_ROW_RE.test(line)             // table row
+    || THEMATIC_BREAK_RE.test(line);       // thematic break
+}
+
+// PURE: markdown spec text -> PuntScanResult. One PuntMarker per Punt-start line (a
+// `**Punt:**` line, optionally behind a list marker), in document order. A marker is read over
+// its logical line: the text after the tag plus every directly following line up to the first
+// terminator, each trimmed and joined with one space, so where a producer broke the line does
+// not change the reading. The terminator is handed back to the loop, never consumed.
 function puntScan(specText) {
   const oosKeys = extractOutOfScopeItemKeys(specText);
   const punts = [];
+  const lines = String(specText).split(/\r?\n/);
 
-  for (const line of String(specText).split(/\r?\n/)) {
-    const m = line.match(PUNT_LINE_RE);
-    if (!m) continue;
-    const rest = m[1];
+  for (let i = 0; i < lines.length;) {
+    const first = matchPuntStart(lines[i]);
+    if (first === null) { i += 1; continue; }
+
+    const parts = [first.trim()];
+    let j = i + 1;
+    while (j < lines.length && !endsLogicalLine(lines[j])) {
+      parts.push(lines[j].trim());
+      j += 1;
+    }
+    i = j;
+    const rest = parts.filter((p) => p !== "").join(" ");
 
     const nonBlocking = NON_BLOCKING_RE.test(rest);
     const decidesMatch = rest.match(DECIDES_RE);
@@ -108,6 +179,42 @@ function puntScan(specText) {
 
 // Cases: [name, spec_text, assert(result, extractedKeys)]. The table exercises every branch
 // the spec's HOW names, keyed to the DoD boundary rows.
+// The ticket's repro Punt (FAFF-1340) and the OUT OF SCOPE section it crossrefs.
+const WRAP_OOS = "## OUT OF SCOPE\n\n- **Scrub asymmetry** — deferred to its own ticket.\n\n## Open Questions\n\n";
+const WRAP_TEXT = "scrub asymmetry in the window comparison, left to its own ticket (decides: architecture) (non-blocking)";
+const WRAP_SINGLE = WRAP_OOS + "**Punt:** " + WRAP_TEXT + "\n";
+const sameReading = (specA, specB) => JSON.stringify(puntScan(specA)) === JSON.stringify(puntScan(specB));
+
+// One row per terminator kind: an untagged Punt directly followed (no blank line) by a line of
+// that kind carrying `(non-blocking)`. The Punt must stay blocking and never absorb the tag.
+const TERMINATOR_LINES = [
+  ["heading", "## Next section (non-blocking)"],
+  ["next Punt", "**Punt:** another decision (non-blocking)"],
+  ["Chosen marker", "**Chosen:** pino (non-blocking)"],
+  ["Decision marker", "**Decision:** pino (non-blocking)"],
+  ["Assumes marker", "**Assumes:** the store is local (non-blocking)"],
+  ["indented Chosen marker", "   **Chosen:** pino (non-blocking)"],
+  ["bold-led label", "**Rationale:** a label (non-blocking)"],
+  ["backtick fence", "```js (non-blocking)"],
+  ["tilde fence", "~~~ (non-blocking)"],
+  ["dash list item", "- a neighbour (non-blocking)"],
+  ["ordered list item", "3. a neighbour (non-blocking)"],
+  ["block quote", "> a quote (non-blocking)"],
+  ["table row", "| a | b (non-blocking) |"],
+  ["thematic break", "---\n(non-blocking)"],
+  ["thematic break carrying the tag on its own line", "--- (non-blocking)"],
+  ["asterisk break carrying the tag on its own line", "*** see below (non-blocking)"],
+  ["spaced thematic break", "* * *\n(non-blocking)"],
+  ["blank line then paragraph", "\n(non-blocking) a separate paragraph"],
+  ["whitespace-only line then paragraph", "   \n(non-blocking) a separate paragraph"],
+];
+const TERMINATOR_CASES = TERMINATOR_LINES.map(([kind, line]) => [
+  `terminator: ${kind} is not absorbed`,
+  `**Punt:** cron vs queue — needs human\n${line}\n`,
+  (r) => r.punts[0].non_blocking === false && r.punts[0].eligible === false
+      && r.punts[0].topic === "cron vs queue — needs human" && r.blocking_open_count >= 1,
+]);
+
 const PUNT_SCAN_CASES = [
   ["bare tag + crossref → eligible", `## OUT OF SCOPE
 
@@ -183,6 +290,144 @@ const PUNT_SCAN_CASES = [
 **Punt:** standing-park collapse — needs human (non-blocking)
 `, (r, keys) => keys.has("standing-park-collapse") && keys.size === 1
       && r.punts[0].eligible === true && r.eligible_count === 1],
+
+  // --- a Punt written as a list item (FAFF-1351): the prefix is presentation, the Punt is content ---
+  ["dash bullet → one blocking Punt", `- **Punt:** cron vs queue — needs human
+`, (r) => r.punts.length === 1 && r.blocking_open_count === 1
+      && r.punts[0].topic === "cron vs queue — needs human"],
+
+  ["star bullet → identical marker", `* **Punt:** cron vs queue — needs human
+`, (r) => r.punts.length === 1 && r.punts[0].topic === "cron vs queue — needs human" && r.punts[0].eligible === false],
+
+  ["plus bullet → identical marker", `+ **Punt:** cron vs queue — needs human
+`, (r) => r.punts.length === 1 && r.punts[0].topic === "cron vs queue — needs human" && r.punts[0].eligible === false],
+
+  ["ordered dot → identical marker", `1. **Punt:** cron vs queue — needs human
+`, (r) => r.punts.length === 1 && r.punts[0].topic === "cron vs queue — needs human" && r.punts[0].eligible === false],
+
+  ["ordered paren → identical marker", `2) **Punt:** cron vs queue — needs human
+`, (r) => r.punts.length === 1 && r.punts[0].topic === "cron vs queue — needs human" && r.punts[0].eligible === false],
+
+  ["nested dash → identical marker", `    - **Punt:** cron vs queue — needs human
+`, (r) => r.punts.length === 1 && r.punts[0].topic === "cron vs queue — needs human" && r.punts[0].eligible === false],
+
+  ["nested ordered → identical marker", `  1. **Punt:** cron vs queue — needs human
+`, (r) => r.punts.length === 1 && r.punts[0].topic === "cron vs queue — needs human" && r.punts[0].eligible === false],
+
+  ["ten-digit ordered marker → no Punt", `1234567890. **Punt:** cron vs queue — needs human
+`, (r) => r.punts.length === 0 && r.blocking_open_count === 0],
+
+  ["listed and eligible → non-blocking with crossref", `## OUT OF SCOPE
+
+- **Repeat-park collapse** — deferred.
+
+## Open Questions
+
+- **Punt:** repeat-park collapse — needs human (non-blocking)
+`, (r) => r.punts.length === 1 && r.punts[0].eligible === true
+      && r.eligible_count === 1 && r.blocking_open_count === 0],
+
+  ["listed, tag order → identical markers", `- **Punt:** cron vs queue — needs human (decides: architecture) (non-blocking)
+- **Punt:** cron vs queue — needs human (non-blocking) (decides: architecture)
+`, (r) => r.punts.length === 2 && JSON.stringify(r.punts[0]) === JSON.stringify(r.punts[1])
+      && r.punts[0].decides === "architecture" && r.punts[0].non_blocking === true],
+
+  ["the ticket repro → two listed untagged Punts block", `- **Punt:** first open decision
+- **Punt:** second open decision
+`, (r) => r.punts.length === 2 && r.blocking_open_count === 2 && r.eligible_count === 0],
+
+  ["inline mention on a listed Chosen line → no Punt", `- **Chosen:** pino — the earlier **Punt:** is closed
+`, (r) => r.punts.length === 0],
+
+  ["backticked token → no Punt", `- \`**Punt:**\` marks an open decision
+`, (r) => r.punts.length === 0],
+
+  ["listed Chosen marker → no Punt", `- **Chosen:** pino
+`, (r) => r.punts.length === 0],
+
+  // --- a wrapped Punt reads as its logical line (FAFF-1340): the line break is presentation ---
+  ["wrapped tags (the ticket repro) → identical to single-line",
+    WRAP_OOS + "**Punt:** scrub asymmetry in the window comparison, left to its own ticket\n(decides: architecture) (non-blocking)\n",
+    (r) => sameReading(WRAP_SINGLE, WRAP_OOS + "**Punt:** scrub asymmetry in the window comparison, left to its own ticket\n(decides: architecture) (non-blocking)\n")
+      && r.punts[0].decides === "architecture" && r.punts[0].non_blocking === true
+      && r.punts[0].out_of_scope_crossref === true && r.punts[0].eligible === true
+      && r.punts[0].topic === "scrub asymmetry in the window comparison, left to its own ticket"
+      && r.eligible_count === 1 && r.blocking_open_count === 0],
+
+  ["wrapped topic: OUT OF SCOPE name split across the wrap → crossref and eligible",
+    WRAP_OOS + "**Punt:** the scrub\nasymmetry in the window comparison (non-blocking)\n",
+    (r) => r.punts.length === 1 && r.punts[0].out_of_scope_crossref === true && r.punts[0].eligible === true
+      && sameReading(WRAP_OOS + "**Punt:** the scrub asymmetry in the window comparison (non-blocking)\n", WRAP_OOS + "**Punt:** the scrub\nasymmetry in the window comparison (non-blocking)\n")],
+
+  ["three-line span → identical to single-line",
+    WRAP_OOS + "**Punt:** scrub asymmetry in the window\ncomparison, left to its own ticket\n(decides: architecture) (non-blocking)\n",
+    (r) => sameReading(WRAP_SINGLE, WRAP_OOS + "**Punt:** scrub asymmetry in the window\ncomparison, left to its own ticket\n(decides: architecture) (non-blocking)\n")
+      && r.punts.length === 1 && r.punts[0].eligible === true],
+
+  ["wrapped untagged Punt → still blocking",
+    WRAP_OOS + "**Punt:** scrub asymmetry in the window\ncomparison, left to its own ticket\n",
+    (r) => r.punts[0].out_of_scope_crossref === true && r.punts[0].non_blocking === false
+      && r.punts[0].eligible === false && r.blocking_open_count === 1],
+
+  ["wrapped tag without crossref → still blocking",
+    "## OUT OF SCOPE\n\n- **Something else** — unrelated.\n\n**Punt:** an unrelated\ndecision (non-blocking)\n",
+    (r) => r.punts[0].non_blocking === true && r.punts[0].out_of_scope_crossref === false
+      && r.punts[0].eligible === false && r.blocking_open_count === 1],
+
+  ["wrapped decides value: split `(decides:` still parses",
+    "**Punt:** cron vs queue (decides:\narchitecture)\n",
+    (r) => r.punts[0].decides === "architecture" && r.punts[0].topic === "cron vs queue"],
+
+  ["following paragraph after a blank line is not absorbed",
+    "**Punt:** cron vs queue — needs human\n\nA separate paragraph (non-blocking) about something else.\n",
+    (r) => r.punts[0].non_blocking === false && r.blocking_open_count === 1
+      && r.punts[0].topic === "cron vs queue — needs human"],
+
+  ["Chosen marker carrying the tag, no blank line → not absorbed",
+    "**Punt:** cron vs queue — needs human\n**Chosen:** pino (non-blocking)\n",
+    (r) => r.punts[0].non_blocking === false && r.blocking_open_count === 1],
+
+  ["two adjacent Punts, no blank line → two markers",
+    WRAP_OOS + "**Punt:** scrub asymmetry in the window\ncomparison (non-blocking)\n**Punt:** cron vs queue — needs human\n",
+    (r) => r.punts.length === 2 && r.punts[0].eligible === true && r.punts[1].eligible === false
+      && r.punts[1].topic === "cron vs queue — needs human" && r.eligible_count === 1 && r.blocking_open_count === 1],
+
+  ["bare tag, topic and tag on the next line → one marker",
+    WRAP_OOS + "**Punt:**\nscrub asymmetry in the window comparison (non-blocking)\n",
+    (r) => r.punts.length === 1 && r.punts[0].topic === "scrub asymmetry in the window comparison"
+      && r.punts[0].eligible === true],
+
+  ["bare tag with nothing after → one blocking empty-topic marker",
+    WRAP_OOS + "**Punt:**\n\nA paragraph (non-blocking).\n",
+    (r) => r.punts.length === 1 && r.punts[0].topic === "" && r.punts[0].eligible === false
+      && r.blocking_open_count === 1],
+
+  ["CRLF wrapped Punt → identical to the LF form",
+    WRAP_OOS.replace(/\n/g, "\r\n") + "**Punt:** scrub asymmetry in the window comparison, left to its own ticket\r\n(decides: architecture) (non-blocking)\r\n",
+    (r) => sameReading(WRAP_SINGLE, WRAP_OOS.replace(/\n/g, "\r\n") + "**Punt:** scrub asymmetry in the window comparison, left to its own ticket\r\n(decides: architecture) (non-blocking)\r\n")
+      && r.punts[0].eligible === true],
+
+  ["continuation starting with a hyphen-dash ends the logical line (known safe price)",
+    WRAP_OOS + "**Punt:** scrub asymmetry in the window comparison, left to its own ticket\n- (non-blocking)\n",
+    (r) => r.punts[0].non_blocking === false && r.punts[0].eligible === false && r.blocking_open_count === 1],
+
+  // --- the terminator table: an untagged Punt followed by each kind of line carrying the tag ---
+  ...TERMINATOR_CASES,
+
+  // --- composed with the list-item half (FAFF-1351): listed and wrapped ---
+  ["listed Punt wrapped, tags on line two → identical to the single-line form",
+    WRAP_OOS + "- **Punt:** scrub asymmetry in the window comparison, left to its own ticket\n  (decides: architecture) (non-blocking)\n",
+    (r) => r.punts.length === 1 && r.punts[0].eligible === true && r.punts[0].decides === "architecture"
+      && JSON.stringify(r) === JSON.stringify(puntScan(WRAP_SINGLE))],
+
+  ["listed Punt followed by a listed Chosen carrying the tag → not absorbed",
+    "- **Punt:** cron vs queue — needs human\n- **Chosen:** pino (non-blocking)\n",
+    (r) => r.punts.length === 1 && r.punts[0].non_blocking === false && r.blocking_open_count === 1],
+
+  ["two adjacent listed Punts → two markers",
+    "- **Punt:** first open decision\n- **Punt:** second open decision (non-blocking)\n",
+    (r) => r.punts.length === 2 && r.punts[0].non_blocking === false && r.punts[1].non_blocking === true
+      && r.punts[0].topic === "first open decision" && r.punts[1].topic === "second open decision"],
 ];
 
 function runPuntScanCases() {
@@ -237,6 +482,7 @@ module.exports = {
   PUNT_SCAN_CASES,
   cmdPuntScan,
   extractOutOfScopeItemKeys,
+  matchPuntStart,
   puntScan,
   puntScanSelftest,
   runPuntScanCases,

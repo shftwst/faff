@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "issue": "FAFF-1322",
+  "build": {
+    "status": "complete",
+    "diff_hash": "548ec627880560889f485acecec98d6c073b92210dd5fa7b40d223e3be515b13",
+    "branch": "faff-1322-the-hand-read-guard-regex-misses-config-variants-under-faff",
+    "pushed_at": "2026-10-27T09:20:50.450Z"
+  },
+  "updated_at": "2026-10-27T09:20:50.450Z"
+}

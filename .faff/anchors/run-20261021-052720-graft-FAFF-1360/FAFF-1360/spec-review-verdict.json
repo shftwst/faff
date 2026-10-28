@@ -1,0 +1,323 @@
+{
+  "schema_version": 1,
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 3,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec's edge-case analysis asserts that a spec whose only non-prose DONE items are code-surface (judged_count 0, integration_count > 0) yields an evaluator block with `criteria: []` that \"rolls up to `needs-human` (ADR-0140)\". ADR-0140 does not establish this — it addresses prose Scenarios units and the delegated route, never the aggregate derivation over an empty criteria array. The derivation is canonical at `faff contract holdout-verdict --describe`, which is not in evidence, and the evaluator SKILL's `needs-human` + `criteria: []` example is the env-not-ready case, not a derivation rule. If the contract's derivation treats an empty criteria set as vacuously all-met (`meets-spec`), the outcome **does** change: a class of specs this change creates (code-surface-only non-prose DONE) would pass the holdout leg with nothing judged — exactly the vacuous-pass direction the spec's own first design principle (\"a false match costs more than a miss\") forbids. No scenario in section 5 and no DONE criterion (ac-1..ac-16) exercises the judged_count-0 roll-up; ac-2 tests the 7-judged FAFF-1354 case only.",
+      "evidence": "section 4 → edge cases, bullet \"A spec whose only non-prose items are code-surface DONE items\"; section 1 Problem (\"Before this change the same spec reached `needs-human` through the judged items, so the outcome does not change\"); ADR 0140 (supplied) contains no empty-criteria rule.",
+      "predicted_consequence": "if the derivation is vacuous-all-met, an integration-only spec's holdout record is accepted (the writer's judged-id check passes trivially on two empty sets) with `aggregate: meets-spec`, the merge floor's holdout leg passes on zero verification, and the regression is invisible because no test covers it.",
+      "spec_anchor": "a-spec-whose-only-non-prose-items-are-code-surface-done-items-gets-judged_count-0-and-integration_count-above-0",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Revision 2 cites the holdout-verdict derivation and adds ac-17.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The spec's edge-case analysis asserts that a spec whose only non-prose DONE items are code-surface (judged_count 0, integration_count > 0) yields an evaluator block with `criteria: []` that \"rolls up to `needs-human` (ADR-0140)\". ADR-0140 does not establish this — it addresses prose Scenarios units and the delegated route, never the aggregate derivation over an empty criteria array. The derivation is canonical at `faff contract holdout-verdict --describe`, which is not in evidence, and the evaluator SKILL's `needs-human` + `criteria: []` example is the env-not-ready case, not a derivation rule. If the contract's derivation treats an empty criteria set as vacuously all-met (`meets-spec`), the outcome **does** change: a class of specs this change creates (code-surface-only non-prose DONE) would pass the holdout leg with nothing judged — exactly the vacuous-pass direction the spec's own first design principle (\"a false match costs more than a miss\") forbids. No scenario in section 5 and no DONE criterion (ac-1..ac-16) exercises the judged_count-0 roll-up; ac-2 tests the 7-judged FAFF-1354 case only.",
+          "spec_anchor": "a-spec-whose-only-non-prose-items-are-code-surface-done-items-gets-judged_count-0-and-integration_count-above-0"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "`maskCodeSpans` replaces backticked spans with `\\u0001ID\\u0001` / `\\u0001CODE\\u0001` sentinels, but nothing strips or escapes literal U+0001 bytes already present in the criterion text. A DONE item whose raw text carries `\\u0001ID\\u0001` sequences (or that interleaves them with the words \"is exported\") satisfies `EXPORT_CLAUSE_RES` without any backticked identifier, tiering the item `integration` and silently removing it from the code-blind holdout's judged set. The signals only ever push *toward* integration — there is no inverse injection — so the forgeable direction is exactly the verification-weakening one the spec's own design principle calls the costly one (\"a false match costs more than a miss\").",
+      "evidence": "section 3, `FUNCTION maskCodeSpans` and `EXPORT_CLAUSE_RES` — the mask is a plain string substitution over untrusted-ish spec text with no sanitisation of the sentinel byte; the spec's \"Design principles\" paragraph states the false-match asymmetry.",
+      "predicted_consequence": "a spec (authored via tracker comment, which is the spec's intake path) can route arbitrary DONE items out of the holdout's judged set by embedding control bytes, with the only trace an advisory line under `--lights-out`. Weakened independent verification, no exploit of code or data.",
+      "spec_anchor": "the-two-signals",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Revision 2 replaces any pre-existing U+0001 before masking, with a pinned case.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "`maskCodeSpans` replaces backticked spans with `\\u0001ID\\u0001` / `\\u0001CODE\\u0001` sentinels, but nothing strips or escapes literal U+0001 bytes already present in the criterion text. A DONE item whose raw text carries `\\u0001ID\\u0001` sequences (or that interleaves them with the words \"is exported\") satisfies `EXPORT_CLAUSE_RES` without any backticked identifier, tiering the item `integration` and silently removing it from the code-blind holdout's judged set. The signals only ever push *toward* integration — there is no inverse injection — so the forgeable direction is exactly the verification-weakening one the spec's own design principle calls the costly one (\"a false match costs more than a miss\").",
+          "spec_anchor": "the-two-signals"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "major",
+      "claim": "The slice surfaces three real gaps — (1) FAFF-1293's acceptance covers only prose Scenarios units, so the 65 assertion-class units naming test files have no owner; (2) the angle-bracket placeholder comparator fix and the author-declared `integration:` DONE marker exist only as \"its own ticket\" phrasing; (3) the \"should graft skip on an integration-only spec\" question is parked on FAFF-961, which is already Done and cannot carry it. None of these is drawn as a tracked dependency; when FAFF-1360 closes, the pipeline loses them.",
+      "evidence": "Methodology critique, \"Deps surfaced? (principle 6)\": \"each is a known gap recorded only in this spec's prose; when FAFF-1360 closes, nothing in the tracker shows them.\" Corroborated by section 2's out-of-scope bullets, which name extension points but file nothing.",
+      "predicted_consequence": "The 570-of-1110 placeholder measurement and the integration-only graft-skip question — both load-bearing for the holdout's judged-set shape this ticket narrows — have no ticket, so the next spec touching `prdHasComparator` or the graft skip gate rediscovers them from scratch, or ships against a stale assumption.",
+      "spec_anchor": "2-out-of-scope",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Follow-ups filed as FAFF-1361, FAFF-1362, FAFF-1363 and FAFF-1364; the spec points to them.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The slice surfaces three real gaps — (1) FAFF-1293's acceptance covers only prose Scenarios units, so the 65 assertion-class units naming test files have no owner; (2) the angle-bracket placeholder comparator fix and the author-declared `integration:` DONE marker exist only as \"its own ticket\" phrasing; (3) the \"should graft skip on an integration-only spec\" question is parked on FAFF-961, which is already Done and cannot carry it. None of these is drawn as a tracked dependency; when FAFF-1360 closes, the pipeline loses them.",
+          "spec_anchor": "2-out-of-scope"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "FAFF-1360 and the tickets it coordinates with (FAFF-1292, FAFF-1293, FAFF-1359, FAFF-1270) sit outside any project, so the cluster's ordering is carried only by prose references in spec text rather than by a sequenced plan.",
+      "evidence": "Methodology critique, \"Workstream fit? (principles 1 + 5)\": \"work with no project cannot be sequenced as a group; the cluster's order lives only in prose links,\" with the remedy \"run the rehoming pass over this cluster and propose one outcome-led home with FAFF-1270 as its done-bar.\"",
+      "predicted_consequence": "If FAFF-1359 or FAFF-1292 stalls, nothing in the tracker shows that FAFF-1360's proving-run payoff (the FAFF-1354 re-run this spec explicitly defers) is blocked; the deferral in section 2 (\"The live FAFF-1354 holdout re-run\") is invisible to planning. The critique itself notes this is \"not a reason to hold up building FAFF-1360,\" so this is a shaping concern, not a blocker.",
+      "spec_anchor": "methodology-critique",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Operator decision: project rehoming is tracker housekeeping, not a reason to hold the build.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "FAFF-1360 and the tickets it coordinates with (FAFF-1292, FAFF-1293, FAFF-1359, FAFF-1270) sit outside any project, so the cluster's ordering is carried only by prose references in spec text rather than by a sequenced plan.",
+          "spec_anchor": "methodology-critique"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "`EXPORT_CLAUSE_RES`'s second pattern (`\\u0001ID\\u0001 … is exported`) cannot distinguish a module-export clause from data-export prose. A DONE item like \"the `summary` field is exported to the CSV\" contains a backticked plain identifier followed by \"is exported\", so `codeSurfaceSignal` returns `export`, the item tiers `integration`, and an observable criterion the holdout *could* judge leaves the judged set — the exact false-match direction the spec's own first design principle calls the costly one. The spec's expected-values table tests only the non-identifier case (`report.csv`) and the in-span case (`faff export`); the \"is exported **to/into/from** …\" continuation family is untested and unguarded, and the spec's failure-mode remedy for false matches is reactive (narrow the pattern after one is observed in the wild), not preventive.",
+      "evidence": "section 3, `EXPORT_CLAUSE_RES` second entry and the expected-values table (rows 5–7); section 4 failure mode 2 (\"if a pure-behaviour item turns up, narrow the pattern that matched it\"); design principle \"A false match costs more than a miss\".",
+      "predicted_consequence": "a family of observable DONE items (data-export phrasing with a backticked field name) is routed to `integration` on day one; the holdout's judged set shrinks silently in every non-lights-out run (the advisory fires only under `--lights-out`), and the regression is visible only when an operator happens to read a lights-out admissibility log.",
+      "spec_anchor": "the-two-signals",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Revision 3 narrows the export signal to module export and pins data-export phrasings as null.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "`EXPORT_CLAUSE_RES`'s second pattern (`\\u0001ID\\u0001 … is exported`) cannot distinguish a module-export clause from data-export prose. A DONE item like \"the `summary` field is exported to the CSV\" contains a backticked plain identifier followed by \"is exported\", so `codeSurfaceSignal` returns `export`, the item tiers `integration`, and an observable criterion the holdout *could* judge leaves the judged set — the exact false-match direction the spec's own first design principle calls the costly one. The spec's expected-values table tests only the non-identifier case (`report.csv`) and the in-span case (`faff export`); the \"is exported **to/into/from** …\" continuation family is untested and unguarded, and the spec's failure-mode remedy for false matches is reactive (narrow the pattern after one is observed in the wild), not preventive.",
+          "spec_anchor": "the-two-signals"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "major",
+      "claim": "The slice's follow-on work is recorded nowhere a pipeline can see; when FAFF-1360 closes, three known gaps vanish with it.",
+      "evidence": "The supplied issue-critique (principle 6) names three handoffs pointing at tickets that do not carry them: (1) section 2 sends the 65 Scenarios units naming a test file to FAFF-1364, described as \"a sibling of FAFF-1293 (whose acceptance covers only prose units)\" — an assertion bullet like \"`test/a.test.mjs` MUST pass\" is outside FAFF-1293's acceptance; (2) the placeholder-comparator fix (FAFF-1361) and the author-declared `integration:` prefix (FAFF-1362) exist only as \"tracked as\" mentions in section 2; (3) \"should graft skip the holdout on an integration-only spec\" is left to FAFF-963/FAFF-1363, with the critique noting FAFF-961 is already Done and cannot carry it.",
+      "predicted_consequence": "FAFF-1360 ships and closes; the placeholder-comparator defect (570 of 1110 DONE assertions mis-tiered), the missing DONE marker, and the graft-skip question have no tracker record, so the next planner sees a clean tier system with no visible debt.",
+      "spec_anchor": "2-out-of-scope",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Stale critique: FAFF-1361 to FAFF-1364 existed before round 2; the critique was regenerated for round 3.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The slice's follow-on work is recorded nowhere a pipeline can see; when FAFF-1360 closes, three known gaps vanish with it.",
+          "spec_anchor": "2-out-of-scope"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "FAFF-1360 and the tickets it works beside (FAFF-1292, FAFF-1293, FAFF-1359, FAFF-1270) share an outcome but no project; ordering is not enforceable.",
+      "evidence": "The supplied issue-critique (principles 1 + 5): \"work with no project cannot be sequenced as a group; the cluster's order lives only in prose links.\" The spec itself states \"It is one of the fixes FAFF-1270 (the proving run) needs, beside FAFF-1292, FAFF-1293 and FAFF-1359\" — a prose-only dependency chain.",
+      "predicted_consequence": "not separately stated (the critique itself says this is not a reason to hold up building FAFF-1360; the rehoming pass is a separate action).",
+      "spec_anchor": "2-out-of-scope",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Operator decision: project rehoming is separate housekeeping.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "FAFF-1360 and the tickets it works beside (FAFF-1292, FAFF-1293, FAFF-1359, FAFF-1270) share an outcome but no project; ordering is not enforceable.",
+          "spec_anchor": "2-out-of-scope"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "ac-17 requires that `faff holdout record`, given a `meets-spec` block with `criteria: []` over a judged_count-0 spec, **refuses** the block. Nothing shown or cited establishes that the writer refuses this today: the judged-id check passes trivially (both sets empty), and `holdoutRecordViolations`' visible rules (schema, delegation, per-criterion exercised/expected/observed/reason) do not obviously encode aggregate-vs-criteria consistency for the empty case. The spec cites `faff contract holdout-verdict --describe` for the *derivation*, but the writer validates against the schema, not necessarily against the contract's aggregate derivation.",
+      "evidence": "ac-17 (\"a block claiming `meets-spec` with `criteria: []` is refused\"); reference-context row for `holdout-record.js` marked \"Unchanged\"; the Assumptions section validates `DELEGATED_TIERS`/`DELEGATED_VERIFIER_FOR_TIER` and graft Step 8 but not this refusal.",
+      "predicted_consequence": "if the writer accepts `meets-spec` with `criteria: []`, ac-17 is unsatisfiable without modifying `holdout-record.js` — an out-of-scope change per the spec's own reference table — and the builder discovers this only when the pinned test fails, with no sanctioned remedy in scope.",
+      "spec_anchor": "from-how-edge-cases",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Revision 3 brings holdout-record.js into scope: the writer refuses an aggregate its criteria do not derive.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "ac-17 requires that `faff holdout record`, given a `meets-spec` block with `criteria: []` over a judged_count-0 spec, **refuses** the block. Nothing shown or cited establishes that the writer refuses this today: the judged-id check passes trivially (both sets empty), and `holdoutRecordViolations`' visible rules (schema, delegation, per-criterion exercised/expected/observed/reason) do not obviously encode aggregate-vs-criteria consistency for the empty case. The spec cites `faff contract holdout-verdict --describe` for the *derivation*, but the writer validates against the schema, not necessarily against the contract's aggregate derivation.",
+          "spec_anchor": "from-how-edge-cases"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "`EXPORT_CLAUSE_RES` entry 1 (`export(?:s|ed)?\\s+<ID>`) matches \"export\" used as a **noun** followed by a plain identifier, not just the verb sense. \"The CSV export `path` MUST default to stdout\" masks to \"the CSV export `<ID>` MUST…\" and matches, routing an observable DONE item (file/stdout behaviour the holdout *can* judge) to `integration`. The table's nearest case, \"the CSV export `report.csv` MUST have a header row\", returns null only because `report.csv` is not a plain identifier — it dodges the collision rather than pinning it.",
+      "evidence": "section 3 expected-values table; the spec's own design principle \"A false match costs more than a miss\"; the failure-modes entry \"The rule catches an observable DONE item\" detects this only post-hoc via holdout records, never at build time.",
+      "predicted_consequence": "a builder implementing exactly the table ships a rule with a known, natural false-positive class and no selftest case covering it; the first real noun-export DONE item silently leaves the holdout's judged set, and the spec's stated detection signal (a `delegated[]` row) fires only after a build has run.",
+      "spec_anchor": "the-two-signals",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Revision 3 narrows the export signal; the noun-export phrasing is pinned as null.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "`EXPORT_CLAUSE_RES` entry 1 (`export(?:s|ed)?\\s+<ID>`) matches \"export\" used as a **noun** followed by a plain identifier, not just the verb sense. \"The CSV export `path` MUST default to stdout\" masks to \"the CSV export `<ID>` MUST…\" and matches, routing an observable DONE item (file/stdout behaviour the holdout *can* judge) to `integration`. The table's nearest case, \"the CSV export `report.csv` MUST have a header row\", returns null only because `report.csv` is not a plain identifier — it dodges the collision rather than pinning it.",
+          "spec_anchor": "the-two-signals"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "`buildHoldoutRecord`'s new derivation check is gated on \"IF every verdict is one of met | unmet | needs-human\", with no stated refusal for the else-branch. A block whose criteria carry a verdict outside that set (e.g. `\"pending\"`) skips the derivation check entirely, so an aggregate that disagrees with its criteria — or any aggregate at all — is written as-is. The spec's stated purpose for the whole writer change is that \"the change moves the refusal to write time and makes the stored record say why\"; for the malformed-verdict input class it does the opposite: the block is stored as `meets-spec` and only rejected later by `computeHoldoutVerdict` at the re-validating gates — the exact pre-existing defect the subsection says it eliminates. If `holdoutRecordViolations(redacted)` already refuses invalid verdicts, the spec never says so, and a builder following the pseudocode literally ships the hole.",
+      "evidence": "section 4, \"The record writer refuses an aggregate its criteria do not derive\", step 2 (\"same guard computeHoldoutVerdict uses\" — a guard that skips, not refuses); the subsection's framing \"the writer must refuse it … the change moves the refusal to write time\".",
+      "predicted_consequence": "a holdout record with a malformed verdict and a wrong aggregate is written to `.faff/holdout/` as `meets-spec`, passes the writer, and only fails at the next gate that runs `computeHoldoutVerdict` — the late-failure mode this change was added to remove survives for that input class, and ac-18's selftest (which pins only the aggregate-mismatch case) does not catch it.",
+      "spec_anchor": "the-record-writer-refuses-an-aggregate-its-criteria-do-not-derive",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "holdoutRecordViolations runs next and the anchored schema allows only met, unmet and needs-human, so the block is refused; a clarifying sentence was added.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "`buildHoldoutRecord`'s new derivation check is gated on \"IF every verdict is one of met | unmet | needs-human\", with no stated refusal for the else-branch. A block whose criteria carry a verdict outside that set (e.g. `\"pending\"`) skips the derivation check entirely, so an aggregate that disagrees with its criteria — or any aggregate at all — is written as-is. The spec's stated purpose for the whole writer change is that \"the change moves the refusal to write time and makes the stored record say why\"; for the malformed-verdict input class it does the opposite: the block is stored as `meets-spec` and only rejected later by `computeHoldoutVerdict` at the re-validating gates — the exact pre-existing defect the subsection says it eliminates. If `holdoutRecordViolations(redacted)` already refuses invalid verdicts, the spec never says so, and a builder following the pseudocode literally ships the hole.",
+          "spec_anchor": "the-record-writer-refuses-an-aggregate-its-criteria-do-not-derive"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The writer's new refusal check is explicitly conditional — it derives the expected aggregate only \"IF every verdict is one of met | unmet | needs-human\". The evaluator block arrives on stdin (`faff holdout record --issue … --spec …`), i.e. it is untrusted input to a governance-region writer. A block whose criteria carry any other verdict value (a typo, a future tier string, or a deliberately malformed value) skips the derivation check entirely, so an aggregate that disagrees with its criteria — the exact defect this change exists to catch — can still be written, just via a different route than `meets-spec` + `criteria: []`.",
+      "evidence": "section 4, \"The record writer refuses an aggregate its criteria do not derive\", step 2: \"IF every verdict is one of met | unmet | needs-human: … IF redacted.aggregate != expected: refusals.push(...)\". No clause states that the writer refuses (rather than skips derivation for) a block containing an out-of-set verdict.",
+      "predicted_consequence": "a holdout record is persisted with `aggregate: \"meets-spec\"` alongside criteria whose verdicts do not derive it; the record is only caught later at re-validation gates (`readHoldout`, `faff holdout verdicts`) — the same deferred-refusal behaviour the spec calls out as the defect being moved to write time. The fix is a one-line edit: refuse any verdict outside the set instead of skipping the derivation.",
+      "spec_anchor": "the-record-writer-refuses-an-aggregate-its-criteria-do-not-derive",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Same as 3#0: the schema check refuses an out-of-set verdict; clarifying sentence added.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The writer's new refusal check is explicitly conditional — it derives the expected aggregate only \"IF every verdict is one of met | unmet | needs-human\". The evaluator block arrives on stdin (`faff holdout record --issue … --spec …`), i.e. it is untrusted input to a governance-region writer. A block whose criteria carry any other verdict value (a typo, a future tier string, or a deliberately malformed value) skips the derivation check entirely, so an aggregate that disagrees with its criteria — the exact defect this change exists to catch — can still be written, just via a different route than `meets-spec` + `criteria: []`.",
+          "spec_anchor": "the-record-writer-refuses-an-aggregate-its-criteria-do-not-derive"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "major",
+      "claim": "The spec ships a two-part increment — a classifier rule plus a governance-region writer change that reverses a stated test invariant — but the tracker ticket still describes only the classifier half and still lists a \"Done when\" item the spec has explicitly moved out. Anyone building or reviewing from the ticket will see the writer change and the reversed `test/holdout-record.test.mjs` assertion as unrequested scope creep.",
+      "evidence": "The supplied issue-critique (principle 4) states: \"FAFF-1360's description and 'Done when' still cover only the classifier: they mention no governance-region change, no moved function and no reversed test invariant, and they still list the live FAFF-1354 re-run, which the spec has moved to FAFF-1354 and FAFF-1270.\" The spec itself confirms the second part: section 4's \"The record writer refuses an aggregate its criteria do not derive\" moves `deriveHoldoutAggregate` into `holdout-record.js`, adds a refusal path, and reverses the \"writer never recomputes aggregate\" test — none of which the ticket records.",
+      "predicted_consequence": "The build agent works from the ticket, omits the writer refusal (ac-17/ac-18), and ships a slice that leaves the known hole open — a `meets-spec` block with `criteria: []` is accepted by the writer and only rejected later at every re-validating gate — or, conversely, the reviewer rejects the writer change as scope creep and the increment stalls at code review.",
+      "spec_anchor": "methodology-critique",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "FAFF-1360 ticket description now names the writer change and the offline proof.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "major",
+          "claim": "The spec ships a two-part increment — a classifier rule plus a governance-region writer change that reverses a stated test invariant — but the tracker ticket still describes only the classifier half and still lists a \"Done when\" item the spec has explicitly moved out. Anyone building or reviewing from the ticket will see the writer change and the reversed `test/holdout-record.test.mjs` assertion as unrequested scope creep.",
+          "spec_anchor": "methodology-critique"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "Nine related tickets (FAFF-1292/1293/1359 serving the FAFF-1270 proving run, plus FAFF-1361–1364) sit in Backlog with no project, so nothing distinguishes the follow-ups the proving run actually needs from later refinements, and the cluster cannot be sequenced as a group toward its outcome.",
+      "evidence": "The supplied issue-critique (principles 1 + 5) enumerates the cluster and concludes \"nine tickets with no project can't be sequenced as a group. Nothing shows which of the four new follow-ups the proving run actually needs and which are refinements for later,\" and prescribes a rehoming pass with FAFF-1270 as the done-bar.",
+      "predicted_consequence": "FAFF-1360 lands, but the follow-ups it spawns (FAFF-1361–1364) drift unsequenced in Backlog; the FAFF-1270 proving run's dependency chain (via FAFF-1354) cannot be read off the tracker, so the next slice after this one is chosen by prose rather than by the pipeline.",
+      "spec_anchor": "scope",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Operator decision: project rehoming is separate housekeeping.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "Nine related tickets (FAFF-1292/1293/1359 serving the FAFF-1270 proving run, plus FAFF-1361–1364) sit in Backlog with no project, so nothing distinguishes the follow-ups the proving run actually needs from later refinements, and the cluster cannot be sequenced as a group toward its outcome.",
+          "spec_anchor": "scope"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "Appendix A is a truncated spec — only the `## 5. Scenarios` and `## 8. Done` sections, no WHY/WHAT, no confidence line, no contract block. ac-7 and integration smoke step 5 both assert `faff admissible --lights-out --spec fixture --json` exits 0 on it. Whether `admissibleVerdict`'s structural rules (R1–R4 and whatever section-level rules exist beyond the code shown) pass a file with only two sections is nowhere established; the spec's \"verified on f711e6bf\" note covers only the writer prototyping, not this assertion. If any structural rule fires on the truncated fixture, the AC's expected exit code is unattainable and the failure would be misread as a code defect.",
+      "evidence": "ac-7 (\"exits 0 with exactly one warning beginning `code-surface advisory: 2 DONE item(s)`\"); smoke step 5 (\"ASSERT exit 0 AND one warning starts …\"); the fixture definition in `### Appendix A` (\"Commit the content between the outer `~~~~` fence lines\").",
+      "predicted_consequence": "smoke step 5 fails at build time with a non-zero admissible exit unrelated to the code-surface advisory, and the builder cannot tell whether the code or the fixture/AC is wrong.",
+      "spec_anchor": "from-how-text-edits (and `9-appendices`)",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "The reviewer ran faff admissible --lights-out on the extracted fixture: exit 0, admissible.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "Appendix A is a truncated spec — only the `## 5. Scenarios` and `## 8. Done` sections, no WHY/WHAT, no confidence line, no contract block. ac-7 and integration smoke step 5 both assert `faff admissible --lights-out --spec fixture --json` exits 0 on it. Whether `admissibleVerdict`'s structural rules (R1–R4 and whatever section-level rules exist beyond the code shown) pass a file with only two sections is nowhere established; the spec's \"verified on f711e6bf\" note covers only the writer prototyping, not this assertion. If any structural rule fires on the truncated fixture, the AC's expected exit code is unattainable and the failure would be misread as a code defect.",
+          "spec_anchor": "from-how-text-edits (and `9-appendices`)"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "Revision 3's central addition is that `faff holdout record` refuses an aggregate its criteria do not derive (ac-17, ac-18), including the fail-closed record shape and the empty-judged-set edge case the revision note says round 1 pinned. All four section-5 scenarios exercise happy paths (classify, running-stack routing, holdout-fence routing, an all-met block that writes `meets-spec`). No scenario runs the refusal, the fail-closed record, or the `criteria: []` → `needs-human` roll-up, even though the spec's own edge-case section names the empty-judged-set case as a headline behaviour.",
+      "evidence": "`## 5. Scenarios` (four scenarios, none a refusal); ac-17 and ac-18 pin the behaviour only as test-file requirements, not as scenarios.",
+      "predicted_consequence": "the holdout-facing acceptance surface never demonstrates the refusal path; a builder could satisfy every scenario while the refusal wiring (refusals array, fail-closed prefix, exit 1) is misassembled, with the discrepancy caught only by the unit test ac-17 mandates — if that test is written as specified.",
+      "spec_anchor": "the-record-writer-refuses-an-aggregate-its-criteria-do-not-derive",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "A writer-refusal scenario was added to section 5.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "Revision 3's central addition is that `faff holdout record` refuses an aggregate its criteria do not derive (ac-17, ac-18), including the fail-closed record shape and the empty-judged-set edge case the revision note says round 1 pinned. All four section-5 scenarios exercise happy paths (classify, running-stack routing, holdout-fence routing, an all-met block that writes `meets-spec`). No scenario runs the refusal, the fail-closed record, or the `criteria: []` → `needs-human` roll-up, even though the spec's own edge-case section names the empty-judged-set case as a headline behaviour.",
+          "spec_anchor": "the-record-writer-refuses-an-aggregate-its-criteria-do-not-derive"
+        }
+      ]
+    }
+  ]
+}

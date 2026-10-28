@@ -99,14 +99,14 @@ function captureStderr(fn) {
 
 test("discardUnmintedRunDir removes an empty dir silently", () => {
   const dir = mkdtempSync(path.join(scratch, "empty-"));
-  const err = captureStderr(() => discardUnmintedRunDir(dir, "init-self-drain"));
+  const err = captureStderr(() => discardUnmintedRunDir(dir, "run-ledger init-self-drain"));
   assert.equal(existsSync(dir), false);
   assert.equal(err, "");
 });
 
 test("discardUnmintedRunDir returns silently when the dir is already gone", () => {
   const dir = path.join(scratch, "never-created");
-  const err = captureStderr(() => discardUnmintedRunDir(dir, "init-self-drain"));
+  const err = captureStderr(() => discardUnmintedRunDir(dir, "run-ledger init-self-drain"));
   assert.equal(err, "");
 });
 
@@ -114,10 +114,18 @@ test("discardUnmintedRunDir never throws and leaves a non-empty dir and its cont
   const dir = mkdtempSync(path.join(scratch, "full-"));
   writeFileSync(path.join(dir, "run-ledger.json.lock"), "{}");
   let err;
-  assert.doesNotThrow(() => { err = captureStderr(() => discardUnmintedRunDir(dir, "init-interactive")); });
+  assert.doesNotThrow(() => { err = captureStderr(() => discardUnmintedRunDir(dir, "run-ledger init-interactive")); });
   assert.deepEqual(readdirSync(dir), ["run-ledger.json.lock"]);
   assert.equal(readFileSync(path.join(dir, "run-ledger.json.lock"), "utf8"), "{}");
   assert.equal(err, `faff run-ledger init-interactive: could not remove ${dir} (ENOTEMPTY); it holds no ledger\n`);
+});
+
+test("discardUnmintedRunDir takes the label after \"faff\", so the lights-out mint reports faff lights-out: (FAFF-1306)", () => {
+  const dir = mkdtempSync(path.join(scratch, "full-lo-"));
+  writeFileSync(path.join(dir, "run-ledger.json.lock"), "{}");
+  const err = captureStderr(() => discardUnmintedRunDir(dir, "lights-out"));
+  assert.equal(err, `faff lights-out: could not remove ${dir} (ENOTEMPTY); it holds no ledger\n`);
+  assert.ok(!err.includes("run-ledger lights-out"));
 });
 
 test("discardUnmintedRunDir reports any other rmdir error without throwing", () => {
@@ -127,10 +135,20 @@ test("discardUnmintedRunDir reports any other rmdir error without throwing", () 
   fs.rmdirSync = () => { throw Object.assign(new Error("operation not permitted"), { code: "EPERM" }); };
   let err;
   try {
-    assert.doesNotThrow(() => { err = captureStderr(() => discardUnmintedRunDir(dir, "init-self-drain")); });
+    assert.doesNotThrow(() => { err = captureStderr(() => discardUnmintedRunDir(dir, "run-ledger init-self-drain")); });
   } finally { fs.rmdirSync = real; }
   assert.ok(existsSync(dir));
   assert.equal(err, `faff run-ledger init-self-drain: could not remove ${dir} (EPERM); it holds no ledger\n`);
+
+  // FAFF-1306: the same EPERM failure through each of the three labels — the two existing sites
+  // stay byte-identical, and the lights-out site carries its own prefix.
+  const cases = [["run-ledger init-interactive", "faff run-ledger init-interactive"], ["run-ledger init-self-drain", "faff run-ledger init-self-drain"], ["lights-out", "faff lights-out"]];
+  for (const [label, prefix] of cases) {
+    fs.rmdirSync = () => { throw Object.assign(new Error("operation not permitted"), { code: "EPERM" }); };
+    let out;
+    try { out = captureStderr(() => discardUnmintedRunDir(dir, label)); } finally { fs.rmdirSync = real; }
+    assert.equal(out, `${prefix}: could not remove ${dir} (EPERM); it holds no ledger\n`);
+  }
 });
 
 // run-ledger.js destructures mutateLedgerUnderLock at require time, so the stub goes onto the

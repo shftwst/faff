@@ -5,16 +5,19 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, appendFileSync, readFileSync, existsSync, readdirSync, rmSync, chmodSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, appendFileSync, readFileSync, existsSync, readdirSync, rmSync, chmodSync, lstatSync, unlinkSync, symlinkSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
 import * as fsReal from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import { runCli } from "./helpers/run-cli.mjs";
+import { installSwapOnFirstTouch } from "./helpers/fs-swap-stub.mjs";
 
 const require = createRequire(import.meta.url);
-const { resolveHasher, SHA256_CANDIDATES, verifyAndRecord, custodyVerdictPath, atomicWriteVerdictBytes } = require("../plugin/skills/faff/bin/lib/integrity-digest.js");
+const { resolveFaffVersion } = require("../plugin/skills/faff/bin/lib/faff-version.js");
+const { resolveHasher, SHA256_CANDIDATES, verifyAndRecord, buildManifest, diffAgainstManifest, custodyVerdictPath, atomicWriteVerdictBytes } = require("../plugin/skills/faff/bin/lib/integrity-digest.js");
 
 function evidenceDir() {
   const rd = mkdtempSync(path.join(tmpdir(), "faff-idig-t-"));
@@ -240,8 +243,10 @@ test("record-result: a clean verify atomically writes schema_version:1 clean rec
     assert.deepEqual(rec.paths, []);
     assert.equal(rec.merge_state_at_verification, "pre-merge");
     assert.ok(!Number.isNaN(Date.parse(rec.verified_at)));
-    // NO authorship/actor field, ever.
-    assert.deepEqual(Object.keys(rec).sort(), ["classification", "detail", "issue", "merge_state_at_verification", "paths", "run_id", "schema_version", "verified_at"]);
+    // FAFF-1395: the writing release rides as the second key; still NO authorship/actor field, ever.
+    assert.equal(rec.faff_version, resolveFaffVersion().version);
+    assert.deepEqual(Object.keys(rec).slice(0, 2), ["schema_version", "faff_version"]);
+    assert.deepEqual(Object.keys(rec).sort(), ["classification", "detail", "faff_version", "issue", "merge_state_at_verification", "paths", "run_id", "schema_version", "verified_at"]);
     // NOT added to the manifest it was produced from (the manifest was already frozen before this ran).
     assert.ok(!("custody-verdict.json" in JSON.parse(held).members));
   } finally { rmSync(rd, { recursive: true, force: true }); }
@@ -583,4 +588,106 @@ test("atomicWriteVerdictBytes: on a rename failure, the temp file is unlinked an
     const leftovers = existsSync(dir) ? readdirSync(dir).filter((f) => f.includes(".tmp")) : [];
     assert.deepEqual(leftovers, []);
   } finally { rmSync(rd, { recursive: true, force: true }); }
+});
+
+// --- FAFF-1400: a swap between the look and the read must never read as clean ------------------------------
+
+const FAFF_BIN = path.join(import.meta.dirname, "..", "plugin", "skills", "faff", "bin", "faff");
+// A hang here would be a regression; the timeout turns it into a null exit status instead of a stuck suite.
+const faffTimed = (args, input) => spawnSync(process.execPath, [FAFF_BIN, ...args], { input, timeout: 20000, encoding: "utf8" });
+
+// Hold a manifest taken while `rel` held bytes B, then put bytes A on disk and arm a stub that swaps `rel`
+// for a symlink to a copy of bytes B on the first touch. A clean result would mean the symlink was followed.
+function swapCase(t, rel, bodyB, bodyA) {
+  const rd = evidenceDir();
+  t.after(() => rmSync(rd, { recursive: true, force: true }));
+  const abs = path.join(rd, rel);
+  writeFileSync(abs, bodyB);
+  const held = buildManifest(rd, "FAFF-9", true);
+  writeFileSync(abs, bodyA);
+  const bCopy = path.join(rd, "..", `${path.basename(rd)}-b-copy`);
+  writeFileSync(bCopy, bodyB);
+  t.after(() => rmSync(bCopy, { force: true }));
+  const stub = installSwapOnFirstTouch(abs, () => { unlinkSync(abs); symlinkSync(bCopy, abs); });
+  t.after(() => stub.restore());
+  const fired = () => {
+    assert.ok(stub.fired && stub.calls >= 1, "the swap stub fired for the target path");
+    assert.ok(lstatSync(abs).isSymbolicLink(), "the path changed kind after the call");
+  };
+  return { rd, held, stub, fired };
+}
+
+test("diffAgainstManifest: run-ledger.json swapped for a symlink after the look reads as symlink swapped, never digest-verified", (t) => {
+  const c = swapCase(t, "run-ledger.json", '{"run":"B"}', '{"run":"TAMPERED-A"}');
+  const diffs = diffAgainstManifest(c.rd, c.held);
+  c.fired();
+  assert.deepEqual(diffs, ["run-ledger.json (symlink swapped)"]);
+});
+
+test("diffAgainstManifest: a corrective/ sub-leaf swapped for a symlink after the look is named", (t) => {
+  const c = swapCase(t, path.join("corrective", "c1.json"), '{"op":"B"}', '{"op":"TAMPERED-A"}');
+  const diffs = diffAgainstManifest(c.rd, c.held);
+  c.fired();
+  assert.deepEqual(diffs, [path.join("corrective", "c1.json")]);
+});
+
+test("diffAgainstManifest: events.jsonl swapped for a symlink after the look reads as symlink swapped", (t) => {
+  const c = swapCase(t, "events.jsonl", '{"seq":0}\n', '{"seq":9}\n');
+  const diffs = diffAgainstManifest(c.rd, c.held);
+  c.fired();
+  assert.deepEqual(diffs, ["events.jsonl (symlink swapped)"]);
+});
+
+test("a FIFO at a member path makes buildManifest throw naming the path, and snapshot exit 2, without hanging", (t) => {
+  const rd = evidenceDir();
+  t.after(() => rmSync(rd, { recursive: true, force: true }));
+  unlinkSync(path.join(rd, "run-ledger.json"));
+  execFileSync("mkfifo", [path.join(rd, "run-ledger.json")]);
+  const lib = require.resolve("../plugin/skills/faff/bin/lib/integrity-digest.js");
+  const direct = spawnSync(process.execPath, ["-e", `try { require(${JSON.stringify(lib)}).buildManifest(process.argv[1], "FAFF-9", true); console.log("built"); } catch (e) { console.log("threw " + e.message); }`, rd], { timeout: 20000, encoding: "utf8" });
+  assert.match(direct.stdout, /^threw .*run-ledger\.json.* not a regular file/);
+  const cli = faffTimed(["integrity-digest", "snapshot", "--run-dir", rd, "--issue", "FAFF-9", "--events"]);
+  assert.equal(cli.status, 2, cli.stderr);
+  assert.equal(cli.stdout, "");
+});
+
+test("verify --record-result over a held manifest when a member became a FIFO records verification-unavailable and exits 2", (t) => {
+  const rd = evidenceDir();
+  t.after(() => rmSync(rd, { recursive: true, force: true }));
+  const held = buildManifest(rd, "FAFF-9", true);
+  unlinkSync(path.join(rd, "run-ledger.json"));
+  execFileSync("mkfifo", [path.join(rd, "run-ledger.json")]);
+  const verdictPath = path.join(rd, "FAFF-9", "custody-verdict.json");
+  const r = faffTimed(["integrity-digest", "verify", "--run-dir", rd, "--issue", "FAFF-9", "--events", "--manifest", "-",
+    "--issue-context", "FAFF-9", "--merge-state", "pre-merge", "--record-result", verdictPath], JSON.stringify(held));
+  assert.equal(r.status, 2, r.stderr);
+  const rec = JSON.parse(readFileSync(verdictPath, "utf8"));
+  assert.equal(rec.classification, "verification-unavailable");
+  assert.match(rec.detail, /run-ledger\.json/);
+});
+
+test("a stable tree's snapshot is unchanged by the leaf read: plain, events, symlink and directory members keep their record shapes", (t) => {
+  const rd = evidenceDir();
+  t.after(() => rmSync(rd, { recursive: true, force: true }));
+  writeFileSync(path.join(rd, "corrective", "real.json"), "{}");
+  symlinkSync(path.join(rd, "corrective", "real.json"), path.join(rd, "corrective", "link.json"));
+  const m = buildManifest(rd, "FAFF-9", true);
+  const h = (b) => createHash("sha256").update(b).digest("hex");
+  assert.deepEqual(m, {
+    version: "d1", grain: "per-issue",
+    members: {
+      "run-ledger.json": { present: true, sha256: h('{"run":"x"}') },
+      corrective: { present: true, dir: true, files: {
+        "c1.json": { sha256: h('{"op":"park"}') },
+        "link.json": { symlink: true, target: path.join(rd, "corrective", "real.json") },
+        "real.json": { sha256: h("{}") },
+      } },
+      "FAFF-9/ac-checklist.json": { present: true, sha256: h('{"all_verified":true}') },
+      "FAFF-9/review-verdict.json": { present: false },
+      "FAFF-9/holdout.json": { present: false },
+      "FAFF-9/merge-record.json": { present: false },
+      "FAFF-9/post-merge-verification.json": { present: false },
+      "events.jsonl": { present: true, events: { length: 10, prefix_sha256: h('{"seq":0}\n') } },
+    },
+  });
 });

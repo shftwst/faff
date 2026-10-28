@@ -4,8 +4,9 @@
 // The evaluator reports, per criterion, what it exercised, what it expected and what it
 // observed. This module turns that block into the fixed `holdout-anchored` shape, for both
 // callers: `faff holdout record` (inline path) and the caged `evaluate-call.mjs` spawner.
-// It shapes and refuses; it never recomputes `aggregate`, `verdict` or `evidence_present`, so
-// the gate (computeHoldoutVerdict, readHoldout, merge-gate) routes exactly as before.
+// It shapes and refuses; it refuses an `aggregate` the criteria do not derive and never rewrites
+// `aggregate`, `verdict` or `evidence_present`, so the gate (computeHoldoutVerdict, readHoldout,
+// merge-gate) routes exactly as before.
 //
 // A refused block still yields a record: a fail-closed `needs-human` one. Every consumer reads
 // an absent holdout verdict as "did not run" and steps aside, so writing nothing would turn a
@@ -19,6 +20,7 @@ const path = require("node:path");
 const { validateAgainstSchema } = require("./contract-engine");
 const { redactKnownSecrets, resolveKnownSecretValues } = require("./redact");
 const { HERE } = require("./shared-infra");
+const { resolveFaffVersion } = require("./faff-version"); // FAFF-1395
 
 const SCHEMA_PATH = path.resolve(HERE, "..", "contracts", "evidence-v0.3", "schema", "holdout-anchored.schema.json");
 const KEY_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
@@ -30,7 +32,14 @@ const DELEGATED_VERIFIER_FOR_TIER = { delegated: "ac-checklist", integration: "r
 const MAX_DETAIL = 2000;
 const TRUNCATION_SUFFIX = "…[truncated]";
 const DETAIL_KEYS = ["text", "exercised", "expected", "observed", "evidence_ref", "reason"];
-const NULLABLE_STRING_KEYS = ["exercised", "expected", "observed", "evidence_ref", "reason"];
+const NULLABLE_STRING_KEYS = ["exercised", "expected", "observed", "evidence_ref", "reason", "reason_code"];
+// FAFF-1292: the closed reason_code vocabulary. One value — human-only — is "a human must look";
+// the other four are environment/infrastructure reachability gaps that fail closed and direct the
+// operator to fix the env and re-run. A faithful promotion of the causes the evaluator SKILL already
+// enumerates. Defined here (governance region — the writer's home) and re-exported from
+// contract-defs-evidence.js so the contract layer and the describe/registry/CLI share one source and
+// the factory→governance require direction stays legal.
+const HOLDOUT_REASON_CODES = ["human-only", "no-surface", "wire-error", "credentials-unavailable", "env-not-ready"];
 
 let cachedSchema = null;
 function loadSchema() {
@@ -166,6 +175,17 @@ function holdoutRecordViolations(doc) {
     if (c.verdict === "needs-human" && (c.reason === null || c.reason === undefined)) {
       found.push(`${at}.reason: required (non-null) when verdict is needs-human`);
     }
+    // FAFF-1292: the reason_code cross-field rules — the WRITER (strict) half of the split. A fresh
+    // emission MUST carry a valid reason_code on a needs-human criterion (fail-closed refusal); the
+    // contract's absent-code tolerance is a read-side re-validation property only. Messages name key
+    // paths, never the offending value.
+    const rc = c.reason_code;
+    const hasRc = rc !== null && rc !== undefined;
+    if (hasRc && !HOLDOUT_REASON_CODES.includes(rc)) found.push(`${at}.reason_code: not in {${HOLDOUT_REASON_CODES.join(",")}}`);
+    if ((c.verdict === "met" || c.verdict === "unmet") && hasRc) found.push(`${at}.reason_code: must be null when verdict is met or unmet`);
+    if (c.verdict === "needs-human" && !hasRc) found.push(`${at}.reason_code: required (non-null) when verdict is needs-human`);
+    if (c.class === "prose" && hasRc && rc !== "human-only") found.push(`${at}.reason_code: a prose criterion must be human-only`);
+    if ((c.class === "scenario" || c.class === "assertion") && c.verdict === "needs-human" && hasRc && rc === "human-only") found.push(`${at}.reason_code: a born-verifiable criterion is never human-only`);
     for (const key of DETAIL_KEYS) {
       if (typeof c[key] === "string" && c[key].length > MAX_DETAIL) found.push(`${at}.${key}: longer than ${MAX_DETAIL} characters`);
     }
@@ -206,6 +226,7 @@ function normaliseAttestation(att) {
 function failClosed(top, refusals, delegated, blockViolations) {
   const doc = {
     schema_version: 1,
+    faff_version: resolveFaffVersion().version, // FAFF-1395
     issue: top.issue,
     aggregate: "needs-human",
     code_blind: top.code_blind === true,
@@ -264,6 +285,7 @@ function buildHoldoutRecord(block, opts) {
   const rawCriteria = Array.isArray(block.criteria) ? block.criteria : [];
   const top = {
     schema_version: 1,
+    faff_version: resolveFaffVersion().version, // FAFF-1395
     issue,
     aggregate: block.aggregate,
     code_blind: envelope ? envelope.code_blind === true : block.code_blind === true,
@@ -294,9 +316,23 @@ function buildHoldoutRecord(block, opts) {
       refusals.push(`criteria ids do not match the judged set from faff dod classify: missing [${missing.join(", ")}], unexpected [${unexpected.join(", ")}]`);
     }
   }
+  const verdicts = redacted.criteria.map((c) => c.verdict);
+  if (verdicts.every((v) => v === "met" || v === "unmet" || v === "needs-human")) {
+    const expected = deriveHoldoutAggregate(verdicts);
+    if (redacted.aggregate !== expected) refusals.push(`aggregate is "${truncateDetail(String(redacted.aggregate))}" but criteria derive "${expected}"`);
+  }
   refusals.push(...holdoutRecordViolations(redacted));
   if (refusals.length > 0) return failClosed(base, refusals, delegated, redacted.violations);
   return { ok: true, doc: redacted, bytes: serialise(redacted), refusals: [] };
+}
+
+// The aggregate derivation (gateway-normative, ADR-0032). Lives here so the writer and the contract agree.
+function deriveHoldoutAggregate(verdicts) {
+  if (verdicts.some((v) => v === "needs-human")) return "needs-human";
+  if (verdicts.length === 0) return "needs-human";       // nothing judged → needs-human
+  if (verdicts.every((v) => v === "met")) return "meets-spec";
+  if (verdicts.every((v) => v === "unmet")) return "fails";
+  return "gaps";                                          // mixed met/unmet
 }
 
 function holdoutRecordSelftest() {
@@ -351,6 +387,10 @@ function holdoutRecordSelftest() {
   const noReason = buildHoldoutRecord(block([met, { id: "scenarios:2", text: "t", class: "prose", verdict: "needs-human", evidence_present: false }], "needs-human"), { ...opts, classified: { criteria: [row("scenarios:1", "running-stack"), row("scenarios:2", "running-stack")] } });
   check("refused: needs-human without reason", !noReason.ok);
 
+  const disagree = buildHoldoutRecord(block([met], "fails"), opts);
+  check("refused: aggregate the criteria do not derive", !disagree.ok && disagree.doc.aggregate === "needs-human" && disagree.doc.violations.some((v) => v.includes('aggregate is "fails" but criteria derive "meets-spec"')));
+  check("refused: meets-spec over no criteria", !buildHoldoutRecord(block([], "meets-spec"), { ...opts, classified: { criteria: [row("done:1", "delegated")] } }).ok);
+
   check("refused: non-object block", !buildHoldoutRecord("nope", opts).ok);
   check("accepted: nothing-judged block when classify judges nothing", buildHoldoutRecord(block([], "needs-human"), { ...opts, classified: { criteria: [row("done:1", "delegated")] } }).ok);
   check("refused: bad id", !buildHoldoutRecord(block([{ ...met, id: "scenarios:0" }]), opts).ok);
@@ -366,6 +406,26 @@ function holdoutRecordSelftest() {
   check("redaction runs before truncation", straddle.ok && !straddle.bytes.includes(token.slice(0, 6)));
   const scrubbed = buildHoldoutRecord(block([{ ...met, observed: `saw ${token}` }]), { ...opts, extraSecrets: [token] });
   check("redaction: placeholder replaces the secret", scrubbed.doc.criteria[0].observed === "saw [REDACTED]");
+
+  // FAFF-1292: reason_code — acceptance of a valid code + refusal of each writer-layer cross-field violation.
+  const rcClassified = { criteria: [row("scenarios:1", "running-stack")] };
+  const rcOpts = { issue, secretValues: [], classified: rcClassified };
+  const nh = { id: "scenarios:1", text: "t", holdout: true, class: "assertion", verdict: "needs-human", evidence_present: false, reason: "no reachable surface", reason_code: "no-surface" };
+  const rcOk = buildHoldoutRecord(block([nh], "needs-human"), rcOpts);
+  check("reason_code: accepted needs-human/no-surface stamps the code", rcOk.ok && rcOk.doc.criteria[0].reason_code === "no-surface");
+  check("reason_code: accepted record validates", rcOk.ok && holdoutRecordViolations(rcOk.doc).length === 0);
+  check("reason_code: met leaves reason_code null", ok.doc.criteria[0].reason_code === null);
+  const rcMissing = buildHoldoutRecord(block([{ ...nh, reason_code: undefined }], "needs-human"), rcOpts);
+  check("reason_code: refused needs-human without a code", !rcMissing.ok && rcMissing.doc.violations.some((v) => v.includes("reason_code: required")));
+  const rcBad = buildHoldoutRecord(block([{ ...nh, reason_code: "bogus" }], "needs-human"), rcOpts);
+  check("reason_code: refused out-of-enum code", !rcBad.ok && rcBad.doc.violations.some((v) => v.includes("reason_code: not in")));
+  const rcHumanOnly = buildHoldoutRecord(block([{ ...nh, reason_code: "human-only" }], "needs-human"), rcOpts);
+  check("reason_code: refused born-verifiable human-only", !rcHumanOnly.ok && rcHumanOnly.doc.violations.some((v) => v.includes("never human-only")));
+  const proseClassified = { criteria: [row("scenarios:1", "running-stack")] };
+  const rcProse = buildHoldoutRecord(block([{ id: "scenarios:1", text: "t", holdout: true, class: "prose", verdict: "needs-human", evidence_present: false, reason: "taste", reason_code: "no-surface" }], "needs-human"), { issue, secretValues: [], classified: proseClassified });
+  check("reason_code: refused prose with a non-human-only code", !rcProse.ok && rcProse.doc.violations.some((v) => v.includes("must be human-only")));
+  const rcMet = buildHoldoutRecord(block([{ ...met, reason_code: "no-surface" }]), opts);
+  check("reason_code: refused met carrying a code", !rcMet.ok && rcMet.doc.violations.some((v) => v.includes("must be null when verdict is met")));
 
   const sentinel = "SENTINEL-VALUE-9f3";
   const msgs = holdoutRecordViolations({ ...ok.doc, criteria: [{ ...ok.doc.criteria[0], id: sentinel, text: 5 }] });
@@ -384,5 +444,5 @@ function holdoutRecordSelftest() {
 }
 
 module.exports = {
-  buildHoldoutRecord, delegationViolations, holdoutRecordViolations, holdoutRecordSelftest, isSafeHoldoutKey, resolveContained, writeHoldoutRecord,
+  HOLDOUT_REASON_CODES, buildHoldoutRecord, delegationViolations, deriveHoldoutAggregate, holdoutRecordViolations, holdoutRecordSelftest, isSafeHoldoutKey, resolveContained, writeHoldoutRecord,
 };

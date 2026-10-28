@@ -1,0 +1,218 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 3,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/admissibility.js::sentence-start export clause matches data-export prose in codesurfacesignal",
+      "title": "Sentence-start Export clause matches data-export prose with no destination preposition",
+      "location": "plugin/skills/faff/bin/lib/admissibility.js",
+      "action": "Narrow further.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "\"Export `x` for the report\" has the same shape as FAFF-1354 done:8 (\"Export `x` ... for the unit tests\"), the case the spec exists to catch; the spec accepted this residual and FAFF-1362 adds an author-declared marker.",
+      "first_round": 1,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Sentence-start Export clause matches data-export prose in codeSurfaceSignal",
+          "location": "plugin/skills/faff/bin/lib/admissibility.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        },
+        {
+          "round": 2,
+          "title": "Sentence-start Export clause matches data-export prose with no destination preposition",
+          "location": "plugin/skills/faff/bin/lib/admissibility.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/admissibility.js::codesurfaceadvisory re-runs dodclassify and swallows failures",
+      "title": "codeSurfaceAdvisory re-runs dodClassify and swallows failures",
+      "location": "plugin/skills/faff/bin/lib/admissibility.js",
+      "action": "Reuse one classification.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Unchanged from round 1: built like the two existing advisories, as the spec requires.",
+      "first_round": 1,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "codeSurfaceAdvisory re-runs dodClassify and swallows failures",
+          "location": "plugin/skills/faff/bin/lib/admissibility.js",
+          "severity": "minor",
+          "disposition": "refuted"
+        },
+        {
+          "round": 2,
+          "title": "codeSurfaceAdvisory re-runs dodClassify and swallows failures",
+          "location": "plugin/skills/faff/bin/lib/admissibility.js",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/holdout-record.js::aggregate-mismatch refusal drops per-criterion evidence in buildholdoutrecord",
+      "title": "Aggregate-mismatch refusal drops per-criterion evidence",
+      "location": "plugin/skills/faff/bin/lib/holdout-record.js",
+      "action": "Keep criteria on refusal.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Unchanged from round 1: the spec chose the existing fail-closed path.",
+      "first_round": 1,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Aggregate-mismatch refusal drops per-criterion evidence in buildHoldoutRecord",
+          "location": "plugin/skills/faff/bin/lib/holdout-record.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        },
+        {
+          "round": 2,
+          "title": "Aggregate-mismatch refusal drops per-criterion evidence",
+          "location": "plugin/skills/faff/bin/lib/holdout-record.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/admissibility.js::test_file_token_re matches test-file names inside urls",
+      "title": "TEST_FILE_TOKEN_RE matches test-file names inside URLs",
+      "location": "plugin/skills/faff/bin/lib/admissibility.js",
+      "action": "Anchor to repo paths.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Unchanged from round 1.",
+      "first_round": 1,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "TEST_FILE_TOKEN_RE matches test-file names inside URLs",
+          "location": "plugin/skills/faff/bin/lib/admissibility.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        },
+        {
+          "round": 2,
+          "title": "TEST_FILE_TOKEN_RE matches test-file names inside URLs",
+          "location": "plugin/skills/faff/bin/lib/admissibility.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/admissibility.js::advisory push in admissibleverdict appears ungated by lights-out",
+      "title": "Advisory push appears ungated by lights-out",
+      "location": "plugin/skills/faff/bin/lib/admissibility.js",
+      "action": "Confirm gating.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Unchanged from round 1: ac-7 proves no warning without --lights-out.",
+      "first_round": 1,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Advisory push in admissibleVerdict appears ungated by lights-out",
+          "location": "plugin/skills/faff/bin/lib/admissibility.js",
+          "severity": "minor",
+          "disposition": "refuted"
+        },
+        {
+          "round": 2,
+          "title": "Advisory push appears ungated by lights-out",
+          "location": "plugin/skills/faff/bin/lib/admissibility.js",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "n/a::earlier pass reported implementation absent from the diff",
+      "title": "Earlier pass reported implementation absent from the diff",
+      "location": "n/a",
+      "action": "Re-run with focused context.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "The reviewed diff contained all ten files; the first pass lost the source hunks under 560 KB of context and was re-run with focused context.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Earlier pass reported implementation absent from the diff",
+          "location": "n/a",
+          "severity": "observation",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/holdout-record.js::unbounded evaluator aggregate string in the refusal message",
+      "title": "Unbounded evaluator aggregate string in the refusal message",
+      "location": "plugin/skills/faff/bin/lib/holdout-record.js",
+      "action": "Bound it with the existing truncateDetail.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "Unbounded evaluator aggregate string in the refusal message",
+          "location": "plugin/skills/faff/bin/lib/holdout-record.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    }
+  ]
+}

@@ -13,6 +13,9 @@
 // assignment, no protected effect, no canonical decision — its sole side effect is
 // appending one `decision-capture` event via `appendEventRecord`, so it inherits the
 // FAFF-564 hash chain and the FAFF-107 known-secret redaction rather than forking either.
+// The one other write is the `decide` driver's per-run consult counter
+// (`<run-dir>/decision-capture/counters.json`), which numbers repeated consults; it holds no
+// decision and is never an event.
 // `record` NEVER throws to its caller and NEVER exits non-zero: every failure path
 // (disabled, malformed stdin, a non-replayable/invalid shape, a journal append fault) is
 // swallowed, logged to stderr + a `.faff/logs/decision-capture.jsonl` degraded-capture
@@ -32,6 +35,7 @@ const { loadConfig } = require("./config");
 const { appendEventRecord, tailReadState, sha256Hex, HEX64_RE } = require("./events");
 const { sha256 } = require("./integrity-digest");
 const { redactKnownSecrets, resolveKnownSecretValues } = require("./redact");
+const { withFileLock } = require("./fs-lock");
 
 // ---------------------------------------------------------------------------
 // KERNEL_REGISTRY — the ratified Phase-1 seed set (spec §7): EXACTLY these six named
@@ -205,6 +209,72 @@ function buildBaseRecord(kernel, kernel_version, normalised_inputs, verdict, cov
 function mintCorrelationId(run, issue, kernel, wave) {
   const w = (wave === undefined || wave === null || wave === "") ? "1" : String(wave);
   return `${run}/${issue}/${kernel}/${w}`;
+}
+
+// FAFF-1394: `--run` names a run by its id, but an orchestrator usually carries the run dir path.
+// Accept either: a value holding a path separator is read as a run dir and reduced to its basename,
+// the same reduction the in-kernel capture applies to $FAFF_RUN_DIR. So `decide` mints the canonical
+// `<run-id>/...` id and `action` resolves the run dir the base was written to, whichever form is passed.
+function runIdOf(value) {
+  if (typeof value !== "string" || value === "") return null;
+  return /[\\/]/.test(value) ? path.basename(value.replace(/[\\/]+$/, "")) : value;
+}
+
+function runIdFromArgOrEnv(value) {
+  return runIdOf(value) || (process.env.FAFF_RUN_DIR ? path.basename(process.env.FAFF_RUN_DIR) : null);
+}
+
+// FAFF-1394: the per-run consult counter. Two consults of the same issue and kernel in one run
+// (a beep-boop routing consult, then the dispatched graft's own) both minted `.../<kernel>/1`, so
+// only the first pair could grade. `decide` without `--wave` now takes the next ordinal for
+// (issue, kernel) from `<run-dir>/decision-capture/counters.json`, under the shared fs-lock idiom
+// (parallel lanes share the run dir); `action` without an exported id reads the CURRENT ordinal,
+// so its marker reuses the id the latest base minted. An explicit `--wave` bypasses the counter.
+// Counter shape: `{ "<issue>": { "<kernel>": <n> } }`.
+function counterPath(dir) {
+  return path.join(dir, "decision-capture", "counters.json");
+}
+
+function readCounters(dir) {
+  let raw;
+  try { raw = fs.readFileSync(counterPath(dir), "utf8"); }
+  catch (e) { if (e && e.code === "ENOENT") return {}; throw e; }
+  const parsed = JSON.parse(raw);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("counters.json is not an object");
+  return parsed;
+}
+
+function currentOrdinal(dir, issue, kernel) {
+  const n = (readCounters(dir)[issue] || {})[kernel];
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
+// Increment under the lock and return the new ordinal. Throws on a lock timeout or an
+// unreadable counter file; the caller falls back to wave 1 (best-effort, never fails decide).
+function nextOrdinal(dir, issue, kernel) {
+  const file = counterPath(dir);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  return withFileLock(`${file}.lock`, () => {
+    const counters = readCounters(dir);
+    const byKernel = counters[issue] && typeof counters[issue] === "object" ? counters[issue] : {};
+    const prev = Number.isInteger(byKernel[kernel]) && byKernel[kernel] > 0 ? byKernel[kernel] : 0;
+    const n = prev + 1;
+    counters[issue] = { ...byKernel, [kernel]: n };
+    const tmp = `${file}.${process.pid}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(counters) + "\n");
+    fs.renameSync(tmp, file);
+    return n;
+  }, { code: "COUNTER_LOCKED", label: "decision-capture counter lock" });
+}
+
+// The run dir a counter lives in, or null when none resolves (standalone call, or a run id with no
+// dir). Never throws.
+function existingRunDir(root, run, explicitRoot) {
+  if (!root || run == null) return null;
+  try {
+    const dir = resolveRunDir(root, run, explicitRoot);
+    return fs.existsSync(dir) && fs.statSync(dir).isDirectory() ? dir : null;
+  } catch { return null; }
 }
 
 // The shared {seq, sha256} causation shape check, used by every record-shape validator here.
@@ -531,20 +601,37 @@ function captureDecision(args) {
 // the correlation id ONCE (mintCorrelationId) and emit it, so the orchestrator exports it before
 // the kernel call and the paired `action` marker re-derives the identical id. `--export` prints two
 // shell-eval-able lines (FAFF_DECISION_CORRELATION_ID + FAFF_DECISION_ISSUE) for `eval "$(...)"`;
-// otherwise it prints the bare id. Pure and gate-agnostic: it only forms + prints an id (the env is
-// inert when capture is off, since captureDecisionCore / cmdActionVerb both no-op under the gate),
-// so it never reads config, touches a run dir, or writes an event. `--run` defaults to the basename
-// of $FAFF_RUN_DIR; `--wave` defaults to "1".
+// otherwise it prints the bare id. It writes no event. `--run` takes a run id or a run dir path
+// (runIdOf) and defaults to the basename of $FAFF_RUN_DIR. An explicit `--wave` is used as given and
+// touches nothing (the env is inert when capture is off). Without `--wave`, and only when capture is
+// on and the run dir exists, it takes the next consult ordinal from the run's counter (FAFF-1394), so
+// a repeated consult of the same issue and kernel mints a distinct id. Any counter fault, a disabled
+// gate, or a missing run dir falls back to wave "1": best-effort, the minted id and exit are never
+// withheld.
 // ---------------------------------------------------------------------------
-function cmdDecideVerb(values) {
+function cmdDecideVerb(values, root, explicitRoot) {
   const issue = values["--issue"];
   const kernel = values["--kernel"];
-  const run = values["--run"] || (process.env.FAFF_RUN_DIR ? path.basename(process.env.FAFF_RUN_DIR) : null);
+  const run = runIdFromArgOrEnv(values["--run"]);
   if (run == null) {
     process.stderr.write("faff decision-capture decide: no --run and no $FAFF_RUN_DIR — cannot mint a correlation id\n");
     return 2;
   }
-  const cid = mintCorrelationId(run, issue, kernel, values["--wave"]);
+  let wave = values["--wave"];
+  if (wave === undefined) {
+    let enabled = false;
+    try { enabled = captureEnabled(root); } catch { enabled = false; }
+    if (enabled) {
+      const dir = existingRunDir(root, run, explicitRoot);
+      if (dir == null) {
+        bestEffortFail(root, run, "decide: no run dir resolves, so no consult counter; minting wave 1");
+      } else {
+        try { wave = String(nextOrdinal(dir, issue, kernel)); }
+        catch (e) { bestEffortFail(root, run, `decide: consult counter failed (${e && e.message}); minting wave 1`); }
+      }
+    }
+  }
+  const cid = mintCorrelationId(run, issue, kernel, wave);
   if (values["--export"] !== undefined) {
     // single-quote the values so a shell `eval` cannot re-interpret them
     const q = (s) => `'${String(s).replace(/'/g, "'\\''")}'`;
@@ -562,7 +649,7 @@ function cmdDecideVerb(values) {
 // best-effort discipline as `record`: every failure path writes a degraded note and exits 0.
 // ---------------------------------------------------------------------------
 function cmdActionVerb(values, root) {
-  const run = values["--run"];
+  const run = runIdFromArgOrEnv(values["--run"]);
   const issue = values["--issue"];
   const kernel = values["--kernel"];
   // FAFF-989: resolve the correlation id so the marker genuinely REUSES the id the base carried,
@@ -570,11 +657,21 @@ function cmdActionVerb(values, root) {
   // between the `decide` and `action` calls could silently make disagree — reopening the very
   // no-join bug this fixes). Precedence: an explicit --correlates > $FAFF_DECISION_CORRELATION_ID
   // (the exact id `decide --export` set and the base was minted with — the reuse path) > a fresh
-  // derivation from {run, issue, kernel, wave}. `runId` is the run id the caller passes (or the
-  // basename of $FAFF_RUN_DIR); a still-empty id is caught by decisionCaptureActionViolations below.
-  const runId = run || (process.env.FAFF_RUN_DIR ? path.basename(process.env.FAFF_RUN_DIR) : null);
+  // derivation from {run, issue, kernel, wave}. `run` is the run id the caller passes (reduced from a
+  // run dir path, or the basename of $FAFF_RUN_DIR); a still-empty id is caught by
+  // decisionCaptureActionViolations below.
   const envId = process.env.FAFF_DECISION_CORRELATION_ID || "";
-  const derivedId = (runId != null && issue != null && kernel != null) ? mintCorrelationId(runId, issue, kernel, values["--wave"]) : "";
+  // FAFF-1394: with no explicit --wave, derive from the run's current consult ordinal (the one the
+  // latest `decide` for this issue and kernel minted); no counter yet means wave 1, as before.
+  let wave = values["--wave"];
+  if (wave === undefined && run != null && issue != null && kernel != null) {
+    const dir = existingRunDir(root, run, values["--root"] !== undefined);
+    if (dir != null) {
+      try { const n = currentOrdinal(dir, issue, kernel); if (n != null) wave = String(n); }
+      catch (e) { bestEffortFail(root, run, `action: consult counter unreadable (${e && e.message}); deriving wave 1`); }
+    }
+  }
+  const derivedId = (run != null && issue != null && kernel != null) ? mintCorrelationId(run, issue, kernel, wave) : "";
   const correlation_id = values["--correlates"] != null
     ? values["--correlates"]
     : (envId !== "" ? envId : derivedId);
@@ -596,6 +693,7 @@ function cmdActionVerb(values, root) {
     catch { selected_action = values["--action"]; }
   }
 
+  if (run == null) return bestEffortFail(root, run, "no --run and no $FAFF_RUN_DIR — no run to write the marker to");
   let dir;
   try { dir = resolveRunDir(root, run, values["--root"] !== undefined); }
   catch (e) { return bestEffortFail(root, run, `run dir resolution failed: ${e && e.message}`); }
@@ -858,7 +956,7 @@ function cmdDecisionCapture(args) {
     if (values["--issue"] == null || values["--kernel"] == null) {
       return usageError([{ code: "missing-value", detail: "decide requires --issue and --kernel (--run defaults to $FAFF_RUN_DIR)" }], DECISION_CAPTURE_USAGE);
     }
-    return cmdDecideVerb(values);
+    return cmdDecideVerb(values, root, values["--root"] !== undefined);
   }
   if (sub === "action") {
     // FAFF-989: --correlates is now OPTIONAL — the id re-derives from --run/--issue/--kernel/--wave

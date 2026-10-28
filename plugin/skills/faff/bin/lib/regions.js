@@ -66,6 +66,9 @@ const REGION_MAP = {
   // governance — the flight recorder + interlocks (the extractable layer)
   "runcheck": "governance",
   "heartbeat": "governance",
+  // version — FAFF-1395: the one release-version resolver (faff-version.js). Requires only node:fs +
+  // node:path (no local module), so governance writers can require it without crossing into factory.
+  "version": "governance",
   "events": "governance",
   "evidence": "governance",
   "effects": "governance",
@@ -188,6 +191,10 @@ const REGION_MAP = {
   "labels": "factory",
   "label": "factory",
   "eligible": "factory",
+  // discovered-scope-priority — the shared discovered-scope priority lookup (relationship x
+  // source x gate_defect -> high|medium|low). Pure total function, same shape as eligible/
+  // contain -> factory.
+  "discovered-scope-priority": "factory",
   "claim-verdict": "factory",
   // park-verdict — FAFF-835: the stale-park validity function. Pure age-less
   // predicate (status + signals → verdict, no tracker/clock) — same shape as
@@ -308,6 +315,10 @@ const REGION_MAP = {
   // config (emitScalar), argv, shared-infra (parseYamlSubset/dig/findRoot) — a persist-only
   // writer with no MCP/env/network, sibling of config init/set → factory.
   "native-map": "factory",
+  // github-templates — FAFF-1112: the pure offline GitHub issue-template scanner. Requires only
+  // node:fs/path, argv, shared-infra (parseYamlSubset/findRoot) and native-map (FAFF_TYPES) — no
+  // MCP/env/network/git, sibling of native-map → factory.
+  "github-templates": "factory",
   "fixtures": "factory",
   "env": "factory",
   // eval — FAFF-752: the advisory touched-surface→affected-KIND-subset deriver. Reuses
@@ -362,6 +373,12 @@ const REGION_MAP = {
   // contract-defs.js) and reuses merge-gate.js's own ghJson/ghRepoSlug gh-shell helpers — the same
   // family as merge-gate/post-merge-check, for the identical reason.
   "ci-triage": "factory",
+  // FAFF-1396: land drives graft's landing loop over merge-gate's observeCi and ci-triage's
+  // runCiTriage (factory identifiers), the same family as ci-triage and merge-gate.
+  land: "factory",
+  // FAFF-1404: spec commit/verify reuse admissibility's dodSplit, config-core's spec-docs-path resolver and
+  // conventions' commit_subject scheme (factory) plus the governance faff-version resolver.
+  spec: "factory",
   // FAFF-363: governance-check references the SAME factory identifiers merge-gate does
   // (readAcComplete/readReviewVerdict/readHoldout from merge-gate.js, which themselves
   // call contract-defs.js's computeReviewVerdict) — for the identical reason merge-gate
@@ -464,6 +481,7 @@ const REGION_SELFTEST_ARGV = {
   // governance — every member MUST carry a runnable selftest
   "runcheck": ["runcheck", "--selftest"],
   "heartbeat": ["heartbeat", "--selftest"],
+  "version": ["version", "--selftest"],
   "events": ["events", "--selftest"],
   "evidence": ["evidence", "--selftest"],
   "effects": ["effects", "--selftest"],
@@ -511,6 +529,7 @@ const REGION_SELFTEST_ARGV = {
   "labels": ["labels", "--selftest"],
   "label": ["label", "--selftest"],
   "eligible": ["eligible", "--selftest"],
+  "discovered-scope-priority": ["discovered-scope-priority", "--selftest"],
   "claim-verdict": ["claim-verdict", "--selftest"],
   "park-verdict": ["park-verdict", "--selftest"],
   "punt-scan": ["punt-scan", "--selftest"],
@@ -554,6 +573,7 @@ const REGION_SELFTEST_ARGV = {
   "manifest": ["manifest", "validate", "--selftest"],
   "conventions": ["conventions", "--selftest"],
   "native-map": ["native-map", "set", "--selftest"],
+  "github-templates": ["github-templates", "--selftest"],
   "fixtures": ["fixtures", "--selftest"],
   "env": ["env", "--selftest"],
   "scenario-matrix": ["scenario-matrix", "--selftest"],
@@ -583,6 +603,8 @@ const REGION_SELFTEST_ARGV = {
   "github-auth-check": ["github-auth-check", "--selftest"],
   "post-merge-check": ["post-merge-check", "--selftest"],
   "ci-triage": ["ci-triage", "--selftest"],
+  land: ["land", "--selftest"],
+  spec: ["spec", "--selftest"],
   "governance-check": ["governance-check", "--selftest"],
   "evidence-readiness": ["evidence-readiness", "--selftest"],
   "landing-comment": ["landing-comment", "--selftest"],

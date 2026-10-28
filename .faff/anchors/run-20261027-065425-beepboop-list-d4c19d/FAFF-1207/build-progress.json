@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "issue": "FAFF-1207",
+  "build": {
+    "status": "complete",
+    "diff_hash": "b7ef38c9b268e55b40e1c1af6aae0d42a49ac9481938ca54b11666f4eaccdf69",
+    "branch": "faff-1207-skill-prose-still-passes-the-deprecated-issue-to-faff",
+    "pushed_at": "2026-10-27T09:52:58.560Z"
+  },
+  "updated_at": "2026-10-27T09:52:58.560Z"
+}

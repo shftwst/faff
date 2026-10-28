@@ -1,5 +1,86 @@
 # Changelog
 
+## [0.43.0](https://github.com/shftwst/faff/compare/faff--v0.42.0...faff--v0.43.0) (2026-10-24)
+
+
+### Features
+
+* **dod:** a DoD item checked by a test file or a module export goes to the test floor (FAFF-1360) ([#1098](https://github.com/shftwst/faff/issues/1098)) ([a0e443e](https://github.com/shftwst/faff/commit/a0e443e8a42807bc6bd500b13ef20270a0574922))
+* **github-templates:** discover and parse GitHub-native issue templates (FAFF-1112) ([#1120](https://github.com/shftwst/faff/issues/1120)) ([8cebceb](https://github.com/shftwst/faff/commit/8cebceb498fd0a66dc731305bddfe89f06dd3468))
+* **land:** move graft's bounded landing loop from prose into faff land (FAFF-1396) ([#1119](https://github.com/shftwst/faff/issues/1119)) ([a30b650](https://github.com/shftwst/faff/commit/a30b65040e3fded0a206d8d36807a1d3aab83cfc))
+
+
+### Bug Fixes
+
+* **beep-boop:** a shared directory alone is not a collision when specs name different files (FAFF-1393) ([#1114](https://github.com/shftwst/faff/issues/1114)) ([ed375a1](https://github.com/shftwst/faff/commit/ed375a14ceb9898b809c4d6b33199a0570198806))
+* **decision-capture:** mint distinct ids for repeated consults in one run (FAFF-1394) ([#1117](https://github.com/shftwst/faff/issues/1117)) ([d78b320](https://github.com/shftwst/faff/commit/d78b32094e0f36ea6ced301abb5e72a779a60a2b))
+* **decision-capture:** pair captures when the run is a path or the consult is a separate call (FAFF-1394) ([#1115](https://github.com/shftwst/faff/issues/1115)) ([2f5fae4](https://github.com/shftwst/faff/commit/2f5fae466e66618744523ea83c8ff64495787ce5))
+* **doctor:** read faff hooks from both Claude settings files (FAFF-1295) ([#1116](https://github.com/shftwst/faff/issues/1116)) ([a0727c0](https://github.com/shftwst/faff/commit/a0727c036cc3a5693e8d8926668afaadf4f99cd2))
+* **economics:** a resumed run's cost spans every epoch (FAFF-933) ([#1100](https://github.com/shftwst/faff/issues/1100)) ([d521b1a](https://github.com/shftwst/faff/commit/d521b1a033a180cf9ecb86ed6c9b98981311da70))
+* **shadow-fidelity:** pin the map revision a result was produced under (FAFF-1194) ([#1118](https://github.com/shftwst/faff/issues/1118)) ([9fe39d8](https://github.com/shftwst/faff/commit/9fe39d8decb997662e5cd772b2d29113cdf5a1d5))
+
+
+### Performance Improvements
+
+* **gates:** drop three per-invocation costs from the local gate (FAFF-1383) ([#1106](https://github.com/shftwst/faff/issues/1106)) ([5317e62](https://github.com/shftwst/faff/commit/5317e629e10c2731171525a5b0cd58abbd680c93))
+* **gates:** lazy-load CLI modules and pool test files one per process (FAFF-1382) ([#1104](https://github.com/shftwst/faff/issues/1104)) ([6289d8f](https://github.com/shftwst/faff/commit/6289d8fe7a516f2922c81a9ba47f96ec09b09a28))
+
+## [0.42.0](https://github.com/shftwst/faff/compare/faff--v0.41.0...faff--v0.42.0) (2026-10-21)
+
+
+### Features
+
+* **commissaire:** add governor install and uninstall for a separate OS user on Linux (FAFF-1216) ([#1048](https://github.com/shftwst/faff/issues/1048)) ([7f5ae98](https://github.com/shftwst/faff/commit/7f5ae982a06455ddf0a7085be32f977d4452973a))
+* **commissaire:** add governor pin, governor status and the identify operation (FAFF-1217) ([#1049](https://github.com/shftwst/faff/issues/1049)) ([a61e27d](https://github.com/shftwst/faff/commit/a61e27db8de109afe79e79c7fe1d023c31b8fd5a))
+* **commissaire:** add trust-file TOML-subset parser + base-branch reader (FAFF-1210) ([#1040](https://github.com/shftwst/faff/issues/1040)) ([317df9b](https://github.com/shftwst/faff/commit/317df9b7bb6eff6f74f5e8552aa99af9195ed8af))
+* **commissaire:** authenticate governor Unix-socket callers by peer credentials (FAFF-1211) ([#1041](https://github.com/shftwst/faff/issues/1041)) ([80536aa](https://github.com/shftwst/faff/commit/80536aadf028859e8a9b1597b738b35467c1b160))
+* **commissaire:** publish facade v0.3 (conformed_to_contract) and move the external harness to ec676cfc (FAFF-1224) ([#1059](https://github.com/shftwst/faff/issues/1059)) ([a0b895a](https://github.com/shftwst/faff/commit/a0b895a4caf3604399025a4c0272f09826614930))
+* **commissaire:** refuse unpinned grants when the trust file turns on strict mode (FAFF-1219) ([#1047](https://github.com/shftwst/faff/issues/1047)) ([77f2690](https://github.com/shftwst/faff/commit/77f26903cd376848c43fbd149fecf7e9b1a3942e))
+* **commissaire:** request grants from the governor and fail closed when it cannot be reached (FAFF-1179) ([#1044](https://github.com/shftwst/faff/issues/1044)) ([ba8c778](https://github.com/shftwst/faff/commit/ba8c778fd9ba46f36847c1080a89317bc6aa4c5c))
+* **commissaire:** run the governor as its own Fly app with a source-address allow list and pin --fly-app (FAFF-1181) ([#1051](https://github.com/shftwst/faff/issues/1051)) ([7758b1c](https://github.com/shftwst/faff/commit/7758b1c9eb26ab2b3b0876b428faf40390905588))
+* **commissaire:** verify grants against the governor keys pinned in the trust file (FAFF-1178) ([#1045](https://github.com/shftwst/faff/issues/1045)) ([1dfff1a](https://github.com/shftwst/faff/commit/1dfff1a7889c3793ad7ccbe7599d7ea73031687d))
+* **config-check:** warn when an ignore rule hides the committed parts of .faff/ (FAFF-1301) ([#1078](https://github.com/shftwst/faff/issues/1078)) ([ce6d0ff](https://github.com/shftwst/faff/commit/ce6d0ffd86dd762883577ff9a5b518a4390366ff))
+* **config:** faff's config files live under .faff/ (FAFF-1302) ([#1080](https://github.com/shftwst/faff/issues/1080)) ([87417f6](https://github.com/shftwst/faff/commit/87417f605020fe1fc92f9f050d1dccdca16b5c2c))
+* **effects:** validate each declared-effects record at write time (FAFF-1262) ([#1050](https://github.com/shftwst/faff/issues/1050)) ([f621294](https://github.com/shftwst/faff/commit/f6212944eaf232b75b6f9ade4d89990932e45d13))
+* **evidence:** acceptance criteria carry the same ids in the spec, PR body and ac-checklist anchor (FAFF-1287) ([#1073](https://github.com/shftwst/faff/issues/1073)) ([3aee72d](https://github.com/shftwst/faff/commit/3aee72d57903c95476879541b4bea422f6d28624))
+* **evidence:** close every event, effect and Commissaire payload and check it at the writer (FAFF-1260) ([#1062](https://github.com/shftwst/faff/issues/1062)) ([b76edaa](https://github.com/shftwst/faff/commit/b76edaa3082cccdb9fb99ca5b125b7c6e3777809))
+* **evidence:** collate every spec-review round into a digest-checked comment (FAFF-1267) ([#1053](https://github.com/shftwst/faff/issues/1053)) ([35e2de2](https://github.com/shftwst/faff/commit/35e2de21a3d127467244dd8624d67352de3b6a51))
+* **evidence:** holdout.json can carry an optional delegated[] list (FAFF-1342) ([#1088](https://github.com/shftwst/faff/issues/1088)) ([7407a04](https://github.com/shftwst/faff/commit/7407a04e4334423842ddb2c835e0e1c01377a098))
+* **evidence:** let the v0.3 run-ledger schema accept free-form outcome_details entries (FAFF-1274) ([#1058](https://github.com/shftwst/faff/issues/1058)) ([893a4d8](https://github.com/shftwst/faff/commit/893a4d8d1ca3352daecf0df0f84dcb142a850786))
+* **evidence:** publish the v0.3 evidence schemas and add faff evidence validate (FAFF-1256) ([#1052](https://github.com/shftwst/faff/issues/1052)) ([2695d5a](https://github.com/shftwst/faff/commit/2695d5af5b32588408bbc67ccd1a9cc68ceba650))
+* **evidence:** record every code-review round and collate it into review-verdict.json (FAFF-1268) ([#1076](https://github.com/shftwst/faff/issues/1076)) ([205d4c1](https://github.com/shftwst/faff/commit/205d4c16d2ca3171bdc50062e1087f37ead21818))
+* **evidence:** warn on non-conforming anchor evidence at mint and count the warnings (FAFF-1263) ([#1056](https://github.com/shftwst/faff/issues/1056)) ([c673119](https://github.com/shftwst/faff/commit/c67311985dee2a9f392082eae06c5e7635af872e))
+* **evidence:** write graft's ac-checklist and review-verdict in the v0.3 shape (FAFF-1277) ([#1061](https://github.com/shftwst/faff/issues/1061)) ([a3f9d7d](https://github.com/shftwst/faff/commit/a3f9d7d00c2b387a29e7f969de8f7169b2971787))
+* **gates:** discover test and lint runner files in script/, scripts/ and bin/ (FAFF-1269) ([#1063](https://github.com/shftwst/faff/issues/1063)) ([e04c5e3](https://github.com/shftwst/faff/commit/e04c5e3869e27583a8f72874c09d9212aa7dc6b9))
+* **gh:** give the runner a GitHub identity separate from the human's (FAFF-1213) ([#1042](https://github.com/shftwst/faff/issues/1042)) ([b8a7a05](https://github.com/shftwst/faff/commit/b8a7a056c411b48407682b3688baad2d4ad966cd))
+* **gitignore:** keep faff's ignore rules in .faff/.gitignore (FAFF-1299) ([#1074](https://github.com/shftwst/faff/issues/1074)) ([d4d9270](https://github.com/shftwst/faff/commit/d4d92708381ca6929d41a0c296becd3249b902bc))
+* **governance-check:** judge PR anchors with the base commit's evidence validator (FAFF-1278) ([#1067](https://github.com/shftwst/faff/issues/1067)) ([4839e55](https://github.com/shftwst/faff/commit/4839e550e3e07a126fb7344c689ff688aca9728f))
+* **holdout:** record what each holdout criterion tested and observed (FAFF-1259) ([#1054](https://github.com/shftwst/faff/issues/1054)) ([e1b6f4c](https://github.com/shftwst/faff/commit/e1b6f4c727905c0e5d2ff1a435077ebc74c710cb))
+* **holdout:** the code-blind holdout judges only machine-checkable criteria (FAFF-1291) ([#1091](https://github.com/shftwst/faff/issues/1091)) ([05a42d5](https://github.com/shftwst/faff/commit/05a42d504beddeee7066efc2aeab5a6ac58b8aec))
+* **judge-trail:** bound the per-round objection blob with a measured write-cap (FAFF-1132) ([#1092](https://github.com/shftwst/faff/issues/1092)) ([ba922f2](https://github.com/shftwst/faff/commit/ba922f214c3e46883020c6946c7c6cafa76a825d))
+* **ledger:** version the run-state files and route run-ledger writes through one serialiser (FAFF-1258) ([#1055](https://github.com/shftwst/faff/issues/1055)) ([d506fed](https://github.com/shftwst/faff/commit/d506fed13729961d0425e9da281089c9753ed93e))
+* **merge-gate:** make merge-gate, pr-create and branch-delete call Commissaire's grant verification (FAFF-1212) ([#1046](https://github.com/shftwst/faff/issues/1046)) ([ec00b4b](https://github.com/shftwst/faff/commit/ec00b4b05e149929fda4c9b8d4e6817b1cc93cdc))
+* **resume-store:** a held build-review dialogue resumes at the stashed round (FAFF-1314) ([#1084](https://github.com/shftwst/faff/issues/1084)) ([f3a30b4](https://github.com/shftwst/faff/commit/f3a30b4c9077d276f9c8e3128ed8ab6887bff302))
+* **review:** add one finding_id helper, reviewer finding fields and the title-stability eval (FAFF-1266) ([#1057](https://github.com/shftwst/faff/issues/1057)) ([10a8ece](https://github.com/shftwst/faff/commit/10a8ece4ad9a675c81fdead6fab8ccfaa447ca4b))
+* **review:** carry finding ids from round to round (FAFF-1276) ([#1069](https://github.com/shftwst/faff/issues/1069)) ([78950b1](https://github.com/shftwst/faff/commit/78950b150f7054d9951ba03480c0d2be38a1f8d3))
+* **review:** treat eval fixture files as test data, not shipped code (FAFF-1279) ([#1068](https://github.com/shftwst/faff/issues/1068)) ([551bf2e](https://github.com/shftwst/faff/commit/551bf2ebf8b1366177520fcbd4ae5ba00e096892))
+* **templates:** committed template overrides live in .faff/templates/ (FAFF-1300) ([#1079](https://github.com/shftwst/faff/issues/1079)) ([4f2297e](https://github.com/shftwst/faff/commit/4f2297e78bbfced7b3c55070b26ba39236d006e4))
+
+
+### Bug Fixes
+
+* **bundle-recover:** take the run-ledger lock around the ledger restore (FAFF-1281) ([#1072](https://github.com/shftwst/faff/issues/1072)) ([fddd155](https://github.com/shftwst/faff/commit/fddd1554bb03bb1be34364229c5cae0a4155f5d0))
+* **events:** the write core refuses an issue-scoped event with an empty issue (FAFF-1353) ([#1094](https://github.com/shftwst/faff/issues/1094)) ([abd6500](https://github.com/shftwst/faff/commit/abd6500977fee2987444efcc2e26d5f7ff3011d5))
+* **evidence-readiness:** pin each writer's merge commit so a later PR naming the ticket cannot displace it (FAFF-1290) ([#1070](https://github.com/shftwst/faff/issues/1070)) ([aca0104](https://github.com/shftwst/faff/commit/aca0104e0442eb4485c2d7c873f9d9fbd5c0bb98))
+* **gates:** default shard concurrency to a quarter of the shard count (FAFF-1356) ([#1095](https://github.com/shftwst/faff/issues/1095)) ([bf4010e](https://github.com/shftwst/faff/commit/bf4010ed406129353939b02a4c714244cb2243cb))
+* **plugin:** shipped faff scripts end through process.exitCode, with a guard test (FAFF-1355) ([#1096](https://github.com/shftwst/faff/issues/1096)) ([f711e6b](https://github.com/shftwst/faff/commit/f711e6bf93900651713148a02ba6033608a6cde9))
+* **run-ledger:** remove the run dir a refused mint created (FAFF-1280) ([#1071](https://github.com/shftwst/faff/issues/1071)) ([804b4c1](https://github.com/shftwst/faff/commit/804b4c19ced4bdda501c345166352c93a8d0ce57))
+* **scripts:** restore the executable bit on link-skills.sh ([#1081](https://github.com/shftwst/faff/issues/1081)) ([9e028b5](https://github.com/shftwst/faff/commit/9e028b56f60b0a07aa7e4a69035685802326ab85))
+* **spec-review:** a failed --backends-json read keeps an established pin capture (FAFF-1332) ([#1093](https://github.com/shftwst/faff/issues/1093)) ([cb1a9f1](https://github.com/shftwst/faff/commit/cb1a9f156fc04f6df211b64395f694bccc1d0dfb))
+* **spec-review:** a no-lens round no longer clobbers the pin-capture marker (FAFF-1323) ([#1082](https://github.com/shftwst/faff/issues/1082)) ([ed09326](https://github.com/shftwst/faff/commit/ed09326fd44d2993faada3771c84d2eb9f080102))
+* **spec-review:** adversarial depth follows configuration, not the L4 mint (FAFF-1343) ([#1089](https://github.com/shftwst/faff/issues/1089)) ([e86dd49](https://github.com/shftwst/faff/commit/e86dd495c9970887a7d7621a2e79b518ef2f5e74))
+* **spec-review:** an unvouchable pin marker narrows the window to n (FAFF-1324) ([#1087](https://github.com/shftwst/faff/issues/1087)) ([3501de7](https://github.com/shftwst/faff/commit/3501de7f22c21f56a7bf464d51370ac1b201b391))
+
 ## [0.41.0](https://github.com/shftwst/faff/compare/faff--v0.40.0...faff--v0.41.0) (2026-10-10)
 
 

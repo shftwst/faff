@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A discovered-scope ticket filed through any of the three autonomous/interactive filing call sites arrives with a tracker priority already set (no follow-up human triage pass needed to assign one).",
+      "verified": "all three filing sites (faff-beep-boop §10 sub-step 5, faff-graft Step 12, faff-tidy chain-gaps) carry the priority + tracker-write wiring, verified by static-text regression tests over the committed SKILL.md prose",
+      "passed": true,
+      "ac_id": "faff-1399#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1399-discovered-scope-priority.test.mjs::FAFF-1399: every filing call site references the same shared priority-reason comment shape rather than restating it"
+        }
+      ]
+    },
+    {
+      "ac": "DiscoveredScopeEntry gains gate_defect: Boolean (default false) and priority: Enum(high, medium, low) | absent, documented in plugin/skills/faff-graft/SKILL.md's existing schema block.",
+      "verified": "the JSON schema example in faff-graft/SKILL.md's Discovered scope section carries both fields",
+      "passed": true,
+      "ac_id": "faff-1399#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1399-discovered-scope-priority.test.mjs::FAFF-1399: DiscoveredScopeEntry's schema block documents both new fields"
+        }
+      ]
+    },
+    {
+      "ac": "faff discovered-scope-priority ... is a new faff subcommand, wired via the existing COMMANDS map / lazy(require(...)) pattern, printing exactly one of high/medium/low to stdout and exiting 0 for every valid input combination.",
+      "verified": "command wired in plugin/skills/faff/bin/faff COMMANDS map beside eligible; prints exactly one of high/medium/low and exits 0 for every tested combination, exits 2 on a bad enum/missing flag",
+      "passed": true,
+      "ac_id": "faff-1399#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1399-discovered-scope-priority.test.mjs::FAFF-1399: prints exactly one of high/medium/low to stdout and nothing else"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1399-discovered-scope-priority.test.mjs::FAFF-1399: --selftest exercises the full table and reports PASS"
+        }
+      ]
+    },
+    {
+      "ac": "Every row of the §3 priority table is covered by a unit test in test/faff-1399-discovered-scope-priority.test.mjs, including the gate_defect == true short-circuit over a relationship: none input, and the chain-gap --source chain-gap / --relationship parent combination.",
+      "verified": "all 6 table rows plus both named edge cases covered",
+      "passed": true,
+      "ac_id": "faff-1399#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1399-discovered-scope-priority.test.mjs::FAFF-1399: gate_defect == true is High, even over relationship: none and a low-tier source"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1399-discovered-scope-priority.test.mjs::FAFF-1399: chain-gap sub-type mapping — upstream (blocker) High, downstream (blocked-by) Medium, sub-ticket (parent) Medium, peer Low"
+        }
+      ]
+    },
+    {
+      "ac": "Graft Steps 7, 9, and 10 (both the post-merge-verification and CI-triage DiscoveredScopeEntry writes) call the new CLI and store its result as priority on the entry, for every non-vague item.",
+      "verified": "faff-graft/SKILL.md's Discovered-scope Capture section (covering Steps 7/9/10 generically) documents the CLI call + storage; the Step-10 post-merge-verification and CI-triage bullets point at that same capture procedure / shell the CLI rather than restating its answer",
+      "passed": true,
+      "ac_id": "faff-1399#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n \"Discovered-scope Capture procedure above\" plugin/skills/faff-graft/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "/faff-beep-boop §10 sub-step 5 (and its step-7 eager and step-8.0 per-wave callers of the same mechanism) sets the Linear priority field (2/3/4 per the mapping) on ticket creation whenever the filed entry carries a priority, in the same save_issue call that sets status/relationship/provenance.",
+      "verified": "sub-step 5 (the single mechanism all three timings share) documents the tracker-priority write in the same create call",
+      "passed": true,
+      "ac_id": "faff-1399#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1399-discovered-scope-priority.test.mjs::FAFF-1399: an absent `priority` (vague, or a legacy pre-feature entry) files with no tracker priority and no comment — documented at every filing call site"
+        }
+      ]
+    },
+    {
+      "ac": "/faff-graft Step 12's interactive filing path applies the same mapping on confirm.",
+      "verified": "Step 12's discovered-scope filing bullet documents the priority write + reason comment on confirm",
+      "passed": true,
+      "ac_id": "faff-1399#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n \"When the confirmed item's \\`priority\\`\" plugin/skills/faff-graft/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "/faff-tidy's chain-gap auto-create derives {relationship, source: \"chain-gap\"} from the sub-type per the §3 mapping table and applies the same priority function + tracker-priority write.",
+      "verified": "tidy's Chain gaps section (both the interactive and autonomous sub-sections) documents the per-sub-type relationship mapping, the --source chain-gap call, and the tracker-priority write",
+      "passed": true,
+      "ac_id": "faff-1399#done:8",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'discovered-scope-priority' plugin/skills/faff-tidy/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "Every ticket that receives a tracker priority also receives exactly one comment in the fixed found/rule/changes-it shape, attributed to the filing skill, posted once at file time.",
+      "verified": "the shared 'priority-reason comment' definition (single home in faff-graft/SKILL.md) is referenced, not restated, by all three filing sites, and specifies exactly one write-once comment",
+      "passed": true,
+      "ac_id": "faff-1399#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1399-discovered-scope-priority.test.mjs::FAFF-1399: the priority-reason comment is documented as write-once — never edited or re-posted"
+        }
+      ]
+    },
+    {
+      "ac": "An item whose priority is absent (vague, or a legacy pre-feature entry) files exactly as today: no tracker priority, no reason comment — confirmed by a test case, not just by omission.",
+      "verified": "all three sites' absent-priority fallback is asserted by a static-text regression test",
+      "passed": true,
+      "ac_id": "faff-1399#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1399-discovered-scope-priority.test.mjs::FAFF-1399: an absent `priority` (vague, or a legacy pre-feature entry) files with no tracker priority and no comment — documented at every filing call site"
+        }
+      ]
+    },
+    {
+      "ac": "A faff discovered-scope-priority failure at filing time degrades to \"file with no priority, no comment\" and is logged — never blocks the file and never guesses a priority.",
+      "verified": "tidy's chain-gap wiring (the one site that calls the CLI at filing time) and the capture-time wiring both document the degrade-to-absent-and-log fallback",
+      "passed": true,
+      "ac_id": "faff-1399#done:11",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'CLI failure degrades' plugin/skills/faff-tidy/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "No code path introduced by this spec reads back, edits, or re-posts a priority-reason comment after it is written — confirmed by grepping the new/changed filing code for any list_comments/save_comment-with-id call keyed on this comment, which there must be none of.",
+      "verified": "grep over the three edited SKILL.md files for list_comments/save_comment near any priority-reason mention returns zero matches; the convention is documented write-once",
+      "passed": true,
+      "ac_id": "faff-1399#done:12",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'list_comments\\|save_comment' plugin/skills/faff-graft/SKILL.md plugin/skills/faff-beep-boop/SKILL.md plugin/skills/faff-tidy/SKILL.md"
+        }
+      ]
+    }
+  ]
+}

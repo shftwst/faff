@@ -25,14 +25,18 @@ bundle_store: git-remote # top-level mode enum (local | git-remote), not a slot 
 intake_gate: warn
 
 gates:
-    # FAFF-849 (639b) / FAFF-561: the execution ladder now runs the wider recognised CI set, which
-    # includes the aggregate `regions selftest --region all` rung. That rung's budget governance
-    # selftest is state-sensitive — it FAILs on a dirty local `.faff/` state (which is why
-    # validate.yml runs `--region factory|governance` as separate interim steps rather than
-    # `--region all`). Exclude it from the LOCAL ladder until FAFF-561 clears; CI still enforces the
-    # two regions separately. This is the per-repo safety valve 639b ships (case-sensitive substring).
+    # `regions selftest --region all` is excluded from the LOCAL ladder for speed, not correctness.
+    # FAFF-561 is done and the aggregate run passes on a dirty local `.faff/` (138 members, about
+    # 53 s, measured 2026-10-22), but the ladder runs several times per build and CI already runs
+    # `--region factory` and `--region governance` on every PR. Case-sensitive substring match.
     exclude:
         - regions selftest
+    # FAFF-1382: the local UNIT rung runs one test file per process, as many at once as there are
+    # cores, instead of Node's shards. `test/` only, so gitignored copies under `.faff/` never run.
+    # sentry-poller has failed under load twice (FAFF-1137, FAFF-1356), so it runs alone after the pool.
+    local_test_files: test/**/*.test.mjs
+    serial_tests:
+        - test/sentry-poller.test.mjs
 
 review:
     fixture_paths:
@@ -139,12 +143,12 @@ adversarial:
   spec_review:
     max_tokens: 15000
   spec_judge:
-    max-tokens: 15000
+    max_tokens: 15000
     refs:
       - openrouter-deepseek-v4-flash-reasoning
       - openrouter-gemma
   build_judge:
-    max-tokens: 15000
+    max_tokens: 15000
     refs:
       - openrouter-deepseek-v4-flash-reasoning
       - openrouter-gemma

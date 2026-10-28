@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff-graft/SKILL.md::step 10 prose overstated a discrimination the floor cannot make",
+      "title": "Step 10 prose overstated a discrimination the floor cannot make",
+      "location": "plugin/skills/faff-graft/SKILL.md:669",
+      "action": "Reworded to state the floor is cause-blind by design rather than implying a mistaken-identity check exists.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": null,
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Valid wording-precision finding; reworded in commit d2e725d8 to avoid implying a discrimination mechanism exists where the actual property is cause-blindness.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Step 10 prose overstated a discrimination the floor cannot make",
+          "location": "plugin/skills/faff-graft/SKILL.md:669",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/faff-1363-holdout-skip-rule.test.mjs::step-6 skip-condition test forbids any mention of integration_count, over-brittle",
+      "title": "Step-6 skip-condition test forbids any mention of integration_count, over-brittle",
+      "location": "test/faff-1363-holdout-skip-rule.test.mjs:47",
+      "action": "Narrowed the assertion to forbid only the old AND-conjunct, not any mention of integration_count.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": null,
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Valid; the trailing comment on the skip line legitimately names integration_count for context, so the broader regex would spuriously fail a future clarifying reword. Fixed in commit d2e725d8.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Step-6 skip-condition test forbids any mention of integration_count, over-brittle",
+          "location": "test/faff-1363-holdout-skip-rule.test.mjs:47",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/faff-1363-holdout-skip-rule.test.mjs::extractprocedure's fence-walking assumes the marker's first occurrence is inside the target block",
+      "title": "extractProcedure's fence-walking assumes the marker's first occurrence is inside the target block",
+      "location": "test/faff-1363-holdout-skip-rule.test.mjs:23",
+      "action": "Added an assertion that the bounded block's first line is the matched marker line.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": null,
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Valid latent-fragility finding (no current incorrect behaviour); hardened in commit d2e725d8 against a future prose cross-reference landing outside the fenced block.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "extractProcedure's fence-walking assumes the marker's first occurrence is inside the target block",
+          "location": "test/faff-1363-holdout-skip-rule.test.mjs:23",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    }
+  ]
+}

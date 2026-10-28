@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1351",
+  "build": {
+    "status": "complete",
+    "diff_hash": "8ed8b133e025f0f2f54f8b2f4bc5eec040100f25d99e2399c033c8d372c81eef",
+    "branch": "faff-1351-punt-scan-reads-a-punt-written-as-a-list-item",
+    "pushed_at": "2026-10-26T17:48:27.039Z"
+  },
+  "updated_at": "2026-10-26T17:48:27.039Z"
+}

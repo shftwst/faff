@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1333",
+  "build": {
+    "status": "complete",
+    "diff_hash": "b07bed87f6bef7a9a127eec91b3742b93a2f39b7116475aa1c1774e1c0697617",
+    "branch": "faff-1333-commissaire-audit-anchor-validates-per-unit-anchors-before",
+    "pushed_at": "2026-10-27T09:35:38.851Z"
+  },
+  "updated_at": "2026-10-27T09:35:38.851Z"
+}

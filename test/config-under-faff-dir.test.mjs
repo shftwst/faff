@@ -228,6 +228,59 @@ test("writers: `.faff` existing as a regular file is a clean exit 2, not a stack
   } finally { cleanup(dir); }
 });
 
+// FAFF-1321 — the EEXIST/ENOTDIR catch is narrowed to the config-write mkdir. `config init`,
+// `config set` and `config unset` (every write verb) still exit 2 cleanly when `.faff` is a file,
+// now naming the config directory as an existing file; an EEXIST/ENOTDIR from any OTHER op (the
+// `--create` docs-path mkdir) falls through to its pre-FAFF-1302 stack trace, no longer over-claimed.
+
+test("writers: `.faff` as a regular file makes `config init` a clean exit 2 that names the directory", () => {
+  const dir = repo({ ".faff": "not a directory\n" });
+  try {
+    const r = cli(dir, "config", "init", "--set", "team_key=SHF");
+    assert.equal(r.code, 2);
+    assert.ok(!r.stderr.includes("    at "), "no stack trace");
+    assert.ok(/cannot create the config directory/.test(r.stderr), "names the config directory as a file");
+    assert.ok(r.stderr.includes(".faff"), "mentions the .faff path");
+  } finally { cleanup(dir); }
+});
+
+test("writers: `.faff` as a regular file makes `config unset` a clean exit 2 that names the directory", () => {
+  // unset reaches writeConfigFile only when a config resolves (here via the main-worktree
+  // fallback) and the write target is the worktree-local canonical `.faff/config.yaml`; with
+  // `.faff` a regular file in the worktree, that mkdir fails exactly as init/set's does.
+  const { parent, wt } = worktreePair({ ".faff/config.yaml": BASE });
+  try {
+    writeFileSync(path.join(wt, ".faff"), "not a directory\n");
+    const r = cli(wt, "config", "unset", "tracking.team_key");
+    assert.equal(r.code, 2);
+    assert.ok(!r.stderr.includes("    at "), "no stack trace");
+    assert.ok(/cannot create the config directory/.test(r.stderr), "names the config directory as a file");
+  } finally { cleanup(parent); }
+});
+
+test("writers: `.faff` as a regular file makes `config set --local` (overlay target) a clean exit 2", () => {
+  const dir = repo({ ".faff": "not a directory\n" });
+  try {
+    const r = cli(dir, "config", "set", "logging", "full", "--local");
+    assert.equal(r.code, 2);
+    assert.ok(!r.stderr.includes("    at "), "no stack trace");
+    assert.ok(/cannot create the config directory/.test(r.stderr), "names the config directory as a file");
+  } finally { cleanup(dir); }
+});
+
+test("writers: a non-write `--create` mkdir ENOTDIR is NOT over-claimed as the config-dir clean exit 2", () => {
+  // No `.faff` present; `docs` exists as a regular file, so `spec-docs-path --create`'s mkdir of
+  // docs/specs raises ENOTDIR from resolveDocsPath — a different op than the config-write mkdir.
+  // After the narrowing it must fall through (a stack trace / non-2 exit), confirming the catch
+  // no longer over-claims every EEXIST/ENOTDIR in the try body.
+  const dir = repo({ "docs": "i am a file, not a directory\n" });
+  try {
+    const r = cli(dir, "config", "spec-docs-path", "--create");
+    assert.notEqual(r.code, 2, "a non-write ENOTDIR is not reported as the config-dir clean exit 2");
+    assert.ok(r.stderr.includes("    at "), "falls through to a Node stack trace (pre-FAFF-1302 behaviour)");
+  } finally { cleanup(dir); }
+});
+
 // --- linked worktree ------------------------------------------------------------------
 
 function worktreePair(mainFiles) {

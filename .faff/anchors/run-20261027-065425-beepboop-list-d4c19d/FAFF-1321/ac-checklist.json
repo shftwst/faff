@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "With `.faff` as a regular file, `faff config set logging full` exits `2` with no `    at ` stack-trace line (the existing test at `test/config-under-faff-dir.test.mjs:222–229` still passes).",
+      "verified": "test + CLI: config set logging full exits 2, no stack trace",
+      "passed": true,
+      "ac_id": "faff-1321#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/config-under-faff-dir.test.mjs::writers: `.faff` existing as a regular file is a clean exit 2, not a stack trace"
+        }
+      ]
+    },
+    {
+      "ac": "With `.faff` as a regular file, `faff config init` exits `2` with no stack trace.",
+      "verified": "test + CLI: config init --set exits 2, no stack trace",
+      "passed": true,
+      "ac_id": "faff-1321#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/config-under-faff-dir.test.mjs::writers: `.faff` as a regular file makes `config init` a clean exit 2 that names the directory"
+        }
+      ]
+    },
+    {
+      "ac": "With `.faff` as a regular file, `faff config unset <key>` exits `2` with no stack trace.",
+      "verified": "test + CLI: config unset exits 2 via worktree-canonical target, no stack trace",
+      "passed": true,
+      "ac_id": "faff-1321#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/config-under-faff-dir.test.mjs::writers: `.faff` as a regular file makes `config unset` a clean exit 2 that names the directory"
+        }
+      ]
+    },
+    {
+      "ac": "With `.faff` as a regular file, `faff config set logging full --local` (overlay write target `.faff/config.local.yaml`) exits `2` with no stack trace.",
+      "verified": "test + CLI: config set --local (overlay) exits 2, no stack trace",
+      "passed": true,
+      "ac_id": "faff-1321#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/config-under-faff-dir.test.mjs::writers: `.faff` as a regular file makes `config set --local` (overlay target) a clean exit 2"
+        }
+      ]
+    },
+    {
+      "ac": "`writeConfigFile` re-throws an `EEXIST`/`ENOTDIR` from its `mkdirSync` as a `config-dir-not-a-dir`-tagged error that carries the failing directory and the original errno message; any other `mkdirSync` error propagates unchanged.",
+      "verified": "code: writeConfigFile catch re-throws config-dir-not-a-dir with dir+detail+code; verified by positive tests observing the dir+errno in stderr",
+      "passed": true,
+      "ac_id": "faff-1321#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/config-under-faff-dir.test.mjs::writers: `.faff` as a regular file makes `config init` a clean exit 2 that names the directory"
+        }
+      ]
+    },
+    {
+      "ac": "`cmdConfig`'s catch matches that tag (not `e.code`) and writes a message naming the config directory as an existing file while still including the original errno detail, then returns `2`.",
+      "verified": "code+test: cmdConfig matches e.message===config-dir-not-a-dir, message names dir + errno detail, returns 2",
+      "passed": true,
+      "ac_id": "faff-1321#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/config-under-faff-dir.test.mjs::writers: `.faff` as a regular file makes `config init` a clean exit 2 that names the directory"
+        }
+      ]
+    },
+    {
+      "ac": "The `e.code === \"EEXIST\" || e.code === \"ENOTDIR\"` test is removed from the `cmdConfig`-level catch; the only remaining catch of those codes is the one at `writeConfigFile`'s `mkdir`.",
+      "verified": "code: e.code EEXIST/ENOTDIR test removed from cmdConfig catch (grep NONE); only remaining code test is writeConfigFile mkdir",
+      "passed": true,
+      "ac_id": "faff-1321#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n e.code EEXIST plugin/skills/faff/bin/lib/config.js (none)"
+        }
+      ]
+    },
+    {
+      "ac": "With no `.faff` present and `docs` as a regular file, `faff config spec-docs-path --create` is NOT reported as the config-directory clean exit 2 (it falls through to a stack trace / non-2 exit).",
+      "verified": "test + CLI: spec-docs-path --create with docs as a file falls through to a stack trace (exit 1), not clean exit 2",
+      "passed": true,
+      "ac_id": "faff-1321#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/config-under-faff-dir.test.mjs::writers: a non-write `--create` mkdir ENOTDIR is NOT over-claimed as the config-dir clean exit 2"
+        }
+      ]
+    },
+    {
+      "ac": "Read-only verbs with `.faff` as a file are unaffected (e.g. `faff config path` exits `3` with no config, no error).",
+      "verified": "CLI: config path with .faff as a file exits 3 (read-only verb unaffected)",
+      "passed": true,
+      "ac_id": "faff-1321#done:9",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff config path (.faff as file) -> exit 3"
+        }
+      ]
+    },
+    {
+      "ac": "New test cases are added to `test/config-under-faff-dir.test.mjs` covering `config init`, `config unset`, and `config set --local` (positive, exit 2, no stack trace) plus the `spec-docs-path --create` negative case; `node --test test/config-under-faff-dir.test.mjs` passes.",
+      "verified": "test file: new init/unset/set --local positive + spec-docs-path --create negative cases added",
+      "passed": true,
+      "ac_id": "faff-1321#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/config-under-faff-dir.test.mjs::writers: a non-write `--create` mkdir ENOTDIR is NOT over-claimed as the config-dir clean exit 2"
+        }
+      ]
+    },
+    {
+      "ac": "All edits in `config.js` and `config-write.js` sit inside existing `region:factory` markers and the region lint passes.",
+      "verified": "gate ladder STATIC_ANALYSIS regions check rung passed; both edits inside region:factory",
+      "passed": true,
+      "ac_id": "faff-1321#done:11",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff regions check (pass, via faff gates run UNIT/STATIC)"
+        }
+      ]
+    }
+  ]
+}

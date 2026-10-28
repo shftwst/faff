@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1380",
+  "build": {
+    "status": "complete",
+    "diff_hash": "f704547fc08786b2059d833526712f70778f7326e017b0f28db31b65c0a7c088",
+    "branch": "faff-1380-economics-by-breakdowns-read-the-ambient-session-instead-of-the-resolved-one",
+    "pushed_at": "2026-10-26T14:42:49.860Z"
+  },
+  "updated_at": "2026-10-26T14:42:49.860Z"
+}

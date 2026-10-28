@@ -160,6 +160,13 @@ test("FAFF-1179: the governor client is reachable (literal require) and config.j
   assert.ok(names.has("commissaire-governor-client.js"), "the FAFF-1179 governor client must be reachable from the facade (a literal require edge)");
   assert.ok(names.has("commissaire-verify.js"), "FAFF-1178: the grant-verify core must be reachable from the facade (a literal require edge)");
   assert.ok(!names.has("config.js"), "config.js must never enter the commissaire closure (ADR 0135 decision 11)");
+  // FAFF-1389: config.js is a facade over config-*.js; none of those may enter the closure either.
+  const configParts = [...names].filter((n) => /^config-[a-z-]+\.js$/.test(n));
+  assert.deepEqual(configParts, [], `config modules must never enter the commissaire closure: ${configParts.join(", ")}`);
+  // FAFF-1392: contract-defs.js was kept out because it pulled in run-start and run-done; after the
+  // split a part such as contract-defs-floor no longer does, so the whole family is named here.
+  const contractParts = [...names].filter((n) => /^contract-defs(-[a-z-]+)?\.js$/.test(n));
+  assert.deepEqual(contractParts, [], `contract-defs modules must never enter the commissaire closure: ${contractParts.join(", ")}`);
 });
 
 // --- FAFF-1000: runtime spawn-guard --------------------------------------------------------------

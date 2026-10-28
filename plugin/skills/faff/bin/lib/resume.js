@@ -168,6 +168,9 @@ function applyResumeToLedger(ledger, ctx) {
     pid: ctx.pid ?? null,
     started_at: nowIso,
     last_heartbeat: nowIso,
+    // FAFF-1395: the resuming faff's release, supplied by the caller (this builder stays pure and
+    // never resolves it). The prior owner above keeps its own faff_version in owner_history.
+    ...(ctx.faffVersion === undefined ? {} : { faff_version: ctx.faffVersion }),
   };
   // abort → abort_history, then clear
   next.abort_history = Array.isArray(src.abort_history) ? src.abort_history.slice() : [];
@@ -324,6 +327,11 @@ function resumeSelftest() {
   check("epoch incremented 0→1", epoch === 1 && after.owner.epoch === 1);
   check("new owner stamps resuming session + running", after.owner.session_id === "new-sid" && after.owner.status === "running" && after.owner.pid === 42);
   check("old owner pushed to owner_history", after.owner_history.length === 1 && after.owner_history[0].session_id === "old-sid");
+  // FAFF-1395: the resuming faff's release rides ctx.faffVersion; the prior owner (with its own version) is kept verbatim.
+  const stamped = applyResumeToLedger({ ...before, owner: { ...before.owner, faff_version: "0.42.0" } }, { nowIso: "t1", sessionId: "new-sid", pid: 42, priorState: "aborted-resumable", plan, faffVersion: "0.43.0" }).ledger;
+  check("resume writes the resuming version into the new owner", stamped.owner.faff_version === "0.43.0");
+  check("resume keeps the prior owner's version verbatim in owner_history", stamped.owner_history.length === 1 && stamped.owner_history[0].faff_version === "0.42.0");
+  check("resume without ctx.faffVersion adds no field (the builder never resolves it)", after.owner.faff_version === undefined);
   check("abort moved to abort_history + cleared", after.abort === undefined && after.abort_history.length === 1 && after.abort_history[0].wip_commit === "deadbee");
   check("stop_reason cleared", after.stop_reason === undefined);
   check("resume entry appended with plan_summary", after.resume.length === 1 && after.resume[0].epoch === 1 && after.resume[0].prior_state === "aborted-resumable" && after.resume[0].plan_summary.skipped_shipped[0] === "A");

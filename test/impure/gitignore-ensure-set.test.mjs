@@ -9,10 +9,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, realpathSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, realpathSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+
+const { FAFF_DIR_DEEP_CATCHALLS, FAFF_DIR_GITIGNORE_PATTERNS } = createRequire(import.meta.url)("../../plugin/skills/faff/bin/lib/gitignore-ensure.js");
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "plugin", "skills", "faff", "bin", "faff");
 
@@ -181,6 +184,52 @@ test("--local idempotent: a second run is a byte-identical no-op", () => {
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+// ---------------------------------------------------------------------------
+// FAFF-1385 — `--local` resolves its target via `git rev-parse --git-path
+// info/exclude` (never a hand-built `<root>/.git/info/exclude` join), so it works
+// identically from a linked worktree (where `.git` is a file, not a directory) and
+// reports — rather than fabricates a stray tree for — a non-repo directory.
+// ---------------------------------------------------------------------------
+
+test("--local from a linked worktree writes the MAIN repo's common-dir info/exclude, and git check-ignore confirms it from the worktree", () => {
+  const dir = gitSeed();
+  const wtDir = join(dirname(dir), `${dir.split("/").pop()}-wt`);
+  try {
+    execFileSync("git", ["-C", dir, "config", "user.email", "faff-selftest@example.com"]);
+    execFileSync("git", ["-C", dir, "config", "user.name", "faff-selftest"]);
+    writeFileSync(join(dir, "README.md"), "x\n");
+    execFileSync("git", ["-C", dir, "add", "README.md"]);
+    execFileSync("git", ["-C", dir, "commit", "-q", "-m", "init"]);
+    execFileSync("git", ["-C", dir, "worktree", "add", "--detach", wtDir]);
+
+    const res = JSON.parse(run(wtDir, "gitignore-ensure", "--local", "--json"));
+    assert.equal(res.no_repo, false);
+    assert.equal(res.path, join(dir, ".git", "info", "exclude"), "the target is the MAIN repo's info/exclude, not <worktree>/.git/info/exclude");
+    assert.ok(statSync(join(wtDir, ".git")).isFile(), "sanity: the worktree's own .git is a file, not a directory, so a hand-built join would be wrong");
+    const raw = readFileSync(join(dir, ".git", "info", "exclude"), "utf8");
+    assert.match(raw, /^\.faff\/$/m, "the pattern landed on the main repo's exclude file");
+    assert.ok(isIgnored(wtDir, ".faff/config.local.yaml"), "git check-ignore confirms it from the worktree");
+  } finally {
+    spawnSync("git", ["-C", dir, "worktree", "remove", "--force", wtDir]);
+    rmSync(wtDir, { recursive: true, force: true });
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("--local outside a git repository exits 0, reports no git repo, and writes no file", () => {
+  const dir = seed();
+  try {
+    const res = JSON.parse(run(dir, "gitignore-ensure", "--local", "--json"));
+    assert.equal(res.no_repo, true);
+    assert.equal(res.path, null);
+    assert.deepEqual(res.added, []);
+    assert.equal(res.faff_dir, null);
+    assert.ok(!existsSync(join(dir, ".git")), "no stray .git tree is fabricated");
+    const text = run(dir, "gitignore-ensure", "--local");
+    assert.match(text, /not a git repository/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 test("standard mode (no --local) writes both targets, the carve-out in .faff/.gitignore (regression), even inside a git repo", () => {
   const dir = gitSeed();
   try {
@@ -206,7 +255,11 @@ function isIgnored(dir, f) {
   catch (e) { if (e.status === 1) return false; throw e; }
 }
 function seedFaffFiles(dir) {
-  for (const f of [".faff/anchors/run-1/FAFF-1/events.jsonl", ".faff/runs/run-1/events.jsonl", ".faff/logs/2026-10-15/x.md"]) {
+  // FAFF-1309: `.faff/templates/` is a FLAT payload (a direct child), deliberately
+  // distinct from the NESTED `.faff/anchors/run-1/FAFF-1/` payload — several catch-all
+  // spellings (`*/`, `/*/`, `*/*`, `/*/**`) kill one and not the other, which is exactly
+  // what section 5's oracle table needs to observe.
+  for (const f of [".faff/anchors/run-1/FAFF-1/events.jsonl", ".faff/runs/run-1/events.jsonl", ".faff/logs/2026-10-15/x.md", ".faff/templates/spec.md"]) {
     mkdirSync(dirname(join(dir, f)), { recursive: true });
     writeFileSync(join(dir, f), "{}\n");
   }
@@ -283,5 +336,229 @@ test("FAFF-1299 --local creates neither .faff/.gitignore nor .faff/, and reports
     assert.equal(res.faff_dir, null);
     assert.deepEqual(res.warnings, []);
     assert.ok(!existsSync(join(dir, ".faff")));
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// ---------------------------------------------------------------------------
+// FAFF-1309 — `gitignore-ensure` must not leave a dead anchors carve-out in
+// `.faff/.gitignore`. The predicate-vs-git oracle (spec section 5): every row seeds a
+// complete, correctly-ordered faff block (`/*` then the seven negations) plus one extra
+// catch-all line above the whole block or appended below it, then asks real git whether
+// a NESTED payload (anchors), a FLAT payload (templates) and a direct-child file
+// (config.yaml) are each ignored, and asks `faff config check`'s standing finding the
+// same question. `gap: true` rows are KNOWN, accepted misses — git blocks a committed
+// part while the detector stays silent — pinned so a predicate widened without updating
+// the row fails loudly, exactly as `test/config-two-file.test.mjs`'s root-file oracle
+// already does for the sibling hazard list.
+// ---------------------------------------------------------------------------
+
+const CORRECT_INNER = FAFF_DIR_GITIGNORE_PATTERNS.join("\n") + "\n";
+
+function gitCheckIgnore(dir, relPath) {
+  return spawnSync("git", ["check-ignore", "-q", relPath], { cwd: dir }).status === 0;
+}
+
+// Runs `faff config check --json` without throwing on its exit 1 (a finding) — the
+// throwing `run()` helper above is for commands this file otherwise expects to exit 0.
+function configCheckJson(dir) {
+  const r = spawnSync("node", [CLI, "config", "check", "--json"], { cwd: dir, encoding: "utf8" });
+  return JSON.parse(r.stdout);
+}
+
+function oracleSeed(dir, extraLine, position) {
+  const inner = extraLine === null ? CORRECT_INNER
+    : position === "above" ? `${extraLine}\n${CORRECT_INNER}`
+    : `${CORRECT_INNER}${extraLine}\n`;
+  mkdirSync(join(dir, ".faff"), { recursive: true });
+  writeFileSync(join(dir, ".faff", ".gitignore"), inner);
+  seedFaffFiles(dir);
+  writeFileSync(join(dir, ".faff", "config.yaml"), "appetite: high\n");
+}
+
+const FAFF_1309_ORACLE_ROWS = [
+  { line: null, position: null, anchors: false, templates: false, config: false, warns: false },
+  ...FAFF_DIR_DEEP_CATCHALLS.flatMap((l) => [
+    { line: l, position: "above", anchors: true, templates: true, config: false, warns: true },
+    { line: l, position: "below", anchors: true, templates: true, config: true, warns: true },
+  ]),
+  { line: "/*", position: "above", anchors: false, templates: false, config: false, warns: false },
+  { line: "/*", position: "below", anchors: true, templates: true, config: true, warns: true },
+  { line: "  *", position: "above", anchors: false, templates: false, config: false, warns: false },
+  { line: "*/", position: "above", anchors: true, templates: false, config: false, warns: false, gap: true },
+  { line: "*/", position: "below", anchors: true, templates: true, config: false, warns: false, gap: true },
+  { line: "/*/", position: "above", anchors: false, templates: false, config: false, warns: false },
+  { line: "/*/", position: "below", anchors: true, templates: true, config: false, warns: false, gap: true },
+  { line: "*/*", position: "above", anchors: true, templates: true, config: false, warns: false, gap: true },
+  { line: "*/*", position: "below", anchors: true, templates: true, config: false, warns: false, gap: true },
+  { line: "/*/**", position: "above", anchors: true, templates: true, config: false, warns: false, gap: true },
+  { line: "/*/**", position: "below", anchors: true, templates: true, config: false, warns: false, gap: true },
+  { line: "/anchors/", position: "above", anchors: false, templates: false, config: false, warns: false },
+  { line: "/anchors/", position: "below", anchors: true, templates: false, config: false, warns: false, gap: true },
+];
+
+for (const row of FAFF_1309_ORACLE_ROWS) {
+  const label = row.line === null ? "a correctly-ordered block alone (baseline)" : `\`${row.line}\` ${row.position}`;
+  test(`FAFF-1309 oracle: ${label} → git anchors=${row.anchors} templates=${row.templates} config=${row.config}, detector ${row.warns ? "warns" : "is silent"}${row.gap ? " (pinned accepted gap)" : ""}`, () => {
+    const dir = gitSeed();
+    try {
+      oracleSeed(dir, row.line, row.position);
+      const gitAnchors = gitCheckIgnore(dir, ".faff/anchors/run-1/FAFF-1/events.jsonl");
+      const gitTemplates = gitCheckIgnore(dir, ".faff/templates/spec.md");
+      const gitConfig = gitCheckIgnore(dir, ".faff/config.yaml");
+      assert.equal(gitAnchors, row.anchors, "git verdict: anchors (nested payload)");
+      assert.equal(gitTemplates, row.templates, "git verdict: templates (flat payload)");
+      assert.equal(gitConfig, row.config, "git verdict: config.yaml (direct child)");
+      assert.ok(gitCheckIgnore(dir, ".faff/runs/run-1/events.jsonl"), "run state stays ignored in every shape");
+      const findings = configCheckJson(dir).findings.filter((f) => f.surface === ".faff/.gitignore");
+      // The seeded file is uncommitted in every row here, so the untracked finding always
+      // co-fires too; isolate the dead-carve-out finding by its own distinguishing text.
+      const deadFinding = findings.find((f) => f.message.includes("leaves") && f.message.includes("dead"));
+      assert.equal(!!deadFinding, row.warns, "detector: warns iff this row is a genuine dead shape");
+      if (row.gap) assert.ok((row.anchors || row.templates || row.config) && !deadFinding, "pinned gap: git blocks a committed part while the detector stays silent");
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  });
+}
+
+// Four rows whose file text is pinned literally — "position" does not determine them.
+const FAFF_1309_LITERAL_ROWS = [
+  { text: "!/anchors/\n/*\n!/anchors/\n", anchors: false, warns: false, desc: "`!/anchors/` · `/*` · `!/anchors/` — last occurrence governs" },
+  { text: "!/anchors/\n!/anchors/\n/*\n", anchors: true, warns: true, desc: "`!/anchors/` · `!/anchors/` · `/*`" },
+  { text: "*\n!/anchors/\n!/anchors/**\n", anchors: false, warns: false, desc: "`*` · `!/anchors/` · `!/anchors/**` — deep repair" },
+  { text: "!/anchors/\n*\n!/anchors/**\n", anchors: true, warns: true, desc: "`!/anchors/` · `*` · `!/anchors/**` — repair pair must sit below the deep line" },
+];
+
+for (const row of FAFF_1309_LITERAL_ROWS) {
+  test(`FAFF-1309 oracle (literal file text): ${row.desc} → git anchors=${row.anchors}, detector ${row.warns ? "warns" : "is silent"}`, () => {
+    const dir = gitSeed();
+    try {
+      mkdirSync(join(dir, ".faff"), { recursive: true });
+      writeFileSync(join(dir, ".faff", ".gitignore"), row.text);
+      seedFaffFiles(dir);
+      assert.equal(gitCheckIgnore(dir, ".faff/anchors/run-1/FAFF-1/events.jsonl"), row.anchors);
+      const findings = configCheckJson(dir).findings.filter((f) => f.surface === ".faff/.gitignore");
+      const deadFinding = findings.find((f) => f.message.includes("leaves") && f.message.includes("dead"));
+      assert.equal(!!deadFinding, row.warns);
+      if (deadFinding) assert.ok(deadFinding.message.includes("!/anchors/"));
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  });
+}
+
+// Behavioural scenarios (spec section 5) — the writer's own warning, driven through the
+// real CLI, with each printed remedy applied LITERALLY and re-measured.
+test("FAFF-1309 scenario: a repo whose .faff/.gitignore contains only `!/anchors/` — ensure appends the rest, still warns (verdict read from the final file, not from what this run appended)", () => {
+  const dir = gitSeed();
+  try {
+    mkdirSync(join(dir, ".faff"), { recursive: true });
+    writeFileSync(join(dir, ".faff", ".gitignore"), "!/anchors/\n");
+    const res = JSON.parse(run(dir, "gitignore-ensure", "--json"));
+    assert.equal(res.faff_dir.added.length > 0, true, "append-only: the rest of the set is still appended");
+    assert.equal(res.warnings.length, 1);
+    assert.ok(res.warnings[0].includes("!/anchors/") && res.warnings[0].includes("/*"));
+    seedFaffFiles(dir);
+    assert.ok(gitCheckIgnore(dir, ".faff/anchors/run-1/FAFF-1/events.jsonl"), "anchors really ignored");
+    assert.ok(!gitCheckIgnore(dir, ".faff/templates/spec.md"), "templates stay committable (positional fault, not deep)");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-1309 scenario: a repo whose .faff/.gitignore already reads `!/anchors/` then `/*` — ensure appends NOTHING about either line, yet still warns", () => {
+  const dir = gitSeed();
+  try {
+    mkdirSync(join(dir, ".faff"), { recursive: true });
+    writeFileSync(join(dir, ".faff", ".gitignore"), "!/anchors/\n/*\n");
+    const res = JSON.parse(run(dir, "gitignore-ensure", "--json"));
+    assert.ok(!res.faff_dir.added.includes("!/anchors/") && !res.faff_dir.added.includes("/*"), "dedupe appends nothing about either line");
+    assert.equal(res.warnings.length, 1, "still warns — the verdict is read from the final file");
+    assert.ok(res.warnings[0].includes("!/anchors/"));
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-1309 scenario: a bare `*` above a correctly-ordered block — deep warning naming both subtree carve-outs; applying the printed fix (delete the `*` line) silences the next run", () => {
+  const dir = gitSeed();
+  try {
+    mkdirSync(join(dir, ".faff"), { recursive: true });
+    writeFileSync(join(dir, ".faff", ".gitignore"), `*\n${CORRECT_INNER}`);
+    const res = JSON.parse(run(dir, "gitignore-ensure", "--json"));
+    assert.equal(res.warnings.length, 1);
+    assert.ok(res.warnings[0].includes("!/anchors/") && res.warnings[0].includes("!/templates/"), "both subtree carve-outs named");
+    // Apply the printed fix literally: delete the `*` line.
+    const fixed = readFileSync(join(dir, ".faff", ".gitignore"), "utf8").split("\n").filter((l) => l.trim() !== "*").join("\n");
+    writeFileSync(join(dir, ".faff", ".gitignore"), fixed);
+    seedFaffFiles(dir);
+    assert.ok(!gitCheckIgnore(dir, ".faff/anchors/run-1/FAFF-1/events.jsonl"), "anchors committable after the fix");
+    assert.ok(!gitCheckIgnore(dir, ".faff/templates/spec.md"), "templates committable after the fix");
+    const res2 = JSON.parse(run(dir, "gitignore-ensure", "--json"));
+    assert.equal(res2.warnings.length, 0, "the next run is silent");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-1309 scenario: `*` on top of a correctly-ordered block with `!/anchors/**` appended — `faff config check` names `!/templates/` only, never `!/anchors/`", () => {
+  const dir = gitSeed();
+  try {
+    mkdirSync(join(dir, ".faff"), { recursive: true });
+    writeFileSync(join(dir, ".faff", ".gitignore"), `*\n${CORRECT_INNER}!/anchors/**\n`);
+    seedFaffFiles(dir);
+    assert.ok(!gitCheckIgnore(dir, ".faff/anchors/run-1/FAFF-1/events.jsonl"), "real git: anchors committable");
+    const findings = configCheckJson(dir).findings.filter((f) => f.surface === ".faff/.gitignore");
+    const deadFinding = findings.find((f) => f.message.includes("leaves") && f.message.includes("dead"));
+    assert.ok(deadFinding, "the finding fires (for templates)");
+    assert.ok(!deadFinding.message.includes("!/anchors/"), "never names !/anchors/");
+    assert.ok(deadFinding.message.includes("!/templates/"), "names !/templates/ only");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-1309 scenario: `  *` (two leading spaces) above a correctly-ordered block — no warning, git agrees every carve-out is committable", () => {
+  const dir = gitSeed();
+  try {
+    mkdirSync(join(dir, ".faff"), { recursive: true });
+    writeFileSync(join(dir, ".faff", ".gitignore"), `  *\n${CORRECT_INNER}`);
+    seedFaffFiles(dir);
+    assert.ok(!gitCheckIgnore(dir, ".faff/anchors/run-1/FAFF-1/events.jsonl"));
+    assert.ok(!gitCheckIgnore(dir, ".faff/templates/spec.md"));
+    writeFileSync(join(dir, ".faff", "config.yaml"), "appetite: high\n");
+    assert.ok(!gitCheckIgnore(dir, ".faff/config.yaml"));
+    const findings = configCheckJson(dir).findings.filter((f) => f.surface === ".faff/.gitignore" && f.message.includes("dead"));
+    assert.equal(findings.length, 0);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-1309 scenario: a repo already dead, no further `gitignore-ensure` run — `faff config check` alone reports the shadowed carve-outs", () => {
+  const dir = gitSeed();
+  try {
+    mkdirSync(join(dir, ".faff"), { recursive: true });
+    writeFileSync(join(dir, ".faff", ".gitignore"), "!/anchors/\n/*\n");
+    const findings = configCheckJson(dir).findings.filter((f) => f.surface === ".faff/.gitignore");
+    const deadFinding = findings.find((f) => f.message.includes("leaves") && f.message.includes("dead"));
+    assert.ok(deadFinding && deadFinding.severity === "warn");
+    assert.ok(deadFinding.message.includes("!/anchors/"));
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-1309: faff gitignore-ensure exit code stays 0 and the file is still written on every dead-file shape", () => {
+  const dir = gitSeed();
+  try {
+    mkdirSync(join(dir, ".faff"), { recursive: true });
+    writeFileSync(join(dir, ".faff", ".gitignore"), "!/anchors/\n/*\n");
+    const r = spawnSync("node", [CLI, "gitignore-ensure"], { cwd: dir, encoding: "utf8" });
+    assert.equal(r.status, 0);
+    assert.ok(existsSync(join(dir, ".faff", ".gitignore")));
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-1309: re-running gitignore-ensure against an already-correct repo leaves .faff/.gitignore byte-identical", () => {
+  const dir = gitSeed();
+  try {
+    run(dir, "gitignore-ensure");
+    const before = readFileSync(join(dir, ".faff", ".gitignore"), "utf8");
+    run(dir, "gitignore-ensure");
+    const after = readFileSync(join(dir, ".faff", ".gitignore"), "utf8");
+    assert.equal(before, after);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("FAFF-1309: a fresh repo, after faff gitignore-ensure, produces no warnings at all", () => {
+  const dir = gitSeed();
+  try {
+    const res = JSON.parse(run(dir, "gitignore-ensure", "--json"));
+    assert.deepEqual(res.warnings, []);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

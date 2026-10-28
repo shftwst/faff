@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "test/validate-adapters.test.mjs::missing the spec §8 integration smoke test (scan-loop wiring unverified)",
+      "title": "missing the spec §8 integration smoke test (scan-loop wiring unverified)",
+      "location": "test/validate-adapters.test.mjs",
+      "action": "add the end-to-end runOne smoke test",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "added the end-to-end runOne integration smoke test in commit bc991e3c",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "missing the spec §8 integration smoke test (scan-loop wiring unverified)",
+          "location": "test/validate-adapters.test.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/validate-adapters.js::handread completeness comment overstated the flagged class",
+      "title": "HANDREAD completeness comment overstated the flagged class",
+      "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+      "action": "tighten the comment to the dot/hyphen-separated + bare class",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "comment tightened to name the actual scoped class in commit bc991e3c",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "HANDREAD completeness comment overstated the flagged class",
+          "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/validate-adapters.js::inverted word-order fail-open in the verb-prefix shape",
+      "title": "inverted word-order fail-open in the verb-prefix shape",
+      "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+      "action": null,
+      "location_present": true,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "pre-existing verb-prefix shape the spec keeps byte-identical (OUT OF SCOPE per spec section 2 and 4); not introduced by this diff",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "inverted word-order fail-open in the verb-prefix shape",
+          "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+          "severity": "observation",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/validate-adapters.js::verb+path prose could false-positive on a rule-restating skill.md line",
+      "title": "verb+path prose could false-positive on a rule-restating SKILL.md line",
+      "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+      "action": null,
+      "location_present": true,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "by-design conservative tripwire (spec section 1 errs toward flagging); shipped-tree regression guard is green so no current false positive; a doc line uses .example or faff config get",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "verb+path prose could false-positive on a rule-restating SKILL.md line",
+          "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

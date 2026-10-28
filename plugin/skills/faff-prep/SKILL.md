@@ -65,17 +65,17 @@ The **gateway Spec-readiness contract** defines the **provenance stamp** — its
 - `producer := faff config get slots.spec` (the CLI applies the registry default)
 - `date := today` (ISO `YYYY-MM-DD`)
 - `mode := autonomous` when running under the autonomous-mode signal (gateway → **Autonomous Mode Contract**), else `interactive`
-- `<harness>/<model> := faff harness identify --json` — the resolver's own `.harness` and `.model` fields, joined with `/`. `model` may render the literal `unknown`; the segment is written regardless (never omitted — omitting it would make the segment undetectable as positional).
+- `<harness>/<model> := faff harness identify --json` — the resolver's own `.harness` and `.model` fields, joined with `/`. `model` may render the literal `unknown`; the segment is written regardless (never omitted — omitting it would make the segment undetectable as positional). Directly after it comes `faff <version>`, where `<version> := faff version --json` `.version` (the faff plugin release); it renders `faff unknown` when unresolved and is never omitted either.
 
-Resolve `producer` and the harness/model segment **via the `faff` CLI only** — never hand-read the rc file, never hand-derive harness/model from the environment. Insert the blockquote line per the gateway format directly beneath the `# …` heading (no `adaptor:` field — dropped with the slot). The stamp's `confidence:` token **echoes** the producer's standalone trailing `confidence:` line — it does not replace it; that line stays authoritative for validation and the gate. On a **refresh**, re-stamp with a fresh `date`, the currently-resolved `producer`, and a freshly-resolved harness/model segment (identity can legitimately differ run to run — re-resolve it, don't carry the prior stamp's value forward).
+Resolve `producer`, the harness/model segment and the version **via the `faff` CLI only** — never hand-read the rc file, never hand-derive harness/model from the environment, never read `plugin.json` yourself. Insert the blockquote line per the gateway format directly beneath the `# …` heading (no `adaptor:` field — dropped with the slot). The stamp's `confidence:` token **echoes** the producer's standalone trailing `confidence:` line — it does not replace it; that line stays authoritative for validation and the gate. On a **refresh**, re-stamp with a fresh `date`, the currently-resolved `producer`, a freshly-resolved harness/model segment (identity can legitimately differ run to run — re-resolve it, don't carry the prior stamp's value forward) and a freshly-resolved `faff <version>` (the release can change between runs).
 
-**Detection tolerance.** `provenance_present` detection (below) anchors on the `> Spec:` prefix and does not require an exact trailing shape — inserting the `<harness>/<model>` segment between `<mode>` and `confidence:` must not break it. Detection fixture (illustrative — the shape any regex-detection pass must still match):
+**Detection tolerance.** `provenance_present` detection (below) anchors on the `> Spec:` prefix and does not require an exact trailing shape — inserting the `<harness>/<model>` and `faff <version>` segments between `<mode>` and `confidence:` must not break it. Detection fixture (illustrative — the shape any regex-detection pass must still match):
 
 ```
-> Spec: faffter-noon-spec · 2026-08-11 · autonomous · claude-code/unknown · confidence: high. Full spec on Linear FAFF-XX.
+> Spec: faffter-noon-spec · 2026-08-11 · autonomous · claude-code/unknown · faff 0.42.0 · confidence: high. Full spec on Linear FAFF-XX.
 ```
 
-A regex/prefix check that only matched the earlier stamp shape (`<producer> · <date> · <mode> · confidence:`, before the `<harness>/<model>` segment) would false-negative on the line above and misreport `provenance_present:false` — pushing a spurious `provenance stamp missing` violation and parking a spec that visibly carries a stamp. Anchor on `^> Spec:` and stop there; do not match the tail.
+A regex/prefix check that only matched the earlier stamp shape (`<producer> · <date> · <mode> · confidence:`, before the `<harness>/<model>` and version segments) would false-negative on the line above and misreport `provenance_present:false` — pushing a spurious `provenance stamp missing` violation and parking a spec that visibly carries a stamp. Anchor on `^> Spec:` and stop there; do not match the tail.
 
 **Git-only mode.** The stamp is written into `.faff/specs/<issue-id>.md` (where the spec body lives in tracker-less mode). When no tracker resolves, drop the stamp's trailing "Full spec on …" sentence per the gateway git-only rule.
 
@@ -92,12 +92,12 @@ Same-turn attach is a **mechanical guarantee**, not prose discipline — it has 
   ```json
   { "issue": "FAFF-XX", "spec_produced": true, "attached": false, "mode": "tracker|git-only", "ts": "<ISO-8601>",
     "owner": { "session_id": "<$FAFF_SESSION_ID>", "run_dir": "<$FAFF_RUN_DIR>", "pid": <process.pid> },
-    "harness": "<id.harness>", "model": "<id.model>" }
+    "harness": "<id.harness>", "model": "<id.model>", "faff_version": "<v.version>" }
   ```
 
   The write-before-render ordering is the pin: a render-and-pause leaves `attached:false` for the hook to catch. (Hard floor — written in **both** interactive and autonomous modes, regardless of `logging: essential`, since the hook must find it.)
   - **`owner`** lets `prepcheck --hook` tell its own markers from a parallel run's, exactly as the run-ledger owner stamp does for `runcheck`. Stamp `session_id` from `$FAFF_SESSION_ID` and `run_dir` from `$FAFF_RUN_DIR` (the autonomous path sets both; an interactive prep typically has `session_id` only and no `run_dir`), and `pid` from `process.pid` — **`pid` is recorded for forensics only, never consulted in the hook decision**. Omit a field whose env var is unset rather than writing an empty string; an absent `owner` is tolerated as legacy/unowned (no migration). The `owner` is written **once** at produce time and never refreshed — liveness comes from the run ledger or the marker's file mtime, never a heartbeat field on the marker (which would re-import the staleness confound).
-  - **`harness` / `model`** — the same `id := faff harness identify --json` resolution the provenance stamp reads (one resolver, not re-derived here). Additive on this schema-less marker: a marker written before the harness/model fields existed (or by a build with the resolver unavailable) simply lacks the fields and reads as legacy/unowned — `prepcheck` never depends on their presence.
+  - **`harness` / `model`** — the same `id := faff harness identify --json` resolution the provenance stamp reads (one resolver, not re-derived here). Additive on this schema-less marker: a marker written before the harness/model fields existed (or by a build with the resolver unavailable) simply lacks the fields and reads as legacy/unowned — `prepcheck` never depends on their presence. `faff_version` comes from `v := faff version --json`, the resolver the stamp's `faff <version>` segment reads (`unknown` when unresolved), and is likewise absent on an older marker.
 - **On a successful attach** — immediately after `save_comment` (tracker) or the `.faff/specs/<issue-id>.md` write (git-only) — flip the marker to `attached: true`.
 - **On a by-design park** (a `low`-confidence spec that is parked, not attached) — record `"disposition": "parked"` on the marker so `prepcheck` does not false-block a legitimate non-attach.
 
@@ -191,6 +191,51 @@ esac
 | **plot** | a methodology objection at `major` or above | the scope / increment is wrong. **L1–L3 (or interactive):** **park** and surface the slice for human-interactive `/faff-plot` to re-slice, unchanged. **L4:** re-slice **autonomously** instead of parking — invoke `/faff-plot --autonomous` and terminate this slice with a re-slice handoff (no park; see _L4 autonomous re-slice_ below). When the CLI's `carried_design_objections` is non-empty, carry it verbatim (`{lens, severity}` each) into the park record (L1–L3) or the re-slice handoff log (L4) — never discard it onto a consumer (plot) that can't act on it. Those objections re-fire fresh when the re-sliced work is re-prepped; see _Carried design-lens objections_ below. |
 
 The CLI computes the partition from `objections`, never a relevance re-inference.
+
+### Ratify a design-lens objection in place (interactive only)
+
+A design-lens objection has two paths today — loop the producer, or park on the cap ceiling. A third, **ratify**, lets a present human say "no, keep it" to an objection that attacks a *decision*, without either forcing a pointless revision loop or losing the fact that a human, not the producer, made that call. Offered **only** for a `major`/`minor` design-lens objection that names a specific already-`**Chosen:**` decision **and** passes the scope test below, and **only** in interactive mode.
+
+**The decision-vs-implementation scope test (runs before the offer fires).** An objection's `spec_anchor` names a section, not a decision, so naming a `**Chosen:**` line is necessary but not sufficient. Classify from the objection's own `claim`: does it argue against *the choice*, or against *a mechanism or detail of carrying the choice out*? Only a **decision-level** objection is ratifiable. One that is ambiguous between the two, or mixes both, is **not** offered ratify — it routes through `revise`/park exactly as an unclassifiable objection does today, because ratifying it risks silently suppressing the implementation half the design lenses promise to keep critiquing at full severity. These worked examples calibrate the test's two ends and its fail-safe middle; they do not replace it:
+
+| Classification | Example claim | Ratifiable |
+|---|---|---|
+| Decision-level | "Postgres is the wrong store for this — use the file-based register instead" (attacks the choice itself) | yes |
+| Implementation-level | "The chosen Postgres migration has no rollback path" (accepts the choice, attacks its execution) | no |
+| Ambiguous / mixed | "Postgres is fine, but this schema will lock the table under load" (decision-adjacent implementation critique) | no — fail-safe |
+
+This is a bounded LLM classification, not a deterministic parser: there is no closed-vocabulary oracle for "is this objection about the choice or its execution" the way the `spec_anchor` heading-slug rule is mechanical. The bound is that the failure direction is asymmetric and safety-biased — **ambiguous resolves to no ratify, never the reverse** — and the blast radius of a misclassification is one non-`critical` objection kept in the loop, never a defect shipping unexamined. The committed fixture set under the occupant's `eval/in-spec-ratification/` exercises the implementation-level and ambiguous cases, so the asymmetry is a checked property rather than a naming.
+
+```
+PROCEDURE surface_design_lens_objection(objection, decision_line):
+  1. severity == "critical" -> present as today (revise or park), no ratify
+     offer; the severity floor is unconditional.
+  2. ELSE IF the scope test cannot cleanly classify it as decision-level
+     (ambiguous, or mixing decision and implementation) -> as today, no offer.
+  3. ELSE (major | minor, cleanly decision-level), interactive only -> present
+     three choices, not two: revise (loop the producer), park/needs-human (on
+     the cap ceiling), ratify ("keep <decision_line> as chosen; it is settled").
+  4. ON an explicit human "ratify" reply (never inferred from silence, never
+     from the agent's own read of the conversation):
+     a. append "(ratified: human)" to decision_line's Chosen marker, within
+        the re-attach this round already performs;
+     b. log the neutralised, capped quote of the reply into the tracker
+        comment that re-attach already posts — never bare "tag added";
+     c. run the Decisions-register capture step's tradeoff-shaped offer;
+     d. drop this objection from the round's must-fix set — it does NOT
+        consume a loop-cap iteration, because no revision happened;
+     e. continue the round for any other unresolved objections as today.
+  5. Autonomous mode: never fires (no human to answer); an autonomous
+     revise/reject-approach proceeds exactly as today.
+```
+
+**Audit the utterance, not just its result.** The tracker comment the re-attach already posts carries the human's own words beside the resulting tag, so the tag's provenance is checkable against the thread rather than resting on trust in prep's mechanical-edit claim. The quote is **neutralised before it is written, never raw**: run it through the same structural-neutralisation transform `faff ratified-scope --fold-resolutions` applies to tracker values (newline collapse, secret-shaped-value redaction, imperative-sentence scrub — the identical function, reused, never reimplemented), then extract the shortest sentence that states the decision — never the full multi-paragraph turn — and hard-cap it at **200 characters**, truncating with `…` if that sentence is longer. The reconcile step's in-context judgement re-reads this quote later, so it must land there as inert, bounded DATA.
+
+**The tag survives the loop, and an autonomous refresh, by carry-forward.** A `revise` re-invocation carries every existing `(ratified: human)` tag forward verbatim: the producer receives the current spec text — tags included — as its base and is never asked to redraft from scratch mid-loop, the same narrowing-only-refresh discipline a scoped revision already uses. An **autonomous stale-refresh** preserves an already-present tag the same way: "never added on an autonomous dispatch" governs **new** tags, not inherited ones, and a refresh is a scoped annotation rather than a whole-cloth redraft. Neither rule says anything about a later, separate prep session's full redraft.
+
+**Anti-pattern:** offering ratify for a methodology-lens objection. A methodology `reject-approach` is a scope/sizing call routed to `/faff-plot`, never a loop-in-place revision — there is no single named `**Chosen:**` line to ratify against.
+
+**Anti-pattern:** offering ratify on the strength of `spec_anchor` alone. It names the attacked *section*, not whether the attack is decision- or implementation-level; an implementation objection anchored to the same section as its decision would pass a naive "names a Chosen line" test and must not be ratifiable.
 
 **Carried design-lens objections (plot-destined `reject-approach` with design-lens objections).** The park record (L1–L3) or the re-slice handoff log (L4) — whichever this pass took — additionally lists the CLI's `carried_design_objections` verbatim, one `{lens, severity}` per line, under a labelled "Carried design-lens objections" block. No second store: the round record (below) already persists the full verdict verbatim, so this is the human/plot-readable copy, not a new write path. A re-sliced epic re-enters through plot's normal create path and is re-prepped from scratch — its own spec-review gate run is what re-raises a design-lens objection that still applies; the carried block is the audit trail proving it wasn't silently dropped, not a live constraint plot consumes (plot has no objection-intake seam — out of scope here).
 
@@ -334,6 +379,19 @@ Both interactive resolution sites invoke this subroutine immediately after a hum
    - **If a build follows** (the resolve gate re-presents and the human confirms build, or Scenario B's `build`), `/faff-graft` reads the intent comment and materialises it into `docs/decisions.md` on the feature branch (Step 4c) — ratified by the human's PR review.
    - **If no build follows** (a pure interactive resolve with no immediate `/faff-graft` invocation), surface the drafted entry text in the reply so the human can add it to `docs/decisions.md` and commit it directly.
 3. **On no:** continue — no comment, no draft.
+
+**A second trigger — ratifying a design-lens objection in place (no punt involved).** Immediately after the Spec-review gate's ratify path appends the `(ratified: human)` tag (see _Ratify a design-lens objection in place_ above), run this same offer: *"Capture this as a ratified tradeoff for ISSUE-XX, so this issue's own spec-review defers to it? (y/n)"*. The original Punt/Assumes-closure trigger above is unchanged and keeps drafting the precedent shape; this trigger drafts the **tradeoff shape** instead:
+
+```
+Chosen:       <the decision, verbatim from the spec>
+Rationale:    <why, folded from the objection + the human's reply>
+Scope:        <what this decision covers>
+Source-issue: <ISSUE-XX>
+Ratified-by:  human
+Date:         <today>
+```
+
+No `Matches:` field — a tradeoff is never fuzzy-matched (`faff decisions match` skips tradeoff entries by design). Follow-through is **identical** to the existing offer: a build that follows has `/faff-graft` Step 4c materialise the intent comment into `docs/decisions.md`; no build following surfaces the drafted text for the human to commit directly. On no: continue — no comment, no draft. No code change is needed to materialise it: Step 4c appends whichever fields the intent comment carries, the register derives `kind: "ratified_tradeoff"` from the lexical presence of a `Ratified-by:` field line, and the `faff decisions validate` Step 4c already runs applies the tradeoff validator unchanged.
 
 **The autonomous resolve-attempt path (gateway) never runs this offer and never writes the register** — capture is human-confirmed only, at these two interactive sites, so every entry is human-authored by construction.
 
@@ -486,7 +544,7 @@ Then offer a three-way choice (not passive text) — a surviving OFFER gate, per
 
 > "What next? (iterate / build / park)"
 
-- **iterate** — revise the spec (loop back to Step 2 of Scenario A); once the revised spec is produced and re-attached, run the **Decisions-register reconcile step** (above) before returning to this offer — a revision can change the design out from under an already-captured intent, regardless of which confidence branch the revision lands in
+- **iterate** — revise the spec (loop back to Step 2 of Scenario A); once the revised spec is produced and re-attached, run the **Decisions-register reconcile step** (above) before returning to this offer — a revision can change the design out from under an already-captured intent, regardless of which confidence branch the revision lands in. **Carry-check:** when Step 2a found no challenge or resolution, save the spec restored at Step 1 as `$scratch/refresh-before.md`, the revised spec as `$scratch/refresh-after.md`, and run the same `faff spec-review carry-check` gate Path 1 runs (above) — exit 0 tells the user "review carried forward: paths only" and lists the path moves; any other exit runs the Spec-review gate as today
 - **build** — invoke the `faff-graft` skill via the Skill tool on `ISSUE-XX` (only if spec is fresh)
 - **park** — stop here; apply the shared Park / Unpark protocol (tag `faff-parked`, log the cause) so `/faff-wtf`'s _Parked work_ section resurfaces it. The spec stays on the issue.
 
@@ -563,7 +621,15 @@ If an existing spec is present and:
 - The original design decisions still hold against the current codebase **and** against any post-spec challenges/resolutions
 - Changes are limited to shipped blockers, minor drift, context comments to fold in as annotations, or comment-thread resolutions that close out an existing Punt/Assumes — none of which invalidate the approach
 
-→ produce a refreshed spec with changes annotated (cite each post-spec comment that drove a change or was folded in as context), **re-stamp the provenance line** (fresh `date` + currently-resolved `producer`/`adaptor`, `mode := autonomous`; see _Provenance stamp (populate at attach)_), **validate per the _spec contract_** (every decision section has a canonical marker), **re-run the Spec-review gate** on the refreshed spec (a substantive refresh can change the approach, so the retained verdict is re-earned — route per that section; a non-`approve` parks/loops rather than silently reattaching), run the **Decisions-register reconcile step** (above) against the refreshed spec, then reattach to the issue and keep it where it is (Todo stays Todo).
+→ produce a refreshed spec with changes annotated (cite each post-spec comment that drove a change or was folded in as context), **re-stamp the provenance line** (fresh `date` + currently-resolved `producer`/`adaptor`, `mode := autonomous`; see _Provenance stamp (populate at attach)_), **validate per the _spec contract_** (every decision section has a canonical marker), then run the **carry-check gate** below to decide whether the Spec-review gate actually needs to re-run.
+
+**Carry-check gate — keep the prior review when the refresh is paths-only.** Runs only when Step 2a's comment scan (above) found no challenge and no resolution — a challenge or resolution always re-reviews, per the gateway's human-curation rule.
+
+- **The call.** Save the spec text read at the top of this path to `$scratch/refresh-before.md` and the just-produced refreshed spec to `$scratch/refresh-after.md` (`$scratch` from `faff spec-review-dir`), then run `faff spec-review carry-check --before $scratch/refresh-before.md --after $scratch/refresh-after.md --root <repo root>` (`docs/guide/cli.md`). Log the printed JSON line.
+- **Exit 0 (carry).** Keep the retained `spec-review:` line unchanged, run no lens, write no round record. Post a `## Spec-review evidence` comment: the line `refresh: paths only, review carried forward`, one bullet per `path_moves` entry, then — only when it passes `faff contract spec-review-verdict` and its digest matches — the newest earlier evidence comment's fenced block and `sha256:` line copied verbatim (git-only: write the same under the spec's own `## Spec-review evidence` heading).
+- **Exit 1 or 2 (no carry).** **Re-run the Spec-review gate** on the refreshed spec exactly as today (a substantive refresh can change the approach, so the retained verdict is re-earned — route per that section; a non-`approve` parks/loops rather than silently reattaching).
+- **The refresh note.** When the refresh only fixes paths, write exactly `> Revised on <today>: paths refreshed` as its note; any other annotation is content and forces the gate.
+- **Either way**, run the **Decisions-register reconcile step** (above) against the refreshed spec, then reattach to the issue and keep it where it is (Todo stays Todo).
 
 If refreshing the spec would require changing an architectural decision, a core interface, or the overall approach — including when a post-spec comment **challenges** a core decision — → **park** (not a safe auto-refresh; the conversation needs human resolution).
 

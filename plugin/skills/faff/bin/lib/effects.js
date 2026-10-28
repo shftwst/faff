@@ -24,6 +24,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { requireFlags } = require("./argv");
+const { resolveFaffVersion } = require("./faff-version"); // FAFF-1395
 const { HEX64_RE, RUNNER_IDENTITY_CREDENTIAL_SOURCES, appendRecordsUnderLock, sha256Hex, verifyEffectsChain, verifyExitCode } = require("./events");
 const { findRoot, resolveRunDir } = require("./shared-infra");
 
@@ -442,7 +443,7 @@ function buildProgressApplyComplete(existing, issue, diffHash, branch, nowIso) {
 }
 
 // === FAFF-1258: the shared run-state writer ===============================
-// build-progress.json and landing-progress.json are stamped `schema_version: 1`, redacted once and
+// build-progress.json and landing-progress.json are stamped `schema_version: 1` (+ `faff_version`), redacted once and
 // validated against their closed v0.3 schemas before any bytes land. Only violations THIS write
 // introduces refuse it; a legacy fault in carried-forward bytes is reported, never blamed on the
 // current writer. A file stamped with a version this CLI does not know is never rewritten.
@@ -453,9 +454,12 @@ function writeRunState(cmd, anchorPath, file, existing, rec, diffBase, opts = {}
   const { atomicWriteSingleValueFile } = require("./heartbeat");
   const isRecord = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
   const prior = isRecord(existing) ? existing : null;
+  // FAFF-1395: every write restamps faff_version with the current writer's release (last writer
+  // wins), second key after schema_version. The carried-forward base is stamped the same way so the
+  // restamp never reads as a changed path of its own.
   const stamp = (r) => {
-    const { schema_version: _ignored, ...rest } = r;
-    return redactKnownSecrets({ schema_version: 1, ...rest }, resolveKnownSecretValues());
+    const { schema_version: _ignored, faff_version: _prior, ...rest } = r;
+    return redactKnownSecrets({ schema_version: 1, faff_version: resolveFaffVersion().version, ...rest }, resolveKnownSecretValues());
   };
 
   if (prior && "schema_version" in prior && prior.schema_version !== 1) {

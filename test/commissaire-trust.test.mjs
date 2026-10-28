@@ -474,6 +474,11 @@ const DENYLIST = new Set([
   "tracker", "harness", "engine", "next", "project-next", "run-start",
   "run-done", "queue-state", "lights-out", "self-intake", "scenario-matrix",
   "config", "budget",
+  // FAFF-1389: config.js re-exports these; a direct require of one reaches faff's config reader too.
+  "config-core", "config-dispatch", "config-resolve", "config-write", "config-write-selftest", "config-check",
+  // FAFF-1392: contract-defs.js was denied through run-start; its split parts no longer all reach it.
+  "contract-defs", "contract-defs-review", "contract-defs-delivery", "contract-defs-prd", "contract-defs-evidence",
+  "contract-defs-run", "contract-defs-floor", "contract-defs-describe", "contract-defs-registry",
 ]);
 
 function libSourceSet(extra = []) {

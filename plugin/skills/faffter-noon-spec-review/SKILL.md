@@ -33,7 +33,7 @@ The consumer passes:
 | `architectural` | Is the design sound? Does it fit the system? Is there a simpler/cheaper design? Are cross-slice decisions ADR-worthy and consistent with existing ADRs? | The spec body + repo architecture + configured ADR directory. |
 | `infosec` | What is the threat surface? authz/authn, secrets handling, blast radius. | A **generic** security checklist — no learned per-repo threat prior. |
 | `methodology` | Right-sized? Right increment? Worth doing now? | **Consumes** the attached `## Methodology critique`. It never re-derives value/scope/risk. |
-| `QA` | Is it *verifiable*? Can we tell when it is done and right? | The spec's scenarios / DONE criteria. |
+| `QA` | Is it *verifiable*? Can we tell when it is done and right? A `## Scenarios` unit whose check is a repository test file passing is unverifiable by the code-blind holdout (it cannot read or run one) — raise it, routing the verdict to `revise` so the author restates it observably and moves the test-file check to its own DONE item. A `## Scenarios` unit with no observable `Then` (and no `MUST` or comparator) cannot be judged code-blind, and a holdout-marked one is also hidden from the builder, so it checks nothing — raise it, naming the unit, so the verdict routes to `revise`. | The spec's scenarios / DONE criteria. |
 
 Severities are `blocker` / `major` / `minor`. Emit at most one objection per lens (the lens's worst finding); a lens with no finding contributes none.
 

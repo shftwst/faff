@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1112",
+  "build": {
+    "status": "complete",
+    "diff_hash": "5ebebd858332a85d54900434a3054a8caeab923dfcf53acdf379b004e0c7c669",
+    "branch": "faff-1112-faff-jotplot-discover-parse-github-native-issue-templates",
+    "pushed_at": "2026-10-24T04:55:21.438Z"
+  },
+  "updated_at": "2026-10-24T04:55:21.438Z"
+}

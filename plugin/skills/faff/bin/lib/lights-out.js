@@ -45,6 +45,7 @@ const { containerCheck, hostSocketProbe, realFsq } = require("./container-check"
 const { isSafeRunId } = require("./contain");
 const { correctiveIntegrityProbe } = require("./corrective-integrity");
 const { appendEventRecord, appendRecordUnderLock, emitGenesisRunStart } = require("./events");
+const { resolveFaffVersion } = require("./faff-version"); // FAFF-1395
 // FAFF-1077: observeForgeMerge is factored into the shared forge-merge module (imported by the
 // merge-order interlock in merge-gate.js too); lights-out's resume reconcile keeps calling it here.
 const { observeForgeMerge } = require("./forge-merge");
@@ -1190,14 +1191,43 @@ function mintLightsOut({ root, cfg, json, get, pf, envelope, metering, correctiv
       pid: process.pid,
       started_at: nowIso,
       last_heartbeat: nowIso,
+      faff_version: resolveFaffVersion().version, // FAFF-1395
     },
   };
+  // FAFF-1306: a refused ledger write or genesis emit is a structured refusal (never an uncaught
+  // stack trace), classified exactly as `run-ledger init-self-drain` does it: a schema refusal is
+  // exit 1; a lock/other write failure, a non-written result, or any genesis throw is exit 3. The
+  // `--json` refusal keeps this file's `{ proceed:false, level:"L4", error }` shape.
+  const emitMintRefuse = (code, msg) => {
+    if (json) process.stdout.write(JSON.stringify({ proceed: false, level: "L4", error: msg }) + "\n");
+    else process.stderr.write(msg + "\n");
+    return code;
+  };
+  const ledgerPath = path.join(runDir, "run-ledger.json");
   // FAFF-575: the mint routes through the same locked core as every other ledger
   // mutation (uniformity — a just-minted run dir cannot contend, so the cost is one
   // uncontended lock cycle, and no second unlocked write path survives to decay). The
-  // trivial mutate ignores the fresh read (initial creation); a LEDGER_LOCKED throw
-  // here is impossible in practice and would surface as the mint failure it is.
-  const mintWriteRes = mutateLedgerUnderLock(runDir, () => ledger);
+  // trivial mutate ignores the fresh read (initial creation).
+  // FAFF-1306: claimRunDir exclusive-creates the leaf, so this call created runDir; if the
+  // ledger never lands it is removed (FAFF-1280's rule — discardUnmintedRunDir is non-recursive
+  // and only runs before a ledger exists). A genesis failure below leaves the dir: it holds a
+  // written ledger, which that helper refuses to delete by design.
+  let mintWriteRes;
+  let landed = false;
+  try {
+    try { mintWriteRes = mutateLedgerUnderLock(runDir, () => ledger); }
+    catch (e) {
+      if (isLedgerSchemaError(e)) return emitMintRefuse(1, `faff lights-out: ${e.message} — no ledger minted`);
+      return emitMintRefuse(3, `faff lights-out: could not write ${ledgerPath}${e && e.code === "LEDGER_LOCKED" ? " (lock contention/abort)" : `: ${e && e.message}`} — no ledger minted`);
+    }
+    if (!mintWriteRes.written) {
+      return emitMintRefuse(3, `faff lights-out: could not write ${ledgerPath} (lock contention/abort) — no ledger minted`);
+    }
+    landed = true;
+  } finally {
+    // Lazy require: same no-cycle guarantee as resolveMintBaseSha above.
+    if (!landed) require("./run-ledger").discardUnmintedRunDir(runDir, "lights-out");
+  }
 
   // Emit the run-start event onto the observability timeline substrate (FAFF-574: through
   // the shared lock-guarded core — the seq is minted from the log's tail under the lock).
@@ -1208,7 +1238,11 @@ function mintLightsOut({ root, cfg, json, get, pf, envelope, metering, correctiv
   // roll-up coerces it down to L3 (`l4_chain_uncorroborated`).
   // FAFF-966: routed through the shared `emitGenesisRunStart` helper (never a hand-duplicated
   // emit) — byte-identical shape to before the extraction (schema 2, `data.level:"L4"`).
-  emitGenesisRunStart(runDir, { level: "L4" });
+  // FAFF-1306: any throw is a genesis failure (exit 3, mint NOT reported successful).
+  try { emitGenesisRunStart(runDir, { level: "L4" }); }
+  catch (e) {
+    return emitMintRefuse(3, `faff lights-out: could not append the genesis run-start event in ${runDir}${e ? `: ${e.message}` : ""} (ledger written, no chain) — mint NOT reported successful`);
+  }
   // FAFF-1213: record the run-level GitHub runner identity into events.jsonl right after genesis
   // (run-start/preflight), so mintIssueAnchor freezes it into the committed, head-sha-pinned anchor
   // Gate 1 (FAFF-1182) consumes. Lazy require (cycle-safe) + best-effort (recordRunnerIdentity
@@ -1380,7 +1414,7 @@ function resumeLightsOut({ root, cfg, binPath, json, checkOnly, get, unreachable
       // resurrect — and a null fresh also skips the fence, so falling back to the
       // pre-lock copy here would bypass the takeover guard entirely.
       if (!fresh) return null;
-      const applied = applyResumeToLedger(fresh, { nowIso, sessionId, pid: process.pid, priorState, plan, budgetSessions });
+      const applied = applyResumeToLedger(fresh, { nowIso, sessionId, pid: process.pid, priorState, plan, budgetSessions, faffVersion: resolveFaffVersion().version });
       epoch = applied.epoch;
       return applied.ledger;
     }, { epoch: priorEpoch, session_id: (ledger.owner && ledger.owner.session_id) || null });

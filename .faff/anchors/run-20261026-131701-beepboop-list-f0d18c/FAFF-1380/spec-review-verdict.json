@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "verdict": "reject-approach",
+  "final_verdict": "approve",
+  "rounds_total": 2,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "Two of the five new per-axis DONE tests assert conditions that are identical before and after the fix, repeating exactly the weak-assertion pattern the spec itself diagnoses as the reason FAFF-933's suite missed this bug.",
+      "evidence": "The spec's §6 states the failure mode plainly: FAFF-933's tests missed the bug because \"the two reads produce identical output … the bug is invisible,\" and closes \"exactly that gap.\" But its own DONE items for `--by effort` assert only \"`reconciliation.events_token_total`/`top_line_total` line up and `source` is not `\"estimate\"`\" — and in the no-ambient-session resumed fixture, pre-fix behaviour already yields `source: \"events\"` (the branch's `measuredSource === \"transcript\"` gate is driven by `effectiveEnv` via `measureRunSpend`, so it is true pre-fix), with `events_token_total` derived from events.jsonl and `top_line_total` from `measuredTotal`, both unchanged by the fix. The fix only changes `dominant` (and thus `priced_at_model`/row `cost`) in that branch, which the DONE item never asserts. Likewise the `--by mcp` DONE asserts \"its own breakdown reconciles\" — but `economicsMcpBreakdown`'s `reconciliation.reconciles` is the cache-attribution identity, which is `true` even over zero records (empty rows, billed 0, sums reconcile), so it passes pre-fix too.",
+      "predicted_consequence": "Two of the five regression tests ship green against both the buggy and the fixed code — the exact gap this spec exists to close re-opens for the effort and mcp axes on the next refactor that touches these call sites.",
+      "spec_anchor": "done-definition-of-done",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "DONE item for --by effort/--by mcp rewritten to assert priced_at_model/row presence (the fields the fix actually changes), not fields unchanged by the fix.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "Two of the five new per-axis DONE tests assert conditions that are identical before and after the fix, repeating exactly the weak-assertion pattern the spec itself diagnoses as the reason FAFF-933's suite missed this bug.",
+          "spec_anchor": "done-definition-of-done"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "major",
+      "claim": "The DONE bullet requires, for every axis in {class, model, day, mcp, effort}, that \"the closed span's model/class tokens are present in the rows (i.e. the breakdown read the open span's transcript, not the empty/estimate path)\" and that the breakdown \"reconciles\". But the file this spec extends — and the ratified FAFF-933 design it explicitly declares out of scope — makes `day`, `mcp`, and `effort` axes that **never** fold closed spans: `economicsBreakdown` folds `closedSpendByModel` only for `axis === \"class\" || axis === \"model\"`, and `computeUnitEconomics` emits a presence-gated warning saying per-day/mcp/phase cover \"the resuming epoch only\". On the spec's own fixture (closed span 500 tokens, open span 100), a correct `--by day` build reports `grand_total === 100`, `top_line_total === 100`, `reconciles === true`, and **no** closed-span tokens in any row — exactly what the existing test `FAFF-933 INTEGRATION: --by day does NOT fold … and NAMES its epoch-scoping` pins. A builder following the DONE bullet literally must either fail the criterion or break FAFF-933's fold gating to pass it.",
+      "evidence": "`### DONE — Definition of Done`, second and third behaviour bullets (\"repeated for `--by model`, `--by day`, `--by mcp`, and `--by effort`, each asserting its own breakdown reconciles … rather than degrading silently\"); contradicted by the spec's own OUT OF SCOPE (\"The epoch-fold logic for `--by class` / `--by model` … Unaffected\") and by `test/economics.test.mjs`'s existing FAFF-933 day/mcp assertions.",
+      "predicted_consequence": "The pass condition for three of the five new tests cannot be decided as written — \"closed-span tokens present in the rows\" is false for a correct build on day/mcp/effort, so a tester cannot tell whether a build satisfying FAFF-933 is done, and a builder \"making it pass\" would regress the fold gating this spec says it does not touch.",
+      "spec_anchor": "done-definition-of-done",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "DONE items made axis-specific: day/mcp/effort no longer require closed-span tokens in rows (FAFF-933 never folds those axes); day asserts against its own resuming-epoch top line, mcp asserts row presence/values, effort asserts priced_at_model.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The DONE bullet requires, for every axis in {class, model, day, mcp, effort}, that \"the closed span's model/class tokens are present in the rows (i.e. the breakdown read the open span's transcript, not the empty/estimate path)\" and that the breakdown \"reconciles\". But the file this spec extends — and the ratified FAFF-933 design it explicitly declares out of scope — makes `day`, `mcp`, and `effort` axes that **never** fold closed spans: `economicsBreakdown` folds `closedSpendByModel` only for `axis === \"class\" || axis === \"model\"`, and `computeUnitEconomics` emits a presence-gated warning saying per-day/mcp/phase cover \"the resuming epoch only\". On the spec's own fixture (closed span 500 tokens, open span 100), a correct `--by day` build reports `grand_total === 100`, `top_line_total === 100`, `reconciles === true`, and **no** closed-span tokens in any row — exactly what the existing test `FAFF-933 INTEGRATION: --by day does NOT fold … and NAMES its epoch-scoping` pins. A builder following the DONE bullet literally must either fail the criterion or break FAFF-933's fold gating to pass it.",
+          "spec_anchor": "done-definition-of-done"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The scenario asserts the breakdown's \"reconciliation against the top-line total succeeds\" for all five axes, but on a resumed run there are two candidate top lines: the run-scoped `tokens_total` (600 in the fixture) and the breakdown's own `reconciliation.top_line_total` (100 for day/mcp, resuming-epoch-scoped). \"Succeeds\" does not name which comparison a tester performs, and for day/mcp the two disagree by design.",
+      "evidence": "`## SCENARIOS`, first scenario's Then clause.",
+      "predicted_consequence": "A tester running the scenario for `--by day` cannot state the expected numeric result without first resolving the ambiguity; two testers could reach opposite verdicts on the same build.",
+      "spec_anchor": "scenarios",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Scenario 1 rewritten to name which top line each axis reconciles against (epoch-spanning for class/model, resuming-epoch-only for day/mcp/effort), removing the ambiguity.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The scenario asserts the breakdown's \"reconciliation against the top-line total succeeds\" for all five axes, but on a resumed run there are two candidate top lines: the run-scoped `tokens_total` (600 in the fixture) and the breakdown's own `reconciliation.top_line_total` (100 for day/mcp, resuming-epoch-scoped). \"Succeeds\" does not name which comparison a tester performs, and for day/mcp the two disagree by design.",
+          "spec_anchor": "scenarios"
+        }
+      ]
+    }
+  ]
+}

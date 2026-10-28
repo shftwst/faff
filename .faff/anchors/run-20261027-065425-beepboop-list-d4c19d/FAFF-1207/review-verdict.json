@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/validate-adapters.js::per-line scan misses a fenced/continued commissaire --issue invocation",
+      "title": "per-line scan misses a fenced/continued commissaire --issue invocation",
+      "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Per-line scan is the spec's explicit chosen design (WHAT match-predicate + HOW), mirroring the FAFF-1198 removed-dispatch-key lint; the helper comment documents the single-line assumption. Real commissaire invocations in faff prose are single-line backticked commands, so the guard covers the actual surface. Precision-over-recall: a missed wrapped form is a smaller harm than a false CI FAIL.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "per-line scan misses a fenced/continued commissaire --issue invocation",
+          "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+          "severity": "major",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/validate-adapters.js::lookbehind excludes ./faff path-prefixed binary spelling",
+      "title": "lookbehind excludes ./faff path-prefixed binary spelling",
+      "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "./faff is outside the spec's enumerated binary forms (faff, \"$faff\", \"$FAFF\", $faff); faff prose uses \"$faff\"/faff for commissaire. The lookbehind dot avoids matching faff as a dotted-identifier suffix. Precision-over-recall.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "lookbehind excludes ./faff path-prefixed binary spelling",
+          "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/validate-adapters-commissaire-unit-id.test.mjs::negative tests pass vacuously if the run crashes",
+      "title": "negative tests pass vacuously if the run crashes",
+      "location": "test/validate-adapters-commissaire-unit-id.test.mjs",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added a ran(r) anchor (r.error==null && /RESULT:/.test(stdout)) to every negative, so a no-finding can only mean the lint ran to completion past the guard, not that it crashed before reaching it.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "negative tests pass vacuously if the run crashes",
+          "location": "test/validate-adapters-commissaire-unit-id.test.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/validate-adapters.js::.example line-skip is an undocumented untested carve-out",
+      "title": ".example line-skip is an undocumented untested carve-out",
+      "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Removed the .example skip (copied from the HANDREAD/FAFF-598 scans) to match the spec helper pseudocode and the FAFF-1198 lint, which have no such skip. Closes the false-negative where an invocation naming an example path would be exempt.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": ".example line-skip is an undocumented untested carve-out",
+          "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/validate-adapters.js::backtick-free prose could false-fail on co-occurrence",
+      "title": "backtick-free prose could false-FAIL on co-occurrence",
+      "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Unreachable given the repo prose convention of backticking commands; the invocation-shape anchor (binary->commissaire->--issue) already excludes the spec cited deprecation-mention anti-pattern. Negative test covers the realistic forms.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "backtick-free prose could false-FAIL on co-occurrence",
+          "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/validate-adapters-commissaire-unit-id.test.mjs::cli tests did not exercise line attribution for n>1",
+      "title": "CLI tests did not exercise line attribution for N>1",
+      "location": "test/validate-adapters-commissaire-unit-id.test.mjs",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added a CLI positive with the hit on line 3 asserting the finding reports line 3 and not line 1.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "CLI tests did not exercise line attribution for N>1",
+          "location": "test/validate-adapters-commissaire-unit-id.test.mjs",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/validate-adapters.js::multi-hit line reports one finding not one per invocation",
+      "title": "multi-hit line reports one finding not one per invocation",
+      "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "DoD phrasing is one finding per line whose content is a commissaire invocation, which the per-line boolean satisfies; the file still FAILs. No change needed.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "multi-hit line reports one finding not one per invocation",
+          "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

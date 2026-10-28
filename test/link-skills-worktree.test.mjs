@@ -115,7 +115,7 @@ function doctorDefault(root, home) {
 function mkFencedRoot() {
   const root = mkdtempSync(join(tmpdir(), "ls-fence-"));
   mkdirSync(join(root, ".claude"), { recursive: true });
-  writeFileSync(join(root, ".claude", "settings.json"), JSON.stringify({
+  writeFileSync(join(root, ".claude", "settings.local.json"), JSON.stringify({
     hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "faff merge-fence --hook" }] }] },
   }, null, 2) + "\n");
   return root;
@@ -710,6 +710,15 @@ test("FAFF-675: DoctorJson is a total projection of DoctorState — every axis i
 
     assert.equal(json.plugin_root, state.pluginRoot);
     assert.equal(json.merge_fence, state.fenceOk);
+    // FAFF-1295 — the three hook-settings fields mirror their DoctorState keys.
+    assert.equal(json.merge_fence_status, state.fenceStatus);
+    assert.equal(json.merge_fence, json.merge_fence_status === "present");
+    assert.equal(json.hook_advisories_active, state.hookAdvisoriesActive);
+    const hsFile = (f) => ({ path: f.path, state: f.state, error: f.error, faff_hooks: f.faff_hooks });
+    assert.deepEqual(json.hook_settings, {
+      shared: hsFile(state.hookSettings.shared), personal: hsFile(state.hookSettings.personal), in_both: state.hookSettings.in_both,
+    });
+    assert.equal(json.hook_settings.personal.state, "ok");
     assert.equal(json.bin_faff, state.binFaff);
     assert.equal(json.emit_check, state.emitCheckActive ? "active" : "skipped"); // FAFF-1172
     assert.deepEqual(json.stale_emits, state.staleEmits.map((p) => ({ source: p.source, emit: p.emit }))); // FAFF-1172
@@ -737,6 +746,8 @@ test("FAFF-675: DoctorJson is a total projection of DoctorState — every axis i
       "scanSet", "scans", "collapseNotices", "unionSize", "emptyUnion",
       "copies", "dangling", "intoWorktree", "expected",
       "binFaff", "fenceOk", "pluginRoot", "anyMissingHere",
+      "hookSettings", "fenceStatus", "hookAdvisoriesActive", // FAFF-1295 — merge_fence_status / hook_settings / hook_advisories_active above
+      "anyInvalidSettings", // FAFF-1295 — folded into exit; reflected via hook_settings.*.state
       "emitCheckActive", "staleEmits", // FAFF-1172 — reflected as emit_check / stale_emits above
       "exit",
     ]);

@@ -25,6 +25,8 @@ const HOLD_RECORD = "hold.json";
 const PREP_HOLD = "spec-review-hold.json";
 const LOCK_FILE = ".lock";
 const CARRIED_DIRS = ["review-rounds", "build-review"];
+const JUDGE_LEDGER = path.join("build-review", "judge", "ledger.json");
+const STAGES = ["dialogue", "judge"];
 const LEGACY_RECORD = Object.freeze({ cause: "review-outage", legacy: true });
 
 const EXIT = { ok: 0, refused: 1, fault: 2, noStore: 3, busy: 4 };
@@ -163,14 +165,24 @@ function holdRecordProblem(rec, issue) {
   if (!HOLD_CAUSES.includes(rec.cause)) return `cause ${JSON.stringify(rec.cause)} is not a hold cause`;
   if (typeof rec.stashed_at !== "string") return "stashed_at is not a string";
   if (!Array.isArray(rec.carried) || !rec.carried.every((p) => typeof p === "string")) return "carried is not a list of paths";
+  // A stage lives inside the dialogue object. One outside it would restore as a legacy dialogue hold
+  // and skip the judge-ledger proof.
+  if (rec.stage !== undefined) return "stage is outside the dialogue object";
   if (rec.dialogue !== undefined) {
     const d = rec.dialogue;
     if (!d || typeof d !== "object") return "dialogue is not an object";
     if (!isCount(d.hold_count) || !isCount(d.next_round, 2) || !isCount(d.fix_rounds_used) || !isCount(d.rebuttal_rounds_used)) {
       return "dialogue counters are out of shape";
     }
+    if (d.stage !== undefined && !STAGES.includes(d.stage)) return `dialogue stage ${JSON.stringify(d.stage)} is not dialogue or judge`;
   }
   return null;
+}
+
+// "judge" exactly when the judge ledger is a regular file (a directory or symlink reads as dialogue).
+function stageOf(issueDir) {
+  const st = lstatOrNull(path.join(issueDir, JUDGE_LEDGER));
+  return st && st.isFile() ? "judge" : "dialogue";
 }
 
 // readHoldRecord(storeDir, issue) -> record | null (absent); throws a fault when unreadable or out of shape.
@@ -234,6 +246,7 @@ function stash({ runDir, issue, cause, fixRoundsUsed, rebuttalRoundsUsed, storeR
         next_round: n,
         fix_rounds_used: fixRoundsUsed,
         rebuttal_rounds_used: rebuttalRoundsUsed,
+        stage: stageOf(src),
       };
     }
     fs.writeFileSync(path.join(lock.stage, HOLD_RECORD), JSON.stringify(record, null, 2) + "\n");
@@ -277,6 +290,12 @@ function proveRounds(dir, rec, where) {
   }
 }
 
+function proveStage(dir, rec, where) {
+  if (rec.dialogue && rec.dialogue.stage === "judge" && stageOf(dir) !== "judge") {
+    refuse(`${where} judge-stage store without a judge ledger`);
+  }
+}
+
 function restore({ runDir, issue, storeRoot, afterStageCopy }) {
   const src = path.join(storeRoot, issue);
   const dst = path.join(runDir, issue);
@@ -289,6 +308,7 @@ function restore({ runDir, issue, storeRoot, afterStageCopy }) {
       rec = LEGACY_RECORD;
     }
     proveRounds(src, rec, "stashed");
+    proveStage(src, rec, "stashed");
     refuseOccupiedFolders(dst);
     const rstage = path.join(runDir, `.${issue}.restore`);
     fs.rmSync(rstage, { recursive: true, force: true });
@@ -297,6 +317,7 @@ function restore({ runDir, issue, storeRoot, afterStageCopy }) {
       copyCarriedSet(src, rstage);
       if (afterStageCopy) afterStageCopy(rstage);
       proveRounds(rstage, rec, "staged");
+      proveStage(rstage, rec, "staged");
       refuseDirectoryCollisions(rstage, dst);
       fs.mkdirSync(dst, { recursive: true });
       for (const name of fs.readdirSync(rstage).sort()) fs.renameSync(path.join(rstage, name), path.join(dst, name));
@@ -392,6 +413,7 @@ function resumeStoreSelftest() {
     const first = attempt(() => stash(base));
     ok("dialogue stash writes next_round 3 and hold_count 1", first.code === EXIT.ok && first.record.dialogue.next_round === 3 && first.record.dialogue.hold_count === 1);
     ok("symlinks are skipped", !first.record.carried.includes("linked.json"));
+    ok("a stash that finds the judge ledger records stage judge", first.record.dialogue.stage === "judge");
 
     const fresh = path.join(tmp, "fresh");
     const back = attempt(() => restore({ runDir: fresh, issue: "FAFF-9", storeRoot }));

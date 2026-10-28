@@ -34,6 +34,7 @@ This design fixes the following technical direction:
 - The current record system remains canonical through Phase 0.
 - A generic record envelope begins only for a selected Phase 2A slice.
 - No run is canonical in both the current and generic record systems.
+- Canonicality is read per record kind, not per run (ADDENDUM-1 decision 2, taken 2026-10-23). `schema:2` and `schema:3` records share one `declared-effects.jsonl` chain. A protected effect that carries a valid Commissaire grant (today a merge or a PR create) is canonical in `schema:3`, and its `schema:2` observe is not written. Every other effect kind stays canonical in `schema:2`. No single record is canonical in both.
 - A coordinator, service, public pack SDK, package split, or canonical interface rename remains conditional on the applicable V5 gate.
 
 # Part I: clean end-state architecture

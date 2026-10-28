@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "run_id": "run-20261026-031227-fly-l3",
+  "level": "L3",
+  "admitted": [
+    "FAFF-1385",
+    "FAFF-1374",
+    "FAFF-1363",
+    "FAFF-1271",
+    "FAFF-1016",
+    "FAFF-1309",
+    "FAFF-1364"
+  ],
+  "outcomes": {
+    "FAFF-1145": "parked",
+    "FAFF-1037": "parked",
+    "FAFF-1361": "routed-out",
+    "FAFF-1374": "shipped",
+    "FAFF-1016": "shipped",
+    "FAFF-1271": "shipped"
+  },
+  "base_sha": "61e84b136bb647cc82d6f868e475a39bb000e162",
+  "base_sha_required": true,
+  "owner": {
+    "status": "running",
+    "session_id": "run-20261026-031227-fly-l3",
+    "pid": 611,
+    "started_at": "2026-10-26T03:15:25.733Z",
+    "last_heartbeat": "2026-10-26T03:15:25.733Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "budget": {
+    "measure_session_id": "dcc7f361-d7e4-44ef-905f-5541361b2a5b",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 90,
+        "output": 53145,
+        "cache_write_5m": 0,
+        "cache_write_1h": 426697,
+        "cache_read": 8422446
+      }
+    },
+    "tokens_at_start": 8902378,
+    "tokens_at_last_event": {
+      "input": 736,
+      "output": 707316,
+      "cache_write_5m": 0,
+      "cache_write_1h": 1517755,
+      "cache_read": 138425541
+    }
+  },
+  "outcome_details": {
+    "FAFF-1361": {
+      "disposition": "inadmissible",
+      "reason": "R1.scenarios: 0 born-verifiable (### Scenarios h3 in sec.3 collides with ## 5. Scenarios h2); R3 no runnable check; R4 heading-level mismatch",
+      "fix": "relevel/rename the colliding ### Scenarios heading so the matcher resolves to ## 5. Scenarios"
+    },
+    "FAFF-1374": {
+      "pr": 1126,
+      "head_sha": "aa10d1a28cfb1a7178880babca9599d9d4cfe5eb",
+      "review": "pass",
+      "ac": "8/8",
+      "ci": "green"
+    },
+    "FAFF-1016": {
+      "pr": 1127,
+      "head_sha": "aec6569f6d378b74b457e11d698f06defd248d19",
+      "review": "pass (4 findings: 2 fixed, 2 accepted-risk)",
+      "ac": "21/21",
+      "ci": "green (rebased)"
+    },
+    "FAFF-1271": {
+      "pr": 1129,
+      "head_sha": "620f2434c190569021089ba09d48241447b102c4",
+      "review": "pass (6 findings dispositioned)",
+      "ci": "green (rebased)"
+    }
+  },
+  "evidence_persisted": [
+    {
+      "issue": "FAFF-1374",
+      "ac_sha256": "19d591e7ad7d444c5bd50b596ed527159f87a6d5be6005469ce415757d08c822",
+      "review_verdict_sha256": "72957e05b6fdd3a4476a646b1a6b5998d1819416ca2f598c8466b4f724f35d19"
+    },
+    {
+      "issue": "FAFF-1016",
+      "ac_sha256": "e44529664b010c31ee3b21fa0f5d47f886ae37a545c29f8805228b9a7a86ab96",
+      "review_verdict_sha256": "0da1dfacc841bbe47798af23c81c17fc084bb764746ad7b908cb40c064da839f"
+    },
+    {
+      "issue": "FAFF-1271",
+      "ac_sha256": "837ebb2762324b94afec3f033bd0125b4e60ff6effbb7cbb21e599e9367ffe9d",
+      "review_verdict_sha256": "5e899410b644a8465a9b6faf154dfd1fb144106e9d319d3f2662ea03c353566f"
+    }
+  ],
+  "post_merge_verification_failures": [
+    {
+      "issue": "FAFF-1374",
+      "pr": 1126,
+      "merge_sha": "aa10d1a28cfb1a7178880babca9599d9d4cfe5eb",
+      "command": "node --import ./test/hermetic-env.mjs --test",
+      "note": "unrelated test (faff-1278) failed on local re-run under heavy CPU contention; GitHub CI on #1126 was green — likely load-induced flake, surfaced for human review"
+    },
+    {
+      "issue": "FAFF-1016",
+      "pr": 1127,
+      "merge_sha": "aec6569f6d378b74b457e11d698f06defd248d19",
+      "command": "node --import ./test/hermetic-env.mjs --test",
+      "note": "same unrelated test (faff-1278-governance-check-base-commit-leg) failed on local re-run as FAFF-1374 — deterministic sandbox-environmental failure, GitHub CI on #1127 was green; not a regression"
+    }
+  ],
+  "post_merge_verification_unverified": []
+}

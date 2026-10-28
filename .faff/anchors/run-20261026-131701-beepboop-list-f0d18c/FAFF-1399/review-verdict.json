@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff-graft/SKILL.md::hardcoded priority literals at two graft capture sites bypass the shared cli",
+      "title": "hardcoded priority literals at two graft capture sites bypass the shared CLI",
+      "location": "plugin/skills/faff-graft/SKILL.md",
+      "action": "shell faff discovered-scope-priority at both sites instead of inlining the answer",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Valid: the CI-triage and post-merge-verification bullets inlined priority:\"high\" instead of pointing at the shared lookup, reintroducing the drift the lookup exists to prevent. Reworded both to point at the capture procedure / shell the CLI rather than restating the answer; also had to rephrase once more to avoid an unrelated inline-enum-restatement lint false-positive (the literal token \"none\" coincided with the ci-triage contract's unrelated fault_domain_source enum within the linter's 2-line window).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "hardcoded priority literals at two graft capture sites bypass the shared CLI",
+          "location": "plugin/skills/faff-graft/SKILL.md",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/faff-1399-discovered-scope-priority.test.mjs::vacuous static-text test assertion for tidy's absent-priority fallback",
+      "title": "vacuous static-text test assertion for tidy's absent-priority fallback",
+      "location": "test/faff-1399-discovered-scope-priority.test.mjs",
+      "action": "match tidy's actual new wiring text instead of pre-existing, unrelated text",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Valid: the assertion matched /chain-gap/i, text that predates this PR and can never fail from a regression. Replaced with a dedicated test asserting tidy's actual new --source chain-gap call and its own CLI-failure-at-filing-time fallback line (tidy computes priority fresh per chain-gap item and never reads a stored absent value, so the beep-boop/graft-style absent-priority assertion doesn't apply to it structurally).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "vacuous static-text test assertion for tidy's absent-priority fallback",
+          "location": "test/faff-1399-discovered-scope-priority.test.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    }
+  ]
+}

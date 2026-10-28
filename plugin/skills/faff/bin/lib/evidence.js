@@ -23,6 +23,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { parseArgs, usageError } = require("./argv");
 const { validateAgainstSchema, validateAgainstSchemaDetailed } = require("./contract-engine");
+const events = require("./events"); // FAFF-1347: live module ref so classifyRow is honoured via module.exports (test-double substitution)
 const { appendEventRecord, eventViolations, splitPhysicalLines } = require("./events");
 const { declaredEffectViolations } = require("./effects");
 const { HERE, findRoot, mainWorktreeRoot } = require("./shared-infra");
@@ -32,6 +33,9 @@ const { EvidenceRefusal, collateReviewRounds, parseSpecReviewComment, resolvedRo
 const { redactKnownSecrets, resolveKnownSecretValues } = require("./redact");
 const { assignFindingIds, normaliseFindingPath, normaliseFindingTitle } = require("./finding-id");
 const { parseAcId } = require("./ac-id");
+const { resolveFaffVersion, stampFaffVersion } = require("./faff-version");
+const { readLeafNoFollow } = require("./leaf-read");
+const crypto = require("node:crypto");
 
 const SPEC_VERSION = "v0.3";
 const BUNDLE_DIR = path.resolve(HERE, "..", "contracts", "evidence-v0.3");
@@ -39,7 +43,7 @@ const BUNDLE_DIR = path.resolve(HERE, "..", "contracts", "evidence-v0.3");
 const EVIDENCE_SPEC = { flags: {
   "--json": { arity: 0 }, "--selftest": { arity: 0 }, "--require-evidence-schema": { arity: 0 },
   "--run-dir": { arity: 1 }, "--issue": { arity: 1 }, "--terminal-only": { arity: 0 },
-  "--candidate-schemas": { arity: 1 }, "--park": { arity: 1 }, "--judge-admitted": { arity: 0 }, "--prior-dir": { arity: 1 },
+  "--candidate-schemas": { arity: 1 }, "--park": { arity: 1 }, "--judge-admitted": { arity: 0 }, "--prior-dir": { arity: 1 }, "--against-ledger": { arity: 0 },
 }, positionals: { min: 0, max: null, name: "argument(s)" } };
 
 // Per-line validators for the JSONL files the schema subset cannot fully express. A jsonl
@@ -148,6 +152,128 @@ function validateJsonlFile(file, schema, lineValidator) {
   return tornTail ? { violations, torn_tail: true } : { violations };
 }
 
+// FAFF-1347: scoped validation of an anchor's events.jsonl. Validation stays WHOLE-FILE in that
+// every line is still parsed and classified; what changes is which classifications contribute
+// GATING violations. The chain and witness are untouched — only the conformance verdict is scoped
+// to the anchored issue. Returns the validateJsonlFile shape extended with the scope block
+// (scope, scope_refusals, and — when narrowing applied — the three residue counts +
+// unattributable_gating). A refusal applies no narrowing and judges whole-file exactly as today.
+function readAnchorLedgerObj(anchorDir) {
+  try { return JSON.parse(fs.readFileSync(path.join(anchorDir, "run-ledger.json"), "utf8")); }
+  catch { return null; }
+}
+
+function validateAnchorEventsScoped(file, schema, lineValidator, anchorDir, profile) {
+  const bytes = readBytes(file);
+  if (!bytes) return { violations: ["unreadable file"], scope: null, scope_refusals: [] };
+  const { lines, lastHasNewline } = splitPhysicalLines(bytes);
+  const parsedLines = lines.map((buf, index) => ({ n: index + 1, parsed: parseJson(buf), isLast: index === lines.length - 1 }));
+  const records = parsedLines.filter((x) => x.parsed.ok && isObject(x.parsed.value)).map((x) => x.parsed.value);
+  const scopeRes = events.resolveAnchorScope(anchorDir, records, profile); // the ONE shared scope resolver
+  const violations = [];
+  let tornTail = false;
+  const perLineValidate = (value, n) => {
+    const found = [...validateAgainstSchema(value, schema).map(tidy), ...lineValidator(value)];
+    for (const message of new Set(found)) violations.push(`line ${n}: ${message}`);
+  };
+  // Unparseable line: a gating violation in BOTH verdicts (it carries no type/issue, so it cannot be
+  // classified out; a torn FINAL line is tolerated exactly as validateJsonlFile does).
+  const handleUnparsed = ({ parsed, n, isLast }) => {
+    if (parsed.ok && isObject(parsed.value)) return false;
+    if (!parsed.ok) { if (isLast && !lastHasNewline) tornTail = true; else violations.push(`line ${n}: not valid JSON`); return true; }
+    violations.push(`line ${n}: not a JSON object`); return true;
+  };
+
+  if (scopeRes.accepted === null) {
+    // No narrowing — whole-file judgement, every row gating, exactly as today.
+    for (const pl of parsedLines) { if (handleUnparsed(pl)) continue; perLineValidate(pl.parsed.value, pl.n); }
+    const out = { violations, scope: null, scope_refusals: scopeRes.refusals };
+    return tornTail ? { ...out, torn_tail: true } : out;
+  }
+
+  const admitted = events.admittedIssueSet(readAnchorLedgerObj(anchorDir));
+  const singleIssue = events.ledgerIsBound(anchorDir, records) && admitted.size === 1;
+  let out_of_scope_rows = 0, unadmitted_issue_rows = 0, unattributable_rows = 0;
+  for (const pl of parsedLines) {
+    if (handleUnparsed(pl)) continue;
+    const scope = events.classifyRow(pl.parsed.value, scopeRes.accepted, admitted, profile); // the ONE shared predicate
+    if (scope === events.ROW_SCOPE.OWN || scope === events.ROW_SCOPE.RUN) {
+      perLineValidate(pl.parsed.value, pl.n);
+    } else if (scope === events.ROW_SCOPE.UNADMITTED_ISSUE) {
+      unadmitted_issue_rows++; perLineValidate(pl.parsed.value, pl.n); // gating like an OWN row, bound or not
+    } else if (scope === events.ROW_SCOPE.OTHER_ISSUE) {
+      out_of_scope_rows++; // another admitted issue's row — judged by ITS anchor, no violations here
+    } else { // UNATTRIBUTABLE
+      unattributable_rows++;
+      if (singleIssue) perLineValidate(pl.parsed.value, pl.n); // gates only when the bound ledger names one issue
+    }
+  }
+  const out = {
+    violations, scope: scopeRes.accepted, scope_refusals: [],
+    out_of_scope_rows, unadmitted_issue_rows, unattributable_rows, unattributable_gating: singleIssue,
+  };
+  return tornTail ? { ...out, torn_tail: true } : out;
+}
+
+// FAFF-1347: FAFF-1353 merged to main at 2026-10-20T17:51:18Z. A run whose first run-start row
+// predates that AND whose ledger admits more than one issue carries honest unattributable rows
+// written by the pre-FAFF-1353 writer; the run-dir leg reports those as advisory rather than
+// gating (the legacy cutoff — the same rule MIXED_CUTOFF applies in the committed tracked-anchor
+// test). One committed value; moving it is a reviewed change. It reads a writer-authored ts
+// (best-effort — honest clock skew near the cutoff can grant or deny relief; the cost is a wrong
+// signal on a local, untrusted leg, never a CI bypass).
+const FAFF_1353_MERGE_CUTOFF_MS = Date.parse("2026-10-20T17:51:18Z");
+
+// The run-dir whole-file evidence_schema judgement (spec §4 PROCEDURE run_dir_evidence_schema_leg).
+// Judges run_dir/events.jsonl WHOLE-FILE: every row parsed, every row gating, no scope narrowing,
+// through the SAME classifier (events.classifyRow, narrowing off: acceptedIssue=null) — EXCEPT the
+// legacy cutoff, under which an issue-scoped-type row with absent/null/empty issue is advisory, not
+// gating. Returns { pass, gating:[{line,type,issue}], advisory:[{line,type,issue}], legacy_relief,
+// schema_unavailable?, where? }. The CALLER (governance-check) formats the leg + sanitises detail.
+function evaluateRunDirEventsSchema(runDir, { profile = activeProfile() } = {}) {
+  let schema;
+  try {
+    const loaded = bundleFor(BUNDLE_DIR);
+    const entry = loaded.manifest.files["events.jsonl"];
+    schema = entry && loaded.schemas.get(entry.schema);
+    if (!schema) return { pass: false, gating: [], advisory: [], legacy_relief: false, schema_unavailable: true, where: "events.jsonl" };
+  } catch (e) {
+    if (e instanceof SchemaUnavailable) return { pass: false, gating: [], advisory: [], legacy_relief: false, schema_unavailable: true, where: e.where };
+    throw e;
+  }
+  const bytes = readBytes(path.join(runDir, "events.jsonl"));
+  if (!bytes) return { pass: true, gating: [], advisory: [], legacy_relief: false, unreadable: true };
+  const { lines, lastHasNewline } = splitPhysicalLines(bytes);
+  const parsedLines = lines.map((buf, index) => ({ n: index + 1, parsed: parseJson(buf), isLast: index === lines.length - 1 }));
+  const records = parsedLines.filter((x) => x.parsed.ok && isObject(x.parsed.value)).map((x) => x.parsed.value);
+  const ledger = readAnchorLedgerObj(runDir);
+  const admitted = events.admittedIssueSet(ledger);
+  // Legacy cutoff: the run's first run-start row (lowest seq) predates FAFF-1353's merge AND the
+  // ledger admits more than one issue. No run-start row / unparseable ts / unreadable ledger → no relief.
+  let firstRunStart = null;
+  for (const r of records) {
+    if (r && r.type === "run-start" && Number.isInteger(r.seq)) {
+      if (firstRunStart === null || r.seq < firstRunStart.seq) firstRunStart = r;
+    }
+  }
+  const startMs = firstRunStart && typeof firstRunStart.ts === "string" ? Date.parse(firstRunStart.ts) : NaN;
+  const legacy_relief = !Number.isNaN(startMs) && startMs < FAFF_1353_MERGE_CUTOFF_MS && admitted.size > 1;
+  const gating = [], advisory = [];
+  for (const { n, parsed, isLast } of parsedLines) {
+    if (!parsed.ok) { if (isLast && !lastHasNewline) continue; gating.push({ line: n, type: null, issue: null }); continue; }
+    if (!isObject(parsed.value)) { gating.push({ line: n, type: null, issue: null }); continue; }
+    const value = parsed.value;
+    const found = [...validateAgainstSchema(value, schema).map(tidy), ...eventViolations(value, true)];
+    if (found.length === 0) continue;
+    const scope = events.classifyRow(value, null, admitted, profile); // narrowing off
+    const issue = value.issue;
+    const emptyIssue = issue === undefined || issue === null || issue === "";
+    const relieved = legacy_relief && scope === events.ROW_SCOPE.UNATTRIBUTABLE && emptyIssue;
+    (relieved ? advisory : gating).push({ line: n, type: typeof value.type === "string" ? value.type : null, issue: emptyIssue ? "" : issue });
+  }
+  return { pass: gating.length === 0, gating, advisory, legacy_relief };
+}
+
 // ---------------------------------------------------------------------------
 // Shared document validator (FAFF-1258). The bundled manifest and schemas load once per
 // process; a load fault is cached too, so the in-lock callers never retry file I/O.
@@ -245,9 +371,15 @@ function eventDataKeys(type) {
   return data && data.properties ? Object.keys(data.properties) : null;
 }
 
+// FAFF-1395: every anchored writer stamps the release that wrote the document as its second key,
+// straight after schema_version ("unknown" when unresolved, never omitted).
+const withFaffVersion = (doc) => stampFaffVersion(doc, resolveFaffVersion().version);
+
+// FAFF-1395: faff_version is writer provenance restamped on every write, so it is stripped with
+// schema_version and a restamp never reads as a changed path of its own.
 const stripVersion = (doc) => {
   if (!isObject(doc)) return doc;
-  const { schema_version: _ignored, ...rest } = doc;
+  const { schema_version: _ignored, faff_version: _stamp, ...rest } = doc;
   return rest;
 };
 
@@ -303,7 +435,7 @@ function introducedViolations(anchorPath, before, after, violations, rawBefore, 
 const ANNOTATION_KEYWORDS = new Set(["description", "title", "$comment", "examples"]);
 const SUBSET_KEYWORDS = new Set([
   "$schema", "$id", "type", "required", "properties", "enum", "additionalProperties", "items",
-  "minItems", "pattern", "discriminator",
+  "minItems", "maxItems", "pattern", "discriminator",
 ]);
 
 const deepEqual = (a, b) => {
@@ -351,7 +483,8 @@ function walkSchemaChange(base, head, segs, reasons) {
   }
   const keys = new Set([...Object.keys(base), ...Object.keys(head)].filter((k) => !ANNOTATION_KEYWORDS.has(k)));
   for (const key of keys) {
-    if (!(key in head)) { reasons.push(`${at}: keyword "${key}" removed`); continue; }
+    // maxItems is a loosening bound: removing it, or raising it, accepts a superset of the base documents.
+    if (!(key in head)) { if (key !== "maxItems") reasons.push(`${at}: keyword "${key}" removed`); continue; }
     if (!(key in base)) { reasons.push(`${at}: keyword "${key}" added`); continue; }
     const b = base[key];
     const h = head[key];
@@ -366,6 +499,8 @@ function walkSchemaChange(base, head, segs, reasons) {
       }
     } else if ((key === "items" || key === "additionalProperties") && isObject(b) && isObject(h)) {
       walkSchemaChange(b, h, [...segs, key], reasons);
+    } else if (key === "maxItems" && typeof b === "number" && typeof h === "number") {
+      if (h < b) reasons.push(`${pointerOf([...segs, key])}: ${key} changed`);
     } else if (!deepEqual(b, h)) {
       reasons.push(`${pointerOf([...segs, key])}: ${key} changed`);
     }
@@ -452,10 +587,24 @@ function validateAnchorDir(anchorDir, opts = {}) {
     if (!entry) return { path: rel, status: "unschemaed", violations: ["no manifest entry for this file"] };
     const file = path.join(anchorDir, rel);
     const schema = schemas.get(entry.schema);
-    const result = entry.format === "jsonl" ? validateJsonlFile(file, schema, LINE_VALIDATORS[rel]) : validateJsonFile(file, schema);
+    // FAFF-1347: events.jsonl inside an anchor dir is judged SCOPED to the anchored issue (and to
+    // nothing else — every other manifest file is per-issue by construction, judged exactly as today).
+    const result = rel === "events.jsonl"
+      ? validateAnchorEventsScoped(file, schema, LINE_VALIDATORS[rel], anchorDir, activeProfile())
+      : entry.format === "jsonl" ? validateJsonlFile(file, schema, LINE_VALIDATORS[rel]) : validateJsonFile(file, schema);
     const out = { path: rel, status: result.violations.length === 0 ? "ok" : "fail", violations: result.violations };
     if (withCandidate) out.schema_source = sourceOf.get(entry.schema);
     if (result.torn_tail) out.torn_tail = true;
+    if (rel === "events.jsonl") {
+      out.scope = result.scope;
+      out.scope_refusals = result.scope_refusals;
+      if (result.scope !== null) {
+        out.out_of_scope_rows = result.out_of_scope_rows;
+        out.unadmitted_issue_rows = result.unadmitted_issue_rows;
+        out.unattributable_rows = result.unattributable_rows;
+        out.unattributable_gating = result.unattributable_gating;
+      }
+    }
     return out;
   });
   return report(entries.every((e) => e.status === "ok") ? "pass" : "fail", entries);
@@ -507,7 +656,24 @@ function checkAnchorDir(anchorDir, opts = {}) {
   const files = report.files
     .filter((f) => f.status !== "ok")
     .map((f) => ({ path: sanitiseDisplay(f.path), status: f.status, violations: Array.isArray(f.violations) ? f.violations.length : 0 }));
-  return { status: report.status, files, reason: null, schema_unavailable: false };
+  // FAFF-1347: the per-file scope block survives the fold for the events.jsonl entry WHATEVER its
+  // status (including ok — a correctly-narrowed passing anchor produces exactly that), as typed
+  // values + closed-set literals only. Violation text and exception messages are still dropped.
+  const eventsEntry = report.files.find((f) => f.path === "events.jsonl");
+  let events_scope = null;
+  if (eventsEntry && "scope" in eventsEntry) {
+    events_scope = {
+      scope: eventsEntry.scope === null ? null : sanitiseDisplay(eventsEntry.scope),
+      scope_refusals: Array.isArray(eventsEntry.scope_refusals) ? eventsEntry.scope_refusals.map(sanitiseDisplay) : [],
+    };
+    if (eventsEntry.scope !== null) {
+      events_scope.out_of_scope_rows = eventsEntry.out_of_scope_rows;
+      events_scope.unadmitted_issue_rows = eventsEntry.unadmitted_issue_rows;
+      events_scope.unattributable_rows = eventsEntry.unattributable_rows;
+      events_scope.unattributable_gating = eventsEntry.unattributable_gating;
+    }
+  }
+  return { status: report.status, files, reason: null, schema_unavailable: false, events_scope };
 }
 
 // The file paths the bundled manifest names; throws SchemaUnavailable when the manifest cannot be used.
@@ -585,7 +751,7 @@ const nullable = (v) => (typeof v === "string" ? v : null);
 // anchoredSpecReview(collated) -> the v1 anchored document: every documented key present, null when
 // absent, unknown keys dropped, keys in schema order.
 function anchoredSpecReview(collated) {
-  return {
+  return withFaffVersion({
     schema_version: 1,
     verdict: collated.verdict,
     final_verdict: collated.final_verdict,
@@ -604,7 +770,7 @@ function anchoredSpecReview(collated) {
       last_round: o.last_round,
       occurrences: o.occurrences.map((occ) => ({ round: occ.round, severity: occ.severity, claim: nullable(occ.claim), spec_anchor: nullable(occ.spec_anchor) })),
     })),
-  };
+  });
 }
 
 function specReviewWriterViolations(doc) {
@@ -662,7 +828,7 @@ const orNull = (v) => (v === undefined ? null : v);
 // `criteria` present only when the input carries it; each criterion carries `ac_id` and
 // `verifications`, null when the input omits them.
 function anchoredAcChecklist(input) {
-  const doc = { schema_version: 1, all_verified: input.all_verified };
+  const doc = withFaffVersion({ schema_version: 1, all_verified: input.all_verified });
   if ("criteria" in input) {
     doc.criteria = Array.isArray(input.criteria)
       ? input.criteria.map((c) => (isObject(c) ? { ...pick(c, ["ac", "verified", "passed"]), ac_id: orNull(c.ac_id), verifications: orNull(c.verifications) } : c))
@@ -765,7 +931,7 @@ const TERMINAL_ONLY_WRITER = "faff evidence write review-verdict --terminal-only
 // recorded: one round, every finding raised and settled in it, every documented key present.
 function anchoredTerminalReview(block) {
   const findings = Array.isArray(block.findings) ? block.findings : block.findings === undefined ? [] : block.findings;
-  const doc = { schema_version: 1, signal: block.signal };
+  const doc = withFaffVersion({ schema_version: 1, signal: block.signal });
   if (block.adversarial_outcome !== undefined) doc.adversarial_outcome = block.adversarial_outcome;
   doc.rounds_total = 1;
   doc.round_history = "terminal-only";
@@ -1004,7 +1170,7 @@ function recordReviewRound(runDir, issue, text, secrets, priorDir) {
     return roundFinding(f, at, carried, warnings);
   });
   const adversarialOutcome = enumOrNull(block.adversarial_outcome, ["chain-outage-skipped"], "adversarial_outcome", warnings);
-  const doc = { schema_version: 1, round: n, signal: block.signal, adversarial_outcome: adversarialOutcome, findings };
+  const doc = withFaffVersion({ schema_version: 1, round: n, signal: block.signal, adversarial_outcome: adversarialOutcome, findings });
   const ids = resolvedRoundIds([...existing, doc]).pop();
   findings.forEach((f, i) => { f.finding_id = ids[i]; });
   const violations = validateAgainstSchema(doc, roundSchema()).map(tidy);
@@ -1061,7 +1227,7 @@ function writeCollatedReviewVerdict(runDir, issue, secrets, mode) {
   } else {
     signal = terminal.signal;
   }
-  const doc = { schema_version: 1, signal };
+  const doc = withFaffVersion({ schema_version: 1, signal });
   if (terminal !== null && terminal.adversarial_outcome === "chain-outage-skipped") doc.adversarial_outcome = terminal.adversarial_outcome;
   if (mode.judgeAdmitted) doc.admitted_by = "build-judge";
   doc.rounds_total = rounds.length;
@@ -1162,6 +1328,181 @@ function cmdEvidenceRender(values, name) {
   }
 }
 
+// --- return by digest (FAFF-1397) -------------------------------------------
+//
+// `faff evidence return` (lane side) prints the per-file leaf sha256 of the two per-issue evidence files;
+// `faff evidence verify-return` (dispatcher side) re-hashes them and compares. Both are read-only: they
+// write no file, so they add no member to the Class A writer roster and can be re-run before the merge
+// locus. The hash is a leaf sha256 of the file's bytes; nothing here compares file bodies.
+
+const EVIDENCE_FILES = [
+  { key: "ac_checklist", name: "ac-checklist.json", shaKey: "ac_sha256" },
+  { key: "review_verdict", name: "review-verdict.json", shaKey: "review_verdict_sha256" },
+];
+const HEX64_RE = /^[0-9a-f]{64}$/;
+const NO_DIGEST = { present: false, sha256: null };
+
+// One no-follow descriptor read per evidence file (FAFF-1400): presence, regular-ness and the bytes all come
+// from the same open, so a swap after any earlier look cannot redirect the hash. Returns
+// { kind, sha256 } where sha256 is the leaf sha256 of the bytes (the digest `faff integrity-digest hash`
+// reports) iff kind is "regular". In-process, because the governance region may not require the
+// factory-region integrity-digest module. A read fault is exit 2, never a verdict.
+function readEvidenceLeaf(abs) {
+  let leaf;
+  try { leaf = readLeafNoFollow(abs); } catch (e) { throw new WriterFault(`cannot hash ${path.basename(abs)}: ${e.code || e.message}`); }
+  return { kind: leaf.kind, sha256: leaf.kind === "regular" ? crypto.createHash("sha256").update(leaf.bytes).digest("hex") : null };
+}
+
+// Leaf sha256 of a file that must be regular (the selftest fixtures).
+function hashRegularFile(abs) {
+  const leaf = readEvidenceLeaf(abs);
+  if (leaf.kind !== "regular") throw new WriterFault(`${path.basename(abs)} is not a regular file`);
+  return leaf.sha256;
+}
+
+function evidenceReturn(runDir, issue) {
+  const issueDir = guardWriterPaths(runDir, issue);
+  const out = { issue };
+  for (const { key, name } of EVIDENCE_FILES) {
+    const leaf = readEvidenceLeaf(path.join(issueDir, name));
+    if (leaf.kind === "absent") { out[key] = { ...NO_DIGEST }; continue; }
+    if (leaf.kind !== "regular") throw new WriterFault(`${name} is not a regular file`);
+    out[key] = { present: true, sha256: leaf.sha256 };
+  }
+  return out;
+}
+
+const hasExactKeys = (o, keys) => isObject(o) && Object.keys(o).length === keys.length && keys.every((k) => Object.hasOwn(o, k));
+
+function wellFormedReturn(p, issue) {
+  if (!hasExactKeys(p, ["issue", "ac_checklist", "review_verdict"]) || p.issue !== issue) return false;
+  return EVIDENCE_FILES.every(({ key }) => {
+    const d = p[key];
+    if (!hasExactKeys(d, ["present", "sha256"]) || typeof d.present !== "boolean") return false;
+    return d.present ? typeof d.sha256 === "string" && HEX64_RE.test(d.sha256) : d.sha256 === null;
+  });
+}
+
+// The claim to verify against: { noClaim, returned } where returned maps each key to an EvidenceDigest.
+function claimFromLedger(issueDir, issue) {
+  const ledgerPath = path.join(path.dirname(issueDir), "run-ledger.json");
+  let ledger;
+  try { ledger = JSON.parse(fs.readFileSync(ledgerPath, "utf8")); } catch (e) {
+    throw new WriterFault(`run-ledger.json is missing or does not parse (${e.code || "parse error"})`);
+  }
+  if (!isObject(ledger) || (ledger.evidence_persisted !== undefined && !Array.isArray(ledger.evidence_persisted))) throw new WriterFault("run-ledger.json is not a ledger object");
+  const entry = [...(ledger.evidence_persisted || [])].reverse().find((e) => isObject(e) && e.issue === issue);
+  if (!entry) return { noClaim: true, returned: { ac_checklist: { ...NO_DIGEST }, review_verdict: { ...NO_DIGEST } } };
+  const returned = {};
+  for (const { key, shaKey } of EVIDENCE_FILES) {
+    if (entry[shaKey] === undefined) { returned[key] = { ...NO_DIGEST }; continue; }
+    if (typeof entry[shaKey] !== "string" || !HEX64_RE.test(entry[shaKey])) throw new WriterFault(`run-ledger.json evidence_persisted entry for ${issue} has a malformed ${shaKey}`);
+    returned[key] = { present: true, sha256: entry[shaKey] };
+  }
+  return { noClaim: false, returned };
+}
+
+function claimFromStdin(text, issue) {
+  let parsed;
+  try { parsed = JSON.parse(text); } catch { return { malformed: true }; }
+  if (parsed === null) return { noClaim: true, returned: { ac_checklist: { ...NO_DIGEST }, review_verdict: { ...NO_DIGEST } } };
+  if (!wellFormedReturn(parsed, issue)) return { malformed: true };
+  return { noClaim: false, returned: parsed };
+}
+
+const RESULT_CAUSE = {
+  "presence-disagreement": "presence disagreement",
+  "hash-mismatch": "returned copy ≠ on-disk copy",
+  "not-regular-file": "on-disk copy is not a regular file",
+  "no-claim": "no digest returned for a file on disk",
+};
+
+function verifyReturn(issueDir, issue, claim) {
+  const base = { issue, files: [], evidence_persisted: null, park_cause: null, paths: [], tampered_paths: [] };
+  if (claim.malformed) {
+    return { verdict: "malformed", ...base, park_cause: `evidence-return malformed — ${issue}/EvidenceReturn (malformed return)`, paths: EVIDENCE_FILES.map((f) => `${issue}/${f.name}`) };
+  }
+  const files = [];
+  const entry = { issue };
+  for (const { key, name, shaKey } of EVIDENCE_FILES) {
+    const r = claim.returned[key];
+    const abs = path.join(issueDir, name);
+    const leaf = readEvidenceLeaf(abs);
+    const diskPresent = leaf.kind !== "absent";
+    const row = { file: name, returned_present: r.present, disk_present: diskPresent, returned_sha256: r.sha256, disk_sha256: null, result: null };
+    if (diskPresent && leaf.kind !== "regular") row.result = "not-regular-file";
+    else if (claim.noClaim && diskPresent) row.result = "no-claim";
+    else if (r.present !== diskPresent) row.result = "presence-disagreement";
+    else if (!diskPresent) row.result = "absent-both";
+    else {
+      row.disk_sha256 = leaf.sha256;
+      row.result = row.disk_sha256 === r.sha256 ? "match" : "hash-mismatch";
+      if (row.result === "match") entry[shaKey] = row.disk_sha256;
+    }
+    files.push(row);
+  }
+  const failing = files.filter((f) => f.result !== "match" && f.result !== "absent-both");
+  if (failing.length === 0) {
+    return { verdict: "agree", ...base, files, evidence_persisted: Object.keys(entry).length > 1 ? entry : null };
+  }
+  const first = failing[0];
+  const label = first.result === "no-claim" ? "missing" : "mismatch";
+  const rel = (f) => `${issue}/${f.file}`;
+  return {
+    verdict: "mismatch", ...base, files,
+    park_cause: `evidence-return ${label} — ${rel(first)} (${RESULT_CAUSE[first.result]})`,
+    paths: failing.map(rel),
+    tampered_paths: failing.filter((f) => f.result !== "no-claim").map(rel),
+  };
+}
+
+function evidenceVerbFail(label, code, message) {
+  process.stderr.write(`${label}: ${message}\n`);
+  return code;
+}
+
+// Flags that belong to other `faff evidence` verbs; the return-by-digest verbs refuse them like their siblings do.
+const FOREIGN_RETURN_FLAGS = ["--park", "--judge-admitted", "--terminal-only", "--prior-dir"];
+const foreignReturnFlag = (values) => FOREIGN_RETURN_FLAGS.find((f) => values[f] != null && values[f] !== false);
+
+function cmdEvidenceReturn(values) {
+  const label = "faff evidence return";
+  if (values["--run-dir"] == null || values["--issue"] == null) return evidenceVerbFail(label, 2, "--run-dir and --issue are required");
+  if (values["--against-ledger"]) return evidenceVerbFail(label, 2, "--against-ledger applies to verify-return only");
+  const foreign = foreignReturnFlag(values);
+  if (foreign) return evidenceVerbFail(label, 2, `${foreign} does not apply to evidence return`);
+  try {
+    process.stdout.write(JSON.stringify(evidenceReturn(values["--run-dir"], values["--issue"])) + "\n");
+    return 0;
+  } catch (e) {
+    if (e instanceof WriterFault) return evidenceVerbFail(label, 2, e.message);
+    throw e;
+  }
+}
+
+function cmdEvidenceVerifyReturn(values) {
+  const label = "faff evidence verify-return";
+  if (values["--run-dir"] == null || values["--issue"] == null) return evidenceVerbFail(label, 2, "--run-dir and --issue are required");
+  const foreign = foreignReturnFlag(values);
+  if (foreign) return evidenceVerbFail(label, 2, `${foreign} does not apply to evidence verify-return`);
+  try {
+    const issue = values["--issue"];
+    const issueDir = guardWriterPaths(values["--run-dir"], issue);
+    let claim;
+    if (values["--against-ledger"]) claim = claimFromLedger(issueDir, issue);
+    else {
+      if (process.stdin.isTTY) return evidenceVerbFail(label, 2, "expects the EvidenceReturn JSON (or null) on stdin; nothing was piped");
+      claim = claimFromStdin(readStdin(), issue);
+    }
+    const verdict = verifyReturn(issueDir, issue, claim);
+    process.stdout.write(JSON.stringify(verdict) + "\n");
+    return verdict.verdict === "agree" ? 0 : 1;
+  } catch (e) {
+    if (e instanceof WriterFault) return evidenceVerbFail(label, 2, e.message);
+    throw e;
+  }
+}
+
 // --- selftest ---------------------------------------------------------------
 
 function exampleSchemaName(file) {
@@ -1211,6 +1552,14 @@ function evidenceSelftest() {
     check("the ac-checklist writer refuses an empty criteria list", acChecklistWriterViolations(anchoredAcChecklist({ all_verified: true, criteria: [] }), "FAFF-1").length === 1);
     const review = anchoredTerminalReview({ signal: "pass", adversarial_outcome: "chain-outage-skipped", findings: [{ title: "x", location: "a.js:1", severity: "minor" }] });
     check("the terminal-only review writer's document passes its schema", validateAgainstSchema(review, schemaFor("review-verdict.json")).length === 0);
+    // FAFF-1397: return-by-digest agrees on untouched files and reports a hash mismatch after a change.
+    const issueDir = build("return", { "ac-checklist.json": "<unknown> -> &\n", "review-verdict.json": "{}\n" });
+    const digests = { issue: "ISSUE-1" };
+    for (const { key, name } of EVIDENCE_FILES) digests[key] = { present: true, sha256: hashRegularFile(path.join(issueDir, name)) };
+    check("return-by-digest agrees on untouched files", verifyReturn(issueDir, "ISSUE-1", claimFromStdin(JSON.stringify(digests), "ISSUE-1")).verdict === "agree");
+    fs.appendFileSync(path.join(issueDir, "ac-checklist.json"), "x");
+    const changed = verifyReturn(issueDir, "ISSUE-1", claimFromStdin(JSON.stringify(digests), "ISSUE-1"));
+    check("return-by-digest reports a hash mismatch after a change", changed.verdict === "mismatch" && changed.files[0].result === "hash-mismatch" && changed.tampered_paths.length === 1);
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }
@@ -1226,7 +1575,7 @@ function evidenceSelftest() {
 // flag exits 2 just as schema-unavailable does, so probing flags could not tell the two apart.
 const CAPABILITIES = { validate: ["require-evidence-schema", "candidate-schemas"] };
 
-const USAGE = "usage: faff evidence validate <anchor-dir> [--require-evidence-schema] [--json] [--candidate-schemas <dir>]\n       faff evidence capabilities --json\n       faff evidence write spec-review-verdict --run-dir <dir> --issue <id>   (comment or spec text on stdin)\n       faff evidence write ac-checklist --run-dir <dir> --issue <id>   ({all_verified, criteria?: [{ac, verified, passed, ac_id?, verifications?}]} on stdin)\n       faff evidence render ac-checklist --run-dir <dir> --issue <id>   (prints the PR-body Acceptance Criteria block)\n       faff evidence record-review-round --run-dir <dir> --issue <id> [--prior-dir <dir>]   (one review-verdict block on stdin)\n       faff evidence write review-verdict --run-dir <dir> --issue <id> [--park needs-human|unavailable | --judge-admitted]   (collates review-rounds/)\n       faff evidence write review-verdict --terminal-only --run-dir <dir> --issue <id>   (terminal review-verdict block on stdin; manual recovery)\n       faff evidence --selftest\n";
+const USAGE = "usage: faff evidence validate <anchor-dir> [--require-evidence-schema] [--json] [--candidate-schemas <dir>]\n       faff evidence capabilities --json\n       faff evidence write spec-review-verdict --run-dir <dir> --issue <id>   (comment or spec text on stdin)\n       faff evidence write ac-checklist --run-dir <dir> --issue <id>   ({all_verified, criteria?: [{ac, verified, passed, ac_id?, verifications?}]} on stdin)\n       faff evidence render ac-checklist --run-dir <dir> --issue <id>   (prints the PR-body Acceptance Criteria block)\n       faff evidence record-review-round --run-dir <dir> --issue <id> [--prior-dir <dir>]   (one review-verdict block on stdin)\n       faff evidence write review-verdict --run-dir <dir> --issue <id> [--park needs-human|unavailable | --judge-admitted]   (collates review-rounds/)\n       faff evidence write review-verdict --terminal-only --run-dir <dir> --issue <id>   (terminal review-verdict block on stdin; manual recovery)\n       faff evidence return --run-dir <dir> --issue <id>   (prints the EvidenceReturn digest line for a dispatched lane to return)\n       faff evidence verify-return [--against-ledger] --run-dir <dir> --issue <id>   (verifies the returned digests on stdin, or the ledger entry, against the files on disk)\n       faff evidence --selftest\n";
 
 function cmdEvidence(args) {
   const parsed = parseArgs(args, EVIDENCE_SPEC);
@@ -1241,6 +1590,8 @@ function cmdEvidence(args) {
     }
     if (sub === "write" && anchorDir && rest.length === 0) return cmdEvidenceWrite(values, anchorDir);
     if (sub === "record-review-round" && !anchorDir) return cmdRecordReviewRound(values);
+    if (sub === "return" && !anchorDir) return cmdEvidenceReturn(values);
+    if (sub === "verify-return" && !anchorDir) return cmdEvidenceVerifyReturn(values);
     if (sub === "render" && anchorDir && rest.length === 0) return cmdEvidenceRender(values, anchorDir);
     if (sub !== "validate" || !anchorDir || rest.length > 0) {
       process.stderr.write(USAGE);
@@ -1264,7 +1615,7 @@ function cmdEvidence(args) {
 
 module.exports = {
   CAPABILITIES, EVIDENCE_SPEC, SCHEMA_UNAVAILABLE_MARKER, SchemaUnavailable, WriterFault, acChecklistWriterViolations, announceSchemaUnavailable, anchoredAcChecklist,
-  anchoredTerminalReview, checkAnchorDir, classifySchemaChange, cmdEvidence, eventDataKeys, evidenceSelftest, exitCodeFor,
+  anchoredTerminalReview, checkAnchorDir, classifySchemaChange, cmdEvidence, eventDataKeys, evaluateRunDirEventsSchema, evidenceSelftest, exitCodeFor,
   recordReviewRound, writeCollatedReviewVerdict,
   guardWriterPaths, introducedViolations, logRecordChecker, manifestFileNames, noteSchemaUnavailable, preloadEvidenceSchemas,
   renderAcChecklist, resetEvidenceSchemaCache, sanitiseDisplay, validateAnchorDir, validateEvidenceDocument, writeAcChecklist, writeEvidenceFile,

@@ -18,7 +18,8 @@
         "properties": {
           "class": { "type": "string" },
           "verdict": { "type": "string" },
-          "evidence_present": { "type": "boolean" }
+          "evidence_present": { "type": "boolean" },
+          "reason_code": { "type": "string" }
         }
       }
     },

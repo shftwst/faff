@@ -31,6 +31,11 @@
 //     An on-disk ruling whose binding does not match its ledger entry is treated as missing (exit 2);
 //     an inline `entry.ruling` is trusted as written by the same --assemble run (FAFF-1248).
 //
+// A hold's resume re-enters --assemble with `--reopen-for-hold <hold_count>` (FAFF-1249): on a resumed ledger it
+// reopens, once per hold, the entries parked for a cause a later drain can fix (park_class "outage" or
+// "backend-chain"), resetting only the failed phase's attempt counter. Every dispatch-time park stamps a
+// structured `park_class`; an entry without one is never reopened.
+//
 // Degrade discipline mirrors spec-judge-evidence.js: an unreadable --dir is fail-SAFE (a
 // park-direction bundle, exit 0 — the loop parks, the judge is never consulted on unassemblable
 // evidence); a malformed round record is fail-LOUD (exit 2, plumbing breakage).
@@ -158,6 +163,18 @@ function resolveBuildJudgeCallBudget(cfg) {
 function realResolveBuildJudgeCallBudget() {
   const [cfg] = loadConfig(findRoot());
   return resolveBuildJudgeCallBudget(cfg);
+}
+
+// resolveBuildReviewHoldLimit(cfg) -> integer >= 0: graft.build_review_hold_limit, else the default. Pure.
+function resolveBuildReviewHoldLimit(cfg) {
+  return nonNegativeInt(dig(cfg, "graft.build_review_hold_limit")) ?? DEFAULT_BUILD_REVIEW_HOLD_LIMIT;
+}
+
+// realResolveBuildReviewHoldLimit() -> integer >= 0: the same config load as realResolveBuildJudgeRetryLimit.
+// Injectable via cmdAssemble's deps.resolveBuildReviewHoldLimit.
+function realResolveBuildReviewHoldLimit() {
+  const [cfg] = loadConfig(findRoot());
+  return resolveBuildReviewHoldLimit(cfg);
 }
 
 // reviewCallSpawnOptions(deadlineSecs?) -> execFileSync options. A valid deadline arms the spawn
@@ -394,7 +411,10 @@ async function runPhase(phase, entry, args, deps) {
   }
 }
 
-const parkedOutcome = (cause) => ({ ruling: null, resolution: "parked", cause });
+// park_class (FAFF-1249) says whether a later drain could fix the park: "outage" (a phase's bounded retries ran
+// out, or an attempt was killed mid-call), "backend-chain" (the adversarial chain was unset or malformed) or
+// "final" (anything the same input would fail again). Only the first two are reopened by --reopen-for-hold.
+const parkedOutcome = (cause, parkClass = "final") => ({ ruling: null, resolution: "parked", cause, parkClass });
 
 // dispatchOne(caseId, caseFile, tmpDir, entry, deps) -> { stopped: true } | { ruling: BuildJudgeVerdict|null,
 //   resolution, cause } — runs Phase 1 (bounded retry on UNREACHABLE/DEADLINE) then, on a valid
@@ -424,7 +444,7 @@ async function dispatchOne(caseId, caseFile, tmpDir, entry, deps) {
       ...backendsArgs, ...clockArgs,
     ], phaseDeps);
     if (r1.stopped) return { stopped: true };
-    if (r1.exhausted) return parkedOutcome(r1.cause);
+    if (r1.exhausted) return parkedOutcome(r1.cause, "outage");
     if (r1.disposition !== "ruling") return parkedOutcome(`phase-1 dispatch disposition "${r1.disposition}" (exit ${r1.res.code})`);
     const reconCheck = validateReconstruction(r1.res.stdout);
     if (!reconCheck.ok) return parkedOutcome(`reconstruction empty/failed: ${reconCheck.reason}`);
@@ -459,7 +479,7 @@ async function dispatchOne(caseId, caseFile, tmpDir, entry, deps) {
     ...backendsArgs, ...clockArgs,
   ], phaseDeps);
   if (r2.stopped) return { stopped: true };
-  if (r2.exhausted) return parkedOutcome(r2.cause);
+  if (r2.exhausted) return parkedOutcome(r2.cause, "outage");
   if (r2.disposition !== "ruling") return parkedOutcome(`phase-2 dispatch disposition "${r2.disposition}" (exit ${r2.res.code})`);
   const parsed = parseVerdictBlock(r2.res.stdout, "build-judge-verdict");
   if (!parsed.ok) return parkedOutcome(`phase-2 verdict block: ${parsed.cause}`);
@@ -529,7 +549,7 @@ function adjudicationIdentity(ledger) {
 
 // dispatchJudgeRulings(ledger, caseFiles, judgeDir, { runReviewCall, judgeDispatchDisposition,
 //   retryLimit, backendsChain, clock: { deadline, timeout }, budget, persistLedger }) -> { stopped }.
-//   Mutates ledger.entries[*].{ruling,resolution,park_cause,judge_progress} in place, persisting the ledger
+//   Mutates ledger.entries[*].{ruling,resolution,park_cause,park_class,judge_progress} in place, persisting the ledger
 //   after every attempt and outcome, then writes ruling-<case_id>.json (after the ledger holding the same
 //   ruling inline). Ruled and parked entries are skipped, so a resumed ledger only judges what is left;
 //   stopped is true when the call budget ran out before every entry was decided. Every dependency is
@@ -555,7 +575,10 @@ async function dispatchJudgeRulings(ledger, caseFiles, judgeDir, deps) {
       if (verdict && typeof verdict === "object") { const { binding: _modelBinding, ...rest } = verdict; verdict = rest; }
       entry.ruling = verdict;
       entry.resolution = result.resolution;
-      if (result.cause) entry.park_cause = result.cause;
+      if (result.cause) {
+        entry.park_cause = result.cause;
+        entry.park_class = result.parkClass || "final";
+      }
       persistLedger(); // ledger first: --admit reads the inline ruling before any file
       if (verdict) {
         fs.writeFileSync(path.join(judgeDir, `ruling-${cid}.json`), JSON.stringify({ ...verdict, binding: bindingFor(ledger, cid) }, null, 2) + "\n");
@@ -620,17 +643,54 @@ const BUILD_JUDGE_EVIDENCE_SPEC = {
     "--acceptance-criteria": { arity: 1 },
     "--retry-limit": { arity: 1 },
     "--budget-secs": { arity: 1 },
+    "--reopen-for-hold": { arity: 1 },
   },
 };
 const BUILD_JUDGE_EVIDENCE_USAGE =
   "usage: faff build-judge-evidence --assemble --dir <build-review-dir> --issue <issue> --diff <diff-file> " +
-  "[--out <judge-dir>] [--acceptance-criteria <file>] [--repository-evidence <file>] [--window-start N] [--run-id ID] [--retry-limit N] [--budget-secs N]\n" +
+  "[--out <judge-dir>] [--acceptance-criteria <file>] [--repository-evidence <file>] [--window-start N] [--run-id ID] [--retry-limit N] [--budget-secs N] [--reopen-for-hold N]\n" +
   "     (exit 0 complete, 2 usage/plumbing failure, 3 incomplete: the call budget was reached, call again with the same arguments;\n" +
   "      a ledger whose adjudication identity matches is resumed, earlier ruling/recon/admit-result files are swept only on a mismatch)\n" +
   "   or: faff build-judge-evidence --admit --dir <build-review-dir> --level <level> --run-dir <run-dir> [--out <judge-dir>]";
 
 // Pinned to config.js DEFAULTS["graft.build_judge_retry_limit"] by a parity test (FAFF-1245).
 const DEFAULT_BUILD_JUDGE_RETRY_LIMIT = 2;
+// Pinned to config.js DEFAULTS["graft.build_review_hold_limit"] by a parity test (FAFF-1249).
+const DEFAULT_BUILD_REVIEW_HOLD_LIMIT = 2;
+
+// reopenForHold(ledger, resumed, n, holdLimit) -> [case_id]: the once-per-hold reopen (FAFF-1249). The caller
+// persists the ledger when this returns with the ledger changed (it always does except on the n > holdLimit
+// and already-reopened paths, which change nothing).
+function reopenForHold(ledger, resumed, n, holdLimit) {
+  if (n > holdLimit) {
+    process.stderr.write(`faff build-judge-evidence --assemble: --reopen-for-hold ${n} is above graft.build_review_hold_limit (${holdLimit}); no hold beyond the limit can exist, so nothing was reopened\n`);
+    return { reopened: [], changed: false };
+  }
+  const done = Array.isArray(ledger.reopened_for_holds) ? ledger.reopened_for_holds : [];
+  if (!resumed) {
+    // A fresh pass already has a full budget for this hold; record it so a later matching call does not reopen.
+    ledger.reopened_for_holds = [n];
+    return { reopened: [], changed: true };
+  }
+  if (done.includes(n)) return { reopened: [], changed: false };
+  const reopened = [];
+  for (const cid of ledger.order) {
+    const e = ledger.entries[cid];
+    if (!e || e.resolution !== "parked" || (e.park_class !== "outage" && e.park_class !== "backend-chain")) continue;
+    const p = e.judge_progress || { phase1_attempts: 0, phase2_attempts: 0, last_exit: null, reconstruction: null };
+    p.phase2_attempts = 0;
+    if (!p.reconstruction) p.phase1_attempts = 0; // Phase 1 never succeeded; a bound reconstruction keeps its Phase 1 result
+    p.last_exit = null;
+    e.judge_progress = p;
+    e.resolution = "pending";
+    delete e.park_cause;
+    delete e.park_class;
+    e.reopen_count = (e.reopen_count || 0) + 1;
+    reopened.push(cid);
+  }
+  ledger.reopened_for_holds = [...done, n];
+  return { reopened, changed: true };
+}
 
 function cmdBuildJudgeEvidence(args) {
   const { values, errors } = parseArgs(args, BUILD_JUDGE_EVIDENCE_SPEC);
@@ -673,6 +733,15 @@ function cmdAssemble(values, deps = {}) {
   const flagBudget = rawBudget == null ? null : positiveInt(rawBudget);
   if (rawBudget != null && flagBudget === null) {
     return usageError([{ code: "invalid-value", detail: "--budget-secs expects an integer > 0" }], BUILD_JUDGE_EVIDENCE_USAGE);
+  }
+  // --reopen-for-hold: an explicit flag that is not an integer >= 1 is a usage error, before any file is touched.
+  const rawReopen = values["--reopen-for-hold"];
+  let reopenHold = null;
+  if (rawReopen != null) {
+    reopenHold = positiveInt(rawReopen);
+    if (reopenHold === null) {
+      return usageError([{ code: "invalid-value", detail: "--reopen-for-hold expects an integer >= 1" }], BUILD_JUDGE_EVIDENCE_USAGE);
+    }
   }
   const now = deps.now || Date.now;
   const startedAt = now();
@@ -758,6 +827,16 @@ function cmdAssemble(values, deps = {}) {
   };
   persistLedger();
 
+  // The once-per-hold reopen runs after the identity check has decided `resumed` and before the backend chain is
+  // resolved, so a reopened backend-chain park whose config is still unset is re-parked below with no call made.
+  let reopened = [];
+  if (reopenHold !== null) {
+    const holdLimit = (deps.resolveBuildReviewHoldLimit || realResolveBuildReviewHoldLimit)();
+    const outcome = reopenForHold(ledger, resumed, reopenHold, holdLimit);
+    reopened = outcome.reopened;
+    if (outcome.changed) persistLedger();
+  }
+
   // remaining(): the pending-unruled case ids; attemptsRemaining(L): the attempts they may still start.
   const isPendingUnruled = (e) => !!e && e.resolution === "pending" && e.ruling == null;
   const summary = (extra) => {
@@ -773,7 +852,7 @@ function cmdAssemble(values, deps = {}) {
     }
     return JSON.stringify({
       assembled: ledger.order.length, dispatched: ledger.order.length - parked.length, out: outDir, cases: ledger.order,
-      resumed, incomplete, remaining: incomplete ? remaining : [], attempts_remaining: incomplete ? attemptsRemaining : 0,
+      resumed, reopened, incomplete, remaining: incomplete ? remaining : [], attempts_remaining: incomplete ? attemptsRemaining : 0,
     });
   };
 
@@ -798,6 +877,7 @@ function cmdAssemble(values, deps = {}) {
       if (isPendingUnruled(entry)) {
         entry.resolution = "parked";
         entry.park_cause = cause;
+        entry.park_class = "backend-chain";
       }
     }
     persistLedger();
@@ -915,12 +995,16 @@ module.exports = {
   resolveBuildJudgeRetryLimit,
   realResolveBuildJudgeCallBudget,
   resolveBuildJudgeCallBudget,
+  realResolveBuildReviewHoldLimit,
+  resolveBuildReviewHoldLimit,
+  reopenForHold,
   adjudicationIdentity,
   reviewCallSpawnOptions,
   reviewCallExitFromError,
   DEFAULT_BUILD_JUDGE_DEADLINE_SECS,
   DEFAULT_BUILD_JUDGE_TIMEOUT_SECS,
   DEFAULT_BUILD_JUDGE_RETRY_LIMIT,
+  DEFAULT_BUILD_REVIEW_HOLD_LIMIT,
   DEFAULT_BUILD_JUDGE_CALL_BUDGET_SECS,
   ASSEMBLE_INCOMPLETE_EXIT,
   BUILD_JUDGE_SPAWN_GRACE_SECS,

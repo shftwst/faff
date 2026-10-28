@@ -675,6 +675,10 @@ function pairsOf(map) {
 // FAFF-1259 — `<key>:detail-ok` for each judged criterion whose detail passes holdoutRecordViolations'
 // per-criterion rules (met/unmet need exercised, expected and observed; needs-human needs reason; strings
 // at most 2000 characters). Blank strings do not count as detail. A missing or garbage map yields no pairs.
+// FAFF-1292 — a needs-human criterion now also needs a valid `reason_code`; the synthetic record's class is
+// derived from the code (human-only ⇒ prose, else the born-verifiable assertion) so the writer's cross-field
+// rules accept either case, and a `<key>:reason-<code>` pair is emitted for each detail-ok needs-human
+// criterion so an oracle can score the no-surface-vs-human-only distinction.
 function detailOkPairs(classes, details) {
   if (!classes || typeof classes !== "object" || !details || typeof details !== "object") return [];
   const present = (v) => typeof v === "string" && v.trim() !== "";
@@ -682,12 +686,20 @@ function detailOkPairs(classes, details) {
   for (const [key, verdict] of Object.entries(classes)) {
     const d = details[key];
     if (!d || typeof d !== "object") continue;
-    const detail = { exercised: null, expected: null, observed: null, evidence_ref: null, reason: null };
+    const detail = { exercised: null, expected: null, observed: null, evidence_ref: null, reason: null, reason_code: null };
     for (const field of Object.keys(detail)) if (d[field] !== undefined && d[field] !== null) detail[field] = d[field];
-    const criterion = { id: "done:1", text: key, holdout: false, class: "assertion", verdict, evidence_present: verdict !== "needs-human", ...detail };
+    const humanOnly = verdict === "needs-human" && detail.reason_code === "human-only";
+    const klass = humanOnly ? "prose" : "assertion";
+    const id = humanOnly ? "scenarios:1" : "done:1";
+    const criterion = { id, text: key, holdout: false, class: klass, verdict, evidence_present: verdict !== "needs-human", ...detail };
     const record = { schema_version: 1, issue: "eval", aggregate: "needs-human", code_blind: true, spawner_attested: false, attestation: null, violations: [], criteria: [criterion] };
-    const filled = verdict === "needs-human" ? present(detail.reason) : present(detail.exercised) && present(detail.expected) && present(detail.observed);
-    if (filled && holdoutRecordViolations(record).length === 0) out.push(`${key}:detail-ok`);
+    const filled = verdict === "needs-human"
+      ? present(detail.reason) && present(detail.reason_code)
+      : present(detail.exercised) && present(detail.expected) && present(detail.observed);
+    if (filled && holdoutRecordViolations(record).length === 0) {
+      out.push(`${key}:detail-ok`);
+      if (verdict === "needs-human") out.push(`${key}:reason-${detail.reason_code}`);
+    }
   }
   return out;
 }

@@ -167,12 +167,13 @@ export const DEFAULT_BYTES_PER_TOKEN = 3.0;      // conservative divisor: OVER-e
 export const DEFAULT_WINDOW_SAFETY = 0.9;        // usable fraction of a declared window (response + estimate-error headroom)
 // Fixed token budget reserved for the per-lens --system brief when computing the trim target, so the
 // target never depends on the ACTUAL brief length and the trimmed shared prefix stays byte-identical
-// across the four spec-review lenses (the FAFF-903 cacheable prefix). MEASURED 2026-10-08 @ 3.0 B/tok:
-//   refute-infosec.md 6795 B ~2265 tok  <- binding   refute-architectural.md 6236 B ~2079 tok
-//   refute-qa.md      5891 B ~1964 tok             refute-methodology.md   3336 B ~1112 tok
+// across the four spec-review lenses (the FAFF-903 cacheable prefix). MEASURED 2026-10-19 @ 3.0 B/tok,
+// after the in-spec-ratification deferral clause was added to the three design lenses:
+//   refute-infosec.md 7789 B ~2596 tok  <- binding   refute-architectural.md 7230 B ~2410 tok
+//   refute-qa.md      6885 B ~2295 tok             refute-methodology.md   3336 B ~1112 tok
 //   code-review "## Review lens" section 2020 B ~673 tok
-// 2400 clears the 2265 binding constraint with ~6% headroom.
-export const DEFAULT_BRIEF_RESERVE_TOKENS = 2400;
+// 2800 clears the 2596 binding constraint with ~8% headroom.
+export const DEFAULT_BRIEF_RESERVE_TOKENS = 2800;
 export const MIN_TRIM_TARGET_BYTES = 1024;       // trimTargetBytes never returns <= 0; this is its floor
 
 // The machine-only, line-anchored primary-skip marker, mirroring TRUNCATION_SIGNAL exactly. Emitted on

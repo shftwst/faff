@@ -35,6 +35,7 @@ const path = require("path");
 const { parseArgs, usageError } = require("./argv");
 const { findRoot, latestRunDir } = require("./shared-infra");
 const { isLedgerSchemaError, mutateLedgerUnderLock } = require("./heartbeat");
+const { resolveFaffVersion } = require("./faff-version"); // FAFF-1395
 const { appendRecordUnderLock, appendEventRecord, computeChainHead, emitGenesisRunStart, verifyChain, verifyExitCode, EVENT_LEDGER_OUTCOMES } = require("./events");
 // FAFF-1028: lazy-resolved at mint time (not required at module top) — merge-gate.js is a much
 // heavier module (contract-defs/container-check/commissaire/gates/…) than run-ledger.js needs
@@ -95,7 +96,9 @@ function resolveMintBaseSha(root) {
 // are testable and cannot drift into graft prose. Mirrors the beep-boop/lights-out ledger
 // keys `runcheck` + the Stop hook already read (admitted/outcomes/owner/budget), so no reader
 // needs a new shape and resolveAnchorLevel reads only `level`.
-function buildInteractiveLedger({ runId, issue, nowIso, sessionId, pid, baseSha }) {
+// FAFF-1395: `faffVersion` is the release version the minting CLI resolved (a pure param, like
+// `pid`/`nowIso`); undefined leaves owner without the field (an owner minted by a test double).
+function buildInteractiveLedger({ runId, issue, nowIso, sessionId, pid, baseSha, faffVersion }) {
   return {
     run_id: runId,
     level: INTERACTIVE_LEVEL, // CONSTANT — never operator-settable
@@ -114,6 +117,7 @@ function buildInteractiveLedger({ runId, issue, nowIso, sessionId, pid, baseSha 
       pid,
       started_at: nowIso,
       last_heartbeat: nowIso,
+      ...(faffVersion === undefined ? {} : { faff_version: faffVersion }),
     },
   };
 }
@@ -124,7 +128,7 @@ function buildInteractiveLedger({ runId, issue, nowIso, sessionId, pid, baseSha 
 // block: beep-boop's own `faff budget baseline` call (unchanged, run right after this mint)
 // is what seeds `budget` — the new verb mints only the CORE shape (run dir, ledger, genesis),
 // never beep-boop's richer augmentation fields (see the ticket's OUT-OF-SCOPE list).
-function buildSelfDrainLedger({ runId, nowIso, sessionId, pid, baseSha }) {
+function buildSelfDrainLedger({ runId, nowIso, sessionId, pid, baseSha, faffVersion }) {
   return {
     run_id: runId,
     level: SELF_DRAIN_LEVEL, // CONSTANT — never operator-settable
@@ -139,6 +143,7 @@ function buildSelfDrainLedger({ runId, nowIso, sessionId, pid, baseSha }) {
       pid,
       started_at: nowIso,
       last_heartbeat: nowIso,
+      ...(faffVersion === undefined ? {} : { faff_version: faffVersion }),
     },
   };
 }
@@ -267,13 +272,14 @@ function cmdRunLedger(args) {
 
 // FAFF-1280: a refused mint removes the run dir it created, so nothing is left under .faff/runs/.
 // Non-recursive on purpose: a non-empty dir holds content that is not this mint's to delete.
-// Never throws, so the caller's exit code is unchanged.
+// Never throws, so the caller's exit code is unchanged. `command` is the label after "faff"
+// (e.g. "run-ledger init-self-drain", "lights-out"), so each mint reports its own prefix.
 function discardUnmintedRunDir(runDir, command) {
   try {
     fs.rmdirSync(runDir);
   } catch (e) {
     if (e && e.code === "ENOENT") return;
-    process.stderr.write(`faff run-ledger ${command}: could not remove ${runDir} (${(e && e.code) || "unknown error"}); it holds no ledger\n`);
+    process.stderr.write(`faff ${command}: could not remove ${runDir} (${(e && e.code) || "unknown error"}); it holds no ledger\n`);
   }
 }
 
@@ -348,6 +354,7 @@ function initInteractive(values) {
     sessionId: process.env.FAFF_SESSION_ID || null,
     pid: process.pid,
     baseSha: resolveMintBaseSha(root), // FAFF-1028 — null on an unresolvable branch, never thrown
+    faffVersion: resolveFaffVersion().version, // FAFF-1395 — "unknown" when unresolved, never omitted
   });
   // The run dir's basename IS the run_id — load-bearing for the genesis `prev` = SHA-256(run_id).
   // A recursive mkdir returns a path iff it created the leaf (possibly with ancestors) and
@@ -373,13 +380,12 @@ function initInteractive(values) {
     }
     landed = true;
   } finally {
-    if (createdRunDir && !landed) discardUnmintedRunDir(runDir, "init-interactive");
+    if (createdRunDir && !landed) discardUnmintedRunDir(runDir, "run-ledger init-interactive");
   }
 
   // Emit the genesis run-start onto the events chain via the shared FAFF-966 helper (never a
-  // hand-duplicated emit) — byte-identical to before the extraction: no `data.level` (this L2
-  // mint has never carried one; see the regression assertion in
-  // run-ledger-init-interactive.test.mjs).
+  // hand-duplicated emit). The L2 mint passes no `level`, so its genesis data is exactly
+  // { faff_version } (FAFF-1395; see the assertion in run-ledger-init-interactive.test.mjs).
   emitGenesisRunStart(runDir);
   // FAFF-1213: record the run-level GitHub runner identity right after genesis (run-start), so it
   // rides mintIssueAnchor into the committed anchor Gate 1 reads. Lazy require (cycle-safe) +
@@ -475,6 +481,7 @@ function initSelfDrain(values) {
     sessionId: process.env.FAFF_SESSION_ID || null,
     pid: process.pid,
     baseSha: resolveMintBaseSha(root), // FAFF-1028 — null on an unresolvable branch, never thrown
+    faffVersion: resolveFaffVersion().version, // FAFF-1395 — "unknown" when unresolved, never omitted
   });
 
   // Ensure the PARENT exists (idempotent, recursive — a fresh repo has no `.faff/runs/` yet),
@@ -520,7 +527,7 @@ function initSelfDrain(values) {
     landed = true;
   } finally {
     // The exclusive mkdir above guarantees this call created the dir.
-    if (!landed) discardUnmintedRunDir(runDir, "init-self-drain");
+    if (!landed) discardUnmintedRunDir(runDir, "run-ledger init-self-drain");
   }
 
   // The ledger write above and this genesis emit are TWO locked operations, not one critical

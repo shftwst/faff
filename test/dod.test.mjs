@@ -261,7 +261,7 @@ test("dod classify (FAFF-1291): an explicit integration fence on a prose DONE-ad
   const integrationOnly = ["## Scenarios", "", "```integration", "Given a", "When b", "Then c", "```", "", "## 8. DONE", "", "- [ ] operators like it"].join("\n");
   const io = JSON.parse(run(["classify", "--spec", "-", "--json"], integrationOnly).stdout);
   assert.equal(io.judged_count, 0);
-  assert.equal(io.integration_count, 1, "an integration-only spec is not skipped by graft");
+  assert.equal(io.integration_count, 1, "an integration-only spec IS skipped by graft (FAFF-1363: judged_count == 0 alone is the skip condition)");
 });
 
 test("dod classify (FAFF-1291): with --issue a delegated row carries the qualified ac_id", () => {

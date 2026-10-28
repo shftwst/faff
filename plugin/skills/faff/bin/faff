@@ -13,128 +13,150 @@
 
 // Module layout (FAFF-441): this entrypoint holds only the dispatch shell — USAGE, the
 // COMMANDS registry, and main(). Every subcommand's implementation lives in a sibling
-// module under bin/lib/, required eagerly below. Modules resolve relative to this file
-// (bin/lib/shared-infra.js owns the HERE / ENTRYPOINT path anchors), so both install
-// shapes (symlink and CLAUDE_PLUGIN_ROOT copy) work unchanged.
-const { cmdAdmissible, cmdDod, cmdHoldout, cmdSpecReviewLenses } = require("./lib/admissibility");
-const { cmdAdr } = require("./lib/adr");
-const { cmdAdversarialBackends } = require("./lib/adversarial-backends");
-const { cmdAndon } = require("./lib/andon");
-const { cmdAudit } = require("./lib/audit");
-const { cmdBackgroundFence } = require("./lib/background-fence");
-const { cmdBackends, unmeteredFleetEngines } = require("./lib/backends");
-const { cmdBudget } = require("./lib/budget");
-const { cmdBundle, cmdBuildClaim, cmdLandingClaim } = require("./lib/bundle");
-const { cmdBundleRecover } = require("./lib/bundle-recover");
-const { cmdCiTriage } = require("./lib/ci-triage");
-const { cmdClaimVerdict } = require("./lib/claim-verdict");
-const { cmdParkVerdict } = require("./lib/park-verdict");
-const { cmdPuntScan } = require("./lib/punt-scan");
-const { cmdCliSurface } = require("./lib/cli-surface");
-const { cmdCommissaire } = require("./lib/commissaire");
+// module under bin/lib/, loaded on its first call (see `lazy` below). Modules resolve
+// relative to this file (bin/lib/shared-infra.js owns the HERE / ENTRYPOINT path anchors),
+// so both install shapes (symlink and CLAUDE_PLUGIN_ROOT copy) work unchanged.
+
+// FAFF-1382: each subcommand module loads on first call, not at startup. Loading all of bin/lib
+// costs about 230 ms per process against about 20 to 60 ms for the one module a subcommand needs,
+// and the CLI is spawned on every hook call and hundreds of times per test file. `lazy` returns
+// named stand-ins (the regions stale-null scan reads `COMMANDS[c].name`); the literal require()
+// stays in the source so the require-graph lint sees the same edges.
+function lazy(load, names) {
+  const out = {};
+  for (const name of names) {
+    const fn = (...args) => load()[name](...args);
+    Object.defineProperty(fn, "name", { value: name });
+    out[name] = fn;
+  }
+  return out;
+}
+
+const { cmdAdmissible, cmdDod, cmdHoldout, cmdSpecReviewLenses } = lazy(() => require("./lib/admissibility"), ["cmdAdmissible", "cmdDod", "cmdHoldout", "cmdSpecReviewLenses"]);
+const { cmdAdr } = lazy(() => require("./lib/adr"), ["cmdAdr"]);
+const { cmdAdversarialBackends } = lazy(() => require("./lib/adversarial-backends"), ["cmdAdversarialBackends"]);
+const { cmdAndon } = lazy(() => require("./lib/andon"), ["cmdAndon"]);
+const { cmdAudit } = lazy(() => require("./lib/audit"), ["cmdAudit"]);
+const { cmdBackgroundFence } = lazy(() => require("./lib/background-fence"), ["cmdBackgroundFence"]);
+const { cmdBackends, unmeteredFleetEngines } = lazy(() => require("./lib/backends"), ["cmdBackends", "unmeteredFleetEngines"]);
+const { cmdBudget } = lazy(() => require("./lib/budget"), ["cmdBudget"]);
+const { cmdBundle, cmdBuildClaim, cmdLandingClaim } = lazy(() => require("./lib/bundle"), ["cmdBundle", "cmdBuildClaim", "cmdLandingClaim"]);
+const { cmdBundleRecover } = lazy(() => require("./lib/bundle-recover"), ["cmdBundleRecover"]);
+const { cmdCiTriage } = lazy(() => require("./lib/ci-triage"), ["cmdCiTriage"]);
+const { cmdLand } = lazy(() => require("./lib/land"), ["cmdLand"]);
+const { cmdSpec } = lazy(() => require("./lib/spec-commit"), ["cmdSpec"]);
+const { cmdClaimVerdict } = lazy(() => require("./lib/claim-verdict"), ["cmdClaimVerdict"]);
+const { cmdParkVerdict } = lazy(() => require("./lib/park-verdict"), ["cmdParkVerdict"]);
+const { cmdPuntScan } = lazy(() => require("./lib/punt-scan"), ["cmdPuntScan"]);
+const { cmdCliSurface } = lazy(() => require("./lib/cli-surface"), ["cmdCliSurface"]);
+const { cmdCommissaire } = lazy(() => require("./lib/commissaire"), ["cmdCommissaire"]);
 const { cliPosixGuard, runGovernedDispatch } = require("./lib/shared-infra");
-const { cmdConfig, cmdVerification } = require("./lib/config");
-const { cmdContain } = require("./lib/contain");
-const { cmdContainerCheck } = require("./lib/container-check");
-const { cmdContract } = require("./lib/contract-defs");
-const { cmdConventions } = require("./lib/conventions");
-const { CORRECTIVE_OPS, cmdCorrective, foldCorrectiveAuthority, foldCorrectiveConstraints, validateCorrectiveInput } = require("./lib/corrective");
-const { cmdCorrectiveIntegrity, cmdIntegrityBoundary, correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate, foldMergeFloorAuthority } = require("./lib/corrective-integrity");
-const { cmdIntegrityDigest } = require("./lib/integrity-digest");
-const { cmdDecisionCapture } = require("./lib/decision-capture");
-const { cmdShadowFidelity } = require("./lib/shadow-fidelity");
-const { cmdDecisions } = require("./lib/decisions");
-const { cmdDispatch } = require("./lib/dispatch");
-const { cmdDisposition } = require("./lib/disposition");
-const { cmdEconomics } = require("./lib/economics");
-const { cmdBuildProgress, cmdEffects, cmdLandingProgress, cmdReviewProgress } = require("./lib/effects");
-const { cmdEligible } = require("./lib/eligible");
-const { cmdEvidence } = require("./lib/evidence");
-const { cmdEngine } = require("./lib/engine");
-const { cmdEnv } = require("./lib/env");
-const { cmdEval } = require("./lib/eval-affected");
-const { cmdEvaluatorPreflight } = require("./lib/evaluator-preflight");
-const { cmdLaneBoundary } = require("./lib/lane-boundary");
-const { cmdEvents } = require("./lib/events");
-const { cmdFixtures } = require("./lib/fixtures");
-const { cmdDoctor, cmdGates, cmdSync } = require("./lib/gates");
-const { cmdGitignoreEnsure } = require("./lib/gitignore-ensure");
-const { cmdGovernanceCheck } = require("./lib/governance-check");
-const { cmdEvidenceReadiness } = require("./lib/evidence-readiness");
-const { cmdLandingComment } = require("./lib/landing-comment");
-const { cmdProfiles } = require("./lib/governance-profile");
-const { cmdHarness } = require("./lib/harness");
-const { cmdHeartbeat } = require("./lib/heartbeat");
-const { cmdHooksEnsure } = require("./lib/hooks-ensure");
-const { cmdJudgeTrail, cmdJudgeHistory } = require("./lib/judge-trail");
-const { cmdIntakeRecord, cmdIntakecheck } = require("./lib/intake-provenance");
-const { cmdLabel } = require("./lib/label");
-const { cmdLabels } = require("./lib/labels");
-const { cmdLightsOut, cmdWorktreeRoot } = require("./lib/lights-out");
-const { cmdLintCliCoverage } = require("./lib/lint-cli-coverage");
-const { cmdLintCliDoc } = require("./lib/lint-cli-doc");
-const { cmdLintRefs } = require("./lib/lint-refs");
-const { cmdMergeFence } = require("./lib/merge-fence");
-const { cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdPrCreate } = require("./lib/merge-gate");
-const { cmdNativeMap } = require("./lib/native-map");
-const { cmdNext } = require("./lib/next");
-const { cmdParkHistory } = require("./lib/park-history");
-const { cmdParkReconsider } = require("./lib/park-reconsider");
-const { cmdPostMergeCheck } = require("./lib/post-merge");
-const { cmdPrBody } = require("./lib/pr-body");
-const { cmdPrd } = require("./lib/prd");
-const { cmdPrdChecklist } = require("./lib/prd-checklist");
-const { cmdPrdr } = require("./lib/prdr");
-const { cmdPrepcheck } = require("./lib/prepcheck");
-const { cmdInflightcheck } = require("./lib/inflightcheck");
-const { cmdResumecheck } = require("./lib/resumecheck");
-const { cmdProfile } = require("./lib/profile");
-const { cmdProjectNext } = require("./lib/project-next");
-const { cmdQuality } = require("./lib/quality");
-const { cmdFindingsReconcile } = require("./lib/findings-reconcile");
-const { cmdQueueState } = require("./lib/queue-state");
-const { cmdRatifiedScope } = require("./lib/ratified-scope");
-const { cmdReconcile } = require("./lib/reconcile");
-const { cmdReconcileRecover } = require("./lib/reconcile-recover");
-const { cmdMachineId } = require("./lib/machine-id");
-const { cmdManifest } = require("./lib/manifest");
-const { cmdRegions } = require("./lib/regions");
-const { cmdReviewIterationCap } = require("./lib/review-iteration-cap");
-const { cmdReviewFixturePaths } = require("./lib/review-fixture-paths");
-const { cmdReviewTarget } = require("./lib/review-target");
-const { cmdRunDone } = require("./lib/run-done");
-const { cmdRunLedger } = require("./lib/run-ledger");
-const { cmdRunOutward } = require("./lib/run-outward");
-const { cmdRunRecordPrd } = require("./lib/run-record-prd");
-const { cmdRunStart } = require("./lib/run-start");
-const { cmdScenarioMatrix } = require("./lib/scenario-matrix");
-const { cmdRuncheck } = require("./lib/runcheck");
-const { cmdSelfIntake } = require("./lib/self-intake");
-const { cmdSentry } = require("./lib/sentry");
-const { cmdSentryPoller } = require("./lib/sentry-poller");
-const { cmdSentrycheck } = require("./lib/sentrycheck");
-const { cmdSpecJudgeEvidence, cmdSpecJudgeAcceptBar } = require("./lib/spec-judge-evidence");
-const { cmdBuildReviewChurn } = require("./lib/build-review-churn");
-const { cmdReviewPrior } = require("./lib/review-prior");
-const { cmdResumeStore } = require("./lib/resume-store");
-const { cmdBuildReviewConvergence } = require("./lib/build-review-convergence");
-const { cmdBuildJudgeEvidence } = require("./lib/build-judge-evidence");
-const { cmdSpecReview } = require("./lib/spec-review");
-const { cmdSpecReviewChurn } = require("./lib/spec-review-churn");
-const { cmdSpecReviewConvergence } = require("./lib/spec-review-convergence");
-const { cmdSpecReviewIterationCap } = require("./lib/spec-review-iteration-cap");
-const { cmdSpecReviewPin, cmdSpecReviewDir } = require("./lib/spec-review-pin");
-const { cmdSpecReviewReputation } = require("./lib/spec-review-reputation");
-const { cmdSpecReviewWindow } = require("./lib/spec-review-window");
-const { cmdStageGuard } = require("./lib/stage");
-const { cmdState } = require("./lib/state");
-const { cmdTier } = require("./lib/tier");
-const { cmdTracker } = require("./lib/tracker");
-const { cmdTurncheck } = require("./lib/turncheck");
-const { cmdValidateAdapters } = require("./lib/validate-adapters");
-const { cmdWorktreeCheck } = require("./lib/worktree-check");
-const { cmdWorktreeHeal } = require("./lib/worktree-heal");
-const { cmdWorktreePrune } = require("./lib/worktree-prune");
+const { cmdConfig, cmdVerification } = lazy(() => require("./lib/config"), ["cmdConfig", "cmdVerification"]);
+const { cmdContain } = lazy(() => require("./lib/contain"), ["cmdContain"]);
+const { cmdContainerCheck } = lazy(() => require("./lib/container-check"), ["cmdContainerCheck"]);
+const { cmdContract } = lazy(() => require("./lib/contract-defs"), ["cmdContract"]);
+const { cmdConventions } = lazy(() => require("./lib/conventions"), ["cmdConventions"]);
+const { cmdCorrective, foldCorrectiveAuthority, foldCorrectiveConstraints, validateCorrectiveInput } = lazy(() => require("./lib/corrective"), ["cmdCorrective", "foldCorrectiveAuthority", "foldCorrectiveConstraints", "validateCorrectiveInput"]);
+const loadCORRECTIVE_OPS = () => require("./lib/corrective").CORRECTIVE_OPS;
+const { cmdCorrectiveIntegrity, cmdIntegrityBoundary, correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate, foldMergeFloorAuthority } = lazy(() => require("./lib/corrective-integrity"), ["cmdCorrectiveIntegrity", "cmdIntegrityBoundary", "correctiveIntegrityDirs", "correctiveIntegrityProbe", "integrityGate", "foldMergeFloorAuthority"]);
+const { cmdIntegrityDigest } = lazy(() => require("./lib/integrity-digest"), ["cmdIntegrityDigest"]);
+const { cmdDecisionCapture } = lazy(() => require("./lib/decision-capture"), ["cmdDecisionCapture"]);
+const { cmdShadowFidelity } = lazy(() => require("./lib/shadow-fidelity"), ["cmdShadowFidelity"]);
+const { cmdDecisions } = lazy(() => require("./lib/decisions"), ["cmdDecisions"]);
+const { cmdDispatch } = lazy(() => require("./lib/dispatch"), ["cmdDispatch"]);
+const { cmdDisposition } = lazy(() => require("./lib/disposition"), ["cmdDisposition"]);
+const { cmdEconomics } = lazy(() => require("./lib/economics"), ["cmdEconomics"]);
+const { cmdBuildProgress, cmdEffects, cmdLandingProgress, cmdReviewProgress } = lazy(() => require("./lib/effects"), ["cmdBuildProgress", "cmdEffects", "cmdLandingProgress", "cmdReviewProgress"]);
+const { cmdEligible } = lazy(() => require("./lib/eligible"), ["cmdEligible"]);
+const { cmdDiscoveredScopePriority } = lazy(() => require("./lib/discovered-scope-priority"), ["cmdDiscoveredScopePriority"]);
+const { cmdEvidence } = lazy(() => require("./lib/evidence"), ["cmdEvidence"]);
+const { cmdEngine } = lazy(() => require("./lib/engine"), ["cmdEngine"]);
+const { cmdEnv } = lazy(() => require("./lib/env"), ["cmdEnv"]);
+const { cmdEval } = lazy(() => require("./lib/eval-affected"), ["cmdEval"]);
+const { cmdEvaluatorPreflight } = lazy(() => require("./lib/evaluator-preflight"), ["cmdEvaluatorPreflight"]);
+const { cmdLaneBoundary } = lazy(() => require("./lib/lane-boundary"), ["cmdLaneBoundary"]);
+const { cmdEvents } = lazy(() => require("./lib/events"), ["cmdEvents"]);
+const { cmdFixtures } = lazy(() => require("./lib/fixtures"), ["cmdFixtures"]);
+const { cmdDoctor, cmdGates, cmdSync } = lazy(() => require("./lib/gates"), ["cmdDoctor", "cmdGates", "cmdSync"]);
+const { cmdGitignoreEnsure } = lazy(() => require("./lib/gitignore-ensure"), ["cmdGitignoreEnsure"]);
+const { cmdGovernanceCheck } = lazy(() => require("./lib/governance-check"), ["cmdGovernanceCheck"]);
+const { cmdEvidenceReadiness } = lazy(() => require("./lib/evidence-readiness"), ["cmdEvidenceReadiness"]);
+const { cmdLandingComment } = lazy(() => require("./lib/landing-comment"), ["cmdLandingComment"]);
+const { cmdProfiles } = lazy(() => require("./lib/governance-profile"), ["cmdProfiles"]);
+const { cmdHarness } = lazy(() => require("./lib/harness"), ["cmdHarness"]);
+const { cmdVersion } = lazy(() => require("./lib/faff-version"), ["cmdVersion"]);
+const { cmdHeartbeat } = lazy(() => require("./lib/heartbeat"), ["cmdHeartbeat"]);
+const { cmdHooksEnsure } = lazy(() => require("./lib/hooks-ensure"), ["cmdHooksEnsure"]);
+const { cmdJudgeTrail, cmdJudgeHistory } = lazy(() => require("./lib/judge-trail"), ["cmdJudgeTrail", "cmdJudgeHistory"]);
+const { cmdIntakeRecord, cmdIntakecheck } = lazy(() => require("./lib/intake-provenance"), ["cmdIntakeRecord", "cmdIntakecheck"]);
+const { cmdLabel } = lazy(() => require("./lib/label"), ["cmdLabel"]);
+const { cmdLabels } = lazy(() => require("./lib/labels"), ["cmdLabels"]);
+const { cmdLightsOut, cmdWorktreeRoot } = lazy(() => require("./lib/lights-out"), ["cmdLightsOut", "cmdWorktreeRoot"]);
+const { cmdLintCliCoverage } = lazy(() => require("./lib/lint-cli-coverage"), ["cmdLintCliCoverage"]);
+const { cmdLintCliDoc } = lazy(() => require("./lib/lint-cli-doc"), ["cmdLintCliDoc"]);
+const { cmdLintRefs } = lazy(() => require("./lib/lint-refs"), ["cmdLintRefs"]);
+const { cmdMergeFence } = lazy(() => require("./lib/merge-fence"), ["cmdMergeFence"]);
+const { cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdPrCreate } = lazy(() => require("./lib/merge-gate"), ["cmdBranchProtectionCheck", "cmdGithubAuthCheck", "cmdMergeGate", "cmdPrCreate"]);
+const { cmdGithubTemplates } = lazy(() => require("./lib/github-templates"), ["cmdGithubTemplates"]);
+const { cmdNativeMap } = lazy(() => require("./lib/native-map"), ["cmdNativeMap"]);
+const { cmdNext } = lazy(() => require("./lib/next"), ["cmdNext"]);
+const { cmdParkHistory } = lazy(() => require("./lib/park-history"), ["cmdParkHistory"]);
+const { cmdParkReconsider } = lazy(() => require("./lib/park-reconsider"), ["cmdParkReconsider"]);
+const { cmdPostMergeCheck } = lazy(() => require("./lib/post-merge"), ["cmdPostMergeCheck"]);
+const { cmdPrBody } = lazy(() => require("./lib/pr-body"), ["cmdPrBody"]);
+const { cmdPrd } = lazy(() => require("./lib/prd"), ["cmdPrd"]);
+const { cmdPrdChecklist } = lazy(() => require("./lib/prd-checklist"), ["cmdPrdChecklist"]);
+const { cmdPrdr } = lazy(() => require("./lib/prdr"), ["cmdPrdr"]);
+const { cmdPrepcheck } = lazy(() => require("./lib/prepcheck"), ["cmdPrepcheck"]);
+const { cmdInflightcheck } = lazy(() => require("./lib/inflightcheck"), ["cmdInflightcheck"]);
+const { cmdResumecheck } = lazy(() => require("./lib/resumecheck"), ["cmdResumecheck"]);
+const { cmdProfile } = lazy(() => require("./lib/profile"), ["cmdProfile"]);
+const { cmdProjectNext } = lazy(() => require("./lib/project-next"), ["cmdProjectNext"]);
+const { cmdQuality } = lazy(() => require("./lib/quality"), ["cmdQuality"]);
+const { cmdFindingsReconcile } = lazy(() => require("./lib/findings-reconcile"), ["cmdFindingsReconcile"]);
+const { cmdQueueState } = lazy(() => require("./lib/queue-state"), ["cmdQueueState"]);
+const { cmdRatifiedScope } = lazy(() => require("./lib/ratified-scope"), ["cmdRatifiedScope"]);
+const { cmdReconcile } = lazy(() => require("./lib/reconcile"), ["cmdReconcile"]);
+const { cmdReconcileRecover } = lazy(() => require("./lib/reconcile-recover"), ["cmdReconcileRecover"]);
+const { cmdMachineId } = lazy(() => require("./lib/machine-id"), ["cmdMachineId"]);
+const { cmdManifest } = lazy(() => require("./lib/manifest"), ["cmdManifest"]);
+const { cmdRegions } = lazy(() => require("./lib/regions"), ["cmdRegions"]);
+const { cmdReviewIterationCap } = lazy(() => require("./lib/review-iteration-cap"), ["cmdReviewIterationCap"]);
+const { cmdReviewFixturePaths } = lazy(() => require("./lib/review-fixture-paths"), ["cmdReviewFixturePaths"]);
+const { cmdReviewTarget } = lazy(() => require("./lib/review-target"), ["cmdReviewTarget"]);
+const { cmdRunDone } = lazy(() => require("./lib/run-done"), ["cmdRunDone"]);
+const { cmdRunLedger } = lazy(() => require("./lib/run-ledger"), ["cmdRunLedger"]);
+const { cmdRunOutward } = lazy(() => require("./lib/run-outward"), ["cmdRunOutward"]);
+const { cmdRunRecordPrd } = lazy(() => require("./lib/run-record-prd"), ["cmdRunRecordPrd"]);
+const { cmdRunStart } = lazy(() => require("./lib/run-start"), ["cmdRunStart"]);
+const { cmdScenarioMatrix } = lazy(() => require("./lib/scenario-matrix"), ["cmdScenarioMatrix"]);
+const { cmdRuncheck } = lazy(() => require("./lib/runcheck"), ["cmdRuncheck"]);
+const { cmdSelfIntake } = lazy(() => require("./lib/self-intake"), ["cmdSelfIntake"]);
+const { cmdSentry } = lazy(() => require("./lib/sentry"), ["cmdSentry"]);
+const { cmdSentryPoller } = lazy(() => require("./lib/sentry-poller"), ["cmdSentryPoller"]);
+const { cmdSentrycheck } = lazy(() => require("./lib/sentrycheck"), ["cmdSentrycheck"]);
+const { cmdSpecJudgeEvidence, cmdSpecJudgeAcceptBar } = lazy(() => require("./lib/spec-judge-evidence"), ["cmdSpecJudgeEvidence", "cmdSpecJudgeAcceptBar"]);
+const { cmdBuildReviewChurn } = lazy(() => require("./lib/build-review-churn"), ["cmdBuildReviewChurn"]);
+const { cmdReviewPrior } = lazy(() => require("./lib/review-prior"), ["cmdReviewPrior"]);
+const { cmdResumeStore } = lazy(() => require("./lib/resume-store"), ["cmdResumeStore"]);
+const { cmdBuildReviewConvergence } = lazy(() => require("./lib/build-review-convergence"), ["cmdBuildReviewConvergence"]);
+const { cmdBuildJudgeEvidence } = lazy(() => require("./lib/build-judge-evidence"), ["cmdBuildJudgeEvidence"]);
+const { cmdSpecReview } = lazy(() => require("./lib/spec-review"), ["cmdSpecReview"]);
+const { cmdSpecReviewChurn } = lazy(() => require("./lib/spec-review-churn"), ["cmdSpecReviewChurn"]);
+const { cmdSpecReviewConvergence } = lazy(() => require("./lib/spec-review-convergence"), ["cmdSpecReviewConvergence"]);
+const { cmdSpecReviewIterationCap } = lazy(() => require("./lib/spec-review-iteration-cap"), ["cmdSpecReviewIterationCap"]);
+const { cmdSpecReviewPin, cmdSpecReviewDir } = lazy(() => require("./lib/spec-review-pin"), ["cmdSpecReviewPin", "cmdSpecReviewDir"]);
+const { cmdSpecReviewReputation } = lazy(() => require("./lib/spec-review-reputation"), ["cmdSpecReviewReputation"]);
+const { cmdSpecReviewWindow } = lazy(() => require("./lib/spec-review-window"), ["cmdSpecReviewWindow"]);
+const { cmdStageGuard } = lazy(() => require("./lib/stage"), ["cmdStageGuard"]);
+const { cmdState } = lazy(() => require("./lib/state"), ["cmdState"]);
+const { cmdTier } = lazy(() => require("./lib/tier"), ["cmdTier"]);
+const { cmdTracker } = lazy(() => require("./lib/tracker"), ["cmdTracker"]);
+const { cmdTurncheck } = lazy(() => require("./lib/turncheck"), ["cmdTurncheck"]);
+const { cmdValidateAdapters } = lazy(() => require("./lib/validate-adapters"), ["cmdValidateAdapters"]);
+const { cmdWorktreeCheck } = lazy(() => require("./lib/worktree-check"), ["cmdWorktreeCheck"]);
+const { cmdWorktreeHeal } = lazy(() => require("./lib/worktree-heal"), ["cmdWorktreeHeal"]);
+const { cmdWorktreePrune } = lazy(() => require("./lib/worktree-prune"), ["cmdWorktreePrune"]);
 
 // ===========================================================================
 // === region:shell — subcommand registry + main dispatch ===
@@ -185,6 +207,7 @@ const COMMANDS = {
   "labels": cmdLabels,
   "label": cmdLabel,
   "eligible": cmdEligible,
+  "discovered-scope-priority": cmdDiscoveredScopePriority,
   "claim-verdict": cmdClaimVerdict,
   "park-verdict": cmdParkVerdict,
   "punt-scan": cmdPuntScan,
@@ -209,12 +232,16 @@ const COMMANDS = {
   "branch-protection-check": cmdBranchProtectionCheck,
   "github-auth-check": cmdGithubAuthCheck,
   "ci-triage": cmdCiTriage,
+  land: cmdLand,
+  spec: cmdSpec,
   "post-merge-check": cmdPostMergeCheck,
   "pr-body": cmdPrBody,
   "governance-check": cmdGovernanceCheck,
   "evidence-readiness": cmdEvidenceReadiness,
   "landing-comment": cmdLandingComment,
   "harness": (args) => cmdHarness(args, COMMANDS),
+  "version": cmdVersion,
+  "github-templates": cmdGithubTemplates,
   "native-map": cmdNativeMap,
   "next": cmdNext,
   "project-next": cmdProjectNext,
@@ -356,7 +383,7 @@ module.exports = {
   // FAFF-843: foldCorrectiveAuthority — the digest-custody composition fold — is
   // exported alongside for the same reason (its custody-trusted branch is likewise
   // unfakeable via a CLI child process).
-  CORRECTIVE_OPS, foldCorrectiveAuthority, foldCorrectiveConstraints, validateCorrectiveInput,
+  get CORRECTIVE_OPS() { return loadCORRECTIVE_OPS(); }, foldCorrectiveAuthority, foldCorrectiveConstraints, validateCorrectiveInput,
   // FAFF-538: the COMMANDS registry keys are the single source of truth for the live
   // top-level verb set — exported so the scaffolder-cli-surface drift-guard imports the
   // verb list instead of re-listing it (require.main guard above keeps this import from

@@ -1,0 +1,262 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "Given a spec file whose only open decisions are two dash-listed Punt lines with no tags / When `faff punt-scan` is run on it / Then it reports two Punts and blocking_open_count equal to 2, where it reported none before",
+      "verified": "CLI ticket repro: two listed untagged Punts report blocking_open_count 2 (test passes)",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::CLI: two listed untagged Punts report blocking_open_count 2 (the ticket repro)"
+        }
+      ]
+    },
+    {
+      "ac": "Given the same Punt text written once as a plain line and once behind each list form / When `faff punt-scan` is run on each file / Then all of the outputs are byte-identical",
+      "verified": "parametrised per-form equality tests pass for all seven forms (14 tests)",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::dash: a listed Punt equals its flush-left twin (**Punt:** repeat-park collapse…)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::nested ordered: a listed Punt equals its flush-left twin (**Punt:** cron vs queue — needs…)"
+        }
+      ]
+    },
+    {
+      "ac": "Given a spec with an OUT OF SCOPE item and a listed Punt tagged non-blocking whose topic names that item / When `faff punt-scan` is run on it / Then the Punt is eligible and blocking_open_count is 0",
+      "verified": "listed non-blocking Punt with crossref is eligible, blocking_open_count 0 (test passes)",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::a listed Punt tagged non-blocking with an OUT OF SCOPE crossref is eligible"
+        }
+      ]
+    },
+    {
+      "ac": "`faff punt-scan records/specs/2026-06-22-FAFF-11-engineering-quality-gates-design.md` reports two Punts and `blocking_open_count` 2, where it previously reported an empty list and 0.",
+      "verified": "new punt-scan on the FAFF-11 spec prints 2 Punts, blocking_open_count 2 (old: empty, 0)",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff punt-scan records/specs/2026-06-22-FAFF-11-engineering-quality-gates-design.md"
+        }
+      ]
+    },
+    {
+      "ac": "Loosening guard: with the pre-change `punt-scan.js` saved from the base commit to a temporary path (`git show HEAD:plugin/skills/faff/bin/lib/punt-scan.js`, with its two sibling requires alongside), running old and new over every file in `records/specs/` shows, for each file, `new.blocking_open_count >= old.blocking_open_count` and `new.eligible_count >= old.eligible_count`. A rise is expected for the 56 listed-Punt specs and is not a failure; the check exists to catch an accidental loosening of eligibility, which the monotone design forbids. A failure to load the old module or to read a file fails the check; it is never caught and counted as a pass. The permanent encoding of the same property is the per-form equality test, which pins that recognition changes no classification; the guard is the one-off proof over the real corpus.",
+      "verified": "old vs new over 902 files in records/specs: 56 rise, 0 loosen (old module saved via git show HEAD:)",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node loosening-guard over records/specs (old punt-scan.js from git show HEAD)"
+        }
+      ]
+    },
+    {
+      "ac": "A listed Punt and its twin (the same words with everything before the bold token removed, indentation included) produce byte-identical `faff punt-scan` output, for each of the seven accepted forms enumerated in the WHAT section.",
+      "verified": "per-form equality tests pass for all seven forms; smoke de-prefix output byte-identical",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::dash: a listed Punt equals its flush-left twin (**Punt:** repeat-park collapse…)"
+        }
+      ]
+    },
+    {
+      "ac": "The list-marker rule is written once, as `LIST_ITEM_PREFIX`; `PUNT_LINE_RE` is composed from it, and `puntScan` obtains each remainder through `matchPuntStart`.",
+      "verified": "LIST_ITEM_PREFIX single definition; PUNT_LINE_RE composed from it; puntScan calls matchPuntStart (diff review)",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main -- plugin/skills/faff/bin/lib/punt-scan.js"
+        }
+      ]
+    },
+    {
+      "ac": "`matchPuntStart` is exported from `punt-scan.js` and returns the remainder without the list prefix or indentation, or null, and nothing else new is exported.",
+      "verified": "matchPuntStart exported, only new export, returns remainder or null (test passes)",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::matchPuntStart returns the remainder without the prefix or the indentation"
+        }
+      ]
+    },
+    {
+      "ac": "The printed `PuntScanResult` shape, the CLI flags, and the exit codes are unchanged.",
+      "verified": "PuntScanResult shape, flags, exit codes unchanged (existing CLI tests pass)",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::CLI emits PuntScanResult JSON on stdout for a spec file"
+        }
+      ]
+    },
+    {
+      "ac": "The `punt-scan` row in `docs/guide/cli.md` names the accepted list forms, and `faff lint-cli-doc` still passes.",
+      "verified": "cli.md row names the list forms; faff lint-cli-doc PASS (141 documented)",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-doc"
+        }
+      ]
+    },
+    {
+      "ac": "`faff punt-scan --selftest` exits 0 and includes a row for each of: dash, star, plus, ordered dot, ordered paren, nested dash, nested ordered, ten-digit negative, listed-eligible, listed tag order, the ticket repro, inline mention, backticked, listed Chosen.",
+      "verified": "faff punt-scan --selftest exits 0 with 14 new rows (23 cases pass)",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff punt-scan --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "A listed Punt tagged non-blocking with an OUT OF SCOPE crossref is eligible and does not raise `blocking_open_count`.",
+      "verified": "listed-eligible selftest row + test pass",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::a listed Punt tagged non-blocking with an OUT OF SCOPE crossref is eligible"
+        }
+      ]
+    },
+    {
+      "ac": "A line that mentions the token mid-line, in backticks, or on a Chosen marker is not counted as a Punt.",
+      "verified": "inline-mention, backticked and listed-Chosen selftest rows + matchPuntStart rejection test pass",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::matchPuntStart rejects non-Punt-start lines"
+        }
+      ]
+    },
+    {
+      "ac": "If FAFF-1340 has landed: a wrapped listed Punt reads identical to its single-line form, and a listed Punt followed by a listed Chosen line carrying a non-blocking tag does not absorb that tag.",
+      "verified": "FAFF-1340 has not landed (loop single-line); condition not applicable, satisfied vacuously",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'ends at a blank line' plugin/skills/faff/bin/lib/punt-scan.js"
+        }
+      ]
+    },
+    {
+      "ac": "If FAFF-1340 has not landed: `matchPuntStart` carries a code comment stating the continuation-terminator contract.",
+      "verified": "code comment above matchPuntStart states the continuation-terminator contract",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'Contract for any continuation-aware parse' plugin/skills/faff/bin/lib/punt-scan.js"
+        }
+      ]
+    },
+    {
+      "ac": "A bare line-start Punt yields the same marker it did before the change.",
+      "verified": "existing bare-Punt selftest rows and tests unchanged and green",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::bare tag AND out-of-scope crossref → eligible"
+        }
+      ]
+    },
+    {
+      "ac": "An ordered marker with ten digits is not recognised.",
+      "verified": "ten-digit marker: selftest row + matchPuntStart rejection test pass",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/punt-scan.test.mjs::matchPuntStart rejects non-Punt-start lines"
+        }
+      ]
+    },
+    {
+      "ac": "`faff regions check` and `faff regions selftest` pass with `punt-scan` classified as before.",
+      "verified": "faff regions check exit 0; regions selftest factory 122/0 and governance 19/0 pass",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        }
+      ]
+    },
+    {
+      "ac": "No file under `plugin/skills/faffidavit-routing/`, `plugin/skills/faffter-noon-spec/`, or `plugin/skills/faffter-dark-nlspec/` is in the change set.",
+      "verified": "git diff --name-only shows only cli.md, punt-scan.js, punt-scan.test.mjs",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --name-only origin/main...HEAD"
+        }
+      ]
+    },
+    {
+      "ac": "`extractOutOfScopeItemKeys` is unchanged.",
+      "verified": "extractOutOfScopeItemKeys untouched in the diff",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main -- plugin/skills/faff/bin/lib/punt-scan.js"
+        }
+      ]
+    },
+    {
+      "ac": "`test/punt-scan.test.mjs` passes, including the parametrised per-prefix equality test, the `matchPuntStart` test, and the CLI repro test.",
+      "verified": "node --test test/punt-scan.test.mjs: 35/35 pass; full suite 7319 pass, 0 fail",
+      "passed": true,
+      "ac_id": null,
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/punt-scan.test.mjs"
+        }
+      ]
+    }
+  ]
+}

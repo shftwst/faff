@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "run_id": "run-20261026-031227-fly-l3",
+  "level": "L3",
+  "admitted": [
+    "FAFF-1385",
+    "FAFF-1374",
+    "FAFF-1363",
+    "FAFF-1271",
+    "FAFF-1016",
+    "FAFF-1309",
+    "FAFF-1364"
+  ],
+  "outcomes": {
+    "FAFF-1145": "parked",
+    "FAFF-1037": "parked",
+    "FAFF-1361": "routed-out",
+    "FAFF-1374": "shipped"
+  },
+  "base_sha": "61e84b136bb647cc82d6f868e475a39bb000e162",
+  "base_sha_required": true,
+  "owner": {
+    "status": "running",
+    "session_id": "run-20261026-031227-fly-l3",
+    "pid": 611,
+    "started_at": "2026-10-26T03:15:25.733Z",
+    "last_heartbeat": "2026-10-26T03:15:25.733Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "budget": {
+    "measure_session_id": "dcc7f361-d7e4-44ef-905f-5541361b2a5b",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 90,
+        "output": 53145,
+        "cache_write_5m": 0,
+        "cache_write_1h": 426697,
+        "cache_read": 8422446
+      }
+    },
+    "tokens_at_start": 8902378,
+    "tokens_at_last_event": {
+      "input": 584,
+      "output": 607720,
+      "cache_write_5m": 0,
+      "cache_write_1h": 1377118,
+      "cache_read": 99989929
+    }
+  },
+  "outcome_details": {
+    "FAFF-1361": {
+      "disposition": "inadmissible",
+      "reason": "R1.scenarios: 0 born-verifiable (### Scenarios h3 in sec.3 collides with ## 5. Scenarios h2); R3 no runnable check; R4 heading-level mismatch",
+      "fix": "relevel/rename the colliding ### Scenarios heading so the matcher resolves to ## 5. Scenarios"
+    },
+    "FAFF-1374": {
+      "pr": 1126,
+      "head_sha": "aa10d1a28cfb1a7178880babca9599d9d4cfe5eb",
+      "review": "pass",
+      "ac": "8/8",
+      "ci": "green"
+    }
+  },
+  "evidence_persisted": [
+    {
+      "issue": "FAFF-1374",
+      "ac_sha256": "19d591e7ad7d444c5bd50b596ed527159f87a6d5be6005469ce415757d08c822",
+      "review_verdict_sha256": "72957e05b6fdd3a4476a646b1a6b5998d1819416ca2f598c8466b4f724f35d19"
+    }
+  ]
+}

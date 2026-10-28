@@ -34,7 +34,7 @@ const HOLDOUT_SURFACE = {
     record: { required_flags: ["--issue", "--spec"] },
   },
 };
-const { SPEC_REVIEW_LENSES, computeHoldoutVerdictsMap, holdoutGateResult } = require("./contract-defs");
+const { SPEC_REVIEW_LENSES, computeHoldoutVerdict, computeHoldoutVerdictsMap, holdoutGateResult } = require("./contract-defs");
 const { loadConfig } = require("./config");
 const { assembleAdversarialBackends } = require("./adversarial-backends");
 const { ISSUE_ID_RE, parseLocalAcId, qualifyAcId } = require("./ac-id");
@@ -112,6 +112,9 @@ function isHoldoutFenceOpen(line) {
 // switching on the three-value `class`, exactly what FAFF-812 rejected for `oracle_less`). FAFF-962
 // widens the enum with `not-yet-reachable` + its deferred-with-obligation carrier.
 //
+// FAFF-1360 adds one precedence step after the prose-DONE rule: a non-prose DONE item that names a
+// repository test file or a module export is `integration` (see codeSurfaceSignal), ahead of the keyword list.
+//
 // A fence-open line whose info string is EXACTLY `integration` (case-insensitive) — every criterion
 // unit formed inside it is integration-tier. Mirrors isHoldoutFenceOpen.
 function isIntegrationFenceOpen(line) {
@@ -129,15 +132,55 @@ const INTEGRATION_TIER_MARKERS = [
   "revert the migration", "reverse the migration", "reversible migration",
 ];
 
+// FAFF-1360: a non-prose DONE item that names a repository test file, or says a symbol is exported
+// from a module, checks something the code-blind evaluator can never observe. A false match removes a
+// criterion from the holdout, so each signal stays narrow and grows only from real misses.
+const TEST_FILE_TOKEN_RE = /[\w.-]+(?:\.test|\.spec|_test|_spec)\.(?:[cm]?[jt]sx?|py|go|rb|rs|java|kt|swift|sh|bats)\b|\btest_\w+\.py\b/;
+const IDENT_RE = /^[A-Za-z_$][\w$]*$/;
+const SOURCE_FILE_RE = /^[\w.\/-]+\.(?:[cm]?[jt]sx?|py|go|rb|rs|java|kt|swift|sh|bats)$/;
+const SENTINEL = "\u0001";
+const MASK_ID = `${SENTINEL}ID${SENTINEL}`;
+const MASK_SRC = `${SENTINEL}SRC${SENTINEL}`;
+const MASK_IDS = `${MASK_ID}(?:\\s*(?:,|and)\\s*${MASK_ID})*`;
+const EXPORT_CLAUSE_RES = [
+  new RegExp(`(?:^|[.;:!?]\\s+)export\\s+${MASK_ID}`, "i"),
+  new RegExp(`\\bexported\\s+${MASK_ID}\\s*(?:'s\\b|(?:function|method|class|constant|helper|symbol)\\b)`, "i"),
+  new RegExp(`${MASK_IDS}\\s+(?:is|are)\\s+exported\\s+from\\b`, "i"),
+  new RegExp(`${MASK_SRC}\\s+exports?\\s+${MASK_ID}`, "i"),
+];
+
+// "Export `x` to a file" moves data, not a module symbol.
+const DATA_EXPORT_RE = new RegExp(`(?:^|[.;:!?]\\s+)export\\s+${MASK_IDS}\\s+(?:to|into|onto|as)\\b`, "i");
+
+function maskCodeSpans(text) {
+  return String(text).split(SENTINEL).join(" ").replace(/`([^`]*)`/g, (_, code) => {
+    if (IDENT_RE.test(code)) return ` ${MASK_ID} `;
+    if (SOURCE_FILE_RE.test(code)) return ` ${MASK_SRC} `;
+    return ` ${SENTINEL}CODE${SENTINEL} `;
+  });
+}
+
+// Pure. "test-file" | "export" | null, from criterion text with the leading [ac-N] already removed.
+function codeSurfaceSignal(text) {
+  const t = String(text == null ? "" : text);
+  if (TEST_FILE_TOKEN_RE.test(t)) return "test-file";
+  const masked = maskCodeSpans(t);
+  if (!DATA_EXPORT_RE.test(masked) && EXPORT_CLAUSE_RES.some((re) => re.test(masked))) return "export";
+  return null;
+}
+
 // Pure. Resolves a criterion's verification tier by precedence: an explicit marker (from the parser)
-// wins over an INTEGRATION_TIER_MARKERS keyword hit, which wins over the running-stack default.
+// wins over a code-surface DONE item (FAFF-1360, step 3), which wins over an INTEGRATION_TIER_MARKERS
+// keyword hit, which wins over the running-stack default.
 // FAFF-1291: a prose DONE criterion is `delegated` (its verifier is the AC checklist, which receives
 // DONE items by id); the rule sits between the explicit marker and the keyword check, so a prose DONE
 // item that names a rollback is still delegated, not integration. A prose Scenarios unit stays
-// running-stack: no verifier receives a Scenarios unit by id.
+// running-stack: no verifier receives a Scenarios unit by id. Step 3 (FAFF-1360) tiers a DONE item with
+// a code-surface signal `integration`; a Scenarios unit is the holdout's own material and never matches.
 function resolveVerificationTier(text, markerTier, criterion) {
   if (markerTier) return markerTier;
   if (criterion && criterion.class === "prose" && criterion.source === "done") return "delegated";
+  if (criterion && criterion.source === "done" && codeSurfaceSignal(text) !== null) return "integration";
   const lc = String(text == null ? "" : text).toLowerCase();
   if (INTEGRATION_TIER_MARKERS.some((k) => lc.includes(k))) return "integration";
   return "running-stack";
@@ -254,7 +297,7 @@ function dodClassify(specText, opts) {
     // DONE item is left LITERAL (no strip, holdout stays false) and draws an advisory, never a strip/removal.
     if (/^holdout:\s*/i.test(t)) doneAdvisories.push(t);
     criteria.push({ text: t, class: classifyCriterion(t), source: "done", holdout: false });
-    markerTiers.push(null);                                     // FAFF-961: DONE items carry no tier marker (mirrors the holdout-literal rule); keyword/default still applies below
+    markerTiers.push(null);                                     // FAFF-961: DONE items carry no tier marker (mirrors the holdout-literal rule); the FAFF-1360 code-surface step, then keyword/default, still apply below
   }
   for (const t of doneAdvisories) {
     process.stderr.write(`dod classify: DONE item begins "holdout:" but DONE items are never withheld (marker ignored, text kept literal): ${t.replace(/\s+/g, " ").slice(0, 60)}\n`);
@@ -649,6 +692,67 @@ function oracleLessAdvisory(specText) {
   return { count: oracleLess.length, items: oracleLess };
 }
 
+// --- code-surface advisory (FAFF-1360) ---
+const MIXED_SURFACE_RE = /\b(?:exits?|exited|exit code|exit status|stdout|stderr|https?)\b/i;
+
+// Pure: DONE items sent to the test floor by a code-surface signal, or null when there are none.
+function codeSurfaceAdvisory(specText) {
+  let classified;
+  try { classified = dodClassify(specText); } catch (e) { return null; }
+  const items = classified.criteria.filter((c) => c.source === "done" && c.verification_tier === "integration" && codeSurfaceSignal(c.text) !== null);
+  if (items.length === 0) return null;
+  return { count: items.length, items, mixed: items.filter((c) => MIXED_SURFACE_RE.test(c.text)) };
+}
+
+function renderCodeSurfaceWarning(adv) {
+  const trunc = (s) => String(s).replace(/\s+/g, " ").trim().slice(0, 50);
+  let s = `code-surface advisory: ${adv.count} DONE item(s) name a repository test file or an exported symbol and go to the review/merge test floor, not the holdout: ${adv.items.map((c) => trunc(c.text)).join(" | ")}`;
+  if (adv.mixed.length > 0) {
+    s += `  (${adv.mixed.length} also name CLI or HTTP behaviour; state that behaviour as its own DONE item so the holdout judges it: ${adv.mixed.map((c) => trunc(c.text)).join(" | ")})`;
+  }
+  return s;
+}
+
+// --- scenarios code-surface advisory (FAFF-1364) ---
+// Pure: Scenarios units whose check is a repository test file, or null when there are none. Mirrors
+// codeSurfaceAdvisory but filters source==="scenarios" and does NOT filter on verification_tier — a
+// Scenarios test-file unit stays running-stack (ADR-0140: no verifier other than the holdout receives
+// a Scenarios unit by id, so there is nowhere to retier it to). Reuses codeSurfaceSignal, never a
+// second pattern (FAFF-1360's TEST_FILE_TOKEN_RE stays the one detection home).
+function scenariosCodeSurfaceAdvisory(specText) {
+  let classified;
+  try { classified = dodClassify(specText); } catch (e) { return null; }
+  const items = classified.criteria.filter((c) => c.source === "scenarios" && codeSurfaceSignal(c.text) === "test-file");
+  if (items.length === 0) return null;
+  return { count: items.length, items };
+}
+
+function renderScenariosCodeSurfaceWarning(adv) {
+  const trunc = (s) => String(s).replace(/\s+/g, " ").trim().slice(0, 50);
+  return `scenarios-code-surface advisory: ${adv.count} Scenarios unit(s) name a repository test file the code-blind holdout cannot run; restate the behaviour as an observable Given/When/Then and move the test-file check to a DONE item: ${adv.items.map((c) => trunc(c.text)).join(" | ")}`;
+}
+
+// --- scenarios prose advisory (FAFF-1293) ---
+// Pure: Scenarios units dodClassify puts in the prose class (no Then, no MUST, no comparator), in classify
+// order, or null when there are none. A prose Scenarios unit has no delegate verifier (ADR-0140: the AC
+// checklist receives DONE items by id, never Scenarios units) and a holdout-marked one is also withheld
+// from the builder view, so it checks nothing. Reads dodClassify's class/holdout fields only — never a
+// second prose detector (classifyCriterion stays the one class rule). Advisory: never flips admissible.
+function scenariosProseAdvisory(specText) {
+  let classified;
+  try { classified = dodClassify(specText); } catch (e) { return null; }
+  const items = classified.criteria.filter((c) => c.source === "scenarios" && c.class === "prose");
+  if (items.length === 0) return null;
+  return { count: items.length, holdout: items.filter((c) => c.holdout === true).length, items };
+}
+
+function renderScenariosProseWarning(adv) {
+  const trunc = (s) => String(s).replace(/\s+/g, " ").trim().slice(0, 50);
+  const clause = adv.holdout >= 1 ? `; ${adv.holdout} of them are holdout-marked and withheld from the builder, so they check nothing` : "";
+  const named = adv.items.map((c) => `${c.id}${c.holdout === true ? " (holdout)" : ""} ${trunc(c.text)}`).join(" | ");
+  return `scenarios-prose advisory: ${adv.count} Scenarios unit(s) are prose (no Then, no MUST or comparator) and cannot be judged code-blind${clause}; restate each as a Given/When/Then with an observable Then: ${named}`;
+}
+
 // Render the single-line advisory (deterministic "oracle-less-assertion advisory:" prefix). Items
 // whitespace-collapsed + truncated ~50 chars, mirroring renderProseDoneWarning's style.
 function renderOracleLessWarning(adv) {
@@ -679,6 +783,12 @@ function admissibleVerdict(specText, lightsOut) {
   const adv = proseDoneAdvisory(specText);                 // FAFF-304: predict the evaluator's prose-DONE punts
   if (adv) warnings.push(renderProseDoneWarning(adv));     // advisory only — never flips admissible
   if (adv && adv.allProseDone && adv.judged === 0) warnings.push("prose-DONE advisory: every DONE item is loose prose and nothing is judged, so nothing in DONE will be judged code-blind (it rests on the AC checklist and review)");  // FAFF-1291
+  const surfaceAdv = codeSurfaceAdvisory(specText);        // FAFF-1360: advisory only; never flips admissible
+  if (surfaceAdv) warnings.push(renderCodeSurfaceWarning(surfaceAdv));
+  const scenAdv = scenariosCodeSurfaceAdvisory(specText);  // FAFF-1364: advisory only; never flips admissible
+  if (scenAdv) warnings.push(renderScenariosCodeSurfaceWarning(scenAdv));
+  const proseAdv = scenariosProseAdvisory(specText);       // FAFF-1293: advisory only; never flips admissible
+  if (proseAdv) warnings.push(renderScenariosProseWarning(proseAdv));
   const admissible = checks.every((c) => c.pass);
   const reasons = checks.filter((c) => !c.pass).map((c) => c.detail);
   return { admissible, reasons, checks, warnings };
@@ -745,6 +855,17 @@ function admissibleSelftest() {
     { name: "FAFF-304 born-verifiable-DONE-no-advisory", text: ADMISSIBLE_GOOD, lights: true, wantAdmissible: true, wantAdvisory: false },
     { name: "FAFF-304 duplicate-annotation-present (2 restate a scenario)", text: ADMISSIBLE_DUP_DONE, lights: true, wantAdmissible: true, wantAdvisory: true, wantAdvisoryCount: 3, wantDuplicate: true },
     { name: "FAFF-304 advisory-never-flips-admissible (prose DONE stays admissible)", text: ADMISSIBLE_PROSE_DONE, lights: true, wantAdmissible: true, wantAdvisory: true },
+    // FAFF-1364: a Scenarios unit whose check is a repository test file fires the new advisory,
+    // never flipping admissible. A CLI-only Scenarios unit and a well-formed GWT unit yield no
+    // scenarios-code-surface warning — the signal is narrow (test-file token only).
+    { name: "FAFF-1364 scenarios-code-surface-fires (test-file in Scenarios)", text: "## Scenarios\n```\nGiven a\nWhen b\nThen `test/a.test.mjs` MUST pass\n```\n\n## 8. DONE\n\n- [ ] the parser returns >=1 item\n", lights: true, wantAdmissible: true, wantWarnMatch: /^scenarios-code-surface advisory:/ },
+    { name: "FAFF-1364 scenarios-code-surface-silent (CLI-only Scenarios unit)", text: "## Scenarios\n```\nGiven a\nThen `faff x` MUST exit 0\n```\n\n## 8. DONE\n\n- [ ] the parser returns >=1 item\n", lights: true, wantAdmissible: true, wantNoScenariosSurfaceWarn: true },
+    { name: "FAFF-1364 scenarios-code-surface-silent (well-formed GWT)", text: ADMISSIBLE_GOOD, lights: true, wantAdmissible: true, wantNoScenariosSurfaceWarn: true },
+    // FAFF-1293: a holdout-fenced Given/When block with no Then is a prose Scenarios unit — the advisory names it
+    // with the (holdout) tag and never flips admissible. A well-formed GWT unit and a MUST assertion bullet stay silent.
+    { name: "FAFF-1293 scenarios-prose-fires (holdout Given/When, no Then)", text: "## Scenarios\n```\nGiven a\nWhen b\nThen c MUST hold\n```\n\n```holdout\nGiven a withheld case\nWhen the CLI runs\n```\n\n## 8. DONE\n\n- [ ] the parser returns >=1 item\n", lights: true, wantAdmissible: true, wantWarnMatch: /^scenarios-prose advisory: 1 Scenarios unit\(s\).*; 1 of them are holdout-marked.*scenarios:2 \(holdout\) Given a withheld case/ },
+    { name: "FAFF-1293 scenarios-prose-silent (well-formed GWT)", text: ADMISSIBLE_GOOD, lights: true, wantAdmissible: true, wantNoScenariosProseWarn: true },
+    { name: "FAFF-1293 scenarios-prose-silent (MUST assertion bullet)", text: "## Scenarios\n\n- p99 latency MUST be < 200ms\n\n## 8. DONE\n\n- [ ] the parser returns >=1 item\n", lights: true, wantAdmissible: true, wantNoScenariosProseWarn: true },
   ];
   let failed = 0;
   for (const c of cases) {
@@ -755,6 +876,8 @@ function admissibleSelftest() {
     if (ok && c.wantWarn === false) ok = v.warnings.length === 0;
     if (ok && c.wantWarnMatch) ok = v.warnings.some((w) => c.wantWarnMatch.test(w));    // FAFF-306
     if (ok && c.wantNoLevelWarn) ok = !v.warnings.some((w) => /different levels/.test(w));  // FAFF-306
+    if (ok && c.wantNoScenariosSurfaceWarn) ok = !v.warnings.some((w) => w.startsWith("scenarios-code-surface advisory:"));  // FAFF-1364
+    if (ok && c.wantNoScenariosProseWarn) ok = !v.warnings.some((w) => w.startsWith("scenarios-prose advisory:"));  // FAFF-1293
     // FAFF-304: the prose-DONE punt-prediction advisory (a warnings[] string, never gating)
     const advWarn = v.warnings.find((w) => w.startsWith("prose-DONE advisory:"));
     if (ok && c.wantAdvisory === true) ok = !!advWarn;
@@ -1050,6 +1173,39 @@ function dodSelftest() {
   check("FAFF-961: precedence — an explicit marker wins even when no keyword is present", resolveVerificationTier("the endpoint returns 200", "integration") === "integration");
   check("FAFF-961: a bare 'migration'/'database' mention is NOT integration (running-stack default holds)", resolveVerificationTier("the migration applies and the database has the row", null) === "running-stack");
   check("FAFF-961: a marker-free spec assigns running-stack to every criterion", dodClassify(ADMISSIBLE_GOOD).criteria.every((c) => c.verification_tier === "running-stack"));
+  // --- FAFF-1360: code-surface DONE items go to the test floor ---
+  const doneCrit = (t) => ({ source: "done", class: "assertion", text: t });
+  const d3 = "`test/faff-1353-write-core-issue-scoped.test.mjs` and `test/events.test.mjs` pass unmodified, and `faff events append` with `{\"phase\":\"run\",\"type\":\"decision-capture\",\"issue\":\"\"}` still exits 1 with one `- <violation>` stderr line per violation.";
+  const d8 = "A non-schema append failure still produces `journal append failed: <message>`: called with `{code: \"EVENTS_LOCKED\", message: \"m\"}`, `reportAppendFailure` writes a note whose reason is `journal append failed: m`. Export `reportAppendFailure` and `lineSafe` for the unit tests, as `effects-reconcile.js` exports `sanitizeDetail`.";
+  const signalCases = [
+    [d3, "test-file"], [d8, "export"],
+    ["`pkg/store_test.go` MUST pass", "test-file"],
+    ["`parseLimit` and `formatLimit` are exported from `lib/limit.js`, and `parseLimit` MUST reject a negative limit", "export"],
+    ["The exported `runShardedRung`'s new `concurrency` parameter defaults to single-wave", "export"],
+    ["the `summary` field is exported to the CSV", null],
+    ["The CSV export `path` MUST default to stdout", null],
+    ["Export `results` to a CSV after the run.", null],
+    ["On success: export `summary` to stdout.", null],
+    ["`faff export` MUST write `out.json`", null],
+    ["the CSV export `report.csv` MUST have a header row", null],
+    ["the service MUST answer 200 on `http://app.test.internal/healthz`", null],
+    ["\u0001ID\u0001 is exported from x", null],
+    ["`faff events append` MUST exit 1 on an empty issue", null],
+    ["`test/decision-capture.test.mjs:172-215` MUST pass", "test-file"],
+  ];
+  for (const [t, want] of signalCases) check(`FAFF-1360: codeSurfaceSignal(${JSON.stringify(t.slice(0, 40))}) === ${want}`, codeSurfaceSignal(t) === want);
+  check("FAFF-1360: an explicit marker beats a code-surface DONE item", resolveVerificationTier("`a.test.mjs` MUST pass", "running-stack", doneCrit("x")) === "running-stack");
+  check("FAFF-1360: a prose DONE item naming a test file stays delegated", resolveVerificationTier("`a.test.mjs` pass", null, { source: "done", class: "prose" }) === "delegated");
+  check("FAFF-1360: a Scenarios unit naming a test file stays running-stack", resolveVerificationTier("`a.test.mjs` MUST pass", null, { source: "scenarios", class: "assertion" }) === "running-stack");
+  check("FAFF-1360: no criterion argument keeps today's result", resolveVerificationTier("`a.test.mjs` MUST pass", null) === "running-stack");
+  check("FAFF-1360: a code-surface assertion DONE item is integration", resolveVerificationTier(d3, null, doneCrit(d3)) === "integration");
+  const cliOnly = dodClassify(["## Scenarios", "", "- `test/a.test.mjs` MUST pass", "", "## 8. DONE", "", "- [ ] `faff events append` MUST exit 1 on an empty issue", ""].join("\n"));
+  check("FAFF-1360: a CLI-only DONE item and a Scenarios test-file unit stay running-stack/holdout", cliOnly.criteria.length === 2 && cliOnly.criteria.every((c) => c.verification_tier === "running-stack" && c.verifier === "holdout"));
+  const holdoutPrefixed = dodClassify(["## Scenarios", "", "- `faff x` MUST exit 0", "", "## 8. DONE", "", "- [ ] holdout: `x.test.mjs` MUST pass", ""].join("\n"));
+  const hp = holdoutPrefixed.criteria.find((c) => c.source === "done");
+  check("FAFF-1360: a holdout:-prefixed DONE item keeps its text, holdout false, and is integration", hp && hp.text.startsWith("holdout:") && hp.holdout === false && hp.verification_tier === "integration");
+  const lineRange = dodClassify(["## Scenarios", "", "- `faff x` MUST exit 0", "", "## 8. DONE", "", "- [ ] `test/decision-capture.test.mjs:172-215` MUST pass", ""].join("\n"));
+  check("FAFF-1360: a test-file token with a line range is integration", lineRange.criteria.find((c) => c.source === "done").verification_tier === "integration");
 
   if (failed) { console.log(`dod --selftest: FAIL (${failed} failed)`); return 1; }
   console.log("dod --selftest: ok"); return 0;
@@ -1350,6 +1506,24 @@ function holdoutVerdictsSelftest() {
   const g6 = holdoutGateResult({ aggregate: "gaps", code_blind: true, criteria: [{ class: "assertion", verdict: "met", evidence_present: true }, { class: "assertion", verdict: "unmet", evidence_present: true }], violations: [] });
   check("gate: gaps → block (reason=gaps)", g6.gate === "block" && g6.reason === "gaps");
 
+  // --- FAFF-1292: reason_code — the gate rollup + the contract cross-field rules ---
+  // gr1. a born-verifiable env gap (no-surface) is accepted + blocking, and rolls up in needs_human_reasons.
+  const gr1 = holdoutGateResult({ aggregate: "needs-human", code_blind: true, violations: [], criteria: [{ class: "assertion", verdict: "needs-human", evidence_present: false, reason_code: "no-surface" }, { class: "prose", verdict: "needs-human", evidence_present: false, reason_code: "human-only" }] });
+  check("gate: mixed no-surface+human-only → block + needs_human_reasons counts", gr1.gate === "block" && JSON.stringify(gr1.needs_human_reasons) === JSON.stringify({ "no-surface": 1, "human-only": 1 }));
+  // gr2. a legacy absent reason_code on a needs-human criterion counts under "unspecified" (never dropped).
+  const gr2 = holdoutGateResult({ aggregate: "needs-human", code_blind: true, violations: [], criteria: [{ class: "prose", verdict: "needs-human", evidence_present: false }] });
+  check("gate: legacy absent code → needs_human_reasons {unspecified:1}", gr2.gate === "block" && JSON.stringify(gr2.needs_human_reasons) === JSON.stringify({ unspecified: 1 }));
+  // gr3. zero needs-human criteria → needs_human_reasons absent.
+  check("gate: no needs-human criteria → needs_human_reasons absent", !("needs_human_reasons" in holdoutGateResult(JSON.parse(meets))));
+  // gr4. contract rules: a born-verifiable human-only, a prose non-human-only, a met carrying a code, an
+  //      out-of-enum code → each a violation; an absent code on needs-human is TOLERATED (no violation).
+  const cv = (crit, agg = "needs-human") => computeHoldoutVerdict({ aggregate: agg, code_blind: true, violations: [], criteria: [crit] }).contractData.violations;
+  check("contract: born-verifiable human-only → violation", cv({ class: "assertion", verdict: "needs-human", evidence_present: false, reason_code: "human-only" }).some((v) => v.includes("never human-only")));
+  check("contract: prose non-human-only → violation", cv({ class: "prose", verdict: "needs-human", evidence_present: false, reason_code: "no-surface" }).some((v) => v.includes("prose must be human-only")));
+  check("contract: met carrying a code → violation", cv({ class: "assertion", verdict: "met", evidence_present: true, reason_code: "no-surface" }, "meets-spec").some((v) => v.includes("carries a reason_code")));
+  check("contract: out-of-enum code → violation", cv({ class: "assertion", verdict: "needs-human", evidence_present: false, reason_code: "bogus" }).some((v) => v.includes("not in {")));
+  check("contract: absent code on needs-human → TOLERATED", cv({ class: "prose", verdict: "needs-human", evidence_present: false }).length === 0);
+
   // --- FAFF-384: the spawner-attestation ratchet threaded through both consumers ---
   const attested = JSON.stringify({ aggregate: "meets-spec", code_blind: true, criteria: [{ class: "assertion", verdict: "met", evidence_present: true }], violations: [], spawner_attested: true, attestation: { spawner: "evaluate-call.mjs", withheld: { repo: true, worktree_cwd: true, diff: true }, preflight: "pass" } });
   // gate: a self-attested meets-spec passes with the flag OFF (legacy) but BLOCKS with the flag ON.
@@ -1609,4 +1783,4 @@ function cmdSpecReviewLenses(args) {
 }
 
 
-module.exports = { ADMISSIBLE_DUP_DONE, ADMISSIBLE_GOOD, ADMISSIBLE_GOOD_NUMBERED, ADMISSIBLE_PROSE_DONE, ADMISSIBLE_SPEC, BANNED_VAGUE, DOD_CLASSIFY_SPEC, DOD_SPLIT_SPEC, DOD_SURFACE, DUP_THRESHOLD, HOLDOUT_RECORD_SPEC, HOLDOUT_SURFACE, HOLDOUT_VERDICTS_SPEC, HOLDOUT_VERDICT_SPEC, INTEGRATION_TIER_MARKERS, INTERNAL_SUBJECT_MARKERS, OBSERVABLE_TOKENS, PROSE_DONE_STOPWORDS, SCENARIOS_HEADING_RE, SPEC_REVIEW_ALL_LENSES, SPEC_REVIEW_LENSES_SPEC, SPEC_REVIEW_SURFACE_FIRES, SPEC_REVIEW_SURFACE_TAGS, acceptanceSection, admissibleSelftest, admissibleVerdict, classifyAcceptanceCriteria, classifyCriterion, cmdAdmissible, cmdDod, cmdDodSplit, cmdHoldout, cmdHoldoutRecord, cmdHoldoutVerdict, cmdSpecReviewLenses, detectRunnableCheck, dodClassify, dodSelftest, dodSplit, doneScenariosLevelWarning, firstHeadingLevelMatching, hasObservableOracle, headingLevel, holdoutRemovalSpans, holdoutVerdictsSelftest, isConfidenceLine, isDoneHeading, isHoldoutFenceOpen, isIntegrationFenceOpen, matchesBannedVague, opensContractFence, oracleLessAdvisory, parseDoneChecklist, parseScenarios, prdHasComparator, proseDoneAdvisory, proseDoneContainment, proseDoneTokens, renderOracleLessWarning, renderProseDoneWarning, resolveVerificationTier, scenariosBoundaryStop, sectionBody, sectionBodyRange, selectLenses, specReviewLensesSelftest };
+module.exports = { ADMISSIBLE_DUP_DONE, ADMISSIBLE_GOOD, ADMISSIBLE_GOOD_NUMBERED, ADMISSIBLE_PROSE_DONE, ADMISSIBLE_SPEC, BANNED_VAGUE, DOD_CLASSIFY_SPEC, DOD_SPLIT_SPEC, DOD_SURFACE, DUP_THRESHOLD, HOLDOUT_RECORD_SPEC, HOLDOUT_SURFACE, HOLDOUT_VERDICTS_SPEC, HOLDOUT_VERDICT_SPEC, INTEGRATION_TIER_MARKERS, INTERNAL_SUBJECT_MARKERS, OBSERVABLE_TOKENS, PROSE_DONE_STOPWORDS, SCENARIOS_HEADING_RE, SPEC_REVIEW_ALL_LENSES, SPEC_REVIEW_LENSES_SPEC, SPEC_REVIEW_SURFACE_FIRES, SPEC_REVIEW_SURFACE_TAGS, acceptanceSection, admissibleSelftest, admissibleVerdict, classifyAcceptanceCriteria, classifyCriterion, cmdAdmissible, codeSurfaceAdvisory, codeSurfaceSignal, cmdDod, cmdDodSplit, cmdHoldout, cmdHoldoutRecord, cmdHoldoutVerdict, cmdSpecReviewLenses, detectRunnableCheck, dodClassify, dodSelftest, dodSplit, doneScenariosLevelWarning, firstHeadingLevelMatching, hasObservableOracle, headingLevel, holdoutRemovalSpans, holdoutVerdictsSelftest, isConfidenceLine, isDoneHeading, isHoldoutFenceOpen, isIntegrationFenceOpen, matchesBannedVague, opensContractFence, oracleLessAdvisory, parseDoneChecklist, parseScenarios, prdHasComparator, proseDoneAdvisory, proseDoneContainment, proseDoneTokens, renderCodeSurfaceWarning, renderOracleLessWarning, renderProseDoneWarning, renderScenariosCodeSurfaceWarning, renderScenariosProseWarning, resolveVerificationTier, scenariosBoundaryStop, scenariosCodeSurfaceAdvisory, scenariosProseAdvisory, sectionBody, sectionBodyRange, selectLenses, specReviewLensesSelftest };

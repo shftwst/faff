@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1399",
+  "build": {
+    "status": "complete",
+    "diff_hash": "a443de9e281b601b115f0ac7c6591e2b099e9613182aed99ef6b662cbd1686a0",
+    "branch": "faff-1399-discovered-scope-carries-a-priority-and-each-filed-ticket-explains-its",
+    "pushed_at": "2026-10-26T15:04:09.810Z"
+  },
+  "updated_at": "2026-10-26T15:04:09.810Z"
+}

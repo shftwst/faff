@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "run_id": "run-20261027-020353-beepboop-list-18aac9",
+  "level": "L3",
+  "admitted": ["FAFF-1283"],
+  "outcomes": { "FAFF-1306": "routed-out" },
+  "outcome_details": {
+    "FAFF-1306": { "disposition": "inadmissible", "reasons": ["0 born-verifiable scenario(s) (need >=1)", "0 DONE checklist item(s) (need >=1)"] },
+    "FAFF-1403": { "disposition": "claimed-by-peer", "note": "In Review; PR #1135 open for human (dco + governance-check red, manual spot-check AC); built by prior run run-20261026-153646-beepboop-list-11b481" }
+  },
+  "base_sha": "3f7e2d474a1a34d06ee97d0cd5a5b574fb85d787",
+  "base_sha_required": true,
+  "owner": {
+    "status": "running",
+    "session_id": "run-20261027-020353-beepboop-list-18aac9",
+    "pid": 516,
+    "started_at": "2026-10-27T02:03:53.026Z",
+    "last_heartbeat": "2026-10-27T02:03:53.026Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "budget": {
+    "envelope": {
+      "ceilings": { "max_attempts": 40, "tokens": 3000000000 },
+      "at_ceiling": "escalate",
+      "pricing": "map"
+    },
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "f05ba921-3586-4ee7-ae17-8fd6540df7b3",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 68,
+        "output": 24370,
+        "cache_write_5m": 0,
+        "cache_write_1h": 371303,
+        "cache_read": 4955594
+      }
+    },
+    "tokens_at_start": 5351335
+  }
+}

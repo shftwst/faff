@@ -414,6 +414,20 @@ test("set with a deprecated-only map and a canonical directory already holding a
   assert.ok(!r.err.includes("git mv .faff-templates .faff/templates"));
 });
 
+test("set with a deprecated directory present but NO deprecated map file: the guard does not engage, so the directory-level notice still fires and the canonical map is written", () => {
+  const dir = tmpDir();
+  // .faff-templates/ holds some OTHER override but not native-templates.yaml → guardEngages is false.
+  mkdirSync(join(dir, ".faff-templates"), { recursive: true });
+  writeFileSync(join(dir, ".faff-templates", "bug.md"), "## other override\n");
+  const r = runFull(dir, SET_ARGS, BUG_PAYLOAD);
+  assert.equal(r.code, 0, r.err);
+  // The migration nudge for the other overrides is preserved (guard did not engage).
+  assert.match(r.err, /template overrides at \.faff-templates\/ are deprecated/);
+  assert.ok(r.err.includes("git mv .faff-templates .faff/templates"), "the whole-directory notice must still fire when the guard does not engage");
+  // The canonical map is written (the deprecated map file was absent, so there was nothing to shadow).
+  assert.ok(existsSync(join(dir, MAP_REL)), "the canonical map is written");
+});
+
 test("set --force with a deprecated-only map writes the canonical path, leaves the old file, and names it", () => {
   const dir = tmpDir();
   writeDeprecatedMap(dir);
@@ -424,6 +438,32 @@ test("set --force with a deprecated-only map writes the canonical path, leaves t
   assert.match(r.out, /\.faff-templates\/native-templates\.yaml is deprecated and was left in place/);
 });
 
+test("set --force --json on a deprecated-only map carries deprecated_left_in_place in the JSON line", () => {
+  const dir = tmpDir();
+  writeDeprecatedMap(dir);
+  const r = runFull(dir, [...SET_ARGS, "--force", "--json"], BUG_PAYLOAD);
+  assert.equal(r.code, 0, r.err);
+  const parsed = JSON.parse(r.out);
+  assert.equal(parsed.wrote, true);
+  assert.equal(parsed.deprecated_left_in_place, ".faff-templates/native-templates.yaml");
+});
+
+test("set --dry-run --force on a deprecated-only map exits 0, previews, writes nothing, advises the left-in-place outcome, and suppresses the whole-directory notice", () => {
+  const dir = tmpDir();
+  writeDeprecatedMap(dir);
+  const r = runFull(dir, [...SET_ARGS, "--dry-run", "--force"], BUG_PAYLOAD);
+  assert.equal(r.code, 0, r.err);
+  assert.equal(existsSync(join(dir, ".faff")), false, "a dry run writes nothing — no .faff/ directory");
+  assert.ok(r.out.startsWith("# .faff/templates/native-templates.yaml "), "stdout carries the canonical-header preview");
+  // FAFF-1319 nit 1: the --dry-run --force preview now predicts the real run's left-in-place outcome.
+  assert.match(r.err, /faff native-map set --dry-run \(advisory,/);
+  assert.match(r.err, /in place/);
+  assert.ok(r.err.includes(".faff/templates/native-templates.yaml"), "names the canonical path to be written");
+  assert.ok(r.err.includes(".faff-templates/native-templates.yaml"), "names the deprecated path to be left in place");
+  // FAFF-1319 nit 2: no redundant whole-directory migration command in the guard-engages window.
+  assert.ok(!r.err.includes("git mv .faff-templates .faff/templates"));
+});
+
 test("set --dry-run prints the preview with the canonical header and writes nothing", () => {
   const dir = tmpDir();
   const r = runFull(dir, [...SET_ARGS, "--dry-run"], BUG_PAYLOAD);
@@ -432,7 +472,7 @@ test("set --dry-run prints the preview with the canonical header and writes noth
   assert.equal(existsSync(join(dir, ".faff")), false);
 });
 
-test("set --dry-run on a deprecated-only map exits 0, writes nothing, and carries the shadowed-map advisory plus the deprecation notice", () => {
+test("set --dry-run on a deprecated-only map exits 0, writes nothing, carries the shadowed-map advisory, and suppresses the whole-directory notice", () => {
   const dir = tmpDir();
   writeDeprecatedMap(dir);
   const real = runFull(dir, SET_ARGS, BUG_PAYLOAD);
@@ -441,7 +481,11 @@ test("set --dry-run on a deprecated-only map exits 0, writes nothing, and carrie
   assert.equal(existsSync(join(dir, ".faff")), false);
   assert.match(r.err, /advisory/);
   assert.match(r.err, /a map already exists at \.faff-templates\/native-templates\.yaml/);
-  assert.match(r.err, /template overrides at \.faff-templates\/ are deprecated/);
+  // FAFF-1319: in the guard-engages window the file-level guard names the exact per-file move, so
+  // the generic whole-directory directory-level notice is suppressed — the operator sees exactly
+  // one, correct migration command, not two.
+  assert.ok(r.err.includes("mkdir -p .faff/templates && git mv .faff-templates/native-templates.yaml .faff/templates/native-templates.yaml"));
+  assert.ok(!r.err.includes("git mv .faff-templates .faff/templates"));
   const empty = runFull(tmpDir(), [...SET_ARGS, "--dry-run"], BUG_PAYLOAD);
   assert.equal(r.out, empty.out, "the preview is the same text a clean repo's dry run prints");
   assert.equal(real.code, 2);

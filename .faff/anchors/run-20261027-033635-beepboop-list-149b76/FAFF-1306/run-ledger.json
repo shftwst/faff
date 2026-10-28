@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "run_id": "run-20261027-033635-beepboop-list-149b76",
+  "level": "L3",
+  "admitted": [
+    "FAFF-1306"
+  ],
+  "outcomes": {},
+  "outcome_details": {
+    "FAFF-1306": {
+      "verdict": "fire-and-forget",
+      "confidence": "high",
+      "spec_review": "accept (judge, L3-provisional)",
+      "build_tier": "complex",
+      "admissible_lights_out": true,
+      "note": "Re-prepped from an admissibility-floor route-out: added born-verifiable scenarios + checklist DONE; adversarial spec-review 3 rounds then judge admit (L3-provisional). Decision-5 genesis-orphan scope surfaced for human routing."
+    }
+  },
+  "base_sha": "0e9a6ccccf33af4476b8f8dad4391e1380d1ef9e",
+  "base_sha_required": true,
+  "owner": {
+    "status": "running",
+    "session_id": "run-20261027-033635-beepboop-list-149b76",
+    "pid": 484,
+    "started_at": "2026-10-27T03:36:35.740Z",
+    "last_heartbeat": "2026-10-27T03:36:35.740Z",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "budget": {
+    "measure_session_id": "run-20261027-033635-beepboop-list-149b76",
+    "tokens_at_start_by_model_class": {},
+    "tokens_at_start": 0,
+    "measure_root": "/home/faff/app",
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "escalate",
+      "pricing": "map"
+    }
+  }
+}

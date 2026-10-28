@@ -98,3 +98,19 @@ Human-ratified precedents that faff's autonomous resolve-attempt may cite when a
 - Scope: FAFF-1172 only — the `faff doctor` heads-up half of the deferred TypeScript-emit safety net (`ts-foundation-mitigation-sequencing`); the CI freshness gate (FAFF-1171) is the enforcing half.
 - Matches: adopter copy stale emit; doctor fires where buildable; tsconfig-absent fail-safe; emptyUnion exit 2 smoke test; stale-emit-check-fires-only-where-buildable
 - Date: 2026-10-05
+
+## A per-issue anchor's integrity unit is the run; only its conformance verdict is scoped
+
+- Chosen: Keep the whole run event chain in the anchor, byte for byte, with its witness untouched. Narrow only what gets judged: grade the rows attributable to the anchored issue plus the genuinely run-wide ones, and ignore rows belonging to another issue in the same run. Never filter the chain to the issue's own rows.
+- Rationale: Filtering either keeps the original witness, so the witness no longer matches the bytes and the chain reports broken, or re-mints the witness, so `prev` links are minted for adjacencies that never occurred. Either way the tamper-evidence is destroyed in order to pass the tamper-evidence check. Scoping the verdict instead leaves the integrity proof whole and fixes the actual defect, which is one issue's anchor reporting another issue's rows as its own problem. The rows are not lost: they are judged by their own issue's anchor, where they are in scope.
+- Scope: Per-issue evidence anchors and any check that judges an anchor's `events.jsonl`; applies to CI legs, mint-time refusals and run-close self-verification alike, which must all use the same scope predicate or they disagree on every multi-issue run.
+- Matches: Filter the anchored chain to the issue's own rows, or keep the chain whole and scope the conformance verdict; Should a per-issue anchor filter its event chain or scope its verdict; Whether a per-issue anchor's events.jsonl is judged whole-file or scoped to the anchored issue; Keep the whole run chain in the anchor, or filter it to the anchored issue's rows
+- Date: 2026-10-20
+
+## An unattributable evidence row is closed at the writer, never tolerated at the gate
+
+- Chosen: When rows carry no issue and so cannot be graded, fix the writer so the rows stop being produced. Do not choose how much ungraded residue to tolerate at the gate, and do not weaken a live gate to let the residue through. Where a grading rule must cope with existing residue in the meantime, the writer fix is ordered first and the ordering is carried as a tracker `blocks` edge, not as a note in a spec.
+- Rationale: Both gate-side options are a choice about how large a blind spot to accept; the writer fix is the only one that shrinks it. The residue is also cheap to close at source, because the rule already exists and the writer already declares itself bound by it. Ordering it first means the weaker grading posture is never the project's actual posture, which matters because the enforcement here is a committed test on a required check rather than a switchable setting, so a weakening lands with the code and there is no window in which it is harmless.
+- Scope: Evidence and event writers whose records carry an issue, and any gate that grades them; the ordering rule binds every ticket in such a cluster, so sibling tickets answering the same severity question must take the same answer.
+- Matches: Accept the weaker trusted gate for the multi-issue residue, or hold the evidence-schema: require flip until the residue has a PR-blocking home; Accept a weaker gate for multi-issue unattributable rows, or hold the enforcement flip; Whether to suppress a non-conforming decision-capture append, or keep writing the ungradeable row; Should an unattributable evidence row gate, warn or be skipped; Whether a row of an issue-scoped type carrying no issue gates the anchor it appears in
+- Date: 2026-10-20

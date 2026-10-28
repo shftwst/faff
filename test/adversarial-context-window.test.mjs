@@ -980,7 +980,7 @@ test("the pre-chain entry gate uses the USABLE window too, not the raw declared 
   const usable = Math.floor(w * DEFAULT_WINDOW_SAFETY);   // 9000
   assert.ok(usable < w, "fixture precondition: there is a band between usable and raw");
   // a payload whose est + reserve lands inside that band
-  const est = 7500;
+  const est = 7000;
   assert.ok(est + DEFAULT_BRIEF_RESERVE_TOKENS > usable, "over the usable window");
   assert.ok(est + DEFAULT_BRIEF_RESERVE_TOKENS <= w, "but under the raw one");
   assert.equal(stillOverWindow(est, DEFAULT_BRIEF_RESERVE_TOKENS, usable), true,
@@ -994,7 +994,7 @@ test("main()'s entry gate fires in the band between the usable window and the ra
   // safety fraction exists to protect, and the backend would then be guard-skipped instead of helped.
   const f = denseFixture();
   const bf = join(f.dir, "b.json");
-  const W = 19000;   // denseFixture estimates ~18.4k tok incl. reserve: over usable 17100, under raw 19000
+  const W = 19600;   // denseFixture estimates ~19.2k tok incl. reserve: over usable 17640, under raw 19600
   writeFileSync(bf, JSON.stringify([
     { provider: "openai", model: "primary", host: "https://h/v1", context_window: W },
     { provider: "openai", model: "fb", host: "https://h2/v1" },

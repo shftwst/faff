@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/contract-defs-floor.js::decidefloor can render \"at undefined\" if a future caller omits level",
+      "title": "decideFloor can render \"at undefined\" if a future caller omits level",
+      "location": "plugin/skills/faff/bin/lib/contract-defs-floor.js:126",
+      "action": "no action — accepted per the spec's own explicit design decision (no new fallback branch; resolveGateLevel and computeIntegrityFloor already guarantee a valid level at both reachable production entry points)",
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The spec's HOW section explicitly lists adding a `|| \"L3\"` or placeholder fallback at the message site as an anti-pattern (\"the branch would be unreachable dead code\"), and its rationale section already names the exact boundary (\"revisit if a future caller bypasses resolveGateLevel\") as the accepted trade-off. Adding a fallback here would contradict the spec being built.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "decideFloor can render \"at undefined\" if a future caller omits level",
+          "location": "plugin/skills/faff/bin/lib/contract-defs-floor.js:126",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/merge-gate-controlflow.test.mjs::new l3 controlflow test's two inputs (anchor level, declared-unattended config) weren't individually attributed",
+      "title": "new L3 controlflow test's two inputs (anchor level, declared-unattended config) weren't individually attributed",
+      "location": "test/merge-gate-controlflow.test.mjs:312-329",
+      "action": "clarified the test's comment to state which input drives refusal-firing vs. which drives the named level, verified by temporarily removing the config write and observing the leg no longer fires",
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Verified empirically: removing the .faffrc.yaml write makes the test fail (exit 0 merge-ok, not 1 refuse) because resolveIntegrity's unattended stays false at L3 without the declared-unattended config, so unasserted-refuse never fires. The original test was correct, just under-explained. Rewrote the comment; restored the write; reran — 55/55 still pass. Committed as 29380471.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "new L3 controlflow test's two inputs (anchor level, declared-unattended config) weren't individually attributed",
+          "location": "test/merge-gate-controlflow.test.mjs:312-329",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/merge-gate-selftest.js::spec's reference-context table cites the wrong path for the selftest file",
+      "title": "spec's reference-context table cites the wrong path for the selftest file",
+      "location": "plugin/skills/faff/bin/lib/merge-gate-selftest.js",
+      "action": "no action — a pre-existing spec-prose inaccuracy with no code impact; the build correctly landed the test in the real file (plugin/skills/faff/bin/lib/merge-gate-selftest.js, not the spec's cited test/merge-gate-selftest.js)",
+      "location_present": false,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Noted by the reviewer as having no code impact; not a defect in the diff under review, and not actionable retroactively against an already-committed spec comment.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "spec's reference-context table cites the wrong path for the selftest file",
+          "location": "plugin/skills/faff/bin/lib/merge-gate-selftest.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/contract-defs-floor.js,::no security, concurrency, or resource findings",
+      "title": "no security, concurrency, or resource findings",
+      "location": "plugin/skills/faff/bin/lib/contract-defs-floor.js, plugin/skills/faff/bin/lib/merge-gate-floor.js",
+      "action": "none needed",
+      "location_present": false,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Confirms the change's low-risk profile: enum-constrained level strings flowing into JSON CLI output, no injection surface, no secrets, no shared mutable state, no error-path change.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "no security, concurrency, or resource findings",
+          "location": "plugin/skills/faff/bin/lib/contract-defs-floor.js, plugin/skills/faff/bin/lib/merge-gate-floor.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

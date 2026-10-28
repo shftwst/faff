@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1295",
+  "build": {
+    "status": "complete",
+    "diff_hash": "a39bc14c95b51f5e98a3adfe1d1df08fd7fbd19f6092c48efd4d399b5f185f3e",
+    "branch": "FAFF-1295-faff-doctor-and-the-other-readers-find-faff-hooks-in-either",
+    "pushed_at": "2026-10-23T23:48:09.357Z"
+  },
+  "updated_at": "2026-10-23T23:48:09.357Z"
+}

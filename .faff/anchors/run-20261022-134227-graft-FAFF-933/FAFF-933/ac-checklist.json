@@ -1,0 +1,330 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "On a resumed multi-epoch run, `faff economics` reports a run-scoped total (Σ closed spans + open span), not the resuming epoch alone — the earlier-epoch drop is gone.",
+      "verified": "tokens_total is 600 (closed 500 + open 100), not 100; the spec's own smoke test reports the same on a hand-built run dir",
+      "passed": true,
+      "ac_id": "faff-933#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933 INTEGRATION: a resumed 2-epoch run reports the RUN-scoped total (closed 500 + open 100 = 600), not the resuming epoch's 100 alone"
+        },
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933: session PRECEDENCE meters the open span's own session — a resumed run is correct with NO ambient CLAUDE_CODE_SESSION_ID set"
+        }
+      ]
+    },
+    {
+      "ac": "`faff economics` and `faff budget check` report the same `tokens_total`/`spent.tokens` on the same resumed-run fixture.",
+      "verified": "both report 600 on one fixture. Scoped to the transcript path and to a ledger carrying tokens_at_start, as the AC's fixture specifies; two separate pre-existing divergences are recorded as discovered scope",
+      "passed": true,
+      "ac_id": "faff-933#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933 INTEGRATION: economics and `budget check` agree on tokens across the resume boundary — the two governance surfaces no longer disagree by the dropped epochs"
+        }
+      ]
+    },
+    {
+      "ac": "`economics.js` import line adds `closedSessionsSpend, currentOpenSpan, byModelClassTotal` from `./budget` (no reimplementation).",
+      "verified": "all three destructured from require(\"./budget\") on the import line; no accumulation reimplemented",
+      "passed": true,
+      "ac_id": "faff-933#done:3",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c 'byModelClassTotal, childOwningSession, classCountsFromUsage, closedSessionsSpend, currentOpenSpan' plugin/skills/faff/bin/lib/economics.js"
+        }
+      ]
+    },
+    {
+      "ac": "`cmdEconomics` resolves `effectiveEnv` by FAFF-560 precedence: `--session-id` > open-span `session_id` > `ledger.budget.measure_session_id` > ambient (replaces the `economics.js:1075` line).",
+      "verified": "the open span is metered with no ambient sid set, and the flag still wins over the open span",
+      "passed": true,
+      "ac_id": "faff-933#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933: session PRECEDENCE meters the open span's own session — a resumed run is correct with NO ambient CLAUDE_CODE_SESSION_ID set"
+        },
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933: --session-id still OVERRIDES the open span's session (the FAFF-488 contract is preserved at the top of the precedence)"
+        }
+      ]
+    },
+    {
+      "ac": "When `budget.sessions[]` is present, the open span's `baseline_by_model_class` rebaselines `tokensAtStart`/`tokensAtStartByModel` (guarded plain-object check, mirror `budget.js:1000`).",
+      "verified": "a stale mint baseline of 999999 with an open-span baseline of 30 yields 570, a number only the rebaselined form produces",
+      "passed": true,
+      "ac_id": "faff-933#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933: the OPEN span's baseline rebaselines the subtraction — a stale mint tokens_at_start no longer governs a resumed run"
+        }
+      ]
+    },
+    {
+      "ac": "`cmdEconomics` computes `hasClosedSpans` (≥1 closed span present) and `degradedSpans` (folded spans with `close_source != \"transcript\"`) and threads both into `computeUnitEconomics`.",
+      "verified": "a zero-delta span still warns (hasClosedSpans threaded) and a degraded span is named (degradedSpans threaded)",
+      "passed": true,
+      "ac_id": "faff-933#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933 INTEGRATION: a ZERO-delta closed span still fires the coverage warning — the gate is the PRESENCE of a prior epoch, never closed_span_total > 0"
+        },
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933: a folded span measured with a DEGRADED basis (close_source != transcript) raises a provenance warning naming it"
+        }
+      ]
+    },
+    {
+      "ac": "`computeUnitEconomics` accepts `closed_span_total`, `has_closed_spans`, `epoch_scoped_axes`, `estimate_epoch_scoped`, and `degraded_close_sources`, and adjusts warnings per §3.",
+      "verified": "all five read from opts with observable behaviour; closed_span_total is reported on a resumed run rather than threaded unused",
+      "passed": true,
+      "ac_id": "faff-933#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c 'opts.closed_span_total\\|opts.has_closed_spans\\|opts.epoch_scoped_axes\\|opts.estimate_epoch_scoped\\|opts.degraded_close_sources' plugin/skills/faff/bin/lib/economics.js"
+        },
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933: a resumed run NAMES its composition (closed_span_total / closed_span_count); a single-session run emits neither key"
+        }
+      ]
+    },
+    {
+      "ac": "Transcript branch: `tokensTotal = max(0, measuredTotal - tokensAtStart) + closedSpend.total`.",
+      "verified": "600 = max(0, 100 - 0) + 500, and 570 = max(0, 100 - 30) + 500 on the rebaselined fixture",
+      "passed": true,
+      "ac_id": "faff-933#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933 INTEGRATION: a resumed 2-epoch run reports the RUN-scoped total (closed 500 + open 100 = 600), not the resuming epoch's 100 alone"
+        },
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933: the OPEN span's baseline rebaselines the subtraction — a stale mint tokens_at_start no longer governs a resumed run"
+        }
+      ]
+    },
+    {
+      "ac": "Map-pricing per-model delta folds `closedSpend.byModel` (mirror `budget.js:1052-1058`) so `cost_total` spans epochs.",
+      "verified": "cost_total is 11 = 1 MTok opus input at $5 (closed) + 2 MTok sonnet input at $3 (open), each model at its own rate",
+      "passed": true,
+      "ac_id": "faff-933#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933: cost_total spans epochs too — the map-priced per-model delta folds the closed span, each model at its OWN rate"
+        }
+      ]
+    },
+    {
+      "ac": "Estimate branch does NOT add `closedSpend.total` to the per-attempt estimate, AND emits a coverage warning (`estimate_epoch_scoped`) whenever a closed span is present — the drop is named, not silent.",
+      "verified": "tokens_total is 200000 (1 attempt x est_per), the closed 500 is not mixed in, and the estimate-fallback warning names the prior epoch",
+      "passed": true,
+      "ac_id": "faff-933#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933 INTEGRATION: the estimate fallback does NOT fold a measured span sum into a per-attempt estimate, but NAMES the prior epochs it cannot reconcile"
+        }
+      ]
+    },
+    {
+      "ac": "`--by model` folds `closedSpend.byModel` row-for-row by model; `--by class` folds via the model→class projection (`Σ over models` per token class); both reconcile (in tokens) to the new `tokens_total`.",
+      "verified": "model rows carry opus 500 / sonnet 100 and class rows input 480 / output 120; both reconcile to 600. A merged row also names its composed provenance",
+      "passed": true,
+      "ac_id": "faff-933#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933 INTEGRATION: --by model folds the closed span ROW-FOR-ROW and reconciles to the epoch-spanning top line; the earlier epoch's model is not lost"
+        },
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933 INTEGRATION: --by class folds the closed span via the model->class projection (summed across models) and reconciles to the epoch-spanning top line"
+        },
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933 (adversarial A2): a model row that absorbed closed-span deltas names the composition, never bare transcript-jsonl"
+        }
+      ]
+    },
+    {
+      "ac": "`--by day|mcp|phase` do NOT fold and emit a coverage warning naming them as resuming-epoch-only on a resumed run. `--by effort` reads the run-scoped `events.jsonl`, spans every epoch, and emits its own warning naming that substrate and stating that its `coverage_pct` is not meaningful. (Amended by operator decision, 2026-10-22.)",
+      "verified": "test/economics.test.mjs: --by day and --by mcp keep the resuming-epoch-only warning; --by effort carries its own run-scoped warning (FAFF-933 adversarial A1 tests pass on the rebased head)",
+      "passed": true,
+      "ac_id": "faff-933#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933 (adversarial A1): --by effort gets its OWN truthful warning — its events.jsonl substrate is run-scoped, so it is never described as resuming-epoch-only"
+        },
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933 (adversarial A1): a transcript-derived fine axis keeps the resuming-epoch-only wording, now without naming effort"
+        }
+      ]
+    },
+    {
+      "ac": "Every coverage/estimate/provenance warning gates on `has_closed_spans` (presence), NOT on `closed_span_total > 0` (magnitude) — a degraded/zero-delta prior epoch still warns.",
+      "verified": "a closed span whose delta sums to 0 adds nothing to the top line yet still fires the coverage warning",
+      "passed": true,
+      "ac_id": "faff-933#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933 INTEGRATION: a ZERO-delta closed span still fires the coverage warning — the gate is the PRESENCE of a prior epoch, never closed_span_total > 0"
+        }
+      ]
+    },
+    {
+      "ac": "A folded span with `close_source != \"transcript\"` surfaces a provenance warning, threaded via `degraded_close_sources`.",
+      "verified": "a close_source of \"degraded\" is still folded (total 600) and its session id is named in a degraded-basis warning",
+      "passed": true,
+      "ac_id": "faff-933#done:14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933: a folded span measured with a DEGRADED basis (close_source != transcript) raises a provenance warning naming it"
+        }
+      ]
+    },
+    {
+      "ac": "The `tokens_at_start=0` inflation warning is suppressed when `has_closed_spans` is true; the single-session case still emits it.",
+      "verified": "absent on the resumed fixture, present on the single-session one",
+      "passed": true,
+      "ac_id": "faff-933#done:15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933: the tokens_at_start=0 inflation warning is SUPPRESSED on a resumed run (the total is a measured composition, not a naive whole-session sum)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933: a single-session run with tokens_at_start=0 STILL emits the inflation warning — the refinement narrows it, never removes it"
+        }
+      ]
+    },
+    {
+      "ac": "A ledger with no `budget.sessions[]` (or an all-open single span) produces byte-for-byte-identical economics output to pre-change (parity, mirror `test/budget.test.mjs:1635`).",
+      "verified": "the two fixtures' stdout compare equal byte-for-byte, with no resumed-run warning, no new blob key and no new per-row key. The AC's all-open half holds whenever the open span's baseline agrees with tokens_at_start, which is what the resume writer records; the docs now state that precisely rather than claiming it unconditionally",
+      "passed": true,
+      "ac_id": "faff-933#done:16",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933 PARITY: a single-session run (no budget.sessions, or one all-open span) is byte-for-byte unchanged — no rebaseline, no fold, no resumed-run warning"
+        },
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933: a resumed run NAMES its composition (closed_span_total / closed_span_count); a single-session run emits neither key"
+        },
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/economics.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "A closed span with a zero (or degraded-to-zero) delta still fires the coverage/estimate warning (presence gate), while adding nothing to the top-line.",
+      "verified": "tokens_total stays 100 while the coverage warning fires",
+      "passed": true,
+      "ac_id": "faff-933#done:17",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933 INTEGRATION: a ZERO-delta closed span still fires the coverage warning — the gate is the PRESENCE of a prior epoch, never closed_span_total > 0"
+        }
+      ]
+    },
+    {
+      "ac": "`--session-id <flag>` overrides the open-span session (FAFF-488 contract preserved).",
+      "verified": "--session-id other-sess meters that session's 70 instead of epoch-1's 100, giving 570",
+      "passed": true,
+      "ac_id": "faff-933#done:18",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933: --session-id still OVERRIDES the open span's session (the FAFF-488 contract is preserved at the top of the precedence)"
+        }
+      ]
+    },
+    {
+      "ac": "`docs/guide/cli.md:110` economics row updated: (a) states economics spans epochs via the ledger's closed session spans, matching `budget check`; (b) the `class`/`model`/`day` reconcile sentence revised so `class`/`model` always reconcile while `day`/`mcp`/`effort`/`phase` are single-session-only and epoch-scoped-with-warning on resumed runs.",
+      "verified": "both revisions present on the economics row, with the parity sentence narrowed to what is actually guaranteed; lint-cli-doc and its suite pass",
+      "passed": true,
+      "ac_id": "faff-933#done:19",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c 'closed prior-epoch session spans' docs/guide/cli.md"
+        },
+        {
+          "kind": "command",
+          "locator": "grep -c 'reconcile on a \\*\\*single-session\\*\\* run' docs/guide/cli.md"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-doc"
+        }
+      ]
+    },
+    {
+      "ac": "New regression tests in `test/economics.test.mjs` using a synthetic 2-epoch `budget.sessions` fixture (mirror `test/budget.test.mjs:1581`): the run-scoped total (600), the economics-vs-budget-check agreement, the single-session parity, the `--by model` reconcile, the `--by class` reconcile, the `--by day` coverage warning, the estimate-path coverage warning, and the zero-delta-closed-span presence-gated warning.",
+      "verified": "all eight named cases present plus thirteen more; the file runs 79 pass / 0 fail and the whole suite 7005 tests / 0 fail",
+      "passed": true,
+      "ac_id": "faff-933#done:20",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933 INTEGRATION: a resumed 2-epoch run reports the RUN-scoped total (closed 500 + open 100 = 600), not the resuming epoch's 100 alone"
+        },
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933 INTEGRATION: economics and `budget check` agree on tokens across the resume boundary — the two governance surfaces no longer disagree by the dropped epochs"
+        },
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933 PARITY: a single-session run (no budget.sessions, or one all-open span) is byte-for-byte unchanged — no rebaseline, no fold, no resumed-run warning"
+        },
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933 INTEGRATION: --by model folds the closed span ROW-FOR-ROW and reconciles to the epoch-spanning top line; the earlier epoch's model is not lost"
+        },
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933 INTEGRATION: --by class folds the closed span via the model->class projection (summed across models) and reconciles to the epoch-spanning top line"
+        },
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933 INTEGRATION: --by day does NOT fold (no per-day granularity in a closed span) and NAMES its epoch-scoping in a warning — never a silent drop"
+        },
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933 INTEGRATION: the estimate fallback does NOT fold a measured span sum into a per-attempt estimate, but NAMES the prior epochs it cannot reconcile"
+        },
+        {
+          "kind": "test",
+          "locator": "test/economics.test.mjs::FAFF-933 INTEGRATION: a ZERO-delta closed span still fires the coverage warning — the gate is the PRESENCE of a prior epoch, never closed_span_total > 0"
+        },
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/economics.test.mjs"
+        }
+      ]
+    }
+  ]
+}

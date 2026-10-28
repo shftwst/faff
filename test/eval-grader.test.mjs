@@ -782,7 +782,8 @@ test("all eval/cases load and validate", () => {
   // FAFF-1259: +1 holdout-exercise (003 — the opt-in criterion-detail check, fixture flag check_detail).
   // FAFF-1279: +2 refutation-code (006 a fixture-only diff with a planted injection → closed_set:[]; 007 the same
   // pattern in real code beside the fixture → flagged).
-  assert.equal(cases.length, 98);
+  // FAFF-1293: +1 refutation-spec (017 a holdout-marked prose Scenarios unit → lens_bounds must_object QA).
+  assert.equal(cases.length, 99);
   const kinds = new Set(cases.map((c) => c.kind));
   for (const k of ["dupe", "vague", "stale", "superseded", "ordering", "gloss", "confidence", "marker", "splittable", "verdict-revert", "routing", "modedetect", "shaping", "decomposition", "chain-gap", "explanatory-order", "architecture", "specqual", "holdout", "holdout-exercise", "spec-verdict", "roadmap", "adr-gloss", "refutation-spec", "refutation-code", "prep-architecture-trigger", "grouping"]) {
     assert.ok(kinds.has(k), `missing kind ${k}`);
@@ -956,13 +957,14 @@ test("FAFF-1222 envelope: the fence scan wins over a label-line envelope", () =>
 // --- FAFF-1259: holdout-exercise opt-in detail check (fixture flag check_detail) ---
 test("FAFF-1259 holdout-exercise check_detail: a <key>:detail-ok pair for each criterion whose detail passes the record rules", () => {
   const c = { id: "he-detail", kind: "holdout-exercise", fixture: { check_detail: true },
-    oracle: { closed_set: ["a:met", "b:needs-human", "a:detail-ok", "b:detail-ok"] } };
+    oracle: { closed_set: ["a:met", "b:needs-human", "a:detail-ok", "b:detail-ok", "b:reason-no-surface"] } };
   const env = {
     "holdout-exercise": { a: "met", b: "needs-human" },
-    "holdout-exercise-detail": { a: { exercised: "GET /x", expected: "200", observed: "200 OK" }, b: { reason: "prose criterion" } },
+    "holdout-exercise-detail": { a: { exercised: "GET /x", expected: "200", observed: "200 OK" }, b: { reason: "no reachable surface", reason_code: "no-surface" } },
   };
   assert.equal(grade(c, env).graded, "PASS");
-  assert.equal(grade(c, { ...env, "holdout-exercise-detail": { a: { exercised: "GET /x", expected: "200" }, b: { reason: "prose criterion" } } }).graded, "FAIL", "met without observed is not detail-ok");
+  assert.equal(grade(c, { ...env, "holdout-exercise-detail": { a: { exercised: "GET /x", expected: "200" }, b: env["holdout-exercise-detail"].b } }).graded, "FAIL", "met without observed is not detail-ok");
+  assert.equal(grade(c, { ...env, "holdout-exercise-detail": { a: env["holdout-exercise-detail"].a, b: { reason: "no reachable surface" } } }).graded, "FAIL", "FAFF-1292: needs-human without a reason_code is not detail-ok");
   assert.equal(grade(c, { ...env, "holdout-exercise-detail": { a: env["holdout-exercise-detail"].a, b: {} } }).graded, "FAIL", "needs-human without a reason is not detail-ok");
   assert.equal(grade(c, { "holdout-exercise": env["holdout-exercise"] }).graded, "FAIL", "missing detail map scores no detail-ok pairs");
 });

@@ -309,6 +309,29 @@ test("F3: already-MERGED at L4 with an unmet floor → exit 1 refuse (the retros
   assert.equal(existsSync(sentinel), false);
 });
 
+test("FAFF-1374: already-MERGED at L3 (declared-unattended) with an unmet floor → exit 1 refuse NAMES L3, never a hardcoded L4", () => {
+  // Same shape as the L4 test above, but the run is resolved to L3 via the anchor
+  // (anchorLevel: "L3" below), with the OTHER unasserted-refuse-triggering condition —
+  // a declared-unattended config (autonomous.unattended:true) — supplied separately via
+  // the written .faffrc.yaml. Without that config write resolveIntegrity's `unattended`
+  // stays false at L3 and the leg resolves to "unasserted-ok" (no refusal at all, verified
+  // by temporarily removing the write and observing exit 0); the config is what makes the
+  // leg fire on this non-L4 run, while the anchor is what makes it say "L3". Together they
+  // exercise the exact non-L4 unasserted-refuse path the message interpolation must name.
+  const runDir = seedRunDir("merge-ok"); // AC + review pass; no holdout artifact, no integrity declaration
+  writeFileSync(join(runDir, ".faffrc.yaml"), "autonomous:\n  unattended: true\n");
+  const { env, sentinel } = stubGhEnv({ prState: "MERGED", anchorLevel: "L3" });
+  const { code, stdout } = runCli(argsNoLevel(runDir), { env, cwd: runDir });
+  assert.equal(code, 1);
+  const out = JSON.parse(stdout);
+  assert.equal(out.verdict, "refuse");
+  assert.equal(out.ci_state, "not-observed-already-merged");
+  assert.ok(out.blockers.some((b) => /unasserted at L3/.test(b)), "the refusal names the run's actual L3 level");
+  assert.ok(!out.blockers.some((b) => /unasserted at L4/.test(b)), "never the hardcoded L4 reading on an L3 run");
+  assert.equal(existsSync(mergeRecordPath(runDir)), false);
+  assert.equal(existsSync(sentinel), false);
+});
+
 test("F3: already-MERGED whose live CI would read RED but whose retrospective floor PASSES → still exit 0 (CI deliberately not observed — ci_state not-observed-already-merged, no CI-observation ran)", () => {
   const runDir = seedRunDir("merge-ok");
   // ci:"red" makes the stub's check-runs empty / status pending — a live observeCi() would refuse.

@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/config.js::findroot() resolves before the --absolute refusal guard in cmdconfig",
+      "title": "findRoot() resolves before the --absolute refusal guard in cmdConfig",
+      "location": "plugin/skills/faff/bin/lib/config.js:72",
+      "action": "optionally hoist the guard above root resolution to refuse purely on the parse surface",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Spec-faithful: the spec's HOW PROCEDURE places the guard after `cmd = rest[0]` (which follows root resolution). findRoot() is a non-throwing pure resolver every config verb already runs; no filesystem/verb side effect precedes the refusal. Reordering would deviate from the approved insertion point for nil correctness gain.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "findRoot() resolves before the --absolute refusal guard in cmdConfig",
+          "location": "plugin/skills/faff/bin/lib/config.js:72",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/config-flags.test.mjs::unused writefilesync import in new config-flags test",
+      "title": "unused writeFileSync import in new config-flags test",
+      "location": "test/config-flags.test.mjs:7",
+      "action": "remove the unused import",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Removed the unused writeFileSync import; test + lint re-confirmed green.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "unused writeFileSync import in new config-flags test",
+          "location": "test/config-flags.test.mjs:7",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/config-flags.test.mjs::exact-string stderr assertions are brittle to message evolution",
+      "title": "exact-string stderr assertions are brittle to message evolution",
+      "location": "test/config-flags.test.mjs",
+      "action": "optionally relax get-verb assertion to regex",
+      "location_present": true,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "DoD done:2 demands the exact stderr line byte-for-byte, so the exact assertion is required and intentional. The path test already uses the looser regex form.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "exact-string stderr assertions are brittle to message evolution",
+          "location": "test/config-flags.test.mjs",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "docs/guide/cli.md::docs dod item unverifiable from the diff",
+      "title": "docs DoD item unverifiable from the diff",
+      "location": "docs/guide/cli.md",
+      "action": "confirm the config row scopes --absolute to templates-path",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Verified during AC: the cli.md config row already scopes --absolute within the `templates-path [--create] [--absolute]` clause; DoD done:11 says skip when already scoped. No doc change needed.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "docs DoD item unverifiable from the diff",
+          "location": "docs/guide/cli.md",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/config.js::flag-before-verb vs flag-after-verb produce different diagnostics",
+      "title": "flag-before-verb vs flag-after-verb produce different diagnostics",
+      "location": "plugin/skills/faff/bin/lib/config.js",
+      "action": "none (declarative per-verb scoping is the out-of-scope extension point)",
+      "location_present": true,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Spec explicitly declares the flag-before-verb ordering unchanged and out of scope; the test pins it. Compliant, not a bug.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "flag-before-verb vs flag-after-verb produce different diagnostics",
+          "location": "plugin/skills/faff/bin/lib/config.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

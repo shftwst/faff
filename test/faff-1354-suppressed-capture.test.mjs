@@ -202,8 +202,11 @@ test("record with a 2000-byte kernel: reason and kernel are bounded and the stde
   assert.equal(r.out, "");
   const note = s.notes().at(-1);
   assert.ok(bytes(note.reason) <= 1024);
-  assert.ok(note.reason.endsWith("...[truncated]"));
-  assert.ok(bytes(note.kernel) <= 1024);
+  assert.ok(note.reason.includes(ISSUE_LINE));
+  assert.ok(!note.reason.endsWith("...[truncated]"));
+  assert.ok(bytes(note.kernel) <= 256);
+  assert.equal(note.kernel, "k".repeat(242) + "...[truncated]");
+  assert.ok(note.reason.includes(`for kernel ${note.kernel} refused by the issue-scoped rule`));
   const [line] = captureLines(r.err);
   assert.equal(line.slice(PREFIX.length), note.reason);
 });
@@ -232,6 +235,77 @@ test("record and action each report the suppression with their own event type", 
   assert.equal(a.event_type, "decision-capture");
   assert.equal(b.event_type, "decision-capture-action");
   assert.deepEqual(b.rules, ["issue-scoped"]);
+});
+
+test("action with a 2000-byte kernel: the issue-scoped violation survives and the kernel is bounded", (t) => {
+  const s = scratch(t);
+  const r = faff(s.root, ["decision-capture", "action", "--run", "run-1", "--issue", "", "--kernel", "k".repeat(2000), "--action", "graft"]);
+  assert.equal(r.code, 0, r.err);
+  const note = s.notes().at(-1);
+  assert.equal(note.event_type, "decision-capture-action");
+  assert.ok(note.reason.includes("type 'decision-capture-action' is issue-scoped but missing required field 'issue'"));
+  assert.ok(bytes(note.kernel) <= 256);
+  assert.ok(note.kernel.endsWith("...[truncated]"));
+});
+
+test("record with a 256-byte kernel keeps it whole; 300 x e-acute is cut on a code point", (t) => {
+  const s = scratch(t);
+  const exact = "k".repeat(256);
+  const a = faff(s.root, ["decision-capture", "record", "--run", "run-1", "--issue", "", "--kernel", exact], { input: PAYLOAD });
+  assert.equal(a.code, 0, a.err);
+  const noteA = s.notes().at(-1);
+  assert.equal(noteA.kernel, exact);
+  assert.ok(noteA.reason.includes(`for kernel ${exact} refused by`));
+  assert.ok(noteA.reason.includes(ISSUE_LINE));
+  const b = faff(s.root, ["decision-capture", "record", "--run", "run-1", "--issue", "", "--kernel", "\u00e9".repeat(300)], { input: PAYLOAD });
+  assert.equal(b.code, 0, b.err);
+  const noteB = s.notes().at(-1);
+  assert.ok(bytes(noteB.kernel) <= 256);
+  assert.ok(noteB.kernel.endsWith("...[truncated]"));
+  assert.ok(!noteB.kernel.includes("\uFFFD"));
+  assert.ok(noteB.reason.includes(ISSUE_LINE));
+});
+
+test("lineSafe with an explicit maxBytes bounds on a code point and keeps the marker inside the budget", () => {
+  const exact = "a".repeat(256);
+  assert.equal(lineSafe(exact, 256), exact);
+  const cut = lineSafe("a".repeat(257), 256);
+  assert.equal(bytes(cut), 256);
+  assert.equal(cut, "a".repeat(242) + "...[truncated]");
+  const accented = lineSafe("\u00e9".repeat(300), 256);
+  assert.ok(bytes(accented) <= 256);
+  assert.ok(accented.endsWith("...[truncated]"));
+  assert.ok(!accented.includes("\uFFFD"));
+  assert.equal(lineSafe("a".repeat(2000)).length, 1024);
+});
+
+test("violation budget: the largest set a capture can meet fits beside a 256-byte kernel", (t) => {
+  for (const type of ["decision-capture", "decision-capture-action"]) {
+    const { root, runDir, notes } = scratch(t);
+    let err;
+    try { appendEventRecord(runDir, "run-1", { phase: "run", type, issue: "" }); } catch (e) { err = e; }
+    assert.ok(err && err.code === "EVENT_SCHEMA", type);
+    assert.ok(err.violations.length > 0);
+    assert.ok(bytes(err.violations.join("; ")) <= 652, `${type} violations take ${bytes(err.violations.join("; "))} bytes`);
+    reportAppendFailure(root, "run-1", { code: "EVENT_SCHEMA", violations: err.violations, rules: ["issue-scoped", "payload-schema"] }, type, "k".repeat(2000));
+    const note = notes().at(-1);
+    for (const v of err.violations) assert.ok(note.reason.includes(v), `${type}: ${v}`);
+    assert.ok(!note.reason.endsWith("...[truncated]"), type);
+  }
+});
+
+test("lineSafe collapses bidirectional format controls to one space", () => {
+  for (const mid of ["\u202E", "\u2066\u2069", "\u202A\u202B", "\u200E", "\u200F", "\u061C"]) {
+    assert.equal(lineSafe(`a${mid}b`), "a b");
+  }
+});
+
+test("record with a bidirectional control inside --kernel: collapsed in the note and on stderr", (t) => {
+  const s = scratch(t);
+  const r = faff(s.root, ["decision-capture", "record", "--run", "run-1", "--issue", "", "--kernel", "bad\u200Fkernel"], { input: PAYLOAD });
+  assert.equal(r.code, 0, r.err);
+  assert.equal(s.notes().at(-1).kernel, "bad kernel");
+  assert.ok(!/[\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069]/.test(r.err));
 });
 
 const KERNELS = [

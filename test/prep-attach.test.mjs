@@ -195,6 +195,10 @@ test("stage: readiness violations are invalid; two blocks or an unparseable bloc
   let r = stage(f);
   assert.equal(r.status, 2);
   assert.equal(r.json().token, "errored");
+  const ex = join(f.root, "ex.json");
+  writeFileSync(ex, JSON.stringify({ confidence: "high", decisions: [{ marker: "chosen" }] }));
+  r = stage(f, ["--extraction", ex]);
+  assert.deepEqual([r.status, r.json().reason], [2, "multiple-readiness-blocks"], "--extraction never hides a second block");
   f = fixture({ text: spec({ block: "```faff-contract:spec-readiness\n{ nope\n```" }) });
   r = stage(f);
   assert.equal(r.status, 2);

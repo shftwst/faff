@@ -184,15 +184,15 @@ function stage(opts, deps) {
   const writeBack = () => deps.writeText(specPath, text);
 
   let extraction;
+  const blocks = readinessBlocks(text);
+  if (blocks.length > 1) return errored(issue, "multiple-readiness-blocks", common);
   if (extractionPath) {
     try { extraction = JSON.parse(deps.readText(extractionPath)); } catch { return errored(issue, "extraction-unparseable", common); }
   } else {
-    const blocks = readinessBlocks(text);
     if (blocks.length === 0) {
       try { writeBack(); } catch (e) { return errored(issue, `spec-unwritable: ${e.code || e.message}`, common); }
       return result(issue, "needs-judgement", { reason: "no-readiness-block", ...common });
     }
-    if (blocks.length > 1) return errored(issue, "multiple-readiness-blocks", common);
     try { extraction = JSON.parse(blocks[0]); } catch { return errored(issue, "readiness-block-unparseable", common); }
   }
   if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) return errored(issue, "readiness-extraction-not-an-object", common);

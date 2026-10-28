@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 2,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/decision-capture.js::rule phrase for an unrecognised rule combination in reportappendfailure",
+      "title": "Rule phrase for an unrecognised rule combination in reportAppendFailure",
+      "location": "plugin/skills/faff/bin/lib/decision-capture.js",
+      "action": "Derive the rule phrase from the rules list so any rule name is named, keeping the three spec phrases exact.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "anthropic/claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Rule phrase for an unrecognised rule combination in reportAppendFailure",
+          "location": "plugin/skills/faff/bin/lib/decision-capture.js",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/decision-capture.js::rule_phrases join-key lookup mislabels a partially-extended rule set",
+      "title": "RULE_PHRASES join-key lookup mislabels a partially-extended rule set",
+      "location": "plugin/skills/faff/bin/lib/decision-capture.js",
+      "action": "Build the phrase from the rules list instead of a fixed lookup table.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "RULE_PHRASES join-key lookup mislabels a partially-extended rule set",
+          "location": "plugin/skills/faff/bin/lib/decision-capture.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/faff-1354-suppressed-capture.test.mjs::payload-schema-only and both-rules refusals lack message and violations identity assertions",
+      "title": "Payload-schema-only and both-rules refusals lack message and violations identity assertions",
+      "location": "test/faff-1354-suppressed-capture.test.mjs",
+      "action": "Assert code, message and violations for the payload-schema and both-rules cases.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Payload-schema-only and both-rules refusals lack message and violations identity assertions",
+          "location": "test/faff-1354-suppressed-capture.test.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    }
+  ]
+}

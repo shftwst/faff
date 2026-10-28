@@ -625,12 +625,16 @@ function appendRecordUnderLock(dir, mintRecord, opts = {}) {
     const record = mintRecord(seq, prevRecord, prevHash, profile);
     if (!record) return record;
     const violations = issueScopedViolations(record, profile);
+    const rules = violations.length ? ["issue-scoped"] : [];
     if (check) {
       const result = check(record);
       if (result.unavailable) unavailable = result.unavailable;
-      else violations.push(...result.violations);
+      else if (result.violations.length) {
+        violations.push(...result.violations);
+        rules.push("payload-schema");
+      }
     }
-    if (violations.length) throw eventSchemaError(record, violations);
+    if (violations.length) throw eventSchemaError(record, violations, rules);
     return record;
   });
   if (unavailable) {
@@ -640,10 +644,11 @@ function appendRecordUnderLock(dir, mintRecord, opts = {}) {
   return r === null ? null : r[0];
 }
 
-function eventSchemaError(record, violations) {
+function eventSchemaError(record, violations, rules) {
   const e = new Error(`${record.type} event refused by the v0.3 run-event schema: ${violations.join("; ")}`);
   e.code = "EVENT_SCHEMA";
   e.violations = violations;
+  e.rules = rules;
   return e;
 }
 

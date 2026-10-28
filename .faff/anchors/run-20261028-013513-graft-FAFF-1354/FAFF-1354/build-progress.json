@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "issue": "FAFF-1354",
+  "build": {
+    "status": "complete",
+    "diff_hash": "a3d8c7d4f02ebac6cf124de7d350d0fcf9f045951dd1c94a3c028028fa1817ac",
+    "branch": "FAFF-1354-a-suppressed-capture-names-the-event-type-kernel-and-rule",
+    "pushed_at": "2026-10-28T01:52:46.829Z"
+  },
+  "updated_at": "2026-10-28T01:52:46.829Z"
+}

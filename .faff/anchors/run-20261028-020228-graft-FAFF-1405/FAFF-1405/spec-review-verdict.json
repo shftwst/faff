@@ -1,0 +1,534 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 5,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The design assumes that the result of a unit (a rung, file, or shard) is determined solely by the local Git tree and the gate plan. This ignores external, non-deterministic state dependencies (e.g., shared databases, network services, or global environment variables) that are outside the scope of the `tree_fingerprint` and `plan_fingerprint`.",
+      "evidence": "Section 4.1 (Unit definition), Section 4.2 (Fingerprints).",
+      "predicted_consequence": "A unit that passes in Call 1 (e.g., a test that relies on a shared, ephemeral service) may fail in Call 2, even if the `tree_fingerprint` and `plan_fingerprint` match perfectly. This leads to either a false `tree-changed` discard (if the failure is treated as a change) or an incorrect `needs-human` status, violating the core promise of reliable, resumable progress.",
+      "spec_anchor": "the-budgeted-ladder",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added the Progress is short-lived principle: progress older than 3600 s is discarded as stale, plus a failure-modes row; within that window the exposure equals one long uninterrupted run, and CI re-runs everything.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The design assumes that the result of a unit (a rung, file, or shard) is determined solely by the local Git tree and the gate plan. This ignores external, non-deterministic state dependencies (e.g., shared databases, network services, or global environment variables) that are outside the scope of the `tree_fingerprint` and `plan_fingerprint`.",
+          "spec_anchor": "the-budgeted-ladder"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The spec treats a malicious or planted progress file as in-model — it reads it through `readLeafNoFollow` (O_NOFOLLOW) and refuses symlinks — but the parent directory `.faff/gates` is never checked. A repo that ships `.faff` or `.faff/gates` as a committed symlink (plausible in an adopter repo where `.faff/` is not ignored, unlike this one) makes every progress read and every temp-file-plus-rename write land in an attacker-chosen directory. This defeats the exact hardening the spec brags about in its edge-case list, and turns the progress writer into a \"create a fixed-name file with faff-controlled content in an arbitrary directory\" primitive.",
+      "evidence": "§4.3 \"a new module `bin/lib/gates-progress.js` … holding `treeFingerprint`, `planFingerprint`, `readProgress`, `writeProgress` and `clearProgress`\"; §4.5 \"The progress file is a symlink, empty, or malformed JSON: `readLeafNoFollow` refuses it\" — the file is hardened, the directory is not; the write path \"temp file in the same directory, then rename\" inherits whatever the directory resolves to.",
+      "predicted_consequence": "a cloned malicious repo causes `faff gates run --resume/--budget-secs` to create `.faff/gates/run-progress.json` (mode 0600, faff-controlled JSON) inside a symlink-target directory such as `~/.ssh` or another user-writable location, instead of inside the work tree; the O_NOFOLLOW guarantee the spec claims for the progress path does not hold.",
+      "spec_anchor": "43-where-things-live",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "4.3: .faff and .faff/gates are lstat-checked real directories inside root, created 0700; a symlink or escape exits 2 progress-dir-unsafe; the temp file is created O_EXCL in the checked directory.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The spec treats a malicious or planted progress file as in-model — it reads it through `readLeafNoFollow` (O_NOFOLLOW) and refuses symlinks — but the parent directory `.faff/gates` is never checked. A repo that ships `.faff` or `.faff/gates` as a committed symlink (plausible in an adopter repo where `.faff/` is not ignored, unlike this one) makes every progress read and every temp-file-plus-rename write land in an attacker-chosen directory. This defeats the exact hardening the spec brags about in its edge-case list, and turns the progress writer into a \"create a fixed-name file with faff-controlled content in an arbitrary directory\" primitive.",
+          "spec_anchor": "43-where-things-live"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "Step 4.2's fingerprint writes a blob for every modified and untracked non-ignored file. An untracked file holding a credential (a token file, a local `.env` variant the developer deliberately keeps untracked but not gitignored) has its contents copied into `.git/objects` on every budgeted or resumed gate run. Unreferenced blobs are not removed by gc for ~2 weeks by default and are recoverable via `cat-file` after the source file is deleted; they can also leak through any all-objects export (`git bundle --all`, some backup/mirror tooling). The spec's only treatment of this is \"these are unreferenced and git's own garbage collection removes them\" — a disk-hygiene statement that never weighs the secret-persistence consequence it newly creates.",
+      "evidence": "§4.2 \"`git add` writes blob objects into the object store for modified and untracked files; these are unreferenced and git's own garbage collection removes them.\"",
+      "predicted_consequence": "contents of untracked non-ignored files, including credential material, become durably readable from `.git/objects` after the files themselves are deleted or the checkout is cleaned, on every host where a budgeted gate run has executed.",
+      "spec_anchor": "42-fingerprints",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "4.2 rewritten: the tree fingerprint is HEAD^{tree} plus git hash-object (no -w) content ids of the paths git status reports, with --no-optional-locks; no index or object writes. DONE item asserts no new object.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "Step 4.2's fingerprint writes a blob for every modified and untracked non-ignored file. An untracked file holding a credential (a token file, a local `.env` variant the developer deliberately keeps untracked but not gitignored) has its contents copied into `.git/objects` on every budgeted or resumed gate run. Unreferenced blobs are not removed by gc for ~2 weeks by default and are recoverable via `cat-file` after the source file is deleted; they can also leak through any all-objects export (`git bundle --all`, some backup/mirror tooling). The spec's only treatment of this is \"these are unreferenced and git's own garbage collection removes them\" — a disk-hygiene statement that never weighs the secret-persistence consequence it newly creates.",
+          "spec_anchor": "42-fingerprints"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "major",
+      "claim": "§4.4's loop rule (\"re-invoke while `units_done` is higher than the previous call's; if it did not rise, stop and treat the gate as `needs-human`\") and §4.5's edge case (\"a tree edit between calls — the lane fixed something — `discarded: \"tree-changed\"`, the ladder restarts. This is the intended path after a fix\") cannot both hold, so the prose behaviour the spec mandates is not decidable by any test.",
+      "evidence": "`GatesIncomplete.units_done` is defined as \"across all calls on this tree and plan\". After a discard the prior progress is deleted, so `units_done` counts only the new call's units and restarts near zero. A lane that fixes a tree mid-loop (the path §4.5 calls intended) produces a call whose `units_done` is lower than the previous call's — the §4.4 loop stops and declares `needs-human` on exactly the case §4.5 says should proceed. The failure-modes table even relies on \"units_done did not rise\" as the stop signal for the pathological gate-writes case, with no distinguishing condition for the legitimate fix case.",
+      "predicted_consequence": "a build following §4.4 literally fails the intended fix-and-resume flow the whole feature exists for; a build following §4.5 fails the loop's stated stop condition. No test can decide which is correct, and the DONE item \"Step 7.5 … re-invokes it on exit 3 while `units_done` rises\" is ambiguous for every run containing a tree change.",
+      "spec_anchor": "44-graft-prose",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "4.4 defines an attempt (no edits between calls); units_done is compared within an attempt; a fix starts a new attempt whose first call may report tree-changed; a discarded after an attempt's first call stops as needs-human.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "§4.4's loop rule (\"re-invoke while `units_done` is higher than the previous call's; if it did not rise, stop and treat the gate as `needs-human`\") and §4.5's edge case (\"a tree edit between calls — the lane fixed something — `discarded: \"tree-changed\"`, the ladder restarts. This is the intended path after a fix\") cannot both hold, so the prose behaviour the spec mandates is not decidable by any test.",
+          "spec_anchor": "44-graft-prose"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The design principle \"Every call makes progress… a resume loop always ends, even when one unit alone takes longer than the budget\" does not hold. Step 6a's no-progress rule says a call that has finished no unit lets its in-flight units finish, each bounded only by `rung_timeout_ms` — so a call whose first unit is a long whole-rung unit runs to that unit's completion regardless of the budget. If that completion time exceeds the 600-second tool cap, the tool kills the call before step 6b ever writes progress. The next call re-runs the same unit from scratch, is killed again, and so on: no progress is ever written, no exit 3 is ever seen, and the loop never terminates. The graft prose (4.4) only branches on \"exits 3\" and on ladder completion — it has no behaviour at all for a killed call, so the lane stalls exactly as it does today (the FAFF-1356 40-minute stall this spec exists to fix). The failure-modes row that covers this (\"If the call also passes the tool cap, lower `gates.run_budget_secs` or split the unit\") offers two remedies that both fail: lowering the budget cannot shorten a call that the no-cut rule forces to run to unit completion, and splitting a non-shardable rung is explicitly out of scope (§2). Worse, lowering `gates.run_budget_secs` in config changes the plan fingerprint (which hashes the resolved `readGatesConfig`, which now carries `run_budget_secs`), so the lane's attempted remedy also discards whatever progress existed.",
+      "evidence": "\"Design principles\" (\"Every call makes progress… So a resume loop always ends\"); 4.1 step 6a (\"ELSE let the in-flight units finish (each still bounded by rung_timeout_ms)\"); §2 out-of-scope bullet \"Splitting a long single-command rung\"; 4.4 loop definition (\"While a call exits 3…\"); 4.6 failure-modes row \"One unit alone takes longer than the budget on a loaded host\"; 4.2 plan fingerprint hashing \"the resolved `readGatesConfig` object\" combined with 4.3 \"`readGatesConfig` gains `run_budget_secs`\".",
+      "predicted_consequence": "On any repo whose longest unit (e.g. a non-shardable `make test` rung, or a single 10-minute test file in the pool) exceeds the tool cap, the resume loop never terminates and the graft lane stalls with no progress file and no exit-3 signal — the exact failure this spec was commissioned to remove; the documented mitigation makes it worse by discarding progress.",
+      "spec_anchor": "design-principles",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "No-progress calls run units to a ceiling (budget + min(60 s, budget)); a unit still running there is recorded errored exceeds-call-budget, so every call records a unit and none outlives its ceiling.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The design principle \"Every call makes progress… a resume loop always ends, even when one unit alone takes longer than the budget\" does not hold. Step 6a's no-progress rule says a call that has finished no unit lets its in-flight units finish, each bounded only by `rung_timeout_ms` — so a call whose first unit is a long whole-rung unit runs to that unit's completion regardless of the budget. If that completion time exceeds the 600-second tool cap, the tool kills the call before step 6b ever writes progress. The next call re-runs the same unit from scratch, is killed again, and so on: no progress is ever written, no exit 3 is ever seen, and the loop never terminates. The graft prose (4.4) only branches on \"exits 3\" and on ladder completion — it has no behaviour at all for a killed call, so the lane stalls exactly as it does today (the FAFF-1356 40-minute stall this spec exists to fix). The failure-modes row that covers this (\"If the call also passes the tool cap, lower `gates.run_budget_secs` or split the unit\") offers two remedies that both fail: lowering the budget cannot shorten a call that the no-cut rule forces to run to unit completion, and splitting a non-shardable rung is explicitly out of scope (§2). Worse, lowering `gates.run_budget_secs` in config changes the plan fingerprint (which hashes the resolved `readGatesConfig`, which now carries `run_budget_secs`), so the lane's attempted remedy also discards whatever progress existed.",
+          "spec_anchor": "design-principles"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The plan fingerprint hashes the whole resolved `readGatesConfig` object, and `readGatesConfig` now resolves `run_budget_secs`. The budget is a per-call scheduling parameter, not part of what makes a unit's result valid — a unit's pass on an unchanged tree stays valid no matter what budget the next call uses. Including it means a lane that adjusts `gates.run_budget_secs` between calls of one attempt (the exact remedy the failure-modes table suggests) is told `plan-changed` and every finished unit is re-run.",
+      "evidence": "4.2 \"The plan fingerprint hashes… the resolved `readGatesConfig(root)` object with keys sorted\"; 4.3 \"`readGatesConfig` gains `run_budget_secs`\".",
+      "predicted_consequence": "Any mid-attempt budget retune silently discards all accumulated progress and re-runs the ladder from the first rung; the `plan-changed` signal, meant to catch real plan changes (new test files, changed commands), fires on a scheduling no-op.",
+      "spec_anchor": "42-fingerprints",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The plan fingerprint drops run_budget_secs from the hashed config; DONE item added.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The plan fingerprint hashes the whole resolved `readGatesConfig` object, and `readGatesConfig` now resolves `run_budget_secs`. The budget is a per-call scheduling parameter, not part of what makes a unit's result valid — a unit's pass on an unchanged tree stays valid no matter what budget the next call uses. Including it means a lane that adjusts `gates.run_budget_secs` between calls of one attempt (the exact remedy the failure-modes table suggests) is told `plan-changed` and every finished unit is re-run.",
+          "spec_anchor": "42-fingerprints"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The tree fingerprint deliberately excludes ignored files, and the plan fingerprint only sees paths, not content. So any file gitignore covers is invisible to both guards. The sharpest case: a test file that is itself gitignored (a \"local scratch tests\" pattern adopters use). It gets listed as a unit by `listTestFiles` (plan fingerprint covers its path), but editing its content between calls changes neither fingerprint, so the prior call's result for that unit is reused and the changed test never runs — the gate reports pass without executing the code it exists to execute. More broadly, any ignored file a test consumes as input (`.env`, a local fixture, a local DB file) can change between calls with the progress staying \"valid\". This contradicts the WHY claim that \"any change to the tree throws the saved progress away\": that invariant is only true for the fingerprint's narrowed definition of tree, which a reader will not assume.",
+      "evidence": "§4.2 — \"It covers uncommitted edits and new untracked files … it uses git's own ignore rules, so build output already ignored does not invalidate progress\"; Vocabulary \"Tree fingerprint\"; §1 WHY \"a unit's result stays true for as long as the tree it ran on is unchanged\". The failure-modes row about out-of-tree state (§4.6, row 4) lists \"a local service, the host's load, the clock\" — ignored files are not out-of-tree by any ordinary reading, and are not covered by any row.",
+      "predicted_consequence": "An honest lane that edits an ignored test file or ignored fixture between resume calls gets a `pass` contract block for a unit that did not run against the current content. Bounded but real: the one-hour `stale` bound is the only cap, and the merge-floor/CI backstop is the only thing stopping it reaching merge.",
+      "spec_anchor": "4-2-fingerprints",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Pool test files are hashed by content in the plan fingerprint, covering ignored test files; other ignored inputs are documented as out-of-tree state under the stale bound and CI (Chosen in 4.2).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The tree fingerprint deliberately excludes ignored files, and the plan fingerprint only sees paths, not content. So any file gitignore covers is invisible to both guards. The sharpest case: a test file that is itself gitignored (a \"local scratch tests\" pattern adopters use). It gets listed as a unit by `listTestFiles` (plan fingerprint covers its path), but editing its content between calls changes neither fingerprint, so the prior call's result for that unit is reused and the changed test never runs — the gate reports pass without executing the code it exists to execute. More broadly, any ignored file a test consumes as input (`.env`, a local fixture, a local DB file) can change between calls with the progress staying \"valid\". This contradicts the WHY claim that \"any change to the tree throws the saved progress away\": that invariant is only true for the fingerprint's narrowed definition of tree, which a reader will not assume.",
+          "spec_anchor": "4-2-fingerprints"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "Failing tests routinely dump received values, configuration, environment data, and tokens into their output. The spec requires that tail to be written into `<root>/.faff/gates/run-progress.json` and to survive across calls. Mode 0600 protects against other local users, but not against the file being committed: §4.2 explicitly contemplates \"an adopter whose `.faff/` is not ignored\", and in that repository the progress file is an untracked file sitting inside the worktree that a lane running `git add -A` while committing a fix will sweep up and push. Today this output is transient (lane stdout); the spec makes it a persisted, committable artifact and specifies no mitigation for the tracked-`.faff/` case it itself names.",
+      "evidence": "Types record `UnitResult: … detail: String # the same 500-character tail classifyRungResult keeps`; §4.1 step 6b writes progress containing `done: List<UnitResult>`; §4.2 \"an adopter whose `.faff/` is not ignored would otherwise change the fingerprint by writing progress\" — acknowledged, unmitigated.",
+      "predicted_consequence": "A credential or token printed by a failing test is persisted to `.faff/gates/run-progress.json` and can be committed and pushed from a repository where `.faff/` is tracked.",
+      "spec_anchor": "types",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Progress stores detail only for fail and errored units and keeps .faff/gates ignored; later rounds added redaction and the tracked-gitignore refusal.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "Failing tests routinely dump received values, configuration, environment data, and tokens into their output. The spec requires that tail to be written into `<root>/.faff/gates/run-progress.json` and to survive across calls. Mode 0600 protects against other local users, but not against the file being committed: §4.2 explicitly contemplates \"an adopter whose `.faff/` is not ignored\", and in that repository the progress file is an untracked file sitting inside the worktree that a lane running `git add -A` while committing a fix will sweep up and push. Today this output is transient (lane stdout); the spec makes it a persisted, committable artifact and specifies no mitigation for the tracked-`.faff/` case it itself names.",
+          "spec_anchor": "types"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The spec defines `GatesIncomplete` only as \"stdout (`--json`) on exit 3\". For a plain `faff gates run --budget-secs N` (no `--json`), the DONE item only requires \"no `faff-contract:quality-gates` block in either output mode\" — it never says what the non-JSON call *does* print. A tester can decide the negative (no block) but cannot decide the positive; two builds (one printing a progress summary, one printing nothing) both pass every DONE item yet differ observably.",
+      "evidence": "Types record `GatesIncomplete` (\"stdout (--json) on exit 3\"); DONE item \"An incomplete call exits 3, prints `GatesIncomplete` under `--json` and no `faff-contract:quality-gates` block in either output mode.\"",
+      "predicted_consequence": "The graft loop and the selftest cases only exercise `--json`, so the non-JSON face of exit 3 ships whatever the builder improvised; `docs/guide/cli.md`'s \"one sentence on exit 3\" then documents an undocumented behaviour.",
+      "spec_anchor": "types",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Section 3 specifies the exact non-JSON exit-3 output: an optional progress discarded line and one gate ladder: incomplete line; DONE item updated.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The spec defines `GatesIncomplete` only as \"stdout (`--json`) on exit 3\". For a plain `faff gates run --budget-secs N` (no `--json`), the DONE item only requires \"no `faff-contract:quality-gates` block in either output mode\" — it never says what the non-JSON call *does* print. A tester can decide the negative (no block) but cannot decide the positive; two builds (one printing a progress summary, one printing nothing) both pass every DONE item yet differ observably.",
+          "spec_anchor": "types"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "Section 3 justifies the 480 s default by \"480 leaves 120 seconds under the 600-second tool cap for the tree fingerprint, the cut and the output.\" But the spec's own no-progress rule (4.1 step 6a) runs units to the ceiling = budget + min(60, budget) = 540 s, so the worst-case call spends 540 s on units, leaving 60 s — not 120 — for the fingerprint, the write and the output. Section 4.1 states this correctly (\"the ceiling is 540 seconds, under the 600-second tool cap with room for the fingerprint and the output\"); section 3's arithmetic contradicts it. The margin must be computed from the ceiling, since the no-progress call is precisely the long one. The consequence of the thin real margin is not hypothetical: the graft prose (4.4) runs the call with `timeout: 600000`, and on a repo where the tree fingerprint plus output exceeds 60 s (the cost scales with \"the size of the uncommitted work\", 4.2 — and a mid-task lane has uncommitted work by definition), the call is killed by the lane's own timeout. The prose loop defines behaviour only for exit 3 (re-invoke) and the stall/`discarded` stops; a call that is killed exits neither 0/1 nor 3, and the loop's behaviour there is unspecified — with the progress write happening only at call end, the killed call's work is lost entirely.",
+      "evidence": "§3 Command (\"480 leaves 120 seconds…\"); §4.1 \"Chosen: cut, then discard\" (ceiling 540); §4.2 (\"plus the size of the uncommitted work\"); §4.4 (`timeout: 600000`, loop defined only on exit 3 and the two stop conditions).",
+      "predicted_consequence": "on a repo with heavy uncommitted work, the no-progress call is killed at 600 s, its progress is never written, and the graft loop hits a termination case the prose does not define — the lane either spins or stalls without the spec's intended needs-human outcome. On this repository the margin holds (fingerprint ≈ 0.5 s), so the fix is a spec edit, not a redesign: restate the margin from the ceiling, and add one clause to the prose loop for a call that neither exits 3 nor finishes.",
+      "spec_anchor": "command",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Default lowered to 420 so the 480 s ceiling leaves 120 s under the tool cap; the margin is now stated from the ceiling; graft stops as needs-human on a killed call; progress is rewritten after each recorded unit.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "Section 3 justifies the 480 s default by \"480 leaves 120 seconds under the 600-second tool cap for the tree fingerprint, the cut and the output.\" But the spec's own no-progress rule (4.1 step 6a) runs units to the ceiling = budget + min(60, budget) = 540 s, so the worst-case call spends 540 s on units, leaving 60 s — not 120 — for the fingerprint, the write and the output. Section 4.1 states this correctly (\"the ceiling is 540 seconds, under the 600-second tool cap with room for the fingerprint and the output\"); section 3's arithmetic contradicts it. The margin must be computed from the ceiling, since the no-progress call is precisely the long one. The consequence of the thin real margin is not hypothetical: the graft prose (4.4) runs the call with `timeout: 600000`, and on a repo where the tree fingerprint plus output exceeds 60 s (the cost scales with \"the size of the uncommitted work\", 4.2 — and a mid-task lane has uncommitted work by definition), the call is killed by the lane's own timeout. The prose loop defines behaviour only for exit 3 (re-invoke) and the stall/`discarded` stops; a call that is killed exits neither 0/1 nor 3, and the loop's behaviour there is unspecified — with the progress write happening only at call end, the killed call's work is lost entirely.",
+          "spec_anchor": "command"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The progress file persists the 500-character output tail of every `fail` and `errored` unit — exactly the channel through which \"a failing test prints a secret into its output tail\". The spec's control for that exposure is the `.faff/gates/.gitignore` containing `*`, but the spec conditions writing it on \"when it creates `.faff/gates`\". In the spec's own stated adopter case — \"an adopter repository whose `.faff/` is tracked\" — `.faff/gates` can pre-exist (created by an earlier faff version, a partial upgrade, or the adopter) without the gitignore. The writer then drops a mode-0600 file containing test-output tails into a *tracked* directory with no ignore rule, and the tree fingerprint deliberately excludes `.faff/`, so nothing in the new mechanism flags or cleans it. A subsequent `git add -A` / `git add .faff` commits the tails.",
+      "evidence": "§4.3 bullet \"When it creates `.faff/gates`, the writer also writes `.faff/gates/.gitignore` containing `*`, so the progress file stays untracked in an adopter repository whose `.faff/` is tracked\"; §4.6 row \"A failing test prints a secret into its output tail → The tail is in `run-progress.json`\", which leans on the gitignore as one of its named controls; §4.2 \".faff/ is always excluded\" from the tree fingerprint.",
+      "predicted_consequence": "`run-progress.json` with credential-bearing test-output tails becomes an untracked, unignored, committable file inside a tracked `.faff/` in exactly the repository shape the gitignore was written for; the leak surfaces in a later commit and is invisible to the fingerprint machinery.",
+      "spec_anchor": "43-where-things-live",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The writer checks the gitignore before every write, not only on directory creation (superseded in round 5 by the git check-ignore rule).",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The progress file persists the 500-character output tail of every `fail` and `errored` unit — exactly the channel through which \"a failing test prints a secret into its output tail\". The spec's control for that exposure is the `.faff/gates/.gitignore` containing `*`, but the spec conditions writing it on \"when it creates `.faff/gates`\". In the spec's own stated adopter case — \"an adopter repository whose `.faff/` is tracked\" — `.faff/gates` can pre-exist (created by an earlier faff version, a partial upgrade, or the adopter) without the gitignore. The writer then drops a mode-0600 file containing test-output tails into a *tracked* directory with no ignore rule, and the tree fingerprint deliberately excludes `.faff/`, so nothing in the new mechanism flags or cleans it. A subsequent `git add -A` / `git add .faff` commits the tails.",
+          "spec_anchor": "43-where-things-live"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The spec's dispatch loop checks the budget before starting each unit. A unit can finish at (or just past) the budget boundary with no other unit in flight; step 6 then has nothing in flight to run to the ceiling, nothing finished this call, and units left to run — so it writes progress (with `calls` incremented but no new results) and exits 3 with `units_done` unchanged from the previous call. The graft loop (4.4) stops as `needs-human` when \"units_done did not rise\", so a perfectly resumable run is abandoned spuriously. The spec also never states whether `units_done` counts ceiling-`errored` units, which feeds the same comparison.",
+      "evidence": "4.1 step 6 (a/c), 4.4's loop sentence (\"as long as the call's `units_done` is higher than the previous call's\"), `GatesIncomplete.units_done` in section 3.",
+      "predicted_consequence": "A lane following Step 7.5 verbatim reports `needs-human` for a gate that one more `--resume` call would have finished; a tester cannot decide from the spec whether that outcome is correct or a defect, because neither the zero-new-units call nor the `units_done` counting rule is specified or covered by any scenario/DONE item.",
+      "spec_anchor": "how-4.1-the-budgeted-ladder",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Step 5b always starts a call's first unit, and an invariant states every exit-3 call records at least one new unit, so units_done strictly rises; units_done counts every recorded status.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The spec's dispatch loop checks the budget before starting each unit. A unit can finish at (or just past) the budget boundary with no other unit in flight; step 6 then has nothing in flight to run to the ceiling, nothing finished this call, and units left to run — so it writes progress (with `calls` incremented but no new results) and exits 3 with `units_done` unchanged from the previous call. The graft loop (4.4) stops as `needs-human` when \"units_done did not rise\", so a perfectly resumable run is abandoned spuriously. The spec also never states whether `units_done` counts ceiling-`errored` units, which feeds the same comparison.",
+          "spec_anchor": "how-4.1-the-budgeted-ladder"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The spec mandates three rules that interact badly: (1) Ceiling = budget + min(60s, budget), measured from the call (the smoke test's \"inside the 4 s ceiling\" confirms the absolute reading); (2) 5b: \"The first unit a call needs to run is always started, even past the budget\"; (3) a unit still running at the ceiling in a no-progress call is recorded `errored`/`exceeds-call-budget`, and per 5a a recorded result is **reused** on every later call. Tree fingerprinting (`git status -z --untracked-files=all` plus hashing every changed file), progress reading, and plan fingerprinting all happen before the first unit starts and are unbudgeted. With a small budget — which the spec's own smoke test (`--budget-secs 2`) and DONE tests (2–3 s) use — setup of ~1–2 s leaves the first unit well under grace; it is cut at the ceiling, recorded `errored`, and that result is then reused forever. The ladder reads errored as needs-human, so the resume loop deterministically ends needs-human for a unit that was never given a fair slice. The spec's own smoke test expects exit 0 with the 3-second test finishing \"inside the 4 s ceiling\" — that passes only if call-2 setup stays under ~1 s; on a loaded host it flips to exit 1.",
+      "evidence": "§4.1 step 5b and 6a; Ceiling definition in §3 Vocabulary; 5a reuse rule; smoke test in §7; DONE tests using budgets of 2–3 s.",
+      "predicted_consequence": "The spec's own acceptance procedure (smoke test, DONE fixtures) is timing-fragile by construction: any host where fingerprint+setup exceeds ~1 s turns the expected exit 0 into a recorded `exceeds-call-budget` and exit 1. Fixing it requires a spec edit (anchor the ceiling at first-unit start, or make grace independent of budget), not an implementation choice.",
+      "spec_anchor": null,
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added the call clock: budget and ceiling are measured from the first unit's start, after setup; smoke test widened to budget 3 with a 4 s unit and a 6 s ceiling; DONE item for slow setup.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "major",
+          "claim": "The spec mandates three rules that interact badly: (1) Ceiling = budget + min(60s, budget), measured from the call (the smoke test's \"inside the 4 s ceiling\" confirms the absolute reading); (2) 5b: \"The first unit a call needs to run is always started, even past the budget\"; (3) a unit still running at the ceiling in a no-progress call is recorded `errored`/`exceeds-call-budget`, and per 5a a recorded result is **reused** on every later call. Tree fingerprinting (`git status -z --untracked-files=all` plus hashing every changed file), progress reading, and plan fingerprinting all happen before the first unit starts and are unbudgeted. With a small budget — which the spec's own smoke test (`--budget-secs 2`) and DONE tests (2–3 s) use — setup of ~1–2 s leaves the first unit well under grace; it is cut at the ceiling, recorded `errored`, and that result is then reused forever. The ladder reads errored as needs-human, so the resume loop deterministically ends needs-human for a unit that was never given a fair slice. The spec's own smoke test expects exit 0 with the 3-second test finishing \"inside the 4 s ceiling\" — that passes only if call-2 setup stays under ~1 s; on a loaded host it flips to exit 1.",
+          "spec_anchor": null
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "DONE says \"A call with a budget never starts a unit after its budget has run out.\" HOW 5b mandates the opposite for the first unit: \"The first unit a call needs to run is always started, even past the budget.\" A builder implementing the DONE checklist literally fails the HOW; a test derived from the DONE item contradicts the procedure.",
+      "evidence": "§7 DONE (\"From HOW (4.1)\", first bullet) vs §4.1 step 5b.",
+      "predicted_consequence": "Contradictory acceptance criteria; the DONE bullet needs the qualifier \"other than the mandatory first unit\" or the test suite and procedure disagree.",
+      "spec_anchor": null,
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The scenario assertion and DONE item now except the call's mandatory first unit.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "DONE says \"A call with a budget never starts a unit after its budget has run out.\" HOW 5b mandates the opposite for the first unit: \"The first unit a call needs to run is always started, even past the budget.\" A builder implementing the DONE checklist literally fails the HOW; a test derived from the DONE item contradicts the procedure.",
+          "spec_anchor": null
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "6a branches on \"IF this call has finished at least one unit.\" Whether a unit reused from matching progress counts as \"finished by this call\" is never stated. The two readings diverge materially: if reuse counts, a call that reuses prior results and has one new unit in flight at expiry cuts and **discards** it, exits 3 with zero new units, `units_done` does not rise, and the graft loop stops as needs-human — a stall the spec's own invariant claims is impossible. The invariant paragraph (\"its first unit … is either recorded when it finishes or recorded at the ceiling (6a)\") implies reuse does *not* count, and the smoke test's parenthetical corroborates, but 6a's own wording does not say so. This is a load-bearing, spec-owned ambiguity.",
+      "evidence": "§4.1 step 6a vs the invariant paragraph under 6; smoke test §7.",
+      "predicted_consequence": "A builder taking 6a's literal wording produces a resume loop that stalls on the first call that mixes reuse with new work; the graft prose then mislabels a healthy attempt as needs-human.",
+      "spec_anchor": null,
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Vocabulary defines finished by this call (reused results never count); step 6a says so; DONE item covers the reuse-plus-one-new-unit case.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "6a branches on \"IF this call has finished at least one unit.\" Whether a unit reused from matching progress counts as \"finished by this call\" is never stated. The two readings diverge materially: if reuse counts, a call that reuses prior results and has one new unit in flight at expiry cuts and **discards** it, exits 3 with zero new units, `units_done` does not rise, and the graft loop stops as needs-human — a stall the spec's own invariant claims is impossible. The invariant paragraph (\"its first unit … is either recorded when it finishes or recorded at the ceiling (6a)\") implies reuse does *not* count, and the smoke test's parenthetical corroborates, but 6a's own wording does not say so. This is a load-bearing, spec-owned ambiguity.",
+          "spec_anchor": null
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The rationale for the 420 default is arithmetic: ceiling 480 s \"leaves 120 seconds under the 600-second tool cap for the tree fingerprint, the cut and the output.\" But the tree fingerprint's cost is unbounded in the spec — it hashes the content of every changed and untracked non-ignored file, and a graft lane by definition has uncommitted work. On a tree with large generated-but-unignored output (a case the failure-modes table itself anticipates under a different symptom), the fingerprint plus the cut can push the call past the tool cap. The graft loop treats a tool-killed call as needs-human, so the lane can never finish the gate via resume — and this failure mode appears nowhere in §4.6.",
+      "evidence": "§3 Command rationale (\"420 gives a ceiling of 480 seconds…\"); §4.2 tree_fingerprint (unbounded hash set); §4.4 loop stop rule (\"anything other than exit 0, 1 or 3, including the tool killing it\"); §4.6 table (no row for this).",
+      "predicted_consequence": "Lanes carrying large diffs exhaust the tool cap during fingerprinting, the loop stops needs-human, and the run falls back to a human despite the whole feature existing to avoid exactly that.",
+      "spec_anchor": null,
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Failure-modes row added for a slow fingerprint; setup_ms is reported in both outputs.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The rationale for the 420 default is arithmetic: ceiling 480 s \"leaves 120 seconds under the 600-second tool cap for the tree fingerprint, the cut and the output.\" But the tree fingerprint's cost is unbounded in the spec — it hashes the content of every changed and untracked non-ignored file, and a graft lane by definition has uncommitted work. On a tree with large generated-but-unignored output (a case the failure-modes table itself anticipates under a different symptom), the fingerprint plus the cut can push the call past the tool cap. The graft loop treats a tool-killed call as needs-human, so the lane can never finish the gate via resume — and this failure mode appears nowhere in §4.6.",
+          "spec_anchor": null
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "`--resume` creates a new trust-on-file path: a recorded unit result written by call N is accepted as a verdict by call N+1 without the unit's process ever running. The spec's forgery analysis (§4.6) covers one writer, \"a lane forges the progress file to skip a failing rung\", and accepts it because \"a lane can already forge the contract block it pipes\". But the file is writable by any same-user process in the worktree — including the gate's own unit processes and any daemon a test leaves running past the call (the runner's end-of-call write clobbers an in-run forgery, but a detached survivor writing after the runner's final write does not). The currency checks cannot catch this: the tree fingerprint excludes `.faff/` by design, and `.git/info/exclude` (not part of any tree) can hide real tree edits from `git status`. So a unit's surviving code can produce a green `faff-contract:quality-gates` block, emitted by faff itself, attesting units that have no execution trace at all — quieter than anything the lane-forgery row contemplates. The acceptance is defensible (the merge floor runs a fresh ladder, so a forged pass cannot merge, and code running inside a gate is already trusted with the verdict in worse ways), but the design's safety argument rests on the merge-floor containment plus the full writer set, and the spec states only the lane.",
+      "evidence": "§4.6 row \"A lane forges the progress file to skip a failing rung → Nothing at Step 7.5 → Accepted at this layer: a lane can already forge the contract block it pipes\"; §4.2 \"**Chosen:** `.faff/` is always excluded\"; §4.1 step 5a \"IF prior holds a result for (rung_index, unit): reuse it; do not run it\".",
+      "predicted_consequence": "a lane-local false pass contract block for units that never ran, produced by faff rather than by the lane; contained at merge by the fresh merge-gate/CI ladder, so the impact is a misled lane and an evidence-chain block with no execution trace — not a merged vulnerability.",
+      "spec_anchor": "4-6-failure-modes",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Failure-modes row widened to every same-user writer (lane, test code, surviving processes). Accepted: code inside a unit is already trusted with its verdict, and the merge floor runs a fresh ladder (merge-gate locally, CI on the PR), so a forged pass cannot merge.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "`--resume` creates a new trust-on-file path: a recorded unit result written by call N is accepted as a verdict by call N+1 without the unit's process ever running. The spec's forgery analysis (§4.6) covers one writer, \"a lane forges the progress file to skip a failing rung\", and accepts it because \"a lane can already forge the contract block it pipes\". But the file is writable by any same-user process in the worktree — including the gate's own unit processes and any daemon a test leaves running past the call (the runner's end-of-call write clobbers an in-run forgery, but a detached survivor writing after the runner's final write does not). The currency checks cannot catch this: the tree fingerprint excludes `.faff/` by design, and `.git/info/exclude` (not part of any tree) can hide real tree edits from `git status`. So a unit's surviving code can produce a green `faff-contract:quality-gates` block, emitted by faff itself, attesting units that have no execution trace at all — quieter than anything the lane-forgery row contemplates. The acceptance is defensible (the merge floor runs a fresh ladder, so a forged pass cannot merge, and code running inside a gate is already trusted with the verdict in worse ways), but the design's safety argument rests on the merge-floor containment plus the full writer set, and the spec states only the lane.",
+          "spec_anchor": "4-6-failure-modes"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The Types block says a finished budgeted/resumed run's `GatesOutcome` JSON \"adds one field, `resumed: { calls: Int, discarded?: String }`\", but no rule anywhere states when `discarded` is set on a *finished* run or what its value is. The natural case is right there in the spec: a `--resume` call whose progress is `stale` or `tree-changed` discards it (4.1 step 4), then re-runs everything and finishes inside the budget — exit 0, not exit 3. Does that call's JSON carry `discarded: \"stale\"`, or is `discarded` only ever set on the exit-3 path? A tester running the \"stale progress discards\" case to completion cannot decide what the final output should contain.",
+      "evidence": "Types block (`RECORD GatesIncomplete` vs the `resumed` field paragraph); DONE item \"A finished budgeted or resumed run's JSON carries `resumed.calls`\" asserts only `calls`, so the gap is not covered there either.",
+      "predicted_consequence": "The `stale`/`tree-changed`-then-finish path is unassertable: two correct builds can emit different `resumed` objects and both pass every listed DONE item and test.",
+      "spec_anchor": "types",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Section 3 defines resumed.calls (1 after a discard) and resumed.discarded (set exactly when this call discarded at step 4); DONE item added.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The Types block says a finished budgeted/resumed run's `GatesOutcome` JSON \"adds one field, `resumed: { calls: Int, discarded?: String }`\", but no rule anywhere states when `discarded` is set on a *finished* run or what its value is. The natural case is right there in the spec: a `--resume` call whose progress is `stale` or `tree-changed` discards it (4.1 step 4), then re-runs everything and finishes inside the budget — exit 0, not exit 3. Does that call's JSON carry `discarded: \"stale\"`, or is `discarded` only ever set on the exit-3 path? A tester running the \"stale progress discards\" case to completion cannot decide what the final output should contain.",
+          "spec_anchor": "types"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "§3's rationale fixes the default precisely because \"420 gives a ceiling of 480 seconds, which leaves 120 seconds under the 600-second tool cap\" — yet the accepted input is \"an integer greater than 0\" with no cap, and `gates.run_budget_secs` is likewise unbounded. A configured 590 yields a 650-second ceiling; the tool kills the call mid-unit; the graft loop reads a tool kill as needs-human and stops (§4.4). The feature silently disables itself under a misconfiguration the spec's own arithmetic shows it anticipated.",
+      "evidence": "§3 Command (\"an integer greater than 0. Anything else exits 2\"); §3 Chosen margin paragraph; §4.4 loop stop conditions.",
+      "predicted_consequence": "an operator setting `run_budget_secs: 590` gets every call killed at the tool cap and the lane reporting needs-human, with no validation error or documented maximum pointing at the cause. A one-line bound (reject or clamp the ceiling against the tool cap, or document the maximum) is absent.",
+      "spec_anchor": null,
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "--budget-secs is limited to 1..480 (exit 2 otherwise) and gates.run_budget_secs above 480 is clamped with a stderr line; DONE items added.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "§3's rationale fixes the default precisely because \"420 gives a ceiling of 480 seconds, which leaves 120 seconds under the 600-second tool cap\" — yet the accepted input is \"an integer greater than 0\" with no cap, and `gates.run_budget_secs` is likewise unbounded. A configured 590 yields a 650-second ceiling; the tool kills the call mid-unit; the graft loop reads a tool kill as needs-human and stops (§4.4). The feature silently disables itself under a misconfiguration the spec's own arithmetic shows it anticipated.",
+          "spec_anchor": null
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "§6 says \"Assumes: a full gate run leaves `git status --porcelain` unchanged… Validate before building.\" That validation exercises the uninterrupted path. The new mechanism this spec introduces is precisely the SIGTERM cut at budget/ceiling, and a killed test process is the most likely to leave an untracked temp artifact behind (an uninterrupted run may clean up in its own teardown; a SIGTERM'd one does not). If a cut leaves a non-ignored untracked file, the next call computes a different tree fingerprint, discards as `tree-changed`, and the graft loop stops as needs-human (§4.4) — the feature fails exactly when it is doing its job (long runs get cut), and the pre-build validation passes. The failure-modes table's first row covers \"the gate itself writes non-ignored files\" but its mitigation is reachable only after the failure, and the stated validation cannot detect this variant.",
+      "evidence": "§6 Assumptions; §4.1 cut semantics; §4.5 tree-changed edge case; §4.6 failure-modes row 1.",
+      "predicted_consequence": "on repos where cut tests drop untracked temp files, every budget cut triggers `discarded: \"tree-changed\"` on the next call, the loop halts as needs-human, and resume never survives past the first cut — discovered in production, not by the validation the spec mandates.",
+      "spec_anchor": null,
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The Assumes validation now also checks git status after a run cut with SIGTERM mid-UNIT; the failure-modes row names cut test processes.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "§6 says \"Assumes: a full gate run leaves `git status --porcelain` unchanged… Validate before building.\" That validation exercises the uninterrupted path. The new mechanism this spec introduces is precisely the SIGTERM cut at budget/ceiling, and a killed test process is the most likely to leave an untracked temp artifact behind (an uninterrupted run may clean up in its own teardown; a SIGTERM'd one does not). If a cut leaves a non-ignored untracked file, the next call computes a different tree fingerprint, discards as `tree-changed`, and the graft loop stops as needs-human (§4.4) — the feature fails exactly when it is doing its job (long runs get cut), and the pre-build validation passes. The failure-modes table's first row covers \"the gate itself writes non-ignored files\" but its mitigation is reachable only after the failure, and the stated validation cannot detect this variant.",
+          "spec_anchor": null
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "Step 5a reuses any prior result for `(rung_index, unit)` unconditionally, and the plan fingerprint deliberately excludes `run_budget_secs` (§4.2) so progress survives budget changes. Together these make an `exceeds-call-budget` errored result terminal across budget changes: an operator who raises the budget to fix a ceiling cut gets needs-human again with no re-execution of the unit, and no stated remedy short of hand-deleting the progress file (or touching the tree). The spec's rationale (\"a unit that cannot finish inside one call is reported instead of re-run forever\") intends stickiness within a budget; the design makes it sticky across budgets without saying so.",
+      "evidence": "§4.1 step 5a; §4.2 plan fingerprint (\"without `run_budget_secs`\"); §3 DONE-adjacent rationale in §1 (\"reported instead of re-run forever\").",
+      "predicted_consequence": "raising `run_budget_secs` after a ceiling cut silently changes nothing; the lane re-reports needs-human and the operator must know to delete `.faff/gates/run-progress.json` by hand. The spec should either exclude `exceeds-call-budget` results from reuse or state explicitly that they are terminal.",
+      "spec_anchor": null,
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "An exceeds-call-budget result records ceiling_secs and is reused only when that ceiling is at least the current call's, so raising the budget retries it; DONE item added.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "Step 5a reuses any prior result for `(rung_index, unit)` unconditionally, and the plan fingerprint deliberately excludes `run_budget_secs` (§4.2) so progress survives budget changes. Together these make an `exceeds-call-budget` errored result terminal across budget changes: an operator who raises the budget to fix a ceiling cut gets needs-human again with no re-execution of the unit, and no stated remedy short of hand-deleting the progress file (or touching the tree). The spec's rationale (\"a unit that cannot finish inside one call is reported instead of re-run forever\") intends stickiness within a budget; the design makes it sticky across budgets without saying so.",
+          "spec_anchor": null
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The `detail` field of `fail` and `errored` UnitResults carries the 500-character tail of test output, which the spec itself concedes can contain secrets. The stated controls are mode 0600, a `.gitignore` of `*`, and \"deleted when the ladder finishes\" — but deletion happens only at step 7. On the paths the spec itself designs in — the graft loop stopping as `needs-human` (units_done stalled, a `discarded` after the first call, a non-0/1/3 exit), a lane killed mid-attempt, or a human simply walking away — no call ever reaches step 7, so `run-progress.json` with the secret-bearing tail stays at rest in the worktree indefinitely. Unlike the lane's stdout, which is ephemeral, this file is a persistent artifact that backup agents, workspace sync tools, and anything with read access to the lane user's files will pick up; the `.gitignore` stops git, not backups.",
+      "evidence": "§4.6 row \"A failing test prints a secret into its output tail\" claims \"Same exposure as the lane's own stdout today\"; §4.1 step 7 (\"delete the progress file\") is the only deletion trigger; §4.4 defines the needs-human stop with no cleanup instruction.",
+      "predicted_consequence": "a credential printed by a failing test remains readable at `<root>/.faff/gates/run-progress.json` after the attempt is abandoned, and is captured by any file-level backup of the worktree, where the same output in stdout would not be.",
+      "spec_anchor": "4-6-failure-modes",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Detail is redacted with redactKnownSecrets and secretRedact before writing; graft runs faff gates run --clear-progress when its loop stops; stale progress is deleted by the next run.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "The `detail` field of `fail` and `errored` UnitResults carries the 500-character tail of test output, which the spec itself concedes can contain secrets. The stated controls are mode 0600, a `.gitignore` of `*`, and \"deleted when the ladder finishes\" — but deletion happens only at step 7. On the paths the spec itself designs in — the graft loop stopping as `needs-human` (units_done stalled, a `discarded` after the first call, a non-0/1/3 exit), a lane killed mid-attempt, or a human simply walking away — no call ever reaches step 7, so `run-progress.json` with the secret-bearing tail stays at rest in the worktree indefinitely. Unlike the lane's stdout, which is ephemeral, this file is a persistent artifact that backup agents, workspace sync tools, and anything with read access to the lane user's files will pick up; the `.gitignore` stops git, not backups.",
+          "spec_anchor": "4-6-failure-modes"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The writer is required to make `.faff/gates/.gitignore` \"a regular file whose content is exactly `*` followed by a newline, writing it when it is absent or different.\" In an adopter repository that tracks `.faff/` (the spec explicitly contemplates adopters whose `.faff/` is tracked) and has committed a `.faff/gates/.gitignore` with intentional, different content, the writer overwrites a tracked, user-authored file in the worktree with no refusal, warning, or tracked-ness check. This is a silent write to content the tool does not own, and the modified tracked file sits in `git status` where a careless `git commit -a` persists the clobber.",
+      "evidence": "§4.3, first bullet under the `gates-progress.js` paragraph: \"writing it when it is absent or different, whether or not `.faff/gates` already existed.\"",
+      "predicted_consequence": "an adopter's committed `.faff/gates/.gitignore` is overwritten in the worktree on every progress write; the modification can be unknowingly committed, losing the adopter's ignore rules for that directory.",
+      "spec_anchor": "4-3-where-things-live",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The writer uses git check-ignore; it writes .faff/gates/.gitignore only when that file is untracked or absent, and refuses with progress-file-not-ignored (exit 2) rather than editing a tracked file.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "The writer is required to make `.faff/gates/.gitignore` \"a regular file whose content is exactly `*` followed by a newline, writing it when it is absent or different.\" In an adopter repository that tracks `.faff/` (the spec explicitly contemplates adopters whose `.faff/` is tracked) and has committed a `.faff/gates/.gitignore` with intentional, different content, the writer overwrites a tracked, user-authored file in the worktree with no refusal, warning, or tracked-ness check. This is a silent write to content the tool does not own, and the modified tracked file sits in `git status` where a careless `git commit -a` persists the clobber.",
+          "spec_anchor": "4-3-where-things-live"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The scenario asserts the final resumed call's contract block \"equals that of one uninterrupted `faff gates run` on the same repo\", but §3 says a finished budgeted/resumed run's JSON \"adds one field, `resumed: { calls, discarded? }`, only when `--resume` or `--budget-secs` was given\". An uninterrupted run has no `resumed` field, so the two JSON outputs can never be equal as written; the tester cannot tell whether equality means byte-equal (unsatisfiable), signal-and-rungs-equal, or rungs-equal-with-`resumed`-ignored.",
+      "evidence": "Scenarios, first block (\"the final call's contract block equals that of one uninterrupted faff gates run on the same repo\") vs §3 \"A finished run keeps today's `GatesOutcome` JSON and adds one field, `resumed`…\".",
+      "predicted_consequence": "The scenario's pass condition is undecidable as written — a tester comparing full JSON fails the build; one comparing only `signal`/`rungs` passes it. The DONE item \"its final contract block equals an uninterrupted run's\" (§7, first bullet) inherits the same ambiguity.",
+      "spec_anchor": "scenarios",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The scenario and the WHY DONE item compare only the faff-contract:quality-gates block (signal plus each rung kind and status); resumed, setup_ms and durations are excluded.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "The scenario asserts the final resumed call's contract block \"equals that of one uninterrupted `faff gates run` on the same repo\", but §3 says a finished budgeted/resumed run's JSON \"adds one field, `resumed: { calls, discarded? }`, only when `--resume` or `--budget-secs` was given\". An uninterrupted run has no `resumed` field, so the two JSON outputs can never be equal as written; the tester cannot tell whether equality means byte-equal (unsatisfiable), signal-and-rungs-equal, or rungs-equal-with-`resumed`-ignored.",
+          "spec_anchor": "scenarios"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The no-progress call's ceiling cut (units recorded `errored`, reason `exceeds-call-budget`, run ends `needs-human`) is described in §4.1 step 6a, the failure-modes table, and two DONE bullets, but no scenario exercises it, and no fixture in the Scenarios or smoke test produces a unit that cannot finish inside one call's ceiling. A tester cannot tell what fixture (e.g. a test that sleeps longer than budget + min(60, budget)) or what expected contract block (`signal: needs-human`? which rung status?) decides the DONE items \"records each still running at the ceiling as `errored` with reason `exceeds-call-budget`\" and \"no call runs a unit past its ceiling\".",
+      "evidence": "§7 DONE bullets under \"From HOW (budgeted ladder)\"; §4.6 row \"One unit alone takes longer than the ceiling\"; Scenarios has only the three-call fail path and the two-call pass path, both with units that finish.",
+      "predicted_consequence": "The ceiling behaviour — the spec's guarantee that \"a unit that cannot finish inside one call is reported instead of re-run forever\" — ships untested; a build that instead spins forever on a long unit (the exact anti-pattern §5 rejects) passes every named scenario.",
+      "spec_anchor": "scenarios",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added a ceiling-cut scenario (a 10 s rung under --budget-secs 2 recorded errored, run ends needs-human) and a DONE item for the ceiling_secs reuse rule.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "The no-progress call's ceiling cut (units recorded `errored`, reason `exceeds-call-budget`, run ends `needs-human`) is described in §4.1 step 6a, the failure-modes table, and two DONE bullets, but no scenario exercises it, and no fixture in the Scenarios or smoke test produces a unit that cannot finish inside one call's ceiling. A tester cannot tell what fixture (e.g. a test that sleeps longer than budget + min(60, budget)) or what expected contract block (`signal: needs-human`? which rung status?) decides the DONE items \"records each still running at the ceiling as `errored` with reason `exceeds-call-budget`\" and \"no call runs a unit past its ceiling\".",
+          "spec_anchor": "scenarios"
+        }
+      ]
+    }
+  ]
+}

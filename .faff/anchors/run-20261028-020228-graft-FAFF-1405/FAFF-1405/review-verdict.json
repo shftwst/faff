@@ -1,0 +1,266 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "signal": "pass",
+  "rounds_total": 2,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gates-select.js:runBudgetedLadder::budget timer keeps the event loop alive after the units finish",
+      "title": "budget timer keeps the event loop alive after the units finish",
+      "location": "plugin/skills/faff/bin/lib/gates-select.js:runBudgetedLadder",
+      "action": "None: the finding concedes the finally block clears the timers.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "critical",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Carried from round 1 (P1). The round-2 output degenerated into a repeated sentence and was truncated, and its own text states the finally block clears the timers so the process can exit; a budgeted two-rung run under --budget-secs 400 exits in 0.32 s.",
+      "first_round": 1,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "budget timer keeps the event loop alive after the units finish",
+          "location": "plugin/skills/faff/bin/lib/gates-select.js:runBudgetedLadder",
+          "severity": "critical",
+          "disposition": "refuted"
+        },
+        {
+          "round": 2,
+          "title": "budget timer keeps the event loop alive after the units finish",
+          "location": "plugin/skills/faff/bin/lib/gates-select.js:runBudgetedLadder",
+          "severity": "critical",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gates-exec.js:spawnAsync::a unit that exits at the same moment as a cut is recorded as cut",
+      "title": "a unit that exits at the same moment as a cut is recorded as cut",
+      "location": "plugin/skills/faff/bin/lib/gates-exec.js:spawnAsync",
+      "action": "Only report a cut when the child was still alive.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The window is a unit closing in the same tick the timer fires. Cut-wins fails toward safety: a budget cut is discarded and re-run next call, and a ceiling cut records exceeds-call-budget (needs-human). Treating an exit code after SIGTERM as a result would instead let npm-style wrappers that exit 143 on SIGTERM record a cut as a fail.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "a unit that exits at the same moment as a cut is recorded as cut",
+          "location": "plugin/skills/faff/bin/lib/gates-exec.js:spawnAsync",
+          "severity": "major",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gates-select.js:runBudgetedLadder::rung_ms carries wall time from discarded cuts and earlier ceilings",
+      "title": "rung_ms carries wall time from discarded cuts and earlier ceilings",
+      "location": "plugin/skills/faff/bin/lib/gates-select.js:runBudgetedLadder",
+      "action": "Recompute rung durations from unit records.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "rung_ms only feeds a rung duration_ms, which is display data; the spec compares only signal and each rung kind and status and states that durations are not compared.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "rung_ms carries wall time from discarded cuts and earlier ceilings",
+          "location": "plugin/skills/faff/bin/lib/gates-select.js:runBudgetedLadder",
+          "severity": "major",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gates-progress.js:planFingerprint::gitignored inputs of whole or shard rungs are outside both fingerprints",
+      "title": "gitignored inputs of whole or shard rungs are outside both fingerprints",
+      "location": "plugin/skills/faff/bin/lib/gates-progress.js:planFingerprint",
+      "action": "Hash a whole rung command file.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Spec 4.2 chooses this explicitly: ignored files other than pool test files stay outside both fingerprints, covered by the one-hour stale bound and by CI, which re-runs everything.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "gitignored inputs of whole or shard rungs are outside both fingerprints",
+          "location": "plugin/skills/faff/bin/lib/gates-progress.js:planFingerprint",
+          "severity": "major",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gates-select.js:runOne::a progress write failure escapes as an unhandled error",
+      "title": "a progress write failure escapes as an unhandled error",
+      "location": "plugin/skills/faff/bin/lib/gates-select.js:runOne",
+      "action": "Map write errors to a typed exit-2 error.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "a progress write failure escapes as an unhandled error",
+          "location": "plugin/skills/faff/bin/lib/gates-select.js:runOne",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gates-select.js:runBudgetedLadder::a tree edit during a call is not detected before the verdict",
+      "title": "a tree edit during a call is not detected before the verdict",
+      "location": "plugin/skills/faff/bin/lib/gates-select.js:runBudgetedLadder",
+      "action": "Re-check the tree fingerprint before printing the outcome.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "An uninterrupted gate run has the same property, and a lane makes no edits within an attempt; the saved progress is still re-checked on the next call, and CI re-verifies the pushed head before merge.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "a tree edit during a call is not detected before the verdict",
+          "location": "plugin/skills/faff/bin/lib/gates-select.js:runBudgetedLadder",
+          "severity": "major",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gates-progress.js:clearProgress::--clear-progress on an unreadable directory crashes or reports success",
+      "title": "--clear-progress on an unreadable directory crashes or reports success",
+      "location": "plugin/skills/faff/bin/lib/gates-progress.js:clearProgress",
+      "action": "Fail loud on a list or delete error.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "--clear-progress on an unreadable directory crashes or reports success",
+          "location": "plugin/skills/faff/bin/lib/gates-progress.js:clearProgress",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gates-cli.js:runBudgeted::the json exit-3 output carries an absolute progress path",
+      "title": "the JSON exit-3 output carries an absolute progress path",
+      "location": "plugin/skills/faff/bin/lib/gates-cli.js:runBudgeted",
+      "action": "None required.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "GatesIncomplete.progress is a specified field; the path names no secret.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "the JSON exit-3 output carries an absolute progress path",
+          "location": "plugin/skills/faff/bin/lib/gates-cli.js:runBudgeted",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gates-progress.js:redactDetail::the leading-fragment drop only applies at 500 characters",
+      "title": "the leading-fragment drop only applies at 500 characters",
+      "location": "plugin/skills/faff/bin/lib/gates-progress.js:redactDetail",
+      "action": "Always drop the leading token.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "classifyRungResult keeps (stderr + stdout).slice(-500), so a detail shorter than 500 characters is the whole output and cannot start part-way through a secret; exactly 500 is the truncated case the rule targets.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "the leading-fragment drop only applies at 500 characters",
+          "location": "plugin/skills/faff/bin/lib/gates-progress.js:redactDetail",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gates-progress.js::no further standard-review findings after the round-1 fixes",
+      "title": "no further standard-review findings after the round-1 fixes",
+      "location": "plugin/skills/faff/bin/lib/gates-progress.js",
+      "action": "None.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "faffter-noon-review",
+      "disposition": "open",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "no further standard-review findings after the round-1 fixes",
+          "location": "plugin/skills/faff/bin/lib/gates-progress.js",
+          "severity": "observation",
+          "disposition": "open"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "Running `faff validate-adapters` over a skills tree with a `faff commissaire … --issue` invocation FAILs (non-zero) with a FAFF-1207 finding.",
+      "verified": "test asserts FAIL + line 1 FAFF-1207 finding + non-zero exit",
+      "passed": true,
+      "ac_id": "faff-1207#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/validate-adapters-commissaire-unit-id.test.mjs::positive: flags a commissaire --issue invocation in SKILL.md, citing FAFF-1207"
+        }
+      ]
+    },
+    {
+      "ac": "A pure helper `lintCommissaireUnitId(text)` returns one finding per matching line, [] otherwise.",
+      "verified": "unit test on the exported pure helper",
+      "passed": true,
+      "ac_id": "faff-1207#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/validate-adapters-commissaire-unit-id.test.mjs::pure helper lintCommissaireUnitId: one finding per invocation line, [] otherwise"
+        }
+      ]
+    },
+    {
+      "ac": "The guard scans both SKILL.md and references/*.md and labels a references hit <name>/references/<file>.md.",
+      "verified": "test asserts references/lane.md label; clean SKILL.md raises none",
+      "passed": true,
+      "ac_id": "faff-1207#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/validate-adapters-commissaire-unit-id.test.mjs::positive: flags a commissaire --issue hit in a references/*.md file, naming the file"
+        }
+      ]
+    },
+    {
+      "ac": "A `faff commissaire … --unit-id …` line raises no finding.",
+      "verified": "negative test: flagged()==false",
+      "passed": true,
+      "ac_id": "faff-1207#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/validate-adapters-commissaire-unit-id.test.mjs::negative: a clean commissaire --unit-id line raises no finding"
+        }
+      ]
+    },
+    {
+      "ac": "`--issue` on non-commissaire commands raises no finding.",
+      "verified": "negative test over 12 non-commissaire commands: flagged()==false",
+      "passed": true,
+      "ac_id": "faff-1207#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/validate-adapters-commissaire-unit-id.test.mjs::negative: --issue on NON-commissaire commands is never flagged"
+        }
+      ]
+    },
+    {
+      "ac": "The FAIL label is `(commissaire --issue)` and sets the overall failed flag (non-zero exit).",
+      "verified": "positive test asserts the exact label and non-zero exit",
+      "passed": true,
+      "ac_id": "faff-1207#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/validate-adapters-commissaire-unit-id.test.mjs::positive: flags a commissaire --issue invocation in SKILL.md, citing FAFF-1207"
+        }
+      ]
+    },
+    {
+      "ac": "`lintCommissaireUnitId` is added to module.exports in validate-adapters.js.",
+      "verified": "test imports the named export and uses it (would throw if unexported)",
+      "passed": true,
+      "ac_id": "faff-1207#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node -e \"if(typeof require(String.raw`./plugin/skills/faff/bin/lib/validate-adapters.js`).lintCommissaireUnitId!==`function`)process.exit(1)\""
+        }
+      ]
+    },
+    {
+      "ac": "`faff validate-adapters` against the live repo skills tree still exits 0.",
+      "verified": "ran: exit 0 over the real tree, RESULT: PASS (21 slot skills)",
+      "passed": true,
+      "ac_id": "faff-1207#done:8",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "New test/validate-adapters-commissaire-unit-id.test.mjs covers positive SKILL.md, references hit, clean --unit-id negative, non-commissaire --issue negative; suite passes.",
+      "verified": "7/7 tests pass; gate-ladder UNIT rung green",
+      "passed": true,
+      "ac_id": "faff-1207#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/validate-adapters-commissaire-unit-id.test.mjs::pure helper lintCommissaireUnitId: one finding per invocation line, [] otherwise"
+        },
+        {
+          "kind": "command",
+          "locator": "node --test test/validate-adapters-commissaire-unit-id.test.mjs"
+        }
+      ]
+    }
+  ]
+}

@@ -87,9 +87,13 @@ test("faff events append of an empty-issue decision-capture still exits 1, one '
   const { root } = scratch(t);
   const r = faff(root, ["events", "append", "--run", "run-1"], { input: '{"phase":"run","type":"decision-capture","issue":""}' });
   assert.equal(r.code, 1);
-  const bullets = r.err.split("\n").filter((l) => l.startsWith("- "));
-  assert.ok(bullets.length >= 1);
-  assert.ok(bullets.includes(`- ${ISSUE_LINE}`));
+  // The empty payload fails the issue-scoped rule once and the payload schema eight times (spec §3):
+  // stderr is exactly one distinct "- <violation>" line per violation and nothing else.
+  const lines = r.err.split("\n").filter((l) => l !== "");
+  assert.ok(lines.every((l) => l.startsWith("- ")), r.err);
+  assert.equal(lines.length, 9);
+  assert.equal(new Set(lines).size, lines.length);
+  assert.equal(lines[0], `- ${ISSUE_LINE}`);
 });
 
 // ---- lineSafe -------------------------------------------------------------------------------

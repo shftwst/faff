@@ -16,6 +16,7 @@ import { runCli } from "./helpers/run-cli.mjs";
 
 const require = createRequire(import.meta.url);
 const { classifyCustodyVerdictBytes, computeCustodyVerdictAdmission } = require("../plugin/skills/faff/bin/lib/contract-defs.js");
+const { resolveFaffVersion } = require("../plugin/skills/faff/bin/lib/faff-version.js");
 
 const ISSUE = "FAFF-9";
 
@@ -99,11 +100,15 @@ test("writer to reader: the persisted verdict bytes classify clean and are admit
   assert.equal(v.code, 0, v.stderr);
   const out = JSON.parse(v.stdout);
   const raw = readFileSync(path.join(rd, ISSUE, "custody-verdict.json"), "utf8");
-  assert.equal(typeof JSON.parse(raw).faff_version, "string", "the writer stamps faff_version");
+  assert.equal(JSON.parse(raw).faff_version, resolveFaffVersion().version, "the writer stamps the resolved release");
   const ids = { expectedRunId: path.basename(rd), expectedIssue: ISSUE };
   assert.equal(classifyCustodyVerdictBytes(raw, ids).classification, "clean");
   const admission = computeCustodyVerdictAdmission({ raw, actualSha256: out.verdict_sha256, expectedSha256: out.verdict_sha256, ...ids });
   assert.deepEqual(admission, { admitted: true, reason: "clean", classification: "clean" });
+  // The digest binding is live too: bytes that no longer match the printed sha256 are refused.
+  const tampered = computeCustodyVerdictAdmission({ raw: raw.replace("\"clean\"", "\"clean\" "), actualSha256: "0".repeat(64), expectedSha256: out.verdict_sha256, ...ids });
+  assert.equal(tampered.admitted, false);
+  assert.match(tampered.reason, /digest mismatch/);
 });
 
 test("writer to disposition: a run whose only custody verdict came from the current writer needs no attention", () => {

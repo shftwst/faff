@@ -1,5 +1,46 @@
 # Changelog
 
+## [0.44.0](https://github.com/shftwst/faff/compare/faff--v0.43.0...faff--v0.44.0) (2026-10-28)
+
+
+### Features
+
+* **commissaire:** audit anchor validates per-unit anchors before it mints them (FAFF-1333) ([#1145](https://github.com/shftwst/faff/issues/1145)) ([7c2961c](https://github.com/shftwst/faff/commit/7c2961c4b8de8d28f08fa6863e3fefa1cb3a14aa))
+* **decision-capture:** a suppressed capture names the event type, kernel and rule that refused it (FAFF-1354) ([#1097](https://github.com/shftwst/faff/issues/1097)) ([484a362](https://github.com/shftwst/faff/commit/484a362ffe2f69330fcd8c1f6c0f2ce670fd052a))
+* **discovered-scope:** discovered scope carries a priority, and each filed ticket explains its priority in a comment (FAFF-1399) ([#1134](https://github.com/shftwst/faff/issues/1134)) ([e373de2](https://github.com/shftwst/faff/commit/e373de2ecd3ab2047e6fc5b624b9cdb25b21af01))
+* **evidence-scope:** scope a per-issue anchor's event-chain judgement to the anchored issue (FAFF-1347) ([#1139](https://github.com/shftwst/faff/issues/1139)) ([3f7e2d4](https://github.com/shftwst/faff/commit/3f7e2d474a1a34d06ee97d0cd5a5b574fb85d787))
+* **FAFF-1016:** bundle verify --bundle-store override, git-remote trust gate, publish rejection ([#1127](https://github.com/shftwst/faff/issues/1127)) ([8a987b7](https://github.com/shftwst/faff/commit/8a987b7861aff73b2c5b00e3a303b27a1879641b))
+* **graft:** resume a judge-stage build hold into the build judge (FAFF-1249) ([#1153](https://github.com/shftwst/faff/issues/1153)) ([0e39141](https://github.com/shftwst/faff/commit/0e391419ff24db591875836aeb6d8328dd25fbca))
+* **holdout:** report env-unreachable criteria distinct from human-only checks (FAFF-1292) ([#1149](https://github.com/shftwst/faff/issues/1149)) ([ebefd64](https://github.com/shftwst/faff/commit/ebefd640d99c84dc98cd29a4413aa4d08aedc8f6))
+* **schema:** the subset validator supports maxItems and the conclusion range is bounded in the schema (FAFF-1283) ([#1140](https://github.com/shftwst/faff/issues/1140)) ([a366248](https://github.com/shftwst/faff/commit/a366248ac2dca16759b90263e1e9bde20f1716c7))
+* **spec-review:** carry approval forward on a paths-only refresh (FAFF-1271) ([#1129](https://github.com/shftwst/faff/issues/1129)) ([4ed2790](https://github.com/shftwst/faff/commit/4ed27904796dc9740d1cedf60109c6ce4f45567a))
+* **spec-review:** flag a Scenarios unit that names a test file (FAFF-1364) ([#1132](https://github.com/shftwst/faff/issues/1132)) ([d20ca68](https://github.com/shftwst/faff/commit/d20ca68edfb2b1a4adf4ac8e17c66198f1a2bd70))
+* **spec-review:** flag prose Scenarios units before spec rating and at build admission (FAFF-1293) ([#1151](https://github.com/shftwst/faff/issues/1151)) ([5f0263e](https://github.com/shftwst/faff/commit/5f0263e7a5260c08ef30bdd9b0c9cda0712a90ae))
+* **spec-review:** record the ratifier on decisions — agent-chosen vs human-ratified (FAFF-1079) ([#1121](https://github.com/shftwst/faff/issues/1121)) ([e895df5](https://github.com/shftwst/faff/commit/e895df51a2d19cdfff2d6843363915c448431169))
+* **spec:** faff spec commit and faff spec verify for graft (FAFF-1404) ([#1152](https://github.com/shftwst/faff/issues/1152)) ([b788369](https://github.com/shftwst/faff/commit/b7883697d81dc5fe6ca66cd35e32db02780fdc46))
+* **validate-adapters:** FAIL skill prose passing the deprecated --issue to the faff commissaire facade (FAFF-1207) ([#1147](https://github.com/shftwst/faff/issues/1147)) ([9d4112c](https://github.com/shftwst/faff/commit/9d4112cfaf8302b5ba771d8d1b38e254e0ee1192))
+* **version:** runs, preps and grafts record which faff version wrote them (FAFF-1395) ([#1138](https://github.com/shftwst/faff/issues/1138)) ([3f496e0](https://github.com/shftwst/faff/commit/3f496e05d1b7905bc8d921d2d037f055f29a5206))
+
+
+### Bug Fixes
+
+* **config:** adversarial.spec_judge/build_judge max-tokens -&gt; max_tokens (FAFF-1403) ([#1135](https://github.com/shftwst/faff/issues/1135)) ([0e9a6cc](https://github.com/shftwst/faff/commit/0e9a6ccccf33af4476b8f8dad4391e1380d1ef9e))
+* **config:** narrow the EEXIST/ENOTDIR catch in cmdConfig to the config-write mkdir (FAFF-1321) ([#1150](https://github.com/shftwst/faff/issues/1150)) ([92d1fc5](https://github.com/shftwst/faff/commit/92d1fc525813de46adc08422ce09dfedba932df5))
+* **config:** refuse --absolute on the config sub-verbs that do not honour it (FAFF-1317) ([#1144](https://github.com/shftwst/faff/issues/1144)) ([a6b0051](https://github.com/shftwst/faff/commit/a6b0051fe7c43f3e5641bbba19a3ad39fbc1aec1))
+* **dod-classify:** keep a scenario's fenced example in one unit (FAFF-1205) ([#1146](https://github.com/shftwst/faff/issues/1146)) ([ff42c62](https://github.com/shftwst/faff/commit/ff42c62835984647afcbe50c9bace43f538b9d19))
+* **economics:** --by breakdowns read effectiveEnv, not the ambient session (FAFF-1380) ([#1133](https://github.com/shftwst/faff/issues/1133)) ([6190f60](https://github.com/shftwst/faff/commit/6190f607d188345ba79c47ec46c98e768911a822))
+* **evidence:** hash evidence and custody leaves through one no-follow descriptor read (FAFF-1400) ([#1125](https://github.com/shftwst/faff/issues/1125)) ([8f35ba8](https://github.com/shftwst/faff/commit/8f35ba8898c5c34d85d7fb455fa7416d532164af))
+* **evidence:** obligation 6 returns evidence digests, not bodies (FAFF-1397) ([#1124](https://github.com/shftwst/faff/issues/1124)) ([61e84b1](https://github.com/shftwst/faff/commit/61e84b136bb647cc82d6f868e475a39bb000e162))
+* **faff-graft:** holdout skips on judged_count==0 alone, not AND integration_count==0 (FAFF-1363) ([#1131](https://github.com/shftwst/faff/issues/1131)) ([96a260f](https://github.com/shftwst/faff/commit/96a260fb726c4786e65ed3219b5c5ca9319c3b46))
+* **gitignore-ensure:** --local resolves info/exclude through git, so it works in a linked worktree ([#1128](https://github.com/shftwst/faff/issues/1128)) ([7ebccad](https://github.com/shftwst/faff/commit/7ebccad99f1b684db6bd4966e2756fb8bb7ef353))
+* **gitignore-ensure:** detect and warn when a carve-out negation is shadowed in the written .faff/.gitignore ([#1130](https://github.com/shftwst/faff/issues/1130)) ([e264ac7](https://github.com/shftwst/faff/commit/e264ac77778d7791172949c2ccaccb9629f090e8))
+* **lights-out:** the mint reports a refused ledger write and leaves no run dir behind (FAFF-1306) ([#1141](https://github.com/shftwst/faff/issues/1141)) ([291af23](https://github.com/shftwst/faff/commit/291af234bd164d945332c67b68ad9861d237451b))
+* **merge-gate:** interpolate the run's resolved level in the unasserted-refuse refusal (FAFF-1374) ([#1126](https://github.com/shftwst/faff/issues/1126)) ([c03c4a1](https://github.com/shftwst/faff/commit/c03c4a1c10497f00a16ee8309e311f5262547bb5))
+* **native-map:** predict left-in-place under --dry-run --force and suppress the paired directory notice (FAFF-1319) ([#1148](https://github.com/shftwst/faff/issues/1148)) ([aae4f81](https://github.com/shftwst/faff/commit/aae4f81d953654abab78db1f015918cd4cda0df1))
+* **punt-scan:** read a wrapped Punt marker over its logical line (FAFF-1340) ([#1137](https://github.com/shftwst/faff/issues/1137)) ([281e4ab](https://github.com/shftwst/faff/commit/281e4abf96e40cb364c9dd6caed0ee1c3bb456ed))
+* **punt-scan:** recognise a Punt marker written as a list item (FAFF-1351) ([#1136](https://github.com/shftwst/faff/issues/1136)) ([8bcd561](https://github.com/shftwst/faff/commit/8bcd56116e7742bc913fb203c222c8e9e5c470a3))
+* **validate-adapters:** widen the hand-read guard to the whole .faff/config spelling class (FAFF-1322) ([#1143](https://github.com/shftwst/faff/issues/1143)) ([913a08d](https://github.com/shftwst/faff/commit/913a08db7a3d5a8e4fd7e61ce9ebfd22410d4bfc))
+
 ## [0.43.0](https://github.com/shftwst/faff/compare/faff--v0.42.0...faff--v0.43.0) (2026-10-24)
 
 

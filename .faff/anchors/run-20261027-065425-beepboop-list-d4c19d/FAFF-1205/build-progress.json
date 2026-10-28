@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "issue": "FAFF-1205",
+  "build": {
+    "status": "complete",
+    "diff_hash": "095180a052808f51ba5c3ad100e5afa21931644ab5f84df57a2c6fb0c20990fd",
+    "branch": "faff-1205-faff-dod-classify-splits-a-scenarios-fenced-block-into-prose",
+    "pushed_at": "2026-10-27T09:43:44.543Z"
+  },
+  "updated_at": "2026-10-27T09:43:44.543Z"
+}

@@ -151,6 +151,7 @@ test("an unknown changed_at keeps the candidate", () => {
   writeRun(d, RUN_A, declined1318());
   assert.deepEqual(json(d, [{ issue: "FAFF-1318", changed_at: null }]).kept, ["FAFF-1318"]);
   assert.deepEqual(json(d, [{ issue: "FAFF-1318", changed_at: "yesterday" }]).kept, ["FAFF-1318"]);
+  assert.deepEqual(json(d, [{ issue: "FAFF-1318", changed_at: "Oct 26 2026" }]).kept, ["FAFF-1318"], "a non-ISO date is unknown");
   assert.deepEqual(json(d, [{ issue: "FAFF-1318" }]).kept, ["FAFF-1318"]);
 });
 
@@ -166,6 +167,15 @@ test("a malformed candidate id is kept in input order and named in degraded", ()
   const r = json(d, [{ issue: "FAFF-9", changed_at: null }, { issue: "../x", changed_at: null }, ...unchanged]);
   assert.deepEqual(r.kept, ["FAFF-9", "../x"]);
   assert.match(r.degraded, /bad-candidate:1/);
+});
+
+test("a run dir with no run-ledger.json (a runner placeholder) is skipped, not treated as unreadable", () => {
+  const d = runsDir();
+  writeRun(d, RUN_A, declined1318());
+  fs.mkdirSync(path.join(d, "run-20261027-185900-fly-l3"));
+  const r = json(d, unchanged);
+  assert.deepEqual(r.kept, []);
+  assert.equal(r.degraded, null);
 });
 
 test("a missing runs dir keeps everything with degraded no-runs-dir", () => {

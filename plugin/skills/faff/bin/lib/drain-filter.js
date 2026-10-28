@@ -39,10 +39,12 @@ const USAGE = "usage: faff drain-filter [--runs-dir DIR] [--root DIR] [--max-age
 
 const isValidIssue = (s) => typeof s === "string" && ISSUE_ID_RE.test(s) && !s.includes("..");
 
-// An ISO-8601 string -> epoch ms, or null. Instants compare as numbers, so
+const ISO_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})$/;
+
+// An ISO-8601 date-time string -> epoch ms, or null. Instants compare as numbers, so
 // "…:10Z" and "…:10.000Z" are equal.
 function instant(s) {
-  if (typeof s !== "string" || s.trim() === "") return null;
+  if (typeof s !== "string" || !ISO_RE.test(s)) return null;
   const t = Date.parse(s);
   return Number.isNaN(t) ? null : t;
 }
@@ -57,13 +59,18 @@ function startFromName(name) {
 // One run directory -> { run_id, start, ledger | null }. The start time comes from the
 // dir name, else the ledger's owner.started_at, else the dir's own mtime, so every run
 // ages out of the window. `ledger` is null when run-ledger.json is unreadable or malformed.
+// A dir with no run-ledger.json at all (a runner placeholder or log dir, never a beep-boop run,
+// which writes its ledger at mint) returns null and is skipped: it can have admitted nothing.
 function readRun(runsDir, name) {
   const dir = path.join(runsDir, name);
   let ledger = null;
   try {
     const parsed = JSON.parse(fs.readFileSync(path.join(dir, "run-ledger.json"), "utf8"));
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) ledger = parsed;
-  } catch { ledger = null; }
+  } catch (e) {
+    if (e && e.code === "ENOENT") return null;
+    ledger = null;
+  }
   let start = startFromName(name);
   if (start === null && ledger && ledger.owner) start = instant(ledger.owner.started_at);
   if (start === null) {
@@ -169,6 +176,7 @@ function cmdDrainFilter(args) {
       try { isDir = fs.statSync(path.join(runsDir, name)).isDirectory(); } catch { isDir = false; }
       if (!isDir) continue;
       const run = readRun(runsDir, name);
+      if (run === null) continue;
       if (run.start === null || run.start < cutoff) continue;
       runs.push(run);
     }

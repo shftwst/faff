@@ -102,6 +102,7 @@ test("bad input exits 2 and writes nothing; any past --observed-at is accepted",
       ["FAFF-1", "\n\t", "2026-10-27T18:53:00Z"],
       ["FAFF-1", "x".repeat(201), "2026-10-27T18:53:00Z"],
       ["FAFF-1", "r", "yesterday"],
+      ["FAFF-1", "r", "Oct 26 2026"],
       ["FAFF-1", "r", future],
     ]) {
       assert.equal(declined(runDir, issue, reason, at).code, 2, `${issue} ${reason.length} ${at}`);

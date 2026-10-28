@@ -729,7 +729,9 @@ function recordDeclined(values, now = Date.now()) {
     process.stderr.write(`faff run-ledger record-declined: --reason must be non-empty and at most ${DECLINE_REASON_MAX} characters after control characters are replaced\n`);
     return 2;
   }
-  const observed = typeof values["--observed-at"] === "string" ? Date.parse(values["--observed-at"]) : NaN;
+  const ISO_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})$/;
+  const rawObserved = values["--observed-at"];
+  const observed = typeof rawObserved === "string" && ISO_RE.test(rawObserved) ? Date.parse(rawObserved) : NaN;
   if (Number.isNaN(observed) || observed > now + OBSERVED_AT_FUTURE_TOLERANCE_MS) {
     process.stderr.write(`faff run-ledger record-declined: --observed-at ${JSON.stringify(values["--observed-at"])} must be an ISO-8601 time no more than 60 seconds in the future\n`);
     return 2;

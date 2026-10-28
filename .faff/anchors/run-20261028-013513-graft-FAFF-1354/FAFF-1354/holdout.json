@@ -1,0 +1,232 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "issue": "FAFF-1354",
+  "aggregate": "meets-spec",
+  "code_blind": true,
+  "spawner_attested": false,
+  "attestation": null,
+  "violations": [],
+  "criteria": [
+    {
+      "id": "scenarios:1",
+      "text": "Shared setup for every scenario: a scratch directory initialised as a git repository, containing `.faff/config.yaml` whose two lines are `capture:` and `  decision_kernel: on`, and an empty directory `.faff/runs/run-1` (create it first; `faff events append` does not create the run directory). Then mint one `run-start` row into it with `echo '{\"phase\":\"run\",\"type\":\"run-start\"}' | faff events append --run run-1 --ts 2026-01-01T00:00:00Z`. Commands run from the scratch directory. \"The capture line\" means a stderr line beginning `faff decision-capture`.",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "shared setup (session-rpc open Workspace []; gitInit; writeFile .faff/config.yaml capture/decision_kernel: on; mkdir .faff/runs/run-1; runFaff events append --run run-1 --ts 2026-01-01T00:00:00Z stdin run-start); readFile .faff/runs/run-1/events.jsonl; close",
+      "expected": "setup succeeds: events append exits 0 and run-1/events.jsonl holds the run-start row",
+      "observed": "append exit_code 0; events.jsonl 1 line, type \"run-start\"; config.yaml as specified",
+      "evidence_ref": "evidence-report.md#scenarios:1",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:2",
+      "text": "Given the shared setup, FAFF_RUN_DIR=<abs path of .faff/runs/run-1>,\nFAFF_DECISION_CORRELATION_ID=run-1/x/next/1, and FAFF_DECISION_ISSUE unset\nWhen `faff next --status todo --spec high` runs\nThen it exits 0 and prints the same stdout as the same command in a copy with decision_kernel: off\nAnd stderr has exactly one capture line, ending\n\"capture suppressed: decision-capture event for kernel next refused by the issue-scoped rule: type 'decision-capture' is issue-scoped but missing required field 'issue'\"\nAnd the last line of .faff/logs/decision-capture.jsonl parses as JSON with note \"degraded-capture\",\nrun \"run-1\", event_type \"decision-capture\", kernel \"next\", rules [\"issue-scoped\"]\nAnd events.jsonl is byte-identical to before the command",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "shared setup (session-rpc open Workspace []; gitInit; writeFile .faff/config.yaml capture/decision_kernel: on; mkdir .faff/runs/run-1; runFaff events append --run run-1 --ts 2026-01-01T00:00:00Z stdin run-start); runFaff [\"next\",\"--status\",\"todo\",\"--spec\",\"high\"] env FAFF_RUN_DIR=<root>/.faff/runs/run-1, FAFF_DECISION_CORRELATION_ID=run-1/x/next/1, FAFF_DECISION_ISSUE=null; same in a second session with decision_kernel: off; readFile events.jsonl before/after and .faff/logs/decision-capture.jsonl; close both",
+      "expected": "exit 0, stdout equal to capture-off copy, one capture line ending with the suppression text, last note run-1/decision-capture/next/[\"issue-scoped\"], events.jsonl unchanged",
+      "observed": "exit_code 0; stdout {\"next\":\"graft\",...} identical to off copy; 1 capture line ending \"capture suppressed: decision-capture event for kernel next refused by the issue-scoped rule: type 'decision-capture' is issue-scoped but missing required field 'issue'\"; note {note:\"degraded-capture\",run:\"run-1\",event_type:\"decision-capture\",kernel:\"next\",rules:[\"issue-scoped\"]}; events.jsonl byte-identical",
+      "evidence_ref": "evidence-report.md#scenarios:2",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:3",
+      "text": "Given the shared setup with FAFF_RUN_DIR set and neither FAFF_DECISION_CORRELATION_ID nor FAFF_DECISION_ISSUE set\nWhen `faff next --status todo --spec high` runs\nThen it exits 0\nAnd stderr has two capture lines: the first contains \"empty correlation_id\", the second contains \"capture suppressed: decision-capture event for kernel next\"",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "shared setup (session-rpc open Workspace []; gitInit; writeFile .faff/config.yaml capture/decision_kernel: on; mkdir .faff/runs/run-1; runFaff events append --run run-1 --ts 2026-01-01T00:00:00Z stdin run-start); runFaff [\"next\",\"--status\",\"todo\",\"--spec\",\"high\"] env FAFF_RUN_DIR set, FAFF_DECISION_CORRELATION_ID=null, FAFF_DECISION_ISSUE=null; close",
+      "expected": "exit 0; two capture lines, first contains \"empty correlation_id\", second contains \"capture suppressed: decision-capture event for kernel next\"",
+      "observed": "exit_code 0; capture line 1 \"... degraded capture — base record has empty correlation_id — ...\"; capture line 2 \"... capture suppressed: decision-capture event for kernel next refused by the issue-scoped rule: ...\"",
+      "evidence_ref": "evidence-report.md#scenarios:3",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:4",
+      "text": "Given the shared setup\nWhen `faff decision-capture record --run run-1 --issue \"\" --kernel <2000 copies of \"k\">` runs\nwith stdin {\"normalised_inputs\":{},\"selected_action\":\"graft\"}\nThen it exits 0 with empty stdout\nAnd the note's reason is at most 1024 UTF-8 bytes and ends with \"...[truncated]\"\nAnd the text after the capture line's prefix equals the note's reason",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "shared setup (session-rpc open Workspace []; gitInit; writeFile .faff/config.yaml capture/decision_kernel: on; mkdir .faff/runs/run-1; runFaff events append --run run-1 --ts 2026-01-01T00:00:00Z stdin run-start); runFaff [\"decision-capture\",\"record\",\"--run\",\"run-1\",\"--issue\",\"\",\"--kernel\",\"k\"*2000] stdin {\"normalised_inputs\":{},\"selected_action\":\"graft\"}; readFile decision-capture.jsonl; close",
+      "expected": "exit 0, empty stdout, note reason <=1024 UTF-8 bytes ending \"...[truncated]\", text after capture-line prefix equals reason",
+      "observed": "exit_code 0; stdout \"\"; reason 1024 bytes ending \"kkk...[truncated]\"; capture line = \"faff decision-capture record: degraded capture — \" + reason exactly",
+      "evidence_ref": "evidence-report.md#scenarios:4",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:5",
+      "text": "Given the shared setup\nWhen `faff decision-capture record --run run-1 --issue \"\" --kernel \"bad<newline>kernel\"` runs,\nwhere <newline> is a literal line feed inside the argument, with stdin {\"normalised_inputs\":{},\"selected_action\":\"graft\"}\nThen it exits 0 with empty stdout\nAnd stderr has exactly one capture line, and it contains \"for kernel bad kernel refused by the issue-scoped rule\"\nAnd no stderr line begins with \"kernel refused by\"\nAnd the last note has kernel \"bad kernel\" and a reason containing no line feed",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "shared setup (session-rpc open Workspace []; gitInit; writeFile .faff/config.yaml capture/decision_kernel: on; mkdir .faff/runs/run-1; runFaff events append --run run-1 --ts 2026-01-01T00:00:00Z stdin run-start); runFaff [\"decision-capture\",\"record\",\"--run\",\"run-1\",\"--issue\",\"\",\"--kernel\",\"bad\\nkernel\"] (literal LF) stdin {\"normalised_inputs\":{},\"selected_action\":\"graft\"}; readFile decision-capture.jsonl; close",
+      "expected": "exit 0, empty stdout, one capture line containing \"for kernel bad kernel refused by the issue-scoped rule\", no line beginning \"kernel refused by\", note kernel \"bad kernel\", reason without LF",
+      "observed": "exit_code 0; stdout \"\"; 1 capture line containing \"for kernel bad kernel refused by the issue-scoped rule\"; 0 lines beginning \"kernel refused by\"; note kernel \"bad kernel\"; reason contains no LF",
+      "evidence_ref": "evidence-report.md#scenarios:5",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:6",
+      "text": "Given the shared setup, FAFF_RUN_DIR=<abs path of .faff/runs/run-1>,\nFAFF_DECISION_CORRELATION_ID=run-1/FAFF-7/claim-verdict/1, and FAFF_DECISION_ISSUE exported as the empty string\nWhen `faff claim-verdict --claimed-at 2026-01-01T00:00:00Z --now 2026-01-05T00:00:00Z --ttl-hours 24` runs\nThen it exits 0 and stdout is exactly {\"verdict\":\"stale\",\"age_secs\":345600,\"ttl_secs\":86400}\nAnd stderr has exactly one capture line, containing \"capture suppressed: decision-capture event for kernel claim-verdict refused by the issue-scoped rule\"\nAnd the last line of .faff/logs/decision-capture.jsonl has kernel \"claim-verdict\", event_type \"decision-capture\" and rules [\"issue-scoped\"]\nAnd .faff/runs/run-1/events.jsonl still holds exactly one line",
+      "holdout": true,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "shared setup (session-rpc open Workspace []; gitInit; writeFile .faff/config.yaml capture/decision_kernel: on; mkdir .faff/runs/run-1; runFaff events append --run run-1 --ts 2026-01-01T00:00:00Z stdin run-start); runFaff [\"claim-verdict\",\"--claimed-at\",\"2026-01-01T00:00:00Z\",\"--now\",\"2026-01-05T00:00:00Z\",\"--ttl-hours\",\"24\"] env FAFF_RUN_DIR set, FAFF_DECISION_CORRELATION_ID=run-1/FAFF-7/claim-verdict/1, FAFF_DECISION_ISSUE=\"\"; readFile note log and events.jsonl; close",
+      "expected": "exit 0, stdout exactly {\"verdict\":\"stale\",\"age_secs\":345600,\"ttl_secs\":86400}, one capture line with the claim-verdict suppression text, note kernel claim-verdict/decision-capture/[\"issue-scoped\"], events.jsonl one line",
+      "observed": "exit_code 0; stdout {\"verdict\":\"stale\",\"age_secs\":345600,\"ttl_secs\":86400}\\n; 1 capture line containing \"capture suppressed: decision-capture event for kernel claim-verdict refused by the issue-scoped rule\"; note kernel \"claim-verdict\", event_type \"decision-capture\", rules [\"issue-scoped\"]; events.jsonl 1 line",
+      "evidence_ref": "evidence-report.md#scenarios:6",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:7",
+      "text": "Given the shared setup, FAFF_RUN_DIR=<abs path of .faff/runs/run-1>,\nFAFF_DECISION_CORRELATION_ID=run-1/FAFF-7/eligible/1, and FAFF_DECISION_ISSUE exported as the empty string\nWhen `faff eligible --label faff-automate --label bug` runs\nThen it exits 0 and stdout is exactly the line `true`\nAnd stderr has exactly one capture line, containing \"capture suppressed: decision-capture event for kernel eligible refused by the issue-scoped rule\"\nAnd the last line of .faff/logs/decision-capture.jsonl has kernel \"eligible\", event_type \"decision-capture\" and rules [\"issue-scoped\"]\nAnd .faff/runs/run-1/events.jsonl still holds exactly one line",
+      "holdout": true,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "shared setup (session-rpc open Workspace []; gitInit; writeFile .faff/config.yaml capture/decision_kernel: on; mkdir .faff/runs/run-1; runFaff events append --run run-1 --ts 2026-01-01T00:00:00Z stdin run-start); runFaff [\"eligible\",\"--label\",\"faff-automate\",\"--label\",\"bug\"] env FAFF_RUN_DIR set, FAFF_DECISION_CORRELATION_ID=run-1/FAFF-7/eligible/1, FAFF_DECISION_ISSUE=\"\"; readFile note log and events.jsonl; close",
+      "expected": "exit 0, stdout exactly the line true, one capture line with the eligible suppression text, note kernel eligible/decision-capture/[\"issue-scoped\"], events.jsonl one line",
+      "observed": "exit_code 0; stdout \"true\\n\"; 1 capture line containing \"capture suppressed: decision-capture event for kernel eligible refused by the issue-scoped rule\"; note kernel \"eligible\", event_type \"decision-capture\", rules [\"issue-scoped\"]; events.jsonl 1 line",
+      "evidence_ref": "evidence-report.md#scenarios:7",
+      "reason": null,
+      "reason_code": null
+    }
+  ],
+  "delegated": [
+    {
+      "id": "done:1",
+      "text": "A refused capture's stderr line and note name the event type, the kernel and the rule, in the format in section 3.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1354#done:1"
+    },
+    {
+      "id": "done:2",
+      "text": "Every `EVENT_SCHEMA` error thrown by `appendRecordUnderLock` has `rules`: `[\"issue-scoped\"]` for an empty issue with a valid payload, `[\"payload-schema\"]` for a good issue with a bad payload under the delivery profile, and `[\"issue-scoped\",\"payload-schema\"]` when both fail. `message`, `violations` and `code` are byte-identical to before for the same inputs.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1354#done:2"
+    },
+    {
+      "id": "done:3",
+      "text": "`test/faff-1353-write-core-issue-scoped.test.mjs` and `test/events.test.mjs` pass unmodified, and `faff events append` with `{\"phase\":\"run\",\"type\":\"decision-capture\",\"issue\":\"\"}` still exits 1 with one `- <violation>` stderr line per violation.",
+      "holdout": false,
+      "verification_tier": "integration",
+      "verifier": "review-merge-floor",
+      "ac_id": "faff-1354#done:3"
+    },
+    {
+      "id": "done:4",
+      "text": "`lineSafe` unit cases: `\"a\\nb\\tc\"` gives `\"a b c\"`; `a`, U+2028 LINE SEPARATOR, `b` gives `\"a b\"`; `\"a\\u0085b\"` gives `\"a b\"`; a 1024-byte ASCII string is returned unchanged; a 2000-byte ASCII string gives 1010 bytes plus `...[truncated]` (1024 bytes); a string of 600 copies of `é` (1200 bytes) gives at most 1024 bytes, no U+FFFD, and ends `...[truncated]`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1354#done:4"
+    },
+    {
+      "id": "done:5",
+      "text": "A suppressed capture's note has exactly the keys `ts, run, note, reason, event_type, kernel, rules`, in that order; every other degraded-capture note has exactly `ts, run, note, reason`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1354#done:5"
+    },
+    {
+      "id": "done:6",
+      "text": "`docs/guide/cli.md`'s `decision-capture` row carries the suppressed-capture sentence and the exit-code justification.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1354#done:6"
+    },
+    {
+      "id": "done:7",
+      "text": "The three sites (`record`, in-kernel, `action`) each produce the suppression reason for an empty issue, with event types `decision-capture`, `decision-capture`, `decision-capture-action`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1354#done:7"
+    },
+    {
+      "id": "done:8",
+      "text": "A non-schema append failure still produces `journal append failed: <message>`: called with `{code: \"EVENTS_LOCKED\", message: \"m\"}`, `reportAppendFailure` writes a note whose reason is `journal append failed: m` and which has no `event_type` key. Export `reportAppendFailure` and `lineSafe` for the unit tests, as `effects-reconcile.js` exports `sanitizeDetail`.",
+      "holdout": false,
+      "verification_tier": "integration",
+      "verifier": "review-merge-floor",
+      "ac_id": "faff-1354#done:8"
+    },
+    {
+      "id": "done:9",
+      "text": "Each existing degraded-capture reason (config read, stdin, shape, run dir, chain head, empty correlation) is unchanged in text when it contains no control characters and is under 1024 bytes; `test/decision-capture.test.mjs:172-215`, `test/faff-989-decision-capture-driver.test.mjs` and `test/faff-1009-decision-capture-tier-wiring.test.mjs:138-176` pass unmodified.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1354#done:9"
+    },
+    {
+      "id": "done:10",
+      "text": "The comment at `decision-capture.js:454-458` no longer says the append always happens; it names the empty-issue half as decided by the write core and the empty-`correlation_id` half as deferred.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1354#done:10"
+    },
+    {
+      "id": "done:11",
+      "text": "`decision-capture.js` contains no test of `issueVal === \"\"` and no match on violation text to pick a rule.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1354#done:11"
+    },
+    {
+      "id": "done:12",
+      "text": "With both `FAFF_DECISION_CORRELATION_ID` and `FAFF_DECISION_ISSUE` unset, `faff next` writes the empty-correlation note before the suppression note.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1354#done:12"
+    },
+    {
+      "id": "done:13",
+      "text": "The visible scenarios in section 5 pass as integration tests that spawn the CLI, including the `--kernel` line-feed scenario.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1354#done:13"
+    },
+    {
+      "id": "done:14",
+      "text": "For every kernel that calls `captureDecision` with `process.env.FAFF_DECISION_ISSUE || \"\"` (`next`, `project-next`, `claim-verdict`, `eligible`, `park-verdict`), a run with `FAFF_DECISION_ISSUE` unset, capture on, exits with the same code and prints the same stdout as with capture off.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1354#done:14"
+    },
+    {
+      "id": "done:15",
+      "text": "With capture off, no stderr capture line and no note are written on any of the paths above.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1354#done:15"
+    }
+  ]
+}

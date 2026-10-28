@@ -1,0 +1,262 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "signal": "pass",
+  "rounds_total": 2,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/decision-capture.js::payload-schema violation values reach the durable suppression note",
+      "title": "payload-schema violation values reach the durable suppression note",
+      "location": "plugin/skills/faff/bin/lib/decision-capture.js",
+      "action": "redact or omit interpolated values in the suppression reason",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Pre-existing: origin/main already wrote e.message (the same joined violations) into the note's reason. The round-2 premise that redaction never runs is false: appendEventRecord applies redactKnownSecrets to payload.data before the mint and check (events.js:691-697).",
+      "first_round": 1,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "payload-schema violation values reach the durable suppression note",
+          "location": "plugin/skills/faff/bin/lib/decision-capture.js",
+          "severity": "minor",
+          "disposition": "refuted"
+        },
+        {
+          "round": 2,
+          "title": "payload-schema violation values reach the durable suppression note",
+          "location": "plugin/skills/faff/bin/lib/decision-capture.js",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/faff-1354-suppressed-capture.test.mjs::events-append regression test under-asserts one line per violation",
+      "title": "events-append regression test under-asserts one line per violation",
+      "location": "test/faff-1354-suppressed-capture.test.mjs",
+      "action": "assert the exact number of distinct '- <violation>' stderr lines",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "done:3 requires one line per violation; count, distinctness and the first line pin that, and the wording of events append's unchanged output is covered by test/events.test.mjs.",
+      "first_round": 1,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "events-append regression test under-asserts one line per violation",
+          "location": "test/faff-1354-suppressed-capture.test.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
+        },
+        {
+          "round": 2,
+          "title": "events-append test does not compare the eight tail lines",
+          "location": "test/faff-1354-suppressed-capture.test.mjs",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/decision-capture.js::whole-reason truncation can drop the violations before the kernel",
+      "title": "whole-reason truncation can drop the violations before the kernel",
+      "location": "plugin/skills/faff/bin/lib/decision-capture.js",
+      "action": "reserve a kernel slice before composing so violations always fit",
+      "location_present": true,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Spec section 3 chose whole-string capping; follow-up recorded as discovered scope.",
+      "first_round": 1,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "whole-reason truncation can drop the violations before the kernel",
+          "location": "plugin/skills/faff/bin/lib/decision-capture.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        },
+        {
+          "round": 2,
+          "title": "whole-reason truncation can drop the violations before the kernel",
+          "location": "plugin/skills/faff/bin/lib/decision-capture.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/decision-capture.js::stderr kernel and note kernel can differ after truncation",
+      "title": "stderr kernel and note kernel can differ after truncation",
+      "location": "plugin/skills/faff/bin/lib/decision-capture.js",
+      "action": "note the divergence in the spec edge-case table if a note reader lands",
+      "location_present": true,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Spec defines note kernel as lineSafe(kernel); no reader of the note exists (spec section 2).",
+      "first_round": 1,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "stderr kernel and note kernel can differ after truncation",
+          "location": "plugin/skills/faff/bin/lib/decision-capture.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        },
+        {
+          "round": 2,
+          "title": "stderr kernel and note kernel can differ after truncation",
+          "location": "plugin/skills/faff/bin/lib/decision-capture.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "nolocation::no findings on concurrency, security boundary or failure modes",
+      "title": "no findings on concurrency, security boundary or failure modes",
+      "location": null,
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "no findings on concurrency, security boundary or failure modes",
+          "location": null,
+          "severity": "observation",
+          "disposition": null
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/decision-capture.js::e.rules copied into the note without enum validation",
+      "title": "e.rules copied into the note without enum validation",
+      "location": "plugin/skills/faff/bin/lib/decision-capture.js",
+      "action": "filter rules to known string members",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "The sole producer is appendRecordUnderLock (events.js:637), which passes literal 'issue-scoped'/'payload-schema' names; the rule phrase deliberately names any rule the core reports (10-21 round-1 fix).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "e.rules copied into the note without enum validation",
+          "location": "plugin/skills/faff/bin/lib/decision-capture.js",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/faff-1354-suppressed-capture.test.mjs::no cli-level test of payload-schema-only or both-rules suppression",
+      "title": "no CLI-level test of payload-schema-only or both-rules suppression",
+      "location": "test/faff-1354-suppressed-capture.test.mjs",
+      "action": "add CLI tests for the two other rule sets",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "The done:2 test drives the real write core through appendEventRecord for issue-scoped, payload-schema and both, so dropping the payload-schema push fails it; reportAppendFailure passes e.rules through unchanged and is unit-tested per rule set.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "no CLI-level test of payload-schema-only or both-rules suppression",
+          "location": "test/faff-1354-suppressed-capture.test.mjs",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/decision-capture.js::besteffortfail fields spread can overwrite reserved note keys",
+      "title": "bestEffortFail fields spread can overwrite reserved note keys",
+      "location": "plugin/skills/faff/bin/lib/decision-capture.js",
+      "action": null,
+      "location_present": true,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The only caller (reportAppendFailure) passes event_type, kernel and rules; done:5 pins the key order.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "bestEffortFail fields spread can overwrite reserved note keys",
+          "location": "plugin/skills/faff/bin/lib/decision-capture.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "nolocation::no further findings on concurrency, security or failure modes",
+      "title": "no further findings on concurrency, security or failure modes",
+      "location": null,
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": null,
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "no further findings on concurrency, security or failure modes",
+          "location": null,
+          "severity": "observation",
+          "disposition": null
+        }
+      ]
+    }
+  ]
+}

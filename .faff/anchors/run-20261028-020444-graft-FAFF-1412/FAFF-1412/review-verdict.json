@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "signal": "pass",
+  "rounds_total": 2,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/drain-filter.js::drain-filter treats a ledger-less run dir as unreadable",
+      "title": "drain-filter treats a ledger-less run dir as unreadable",
+      "location": "plugin/skills/faff/bin/lib/drain-filter.js",
+      "action": "Skip a run dir with no run-ledger.json (a runner placeholder) instead of failing open on it.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "drain-filter treats a ledger-less run dir as unreadable",
+          "location": "plugin/skills/faff/bin/lib/drain-filter.js",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-ledger.js::date.parse accepts non-iso times for --observed-at and changed_at",
+      "title": "Date.parse accepts non-ISO times for --observed-at and changed_at",
+      "location": "plugin/skills/faff/bin/lib/run-ledger.js",
+      "action": "Require an ISO-8601 date-time before parsing.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Date.parse accepts non-ISO times for --observed-at and changed_at",
+          "location": "plugin/skills/faff/bin/lib/run-ledger.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff-beep-boop/SKILL.md::observed_at capture point undefined for routed-out candidates",
+      "title": "observed_at capture point undefined for routed-out candidates",
+      "location": "plugin/skills/faff-beep-boop/SKILL.md",
+      "action": "Capture observed_at per candidate immediately before that candidate's at-assembly tracker read.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Prose now says per candidate, never shared, before the eligibility read (routed-out) or the claim-before-admit re-read (claimed-by-peer).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "observed_at capture point undefined for routed-out candidates",
+          "location": "plugin/skills/faff-beep-boop/SKILL.md",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/drain-filter.js::drain-filter hangs on a tty stdin",
+      "title": "drain-filter hangs on a TTY stdin",
+      "location": "plugin/skills/faff/bin/lib/drain-filter.js",
+      "action": "Refuse a TTY stdin with usage.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "process.stdin.isTTY now exits 2 with usage.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "drain-filter hangs on a TTY stdin",
+          "location": "plugin/skills/faff/bin/lib/drain-filter.js",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-ledger.js::iso-8601 grammar duplicated in drain-filter and run-ledger",
+      "title": "ISO-8601 grammar duplicated in drain-filter and run-ledger",
+      "location": "plugin/skills/faff/bin/lib/run-ledger.js",
+      "action": "Share one regex.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "run-ledger.js requires ISO_DATE_TIME_RE from drain-filter.js (both factory region; regions check passes).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "ISO-8601 grammar duplicated in drain-filter and run-ledger",
+          "location": "plugin/skills/faff/bin/lib/run-ledger.js",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-ledger.js::record-declined --json declined object carries recorded_at",
+      "title": "record-declined --json declined object carries recorded_at",
+      "location": "plugin/skills/faff/bin/lib/run-ledger.js",
+      "action": "Align the spec text or the output.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The spec's DeclineRecord type and the cli.md row both define recorded_at; only one inline spec example omits it. The additive audit field is intended.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "record-declined --json declined object carries recorded_at",
+          "location": "plugin/skills/faff/bin/lib/run-ledger.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/drain-filter.js::no-runs-dir path skips the bad-candidate annotation",
+      "title": "no-runs-dir path skips the bad-candidate annotation",
+      "location": "plugin/skills/faff/bin/lib/drain-filter.js",
+      "action": "Route the no-runs-dir path through filterCandidates.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The missing-dir path now runs filterCandidates with no runs and prefixes no-runs-dir; test asserts 'no-runs-dir; bad-candidate:0'.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "no-runs-dir path skips the bad-candidate annotation",
+          "location": "plugin/skills/faff/bin/lib/drain-filter.js",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    }
+  ]
+}

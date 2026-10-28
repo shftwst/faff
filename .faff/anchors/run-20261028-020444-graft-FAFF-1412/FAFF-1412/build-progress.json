@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "issue": "FAFF-1412",
+  "build": {
+    "status": "complete",
+    "diff_hash": "38e8aa241d3d9db9e1f67116f57d4d92c9f41476f4484535f9c14b2f21a730b6",
+    "branch": "FAFF-1412-drain-filter",
+    "pushed_at": "2026-10-28T02:45:40.467Z"
+  },
+  "updated_at": "2026-10-28T02:45:40.467Z"
+}

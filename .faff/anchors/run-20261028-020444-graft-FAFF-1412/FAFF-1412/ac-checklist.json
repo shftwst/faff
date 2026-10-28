@@ -1,0 +1,383 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A drain that routes out or claims-by-peer an issue leaves a `declined` record whose `at` is the drain's observation time for that issue, and whose `recorded_at` is CLI-stamped.",
+      "verified": "record-declined stores at = --observed-at and a CLI recorded_at; beep-boop prose records each routed-out and claimed-by-peer decline; full gate ladder pass (re-run after the review fixes)",
+      "passed": true,
+      "ac_id": "faff-1412#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-ledger-record-declined.test.mjs::record-declined writes the entry, prints --json, and the ledger stays clean and schema-valid"
+        }
+      ]
+    },
+    {
+      "ac": "Fed the 2026-10-27 shape (one declined FAFF-1318 record, unchanged since), `faff drain-filter` suppresses it; fed a later `changed_at`, it keeps it.",
+      "verified": "the 2026-10-27 shape is suppressed unchanged and kept after a later changed_at; full gate ladder pass (re-run after the review fixes)",
+      "passed": true,
+      "ac_id": "faff-1412#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/drain-filter.test.mjs::a declined, unchanged candidate is suppressed and an unrelated one kept"
+        },
+        {
+          "kind": "test",
+          "locator": "test/drain-filter.test.mjs::default output is the kept ids space-separated; a change after the decline keeps it"
+        }
+      ]
+    },
+    {
+      "ac": "`faff run-ledger record-declined` validates `--issue` and `--reason` as in 3 and 4.1, and returns exit codes 0, 2 and 3 as listed in 3.",
+      "verified": "bad --issue/--reason/--observed-at exit 2, no run dir exits 3, written exits 0; full gate ladder pass (re-run after the review fixes)",
+      "passed": true,
+      "ac_id": "faff-1412#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-ledger-record-declined.test.mjs::bad input exits 2 and writes nothing; any past --observed-at is accepted"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-ledger-record-declined.test.mjs::no resolvable run dir exits 3"
+        }
+      ]
+    },
+    {
+      "ac": "`record-declined --json` prints the one-line object defined in 3, and the default output is the `recorded … declined in …` line.",
+      "verified": "--json prints the one-line object; default prints recorded <ISSUE> declined in <run-dir>; full gate ladder pass (re-run after the review fixes)",
+      "passed": true,
+      "ac_id": "faff-1412#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-ledger-record-declined.test.mjs::record-declined writes the entry, prints --json, and the ledger stays clean and schema-valid"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-ledger-record-declined.test.mjs::default output names the issue and run dir; a second record for the same issue overwrites"
+        }
+      ]
+    },
+    {
+      "ac": "`faff drain-filter` reads a JSON array of `{issue, changed_at}` on stdin, prints space-separated kept ids by default and `FilterResult` with `--json`, and exits 2 on non-array stdin or an unknown flag.",
+      "verified": "stdin array in, kept ids or FilterResult out; exit 2 on {}, [1,2], non-JSON and an unknown flag; full gate ladder pass (re-run after the review fixes)",
+      "passed": true,
+      "ac_id": "faff-1412#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/drain-filter.test.mjs::default output is the kept ids space-separated; a change after the decline keeps it"
+        },
+        {
+          "kind": "test",
+          "locator": "test/drain-filter.test.mjs::stdin and flag validation: exit 2"
+        }
+      ]
+    },
+    {
+      "ac": "`run-ledger.schema.json` declares `declined`, closed, with required string `reason` and `at` and optional string `recorded_at`, as 4.4 says; the closed-schema test still passes, and a ledger written by `record-declined` validates against the schema with `contracts/validate-schema.mjs`.",
+      "verified": "schema declares declined with required reason/at and optional recorded_at; written ledgers validate; v0.3 mirror and closed-schema tests pass; full gate ladder pass (re-run after the review fixes)",
+      "passed": true,
+      "ac_id": "faff-1412#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-ledger-record-declined.test.mjs::record-declined writes the entry, prints --json, and the ledger stays clean and schema-valid"
+        },
+        {
+          "kind": "command",
+          "locator": "node --test test/evidence-v0.3.test.mjs test/run-ledger-writer-inventory.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "Within one run, an issue in `admitted` is never suppressed, even with a decline record.",
+      "verified": "an admitted issue in the deciding run is kept despite a decline record; full gate ladder pass (re-run after the review fixes)",
+      "passed": true,
+      "ac_id": "faff-1412#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/drain-filter.test.mjs::admitted wins inside a run: a wave-1 decline then a wave-2 admission keeps the candidate"
+        }
+      ]
+    },
+    {
+      "ac": "The newest run in the window that mentions the issue decides; runs older than `--max-age-hours` are ignored.",
+      "verified": "newest mentioning run decides; runs older than the window are ignored; full gate ladder pass (re-run after the review fixes)",
+      "passed": true,
+      "ac_id": "faff-1412#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/drain-filter.test.mjs::the newest mentioning run decides: a later admission after a decline keeps the candidate"
+        },
+        {
+          "kind": "test",
+          "locator": "test/drain-filter.test.mjs::a run older than the window is ignored"
+        }
+      ]
+    },
+    {
+      "ac": "A routed-out `outcomes` entry with no `declined` record keeps the candidate.",
+      "verified": "a routed-out outcome with no declined record keeps the candidate; full gate ladder pass (re-run after the review fixes)",
+      "passed": true,
+      "ac_id": "faff-1412#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/drain-filter.test.mjs::a routed-out outcome with no decline record keeps the candidate"
+        }
+      ]
+    },
+    {
+      "ac": "An unreadable ledger is skipped and named in `degraded`, and keeps only the candidates whose deciding run is older than it; a missing runs dir or an unknown `changed_at` keeps candidates, as 4.2 says.",
+      "verified": "unreadable ledger skipped and named; keeps only candidates decided by an older run; missing runs dir and unknown changed_at keep; full gate ladder pass (re-run after the review fixes)",
+      "passed": true,
+      "ac_id": "faff-1412#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/drain-filter.test.mjs::a later unreadable ledger keeps the candidate and is named in degraded"
+        },
+        {
+          "kind": "test",
+          "locator": "test/drain-filter.test.mjs::an unreadable ledger older than the deciding decline does not keep the candidate"
+        },
+        {
+          "kind": "test",
+          "locator": "test/drain-filter.test.mjs::a missing runs dir keeps everything with degraded no-runs-dir"
+        },
+        {
+          "kind": "test",
+          "locator": "test/drain-filter.test.mjs::an unknown changed_at keeps the candidate"
+        }
+      ]
+    },
+    {
+      "ac": "A symlinked runs dir is read through the link.",
+      "verified": "a symlinked runs dir is followed; full gate ladder pass (re-run after the review fixes)",
+      "passed": true,
+      "ac_id": "faff-1412#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/drain-filter.test.mjs::a symlinked runs dir is read through the link"
+        }
+      ]
+    },
+    {
+      "ac": "`record-declined` leaves `admitted`, `outcomes`, `owner`, `level` and `budget` unchanged, and the run's events chain still verifies after the write.",
+      "verified": "admitted/outcomes/owner/level/budget unchanged; runcheck clean; faff events verify exits 0 after the write; full gate ladder pass (re-run after the review fixes)",
+      "passed": true,
+      "ac_id": "faff-1412#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-ledger-record-declined.test.mjs::record-declined writes the entry, prints --json, and the ledger stays clean and schema-valid"
+        }
+      ]
+    },
+    {
+      "ac": "`faff-beep-boop/SKILL.md` says a failed `record-declined` is logged and never stops the drain.",
+      "verified": "SKILL.md: a non-zero record-declined exit is logged and never stops the drain or changes the disposition; full gate ladder pass (re-run after the review fixes)",
+      "passed": true,
+      "ac_id": "faff-1412#done:13",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'log a non-zero exit without stopping the drain' plugin/skills/faff-beep-boop/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "`faff-beep-boop/SKILL.md` calls `record-declined` at the claimed-by-peer and routed-out sites as the last write for that issue, and lists `declined` in the run-ledger fields.",
+      "verified": "claim-before-admit points at the decline record; Record-to-the-run-ledger runs record-declined for routed-out and claimed-by-peer candidates with no later tracker write; declined bullet in the field list; full gate ladder pass (re-run after the review fixes)",
+      "passed": true,
+      "ac_id": "faff-1412#done:14",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'record-declined' plugin/skills/faff-beep-boop/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "`SKILL_LINE_BASELINE[\"faff-beep-boop\"]` equals the file's new size, and `faff validate-adapters` reports no FAIL.",
+      "verified": "baseline 778 equals the counted size; validate-adapters reports no FAIL; full gate ladder pass (re-run after the review fixes)",
+      "passed": true,
+      "ac_id": "faff-1412#done:15",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "`faff regions check` passes with `drain-filter.js` carrying its `region:factory` banner and `REGION_SELFTEST_ARGV[\"drain-filter\"]` set to `null`.",
+      "verified": "regions check PASS; drain-filter.js has the region:factory banner; REGION_SELFTEST_ARGV entry is null; full gate ladder pass (re-run after the review fixes)",
+      "passed": true,
+      "ac_id": "faff-1412#done:16",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        }
+      ]
+    },
+    {
+      "ac": "`TEST_FILE_COVERAGE` declares `\"drain-filter\": \"test/drain-filter.test.mjs\"`, and the diff adds no `--selftest` case anywhere.",
+      "verified": "TEST_FILE_COVERAGE names test/drain-filter.test.mjs; no selftest case added; full gate ladder pass (re-run after the review fixes)",
+      "passed": true,
+      "ac_id": "faff-1412#done:17",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-coverage"
+        },
+        {
+          "kind": "command",
+          "locator": "git diff origin/main -- plugin/skills/faff/bin/lib/run-ledger.js"
+        }
+      ]
+    },
+    {
+      "ac": "`faff lint-cli-doc` and `faff lint-cli-coverage` pass with the two new `docs/guide/cli.md` rows.",
+      "verified": "lint-cli-doc PASS (144 documented) and lint-cli-coverage PASS with the two new rows; full gate ladder pass (re-run after the review fixes)",
+      "passed": true,
+      "ac_id": "faff-1412#done:18",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-doc"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-coverage"
+        }
+      ]
+    },
+    {
+      "ac": "`evidence-documents.md` names `declined` and its writer.",
+      "verified": "evidence-documents.md (and its verification mirror) lists declined with record-declined as writer; full gate ladder pass (re-run after the review fixes)",
+      "passed": true,
+      "ac_id": "faff-1412#done:19",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'declined' plugin/skills/faff/contracts/evidence-v0.3/evidence-documents.md"
+        }
+      ]
+    },
+    {
+      "ac": "`test/drain-filter.test.mjs` exists, runs under `node --test`, and passes, covering each step of 4.2 against `mkdtempSync` fixtures.",
+      "verified": "19 cases pass under node --test on mkdtempSync fixtures, covering steps 0 to 5 of 4.2; full gate ladder pass (re-run after the review fixes)",
+      "passed": true,
+      "ac_id": "faff-1412#done:20",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/drain-filter.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "The same file has one named case per 4.5 edge case: a double decline in one run keeps the later record; a wave-1 decline followed by a wave-2 admission in the same run keeps the candidate; two runs with the same start second are ordered by run dir name; a crashed run's decline suppresses; an unreadable run newer than the deciding decline keeps the candidate, while an unreadable run older than it does not; and a `changed_at` one second after `at` keeps the candidate while one equal to `at` suppresses it (the clock-skew boundary).",
+      "verified": "named cases for double decline, wave-1 decline then admission, same-second ordering, crashed run, unreadable newer/older run, and the clock-skew boundary; full gate ladder pass (re-run after the review fixes)",
+      "passed": true,
+      "ac_id": "faff-1412#done:21",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/drain-filter.test.mjs::a double decline in one run keeps the later record (written twice through record-declined)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/drain-filter.test.mjs::two runs with the same start second are ordered by run dir name"
+        },
+        {
+          "kind": "test",
+          "locator": "test/drain-filter.test.mjs::a crashed run's decline (owner still running) suppresses"
+        },
+        {
+          "kind": "test",
+          "locator": "test/drain-filter.test.mjs::clock-skew boundary: one second after at keeps, equal to at suppresses, fractional seconds compare as instants"
+        }
+      ]
+    },
+    {
+      "ac": "Exit-code cases are tested: `record-declined` exits 2 on a bad `--issue`, an empty or over-long `--reason`, and an `--observed-at` more than 60 seconds in the future, accepts an `--observed-at` hours in the past, and exits 3 with no resolvable run dir; `drain-filter` exits 2 on stdin `{}`, on stdin `[1,2]` and on an unknown flag.",
+      "verified": "record-declined exit 2 cases, past observed-at accepted, exit 3 with no run dir; drain-filter exit 2 on {}, [1,2] and an unknown flag; full gate ladder pass (re-run after the review fixes)",
+      "passed": true,
+      "ac_id": "faff-1412#done:22",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-ledger-record-declined.test.mjs::bad input exits 2 and writes nothing; any past --observed-at is accepted"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-ledger-record-declined.test.mjs::no resolvable run dir exits 3"
+        },
+        {
+          "kind": "test",
+          "locator": "test/drain-filter.test.mjs::stdin and flag validation: exit 2"
+        }
+      ]
+    },
+    {
+      "ac": "A candidate with a malformed issue id (for example `{\"issue\":\"../x\",\"changed_at\":null}` at index 1) is kept, in input order, and `degraded` contains `bad-candidate:1`.",
+      "verified": "../x at index 1 is kept in order and degraded contains bad-candidate:1; full gate ladder pass (re-run after the review fixes)",
+      "passed": true,
+      "ac_id": "faff-1412#done:23",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/drain-filter.test.mjs::a malformed candidate id is kept in input order and named in degraded"
+        }
+      ]
+    },
+    {
+      "ac": "`drain-filter` exits 2 on `--max-age-hours 0`, `--max-age-hours 169`, `--max-age-hours x` and `--now yesterday`.",
+      "verified": "--max-age-hours 0, 169, x and --now yesterday exit 2; 168 accepted; full gate ladder pass (re-run after the review fixes)",
+      "passed": true,
+      "ac_id": "faff-1412#done:24",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/drain-filter.test.mjs::stdin and flag validation: exit 2"
+        }
+      ]
+    },
+    {
+      "ac": "A `reason` containing CR, LF and tab is stored with each replaced by a space.",
+      "verified": "a\\rb\\nc\\td is stored as a b c d; full gate ladder pass (re-run after the review fixes)",
+      "passed": true,
+      "ac_id": "faff-1412#done:25",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-ledger-record-declined.test.mjs::control characters in --reason are replaced by spaces"
+        }
+      ]
+    },
+    {
+      "ac": "A `record-declined` test file (or cases in an existing `test/run-ledger-*.test.mjs`) passes, and `test/run-ledger-writer-inventory.test.mjs` passes with the new writer registered.",
+      "verified": "run-ledger-record-declined tests pass (6) and the writer inventory passes with record-declined in the run-ledger row; full gate ladder pass (re-run after the review fixes)",
+      "passed": true,
+      "ac_id": "faff-1412#done:26",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/run-ledger-record-declined.test.mjs test/run-ledger-writer-inventory.test.mjs"
+        }
+      ]
+    }
+  ]
+}

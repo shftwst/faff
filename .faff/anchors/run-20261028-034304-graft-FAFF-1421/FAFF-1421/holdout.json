@@ -1,0 +1,200 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1421",
+  "aggregate": "meets-spec",
+  "code_blind": true,
+  "spawner_attested": false,
+  "attestation": null,
+  "violations": [],
+  "criteria": [
+    {
+      "id": "scenarios:1",
+      "text": "Given capture.decision_kernel is \"on\" and run \"run-1\" exists with a prior chain head in events.jsonl\nWhen `faff decision-capture record --run run-1 --issue \"\" --kernel <2000 × \"k\">` runs with a valid payload on stdin\nThen the exit code is 0 and stdout is empty\nAnd the note's reason contains \"type 'decision-capture' is issue-scoped but missing required field 'issue'\" in full\nAnd the note's reason does not end with \"...[truncated]\"\nAnd the note's kernel is 242 × \"k\" followed by \"...[truncated]\" (256 bytes)\nAnd the note's reason contains \"for kernel \" + note.kernel + \" refused by the issue-scoped rule\"\nAnd the stderr line after the prefix equals the note's reason byte for byte",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "Session-RPC open(Workspace); gitInit; writeFile .faff/config.yaml capture.decision_kernel \"on\"; mkdir .faff/runs/run-1; runFaff events append --run run-1 (stdin {type:run-start,phase:run}) -> chain head seq 0; runFaff ['decision-capture','record','--run','run-1','--issue','','--kernel',2000*'k'] stdin {normalised_inputs:{},selected_action:'graft'}; readFile .faff/logs/decision-capture.jsonl last line; close",
+      "expected": "exit 0, empty stdout; reason contains the issue-scoped violation in full and does not end with the marker; kernel = 242 x k + '...[truncated]' (256 bytes); reason contains 'for kernel '+kernel+' refused by the issue-scoped rule'; stderr after prefix == reason",
+      "observed": "exit_code 0; stdout ''; 1 stderr line; note.kernel == 242*'k'+'...[truncated]' (256 bytes); reason (419 bytes) ends \"...[truncated] refused by the issue-scoped rule: type 'decision-capture' is issue-scoped but missing required field 'issue'\"; ends-with-marker false; stderr after 'faff decision-capture record: degraded capture — ' == note.reason: true",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:2",
+      "text": "Given capture.decision_kernel is \"on\" and run \"run-1\" exists with a prior chain head\nWhen `faff decision-capture action --run run-1 --issue \"\" --kernel <2000 × \"k\"> --action graft` runs\nThen the exit code is 0\nAnd the note's reason contains \"type 'decision-capture-action' is issue-scoped but missing required field 'issue'\" in full\nAnd the note's kernel is at most 256 bytes and ends with \"...[truncated]\"",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "Session-RPC open(Workspace); gitInit; writeFile .faff/config.yaml capture.decision_kernel \"on\"; mkdir .faff/runs/run-1; runFaff events append --run run-1 (stdin {type:run-start,phase:run}) -> chain head seq 0; runFaff ['decision-capture','action','--run','run-1','--issue','','--kernel',2000*'k','--action','graft']; read last note; close",
+      "expected": "exit 0; reason contains \"type 'decision-capture-action' is issue-scoped but missing required field 'issue'\" in full; kernel <= 256 bytes ending with '...[truncated]'",
+      "observed": "exit_code 0; stdout ''; note.event_type 'decision-capture-action'; reason (433 bytes) ends \"refused by the issue-scoped rule: type 'decision-capture-action' is issue-scoped but missing required field 'issue'\"; note.kernel 256 bytes ending '...[truncated]'",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:3",
+      "text": "Every suppressed-capture note's `kernel` field MUST be at most 256 UTF-8 bytes, and its `reason` MUST be at most 1024 UTF-8 bytes.",
+      "holdout": false,
+      "class": "assertion",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "Session-RPC open(Workspace); gitInit; writeFile .faff/config.yaml capture.decision_kernel \"on\"; mkdir .faff/runs/run-1; runFaff events append --run run-1 (stdin {type:run-start,phase:run}) -> chain head seq 0; 8 suppressed captures (record with kernels 2000*k, 256*k, 257*k, 300*'é', 'bad'+U+200F+'kernel', 'bad'+U+202E+'kernel', 'bad\\nkernel'; action with 2000*k); measured each note's kernel/reason UTF-8 bytes; close",
+      "expected": "every note.kernel <= 256 UTF-8 bytes and every note.reason <= 1024 UTF-8 bytes",
+      "observed": "kernel bytes: 256,256,256,256,256,10,10,10 (all <=256); reason bytes: 419,433,419,419,419,173,173,173 (all <=1024)",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "done:1",
+      "text": "`faff decision-capture record --run run-1 --issue \"\" --kernel <2000 × \"k\">` writes a note whose `reason` contains `type 'decision-capture' is issue-scoped but missing required field 'issue'` in full.",
+      "holdout": false,
+      "class": "assertion",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "Session-RPC open(Workspace); gitInit; writeFile .faff/config.yaml capture.decision_kernel \"on\"; mkdir .faff/runs/run-1; runFaff events append --run run-1 (stdin {type:run-start,phase:run}) -> chain head seq 0; runFaff record --run run-1 --issue '' --kernel 2000*'k' with valid stdin payload; read last note; close",
+      "expected": "note.reason contains \"type 'decision-capture' is issue-scoped but missing required field 'issue'\" in full",
+      "observed": "note.reason ends \"refused by the issue-scoped rule: type 'decision-capture' is issue-scoped but missing required field 'issue'\" (substring check true)",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "done:4",
+      "text": "A suppressed-capture note's `kernel` field is at most 256 UTF-8 bytes, and the reason contains `for kernel <note.kernel> refused by`.",
+      "holdout": false,
+      "class": "assertion",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "Session-RPC open(Workspace); gitInit; writeFile .faff/config.yaml capture.decision_kernel \"on\"; mkdir .faff/runs/run-1; runFaff events append --run run-1 (stdin {type:run-start,phase:run}) -> chain head seq 0; same 8 suppressed captures as scenarios:3; checked bytes(note.kernel) and 'for kernel '+note.kernel+' refused by' in note.reason; close",
+      "expected": "note.kernel <= 256 UTF-8 bytes and reason contains 'for kernel <note.kernel> refused by'",
+      "observed": "all 8 notes: kernel <= 256 bytes (max 256) and substring 'for kernel '+note.kernel+' refused by' present: true for each",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "done:6",
+      "text": "`faff decision-capture action --run run-1 --issue \"\" --kernel <2000 × \"k\"> --action graft` writes a note whose `reason` contains `type 'decision-capture-action' is issue-scoped but missing required field 'issue'` in full and whose `kernel` is at most 256 bytes.",
+      "holdout": false,
+      "class": "assertion",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "Session-RPC open(Workspace); gitInit; writeFile .faff/config.yaml capture.decision_kernel \"on\"; mkdir .faff/runs/run-1; runFaff events append --run run-1 (stdin {type:run-start,phase:run}) -> chain head seq 0; runFaff ['decision-capture','action','--run','run-1','--issue','','--kernel',2000*'k','--action','graft']; read last note; close",
+      "expected": "note.reason contains \"type 'decision-capture-action' is issue-scoped but missing required field 'issue'\" in full and note.kernel <= 256 bytes",
+      "observed": "substring present: true; note.kernel 256 bytes (242*'k'+'...[truncated]')",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "done:8",
+      "text": "The generic `journal append failed: <message>` path is unchanged.",
+      "holdout": false,
+      "class": "assertion",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "Session-RPC open(Workspace); gitInit; writeFile .faff/config.yaml capture.decision_kernel \"on\"; mkdir .faff/runs/run-1; runFaff events append --run run-1 (stdin {type:run-start,phase:run}) -> chain head seq 0; mkdir .faff/runs/run-1/events.jsonl.lock (hold the journal lock); runFaff record --run run-1 --issue X-1 --kernel next with valid stdin; read last note; close",
+      "expected": "a non-schema append failure still produces the generic 'journal append failed: <message>' reason, with no suppressed-capture fields",
+      "observed": "exit_code 0; stderr 'faff decision-capture record: degraded capture — journal append failed: events lock: could not acquire events.jsonl.lock within 2000ms'; note keys ts,run,note,reason only (no event_type/kernel/rules)",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    }
+  ],
+  "delegated": [
+    {
+      "id": "done:2",
+      "text": "`lineSafe(value, maxBytes)` returns at most `maxBytes` UTF-8 bytes, cut on a code-point boundary and ending with `...[truncated]` when cut. With `maxBytes` omitted it behaves exactly as before.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1421#done:2"
+    },
+    {
+      "id": "done:3",
+      "text": "`KERNEL_MAX_BYTES` is 256 and is defined in `decision-capture.js` next to `REASON_MAX_BYTES`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1421#done:3"
+    },
+    {
+      "id": "done:5",
+      "text": "With a 2000-byte kernel, the note's `kernel` field is 242 × `k` followed by `...[truncated]`, and the note's `reason` does not end with `...[truncated]`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1421#done:5"
+    },
+    {
+      "id": "done:7",
+      "text": "Exit code 0, empty stdout, one stderr line, and the stderr text after the prefix equals the note's `reason` byte for byte, unchanged for long kernels.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1421#done:7"
+    },
+    {
+      "id": "done:9",
+      "text": "A kernel of exactly 256 single-byte characters appears in full in both the reason and the note's `kernel` field, with no marker.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1421#done:9"
+    },
+    {
+      "id": "done:10",
+      "text": "A kernel of 300 × `é` gives a note `kernel` of at most 256 bytes, ending with the marker and containing no U+FFFD.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1421#done:10"
+    },
+    {
+      "id": "done:11",
+      "text": "`test/faff-1354-suppressed-capture.test.mjs:198-209` is updated. It replaces the `reason.endsWith(\"...[truncated]\")` assertion with: the reason contains `ISSUE_LINE` and does not end with the marker, `bytes(note.kernel) <= 256`, and `note.kernel` ends with the marker. It keeps `bytes(note.reason) <= 1024` and the stderr-equals-note assertion.",
+      "holdout": false,
+      "verification_tier": "integration",
+      "verifier": "review-merge-floor",
+      "ac_id": "faff-1421#done:11"
+    },
+    {
+      "id": "done:12",
+      "text": "New tests in `test/faff-1354-suppressed-capture.test.mjs` cover the action verb with a 2000-byte kernel, the 256-byte boundary, the multi-byte kernel, and `lineSafe` with an explicit `maxBytes`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1421#done:12"
+    },
+    {
+      "id": "done:13",
+      "text": "A violation-budget test covers `decision-capture` and `decision-capture-action`. For each, it takes the violations the write core returns for an empty issue and no data, and builds the reason through `reportAppendFailure` with both rules and a 2000-byte kernel. It then asserts that the note's `reason` contains every violation in full and does not end with `...[truncated]`. If that violation set grows past 652 bytes, this test fails.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1421#done:13"
+    },
+    {
+      "id": "done:14",
+      "text": "`lineSafe` gives `\"a b\"` for each of these inputs: `a` + U+202E + `b`; `a` + U+2066 + U+2069 + `b`; `a` + U+202A + U+202B + `b`; `a` + U+200E + `b`; `a` + U+200F + `b`; and `a` + U+061C + `b`. A `record` call with `--kernel` set to `bad` + U+200F + `kernel` and an empty `--issue` writes a note whose `kernel` is `bad kernel`, and its stderr line contains none of U+061C, U+200E–200F, U+202A–202E or U+2066–2069.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1421#done:14"
+    },
+    {
+      "id": "done:15",
+      "text": "All other FAFF-1354 tests, including the `lineSafe` unit test at :101-116 and the `bad\\nkernel` test at :212-222, pass unchanged.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1421#done:15"
+    }
+  ]
+}

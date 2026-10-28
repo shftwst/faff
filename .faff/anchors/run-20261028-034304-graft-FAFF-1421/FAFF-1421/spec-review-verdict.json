@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "verdict": "revise",
+  "final_verdict": "approve",
+  "rounds_total": 4,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec's central soundness argument — \"If it has its own small byte budget before the string is built, the violations always fit, because the rest of the reason has a known maximum length\" — holds only for today's violation texts. The design principle \"The violations take priority over the kernel\" is not a property of the mechanism; it is a property of the current 474-byte violation figure. The only general safeguard is the whole-reason `lineSafe(reason)` cap, which truncates **from the end** — i.e. it cuts the violations, which sit after the kernel in the reason. So the backstop does not \"cover violation text that grows in future\" in the sense that matters; it reproduces the original failure (diagnosis lost) for any future violation set that pushes the reason past 1024 bytes. The spec's rejection of the reserve-space alternative (\"the kernel's length would then depend on the violations\") forecloses the one design that would make the principle hold unconditionally, on the grounds of a stated fixed bound (`kernel` ≤ 256) that the 1024 backstop already silently violates in that case.",
+      "evidence": "§1 \"The core change\" and the design principle \"The violations take priority over the kernel\"; §3 \"Whether the whole-reason `lineSafe` still runs\" (\"It covers violation text that grows in future\"); §5 \"Is the whole-reason 1024 cap still needed?\"; the 474-byte figure and 846-byte worst-case arithmetic in §3 \"The kernel budget value\".",
+      "predicted_consequence": "a future schema rule with longer violation text (or any violation message that echoes caller-supplied payload values) pushes the reason past 1024 bytes; the end-truncating cap cuts the violations, the operator is again left unable to tell why the capture was suppressed, and nothing in the DONE criteria or tests detects it — the ticket's own failure mode, reopened by growth the spec explicitly anticipates but does not design for.",
+      "spec_anchor": "whether-the-whole-reason-1024-cap-still-needed",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round 2: the 652-byte violation budget became a stated ceiling checked by a repository test, the order of the reason's parts became a stated decision, and the whole-reason cap is described as a size bound.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The spec's central soundness argument — \"If it has its own small byte budget before the string is built, the violations always fit, because the rest of the reason has a known maximum length\" — holds only for today's violation texts. The design principle \"The violations take priority over the kernel\" is not a property of the mechanism; it is a property of the current 474-byte violation figure. The only general safeguard is the whole-reason `lineSafe(reason)` cap, which truncates **from the end** — i.e. it cuts the violations, which sit after the kernel in the reason. So the backstop does not \"cover violation text that grows in future\" in the sense that matters; it reproduces the original failure (diagnosis lost) for any future violation set that pushes the reason past 1024 bytes. The spec's rejection of the reserve-space alternative (\"the kernel's length would then depend on the violations\") forecloses the one design that would make the principle hold unconditionally, on the grounds of a stated fixed bound (`kernel` ≤ 256) that the 1024 backstop already silently violates in that case.",
+          "spec_anchor": "whether-the-whole-reason-1024-cap-still-needed"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec's answer to round 1 is that violation growth \"is caught in CI rather than reappearing as a silently cut diagnosis\", via a test that \"takes the violations the write core returns for an empty issue and no data\". That pins exactly one violation set: the one that fires on that fixed input. A future payload-schema violation whose text interpolates a caller-supplied value (a field name, a rejected value) can be arbitrarily long, fires only on inputs other than the empty-data probe, evades the budget test entirely, and pushes a real suppression past 1024 bytes — where the end-truncating cap cuts from the end, i.e. the violations. The spec's own stated invariant (\"A future violation set longer than 652 bytes makes this test fail\") is true only for violation sets reachable from that one probe, so the \"checked ceiling\" is narrower than the guarantee the design rests on.",
+      "evidence": "§1 design principle \"The violation budget is a checked ceiling, not an assumption\"; §7 DONE \"A violation-budget test covers `decision-capture` and `decision-capture-action`. For each, it takes the violations the write core returns for an empty issue and no data\"; §5 \"Is the whole-reason 1024 cap still needed?\" (\"The guarantee that violations survive comes from the violation-budget test below\").",
+      "predicted_consequence": "a future schema rule whose violation message echoes caller payload content passes the budget test (which probes only empty data), then a real suppression with a long caller value exceeds 1024 bytes, the cap cuts the violations, and the operator is again left without the diagnosis — the exact failure FAFF-1421 exists to fix, reintroduced with the budget test green.",
+      "spec_anchor": "the-violation-budget-is-a-checked-ceiling-not-an-assumption",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round 3 (operator chose to fold): the guarantee is scoped to the violation sets a capture can reach, with the verified fact that record and action pre-validate the payload, so only the issue-scoped refusal is reachable.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The spec's answer to round 1 is that violation growth \"is caught in CI rather than reappearing as a silently cut diagnosis\", via a test that \"takes the violations the write core returns for an empty issue and no data\". That pins exactly one violation set: the one that fires on that fixed input. A future payload-schema violation whose text interpolates a caller-supplied value (a field name, a rejected value) can be arbitrarily long, fires only on inputs other than the empty-data probe, evades the budget test entirely, and pushes a real suppression past 1024 bytes — where the end-truncating cap cuts from the end, i.e. the violations. The spec's own stated invariant (\"A future violation set longer than 652 bytes makes this test fail\") is true only for violation sets reachable from that one probe, so the \"checked ceiling\" is narrower than the guarantee the design rests on.",
+          "spec_anchor": "the-violation-budget-is-a-checked-ceiling-not-an-assumption"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The kernel is caller-supplied, unbounded input that this spec now places inside a fixed-width reason and a structured log note. The spec restates `lineSafe`'s sanitisation class as \"no U+0000-001F, U+007F-009F, U+2028, U+2029\" — which collapses C0 controls and C1 CSI, but leaves the bidirectional-format range (U+202A–U+202E, U+2066–U+2069) untouched. A `--kernel` value containing U+202E (RIGHT-TO-LEFT OVERRIDE) therefore survives sanitisation and is written verbatim to the operator's terminal stderr line and to `.faff/logs/decision-capture.jsonl`, where it can visually reorder the surrounding reason text (\"for kernel … refused by the … rule\") so the displayed rule phrase or violation text reads differently from the bytes. Since this spec is already editing `lineSafe`'s signature and restating its contract, the class edit is in scope for this change, not a separate hardening ticket.",
+      "evidence": "§3 WHAT, `FUNCTION lineSafe` constraint block (\"result has no U+0000-001F, U+007F-009F, U+2028, U+2029\"); §4 edge-case table treats only `\\n` and multi-byte truncation; FAFF-1354's committed spec explicitly deferred bidi controls with \"Extension point: the character class in `lineSafe`\" — an extension point this spec now occupies without taking it.",
+      "predicted_consequence": "a kernel argument crafted with bidi overrides produces a stderr line and a persisted note whose visually rendered rule/violation text differs from the logical text, misleading an operator triaging a suppressed capture; the structured `rules` field limits the damage to the free-text `reason`/`kernel` fields.",
+      "spec_anchor": "3-what",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round 3 (operator chose to fold): lineSafe's collapse class gains U+202A-202E and U+2066-2069, with unit and CLI tests.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The kernel is caller-supplied, unbounded input that this spec now places inside a fixed-width reason and a structured log note. The spec restates `lineSafe`'s sanitisation class as \"no U+0000-001F, U+007F-009F, U+2028, U+2029\" — which collapses C0 controls and C1 CSI, but leaves the bidirectional-format range (U+202A–U+202E, U+2066–U+2069) untouched. A `--kernel` value containing U+202E (RIGHT-TO-LEFT OVERRIDE) therefore survives sanitisation and is written verbatim to the operator's terminal stderr line and to `.faff/logs/decision-capture.jsonl`, where it can visually reorder the surrounding reason text (\"for kernel … refused by the … rule\") so the displayed rule phrase or violation text reads differently from the bytes. Since this spec is already editing `lineSafe`'s signature and restating its contract, the class edit is in scope for this change, not a separate hardening ticket.",
+          "spec_anchor": "3-what"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The round-3 fix adds only the explicit-embedding and isolate ranges (U+202A–202E, U+2066–2069) to `lineSafe`'s collapse class. The implicit directional-format characters — U+200E (LRM), U+200F (RLM) and U+061C (ALM) — are bidirectional controls outside both ranges, so a `--kernel` containing U+200F still passes sanitisation verbatim into the stderr line and the note, and can still flip the rendered direction of the surrounding \"for kernel … refused by the … rule\" text. The round-2 infosec objection's consequence (displayed rule/violation text reads differently from the bytes) therefore survives the fix for those code points.",
+      "evidence": "§3 WHAT, `FUNCTION lineSafe` constraint block — \"result has no U+0000-001F, U+007F-009F, U+2028, U+2029, U+202A-202E or U+2066-2069\"; the design decision \"Bidirectional-format controls in `lineSafe`\" (\"add both ranges to `lineSafe`'s collapse class\"); the DONE item \"`lineSafe(\"a\\u202Eb\")`, `lineSafe(\"a\\u2066\\u2069b\")` and `lineSafe(\"a\\u202A\\u202Bb\")` each give `\"a b\"`\".",
+      "predicted_consequence": "a kernel argument containing U+200F produces a stderr line and a persisted note whose visually rendered rule/violation text can differ from the logical text — the exact misleading-display consequence round 2 raised, reintroduced with the round-3 tests green. Fix is a one-line class extension (add U+200E–200F and U+061C) plus one test case, so this is a small in-place spec edit.",
+      "spec_anchor": "3-what",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round 4: lineSafe's class also covers U+200E, U+200F and U+061C, with unit cases and a CLI test using U+200F.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The round-3 fix adds only the explicit-embedding and isolate ranges (U+202A–202E, U+2066–2069) to `lineSafe`'s collapse class. The implicit directional-format characters — U+200E (LRM), U+200F (RLM) and U+061C (ALM) — are bidirectional controls outside both ranges, so a `--kernel` containing U+200F still passes sanitisation verbatim into the stderr line and the note, and can still flip the rendered direction of the surrounding \"for kernel … refused by the … rule\" text. The round-2 infosec objection's consequence (displayed rule/violation text reads differently from the bytes) therefore survives the fix for those code points.",
+          "spec_anchor": "3-what"
+        }
+      ]
+    }
+  ]
+}

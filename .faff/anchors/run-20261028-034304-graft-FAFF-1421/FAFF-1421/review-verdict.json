@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/decision-capture.js::linesafe exceeds maxbytes when maxbytes is below the marker length",
+      "title": "lineSafe exceeds maxBytes when maxBytes is below the marker length",
+      "location": "plugin/skills/faff/bin/lib/decision-capture.js",
+      "action": "clamp or document a minimum maxBytes of the marker length",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Unreachable today: both call sites pass module constants (REASON_MAX_BYTES 1024, KERNEL_MAX_BYTES 256), and lineSafe is exported only for unit tests (FAFF-1354 done:8). The spec-review QA lens raised the same observation in round 4 and it was accepted there.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "lineSafe exceeds maxBytes when maxBytes is below the marker length",
+          "location": "plugin/skills/faff/bin/lib/decision-capture.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "nolocation::no further findings",
+      "title": "no further findings",
+      "location": null,
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": null,
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "no further findings",
+          "location": null,
+          "severity": "observation",
+          "disposition": null
+        }
+      ]
+    }
+  ]
+}

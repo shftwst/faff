@@ -1,0 +1,215 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "`faff decision-capture record --run run-1 --issue \"\" --kernel <2000 × \"k\">` writes a note whose `reason` contains `type 'decision-capture' is issue-scoped but missing required field 'issue'` in full.",
+      "verified": "The 2000-byte-kernel record test passes: the note's reason contains the issue-scoped violation in full.",
+      "passed": true,
+      "ac_id": "faff-1421#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::record with a 2000-byte kernel: reason and kernel are bounded and the stderr text equals the note"
+        }
+      ]
+    },
+    {
+      "ac": "`lineSafe(value, maxBytes)` returns at most `maxBytes` UTF-8 bytes, cut on a code-point boundary and ending with `...[truncated]` when cut. With `maxBytes` omitted it behaves exactly as before.",
+      "verified": "lineSafe with an explicit maxBytes cuts on a code point inside the budget with the marker; the 1024 default unit test passes unchanged.",
+      "passed": true,
+      "ac_id": "faff-1421#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::lineSafe with an explicit maxBytes bounds on a code point and keeps the marker inside the budget"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::lineSafe collapses control runs, trims, and bounds to 1024 UTF-8 bytes"
+        }
+      ]
+    },
+    {
+      "ac": "`KERNEL_MAX_BYTES` is 256 and is defined in `decision-capture.js` next to `REASON_MAX_BYTES`.",
+      "verified": "KERNEL_MAX_BYTES = 256 is defined at decision-capture.js beside REASON_MAX_BYTES = 1024.",
+      "passed": true,
+      "ac_id": "faff-1421#done:3",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'KERNEL_MAX_BYTES = 256\\|REASON_MAX_BYTES = 1024' plugin/skills/faff/bin/lib/decision-capture.js"
+        }
+      ]
+    },
+    {
+      "ac": "A suppressed-capture note's `kernel` field is at most 256 UTF-8 bytes, and the reason contains `for kernel <note.kernel> refused by`.",
+      "verified": "The record and action long-kernel tests assert note.kernel <= 256 bytes and the reason contains for kernel <note.kernel> refused by.",
+      "passed": true,
+      "ac_id": "faff-1421#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::record with a 2000-byte kernel: reason and kernel are bounded and the stderr text equals the note"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::action with a 2000-byte kernel: the issue-scoped violation survives and the kernel is bounded"
+        }
+      ]
+    },
+    {
+      "ac": "With a 2000-byte kernel, the note's `kernel` field is 242 × `k` followed by `...[truncated]`, and the note's `reason` does not end with `...[truncated]`.",
+      "verified": "Passes: note.kernel is 242 x k plus ...[truncated] and the reason does not end with the marker.",
+      "passed": true,
+      "ac_id": "faff-1421#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::record with a 2000-byte kernel: reason and kernel are bounded and the stderr text equals the note"
+        }
+      ]
+    },
+    {
+      "ac": "`faff decision-capture action --run run-1 --issue \"\" --kernel <2000 × \"k\"> --action graft` writes a note whose `reason` contains `type 'decision-capture-action' is issue-scoped but missing required field 'issue'` in full and whose `kernel` is at most 256 bytes.",
+      "verified": "Passes: the action note's reason contains the decision-capture-action issue-scoped violation in full and its kernel is at most 256 bytes.",
+      "passed": true,
+      "ac_id": "faff-1421#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::action with a 2000-byte kernel: the issue-scoped violation survives and the kernel is bounded"
+        }
+      ]
+    },
+    {
+      "ac": "Exit code 0, empty stdout, one stderr line, and the stderr text after the prefix equals the note's `reason` byte for byte, unchanged for long kernels.",
+      "verified": "Passes: exit 0, empty stdout, one capture line, and the stderr text after the prefix equals the note's reason.",
+      "passed": true,
+      "ac_id": "faff-1421#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::record with a 2000-byte kernel: reason and kernel are bounded and the stderr text equals the note"
+        }
+      ]
+    },
+    {
+      "ac": "The generic `journal append failed: <message>` path is unchanged.",
+      "verified": "Passes: EVENTS_LOCKED still gives journal append failed: m with no event_type.",
+      "passed": true,
+      "ac_id": "faff-1421#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::reportAppendFailure: a non-schema failure keeps the generic reason and adds no event_type"
+        }
+      ]
+    },
+    {
+      "ac": "A kernel of exactly 256 single-byte characters appears in full in both the reason and the note's `kernel` field, with no marker.",
+      "verified": "Passes: a 256-byte kernel appears whole in the reason and note.kernel with no marker.",
+      "passed": true,
+      "ac_id": "faff-1421#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::record with a 256-byte kernel keeps it whole; 300 x e-acute is cut on a code point"
+        }
+      ]
+    },
+    {
+      "ac": "A kernel of 300 × `é` gives a note `kernel` of at most 256 bytes, ending with the marker and containing no U+FFFD.",
+      "verified": "Passes: 300 x e-acute gives note.kernel <= 256 bytes, ending with the marker, no U+FFFD.",
+      "passed": true,
+      "ac_id": "faff-1421#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::record with a 256-byte kernel keeps it whole; 300 x e-acute is cut on a code point"
+        }
+      ]
+    },
+    {
+      "ac": "`test/faff-1354-suppressed-capture.test.mjs:198-209` is updated. It replaces the `reason.endsWith(\"...[truncated]\")` assertion with: the reason contains `ISSUE_LINE` and does not end with the marker, `bytes(note.kernel) <= 256`, and `note.kernel` ends with the marker. It keeps `bytes(note.reason) <= 1024` and the stderr-equals-note assertion.",
+      "verified": "The 2000-byte-kernel test was updated as specified; it passes.",
+      "passed": true,
+      "ac_id": "faff-1421#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::record with a 2000-byte kernel: reason and kernel are bounded and the stderr text equals the note"
+        }
+      ]
+    },
+    {
+      "ac": "New tests in `test/faff-1354-suppressed-capture.test.mjs` cover the action verb with a 2000-byte kernel, the 256-byte boundary, the multi-byte kernel, and `lineSafe` with an explicit `maxBytes`.",
+      "verified": "New tests for the action verb, the 256-byte boundary, the multi-byte kernel and explicit maxBytes all pass.",
+      "passed": true,
+      "ac_id": "faff-1421#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::action with a 2000-byte kernel: the issue-scoped violation survives and the kernel is bounded"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::record with a 256-byte kernel keeps it whole; 300 x e-acute is cut on a code point"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::lineSafe with an explicit maxBytes bounds on a code point and keeps the marker inside the budget"
+        }
+      ]
+    },
+    {
+      "ac": "A violation-budget test covers `decision-capture` and `decision-capture-action`. For each, it takes the violations the write core returns for an empty issue and no data, and builds the reason through `reportAppendFailure` with both rules and a 2000-byte kernel. It then asserts that the note's `reason` contains every violation in full and does not end with `...[truncated]`. If that violation set grows past 652 bytes, this test fails.",
+      "verified": "Passes for both event types: every empty-data violation survives beside a 2000-byte kernel; mutation to a 1024-byte kernel bound fails it.",
+      "passed": true,
+      "ac_id": "faff-1421#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::violation budget: the largest set a capture can meet fits beside a 256-byte kernel"
+        }
+      ]
+    },
+    {
+      "ac": "`lineSafe` gives `\"a b\"` for each of these inputs: `a` + U+202E + `b`; `a` + U+2066 + U+2069 + `b`; `a` + U+202A + U+202B + `b`; `a` + U+200E + `b`; `a` + U+200F + `b`; and `a` + U+061C + `b`. A `record` call with `--kernel` set to `bad` + U+200F + `kernel` and an empty `--issue` writes a note whose `kernel` is `bad kernel`, and its stderr line contains none of U+061C, U+200E–200F, U+202A–202E or U+2066–2069.",
+      "verified": "Passes: the six bidi inputs give a b, and a U+200F --kernel gives note.kernel bad kernel with no bidi code point on stderr.",
+      "passed": true,
+      "ac_id": "faff-1421#done:14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::lineSafe collapses bidirectional format controls to one space"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::record with a bidirectional control inside --kernel: collapsed in the note and on stderr"
+        }
+      ]
+    },
+    {
+      "ac": "All other FAFF-1354 tests, including the `lineSafe` unit test at :101-116 and the `bad\\nkernel` test at :212-222, pass unchanged.",
+      "verified": "All 23 tests in the file pass; the lineSafe unit test and the bad\\nkernel test are unchanged.",
+      "passed": true,
+      "ac_id": "faff-1421#done:15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::lineSafe collapses control runs, trims, and bounds to 1024 UTF-8 bytes"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1354-suppressed-capture.test.mjs::record with a line feed inside --kernel: one stderr line, kernel collapsed"
+        },
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/faff-1354-suppressed-capture.test.mjs"
+        }
+      ]
+    }
+  ]
+}

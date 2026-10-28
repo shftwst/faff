@@ -39,12 +39,12 @@ const USAGE = "usage: faff drain-filter [--runs-dir DIR] [--root DIR] [--max-age
 
 const isValidIssue = (s) => typeof s === "string" && ISSUE_ID_RE.test(s) && !s.includes("..");
 
-const ISO_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})$/;
+const ISO_DATE_TIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})$/;
 
 // An ISO-8601 date-time string -> epoch ms, or null. Instants compare as numbers, so
 // "…:10Z" and "…:10.000Z" are equal.
 function instant(s) {
-  if (typeof s !== "string" || !ISO_RE.test(s)) return null;
+  if (typeof s !== "string" || !ISO_DATE_TIME_RE.test(s)) return null;
   const t = Date.parse(s);
   return Number.isNaN(t) ? null : t;
 }
@@ -152,6 +152,10 @@ function cmdDrainFilter(args) {
     }
   }
 
+  if (process.stdin.isTTY) {
+    process.stderr.write(`faff drain-filter: nothing piped on stdin\n${USAGE}\n`);
+    return 2;
+  }
   let candidates;
   try { candidates = JSON.parse(readStdin()); } catch { candidates = null; }
   if (!Array.isArray(candidates) || !candidates.every((c) => c !== null && typeof c === "object" && !Array.isArray(c))) {
@@ -167,7 +171,8 @@ function cmdDrainFilter(args) {
     if (fs.statSync(runsDir).isDirectory()) names = fs.readdirSync(runsDir);
   } catch { names = null; }
   if (names === null) {
-    result = { kept: candidates.map((c) => (typeof c.issue === "string" ? c.issue : String(c.issue))), suppressed: [], degraded: ["no-runs-dir"] };
+    result = filterCandidates(candidates, []);
+    result.degraded.unshift("no-runs-dir");
   } else {
     const cutoff = now - maxAge * 3600 * 1000;
     const runs = [];
@@ -192,4 +197,4 @@ function cmdDrainFilter(args) {
   return 0;
 }
 
-module.exports = { DRAIN_FILTER_SPEC, cmdDrainFilter, filterCandidates };
+module.exports = { DRAIN_FILTER_SPEC, ISO_DATE_TIME_RE, cmdDrainFilter, filterCandidates };

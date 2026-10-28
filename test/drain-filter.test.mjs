@@ -182,6 +182,9 @@ test("a missing runs dir keeps everything with degraded no-runs-dir", () => {
   const r = json(path.join(os.tmpdir(), "faff-1412-no-such-dir-" + process.pid), unchanged);
   assert.deepEqual(r.kept, ["FAFF-1318"]);
   assert.equal(r.degraded, "no-runs-dir");
+  const bad = json(path.join(os.tmpdir(), "faff-1412-no-such-dir-" + process.pid), [{ issue: "../x", changed_at: null }]);
+  assert.deepEqual(bad.kept, ["../x"]);
+  assert.equal(bad.degraded, "no-runs-dir; bad-candidate:0");
 });
 
 test("a symlinked runs dir is read through the link", () => {

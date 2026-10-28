@@ -729,9 +729,9 @@ function recordDeclined(values, now = Date.now()) {
     process.stderr.write(`faff run-ledger record-declined: --reason must be non-empty and at most ${DECLINE_REASON_MAX} characters after control characters are replaced\n`);
     return 2;
   }
-  const ISO_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})$/;
+  const { ISO_DATE_TIME_RE } = require("./drain-filter"); // one date-time grammar for the writer and its reader
   const rawObserved = values["--observed-at"];
-  const observed = typeof rawObserved === "string" && ISO_RE.test(rawObserved) ? Date.parse(rawObserved) : NaN;
+  const observed = typeof rawObserved === "string" && ISO_DATE_TIME_RE.test(rawObserved) ? Date.parse(rawObserved) : NaN;
   if (Number.isNaN(observed) || observed > now + OBSERVED_AT_FUTURE_TOLERANCE_MS) {
     process.stderr.write(`faff run-ledger record-declined: --observed-at ${JSON.stringify(values["--observed-at"])} must be an ISO-8601 time no more than 60 seconds in the future\n`);
     return 2;

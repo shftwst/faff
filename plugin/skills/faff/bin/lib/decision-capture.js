@@ -388,14 +388,18 @@ function captureEnabled(root) {
 }
 
 const REASON_MAX_BYTES = 1024;
+// FAFF-1421: the kernel is caller text that sits before the violations, so it gets its own small
+// budget and a long name can never push the diagnosis out of the reason.
+const KERNEL_MAX_BYTES = 256;
 const TRUNCATION_MARKER = "...[truncated]";
 
 // Collapse line breaks and control characters to one space and bound the UTF-8 size, so a
-// caller-supplied value can never split a stderr line or bloat a note.
-function lineSafe(value) {
-  const s = String(value).replace(/[\u0000-\u001F\u007F-\u009F\u2028\u2029]+/g, " ").trim();
-  if (Buffer.byteLength(s, "utf8") <= REASON_MAX_BYTES) return s;
-  const budget = REASON_MAX_BYTES - Buffer.byteLength(TRUNCATION_MARKER, "utf8");
+// caller-supplied value can never split a stderr line or bloat a note. The bidirectional format
+// controls collapse too, so an override character cannot reorder the line a reader sees.
+function lineSafe(value, maxBytes = REASON_MAX_BYTES) {
+  const s = String(value).replace(/[\u0000-\u001F\u007F-\u009F\u2028\u2029\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069]+/g, " ").trim();
+  if (Buffer.byteLength(s, "utf8") <= maxBytes) return s;
+  const budget = maxBytes - Buffer.byteLength(TRUNCATION_MARKER, "utf8");
   let prefix = "";
   let bytes = 0;
   for (const ch of s) {
@@ -433,8 +437,9 @@ function rulePhrase(rules) {
 function reportAppendFailure(root, run, e, eventType, kernel) {
   if (e && e.code === "EVENT_SCHEMA") {
     const rules = Array.isArray(e.rules) && e.rules.length ? e.rules : [];
-    const reason = `capture suppressed: ${eventType} event for kernel ${kernel} refused by the ${rulePhrase(rules)}: ${(e.violations || []).join("; ")}`;
-    return bestEffortFail(root, run, reason, { event_type: eventType, kernel: lineSafe(kernel), rules });
+    const safeKernel = lineSafe(kernel, KERNEL_MAX_BYTES);
+    const reason = `capture suppressed: ${eventType} event for kernel ${safeKernel} refused by the ${rulePhrase(rules)}: ${(e.violations || []).join("; ")}`;
+    return bestEffortFail(root, run, reason, { event_type: eventType, kernel: safeKernel, rules });
   }
   return bestEffortFail(root, run, "journal append failed: " + (e && e.message));
 }

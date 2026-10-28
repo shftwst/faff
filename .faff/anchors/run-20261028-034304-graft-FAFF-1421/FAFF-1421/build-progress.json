@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1421",
+  "build": {
+    "status": "complete",
+    "diff_hash": "81f2db5838ea0b8e35c6caa39d81204d8378ccd4b8fbda1a55a85fe2ee843151",
+    "branch": "FAFF-1421-a-suppressed-captures-reason-keeps-its-violations-when-the-kernel",
+    "pushed_at": "2026-10-28T14:46:00.408Z"
+  },
+  "updated_at": "2026-10-28T14:46:00.408Z"
+}

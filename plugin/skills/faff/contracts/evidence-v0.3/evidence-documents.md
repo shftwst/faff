@@ -31,8 +31,10 @@ resume records the resuming release in the new owner and keeps the earlier owner
 Only `schema_version` and `run_id` are required, because the ledger is written by CLI code and
 by agents following SKILL prose, and resume logic branches on key presence. Every other key is
 optional and typed, and every object level is closed except `outcome_details` entries. Issue-keyed
-maps (`outcomes`, `outcome_details`, `routing_verdicts`, `verdicts`, `capabilities`, the budget
-token maps) use `additionalProperties` as a schema. `outcomes` values are the nine
+maps (`outcomes`, `outcome_details`, `routing_verdicts`, `verdicts`, `capabilities`, `declined`, the
+budget token maps) use `additionalProperties` as a schema. `declined` entries are written by
+`faff run-ledger record-declined` (`reason` and `at` required, `recorded_at` optional) and read by
+`faff drain-filter`. `outcomes` values are the nine
 `ledger_outcomes` from `governance-profile.js`. `outcome_details` entries are open: each is an
 object with any keys and any JSON values, because no gate reads them. The map itself must still be
 an object keyed by issue, and each entry must still be an object.

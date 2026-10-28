@@ -255,6 +255,9 @@ const REGION_MAP = {
   // shared-infra (findRoot/readLedger/latestRunDir) and governance-profile
   // (activeProfile) — a pure computation command, sibling of run-done/next → factory.
   "queue-state": "factory",
+  // drain-filter (FAFF-1412): filters the runner pre-check's candidates against the run
+  // ledgers' decline records. Read-only over run state, requires argv + shared-infra → factory.
+  "drain-filter": "factory",
   // findings-reconcile — FAFF-569: the resolved-elsewhere correlation for tidy's
   // structural diagnostics. Pure stdin→stdout computation, no local requires —
   // a pure computation command, sibling of next/contain → factory.
@@ -555,6 +558,7 @@ const REGION_SELFTEST_ARGV = {
   "state": null,
   "tracker": ["tracker", "--selftest"],
   "queue-state": ["queue-state", "--selftest"],
+  "drain-filter": null, // FAFF-1412: no selftest by design; covered by test/drain-filter.test.mjs (TEST_FILE_COVERAGE)
   "findings-reconcile": ["findings-reconcile", "--selftest"],
   "park-history": ["park-history", "--selftest"],
   "park-reconsider": ["park-reconsider", "--selftest"], // FAFF-993: reason-table + confine fixtures (no operator unpark side effect)

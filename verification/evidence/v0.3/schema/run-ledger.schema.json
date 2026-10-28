@@ -185,6 +185,29 @@
         }
       }
     },
+    "declined": {
+      "type": "object",
+      "description": "issue -> the drain's decline record, written by faff run-ledger record-declined (FAFF-1412) and read by faff drain-filter",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "reason",
+          "at"
+        ],
+        "properties": {
+          "reason": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string"
+          },
+          "recorded_at": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "claimed_by_peer": {
       "type": [
         "array",

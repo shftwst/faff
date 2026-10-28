@@ -227,6 +227,8 @@ const RUN_LEDGER_SPEC = {
     "--issue": { arity: 1 },
     "--outcome": { arity: 1, enum: [...EVENT_LEDGER_OUTCOMES] },
     "--sut-env-stood": { arity: 1, enum: ["true", "false"] },
+    "--reason": { arity: 1 },
+    "--observed-at": { arity: 1 },
     "--root": { arity: 1 },
     "--run-dir": { arity: 1 },
     "--id": { arity: 1 },
@@ -251,10 +253,11 @@ const RUN_LEDGER_SURFACE = {
     "init-self-drain": { required_flags: [] },
     "record-outcome": { required_flags: ["--issue", "--outcome"] },
     "capture-capability": { required_flags: ["--issue", "--sut-env-stood"] },
+    "record-declined": { required_flags: ["--issue", "--reason", "--observed-at"] },
   },
 };
 
-const USAGE = "usage: faff run-ledger <init-interactive --issue <ISSUE-ID> [--root DIR] [--id RUN-ID] | init-self-drain [--mode MODE] [--id RUN-ID] [--root DIR] | record-outcome --issue <ISSUE-ID> --outcome <TERMINAL> [--run-dir DIR] | capture-capability --issue <ISSUE-ID> --sut-env-stood <true|false> [--run-dir DIR]> [--json] [--selftest]";
+const USAGE = "usage: faff run-ledger <init-interactive --issue <ISSUE-ID> [--root DIR] [--id RUN-ID] | init-self-drain [--mode MODE] [--id RUN-ID] [--root DIR] | record-outcome --issue <ISSUE-ID> --outcome <TERMINAL> [--run-dir DIR] | capture-capability --issue <ISSUE-ID> --sut-env-stood <true|false> [--run-dir DIR] | record-declined --issue <ISSUE-ID> --reason <TEXT> --observed-at <ISO> [--run-dir DIR]> [--json] [--selftest]";
 
 function cmdRunLedger(args) {
   if (args.includes("--selftest")) return runLedgerSelftest();
@@ -266,7 +269,8 @@ function cmdRunLedger(args) {
   if (sub === "init-self-drain") return initSelfDrain(values);
   if (sub === "record-outcome") return recordOutcome(values);
   if (sub === "capture-capability") return captureCapability(values);
-  process.stderr.write(`faff run-ledger: expected subcommand 'init-interactive' | 'init-self-drain' | 'record-outcome' | 'capture-capability'${sub ? ` (got ${JSON.stringify(sub)})` : ""}\n${USAGE}\n`);
+  if (sub === "record-declined") return recordDeclined(values);
+  process.stderr.write(`faff run-ledger: expected subcommand 'init-interactive' | 'init-self-drain' | 'record-outcome' | 'capture-capability' | 'record-declined'${sub ? ` (got ${JSON.stringify(sub)})` : ""}\n${USAGE}\n`);
   return 2;
 }
 
@@ -694,6 +698,70 @@ function captureCapability(values) {
     process.stdout.write(JSON.stringify({ captured: true, run_id: runId, run_dir: runDir, issue, sut_env_stood: standable, ledger_sha256_before: res.before_sha256, ledger_sha256_after: res.after_sha256 }) + "\n");
   } else {
     process.stdout.write(`captured ${issue}.sut_env_stood=${standable} in ${runDir}\n`);
+  }
+  return 0;
+}
+
+// FAFF-1412: `record-declined`: a drain records an issue it considered and did not admit (routed
+// out, or claimed by a peer), so `faff drain-filter` can keep the runner's cheap pre-check from
+// starting another paid drain for it while nothing has changed. Additive under the same lock
+// record-outcome uses; the mutate closure omits `level`. `at` is the drain's observation time
+// (`--observed-at`), so a human change between that read and this write still counts as a change;
+// `recorded_at` is audit only. The folded ledger-write event stays the existing run-scoped one;
+// the issue attribution lives in the declined entry itself. Exit 0 written, 2 bad input, 3 no run
+// dir or the write failed (including a schema refusal).
+const DECLINE_REASON_MAX = 200;
+const OBSERVED_AT_FUTURE_TOLERANCE_MS = 60 * 1000;
+
+function normaliseDeclineReason(raw) {
+  if (typeof raw !== "string") return "";
+  return raw.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/ {2,}/g, " ").trim();
+}
+
+function recordDeclined(values, now = Date.now()) {
+  const issue = values["--issue"];
+  if (!issue || !ISSUE_ID_RE.test(issue) || issue.includes("..")) {
+    process.stderr.write(`faff run-ledger record-declined: --issue ${JSON.stringify(issue)} is not a valid issue id\n`);
+    return 2;
+  }
+  const reason = normaliseDeclineReason(values["--reason"]);
+  if (!reason || reason.length > DECLINE_REASON_MAX) {
+    process.stderr.write(`faff run-ledger record-declined: --reason must be non-empty and at most ${DECLINE_REASON_MAX} characters after control characters are replaced\n`);
+    return 2;
+  }
+  const observed = typeof values["--observed-at"] === "string" ? Date.parse(values["--observed-at"]) : NaN;
+  if (Number.isNaN(observed) || observed > now + OBSERVED_AT_FUTURE_TOLERANCE_MS) {
+    process.stderr.write(`faff run-ledger record-declined: --observed-at ${JSON.stringify(values["--observed-at"])} must be an ISO-8601 time no more than 60 seconds in the future\n`);
+    return 2;
+  }
+  const root = values["--root"] || findRoot();
+  const runDir = values["--run-dir"] || process.env.FAFF_RUN_DIR || latestRunDir(root);
+  if (!runDir || !fs.existsSync(path.join(runDir, "run-ledger.json"))) {
+    process.stderr.write(`faff run-ledger record-declined: no run dir with run-ledger.json resolved (${runDir || "none"}); pass --run-dir or set FAFF_RUN_DIR\n`);
+    return 3;
+  }
+  const entry = { reason, at: new Date(observed).toISOString(), recorded_at: new Date(now).toISOString() };
+  let runId = path.basename(runDir);
+  let res;
+  try { res = mutateLedgerUnderLock(runDir, (fresh) => {
+    if (!fresh || typeof fresh !== "object") return null; // vanished/malformed → abort (no write)
+    if (typeof fresh.run_id === "string") runId = fresh.run_id;
+    const declined = (fresh.declined && typeof fresh.declined === "object" && !Array.isArray(fresh.declined)) ? fresh.declined : {};
+    fresh.declined = { ...declined, [issue]: entry }; // a later record for the same issue in the same run wins
+    return fresh; // `level` deliberately NOT set → mutateLedgerUnderLock re-inherits it
+  }); } catch (e) {
+    if (!isLedgerSchemaError(e)) throw e;
+    process.stderr.write(`faff run-ledger record-declined: ${e.message}; nothing written\n`);
+    return 3;
+  }
+  if (!res.written) {
+    process.stderr.write(`faff run-ledger record-declined: could not write ${path.join(runDir, "run-ledger.json")} (missing/locked/malformed)\n`);
+    return 3;
+  }
+  if (values["--json"]) {
+    process.stdout.write(JSON.stringify({ recorded: true, run_id: runId, run_dir: runDir, issue, declined: entry, ledger_sha256_before: res.before_sha256, ledger_sha256_after: res.after_sha256 }) + "\n");
+  } else {
+    process.stdout.write(`recorded ${issue} declined in ${runDir}\n`);
   }
   return 0;
 }

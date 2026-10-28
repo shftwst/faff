@@ -37,6 +37,12 @@ In short:
 
 The lintable subset (line caps, paragraph length, stray markers, duplicated blocks) is gated in CI via `faff validate-adapters`; the rest is review judgement.
 
+## Tests live in `test/`, not in `--selftest`
+
+New code adds no `--selftest` block. Its tests go in `test/` and run under `node --test`. A new command with no selftest is registered as `REGION_SELFTEST_ARGV[cmd] = null` in `regions.js`, with a `TEST_FILE_COVERAGE` entry in `lint-cli-coverage.js` naming the test file that exercises it, or `lint-cli-coverage` fails.
+
+When a change touches a module that still has a selftest, move the cases it touches into `test/` rather than adding to the block. Retiring the remaining blocks is FAFF-1419.
+
 ## Commit sign-off
 
 Every commit carries a `Signed-off-by` trailer with the operator's git identity. It certifies the [Developer Certificate of Origin](https://developercertificate.org) and is required on PRs by the `dco` check. Once `scripts/link-skills.sh` has set `core.hooksPath` to `.githooks/`, the tracked `prepare-commit-msg` hook adds the trailer from `git config user.name`/`user.email` on every commit, so a forgotten `-s` no longer fails the check; `git commit -s` adds the same trailer by hand. The identity is the operator's own; a machine identity such as `faff-runner` is never used for the sign-off.

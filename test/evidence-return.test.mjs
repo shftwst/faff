@@ -1,15 +1,18 @@
 // FAFF-1397 — `faff evidence return` and `faff evidence verify-return`: obligation 6 by digest.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
-import { appendFileSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { appendFileSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runCli } from "./helpers/run-cli.mjs";
+import { installSwapOnFirstTouch } from "./helpers/fs-swap-stub.mjs";
 
 const require = createRequire(import.meta.url);
 const { validateAgainstSchema } = require("../plugin/skills/faff/bin/lib/contract-engine.js");
+const { cmdEvidence } = require("../plugin/skills/faff/bin/lib/evidence.js");
 
 const LEDGER_SCHEMA = JSON.parse(readFileSync(join(import.meta.dirname, "..", "plugin", "skills", "faff", "contracts", "evidence-v0.3", "schema", "run-ledger.schema.json"), "utf8"));
 const PERSISTED_ITEM = LEDGER_SCHEMA.properties.evidence_persisted.items;
@@ -335,4 +338,88 @@ test("return and verify-return refuse flags that belong to other evidence verbs"
     assert.equal(v.code, 2, `verify-return ${flag[0]}`);
     assert.equal(v.stdout, "");
   }
+});
+
+// --- FAFF-1400: a swap between the look and the read must never read as clean ------------------------------
+
+// Run cmdEvidence in-process with stdout and stderr captured, from `cwd` (the run dir must sit under that root's .faff/runs).
+function inProcess(args, cwd) {
+  const out = [], err = [];
+  const realOut = process.stdout.write, realErr = process.stderr.write;
+  process.stdout.write = (c) => { out.push(String(c)); return true; };
+  process.stderr.write = (c) => { err.push(String(c)); return true; };
+  const here = process.cwd();
+  let code;
+  process.chdir(cwd);
+  try { code = cmdEvidence(args); } finally { process.chdir(here); process.stdout.write = realOut; process.stderr.write = realErr; }
+  return { code, stdout: out.join(""), stderr: err.join("") };
+}
+
+// review-verdict.json holds bytes A on disk; the swap replaces it with a symlink to a copy of bytes B.
+function swapFixture(t, ledgerForB) {
+  const B_BODY = '{"signal":"pass","b":true}\n';
+  const root = mkdtempSync(join(tmpdir(), "faff-evidence-swap-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const runDir = join(root, ".faff", "runs", "run-20991231-000000-graft-ISSUE-1");
+  const issueDir = join(runDir, ISSUE);
+  mkdirSync(issueDir, { recursive: true });
+  writeFileSync(join(issueDir, AC), AC_BODY);
+  writeFileSync(join(issueDir, RV), RV_BODY);
+  const bCopy = join(root, "b-copy.json");
+  writeFileSync(bCopy, B_BODY);
+  if (ledgerForB) writeFileSync(join(runDir, "run-ledger.json"), JSON.stringify({ evidence_persisted: [{ issue: ISSUE, ac_sha256: sha(AC_BODY), review_verdict_sha256: sha(B_BODY) }] }));
+  const target = join(issueDir, RV);
+  const stub = installSwapOnFirstTouch(target, () => { unlinkSync(target); symlinkSync(bCopy, target); });
+  t.after(() => stub.restore());
+  return { root, runDir, target, stub, B_BODY };
+}
+
+test("verify-return: a file swapped for a symlink after the look is not-regular-file and tampered, never match", (t) => {
+  const f = swapFixture(t, true);
+  const r = inProcess(["verify-return", "--against-ledger", "--run-dir", f.runDir, "--issue", ISSUE], f.root);
+  assert.ok(f.stub.fired && f.stub.calls >= 1, "the swap stub fired for the target path");
+  assert.ok(lstatSync(f.target).isSymbolicLink(), "the path changed kind after the call");
+  assert.equal(r.code, 1, `expected mismatch, got: ${r.stdout}${r.stderr}`);
+  const v = JSON.parse(r.stdout);
+  assert.equal(v.verdict, "mismatch");
+  assert.ok(v.tampered_paths.includes(`${ISSUE}/${RV}`));
+  const row = v.files.find((x) => x.file === RV);
+  assert.equal(row.result, "not-regular-file");
+  assert.notEqual(row.disk_sha256, sha(f.B_BODY));
+});
+
+test("return: a file swapped for a symlink after the look is the not-a-regular-file fault, never the target's digest", (t) => {
+  const f = swapFixture(t, false);
+  const r = inProcess(["return", "--run-dir", f.runDir, "--issue", ISSUE], f.root);
+  assert.ok(f.stub.fired && f.stub.calls >= 1, "the swap stub fired for the target path");
+  assert.ok(lstatSync(f.target).isSymbolicLink(), "the path changed kind after the call");
+  assert.equal(r.code, 2, `expected the fault, got: ${r.stdout}`);
+  assert.equal(r.stdout, "");
+  assert.match(r.stderr, new RegExp(`${RV} is not a regular file`));
+  assert.ok(!r.stdout.includes(sha(f.B_BODY)));
+});
+
+test("a FIFO at an evidence path is a not-regular-file fault for return and a not-regular-file row for verify-return, without blocking", (t) => {
+  const f = fixture(t, { files: { [AC]: AC_BODY } });
+  execFileSync("mkfifo", [join(f.issueDir, RV)]);
+  const run = (args, input) => spawnSync(process.execPath, [join(import.meta.dirname, "..", "plugin", "skills", "faff", "bin", "faff"), "evidence", ...args], { cwd: f.root, input, timeout: 15000, encoding: "utf8" });
+  const ret = run(["return", "--run-dir", f.runDir, "--issue", ISSUE]);
+  assert.equal(ret.status, 2, ret.stderr);
+  assert.match(ret.stderr, new RegExp(`${RV} is not a regular file`));
+  const ver = run(["verify-return", "--run-dir", f.runDir, "--issue", ISSUE], claim(digest(AC_BODY), digest(RV_BODY)));
+  assert.equal(ver.status, 1, ver.stderr);
+  assert.equal(JSON.parse(ver.stdout).files[1].result, "not-regular-file");
+});
+
+test("obligation 6: evidence return, the per-issue snapshot member and integrity-digest hash report one sha256", (t) => {
+  const f = fixture(t);
+  const fromReturn = line(f.ret()).ac_checklist.sha256;
+  const snap = runCli(["integrity-digest", "snapshot", "--run-dir", f.runDir, "--issue", ISSUE]);
+  assert.equal(snap.code, 0, snap.stderr);
+  const fromSnapshot = JSON.parse(snap.stdout).members[`${ISSUE}/${AC}`].sha256;
+  const hashed = runCli(["integrity-digest", "hash"], { input: AC_BODY });
+  assert.equal(hashed.code, 0, hashed.stderr);
+  assert.equal(fromReturn, fromSnapshot);
+  assert.equal(fromReturn, hashed.stdout.trim());
+  assert.equal(fromReturn, sha(AC_BODY));
 });

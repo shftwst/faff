@@ -1,0 +1,314 @@
+{
+  "schema_version": 1,
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "Neither `evidence.js` nor `integrity-digest.js` hashes bytes obtained by a by-path `readFileSync` of an evidence or member path; every hashed byte comes from a leaf read whose `fstat` reported a regular file.",
+      "verified": "No by-path readFileSync of an evidence or member path remains in either hasher; every hashed byte comes from readLeafNoFollow (evidence.js readEvidenceLeaf, integrity-digest.js snapshotLeaf).",
+      "passed": true,
+      "ac_id": "faff-1400#done:1",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n readFileSync plugin/skills/faff/bin/lib/evidence.js plugin/skills/faff/bin/lib/integrity-digest.js"
+        },
+        {
+          "kind": "test",
+          "locator": "test/integrity-digest.test.mjs::a stable tree's snapshot is unchanged by the leaf read: plain, events, symlink and directory members keep their record shapes"
+        }
+      ]
+    },
+    {
+      "ac": "No new result string, park cause, manifest field or `MANIFEST_VERSION` change is introduced.",
+      "verified": "MANIFEST_VERSION stays d1, no RESULT_CAUSE or park_cause line changed in the diff, and the stable-tree golden record shapes are unchanged.",
+      "passed": true,
+      "ac_id": "faff-1400#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/integrity-digest.test.mjs::rebaseline: MANIFEST_VERSION is unchanged — M' is still \"d1\" (the members shape gained no field)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/integrity-digest.test.mjs::a stable tree's snapshot is unchanged by the leaf read: plain, events, symlink and directory members keep their record shapes"
+        },
+        {
+          "kind": "command",
+          "locator": "git diff 61e84b13 -- plugin/skills/faff/bin/lib/evidence.js plugin/skills/faff/bin/lib/integrity-digest.js"
+        }
+      ]
+    },
+    {
+      "ac": "A new helper-only module under `plugin/skills/faff/bin/lib/` carries a `region:governance` banner, requires no local module from the factory region, and exports the leaf read with the `LeafRead` shape in section 3.",
+      "verified": "leaf-read.js carries the region:governance banner, requires only node:fs, and exports readLeafNoFollow returning {kind, bytes}.",
+      "passed": true,
+      "ac_id": "faff-1400#done:3",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "head -2 plugin/skills/faff/bin/lib/leaf-read.js"
+        }
+      ]
+    },
+    {
+      "ac": "`evidence.js` and `integrity-digest.js` both require that module, and `faff regions check` exits 0.",
+      "verified": "Both hashers require ./leaf-read; faff regions check prints PASS.",
+      "passed": true,
+      "ac_id": "faff-1400#done:4",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        }
+      ]
+    },
+    {
+      "ac": "The leaf read opens with `O_RDONLY | O_NOFOLLOW | O_NONBLOCK` and throws without opening when the constants object it is given lacks a numeric `O_NOFOLLOW`, and separately when it lacks a numeric `O_NONBLOCK` (two unit tests, each passing a constants object missing one).",
+      "verified": "Opens with O_RDONLY | O_NOFOLLOW | O_NONBLOCK; two unit tests show a missing numeric O_NOFOLLOW or O_NONBLOCK throws without opening.",
+      "passed": true,
+      "ac_id": "faff-1400#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/leaf-read.test.mjs::a constants object without a numeric O_NOFOLLOW throws without opening the path"
+        },
+        {
+          "kind": "test",
+          "locator": "test/leaf-read.test.mjs::a constants object without a numeric O_NONBLOCK throws without opening the path"
+        }
+      ]
+    },
+    {
+      "ac": "Leaf read unit tests: a regular file returns `regular` with its exact bytes; a symlink to a regular file returns `symlink` with null bytes; a directory returns `directory`; a FIFO with no writer returns `other` without blocking; a missing path and a path under a regular file return `absent`.",
+      "verified": "Unit tests pass for regular, symlink, directory, FIFO without blocking, missing path and path under a regular file.",
+      "passed": true,
+      "ac_id": "faff-1400#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/leaf-read.test.mjs::a regular file returns kind regular with its exact bytes"
+        },
+        {
+          "kind": "test",
+          "locator": "test/leaf-read.test.mjs::a symlink returns kind symlink with null bytes, never the target's bytes (valid-JSON target)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/leaf-read.test.mjs::a directory returns kind directory"
+        },
+        {
+          "kind": "test",
+          "locator": "test/leaf-read.test.mjs::a FIFO with no writer returns kind other without blocking"
+        },
+        {
+          "kind": "test",
+          "locator": "test/leaf-read.test.mjs::a missing path and a path under a regular file return kind absent"
+        }
+      ]
+    },
+    {
+      "ac": "Leaf read called directly on a symlink whose target holds valid JSON returns `symlink` and never the target's bytes.",
+      "verified": "A symlink whose target holds valid JSON returns kind symlink with null bytes.",
+      "passed": true,
+      "ac_id": "faff-1400#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/leaf-read.test.mjs::a symlink returns kind symlink with null bytes, never the target's bytes (valid-JSON target)"
+        }
+      ]
+    },
+    {
+      "ac": "`faff evidence verify-return` (driven through `cmdEvidence`) under the swap-on-first-touch stub on `review-verdict.json` (on-disk bytes A, target and claim bytes B) returns verdict `mismatch` with `review-verdict.json` in `tampered_paths`, a row result of `not-regular-file`, and a `disk_sha256` that is not B's digest.",
+      "verified": "verify-return under the swap-on-first-touch stub gives verdict mismatch, review-verdict.json tampered, row not-regular-file, never B's digest.",
+      "passed": true,
+      "ac_id": "faff-1400#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::verify-return: a file swapped for a symlink after the look is not-regular-file and tampered, never match"
+        }
+      ]
+    },
+    {
+      "ac": "`faff evidence return` (driven through `cmdEvidence`) under the same stub throws the `review-verdict.json is not a regular file` fault; it never returns B's digest.",
+      "verified": "return under the same stub exits 2 with the review-verdict.json is not a regular file fault and never prints B's digest.",
+      "passed": true,
+      "ac_id": "faff-1400#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::return: a file swapped for a symlink after the look is the not-a-regular-file fault, never the target's digest"
+        }
+      ]
+    },
+    {
+      "ac": "`diffAgainstManifest` under the swap-on-first-touch stub on `run-ledger.json` (held manifest records B's digest, on-disk bytes A, target bytes B) returns an entry for `run-ledger.json`.",
+      "verified": "diffAgainstManifest under the stub on run-ledger.json reports run-ledger.json (symlink swapped).",
+      "passed": true,
+      "ac_id": "faff-1400#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/integrity-digest.test.mjs::diffAgainstManifest: run-ledger.json swapped for a symlink after the look reads as symlink swapped, never digest-verified"
+        }
+      ]
+    },
+    {
+      "ac": "The same stubbed swap on a sub-leaf of `corrective/` returns an entry naming `corrective/<file>`, and on `events.jsonl` returns an entry for `events.jsonl`.",
+      "verified": "The stubbed swap on corrective/c1.json names corrective/c1.json, and on events.jsonl reports events.jsonl (symlink swapped).",
+      "passed": true,
+      "ac_id": "faff-1400#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/integrity-digest.test.mjs::diffAgainstManifest: a corrective/ sub-leaf swapped for a symlink after the look is named"
+        },
+        {
+          "kind": "test",
+          "locator": "test/integrity-digest.test.mjs::diffAgainstManifest: events.jsonl swapped for a symlink after the look reads as symlink swapped"
+        }
+      ]
+    },
+    {
+      "ac": "A FIFO at a member path makes `buildManifest` throw a fault naming the path, and `faff integrity-digest snapshot` exits 2 without hanging.",
+      "verified": "A FIFO at a member path makes buildManifest throw naming the path, and snapshot exits 2 without hanging (timed child process).",
+      "passed": true,
+      "ac_id": "faff-1400#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/integrity-digest.test.mjs::a FIFO at a member path makes buildManifest throw naming the path, and snapshot exit 2, without hanging"
+        }
+      ]
+    },
+    {
+      "ac": "`verifyAndRecord` over a held manifest when a member has become a FIFO records `verification-unavailable` and exits 2.",
+      "verified": "verify --record-result over a held manifest with a member turned FIFO records verification-unavailable and exits 2.",
+      "passed": true,
+      "ac_id": "faff-1400#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/integrity-digest.test.mjs::verify --record-result over a held manifest when a member became a FIFO records verification-unavailable and exits 2"
+        }
+      ]
+    },
+    {
+      "ac": "`digestLeaf` is removed from `integrity-digest.js`.",
+      "verified": "digestLeaf no longer appears in integrity-digest.js.",
+      "passed": true,
+      "ac_id": "faff-1400#done:14",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c digestLeaf plugin/skills/faff/bin/lib/integrity-digest.js"
+        }
+      ]
+    },
+    {
+      "ac": "Each new race test fails when run against the pre-change modules, and fails on its behavioural assertion (the pre-change code reports a clean `match` or `digest-verified`), never on a load error, missing export or `TypeError`. The build agent records each failing assertion message in the PR description.",
+      "verified": "Against the pre-change evidence.js and integrity-digest.js the 7 race and FIFO tests fail on their assertions while the other 67 pass (no load error); messages recorded in the PR description.",
+      "passed": true,
+      "ac_id": "faff-1400#done:15",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/evidence-return.test.mjs test/integrity-digest.test.mjs (with 61e84b13 versions of the two lib files)"
+        }
+      ]
+    },
+    {
+      "ac": "Each race test asserts its swap stub fired (call counter at least one for the target path, and the path changed kind after the call); the new module and both hashers reach `lstatSync` and `openSync` through the `fs` module object, never a destructured binding.",
+      "verified": "Every race test asserts stub.fired and stub.calls >= 1 for the target path; all three modules call lstatSync and openSync through the fs module object.",
+      "passed": true,
+      "ac_id": "faff-1400#done:16",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::verify-return: a file swapped for a symlink after the look is not-regular-file and tampered, never match"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::return: a file swapped for a symlink after the look is the not-a-regular-file fault, never the target's digest"
+        },
+        {
+          "kind": "test",
+          "locator": "test/integrity-digest.test.mjs::diffAgainstManifest: run-ledger.json swapped for a symlink after the look reads as symlink swapped, never digest-verified"
+        },
+        {
+          "kind": "test",
+          "locator": "test/integrity-digest.test.mjs::diffAgainstManifest: a corrective/ sub-leaf swapped for a symlink after the look is named"
+        },
+        {
+          "kind": "test",
+          "locator": "test/integrity-digest.test.mjs::diffAgainstManifest: events.jsonl swapped for a symlink after the look reads as symlink swapped"
+        }
+      ]
+    },
+    {
+      "ac": "For one stable regular `ac-checklist.json`, a test asserts `faff evidence return`'s sha256, the per-issue `faff integrity-digest snapshot` sha256 for `<issue>/ac-checklist.json`, and `faff integrity-digest hash` over the file's bytes are equal.",
+      "verified": "One stable ac-checklist.json gives the same sha256 from evidence return, the per-issue snapshot member and integrity-digest hash.",
+      "passed": true,
+      "ac_id": "faff-1400#done:17",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::obligation 6: evidence return, the per-issue snapshot member and integrity-digest hash report one sha256"
+        }
+      ]
+    },
+    {
+      "ac": "`faff integrity-digest --selftest` and `faff evidence --selftest` pass.",
+      "verified": "integrity-digest --selftest prints RESULT: PASS (28 checks); evidence --selftest prints OK.",
+      "passed": true,
+      "ac_id": "faff-1400#done:18",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff integrity-digest --selftest"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff evidence --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`test/evidence-return.test.mjs`, `test/integrity-digest.test.mjs`, `test/corrective.test.mjs`, `test/bundle.test.mjs` and `test/merge-gate-controlflow.test.mjs` pass unchanged apart from added tests.",
+      "verified": "Full gate ladder UNIT rung passes; corrective, bundle and merge-gate-controlflow tests are unchanged in the diff.",
+      "passed": true,
+      "ac_id": "faff-1400#done:19",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gates run --json"
+        }
+      ]
+    },
+    {
+      "ac": "A snapshot of a stable fixture tree is byte-identical before and after the change.",
+      "verified": "The stable-tree golden snapshot test pins exact record shapes and digests and passes on both the pre-change and the changed code.",
+      "passed": true,
+      "ac_id": "faff-1400#done:20",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/integrity-digest.test.mjs::a stable tree's snapshot is unchanged by the leaf read: plain, events, symlink and directory members keep their record shapes"
+        }
+      ]
+    },
+    {
+      "ac": "The parent-component (intermediate directory) symlink race is recorded as a `confidence: concrete` entry in `discovered-scope.json` and named in the PR description.",
+      "verified": "Recorded as a concrete blocked-by entry in the run's discovered-scope.json for filing.",
+      "passed": true,
+      "ac_id": "faff-1400#done:21",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node -e \"const a=require('./.faff/runs/run-20261024-215841-graft-FAFF-1400/FAFF-1400/discovered-scope.json');console.log(a[0].confidence,a[0].relationship)\""
+        }
+      ]
+    }
+  ]
+}

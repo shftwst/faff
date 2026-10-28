@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "signal": "pass",
+  "rounds_total": 2,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/leaf-read.js::socket classified as a thrown open failure instead of kind other in readleafnofollow",
+      "title": "socket classified as a thrown open failure instead of kind other in readLeafNoFollow",
+      "location": "plugin/skills/faff/bin/lib/leaf-read.js:31",
+      "action": "In the open-failure branch, return { kind: \"other\", bytes: null } when the confirming lstat reports a socket, FIFO, character or block device, keep the throw otherwise, and add a socket unit test.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "faffter-noon-review",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "socket classified as a thrown open failure instead of kind other in readLeafNoFollow",
+          "location": "plugin/skills/faff/bin/lib/leaf-read.js:31",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/integrity-digest.js::stale snapshotmember doc comment above snapshotmemberread",
+      "title": "stale snapshotMember doc comment above snapshotMemberRead",
+      "location": "plugin/skills/faff/bin/lib/integrity-digest.js:100",
+      "action": "Move the member-shape description to the snapshotMember wrapper or merge the two comments, and replace 'lstat throughout' with a line saying the lstat only routes and the leaf read decides.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "faffter-noon-review",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "stale snapshotMember doc comment above snapshotMemberRead",
+          "location": "plugin/skills/faff/bin/lib/integrity-digest.js:100",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "records/specs/2026-10-24-FAFF-1400-symlink-safe-leaf-read-design.md::discovered-scope entry for the parent-component race absent from the diff",
+      "title": "discovered-scope entry for the parent-component race absent from the diff",
+      "location": "records/specs/2026-10-24-FAFF-1400-symlink-safe-leaf-read-design.md",
+      "action": "Confirm the confidence: concrete entry was written and name the race in the PR description.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "discovered-scope.json is a run-dir artifact (.faff/runs/<run>/FAFF-1400/discovered-scope.json), never part of the repo diff; the concrete blocked-by entry is written there, and the PR description names the race.",
+      "disposition_rationale": "The entry exists in the run dir; the reviewer only saw the repo diff.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "discovered-scope entry for the parent-component race absent from the diff",
+          "location": "records/specs/2026-10-24-FAFF-1400-symlink-safe-leaf-read-design.md",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/integrity-digest.js::unreachable bytes guard in the diffagainstmanifest events branch",
+      "title": "unreachable bytes guard in the diffAgainstManifest events branch",
+      "location": "plugin/skills/faff/bin/lib/integrity-digest.js",
+      "action": "Optionally comment the guard so it is not simplified away.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Deliberate fail-loud guard for a non-regular events member; no behaviour change requested.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "unreachable bytes guard in the diffAgainstManifest events branch",
+          "location": "plugin/skills/faff/bin/lib/integrity-digest.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/integrity-digest.js::mid-walk vanish in the snapshotmemberread directory branch now skips rather than throws",
+      "title": "mid-walk vanish in the snapshotMemberRead directory branch now skips rather than throws",
+      "location": "plugin/skills/faff/bin/lib/integrity-digest.js",
+      "action": "Awareness only.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The spec prescribes the skip; a held manifest still diffs the vanished file as removed at verify, so it stays fail-closed. Noted in the PR body.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "mid-walk vanish in the snapshotMemberRead directory branch now skips rather than throws",
+          "location": "plugin/skills/faff/bin/lib/integrity-digest.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

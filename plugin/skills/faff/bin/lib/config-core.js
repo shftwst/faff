@@ -107,6 +107,8 @@ const DEFAULTS = {
   "gates.partial": "warn",
   "gates.max_rungs_per_kind": "5",
   "gates.partial_threshold": "0.5",
+  // FAFF-1405: the budget of a `faff gates run --resume` call without --budget-secs (1 to 480).
+  "gates.run_budget_secs": "420",
   // FAFF-385: post-merge verification (re-run the declared UNIT rung against the merge sha) —
   // consulted in autonomous mode only; default on so a repo opts OUT, never opts in.
   "post_merge.check": "on",

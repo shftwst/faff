@@ -670,7 +670,7 @@ repeat-parked ⚠ (N)
 - ISSUE-VV: title — admitted to build queue, not dispatched (--until 06:00 fired before launch)
 
 ## Product-incomplete (holdout escalation): rendered only when the L4 holdout phase ran
-- The per-run holdout verdict rolled up `fails`/`gaps`/`needs-human` → run escalated, PRD-done not claimed: [aggregate] (holdout: `.faff/holdout/<run-id>.json`)
+- The per-run holdout verdict rolled up `fails`/`gaps`/`needs-human` → run escalated, PRD-done not claimed: [aggregate] (holdout: `.faff/holdout/<run-id>.json`). When it carries `needs_human_reasons`, name the **environment-gap** subset (`no-surface`/`wire-error`/`credentials-unavailable`/`env-not-ready`/`unspecified` — fix the env and re-run) apart from the **human-only** subset, so an environment problem is never presented as an authoring one
 
 ## Ground-truth divergences: N (rendered only when step 11.5 found ≥1): warn (≤L3) / ESCALATED (L4)
 - [phantom-merge] ISSUE-XX: shipped on abc123 but forge merged def456 (rollback: `git revert def456`)

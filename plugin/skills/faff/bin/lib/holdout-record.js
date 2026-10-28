@@ -32,7 +32,14 @@ const DELEGATED_VERIFIER_FOR_TIER = { delegated: "ac-checklist", integration: "r
 const MAX_DETAIL = 2000;
 const TRUNCATION_SUFFIX = "…[truncated]";
 const DETAIL_KEYS = ["text", "exercised", "expected", "observed", "evidence_ref", "reason"];
-const NULLABLE_STRING_KEYS = ["exercised", "expected", "observed", "evidence_ref", "reason"];
+const NULLABLE_STRING_KEYS = ["exercised", "expected", "observed", "evidence_ref", "reason", "reason_code"];
+// FAFF-1292: the closed reason_code vocabulary. One value — human-only — is "a human must look";
+// the other four are environment/infrastructure reachability gaps that fail closed and direct the
+// operator to fix the env and re-run. A faithful promotion of the causes the evaluator SKILL already
+// enumerates. Defined here (governance region — the writer's home) and re-exported from
+// contract-defs-evidence.js so the contract layer and the describe/registry/CLI share one source and
+// the factory→governance require direction stays legal.
+const HOLDOUT_REASON_CODES = ["human-only", "no-surface", "wire-error", "credentials-unavailable", "env-not-ready"];
 
 let cachedSchema = null;
 function loadSchema() {
@@ -168,6 +175,17 @@ function holdoutRecordViolations(doc) {
     if (c.verdict === "needs-human" && (c.reason === null || c.reason === undefined)) {
       found.push(`${at}.reason: required (non-null) when verdict is needs-human`);
     }
+    // FAFF-1292: the reason_code cross-field rules — the WRITER (strict) half of the split. A fresh
+    // emission MUST carry a valid reason_code on a needs-human criterion (fail-closed refusal); the
+    // contract's absent-code tolerance is a read-side re-validation property only. Messages name key
+    // paths, never the offending value.
+    const rc = c.reason_code;
+    const hasRc = rc !== null && rc !== undefined;
+    if (hasRc && !HOLDOUT_REASON_CODES.includes(rc)) found.push(`${at}.reason_code: not in {${HOLDOUT_REASON_CODES.join(",")}}`);
+    if ((c.verdict === "met" || c.verdict === "unmet") && hasRc) found.push(`${at}.reason_code: must be null when verdict is met or unmet`);
+    if (c.verdict === "needs-human" && !hasRc) found.push(`${at}.reason_code: required (non-null) when verdict is needs-human`);
+    if (c.class === "prose" && hasRc && rc !== "human-only") found.push(`${at}.reason_code: a prose criterion must be human-only`);
+    if ((c.class === "scenario" || c.class === "assertion") && c.verdict === "needs-human" && hasRc && rc === "human-only") found.push(`${at}.reason_code: a born-verifiable criterion is never human-only`);
     for (const key of DETAIL_KEYS) {
       if (typeof c[key] === "string" && c[key].length > MAX_DETAIL) found.push(`${at}.${key}: longer than ${MAX_DETAIL} characters`);
     }
@@ -389,6 +407,26 @@ function holdoutRecordSelftest() {
   const scrubbed = buildHoldoutRecord(block([{ ...met, observed: `saw ${token}` }]), { ...opts, extraSecrets: [token] });
   check("redaction: placeholder replaces the secret", scrubbed.doc.criteria[0].observed === "saw [REDACTED]");
 
+  // FAFF-1292: reason_code — acceptance of a valid code + refusal of each writer-layer cross-field violation.
+  const rcClassified = { criteria: [row("scenarios:1", "running-stack")] };
+  const rcOpts = { issue, secretValues: [], classified: rcClassified };
+  const nh = { id: "scenarios:1", text: "t", holdout: true, class: "assertion", verdict: "needs-human", evidence_present: false, reason: "no reachable surface", reason_code: "no-surface" };
+  const rcOk = buildHoldoutRecord(block([nh], "needs-human"), rcOpts);
+  check("reason_code: accepted needs-human/no-surface stamps the code", rcOk.ok && rcOk.doc.criteria[0].reason_code === "no-surface");
+  check("reason_code: accepted record validates", rcOk.ok && holdoutRecordViolations(rcOk.doc).length === 0);
+  check("reason_code: met leaves reason_code null", ok.doc.criteria[0].reason_code === null);
+  const rcMissing = buildHoldoutRecord(block([{ ...nh, reason_code: undefined }], "needs-human"), rcOpts);
+  check("reason_code: refused needs-human without a code", !rcMissing.ok && rcMissing.doc.violations.some((v) => v.includes("reason_code: required")));
+  const rcBad = buildHoldoutRecord(block([{ ...nh, reason_code: "bogus" }], "needs-human"), rcOpts);
+  check("reason_code: refused out-of-enum code", !rcBad.ok && rcBad.doc.violations.some((v) => v.includes("reason_code: not in")));
+  const rcHumanOnly = buildHoldoutRecord(block([{ ...nh, reason_code: "human-only" }], "needs-human"), rcOpts);
+  check("reason_code: refused born-verifiable human-only", !rcHumanOnly.ok && rcHumanOnly.doc.violations.some((v) => v.includes("never human-only")));
+  const proseClassified = { criteria: [row("scenarios:1", "running-stack")] };
+  const rcProse = buildHoldoutRecord(block([{ id: "scenarios:1", text: "t", holdout: true, class: "prose", verdict: "needs-human", evidence_present: false, reason: "taste", reason_code: "no-surface" }], "needs-human"), { issue, secretValues: [], classified: proseClassified });
+  check("reason_code: refused prose with a non-human-only code", !rcProse.ok && rcProse.doc.violations.some((v) => v.includes("must be human-only")));
+  const rcMet = buildHoldoutRecord(block([{ ...met, reason_code: "no-surface" }]), opts);
+  check("reason_code: refused met carrying a code", !rcMet.ok && rcMet.doc.violations.some((v) => v.includes("must be null when verdict is met")));
+
   const sentinel = "SENTINEL-VALUE-9f3";
   const msgs = holdoutRecordViolations({ ...ok.doc, criteria: [{ ...ok.doc.criteria[0], id: sentinel, text: 5 }] });
   check("violations name key paths, never values", msgs.length > 0 && msgs.every((m) => !m.includes(sentinel)));
@@ -406,5 +444,5 @@ function holdoutRecordSelftest() {
 }
 
 module.exports = {
-  buildHoldoutRecord, delegationViolations, deriveHoldoutAggregate, holdoutRecordViolations, holdoutRecordSelftest, isSafeHoldoutKey, resolveContained, writeHoldoutRecord,
+  HOLDOUT_REASON_CODES, buildHoldoutRecord, delegationViolations, deriveHoldoutAggregate, holdoutRecordViolations, holdoutRecordSelftest, isSafeHoldoutKey, resolveContained, writeHoldoutRecord,
 };

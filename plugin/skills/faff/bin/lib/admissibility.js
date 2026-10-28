@@ -34,7 +34,7 @@ const HOLDOUT_SURFACE = {
     record: { required_flags: ["--issue", "--spec"] },
   },
 };
-const { SPEC_REVIEW_LENSES, computeHoldoutVerdictsMap, holdoutGateResult } = require("./contract-defs");
+const { SPEC_REVIEW_LENSES, computeHoldoutVerdict, computeHoldoutVerdictsMap, holdoutGateResult } = require("./contract-defs");
 const { loadConfig } = require("./config");
 const { assembleAdversarialBackends } = require("./adversarial-backends");
 const { ISSUE_ID_RE, parseLocalAcId, qualifyAcId } = require("./ac-id");
@@ -1505,6 +1505,24 @@ function holdoutVerdictsSelftest() {
   // g6. gaps → block (mixed verdicts never merge)
   const g6 = holdoutGateResult({ aggregate: "gaps", code_blind: true, criteria: [{ class: "assertion", verdict: "met", evidence_present: true }, { class: "assertion", verdict: "unmet", evidence_present: true }], violations: [] });
   check("gate: gaps → block (reason=gaps)", g6.gate === "block" && g6.reason === "gaps");
+
+  // --- FAFF-1292: reason_code — the gate rollup + the contract cross-field rules ---
+  // gr1. a born-verifiable env gap (no-surface) is accepted + blocking, and rolls up in needs_human_reasons.
+  const gr1 = holdoutGateResult({ aggregate: "needs-human", code_blind: true, violations: [], criteria: [{ class: "assertion", verdict: "needs-human", evidence_present: false, reason_code: "no-surface" }, { class: "prose", verdict: "needs-human", evidence_present: false, reason_code: "human-only" }] });
+  check("gate: mixed no-surface+human-only → block + needs_human_reasons counts", gr1.gate === "block" && JSON.stringify(gr1.needs_human_reasons) === JSON.stringify({ "no-surface": 1, "human-only": 1 }));
+  // gr2. a legacy absent reason_code on a needs-human criterion counts under "unspecified" (never dropped).
+  const gr2 = holdoutGateResult({ aggregate: "needs-human", code_blind: true, violations: [], criteria: [{ class: "prose", verdict: "needs-human", evidence_present: false }] });
+  check("gate: legacy absent code → needs_human_reasons {unspecified:1}", gr2.gate === "block" && JSON.stringify(gr2.needs_human_reasons) === JSON.stringify({ unspecified: 1 }));
+  // gr3. zero needs-human criteria → needs_human_reasons absent.
+  check("gate: no needs-human criteria → needs_human_reasons absent", !("needs_human_reasons" in holdoutGateResult(JSON.parse(meets))));
+  // gr4. contract rules: a born-verifiable human-only, a prose non-human-only, a met carrying a code, an
+  //      out-of-enum code → each a violation; an absent code on needs-human is TOLERATED (no violation).
+  const cv = (crit, agg = "needs-human") => computeHoldoutVerdict({ aggregate: agg, code_blind: true, violations: [], criteria: [crit] }).contractData.violations;
+  check("contract: born-verifiable human-only → violation", cv({ class: "assertion", verdict: "needs-human", evidence_present: false, reason_code: "human-only" }).some((v) => v.includes("never human-only")));
+  check("contract: prose non-human-only → violation", cv({ class: "prose", verdict: "needs-human", evidence_present: false, reason_code: "no-surface" }).some((v) => v.includes("prose must be human-only")));
+  check("contract: met carrying a code → violation", cv({ class: "assertion", verdict: "met", evidence_present: true, reason_code: "no-surface" }, "meets-spec").some((v) => v.includes("carries a reason_code")));
+  check("contract: out-of-enum code → violation", cv({ class: "assertion", verdict: "needs-human", evidence_present: false, reason_code: "bogus" }).some((v) => v.includes("not in {")));
+  check("contract: absent code on needs-human → TOLERATED", cv({ class: "prose", verdict: "needs-human", evidence_present: false }).length === 0);
 
   // --- FAFF-384: the spawner-attestation ratchet threaded through both consumers ---
   const attested = JSON.stringify({ aggregate: "meets-spec", code_blind: true, criteria: [{ class: "assertion", verdict: "met", evidence_present: true }], violations: [], spawner_attested: true, attestation: { spawner: "evaluate-call.mjs", withheld: { repo: true, worktree_cwd: true, diff: true }, preflight: "pass" } });

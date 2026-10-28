@@ -169,6 +169,13 @@
               "string",
               "null"
             ]
+          },
+          "reason_code": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "FAFF-1292: the machine-readable per-criterion code on a needs-human criterion explaining why it could not be machine-judged (human-only | no-surface | wire-error | credentials-unavailable | env-not-ready); non-null iff verdict is needs-human. Absent on documents written before FAFF-1292. The closed enum and the cross-field rules are a writer/validator concern, not a schema constraint."
           }
         }
       }

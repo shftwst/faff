@@ -102,12 +102,27 @@ test("the newest mentioning run decides: a later admission after a decline keeps
   assert.deepEqual(json(d, unchanged).kept, ["FAFF-1318"]);
 });
 
-test("a double decline in one run keeps the later record (record-declined overwrites)", () => {
-  const d = runsDir();
-  // The ledger can hold only one record per issue per run; the later one is what the writer leaves.
-  writeRun(d, RUN_A, declined1318("2026-10-27T18:57:30Z"));
-  assert.deepEqual(json(d, [{ issue: "FAFF-1318", changed_at: "2026-10-27T18:57:00Z" }]).kept, []);
-  assert.deepEqual(json(d, [{ issue: "FAFF-1318", changed_at: "2026-10-27T18:58:00Z" }]).kept, ["FAFF-1318"]);
+test("a double decline in one run keeps the later record (written twice through record-declined)", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "faff-1412-dd-"));
+  const genv = { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t.t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t.t" };
+  delete genv.FAFF_RUN_DIR;
+  spawnSync("git", ["-C", root, "init", "-q", "-b", "main"], { env: genv });
+  spawnSync("git", ["-C", root, "commit", "-q", "--allow-empty", "-m", "seed"], { env: genv });
+  const mint = spawnSync("node", [CLI, "run-ledger", "init-self-drain", "--root", root, "--json"], { encoding: "utf8", env: genv });
+  assert.equal(mint.status, 0, mint.stderr);
+  const runDir = JSON.parse(mint.stdout).run_dir;
+  const t0 = Date.now();
+  const iso = (ms) => new Date(ms).toISOString();
+  for (const at of [iso(t0 - 120000), iso(t0 - 60000)]) {
+    const w = spawnSync("node", [CLI, "run-ledger", "record-declined", "--issue", "FAFF-1318", "--reason", "inadmissible:test", "--observed-at", at, "--run-dir", runDir], { encoding: "utf8", env: genv });
+    assert.equal(w.status, 0, w.stderr);
+  }
+  const runs = path.join(root, ".faff", "runs");
+  const now = ["--now", iso(t0 + 60000), "--json"];
+  // Between the two observations: suppressed only if the later record won.
+  assert.deepEqual(JSON.parse(filter(runs, [{ issue: "FAFF-1318", changed_at: iso(t0 - 90000) }], now).out).kept, []);
+  assert.deepEqual(JSON.parse(filter(runs, [{ issue: "FAFF-1318", changed_at: iso(t0 - 30000) }], now).out).kept, ["FAFF-1318"]);
+  fs.rmSync(root, { recursive: true, force: true });
 });
 
 test("two runs with the same start second are ordered by run dir name", () => {

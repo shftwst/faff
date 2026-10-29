@@ -1,0 +1,435 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A PR that adds a new JavaScript module to `bin/lib` with no TypeScript source fails `faff regions check` with exit 1.",
+      "verified": "test passes: a new un-allowlisted .js exits 1 with a TS-FIRST line",
+      "passed": true,
+      "ac_id": "faff-1431#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::command: a new un-allowlisted .js exits 1 with a TS-FIRST diagnostic"
+        }
+      ]
+    },
+    {
+      "ac": "A TypeScript source in `bin/lib` that is not in `tsconfig.json` `include` fails `faff regions check` with exit 2.",
+      "verified": "test passes: a .ts outside include exits 2",
+      "passed": true,
+      "ac_id": "faff-1431#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::command: a .ts with a .js sibling but no include entry exits 2"
+        }
+      ]
+    },
+    {
+      "ac": "`plugin/skills/faff/legacy-js-modules.json` exists, is sorted with one `bin/lib`-relative path per line, and lists exactly the build base's `bin/lib` `.js`/`.mjs`/`.cjs` files with no `.ts` sibling.",
+      "verified": "test passes: the committed allowlist equals the computed unpaired set; regions check exit 0 validates sorted, one per line",
+      "passed": true,
+      "ac_id": "faff-1431#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::real tree: legacy-js-modules.json equals the bin/lib JS modules with no .ts sibling"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        }
+      ]
+    },
+    {
+      "ac": "The build PR's description lists every allowlisted module beyond the 176 counted on 2026-10-29, and each is added to FAFF-1432.",
+      "verified": "PR body section 'Allowlisted beyond the 176' lists drain-filter.js and killable-spawn.mjs; FAFF-1432 comment 8047ce9d adds them",
+      "passed": true,
+      "ac_id": "faff-1431#done:4",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -F drain-filter.js .faff/runs/run-20261029-044028-graft-FAFF-1431/FAFF-1431/pr-body-draft.md"
+        }
+      ]
+    },
+    {
+      "ac": "A stale allowlist entry (file removed, or `.ts` now present) fails `faff regions check` with exit 1.",
+      "verified": "tests pass: stale for a .ts-now-present entry and for a missing file",
+      "passed": true,
+      "ac_id": "faff-1431#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::pure: an allowlist entry for a file that now has a .ts is stale"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::pure: an allowlist entry for a missing file is stale"
+        }
+      ]
+    },
+    {
+      "ac": "An absent, unparseable, unsorted or duplicate-entry allowlist, or an entry that escapes `bin/lib` or has a non-JS extension, fails with exit 2, naming the file.",
+      "verified": "tests pass: absent, unparseable, unsorted, duplicate, escaping and non-JS allowlists exit 2",
+      "passed": true,
+      "ac_id": "faff-1431#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::command: a missing allowlist file exits 2 naming the file"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::command: an unparseable allowlist exits 2 naming the file"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::command: an unsorted or duplicate allowlist exits 2"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::command: an escaping or non-JS allowlist entry exits 2, not a rule-2 violation"
+        }
+      ]
+    },
+    {
+      "ac": "A new JS module in a subdirectory of `bin/lib` fails rule 1, and a symlinked directory under `bin/lib` exits 2.",
+      "verified": "tests pass: sub/evil.js exits 1; a symlinked directory or file exits 2",
+      "passed": true,
+      "ac_id": "faff-1431#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::command: a new sub/evil.js in a subdirectory exits 1 naming sub/evil.js"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::command: a symlinked directory exits 2"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::command: a symlinked file exits 2 (a link must not stand in for a module)"
+        }
+      ]
+    },
+    {
+      "ac": "`--base` rejects a value outside `[A-Za-z0-9._/-]` or starting with `-` with exit 2, and `validate.yml` passes the base ref through `env`, never interpolated into `run:`.",
+      "verified": "tests pass: --base x$(id) and -x exit 2 before git; validate.yml routes base_ref via env with no ${{ in run",
+      "passed": true,
+      "ac_id": "faff-1431#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::command: --base with a value holding $ or starting with - exits 2 before git runs"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::workflow, static: the regions check step routes event values only through env:"
+        }
+      ]
+    },
+    {
+      "ac": "The existing `test/emit-coverage.test.mjs` cases pass unchanged.",
+      "verified": "the three FAFF-1170 tests pass unchanged",
+      "passed": true,
+      "ac_id": "faff-1431#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/emit-coverage.test.mjs::S6 (leg): regionsEmitCoverage flags a .ts without a committed .js emit, passes when both exist"
+        },
+        {
+          "kind": "test",
+          "locator": "test/emit-coverage.test.mjs::S6 (command): `faff regions check` exits 2 when a .ts source lacks its .js emit"
+        },
+        {
+          "kind": "test",
+          "locator": "test/emit-coverage.test.mjs::S6 (command): `faff regions check` passes on the real tree (both cluster emits committed)"
+        }
+      ]
+    },
+    {
+      "ac": "`.mjs` and `.cjs` files are covered by rule 1.",
+      "verified": "tests pass: .mjs and .cjs with no .ts are rule-1 violations",
+      "passed": true,
+      "ac_id": "faff-1431#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::pure: an .mjs with no .ts and no entry is one violation (only .ts pairs with .js)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::command: a new .cjs with no .ts and no entry exits 1"
+        }
+      ]
+    },
+    {
+      "ac": "With `--base <ref>`, an allowlist entry absent at `<ref>` fails with exit 1. A base with no allowlist file is checked against the set derived from the base tree, never passed, and any other git failure exits 2. The result does not depend on the working directory.",
+      "verified": "tests pass: smaller base allowlist and tree-derived base fail exit 1; unknown ref exit 2; same result from root and subdirectory",
+      "passed": true,
+      "ac_id": "faff-1431#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::command: --base with a smaller base allowlist flags the added entry"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::command: --base whose base has no allowlist derives the base set from the base tree"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::command: --base naming an unknown ref exits 2"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::command: --base gives the same result from the repository root and from a subdirectory"
+        }
+      ]
+    },
+    {
+      "ac": "`validate.yml` runs `faff regions check --base \"origin/<base_ref>\"` on pull requests, and `--base \"<event.before>\"` on a push with a non-zero `before`. On every other event it runs without `--base`. Each branch validates only its own value, so a push never fails on an empty `BASE_REF`.",
+      "verified": "behavioural tests pass: pull_request uses --base origin/main, push uses --base <before>, all-zero and workflow_dispatch run without --base",
+      "passed": true,
+      "ac_id": "faff-1431#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::workflow, behavioural: pull_request fetches the base ref and checks against it"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::workflow, behavioural: push with a 40-hex before checks against that commit"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::workflow, behavioural: push with an all-zero before checks without --base"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::workflow, behavioural: workflow_dispatch checks without --base"
+        }
+      ]
+    },
+    {
+      "ac": "A `bin/lib/sub/x.ts` with no committed `sub/x.js` fails the emit floor with exit 2.",
+      "verified": "test passes: EMIT-MISSING names sub/x.ts, exit 2",
+      "passed": true,
+      "ac_id": "faff-1431#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::command: a sub/x.ts with no sub/x.js exits 2 at the emit floor naming sub/x.ts"
+        }
+      ]
+    },
+    {
+      "ac": "On `push`, a `before` that is neither 40-hex nor all zeros, or whose fetch fails, fails the step. Only an all-zero `before` runs without `--base`.",
+      "verified": "behavioural tests pass: malformed before and unfetchable before fail; all-zero runs without --base",
+      "passed": true,
+      "ac_id": "faff-1431#done:14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::workflow, behavioural: push with a malformed before fails"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::workflow, behavioural: push whose before cannot be fetched fails with no faff call"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::workflow, behavioural: push with an all-zero before checks without --base"
+        }
+      ]
+    },
+    {
+      "ac": "The behavioural workflow test runs the extracted step script for each event case in section 4.6, and asserts the recorded `git` and `faff` argv.",
+      "verified": "seven behavioural tests run the extracted step script and assert recorded git and faff argv",
+      "passed": true,
+      "ac_id": "faff-1431#done:15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::workflow, behavioural: pull_request fetches the base ref and checks against it"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::workflow, behavioural: pull_request with a shell-shaped base_ref fails with no git or faff call"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::workflow, behavioural: push with a 40-hex before checks against that commit"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::workflow, behavioural: push whose before cannot be fetched fails with no faff call"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::workflow, behavioural: push with an all-zero before checks without --base"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::workflow, behavioural: push with a malformed before fails"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::workflow, behavioural: workflow_dispatch checks without --base"
+        }
+      ]
+    },
+    {
+      "ac": "A `.mts` or `.cts` file under `bin/lib` exits 2. Only `.ts` pairs with `.js`.",
+      "verified": "tests pass: x.mts and x.cts exit 2",
+      "passed": true,
+      "ac_id": "faff-1431#done:16",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::command: a fixture x.mts exits 2"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::command: a fixture x.cts exits 2"
+        }
+      ]
+    },
+    {
+      "ac": "Diagnostics print every file name JSON-quoted, and a scanned name containing a control character exits 2.",
+      "verified": "tests pass: names are JSON-quoted; a control-character name exits 2 with no forged line",
+      "passed": true,
+      "ac_id": "faff-1431#done:17",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::pure: a scanned name with a newline is malformed, and the line carries no raw newline"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::command: a scanned file name holding a control character exits 2, JSON-quoted"
+        }
+      ]
+    },
+    {
+      "ac": "A renamed allowlisted module fails as a stale entry plus a new module.",
+      "verified": "test passes: exit 1 with both stale and new-module diagnostics",
+      "passed": true,
+      "ac_id": "faff-1431#done:18",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::command: a renamed allowlisted module fails as a stale entry plus a new module"
+        }
+      ]
+    },
+    {
+      "ac": "`regionsTsFirst` and `regionsJsModules` are exported from `regions.js`, and `regionsTsFirst` reads no files.",
+      "verified": "both are exported (require check exit 0); regionsTsFirst judged names that exist nowhere",
+      "passed": true,
+      "ac_id": "faff-1431#done:19",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::pure: regionsTsFirst reads no files (works on names that exist nowhere)"
+        },
+        {
+          "kind": "command",
+          "locator": "node -e 'const r=require(\"./plugin/skills/faff/bin/lib/regions.js\");process.exit(typeof r.regionsTsFirst===\"function\"&&typeof r.regionsJsModules===\"function\"?0:1)'"
+        }
+      ]
+    },
+    {
+      "ac": "No `commissaire*` module changes: `git diff --stat` over `plugin/skills/faff/bin/lib/commissaire*` is empty.",
+      "verified": "git diff --stat over commissaire* is empty (0 lines)",
+      "passed": true,
+      "ac_id": "faff-1431#done:20",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --stat origin/main -- 'plugin/skills/faff/bin/lib/commissaire*'"
+        }
+      ]
+    },
+    {
+      "ac": "`docs/guide/cli.md`'s `regions` row documents the TS-first leg, its exit codes and the allowlist.",
+      "verified": "the regions row documents the TS-first leg, exit 1/2 causes, --base and the allowlist file",
+      "passed": true,
+      "ac_id": "faff-1431#done:21",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c 'TS-first leg' docs/guide/cli.md"
+        }
+      ]
+    },
+    {
+      "ac": "AGENTS.md's TypeScript section names `faff regions check` and `legacy-js-modules.json` as the enforcement.",
+      "verified": "AGENTS.md names faff regions check and legacy-js-modules.json",
+      "passed": true,
+      "ac_id": "faff-1431#done:22",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c 'legacy-js-modules.json' AGENTS.md"
+        }
+      ]
+    },
+    {
+      "ac": "`faff regions check` passes on the real tree.",
+      "verified": "regions check exits 0 on the real tree",
+      "passed": true,
+      "ac_id": "faff-1431#done:23",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/ts-first.test.mjs::command: the real tree passes regions check"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        }
+      ]
+    },
+    {
+      "ac": "The cases in section 4.6 exist in `test/` and pass.",
+      "verified": "test/ts-first.test.mjs: 45 cases pass",
+      "passed": true,
+      "ac_id": "faff-1431#done:24",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/ts-first.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "No `--selftest` case is added in any module.",
+      "verified": "no --selftest case added; the only matching added lines are the existing --selftest flag, the usage string and two allowlist names",
+      "passed": true,
+      "ac_id": "faff-1431#done:25",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main -- plugin/ test/"
+        }
+      ]
+    },
+    {
+      "ac": "`faff gates run` passes.",
+      "verified": "gates run signal pass, 9/9 rungs, on the rebased tree",
+      "passed": true,
+      "ac_id": "faff-1431#done:26",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gates run --json --resume"
+        }
+      ]
+    }
+  ]
+}

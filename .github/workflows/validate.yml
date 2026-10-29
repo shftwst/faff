@@ -111,8 +111,46 @@ jobs:
       # spawns the destructive `worktree-prune --selftest` (change 1's safety fix, green today)
       # — plus `--region governance`. Collapse to a single `--region all` step once FAFF-561
       # clears `budget`'s state-sensitive selftest (or it is quarantined). See FAFF-581 §4.
-      - name: Enforce the region require-graph + REGION_MAP↔COMMANDS bijection (FAFF-444)
-        run: node plugin/skills/faff/bin/faff regions check
+      # FAFF-1431: `regions check` also runs the TS-first leg. Its allowlist ratchet compares
+      # legacy-js-modules.json with the PR's base, or with the commit a push to main replaced.
+      # Event values reach the script only through env, never interpolated into `run:`, and each
+      # branch validates only its own value. The no-base command line stays literal so
+      # `faff gates discover` keeps finding it as a local rung.
+      - name: Enforce the region require-graph + REGION_MAP↔COMMANDS bijection + TS-first leg (FAFF-444, FAFF-1431)
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          quote() { node -e 'process.stdout.write(JSON.stringify(process.argv[1]))' -- "$1"; }
+          case "$EVENT" in
+            pull_request)
+              if [[ ! "$BASE_REF" =~ ^[A-Za-z0-9._/-]+$ || "$BASE_REF" == -* ]]; then
+                echo "::error::pull_request base_ref $(quote "$BASE_REF") is not a plain ref"
+                exit 1
+              fi
+              git fetch --depth=1 origin "+refs/heads/$BASE_REF:refs/remotes/origin/$BASE_REF"
+              node plugin/skills/faff/bin/faff regions check --base "origin/$BASE_REF"
+              ;;
+            push)
+              if [[ "$BEFORE" =~ ^0{40}$ ]]; then
+                node plugin/skills/faff/bin/faff regions check
+              elif [[ "$BEFORE" =~ ^[0-9a-f]{40}$ ]]; then
+                if ! git fetch --depth=1 origin "$BEFORE"; then
+                  echo "::error::cannot fetch the push's before commit $BEFORE (unreachable, likely after a force-push); the TS-first ratchet cannot run"
+                  exit 1
+                fi
+                node plugin/skills/faff/bin/faff regions check --base "$BEFORE"
+              else
+                echo "::error::push event before $(quote "$BEFORE") is neither a 40-hex commit nor all zeros"
+                exit 1
+              fi
+              ;;
+            *)
+              node plugin/skills/faff/bin/faff regions check
+              ;;
+          esac
 
       - name: Registry selftest battery — factory members (incl. the destructive worktree-prune, FAFF-581)
         run: node plugin/skills/faff/bin/faff regions selftest --region factory

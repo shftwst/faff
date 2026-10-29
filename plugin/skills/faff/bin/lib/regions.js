@@ -44,22 +44,197 @@ function regionSources() {
 // un-emitted (and so un-governed by region lint / the import-independence guard). `FAFF_EMIT_COVERAGE_TS_DIR`
 // is a test-only seam (same idiom as FAFF_TEST_LEDGER_INTERLEAVE) letting a command-level test point
 // the scan at a fixture dir; it defaults to bin/lib for every real invocation.
+// FAFF-1431: the scan is recursive (a nested module must not escape either leg) and shared by the
+// emit floor and the TS-first leg below. Returns absolute paths, so the FAFF-1170 contract holds.
+function regionsScanDir() {
+  return process.env.FAFF_EMIT_COVERAGE_TS_DIR || __dirname;
+}
+
 function regionTsSources() {
-  const dir = process.env.FAFF_EMIT_COVERAGE_TS_DIR || __dirname;
-  return fs.readdirSync(dir).filter((f) => f.endsWith(".ts")).sort().map((f) => path.join(dir, f));
+  const dir = regionsScanDir();
+  return regionsWalk(dir).files.filter(regionsIsTsSource).map((f) => path.join(dir, f));
 }
 
 // Existence-only floor (FAFF-1170): a `.ts` without a committed sibling `.js` emit is MISSING.
 // Staleness detection (the committed `.js` is older than / differs from a fresh build) is FAFF-1171's
 // `git diff --exit-code` freshness gate (ratified mitigation-sequencing), not this slice. Returns
-// { missing: [string] }.
-function regionsEmitCoverage(tsFiles) {
+// { missing: [string] }. `baseDir`, when given, names each file by its path under that dir.
+function regionsEmitCoverage(tsFiles, baseDir) {
   const missing = [];
   for (const tsf of tsFiles) {
     const jsf = tsf.slice(0, -3) + ".js";
-    if (!fs.existsSync(jsf)) missing.push(`${path.basename(tsf)}: no committed .js emit sibling (run \`npm run build\` under plugin/skills/faff and commit the emit)`);
+    const name = baseDir ? path.relative(baseDir, tsf).split(path.sep).join("/") : path.basename(tsf);
+    if (!fs.existsSync(jsf)) missing.push(`${name}: no committed .js emit sibling (run \`npm run build\` under plugin/skills/faff and commit the emit)`);
   }
   return { missing };
+}
+
+// === FAFF-1431: the TS-first leg ===========================================================
+// The inverse of the emit floor: a JavaScript module under bin/lib must have a `.ts` source, or be
+// one of the legacy modules listed in legacy-js-modules.json. The list only shrinks: a stale entry
+// fails, and with --base an entry the base did not have fails. A `.ts` outside tsconfig.json
+// `include` fails too, because CI would never type-check it or rebuild its emit.
+const TS_FIRST_ALLOWLIST = "legacy-js-modules.json";
+const JS_MODULE_RE = /\.(?:js|mjs|cjs)$/;
+const CONTROL_CHAR_RE = /[\u0000-\u001f\u007f]/;
+const BASE_REF_RE = /^[A-Za-z0-9._/-]+$/;
+const regionsQuote = (s) => JSON.stringify(s);
+const regionsIsTsSource = (f) => f.endsWith(".ts") && !f.endsWith(".d.ts");
+const regionsHasTsSibling = (f, tsSet) => f.endsWith(".js") && tsSet.has(f.slice(0, -3) + ".ts");
+
+// Every file under `dir`, recursively, as sorted `dir`-relative `/`-separated paths. Any symlink is
+// malformed rather than followed or skipped (a link must not hide a module, nor pair a source that
+// lives elsewhere), and so is a name holding a control character (it could forge a log line).
+function regionsWalk(dir) {
+  const files = [];
+  const malformed = [];
+  const visit = (rel) => {
+    for (const e of fs.readdirSync(rel ? path.join(dir, rel) : dir, { withFileTypes: true })) {
+      const r = rel ? `${rel}/${e.name}` : e.name;
+      if (CONTROL_CHAR_RE.test(e.name)) { malformed.push(`${regionsQuote(r)}: file name contains a control character`); continue; }
+      if (e.isDirectory()) { visit(r); continue; }
+      if (e.isSymbolicLink()) {
+        let isDir = false;
+        try { isDir = fs.statSync(path.join(dir, r)).isDirectory(); } catch { isDir = false; }
+        malformed.push(`${regionsQuote(r)}: ${isDir ? "symlinked directory" : "symlinked file"} (a link must not hide or stand in for a module)`);
+        continue;
+      }
+      files.push(r);
+    }
+  };
+  visit("");
+  files.sort();
+  return { files, malformed };
+}
+
+// The `.js`, `.mjs` and `.cjs` modules under `dir`: { files, malformed }.
+function regionsJsModules(dir) {
+  const { files, malformed } = regionsWalk(dir);
+  return { files: files.filter((f) => JS_MODULE_RE.test(f)), malformed };
+}
+
+// Shape check for an allowlist value: a sorted array of distinct bin/lib-relative JS module paths.
+// Returns { entries, malformed }; any malformed line means the list cannot be trusted at all.
+function regionsValidateAllowlist(value, label) {
+  if (!Array.isArray(value)) return { entries: [], malformed: [`${regionsQuote(label)}: not a JSON array of bin/lib-relative paths`] };
+  const malformed = [];
+  value.forEach((e, i) => {
+    if (typeof e !== "string") { malformed.push(`${regionsQuote(label)}: entry ${i} is not a string`); return; }
+    if (CONTROL_CHAR_RE.test(e) || e.startsWith("/") || e.includes("\\") || e.split("/").includes("..") || !JS_MODULE_RE.test(e)) {
+      malformed.push(`${regionsQuote(label)}: entry ${regionsQuote(e)} is not a bin/lib-relative .js, .mjs or .cjs path`);
+      return;
+    }
+    if (i > 0 && typeof value[i - 1] === "string") {
+      if (value[i - 1] === e) malformed.push(`${regionsQuote(label)}: duplicate entry ${regionsQuote(e)}`);
+      else if (value[i - 1] > e) malformed.push(`${regionsQuote(label)}: entry ${regionsQuote(e)} is out of order (keep the list sorted)`);
+    }
+  });
+  return { entries: malformed.length ? [] : value, malformed };
+}
+
+// Pure: the four TS-first rules over already-read inputs. No fs, no git.
+// `baseAllowlist` (an array, or undefined) enables rule 4; `baseLabel` names it in the diagnostic.
+function regionsTsFirst({ jsFiles, tsFiles, allowlist, include, baseAllowlist, baseLabel }) {
+  const violations = [];
+  const malformed = [];
+  for (const n of [...jsFiles, ...tsFiles]) {
+    if (CONTROL_CHAR_RE.test(n)) malformed.push(`${regionsQuote(n)}: file name contains a control character`);
+  }
+  const js = jsFiles.filter((n) => !CONTROL_CHAR_RE.test(n));
+  const ts = tsFiles.filter((n) => !CONTROL_CHAR_RE.test(n));
+  const tsSet = new Set(ts);
+  const jsSet = new Set(js);
+  const allow = new Set(allowlist);
+  const inc = new Set(include);
+  for (const f of js) {
+    if (!regionsHasTsSibling(f, tsSet) && !allow.has(f)) {
+      violations.push(`${regionsQuote(f)}: new bin/lib module has no TypeScript source (write ${regionsQuote(f.replace(JS_MODULE_RE, ".ts"))} and commit its emit; see AGENTS.md)`);
+    }
+  }
+  for (const f of allowlist) {
+    if (!jsSet.has(f) || regionsHasTsSibling(f, tsSet)) violations.push(`${regionsQuote(f)}: allowlist entry is stale (remove it from ${TS_FIRST_ALLOWLIST})`);
+  }
+  for (const f of ts) {
+    if (!inc.has(`bin/lib/${f}`)) malformed.push(`${regionsQuote(f)}: not listed in tsconfig.json include, so CI never type-checks it or rebuilds its emit`);
+  }
+  if (Array.isArray(baseAllowlist)) {
+    const base = new Set(baseAllowlist);
+    for (const f of allowlist) {
+      if (!base.has(f)) violations.push(`${regionsQuote(f)}: added to ${TS_FIRST_ALLOWLIST} since ${regionsQuote(baseLabel)}; new modules are TypeScript, the allowlist only shrinks (rebase onto ${regionsQuote(baseLabel)} if it converted this module)`);
+    }
+  }
+  return { violations, malformed };
+}
+
+function regionsGit(cwd, args) {
+  return spawnSync("git", ["-C", cwd, ...args], { encoding: "utf8" });
+}
+
+// The allowlist at `ref`. When `ref` has no allowlist file, the set is derived from `ref`'s tree:
+// its JS modules with no `.ts` sibling. Git always runs from the repository root, so the pathspecs
+// resolve the same from any working directory. Any git failure throws (the caller maps it to
+// malformed): a broken base read must never disable the ratchet.
+function regionsReadBaseAllowlist(ref, { scanDir, allowlistPath }) {
+  const top = regionsGit(scanDir, ["rev-parse", "--show-toplevel"]);
+  if (top.error || top.status !== 0) throw new Error(`git rev-parse --show-toplevel failed beside ${regionsQuote(scanDir)}`);
+  const toplevel = top.stdout.trim();
+  const verify = regionsGit(toplevel, ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]);
+  if (verify.status !== 0) throw new Error(`--base ${regionsQuote(ref)} does not name a commit`);
+  const rel = (p) => path.relative(toplevel, p).split(path.sep).join("/");
+  const allowRel = rel(path.join(fs.realpathSync(path.dirname(allowlistPath)), path.basename(allowlistPath)));
+  if (allowRel.startsWith("../") || path.isAbsolute(allowRel)) throw new Error(`${regionsQuote(allowlistPath)} is outside the repository at ${regionsQuote(toplevel)}`);
+  const present = regionsGit(toplevel, ["ls-tree", "-z", "--name-only", ref, "--", allowRel]);
+  if (present.status !== 0) throw new Error(`git ls-tree ${regionsQuote(ref)} failed`);
+  if (present.stdout !== "") {
+    const show = regionsGit(toplevel, ["show", `${ref}:${allowRel}`]);
+    if (show.status !== 0) throw new Error(`git show ${regionsQuote(`${ref}:${allowRel}`)} failed`);
+    let parsed = null;
+    try { parsed = JSON.parse(show.stdout); } catch { throw new Error(`${regionsQuote(allowRel)} at ${regionsQuote(ref)} is not valid JSON`); }
+    if (!Array.isArray(parsed) || !parsed.every((e) => typeof e === "string")) throw new Error(`${regionsQuote(allowRel)} at ${regionsQuote(ref)} is not an array of strings`);
+    return { source: "file", entries: parsed };
+  }
+  const scanRel = rel(fs.realpathSync(scanDir));
+  const tree = regionsGit(toplevel, ["ls-tree", "-r", "-z", "--name-only", ref, "--", `${scanRel}/`]);
+  if (tree.status !== 0) throw new Error(`git ls-tree -r ${regionsQuote(ref)} failed`);
+  const files = tree.stdout.split("\0").filter(Boolean).map((f) => f.slice(scanRel.length + 1));
+  const tsSet = new Set(files.filter(regionsIsTsSource));
+  return { source: "tree", entries: files.filter((f) => JS_MODULE_RE.test(f) && !regionsHasTsSibling(f, tsSet)) };
+}
+
+// The TS-first leg's IO: read the allowlist and tsconfig.json (from the seam dir when the test seam
+// is set, so a fixture never meets the real config), optionally read the base, then apply the rules.
+function regionsTsFirstRun({ scanDir, files, base }) {
+  const seam = process.env.FAFF_EMIT_COVERAGE_TS_DIR;
+  const configDir = seam || path.resolve(__dirname, "..", "..");
+  const allowlistPath = path.join(configDir, TS_FIRST_ALLOWLIST);
+  const tsconfigPath = path.join(configDir, "tsconfig.json");
+  const readJson = (p) => {
+    let text = null;
+    try { text = fs.readFileSync(p, "utf8"); } catch { return { error: `${regionsQuote(p)}: missing or unreadable` }; }
+    try { return { value: JSON.parse(text) }; } catch { return { error: `${regionsQuote(p)}: not valid JSON` }; }
+  };
+  const malformed = [];
+  const allowRead = readJson(allowlistPath);
+  const tsconfigRead = readJson(tsconfigPath);
+  if (allowRead.error) malformed.push(allowRead.error);
+  if (tsconfigRead.error) malformed.push(tsconfigRead.error);
+  if (malformed.length) return { violations: [], malformed };
+  const allow = regionsValidateAllowlist(allowRead.value, allowlistPath);
+  const include = tsconfigRead.value && Array.isArray(tsconfigRead.value.include) ? tsconfigRead.value.include : null;
+  if (!include) malformed.push(`${regionsQuote(tsconfigPath)}: has no include array`);
+  if (allow.malformed.length || malformed.length) return { violations: [], malformed: [...allow.malformed, ...malformed] };
+  let baseAllowlist;
+  if (base !== undefined) {
+    try { baseAllowlist = regionsReadBaseAllowlist(base, { scanDir, allowlistPath }).entries; } catch (e) { return { violations: [], malformed: [String(e.message)] }; }
+  }
+  return regionsTsFirst({
+    jsFiles: files.filter((f) => JS_MODULE_RE.test(f)),
+    tsFiles: files.filter(regionsIsTsSource),
+    allowlist: allow.entries,
+    include,
+    baseAllowlist,
+    baseLabel: base,
+  });
 }
 
 const REGION_MAP = {
@@ -1202,13 +1377,18 @@ function regionsFailDetail(r) {
   return lines.join("\n");
 }
 
-const REGIONS_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--region": { arity: 1 } }, positionals: { min: 0, max: 1, name: "verb" } };
+const REGIONS_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--region": { arity: 1 }, "--base": { arity: 1 } }, positionals: { min: 0, max: 1, name: "verb" } };
+const REGIONS_USAGE = "usage: faff regions <list|check|selftest> [--json] [--region governance|factory|all] [--base REF]";
 
 function cmdRegions(args, COMMANDS) {
   if (args.includes("--selftest")) return regionsSelftest(COMMANDS);
   const { values, positionals, errors } = parseArgs(args, REGIONS_SPEC);
-  if (errors.length) return usageError(errors, "usage: faff regions <list|check|selftest> [--json] [--region governance|factory|all]");
+  if (errors.length) return usageError(errors, REGIONS_USAGE);
   const sub = positionals[0];
+  if (values["--base"] !== undefined && sub !== "check") {
+    process.stderr.write(`faff regions ${regionsQuote(sub || "")}: --base applies only to \`regions check\`\n`);
+    return 2;
+  }
 
   if (sub === "list") {
     if (values["--json"]) { console.log(JSON.stringify(REGION_MAP)); return 0; }
@@ -1223,13 +1403,42 @@ function cmdRegions(args, COMMANDS) {
   }
 
   if (sub === "check") {
+    // FAFF-1431: --base names the ratchet's comparison point; only a plain ref reaches git.
+    const base = values["--base"];
+    if (base !== undefined && (!BASE_REF_RE.test(base) || base.startsWith("-"))) {
+      process.stderr.write(`faff regions check: --base ${regionsQuote(base)} is not a plain ref (letters, digits, . _ / - only, not starting with -)\n`);
+      return 2;
+    }
+    // The shared recursive scan. A symlinked directory, a control-character name, or a non-.ts
+    // TypeScript source is malformed before anything else reads the tree.
+    const scanDir = regionsScanDir();
+    const walk = regionsWalk(scanDir);
+    const pre = [...walk.malformed];
+    for (const f of walk.files) {
+      if (/\.(?:mts|cts)$/.test(f)) pre.push(`${regionsQuote(f)}: bin/lib sources are .ts (the build emits only .ts to .js)`);
+    }
+    if (pre.length) {
+      for (const m of pre) process.stderr.write(`faff regions check: TS-FIRST — ${m}\n`);
+      return 2;
+    }
     // FAFF-1170 emit-coverage floor — runs first: a `.ts` source without its committed `.js` emit
     // means the governed artifact is missing, so no later leg can meaningfully lint it.
-    const emit = regionsEmitCoverage(regionTsSources());
+    const emit = regionsEmitCoverage(walk.files.filter(regionsIsTsSource).map((f) => path.join(scanDir, f)), scanDir);
     if (emit.missing.length) {
       for (const m of emit.missing) process.stderr.write(`faff regions check: EMIT-MISSING — ${m}\n`);
       process.stderr.write(`faff regions check: ${emit.missing.length} TypeScript source(s) lack a committed .js emit — run \`npm run build\` under plugin/skills/faff and commit the emit\n`);
       return 2;
+    }
+    // FAFF-1431 TS-first leg — after the emit floor, before the require-graph lint.
+    const tsFirst = regionsTsFirstRun({ scanDir, files: walk.files, base });
+    if (tsFirst.malformed.length) {
+      for (const m of tsFirst.malformed) process.stderr.write(`faff regions check: TS-FIRST — ${m}\n`);
+      return 2;
+    }
+    if (tsFirst.violations.length) {
+      for (const v of tsFirst.violations) process.stderr.write(`faff regions check: TS-FIRST — ${v}\n`);
+      process.stderr.write(`faff regions check: ${tsFirst.violations.length} TS-first violation(s) — new bin/lib modules are TypeScript, and ${TS_FIRST_ALLOWLIST} only shrinks\n`);
+      return 1;
     }
     const res = regionsCheck(regionSources());
     if (res.malformed.length) {
@@ -1250,7 +1459,7 @@ function cmdRegions(args, COMMANDS) {
       process.stderr.write(`faff regions check: ${res.violations.length} direction violation(s) — governance must not require factory; shared-infra must require no local module\n`);
       return 1;
     }
-    console.log("PASS  regions check: require-graph direction invariant holds (governance↛factory, shared-infra↛any local module)");
+    console.log("PASS  regions check: require-graph direction invariant holds (governance↛factory, shared-infra↛any local module), every bin/lib module has a TypeScript source or a legacy allowlist entry");
     return 0;
   }
 
@@ -1258,9 +1467,9 @@ function cmdRegions(args, COMMANDS) {
     return regionsSelftestRun(values["--region"] === undefined ? null : values["--region"], COMMANDS);
   }
 
-  process.stderr.write("usage: faff regions <list|check|selftest> [--json] [--region governance|factory|all]\n");
+  process.stderr.write(`${REGIONS_USAGE}\n`);
   return 2;
 }
 
 
-module.exports = { REGEX_PRECEDING_KEYWORDS, REGION_MAP, REGION_NAMES, REGION_SELFTEST_ARGV, REGION_TAG_RE, cmdRegions, regionsCheck, regionsEmitCoverage, regionTsSources, regionsExitFor, regionsFailDetail, regionsFileMap, regionsFnRange, regionsRequireEdges, regionsResolveRelative, regionsSelftest, regionsSelftestRun, regionsStaleNulls, regionsStripSource };
+module.exports = { REGEX_PRECEDING_KEYWORDS, REGION_MAP, REGION_NAMES, REGION_SELFTEST_ARGV, REGION_TAG_RE, cmdRegions, regionsCheck, regionsEmitCoverage, regionTsSources, regionsJsModules, regionsReadBaseAllowlist, regionsTsFirst, regionsValidateAllowlist, regionsWalk, regionsExitFor, regionsFailDetail, regionsFileMap, regionsFnRange, regionsRequireEdges, regionsResolveRelative, regionsSelftest, regionsSelftestRun, regionsStaleNulls, regionsStripSource };

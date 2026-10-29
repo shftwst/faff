@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "test/emit-coverage.test.mjs::existing faff-1170 command-level tests may now exit 2 at the new ts-first leg",
+      "title": "existing FAFF-1170 command-level tests may now exit 2 at the new TS-first leg",
+      "location": "test/emit-coverage.test.mjs",
+      "action": "none: refuted, the tests pass unchanged",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "No seamed FAFF-1170 case passes the emit floor: the only command fixture writes probe.ts with no probe.js and exits 2 at the floor, which runs before the TS-first leg; the real-tree case uses no seam. All three tests pass unchanged in node --test and the gate ladder.",
+      "disposition_rationale": "test/emit-coverage.test.mjs runs green unchanged on 001fe857.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "existing FAFF-1170 command-level tests may now exit 2 at the new TS-first leg",
+          "location": "test/emit-coverage.test.mjs",
+          "severity": "major",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/regions.js:regionsWalk::symlinked files are accepted as modules, weakening the recursive-scan guarantee",
+      "title": "symlinked files are accepted as modules, weakening the recursive-scan guarantee",
+      "location": "plugin/skills/faff/bin/lib/regions.js:regionsWalk",
+      "action": "refuse every symlink under bin/lib",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "regionsWalk now refuses every symlink, file or directory, as malformed (exit 2); new test 'command: a symlinked file exits 2' (001fe857).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "symlinked files are accepted as modules, weakening the recursive-scan guarantee",
+          "location": "plugin/skills/faff/bin/lib/regions.js:regionsWalk",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/regions.js:cmdRegions::--base is accepted and silently ignored on regions list and regions selftest",
+      "title": "--base is accepted and silently ignored on regions list and regions selftest",
+      "location": "plugin/skills/faff/bin/lib/regions.js:cmdRegions",
+      "action": "reject --base outside regions check",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "--base outside regions check exits 2; new test covers list and selftest (001fe857).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "--base is accepted and silently ignored on regions list and regions selftest",
+          "location": "plugin/skills/faff/bin/lib/regions.js:cmdRegions",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/regions.js:regionsReadBaseAllowlist::the base allowlist is trusted without the shape validation the head-side list gets",
+      "title": "the base allowlist is trusted without the shape validation the head-side list gets",
+      "location": "plugin/skills/faff/bin/lib/regions.js:regionsReadBaseAllowlist",
+      "action": "guard an allowlist path outside the repository; keep base entries membership-only",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Base entries are used only for membership against a fully validated head list, so a malformed base entry cannot admit any head entry; validating the base strictly would block the PR that fixes a malformed base. The realpath concern is guarded: an allowlist resolving outside the repository now throws (exit 2), and a wrong in-repo path falls back to the base-tree set, which is no weaker (001fe857).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "the base allowlist is trusted without the shape validation the head-side list gets",
+          "location": "plugin/skills/faff/bin/lib/regions.js:regionsReadBaseAllowlist",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

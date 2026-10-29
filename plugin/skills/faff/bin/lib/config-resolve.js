@@ -417,4 +417,4 @@ function verificationSelftest() {
 }
 
 
-module.exports = { cmdVerification, GIT_HOST_ALLOWLIST, ISOLATION_LANE_VOCAB, resolveAppetite, resolveControlLabels, resolveConvergence, resolveInteractiveVerification, resolveLabelPrefix, resolveTeams, VALID_APPETITES, validateControlLabelName, validateGitHostValue, validateIsolationLane, validateLabelPrefix, validateTeams };
+module.exports = { cmdVerification, verificationUnattended, GIT_HOST_ALLOWLIST, ISOLATION_LANE_VOCAB, resolveAppetite, resolveControlLabels, resolveConvergence, resolveInteractiveVerification, resolveLabelPrefix, resolveTeams, VALID_APPETITES, validateControlLabelName, validateGitHostValue, validateIsolationLane, validateLabelPrefix, validateTeams };

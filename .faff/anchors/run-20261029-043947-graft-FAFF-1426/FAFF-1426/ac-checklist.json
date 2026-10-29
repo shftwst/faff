@@ -1,0 +1,315 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A governed run stopped at PR open can be merged through `faff merge authorize`, `merge-gate`, then `faff merge observe`, with no hand-written `commissaire effect` call.",
+      "verified": "Exercised end to end: authorize grants, merge-gate --check-only then reports no Commissaire grant blocker, and observe writes one observe per effect (22/22 pass).",
+      "passed": true,
+      "ac_id": "faff-1426#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/merge-authorize.test.mjs::after authorize, merge-gate --check-only reports no Commissaire grant blocker"
+        },
+        {
+          "kind": "test",
+          "locator": "test/merge-authorize.test.mjs::observe with a merge record writes one observe per effect, once"
+        },
+        {
+          "kind": "test",
+          "locator": "test/merge-authorize.test.mjs::a governed L2 run is granted from its own facts: attended, the anchor level, and the readHoldout value"
+        }
+      ]
+    },
+    {
+      "ac": "No input that `evaluateLevelPolicy` decides on can be supplied by the caller: the command has no `--level`, `--attended` or `--holdout` flag.",
+      "verified": "--holdout, --level and --attended fail at the argv parser (exit 2) and write nothing.",
+      "passed": true,
+      "ac_id": "faff-1426#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/merge-authorize.test.mjs::no caller supplies a policy input: --holdout and --level fail at the argv parser and write nothing"
+        }
+      ]
+    },
+    {
+      "ac": "`holdout` comes from `readHoldout`. A stale or absent verdict yields `blocked` or `missing`, and at L4 the command denies.",
+      "verified": "A stale verdict reads blocked and an absent one missing; both deny at L4.",
+      "passed": true,
+      "ac_id": "faff-1426#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/merge-authorize.test.mjs::L4 with a stale holdout.json reads blocked and is denied"
+        },
+        {
+          "kind": "test",
+          "locator": "test/merge-authorize.test.mjs::L4 with no holdout.json reads missing and is denied"
+        }
+      ]
+    },
+    {
+      "ac": "`level` comes from the committed anchor at the PR head. An unresolvable anchor exits 2.",
+      "verified": "Level is the committed anchor's at the head; a changed anchor level writes a fresh grant; no anchor exits 2.",
+      "passed": true,
+      "ac_id": "faff-1426#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/merge-authorize.test.mjs::a fresh grant is written when the anchor level differs from the existing grant's recorded level"
+        },
+        {
+          "kind": "test",
+          "locator": "test/merge-authorize.test.mjs::an unresolvable anchor exits 2, writes nothing, and does not fall back to the ledger level"
+        }
+      ]
+    },
+    {
+      "ac": "`attended` is the negation of `verificationUnattended`, which `config-resolve.js` now exports.",
+      "verified": "attended = !verificationUnattended; the export resolves to a function; an unattended-declared L3 run records attended false.",
+      "passed": true,
+      "ac_id": "faff-1426#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/merge-authorize.test.mjs::attendance is derived, not fixed: an L3 run whose config declares it unattended records attended false"
+        },
+        {
+          "kind": "command",
+          "locator": "node -e \"console.log(typeof require('./plugin/skills/faff/bin/lib/config-resolve.js').verificationUnattended)\""
+        }
+      ]
+    },
+    {
+      "ac": "An ungoverned run is a no-op: nothing is written to `declared-effects.jsonl`, and the command exits 0.",
+      "verified": "An ungoverned run exits 0 with governed false and the ledger unchanged.",
+      "passed": true,
+      "ac_id": "faff-1426#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/merge-authorize.test.mjs::an ungoverned run writes nothing and exits 0 with governed false"
+        }
+      ]
+    },
+    {
+      "ac": "Re-running after a grant exists writes no new declare or authorize record when the grant's recorded level, attended and holdout equal the derived inputs, and writes a fresh grant when they differ.",
+      "verified": "A matching re-run writes no record (written false); a differing level writes a fresh grant.",
+      "passed": true,
+      "ac_id": "faff-1426#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/merge-authorize.test.mjs::a re-run with matching inputs writes nothing and reports written false"
+        },
+        {
+          "kind": "test",
+          "locator": "test/merge-authorize.test.mjs::a fresh grant is written when the anchor level differs from the existing grant's recorded level"
+        }
+      ]
+    },
+    {
+      "ac": "The coverage check builds its trust context from the PR's url with `makeTrustContext`, as `merge-gate` does.",
+      "verified": "The trust file is read from repos/owner/repo (the PR url), not the checkout's fork remote.",
+      "passed": true,
+      "ac_id": "faff-1426#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/merge-authorize.test.mjs::the coverage check reads the trust file from the PR's own repository, not the checkout's"
+        }
+      ]
+    },
+    {
+      "ac": "`faff merge observe` refuses without `merge-record.json`.",
+      "verified": "observe without merge-record.json exits 1 and writes nothing.",
+      "passed": true,
+      "ac_id": "faff-1426#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/merge-authorize.test.mjs::observe refuses without merge-record.json and writes nothing"
+        }
+      ]
+    },
+    {
+      "ac": "graft Step 10's governed merge producer half calls the command, and its typed-in authorize payloads are gone.",
+      "verified": "graft Step 10 calls faff merge authorize/observe (2 references); the typed-in authorize payload command occurs 0 times.",
+      "passed": true,
+      "ac_id": "faff-1426#done:10",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c 'faff\\\" merge authorize' plugin/skills/faff-graft/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "Every line deleted or replaced in graft SKILL.md's governed merge producer half maps to a row of the Rule inventory, and each row's disposition holds in the built command.",
+      "verified": "The four deleted Step-10 bullets map to inventory rows: Resolve-the-inputs to the level/attended/holdout rows; Declare-then-authorize to the declare/branch-delete/authorize/base rows; non-grant to the merge-block row; Observe to the observe and schema:2-suppression rows. The pr-create half's input resolution, which pointed at the deleted bullet, is restated inline unchanged.",
+      "passed": true,
+      "ac_id": "faff-1426#done:11",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main...HEAD -- plugin/skills/faff-graft/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "`faff merge authorize --local` grants against the base `merge-gate --local` resolves, without calling `gh`.",
+      "verified": "--local grants against the resolved local base with zero gh calls, and merge-gate --local --check-only then has no grant blocker.",
+      "passed": true,
+      "ac_id": "faff-1426#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/merge-authorize.test.mjs::--local grants the merge against the base merge-gate --local resolves, with no gh call"
+        }
+      ]
+    },
+    {
+      "ac": "`docs/reference/cli.md` documents both subcommands.",
+      "verified": "Both subcommands are documented in docs/guide/cli.md, the repo's CLI reference (docs/reference/cli.md does not exist); lint-cli-doc passes.",
+      "passed": true,
+      "ac_id": "faff-1426#done:13",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-doc"
+        }
+      ]
+    },
+    {
+      "ac": "Commissaire does not expand: `faff commissaire` gains no object or verb, and no `commissaire*.ts` or `commissaire*.js` file (including `commissaire-verify.js` and `commissaire-trust.js`) changes, with no new export added for `faff merge`'s use. `git diff --stat` over `plugin/skills/faff/bin/lib/commissaire*` is empty. The new exports this change needs (`verificationUnattended`) are in faff modules.",
+      "verified": "git diff --stat over plugin/skills/faff/bin/lib/commissaire* is empty; faff commissaire gains no object or verb.",
+      "passed": true,
+      "ac_id": "faff-1426#done:14",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --stat origin/main...HEAD -- 'plugin/skills/faff/bin/lib/commissaire*'"
+        }
+      ]
+    },
+    {
+      "ac": "`faff merge authorize` on an already-merged PR exits 1 and writes nothing.",
+      "verified": "An already-merged PR, and a local branch already in the base, exit 1 with already-merged and write nothing.",
+      "passed": true,
+      "ac_id": "faff-1426#done:15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/merge-authorize.test.mjs::an already-merged PR exits 1 with already-merged and writes nothing"
+        },
+        {
+          "kind": "test",
+          "locator": "test/merge-authorize.test.mjs::--local on a branch already in the base exits 1 with already-merged and writes nothing"
+        }
+      ]
+    },
+    {
+      "ac": "Attendance is computed at the anchor level.",
+      "verified": "An L4-anchored head on an L3 ledger records attended false.",
+      "passed": true,
+      "ac_id": "faff-1426#done:16",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/merge-authorize.test.mjs::attendance is computed at the anchor level: an L4-anchored head on an L3 ledger records attended false"
+        }
+      ]
+    },
+    {
+      "ac": "An unresolvable anchor exits 2 without falling back to the ledger level.",
+      "verified": "No committed anchor at the head exits 2 and writes nothing.",
+      "passed": true,
+      "ac_id": "faff-1426#done:17",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/merge-authorize.test.mjs::an unresolvable anchor exits 2, writes nothing, and does not fall back to the ledger level"
+        }
+      ]
+    },
+    {
+      "ac": "`merge-authorize.ts` exists with its committed `merge-authorize.js` emit, is listed in `tsconfig.json`'s `include`, and `build-manifest.json` is regenerated. `faff regions check` passes, and the CI stale-emit check in `validate.yml` passes.",
+      "verified": "merge-authorize.ts and its committed emit exist, are in tsconfig include and build-manifest.json; a rebuild leaves the tree clean; regions check passes.",
+      "passed": true,
+      "ac_id": "faff-1426#done:18",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "cd plugin/skills/faff && npm run build && git diff --exit-code"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        }
+      ]
+    },
+    {
+      "ac": "A `needs-human` holdout cannot be presented as `meets-spec`: at L4, with `holdout.json` aggregate `needs-human`, `faff merge authorize` exits 1 and writes no grant.",
+      "verified": "At L4 with aggregate needs-human, authorize exits 1 with level-requires-holdout-meets-spec and no grant verdict is written.",
+      "passed": true,
+      "ac_id": "faff-1426#done:19",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/merge-authorize.test.mjs::L4 with holdout.json aggregate needs-human: denied, exit 1, no grant written"
+        }
+      ]
+    },
+    {
+      "ac": "`test/merge-authorize.test.mjs` covers the cases in section 4.6 and passes.",
+      "verified": "test/merge-authorize.test.mjs: 22 pass, 0 fail.",
+      "passed": true,
+      "ac_id": "faff-1426#done:20",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/merge-authorize.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "The new command is registered `REGION_SELFTEST_ARGV[cmd] = null`, with a `TEST_FILE_COVERAGE` entry. `lint-cli-coverage` passes.",
+      "verified": "REGION_SELFTEST_ARGV.merge = null with TEST_FILE_COVERAGE.merge = test/merge-authorize.test.mjs; lint-cli-coverage passes.",
+      "passed": true,
+      "ac_id": "faff-1426#done:21",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-coverage"
+        }
+      ]
+    },
+    {
+      "ac": "No `--selftest` case is added in any module.",
+      "verified": "The only added lines mentioning --selftest are comments and spec text; no selftest block or argv entry is added.",
+      "passed": true,
+      "ac_id": "faff-1426#done:22",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main...HEAD | grep '^+' | grep -- '--selftest'"
+        }
+      ]
+    },
+    {
+      "ac": "`faff gates run` passes.",
+      "verified": "faff gates run: signal pass (contract conformant).",
+      "passed": true,
+      "ac_id": "faff-1426#done:23",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gates run --json --resume"
+        }
+      ]
+    }
+  ]
+}

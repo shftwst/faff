@@ -1,0 +1,471 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "verdict": "revise",
+  "final_verdict": "revise",
+  "rounds_total": 5,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The proposed command tightly couples the grant-issuing actor to the internal decision-making logic of the verifier (`merge-gate`). By re-implementing the logic to derive `level`, `attended`, and `holdout` from the run's facts, the spec creates a fragile dependency where any change to the governance policy in `merge-gate` requires a corresponding change in the `faff commissaire merge authorize` command.",
+      "evidence": "The spec explicitly mandates reading `level` via `resolveAnchorLevel`, `attended` via `verificationUnattended`, and `holdout` via `readHoldout` (Section 4.1). This logic is already encapsulated and enforced by `merge-gate.js` and `decision-policy.js`.",
+      "predicted_consequence": "The maintenance burden doubles. If the governance policy evolves (e.g., L4 requires a new holdout state), the developer must update both `merge-gate` and the new `faff commissaire merge authorize` command, violating the principle of \"single source of truth\" for governance policy.",
+      "spec_anchor": "deriving-the-inputs",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "The spec calls the same merge-gate resolvers rather than re-implementing them (section 4.4).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The proposed command tightly couples the grant-issuing actor to the internal decision-making logic of the verifier (`merge-gate`). By re-implementing the logic to derive `level`, `attended`, and `holdout` from the run's facts, the spec creates a fragile dependency where any change to the governance policy in `merge-gate` requires a corresponding change in the `faff commissaire merge authorize` command.",
+          "spec_anchor": "deriving-the-inputs"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The design relies on `gh pr view N` to establish the `base` and `head` targets for the effects. While this is necessary for the targets, it introduces an external API dependency for facts that are fundamentally internal to the run's state (the PR's governance context).",
+      "evidence": "The spec requires `pr_info := gh pr view pr` (Section 4.2) to retrieve `baseRefName` and `headRefName`.",
+      "predicted_consequence": "If the underlying GitHub API changes its response structure for PR details, or if the run environment loses access to the GitHub API, the entire grant-issuing path fails, even if the run's internal ledger state is perfectly valid.",
+      "spec_anchor": "interface-recommended-shape",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "merge-gate makes the same gh pr view call for the same targets; no new dependency.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The design relies on `gh pr view N` to establish the `base` and `head` targets for the effects. While this is necessary for the targets, it introduces an external API dependency for facts that are fundamentally internal to the run's state (the PR's governance context).",
+          "spec_anchor": "interface-recommended-shape"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The command relies entirely on derived inputs (`level`, `attended`, `holdout`) to satisfy the policy, but the spec does not guarantee that the derivation mechanism is tamper-proof or that the underlying run state is immutable at the time of authorization. An attacker who can manipulate the run's metadata (e.g., modifying `holdout.json` or the build checkpoint time) can trick the `faff commissaire merge authorize` command into writing a grant that violates the policy enforced by `merge-gate`.",
+      "evidence": "\"The command derives level, attendance and holdout from the same sources `merge-gate` reads.\" (Section 4.1); \"holdout := readHoldout(runDir, issue)\" (Section 4.2).",
+      "predicted_consequence": "An operator can authorize a merge for an L4 run when the `holdout.json` state is `needs-human` (i.e., `holdout` is `missing` or `blocked`), leading to an unauthorized merge that bypasses the required holdout verdict.",
+      "spec_anchor": "deriving-the-inputs",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Run-directory write access is outside the accepted threat model (the signing key is co-located; execution-and-governance.md). merge-gate reads the same files, so the change adds no exposure.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The command relies entirely on derived inputs (`level`, `attended`, `holdout`) to satisfy the policy, but the spec does not guarantee that the derivation mechanism is tamper-proof or that the underlying run state is immutable at the time of authorization. An attacker who can manipulate the run's metadata (e.g., modifying `holdout.json` or the build checkpoint time) can trick the `faff commissaire merge authorize` command into writing a grant that violates the policy enforced by `merge-gate`.",
+          "spec_anchor": "deriving-the-inputs"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The command grants authority based on external, potentially mutable state (GitHub PR data and local run files) without an independent, verifiable proof of that state's integrity at the moment of authorization. The spec assumes the derived inputs are trustworthy because they are the same as `merge-gate` reads, but the new command is the one *writing* the grant, making it a critical point of trust.",
+      "evidence": "\"base, head | `gh pr view N --json baseRefName,headRefName,headRefOid`\" (Section 4.1); \"holdout := readHoldout(runDir, issue)\" (Section 4.2).",
+      "predicted_consequence": "An attacker with write access to the run directory or the ability to spoof GitHub API responses could authorize a merge based on fabricated run facts, leading to an unauthorized merge.",
+      "spec_anchor": "deriving-the-inputs",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Same threat model as 1#2; no new exposure beyond what merge-gate already trusts.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The command grants authority based on external, potentially mutable state (GitHub PR data and local run files) without an independent, verifiable proof of that state's integrity at the moment of authorization. The spec assumes the derived inputs are trustworthy because they are the same as `merge-gate` reads, but the new command is the one *writing* the grant, making it a critical point of trust.",
+          "spec_anchor": "deriving-the-inputs"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "While the command derives inputs from the run's facts, the spec does not define *who* or *what* is responsible for ensuring that the run's facts (like the `holdout.json` or the ledger state) are accurate and have not been maliciously altered before the `authorize` command is run.",
+      "evidence": "\"The policy's inputs come from the run, never from the caller.\" (Design principles); \"holdout := readHoldout(runDir, issue)\" (Section 4.2).",
+      "predicted_consequence": "An operator could manually alter the run's state files to satisfy the derived inputs, allowing them to authorize a merge they otherwise could not.",
+      "spec_anchor": "design-principles",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Same threat model as 1#2.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "While the command derives inputs from the run's facts, the spec does not define *who* or *what* is responsible for ensuring that the run's facts (like the `holdout.json` or the ledger state) are accurate and have not been maliciously altered before the `authorize` command is run.",
+          "spec_anchor": "design-principles"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "major",
+      "claim": "The slice cannot ship as a single increment because the core implementation path (the command's shape) is left as an open architectural decision, which blocks the build.",
+      "evidence": "\"the command's shape is an open architecture decision, so the build is blocked on the operator's call, not on another ticket.\" (from `issue-critique`).",
+      "predicted_consequence": "The slice cannot ship in one increment until the architectural shape (standalone command, merge-gate leg, etc.) is finalized and implemented.",
+      "spec_anchor": "punt-decides-architecture-which-of-three-shapes-this-takes",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The operator decided the command shape on 2026-10-29; the Punt is now a Chosen.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The slice cannot ship as a single increment because the core implementation path (the command's shape) is left as an open architectural decision, which blocks the build.",
+          "spec_anchor": "punt-decides-architecture-which-of-three-shapes-this-takes"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "DONE requires \"`merge observe` refuses without `merge-record.json`\" and section 4.3 defines the whole observe path, but section 4.6 names only `test/commissaire-merge-authorize.test.mjs` and its seven cases are all authorize-side; no test covers observe's refuse path, its merge-record reading, or that a post-merge observe writes the effect set.",
+      "evidence": "DONE items \"`merge observe` refuses without `merge-record.json`\"; `### 4.6 Tests (in `test/` only)` lists no observe case.",
+      "predicted_consequence": "a build where observe is never wired into the verb table, or always exits 0 regardless of the merge record, passes the named test suite and the DONE checklist can only be decided by manual probing.",
+      "spec_anchor": "46-tests-in-test-only",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Observe tests added in section 4.6.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "DONE requires \"`merge observe` refuses without `merge-record.json`\" and section 4.3 defines the whole observe path, but section 4.6 names only `test/commissaire-merge-authorize.test.mjs` and its seven cases are all authorize-side; no test covers observe's refuse path, its merge-record reading, or that a post-merge observe writes the effect set.",
+          "spec_anchor": "46-tests-in-test-only"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "the spec's central weak point is caller-supplied `attended`/`holdout`; the deny side of the attendance axis is never exercised. `verificationUnattended` is derived from the run ledger and config, but neither a scenario nor a 4.6 case covers an L2 unattended run being denied (`level-requires-attendance`), so the L2-attended grant test cannot distinguish \"attended was derived correctly\" from \"attended is hard-coded true\".",
+      "evidence": "DONE \"No input that `evaluateLevelPolicy` decides on can be supplied by the caller\"; scenario 1 grants at \"governed L2 run\"; 4.6 lists only L2-attended grant and L4 denies.",
+      "predicted_consequence": "a build that hard-codes `attended: true` (or misreads the ledger/config for the unattended case) is indistinguishable at test time from a correct build.",
+      "spec_anchor": "46-tests-in-test-only",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Attendance-derivation test added; the L1/L2 deny is unreachable by construction, so the test uses an unattended L3 run.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "the spec's central weak point is caller-supplied `attended`/`holdout`; the deny side of the attendance axis is never exercised. `verificationUnattended` is derived from the run ledger and config, but neither a scenario nor a 4.6 case covers an L2 unattended run being denied (`level-requires-attendance`), so the L2-attended grant test cannot distinguish \"attended was derived correctly\" from \"attended is hard-coded true\".",
+          "spec_anchor": "46-tests-in-test-only"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The slice's downstream consumer (FAFF-1425, the refusal message that will name this command) is a real sequencing dependency, but the spec records it only as an out-of-scope bullet and a critique aside; no `blocks` edge is carried, so the pipeline cannot see that 1425 must land after 1426.",
+      "evidence": "Methodology critique, \"Dependencies surfaced (principle 6)\": \"FAFF-1425 (the refusal message) should follow this one so it can name the command. What to do: link FAFF-1425 as blocked by FAFF-1426.\" The spec's own §2 mentions FAFF-1425 only as out-of-scope prose (\"Once this command exists, FAFF-1425 can point at it\") with no edge. Settled precedent `an-unattributable-evidence-row-is-closed-at-the-writer-never-tolerated-at-the-ga` requires ordering in such clusters to be \"carried as a tracker `blocks` edge, not as a note in a spec.\"",
+      "predicted_consequence": "FAFF-1425 can be picked up before or in parallel with this slice and land pointing at a command that does not exist, or re-litigate the remedy naming independently; the ordering the critique identified is invisible to planning.",
+      "spec_anchor": "out-of-scope",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "FAFF-1425 is linked as blocked by FAFF-1426, and section 2 states it.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The slice's downstream consumer (FAFF-1425, the refusal message that will name this command) is a real sequencing dependency, but the spec records it only as an out-of-scope bullet and a critique aside; no `blocks` edge is carried, so the pipeline cannot see that 1425 must land after 1426.",
+          "spec_anchor": "out-of-scope"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "major",
+      "claim": "the core design principle that an effect already covered by a valid grant should not result in new `declare` or `authorize` records is not covered by any scenario.",
+      "evidence": "DONE item: \"Re-running after a grant exists writes no new declare or authorize record.\"",
+      "predicted_consequence": "the build could satisfy all named scenarios while redundantly writing multiple `declare` and `authorize` records for the same effect, violating the spec's promise of an idempotent merge.",
+      "spec_anchor": "4-2-authorize",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Idempotence scenario added.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "the core design principle that an effect already covered by a valid grant should not result in new `declare` or `authorize` records is not covered by any scenario.",
+          "spec_anchor": "4-2-authorize"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "the command's behavior when `readHoldout` returns the specific states `missing` or `blocked` is not explicitly tested.",
+      "evidence": "DONE item: \"holdout comes from readHoldout. A stale or absent verdict yields blocked or missing, and at L4 the command denies.\"",
+      "predicted_consequence": "while the general L4 denial scenario covers the *result* of a failure, there is no scenario to verify that the command correctly processes and uses the `missing` or `blocked` input states from `readHoldout` before calling `evaluateLevelPolicy`.",
+      "spec_anchor": "4-1-deriving-the-inputs",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "missing and blocked holdout tests added.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "the command's behavior when `readHoldout` returns the specific states `missing` or `blocked` is not explicitly tested.",
+          "spec_anchor": "4-1-deriving-the-inputs"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "`authorize` resolves `level` once, from `resolveAnchorLevel` at the PR head sha captured at authorize time, and the resulting grant targets branch *names*, not shas. Section 4.5 explicitly leans on this: \"grants target the base and head branch names, not shas, so they stay valid. `merge-gate` re-checks CI on the new head.\" But CI is not the only input that can change with the head — the *anchor level* can too. If the head advances to a commit whose committed anchor declares a higher level (e.g. the grant was authorized at L2-attended, and the new head's anchor says L4), the spec never states that `merge-gate` re-evaluates the grant's recorded inputs against the *current* anchor level. From the supplied context, `resolveCommissaireDecisionGrantDetail(runDir, issue, baseRefName, trustCtx)` takes the base ref — not the level or head sha — so on its face the merge-time verification checks grant *existence and target*, not that the grant was decided at the level now being enforced. The whole point of the ticket is that `evaluateLevelPolicy`'s inputs come from the run; a stale grant decided at a lower level covering a merge whose anchor has since escalated defeats exactly that. The spec's own edge-case section claims safety on the head-move axis while addressing only the CI axis, so the design as written leaves the level axis open.",
+      "evidence": "spec §4.5 \"Head moved after authorize\"; §4.1 level row (\"`resolveAnchorLevel` at the PR head sha … the level `merge-gate` enforces\"); context `merge-gate.js` governed legs (`resolveCommissaireDecisionGrantDetail(runDir, issue, hv.data.baseRefName, trustCtx)` — no level or sha argument visible).",
+      "predicted_consequence": "a grant obtained at L2 (attended) continues to satisfy `merge-gate`'s grant leg after the PR head moves to a commit anchored at L4, so an L4 merge proceeds without a fresh `meets-spec` holdout decision at the enforced level — the exact bypass this ticket exists to close, reachable by pushing one commit to the PR branch between `authorize` and `merge-gate`.",
+      "spec_anchor": "45-edge-cases",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Coverage requires matching recorded level, attended and holdout; merge-gate gap filed as FAFF-1427.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "major",
+          "claim": "`authorize` resolves `level` once, from `resolveAnchorLevel` at the PR head sha captured at authorize time, and the resulting grant targets branch *names*, not shas. Section 4.5 explicitly leans on this: \"grants target the base and head branch names, not shas, so they stay valid. `merge-gate` re-checks CI on the new head.\" But CI is not the only input that can change with the head — the *anchor level* can too. If the head advances to a commit whose committed anchor declares a higher level (e.g. the grant was authorized at L2-attended, and the new head's anchor says L4), the spec never states that `merge-gate` re-evaluates the grant's recorded inputs against the *current* anchor level. From the supplied context, `resolveCommissaireDecisionGrantDetail(runDir, issue, baseRefName, trustCtx)` takes the base ref — not the level or head sha — so on its face the merge-time verification checks grant *existence and target*, not that the grant was decided at the level now being enforced. The whole point of the ticket is that `evaluateLevelPolicy`'s inputs come from the run; a stale grant decided at a lower level covering a merge whose anchor has since escalated defeats exactly that. The spec's own edge-case section claims safety on the head-move axis while addressing only the CI axis, so the design as written leaves the level axis open.",
+          "spec_anchor": "45-edge-cases"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "§4.2 says the command checks each effect \"with the same verification `merge-gate` runs (`resolveCommissaireDecisionGrantDetail`, `resolveBranchDeleteGrantDetail`)\", but those functions take a `trustCtx`, and the context shows `merge-gate` builds it carefully — `repo_slug: repoSlugFromPrUrl(hv.data.url)` — precisely because FAFF-1212 fixed a bug where the trust file was read from the wrong repo on a fork checkout. The spec never says how `merge authorize` builds its `trustCtx`. If the builder resolves it from `cwd` (the pre-1212 shape), the command's coverage verdict diverges from `merge-gate`'s on a fork: a grant that is valid under merge-gate's trust context reads as uncovered, so the command re-declares and re-authorizes (redundant ledger records), or worse, the divergence is silent and the operator believes coverage exists under a different trust basis than the gate will verify. This is a one-line spec edit — name the trustCtx construction as byte-identical to merge-gate's — but it must be in the spec, because the FAFF-1212 precedent shows this exact mistake has already been made once on this surface.",
+      "evidence": "spec §4.2 idempotency choice; context `merge-gate.js` \"FAFF-1212: the trust file is read from the repository the PR belongs to (its own url), never from the separately resolved `repo`\".",
+      "predicted_consequence": "on a fork checkout, `faff merge authorize` reports granted/covered under a trust context `merge-gate` does not use, producing either duplicate authorize records or a false \"already covered\" report followed by a merge-gate refusal.",
+      "spec_anchor": "42-authorize",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Trust context built from the PR url with makeTrustContext, as merge-gate does.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "§4.2 says the command checks each effect \"with the same verification `merge-gate` runs (`resolveCommissaireDecisionGrantDetail`, `resolveBranchDeleteGrantDetail`)\", but those functions take a `trustCtx`, and the context shows `merge-gate` builds it carefully — `repo_slug: repoSlugFromPrUrl(hv.data.url)` — precisely because FAFF-1212 fixed a bug where the trust file was read from the wrong repo on a fork checkout. The spec never says how `merge authorize` builds its `trustCtx`. If the builder resolves it from `cwd` (the pre-1212 shape), the command's coverage verdict diverges from `merge-gate`'s on a fork: a grant that is valid under merge-gate's trust context reads as uncovered, so the command re-declares and re-authorizes (redundant ledger records), or worse, the divergence is silent and the operator believes coverage exists under a different trust basis than the gate will verify. This is a one-line spec edit — name the trustCtx construction as byte-identical to merge-gate's — but it must be in the spec, because the FAFF-1212 precedent shows this exact mistake has already been made once on this surface.",
+          "spec_anchor": "42-authorize"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The interface section lists exit 2 as \"an input could not be established (PR identity, anchor level, **governed status**)\", but the 4.2 pseudocode treats an ungoverned run as a success path (`IF NOT runIsGoverned(run_dir): print governed:false; EXIT 0`), and `runIsGoverned` (per the context excerpt) never fails to establish — its catch returns `true`. A tester cannot state what observable condition produces exit 2 for \"governed status\", so that leg of the exit-code contract is unverifiable as written.",
+      "evidence": "`## 3. WHAT` → Interface bullet \"2: fail-loud, meaning an input could not be established (PR identity, anchor level, governed status)\" vs `### 4.2 authorize` pseudocode line 2.",
+      "predicted_consequence": "A build could implement either reading; a test asserting exit 2 on unestablishable governed status would fail against the pseudocode's implementation (or vice versa), and the DONE item \"An ungoverned run is a no-op … exits 0\" cannot be checked unambiguously against the interface text.",
+      "spec_anchor": "42-authorize",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Governed status removed from exit-2 causes.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The interface section lists exit 2 as \"an input could not be established (PR identity, anchor level, **governed status**)\", but the 4.2 pseudocode treats an ungoverned run as a success path (`IF NOT runIsGoverned(run_dir): print governed:false; EXIT 0`), and `runIsGoverned` (per the context excerpt) never fails to establish — its catch returns `true`. A tester cannot state what observable condition produces exit 2 for \"governed status\", so that leg of the exit-code contract is unverifiable as written.",
+          "spec_anchor": "42-authorize"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The spec's central chosen decision — \"An effect counts as covered only when it has a valid grant **and** that grant's recorded `level`, `attended` and `holdout` equal the inputs just derived\" — requires reading those three values back out of an existing grant record. But the only coverage machinery the spec names or reuses (`resolveCommissaireDecisionGrantDetail`, `resolveBranchDeleteGrantDetail`, and per the context the `effectTargetMatches` rule they rest on) decides coverage from effect fields and the entry envelope alone; nothing in the supplied context establishes that a verdict/grant record exposes its decision inputs for re-reading, or that `effect authorize` persists them in a queryable form. The spec simultaneously asserts \"It reuses the merge-gate resolvers named in section 4.1 rather than copying them\" — yet the predicate it mandates is strictly stronger than what those resolvers implement. Either the builder extends a resolver (new surface on the merge-gate-effects module, contradicting \"reuse rather than copying\") or re-implements grant-record parsing in the new module (the drift this ticket exists to prevent). The design's headline property — no redundant ledger records, fresh grant when facts change — is unreachable as specified.",
+      "evidence": "section 4.2 authorize, chosen paragraph (\"recorded `level`, `attended` and `holdout` equal the inputs just derived\"); section 4.4 (\"reuses the merge-gate resolvers named in section 4.1 rather than copying them\"); context `merge-gate-effects.js` resolvers and ADR-0126's \"every coverage check reads only effect fields and the entry envelope\".",
+      "predicted_consequence": "the builder either ships a coverage check that silently degrades to `effectTargetMatches` (making the \"fresh grant when the anchor level differs\" test in 4.6 unpassable as written) or forks a second, stricter grant reader into `merge-authorize.js` that merge-gate does not use — the exact two-implementations drift the WHY section decries.",
+      "spec_anchor": "how-2-authorize",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Recorded inputs read from the signed verdict record at verdict_seq; no resolver or Commissaire change.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "major",
+          "claim": "The spec's central chosen decision — \"An effect counts as covered only when it has a valid grant **and** that grant's recorded `level`, `attended` and `holdout` equal the inputs just derived\" — requires reading those three values back out of an existing grant record. But the only coverage machinery the spec names or reuses (`resolveCommissaireDecisionGrantDetail`, `resolveBranchDeleteGrantDetail`, and per the context the `effectTargetMatches` rule they rest on) decides coverage from effect fields and the entry envelope alone; nothing in the supplied context establishes that a verdict/grant record exposes its decision inputs for re-reading, or that `effect authorize` persists them in a queryable form. The spec simultaneously asserts \"It reuses the merge-gate resolvers named in section 4.1 rather than copying them\" — yet the predicate it mandates is strictly stronger than what those resolvers implement. Either the builder extends a resolver (new surface on the merge-gate-effects module, contradicting \"reuse rather than copying\") or re-implements grant-record parsing in the new module (the drift this ticket exists to prevent). The design's headline property — no redundant ledger records, fresh grant when facts change — is unreachable as specified.",
+          "spec_anchor": "how-2-authorize"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "`level` comes from the committed anchor at the PR head while `attended` comes from `verificationUnattended(ledger, cfg)`, which keys off the *run ledger's* level (L4 always unattended; L3 unattended only if config declares it). The spec's own edge case contemplates anchor level ≠ ledger level (\"a fresh grant when the anchor level differs\"), but never states how attendance is computed in that case. A ledger-L4/anchor-L2 run yields `attended: false` at L2 → deny `level-requires-attendance` even though the run's attendance story is \"L4 mint, unattended by construction\" — arguably the correct fail-closed answer, but the spec arrives at it by accident, not by a stated rule, and the inverse divergence (ledger L3 unattended, anchor L4) pairs an L3-derived attendance fact with an L4 decision.",
+      "evidence": "section 4.1 table (level from `resolveAnchorLevel`, attended from `verificationUnattended`); section 4.5 \"Head moved after authorize\"; context `config-resolve.js verificationUnattended` docstring.",
+      "predicted_consequence": "a spurious deny (or, worse, a grant whose recorded inputs describe an incoherent run state) in exactly the divergence case the spec's own tests exercise; the DONE item \"attended is the negation of `verificationUnattended`\" is under-specified for the case its own test suite creates.",
+      "spec_anchor": "deriving-the-inputs",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Attendance computed at the anchor level.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "`level` comes from the committed anchor at the PR head while `attended` comes from `verificationUnattended(ledger, cfg)`, which keys off the *run ledger's* level (L4 always unattended; L3 unattended only if config declares it). The spec's own edge case contemplates anchor level ≠ ledger level (\"a fresh grant when the anchor level differs\"), but never states how attendance is computed in that case. A ledger-L4/anchor-L2 run yields `attended: false` at L2 → deny `level-requires-attendance` even though the run's attendance story is \"L4 mint, unattended by construction\" — arguably the correct fail-closed answer, but the spec arrives at it by accident, not by a stated rule, and the inverse divergence (ledger L3 unattended, anchor L4) pairs an L3-derived attendance fact with an L4 decision.",
+          "spec_anchor": "deriving-the-inputs"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The \"PR already merged\" edge case has `authorize` still write missing grants. The grant's policy inputs (`attended`, `holdout`, level) are derived at grant time — after the merge has already happened. The ledger's semantic sequence (declare → authorize → observe) will then present a merge as pre-authorized when the authorize record was minted post hoc, and the recorded `holdout`/`attended` are facts evaluated after the effect, not before it. Audit tooling that reads the ledger's semantic order rather than wall-clock timestamps is shown a clean authorization lineage for a merge that was never authorized in advance.",
+      "evidence": "§4.5, \"PR already merged: `authorize` still writes grants if they are missing. `merge-gate` then takes its already-merged reconcile path.\" The spec nowhere marks these grants as post-hoc or restricts what they may be used for.",
+      "predicted_consequence": "A governed run whose merge landed without a grant (e.g. the deny path was overridden by a direct merge) can be retroactively laundered into an authorize-before-observe lineage by running `faff merge authorize` after the fact; the ledger shows a covering grant for a merge that occurred ungoverned.",
+      "spec_anchor": "45-edge-cases",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "No post-hoc grants: an already-merged PR exits 1.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The \"PR already merged\" edge case has `authorize` still write missing grants. The grant's policy inputs (`attended`, `holdout`, level) are derived at grant time — after the merge has already happened. The ledger's semantic sequence (declare → authorize → observe) will then present a merge as pre-authorized when the authorize record was minted post hoc, and the recorded `holdout`/`attended` are facts evaluated after the effect, not before it. Audit tooling that reads the ledger's semantic order rather than wall-clock timestamps is shown a clean authorization lineage for a merge that was never authorized in advance.",
+          "spec_anchor": "45-edge-cases"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The synopsis offers optional `--base B` and `--branch BR` on the `--local` form, while §4.1 says the base and branch \"are resolved by the same `resolveLocalBase` and current-branch logic `merge-gate-local.js` uses.\" The spec never states whether caller-supplied values override the resolution, are validated against it, or are rejected on mismatch. The grant's `target` is a trust-relevant input: if the caller-supplied base diverges from the base `merge-gate --local` later resolves, the command either mints a grant for a target the gate never checks (a useless grant, silently) or — if both verbs honour the caller's `--base` — a self-consistent grant for an arbitrary caller-named target. Neither branch is specified.",
+      "evidence": "§3 Interface synopsis `faff merge authorize … --local [--base B] [--branch BR]`; §4.1 \"`--local` … The base and branch are resolved by the same `resolveLocalBase` and current-branch logic `merge-gate-local.js` uses.\"",
+      "predicted_consequence": "An operator or agent passes `--base release` to authorize and the local merge actually targets `main` (or vice versa); the command exits 0 with a grant that does not cover the real merge, and the failure only surfaces at `merge-gate --local` as an unexplained grant blocker — or, if both honour the flag, a grant is minted for a target the caller chose rather than one the run's facts establish.",
+      "spec_anchor": "3-what",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "--base and --branch mean what they mean to merge-gate --local.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The synopsis offers optional `--base B` and `--branch BR` on the `--local` form, while §4.1 says the base and branch \"are resolved by the same `resolveLocalBase` and current-branch logic `merge-gate-local.js` uses.\" The spec never states whether caller-supplied values override the resolution, are validated against it, or are rejected on mismatch. The grant's `target` is a trust-relevant input: if the caller-supplied base diverges from the base `merge-gate --local` later resolves, the command either mints a grant for a target the gate never checks (a useless grant, silently) or — if both verbs honour the caller's `--base` — a self-consistent grant for an arbitrary caller-named target. Neither branch is specified.",
+          "spec_anchor": "3-what"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The idempotency scenario's expected outcome `reports written: false` is only defined for the `--json` output shape (the plain-text exit is unspecified in section 3), but the scenario's command does not carry `--json`. As written, a tester cannot decide what \"reports\" means — the prose output format is never specified.",
+      "evidence": "Scenario \"Given a governed L2 run where `faff merge authorize` has already granted the merge effect… Then it exits 0, reports `written: false`\".",
+      "predicted_consequence": "The scenario is unrunnable as stated; a tester must invent the `--json` flag to make it decidable, so the built test and the spec can disagree on what was verified.",
+      "spec_anchor": "scenarios",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Scenario uses --json.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The idempotency scenario's expected outcome `reports written: false` is only defined for the `--json` output shape (the plain-text exit is unspecified in section 3), but the scenario's command does not carry `--json`. As written, a tester cannot decide what \"reports\" means — the prose output format is never specified.",
+          "spec_anchor": "scenarios"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The slice is motivated entirely by the PR-open resume path (FAFF-1424/FAFF-1406 were `--pr` merges), yet it also carries the full `--local` form — separate base/branch resolution, a second trust-context shape, local \"already-merged\" ancestry semantics, and a dedicated end-to-end `merge-gate --local --check-only` test. That is a second delivery surface wearing the same ticket; the critique's moderate risk rating is driven precisely by \"fixture realism for the anchor-level and `gh` stubs,\" and `--local` is where fixture realism is hardest (no `gh` stub to lean on).",
+      "evidence": "Section 3 interface block and the `--local` bullet; section 4.6's final test bullet; the critique's risk-profile paragraph naming fixture realism as the risk locus.",
+      "predicted_consequence": "The `--pr` half (the actual recovery the ticket exists for) is held hostage to `--local` fixture work; if the local fixtures stall, the whole slice stalls rather than shipping the recovery path first.",
+      "spec_anchor": "interface",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Operator ratified keeping --local in scope, built after --pr (2026-10-29).",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "The slice is motivated entirely by the PR-open resume path (FAFF-1424/FAFF-1406 were `--pr` merges), yet it also carries the full `--local` form — separate base/branch resolution, a second trust-context shape, local \"already-merged\" ancestry semantics, and a dedicated end-to-end `merge-gate --local --check-only` test. That is a second delivery surface wearing the same ticket; the critique's moderate risk rating is driven precisely by \"fixture realism for the anchor-level and `gh` stubs,\" and `--local` is where fixture realism is hardest (no `gh` stub to lean on).",
+          "spec_anchor": "interface"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The \"no redundant records\" guarantee depends on `resolveCommissaireDecisionGrantDetail` / `resolveBranchDeleteGrantDetail` already returning the covering verdict's `verdict_seq`, and on the `effect-decision-verdict` record already carrying `payload.level`, `payload.attended`, `payload.holdout`. The spec asserts both (\"The resolvers already return…\", \"already carries those fields today\") but never draws them as checkable prerequisites; if either assertion is false, the \"no `commissaire*` module changes\" constraint breaks and the slice silently grows a Commissaire-side change — the exact expansion the operator ruled out.",
+      "evidence": "Section 4.2 \"Chosen: the command is idempotent per effect\" paragraph; DONE item \"Commissaire does not expand\"; the critique's principle-6 pass (\"dependencies surfaced: no issues\") which did not examine these in-prose assumptions.",
+      "predicted_consequence": "Build discovers mid-increment that a resolver or record shape must change, forcing either a scope breach of the operator's ruling or a silently weakened idempotency check (re-authorizing on every retry, contradicting scenario 3).",
+      "spec_anchor": "chosen-the-command-is-idempotent-per-effect",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Prerequisites stated as verified facts and pinned by a test.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "The \"no redundant records\" guarantee depends on `resolveCommissaireDecisionGrantDetail` / `resolveBranchDeleteGrantDetail` already returning the covering verdict's `verdict_seq`, and on the `effect-decision-verdict` record already carrying `payload.level`, `payload.attended`, `payload.holdout`. The spec asserts both (\"The resolvers already return…\", \"already carries those fields today\") but never draws them as checkable prerequisites; if either assertion is false, the \"no `commissaire*` module changes\" constraint breaks and the slice silently grows a Commissaire-side change — the exact expansion the operator ruled out.",
+          "spec_anchor": "chosen-the-command-is-idempotent-per-effect"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "Two behaviours the spec itself specifies and makes DONE-adjacent are absent from the test inventory, so their implementation is not pinned: (a) \"unresolvable anchor exits 2\" appears only in the Rule inventory's covering-test column, but no case in `test/merge-authorize.test.mjs`'s list (4.6) exercises a head whose anchor level cannot be resolved; (b) the edge case \"Branch-delete grant present but merge grant missing: only the merge effect is written\" has no test and no scenario.",
+      "evidence": "DONE items \"level comes from the committed anchor at the PR head. An unresolvable anchor exits 2\" and section 4.5's branch-delete-partial case; the test list under 4.6 covers neither.",
+      "predicted_consequence": "A builder could implement the exit-2 path wrongly (e.g. falling back to the ledger level, exactly the FAFF-690 lever the spec says it closes) and the named test suite still passes; likewise the partial-grant branch could write a redundant merge authorize with no failing test.",
+      "spec_anchor": "46-tests-in-test-only",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Tests added for an unresolvable anchor and a partial branch-delete grant.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "Two behaviours the spec itself specifies and makes DONE-adjacent are absent from the test inventory, so their implementation is not pinned: (a) \"unresolvable anchor exits 2\" appears only in the Rule inventory's covering-test column, but no case in `test/merge-authorize.test.mjs`'s list (4.6) exercises a head whose anchor level cannot be resolved; (b) the edge case \"Branch-delete grant present but merge grant missing: only the merge effect is written\" has no test and no scenario.",
+          "spec_anchor": "46-tests-in-test-only"
+        }
+      ]
+    }
+  ]
+}

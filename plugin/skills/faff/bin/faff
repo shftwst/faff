@@ -99,6 +99,7 @@ const { cmdLintCliDoc } = lazy(() => require("./lib/lint-cli-doc"), ["cmdLintCli
 const { cmdLintRefs } = lazy(() => require("./lib/lint-refs"), ["cmdLintRefs"]);
 const { cmdMergeFence } = lazy(() => require("./lib/merge-fence"), ["cmdMergeFence"]);
 const { cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdPrCreate } = lazy(() => require("./lib/merge-gate"), ["cmdBranchProtectionCheck", "cmdGithubAuthCheck", "cmdMergeGate", "cmdPrCreate"]);
+const { cmdMerge } = lazy(() => require("./lib/merge-authorize"), ["cmdMerge"]);
 const { cmdGithubTemplates } = lazy(() => require("./lib/github-templates"), ["cmdGithubTemplates"]);
 const { cmdNativeMap } = lazy(() => require("./lib/native-map"), ["cmdNativeMap"]);
 const { cmdNext } = lazy(() => require("./lib/next"), ["cmdNext"]);
@@ -231,6 +232,7 @@ const COMMANDS = {
   "bundle-recover": cmdBundleRecover,
   "corrective": cmdCorrective,
   "merge-gate": cmdMergeGate,
+  merge: cmdMerge,
   "pr-create": cmdPrCreate,
   "branch-protection-check": cmdBranchProtectionCheck,
   "github-auth-check": cmdGithubAuthCheck,

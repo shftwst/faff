@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff-graft/SKILL.md::the pr-create producer half now cites a level source the merge half abandoned",
+      "title": "The pr-create producer half now cites a level source the merge half abandoned",
+      "location": "plugin/skills/faff-graft/SKILL.md",
+      "action": "Restate the pr-create half inputs without claiming mirror parity",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The pr-create half no longer claims to mirror the merge half's inputs; it states its own (unchanged) inputs and why the levels agree there: the anchor is a byte copy of the ledger just before the PR opens (319e6a6d).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "The pr-create producer half now cites a level source the merge half abandoned",
+          "location": "plugin/skills/faff-graft/SKILL.md",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "records/specs/2026-10-29-FAFF-1426-give-a-governed-graft-that-stopped-at-pr-open-a-sanctioned-way-to-authorise-its-merge-later-design.md::spec's done item names docs/reference/cli.md; the diff documents docs/guide/cli.md",
+      "title": "Spec's DONE item names docs/reference/cli.md; the diff documents docs/guide/cli.md",
+      "location": "records/specs/2026-10-29-FAFF-1426-give-a-governed-graft-that-stopped-at-pr-open-a-sanctioned-way-to-authorise-its-merge-later-design.md",
+      "action": "Record the path correction; leave the byte-verified spec unedited",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "docs/reference/cli.md does not exist; docs/guide/cli.md is the lint-enforced CLI reference (lint-cli-doc). The committed spec is byte-verified against the reviewed spec (faff spec verify), so it is not edited after review; the path correction is recorded in the AC note and the PR body.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Spec's DONE item names docs/reference/cli.md; the diff documents docs/guide/cli.md",
+          "location": "records/specs/2026-10-29-FAFF-1426-give-a-governed-graft-that-stopped-at-pr-open-a-sanctioned-way-to-authorise-its-merge-later-design.md",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/merge-authorize.ts::two concurrent faff merge authorize runs can both declare the same effect",
+      "title": "Two concurrent faff merge authorize runs can both declare the same effect",
+      "location": "plugin/skills/faff/bin/lib/merge-authorize.ts",
+      "action": "Accept: a duplicate declare is harmless",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "A duplicate declare grants nothing and every coverage reader accepts any covering declare; grants stay idempotent on the signed verdict's inputs. merge-gate's own autoDeclareMergeEffects uses the same read-then-append top-up without a lock.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Two concurrent faff merge authorize runs can both declare the same effect",
+          "location": "plugin/skills/faff/bin/lib/merge-authorize.ts",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "docs/guide/cli.md::a deny leaves a declared effect with no grant, by design but undocumented",
+      "title": "A deny leaves a declared effect with no grant, by design but undocumented",
+      "location": "docs/guide/cli.md",
+      "action": "Document that a deny leaves the declaration",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The faff merge authorize row now states a deny leaves the declaration in place with no grant, so merge-gate still refuses (319e6a6d).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "A deny leaves a declared effect with no grant, by design but undocumented",
+          "location": "docs/guide/cli.md",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/merge-authorize.ts::deriveinputs swallows a malformed run ledger into attended computed from level alone",
+      "title": "deriveInputs swallows a malformed run ledger into attended computed from level alone",
+      "location": "plugin/skills/faff/bin/lib/merge-authorize.ts",
+      "action": "Write a stderr note when the run ledger is unreadable",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "An unreadable run-ledger.json now writes a stderr note naming the file and that attended is derived from the anchor level and config alone (319e6a6d).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "deriveInputs swallows a malformed run ledger into attended computed from level alone",
+          "location": "plugin/skills/faff/bin/lib/merge-authorize.ts",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    }
+  ]
+}

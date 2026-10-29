@@ -32,6 +32,7 @@
     "bin/lib/governor-admin.ts",
     "bin/lib/peer-cred.ts",
     "bin/lib/prep-attach.ts",
-    "bin/lib/judge-dispositions.ts"
+    "bin/lib/judge-dispositions.ts",
+    "bin/lib/merge-authorize.ts"
   ]
 }

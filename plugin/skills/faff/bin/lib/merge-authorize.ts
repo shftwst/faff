@@ -132,7 +132,10 @@ function deriveInputs(runDir: string, issue: string, target: Target, cwd: string
     throw new MergeAuthorizeError(2, `no trusted committed anchor level for run ${path.basename(runDir)} issue ${issue} at head ${target.headSha} (${anchor.status}); re-anchor (graft Step 9b) so the head carries .faff/anchors/…/run-ledger.json`);
   }
   let ledger: unknown = null;
-  try { ledger = sharedInfra.readLedger(runDir); } catch { ledger = null; }
+  try { ledger = sharedInfra.readLedger(runDir); } catch {
+    ledger = null;
+    process.stderr.write(`faff merge: note: ${path.join(runDir, "run-ledger.json")} is unreadable; attended is derived from the anchor level and config alone\n`);
+  }
   const cfg = config.loadConfig(cwd)[0];
   // Attendance is judged at the level that will be enforced, so the grant's level and attended agree.
   const atAnchor = isRecord(ledger) ? { ...ledger, level: anchor.level } : { level: anchor.level };

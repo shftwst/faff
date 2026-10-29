@@ -98,6 +98,7 @@ function deriveInputs(runDir, issue, target, cwd) {
     }
     catch {
         ledger = null;
+        process.stderr.write(`faff merge: note: ${path.join(runDir, "run-ledger.json")} is unreadable; attended is derived from the anchor level and config alone\n`);
     }
     const cfg = config.loadConfig(cwd)[0];
     // Attendance is judged at the level that will be enforced, so the grant's level and attended agree.

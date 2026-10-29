@@ -82,9 +82,9 @@ const regionsQuote = (s) => JSON.stringify(s);
 const regionsIsTsSource = (f) => f.endsWith(".ts") && !f.endsWith(".d.ts");
 const regionsHasTsSibling = (f, tsSet) => f.endsWith(".js") && tsSet.has(f.slice(0, -3) + ".ts");
 
-// Every file under `dir`, recursively, as sorted `dir`-relative `/`-separated paths. A symlinked
-// directory is malformed rather than skipped (a link must not hide a module), and so is a name
-// holding a control character (it could forge a log line).
+// Every file under `dir`, recursively, as sorted `dir`-relative `/`-separated paths. Any symlink is
+// malformed rather than followed or skipped (a link must not hide a module, nor pair a source that
+// lives elsewhere), and so is a name holding a control character (it could forge a log line).
 function regionsWalk(dir) {
   const files = [];
   const malformed = [];
@@ -94,9 +94,10 @@ function regionsWalk(dir) {
       if (CONTROL_CHAR_RE.test(e.name)) { malformed.push(`${regionsQuote(r)}: file name contains a control character`); continue; }
       if (e.isDirectory()) { visit(r); continue; }
       if (e.isSymbolicLink()) {
-        let st = null;
-        try { st = fs.statSync(path.join(dir, r)); } catch { malformed.push(`${regionsQuote(r)}: dangling symlink`); continue; }
-        if (st.isDirectory()) { malformed.push(`${regionsQuote(r)}: symlinked directory (a link must not hide a module)`); continue; }
+        let isDir = false;
+        try { isDir = fs.statSync(path.join(dir, r)).isDirectory(); } catch { isDir = false; }
+        malformed.push(`${regionsQuote(r)}: ${isDir ? "symlinked directory" : "symlinked file"} (a link must not hide or stand in for a module)`);
+        continue;
       }
       files.push(r);
     }
@@ -181,6 +182,7 @@ function regionsReadBaseAllowlist(ref, { scanDir, allowlistPath }) {
   if (verify.status !== 0) throw new Error(`--base ${regionsQuote(ref)} does not name a commit`);
   const rel = (p) => path.relative(toplevel, p).split(path.sep).join("/");
   const allowRel = rel(path.join(fs.realpathSync(path.dirname(allowlistPath)), path.basename(allowlistPath)));
+  if (allowRel.startsWith("../") || path.isAbsolute(allowRel)) throw new Error(`${regionsQuote(allowlistPath)} is outside the repository at ${regionsQuote(toplevel)}`);
   const present = regionsGit(toplevel, ["ls-tree", "-z", "--name-only", ref, "--", allowRel]);
   if (present.status !== 0) throw new Error(`git ls-tree ${regionsQuote(ref)} failed`);
   if (present.stdout !== "") {
@@ -1383,6 +1385,10 @@ function cmdRegions(args, COMMANDS) {
   const { values, positionals, errors } = parseArgs(args, REGIONS_SPEC);
   if (errors.length) return usageError(errors, REGIONS_USAGE);
   const sub = positionals[0];
+  if (values["--base"] !== undefined && sub !== "check") {
+    process.stderr.write(`faff regions ${regionsQuote(sub || "")}: --base applies only to \`regions check\`\n`);
+    return 2;
+  }
 
   if (sub === "list") {
     if (values["--json"]) { console.log(JSON.stringify(REGION_MAP)); return 0; }

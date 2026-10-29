@@ -235,6 +235,28 @@ test("command: a symlinked directory exits 2", () => {
   });
 });
 
+test("command: a symlinked file exits 2 (a link must not stand in for a module)", () => {
+  withTmp("filelink", (d) => {
+    const target = tmp("filelink-target");
+    try {
+      writeFileSync(path.join(target, "elsewhere.ts"), "export {};\n");
+      fixture(d, { files: { "x.js": "" }, include: ["bin/lib/x.ts"] });
+      symlinkSync(path.join(target, "elsewhere.ts"), path.join(d, "x.ts"));
+      const r = check(d);
+      assert.equal(r.status, 2, r.stderr);
+      assert.match(r.stderr, /TS-FIRST — "x\.ts": symlinked file/);
+    } finally { rmSync(target, { recursive: true, force: true }); }
+  });
+});
+
+test("command: --base on regions list or selftest exits 2 rather than being ignored", () => {
+  for (const sub of ["list", "selftest"]) {
+    const r = spawnSync(process.execPath, [FAFF, "regions", sub, "--base", "origin/main"], { encoding: "utf8", cwd: REPO });
+    assert.equal(r.status, 2, `${sub}: ${r.stderr}`);
+    assert.match(r.stderr, /--base applies only to `regions check`/);
+  }
+});
+
 test("command: a sub/x.ts with no sub/x.js exits 2 at the emit floor naming sub/x.ts", () => {
   withTmp("subemit", (d) => {
     const r = check(fixture(d, { files: { "sub/x.ts": "export {};\n" }, include: ["bin/lib/sub/x.ts"] }));

@@ -114,3 +114,11 @@ Human-ratified precedents that faff's autonomous resolve-attempt may cite when a
 - Scope: Evidence and event writers whose records carry an issue, and any gate that grades them; the ordering rule binds every ticket in such a cluster, so sibling tickets answering the same severity question must take the same answer.
 - Matches: Accept the weaker trusted gate for the multi-issue residue, or hold the evidence-schema: require flip until the residue has a PR-blocking home; Accept a weaker gate for multi-issue unattributable rows, or hold the enforcement flip; Whether to suppress a non-conforming decision-capture append, or keep writing the ungradeable row; Should an unattributable evidence row gate, warn or be skipped; Whether a row of an issue-scoped type carrying no issue gates the anchor it appears in
 - Date: 2026-10-20
+
+## Commissaire stays faff-agnostic and does not expand
+
+- Chosen: Commissaire's surface (the `faff commissaire` facade and its modules) gains no faff-specific object, verb, flag or concept: no `merge`, `graft`, `holdout` or run-ledger knowledge, and no reading of faff's run artifacts. By default it gains no new surface at all. Faff workflow needs are met by faff-side commands that read faff's own artifacts, assemble the request, and call Commissaire's existing `contract`, `effect`, `verdict`, `audit` and `governor` verbs unchanged; for FAFF-1426 that is `faff merge authorize` and `faff merge observe`.
+- Rationale: Commissaire is the governance layer and is faff-agnostic by design (ADR-0123's object-verb grammar, the `--issue` to `--unit-id` deprecation, FAFF-1207). Adding workflow concepts would couple the governor to one producer, and every addition widens the trusted surface.
+- Scope: every spec, ticket and recommendation that would add to `faff commissaire` or its modules. Growth needs an explicit operator decision.
+- Matches: commissaire merge; commissaire new verb; commissaire new object; faff commissaire merge authorize; extend commissaire; commissaire faff-specific
+- Date: 2026-10-29

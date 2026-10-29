@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/graft-admit.ts::the own-claim test ignores the run-dir fallback build-claim acquire uses for the holder session",
+      "title": "the own-claim test ignores the run-dir fallback build-claim acquire uses for the holder session",
+      "location": "plugin/skills/faff/bin/lib/graft-admit.ts",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "major",
+      "source": "standard",
+      "model": "claude-code/claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "acquire stamps --session-id, else $FAFF_SESSION_ID, else basename($FAFF_RUN_DIR); graft admit now resolves the caller identically, pinned by the 'own claim from the run dir' test (27cfea45).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "the own-claim test ignores the run-dir fallback build-claim acquire uses for the holder session",
+          "location": "plugin/skills/faff/bin/lib/graft-admit.ts",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "docs/guide/cli.md::spec's done item names docs/reference/cli.md, but the pr documents the command in docs/guide/cli.md",
+      "title": "Spec's DONE item names docs/reference/cli.md, but the PR documents the command in docs/guide/cli.md",
+      "location": "docs/guide/cli.md",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "docs/reference/cli.md does not exist in the tree; docs/guide/cli.md is the CLI reference, enforced by lint-cli-doc (PASS). The AC checklist records the path difference.",
+      "disposition_rationale": "No second doc exists to drift; the spec named a path that is not in the repository.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Spec's DONE item names docs/reference/cli.md, but the PR documents the command in docs/guide/cli.md",
+          "location": "docs/guide/cli.md",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/graft-admit.ts::writemarkers emits eligible action markers on routes the deleted prose never recorded, contradicting rule 19",
+      "title": "writeMarkers emits eligible action markers on routes the deleted prose never recorded, contradicting rule 19",
+      "location": "plugin/skills/faff/bin/lib/graft-admit.ts",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The spec's section 3 marker table, accepted by the human, prescribes an eligible marker on needs-prep, needs-human and excluded; the code follows the table. Row 19's shorter wording is the spec's own imprecision. FAFF-1434's full replay is where the corpus semantics of these markers get compared.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "writeMarkers emits eligible action markers on routes the deleted prose never recorded, contradicting rule 19",
+          "location": "plugin/skills/faff/bin/lib/graft-admit.ts",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/graft-admit.ts::unexpected exceptions escape as uncaught exit-1 stack traces instead of the spec's fail-closed exit 2",
+      "title": "Unexpected exceptions escape as uncaught exit-1 stack traces instead of the spec's fail-closed exit 2",
+      "location": "plugin/skills/faff/bin/lib/graft-admit.ts",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Any non-AdmitFailure exception, and an unresolvable repo root, now exit 2 with reason internal and the structured JSON error (73acc54e); a corrupt control-label config is pinned as exit 2 config-invalid.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Unexpected exceptions escape as uncaught exit-1 stack traces instead of the spec's fail-closed exit 2",
+          "location": "plugin/skills/faff/bin/lib/graft-admit.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/graft-admit.ts::the intake blocked path drops the computed warning detail",
+      "title": "The intake blocked path drops the computed warning detail",
+      "location": "plugin/skills/faff/bin/lib/graft-admit.ts",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The intake warning is pushed before the exit-3 refusal returns (73acc54e). The path is unreachable after eligibility, so it has no CLI test.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "The intake blocked path drops the computed warning detail",
+          "location": "plugin/skills/faff/bin/lib/graft-admit.ts",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/graft-admit.test.mjs::--wave is accepted but entirely untested",
+      "title": "--wave is accepted but entirely untested",
+      "location": "test/graft-admit.test.mjs",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added '--wave pins every base record and its marker to that wave' (73acc54e).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "--wave is accepted but entirely untested",
+          "location": "test/graft-admit.test.mjs",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/graft-admit.ts::eligible base record normalised_inputs are hand-assembled with a hardcoded automationdefault opt-in",
+      "title": "eligible base record normalised_inputs are hand-assembled with a hardcoded automationDefault opt-in",
+      "location": "plugin/skills/faff/bin/lib/graft-admit.ts",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added 'eligible capture parity', which compares graft admit's eligible base record with the one faff eligible records for the same labels: inputs, verdict and kernel_version are equal (73acc54e).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "eligible base record normalised_inputs are hand-assembled with a hardcoded automationDefault opt-in",
+          "location": "plugin/skills/faff/bin/lib/graft-admit.ts",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,555 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 3,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "`admit`'s step 4 turns a peer-status issue into `claimed-by-peer` at admission, pre-worktree — so graft never reaches Step 5, where `build-claim acquire` transparently reclaims a genuinely-stale prior claim via `--force-with-lease`. The spec's own mitigation sentence — \"Reclaiming stays with `/faff-tidy`'s sweep and `faff build-claim acquire`\" — is false for the path the design introduces: on a direct autonomous graft of an issue whose previous executor crashed mid-claim, `acquire` is now unreachable, and the stale claim blocks every future admission until a human runs `/faff-tidy`. Today the direct graft path self-heals at Step 5; the spec changes that behaviour without listing it in the rule inventory, and its extension point (\"a later ticket can turn a stale verdict into a `proceed`\") defers the fix while shipping the regression.",
+      "evidence": "§4.1 step 4 (`autonomous AND NOT own -> claimed-by-peer`, including the `missing`-ref and `store_unavailable` fail-closed branches); §2 \"Acting on a stale claim\"; §3 extension point bullet; §5 \"Claim from status plus ref\".",
+      "predicted_consequence": "a crashed executor's stale `In Progress` claim permanently pins the issue as `claimed-by-peer` in every subsequent run's summary; the reclaim that today's Step-5 `acquire` performs never fires, and the issue is only freed by a manual `/faff-tidy` sweep — a new stuck state on exactly the crash-recovery path the claim system was built for.",
+      "spec_anchor": "acting-on-a-stale-claim",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Became the stale-ref decision; the human ratified proceed with a warning so Step 5's acquire reclaims a stale ref.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "`admit`'s step 4 turns a peer-status issue into `claimed-by-peer` at admission, pre-worktree — so graft never reaches Step 5, where `build-claim acquire` transparently reclaims a genuinely-stale prior claim via `--force-with-lease`. The spec's own mitigation sentence — \"Reclaiming stays with `/faff-tidy`'s sweep and `faff build-claim acquire`\" — is false for the path the design introduces: on a direct autonomous graft of an issue whose previous executor crashed mid-claim, `acquire` is now unreachable, and the stale claim blocks every future admission until a human runs `/faff-tidy`. Today the direct graft path self-heals at Step 5; the spec changes that behaviour without listing it in the rule inventory, and its extension point (\"a later ticket can turn a stale verdict into a `proceed`\") defers the fix while shipping the regression.",
+          "spec_anchor": "acting-on-a-stale-claim"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The marker table gives `claim-verdict` markers for `proceed` and `claimed-by-peer`, but §4.1 consults `claimVerdict` only \"whenever `claimed_at` is present on a claim status\", and §3's DONE says a `claim-verdict` base record exists only \"when consulted\". A `proceed` on a Todo issue (no claim status → no consult) and a `claimed-by-peer` via a missing ref with `claimed_at: null` (the spec's own chosen rule for peer-status-with-no-ref) have no base record, so the marker the table promises cannot be written. The table and the capture rule contradict each other.",
+      "evidence": "§3 marker table rows `proceed` and `claimed-by-peer`; §4.1 step 4 (`IF claimed_at: ttl := claimVerdict(...)`); §4.1 \"Chosen: a `missing` ref with a peer status ... is `claimed-by-peer`\".",
+      "predicted_consequence": "the replay test's \"marker per disposition\" check fails or the builder silently drops the marker for those rows, producing base records with no action marker — the exact honest-uncaptured state the corpus study was built to avoid, now by spec contradiction rather than by rule.",
+      "spec_anchor": "decision-capture",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "A claim-verdict marker is written only beside a claim-verdict base record.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The marker table gives `claim-verdict` markers for `proceed` and `claimed-by-peer`, but §4.1 consults `claimVerdict` only \"whenever `claimed_at` is present on a claim status\", and §3's DONE says a `claim-verdict` base record exists only \"when consulted\". A `proceed` on a Todo issue (no claim status → no consult) and a `claimed-by-peer` via a missing ref with `claimed_at: null` (the spec's own chosen rule for peer-status-with-no-ref) have no base record, so the marker the table promises cannot be written. The table and the capture rule contradict each other.",
+          "spec_anchor": "decision-capture"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "§4.2's beep-boop mapping lists seven dispositions (`proceed`, `claimed-by-peer`, `inadmissible`, `ineligible`, `needs-prep`, `needs-human`, `excluded`) but omits the intake `blocked` disposition the same section introduces (\"beep-boop's admission now also runs the intake guard\"). Graft's routing sentence covers `proceed`, `needs-prep` and \"every skip token\" — but `needs-human` is not a skip token and is not named, so graft's Step 2 has no stated action for it. Beep-boop's handling of a non-zero (exit 2) result is also unstated, while graft's is specified.",
+      "evidence": "§4.2 graft bullet list and beep-boop mapping sentence; §3 disposition table (eight rows including `blocked`).",
+      "predicted_consequence": "the first builder wiring either caller hits an unhandled disposition and improvises a bucket (most plausibly treating intake-`blocked` as `excluded`, reintroducing the very token confusion the spec's \"Chosen\" rename exists to prevent).",
+      "spec_anchor": "callers",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Every disposition and exit 2 is mapped for graft; beep-boop's mapping moved to FAFF-1434 with the split.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "§4.2's beep-boop mapping lists seven dispositions (`proceed`, `claimed-by-peer`, `inadmissible`, `ineligible`, `needs-prep`, `needs-human`, `excluded`) but omits the intake `blocked` disposition the same section introduces (\"beep-boop's admission now also runs the intake guard\"). Graft's routing sentence covers `proceed`, `needs-prep` and \"every skip token\" — but `needs-human` is not a skip token and is not named, so graft's Step 2 has no stated action for it. Beep-boop's handling of a non-zero (exit 2) result is also unstated, while graft's is specified.",
+          "spec_anchor": "callers"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The whole premise is \"the decision has one home\", yet the load-bearing `claimed-by-peer` trigger keys on the caller-normalised `status` enum (`backlog|todo|in-progress|in-review|done|cancelled|duplicate`), and the mapping from real tracker state names (Linear states, GitHub `open`, git-only store statuses) onto that enum is left undefined — it lives in each caller's prose, the exact per-caller re-derivation the ticket exists to eliminate. Two callers normalising \"In Development\" or a custom state differently will disagree on the claim gate while both \"calling the same command\".",
+      "evidence": "§3 facts schema (`\"status\": \"todo\", // normalised: ...`); §4.1 step 4 keys on `in-progress | in-review`; §2 leaves tracker reads \"agent-side\".",
+      "predicted_consequence": "graft and beep-boop can reach different dispositions for the same issue on the same live tracker state, reproducing the corpus's cross-caller divergence one layer up, undetectable by the replay test (which replays already-normalised corpus inputs).",
+      "spec_anchor": "interface",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The facts status uses the normalisation callers already apply before faff next --status; no second mapping.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The whole premise is \"the decision has one home\", yet the load-bearing `claimed-by-peer` trigger keys on the caller-normalised `status` enum (`backlog|todo|in-progress|in-review|done|cancelled|duplicate`), and the mapping from real tracker state names (Linear states, GitHub `open`, git-only store statuses) onto that enum is left undefined — it lives in each caller's prose, the exact per-caller re-derivation the ticket exists to eliminate. Two callers normalising \"In Development\" or a custom state differently will disagree on the claim gate while both \"calling the same command\".",
+          "spec_anchor": "interface"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The claimed-by-peer gate — the mechanical backstop that skipped 14 corpus records — becomes fail-open against the party it governs. `--session-id` \"identifies the caller\" but nothing in the spec establishes who can write it; the default is an environment variable (`$FAFF_SESSION_ID`), set by the very agent the gate exists to constrain. Worse, the peer's `session_id` is *not a secret*: the spec's own reference context says `buildClaimStore(root).read` returns \"the ref's claim, whose `owner.session_id` identifies the holder\". So the bypass recipe is fully stated by the design: read the peer's claim, set `FAFF_SESSION_ID` to the holder's value, call `faff graft admit --mode autonomous`, and the spec's step 4 yields `own == true` → `proceed` on an issue a peer holds. This is exactly the FAFF-209/FAFF-218 class failure the provenance marker was built to close (an agent-spoofable gesture standing in for a trust decision), reintroduced one layer up. The spec grants authority on the strength of an input and never says who can write it — under the review rules that is an objection, not a hardening note.",
+      "evidence": "§3 Interface — \"`--session-id` identifies the caller for the own-claim test. Default `$FAFF_SESSION_ID`\"; §4.1 step 4 — \"`own := ref.held AND ref.claim.owner.session_id == sessionId`\"; rule-inventory row 29 \"changed: the caller's own build-claim ref now counts as own work\"; context `bundle.js` — the idempotent re-acquire keys on `owner.session_id`, and `buildClaimStore.read` exposes it.",
+      "predicted_consequence": "an agent (or a compromised/diverging run) flips `claimed-by-peer` to `proceed` on a peer-held In-Progress/In-Review issue; the double-build is only stopped downstream at graft Step 5's `acquire` (`exists` refusal) — so on issues where no live build-claim exists (the exact \"In Review with no ref\" case the spec itself rules `claimed-by-peer`), nothing stops the concurrent build: duplicate worktrees, duplicate PRs, and a silent false `proceed` marker written into the decision-corpus record for a gate that never actually held.",
+      "spec_anchor": "interface",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The own-claim test trusts no more than build-claim acquire already does; the existing session-id weakness is filed as FAFF-1433.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The claimed-by-peer gate — the mechanical backstop that skipped 14 corpus records — becomes fail-open against the party it governs. `--session-id` \"identifies the caller\" but nothing in the spec establishes who can write it; the default is an environment variable (`$FAFF_SESSION_ID`), set by the very agent the gate exists to constrain. Worse, the peer's `session_id` is *not a secret*: the spec's own reference context says `buildClaimStore(root).read` returns \"the ref's claim, whose `owner.session_id` identifies the holder\". So the bypass recipe is fully stated by the design: read the peer's claim, set `FAFF_SESSION_ID` to the holder's value, call `faff graft admit --mode autonomous`, and the spec's step 4 yields `own == true` → `proceed` on an issue a peer holds. This is exactly the FAFF-209/FAFF-218 class failure the provenance marker was built to close (an agent-spoofable gesture standing in for a trust decision), reintroduced one layer up. The spec grants authority on the strength of an input and never says who can write it — under the review rules that is an objection, not a hardening note.",
+          "spec_anchor": "interface"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "major",
+      "claim": "The slice is at the top of the size range and, rather than splitting, it concentrates two in-flight baseline/contention conflicts into one PR — the critique names both and mitigates neither.",
+      "evidence": "The methodology critique says \"Borderline, at the top of the 1–3 day range: one command, two callers, a replay test and a 35-row rule inventory\", and separately: \"FAFF-1413 … also edits `faff-beep-boop/SKILL.md`, and FAFF-1406 (#1156) changes `SKILL_LINE_BASELINE`, so whichever lands second rebases one baseline line. No blocker link needed.\" The keep-whole argument is that a split leaves two admission homes \"for the gap between merges\", but the split (command + graft caller first, beep-boop second) has the command ready as the single home in the gap — graft is the only caller whose drift the WHY's evidence is about (the mis-tokened markers came from graft's own Step 2 bash blocks). The genuinely large, separable piece — the beep-boop re-wiring, which drags in a second SKILL.md, a second baseline line, and the FAFF-1413 edit-conflict — is the part best deferred, and the critique's one-line dismissal of the split (\"keep whole\") does not engage it.",
+      "predicted_consequence": "A three-way contention on the same prose region/baseline line (this PR, FAFF-1413, FAFF-1422/FAFF-1406), forcing a rebase of a large behavioural diff late in the cycle rather than a small mechanical one; or, if the PR stalls in review, both callers' baselines land in one oversized review.",
+      "spec_anchor": "4-2-callers",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The human split the ticket: beep-boop's caller and the rest of the replay are FAFF-1434.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The slice is at the top of the size range and, rather than splitting, it concentrates two in-flight baseline/contention conflicts into one PR — the critique names both and mitigates neither.",
+          "spec_anchor": "4-2-callers"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The spec asserts non-overlap with FAFF-1412 on the grounds that drain-filter \"filters before a drain starts\", but the wiring ticket FAFF-1422 edits beep-boop step 4 — exactly the paragraphs (\"Gate eligibility via `faff next`\", claim-before-admit, capture, admissibility filter) this slice deletes and replaces with one command call. That is a same-region edit conflict, not an overlap of semantics, and it is buried in \"Already shipped against this surface\" instead of being a sequenced dependency or a noted rebase.",
+      "evidence": "\"FAFF-1422 wires `drain-filter` into the runner\" vs. HOW 4.2: beep-boop's step-4 paragraphs \"become one call per candidate\". Both PRs cannot land without one rebasing through the other's prose rewrite.",
+      "predicted_consequence": "Whichever PR lands first forces a non-trivial merge conflict for the other in a behavioural region; if resolved carelessly, drain-filter's gate or the admit call silently loses its placement in step 4's ordering.",
+      "spec_anchor": "already-shipped-against-this-surface",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "FAFF-1422 edits the runner pre-check, not beep-boop step 4.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The spec asserts non-overlap with FAFF-1412 on the grounds that drain-filter \"filters before a drain starts\", but the wiring ticket FAFF-1422 edits beep-boop step 4 — exactly the paragraphs (\"Gate eligibility via `faff next`\", claim-before-admit, capture, admissibility filter) this slice deletes and replaces with one command call. That is a same-region edit conflict, not an overlap of semantics, and it is buried in \"Already shipped against this surface\" instead of being a sequenced dependency or a noted rebase.",
+          "spec_anchor": "already-shipped-against-this-surface"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The replay test is not a verification aid for this slice; it is a separate corpus-archaeology deliverable — committed sidecar fixtures, per-run run-id lists, four enumerated intended-divergence classes and named exception records (capture-join, mis-tokens). It can and should be its own increment (it validates the kernels against historical data independently of whether the command or either caller is wired).",
+      "evidence": "DONE's \"Corpus replay\" section specifies a second test file (`test/graft-admit-replay.test.mjs`), a committed sidecar with run-id enumerations, and a sidecar exception list — none of which is needed to ship the command against its own unit tests, and which the methodology critique itself counts toward the \"top of the range\" sizing without proposing to separate it.",
+      "predicted_consequence": "The single PR mixes a kernel-extraction with a dataset-pinning exercise, so a dispute over one replay exception (e.g. a run whose facts the sidecar guesses wrong) blocks the extraction's merge even though the command itself is sound.",
+      "spec_anchor": "corpus-replay",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Human decision: the full replay moved to FAFF-1434, and the In Review slice stays in FAFF-1414.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The replay test is not a verification aid for this slice; it is a separate corpus-archaeology deliverable — committed sidecar fixtures, per-run run-id lists, four enumerated intended-divergence classes and named exception records (capture-join, mis-tokens). It can and should be its own increment (it validates the kernels against historical data independently of whether the command or either caller is wired).",
+          "spec_anchor": "corpus-replay"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The spec defines eight dispositions (`proceed`, `needs-prep`, `needs-human`, `excluded`, `ineligible`, `claimed-by-peer`, `blocked`, `inadmissible`) and a DONE item that each must be reachable, but the `## Scenarios` unit exercises only three of them (`claimed-by-peer`, `proceed`-via-own-claim, `inadmissible`) plus two exit-2/warning cases. There is no scenario for the plain autonomous happy path (a Todo, eligible, admissible, intake-passing issue → `proceed`), nor for `needs-prep`, `needs-human`, `excluded`, autonomous `ineligible`, or the intake `blocked` disposition.",
+      "evidence": "`## Scenarios` (5 units) vs the disposition table in `### Interface` / `### Dispositions`; rule-inventory rows 5, 7, 10, 21 name tests (\"no spec → needs-prep\", \"excluded reasons\", \"autonomous ineligible\", \"intake block\") that exist only as test-file names, which the code-blind holdout cannot read.",
+      "predicted_consequence": "The holdout cannot decide whether `needs-prep`, `needs-human`, `excluded`, `ineligible` or intake-`blocked` behave as the table says; a build that returns the wrong token for any of them passes every stated scenario.",
+      "spec_anchor": "scenarios",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Scenarios added for proceed, needs-prep, excluded, ineligible and needs-human.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The spec defines eight dispositions (`proceed`, `needs-prep`, `needs-human`, `excluded`, `ineligible`, `claimed-by-peer`, `blocked`, `inadmissible`) and a DONE item that each must be reachable, but the `## Scenarios` unit exercises only three of them (`claimed-by-peer`, `proceed`-via-own-claim, `inadmissible`) plus two exit-2/warning cases. There is no scenario for the plain autonomous happy path (a Todo, eligible, admissible, intake-passing issue → `proceed`), nor for `needs-prep`, `needs-human`, `excluded`, autonomous `ineligible`, or the intake `blocked` disposition.",
+          "spec_anchor": "scenarios"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The facts field `external_blocker_unmet` is passed as `nextStep`'s `blocked` parameter (`blocked: external_blocker_unmet`), but \"unmet\" reads both ways: \"the blocker is unmet (still blocking) → blocked=true\" or \"no blocker remains unmet → false means clear\". The example shows `false` with no prose stating which boolean value means \"this issue is externally blocked\". The `excluded` disposition's `reason: blocked` depends entirely on this polarity.",
+      "evidence": "facts object in `### Interface`; step 3 of `### 4.1 The chain`; rule-inventory row 8.",
+      "predicted_consequence": "A builder can invert the flag and every externally-blocked issue routes to `proceed` (or every clear issue to `excluded`), with no stated scenario or DONE line catching it.",
+      "spec_anchor": "41-the-chain",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Renamed externally_blocked, with its polarity stated.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The facts field `external_blocker_unmet` is passed as `nextStep`'s `blocked` parameter (`blocked: external_blocker_unmet`), but \"unmet\" reads both ways: \"the blocker is unmet (still blocking) → blocked=true\" or \"no blocker remains unmet → false means clear\". The example shows `false` with no prose stating which boolean value means \"this issue is externally blocked\". The `excluded` disposition's `reason: blocked` depends entirely on this polarity.",
+          "spec_anchor": "41-the-chain"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "`### 4.2 Callers` says beep-boop's admission is \"one call per candidate **after the routing verdict admits it**\", but the disposition-to-bucket mapping for that same call includes `needs-prep` → \"the prep queue\". A candidate that `nextStep` routes to `prep` (no spec) cannot have an automation-routing verdict computed (there is no spec body to judge), so under the stated ordering it never reaches `admit` — yet the mapping promises it does. The spec deletes beep-boop's \"Gate eligibility via `faff next`\" paragraph without saying what now routes no-spec candidates to the prep queue.",
+      "evidence": "`### 4.2 Callers`, second paragraph; the deleted \"Gate eligibility via `faff next` first\" paragraph of faff-beep-boop step 4 quoted in the context.",
+      "predicted_consequence": "A build satisfies \"beep-boop calls `faff graft admit` and shells no `faff next`\" while no-spec candidates are either given a meaningless routing verdict or silently dropped from the prep queue — the exact drift the ticket exists to remove.",
+      "spec_anchor": "42-callers",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Beep-boop's ordering moved to FAFF-1434 with the split; admission runs before the routing verdict there.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "`### 4.2 Callers` says beep-boop's admission is \"one call per candidate **after the routing verdict admits it**\", but the disposition-to-bucket mapping for that same call includes `needs-prep` → \"the prep queue\". A candidate that `nextStep` routes to `prep` (no spec) cannot have an automation-routing verdict computed (there is no spec body to judge), so under the stated ordering it never reaches `admit` — yet the mapping promises it does. The spec deletes beep-boop's \"Gate eligibility via `faff next`\" paragraph without saying what now routes no-spec candidates to the prep queue.",
+          "spec_anchor": "42-callers"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The chain pseudocode returns `ineligible` at step 2, before step 3 computes `nextStep` — but section 3 requires \"a base record for `eligible` and `next` on every call\", the DONE list repeats \"base records on every call\", and the marker table requires a `next` marker of `skip-ineligible` for the `ineligible` disposition. As written, the ineligible path cannot produce the next base record or marker the same spec requires.",
+      "evidence": "Section 4.1 step 2 (`autonomous AND NOT eligible -> ineligible`) vs section 3's capture paragraph (\"a base record for `eligible` and `next` on every call\") and the marker table row `ineligible | skip-ineligible | ineligible`.",
+      "predicted_consequence": "A builder following the pseudocode literally ships an `ineligible` path with no `next` base record, failing the spec's own DONE criterion and the marker table; the corpus gains eligible-only records for every ineligible skip, breaking the replay's assumption that every admission carries a next record.",
+      "spec_anchor": "4-1-the-chain",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Both kernels run before any disposition, so an ineligible call still writes its next base record.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The chain pseudocode returns `ineligible` at step 2, before step 3 computes `nextStep` — but section 3 requires \"a base record for `eligible` and `next` on every call\", the DONE list repeats \"base records on every call\", and the marker table requires a `next` marker of `skip-ineligible` for the `ineligible` disposition. As written, the ineligible path cannot produce the next base record or marker the same spec requires.",
+          "spec_anchor": "4-1-the-chain"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The claim-ref read failing (`store_unavailable`) in autonomous mode yields disposition `claimed-by-peer` with `reason: claim-store-unavailable`. The disposition token is what the run ledger, `runcheck` and the run summary key on (the spec's own \"Chosen\" rationale for reusing tokens); the reason lives only in the JSON and `graft.md`. So a store outage lands in the run summary's \"Claimed by peer\" bucket — asserting a peer holds the issue when the truth is \"we could not check\". The spec acknowledges the fail-closed direction but not this misreporting consequence of the token reuse.",
+      "evidence": "Section 4.1 final bullet (\"A read failure (`store_unavailable`) in autonomous mode is `claimed-by-peer` with `reason: claim-store-unavailable`\"); section 3's \"Chosen\" note that the run ledger and run summary key on these tokens.",
+      "predicted_consequence": "Every origin outage during a drain surfaces as inflated \"Claimed by peer\" counts in the morning brief, with the true cause recoverable only by reading per-issue `graft.md` files.",
+      "spec_anchor": "4-1-the-chain",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "A claim-store read failure exits 2 with reason claim-store-unavailable instead of claimed-by-peer.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The claim-ref read failing (`store_unavailable`) in autonomous mode yields disposition `claimed-by-peer` with `reason: claim-store-unavailable`. The disposition token is what the run ledger, `runcheck` and the run summary key on (the spec's own \"Chosen\" rationale for reusing tokens); the reason lives only in the JSON and `graft.md`. So a store outage lands in the run summary's \"Claimed by peer\" bucket — asserting a peer holds the issue when the truth is \"we could not check\". The spec acknowledges the fail-closed direction but not this misreporting consequence of the token reuse.",
+          "spec_anchor": "4-1-the-chain"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The slice's line-count deliverable can be invalidated by a sibling in the same lane landing first, and the spec leaves the resolution to whichever lands second, so this increment's DONE item (\"baseline lowered to the new count\") is not independently stable.",
+      "evidence": "The methodology critique states \"FAFF-1406 (#1156) changes `SKILL_LINE_BASELINE`, so whichever lands second rebases one line\"; DONE says \"`SKILL_LINE_BASELINE` for `faff-graft` is lowered to the new count in the same PR.\"",
+      "predicted_consequence": "If FAFF-1406 merges first, this PR's baseline edit conflicts or rebase-measures a different count, risking a stale baseline landing and a red freshness gate; a rebase note as a `blocks`-style ordering edge (the corpus precedent: \"the ordering rule binds every ticket in such a cluster… carried as a tracker `blocks` edge\") would make the sequencing visible to the pipeline rather than prose-only.",
+      "spec_anchor": "rule-inventory",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The baseline is measured after rebasing on main.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The slice's line-count deliverable can be invalidated by a sibling in the same lane landing first, and the spec leaves the resolution to whichever lands second, so this increment's DONE item (\"baseline lowered to the new count\") is not independently stable.",
+          "spec_anchor": "rule-inventory"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The increment is framed as extracting prose into one command, but rows 36 and 38 change what a direct autonomous `/faff-graft` does (a peer-status issue with no ref is now refused pre-worktree instead of acquiring a fresh claim at Step 5). A change-of-behaviour increment and an extraction increment in one PR make the failure mode on regression ambiguous (is the command wrong, or the new rule?).",
+      "evidence": "Rule inventory rows 36 and 38 are marked \"changed for graft: a new pre-worktree check\"; the critique rates risk \"low to moderate… behaviour changes named in rows 33, 36 and 38\" — i.e. surfaced, not argued away.",
+      "predicted_consequence": "A regression report against a peer-status build will not cleanly attribute to command-vs-rule; a bisect that reverts the whole PR restores both the old chain and the old rule, obscuring which half the operator wanted kept. Marginal, since the rows are explicitly labelled and the tests pin them.",
+      "spec_anchor": "45-rule-inventory",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The behaviour change is named in rule-inventory rows 33, 36 and 38 and pinned by tests; the human moved the In Review replay in to prove it.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The increment is framed as extracting prose into one command, but rows 36 and 38 change what a direct autonomous `/faff-graft` does (a peer-status issue with no ref is now refused pre-worktree instead of acquiring a fresh claim at Step 5). A change-of-behaviour increment and an extraction increment in one PR make the failure mode on regression ambiguous (is the command wrong, or the new rule?).",
+          "spec_anchor": "45-rule-inventory"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "DONE requires \"the command writes `next` and `eligible` base records on every call\", but the chain returns `ineligible` at step 2 — before step 3 invokes `nextStep` — so there is no kernel verdict to capture. The spec's own invariant (\"base records captured in-kernel from each kernel's own inputs, never hand-built\") cannot be satisfied on this path, and the marker table says the `ineligible` disposition emits a `next` marker of `skip-ineligible` — a marker beside a base record whose `verdict` field is unspecified.",
+      "evidence": "DONE item \"With a resolvable run dir and capture on, the command writes `next` and `eligible` base records on every call\"; chain step 2 vs step 3 in section 4.1; marker table row `ineligible`.",
+      "predicted_consequence": "a tester writing `test/graft-admit.test.mjs` cannot decide what `matrix.next.verdict` must contain for an `ineligible` call — the exact field the FAFF-1434 corpus-replay test keys on — so the fidelity study's prescribed-vs-actual signal is undefined for this disposition.",
+      "spec_anchor": "decision-capture",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Same fix as 2#0.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "DONE requires \"the command writes `next` and `eligible` base records on every call\", but the chain returns `ineligible` at step 2 — before step 3 invokes `nextStep` — so there is no kernel verdict to capture. The spec's own invariant (\"base records captured in-kernel from each kernel's own inputs, never hand-built\") cannot be satisfied on this path, and the marker table says the `ineligible` disposition emits a `next` marker of `skip-ineligible` — a marker beside a base record whose `verdict` field is unspecified.",
+          "spec_anchor": "decision-capture"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "the exit-2 rule fires when \"the tracker is configured **or pinned** but `reachable` is false\", but the facts object only carries `tracker: { mode, configured, reachable }` — there is no `pinned` field, so a builder cannot decide when the pinned-but-unreachable case fires versus the configured-but-unreachable case (or whether they differ at all).",
+      "evidence": "Interface section facts schema vs Exit-2 bullet in the Dispositions section.",
+      "predicted_consequence": "two builders implement the `tracker-unreachable` check differently (one keys on `configured`, one invents a `pinned` field), and the \"unreachable tracker\" test in `graft-admit.test.mjs` passes for both — the pinned distinction is unverifiable.",
+      "spec_anchor": "dispositions",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added the tracker.pinned field.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "the exit-2 rule fires when \"the tracker is configured **or pinned** but `reachable` is false\", but the facts object only carries `tracker: { mode, configured, reachable }` — there is no `pinned` field, so a builder cannot decide when the pinned-but-unreachable case fires versus the configured-but-unreachable case (or whether they differ at all).",
+          "spec_anchor": "dispositions"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "step 2 says `eligible := automationEligible(labels, ...)`, but `automationEligible` compares against the literal `\"faff-automate\"`; the prefix translation (`normalizeEligibilityLabels`) and the FAFF-1091 automate-name override live one layer up, and the spec never says the command resolves `tracking.label_prefix` or `tracking.control_labels.automate` for the eligibility check — even though it does resolve them via `controlLabels` for `parked`/`awaitingSpecReview` and threads `prefix`/`automateName` into `intakeVerdict`.",
+      "evidence": "chain step 2 in section 4.1; reference context for `eligible.js`; the intake call in step 6 which does thread the resolved names.",
+      "predicted_consequence": "under a configured non-default prefix, the command judges every issue not-eligible (`ineligible`) while `intakeVerdict` in step 6 would have found the `eligibility-gesture` basis — the two gates the spec keeps as defence-in-depth diverge exactly as the spec fears, and no scenario or inventory row covers a custom-prefix label set.",
+      "spec_anchor": "4-1-the-chain",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Eligibility uses normalizeEligibilityLabels with the configured prefix and automate-name override.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "step 2 says `eligible := automationEligible(labels, ...)`, but `automationEligible` compares against the literal `\"faff-automate\"`; the prefix translation (`normalizeEligibilityLabels`) and the FAFF-1091 automate-name override live one layer up, and the spec never says the command resolves `tracking.label_prefix` or `tracking.control_labels.automate` for the eligibility check — even though it does resolve them via `controlLabels` for `parked`/`awaitingSpecReview` and threads `prefix`/`automateName` into `intakeVerdict`.",
+          "spec_anchor": "4-1-the-chain"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "step 4 specifies an interactive-only behaviour — \"held by another claimant; Step 5's acquire decides\" warning, disposition still `proceed` — but every scenario and every covering test in the rule inventory (row 38: \"in-review peer\", \"in-progress peer\", \"own claim proceeds\") exercises the autonomous branch only.",
+      "evidence": "chain step 4, interactive branch; rule-inventory row 38.",
+      "predicted_consequence": "the interactive claim path ships untested; a build that returns `claimed-by-peer` in interactive mode (or silently proceeds with no warning) satisfies every named AC and every scenario.",
+      "spec_anchor": "4-1-the-chain",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added the interactive-peer scenario and test.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "step 4 specifies an interactive-only behaviour — \"held by another claimant; Step 5's acquire decides\" warning, disposition still `proceed` — but every scenario and every covering test in the rule inventory (row 38: \"in-review peer\", \"in-progress peer\", \"own claim proceeds\") exercises the autonomous branch only.",
+          "spec_anchor": "4-1-the-chain"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The chain lists `autonomous AND NOT eligible -> ineligible` **before** `step == \"done\"|\"none\" -> excluded`, while the Chosen bullet and the DONE criteria say the opposite — \"or `done`/`none` for a terminal issue, which then wins as `excluded`\". A builder following the pseudocode literally produces `ineligible` for a terminal not-eligible autonomous issue; a builder following the Chosen bullet produces `excluded`. The two dispositions land in different run-summary buckets, so this is not cosmetic.",
+      "evidence": "section 4.1 step 3 vs. the Chosen bullet \"both kernels run before any disposition is decided…\" and the DONE bullet \"including an autonomous `ineligible` one (whose `next` record carries `nextStep`'s own verdict)\".",
+      "predicted_consequence": "two equally faithful builds of the same spec disagree on the disposition (and run-summary bucket) for a Done/Duplicate not-eligible issue; the corpus-replay test in FAFF-1434 then pins whichever the builder happened to pick.",
+      "spec_anchor": "4.1-the-chain",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Terminal now wins as excluded, before the ineligible check.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The chain lists `autonomous AND NOT eligible -> ineligible` **before** `step == \"done\"|\"none\" -> excluded`, while the Chosen bullet and the DONE criteria say the opposite — \"or `done`/`none` for a terminal issue, which then wins as `excluded`\". A builder following the pseudocode literally produces `ineligible` for a terminal not-eligible autonomous issue; a builder following the Chosen bullet produces `excluded`. The two dispositions land in different run-summary buckets, so this is not cosmetic.",
+          "spec_anchor": "4.1-the-chain"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The rationale says \"Reusing graft's return tokens means the run ledger, `runcheck` and the run summary need no change\", and the Chosen line names the existing tokens as `ineligible`, `blocked`, `inadmissible`, `claimed-by-peer`. `excluded` (and arguably `needs-prep`) appear nowhere in that set, yet the disposition table introduces `excluded` as a first-class return token with no statement of how the run ledger, `runcheck`, or the run summary classify it. The \"no change\" claim is asserted, not established.",
+      "evidence": "section 3 Dispositions table and the Chosen bullet under it; section 5 \"Existing tokens\".",
+      "predicted_consequence": "the first run that returns `excluded` exercises an unrecorded consumer contract — either runcheck mis-buckets it or a follow-up ticket is needed that this spec claims is unnecessary.",
+      "spec_anchor": "3-dispositions",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "needs-prep and excluded map onto graft's existing return tokens.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The rationale says \"Reusing graft's return tokens means the run ledger, `runcheck` and the run summary need no change\", and the Chosen line names the existing tokens as `ineligible`, `blocked`, `inadmissible`, `claimed-by-peer`. `excluded` (and arguably `needs-prep`) appear nowhere in that set, yet the disposition table introduces `excluded` as a first-class return token with no statement of how the run ledger, `runcheck`, or the run summary classify it. The \"no change\" claim is asserted, not established.",
+          "spec_anchor": "3-dispositions"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The pseudocode reads `intake := intakeVerdict(marker, labels, mode, ...); exit := intakeExit(intake, mode, interactive)`. In `intake-provenance.js`, `mode` is the **gate** mode (`\"off\"` short-circuits to `gate-off`; `intakeExit` blocks only on `\"block\"`), not `interactive|autonomous`. Built literally, `intakeExit` can never return 3 (so the table's `blocked` row is dead) and the `off` short-circuit never fires (a gate-off config still reads the marker and can warn). The spec's own stated reason for keeping the guard — \"it would fire if the two ever resolved the label differently\" — is exactly the case this conflation silences, so the defence-in-depth justification does not survive its own pseudocode.",
+      "evidence": "section 4.1 step 6; `intake-provenance.js` `intakeVerdict(marker, labels, mode, prefix, automateName)` / `intakeExit(v, mode, interactive)` in context.",
+      "predicted_consequence": "the `blocked` disposition and rule-inventory row 21's autonomous-block path become unreachable in any literal build; the guard degrades to a warning emitter that ignores `intake_gate: off`.",
+      "spec_anchor": "4.1-the-chain",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The intake guard gets the intake_gate mode, not the admit --mode.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The pseudocode reads `intake := intakeVerdict(marker, labels, mode, ...); exit := intakeExit(intake, mode, interactive)`. In `intake-provenance.js`, `mode` is the **gate** mode (`\"off\"` short-circuits to `gate-off`; `intakeExit` blocks only on `\"block\"`), not `interactive|autonomous`. Built literally, `intakeExit` can never return 3 (so the table's `blocked` row is dead) and the `off` short-circuit never fires (a gate-off config still reads the marker and can warn). The spec's own stated reason for keeping the guard — \"it would fire if the two ever resolved the label differently\" — is exactly the case this conflation silences, so the defence-in-depth justification does not survive its own pseudocode.",
+          "spec_anchor": "4.1-the-chain"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "major",
+      "claim": "This ticket is pitched as a prose-to-code extraction (the FAFF-1404/1405/1406 lane), but rows 36 and 38 change what a direct autonomous graft *does*: today Step 5 would acquire a fresh ref and build a peer-status issue with no ref; under this spec it returns `claimed-by-peer` before any worktree. That is not extraction — it is a new admission rule — and its corpus-level evaluation (the replay test that would show whether the new rule reproduces or diverges from what the prose actually decided) is deliberately moved to FAFF-1434, blocked by this one. So the behaviour change ships one increment ahead of the only test that checks it against reality.",
+      "evidence": "Section 4.5 row 36 marked \"changed: a direct autonomous graft no longer builds a peer-status issue that has no ref\"; DONE's \"beep-boop/SKILL.md is unchanged\"; section 1's split note placing \"the corpus-replay test\" in FAFF-1434.",
+      "predicted_consequence": "A direct autonomous graft refuses builds it previously started, with no replay evidence until FAFF-1434 lands — if the rule is wrong (e.g. a legitimately self-claimed `In Progress` from a crashed prior session of *this same* identity without a ref), issues silently stop building and nothing in this PR's tests detects it.",
+      "spec_anchor": "rule-inventory",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Human decision: the 14-record In Review replay ships in FAFF-1414, so the rule ships with its proof.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "major",
+          "claim": "This ticket is pitched as a prose-to-code extraction (the FAFF-1404/1405/1406 lane), but rows 36 and 38 change what a direct autonomous graft *does*: today Step 5 would acquire a fresh ref and build a peer-status issue with no ref; under this spec it returns `claimed-by-peer` before any worktree. That is not extraction — it is a new admission rule — and its corpus-level evaluation (the replay test that would show whether the new rule reproduces or diverges from what the prose actually decided) is deliberately moved to FAFF-1434, blocked by this one. So the behaviour change ships one increment ahead of the only test that checks it against reality.",
+          "spec_anchor": "rule-inventory"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The command consults `claimVerdict` on every claim-status call with a `claimed_at`, writes base records and markers for it, and surfaces `kernels.claim.ttl` — while section 2 explicitly rules out \"acting on a stale tracker claim\". That is a captured, rendered output with no consumer and no decision attached; it adds capture surface and test burden to the slice purely to match the original (since-corrected) premise that claim-verdict should be composed in.",
+      "evidence": "Section 1 \"correction to the ticket's premise\" stating claim-verdict \"is consulted to report staleness, not to decide\"; section 2 \"Acting on a stale tracker claim … is reported, never acted on\"; the marker table's `claim-verdict` column.",
+      "predicted_consequence": "The slice ships a report-only kernel whose only readers are decision-corpus records, growing the capture matrix without changing any disposition — cost paid now, value deferred indefinitely.",
+      "spec_anchor": "decision-capture",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "claim-verdict stays consulted because the ticket asks for its captures; its cost is one pure call on claim statuses.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The command consults `claimVerdict` on every claim-status call with a `claimed_at`, writes base records and markers for it, and surfaces `kernels.claim.ttl` — while section 2 explicitly rules out \"acting on a stale tracker claim\". That is a captured, rendered output with no consumer and no decision attached; it adds capture surface and test burden to the slice purely to match the original (since-corrected) premise that claim-verdict should be composed in.",
+          "spec_anchor": "decision-capture"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "Section 3's disposition table presents `blocked` as a reachable outcome (\"autonomous, the intake guard refused (`intake_gate: block`, no provenance)\"), but §4.1's Chosen note proves it cannot fire: `intakeVerdict`'s only refusal basis (`no-provenance`) requires the resolved automate label to be absent, and eligibility (checked earlier, step 3) requires that same label to be present — so every autonomous call that reaches step 6 is already eligible and the guard passes. The DONE item \"test/graft-admit.test.mjs covers every disposition\" therefore includes a row with no reachable input, and the table's \"When\" column is false as written.",
+      "evidence": "Disposition table row `blocked`; §4.1 bullet \"**Chosen:** the intake guard stays in the chain, although in autonomous mode it cannot refuse an issue that passed step 2\"; scenario \"intake_gate set to block, no provenance marker and no faff-automate label → ineligible\".",
+      "predicted_consequence": "A builder writing the mandated \"every disposition\" test cannot construct a `blocked` fixture; either they ship a dead test that asserts the negation, or they skip the row and the DONE item fails its own coverage line.",
+      "spec_anchor": "what",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "blocked is marked unreachable after eligibility; the tests assert that rather than requiring a fixture.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "Section 3's disposition table presents `blocked` as a reachable outcome (\"autonomous, the intake guard refused (`intake_gate: block`, no provenance)\"), but §4.1's Chosen note proves it cannot fire: `intakeVerdict`'s only refusal basis (`no-provenance`) requires the resolved automate label to be absent, and eligibility (checked earlier, step 3) requires that same label to be present — so every autonomous call that reaches step 6 is already eligible and the guard passes. The DONE item \"test/graft-admit.test.mjs covers every disposition\" therefore includes a row with no reachable input, and the table's \"When\" column is false as written.",
+          "spec_anchor": "what"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The `needs-human` disposition (next returns `needs-human`, e.g. a low-confidence or medium spec) is in the table, the marker table, and §4.2's routing, but no `## Scenarios` unit exercises it. The spec's own QA bar (scenario coverage of behaviours it names) is not met for this disposition.",
+      "evidence": "Disposition table row `needs-human`; marker table row `needs-human`; scenarios cover proceed, claimed-by-peer, stale-ref, inadmissible, needs-prep, excluded, ineligible, interactive-ineligible, interactive-peer, tracker-unreachable — not needs-human.",
+      "predicted_consequence": "The routing of a low-confidence spec through the new command is never pinned by an observable example; a build that mis-routes it (e.g. returns `proceed` because `nextStep`'s medium-spec branch is wired to the wrong facts key) passes every listed scenario.",
+      "spec_anchor": "scenarios",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added a needs-human scenario.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The `needs-human` disposition (next returns `needs-human`, e.g. a low-confidence or medium spec) is in the table, the marker table, and §4.2's routing, but no `## Scenarios` unit exercises it. The spec's own QA bar (scenario coverage of behaviours it names) is not met for this disposition.",
+          "spec_anchor": "scenarios"
+        }
+      ]
+    }
+  ]
+}

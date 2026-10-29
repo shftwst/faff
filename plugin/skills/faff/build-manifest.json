@@ -31,7 +31,7 @@
     "bin/lib/prep-attach.ts": "edc5cd6bd5dd74419ec5ba34581d808c017f21f536d34edacfddf8620ddfb974",
     "bin/lib/producer-auth.ts": "fcaed615b47929a0db1d307553291ac8d15aca206003cdedd5e6807fc3914272",
     "bin/lib/result.ts": "9faed77603fd2095150b6b405444d9fe4c6783a0da9339e8dc6121cb1921c4a3",
-    "bin/lib/spec-commit.ts": "8527d3ac62ab2931835ca91917eb52f7a9ae50ab01b3f966bd3ba9cf77a463f7"
+    "bin/lib/spec-commit.ts": "bf42fe6bfbc1d6bab90726bcc13f42e8323433a7f1b439144a9b157bee7366a5"
   },
   "outputs": {
     "bin/lib/commissaire-governor-client.js": "9e14c9ebe762d860b0249f853dd308a4abc3ef9d3e92a416d1ad8decd44d0885",
@@ -52,7 +52,7 @@
     "bin/lib/prep-attach.js": "c7134252d62695133de5909ffab6eeeaeb58dc238c7552e250735794b3f1ad81",
     "bin/lib/producer-auth.js": "6ef8d8a93c885992b0f58c3156f1e2df96518cbedd4df95cd7e2b72fa9009baf",
     "bin/lib/result.js": "09f1ec919a2ff84a38e1fe1e8ac5ed983ddabb90f75bfa8647cfccce561ff03e",
-    "bin/lib/spec-commit.js": "845967012973e0f71e58e0608b371c99e1b905ddd49963b99fc6601903281fe7"
+    "bin/lib/spec-commit.js": "a67e16c5350409137c63faa17ba1d0458cfea84414e9f42814caa92574cb4d58"
   },
-  "output_digest": "4cc547b26af65fe101056e412e368c92154cd4a86d20f9a74d874ea0ba3ba2ba"
+  "output_digest": "091a198533e0596c3dd4c124d28c47a1586ead34ab3636ea82f60465ee6a1584"
 }

@@ -449,12 +449,10 @@ function specSelftest(): number {
   ok("verify: a committed rewrite whose working file matches differs in head only", r.token === "mismatch" && r.differs !== undefined && r.differs.join() === "head");
   f.st.files.set(p, Buffer.from("shortened"));
   const bothDiffer = runSpecVerify(vbase, f.deps).differs;
-  if (bothDiffer === undefined) throw new Error("spec selftest: mismatch result has no differs");
-  ok("verify: a committed rewrite checked out in the working tree differs in both", bothDiffer.join() === "head,working-tree");
+  ok("verify: a committed rewrite checked out in the working tree differs in both", bothDiffer !== undefined && bothDiffer.join() === "head,working-tree");
   f.st.head.set(p, BUILDER); f.st.files.set(p, Buffer.from("edited"));
   const workingOnly = runSpecVerify(vbase, f.deps).differs;
-  if (workingOnly === undefined) throw new Error("spec selftest: mismatch result has no differs");
-  ok("verify: an uncommitted rewrite differs in the working tree only", workingOnly.join() === "working-tree");
+  ok("verify: an uncommitted rewrite differs in the working tree only", workingOnly !== undefined && workingOnly.join() === "working-tree");
   f.st.records.set(path.join("rd", "EX-3", "spec-commit.json"), { path: "../../etc/passwd" });
   ok("verify: a record path outside the spec directory is errored", runSpecVerify(vbase, f.deps).reason === "path-outside-spec-dir");
   ok("verify: no record and no committed file is errored", runSpecVerify({ ...vbase, runDir: null }, fake().deps).reason === "no-committed-spec");

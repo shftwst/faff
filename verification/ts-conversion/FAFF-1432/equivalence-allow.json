@@ -80,15 +80,15 @@
     "path": "bin/lib/spec-commit.js",
     "kind": "undefined-guard",
     "before": "ok(\"verify: a committed rewrite checked out in the working tree differs in both\", runSpecVerify(vbase, f.deps).differs.join() === \"head,working-tree\");",
-    "after": "const bothDiffer = runSpecVerify(vbase, f.deps).differs;\nif (bothDiffer === undefined)\nthrow new Error(\"spec selftest: mismatch result has no differs\");\nok(\"verify: a committed rewrite checked out in the working tree differs in both\", bothDiffer.join() === \"head,working-tree\");",
-    "reason": "Selftest only. runSpecVerify(...).differs is optional on the result type; the original .join() would already throw a TypeError on undefined. The call moves before the ok() call, whose first argument is a string literal, so evaluation order is unchanged."
+    "after": "const bothDiffer = runSpecVerify(vbase, f.deps).differs;\nok(\"verify: a committed rewrite checked out in the working tree differs in both\", bothDiffer !== undefined && bothDiffer.join() === \"head,working-tree\");",
+    "reason": "Selftest only. runSpecVerify(...).differs is optional on the result type. The call moves into a bound local before the ok() call (whose first argument is a string literal, so evaluation order is unchanged), and the check folds into the ok() condition. On the passing path nothing changes; in the impossible case of a mismatch with no differs it prints FAIL where .join() would have thrown a TypeError, so the selftest still completes and still fails."
   },
   {
     "path": "bin/lib/spec-commit.js",
     "kind": "undefined-guard",
     "before": "ok(\"verify: an uncommitted rewrite differs in the working tree only\", runSpecVerify(vbase, f.deps).differs.join() === \"working-tree\");",
-    "after": "const workingOnly = runSpecVerify(vbase, f.deps).differs;\nif (workingOnly === undefined)\nthrow new Error(\"spec selftest: mismatch result has no differs\");\nok(\"verify: an uncommitted rewrite differs in the working tree only\", workingOnly.join() === \"working-tree\");",
-    "reason": "Selftest only. runSpecVerify(...).differs is optional on the result type; the original .join() would already throw a TypeError on undefined. The call moves before the ok() call, whose first argument is a string literal, so evaluation order is unchanged."
+    "after": "const workingOnly = runSpecVerify(vbase, f.deps).differs;\nok(\"verify: an uncommitted rewrite differs in the working tree only\", workingOnly !== undefined && workingOnly.join() === \"working-tree\");",
+    "reason": "Selftest only. runSpecVerify(...).differs is optional on the result type. The call moves into a bound local before the ok() call (whose first argument is a string literal, so evaluation order is unchanged), and the check folds into the ok() condition. On the passing path nothing changes; in the impossible case of a mismatch with no differs it prints FAIL where .join() would have thrown a TypeError, so the selftest still completes and still fails."
   },
   {
     "path": "bin/lib/gates-progress.js",

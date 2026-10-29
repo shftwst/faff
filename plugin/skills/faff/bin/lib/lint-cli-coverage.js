@@ -48,6 +48,9 @@ const TEST_FILE_COVERAGE = {
   // spec-judge-evidence — a shelling assembler with no standalone `--selftest`; its bundle
   // shape + degrade/fail-loud directions are exercised through the real CLI entrypoint here.
   "spec-judge-evidence": "test/spec-judge-evidence.test.mjs",
+  // prep (FAFF-1406): `faff prep attach` has no `--selftest`; its stage/confirm/park paths are
+  // exercised through the real CLI entrypoint here.
+  "prep": "test/prep-attach.test.mjs",
   // spec-judge-accept-bar — the deterministic accept-bar roll-up (FAFF-945): a pure coercion
   // over two JSON inputs, no standalone `--selftest`; its level-aware floor + fail-closed
   // directions are exercised through the real CLI entrypoint here.

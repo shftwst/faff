@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "issue": "FAFF-1406",
+  "build": {
+    "status": "complete",
+    "diff_hash": "1bbc59888d5776eb1384a861613589e1601f24b50751712c7bed05b392492578",
+    "branch": "faff-1406-prep-attach-from-judge",
+    "pushed_at": "2026-10-28T02:35:20.122Z"
+  },
+  "updated_at": "2026-10-28T02:35:20.122Z"
+}

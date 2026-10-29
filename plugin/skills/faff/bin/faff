@@ -45,6 +45,7 @@ const { cmdBundleRecover } = lazy(() => require("./lib/bundle-recover"), ["cmdBu
 const { cmdCiTriage } = lazy(() => require("./lib/ci-triage"), ["cmdCiTriage"]);
 const { cmdLand } = lazy(() => require("./lib/land"), ["cmdLand"]);
 const { cmdSpec } = lazy(() => require("./lib/spec-commit"), ["cmdSpec"]);
+const { cmdPrep } = lazy(() => require("./lib/prep-attach"), ["cmdPrep"]);
 const { cmdClaimVerdict } = lazy(() => require("./lib/claim-verdict"), ["cmdClaimVerdict"]);
 const { cmdParkVerdict } = lazy(() => require("./lib/park-verdict"), ["cmdParkVerdict"]);
 const { cmdPuntScan } = lazy(() => require("./lib/punt-scan"), ["cmdPuntScan"]);
@@ -236,6 +237,7 @@ const COMMANDS = {
   "ci-triage": cmdCiTriage,
   land: cmdLand,
   spec: cmdSpec,
+  prep: cmdPrep,
   "post-merge-check": cmdPostMergeCheck,
   "pr-body": cmdPrBody,
   "governance-check": cmdGovernanceCheck,

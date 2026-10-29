@@ -382,6 +382,9 @@ const REGION_MAP = {
   // FAFF-1404: spec commit/verify reuse admissibility's dodSplit, config-core's spec-docs-path resolver and
   // conventions' commit_subject scheme (factory) plus the governance faff-version resolver.
   spec: "factory",
+  // FAFF-1406: prep attach reuses tier, harness, config-core and contract-defs-review (factory) plus
+  // the governance faff-version resolver.
+  prep: "factory",
   // FAFF-363: governance-check references the SAME factory identifiers merge-gate does
   // (readAcComplete/readReviewVerdict/readHoldout from merge-gate.js, which themselves
   // call contract-defs.js's computeReviewVerdict) — for the identical reason merge-gate
@@ -609,6 +612,9 @@ const REGION_SELFTEST_ARGV = {
   "ci-triage": ["ci-triage", "--selftest"],
   land: ["land", "--selftest"],
   spec: ["spec", "--selftest"],
+  // FAFF-1406: no --selftest (tests live in test/ only); test/prep-attach.test.mjs is declared in
+  // lint-cli-coverage's TEST_FILE_COVERAGE.
+  prep: null,
   "governance-check": ["governance-check", "--selftest"],
   "evidence-readiness": ["evidence-readiness", "--selftest"],
   "landing-comment": ["landing-comment", "--selftest"],

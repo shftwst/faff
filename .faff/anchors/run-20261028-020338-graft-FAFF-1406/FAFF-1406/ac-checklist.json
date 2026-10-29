@@ -1,0 +1,439 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "On a fresh spec, `faff prep attach` writes `.faff/prep/<ISSUE>.json` with `attached:false` before it reads the H1, so a spec with no H1 still leaves an open marker (`token: invalid`, `reason: no-h1`, marker present).",
+      "verified": "pass: no-h1 returns invalid with the marker open (prepcheck open)",
+      "passed": true,
+      "ac_id": "faff-1406#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::stage: no H1 is invalid no-h1 and still leaves an open marker"
+        }
+      ]
+    },
+    {
+      "ac": "After stage and confirm, `faff spec commit` on a captured copy of the posted `body_path` records `source_check: \"match\"`.",
+      "verified": "pass: spec commit on the posted body records source_check match",
+      "passed": true,
+      "ac_id": "faff-1406#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::smoke: stage, confirm, prepcheck, then faff spec commit records source_check match"
+        }
+      ]
+    },
+    {
+      "ac": "On the judge path, `collate-evidence --from-judge --comment` produces a comment that `parseSpecReviewComment` accepts, with no disposition value supplied by the caller.",
+      "verified": "pass: parseSpecReviewComment accepts the --comment output",
+      "passed": true,
+      "ac_id": "faff-1406#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/judge-dispositions.test.mjs::--comment output parses with no disposition value supplied by the caller"
+        }
+      ]
+    },
+    {
+      "ac": "`faff prep attach` accepts the flags in section 3; an unknown flag, a missing required flag, more than one of `--spec`, `--confirm` and `--park`, or an `--issue` such as `../x` or `EX-1/..` exits 2 and writes nothing.",
+      "verified": "pass: 13 usage cases exit 2 and write nothing, including ../x and EX-1/..",
+      "passed": true,
+      "ac_id": "faff-1406#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::usage: unknown flag, missing value, two modes, mode-only flags, bad --issue all exit 2 and write nothing"
+        }
+      ]
+    },
+    {
+      "ac": "`--json` output for every call matches `AttachResult`, and `token` is always one of the listed values.",
+      "verified": "pass: every --json result parses and its token is in the closed set",
+      "passed": true,
+      "ac_id": "faff-1406#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::stage: ready-to-post, marker open with spec_sha256 and body_path, stamp and one tier line"
+        }
+      ]
+    },
+    {
+      "ac": "The marker gains `spec_sha256` at stage and `comment_id` and `attached_at` at confirm, and keeps `owner`, `harness`, `model` and `faff_version`.",
+      "verified": "pass: spec_sha256 at stage, comment_id and attached_at at confirm, owner/harness/model/faff_version kept",
+      "passed": true,
+      "ac_id": "faff-1406#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::stage then confirm: attached with comment_id and attached_at; prepcheck reads attached"
+        }
+      ]
+    },
+    {
+      "ac": "Every typed token exits 0 and `errored` exits 2.",
+      "verified": "pass: typed tokens exit 0, errored exits 2",
+      "passed": true,
+      "ac_id": "faff-1406#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::stage: an unreadable spec is errored and writes no marker"
+        },
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::stage: no readiness block is needs-judgement no-readiness-block; --extraction re-enters"
+        }
+      ]
+    },
+    {
+      "ac": "The stamp has the exact shape `> Spec: <producer> · <date> · <mode> · <harness>/<model> · faff <version> · confidence: <level>. Full spec on <Tracker> <ISSUE>.`, with no trailing sentence under `--git-only`.",
+      "verified": "pass: stamp matches the exact shape, no Full spec tail under --git-only",
+      "passed": true,
+      "ac_id": "faff-1406#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::stage: ready-to-post, marker open with spec_sha256 and body_path, stamp and one tier line"
+        },
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::git-only: stage writes the store with the stamped bytes, no tracker tail, and closes the marker"
+        }
+      ]
+    },
+    {
+      "ac": "Staging the same file twice leaves exactly one `> Spec:` line under the H1 and exactly one `build-tier:` line.",
+      "verified": "pass: one > Spec: line and one build-tier: line after two stages",
+      "passed": true,
+      "ac_id": "faff-1406#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::stage twice: still one stamp and one build-tier line, marker reopened"
+        }
+      ]
+    },
+    {
+      "ac": "The `build-tier:` value equals what `faff tier <spec_path> [--gate-history N]` prints for the file stage wrote back, including at a `spec_lines` tier boundary.",
+      "verified": "pass: equals faff tier on the written file at sizes that cross the complex cut",
+      "passed": true,
+      "ac_id": "faff-1406#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::stage: build-tier equals faff tier on the written file, across the spec_lines boundary"
+        }
+      ]
+    },
+    {
+      "ac": "A spec failing `computeSpecReadiness` returns `invalid` with the contract's violation strings; two readiness blocks, or one that does not parse, return `errored`.",
+      "verified": "pass: violations give invalid; two blocks and an unparseable block give errored",
+      "passed": true,
+      "ac_id": "faff-1406#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::stage: readiness violations are invalid; two blocks or an unparseable block are errored"
+        }
+      ]
+    },
+    {
+      "ac": "`--extraction FILE` replaces block detection, and `provenance_present` is still computed by the command.",
+      "verified": "pass: --extraction re-enters and provenance_present is computed by the command",
+      "passed": true,
+      "ac_id": "faff-1406#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::stage: no readiness block is needs-judgement no-readiness-block; --extraction re-enters"
+        }
+      ]
+    },
+    {
+      "ac": "`--confirm` with no staged marker returns `errored`; `--confirm` without `--comment-id` exits 2.",
+      "verified": "pass: no staged marker is errored; missing --comment-id exits 2",
+      "passed": true,
+      "ac_id": "faff-1406#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::confirm: errored with no staged marker; exit 2 without --comment-id"
+        }
+      ]
+    },
+    {
+      "ac": "`--confirm` after the staged file was edited returns `errored` with reason `spec-changed-since-stage` and leaves the marker `attached:false`.",
+      "verified": "pass: spec-changed-since-stage, marker stays attached:false",
+      "passed": true,
+      "ac_id": "faff-1406#done:14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::confirm: an edit after stage is errored spec-changed-since-stage and leaves the marker open"
+        }
+      ]
+    },
+    {
+      "ac": "`--park` sets `disposition:\"parked\"`, keeps an existing `park` sub-object unchanged, and `faff prepcheck --issue` then classifies the issue as parked.",
+      "verified": "pass: disposition parked, park sub-object kept, prepcheck parked",
+      "passed": true,
+      "ac_id": "faff-1406#done:15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::park: sets disposition parked, keeps a park sub-object, prepcheck reads parked"
+        }
+      ]
+    },
+    {
+      "ac": "`--park` with no marker returns `errored` with reason `no-staged-spec` and writes no marker.",
+      "verified": "pass: errored no-staged-spec, no marker written",
+      "passed": true,
+      "ac_id": "faff-1406#done:16",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::park: no marker is errored no-staged-spec and writes no marker"
+        }
+      ]
+    },
+    {
+      "ac": "Under `--git-only`, stage writes `.faff/specs/<ISSUE>.md` with the stamped bytes and returns `attached`.",
+      "verified": "pass: store bytes equal the stamped spec, token attached",
+      "passed": true,
+      "ac_id": "faff-1406#done:17",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::git-only: stage writes the store with the stamped bytes, no tracker tail, and closes the marker"
+        }
+      ]
+    },
+    {
+      "ac": "Under `--git-only`, stage on a marker with `disposition:\"parked\"` returns `needs-judgement` with reason `git-only-marker-parked` and leaves the marker byte-identical.",
+      "verified": "pass: needs-judgement git-only-marker-parked, marker byte-identical",
+      "passed": true,
+      "ac_id": "faff-1406#done:18",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::git-only: a parked marker is needs-judgement git-only-marker-parked and left byte-identical"
+        }
+      ]
+    },
+    {
+      "ac": "Marker writes are atomic: no reader observes a partial file (temp file and rename in the marker's directory).",
+      "verified": "pass: marker writes renamed from a temp file in the marker directory, no temp left",
+      "passed": true,
+      "ac_id": "faff-1406#done:19",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::marker writes go through a temp file renamed into the marker's directory"
+        }
+      ]
+    },
+    {
+      "ac": "Each row of the 4.2 table produces its stated disposition and rationale.",
+      "verified": "pass: every table row produces its disposition and rationale",
+      "passed": true,
+      "ac_id": "faff-1406#done:20",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/judge-dispositions.test.mjs::each judge state maps to its disposition and rationale; earlier rounds stay open"
+        },
+        {
+          "kind": "test",
+          "locator": "test/judge-dispositions.test.mjs::an UPHOLD_REVIEW whose literal is absent from --spec is open, never fixed"
+        }
+      ]
+    },
+    {
+      "ac": "Re-stamping the stamp and `build-tier:` lines of the spec between `--admit` and `--from-judge` leaves every disposition unchanged.",
+      "verified": "pass: re-stamping leaves the output byte-identical",
+      "passed": true,
+      "ac_id": "faff-1406#done:21",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/judge-dispositions.test.mjs::re-stamping the stamp and build-tier lines between --admit and --from-judge changes no disposition"
+        }
+      ]
+    },
+    {
+      "ac": "Earlier-round keys are `open` with no rationale.",
+      "verified": "pass: round-1 key is open with no rationale",
+      "passed": true,
+      "ac_id": "faff-1406#done:22",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/judge-dispositions.test.mjs::each judge state maps to its disposition and rationale; earlier rounds stay open"
+        }
+      ]
+    },
+    {
+      "ac": "A ledger whose length, lens or severity disagrees with the latest round exits 1; a missing `ruling-<pid>.json` for a non-parked proposition exits 2.",
+      "verified": "pass: length, lens, severity and outcome disagreements exit 1; missing ruling or ledger exit 2",
+      "passed": true,
+      "ac_id": "faff-1406#done:23",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/judge-dispositions.test.mjs::a ledger that disagrees with the latest round exits 1"
+        },
+        {
+          "kind": "test",
+          "locator": "test/judge-dispositions.test.mjs::a missing ruling for a non-parked proposition, or a missing ledger, exits 2"
+        }
+      ]
+    },
+    {
+      "ac": "`--from-judge` together with `--dispositions`, or without `--spec`, exits 2.",
+      "verified": "pass: all three combinations exit 2",
+      "passed": true,
+      "ac_id": "faff-1406#done:24",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/judge-dispositions.test.mjs::usage: --from-judge with --dispositions, or without --spec, or --spec alone, exits 2"
+        }
+      ]
+    },
+    {
+      "ac": "`readStandingResidue` is exported from `spec-judge-evidence.js`, returns the latest round's number, and `judge-dispositions.js` imports it instead of reimplementing it.",
+      "verified": "pass: exported, returns n, judge-dispositions requires it",
+      "passed": true,
+      "ac_id": "faff-1406#done:25",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/judge-dispositions.test.mjs::readStandingResidue is exported and returns the latest in-window round's number"
+        }
+      ]
+    },
+    {
+      "ac": "`faff regions check` passes with `prep-attach.js` and `judge-dispositions.js` each carrying a `region:factory … FAFF-1406` banner.",
+      "verified": "pass: faff regions check exits 0",
+      "passed": true,
+      "ac_id": "faff-1406#done:26",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        }
+      ]
+    },
+    {
+      "ac": "`faff lint-cli-doc` and `faff lint-cli-coverage` pass with the new and changed `docs/guide/cli.md` rows.",
+      "verified": "pass: both lints PASS",
+      "passed": true,
+      "ac_id": "faff-1406#done:27",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-doc"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-coverage"
+        }
+      ]
+    },
+    {
+      "ac": "`REGION_SELFTEST_ARGV.prep` is `null`, `TEST_FILE_COVERAGE.prep` is `test/prep-attach.test.mjs`, and neither `prep-attach.js` nor `judge-dispositions.js` contains a `--selftest` block.",
+      "verified": "pass: prep: null in REGION_SELFTEST_ARGV, TEST_FILE_COVERAGE.prep set, 0 --selftest in either module",
+      "passed": true,
+      "ac_id": "faff-1406#done:28",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'prep: null' plugin/skills/faff/bin/lib/regions.js"
+        },
+        {
+          "kind": "command",
+          "locator": "grep -c -- '--selftest' plugin/skills/faff/bin/lib/prep-attach.js plugin/skills/faff/bin/lib/judge-dispositions.js"
+        }
+      ]
+    },
+    {
+      "ac": "`faff-prep/SKILL.md` no longer contains the marker JSON schema or the stamp field list, and calls `faff prep attach` at the Scenario A, Path 1 and Path 2 attach sites.",
+      "verified": "pass: marker schema and stamp field list removed; attach sites reference _Stage and attach_",
+      "passed": true,
+      "ac_id": "faff-1406#done:29",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c 'faff prep attach' plugin/skills/faff-prep/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "`faff-prep/SKILL.md`'s judge-path evidence clause calls `collate-evidence --from-judge`.",
+      "verified": "pass: judge-path clause calls --from-judge",
+      "passed": true,
+      "ac_id": "faff-1406#done:30",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -cF 'collate-evidence --dir $scratch --from-judge' plugin/skills/faff-prep/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "`faff-prep/SKILL.md` routes a call with no parseable token as `errored`.",
+      "verified": "pass: token table routes an unparseable result as errored",
+      "passed": true,
+      "ac_id": "faff-1406#done:31",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c 'any exit with no parseable token' plugin/skills/faff-prep/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "`SKILL_LINE_BASELINE[\"faff-prep\"]` equals the file's new size, `ANCHOR_PHRASES` is unchanged, and `faff validate-adapters` reports no RATCHET and no FAIL for `faff-prep`.",
+      "verified": "pass: baseline 664 equals wc -l plus 1, no RATCHET or FAIL",
+      "passed": true,
+      "ac_id": "faff-1406#done:32",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "The PR description states that the first prep after merge is an attended interactive one, before any unattended prep drain uses `faff prep attach`.",
+      "verified": "pass: the PR description carries the attended-first-prep rollout section",
+      "passed": true,
+      "ac_id": "faff-1406#done:33",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c 'attended interactive' .faff/graft/FAFF-1406/pr-head.md"
+        }
+      ]
+    },
+    {
+      "ac": "`test/prep-attach.test.mjs` and `test/judge-dispositions.test.mjs` exist, run under `node --test`, and pass. They follow `test/spec-commit.test.mjs`: a pure core driven with fake deps, plus real CLI runs on a `mkdtempSync` fixture repo.",
+      "verified": "pass: 32 tests pass under node --test",
+      "passed": true,
+      "ac_id": "faff-1406#done:34",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/prep-attach.test.mjs test/judge-dispositions.test.mjs"
+        }
+      ]
+    }
+  ]
+}

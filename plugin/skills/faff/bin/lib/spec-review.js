@@ -12,7 +12,9 @@
 // runs at its terminal review seam: every objection from every valid `round-<n>.json` as its own
 // item, optionally with a dispositions file folded in, and `--comment` renders the whole carried
 // comment with its sha256 line. The collator and renderer live in the governance module
-// `evidence-collate.js`; this verb is the thin factory shell over them.
+// `evidence-collate.js`; this verb is the thin factory shell over them. `--from-judge --spec <file>`
+// (FAFF-1406) builds the dispositions from the spec-review judge's own ledger and rulings instead of a
+// dispositions file, through the factory module `judge-dispositions.js`.
 //
 // `faff spec-review carry-check --before F --after F [--root DIR]` (FAFF-1271) is the deterministic
 // gate that lets a stale-refresh whose diff is only a verified directory move, a line reference,
@@ -60,8 +62,8 @@ function routeRejectApproach(record) {
   return { route: { destination: "prep", reason: "no-methodology-major", carried_design_objections: [] } };
 }
 
-const SPEC_REVIEW_SPEC = { flags: { "--selftest": { arity: 0 }, "--file": { arity: 1 }, "--dir": { arity: 1 }, "--dispositions": { arity: 1 }, "--comment": { arity: 0 }, "--before": { arity: 1 }, "--after": { arity: 1 }, "--root": { arity: 1 } }, positionals: { min: 0, max: 1, name: "verb selector" } };
-const SPEC_REVIEW_USAGE = "usage: faff spec-review (extract-evidence [--file <spec> | --file -] | collate-evidence --dir <scratch> [--dispositions <file>] [--comment] | carry-check --before <file> --after <file> [--root <dir>] | route [--file <verdict.json> | --file -])";
+const SPEC_REVIEW_SPEC = { flags: { "--selftest": { arity: 0 }, "--file": { arity: 1 }, "--dir": { arity: 1 }, "--dispositions": { arity: 1 }, "--comment": { arity: 0 }, "--from-judge": { arity: 0 }, "--spec": { arity: 1 }, "--judge-dir": { arity: 1 }, "--before": { arity: 1 }, "--after": { arity: 1 }, "--root": { arity: 1 } }, positionals: { min: 0, max: 1, name: "verb selector" } };
+const SPEC_REVIEW_USAGE = "usage: faff spec-review (extract-evidence [--file <spec> | --file -] | collate-evidence --dir <scratch> [--dispositions <file> | --from-judge --spec <file> [--judge-dir <dir>]] [--comment] | carry-check --before <file> --after <file> [--root <dir>] | route [--file <verdict.json> | --file -])";
 const CARRY_CHECK_USAGE = "usage: faff spec-review carry-check --before <file> --after <file> [--root <dir>]";
 
 // makePathExists(root) -> pathExists(token) -> boolean. The sole I/O the carry-check verb adds
@@ -102,6 +104,9 @@ function cmdCollateEvidence(values) {
   const fail = (code, message) => { process.stderr.write(`faff spec-review collate-evidence: ${message}\n`); return code; };
   const dir = values["--dir"];
   if (dir == null) return fail(2, "--dir <scratch> is required");
+  if (values["--from-judge"] && values["--dispositions"] != null) return fail(2, "--from-judge and --dispositions cannot be used together");
+  if (values["--from-judge"] && values["--spec"] == null) return fail(2, "--from-judge requires --spec <file>");
+  if (!values["--from-judge"] && (values["--spec"] != null || values["--judge-dir"] != null)) return fail(2, "--spec and --judge-dir only apply with --from-judge");
   let secrets;
   try { secrets = resolveKnownSecretValues(findRoot()); } catch { return fail(2, "the redaction config could not be read; nothing printed"); }
   let collated;
@@ -109,7 +114,20 @@ function cmdCollateEvidence(values) {
   for (const name of collated.skipped) process.stderr.write(`faff spec-review collate-evidence: skipped ${name} (not a conformant round)\n`);
   let record = collated.record;
   const dispositionsPath = values["--dispositions"];
-  if (dispositionsPath != null) {
+  if (values["--from-judge"]) {
+    const { judgeDispositionsFromDisk, JudgeDispositionError } = require("./judge-dispositions");
+    let dispositions;
+    try {
+      dispositions = judgeDispositionsFromDisk({ dir, judgeDir: values["--judge-dir"] || path.join(dir, "judge"), specPath: values["--spec"], record });
+    } catch (e) {
+      if (e instanceof JudgeDispositionError) return fail(e.code, e.message);
+      throw e;
+    }
+    try { record = applyDispositions(record, dispositions, secrets); } catch (e) {
+      if (e instanceof EvidenceRefusal) return fail(1, e.message);
+      throw e;
+    }
+  } else if (dispositionsPath != null) {
     let raw;
     try { raw = fs.readFileSync(dispositionsPath, "utf8"); } catch { return fail(2, `cannot read ${dispositionsPath}`); }
     let dispositions;

@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "signal": "pass",
+  "rounds_total": 2,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/prep-attach.js::--extraction path bypasses the readiness-block count check",
+      "title": "--extraction path bypasses the readiness-block count check",
+      "location": "plugin/skills/faff/bin/lib/prep-attach.js:186",
+      "action": "Count readiness blocks on both paths and return errored multiple-readiness-blocks when more than one is present.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "--extraction path bypasses the readiness-block count check",
+          "location": "plugin/skills/faff/bin/lib/prep-attach.js:186",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/prep-attach.js::confirm on an already-attached marker silently replaces comment_id",
+      "title": "confirm on an already-attached marker silently replaces comment_id",
+      "location": "plugin/skills/faff/bin/lib/prep-attach.js:216",
+      "action": "Refuse a confirm on an attached marker, or keep the first comment_id.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "The accepted spec (section 4.6) defines this case: confirm on an attached marker returns attached and records the new comment_id. Confirm still re-hashes the staged body, so only the staged bytes can be confirmed, and the newest comment is the one graft reads.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "confirm on an already-attached marker silently replaces comment_id",
+          "location": "plugin/skills/faff/bin/lib/prep-attach.js:216",
+          "severity": "major",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/prep-attach.js::an unclosed fence can leave a second build-tier line inside it",
+      "title": "an unclosed fence can leave a second build-tier line inside it",
+      "location": "plugin/skills/faff/bin/lib/prep-attach.js:139",
+      "action": "Treat an unclosed fence as malformed, or check the mask after filtering.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "It needs a spec whose fence never closes and that carries a build-tier line after the opener: a malformed spec the readiness fold and spec review would already flag. The spec's edge cases do not cover it.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "an unclosed fence can leave a second build-tier line inside it",
+          "location": "plugin/skills/faff/bin/lib/prep-attach.js:139",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-judge-evidence.js::readstandingresidue n comes from the file name, not the round record",
+      "title": "readStandingResidue n comes from the file name, not the round record",
+      "location": "plugin/skills/faff/bin/lib/spec-judge-evidence.js:444",
+      "action": "Check the record's own round number against the file name.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Round records carry no round field ({verdict, objections}); collateSpecReviewRounds keys by the same file-name number, so both readers agree by construction, and any mismatch fails loud with exit 1.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "readStandingResidue n comes from the file name, not the round record",
+          "location": "plugin/skills/faff/bin/lib/spec-judge-evidence.js:444",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/judge-dispositions.js::the spec read in judgedispositionsfromdisk is not tied to the file --admit judged",
+      "title": "the spec read in judgeDispositionsFromDisk is not tied to the file --admit judged",
+      "location": "plugin/skills/faff/bin/lib/judge-dispositions.js:76",
+      "action": "Document the accepted window or read the spec first.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The accepted spec scopes this out (OUT OF SCOPE: detecting a content edit between --admit and --from-judge), filed as FAFF-1420.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "the spec read in judgeDispositionsFromDisk is not tied to the file --admit judged",
+          "location": "plugin/skills/faff/bin/lib/judge-dispositions.js:76",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/prep-attach.js::findroot can throw outside the try in cmdprep",
+      "title": "findRoot can throw outside the try in cmdPrep",
+      "location": "plugin/skills/faff/bin/lib/prep-attach.js:312",
+      "action": "Wrap findRoot in the try and return errored.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "findRoot never throws: it walks up for .git or .faff and returns the start directory when it finds neither.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "findRoot can throw outside the try in cmdPrep",
+          "location": "plugin/skills/faff/bin/lib/prep-attach.js:312",
+          "severity": "observation",
+          "disposition": "refuted"
+        }
+      ]
+    }
+  ]
+}

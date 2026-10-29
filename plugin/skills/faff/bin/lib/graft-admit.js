@@ -359,7 +359,12 @@ function cmdGraftAdmit(args) {
     const runArg = str(values["--run-dir"]) ?? str(process.env.FAFF_RUN_DIR);
     const run = runArg !== undefined && runArg !== "" ? path.basename(runArg.replace(/[\\/]+$/, "")) : null;
     const root = str(values["--root"]) ?? sharedInfra.findRoot();
-    const sessionId = str(values["--session-id"]) ?? str(process.env.FAFF_SESSION_ID) ?? "";
+    // The holder identity `build-claim acquire` stamps (buildClaimOwnerSnapshot): --session-id, else
+    // $FAFF_SESSION_ID, else the run dir's basename. Matching it is what makes the own-claim test agree
+    // with acquire's own idempotent re-acquire.
+    const envRunDir = str(process.env.FAFF_RUN_DIR);
+    const sessionId = str(values["--session-id"]) || str(process.env.FAFF_SESSION_ID)
+        || (envRunDir !== undefined && envRunDir !== "" ? path.basename(envRunDir.replace(/[\\/]+$/, "")) : "");
     let out;
     try {
         out = admit({ mode, facts, specText, sessionId, run, wave: str(values["--wave"]), now, root, env: process.env });

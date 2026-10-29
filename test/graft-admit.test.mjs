@@ -346,6 +346,14 @@ test("own claim from the environment: --session-id defaults to $FAFF_SESSION_ID"
   assert.equal(r.json.disposition, "proceed");
 });
 
+test("own claim from the run dir: with no session id set, the run dir's basename is the caller's identity, as acquire stamps it", () => {
+  const { root, runDir } = scratch({ git: true });
+  plantClaim(root, "FAFF-901", RUN_ID);
+  const r = admit(root, "autonomous", facts({ status: "in-progress" }), { runDir: false, env: { FAFF_RUN_DIR: runDir } });
+  assert.equal(r.json.disposition, "proceed", r.out);
+  assert.equal(r.json.kernels.claim.own, true);
+});
+
 test("live peer ref: a live ref held by another session is claimed-by-peer", () => {
   const { root } = scratch({ git: true });
   plantClaim(root, "FAFF-901", "sess-peer");

@@ -1,0 +1,459 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "`faff graft admit` returns, for each disposition in section 3, the disposition the prose chain would have reached for the same inputs.",
+      "verified": "every disposition the prose chain reaches is reproduced for the same inputs (test per disposition passes)",
+      "passed": true,
+      "ac_id": "faff-1414#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::no spec → needs-prep"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::next routing per step: medium → needs-human with next's reason; external blocker → excluded blocked; parked → needs-human; awaiting spec review → needs-prep"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::terminal and ineligible: a done issue without faff-automate is excluded, never ineligible"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::autonomous ineligible records next skip-ineligible"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::in-review peer: an autonomous In Review issue with no build-claim ref is claimed-by-peer, with a next marker none and no eligible marker"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::inadmissible: an autonomous spec the lights-out floor refuses is inadmissible, and the next base verdict is graft"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::marker per disposition: proceed marks next graft and eligible eligible, and every marker shares its base record's correlation id"
+        }
+      ]
+    },
+    {
+      "ac": "Graft Step 2 calls `faff graft admit` and no longer shells `faff next`, `faff eligible`, `faff intakecheck` or `faff admissible`.",
+      "verified": "Step 2 has one `faff graft admit` call and no `faff next`/`eligible`/`intakecheck`/`admissible` shell call (grep: 1 and 0)",
+      "passed": true,
+      "ac_id": "faff-1414#done:2",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "sed -n '/^\\*\\*Step 2: Check prep gate\\*\\*/,/^\\*\\*Step 3:/p' plugin/skills/faff-graft/SKILL.md | grep -cE '\"\\$faff\" (next|eligible|intakecheck|admissible)'"
+        }
+      ]
+    },
+    {
+      "ac": "`faff-beep-boop/SKILL.md` is unchanged by this PR.",
+      "verified": "`git diff --quiet origin/main...HEAD -- plugin/skills/faff-beep-boop/SKILL.md` exits 0",
+      "passed": true,
+      "ac_id": "faff-1414#done:3",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --quiet origin/main...HEAD -- plugin/skills/faff-beep-boop/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "The command reads the facts object from `--facts` (a file or `-`) and exits 2 on a missing, unparseable or schema-failing object, an invalid `--mode`, a missing `--spec-file` in autonomous mode with a found spec, or an unreachable configured tracker.",
+      "verified": "missing/unparseable/schema-failing facts, bad --mode, missing --spec-file and an unreachable tracker each exit 2 (tests pass)",
+      "passed": true,
+      "ac_id": "faff-1414#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::malformed facts exit 2: not JSON, a missing field, a bad status, an unsafe issue id"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::--mode is required and must be interactive or autonomous"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::missing spec file: autonomous with a found spec and no readable --spec-file exits 2"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::unreachable tracker: configured or pinned but not reachable exits 2 with tracker-unreachable"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::facts from stdin: --facts - reads the object from standard input"
+        }
+      ]
+    },
+    {
+      "ac": "Autonomous mode returns `claimed-by-peer` for an `in-progress` or `in-review` issue with no ref, or with a live ref whose `owner.session_id` differs from `--session-id`; interactive mode warns instead.",
+      "verified": "autonomous in-review/in-progress with no ref or a live peer ref is claimed-by-peer; interactive warns (tests pass)",
+      "passed": true,
+      "ac_id": "faff-1414#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::in-review peer: an autonomous In Review issue with no build-claim ref is claimed-by-peer, with a next marker none and no eligible marker"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::in-progress peer (in-progress no ref): an autonomous In Progress issue with no ref is claimed-by-peer"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::live peer ref: a live ref held by another session is claimed-by-peer"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::interactive peer warns and proceeds: a live ref held by another session only warns interactively"
+        }
+      ]
+    },
+    {
+      "ac": "Autonomous mode returns `proceed`, with a warning naming the stale claim, when the ref is held by another session and `buildClaimStaleAware` judges it stale.",
+      "verified": "a stale peer ref by buildClaimStaleAware is proceed with the stale-claim warning (test passes)",
+      "passed": true,
+      "ac_id": "faff-1414#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::stale ref proceeds: a peer's ref that buildClaimStaleAware judges stale is proceed with a warning"
+        }
+      ]
+    },
+    {
+      "ac": "`claim-verdict` is consulted whenever `claimed_at` is present on a claim status, and its verdict appears under `kernels.claim.ttl` without changing the disposition.",
+      "verified": "claim-verdict runs when claimed_at is present on a claim status, appears under kernels.claim.ttl and does not change the disposition (test passes)",
+      "passed": true,
+      "ac_id": "faff-1414#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::claim-verdict is consulted when claimed_at is present on a claim status, reported under kernels.claim.ttl, and never changes the disposition"
+        }
+      ]
+    },
+    {
+      "ac": "`parked` and `awaitingSpecReview` are derived from the labels with `controlLabels`; the facts object has no field for them.",
+      "verified": "parked and awaiting-spec-review are derived from labels via controlLabels; the facts schema has no such field (routing test passes)",
+      "passed": true,
+      "ac_id": "faff-1414#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::next routing per step: medium → needs-human with next's reason; external blocker → excluded blocked; parked → needs-human; awaiting spec review → needs-prep"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::malformed facts exit 2: not JSON, a missing field, a bad status, an unsafe issue id"
+        }
+      ]
+    },
+    {
+      "ac": "Under a configured non-default label prefix or automate-name override, an issue carrying the resolved automate label is eligible, and the intake guard sees the same label.",
+      "verified": "a custom prefix and an automate-name override both resolve eligible and the intake guard sees the same label (tests pass)",
+      "passed": true,
+      "ac_id": "faff-1414#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::custom prefix: under label_prefix sd, sd-automate is eligible and the intake guard sees the same label"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::automate-name override: a renamed automate label is eligible, the intake guard sees it, and the stale default literal does not satisfy"
+        }
+      ]
+    },
+    {
+      "ac": "With a resolvable run dir and capture on, the command writes `next` and `eligible` base records on every call that reaches step 2, including an autonomous `ineligible` one (whose `next` record carries `nextStep`'s own verdict), a `claim-verdict` base record when consulted, and the action markers in section 3's table, each sharing its base record's correlation id.",
+      "verified": "next and eligible base records on every call reaching step 2 (ineligible included), claim-verdict when consulted, and the section-3 markers sharing base ids (tests pass)",
+      "passed": true,
+      "ac_id": "faff-1414#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::autonomous ineligible records next skip-ineligible"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::marker per disposition: proceed marks next graft and eligible eligible, and every marker shares its base record's correlation id"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::marker per disposition: needs-prep marks next prep, and a second call mints the next consult ordinal"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::claim-verdict is consulted when claimed_at is present on a claim status, reported under kernels.claim.ttl, and never changes the disposition"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::claimed-by-peer emits no eligible marker: a non-eligibility skip writes the eligible base record but no eligible marker"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::base records carry kernel inputs: next records all seven nextStep keys, eligible the normalised labels"
+        }
+      ]
+    },
+    {
+      "ac": "With no resolvable run dir the command writes nothing.",
+      "verified": "no run dir: events.jsonl unchanged and no degraded-capture note (test passes)",
+      "passed": true,
+      "ac_id": "faff-1414#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::no run dir, no capture: without --run-dir or $FAFF_RUN_DIR nothing is written"
+        }
+      ]
+    },
+    {
+      "ac": "The command writes no tracker state, label, claim ref or provenance marker.",
+      "verified": "no provenance marker, claim ref or prep marker is written (test passes)",
+      "passed": true,
+      "ac_id": "faff-1414#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::no tracker or label writes (no writes): the command writes no provenance marker, no claim ref and no prep marker"
+        }
+      ]
+    },
+    {
+      "ac": "`docs/reference/cli.md` documents the command, the facts schema and the disposition table.",
+      "verified": "the CLI reference documents the command, facts schema and dispositions; lint-cli-doc passes. The reference lives at docs/guide/cli.md (the spec's docs/reference/cli.md does not exist in the tree)",
+      "passed": true,
+      "ac_id": "faff-1414#done:13",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-doc"
+        }
+      ]
+    },
+    {
+      "ac": "`faff commissaire` and every `commissaire*` module are unchanged by this PR.",
+      "verified": "`git diff --name-only origin/main...HEAD | grep -c commissaire` prints 0",
+      "passed": true,
+      "ac_id": "faff-1414#done:14",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --name-only origin/main...HEAD | grep -c commissaire"
+        }
+      ]
+    },
+    {
+      "ac": "The command lives in `bin/lib/graft-admit.ts` with its committed emit `bin/lib/graft-admit.js`; the `.ts` is in `tsconfig.json` `include`, and `build-manifest.json` is updated in the same commit.",
+      "verified": "the feat commit adds graft-admit.ts and its emit graft-admit.js and updates tsconfig.json include and build-manifest.json",
+      "passed": true,
+      "ac_id": "faff-1414#done:15",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git show --stat --format= \"$(git log --format=%H --grep=\"faff graft admit runs\" origin/main..HEAD)\" -- plugin/skills/faff/bin/lib/graft-admit.ts plugin/skills/faff/bin/lib/graft-admit.js plugin/skills/faff/tsconfig.json plugin/skills/faff/build-manifest.json"
+        }
+      ]
+    },
+    {
+      "ac": "`faff regions check` passes, and CI's \"Fail on a stale or missing committed emit\" step passes.",
+      "verified": "regions check passes; deleting every emit and rebuilding leaves `git diff --exit-code` clean",
+      "passed": true,
+      "ac_id": "faff-1414#done:16",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        },
+        {
+          "kind": "command",
+          "locator": "cd plugin/skills/faff && npm run build && git diff --exit-code"
+        }
+      ]
+    },
+    {
+      "ac": "`graft-admit.ts` contains no `as`, non-null `!` or `satisfies`, the `check-no-boundary-cast` lint passes, and `test/check-no-boundary-cast.test.mjs` lists `graft-admit.ts` in its pinned module list and passes.",
+      "verified": "check-no-boundary-cast is clean over 15 sources and its test pins graft-admit.ts (11/11 pass)",
+      "passed": true,
+      "ac_id": "faff-1414#done:17",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node scripts/check-no-boundary-cast.mjs"
+        },
+        {
+          "kind": "test",
+          "locator": "test/check-no-boundary-cast.test.mjs::S3: realSources() lists the fifteen tsconfig include entries"
+        }
+      ]
+    },
+    {
+      "ac": "Graft Step 2 routes every disposition and a non-zero exit as section 4.2 lists, returns only tokens already in its return-value list, and runs the premise-superseded check only after `proceed`.",
+      "verified": "the Step 2 table routes all eight dispositions and the non-zero exit to existing return tokens, and the premise gate runs only after proceed (grep)",
+      "passed": true,
+      "ac_id": "faff-1414#done:18",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "sed -n '/^\\*\\*Step 2: Check prep gate\\*\\*/,/^\\*\\*Step 3:/p' plugin/skills/faff-graft/SKILL.md | grep -c 'claimed-by-peer'"
+        },
+        {
+          "kind": "command",
+          "locator": "grep -c 'It runs only after `faff graft admit` returns `proceed`' plugin/skills/faff-graft/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "Every row in section 4.5 has its listed test case, or is marked agent or dropped with a reason.",
+      "verified": "every rule-inventory row's named test case exists in test/graft-admit.test.mjs, or the row is marked agent or dropped",
+      "passed": true,
+      "ac_id": "faff-1414#done:19",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::terminal and ineligible: a done issue without faff-automate is excluded, never ineligible"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::claimed-by-peer emits no eligible marker: a non-eligibility skip writes the eligible base record but no eligible marker"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::in-progress peer (in-progress no ref): an autonomous In Progress issue with no ref is claimed-by-peer"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::no tracker or label writes (no writes): the command writes no provenance marker, no claim ref and no prep marker"
+        }
+      ]
+    },
+    {
+      "ac": "Every line the PR deletes from `faff-graft/SKILL.md` maps to a row in section 4.5; the PR description lists the mapping by row number.",
+      "verified": "the PR description maps every deleted faff-graft/SKILL.md line range to a rule-inventory row",
+      "passed": true,
+      "ac_id": "faff-1414#done:20",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main...HEAD -- plugin/skills/faff-graft/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "`SKILL_LINE_BASELINE` for `faff-graft` is lowered to the count measured after the branch is rebased on `main`, so a sibling that changed the baseline first (FAFF-1406) is absorbed, not overwritten.",
+      "verified": "after rebasing on origin/main (55c0f795, FAFF-1406 included) the faff-graft SKILL.md is 856 lines and SKILL_LINE_BASELINE is 856; validate-adapters passes with no RATCHET advisory",
+      "passed": true,
+      "ac_id": "faff-1414#done:21",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "`test/graft-admit-replay-in-review.test.mjs` replays the 14 In Review records named in section 6 from `verification/reports/FAFF-974-post-fix-fidelity/decision-corpus.jsonl`; `faff graft admit --mode autonomous` gives `claimed-by-peer` for every one, and each record's `next` base verdict is reproduced unchanged. The test fails if any named correlation id is missing from the corpus.",
+      "verified": "all 14 named In Review records replay to claimed-by-peer with next's own verdict reproduced (test passes)",
+      "passed": true,
+      "ac_id": "faff-1414#done:22",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/graft-admit-replay-in-review.test.mjs::the corpus holds all 14 named In Review records"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit-replay-in-review.test.mjs::each In Review record replays to claimed-by-peer with its own next verdict unchanged"
+        }
+      ]
+    },
+    {
+      "ac": "The test is an ordinary `node --test` case and gates nothing beyond the test run.",
+      "verified": "the replay is a plain node --test file run by the unit rung and gates nothing else",
+      "passed": true,
+      "ac_id": "faff-1414#done:23",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/graft-admit-replay-in-review.test.mjs::each In Review record replays to claimed-by-peer with its own next verdict unchanged"
+        }
+      ]
+    },
+    {
+      "ac": "`test/graft-admit.test.mjs` covers every reachable disposition, asserts that an eligible autonomous issue under `intake_gate: block` with no marker is never `blocked`, and covers the exit-2 causes, both modes, the own-claim, live-peer-ref, stale-ref and interactive-peer cases, the custom-prefix case, the terminal-and-ineligible case (`excluded`), `intake_gate: off`, the claim-store-unavailable exit, the marker table, the no-run-dir case and the comma-in-label case, and passes.",
+      "verified": "graft-admit.test.mjs covers every reachable disposition, the intake never-blocked case, exit-2 causes, both modes, claim cases, prefix, terminal-and-ineligible, gate off, store-unavailable, markers, no-run-dir and comma cases (43/43 pass)",
+      "passed": true,
+      "ac_id": "faff-1414#done:24",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::eligible issue never intake-blocked: an eligible autonomous issue under intake_gate block with no marker proceeds"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::intake_gate off: the guard reports gate-off and proceeds"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::claim store unavailable exit 2: a claim status whose store cannot be reached is never claimed-by-peer"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::comma in label: labels arrive as a JSON array, so a label containing a comma survives intact"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::own claim proceeds: a ref whose owner.session_id equals --session-id is the caller's own"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit.test.mjs::interactive ineligible proceeds with a warning naming the missing eligibility label"
+        }
+      ]
+    },
+    {
+      "ac": "The command is registered `REGION_SELFTEST_ARGV[\"graft\"] = null` with a `TEST_FILE_COVERAGE` entry naming `test/graft-admit.test.mjs` and `test/graft-admit-replay-in-review.test.mjs`, and `lint-cli-coverage` passes.",
+      "verified": "REGION_SELFTEST_ARGV.graft is null and TEST_FILE_COVERAGE.graft names both test files; lint-cli-coverage passes",
+      "passed": true,
+      "ac_id": "faff-1414#done:25",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-coverage"
+        }
+      ]
+    },
+    {
+      "ac": "No `--selftest` case is added in any module.",
+      "verified": "no added line under plugin/skills/faff/bin registers a --selftest case (grep: 0)",
+      "passed": true,
+      "ac_id": "faff-1414#done:26",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main...HEAD -- plugin/skills/faff/bin | grep '^+' | grep -c '\"--selftest\"'"
+        }
+      ]
+    },
+    {
+      "ac": "`faff gates run` passes.",
+      "verified": "faff gates run --json --resume: signal pass on the rebased tree; faff contract quality-gates conformant",
+      "passed": true,
+      "ac_id": "faff-1414#done:27",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gates run --json --resume"
+        }
+      ]
+    }
+  ]
+}

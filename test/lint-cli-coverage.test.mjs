@@ -25,7 +25,7 @@ const runBin = (args) => spawnSync(process.execPath, [BIN, "lint-cli-coverage", 
 // fixture root only controls the file existence/exercise side.
 function mirrorRoot(mutate) {
   const dir = mkdtempSync(path.join(tmpdir(), "faff-lintclicov-"));
-  for (const rel of Object.values(TEST_FILE_COVERAGE)) {
+  for (const rel of Object.values(TEST_FILE_COVERAGE).flat()) {
     const dest = path.join(dir, rel);
     mkdirSync(path.dirname(dest), { recursive: true });
     writeFileSync(dest, readFileSync(path.join(repoRoot, rel), "utf8"));
@@ -104,6 +104,18 @@ test("the mirrored real tree (unmutated) passes clean — the five real files al
   rmSync(dir, { recursive: true, force: true });
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.deepEqual(JSON.parse(r.stdout).notExercised, []);
+});
+
+// FAFF-1414: an entry may name several test files; each one must exist, so dropping the second
+// file of an array entry is a stale declaration naming that file.
+test("an array coverage entry checks every file it names", () => {
+  const [cmd, rels] = Object.entries(TEST_FILE_COVERAGE).find(([, r]) => Array.isArray(r));
+  const second = rels[1];
+  const dir = mirrorRoot((d) => rmSync(path.join(d, second), { force: true }));
+  const r = runBin(["--root", dir, "--json"]);
+  rmSync(dir, { recursive: true, force: true });
+  assert.equal(r.status, 1, r.stdout + r.stderr);
+  assert.ok(JSON.parse(r.stdout).missingFiles.includes(`${cmd} → ${second}`), r.stdout);
 });
 
 test("lint-cli-coverage --selftest: the pure bidirectional-diff cores pass", () => {

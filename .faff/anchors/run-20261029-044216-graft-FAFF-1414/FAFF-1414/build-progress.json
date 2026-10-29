@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1414",
+  "build": {
+    "status": "complete",
+    "diff_hash": "2e5b665d7cb78a244d0b7b86b2f3fd1f551453a747ab6d1f7ebe372b07c6e521",
+    "branch": "faff-1414-graft-admit",
+    "pushed_at": "2026-10-29T05:47:59.932Z"
+  },
+  "updated_at": "2026-10-29T05:47:59.932Z"
+}

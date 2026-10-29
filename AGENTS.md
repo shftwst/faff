@@ -51,7 +51,7 @@ Every commit carries a `Signed-off-by` trailer with the operator's git identity.
 
 ## TypeScript source and the committed emit
 
-New `plugin/skills/faff/bin/lib/` modules are written in TypeScript (ADDENDUM-1 decision 1 (b)). That includes every command that moves skill prose into code. A small edit to an existing JavaScript module stays JavaScript. Converting a whole module is its own ticket (FAFF-1432), and the check that fails a new `.js` module with no `.ts` source is FAFF-1431.
+New `plugin/skills/faff/bin/lib/` modules are written in TypeScript (ADDENDUM-1 decision 1 (b)). That includes every command that moves skill prose into code. A small edit to an existing JavaScript module stays JavaScript. Converting a whole module is its own ticket (FAFF-1432), and `faff regions check` fails a new `.js` module with no `.ts` source. Existing modules are listed in `plugin/skills/faff/legacy-js-modules.json`, and converting one removes its entry.
 
 Some `plugin/skills/faff/bin/lib/` modules are TypeScript (starting with `producer-auth.ts` and `commissaire.ts`). The governed artifact is still the committed `.js` emit beside each `.ts` (ADR-0132, layout d): every install path, test, selftest, region lint, and the import-independence guard read the committed `.js`, never the authored `.ts`. The shipped artifact stays dependency-free — `typescript` and `@types/node` are build-time-only devDependencies under `plugin/skills/faff/package.json`, fully erased from the emit, and `plugin/skills/faff/node_modules/` is gitignored.
 

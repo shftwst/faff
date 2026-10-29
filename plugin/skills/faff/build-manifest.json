@@ -6,7 +6,7 @@
     "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
   },
   "config": {
-    "tsconfig.json": "bb163baab4850f3b67c5b8b7c7ba95aee8ab26429674bd710b00b8bab1bec670"
+    "tsconfig.json": "bceff6b18517d0a6e6c69a0d2d4613ce2d5f98fe9ee84353aff1155b751628cb"
   },
   "lock": {
     "package-lock.json": "b64bb7ba6298d47694b5700301c5fbec5aec2d5ce8351937d1cda8873fc5697a",
@@ -18,6 +18,7 @@
     "bin/lib/commissaire-verify.ts": "acd14993082da3d214eda5fc69b604e0bdb5ce654de2733d0e25876e64756114",
     "bin/lib/commissaire.ts": "27772e4ee5c55615e62a001e86c4f58a918a2c28d8d03c71b982db5c48260af3",
     "bin/lib/decision-policy.ts": "bdae9ebbaf8b55c1434c6d5e2e19f1e242e73399cd1a470a823faadc2a5edc85",
+    "bin/lib/gates-progress.ts": "2c328da2ef131ef7fefd7a778dcc0bd8377a68c1f528bc483de356ebba78e5d0",
     "bin/lib/governor-admin.ts": "e8acab0a5166c8138265c9cd514f86269ca932a80be746e963588e863946bc02",
     "bin/lib/governor-install.ts": "964bcf08fbe828afbe96da644db691aebfaa8c31c9b2d4ccde36ecce1be7e7d7",
     "bin/lib/governor.ts": "bb31286dd65cd94f7a0d551f570edffe90c102b83418fe7012cfc5a0800cc153",
@@ -36,6 +37,7 @@
     "bin/lib/commissaire-verify.js": "18fb7d91fdf58433053a543580bb0d6225d133255a7ee53c90f1f97c512292d7",
     "bin/lib/commissaire.js": "f07665f5da14ddcb7f18e1223dceb50407854a662f1558f0b62ff5128dc96279",
     "bin/lib/decision-policy.js": "f734a0f4a670ebd738bf476e0b5c9c9f6a44c59c1dafca1c5d31c3bb33a43095",
+    "bin/lib/gates-progress.js": "7b955375a4bd2e9c025722f91337a3f1f1507d8349f9d13586eb03416e243564",
     "bin/lib/governor-admin.js": "fc92a97038713648e89fba10f9a33545c218c85353cc571905bc472c346160ee",
     "bin/lib/governor-install.js": "3798f447ba92c5660b89a7e90c2cfff0043257159b2a5023bb5b002328a8a12c",
     "bin/lib/governor.js": "d542bac2eda6dc17ec66d586a96b6e7a957d93d5a1f53f4b3e1bcd171599d78c",
@@ -48,5 +50,5 @@
     "bin/lib/producer-auth.js": "6ef8d8a93c885992b0f58c3156f1e2df96518cbedd4df95cd7e2b72fa9009baf",
     "bin/lib/result.js": "09f1ec919a2ff84a38e1fe1e8ac5ed983ddabb90f75bfa8647cfccce561ff03e"
   },
-  "output_digest": "27dd15c30922a2a8b88988badb220bd5ff6f6e5aa4bf98381db7901dfcd211b4"
+  "output_digest": "40eb791fd1848ffe2b23564840838d8454941d96c6a6c9aa53ce4f5d47929a50"
 }

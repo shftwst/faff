@@ -886,7 +886,7 @@ function sha256Hex(bytes) { return createHash("sha256").update(Buffer.from(bytes
 // coreutils hasher elsewhere in this suite's sibling integrity-digest.test.mjs).
 function writeCustodyVerdict(runDir, issue, over = {}) {
   const record = {
-    schema_version: 1, run_id: basename(runDir), issue, classification: "clean",
+    schema_version: 1, faff_version: "0.44.0", run_id: basename(runDir), issue, classification: "clean",
     paths: [], detail: "digest-verified", verified_at: "2026-08-15T00:00:00.000Z",
     merge_state_at_verification: "pre-merge", ...over,
   };

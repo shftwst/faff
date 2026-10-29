@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "test/faff-893-custody-stamp.test.mjs::the new admission round-trip never exercises digest mismatch",
+      "title": "the new admission round-trip never exercises digest mismatch",
+      "location": "test/faff-893-custody-stamp.test.mjs",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added a negative case: bytes whose sha256 no longer matches the printed verdict_sha256 are refused with a digest-mismatch reason (517e5d9c).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "the new admission round-trip never exercises digest mismatch",
+          "location": "test/faff-893-custody-stamp.test.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/faff-893-custody-stamp.test.mjs::the writer-stamp assertion checks only typeof string, not the resolved version",
+      "title": "the writer-stamp assertion checks only typeof string, not the resolved version",
+      "location": "test/faff-893-custody-stamp.test.mjs",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The round-trip now asserts the persisted faff_version equals resolveFaffVersion().version (517e5d9c).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "the writer-stamp assertion checks only typeof string, not the resolved version",
+          "location": "test/faff-893-custody-stamp.test.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "records/specs::the spec's eight keys arithmetic is off by one",
+      "title": "the spec's eight keys arithmetic is off by one",
+      "location": "records/specs (FAFF-1424 design)",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "The spec says eight keys plus faff_version; the pre-change list has eight entries and the shipped list has nine, which is exactly that.",
+      "disposition_rationale": "No off-by-one exists.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "the spec's eight keys arithmetic is off by one",
+          "location": "records/specs (FAFF-1424 design)",
+          "severity": "observation",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/contract-defs-evidence.js::regex admits degenerate punctuation-tail strings",
+      "title": "regex admits degenerate punctuation-tail strings",
+      "location": "plugin/skills/faff/bin/lib/contract-defs-evidence.js",
+      "action": null,
+      "location_present": false,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "This is the spec's chosen rule (a bounded release-string charset that keeps the key inert); such values carry no free text or control characters.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "regex admits degenerate punctuation-tail strings",
+          "location": "plugin/skills/faff/bin/lib/contract-defs-evidence.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

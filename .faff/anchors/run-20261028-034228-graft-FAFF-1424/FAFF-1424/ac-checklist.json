@@ -1,0 +1,167 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A verdict produced by `integrity-digest verify --record-result` on the current tree classifies `clean` through `classifyCustodyVerdictBytes`, and is admitted by `computeCustodyVerdictAdmission` with the `verdict_sha256` verify printed.",
+      "verified": "real verify --record-result bytes classify clean and are admitted with the printed sha256 (test passes; fails on the unfixed contract)",
+      "passed": true,
+      "ac_id": "faff-1424#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-893-custody-stamp.test.mjs::writer to reader: the persisted verdict bytes classify clean and are admitted with the printed sha256"
+        }
+      ]
+    },
+    {
+      "ac": "`faff disposition` reports no `custody-non-clean` entry for a run whose only custody verdict came from the current writer.",
+      "verified": "faff disposition over a run with the real writer's verdict reports disposition clean, empty attention (test passes; fails on the unfixed contract)",
+      "passed": true,
+      "ac_id": "faff-1424#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-893-custody-stamp.test.mjs::writer to disposition: a run whose only custody verdict came from the current writer needs no attention"
+        }
+      ]
+    },
+    {
+      "ac": "`CUSTODY_VERDICT_FIELDS` is today's eight keys plus `faff_version`, and no other key is added.",
+      "verified": "the list is the eight prior keys plus faff_version; any other key (actor, author, faff_actor) is refused",
+      "passed": true,
+      "ac_id": "faff-1424#done:3",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n \"const CUSTODY_VERDICT_FIELDS\" plugin/skills/faff/bin/lib/contract-defs-evidence.js"
+        },
+        {
+          "kind": "test",
+          "locator": "test/custody-verdict.test.mjs::computeCustodyVerdict: an authorship key beside a valid faff_version is still a violation"
+        }
+      ]
+    },
+    {
+      "ac": "A verdict without `faff_version` is conformant.",
+      "verified": "an unstamped record has zero violations",
+      "passed": true,
+      "ac_id": "faff-1424#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/custody-verdict.test.mjs::computeCustodyVerdict: a stamped verdict and an unstamped (pre-FAFF-1395) verdict are both conformant"
+        }
+      ]
+    },
+    {
+      "ac": "A `faff_version` that is not a string, is empty, contains whitespace or a control character, or is longer than 64 characters is a violation.",
+      "verified": "44, null, empty, leading space, inner space, newline, BEL, 65 chars, leading '-', ';' are violations; 64 chars passes",
+      "passed": true,
+      "ac_id": "faff-1424#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/custody-verdict.test.mjs::computeCustodyVerdict: a faff_version that is not a bounded release string is a violation"
+        }
+      ]
+    },
+    {
+      "ac": "An authorship key such as `actor` beside a valid `faff_version` is still a violation.",
+      "verified": "actor, author and faff_actor beside faff_version 0.44.0 are each a violation",
+      "passed": true,
+      "ac_id": "faff-1424#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/custody-verdict.test.mjs::computeCustodyVerdict: an authorship key beside a valid faff_version is still a violation"
+        }
+      ]
+    },
+    {
+      "ac": "`schema_version` stays `1`, and `computeCustodyVerdict`'s `contractData` shape is unchanged.",
+      "verified": "schema_version stays 1 and contractData keys are identical for stamped and unstamped records",
+      "passed": true,
+      "ac_id": "faff-1424#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/custody-verdict.test.mjs::computeCustodyVerdict: faff_version is checked, not surfaced: contractData keeps its shape"
+        }
+      ]
+    },
+    {
+      "ac": "The comment above `CUSTODY_VERDICT_FIELDS` no longer claims a JSON schema exists, and names `faff_version` as the one provenance key admitted.",
+      "verified": "the comment now says the allow-list is the only gate and no JSON schema exists, and names faff_version as the one provenance key; no additionalProperties claim remains",
+      "passed": true,
+      "ac_id": "faff-1424#done:8",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n \"no JSON schema exists\" plugin/skills/faff/bin/lib/contract-defs-evidence.js"
+        }
+      ]
+    },
+    {
+      "ac": "`test/faff-893-custody-stamp.test.mjs` round-trips the real writer's bytes through `classifyCustodyVerdictBytes` and `computeCustodyVerdictAdmission`.",
+      "verified": "the round-trip test feeds the persisted bytes through classifyCustodyVerdictBytes and computeCustodyVerdictAdmission",
+      "passed": true,
+      "ac_id": "faff-1424#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-893-custody-stamp.test.mjs::writer to reader: the persisted verdict bytes classify clean and are admitted with the printed sha256"
+        }
+      ]
+    },
+    {
+      "ac": "`test/custody-verdict.test.mjs` covers the stamped, unstamped, refused-value and authorship-beside-stamp cases.",
+      "verified": "four new cases cover stamped, unstamped, refused values and authorship beside the stamp (31 pass)",
+      "passed": true,
+      "ac_id": "faff-1424#done:10",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/custody-verdict.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`writeCustodyVerdict` in `test/faff-895-pr-custody-basis.test.mjs` and `test/merge-gate-controlflow.test.mjs` writes `faff_version` by default, and both files pass.",
+      "verified": "writeCustodyVerdict in both files (and the same-shape helpers in merge-gate-local and disposition tests) stamps faff_version 0.44.0; all four files pass (120 tests)",
+      "passed": true,
+      "ac_id": "faff-1424#done:11",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-895-pr-custody-basis.test.mjs test/merge-gate-controlflow.test.mjs test/merge-gate-local.test.mjs test/disposition.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "No `--selftest` case is added in any module.",
+      "verified": "no added line under plugin/ mentions selftest (count 0)",
+      "passed": true,
+      "ac_id": "faff-1424#done:12",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main...HEAD -- plugin | grep -c '^+.*[Ss]elftest'"
+        }
+      ]
+    },
+    {
+      "ac": "`faff gates run` passes.",
+      "verified": "faff gates run passes all 9 rungs (LINT x3, TYPECHECK, STATIC_ANALYSIS x3, UNIT x2) in one budgeted call",
+      "passed": true,
+      "ac_id": "faff-1424#done:13",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff gates run --json --budget-secs 420"
+        }
+      ]
+    }
+  ]
+}

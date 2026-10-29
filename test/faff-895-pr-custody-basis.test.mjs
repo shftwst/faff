@@ -103,7 +103,7 @@ function sha256Hex(bytes) { return createHash("sha256").update(Buffer.from(bytes
 // interactive-custody-stamp sub-step would hold in-session.
 function writeCustodyVerdict(runDir, issue, over = {}) {
   const record = {
-    schema_version: 1, run_id: basename(runDir), issue, classification: "clean",
+    schema_version: 1, faff_version: "0.44.0", run_id: basename(runDir), issue, classification: "clean",
     paths: [], detail: "digest-verified", verified_at: "2026-08-20T13:30:00.000Z",
     merge_state_at_verification: "pre-merge", ...over,
   };

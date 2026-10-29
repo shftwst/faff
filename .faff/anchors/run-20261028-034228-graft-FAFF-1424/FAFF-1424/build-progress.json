@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1424",
+  "build": {
+    "status": "complete",
+    "diff_hash": "202d4c3ab2332bc6fc11292b9fb1a68eef1af99ad89c960c7767faee038ae3ac",
+    "branch": "faff-1424-custody-verdict-faff-version",
+    "pushed_at": "2026-10-28T03:53:50.833Z"
+  },
+  "updated_at": "2026-10-28T03:53:50.833Z"
+}

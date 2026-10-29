@@ -3,14 +3,20 @@
 // primitives with no code change — `integrity-digest snapshot --issue` then
 // `verify --record-result` over the per-issue forge surface — and threads the retained
 // verdict_sha256 to the ship producer. This test pins that composition (the born-verifiable
-// producer half); the merge-floor admission it feeds is FAFF-892's and is not exercised here.
+// producer half), and (FAFF-1424) feeds the writer's persisted bytes through the real reader and
+// admission gate, so the writer and the contract cannot drift apart unnoticed again.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { createRequire } from "node:module";
 import { runCli } from "./helpers/run-cli.mjs";
+
+const require = createRequire(import.meta.url);
+const { classifyCustodyVerdictBytes, computeCustodyVerdictAdmission } = require("../plugin/skills/faff/bin/lib/contract-defs.js");
+const { resolveFaffVersion } = require("../plugin/skills/faff/bin/lib/faff-version.js");
 
 const ISSUE = "FAFF-9";
 
@@ -82,4 +88,38 @@ test("tamper: a per-issue member mutated after snapshot is detected — verify r
   if (existsSync(verdictPath)) {
     assert.notEqual(JSON.parse(readFileSync(verdictPath, "utf8")).classification, "clean");
   }
+});
+
+// FAFF-1424: the real writer stamps faff_version (FAFF-1395). Its persisted bytes must classify clean
+// through the real reader and be admitted with the verdict_sha256 verify printed.
+test("writer to reader: the persisted verdict bytes classify clean and are admitted with the printed sha256", () => {
+  const rd = forgeSurface();
+  const s = snapshot(rd);
+  assert.equal(s.code, 0, s.stderr);
+  const v = verifyRecord(rd, s.stdout);
+  assert.equal(v.code, 0, v.stderr);
+  const out = JSON.parse(v.stdout);
+  const raw = readFileSync(path.join(rd, ISSUE, "custody-verdict.json"), "utf8");
+  assert.equal(JSON.parse(raw).faff_version, resolveFaffVersion().version, "the writer stamps the resolved release");
+  const ids = { expectedRunId: path.basename(rd), expectedIssue: ISSUE };
+  assert.equal(classifyCustodyVerdictBytes(raw, ids).classification, "clean");
+  const admission = computeCustodyVerdictAdmission({ raw, actualSha256: out.verdict_sha256, expectedSha256: out.verdict_sha256, ...ids });
+  assert.deepEqual(admission, { admitted: true, reason: "clean", classification: "clean" });
+  // The digest binding is live too: bytes that no longer match the printed sha256 are refused.
+  const tampered = computeCustodyVerdictAdmission({ raw: raw.replace("\"clean\"", "\"clean\" "), actualSha256: "0".repeat(64), expectedSha256: out.verdict_sha256, ...ids });
+  assert.equal(tampered.admitted, false);
+  assert.match(tampered.reason, /digest mismatch/);
+});
+
+test("writer to disposition: a run whose only custody verdict came from the current writer needs no attention", () => {
+  const rd = forgeSurface();
+  const s = snapshot(rd);
+  assert.equal(s.code, 0, s.stderr);
+  assert.equal(verifyRecord(rd, s.stdout).code, 0);
+  writeFileSync(path.join(rd, "run-ledger.json"), JSON.stringify({ admitted: [ISSUE], outcomes: { [ISSUE]: "shipped" } }));
+  const d = runCli(["disposition", "--run-dir", rd, "--json"]);
+  assert.equal(d.code, 0, d.stderr);
+  const parsed = JSON.parse(d.stdout);
+  assert.equal(parsed.disposition, "clean", d.stdout);
+  assert.deepEqual(parsed.attention, []);
 });

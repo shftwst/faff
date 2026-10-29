@@ -79,6 +79,41 @@ test("computeCustodyVerdict: NO AUTHORSHIP — an author/actor/signer field is a
   }
 });
 
+// FAFF-1424: the writer stamps `faff_version` (FAFF-1395); the contract admits exactly that one
+// provenance key, optional and bounded, and still refuses every authorship key beside it.
+const stampedRecord = () => ({ schema_version: 1, faff_version: "0.44.0", ...cleanRecord() });
+
+test("computeCustodyVerdict: a stamped verdict and an unstamped (pre-FAFF-1395) verdict are both conformant", () => {
+  for (const rec of [stampedRecord(), cleanRecord(), { ...stampedRecord(), faff_version: "unknown" }, { ...stampedRecord(), faff_version: "0.45.0-rc.1+build.7" }]) {
+    assert.deepEqual(computeCustodyVerdict(rec).contractData.violations, [], JSON.stringify(rec));
+  }
+  assert.equal(classifyCustodyVerdictBytes(JSON.stringify(stampedRecord()), { expectedRunId: "run-t", expectedIssue: "FAFF-1" }).classification, "clean");
+});
+
+test("computeCustodyVerdict: a faff_version that is not a bounded release string is a violation", () => {
+  for (const bad of [44, null, "", " 0.44.0", "0.44 .0", "0.44.0\n", "0.44.0\u0007", "1".repeat(65), "-0.44.0", "0.44.0;rm"]) {
+    const { contractData } = computeCustodyVerdict({ ...stampedRecord(), faff_version: bad });
+    assert.ok(contractData.violations.some((v) => /^faff_version must be a release string/.test(v)), JSON.stringify(bad));
+  }
+  assert.deepEqual(computeCustodyVerdict({ ...stampedRecord(), faff_version: "1".repeat(64) }).contractData.violations, []);
+  const cls = classifyCustodyVerdictBytes(JSON.stringify({ ...stampedRecord(), faff_version: 44 }), { expectedRunId: "run-t", expectedIssue: "FAFF-1" });
+  assert.equal(cls.classification, "malformed");
+});
+
+test("computeCustodyVerdict: an authorship key beside a valid faff_version is still a violation", () => {
+  for (const extra of [{ actor: "orchestrator" }, { author: "claude" }, { faff_actor: "x" }]) {
+    const { contractData } = computeCustodyVerdict({ ...stampedRecord(), ...extra });
+    assert.ok(contractData.violations.some((v) => /unexpected field/.test(v)), JSON.stringify(extra));
+  }
+});
+
+test("computeCustodyVerdict: faff_version is checked, not surfaced: contractData keeps its shape", () => {
+  const keys = (r) => Object.keys(computeCustodyVerdict(r).contractData).sort();
+  assert.deepEqual(keys(stampedRecord()), keys(cleanRecord()));
+  assert.equal("faff_version" in computeCustodyVerdict(stampedRecord()).contractData, false);
+  assert.equal(computeCustodyVerdict(stampedRecord()).contractData.schema_version, 1);
+});
+
 test("CUSTODY_CLASSIFICATIONS / CUSTODY_MERGE_STATES: the exact closed enums", () => {
   assert.deepEqual(CUSTODY_CLASSIFICATIONS, ["clean", "tamper", "verification-unavailable"]);
   assert.deepEqual(CUSTODY_MERGE_STATES, ["pre-merge", "post-merge"]);

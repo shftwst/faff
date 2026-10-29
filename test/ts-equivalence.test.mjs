@@ -52,11 +52,13 @@ function runCase(name, allowFile = "allow.json") {
 test("exit 0: a pair that differs only by toolchain preamble", { skip }, () => {
   const r = runCase("preamble");
   assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /0 allowed difference/);
 });
 
 test("exit 0: preamble only, with a base that already starts with \"use strict\"", { skip }, () => {
   const r = runCase("preamble-strict-base");
   assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /0 allowed difference/);
 });
 
 test("exit 0: an inserted get helper and one rewritten read, with matching entries", { skip }, () => {
@@ -68,6 +70,7 @@ test("exit 0: an inserted get helper and one rewritten read, with matching entri
 test("exit 0: a bound-local undefined guard, with a matching entry", { skip }, () => {
   const r = runCase("undefined-guard");
   assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /1 allowed difference/);
 });
 
 for (const [name, statement] of [

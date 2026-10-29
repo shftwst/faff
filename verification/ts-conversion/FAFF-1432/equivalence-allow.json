@@ -3,8 +3,8 @@
     "path": "bin/lib/land.js",
     "kind": "undefined-guard",
     "before": "ids.add(m[1]);",
-    "after": "const id = m[1];\nif (id === undefined)\nthrow new Error(\"failingRunIds: the run id group did not match\");\nids.add(id);",
-    "reason": "exec matched /\\/actions\\/runs\\/(\\d+)/, whose one capturing group is required, so m[1] is always the matched digits. noUncheckedIndexedAccess types it string | undefined and the lint forbids `!`. The guard cannot fire. Unlike spec 4.4 assumes, no original statement would have thrown here (ids.add(undefined) does not throw); the path cannot occur."
+    "after": "const id = m[1];\nif (id !== undefined)\nids.add(id);",
+    "reason": "A bound local replaces the read of m[1], and an undefined check narrows it to string for noUncheckedIndexedAccess. exec has just matched /\\/actions\\/runs\\/(\\d+)/, whose one capturing group is required, so m[1] is always the matched digits and ids.add(id) adds the same value ids.add(m[1]) did on every input that can reach it. No new throw."
   },
   {
     "path": "bin/lib/spec-commit.js",
@@ -66,15 +66,15 @@
     "path": "bin/lib/spec-commit.js",
     "kind": "undefined-guard",
     "before": "ok(\"commit: one identical file does not hide a divergent one\", r.token === \"needs-judgement\" && r.paths.length === 2);",
-    "after": "const bothPaths = r.paths;\nif (bothPaths === undefined)\nthrow new Error(\"spec selftest: needs-judgement result has no paths\");\nok(\"commit: one identical file does not hide a divergent one\", r.token === \"needs-judgement\" && bothPaths.length === 2);",
-    "reason": "Selftest only. r.paths is optional on the result type, so tsc cannot narrow it inside the && chain. Bound before the assertion; on the passing path (needs-judgement with paths) nothing changes. If the code under test regressed to a result with no paths, the selftest now throws instead of printing FAIL: a failing selftest either way."
+    "after": "ok(\"commit: one identical file does not hide a divergent one\", r.token === \"needs-judgement\" && r.paths !== undefined && r.paths.length === 2);",
+    "reason": "Selftest only. r.paths is optional on the result type, so tsc cannot narrow it inside the && chain without a presence check. On the passing path (needs-judgement with paths) nothing changes, and a token mismatch still short-circuits to FAIL as before. Only the impossible case (needs-judgement with no paths) changes: it prints FAIL where r.paths.length would have thrown a TypeError, so the selftest still completes and still fails."
   },
   {
     "path": "bin/lib/spec-commit.js",
     "kind": "undefined-guard",
     "before": "ok(\"verify: a committed rewrite whose working file matches differs in head only\", r.token === \"mismatch\" && r.differs.join() === \"head\");",
-    "after": "const headOnly = r.differs;\nif (headOnly === undefined)\nthrow new Error(\"spec selftest: mismatch result has no differs\");\nok(\"verify: a committed rewrite whose working file matches differs in head only\", r.token === \"mismatch\" && headOnly.join() === \"head\");",
-    "reason": "Selftest only. r.differs is optional on the result type, so tsc cannot narrow it inside the && chain. Bound before the assertion; on the passing path (a mismatch with differs) nothing changes. If the code under test regressed to a result with no differs, the selftest now throws instead of printing FAIL: a failing selftest either way."
+    "after": "ok(\"verify: a committed rewrite whose working file matches differs in head only\", r.token === \"mismatch\" && r.differs !== undefined && r.differs.join() === \"head\");",
+    "reason": "Selftest only. r.differs is optional on the result type, so tsc cannot narrow it inside the && chain without a presence check. On the passing path (a mismatch with differs) nothing changes, and a token mismatch still short-circuits to FAIL as before. Only the impossible case (a mismatch with no differs) changes: it prints FAIL where r.differs.join() would have thrown a TypeError, so the selftest still completes and still fails."
   },
   {
     "path": "bin/lib/spec-commit.js",
@@ -101,8 +101,8 @@
     "path": "bin/lib/gates-progress.js",
     "kind": "undefined-guard",
     "before": "if (recs[i + 1])\npaths.push(recs[++i]);",
-    "after": "if (recs[i + 1]) {\nconst src = recs[++i];\nif (src === undefined)\nthrow new Error(\"parseStatusPaths: rename source missing\");\npaths.push(src);\n}",
-    "reason": "recs[i + 1] has just been checked truthy, so recs[++i] reads that same non-empty string. noUncheckedIndexedAccess types it string | undefined and the lint forbids `!`. The guard cannot fire. Unlike spec 4.4 assumes, no original statement would have thrown here (paths.push(undefined) does not throw); the path cannot occur."
+    "after": "const src = recs[i + 1];\nif (src) {\npaths.push(src);\ni++;\n}",
+    "reason": "A bound local replaces the two reads of recs[i + 1], and the original truthy test moves onto it, which also narrows it to string for noUncheckedIndexedAccess. recs[++i] read recs[i + 1] and then advanced i; `paths.push(src); i++;` pushes the same value and advances i the same way, and a falsy record still pushes nothing and leaves i alone. No new throw: the path behaves as main does for every input."
   },
   {
     "path": "bin/lib/gates-progress.js",

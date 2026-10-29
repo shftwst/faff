@@ -123,11 +123,8 @@ function parseStatusPaths(buf: unknown): string[] {
     else if (t === "1") paths.push(r.split(" ").slice(8).join(" "));
     else if (t === "2") {
       paths.push(r.split(" ").slice(9).join(" "));
-      if (recs[i + 1]) {
-        const src = recs[++i];
-        if (src === undefined) throw new Error("parseStatusPaths: rename source missing");
-        paths.push(src);
-      }
+      const src = recs[i + 1];
+      if (src) { paths.push(src); i++; }
     }
     else if (t === "u") paths.push(r.split(" ").slice(10).join(" "));
   }

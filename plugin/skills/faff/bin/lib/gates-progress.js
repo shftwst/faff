@@ -84,11 +84,10 @@ function parseStatusPaths(buf) {
             paths.push(r.split(" ").slice(8).join(" "));
         else if (t === "2") {
             paths.push(r.split(" ").slice(9).join(" "));
-            if (recs[i + 1]) {
-                const src = recs[++i];
-                if (src === undefined)
-                    throw new Error("parseStatusPaths: rename source missing");
+            const src = recs[i + 1];
+            if (src) {
                 paths.push(src);
+                i++;
             }
         }
         else if (t === "u")

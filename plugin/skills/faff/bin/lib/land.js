@@ -137,9 +137,8 @@ function failingRunIds(rows) {
         if (!m)
             return null;
         const id = m[1];
-        if (id === undefined)
-            throw new Error("failingRunIds: the run id group did not match");
-        ids.add(id);
+        if (id !== undefined)
+            ids.add(id);
     }
     return [...ids];
 }

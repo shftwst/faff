@@ -48,7 +48,21 @@ export type Step =
   | ({ act: "token"; token: LandToken } & Omit<NoExtras, "token" | "reason" | "awaitFaultDomain"> & { reason?: string | undefined; awaitFaultDomain?: boolean | undefined })
   | ({ act: "triage"; transience: Transience } & Omit<NoExtras, "transience">);
 
-export type LandResult = { token: LandToken; exit: number; [extra: string]: unknown };
+// What one observation looked like, attached to a token or a dry-run answer.
+export type Observed = { head_sha: string; ci_state: string; merge_state: string | undefined; mergeable: string | undefined };
+
+// runLand's result: the token, its exit code, and the fields that token carries.
+export type LandExtras = {
+  reason?: string | undefined;
+  detail?: string | undefined;
+  would?: string | undefined;
+  observed?: Observed | undefined;
+  head_sha?: string | undefined;
+  ci_state?: string | undefined;
+  merge_state?: string | undefined;
+  mergeable?: string | undefined;
+};
+export type LandResult = { token: LandToken; exit: number } & LandExtras;
 
 export type LandOptions = { pr: string | number; issue: string; runDir: string; sliceMs: number; faultDomain: string | null; dryRun: boolean };
 
@@ -186,8 +200,7 @@ function failingRunIds(rows: unknown): string[] | null {
     const m = /\/actions\/runs\/(\d+)/.exec(r.link || "");
     if (!m) return null;
     const id = m[1];
-    if (id === undefined) throw new Error("failingRunIds: the run id group did not match");
-    ids.add(id);
+    if (id !== undefined) ids.add(id);
   }
   return [...ids];
 }
@@ -218,7 +231,7 @@ function runLand(opts: LandOptions, deps: LandDeps): LandResult {
   let st = (!dryRun && readState(runDir, issue)) || null;
   if (!st || st.pr !== Number(pr)) st = initialState(pr, callStart);
   const save = () => { if (!dryRun) writeState(runDir, issue, st); };
-  const out = (token: LandToken, extra: { [key: string]: unknown }): LandResult => { save(); return { token, exit: token === "pending" ? 3 : token === "errored" ? 2 : 0, ...extra }; };
+  const out = (token: LandToken, extra: LandExtras): LandResult => { save(); return { token, exit: token === "pending" ? 3 : token === "errored" ? 2 : 0, ...extra }; };
   save();
 
   const repo = deps.repo();

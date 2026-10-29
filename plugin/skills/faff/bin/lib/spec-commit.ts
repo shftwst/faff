@@ -423,9 +423,7 @@ function specSelftest(): number {
   ok("commit: a differing committed spec is needs-judgement, nothing written", r.token === "needs-judgement" && r.reason === "committed-spec-differs" && f.st.commits === 0 && f.st.files.size === 0);
   f.st.head.set("docs/specs/2026-10-02-EX-3-same-design.md", BUILDER);
   r = runSpecCommit(base, f.deps);
-  const bothPaths = r.paths;
-  if (bothPaths === undefined) throw new Error("spec selftest: needs-judgement result has no paths");
-  ok("commit: one identical file does not hide a divergent one", r.token === "needs-judgement" && bothPaths.length === 2);
+  ok("commit: one identical file does not hide a divergent one", r.token === "needs-judgement" && r.paths !== undefined && r.paths.length === 2);
   f = fake(); f.st.head.set("docs/specs/2026-10-20-FAFF-9-fix-ex-3-flake-design.md", Buffer.from("other"));
   ok("commit: another issue's slug naming this id is not a match", runSpecCommit(base, f.deps).token === "committed");
 
@@ -448,9 +446,7 @@ function specSelftest(): number {
   const p = [...f.st.head.keys()][0];
   f.st.head.set(p, Buffer.from("shortened"));
   r = runSpecVerify(vbase, f.deps);
-  const headOnly = r.differs;
-  if (headOnly === undefined) throw new Error("spec selftest: mismatch result has no differs");
-  ok("verify: a committed rewrite whose working file matches differs in head only", r.token === "mismatch" && headOnly.join() === "head");
+  ok("verify: a committed rewrite whose working file matches differs in head only", r.token === "mismatch" && r.differs !== undefined && r.differs.join() === "head");
   f.st.files.set(p, Buffer.from("shortened"));
   const bothDiffer = runSpecVerify(vbase, f.deps).differs;
   if (bothDiffer === undefined) throw new Error("spec selftest: mismatch result has no differs");

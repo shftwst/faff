@@ -39,6 +39,7 @@
     "bin/lib/judge-dispositions.ts",
     "bin/lib/merge-authorize.ts",
     "bin/lib/graft-admit.ts",
-    "bin/lib/gates-progress.ts"
+    "bin/lib/gates-progress.ts",
+    "bin/lib/land.ts"
   ]
 }

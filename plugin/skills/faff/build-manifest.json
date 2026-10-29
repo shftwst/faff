@@ -6,7 +6,7 @@
     "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
   },
   "config": {
-    "tsconfig.json": "bceff6b18517d0a6e6c69a0d2d4613ce2d5f98fe9ee84353aff1155b751628cb"
+    "tsconfig.json": "bd7963d5a5a82f6b6277fc28e972f8c9a89ac358040a327cb10ca098064b63a9"
   },
   "lock": {
     "package-lock.json": "b64bb7ba6298d47694b5700301c5fbec5aec2d5ce8351937d1cda8873fc5697a",
@@ -25,6 +25,7 @@
     "bin/lib/graft-admit.ts": "14766391a87241be17915b8e378407365da0e7d5432ee96335913594af780f19",
     "bin/lib/ids.ts": "720d6b6aec20128bf7e7433407fd399610e64663f81418d418cc7f705de196d6",
     "bin/lib/judge-dispositions.ts": "e693efecbdd54dd88f0e5a08f106579474ae8b1131442b9a76d20d1d1ba5ab13",
+    "bin/lib/land.ts": "c124697a527169e1d47d2885ee385c17bb8877c2ab66ca5b5ea01de755a2b5f1",
     "bin/lib/merge-authorize.ts": "00b3826cd7e76caf1c7891c69a3788cc6086fc76735614851c0f0f55aad3ed32",
     "bin/lib/peer-cred.ts": "cae4373dd609abe1198786cbb4099792e128d9e1cded88b69d0ebfbee534ab95",
     "bin/lib/prep-attach.ts": "edc5cd6bd5dd74419ec5ba34581d808c017f21f536d34edacfddf8620ddfb974",
@@ -44,11 +45,12 @@
     "bin/lib/graft-admit.js": "fb9f9020d238075046b89fd9c5b725582268506d2f6c67211c77c3270a046215",
     "bin/lib/ids.js": "ab49dd55a6a4aba4d2cfed5a9d5fa1a58da7c6da88ed4bced94085b92931fe40",
     "bin/lib/judge-dispositions.js": "5dae168f0fb7e18d23a0092d045ff9927dca79556f1ffb0008b91ab0ac917316",
+    "bin/lib/land.js": "bd6c080680311aefd4ea2653fd02a5456684ed945231c8b06a1afcad8d436910",
     "bin/lib/merge-authorize.js": "03b2945fc70db911ab0301fa6acd2ed2a1905baaad0d32dfd91c89dc684292de",
     "bin/lib/peer-cred.js": "ff6a21e82bfa839e2aa234687e37b7267fa164d49a58ff41ea6986b50ea536de",
     "bin/lib/prep-attach.js": "c7134252d62695133de5909ffab6eeeaeb58dc238c7552e250735794b3f1ad81",
     "bin/lib/producer-auth.js": "6ef8d8a93c885992b0f58c3156f1e2df96518cbedd4df95cd7e2b72fa9009baf",
     "bin/lib/result.js": "09f1ec919a2ff84a38e1fe1e8ac5ed983ddabb90f75bfa8647cfccce561ff03e"
   },
-  "output_digest": "40eb791fd1848ffe2b23564840838d8454941d96c6a6c9aa53ce4f5d47929a50"
+  "output_digest": "192877eecd3358eb12830069317ef0aa1e596df1d04addb469386be514ed58fa"
 }

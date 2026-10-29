@@ -1,0 +1,9 @@
+[
+  {
+    "path": "mod.js",
+    "kind": "undefined-guard",
+    "before": "return rows[0].name;",
+    "after": "const row = rows[0];\nif (row === undefined)\nthrow new Error(\"first: no row\");\nreturn row.name;",
+    "reason": "rows[0] is present at every call; rows[0].name would already throw on undefined."
+  }
+]

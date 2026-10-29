@@ -1,0 +1,86 @@
+[
+  {
+    "module": "land",
+    "change": "assignment to an undeclared variable throws",
+    "status": "refused-by-tsc",
+    "evidence": "tsc --noEmit -p tsconfig.json passes on bin/lib/land.ts; an assignment to an undeclared name is error TS2304 (Cannot find name), so none exists."
+  },
+  {
+    "module": "land",
+    "change": "duplicate parameter names, octal literals, with",
+    "status": "refused-by-tsc",
+    "evidence": "tsc refuses all three (TS2300 duplicate identifier, TS1121 octal literal, TS2410 with) and passes on bin/lib/land.ts. AST scan of origin/main:plugin/skills/faff/bin/lib/land.js (2026-10-29): 0 with statements, 0 legacy octal literals."
+  },
+  {
+    "module": "land",
+    "change": "this is undefined in a plain function call",
+    "status": "absent",
+    "evidence": "AST scan of origin/main:plugin/skills/faff/bin/lib/land.js (2026-10-29): 0 ThisKeyword nodes."
+  },
+  {
+    "module": "land",
+    "change": "arguments stops aliasing parameters; arguments.callee throws",
+    "status": "absent",
+    "evidence": "AST scan of origin/main:plugin/skills/faff/bin/lib/land.js (2026-10-29): 0 references to arguments."
+  },
+  {
+    "module": "land",
+    "change": "writing a read-only property or a non-writable global throws",
+    "status": "present-safe",
+    "evidence": "AST scan of origin/main:plugin/skills/faff/bin/lib/land.js (2026-10-29): 0 assignments to NaN, undefined, Infinity or globalThis, and no Object.freeze, seal, preventExtensions or defineProperty. The property writes (lines 183-229: st.probe, st.probe.stage, st.no_ci, st.reruns_by_sha[head], st.reruns_total; line 310: module.exports) target the land state, a plain object from initialState, JSON.parse or a spread, and module.exports, all writable."
+  },
+  {
+    "module": "land",
+    "change": "delete of an unqualified name is a syntax error",
+    "status": "refused-by-tsc",
+    "evidence": "tsc refuses delete of an identifier in strict mode (TS1102) and passes on bin/lib/land.ts. AST scan of origin/main:plugin/skills/faff/bin/lib/land.js (2026-10-29): 0 delete expressions."
+  },
+  {
+    "module": "land",
+    "change": "eval gets its own scope",
+    "status": "absent",
+    "evidence": "AST scan of origin/main:plugin/skills/faff/bin/lib/land.js (2026-10-29): 0 references to eval."
+  },
+  {
+    "module": "gates-progress",
+    "change": "assignment to an undeclared variable throws",
+    "status": "refused-by-tsc",
+    "evidence": "tsc --noEmit -p tsconfig.json passes on bin/lib/gates-progress.ts; an assignment to an undeclared name is error TS2304 (Cannot find name), so none exists."
+  },
+  {
+    "module": "gates-progress",
+    "change": "duplicate parameter names, octal literals, with",
+    "status": "refused-by-tsc",
+    "evidence": "tsc refuses all three (TS2300 duplicate identifier, TS1121 octal literal, TS2410 with) and passes on bin/lib/gates-progress.ts. AST scan of origin/main:plugin/skills/faff/bin/lib/gates-progress.js (2026-10-29): 0 with statements, 0 legacy octal literals."
+  },
+  {
+    "module": "gates-progress",
+    "change": "this is undefined in a plain function call",
+    "status": "present-safe",
+    "evidence": "AST scan of origin/main:plugin/skills/faff/bin/lib/gates-progress.js (2026-10-29): the only ThisKeyword nodes are lines 36-37, inside the GatesProgressError constructor, which every caller invokes with new; in a constructor, this is the new instance in either mode."
+  },
+  {
+    "module": "gates-progress",
+    "change": "arguments stops aliasing parameters; arguments.callee throws",
+    "status": "absent",
+    "evidence": "AST scan of origin/main:plugin/skills/faff/bin/lib/gates-progress.js (2026-10-29): 0 references to arguments."
+  },
+  {
+    "module": "gates-progress",
+    "change": "writing a read-only property or a non-writable global throws",
+    "status": "present-safe",
+    "evidence": "AST scan of origin/main:plugin/skills/faff/bin/lib/gates-progress.js (2026-10-29): 0 assignments to NaN, undefined, Infinity or globalThis, and no Object.freeze, seal, preventExtensions or defineProperty. The property writes are this.reason and this.detail (lines 36-37, new own properties on a fresh, extensible Error instance), opts.input (line 43, an object literal created on the line above) and module.exports, all writable."
+  },
+  {
+    "module": "gates-progress",
+    "change": "delete of an unqualified name is a syntax error",
+    "status": "refused-by-tsc",
+    "evidence": "tsc refuses delete of an identifier in strict mode (TS1102) and passes on bin/lib/gates-progress.ts. AST scan of origin/main:plugin/skills/faff/bin/lib/gates-progress.js (2026-10-29): 0 delete expressions."
+  },
+  {
+    "module": "gates-progress",
+    "change": "eval gets its own scope",
+    "status": "absent",
+    "evidence": "AST scan of origin/main:plugin/skills/faff/bin/lib/gates-progress.js (2026-10-29): 0 references to eval."
+  }
+]

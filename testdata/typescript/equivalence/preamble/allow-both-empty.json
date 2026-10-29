@@ -1,0 +1,9 @@
+[
+  {
+    "path": "mod.js",
+    "kind": "reflect-get-read",
+    "before": "",
+    "after": "",
+    "reason": "Matches nothing in this pair."
+  }
+]

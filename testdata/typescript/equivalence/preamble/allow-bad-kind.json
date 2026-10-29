@@ -1,0 +1,9 @@
+[
+  {
+    "path": "mod.js",
+    "kind": "refactor",
+    "before": "return e.code;",
+    "after": "return get(e, \"code\");",
+    "reason": "Matches nothing in this pair."
+  }
+]

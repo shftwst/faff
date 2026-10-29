@@ -1,0 +1,534 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 12,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The stated problem is \"the pre-check re-feeds issues a recent drain already declined and that nobody has touched since.\" The runner already knows which ids it fed at each tick and when (Appendix A step 4 adds exactly this logging). A runner-side record of `fed_ids @ timestamp`, cleared by the daily full drain, reproduces the filter's semantics (`changed_at` vs last-considered time, bounded window, full-drain backstop) with no faff command, no schema field, no beep-boop prose, and no cross-repo contract. The spec's rejection of runner-only designs (\"duplicates ledger semantics in another repository\") answers a jq-over-ledgers design, not a fed-log — the fed-log reads nothing of faff's ledger and duplicates no semantics. The DONE item \"a drain leaves a `declined` record\" is a restatement of the chosen mechanism, not an independent requirement derived from WHY.",
+      "evidence": "`### Design decisions` (\"Where the fix lives\"), `## 5. DESIGN DECISION RATIONALE` (\"Where should the fix live?\"), Appendix A step 4.",
+      "predicted_consequence": "The spec ships a new CLI verb, a closed-schema field, a writer-inventory entry, and prose edits in two beep-boop sites to carry a signal the runner could hold in one file on the volume it already owns; the first runner-side need that doesn't fit the ledger shape (e.g. per-label suppression) forces either another schema field or a runner-side shadow mechanism anyway.",
+      "spec_anchor": "where-should-the-fix-live",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "A runner fed-log suppresses issues a drain never reached (timeout, budget, sentry abort); only the drain knows what it declined. Added to section 5.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The stated problem is \"the pre-check re-feeds issues a recent drain already declined and that nobody has touched since.\" The runner already knows which ids it fed at each tick and when (Appendix A step 4 adds exactly this logging). A runner-side record of `fed_ids @ timestamp`, cleared by the daily full drain, reproduces the filter's semantics (`changed_at` vs last-considered time, bounded window, full-drain backstop) with no faff command, no schema field, no beep-boop prose, and no cross-repo contract. The spec's rejection of runner-only designs (\"duplicates ledger semantics in another repository\") answers a jq-over-ledgers design, not a fed-log — the fed-log reads nothing of faff's ledger and duplicates no semantics. The DONE item \"a drain leaves a `declined` record\" is a restatement of the chosen mechanism, not an independent requirement derived from WHY.",
+          "spec_anchor": "where-should-the-fix-live"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "Step 3 makes any single unreadable or start-less ledger in the window keep **all** candidates. The WHY section establishes a tick cadence of a drain every ~5 minutes (~288 run dirs/day on this box alone), all inside the default 24-hour window. So one corrupt `run-ledger.json` among hundreds silently disables the entire cost saving — the design's sole purpose — with only a `degraded` string as a signal, and Appendix A's runner logs suppressed ids, not degraded causes. Skipping the unreadable run (treating it as carrying no declines) is equally fail-open: worst case it keeps candidates that run would have suppressed, which is today's behaviour for that run only, while the other ~287 ledgers keep filtering.",
+      "evidence": "`### 4.2 faff drain-filter` step 3; `## 1. WHY` (12 drains in one hour); `### Design principles` (\"Fail open\").",
+      "predicted_consequence": "A single truncated ledger (a crashed write — the same crash mode 4.5 already contemplates for `owner.status: running`) suppresses nothing for up to 24 hours, and the failure surfaces only if someone reads `degraded` in the runner's JSON output, which Appendix A never asks the runner to log or alert on.",
+      "spec_anchor": "42-faff-drain-filter",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "An unreadable ledger is skipped and keeps only candidates whose deciding run is older than it (4.2 step 4a2).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "Step 3 makes any single unreadable or start-less ledger in the window keep **all** candidates. The WHY section establishes a tick cadence of a drain every ~5 minutes (~288 run dirs/day on this box alone), all inside the default 24-hour window. So one corrupt `run-ledger.json` among hundreds silently disables the entire cost saving — the design's sole purpose — with only a `degraded` string as a signal, and Appendix A's runner logs suppressed ids, not degraded causes. Skipping the unreadable run (treating it as carrying no declines) is equally fail-open: worst case it keeps candidates that run would have suppressed, which is today's behaviour for that run only, while the other ~287 ledgers keep filtering.",
+          "spec_anchor": "42-faff-drain-filter"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "Four behaviours the spec states as rules — \"the later record wins\" for a double decline, \"admitted wins inside a run\" for a wave-1 decline / wave-2 admission, tie-breaking two runs that share a start second by run-dir name, and a crashed run's decline records still counting — are asserted in HOW but never tested: the Scenarios section has no case for any of them, and the DONE test item requires coverage only of \"each step of 4.2\", not of 4.5.",
+      "evidence": "DONE item \"test/drain-filter.test.mjs exists … covering each step of 4.2\"; §4.5 \"Edge cases\".",
+      "predicted_consequence": "A build that implements, say, first-record-wins or orders equal-start runs arbitrarily passes every scenario and every DONE checkbox, and the divergence is found only by reading the prose.",
+      "spec_anchor": "45-edge-cases",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Each 4.5 edge case is a named required test case.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "Four behaviours the spec states as rules — \"the later record wins\" for a double decline, \"admitted wins inside a run\" for a wave-1 decline / wave-2 admission, tie-breaking two runs that share a start second by run-dir name, and a crashed run's decline records still counting — are asserted in HOW but never tested: the Scenarios section has no case for any of them, and the DONE test item requires coverage only of \"each step of 4.2\", not of 4.5.",
+          "spec_anchor": "45-edge-cases"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "Step 4a2 keeps a candidate whenever an unreadable run is newer than the deciding run \"**or its start is unknown**\", and step 2's window exclusion can only skip runs whose start it can determine. A run directory whose ledger is malformed *and* whose name does not parse as `run-YYYYMMDD-HHMMSS-*` (and whose `owner.started_at` is unreadable — exactly what a truncated/corrupt ledger plausibly loses) is therefore treated as newer than every deciding run, forever: it is never aged out by `--max-age-hours`, so from the tick it appears until someone deletes the directory, every candidate it could shadow is kept and the filter silently degrades to a no-op for those issues. The `degraded` list also grows by that run id on every invocation, forever.",
+      "evidence": "§4.2 steps 2, 3 and 4a2; the fail-open principle makes \"keep\" the forced outcome, but the spec never bounds how long an undatable unreadable run keeps forcing it.",
+      "predicted_consequence": "one corrupt run dir (e.g. a killed write during the very crashes the spec's own edge cases contemplate) permanently restores today's spend for the affected issues, with no signal stronger than a repeated `degraded` entry.",
+      "spec_anchor": "42-faff-drain-filter",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Runs with no name time or started_at fall back to the dir mtime, so every run ages out.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "Step 4a2 keeps a candidate whenever an unreadable run is newer than the deciding run \"**or its start is unknown**\", and step 2's window exclusion can only skip runs whose start it can determine. A run directory whose ledger is malformed *and* whose name does not parse as `run-YYYYMMDD-HHMMSS-*` (and whose `owner.started_at` is unreadable — exactly what a truncated/corrupt ledger plausibly loses) is therefore treated as newer than every deciding run, forever: it is never aged out by `--max-age-hours`, so from the tick it appears until someone deletes the directory, every candidate it could shadow is kept and the filter silently degrades to a no-op for those issues. The `degraded` list also grows by that run id on every invocation, forever.",
+          "spec_anchor": "42-faff-drain-filter"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "major",
+      "claim": "The entire saving of this slice is realised only by a change in a *different repository* (Appendix A), yet the spec records it as an \"Assumption\" with the validation \"this ticket's faff half ships and is testable without it\". The methodology critique explicitly recommends \"recording it as a runner-repository issue, linked from this ticket\" — i.e. a tracked dependency edge — and the spec does not do that. As written, the pipeline sees a self-contained faff slice that can ship DONE while the 12-drains-per-hour bleed continues untouched.",
+      "evidence": "Critique: \"the saving needs the runner-repository change in Appendix A, which this tracker cannot block on. Recommend recording it as a runner-repository issue, linked from this ticket.\" Spec §6 Assumptions: \"the runner repository's maintainer applies Appendix A… *Validation:* this ticket's faff half ships and is testable without it.\"",
+      "predicted_consequence": "The faff half lands, DONE ticks green, and no drain is filtered until someone independently notices Appendix A; the cost incident that motivated the ticket persists indefinitely with no tracker signal pointing at the missing half.",
+      "spec_anchor": "assumptions",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The runner half is tracked as its own ticket filed at attach and linked; the assumption's validation checks it exists. Filing needs the operator.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The entire saving of this slice is realised only by a change in a *different repository* (Appendix A), yet the spec records it as an \"Assumption\" with the validation \"this ticket's faff half ships and is testable without it\". The methodology critique explicitly recommends \"recording it as a runner-repository issue, linked from this ticket\" — i.e. a tracked dependency edge — and the spec does not do that. As written, the pipeline sees a self-contained faff slice that can ship DONE while the 12-drains-per-hour bleed continues untouched.",
+          "spec_anchor": "assumptions"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The critique flags a value-risk timing problem — \"nothing is saved until the runner calls the filter, so the loop that is spending money now needs an immediate human step. Remove `faff-automate` from FAFF-1318, or re-prep it, and decide the three held PRs.\" The spec correctly scopes those out (§2), but scopes them out without carrying the critique's recommendation that each \"needs its own tickets if none exists\". The slice is fine; the follow-through it implies is not captured anywhere the pipeline can see.",
+      "evidence": "Critique deps-surfaced and risk-profile bullets; spec §2 out-of-scope bullets for FAFF-1318, the prep-promote defect, and the held In Review PRs.",
+      "predicted_consequence": "The three out-of-scope causes remain unfiled; the next drain wave re-encounters all four issues even after this slice and Appendix A land, because FAFF-1318's spec is still inadmissible and the PRs are still held.",
+      "spec_anchor": "out-of-scope",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Out-of-scope causes are filed as tickets at attach unless one exists.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The critique flags a value-risk timing problem — \"nothing is saved until the runner calls the filter, so the loop that is spending money now needs an immediate human step. Remove `faff-automate` from FAFF-1318, or re-prep it, and decide the three held PRs.\" The spec correctly scopes those out (§2), but scopes them out without carrying the critique's recommendation that each \"needs its own tickets if none exists\". The slice is fine; the follow-through it implies is not captured anywhere the pipeline can see.",
+          "spec_anchor": "out-of-scope"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The integration smoke test's first step invokes `faff run-ledger init-self-drain --root tmp`, but no section of the spec defines that subcommand, registers it, or asserts it already exists in faff. If it is not an existing verb, the smoke test — the only end-to-end check that `record-declined` and `drain-filter` work against a real minted run — cannot be executed as written, and a builder cannot tell whether to build it, substitute `capture-capability`, or create a run dir by hand.",
+      "evidence": "`## Integration smoke test` step 1; contrast with 4.4, which registers only `drain-filter` and `record-declined`.",
+      "predicted_consequence": "The smoke test fails at step 1 on a clean checkout, and \"integration smoke passes\" is not decidable — the builder must invent an unspecified command or silently rewrite the procedure, so two builds can both claim DONE with different smoke procedures.",
+      "spec_anchor": "integration-smoke-test",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "init-self-drain is an existing verb (FAFF-966), now in Reference context.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The integration smoke test's first step invokes `faff run-ledger init-self-drain --root tmp`, but no section of the spec defines that subcommand, registers it, or asserts it already exists in faff. If it is not an existing verb, the smoke test — the only end-to-end check that `record-declined` and `drain-filter` work against a real minted run — cannot be executed as written, and a builder cannot tell whether to build it, substitute `capture-capability`, or create a run dir by hand.",
+          "spec_anchor": "integration-smoke-test"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The methodology critique flags the value risk as timing — nothing is saved until the runner repository change lands, and the loop that is burning 4.7M–11.5M tokens per drain needs an immediate human step (removing `faff-automate` from FAFF-1318, or re-prepping it, and deciding the three held PRs). This ticket delivers only the durable half; the stop-the-bleeding action lives outside it, so sequencing the slice first leaves the incident running for the slice's full one-to-two-day duration plus the runner ticket's.",
+      "evidence": "Critique \"Risk profile\" paragraph: \"nothing is saved until the runner calls the filter, so the loop that is spending money now needs an immediate human step. Remove `faff-automate` from FAFF-1318, or re-prep it, and decide the three held PRs.\" Spec §2 explicitly puts \"Fixing FAFF-1318 itself\" and \"Landing the three held In Review PRs\" out of scope, and the Assumption in §6 only validates the runner ticket exists \"before closing FAFF-1412\".",
+      "predicted_consequence": "The 12-drains-per-hour spend pattern continues until a separate human action is taken on FAFF-1318 and the held PRs; if that action is not tracked as its own immediate step, the ticket's completion is mistaken for the incident's resolution.",
+      "spec_anchor": "out-of-scope",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The immediate human step is named in OUT OF SCOPE and filed at attach as an operator ticket.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The methodology critique flags the value risk as timing — nothing is saved until the runner repository change lands, and the loop that is burning 4.7M–11.5M tokens per drain needs an immediate human step (removing `faff-automate` from FAFF-1318, or re-prepping it, and deciding the three held PRs). This ticket delivers only the durable half; the stop-the-bleeding action lives outside it, so sequencing the slice first leaves the incident running for the slice's full one-to-two-day duration plus the runner ticket's.",
+          "spec_anchor": "out-of-scope"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The `--json` flag on `record-declined` appears in the command signature and in scenario 5, but the spec never says what it prints. A tester cannot decide whether a build prints the right thing, because \"the right thing\" is undefined — the whole record, the `declined` entry, a status object, or nothing?",
+      "evidence": "Section 3 command block (`faff run-ledger record-declined ... [--json]`); scenario 5 runs it with `--json` but asserts only the exit code and the ledger contents.",
+      "predicted_consequence": "The scenario passes under any `--json` behaviour, including a build that emits nothing or malformed JSON, so the flag's contract is unverifiable and two builds can both \"pass\" while differing observably.",
+      "spec_anchor": "3-what",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "record-declined default and --json output defined; scenario and DONE assert it.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The `--json` flag on `record-declined` appears in the command signature and in scenario 5, but the spec never says what it prints. A tester cannot decide whether a build prints the right thing, because \"the right thing\" is undefined — the whole record, the `declined` entry, a status object, or nothing?",
+          "spec_anchor": "3-what"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The explore evidence establishes that three of the four repeat-drained issues (FAFF-1292/1207/1205) are **In Review**, yet the runner pre-check — whose filter is \"state backlog/unstarted/started, no open blocker\" — matches them every tick. The spec's answer is to build a decline-record ledger plus a filter command so the runner can suppress candidates *after* a full model session has already declined them. It never asks why In Review issues pass the pre-check at all, and Appendix A — which is the runner half's spec — edits `eligible_ids()` only to add `updatedAt`/comment fields and drop the retired `faff-automation-hold` label; it does not correct the state filter. The cheaper, correct design for the claimed-by-peer half is a one-line exclusion at the source; the ledger mechanism is then needed only for the genuinely-Todo routed-out case (FAFF-1318). As written, the spec builds a general suppression layer whose largest consumer is an inclusion bug.",
+      "evidence": "explore.md (\"the runner pre-check … matches the same four ids every tick\" against \"FAFF-1292/1207/1205: In Review\"); spec §1 Problem, §5 \"Where should the fix live?\" (alternatives consider parking and jq, never the pre-check's own state filter), Appendix A items 1–5.",
+      "predicted_consequence": "the first drain after this ships still spends a full ~8M-token session re-declining the three In Review issues, because pre-change ledgers carry no `declined` records and step 4d keeps any candidate mentioned only in `outcomes` (claimed-by-peer was \"recorded nowhere in the ledger\"). Thereafter the runner keeps feeding In Review issues into the filter on every tick, suppressing them only via 24-hour-expiring decline records — the inclusion bug ships permanently inside the runner ticket this spec ratifies as Appendix A.",
+      "spec_anchor": "appendix-a-runner-repository-change-for-the-runner-maintainer",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Including started states is deliberate (runner comment; beep-boop FAFF-842 endgame landing resume). Rejected alternative added to section 5; first-drain behaviour noted in 4.3. Round 6 accidentally reviewed the unedited round-5 spec; the edit landed before round 7.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "major",
+          "claim": "The explore evidence establishes that three of the four repeat-drained issues (FAFF-1292/1207/1205) are **In Review**, yet the runner pre-check — whose filter is \"state backlog/unstarted/started, no open blocker\" — matches them every tick. The spec's answer is to build a decline-record ledger plus a filter command so the runner can suppress candidates *after* a full model session has already declined them. It never asks why In Review issues pass the pre-check at all, and Appendix A — which is the runner half's spec — edits `eligible_ids()` only to add `updatedAt`/comment fields and drop the retired `faff-automation-hold` label; it does not correct the state filter. The cheaper, correct design for the claimed-by-peer half is a one-line exclusion at the source; the ledger mechanism is then needed only for the genuinely-Todo routed-out case (FAFF-1318). As written, the spec builds a general suppression layer whose largest consumer is an inclusion bug.",
+          "spec_anchor": "appendix-a-runner-repository-change-for-the-runner-maintainer"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "`record-declined` writes via `mutateLedgerUnderLock`, which \"folds a `ledger-write` event\" into the run's event chain. The spec specifies the `declined` map's shape and the writer inventory, but never says the folded event itself attributes the issue. The ratified scope settles that unattributable evidence rows are \"closed at the writer, never tolerated at the gate,\" and that sibling writers take the same answer. A builder mirroring `capture-capability`'s event shape could produce exactly the residue that precedent forbids, and the DONE list (\"the run's events chain still verifies\") would still pass, since chain verification checks integrity, not attribution.",
+      "evidence": "§4.1 (\"Mirrors `capture-capability`… the mutate closure omits `level`\"); §4.4 writer-inventory bullet; ratified scope entry `an-unattributable-evidence-row-is-closed-at-the-writer-never-tolerated-at-the-ga`.",
+      "predicted_consequence": "the first runcheck/anchor grading pass over a post-change ledger finds `ledger-write` rows attributable to no issue, and the writer must be reopened to fix what one sentence in §4.1 would have fixed.",
+      "spec_anchor": "`faff-run-ledger-record-declined`",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "4.1 states the folded ledger-write is the existing run-scoped event; attribution lives in the issue-keyed declined entry.",
+      "first_round": 6,
+      "last_round": 6,
+      "occurrences": [
+        {
+          "round": 6,
+          "severity": "minor",
+          "claim": "`record-declined` writes via `mutateLedgerUnderLock`, which \"folds a `ledger-write` event\" into the run's event chain. The spec specifies the `declined` map's shape and the writer inventory, but never says the folded event itself attributes the issue. The ratified scope settles that unattributable evidence rows are \"closed at the writer, never tolerated at the gate,\" and that sibling writers take the same answer. A builder mirroring `capture-capability`'s event shape could produce exactly the residue that precedent forbids, and the DONE list (\"the run's events chain still verifies\") would still pass, since chain verification checks integrity, not attribution.",
+          "spec_anchor": "`faff-run-ledger-record-declined`"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The design's entire value proposition is that the runner calls `faff drain-filter` \"with no model call\" (§WHY, Appendix A step 2). But the supplied context establishes the opposite precondition: faff exists only inside the cage, and the only documented way faff gets installed there is `entrypoint.sh` — a script whose purpose is launching a model session. Appendix A asserts the sequence \"run in the cage image … after `claude plugin update faff@faff`. No model call is involved\" without establishing any mechanism by which the cage executes a bare command. The Assumptions section's validation is only \"check that the runner ticket exists and is linked\" — it never checks feasibility. Meanwhile the §5 rationale rejected the runner-side jq alternative on maintainability grounds, not cost grounds, so if the cage cannot host a command-mode entry, the chosen design loses to the rejected alternative on the one axis that justifies it (cheapness), and the faff half ships as dead weight.",
+      "evidence": "§Reference context row \"Runner `entrypoint.sh` `eligible_ids()` (separate repository)\"; explore.md (\"no faff CLI on the outer container (faff exists only inside the cage after `claude plugin update`)\"); Appendix A steps 2–3; §Assumptions (\"before closing FAFF-1412, check that the runner ticket exists and is linked\"); the §7 integration smoke test, which exercises `faff` directly and never the cage path.",
+      "predicted_consequence": "The runner ticket discovers the cage can only be entered via a model session; either each tick's pre-check now costs a session (worse than the incident), or the fallback fires every tick, the saving never lands, and FAFF-1412 closes with its faff half unused until someone re-opens the design.",
+      "spec_anchor": "appendix-a-runner-repository-change-for-the-runner-maintainer",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Appendix A gives the --entrypoint mechanism, a one-off feasibility check, and the outer-container fallback; failure-mode row added.",
+      "first_round": 7,
+      "last_round": 7,
+      "occurrences": [
+        {
+          "round": 7,
+          "severity": "major",
+          "claim": "The design's entire value proposition is that the runner calls `faff drain-filter` \"with no model call\" (§WHY, Appendix A step 2). But the supplied context establishes the opposite precondition: faff exists only inside the cage, and the only documented way faff gets installed there is `entrypoint.sh` — a script whose purpose is launching a model session. Appendix A asserts the sequence \"run in the cage image … after `claude plugin update faff@faff`. No model call is involved\" without establishing any mechanism by which the cage executes a bare command. The Assumptions section's validation is only \"check that the runner ticket exists and is linked\" — it never checks feasibility. Meanwhile the §5 rationale rejected the runner-side jq alternative on maintainability grounds, not cost grounds, so if the cage cannot host a command-mode entry, the chosen design loses to the rejected alternative on the one axis that justifies it (cheapness), and the faff half ships as dead weight.",
+          "spec_anchor": "appendix-a-runner-repository-change-for-the-runner-maintainer"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The suppression rule keeps a candidate only when `changed_at > declined.at`. The spec stamps `at` at CLI write time, but the drain may have *read* the tracker earlier in the run. A tracker change (human comment, label edit) that lands between the drain's read of the issue and the drain's `record-declined` write produces `declined.at` **later** than the true change time, so the very change that should re-eligible the issue suppresses it until the record expires. The spec's own anti-pattern reasoning — \"the run's start time precedes any tracker write the run made, so suppressing on it could hide a human change made during the run\" — is applied to reject `outcomes`-based suppression (step 4d) but the identical flaw is retained for the `declined` record, which is the path that actually ships. This is a trust decision the spec makes on the strength of an input (`at`) without establishing that it postdates the observation the suppression is based on.",
+      "evidence": "§4.1 (\"`at: now`\", \"stamped by the CLI at write time, never by the caller\"); §4.2 step 4c; the second anti-pattern bullet in §4.2, whose stated rationale condemns exactly this ordering but is not carried over to the chosen design; §4.5 clock-skew edge case covers `changed_at` skew only, not this direction.",
+      "predicted_consequence": "a human unblocks an issue while a drain is in flight; the drain's decline record postdates the change; every cheap tick suppresses the issue for up to `--max-age-hours` (24h default) despite the change — silently, with the runner log showing only `suppressed (declined, unchanged)`.",
+      "spec_anchor": "what-counts-as-a-change",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "at is the drain's observation time (--observed-at), recorded_at is the write time; a change between read and write keeps the issue.",
+      "first_round": 7,
+      "last_round": 7,
+      "occurrences": [
+        {
+          "round": 7,
+          "severity": "minor",
+          "claim": "The suppression rule keeps a candidate only when `changed_at > declined.at`. The spec stamps `at` at CLI write time, but the drain may have *read* the tracker earlier in the run. A tracker change (human comment, label edit) that lands between the drain's read of the issue and the drain's `record-declined` write produces `declined.at` **later** than the true change time, so the very change that should re-eligible the issue suppresses it until the record expires. The spec's own anti-pattern reasoning — \"the run's start time precedes any tracker write the run made, so suppressing on it could hide a human change made during the run\" — is applied to reject `outcomes`-based suppression (step 4d) but the identical flaw is retained for the `declined` record, which is the path that actually ships. This is a trust decision the spec makes on the strength of an input (`at`) without establishing that it postdates the observation the suppression is based on.",
+          "spec_anchor": "what-counts-as-a-change"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "§4.5 opens \"Each case below is a required test case (see 7)\" and lists five bullets, the fifth being clock skew between Linear and the runner. The Tests DONE list names four 4.5 cases plus an unreadable-run case, and never names clock skew, so the spec's own required-coverage contract is inconsistent and a tester cannot tell whether a build omitting a clock-skew case is correct.",
+      "evidence": "`### 4.5 Edge cases` (\"Each case below is a required test case\") vs the Tests bullet \"The same file has one named case per 4.5 edge case: …\" which enumerates a different set.",
+      "predicted_consequence": "a build passes every named test case while silently dropping the clock-skew case the spec declared required; the DONE checklist cannot decide this either way.",
+      "spec_anchor": "45-edge-cases",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Clock-skew boundary case added to the named tests.",
+      "first_round": 7,
+      "last_round": 7,
+      "occurrences": [
+        {
+          "round": 7,
+          "severity": "minor",
+          "claim": "§4.5 opens \"Each case below is a required test case (see 7)\" and lists five bullets, the fifth being clock skew between Linear and the runner. The Tests DONE list names four 4.5 cases plus an unreadable-run case, and never names clock skew, so the spec's own required-coverage contract is inconsistent and a tester cannot tell whether a build omitting a clock-skew case is correct.",
+          "spec_anchor": "45-edge-cases"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "§4.4 requires `declined` values to be closed objects with three string properties (`reason`, `at`, `recorded_at`), while the DONE item requires the schema to declare \"string `reason` and `at`\" only. Because the schema is closed, these are not two spellings of one requirement — one of them makes the ledger invalid: if the builder follows the DONE wording, `record-declined` writes `recorded_at` and the written ledger fails `contracts/validate-schema.mjs`, failing the adjacent DONE item (\"a ledger written by `record-declined` validates against the schema\"). The builder can resolve it, but only by deciding which spec clause wins.",
+      "evidence": "§4.4 \"gains `declined` as an object whose values are closed objects, each with string properties `reason`, `at` and `recorded_at`\" vs. §7 \"declares `declined`, closed, with string `reason` and `at`\".",
+      "predicted_consequence": "the closed-schema test and the validate-schema DONE item cannot both pass under one reading; the builder must silently pick the §4.4 reading.",
+      "spec_anchor": "from-how-registration-schema-and-docs",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Schema: reason and at required, recorded_at optional; 4.4 and DONE agree.",
+      "first_round": 8,
+      "last_round": 8,
+      "occurrences": [
+        {
+          "round": 8,
+          "severity": "minor",
+          "claim": "§4.4 requires `declined` values to be closed objects with three string properties (`reason`, `at`, `recorded_at`), while the DONE item requires the schema to declare \"string `reason` and `at`\" only. Because the schema is closed, these are not two spellings of one requirement — one of them makes the ledger invalid: if the builder follows the DONE wording, `record-declined` writes `recorded_at` and the written ledger fails `contracts/validate-schema.mjs`, failing the adjacent DONE item (\"a ledger written by `record-declined` validates against the schema\"). The builder can resolve it, but only by deciding which spec clause wins.",
+          "spec_anchor": "from-how-registration-schema-and-docs"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The scenarios' Given ledgers cannot be built as specified, so a tester cannot tell whether the fixture should include `recorded_at` — and if it does, the asserted `declined_at` output is unaffected but the fixture contradicts the closed schema the same spec mandates.",
+      "evidence": "Scenario 1 and the holdout scenario both give `declined {\"FAFF-1318\": {\"reason\": ..., \"at\": ...}}` with no `recorded_at`, while §4.4 requires `run-ledger.schema.json` to declare `declined` values as closed objects \"each with string properties `reason`, `at` **and** `recorded_at`\", and the DONE item requires a ledger written by `record-declined` to validate against that schema. A hand-written fixture omitting `recorded_at` is exactly the shape the schema rejects.",
+      "predicted_consequence": "The tester building the scenario fixtures must invent a field the scenario text omits, or ship fixtures that fail `contracts/validate-schema.mjs` — the spec's own validation step — with no guidance on which is intended.",
+      "spec_anchor": "`scenarios`",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixtures without recorded_at are schema-valid.",
+      "first_round": 8,
+      "last_round": 8,
+      "occurrences": [
+        {
+          "round": 8,
+          "severity": "minor",
+          "claim": "The scenarios' Given ledgers cannot be built as specified, so a tester cannot tell whether the fixture should include `recorded_at` — and if it does, the asserted `declined_at` output is unaffected but the fixture contradicts the closed schema the same spec mandates.",
+          "spec_anchor": "`scenarios`"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "§4.1 makes `record-declined` exit 2 when `--observed-at` is more than 60 seconds after now, but §4.3 instructs beep-boop to capture `observed_at` \"immediately before the at-assembly tracker read of each candidate\" and pass that same value to the decline write. The gap between a candidate's claim-before-admit re-read and its routed-out/claimed-by-peer disposition is whatever the drain does in between for that candidate (bundle-recover attempts, custody checks, admissibility evaluation) — not bounded by 60 seconds by anything in the spec. The validation rule and the call site's data flow are inconsistent as written.",
+      "evidence": "§4.1 \"`--observed-at` must parse as ISO-8601 and must not be more than 60 seconds after now, else exit 2\" vs §4.3 \"capture `observed_at=$(date -u +%FT%TZ)` immediately before the at-assembly tracker read of each candidate … and pass it as `--observed-at` to every `record-declined` call for that candidate.\"",
+      "predicted_consequence": "on any candidate whose processing exceeds 60 seconds, the decline write fails with exit 2, no `declined` record lands, and the filter keeps the candidate — the fix silently does nothing for exactly the slow candidates, in the expensive direction, with no `degraded` signal because the failure is on the writer side.",
+      "spec_anchor": "41-faff-run-ledger-record-declined",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "The 60 s rule rejects only future times; any past observation is accepted. Wording clarified.",
+      "first_round": 9,
+      "last_round": 9,
+      "occurrences": [
+        {
+          "round": 9,
+          "severity": "minor",
+          "claim": "§4.1 makes `record-declined` exit 2 when `--observed-at` is more than 60 seconds after now, but §4.3 instructs beep-boop to capture `observed_at` \"immediately before the at-assembly tracker read of each candidate\" and pass that same value to the decline write. The gap between a candidate's claim-before-admit re-read and its routed-out/claimed-by-peer disposition is whatever the drain does in between for that candidate (bundle-recover attempts, custody checks, admissibility evaluation) — not bounded by 60 seconds by anything in the spec. The validation rule and the call site's data flow are inconsistent as written.",
+          "spec_anchor": "41-faff-run-ledger-record-declined"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "`--reason` is free text derived from drain dispositions (e.g. `claimed-by-peer:<cause>`, where `<cause>` can echo text from a refused bundle-recover or an inadmissibility message that quotes issue content). The spec sanitises it by trimming, collapsing newlines and capping length — but carriage returns and other control characters are not covered. Appendix A step 4 requires the runner to log the reason verbatim (`suppressed … (run-...: inadmissible:...)`), so a reason containing `\\r` can forge or overwrite log lines in the runner's tick log, laundering attacker-influenced text into operator-facing infrastructure logs.",
+      "evidence": "§4.1 \"`--reason` is trimmed and has newlines collapsed to spaces; empty, or longer than 200 characters after that, is exit 2\"; Appendix A step 4 logs the reason; DeclineRecord `reason` examples in §3.",
+      "predicted_consequence": "forged/spoofed lines in the runner's pre-check log, attributed to the filter, crafted from content the drain read (issue titles, bundle-recover diagnostics).",
+      "spec_anchor": "41-faff-run-ledger-record-declined",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "All control characters in --reason replaced by spaces; test added.",
+      "first_round": 9,
+      "last_round": 9,
+      "occurrences": [
+        {
+          "round": 9,
+          "severity": "minor",
+          "claim": "`--reason` is free text derived from drain dispositions (e.g. `claimed-by-peer:<cause>`, where `<cause>` can echo text from a refused bundle-recover or an inadmissibility message that quotes issue content). The spec sanitises it by trimming, collapsing newlines and capping length — but carriage returns and other control characters are not covered. Appendix A step 4 requires the runner to log the reason verbatim (`suppressed … (run-...: inadmissible:...)`), so a reason containing `\\r` can forge or overwrite log lines in the runner's tick log, laundering attacker-influenced text into operator-facing infrastructure logs.",
+          "spec_anchor": "41-faff-run-ledger-record-declined"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The critique's value-risk point — nothing is saved until the runner calls the filter, so the loop burning money now needs an immediate human step — is handled in the spec as a sentence inside OUT OF SCOPE (\"stated in the attach comment as an action for the operator\"), not as a tracked item the pipeline can see. If the attach comment is missed, the only near-term remedy for the incident is unowned.",
+      "evidence": "Critique: \"the loop that is spending money now needs an immediate human step. Remove `faff-automate` from FAFF-1318, or re-prep it, and decide the three held PRs.\" Spec §2: \"It is stated in the attach comment as an action for the operator, and closing FAFF-1412 does not mean the incident is over.\"",
+      "predicted_consequence": "FAFF-1412 is built and closed while the 12-drains-per-hour loop continues, because the human step was prose in a spec rather than a ticket or blocker edge.",
+      "spec_anchor": "out-of-scope",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Immediate relief filed at attach as its own operator ticket.",
+      "first_round": 9,
+      "last_round": 9,
+      "occurrences": [
+        {
+          "round": 9,
+          "severity": "minor",
+          "claim": "The critique's value-risk point — nothing is saved until the runner calls the filter, so the loop burning money now needs an immediate human step — is handled in the spec as a sentence inside OUT OF SCOPE (\"stated in the attach comment as an action for the operator\"), not as a tracked item the pipeline can see. If the attach comment is missed, the only near-term remedy for the incident is unowned.",
+          "spec_anchor": "out-of-scope"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "DONE requires `record-declined` to \"return exit codes 0, 2 and 3 as listed in 3\", and `drain-filter` to exit 2 on non-array stdin or an unknown flag, but the Tests section names a case for every 4.5 edge case and none for any exit code other than 0. A build could pass every named test while exit 3 (no run dir resolved / locked write failed) and drain-filter's exit 2 paths are unexercised and possibly wrong.",
+      "evidence": "`### From WHAT (commands and types)` vs `### Tests` — the per-case naming standard applied to 4.5 (\"Each case below is a required test case\") is not extended to the exit-code table in section 3.",
+      "predicted_consequence": "a tester following the Tests checklist cannot decide exit-code conformance without inventing fixtures the spec never describes (e.g. a root with no run dir, a stdin of `[1,2]`); the DONE box gets ticked on the strength of the 0-paths alone.",
+      "spec_anchor": "`tests`",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Exit-code cases enumerated in Tests.",
+      "first_round": 9,
+      "last_round": 9,
+      "occurrences": [
+        {
+          "round": 9,
+          "severity": "minor",
+          "claim": "DONE requires `record-declined` to \"return exit codes 0, 2 and 3 as listed in 3\", and `drain-filter` to exit 2 on non-array stdin or an unknown flag, but the Tests section names a case for every 4.5 edge case and none for any exit code other than 0. A build could pass every named test while exit 3 (no run dir resolved / locked write failed) and drain-filter's exit 2 paths are unexercised and possibly wrong.",
+          "spec_anchor": "`tests`"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The saving depends entirely on the runner invoking `faff drain-filter --runs-dir /home/faff/state/runs`, but neither the spec nor the supplied context establishes that the run directories actually live at that on-volume path. The explore notes say only that the state volume is mounted at `/home/faff/state` and that the runs dir is \"symlinked to `/home/faff/app/.faff/runs`\" — the direction and the on-volume location of the real directories are never pinned. Because the filter fails open with `degraded: \"no-runs-dir\"` and exit 0, a wrong path is indistinguishable from a quiet day: the Appendix A step-2 check (\"the command must print a `FilterResult` and start no model session\") passes verbatim against a wrong path, since an all-kept result with `degraded` set is still a well-formed `FilterResult`. The spec's own fail-open principle, correct inside the cage, here silences the one check that exists to validate the deployment.",
+      "evidence": "Appendix A steps 2 and 4; `explore.md` (\"State volume faff-state mounted in the cage at /home/faff/state; runs dir symlinked to /home/faff/app/.faff/runs\"); spec §4.2 step 1 (`Missing runs_dir -> keep all, degraded \"no-runs-dir\", exit 0`).",
+      "predicted_consequence": "The runner ticket ships, the check passes, the incident's cost loop continues unchanged, and the first signal is a human noticing `pre-check: … degraded no-runs-dir` in tick logs — or never, since step 4 logs degraded but nobody is required to alert on it.",
+      "spec_anchor": "appendix-a-runner-repository-change-for-the-runner-maintainer",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "On-volume path pinned from drain.sh (ln -sfn /home/faff/state/runs ...); the one-off check requires degraded null; no-runs-dir logged as a deployment fault.",
+      "first_round": 10,
+      "last_round": 10,
+      "occurrences": [
+        {
+          "round": 10,
+          "severity": "minor",
+          "claim": "The saving depends entirely on the runner invoking `faff drain-filter --runs-dir /home/faff/state/runs`, but neither the spec nor the supplied context establishes that the run directories actually live at that on-volume path. The explore notes say only that the state volume is mounted at `/home/faff/state` and that the runs dir is \"symlinked to `/home/faff/app/.faff/runs`\" — the direction and the on-volume location of the real directories are never pinned. Because the filter fails open with `degraded: \"no-runs-dir\"` and exit 0, a wrong path is indistinguishable from a quiet day: the Appendix A step-2 check (\"the command must print a `FilterResult` and start no model session\") passes verbatim against a wrong path, since an all-kept result with `degraded` set is still a well-formed `FilterResult`. The spec's own fail-open principle, correct inside the cage, here silences the one check that exists to validate the deployment.",
+          "spec_anchor": "appendix-a-runner-repository-change-for-the-runner-maintainer"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "4.2 step 0 names a distinct behaviour — a candidate with a malformed issue id is kept and listed in `degraded` as `bad-candidate:<index>` — but the DONE \"Tests\" bullet enumerates required cases per 4.5 edge cases and exit codes only, and no scenario exercises it. A builder following the DONE test list literally ships without ever executing this branch, so its correctness (index format, keep-on-bad-id) is unverified.",
+      "evidence": "`### 4.2 faff drain-filter` step 0 vs the `### Tests` DONE bullet and the `## Scenarios` block.",
+      "predicted_consequence": "the `bad-candidate` degraded path can be broken or omitted (e.g. dropping the bad candidate instead of keeping it) while every named test passes.",
+      "spec_anchor": "42-faff-drain-filter",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "bad-candidate case added to DONE tests.",
+      "first_round": 11,
+      "last_round": 11,
+      "occurrences": [
+        {
+          "round": 11,
+          "severity": "minor",
+          "claim": "4.2 step 0 names a distinct behaviour — a candidate with a malformed issue id is kept and listed in `degraded` as `bad-candidate:<index>` — but the DONE \"Tests\" bullet enumerates required cases per 4.5 edge cases and exit codes only, and no scenario exercises it. A builder following the DONE test list literally ships without ever executing this branch, so its correctness (index format, keep-on-bad-id) is unverified.",
+          "spec_anchor": "42-faff-drain-filter"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec states \"Fail open\" as a design principle but scopes it to the filter (\"Any doubt … keeps the candidate\"). The beep-boop call sites in 4.3 are instructed to run `record-declined` after each disposition with no tolerance clause for its failure modes. `record-declined` has a real failure path the spec itself defines — exit 3 on \"the locked write failed\" — and two drains can plausibly contend for the same run's lock (the incident shows drains firing every few minutes; a long drain overlaps the next tick's targeted pass only if the targeted pass is what drains, but the daily full drain and a targeted drain can overlap). If beep-boop treats the non-zero exit as a step failure, the drain aborts after the disposition but before later candidates — the writer becomes a gate, the exact inversion of the stated principle.",
+      "evidence": "\"### Design principles — **Fail open.** This is a cost filter, never a gate on work\" (scoped to the filter); \"### Commands — `record-declined` … 3 no run dir … or the locked write failed\"; \"### 4.3 beep-boop prose — after recording the `routed-out` outcome, run `record-declined`\".",
+      "predicted_consequence": "a lock contention or missing run dir on one candidate ends the drain early; the remaining candidates are never considered and never get decline records, so the loop the spec exists to stop keeps burning tokens — and the failure is invisible unless someone reads the drain log.",
+      "spec_anchor": "how-43-beep-boop-prose-faff-beep-boop-skill-md",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "A failed record-declined is logged and never stops the drain (4.3, DONE).",
+      "first_round": 12,
+      "last_round": 12,
+      "occurrences": [
+        {
+          "round": 12,
+          "severity": "minor",
+          "claim": "The spec states \"Fail open\" as a design principle but scopes it to the filter (\"Any doubt … keeps the candidate\"). The beep-boop call sites in 4.3 are instructed to run `record-declined` after each disposition with no tolerance clause for its failure modes. `record-declined` has a real failure path the spec itself defines — exit 3 on \"the locked write failed\" — and two drains can plausibly contend for the same run's lock (the incident shows drains firing every few minutes; a long drain overlaps the next tick's targeted pass only if the targeted pass is what drains, but the daily full drain and a targeted drain can overlap). If beep-boop treats the non-zero exit as a step failure, the drain aborts after the disposition but before later candidates — the writer becomes a gate, the exact inversion of the stated principle.",
+          "spec_anchor": "how-43-beep-boop-prose-faff-beep-boop-skill-md"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The decline record is the first faff artifact whose effect outlives the run and gates a *future* actor (the runner pre-check). The spec explicitly decouples the writer from evidence of consideration: 4.1 says the command \"does not require the issue to be in `admitted`\", and nothing requires the issue to appear in the run's `outcomes`, candidates, or events at all. The writer is invoked by the beep-boop agent, which reads untrusted issue content; a hostile issue description (or simply a buggy drain) can therefore call `record-declined --issue <any-other-id>` and suppress issues the run never looked at, for every tick in the window. The spec establishes who writes the record but not that the record attests to a decision this run actually made.",
+      "evidence": "§4.1 \"It does not require the issue to be in `admitted`.\"; §3 Decline record definition; §4.3 call sites; the threat checklist's \"when the spec grants authority on the strength of an input, the spec must establish who can write that input\" — here the input (`--issue`) is agent-chosen with no binding to run contents.",
+      "predicted_consequence": "A drain steered by issue content (or a defect) suppresses unrelated issues from the cheap pass for up to `--max-age-hours` (24h default); work is delayed, not lost — the daily full drain and the fail-open design cap the damage, which is why this is not major.",
+      "spec_anchor": "faff-run-ledger-record-declined",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Effect is a delay of at most max-age on the cheap pass, never lost work; the ledger is already agent-writable under a shared uid, so binding would not stop a forger. Failure-mode row added.",
+      "first_round": 12,
+      "last_round": 12,
+      "occurrences": [
+        {
+          "round": 12,
+          "severity": "minor",
+          "claim": "The decline record is the first faff artifact whose effect outlives the run and gates a *future* actor (the runner pre-check). The spec explicitly decouples the writer from evidence of consideration: 4.1 says the command \"does not require the issue to be in `admitted`\", and nothing requires the issue to appear in the run's `outcomes`, candidates, or events at all. The writer is invoked by the beep-boop agent, which reads untrusted issue content; a hostile issue description (or simply a buggy drain) can therefore call `record-declined --issue <any-other-id>` and suppress issues the run never looked at, for every tick in the window. The spec establishes who writes the record but not that the record attests to a decision this run actually made.",
+          "spec_anchor": "faff-run-ledger-record-declined"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The spec mandates exit 2 when \"a flag is unknown or invalid\", but never defines what makes `--max-age-hours` or `--now` invalid (negative? zero? non-numeric? unparseable `--now`?). A build that accepts `--max-age-hours -1` (window empty, everything kept — fail-open) and a build that exits 2 both satisfy the text.",
+      "evidence": "`### Commands` exit-code line: \"2 when stdin is not a JSON array of objects, or a flag is unknown or invalid\"; contrast `--issue`/`--reason`/`--observed-at`, whose validity rules are spelled out in 4.1.",
+      "predicted_consequence": "The DONE item \"exits 2 on non-array stdin or an unknown flag\" can be decided, but the exit-code behaviour for a malformed `--max-age-hours` cannot be verified either way; two conforming builds disagree and no test in §7 can arbitrate.",
+      "spec_anchor": "4.2-faff-drain-filter",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "--max-age-hours 1..168 and --now ISO validity defined; tests added.",
+      "first_round": 12,
+      "last_round": 12,
+      "occurrences": [
+        {
+          "round": 12,
+          "severity": "minor",
+          "claim": "The spec mandates exit 2 when \"a flag is unknown or invalid\", but never defines what makes `--max-age-hours` or `--now` invalid (negative? zero? non-numeric? unparseable `--now`?). A build that accepts `--max-age-hours -1` (window empty, everything kept — fail-open) and a build that exits 2 both satisfy the text.",
+          "spec_anchor": "4.2-faff-drain-filter"
+        }
+      ]
+    }
+  ]
+}

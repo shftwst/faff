@@ -68,7 +68,7 @@ function mintL4(root) {
   return JSON.parse(r.out).run_dir;
 }
 
-test("run-ledger.js: init-interactive mint, record-outcome and capture-capability", () => {
+test("run-ledger.js: init-interactive mint, record-outcome, capture-capability and record-declined", () => {
   const root = gitRepo();
   try {
     const runDir = mintL2(root);
@@ -81,6 +81,10 @@ test("run-ledger.js: init-interactive mint, record-outcome and capture-capabilit
     assert.equal(cap.code, 0, cap.err);
     assert.equal(ledgerOf(runDir).capabilities["FAFF-1"].sut_env_stood, true);
     assertValid(runDir, "capture-capability", cap.err);
+    const dec = faff(["run-ledger", "record-declined", "--issue", "FAFF-2", "--reason", "claimed-by-peer:test", "--observed-at", "2026-10-27T18:53:00Z", "--run-dir", runDir]);
+    assert.equal(dec.code, 0, dec.err);
+    assert.equal(ledgerOf(runDir).declined["FAFF-2"].reason, "claimed-by-peer:test");
+    assertValid(runDir, "record-declined", dec.err);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

@@ -65,6 +65,9 @@ const TEST_FILE_COVERAGE = {
   // (its shell is impure gh); the git-only no-op / grant-refusal / dispatch-registration seam is
   // exercised through the real CLI entrypoint here.
   "pr-create": "test/pr-create-chokepoint.test.mjs",
+  // drain-filter (FAFF-1412): read-only filter over run ledgers, no `--selftest` by design (new
+  // code adds none); its window, decline and fail-open rules are exercised through the real CLI here.
+  "drain-filter": "test/drain-filter.test.mjs",
 };
 
 // A command is selftest-covered iff its allowlist entry is a runnable argv array

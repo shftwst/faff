@@ -65,6 +65,7 @@ const { cmdShadowFidelity } = lazy(() => require("./lib/shadow-fidelity"), ["cmd
 const { cmdDecisions } = lazy(() => require("./lib/decisions"), ["cmdDecisions"]);
 const { cmdDispatch } = lazy(() => require("./lib/dispatch"), ["cmdDispatch"]);
 const { cmdDisposition } = lazy(() => require("./lib/disposition"), ["cmdDisposition"]);
+const { cmdDrainFilter } = lazy(() => require("./lib/drain-filter"), ["cmdDrainFilter"]);
 const { cmdEconomics } = lazy(() => require("./lib/economics"), ["cmdEconomics"]);
 const { cmdBuildProgress, cmdEffects, cmdLandingProgress, cmdReviewProgress } = lazy(() => require("./lib/effects"), ["cmdBuildProgress", "cmdEffects", "cmdLandingProgress", "cmdReviewProgress"]);
 const { cmdEligible } = lazy(() => require("./lib/eligible"), ["cmdEligible"]);
@@ -213,6 +214,7 @@ const COMMANDS = {
   "punt-scan": cmdPuntScan,
   "admissible": cmdAdmissible,
   "dod": cmdDod,
+  "drain-filter": cmdDrainFilter,
   "holdout": cmdHoldout,
   "spec-review-lenses": cmdSpecReviewLenses,
   "verification": cmdVerification,

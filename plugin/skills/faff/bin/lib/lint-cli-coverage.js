@@ -33,7 +33,9 @@ const LINT_CLI_COVERAGE_SPEC = { flags: { "--root": { arity: 1 }, "--selftest": 
 // `null`-selftest command with no entry here fails the gate loud (the intended
 // catch). A belt-and-braces entry for a command that ALSO has a non-null selftest
 // is allowed (never an error). Keyed by COMMANDS name; every key must be a
-// COMMANDS entry (the orphaned side of the bidirectional diff).
+// COMMANDS entry (the orphaned side of the bidirectional diff). A value names one test
+// file, or an array of them when a command's coverage is split (FAFF-1414); each named
+// file must exist and exercise the command.
 const TEST_FILE_COVERAGE = {
   "sync": "test/sync.test.mjs",
   "validate-adapters": "test/validate-adapters-prose-defaults.test.mjs",
@@ -51,6 +53,10 @@ const TEST_FILE_COVERAGE = {
   // prep (FAFF-1406): `faff prep attach` has no `--selftest`; its stage/confirm/park paths are
   // exercised through the real CLI entrypoint here.
   "prep": "test/prep-attach.test.mjs",
+  // graft (FAFF-1414): `faff graft admit` has no `--selftest`; its dispositions, exit-2 causes and
+  // marker table are exercised through the real CLI entrypoint, and the In Review corpus replay
+  // runs the 14 named decision-corpus records through it.
+  "graft": ["test/graft-admit.test.mjs", "test/graft-admit-replay-in-review.test.mjs"],
   // spec-judge-accept-bar — the deterministic accept-bar roll-up (FAFF-945): a pure coercion
   // over two JSON inputs, no standalone `--selftest`; its level-aware floor + fail-closed
   // directions are exercised through the real CLI entrypoint here.
@@ -132,7 +138,7 @@ function cmdLintCliCoverage(args, COMMANDS) {
   // sibling lint-cli-doc (deliberately NOT the existence check's fail-open catch).
   const missingFiles = [];
   const notExercised = [];
-  for (const [cmd, rel] of Object.entries(TEST_FILE_COVERAGE)) {
+  for (const [cmd, rel] of Object.entries(TEST_FILE_COVERAGE).flatMap(([c, r]) => [].concat(r).map((one) => [c, one]))) {
     const full = path.join(root, rel);
     let exists = true;
     try { exists = fs.existsSync(full); } catch { exists = true; }

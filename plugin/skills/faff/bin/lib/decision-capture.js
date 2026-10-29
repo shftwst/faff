@@ -548,12 +548,16 @@ function cmdRecordVerb(values, root) {
 // `issue`: the caller passes the real issue id (per-issue kernels), the container id
 // (project-next), or the literal "__run__" (the four run-level kernels). When left
 // undefined it falls back to $FAFF_DECISION_ISSUE (the orchestrator-supplied id), else "".
+// `run` / `correlationId` / `root` (FAFF-1414): an in-process caller that consults several
+// kernels in one call (`faff graft admit`) passes the run (id or dir path), the minted id and
+// its repo root explicitly instead of exporting env per kernel. Absent, the env is read as before.
 // ---------------------------------------------------------------------------
-function captureDecisionCore({ kernel, normalised_inputs, verdict, issue } = {}) {
+function captureDecisionCore({ kernel, normalised_inputs, verdict, issue, run: runArg, correlationId, root: rootArg } = {}) {
   let root;
-  try { root = findRoot(); } catch { return; } // no repo root ⇒ nothing to anchor, silent
-  const runDirEnv = process.env.FAFF_RUN_DIR;
-  const run = runDirEnv ? path.basename(runDirEnv) : null;
+  if (rootArg) root = rootArg;
+  else { try { root = findRoot(); } catch { return; } } // no repo root ⇒ nothing to anchor, silent
+  const runDirEnv = runArg != null ? runArg : process.env.FAFF_RUN_DIR;
+  const run = runDirEnv ? runIdOf(runDirEnv) : null;
 
   let enabled;
   try { enabled = captureEnabled(root); }
@@ -561,7 +565,7 @@ function captureDecisionCore({ kernel, normalised_inputs, verdict, issue } = {})
   if (!enabled) return; // disabled ⇒ byte-identical silent no-op (the default posture)
 
   if (!runDirEnv) { bestEffortFail(root, run, "no $FAFF_RUN_DIR — standalone call, no substrate to capture into"); return; }
-  const correlation_id = process.env.FAFF_DECISION_CORRELATION_ID || "";
+  const correlation_id = correlationId != null ? correlationId : (process.env.FAFF_DECISION_CORRELATION_ID || "");
   // FAFF-989: an empty correlation_id yields a base no action marker can join. Note it and still
   // append; suppressing that append is the half of the FAFF-956 call that remains deferred.
   // The other half is decided: the write core refuses an empty issue (FAFF-1353), and the append's
@@ -614,6 +618,27 @@ function captureDecision(args) {
 // gate, or a missing run dir falls back to wave "1": best-effort, the minted id and exit are never
 // withheld.
 // ---------------------------------------------------------------------------
+// The consult-id half of `decide`, shared with in-process callers (FAFF-1414 `faff graft admit`):
+// an explicit wave is used as given; otherwise, when capture is on and the run dir exists, the next
+// consult ordinal for (issue, kernel). Best-effort: any fault falls back to wave "1". `run` is a run id.
+function mintConsultCorrelationId(root, run, issue, kernel, wave, explicitRoot = false) {
+  let w = wave;
+  if (w === undefined || w === null) {
+    let enabled = false;
+    try { enabled = captureEnabled(root); } catch { enabled = false; }
+    if (enabled) {
+      const dir = existingRunDir(root, run, explicitRoot);
+      if (dir == null) {
+        bestEffortFail(root, run, "decide: no run dir resolves, so no consult counter; minting wave 1");
+      } else {
+        try { w = String(nextOrdinal(dir, issue, kernel)); }
+        catch (e) { bestEffortFail(root, run, `decide: consult counter failed (${e && e.message}); minting wave 1`); }
+      }
+    }
+  }
+  return mintCorrelationId(run, issue, kernel, w);
+}
+
 function cmdDecideVerb(values, root, explicitRoot) {
   const issue = values["--issue"];
   const kernel = values["--kernel"];
@@ -622,21 +647,7 @@ function cmdDecideVerb(values, root, explicitRoot) {
     process.stderr.write("faff decision-capture decide: no --run and no $FAFF_RUN_DIR — cannot mint a correlation id\n");
     return 2;
   }
-  let wave = values["--wave"];
-  if (wave === undefined) {
-    let enabled = false;
-    try { enabled = captureEnabled(root); } catch { enabled = false; }
-    if (enabled) {
-      const dir = existingRunDir(root, run, explicitRoot);
-      if (dir == null) {
-        bestEffortFail(root, run, "decide: no run dir resolves, so no consult counter; minting wave 1");
-      } else {
-        try { wave = String(nextOrdinal(dir, issue, kernel)); }
-        catch (e) { bestEffortFail(root, run, `decide: consult counter failed (${e && e.message}); minting wave 1`); }
-      }
-    }
-  }
-  const cid = mintCorrelationId(run, issue, kernel, wave);
+  const cid = mintConsultCorrelationId(root, run, issue, kernel, values["--wave"], explicitRoot);
   if (values["--export"] !== undefined) {
     // single-quote the values so a shell `eval` cannot re-interpret them
     const q = (s) => `'${String(s).replace(/'/g, "'\\''")}'`;
@@ -698,39 +709,55 @@ function cmdActionVerb(values, root) {
     catch { selected_action = values["--action"]; }
   }
 
-  if (run == null) return bestEffortFail(root, run, "no --run and no $FAFF_RUN_DIR — no run to write the marker to");
+  const record = appendActionMarker({ root, run, issue, kernel, correlation_id, selected_action, explicitRoot: values["--root"] !== undefined });
+  if (record) console.log(JSON.stringify({ seq: record.seq, correlation_id }));
+  return 0;
+}
+
+// The marker-append half of `action`, shared with in-process callers (FAFF-1414 `faff graft admit`).
+// Returns the appended record, or null when capture is off or any step failed (every failure path
+// writes the same degraded note as before). Never throws for an expected fault. `run` is a run id.
+function appendActionMarker({ root, run, issue, kernel, correlation_id, selected_action, explicitRoot = false }) {
+  let enabled;
+  try { enabled = captureEnabled(root); }
+  catch (e) { bestEffortFail(root, run, `config read failed: ${e && e.message}`); return null; }
+  if (!enabled) return null;
+
+  if (run == null) { bestEffortFail(root, run, "no --run and no $FAFF_RUN_DIR — no run to write the marker to"); return null; }
   let dir;
-  try { dir = resolveRunDir(root, run, values["--root"] !== undefined); }
-  catch (e) { return bestEffortFail(root, run, `run dir resolution failed: ${e && e.message}`); }
+  try { dir = resolveRunDir(root, run, explicitRoot); }
+  catch (e) { bestEffortFail(root, run, `run dir resolution failed: ${e && e.message}`); return null; }
   if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) {
-    return bestEffortFail(root, run, `run dir missing: ${dir}`);
+    bestEffortFail(root, run, `run dir missing: ${dir}`);
+    return null;
   }
 
   let causation;
   try {
     const { prevRecord, prevLineBuf } = tailReadState(path.join(dir, "events.jsonl"));
     if (!prevRecord || !prevLineBuf) {
-      return bestEffortFail(root, run, "no prior chain head in events.jsonl to anchor causation");
+      bestEffortFail(root, run, "no prior chain head in events.jsonl to anchor causation");
+      return null;
     }
     causation = { seq: prevRecord.seq, sha256: sha256Hex(prevLineBuf) };
   } catch (e) {
-    return bestEffortFail(root, run, `chain head read failed: ${e && e.message}`);
+    bestEffortFail(root, run, `chain head read failed: ${e && e.message}`);
+    return null;
   }
 
   const data = { kernel, correlation_id, selected_action, causation };
   const violations = decisionCaptureActionViolations(data);
   if (violations.length) {
-    return bestEffortFail(root, run, `action marker failed shape validation: ${violations.join("; ")}`);
+    bestEffortFail(root, run, `action marker failed shape validation: ${violations.join("; ")}`);
+    return null;
   }
 
-  let record;
   try {
-    record = appendEventRecord(dir, run, { phase: "run", type: "decision-capture-action", issue, data });
+    return appendEventRecord(dir, run, { phase: "run", type: "decision-capture-action", issue, data });
   } catch (e) {
-    return reportAppendFailure(root, run, e, "decision-capture-action", kernel);
+    reportAppendFailure(root, run, e, "decision-capture-action", kernel);
+    return null;
   }
-  console.log(JSON.stringify({ seq: record.seq, correlation_id }));
-  return 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -1149,6 +1176,8 @@ module.exports = {
   buildRecord,
   buildBaseRecord,
   mintCorrelationId,
+  mintConsultCorrelationId,
+  appendActionMarker,
   captureDecision,
   lineSafe,
   reportAppendFailure,

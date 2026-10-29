@@ -33,6 +33,7 @@
     "bin/lib/peer-cred.ts",
     "bin/lib/prep-attach.ts",
     "bin/lib/judge-dispositions.ts",
-    "bin/lib/merge-authorize.ts"
+    "bin/lib/merge-authorize.ts",
+    "bin/lib/graft-admit.ts"
   ]
 }

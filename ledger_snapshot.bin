@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "run_id": "run-20261029-044216-graft-FAFF-1414",
+  "level": "L2",
+  "admitted": [
+    "FAFF-1414"
+  ],
+  "outcomes": {},
+  "budget": {
+    "envelope": {
+      "ceilings": {},
+      "at_ceiling": "stop"
+    }
+  },
+  "base_sha": "d95b1582584421ae6fe7db22c1f016a3b9c263cf",
+  "base_sha_required": true,
+  "owner": {
+    "status": "running",
+    "session_id": "run-20261029-044216-graft-FAFF-1414",
+    "pid": 3294929,
+    "started_at": "2026-10-29T04:42:16.383Z",
+    "last_heartbeat": "2026-10-29T04:42:16.383Z",
+    "faff_version": "0.44.0"
+  }
+}

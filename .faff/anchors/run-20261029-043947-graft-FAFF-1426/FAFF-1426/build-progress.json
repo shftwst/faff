@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1426",
+  "build": {
+    "status": "complete",
+    "diff_hash": "61f77fb0fe1e4664788bbbab735f1759239ae22b8936b0608683251c4912ab45",
+    "branch": "faff-1426-merge-authorize",
+    "pushed_at": "2026-10-29T05:33:50.604Z"
+  },
+  "updated_at": "2026-10-29T05:33:50.604Z"
+}

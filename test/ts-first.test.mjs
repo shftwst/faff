@@ -157,6 +157,42 @@ test("command: a missing allowlist file exits 2 naming the file", () => {
   });
 });
 
+test("command: an unparseable allowlist exits 2 naming the file", () => {
+  withTmp("badjson", (d) => {
+    const r = check(fixture(d, { allowlist: "[ \"a.js\",\n" }));
+    assert.equal(r.status, 2, r.stderr);
+    assert.match(r.stderr, /legacy-js-modules\.json.*not valid JSON/);
+  });
+});
+
+test("command: a new .cjs with no .ts and no entry exits 1", () => {
+  withTmp("cjs", (d) => {
+    const r = check(fixture(d, { files: { "helper.cjs": "" } }));
+    assert.equal(r.status, 1, r.stderr);
+    assert.match(r.stderr, /TS-FIRST — "helper\.cjs": new bin\/lib module/);
+  });
+});
+
+test("command: a fixture x.cts exits 2", () => {
+  withTmp("cts", (d) => {
+    const r = check(fixture(d, { files: { "x.cts": "export {};\n" } }));
+    assert.equal(r.status, 2, r.stderr);
+    assert.match(r.stderr, /"x\.cts": bin\/lib sources are \.ts/);
+  });
+});
+
+test("command: a scanned file name holding a control character exits 2, JSON-quoted", () => {
+  withTmp("ctrl", (d) => {
+    fixture(d);
+    const name = "evil\nTS-FIRST — forged.js";
+    try { writeFileSync(path.join(d, name), ""); } catch { return; } // a filesystem that refuses the name has nothing to scan
+    const r = check(d);
+    assert.equal(r.status, 2, r.stderr);
+    assert.ok(r.stderr.includes(JSON.stringify(name)), "the name is printed JSON-quoted");
+    assert.equal(r.stderr.split("\n").filter((l) => l.startsWith("TS-FIRST — forged")).length, 0, "no forged line");
+  });
+});
+
 test("command: an unsorted or duplicate allowlist exits 2", () => {
   for (const allowlist of [["b.js", "a.js"], ["a.js", "a.js"]]) {
     withTmp("order", (d) => {

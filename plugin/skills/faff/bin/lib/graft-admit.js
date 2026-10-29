@@ -273,10 +273,10 @@ function admit(opts) {
             ? "no intake provenance; the human at the keyboard is the sanction"
             : `no intake provenance (intake_gate: ${gate})`;
     out.kernels.intake = { verdict: intakeExit === 3 ? "block" : (intakeWarn === null ? "pass" : "warn"), basis: intake.basis, gate, warn: intakeWarn };
-    if (intakeExit === 3)
-        return finish("blocked", `intake guard refused: ${intake.basis}`);
     if (intakeWarn !== null)
         out.warnings.push(`intake: ${intakeWarn}`);
+    if (intakeExit === 3)
+        return finish("blocked", `intake guard refused: ${intake.basis}`);
     // 7. Admissibility, on every automated run; interactive graft skips it (the human is the gate).
     if (!interactive) {
         if (opts.specText === null)
@@ -358,7 +358,13 @@ function cmdGraftAdmit(args) {
     }
     const runArg = str(values["--run-dir"]) ?? str(process.env.FAFF_RUN_DIR);
     const run = runArg !== undefined && runArg !== "" ? path.basename(runArg.replace(/[\\/]+$/, "")) : null;
-    const root = str(values["--root"]) ?? sharedInfra.findRoot();
+    let root;
+    try {
+        root = str(values["--root"]) ?? sharedInfra.findRoot();
+    }
+    catch (e) {
+        return fail(json, facts.issue, "internal", `cannot resolve the repo root: ${e instanceof Error ? e.message : String(e)}`);
+    }
     // The holder identity `build-claim acquire` stamps (buildClaimOwnerSnapshot): --session-id, else
     // $FAFF_SESSION_ID, else the run dir's basename. Matching it is what makes the own-claim test agree
     // with acquire's own idempotent re-acquire.
@@ -370,9 +376,11 @@ function cmdGraftAdmit(args) {
         out = admit({ mode, facts, specText, sessionId, run, wave: str(values["--wave"]), now, root, env: process.env });
     }
     catch (e) {
+        // Fail closed: an input the command could not establish (AdmitFailure) and any unexpected fault
+        // (a corrupt config read, a git error) both refuse with exit 2 and a structured reason.
         if (e instanceof AdmitFailure)
             return fail(json, facts.issue, e.reason, e.message);
-        throw e;
+        return fail(json, facts.issue, "internal", e instanceof Error ? e.message : String(e));
     }
     if (json) {
         process.stdout.write(JSON.stringify(out) + "\n");

@@ -470,3 +470,32 @@ test("facts from stdin: --facts - reads the object from standard input", () => {
   assert.equal(r.code, 0, r.err);
   assert.equal(JSON.parse(r.out).disposition, "proceed");
 });
+
+test("fail closed on a corrupt config: a control-label map that is not a map exits 2 with config-invalid, never a guessed label", () => {
+  const { root } = scratch({ config: "tracking:\n  control_labels:\n    - parked\n" });
+  const r = admit(root, "autonomous", facts());
+  assert.equal(r.code, 2, r.err);
+  assert.equal(r.json.reason, "config-invalid");
+  assert.equal(r.json.disposition, null);
+});
+
+test("--wave pins every base record and its marker to that wave", () => {
+  const { root, runDir } = scratch();
+  admit(root, "autonomous", facts(), { extra: ["--wave", "7"] });
+  const ids = bases(runDir).map((b) => b.data.correlation_id).sort();
+  assert.deepEqual(ids, [`${RUN_ID}/FAFF-901/eligible/7`, `${RUN_ID}/FAFF-901/next/7`]);
+  assert.deepEqual(markers(runDir).map((m) => m.data.correlation_id).sort(), ids);
+});
+
+test("eligible capture parity: graft admit's eligible base record has the same inputs and verdict faff eligible records", () => {
+  const { root, runDir } = scratch();
+  admit(root, "autonomous", facts({ labels: ["faff-automate", "x"] }));
+  const mine = bases(runDir).find((b) => b.data.kernel === "eligible");
+  const r = cli(root, ["eligible", "--label", "faff-automate", "--label", "x", "--root", root],
+    { FAFF_RUN_DIR: runDir, FAFF_DECISION_CORRELATION_ID: `${RUN_ID}/FAFF-901/eligible/99`, FAFF_DECISION_ISSUE: "FAFF-901" });
+  assert.equal(r.code, 0, r.err);
+  const theirs = bases(runDir).find((b) => b.data.kernel === "eligible" && b.data.correlation_id.endsWith("/99"));
+  assert.deepEqual(mine.data.normalised_inputs, theirs.data.normalised_inputs);
+  assert.deepEqual(mine.data.verdict, theirs.data.verdict);
+  assert.equal(mine.data.kernel_version, theirs.data.kernel_version);
+});

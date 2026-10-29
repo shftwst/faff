@@ -257,6 +257,15 @@ test("custom prefix: under label_prefix sd, sd-automate is eligible and the inta
   assert.equal(stale.json.disposition, "ineligible", "the default-prefix literal does not satisfy a custom prefix");
 });
 
+test("automate-name override: a renamed automate label is eligible, the intake guard sees it, and the stale default literal does not satisfy", () => {
+  const { root } = scratch({ config: "intake_gate: block\ntracking:\n  control_labels:\n    automate: \"Pipeline: eligible\"\n" });
+  const r = admit(root, "autonomous", facts({ labels: ["Pipeline: eligible"] }));
+  assert.equal(r.json.disposition, "proceed", r.err);
+  assert.equal(r.json.kernels.intake.basis, "eligibility-gesture");
+  const old = admit(root, "autonomous", facts({ labels: ["faff-automate"] }));
+  assert.equal(old.json.disposition, "ineligible");
+});
+
 test("comma in label: labels arrive as a JSON array, so a label containing a comma survives intact", () => {
   const { root, runDir } = scratch();
   const r = admit(root, "autonomous", facts({ labels: ["faff-automate", "area: a,b"] }));
@@ -307,10 +316,19 @@ test("in-review peer: an autonomous In Review issue with no build-claim ref is c
   assert.deepEqual(markerFor(runDir, "eligible"), []);
 });
 
-test("in-progress no ref: an autonomous In Progress issue with no ref is claimed-by-peer", () => {
+test("in-progress peer (in-progress no ref): an autonomous In Progress issue with no ref is claimed-by-peer", () => {
   const { root } = scratch({ git: true });
   const r = admit(root, "autonomous", facts({ status: "in-progress" }));
   assert.equal(r.json.disposition, "claimed-by-peer");
+});
+
+test("claimed-by-peer emits no eligible marker: a non-eligibility skip writes the eligible base record but no eligible marker", () => {
+  const { root, runDir } = scratch({ git: true });
+  const r = admit(root, "autonomous", facts({ status: "in-progress" }));
+  assert.equal(r.json.disposition, "claimed-by-peer");
+  assert.equal(bases(runDir).filter((b) => b.data.kernel === "eligible").length, 1);
+  assert.deepEqual(markerFor(runDir, "eligible"), []);
+  assert.deepEqual(markerFor(runDir, "next"), ["none"]);
 });
 
 test("own claim proceeds: a ref whose owner.session_id equals --session-id is the caller's own", () => {
@@ -417,7 +435,7 @@ test("no run dir, no capture: without --run-dir or $FAFF_RUN_DIR nothing is writ
   assert.equal(existsSync(join(root, ".faff", "logs", "decision-capture.jsonl")), false);
 });
 
-test("no writes: the command writes no provenance marker and no claim ref", () => {
+test("no tracker or label writes (no writes): the command writes no provenance marker, no claim ref and no prep marker", () => {
   const { root } = scratch({ git: true });
   admit(root, "autonomous", facts({ status: "in-review" }));
   admit(root, "autonomous", facts());

@@ -364,6 +364,9 @@ const REGION_MAP = {
   // reusing its factory identifiers (resolvePrCreateGrant + the chokepoint machinery) → factory, for
   // the identical reason merge-gate sits here.
   "pr-create": "factory",
+  // FAFF-1426: `faff merge authorize|observe` writes the merge-step grants from the run's own facts
+  // for a governed graft merged after PR open; it reuses merge-gate's factory resolvers → factory.
+  merge: "factory",
   "branch-protection-check": "factory",
   // FAFF-728: the run-start GitHub-auth preflight probe — colocated in merge-gate.js, reuses its
   // spawnSync gh idiom, mirrors the branch-protection-check assert-don't-enforce probe → factory.
@@ -606,6 +609,8 @@ const REGION_SELFTEST_ARGV = {
   // --selftest; its resolvers/andGrants/coattail logic are covered by `merge-gate --selftest` + the
   // suite, so it takes a factory null (non-fatal), like sync/doctor/state.
   "pr-create": null,
+  // FAFF-1426: new code adds no --selftest (AGENTS.md); covered by test/merge-authorize.test.mjs.
+  merge: null,
   "branch-protection-check": ["branch-protection-check", "--selftest"],
   "github-auth-check": ["github-auth-check", "--selftest"],
   "post-merge-check": ["post-merge-check", "--selftest"],

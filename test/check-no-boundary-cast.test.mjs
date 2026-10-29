@@ -70,8 +70,8 @@ test("S3: each assertion FORM is detected (not just `as`)", { skip }, () => {
   }
 });
 
-test("S3: realSources() lists the fourteen tsconfig include entries", () => {
-  assert.deepEqual(realSources().map((f) => path.relative(LIB, f)), ["producer-auth.ts", "commissaire.ts", "commissaire-governor-client.ts", "commissaire-trust.ts", "commissaire-verify.ts", "ids.ts", "result.ts", "decision-policy.ts", "governor.ts", "governor-install.ts", "governor-admin.ts", "peer-cred.ts", "prep-attach.ts", "judge-dispositions.ts"]);
+test("S3: realSources() lists the fifteen tsconfig include entries", () => {
+  assert.deepEqual(realSources().map((f) => path.relative(LIB, f)), ["producer-auth.ts", "commissaire.ts", "commissaire-governor-client.ts", "commissaire-trust.ts", "commissaire-verify.ts", "ids.ts", "result.ts", "decision-policy.ts", "governor.ts", "governor-install.ts", "governor-admin.ts", "peer-cred.ts", "prep-attach.ts", "judge-dispositions.ts", "merge-authorize.ts"]);
 });
 
 test("S3: the real cluster sources are clean (exit 0)", { skip }, () => {
@@ -112,7 +112,7 @@ function runRealSources(dir) {
 }
 
 // The real include list, so a fixture copy of bin/lib is covered exactly as the real package is. The
-// explicit list is pinned once, by the "lists the fourteen" test above.
+// explicit list is pinned once, by the "lists the fifteen" test above.
 const ALL_INCLUDE = JSON.parse(readFileSync(path.join(PLUGIN, "tsconfig.json"), "utf8")).include;
 
 test("S3: realSources() exits 2 naming a bin/lib .ts that include omits", () => {

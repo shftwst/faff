@@ -1,0 +1,303 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "verdict": "revise",
+  "final_verdict": "revise",
+  "rounds_total": 5,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The design relies on `git diff --exit-code` against the hand-written JavaScript emit as the primary architectural proof of behavioral equivalence. This creates a brittle dependency on the exact output of the build toolchain, which is insufficient to guarantee that the conversion is \"behaviour-preserving\" when compiler-enforced runtime changes (like strict mode) are introduced.",
+      "evidence": "\"The emit is the reviewable proof. The committed `.js` emit is diffed against today's hand-written `.js`.\" (Section 1, Design principles) and \"The existing tests are the run-time confirmation.\" (Section 4.1, Chosen).",
+      "predicted_consequence": "A future update to the TypeScript compiler (`tsc`), a change in the `tsconfig.json` settings, or an update to the build script (e.g., changing the `module` target) could alter the emitted JavaScript in a way that is logically equivalent but syntactically different, causing the `git diff --exit-code` check to fail. This would result in a false negative build failure, even if the code's logic remains correct and the existing tests still pass.",
+      "spec_anchor": "the-emit-is-the-reviewable-proof",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Separated the one-time equivalence check from CI stale-emit check; the latter compares emit with a rebuild, not the old JS (design principles, 4.2).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The design relies on `git diff --exit-code` against the hand-written JavaScript emit as the primary architectural proof of behavioral equivalence. This creates a brittle dependency on the exact output of the build toolchain, which is insufficient to guarantee that the conversion is \"behaviour-preserving\" when compiler-enforced runtime changes (like strict mode) are introduced.",
+          "spec_anchor": "the-emit-is-the-reviewable-proof"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "major",
+      "claim": "the scenarios are written as procedural commands (run this command, then check this result) rather than observable Given/When/Then statements, making them uncheckable by a code-blind holdout.",
+      "evidence": "`## Scenarios` section, specifically the three listed scenarios.",
+      "predicted_consequence": "the holdout cannot verify that the build process (e.g., `npm run build` followed by `git diff --exit-code`) successfully completed the required transformation, as it cannot observe the state change or the result of the command execution.",
+      "spec_anchor": "scenarios",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Scenarios rewritten as observable outcomes: exit codes, git status and stderr lines.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "the scenarios are written as procedural commands (run this command, then check this result) rather than observable Given/When/Then statements, making them uncheckable by a code-blind holdout.",
+          "spec_anchor": "scenarios"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "major",
+      "claim": "the spec relies solely on existing tests passing to confirm behavior preservation, which is insufficient for a language conversion that changes underlying runtime semantics (e.g., strict mode enforcement, type narrowing, or how `require` interacts with new type definitions).",
+      "evidence": "`## 7. DONE` item: \"Every existing test that requires one of the three modules or spawns `faff land`, `faff spec` or `faff gates run` passes unchanged: at least `test/land.test.mjs`, `test/spec-commit.test.mjs`, `test/gates-progress.test.mjs` and `test/gates-budget.test.mjs`.\"",
+      "predicted_consequence": "the build could satisfy all named acceptance criteria while introducing a subtle runtime bug in a path not covered by the existing test suite, because the spec does not mandate functional verification of the converted modules against a comprehensive test suite.",
+      "spec_anchor": "7-done",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added the strict-mode audit and later the mechanical equivalence check alongside the tests (4.2).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "the spec relies solely on existing tests passing to confirm behavior preservation, which is insufficient for a language conversion that changes underlying runtime semantics (e.g., strict mode enforcement, type narrowing, or how `require` interacts with new type definitions).",
+          "spec_anchor": "7-done"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "the acceptance criteria regarding the `git diff` are overly specific to the compiler's behavior (e.g., \"a leading 'use strict';\"). While these are consequences of the conversion, they are implementation details of the toolchain rather than functional requirements of the module.",
+      "evidence": "`## 7. DONE` item: \"The `git diff` between main's hand-written `.js` and the new emit, for each module, shows only type erasure, formatting, a leading 'use strict'; (land, gates-progress) and the __esModule marker.\"",
+      "predicted_consequence": "the spec could fail a build due to a minor, non-functional formatting difference introduced by `tsc` that is outside the scope of the conversion's functional goal, leading to unnecessary rejection of a correct build.",
+      "spec_anchor": "7-done",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The diff criterion now targets executable statements, not toolchain formatting (4.2).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "the acceptance criteria regarding the `git diff` are overly specific to the compiler's behavior (e.g., \"a leading 'use strict';\"). While these are consequences of the conversion, they are implementation details of the toolchain rather than functional requirements of the module.",
+          "spec_anchor": "7-done"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The core mechanism for proving behavioral equivalence—comparing the hand-written JavaScript against the compiled JavaScript emit via a normalized `git diff`—is architecturally unsound. This comparison only verifies syntactic and structural similarity after normalization, not semantic equivalence.",
+      "evidence": "Section 4.2, \"The emit difference,\" which states: \"The emit is compared with today's hand-written file (`git diff <main>:<file> <emit>`). The expected differences: type annotations removed and whitespace or line breaks moved by `tsc`; a leading `\"use strict\";`...\"",
+      "predicted_consequence": "A subtle, non-obvious change in execution semantics introduced by the TypeScript compiler (e.g., how it handles `this` in a specific context, or how it optimizes a specific pattern under `commonjs` module resolution) could pass the `git diff` check and the unit tests, leading to a silent, hard-to-debug runtime failure in production.",
+      "spec_anchor": "the-emit-difference",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Equivalence is now a committed script comparing TypeScript-printer output of both syntax trees (4.2).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The core mechanism for proving behavioral equivalence—comparing the hand-written JavaScript against the compiled JavaScript emit via a normalized `git diff`—is architecturally unsound. This comparison only verifies syntactic and structural similarity after normalization, not semantic equivalence.",
+          "spec_anchor": "the-emit-difference"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "major",
+      "claim": "The core requirement of behavioral equivalence is verified by a manual review artifact (a diff analysis) rather than an automated, executable test.",
+      "evidence": "DONE item: \"The PR includes the equivalence review from 4.2 for each module: after comments and whitespace are normalised, every remaining hunk between main's hand-written `.js` and the new emit is toolchain preamble or type-only. Any hunk that changes an executable statement is listed and justified.\"",
+      "predicted_consequence": "The spec cannot be verified end-to-end by a build system; it requires human judgment on code diffs to confirm behavioral equivalence.",
+      "spec_anchor": "the-pr-includes-the-equivalence-review-from-4-2-for-each-module",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The equivalence check is executable, with committed fixtures and a test (7. DONE).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The core requirement of behavioral equivalence is verified by a manual review artifact (a diff analysis) rather than an automated, executable test.",
+          "spec_anchor": "the-pr-includes-the-equivalence-review-from-4-2-for-each-module"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The spec fails to verify the runtime impact of specific, non-trivial behavioral constraints introduced by the TypeScript compiler.",
+      "evidence": "How section (4.4) mentions `exactOptionalPropertyTypes` and `noUncheckedIndexedAccess`.",
+      "predicted_consequence": "The build could pass all existing tests while introducing subtle runtime bugs related to these specific type-safety features, as no scenario tests these constraints.",
+      "spec_anchor": "how-4-4-edge-cases",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Type-only flags stated; fixes made for them must appear as allow entries (4.4).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The spec fails to verify the runtime impact of specific, non-trivial behavioral constraints introduced by the TypeScript compiler.",
+          "spec_anchor": "how-4-4-edge-cases"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The script \"drops, from the emit only, a leading `\"use strict\";` and the `__esModule` marker.\" But `spec-commit.js` on main already begins with `\"use strict\";` (the spec's own reference table says so), while `land.js` and `gates-progress.js` do not. After stripping the directive from the emit side only, the base side of the `spec-commit.js` comparison still carries its `\"use strict\";` directive — a string-literal expression statement the printer will print — so the printed texts differ and the script exits 1 on a *correct* conversion. The DONE item \"`node scripts/ts-equivalence.js --base origin/main …` exits 0\" is unsatisfiable by the algorithm as specified; the builder can only satisfy it by changing the spec's stated stripping rule (e.g. normalise leading directives on both sides, not emit-only).",
+      "evidence": "§4.2 step 4 (\"drops, from the emit only, a leading `\"use strict\";`\"); the reference-context table row for `spec-commit.js` (\"already `\"use strict\"`\"); DONE item \"… exits 0\".",
+      "predicted_consequence": "the PR's equivalence check fails on `spec-commit.js` as specified; the builder must silently deviate from the spec's algorithm or the DONE item fails.",
+      "spec_anchor": "the-emit-difference",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "use strict is normalised on both sides (4.2 step 4).",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The script \"drops, from the emit only, a leading `\"use strict\";` and the `__esModule` marker.\" But `spec-commit.js` on main already begins with `\"use strict\";` (the spec's own reference table says so), while `land.js` and `gates-progress.js` do not. After stripping the directive from the emit side only, the base side of the `spec-commit.js` comparison still carries its `\"use strict\";` directive — a string-literal expression statement the printer will print — so the printed texts differ and the script exits 1 on a *correct* conversion. The DONE item \"`node scripts/ts-equivalence.js --base origin/main …` exits 0\" is unsatisfiable by the algorithm as specified; the builder can only satisfy it by changing the spec's stated stripping rule (e.g. normalise leading directives on both sides, not emit-only).",
+          "spec_anchor": "the-emit-difference"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "`test/ts-equivalence.test.mjs` runs a script that requires the `typescript` devDependency, which is gitignored and installed only in the `typecheck` job (`npm ci` in `plugin/skills/faff`). The standing Node 20 lanes run the committed `.js` emit without that toolchain. The repo already has the precedent — `check-no-boundary-cast.test.mjs` \"self-skips when the TS compiler API is unavailable\", and the `typecheck` job carries an explicit \"un-skip floor\" for *that* test. The spec neither states a self-skip condition for the new test nor says it must join the un-skip floor, so on the main lanes it either fails on a missing module or silently skips — making the DONE item \"runs the script over fixture pairs … each of these fails with a diff\" vacuous exactly where the suite normally runs.",
+      "evidence": "§7 DONE (\"`test/ts-equivalence.test.mjs` runs the script over fixture pairs\"); validate.yml typecheck job excerpt (Node 20 lanes \"keep testing the committed .js emit\"; un-skip floor exists for the one existing TS-compiler-API test).",
+      "predicted_consequence": "the fixture test silently skips on the default test lanes, and the un-skip floor does not cover it, so the equivalence-script regression protection the DONE item promises never actually runs.",
+      "spec_anchor": "tests-and-checks",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The test self-skips like check-no-boundary-cast and joins the typecheck un-skip floor (7. DONE).",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "`test/ts-equivalence.test.mjs` runs a script that requires the `typescript` devDependency, which is gitignored and installed only in the `typecheck` job (`npm ci` in `plugin/skills/faff`). The standing Node 20 lanes run the committed `.js` emit without that toolchain. The repo already has the precedent — `check-no-boundary-cast.test.mjs` \"self-skips when the TS compiler API is unavailable\", and the `typecheck` job carries an explicit \"un-skip floor\" for *that* test. The spec neither states a self-skip condition for the new test nor says it must join the un-skip floor, so on the main lanes it either fails on a missing module or silently skips — making the DONE item \"runs the script over fixture pairs … each of these fails with a diff\" vacuous exactly where the suite normally runs.",
+          "spec_anchor": "tests-and-checks"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "Step 4 of the equivalence check drops a leading `\"use strict\";` **from the emit only**, but `spec-commit.js` on main already begins with `\"use strict\"` (stated in 4.2 itself and visible in the repo context). Its AST will contain that directive statement, so the printed base text retains it while the printed emit has it stripped — the two printed texts differ, the script exits 1, and the DONE item requiring exit 0 for all three paths is unsatisfiable by the algorithm as specified. The builder must silently deviate (drop the directive from the base side too, or special-case it), which is exactly the kind of unstated judgement the mechanical check exists to remove.",
+      "evidence": "\"4. The compares… drops, from the emit only, a leading `\\\"use strict\\\";`…\" vs. the DONE item \"`node scripts/ts-equivalence.js --base origin/main bin/lib/land.js bin/lib/spec-commit.js bin/lib/gates-progress.js` … exits 0\", given \"(`spec-commit.js` already has it)\".",
+      "predicted_consequence": "the script as specified fails on `spec-commit.js`; the PR's required output either shows a false diff or the builder changes the algorithm without the spec saying so, so the equivalence claim is no longer the one the spec describes.",
+      "spec_anchor": "42-the-emit-difference",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Same fix as 3#0.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "Step 4 of the equivalence check drops a leading `\"use strict\";` **from the emit only**, but `spec-commit.js` on main already begins with `\"use strict\"` (stated in 4.2 itself and visible in the repo context). Its AST will contain that directive statement, so the printed base text retains it while the printed emit has it stripped — the two printed texts differ, the script exits 1, and the DONE item requiring exit 0 for all three paths is unsatisfiable by the algorithm as specified. The builder must silently deviate (drop the directive from the base side too, or special-case it), which is exactly the kind of unstated judgement the mechanical check exists to remove.",
+          "spec_anchor": "42-the-emit-difference"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "\"Each module's `Object.keys(require(...))` equals its export names on main, in the same order. A test in `test/` asserts this\" — once the branch merges, `origin/main`'s `land.js` *is* the emit, so the comparison is `Object.keys(X) === Object.keys(X)` and the test can never fail again. The spec pins the test to a ref it does not name or snapshot, giving no pass/fail line for how the baseline is captured (a committed literal key list, a fixture file, `git show` at PR time). As written the same objection class as the equivalence script applies: a check whose reference is ephemeral.",
+      "evidence": "DONE item under \"From WHAT and HOW\": \"Each module's `Object.keys(require(...))` equals its export names on main, in the same order. A test in `test/` asserts this\".",
+      "predicted_consequence": "a later refactor that reorders or drops export keys passes the test after merge; the regression the item exists to catch is unasserted beyond the PR window.",
+      "spec_anchor": "7-done",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Export-names baseline is committed literal arrays, so it stays fixed after merge (7. DONE).",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "\"Each module's `Object.keys(require(...))` equals its export names on main, in the same order. A test in `test/` asserts this\" — once the branch merges, `origin/main`'s `land.js` *is* the emit, so the comparison is `Object.keys(X) === Object.keys(X)` and the test can never fail again. The spec pins the test to a ref it does not name or snapshot, giving no pass/fail line for how the baseline is captured (a committed literal key list, a fixture file, `git show` at PR time). As written the same objection class as the equivalence script applies: a check whose reference is ephemeral.",
+          "spec_anchor": "7-done"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The equivalence script's only sanctioned non-zero exit accepts exactly one inserted statement shape — `if (<expr> === undefined) throw new Error(\"…\");`. But the idiomatic, sound fix for a `noUncheckedIndexedAccess` hit on a non-trivial read is to bind the indexed read to a local first (`const row = rows[i]; if (row === undefined) throw …; use(row)`), because re-evaluating a complex index expression in the guard is fragile and the boundary-cast lint forbids `!`. That fix inserts a *declaration* statement plus the guard — two inserted statements — which the script classifies as exit 1. The spec offers no third path: a type-only fix is \"where possible\", the guard is the only other sanctioned shape, and leaving the type error fails `tsc`. So the design can deadlock on a legitimate fix the spec explicitly anticipates.",
+      "evidence": "§4.2 step 5 (\"**3** when the only differences are inserted *undefined guards*: a statement of the exact form…\") and §4.4 (\"the only sound fix is an undefined guard of the exact shape in 4.2\").",
+      "predicted_consequence": "the builder hits exit 1 on a legitimate fix mid-build and must either amend the spec, weaken the fix to an unsound inline re-read, or leave a type error that fails the typecheck job.",
+      "spec_anchor": "44-edge-cases",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Replaced the fixed guard shape with an enforced allow file; bound-local guards are allowed entries (4.2, 4.4).",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The equivalence script's only sanctioned non-zero exit accepts exactly one inserted statement shape — `if (<expr> === undefined) throw new Error(\"…\");`. But the idiomatic, sound fix for a `noUncheckedIndexedAccess` hit on a non-trivial read is to bind the indexed read to a local first (`const row = rows[i]; if (row === undefined) throw …; use(row)`), because re-evaluating a complex index expression in the guard is fragile and the boundary-cast lint forbids `!`. That fix inserts a *declaration* statement plus the guard — two inserted statements — which the script classifies as exit 1. The spec offers no third path: a type-only fix is \"where possible\", the guard is the only other sanctioned shape, and leaving the type error fails `tsc`. So the design can deadlock on a legitimate fix the spec explicitly anticipates.",
+          "spec_anchor": "44-edge-cases"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The DONE section requires artifacts that exist nowhere a test or an observation can reach: \"Its output is in the PR description, and on exit 3 each listed guard is justified there\" (4.2), \"The PR includes the strict-mode audit table from 4.2 … with every row cleared\", and \"The full list [of tests] is found by grep at build time and recorded in the PR\". None of these is a committed file, an exit code, or an observable command result; a checker holding only the built branch cannot decide any of them, and the holdout cannot see a PR description at all.",
+      "evidence": "`7. DONE` items under `4.2` and `### From WHAT and HOW`; the mechanism is defined in `4.2 The emit difference` (\"recorded in the PR for `land` and `gates-progress`, with each item marked …\").",
+      "predicted_consequence": "A build that silently omits the audit table, the guard justifications, or the test list satisfies every repo-observable check (the script still exits 0/3, the fixtures still pass, `git diff --exit-code` is still empty), so done cannot be decided for those three DONE items from anything the spec puts under version control. The strict-mode audit is the one that matters: it is the spec's own declared leg for clearing the only run-time semantic the conversion adds, and its absence is invisible to every scenario.",
+      "spec_anchor": "42-the-emit-difference",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Evidence is committed under verification/ts-conversion/FAFF-1432/ and checked by tests (4.2, 7. DONE).",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The DONE section requires artifacts that exist nowhere a test or an observation can reach: \"Its output is in the PR description, and on exit 3 each listed guard is justified there\" (4.2), \"The PR includes the strict-mode audit table from 4.2 … with every row cleared\", and \"The full list [of tests] is found by grep at build time and recorded in the PR\". None of these is a committed file, an exit code, or an observable command result; a checker holding only the built branch cannot decide any of them, and the holdout cannot see a PR description at all.",
+          "spec_anchor": "42-the-emit-difference"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "Section 4.1 mandates a module-local helper (`function get(v: unknown, k: string): unknown { return Reflect.get(Object(v), k); }`) in each converted module, and section 4.2's expected-difference list confirms `Reflect.get` substitutions are expected in the real conversion (they are also a named fixture-failure case). That helper is a **new top-level statement with no counterpart on main** — a pure insertion hunk. The allow-entry schema is `{ path, before, after, reason }` where `before` and `after` are \"the printed statement text\"; the spec never permits an empty `before`, so an insertion hunk has no representable entry. Even if a builder improvised `before: \"\"`, the DONE criterion closes that escape: \"every entry's `after` text is either a `Reflect.get` substitution or an undefined guard (4.4). A test asserts both\" — a function definition is neither kind, so the committed kind-assertion test would fail on the very entry the conversion requires. The spec's own equivalence check and its own evidence test are mutually unsatisfiable for a change the spec itself makes unavoidable.",
+      "evidence": "§4.1 \"read untyped JSON the way PR #1156's conversion does… a module-local helper\"; §4.2 \"An entry is `{ path, before, after, reason }`… The only expected kinds are: **`Reflect.get` substitutions**… **Undefined guards**\"; §7 DONE \"every entry's `after` text is either a `Reflect.get` substitution or an undefined guard (4.4). A test asserts both.\"",
+      "predicted_consequence": "the 4.2 command (`node scripts/ts-equivalence.js --base origin/main …`) exits 1 with an unmatched insertion hunk for the `get` definition, or the builder adds an entry that the committed kind-assertion test rejects — the PR cannot meet DONE as written without editing the entry schema or the kind list, i.e. without changing the spec.",
+      "spec_anchor": "4-2-equivalence-what-may-differ-and-how-it-is-checked",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Allow entries gain an explicit kind, with empty before for insertions; the helper is its own kind (4.2).",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "major",
+          "claim": "Section 4.1 mandates a module-local helper (`function get(v: unknown, k: string): unknown { return Reflect.get(Object(v), k); }`) in each converted module, and section 4.2's expected-difference list confirms `Reflect.get` substitutions are expected in the real conversion (they are also a named fixture-failure case). That helper is a **new top-level statement with no counterpart on main** — a pure insertion hunk. The allow-entry schema is `{ path, before, after, reason }` where `before` and `after` are \"the printed statement text\"; the spec never permits an empty `before`, so an insertion hunk has no representable entry. Even if a builder improvised `before: \"\"`, the DONE criterion closes that escape: \"every entry's `after` text is either a `Reflect.get` substitution or an undefined guard (4.4). A test asserts both\" — a function definition is neither kind, so the committed kind-assertion test would fail on the very entry the conversion requires. The spec's own equivalence check and its own evidence test are mutually unsatisfiable for a change the spec itself makes unavoidable.",
+          "spec_anchor": "4-2-equivalence-what-may-differ-and-how-it-is-checked"
+        }
+      ]
+    }
+  ]
+}

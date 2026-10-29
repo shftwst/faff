@@ -1,0 +1,16 @@
+[
+  {
+    "path": "mod.js",
+    "kind": "reflect-get-helper",
+    "before": "",
+    "after": "function get(v, k) {\nreturn Reflect.get(Object(v), k);\n}",
+    "reason": "The module-local get helper."
+  },
+  {
+    "path": "mod.js",
+    "kind": "reflect-get-read",
+    "before": "return e.code;",
+    "after": "return get(e, \"code\");",
+    "reason": "e is a caught fs error, never null or undefined."
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1432",
+  "build": {
+    "status": "complete",
+    "diff_hash": "3c7c609ca37a2f0cc10a10a648367441cfbe7214383abe07b86c2ddbff94cd09",
+    "branch": "faff-1432-convert-extraction-modules-to-typescript",
+    "pushed_at": "2026-10-29T06:16:10.791Z"
+  },
+  "updated_at": "2026-10-29T06:16:10.791Z"
+}

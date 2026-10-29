@@ -514,19 +514,20 @@ jobs:
         # include set's tracked .js, so any diff here is a drifted or not-regenerated emit.
         run: git diff --exit-code
 
-      - name: Un-skip floor — the TS-compiler-API test must RUN, not silently skip
-        # Leg 1's value rests on check-no-boundary-cast.test.mjs NOT skipping (it self-skips when
+      - name: Un-skip floor — the TS-compiler-API tests must RUN, not silently skip
+        # Leg 1's value rests on check-no-boundary-cast.test.mjs NOT skipping, and FAFF-1432's
+        # equivalence check rests on ts-equivalence.test.mjs NOT skipping (both self-skip when
         # typescript is unresolvable). npm ci installed typescript under plugin/skills/faff, exactly
-        # where the test's resolveTypescript() anchors, so it must run here. Assert the TAP summary
+        # where both tests resolve it, so they must run here. Assert the TAP summary
         # reports `# skipped 0` and a non-zero `# pass`, so a silent degradation reddens the job
         # rather than passing with leg 1 contributing nothing.
         # The node --test invocation is kept on its own physical line (FAFF-987 convention) so
         # `faff gates` per-line discovery sees a clean UNIT command, not a shell fragment.
         run: |
-          node --test --test-reporter=tap test/check-no-boundary-cast.test.mjs > "$RUNNER_TEMP/unskip.tap" 2>&1 || floor_rc=$?
+          node --test --test-reporter=tap test/check-no-boundary-cast.test.mjs test/ts-equivalence.test.mjs > "$RUNNER_TEMP/unskip.tap" 2>&1 || floor_rc=$?
           cat "$RUNNER_TEMP/unskip.tap"
           if [ "${floor_rc:-0}" != "0" ]; then
-            echo "::error::un-skip floor: check-no-boundary-cast.test.mjs did not pass"
+            echo "::error::un-skip floor: check-no-boundary-cast.test.mjs or ts-equivalence.test.mjs did not pass"
             exit 1
           fi
           skipped=$(grep -oE '^# skipped [0-9]+' "$RUNNER_TEMP/unskip.tap" | tail -1 | grep -oE '[0-9]+$' || true)

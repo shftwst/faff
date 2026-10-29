@@ -1,0 +1,484 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 3,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gates-progress.ts::validprogress and validunitresult gain no type predicate",
+      "title": "validProgress and validUnitResult gain no type predicate",
+      "location": "plugin/skills/faff/bin/lib/gates-progress.ts",
+      "action": "none: accepted risk",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "anthropic/claude-opus-5-5 (author's own session, not independent)",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Spec 4.1 asks for an `x is ProgressFile` return. Both return `p && …`, which is not boolean, so a predicate does not type-check without changing what the exported validProgress returns. They take the claimed shape as their parameter instead; types only.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "validProgress and validUnitResult gain no type predicate",
+          "location": "plugin/skills/faff/bin/lib/gates-progress.ts",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-commit.ts::readjson is typed as a record, not unknown",
+      "title": "readJson is typed as a record, not unknown",
+      "location": "plugin/skills/faff/bin/lib/spec-commit.ts",
+      "action": "none: accepted risk",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "anthropic/claude-opus-5-5 (author's own session, not independent)",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Typing readJson `{ [key: string]: unknown } | null | undefined` lets the existing typeof checks narrow marker.spec_sha256 and rec.path with no executable change; with unknown, each read would need get() plus a bound local.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "readJson is typed as a record, not unknown",
+          "location": "plugin/skills/faff/bin/lib/spec-commit.ts",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/scripts/ts-equivalence.js::ts-equivalence detaches layout before printing, beyond spec 4.2's comment removal",
+      "title": "ts-equivalence detaches layout before printing, beyond spec 4.2's comment removal",
+      "location": "plugin/skills/faff/scripts/ts-equivalence.js",
+      "action": "none: accepted risk",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "anthropic/claude-opus-5-5 (author's own session, not independent)",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "tsc's emit re-lays-out constructs it rewrote, so printing with source layout reported formatting as differences. Clearing positions and marking blocks and literals multi-line normalises layout only; quoting and numeric spelling also normalise, all semantically neutral. The fixture tests cover the behaviour.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "ts-equivalence detaches layout before printing, beyond spec 4.2's comment removal",
+          "location": "plugin/skills/faff/scripts/ts-equivalence.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/land.ts::failingrunids's undefined guard violates spec 4.4's placement rule",
+      "title": "failingRunIds's undefined guard violates spec 4.4's placement rule",
+      "location": "plugin/skills/faff/bin/lib/land.ts",
+      "action": "fix",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "failingRunIds's undefined guard violates spec 4.4's placement rule",
+          "location": "plugin/skills/faff/bin/lib/land.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/land.ts::landresult's catch-all index signature defeats the typing of the return shape",
+      "title": "LandResult's catch-all index signature defeats the typing of the return shape",
+      "location": "plugin/skills/faff/bin/lib/land.ts",
+      "action": "fix",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "LandResult's catch-all index signature defeats the typing of the return shape",
+          "location": "plugin/skills/faff/bin/lib/land.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/land.ts::probe.stage and ci_state are bare string despite closed sets on the write side",
+      "title": "probe.stage and ci_state are bare string despite closed sets on the write side",
+      "location": "plugin/skills/faff/bin/lib/land.ts",
+      "action": "none: refuted",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "readState feeds unvalidated JSON into LandState and the spec adds no validation, so a literal union would claim more than the read path checks. The reviewer notes no change is required.",
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "probe.stage and ci_state are bare string despite closed sets on the write side",
+          "location": "plugin/skills/faff/bin/lib/land.ts",
+          "severity": "observation",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-commit.ts::selftest bound-local guards abort the selftest instead of reporting failures",
+      "title": "selftest bound-local guards abort the selftest instead of reporting failures",
+      "location": "plugin/skills/faff/bin/lib/spec-commit.ts",
+      "action": "fix",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "selftest bound-local guards abort the selftest instead of reporting failures",
+          "location": "plugin/skills/faff/bin/lib/spec-commit.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-commit.ts::get() changes behaviour when a dependency throws null or undefined",
+      "title": "get() changes behaviour when a dependency throws null or undefined",
+      "location": "plugin/skills/faff/bin/lib/spec-commit.ts",
+      "action": "none: accepted risk",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "No dependency throws a non-Error, and the reviewer judges the new behaviour more robust. Each reflect-get-read allow entry states the never-null receiver it relies on.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "get() changes behaviour when a dependency throws null or undefined",
+          "location": "plugin/skills/faff/bin/lib/spec-commit.ts",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gates-progress.ts::parsestatuspaths adds a new throw on an unreachable path",
+      "title": "parseStatusPaths adds a new throw on an unreachable path",
+      "location": "plugin/skills/faff/bin/lib/gates-progress.ts",
+      "action": "fix",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "parseStatusPaths adds a new throw on an unreachable path",
+          "location": "plugin/skills/faff/bin/lib/gates-progress.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gates-progress.ts::readprogress's typed return is cosmetic; boolean() wraps would allow a predicate",
+      "title": "readProgress's typed return is cosmetic; Boolean() wraps would allow a predicate",
+      "location": "plugin/skills/faff/bin/lib/gates-progress.ts",
+      "action": "none: refuted",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "Wrapping in Boolean() changes what the exported validProgress returns (null becomes false), an executable change outside the three kinds spec 4.2 allows. The runtime check is unchanged.",
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "readProgress's typed return is cosmetic; Boolean() wraps would allow a predicate",
+          "location": "plugin/skills/faff/bin/lib/gates-progress.ts",
+          "severity": "observation",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/scripts/ts-equivalence.js::allow entries match by text only, so one could match a different logical change",
+      "title": "allow entries match by text only, so one could match a different logical change",
+      "location": "plugin/skills/faff/scripts/ts-equivalence.js",
+      "action": "none: refuted",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "refuted",
+      "refutation": "An entry matches a hunk only when its path, exact printed before text and exact printed after text all match, one entry per hunk, and an unused entry fails the run. It can only ever cover an identical change, which its reason describes. The reviewer notes the risk is not triggered.",
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "allow entries match by text only, so one could match a different logical change",
+          "location": "plugin/skills/faff/scripts/ts-equivalence.js",
+          "severity": "major",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/scripts/ts-equivalence.js::the check cannot see the typescript source, and the selftests are not in ci",
+      "title": "the check cannot see the TypeScript source, and the selftests are not in CI",
+      "location": "plugin/skills/faff/scripts/ts-equivalence.js",
+      "action": "none: refuted",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "refuted",
+      "refutation": "The committed emit is compiled from the .ts and is the code that runs, so comparing it with the base compares what executes. land and spec are in REGION_SELFTEST_ARGV (regions.js:610-611), and CI runs `regions selftest --region factory`.",
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "the check cannot see the TypeScript source, and the selftests are not in CI",
+          "location": "plugin/skills/faff/scripts/ts-equivalence.js",
+          "severity": "major",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "verification/ts-conversion/FAFF-1432/strict-mode-audit.json::strict-mode-audit.json is a snapshot nothing re-verifies",
+      "title": "strict-mode-audit.json is a snapshot nothing re-verifies",
+      "location": "verification/ts-conversion/FAFF-1432/strict-mode-audit.json",
+      "action": "none: accepted risk",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "By design: spec 4.2 makes the audit one-time committed evidence for the switch to strict mode, not a standing check. Later edits stay type-checked under strict, which refuses implicit-this, undeclared assignment, with, legacy octal and delete of an identifier, and stay covered by the tests and selftests.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "strict-mode-audit.json is a snapshot nothing re-verifies",
+          "location": "verification/ts-conversion/FAFF-1432/strict-mode-audit.json",
+          "severity": "major",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/ts-equivalence.test.mjs::passing fixture cases assert no allowed-difference count",
+      "title": "passing fixture cases assert no allowed-difference count",
+      "location": "test/ts-equivalence.test.mjs",
+      "action": "fix",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "passing fixture cases assert no allowed-difference count",
+          "location": "test/ts-equivalence.test.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/scripts/ts-equivalence.js::detachlayout mutates parsed node positions",
+      "title": "detachLayout mutates parsed node positions",
+      "location": "plugin/skills/faff/scripts/ts-equivalence.js",
+      "action": "none: refuted",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "refuted",
+      "refutation": "The parsed tree is private to the script and printed once; pos and end are ordinary writable properties, and -1 is the printer's synthesized-node marker. The fixture tests pin the printed result, so a TypeScript change that broke it would fail them.",
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "detachLayout mutates parsed node positions",
+          "location": "plugin/skills/faff/scripts/ts-equivalence.js",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "verification/ts-conversion/FAFF-1432/equivalence-allow.json::the failingrunids undefined-guard entry admits a guard 4.4 would reject",
+      "title": "the failingRunIds undefined-guard entry admits a guard 4.4 would reject",
+      "location": "verification/ts-conversion/FAFF-1432/equivalence-allow.json",
+      "action": "fix",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "the failingRunIds undefined-guard entry admits a guard 4.4 would reject",
+          "location": "verification/ts-conversion/FAFF-1432/equivalence-allow.json",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/check-no-boundary-cast.test.mjs::all_include is hard-coded instead of read from tsconfig.json",
+      "title": "ALL_INCLUDE is hard-coded instead of read from tsconfig.json",
+      "location": "test/check-no-boundary-cast.test.mjs",
+      "action": "fix",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "ALL_INCLUDE is hard-coded instead of read from tsconfig.json",
+          "location": "test/check-no-boundary-cast.test.mjs",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-commit.ts::the spec selftest still holds a throwing guard of the pattern round 1 flagged",
+      "title": "the spec selftest still holds a throwing guard of the pattern round 1 flagged",
+      "location": "plugin/skills/faff/bin/lib/spec-commit.ts",
+      "action": "fix",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "the spec selftest still holds a throwing guard of the pattern round 1 flagged",
+          "location": "plugin/skills/faff/bin/lib/spec-commit.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-commit.ts::no findings",
+      "title": "no findings",
+      "location": "plugin/skills/faff/bin/lib/spec-commit.ts",
+      "action": "none: refuted",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "The adversarial pass's clean-review token: the round-2 fix holds.",
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "no findings",
+          "location": "plugin/skills/faff/bin/lib/spec-commit.ts",
+          "severity": "observation",
+          "disposition": "refuted"
+        }
+      ]
+    }
+  ]
+}

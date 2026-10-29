@@ -1,0 +1,142 @@
+[
+  {
+    "path": "bin/lib/land.js",
+    "kind": "undefined-guard",
+    "before": "ids.add(m[1]);",
+    "after": "const id = m[1];\nif (id !== undefined)\nids.add(id);",
+    "reason": "A bound local replaces the read of m[1], and an undefined check narrows it to string for noUncheckedIndexedAccess. exec has just matched /\\/actions\\/runs\\/(\\d+)/, whose one capturing group is required, so m[1] is always the matched digits and ids.add(id) adds the same value ids.add(m[1]) did on every input that can reach it. No new throw."
+  },
+  {
+    "path": "bin/lib/spec-commit.js",
+    "kind": "reflect-get-helper",
+    "before": "",
+    "after": "function get(v, k) {\nreturn Reflect.get(Object(v), k);\n}",
+    "reason": "The module-local get helper from spec 4.1, the cast-free read of an unknown value the boundary-cast lint requires."
+  },
+  {
+    "path": "bin/lib/spec-commit.js",
+    "kind": "undefined-guard",
+    "before": "return m && m[1].toLowerCase() === want;",
+    "after": "if (!m)\nreturn m;\nconst key = m[1];\nif (key === undefined)\nthrow new Error(\"matchingSpecNames: the issue-key group did not match\");\nreturn key.toLowerCase() === want;",
+    "reason": "`return m && m[1].toLowerCase() === want` becomes: `if (!m) return m;` (the same null return as the && short-circuit), a bound local for the one required capturing group, and the guard. m[1].toLowerCase() would already throw a TypeError on undefined, and the group always matches when exec matches, so the guard cannot fire."
+  },
+  {
+    "path": "bin/lib/spec-commit.js",
+    "kind": "reflect-get-read",
+    "before": "err: errored(issue, `spec-docs-path-unresolved: ${e.message}`)",
+    "after": "err: errored(issue, `spec-docs-path-unresolved: ${get(e, \"message\")}`)",
+    "reason": "The receiver is the value a catch block caught: an error thrown by fs, child_process, JSON.parse or this module, never null or undefined, so Reflect.get(Object(e), k) reads the same property e.k did. useUnknownInCatchVariables types it unknown and the boundary-cast lint forbids a cast."
+  },
+  {
+    "path": "bin/lib/spec-commit.js",
+    "kind": "reflect-get-read",
+    "before": "return errored(issue, `spec-unreadable: ${e.code || e.message}`);",
+    "after": "return errored(issue, `spec-unreadable: ${get(e, \"code\") || get(e, \"message\")}`);",
+    "reason": "The receiver is the value a catch block caught: an error thrown by fs, child_process, JSON.parse or this module, never null or undefined, so Reflect.get(Object(e), k) reads the same property e.k did. useUnknownInCatchVariables types it unknown and the boundary-cast lint forbids a cast."
+  },
+  {
+    "path": "bin/lib/spec-commit.js",
+    "kind": "undefined-guard",
+    "before": "",
+    "after": "if (first === undefined)\nthrow new Error(\"spec commit: the matched spec path is missing\");",
+    "reason": "existing.paths[0] is read inside `if (existing.paths.length)`, so it is present, and noUncheckedIndexedAccess types it string | undefined. The guard cannot fire. Unlike spec 4.4 assumes, no original statement would have thrown here: spawnSync accepts an undefined argument, so an undefined path would have been recorded rather than refused. The path cannot occur."
+  },
+  {
+    "path": "bin/lib/spec-commit.js",
+    "kind": "reflect-get-read",
+    "before": "return errored(issue, e && e.code ? `spec-unreadable: ${e.code}` : \"builder-split-failed\");",
+    "after": "return errored(issue, e && get(e, \"code\") ? `spec-unreadable: ${get(e, \"code\")}` : \"builder-split-failed\");",
+    "reason": "The receiver is the value a catch block caught: an error thrown by fs, child_process, JSON.parse or this module, never null or undefined, so Reflect.get(Object(e), k) reads the same property e.k did. useUnknownInCatchVariables types it unknown and the boundary-cast lint forbids a cast. The original `e && e.code` guard is kept."
+  },
+  {
+    "path": "bin/lib/spec-commit.js",
+    "kind": "undefined-guard",
+    "before": "rel = found.paths[0];",
+    "after": "const only = found.paths[0];\nif (only === undefined)\nthrow new Error(\"spec verify: the matched spec path is missing\");\nrel = only;",
+    "reason": "found.paths[0] is read after `found.paths.length === 0` and `> 1` both returned, so exactly one path is present. The original would already throw on undefined at the next use: path.resolve(worktree, undefined) throws a TypeError."
+  },
+  {
+    "path": "bin/lib/spec-commit.js",
+    "kind": "reflect-get-read",
+    "before": "res = errored(issue, `unexpected: ${e && e.message ? e.message : e}`);",
+    "after": "res = errored(issue, `unexpected: ${e && get(e, \"message\") ? get(e, \"message\") : e}`);",
+    "reason": "The receiver is the value a catch block caught: an error thrown by fs, child_process, JSON.parse or this module, never null or undefined, so Reflect.get(Object(e), k) reads the same property e.k did. useUnknownInCatchVariables types it unknown and the boundary-cast lint forbids a cast. The original `e && e.message` guard is kept."
+  },
+  {
+    "path": "bin/lib/spec-commit.js",
+    "kind": "undefined-guard",
+    "before": "ok(\"commit: one identical file does not hide a divergent one\", r.token === \"needs-judgement\" && r.paths.length === 2);",
+    "after": "ok(\"commit: one identical file does not hide a divergent one\", r.token === \"needs-judgement\" && r.paths !== undefined && r.paths.length === 2);",
+    "reason": "Selftest only. r.paths is optional on the result type, so tsc cannot narrow it inside the && chain without a presence check. On the passing path (needs-judgement with paths) nothing changes, and a token mismatch still short-circuits to FAIL as before. Only the impossible case (needs-judgement with no paths) changes: it prints FAIL where r.paths.length would have thrown a TypeError, so the selftest still completes and still fails."
+  },
+  {
+    "path": "bin/lib/spec-commit.js",
+    "kind": "undefined-guard",
+    "before": "ok(\"verify: a committed rewrite whose working file matches differs in head only\", r.token === \"mismatch\" && r.differs.join() === \"head\");",
+    "after": "ok(\"verify: a committed rewrite whose working file matches differs in head only\", r.token === \"mismatch\" && r.differs !== undefined && r.differs.join() === \"head\");",
+    "reason": "Selftest only. r.differs is optional on the result type, so tsc cannot narrow it inside the && chain without a presence check. On the passing path (a mismatch with differs) nothing changes, and a token mismatch still short-circuits to FAIL as before. Only the impossible case (a mismatch with no differs) changes: it prints FAIL where r.differs.join() would have thrown a TypeError, so the selftest still completes and still fails."
+  },
+  {
+    "path": "bin/lib/spec-commit.js",
+    "kind": "undefined-guard",
+    "before": "ok(\"verify: a committed rewrite checked out in the working tree differs in both\", runSpecVerify(vbase, f.deps).differs.join() === \"head,working-tree\");",
+    "after": "const bothDiffer = runSpecVerify(vbase, f.deps).differs;\nok(\"verify: a committed rewrite checked out in the working tree differs in both\", bothDiffer !== undefined && bothDiffer.join() === \"head,working-tree\");",
+    "reason": "Selftest only. runSpecVerify(...).differs is optional on the result type. The call moves into a bound local before the ok() call (whose first argument is a string literal, so evaluation order is unchanged), and the check folds into the ok() condition. On the passing path nothing changes; in the impossible case of a mismatch with no differs it prints FAIL where .join() would have thrown a TypeError, so the selftest still completes and still fails."
+  },
+  {
+    "path": "bin/lib/spec-commit.js",
+    "kind": "undefined-guard",
+    "before": "ok(\"verify: an uncommitted rewrite differs in the working tree only\", runSpecVerify(vbase, f.deps).differs.join() === \"working-tree\");",
+    "after": "const workingOnly = runSpecVerify(vbase, f.deps).differs;\nok(\"verify: an uncommitted rewrite differs in the working tree only\", workingOnly !== undefined && workingOnly.join() === \"working-tree\");",
+    "reason": "Selftest only. runSpecVerify(...).differs is optional on the result type. The call moves into a bound local before the ok() call (whose first argument is a string literal, so evaluation order is unchanged), and the check folds into the ok() condition. On the passing path nothing changes; in the impossible case of a mismatch with no differs it prints FAIL where .join() would have thrown a TypeError, so the selftest still completes and still fails."
+  },
+  {
+    "path": "bin/lib/gates-progress.js",
+    "kind": "reflect-get-helper",
+    "before": "",
+    "after": "function get(v, k) {\nreturn Reflect.get(Object(v), k);\n}",
+    "reason": "The module-local get helper from spec 4.1, the cast-free read of an unknown value the boundary-cast lint requires."
+  },
+  {
+    "path": "bin/lib/gates-progress.js",
+    "kind": "undefined-guard",
+    "before": "if (recs[i + 1])\npaths.push(recs[++i]);",
+    "after": "const src = recs[i + 1];\nif (src) {\npaths.push(src);\ni++;\n}",
+    "reason": "A bound local replaces the two reads of recs[i + 1], and the original truthy test moves onto it, which also narrows it to string for noUncheckedIndexedAccess. recs[++i] read recs[i + 1] and then advanced i; `paths.push(src); i++;` pushes the same value and advances i the same way, and a falsy record still pushes nothing and leaves i alone. No new throw: the path behaves as main does for every input."
+  },
+  {
+    "path": "bin/lib/gates-progress.js",
+    "kind": "reflect-get-read",
+    "before": "return `{${Object.keys(v).sort().map(k => `${JSON.stringify(k)}:${sortedJson(v[k])}`).join(\",\")}}`;",
+    "after": "return `{${Object.keys(v).sort().map(k => `${JSON.stringify(k)}:${sortedJson(get(v, k))}`).join(\",\")}}`;",
+    "reason": "sortedJson reaches this read only when `v && typeof v === \"object\"` holds, so v is a non-null object, Object(v) is v itself, and Reflect.get(v, k) reads the same own property v[k] did, k coming from Object.keys(v). tsc refuses an index read on `object`, and the lint forbids a cast."
+  },
+  {
+    "path": "bin/lib/gates-progress.js",
+    "kind": "reflect-get-read",
+    "before": "if (e.code !== \"ENOENT\")\nthrow new GatesProgressError(\"progress-dir-unsafe\", `${rel}: ${e.code}`);",
+    "after": "if (get(e, \"code\") !== \"ENOENT\")\nthrow new GatesProgressError(\"progress-dir-unsafe\", `${rel}: ${get(e, \"code\")}`);",
+    "reason": "The receiver is the value a catch block caught: an error thrown by fs, child_process, JSON.parse or this module, never null or undefined, so Reflect.get(Object(e), k) reads the same property e.k did. useUnknownInCatchVariables types it unknown and the boundary-cast lint forbids a cast."
+  },
+  {
+    "path": "bin/lib/gates-progress.js",
+    "kind": "reflect-get-read",
+    "before": "throw new GatesProgressError(\"progress-write-failed\", e.code || e.message);",
+    "after": "throw new GatesProgressError(\"progress-write-failed\", get(e, \"code\") || get(e, \"message\"));",
+    "reason": "The receiver is the value a catch block caught: an error thrown by fs, child_process, JSON.parse or this module, never null or undefined, so Reflect.get(Object(e), k) reads the same property e.k did. useUnknownInCatchVariables types it unknown and the boundary-cast lint forbids a cast."
+  },
+  {
+    "path": "bin/lib/gates-progress.js",
+    "kind": "reflect-get-read",
+    "before": "throw new GatesProgressError(\"progress-clear-failed\", `cannot list .faff/gates: ${e.code || e.message}`);",
+    "after": "throw new GatesProgressError(\"progress-clear-failed\", `cannot list .faff/gates: ${get(e, \"code\") || get(e, \"message\")}`);",
+    "reason": "The receiver is the value a catch block caught: an error thrown by fs, child_process, JSON.parse or this module, never null or undefined, so Reflect.get(Object(e), k) reads the same property e.k did. useUnknownInCatchVariables types it unknown and the boundary-cast lint forbids a cast."
+  },
+  {
+    "path": "bin/lib/gates-progress.js",
+    "kind": "reflect-get-read",
+    "before": "if (e.code !== \"ENOENT\")\nthrow new GatesProgressError(\"progress-clear-failed\", `cannot delete ${name}: ${e.code || e.message}`);",
+    "after": "if (get(e, \"code\") !== \"ENOENT\")\nthrow new GatesProgressError(\"progress-clear-failed\", `cannot delete ${name}: ${get(e, \"code\") || get(e, \"message\")}`);",
+    "reason": "The receiver is the value a catch block caught: an error thrown by fs, child_process, JSON.parse or this module, never null or undefined, so Reflect.get(Object(e), k) reads the same property e.k did. useUnknownInCatchVariables types it unknown and the boundary-cast lint forbids a cast."
+  }
+]

@@ -1,0 +1,275 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "`land.ts`, `spec-commit.ts` and `gates-progress.ts` exist under `plugin/skills/faff/bin/lib/`, and each has a committed `.js` emit beside it built by `npm run build`.",
+      "verified": "git ls-files lists all six files (three .ts sources and their .js emits); the emits are what npm run build writes (the remove-and-rebuild replay leaves git diff empty).",
+      "passed": true,
+      "ac_id": "faff-1432#done:1",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git ls-files plugin/skills/faff/bin/lib/land.ts plugin/skills/faff/bin/lib/land.js plugin/skills/faff/bin/lib/spec-commit.ts plugin/skills/faff/bin/lib/spec-commit.js plugin/skills/faff/bin/lib/gates-progress.ts plugin/skills/faff/bin/lib/gates-progress.js"
+        }
+      ]
+    },
+    {
+      "ac": "No importer changes: `bin/faff`, `gates-cli.js`, `gates-select.js` and every test still require the extensionless or `.js` path.",
+      "verified": "git diff origin/main...HEAD touches none of bin/faff, gates-cli.js, gates-select.js or the four direct test files (0 paths).",
+      "passed": true,
+      "ac_id": "faff-1432#done:2",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --name-only origin/main...HEAD -- plugin/skills/faff/bin/faff plugin/skills/faff/bin/lib/gates-cli.js plugin/skills/faff/bin/lib/gates-select.js test/land.test.mjs test/spec-commit.test.mjs test/gates-progress.test.mjs test/gates-budget.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`tsconfig.json` `include` lists the three new `.ts` files, and `build-manifest.json` is the one `npm run build` writes.",
+      "verified": "tsconfig include has 17 entries (main's 14, now including #1156's two, plus bin/lib/gates-progress.ts, land.ts and spec-commit.ts); deleting every emit and build-manifest.json and rerunning npm run build leaves git diff --exit-code clean.",
+      "passed": true,
+      "ac_id": "faff-1432#done:3",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "cd plugin/skills/faff && npm run build && git diff --exit-code"
+        }
+      ]
+    },
+    {
+      "ac": "`plugin/skills/faff/scripts/ts-equivalence.js` exists. The 4.2 command, run from `plugin/skills/faff` against `origin/main` with `verification/ts-conversion/FAFF-1432/equivalence-allow.json`, exits 0.",
+      "verified": "The 4.2 command exits 0: ts-equivalence: ok — 3 path(s), 20 allowed difference(s).",
+      "passed": true,
+      "ac_id": "faff-1432#done:4",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "cd plugin/skills/faff && node scripts/ts-equivalence.js --base origin/main --allow ../../../verification/ts-conversion/FAFF-1432/equivalence-allow.json bin/lib/land.js bin/lib/spec-commit.js bin/lib/gates-progress.js"
+        }
+      ]
+    },
+    {
+      "ac": "Every entry in `equivalence-allow.json` has a `kind` in the three-kind set from 4.2 and a non-empty `reason`, and has at most one `reflect-get-helper` per path. A test asserts this.",
+      "verified": "The evidence test passes: 20 entries, every kind in the three-kind set, every reason non-empty, at most one reflect-get-helper per path.",
+      "passed": true,
+      "ac_id": "faff-1432#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/ts-equivalence.test.mjs::equivalence-allow.json: every entry has a known kind and a reason, and each path has at most one helper"
+        }
+      ]
+    },
+    {
+      "ac": "`verification/ts-conversion/FAFF-1432/strict-mode-audit.json` has one row for each strict-mode change in the 4.2 table, for each of `land` and `gates-progress`. Each row's `status` is one of `refused-by-tsc`, `absent` or `present-safe`, with non-empty `evidence`. A test asserts this.",
+      "verified": "The audit test passes: 14 rows, the seven strict-mode changes for each of land and gates-progress, each with a known status and non-empty evidence.",
+      "passed": true,
+      "ac_id": "faff-1432#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/ts-equivalence.test.mjs::strict-mode-audit.json: one row per strict-mode change for land and gates-progress, each cleared with evidence"
+        }
+      ]
+    },
+    {
+      "ac": "`test/ts-equivalence.test.mjs` runs the script over committed fixture pairs under `testdata/typescript/equivalence/`:",
+      "verified": "test/ts-equivalence.test.mjs: 12 script cases pass (four exit-0 pairs, four exit-1 statements, one unused entry, three exit-2 allow files); it self-skips without typescript.",
+      "passed": true,
+      "ac_id": "faff-1432#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/ts-equivalence.test.mjs::exit 0: a pair that differs only by toolchain preamble"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-equivalence.test.mjs::exit 0: preamble only, with a base that already starts with \"use strict\""
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-equivalence.test.mjs::exit 0: an inserted get helper and one rewritten read, with matching entries"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-equivalence.test.mjs::exit 0: a bound-local undefined guard, with a matching entry"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-equivalence.test.mjs::exit 1 naming the entry: an allow entry that matches no difference"
+        }
+      ]
+    },
+    {
+      "ac": "The `typecheck` job's un-skip floor in `.github/workflows/validate.yml` also runs `test/ts-equivalence.test.mjs`, and fails unless it reports `# skipped 0` and a non-zero `# pass`.",
+      "verified": "validate.yml's un-skip floor runs both test files in one node --test line; replayed locally it reports # skipped 0 and # pass 25.",
+      "passed": true,
+      "ac_id": "faff-1432#done:8",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test --test-reporter=tap test/check-no-boundary-cast.test.mjs test/ts-equivalence.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`node scripts/check-no-boundary-cast.mjs` exits 0 with the three new files in `include`. Its allow-list is unchanged, and `test/check-no-boundary-cast.test.mjs`'s pinned source list includes the three new files and passes.",
+      "verified": "check-no-boundary-cast: clean (17 source(s)); scripts/check-no-boundary-cast.mjs is not in the diff; the pinned list now ends with the three files and the test passes.",
+      "passed": true,
+      "ac_id": "faff-1432#done:9",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node scripts/check-no-boundary-cast.mjs"
+        },
+        {
+          "kind": "test",
+          "locator": "test/check-no-boundary-cast.test.mjs::S3: realSources() lists the seventeen tsconfig include entries"
+        }
+      ]
+    },
+    {
+      "ac": "`GatesProgressError`'s fields are `declare` fields, and its emit contains no class field declaration.",
+      "verified": "gates-progress.ts declares reason and detail with declare (lines 73-74); an AST scan of the emit finds 0 PropertyDeclaration nodes.",
+      "passed": true,
+      "ac_id": "faff-1432#done:10",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'declare ' plugin/skills/faff/bin/lib/gates-progress.ts"
+        }
+      ]
+    },
+    {
+      "ac": "`test/ts-conversion-exports.test.mjs` holds, as committed literal arrays, each module's export names on main in order, and asserts that `Object.keys(require(...))` equals them. The baseline stays fixed after merge, so a later change that drops or reorders an export fails the test. No `--selftest` case is added.",
+      "verified": "test/ts-conversion-exports.test.mjs pins each module's export names from origin/main as literal arrays; all three tests pass.",
+      "passed": true,
+      "ac_id": "faff-1432#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/ts-conversion-exports.test.mjs::land.js exports the same names, in order, as before its conversion"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-conversion-exports.test.mjs::spec-commit.js exports the same names, in order, as before its conversion"
+        },
+        {
+          "kind": "test",
+          "locator": "test/ts-conversion-exports.test.mjs::gates-progress.js exports the same names, in order, as before its conversion"
+        }
+      ]
+    },
+    {
+      "ac": "No explicit `any` annotation appears in the three `.ts` files.",
+      "verified": "A TypeScript AST scan of the three .ts files finds 0 AnyKeyword nodes.",
+      "passed": true,
+      "ac_id": "faff-1432#done:12",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -nwE 'any' plugin/skills/faff/bin/lib/land.ts plugin/skills/faff/bin/lib/spec-commit.ts plugin/skills/faff/bin/lib/gates-progress.ts"
+        }
+      ]
+    },
+    {
+      "ac": "`faff land --selftest` and `faff spec --selftest` still print `RESULT ok … (0 failures)`, and no selftest case is added or removed.",
+      "verified": "Both print RESULT ok (0 failures); ok() case counts match main (land 27, spec 26).",
+      "passed": true,
+      "ac_id": "faff-1432#done:13",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff land --selftest"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff spec --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "No `commissaire*` file changes, and no skill `SKILL.md` or reference file changes.",
+      "verified": "git diff --name-only origin/main...HEAD lists no commissaire*, SKILL.md or references path (0 matches).",
+      "passed": true,
+      "ac_id": "faff-1432#done:14",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --name-only origin/main...HEAD | grep -cE 'commissaire|SKILL\\.md|/references/'"
+        }
+      ]
+    },
+    {
+      "ac": "`test/land.test.mjs`, `test/spec-commit.test.mjs`, `test/gates-progress.test.mjs` and `test/gates-budget.test.mjs` pass, and none of them is modified.",
+      "verified": "The four files pass (76 tests, 0 failures) and none is in the diff.",
+      "passed": true,
+      "ac_id": "faff-1432#done:15",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/land.test.mjs test/spec-commit.test.mjs test/gates-progress.test.mjs test/gates-budget.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "The full `node --test` suite passes, so every module that imports these three is exercised as well as the direct tests.",
+      "verified": "faff gates run's UNIT rungs (the full node --test suite) pass on the final tree. Two attempts each hit one failure in test/run-ledger-serialiser.test.mjs inside the gate runner's sharded pool; it imports none of these modules, passes alone (8/8), under 8-way parallel stress on this branch and on main, and in the full CI-style suite (7667 tests, 0 failures).",
+      "passed": true,
+      "ac_id": "faff-1432#done:16",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gates run --json --resume"
+        }
+      ]
+    },
+    {
+      "ac": "The CI `typecheck` job passes: type-check, remove-then-rebuild, and an empty `git diff --exit-code`. This compares the committed emit with a fresh build, not with the old hand-written file.",
+      "verified": "Replayed locally after the rebase onto #1156: tsc --noEmit passes, and removing all 17 emits plus build-manifest.json then npm run build leaves git diff --exit-code clean. CI confirms on the PR.",
+      "passed": true,
+      "ac_id": "faff-1432#done:17",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "cd plugin/skills/faff && npx tsc --noEmit -p tsconfig.json"
+        },
+        {
+          "kind": "command",
+          "locator": "git diff --exit-code"
+        }
+      ]
+    },
+    {
+      "ac": "`faff regions check` and `faff lint-cli-coverage` pass.",
+      "verified": "PASS regions check; PASS lint-cli-coverage (145 subcommands).",
+      "passed": true,
+      "ac_id": "faff-1432#done:18",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-coverage"
+        }
+      ]
+    },
+    {
+      "ac": "`faff gates run` passes.",
+      "verified": "faff gates run --json --resume ends with signal pass (9 rungs), and faff contract quality-gates is conformant.",
+      "passed": true,
+      "ac_id": "faff-1432#done:19",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gates run --json --resume"
+        }
+      ]
+    }
+  ]
+}

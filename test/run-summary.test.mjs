@@ -421,6 +421,13 @@ for (const n of ["spawn", "spawnSync", "exec", "execSync", "execFile", "execFile
   assert.ok(!r.stderr.includes("spawn denied"), r.stderr);
 });
 
+test("an unwritable --out exits 2 with a cannot-write line", () => {
+  const fx = buildRun({});
+  const r = cli(fx.root, ["run", "summary", "--run-dir", fx.runDir, "--out", join(fx.root, "no-such-dir", "summary.md")], { env: { HOME: EMPTY_HOME } });
+  assert.equal(r.code, 2);
+  assert.match(r.err, /cannot write/);
+});
+
 test("`faff run bogus` exits 2 with a usage line naming summary", () => {
   const r = cli(REPO, ["run", "bogus"]);
   assert.equal(r.code, 2);

@@ -857,8 +857,13 @@ function cmdRunSummary(args: string[], deps: Deps = realDeps()): number {
   }
   const out = str(values["--out"]) ?? path.join(runDir, "summary.md");
   const tmp = `${out}.tmp-${process.pid}`;
-  fs.writeFileSync(tmp, text);
-  fs.renameSync(tmp, out);
+  try {
+    fs.writeFileSync(tmp, text);
+    fs.renameSync(tmp, out);
+  } catch (e) {
+    process.stderr.write(`faff run summary: cannot write ${out}: ${errText(e)}\n`);
+    return 2;
+  }
   process.stdout.write(text);
   return 0;
 }

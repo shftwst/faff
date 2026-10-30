@@ -1,0 +1,355 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "`faff-beep-boop/SKILL.md` Reporting §1's template is replaced by the `SummaryFacts` shape and a `faff run summary` call, and `SKILL_LINE_BASELINE[\"faff-beep-boop\"]` is lowered.",
+      "verified": "Reporting §1's template is replaced by the facts-file shape and the `faff run summary` call; SKILL_LINE_BASELINE[faff-beep-boop] 778→682.",
+      "passed": true,
+      "ac_id": "faff-1435#done:1",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "`faff validate-adapters` passes with no RATCHET finding for `faff-beep-boop`.",
+      "verified": "validate-adapters RESULT: PASS, no RATCHET line for faff-beep-boop.",
+      "passed": true,
+      "ac_id": "faff-1435#done:2",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "`faff run summary --run-dir D` writes `D/summary.md` and prints the same bytes, exit 0.",
+      "verified": "Scenario test writes D/summary.md and asserts it equals stdout, exit 0; the smoke test does the same on the reference fixture.",
+      "passed": true,
+      "ac_id": "faff-1435#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-summary.test.mjs::scenario: no facts file — first line is the facts warning; awaiting landing renders, spec-review holds do not"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-summary.test.mjs::integration smoke: the CLI on the reference fixture equals the golden outside install health and ground truth"
+        }
+      ]
+    },
+    {
+      "ac": "`faff run summary` with no facts file, or with a facts file of invalid JSON, exits 0 and its first line starts `⚠ could not read facts`.",
+      "verified": "No facts file and invalid-JSON facts both exit 0 with a first line starting `⚠ could not read facts`.",
+      "passed": true,
+      "ac_id": "faff-1435#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-summary.test.mjs::facts problems: absent, invalid JSON, format missing, an unknown key — each exits 0 with its ⚠ line"
+        }
+      ]
+    },
+    {
+      "ac": "`faff run summary` exits 2 when the ledger lacks `admitted`.",
+      "verified": "A ledger without admitted exits 2 naming `admitted`.",
+      "passed": true,
+      "ac_id": "faff-1435#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-summary.test.mjs::ledger faults: missing admitted exits 2; a mistyped annotation array renders its could-not-read line"
+        }
+      ]
+    },
+    {
+      "ac": "`faff run bogus` exits 2 with a usage line naming `summary`.",
+      "verified": "`faff run bogus` exits 2 with `registered verbs: summary`.",
+      "passed": true,
+      "ac_id": "faff-1435#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-summary.test.mjs::`faff run bogus` exits 2 with a usage line naming summary"
+        }
+      ]
+    },
+    {
+      "ac": "`faff economics --json` and `faff budget check --json` output is unchanged, and equals `economicsForRun()` / `budgetCheckForRun()` (`test/economics-budget-extract.test.mjs`).",
+      "verified": "Both CLIs deep-equal their functions on a closed-span run and a no-transcript run; outputs byte-identical to origin/main on four real runs (economics: all seven --by forms).",
+      "passed": true,
+      "ac_id": "faff-1435#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/economics-budget-extract.test.mjs::economics: the CLI prints economicsForRun() (closed span)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/economics-budget-extract.test.mjs::economics: the CLI prints economicsForRun() (no transcript)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/economics-budget-extract.test.mjs::budget check: the CLI prints budgetCheckForRun() (closed span)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/economics-budget-extract.test.mjs::budget check: the CLI prints budgetCheckForRun() (no transcript)"
+        }
+      ]
+    },
+    {
+      "ac": "`reconcile.js` exports `validateReconcileInput`.",
+      "verified": "reconcile.js already exported validateReconcileInput on origin/main; run-summary.ts calls it.",
+      "passed": true,
+      "ac_id": "faff-1435#done:8",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node -e \"console.log(typeof require('./plugin/skills/faff/bin/lib/reconcile.js').validateReconcileInput)\""
+        }
+      ]
+    },
+    {
+      "ac": "The install-health line comes from `gates-doctor.js` in-process. No facts key carries install health.",
+      "verified": "Install health comes from gatesDoctor (resolveDoctorScanSet/gatherDoctorState/doctorResultLine) in-process; no facts key carries it (unknown keys are warned).",
+      "passed": true,
+      "ac_id": "faff-1435#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-summary.test.mjs::A1: install-health warning first when doctor reports unclean; absent when clean; a throwing doctor renders its could-not-read line"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-summary.test.mjs::doctor in-process: the real install-health path renders doctor's own RESULT text when unclean"
+        }
+      ]
+    },
+    {
+      "ac": "Forge reads go only through `merge-gate-gh`'s `ghJson`, and a failed read renders `could not read forge` at exit 0.",
+      "verified": "All forge reads go through deps.ghJson → merge-gate-gh ghJson; a failing gh renders `could not read forge` lines at exit 0.",
+      "passed": true,
+      "ac_id": "faff-1435#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-summary.test.mjs::forge failure: a failing gh renders could-not-read-forge lines and the render still exits 0"
+        }
+      ]
+    },
+    {
+      "ac": "Every rendered markdown line outside the `faff-parks` fence that contains a `facts.tracker` or `facts.run` value ends with ` _(reported)_`.",
+      "verified": "Every line containing a facts.tracker or facts.run value ends ` _(reported)_`; the ⚠ facts diagnostics and disk-only lines do not.",
+      "passed": true,
+      "ac_id": "faff-1435#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-summary.test.mjs::labelling: facts-sourced lines end _(reported)_, the ⚠ facts diagnostics do not, disk-only lines do not"
+        }
+      ]
+    },
+    {
+      "ac": "`faff run` is registered in `COMMANDS`, `REGION_MAP` (factory), `REGION_SELFTEST_ARGV` (null) and `TEST_FILE_COVERAGE`, and documented in `docs/guide/cli.md`. `faff regions check`, `faff lint-cli-coverage` and `faff lint-cli-doc` pass.",
+      "verified": "Registered in bin/faff COMMANDS, REGION_MAP run:factory, REGION_SELFTEST_ARGV run:null, TEST_FILE_COVERAGE run; documented in docs/guide/cli.md; regions check, lint-cli-coverage and lint-cli-doc PASS.",
+      "passed": true,
+      "ac_id": "faff-1435#done:12",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-coverage"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-doc"
+        }
+      ]
+    },
+    {
+      "ac": "`run.ts` and `run-summary.ts` are in `tsconfig.json` `include`, with committed `run.js`, `run-summary.js` and `build-manifest.json`. CI's stale-emit step passes.",
+      "verified": "run.ts and run-summary.ts in tsconfig include with committed emits and build-manifest.json; a full stale-emit replay (delete all emits + manifest, npm run build) leaves git clean.",
+      "passed": true,
+      "ac_id": "faff-1435#done:13",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "cd plugin/skills/faff && npm run build && git diff --exit-code"
+        }
+      ]
+    },
+    {
+      "ac": "`check-no-boundary-cast` passes, and `test/check-no-boundary-cast.test.mjs` lists `run.ts` and `run-summary.ts`.",
+      "verified": "check-no-boundary-cast: clean (21 sources); the pin test lists run-summary.ts and run.ts.",
+      "passed": true,
+      "ac_id": "faff-1435#done:14",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node scripts/check-no-boundary-cast.mjs"
+        },
+        {
+          "kind": "test",
+          "locator": "test/check-no-boundary-cast.test.mjs::S3: realSources() lists the fifteen tsconfig include entries"
+        }
+      ]
+    },
+    {
+      "ac": "No selftest block gains a case. Any touched `budget`/`reconcile` selftest case is moved to `test/`.",
+      "verified": "No selftest block changed: the diff adds no case to budget, reconcile or economics selftests; no moved composition code was exercised by a selftest.",
+      "passed": true,
+      "ac_id": "faff-1435#done:15",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main -- plugin/skills/faff/bin/lib/budget.js plugin/skills/faff/bin/lib/reconcile.js plugin/skills/faff/bin/lib/economics.js"
+        }
+      ]
+    },
+    {
+      "ac": "The PR diff touches no `commissaire*` file.",
+      "verified": "`git diff --name-only origin/main` lists no commissaire* file.",
+      "passed": true,
+      "ac_id": "faff-1435#done:16",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --name-only origin/main"
+        }
+      ]
+    },
+    {
+      "ac": "Each conditional section A4–A23 renders only under its rule in the Rule inventory.",
+      "verified": "One test per conditional section A4–A23 asserts presence under its rule and absence otherwise.",
+      "passed": true,
+      "ac_id": "faff-1435#done:17",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-summary.test.mjs::A4: economics renders its figures, ZERO-SHIP and warnings; a throwing function renders unavailable"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-summary.test.mjs::A9/A10: adversarial-skipped and post-merge sections only when their arrays say so"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-summary.test.mjs::A14/A15: the outage and slow-fan-out holds render only when their arrays are non-empty"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-summary.test.mjs::A18: product-incomplete only when the holdout record exists; environment gaps apart from human-only; unknown codes named"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-summary.test.mjs::A23: prep summary and tidy only in full mode"
+        }
+      ]
+    },
+    {
+      "ac": "With every `child_process` spawn other than `merge-gate-gh`'s `gh` stubbed to throw, `run summary` still renders, so no faff subprocess is used.",
+      "verified": "The CLI, preloaded with a guard that makes every child_process call except gh throw, exits 0 with economics and install health rendered and no spawn denied.",
+      "passed": true,
+      "ac_id": "faff-1435#done:18",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-summary.test.mjs::no faff subprocess: with every child_process spawn but gh made to throw, the CLI still renders economics and install health"
+        }
+      ]
+    },
+    {
+      "ac": "The ground-truth section built from the assembled input matches `faff reconcile --json` given that input on stdin.",
+      "verified": "The assembled input's reconcileCore result deep-equals `faff reconcile --run-dir --level L3 --json` fed the same input on stdin.",
+      "passed": true,
+      "ac_id": "faff-1435#done:19",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-summary.test.mjs::reconcile in-process: a phantom merge, and the result deep-equals `faff reconcile --json` on the same input"
+        }
+      ]
+    },
+    {
+      "ac": "With no facts file, a run with superseded outcomes, siblings and a readable `sibling-baseline.json` renders no `superseded-unproven`, `unowned-sibling-mutation` or `sibling-check-unproven` line.",
+      "verified": "No facts file + superseded + siblings + readable baseline: no superseded-unproven, unowned-sibling-mutation or sibling-check-unproven line; input validates.",
+      "passed": true,
+      "ac_id": "faff-1435#done:20",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-summary.test.mjs::no tracker facts: superseded and siblings with a readable baseline fabricate no divergence and say the checks did not run"
+        }
+      ]
+    },
+    {
+      "ac": "Rendering the same run dir twice at different times, with the same forge responses, gives byte-identical output.",
+      "verified": "Renders with Date.now stubbed to two values and different ambient CLAUDE_CODE_SESSION_ID, same forge stub, are byte-identical.",
+      "passed": true,
+      "ac_id": "faff-1435#done:21",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-summary.test.mjs::determinism: two renders at different clocks and ambient session ids, same forge responses, are byte-identical"
+        }
+      ]
+    },
+    {
+      "ac": "A `\"x\\n## Deferred\"` value in any facts string field produces no `## Deferred` heading.",
+      "verified": "`x\\n## Deferred` in every facts string field yields no `## Deferred` heading.",
+      "passed": true,
+      "ac_id": "faff-1435#done:22",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-summary.test.mjs::neutralisation: x\\n## Deferred in every facts string field creates no heading"
+        }
+      ]
+    },
+    {
+      "ac": "Every line the PR deletes from `faff-beep-boop/SKILL.md` maps to a row A1–A26. The PR description lists the deleted line ranges against row ids.",
+      "verified": "The PR description maps every deleted faff-beep-boop/SKILL.md line range to rows A1–A26.",
+      "passed": true,
+      "ac_id": "faff-1435#done:23",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff -U0 origin/main -- plugin/skills/faff-beep-boop/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "`test/run-summary.test.mjs` and `test/economics-budget-extract.test.mjs` pass under `node --test`, including the synthetic golden.",
+      "verified": "Both files pass under node --test (45 tests), including the synthetic golden; the gate ladder's UNIT rung passed.",
+      "passed": true,
+      "ac_id": "faff-1435#done:24",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/run-summary.test.mjs test/economics-budget-extract.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "No file under `test/fixtures/run-summary/` contains data from a production run dir.",
+      "verified": "test/fixtures/run-summary/ holds only build.mjs (invented ids DEMO-7, paths and titles) and the golden rendered from it.",
+      "passed": true,
+      "ac_id": "faff-1435#done:25",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "ls test/fixtures/run-summary/"
+        }
+      ]
+    }
+  ]
+}

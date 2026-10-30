@@ -482,18 +482,8 @@ function renderHuman(state) {
   }
 
   if (state.exit === 1) {
-    const problems = [];
-    if (state.copies > 0 || state.dangling > 0) problems.push(`${state.copies} copy / ${state.dangling} dangling skill link(s)`);
-    if (state.intoWorktree > 0) problems.push(`${state.intoWorktree} worktree-sourced link(s) (fragile — will dangle on worktree removal)`);
-    for (const s of state.scans) {
-      if (s.missingHere.length > 0) problems.push(`${s.missingHere.length} skill(s) missing from ${s.directory}`);
-    }
-    if (state.fenceStatus === "missing") problems.push("merge-fence PreToolUse fence missing");
-    else if (state.fenceStatus === "unconfirmed") problems.push("merge-fence PreToolUse fence unconfirmed");
-    if (invalidFiles.length > 0) problems.push(`${invalidFiles.length} unreadable Claude settings file(s)`);
-    if (state.staleEmits.length > 0) problems.push(`${state.staleEmits.length} stale TypeScript emit(s)`);
     out.push("");
-    out.push(`RESULT: ${problems.join(" + ")} — install is not clean.`);
+    out.push(doctorResultLine(state));
     const fixes = [];
     if (state.copies > 0 || state.dangling > 0 || state.intoWorktree > 0 || state.anyMissingHere) fixes.push("bash scripts/link-skills.sh --global --replace --prune  (from the main checkout)");
     // hooks-ensure exits 2 on an unreadable settings file, so it is not the remedy while one exists.
@@ -506,12 +496,33 @@ function renderHuman(state) {
   }
 
   out.push("");
-  // FAFF-675: a clean plugin-root scan (expected > 0) is not a dev-linked repo — say so.
-  out.push(state.expected > 0
-    ? `RESULT: faff skills are a marketplace-plugin install (copies under $CLAUDE_PLUGIN_ROOT) — expected. Nothing to repair.`
-    : `RESULT: all faff skills are dev-linked (symlinks) — repo is live.`);
+  out.push(doctorResultLine(state));
   console.log(out.join("\n"));
   return state.exit;
+}
+
+// FAFF-1435: the human renderer's RESULT line, shared with `faff run summary` (which quotes it
+// in its install-health warning) so the two can never word the verdict differently. Defined for
+// a non-empty scan union, the only state in which the human renderer prints a RESULT line.
+function doctorResultLine(state) {
+  if (state.exit === 1) {
+    const invalidFiles = [state.hookSettings.shared, state.hookSettings.personal].filter((f) => f.state === "invalid");
+    const problems = [];
+    if (state.copies > 0 || state.dangling > 0) problems.push(`${state.copies} copy / ${state.dangling} dangling skill link(s)`);
+    if (state.intoWorktree > 0) problems.push(`${state.intoWorktree} worktree-sourced link(s) (fragile — will dangle on worktree removal)`);
+    for (const s of state.scans) {
+      if (s.missingHere.length > 0) problems.push(`${s.missingHere.length} skill(s) missing from ${s.directory}`);
+    }
+    if (state.fenceStatus === "missing") problems.push("merge-fence PreToolUse fence missing");
+    else if (state.fenceStatus === "unconfirmed") problems.push("merge-fence PreToolUse fence unconfirmed");
+    if (invalidFiles.length > 0) problems.push(`${invalidFiles.length} unreadable Claude settings file(s)`);
+    if (state.staleEmits.length > 0) problems.push(`${state.staleEmits.length} stale TypeScript emit(s)`);
+    return `RESULT: ${problems.join(" + ")} — install is not clean.`;
+  }
+  // FAFF-675: a clean plugin-root scan (expected > 0) is not a dev-linked repo — say so.
+  return state.expected > 0
+    ? `RESULT: faff skills are a marketplace-plugin install (copies under $CLAUDE_PLUGIN_ROOT) — expected. Nothing to repair.`
+    : `RESULT: all faff skills are dev-linked (symlinks) — repo is live.`;
 }
 
 // FAFF-1295: the hook_settings wire shape (covers_bash_fence and scope stay internal).
@@ -661,4 +672,4 @@ function cmdSync(args) {
   return r.status === 0 ? 0 : (r.status === 2 ? 2 : 1);
 }
 
-module.exports = { assertScanSetExpectCopiesInvariant, buildDoctorJson, cmdDoctor, cmdSync, gatherDoctorState, hookSettingsAt, mergeFencePresentAt, resolveDoctorScanSet, resolveSyncScript, scanDoctorDirectory };
+module.exports = { assertScanSetExpectCopiesInvariant, buildDoctorJson, cmdDoctor, cmdSync, doctorResultLine, gatherDoctorState, hookSettingsAt, mergeFencePresentAt, resolveDoctorScanSet, resolveSyncScript, scanDoctorDirectory };

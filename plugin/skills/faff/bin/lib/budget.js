@@ -941,6 +941,19 @@ function cmdBudget(args, { resolveUnmetered = () => [] } = {}) {
   }
   const runDir = resolved.empty ? null : resolved.runDir;
   const ledger = resolved.empty ? {} : resolved.ledger;
+  const { state, stderr } = budgetCheckCompose({ root, runDir, ledger, flags, sessionIdFlag, nowMs, baseEnv: process.env, resolveUnmetered });
+  for (const line of stderr) process.stderr.write(`${line}\n`);
+  console.log(JSON.stringify(state));
+  return 0;
+}
+
+
+// FAFF-1435: the `budget check` composition, moved verbatim out of cmdBudget so `faff run
+// summary` reads the same BudgetState in-process. Returns the state plus the stderr lines the
+// CLI writes. `baseEnv` is what the measure functions see (cmdBudget passes process.env);
+// `persistWindow: false` skips the window-anchor ledger write for a read-only caller.
+function budgetCheckCompose({ root, runDir, ledger, flags, sessionIdFlag = null, nowMs, baseEnv = process.env, resolveUnmetered = () => [], persistWindow = true }) {
+  const stderr = [];
 
   // FAFF-560: the metered session is resolved here (after the ledger is known) so the
   // persisted "owning" session can be folded into the precedence: --session-id flag
@@ -962,7 +975,7 @@ function cmdBudget(args, { resolveUnmetered = () => [] } = {}) {
     ? ledger.budget.sessions : null;
   const openSpanSessionId = budgetSessionsForSid ? ((currentOpenSpan(budgetSessionsForSid) || {}).session_id || null) : null;
   const measureSessionId = sessionIdFlag || openSpanSessionId || (ledger.budget && ledger.budget.measure_session_id) || null;
-  const effectiveEnv = measureSessionId ? { ...process.env, CLAUDE_CODE_SESSION_ID: measureSessionId } : process.env;
+  const effectiveEnv = measureSessionId ? { ...baseEnv, CLAUDE_CODE_SESSION_ID: measureSessionId } : baseEnv;
 
   const cfg = readGovernanceConfig(root);
   // A ledger may carry a pre-resolved envelope (recorded at run start by the
@@ -1186,7 +1199,7 @@ function cmdBudget(args, { resolveUnmetered = () => [] } = {}) {
         const anchorEpoch = nowMs;
         const resetEpoch = anchorEpoch + winMs;
         const tokensAtAnchor = cumulativeForWindow;
-        try {
+        if (persistWindow) try {
           mutateLedgerUnderLock(runDir, (fresh) => {
             // FAFF-594 (adversarial review finding): `fresh` is the re-read-UNDER-THE-LOCK
             // ledger — the up-to-date base that correctly carries any concurrent mutation
@@ -1233,7 +1246,7 @@ function cmdBudget(args, { resolveUnmetered = () => [] } = {}) {
   if (env.until_invalid != null) {
     const msg = `budget.until '${env.until_invalid}' is not a valid HH:MM — until ceiling ignored`;
     warnings.push(msg);
-    process.stderr.write(`faff budget check: ${msg}\n`);
+    stderr.push(`faff budget check: ${msg}`);
   }
   // FAFF-446 — budget.price_per_mtok is REMOVED; a `.faffrc.yaml` that still sets it
   // > 0 is ignored (cost prices from the ADR-0048 map regardless) and named here,
@@ -1245,7 +1258,7 @@ function cmdBudget(args, { resolveUnmetered = () => [] } = {}) {
   if (env.price_per_mtok_removed != null) {
     const msg = `budget.price_per_mtok ('${env.price_per_mtok_removed}') is removed (FAFF-446) — ignored; cost prices from the ADR-0048 map. Unset budget.price_per_mtok in .faff/config.yaml (set budget.price_per_mtok_by_model to override specific models).`;
     warnings.push(msg);
-    process.stderr.write(`faff budget check: ${msg}\n`);
+    stderr.push(`faff budget check: ${msg}`);
   }
   // FAFF-428 — at L4 only, an estimate-only token figure is a metering DEGRADE, not
   // merely a fallback: the preflight's own meter sample can go stale mid-run (env
@@ -1259,7 +1272,7 @@ function cmdBudget(args, { resolveUnmetered = () => [] } = {}) {
   if (tokensSource === "estimate" && ledger.level === "L4") {
     const msg = "L4 budget metering degraded: transcripts unreadable — token figure is attempts x est_tokens_per_attempt (may under-report ~10x)";
     warnings.push(msg);
-    process.stderr.write(`faff budget check: ${msg}\n`);
+    stderr.push(`faff budget check: ${msg}`);
   }
   // Single cost-warning gate (FAFF-427): only surface cost diagnostics when a cost
   // ceiling is actually configured — the one place the "stay silent when
@@ -1291,8 +1304,14 @@ function cmdBudget(args, { resolveUnmetered = () => [] } = {}) {
     }));
   }
 
-  console.log(JSON.stringify(state));
-  return 0;
+  return { state, stderr };
+}
+
+// FAFF-1435: the BudgetState `faff budget check --json` prints for a run dir, computed in-process.
+// Throws when the run ledger cannot be read.
+function budgetCheckForRun(runDir, { root, sessionId = null, env = process.env, nowMs = Date.now(), resolveUnmetered = () => [], persistWindow = true } = {}) {
+  const ledger = readLedger(runDir);
+  return budgetCheckCompose({ root: root || findRoot(), runDir, ledger, flags: { until: null, max_attempts: null }, sessionIdFlag: sessionId, nowMs, baseEnv: env, resolveUnmetered, persistWindow }).state;
 }
 
 // FAFF-558/FAFF-552: `faff budget baseline` — the deterministic, write-once
@@ -1959,4 +1978,4 @@ function budgetSelftest(now = Date.now()) {
 }
 
 
-module.exports = { AT_CEILING_OUTCOMES, BUDGET_NON_ATTEMPT_OUTCOMES, BUDGET_TOKEN_USAGE_KEYS, ENGINE_SPEND_FILENAME, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, UNKNOWN_TTL_WRITE_CLASS, appendEngineSpend, attemptsFromLedger, budgetSelftest, byModelClassTotal, childOwningSession, classCountsFromUsage, closeSpanDeltaByModel, closedSessionsSpend, cmdBudget, cmdBudgetBaseline, computeBudgetState, conservativePriceRow, currentOpenSpan, economicsPriceForModel, engineSpendPath, envelopeFrom, envelopeFromLedger, measureRunSpend, measureTokens, measureTokensByClass, measureTokensByModelClass, parseHHMM, priceModelClassSums, readEngineSpend, readGovernanceConfig, resolveBudgetNow, resolveEconomicsPriceMap, resolveUntil, routeUnknownTtlWrite, sessionOwnedTranscriptFiles, sumTranscriptFile, sumTranscriptFileByClass, sumTranscriptFileByModelClass, transcriptBaseDir, untilToEpoch };
+module.exports = { AT_CEILING_OUTCOMES, BUDGET_NON_ATTEMPT_OUTCOMES, BUDGET_TOKEN_USAGE_KEYS, ENGINE_SPEND_FILENAME, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, UNKNOWN_TTL_WRITE_CLASS, appendEngineSpend, attemptsFromLedger, budgetCheckForRun, budgetSelftest, byModelClassTotal, childOwningSession, classCountsFromUsage, closeSpanDeltaByModel, closedSessionsSpend, cmdBudget, cmdBudgetBaseline, computeBudgetState, conservativePriceRow, currentOpenSpan, economicsPriceForModel, engineSpendPath, envelopeFrom, envelopeFromLedger, measureRunSpend, measureTokens, measureTokensByClass, measureTokensByModelClass, parseHHMM, priceModelClassSums, readEngineSpend, readGovernanceConfig, resolveBudgetNow, resolveEconomicsPriceMap, resolveUntil, routeUnknownTtlWrite, sessionOwnedTranscriptFiles, sumTranscriptFile, sumTranscriptFileByClass, sumTranscriptFileByModelClass, transcriptBaseDir, untilToEpoch };

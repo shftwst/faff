@@ -1,0 +1,187 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "`faff-beep-boop/SKILL.md` calls `faff run checkpoint` and routes on `action` in place of the procedure, and `SKILL_LINE_BASELINE[\"faff-beep-boop\"]` is lowered to the new count.",
+      "verified": "beep-boop's \"The interrupt\" is one `faff run checkpoint` call and a routing table over `action`; step 8.1 routes on `action`; SKILL_LINE_BASELINE[faff-beep-boop] 682→677.",
+      "passed": true,
+      "ac_id": "faff-1436#done:1",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "`faff validate-adapters` passes with no RATCHET finding for `faff-beep-boop`.",
+      "verified": "validate-adapters RESULT: PASS with no RATCHET line for faff-beep-boop.",
+      "passed": true,
+      "ac_id": "faff-1436#done:2",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "`faff run checkpoint --json` prints a CheckpointResult with every field in §3, and exits 0, 3 or 2 per §3.",
+      "verified": "The result carries every §3 field; exits 0 (continue), 3 (stop) and 2 (outside root, malformed ledger) are asserted through the CLI.",
+      "passed": true,
+      "ac_id": "faff-1436#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-checkpoint.test.mjs::CheckpointResult carries every §3 field"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-checkpoint.test.mjs::outside root: a run dir not under --root exits 2"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-checkpoint.test.mjs::malformed ledger: a missing or non-object ledger exits 2"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-checkpoint.test.mjs::human output: without --json, the action line then one fault line per fault, same exit code"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-checkpoint.test.mjs::real CLI: a legacy-exempt run with no derailment continues at exit 0"
+        }
+      ]
+    },
+    {
+      "ac": "`run-checkpoint.ts` is in `tsconfig.json` `include`, with committed `run-checkpoint.js` and `build-manifest.json`; `check-no-boundary-cast` passes and its test pins `run-checkpoint.ts`.",
+      "verified": "run-checkpoint.ts is in the tsconfig include with its committed emit and manifest entry; check-no-boundary-cast is clean over 22 sources and its S3 pin lists run-checkpoint.ts.",
+      "passed": true,
+      "ac_id": "faff-1436#done:4",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node scripts/check-no-boundary-cast.mjs"
+        },
+        {
+          "kind": "command",
+          "locator": "cd plugin/skills/faff && node scripts/build-manifest.js check"
+        },
+        {
+          "kind": "test",
+          "locator": "test/check-no-boundary-cast.test.mjs::S3: realSources() lists the fifteen tsconfig include entries"
+        }
+      ]
+    },
+    {
+      "ac": "`TEST_FILE_COVERAGE.run` names `test/run-checkpoint.test.mjs`; `faff regions check` and `faff lint-cli-coverage` pass; no selftest block gains a case.",
+      "verified": "TEST_FILE_COVERAGE.run names both test files; regions check and lint-cli-coverage PASS; the diff adds no selftest case.",
+      "passed": true,
+      "ac_id": "faff-1436#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-coverage"
+        }
+      ]
+    },
+    {
+      "ac": "The PR diff touches no `commissaire*` file.",
+      "verified": "git diff --name-only origin/main...HEAD lists no commissaire* path.",
+      "passed": true,
+      "ac_id": "faff-1436#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --name-only origin/main...HEAD"
+        }
+      ]
+    },
+    {
+      "ac": "`decideCheckpoint` returns the §4.2 action for each acting-table row at L4, attended L3 and declared-unattended L3.",
+      "verified": "The acting matrix asserts action, stop_reason and acted for consult-failed, surface, pause, correct and abort at L4, attended L3 and declared-unattended L3.",
+      "passed": true,
+      "ac_id": "faff-1436#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-checkpoint.test.mjs::acting matrix"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-checkpoint.test.mjs::consult fail × 3 levels"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-checkpoint.test.mjs::pause matrix"
+        }
+      ]
+    },
+    {
+      "ac": "A `sentry check` that exits 3 with `intervention: \"continue\"` and `indeterminate: true` yields `fail-closed` on an acting run.",
+      "verified": "An exit-3 indeterminate payload reporting continue yields fail-closed with intervention null on an L4 run.",
+      "passed": true,
+      "ac_id": "faff-1436#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-checkpoint.test.mjs::indeterminate consult: sentry exit 3 reporting continue fails closed on an acting run"
+        }
+      ]
+    },
+    {
+      "ac": "`faff-plot/SKILL.md` and `faffter-dark-concurrency-parallel/SKILL.md` no longer reference the deleted table.",
+      "verified": "faff-plot l. 58 calls `faff run checkpoint --phase prep` and halts on any non-zero exit; the parallel executor names `faff run checkpoint`'s abort rule; neither names the handling table.",
+      "passed": true,
+      "ac_id": "faff-1436#done:9",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n \"handling table\\|canonical procedure\" plugin/skills/faff-plot/SKILL.md plugin/skills/faffter-dark-concurrency-parallel/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "Every line the PR deletes from `faff-beep-boop/SKILL.md` maps to a row B1–B30. The PR description lists the deleted line ranges against row ids.",
+      "verified": "Every deleted faff-beep-boop line range maps to B-rows; the PR description lists them.",
+      "passed": true,
+      "ac_id": "faff-1436#done:10",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff -U0 origin/main...HEAD -- plugin/skills/faff-beep-boop/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "Every `kept` and `changed` row's covering test exists and passes.",
+      "verified": "Every cited covering test exists by that name in test/run-checkpoint.test.mjs and passes (38/38).",
+      "passed": true,
+      "ac_id": "faff-1436#done:11",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/run-checkpoint.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`test/run-checkpoint.test.mjs` and `test/run-summary.test.mjs` pass under `node --test`.",
+      "verified": "Both files pass under node --test (run-checkpoint 38, run-summary all pass); the full unit rung passed.",
+      "passed": true,
+      "ac_id": "faff-1436#done:12",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/run-checkpoint.test.mjs test/run-summary.test.mjs"
+        }
+      ]
+    }
+  ]
+}

@@ -870,6 +870,10 @@ function cmdRunSummary(args, deps = realDeps()) {
         fs.renameSync(tmp, out);
     }
     catch (e) {
+        try {
+            fs.unlinkSync(tmp);
+        }
+        catch { /* the temp file was never created */ }
         process.stderr.write(`faff run summary: cannot write ${out}: ${errText(e)}\n`);
         return 2;
     }

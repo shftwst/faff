@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, unlinkSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, unlinkSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createRequire } from "node:module";
@@ -426,6 +426,12 @@ test("an unwritable --out exits 2 with a cannot-write line", () => {
   const r = cli(fx.root, ["run", "summary", "--run-dir", fx.runDir, "--out", join(fx.root, "no-such-dir", "summary.md")], { env: { HOME: EMPTY_HOME } });
   assert.equal(r.code, 2);
   assert.match(r.err, /cannot write/);
+  // A rename onto an existing directory fails after the write; the temp file is removed.
+  const dirOut = join(fx.root, "out-is-a-dir");
+  mkdirSync(dirOut);
+  const r2 = cli(fx.root, ["run", "summary", "--run-dir", fx.runDir, "--out", dirOut], { env: { HOME: EMPTY_HOME } });
+  assert.equal(r2.code, 2);
+  assert.deepEqual(readdirSync(fx.root).filter((n) => n.startsWith("out-is-a-dir.tmp-")), []);
 });
 
 test("`faff run bogus` exits 2 with a usage line naming summary", () => {

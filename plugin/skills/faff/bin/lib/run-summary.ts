@@ -22,6 +22,7 @@ interface FsApi {
   writeFileSync(file: string, data: string): void;
   renameSync(from: string, to: string): void;
   existsSync(file: string): boolean;
+  unlinkSync(file: string): void;
 }
 interface PathApi {
   join(...parts: string[]): string;
@@ -861,6 +862,7 @@ function cmdRunSummary(args: string[], deps: Deps = realDeps()): number {
     fs.writeFileSync(tmp, text);
     fs.renameSync(tmp, out);
   } catch (e) {
+    try { fs.unlinkSync(tmp); } catch { /* the temp file was never created */ }
     process.stderr.write(`faff run summary: cannot write ${out}: ${errText(e)}\n`);
     return 2;
   }

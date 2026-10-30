@@ -57,9 +57,10 @@ const TEST_FILE_COVERAGE = {
   // marker table are exercised through the real CLI entrypoint, and the In Review corpus replay
   // runs the 14 named decision-corpus records through it.
   "graft": ["test/graft-admit.test.mjs", "test/graft-admit-replay-in-review.test.mjs"],
-  // run (FAFF-1435): `faff run summary` has no `--selftest`; its sections, facts handling, forge and
-  // doctor paths are exercised through the real CLI entrypoint and the in-process renderer.
-  "run": "test/run-summary.test.mjs",
+  // run (FAFF-1435, FAFF-1436): `faff run summary` and `faff run checkpoint` have no `--selftest`;
+  // summary's sections, facts handling, forge and doctor paths, and checkpoint's decision table,
+  // read faults and exit codes, are exercised through the real CLI entrypoint and in-process.
+  "run": ["test/run-summary.test.mjs", "test/run-checkpoint.test.mjs"],
   // spec-judge-accept-bar — the deterministic accept-bar roll-up (FAFF-945): a pure coercion
   // over two JSON inputs, no standalone `--selftest`; its level-aware floor + fail-closed
   // directions are exercised through the real CLI entrypoint here.

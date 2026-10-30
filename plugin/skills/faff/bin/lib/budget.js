@@ -1308,8 +1308,10 @@ function budgetCheckCompose({ root, runDir, ledger, flags, sessionIdFlag = null,
 }
 
 // FAFF-1435: the BudgetState `faff budget check --json` prints for a run dir, computed in-process.
-// Throws when the run ledger cannot be read.
-function budgetCheckForRun(runDir, { root, sessionId = null, env = process.env, nowMs = Date.now(), resolveUnmetered = () => [], persistWindow = true } = {}) {
+// Read-only by default: the window anchor is persisted only when a caller passes persistWindow:true
+// (the returned state is the same either way). Every stderr line the CLI would echo is also in
+// state.warnings. Throws when the run ledger cannot be read.
+function budgetCheckForRun(runDir, { root, sessionId = null, env = process.env, nowMs = Date.now(), resolveUnmetered = () => [], persistWindow = false } = {}) {
   const ledger = readLedger(runDir);
   return budgetCheckCompose({ root: root || findRoot(), runDir, ledger, flags: { until: null, max_attempts: null }, sessionIdFlag: sessionId, nowMs, baseEnv: env, resolveUnmetered, persistWindow }).state;
 }

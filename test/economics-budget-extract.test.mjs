@@ -19,6 +19,13 @@ const { unmeteredFleetEngines } = require("../plugin/skills/faff/bin/lib/backend
 const HOME = mkdtempSync(join(tmpdir(), "faff-econ-home-"));
 const NOW_MS = 1767232800000;
 
+// The same env the CLI child gets from cli(): HOME pinned, the run and session variables removed.
+function sanitisedEnv() {
+  const env = { ...process.env, HOME };
+  for (const k of ["FAFF_RUN_DIR", "FAFF_SESSION_ID", "CLAUDE_CONFIG_DIR", "CLAUDE_CODE_SESSION_ID"]) delete env[k];
+  return env;
+}
+
 function closedSpanRun() {
   const fx = buildRun({ admitted: ["A"], outcomes: { A: "shipped" } });
   const p = join(fx.runDir, "run-ledger.json");
@@ -39,8 +46,7 @@ for (const [name, make] of [["closed span", closedSpanRun], ["no transcript", ()
     const fx = make();
     const r = cli(fx.root, ["economics", "--run-dir", fx.runDir, "--json", "--root", fx.root], { env: { HOME } });
     assert.equal(r.code, 0, r.err);
-    const env = { ...process.env, HOME };
-    for (const k of ["CLAUDE_CONFIG_DIR", "CLAUDE_CODE_SESSION_ID", "FAFF_RUN_DIR"]) delete env[k];
+    const env = sanitisedEnv();
     assert.deepEqual(JSON.parse(r.out), economicsForRun(fx.runDir, { root: fx.root, env }));
   });
 
@@ -48,18 +54,17 @@ for (const [name, make] of [["closed span", closedSpanRun], ["no transcript", ()
     const fx = make();
     const r = cli(fx.root, ["budget", "check", "--run-dir", fx.runDir, "--json", "--root", fx.root, "--now-ms", String(NOW_MS)], { env: { HOME } });
     assert.equal(r.code, 0, r.err);
-    const env = { ...process.env, HOME };
-    for (const k of ["CLAUDE_CONFIG_DIR", "CLAUDE_CODE_SESSION_ID", "FAFF_RUN_DIR"]) delete env[k];
+    const env = sanitisedEnv();
     const state = budgetCheckForRun(fx.runDir, { root: fx.root, env, nowMs: NOW_MS, resolveUnmetered: unmeteredFleetEngines });
     assert.deepEqual(JSON.parse(r.out), state);
   });
 }
 
-test("budgetCheckForRun with persistWindow:false never writes the ledger", () => {
+test("budgetCheckForRun is read-only by default: it never writes the ledger", () => {
   const fx = buildRun({ admitted: ["A"], outcomes: { A: "shipped" } });
   const p = join(fx.runDir, "run-ledger.json");
   writeFileSync(join(fx.root, ".faffrc.yaml"), "budget:\n  window:\n    hours: 5\n    tokens: 100000000\n");
   const before = readFileSync(p, "utf8");
-  budgetCheckForRun(fx.runDir, { root: fx.root, env: { HOME }, nowMs: NOW_MS, persistWindow: false });
+  budgetCheckForRun(fx.runDir, { root: fx.root, env: { HOME }, nowMs: NOW_MS });
   assert.equal(readFileSync(p, "utf8"), before);
 });

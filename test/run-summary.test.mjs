@@ -455,7 +455,6 @@ test("integration smoke: the CLI on the reference fixture equals the golden outs
     for (const l of t.split("\n")) {
       if (l.startsWith("⚠ INSTALL-HEALTH") || l.startsWith("⚠ could not read install health")) continue;
       if (l.startsWith("## ")) skip = l.startsWith("## Ground-truth divergences");
-      if (l.startsWith("- could not read forge")) continue;
       if (!skip) out.push(l);
     }
     return out.join("\n");

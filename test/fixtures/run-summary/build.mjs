@@ -45,6 +45,9 @@ export function schemaViolations(ledger) {
 export function buildRun({
   mode = "list", entropy = "abc123", admitted = [], outcomes = {}, ledger = {}, events = [], files = {}, config = "", git = true,
 } = {}) {
+  for (const k of ["admitted", "outcomes"]) {
+    if (k in ledger) throw new Error(`buildRun: pass ${k} as its own option, so the real writers record it`);
+  }
   const root = mkdtempSync(join(tmpdir(), "faff-run-summary-"));
   if (git) spawnSync("git", ["-C", root, "init", "-q"]);
   writeFileSync(join(root, ".faffrc.yaml"), config);

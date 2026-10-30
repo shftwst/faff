@@ -1,0 +1,509 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 3,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-summary.ts::an unwritable summary path threw instead of exiting 2",
+      "title": "An unwritable summary path threw instead of exiting 2",
+      "location": "plugin/skills/faff/bin/lib/run-summary.ts",
+      "action": "fixed in this branch",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "anthropic/claude-opus-5-5 (author's own session, not independent)",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "An unwritable summary path threw instead of exiting 2",
+          "location": "plugin/skills/faff/bin/lib/run-summary.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-summary.ts::forge observation uses headrefoid, not the spec's mergecommit",
+      "title": "Forge observation uses headRefOid, not the spec's mergeCommit",
+      "location": "plugin/skills/faff/bin/lib/run-summary.ts",
+      "action": "none: accepted-risk",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "anthropic/claude-opus-5-5 (author's own session, not independent)",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Spec §3 names `--json state,mergeCommit`, but step 11.5 rules head-against-head (`headRefOid`): a squash always mints a new commit sha, so mergeCommit would raise a phantom-merge on every clean merge. The spec's own scenario (\"merged at head bbb\") matches headRefOid. Deviation recorded in the PR.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Forge observation uses headRefOid, not the spec's mergeCommit",
+          "location": "plugin/skills/faff/bin/lib/run-summary.ts",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-summary.ts::the measure env keeps home/userprofile/claude_config_dir",
+      "title": "The measure env keeps HOME/USERPROFILE/CLAUDE_CONFIG_DIR",
+      "location": "plugin/skills/faff/bin/lib/run-summary.ts",
+      "action": "none: accepted-risk",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "anthropic/claude-opus-5-5 (author's own session, not independent)",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Spec 4.1 says the env is built only from the ledger. Transcripts are located under $HOME/.claude, so an env without HOME meters nothing. Only the locating variables are kept; the session id still comes from the ledger, and the determinism test varies the ambient session id.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "The measure env keeps HOME/USERPROFILE/CLAUDE_CONFIG_DIR",
+          "location": "plugin/skills/faff/bin/lib/run-summary.ts",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/gates-doctor.js::gates-doctor.js gains an exported doctorresultline",
+      "title": "gates-doctor.js gains an exported doctorResultLine",
+      "location": "plugin/skills/faff/bin/lib/gates-doctor.js",
+      "action": "none: accepted-risk",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "anthropic/claude-opus-5-5 (author's own session, not independent)",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The spec asks for doctor's RESULT text; it was computed inline in renderHuman. Moved verbatim into one exported function both renderers use; faff doctor output is byte-identical.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "gates-doctor.js gains an exported doctorResultLine",
+          "location": "plugin/skills/faff/bin/lib/gates-doctor.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-summary.ts::waves moves to the end of the header line",
+      "title": "Waves moves to the end of the header line",
+      "location": "plugin/skills/faff/bin/lib/run-summary.ts",
+      "action": "none: accepted-risk",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "anthropic/claude-opus-5-5 (author's own session, not independent)",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "4.1 shows `Waves: <n> _(reported)_ · Sentry …`, but A26 requires a facts-bearing line to end with the label. `Sentry … · Waves: n _(reported)_` satisfies both.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Waves moves to the end of the header line",
+          "location": "plugin/skills/faff/bin/lib/run-summary.ts",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/budget.js::budgetcheckforrun defaults persistwindow:true, so a read-only caller would write the ledger",
+      "title": "budgetCheckForRun defaults persistWindow:true, so a read-only caller would write the ledger",
+      "location": "plugin/skills/faff/bin/lib/budget.js",
+      "action": "fixed in this branch",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "budgetCheckForRun defaults persistWindow:true, so a read-only caller would write the ledger",
+          "location": "plugin/skills/faff/bin/lib/budget.js",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/budget.js::budgetcheckforrun passes flags {until:null,max_attempts:null}, not absent",
+      "title": "budgetCheckForRun passes flags {until:null,max_attempts:null}, not absent",
+      "location": "plugin/skills/faff/bin/lib/budget.js",
+      "action": "none: refuted",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "cmdBudget: `const get = (f) => (parsedCheck.values[f] === undefined ? null : parsedCheck.values[f]); const flags = { until: get(\"--until\"), max_attempts: get(\"--max\") };`",
+      "disposition_rationale": "cmdBudget builds flags with get(), which maps an absent flag to null, so the CLI passes the identical object.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "budgetCheckForRun passes flags {until:null,max_attempts:null}, not absent",
+          "location": "plugin/skills/faff/bin/lib/budget.js",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/budget.js::buffered stderr is lost if composition throws",
+      "title": "Buffered stderr is lost if composition throws",
+      "location": "plugin/skills/faff/bin/lib/budget.js",
+      "action": "none: refuted",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "budget.js: the pushes follow computeBudgetState; mutateLedgerUnderLock is wrapped in `try { … } catch { /* best-effort */ }`.",
+      "disposition_rationale": "The three pushes sit after the window block, whose only write is inside try/catch; nothing after them can throw. economicsCore buffers no stderr.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Buffered stderr is lost if composition throws",
+          "location": "plugin/skills/faff/bin/lib/budget.js",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/budget.js::budgetcheckforrun discards the stderr lines",
+      "title": "budgetCheckForRun discards the stderr lines",
+      "location": "plugin/skills/faff/bin/lib/budget.js",
+      "action": "none: refuted",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "budget.js: `warnings.push(msg); stderr.push(...)` for every echoed line.",
+      "disposition_rationale": "Each stderr line is the same message pushed into state.warnings, so the returned state carries all of them; the wrapper's comment now says so.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "budgetCheckForRun discards the stderr lines",
+          "location": "plugin/skills/faff/bin/lib/budget.js",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/economics-budget-extract.test.mjs::parity test env differs between the cli and in-process sides",
+      "title": "Parity test env differs between the CLI and in-process sides",
+      "location": "test/economics-budget-extract.test.mjs",
+      "action": "fixed in this branch",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Parity test env differs between the CLI and in-process sides",
+          "location": "test/economics-budget-extract.test.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/economics-budget-extract.test.mjs::parity test order-depends on the cli writing the ledger",
+      "title": "Parity test order-depends on the CLI writing the ledger",
+      "location": "test/economics-budget-extract.test.mjs",
+      "action": "fixed in this branch",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Parity test order-depends on the CLI writing the ledger",
+          "location": "test/economics-budget-extract.test.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/fixtures/run-summary/build.mjs::buildrun's object.assign can clobber writer-recorded admitted/outcomes",
+      "title": "buildRun's Object.assign can clobber writer-recorded admitted/outcomes",
+      "location": "test/fixtures/run-summary/build.mjs",
+      "action": "fixed in this branch",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "buildRun's Object.assign can clobber writer-recorded admitted/outcomes",
+          "location": "test/fixtures/run-summary/build.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/run-summary.test.mjs::integration smoke drops forge lines document-wide",
+      "title": "Integration smoke drops forge lines document-wide",
+      "location": "test/run-summary.test.mjs",
+      "action": "fixed in this branch",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Integration smoke drops forge lines document-wide",
+          "location": "test/run-summary.test.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-summary.ts::observation: no findings (run-summary.ts, run.ts)",
+      "title": "observation: no findings (run-summary.ts, run.ts)",
+      "location": "plugin/skills/faff/bin/lib/run-summary.ts",
+      "action": "none: open",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "observation: no findings (run-summary.ts, run.ts)",
+          "location": "plugin/skills/faff/bin/lib/run-summary.ts",
+          "severity": "observation",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff-beep-boop/SKILL.md::observation: no findings (registration and skill change)",
+      "title": "observation: no findings (registration and skill change)",
+      "location": "plugin/skills/faff-beep-boop/SKILL.md",
+      "action": "none: open",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "observation: no findings (registration and skill change)",
+          "location": "plugin/skills/faff-beep-boop/SKILL.md",
+          "severity": "observation",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-summary.ts::a failed rename leaves the partial tmp file behind",
+      "title": "A failed rename leaves the partial tmp file behind",
+      "location": "plugin/skills/faff/bin/lib/run-summary.ts",
+      "action": "fixed in this branch",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "A failed rename leaves the partial tmp file behind",
+          "location": "plugin/skills/faff/bin/lib/run-summary.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/budget.js::buffered stderr is still lost if budgetcheckcompose throws",
+      "title": "Buffered stderr is still lost if budgetCheckCompose throws",
+      "location": "plugin/skills/faff/bin/lib/budget.js",
+      "action": "none: refuted",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "budget.js: readGovernanceConfig and envelope resolution run before any stderr.push; mutateLedgerUnderLock is wrapped in try/catch.",
+      "disposition_rationale": "The stderr pushes all follow the window block; the throw points (readGovernanceConfig, the ledger read) precede every push, and the only ledger write is inside try/catch. No line is buffered when a throw can still happen.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "Buffered stderr is still lost if budgetCheckCompose throws",
+          "location": "plugin/skills/faff/bin/lib/budget.js",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/budget.js::the persistwindow default flip changes window semantics for callers",
+      "title": "The persistWindow default flip changes window semantics for callers",
+      "location": "plugin/skills/faff/bin/lib/budget.js",
+      "action": "none: refuted",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "budget.js: `if (persistWindow) try { mutateLedgerUnderLock(...) } catch {}` is followed unconditionally by `windowTokens = 0; windowResetEpoch = resetEpoch;`.",
+      "disposition_rationale": "windowTokens and windowResetEpoch are set whether or not the anchor persists, so the returned state is identical; budgetCheckForRun is new in this branch and run summary is its only caller.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "The persistWindow default flip changes window semantics for callers",
+          "location": "plugin/skills/faff/bin/lib/budget.js",
+          "severity": "observation",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/fixtures/run-summary/build.mjs::buildrun's guard rejects an admitted/outcomes key even when undefined",
+      "title": "buildRun's guard rejects an admitted/outcomes key even when undefined",
+      "location": "test/fixtures/run-summary/build.mjs",
+      "action": "none: accepted-risk",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Deliberate strictness in a test fixture builder: a caller never needs the key.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "buildRun's guard rejects an admitted/outcomes key even when undefined",
+          "location": "test/fixtures/run-summary/build.mjs",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-summary.ts::observation: no findings",
+      "title": "observation: no findings",
+      "location": "plugin/skills/faff/bin/lib/run-summary.ts",
+      "action": "none",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "open",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "observation: no findings",
+          "location": "plugin/skills/faff/bin/lib/run-summary.ts",
+          "severity": "observation",
+          "disposition": "open"
+        }
+      ]
+    }
+  ]
+}

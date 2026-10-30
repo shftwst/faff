@@ -1,0 +1,933 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 9,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The spec's premise is that reporting is \"a pure function of the run directory plus a handful of facts\" and that the renderer has \"a fixed section list and no free-text heading path.\" But several render rules require *interpreting* data whose schema the spec never establishes, forcing the renderer to contain exactly the kind of ad-hoc prose-derived logic the ticket exists to remove.",
+      "evidence": "`facts.ground_truth` is defined as \"step 11.5's `faff reconcile --json` stdout, verbatim\" (SummaryFacts record), yet row A19 requires the renderer to count divergences, classify each as `phantom-merge` / `claimed-shipped-unmerged` / `unowned-sibling-mutation` / `superseded-unproven` / `sibling-check-unproven`, and switch warn vs ESCALATED off `ledger.level`. That classification cannot come from rendering a blob verbatim; it needs a defined reconcile-JSON contract the spec never states. The same gap recurs: `park_records: [Object]` \"verbatim\" must still yield per-issue \"parked N runs same root cause: [class]\" lines (A13); the holdout file's schema is unspecified while A18 demands splitting `needs_human_reasons` into environment-gap vs human-only subsets; `supersession.json`'s shape is unspecified while A11 must cite \"the delivering ids\". The builder must invent each contract, and nothing pins it — the next change to `faff reconcile`'s output silently changes summary sections.",
+      "predicted_consequence": "The renderer ships with embedded parsers for four undocumented formats; the first upstream change to any of them produces a silently wrong or silently empty summary section with exit 0, and the \"no free-text path\" guarantee is already false in the code.",
+      "spec_anchor": "record-summaryfacts-every-field-optional",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-1 revision: input contracts table and reconcile contract test, clock-free Duration, format field, neutralised fact text, error-exit tests (park comment 37169370).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The spec's premise is that reporting is \"a pure function of the run directory plus a handful of facts\" and that the renderer has \"a fixed section list and no free-text heading path.\" But several render rules require *interpreting* data whose schema the spec never establishes, forcing the renderer to contain exactly the kind of ad-hoc prose-derived logic the ticket exists to remove.",
+          "spec_anchor": "record-summaryfacts-every-field-optional"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "Duration is defined as \"started_at → last heartbeat **or now**\" (procedure step 3d). A wall-clock fallback means the same run dir can render two different summaries, which conflicts with the committed-golden test strategy and the pure-function framing.",
+      "evidence": "Procedure step 3d vs the test choice: \"The test asserts the render matches a committed golden\" (4.4 Chosen).",
+      "predicted_consequence": "The fixture's golden only works if its ledger carries a final heartbeat; any fixture without one makes the golden test flaky or forces a hidden \"freeze now\" hack. A one-line spec edit (\"use the last event's timestamp as the duration endpoint when no heartbeat exists; never read the clock\") resolves it.",
+      "spec_anchor": "build-steps",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-1 revision: input contracts table and reconcile contract test, clock-free Duration, format field, neutralised fact text, error-exit tests (park comment 37169370).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "Duration is defined as \"started_at → last heartbeat **or now**\" (procedure step 3d). A wall-clock fallback means the same run dir can render two different summaries, which conflicts with the committed-golden test strategy and the pure-function framing.",
+          "spec_anchor": "build-steps"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "\"A facts file that is valid JSON but missing keys is not an error\" plus \"A missing fact degrades to the bare id\" means a skill that mis-shapes the facts file produces a plausible, exit-0 summary with empty sections, and nothing — not the renderer, not the DONE criteria — can detect that the two ends of the contract have drifted.",
+      "evidence": "Interface exit-code clause and \"Where the code lives\"/SummaryFacts record; no `format_version` or unknown-key policy is stated, while slices B and C (FAFF-1436/1437) are explicitly planned to extend this surface.",
+      "predicted_consequence": "The first facts-shape evolution (or a typo'd key like `routed_out` → `routedOut`) yields a rendered summary missing a section with no error anywhere; the human reading the summary cannot distinguish \"nothing to report\" from \"facts didn't parse\". A one-line fix (a `format` field in SummaryFacts, unknown-key or required-key warning line) is worth making before build.",
+      "spec_anchor": "interface",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-1 revision: input contracts table and reconcile contract test, clock-free Duration, format field, neutralised fact text, error-exit tests (park comment 37169370).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "\"A facts file that is valid JSON but missing keys is not an error\" plus \"A missing fact degrades to the bare id\" means a skill that mis-shapes the facts file produces a plausible, exit-0 summary with empty sections, and nothing — not the renderer, not the DONE criteria — can detect that the two ends of the contract have drifted.",
+          "spec_anchor": "interface"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The renderer's safety property (A24 — \"no banned heading appears\", and more generally the fixed section list) is stated over the *section list*, but the spec populates the document by interpolating arbitrary fact fields — `issues[].title`, `gloss`, `routed_out[].detail`, `reasons[]`, `follow_ups[]`, `discovered_scope[].text`, `methodology.findings[]` — as free text. Any fact string containing a line beginning with `## ` (or `Deferred:`/`Queued for next run:` inside a heading position) manufactures a heading the fixed section list was supposed to make impossible. The writer of the facts file is the orchestrator agent, which the spec does establish, so this is not an authority boundary problem; but a malformed or prompt-influenced facts payload (issue titles and glosses originate in tracker content, which is untrusted third-party data flowing through the orchestrator into facts) can spoof a section heading in a document the skill then posts to the tracker as the run's authoritative record. The holdout test only covers the committed fixtures, so a real run with a hostile title passes the spec's tests and still emits the banned heading.",
+      "evidence": "§4.1 \"An id appearing in the ledger but missing from `facts.issues` renders as `- <ID>`\"; `SummaryFacts` free-text fields (gloss, detail, inferred, evidence, follow_ups, findings); A24 and the holdout \"output MUST contain no heading matching 'Deferred'…\"; §4.2 the skill \"posts and prints what `run summary` returns\".",
+      "predicted_consequence": "a tracker post of the run summary containing a spoofed `## Deferred`/`## Queued for next run` heading fabricated from a tracker-authored issue title, defeating A24's invariant on real runs while the fixture-only holdout stays green.",
+      "spec_anchor": "what-4-1-render-procedure (rules A13/A16/A21 interpolate the affected fields; the invariant is `rule-inventory-slice-a`)",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-1 revision: input contracts table and reconcile contract test, clock-free Duration, format field, neutralised fact text, error-exit tests (park comment 37169370).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The renderer's safety property (A24 — \"no banned heading appears\", and more generally the fixed section list) is stated over the *section list*, but the spec populates the document by interpolating arbitrary fact fields — `issues[].title`, `gloss`, `routed_out[].detail`, `reasons[]`, `follow_ups[]`, `discovered_scope[].text`, `methodology.findings[]` — as free text. Any fact string containing a line beginning with `## ` (or `Deferred:`/`Queued for next run:` inside a heading position) manufactures a heading the fixed section list was supposed to make impossible. The writer of the facts file is the orchestrator agent, which the spec does establish, so this is not an authority boundary problem; but a malformed or prompt-influenced facts payload (issue titles and glosses originate in tracker content, which is untrusted third-party data flowing through the orchestrator into facts) can spoof a section heading in a document the skill then posts to the tracker as the run's authoritative record. The holdout test only covers the committed fixtures, so a real run with a hostile title passes the spec's tests and still emits the banned heading.",
+          "spec_anchor": "what-4-1-render-procedure (rules A13/A16/A21 interpolate the affected fields; the invariant is `rule-inventory-slice-a`)"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The DONE item \"exits 2 on a malformed ledger, and on a facts file that is not valid JSON\" is decidable in principle, but neither §4.4's test list nor any `## Scenarios` unit covers it. §4.4 names the fixture sections, ids-only render, A9 tie-break, economics failure, banned headings, `faff run bogus`, and one e2e — no malformed-ledger case, no invalid-JSON-facts case. A build could pass every named test and still get these exit codes wrong.",
+      "evidence": "DONE \"From WHAT\" bullet 2 vs. the §4.4 test inventory and the four Scenarios.",
+      "predicted_consequence": "the two error paths ship untested; a regression in ledger parsing or facts-JSON validation is invisible to the suite the spec mandates.",
+      "spec_anchor": "44-tests-in-test-only-node---test-no---selftest",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-1 revision: input contracts table and reconcile contract test, clock-free Duration, format field, neutralised fact text, error-exit tests (park comment 37169370).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The DONE item \"exits 2 on a malformed ledger, and on a facts file that is not valid JSON\" is decidable in principle, but neither §4.4's test list nor any `## Scenarios` unit covers it. §4.4 names the fixture sections, ids-only render, A9 tie-break, economics failure, banned headings, `faff run bogus`, and one e2e — no malformed-ledger case, no invalid-JSON-facts case. A build could pass every named test and still get these exit codes wrong.",
+          "spec_anchor": "44-tests-in-test-only-node---test-no---selftest"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The spec's design rationale states every non-facts input \"has a named, existing shape\" and that the review specifically rejected a draft that \"left four shapes to the builder's invention\" — yet the Input contracts table names owners only for `ground_truth`, `park_records`, the holdout record, economics, and `superseded_by`. The two inputs the renderer interprets most heavily — `run-ledger.json` (outcomes, `admitted`, `stop_reason`, `budget`, `landing_resumable`, `review_outage_pending`, `spec_review_*_pending`, `post_merge_verification_*`, `discovered_scope_filed`) and `events.jsonl` (sentry-checkpoint events, including whichever field carries the intervention level for the `continue<surface<pause<correct<abort` max) — have no named writer, no shape statement, and no contract test. The single contract test pins only `reconcile`.",
+      "evidence": "\"Input contracts\" table and the rationale bullet \"How the renderer meets inputs it does not own\"; step 3e's max-intervention computation; the chosen fixture `run-20261024-044511-beepboop-list-f66619`, a list-mode run that by the spec's own economics narrative admitted nothing — so its ledger and events exercise almost none of the conditional arrays, and the golden pins none of their shapes.",
+      "predicted_consequence": "The per-section tests (A1–A23) are built on synthetic fixtures whose ledger field names the builder invents for every array the reference run doesn't contain; the first real drain whose ledger names those fields differently renders sections silently wrong (a present-but-unrecognised event shape yields \"Sentry: 0\", not the spec's \"could not read\" line, because only *unreadable* events are handled) — in the exact artifact this ticket exists to make trustworthy.",
+      "spec_anchor": "input-contracts",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-2 revision: ledger and events shapes pinned to the v0.3 schema and sentry payload, writer-built fixtures, HOLDOUT_REASON_CODES imported, faff-parks fence exempt, warning fields neutralised (37169370).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The spec's design rationale states every non-facts input \"has a named, existing shape\" and that the review specifically rejected a draft that \"left four shapes to the builder's invention\" — yet the Input contracts table names owners only for `ground_truth`, `park_records`, the holdout record, economics, and `superseded_by`. The two inputs the renderer interprets most heavily — `run-ledger.json` (outcomes, `admitted`, `stop_reason`, `budget`, `landing_resumable`, `review_outage_pending`, `spec_review_*_pending`, `post_merge_verification_*`, `discovered_scope_filed`) and `events.jsonl` (sentry-checkpoint events, including whichever field carries the intervention level for the `continue<surface<pause<correct<abort` max) — have no named writer, no shape statement, and no contract test. The single contract test pins only `reconcile`.",
+          "spec_anchor": "input-contracts"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "A18 hardcodes the five environment-gap reason codes (`no-surface`, `wire-error`, `credentials-unavailable`, `env-not-ready`, `unspecified`) in `run-summary.ts`, duplicating a set owned by `admissibility.js`'s roll-up, with no shared constant and no contract test (unlike reconcile, which gets one). The fallback rule \"every other code lists as human-only\" means a future env-gap code added at the writer is silently misclassified as an authoring problem.",
+      "evidence": "Input contracts row for `.faff/holdout/<run-id>.json`; the prose rule the spec itself quotes: \"an environment problem is never presented as an authoring one\".",
+      "predicted_consequence": "The next `needs_human_reasons` code added in `admissibility.js` renders in the human-only subset; a human chases a spec authoring defect that is actually an environment gap — the mispresentation the rule exists to prevent.",
+      "spec_anchor": "rule-inventory-slice-a",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-2 revision: ledger and events shapes pinned to the v0.3 schema and sentry payload, writer-built fixtures, HOLDOUT_REASON_CODES imported, faff-parks fence exempt, warning fields neutralised (37169370).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "A18 hardcodes the five environment-gap reason codes (`no-surface`, `wire-error`, `credentials-unavailable`, `env-not-ready`, `unspecified`) in `run-summary.ts`, duplicating a set owned by `admissibility.js`'s roll-up, with no shared constant and no contract test (unlike reconcile, which gets one). The fallback rule \"every other code lists as human-only\" means a future env-gap code added at the writer is silently misclassified as an authoring problem.",
+          "spec_anchor": "rule-inventory-slice-a"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The neutralisation rule says *every* facts string written into the document has newlines collapsed; A13 says `park_records` is rendered \"verbatim\" as the `faff-parks` fenced JSON. Read literally, the two conflict, and `faff-parks` is not decorative — `park-history.js` parses it as the deterministic repeat-park counting seam (FAFF-152). A builder who applies collapsing inside the block (or who resolves the conflict by pre-flattening record strings before JSON-encoding) corrupts the seam's input.",
+      "evidence": "\"Interpolated text is neutralised\" paragraph; A13 row; `park-history.js record` region comment in context.",
+      "predicted_consequence": "A summary whose `faff-parks` block no longer round-trips, so repeat-park counts silently miss parks — the counting seam degrades with no error anywhere.",
+      "spec_anchor": "interpolated-text-is-neutralised",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-2 revision: ledger and events shapes pinned to the v0.3 schema and sentry payload, writer-built fixtures, HOLDOUT_REASON_CODES imported, faff-parks fence exempt, warning fields neutralised (37169370).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The neutralisation rule says *every* facts string written into the document has newlines collapsed; A13 says `park_records` is rendered \"verbatim\" as the `faff-parks` fenced JSON. Read literally, the two conflict, and `faff-parks` is not decorative — `park-history.js` parses it as the deterministic repeat-park counting seam (FAFF-152). A builder who applies collapsing inside the block (or who resolves the conflict by pre-flattening record strings before JSON-encoding) corrupts the seam's input.",
+          "spec_anchor": "interpolated-text-is-neutralised"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The spec's line-injection defence (\"Interpolated text is neutralised\") enumerates the fields it applies to: \"title, gloss, detail, reason, finding, follow-up, surfaced text, inferred answer, evidence\". Two strings the spec itself routes into the document are not in that list: `facts.install_health.warning`, which the spec makes **line 1** of the document (step 3a), and `facts.methodology.prd_distance`, rendered inside the Methodology findings section (row A5). A facts file whose `install_health.warning` is `\"⚠ INSTALL-HEALTH: stale plugin\\n## Deferred\"` would, under the spec as written, emit the injected heading at the very top of the summary — exactly the attack the hostile-title test (4.4) was written to catch, but for a field the test list never names. The same holds for `prd_distance` creating a heading inside section A5.",
+      "evidence": "\"Interpolated text is neutralised. Every facts string written into the document (title, gloss, detail, reason, finding, follow-up, surfaced text, inferred answer, evidence)…\" vs. `install_health: { clean: bool, warning?: String }` and `prd_distance?: String` in the `SummaryFacts` RECORD; step 3a renders the warning \"as line 1\".",
+      "predicted_consequence": "a crafted facts file injects a banned or fabricated heading (e.g. `## Shipped (auto-merged)`, `## Deferred`) into a committed summary the holdout's \"no banned headings\" property does not cover for these two fields — the A24 invariant is enforced by tests over enumerated fields, not by construction.",
+      "spec_anchor": "what",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-2 revision: ledger and events shapes pinned to the v0.3 schema and sentry payload, writer-built fixtures, HOLDOUT_REASON_CODES imported, faff-parks fence exempt, warning fields neutralised (37169370).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The spec's line-injection defence (\"Interpolated text is neutralised\") enumerates the fields it applies to: \"title, gloss, detail, reason, finding, follow-up, surfaced text, inferred answer, evidence\". Two strings the spec itself routes into the document are not in that list: `facts.install_health.warning`, which the spec makes **line 1** of the document (step 3a), and `facts.methodology.prd_distance`, rendered inside the Methodology findings section (row A5). A facts file whose `install_health.warning` is `\"⚠ INSTALL-HEALTH: stale plugin\\n## Deferred\"` would, under the spec as written, emit the injected heading at the very top of the summary — exactly the attack the hostile-title test (4.4) was written to catch, but for a field the test list never names. The same holds for `prd_distance` creating a heading inside section A5.",
+          "spec_anchor": "what"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The spec asserts \"Every non-facts input the renderer interprets has a named, existing shape\" and provides an Input contracts table — but the table covers only `facts.ground_truth`, `facts.park_records`, the holdout file, `faff economics --json`, and `superseded_by`. The run ledger fields the renderer reads — `outcomes`, `admitted`, `stop_reason`, `budget` (incl. `measure_root`/`measure_session_id`/breach dims/`tokens_source`), `review_adversarial_skipped`, `post_merge_verification_failures`, `post_merge_verification_unverified`, `landing_resumable`, `review_outage_pending`, both `spec_review_*` arrays, `discovered_scope_filed` — are never named or shaped anywhere in the spec. Likewise the source of \"max intervention\" (section 3e) is unstated: facts? ledger? events?",
+      "evidence": "Input contracts table; procedure step 3e; scenarios 1 and 2, which construct ledgers containing `landing_resumable`, `outcomes`, `review_adversarial_skipped`, `post_merge_verification_failures` from the spec text alone.",
+      "predicted_consequence": "A builder writing the synthetic scenario fixtures (and the A1–A23 conditional-section tests) invents a ledger shape; if it diverges from the real writer's shape, the tests pass against the invented shape while the real integration renders \"could not read\" lines or wrong sections — and only the single reference-fixture golden would catch it, for one run's field subset. \"Max intervention\" in particular has no named source at all, so its DONE check (\"header\" test) can pass against any value.",
+      "spec_anchor": "input-contracts",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-2 revision: ledger and events shapes pinned to the v0.3 schema and sentry payload, writer-built fixtures, HOLDOUT_REASON_CODES imported, faff-parks fence exempt, warning fields neutralised (37169370).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The spec asserts \"Every non-facts input the renderer interprets has a named, existing shape\" and provides an Input contracts table — but the table covers only `facts.ground_truth`, `facts.park_records`, the holdout file, `faff economics --json`, and `superseded_by`. The run ledger fields the renderer reads — `outcomes`, `admitted`, `stop_reason`, `budget` (incl. `measure_root`/`measure_session_id`/breach dims/`tokens_source`), `review_adversarial_skipped`, `post_merge_verification_failures`, `post_merge_verification_unverified`, `landing_resumable`, `review_outage_pending`, both `spec_review_*` arrays, `discovered_scope_filed` — are never named or shaped anywhere in the spec. Likewise the source of \"max intervention\" (section 3e) is unstated: facts? ledger? events?",
+          "spec_anchor": "input-contracts"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "DONE requires \"Rendering the same run dir twice, at different times, gives byte-identical output\", but `test/run-summary.test.mjs`'s enumerated cases (4.4) include no render-twice/determinism test, and no scenario asserts it.",
+      "evidence": "\"### 7. DONE\" From-HOW bullet vs. the 4.4 test list.",
+      "predicted_consequence": "The determinism guarantee (the \"renderer never reads the clock\" rule in step 3d) ships untested; a later edit that reads the clock or a mutable sidecar passes the whole suite while breaking the DONE criterion.",
+      "spec_anchor": "44-tests-in-test-only-node-test-no-selftest",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-2 revision: ledger and events shapes pinned to the v0.3 schema and sentry payload, writer-built fixtures, HOLDOUT_REASON_CODES imported, faff-parks fence exempt, warning fields neutralised (37169370).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "DONE requires \"Rendering the same run dir twice, at different times, gives byte-identical output\", but `test/run-summary.test.mjs`'s enumerated cases (4.4) include no render-twice/determinism test, and no scenario asserts it.",
+          "spec_anchor": "44-tests-in-test-only-node-test-no-selftest"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec establishes \"fail visibly … The exit stays 0, because a render with a warning is still a summary\" for every input it does not own (ground_truth shape drift, sentry events, facts keys), and \"A missing fact degrades to the bare id, never an error\" as the pure-render principle — then carves the run-ledger out of that principle with a hard exit 2 on any schema-validation failure, with no stated rationale. Worse, the strict whole-ledger validation is coupled to an assumption the spec asserts but never verifies: that the v0.3 schema (`contracts/evidence-v0.3/schema/run-ledger.schema.json`) already models the skill's annotation arrays (`review_adversarial_skipped`, `post_merge_verification_*`, `landing_resumable`, …), which the spec itself describes as appended by a *second* writer (\"run-ledger.js and the skill's annotation appends\"). If the schema does not cover those arrays, every real run's ledger fails validation and the command that exists to produce summaries produces none — strictly worse than the prose status quo it replaces — and the builder's only fixes are an unplanned widening of a shared contract schema (blast radius across every other schema consumer, not in scope) or a spec change.",
+      "evidence": "\"Input contracts\" table row for `run-ledger.json` (\"Validated against the schema before rendering; a ledger that fails validation exits 2\"); \"Fail visibly on shape drift\" paragraph; the facts-file rule \"A facts file that is valid JSON but missing keys is not an error\"; the writers column naming two writers.",
+      "predicted_consequence": "the first real-world ledger whose annotation arrays drift from the schema (the most drift-prone, most recently appended part) makes `faff run summary` exit 2 on live runs; or the builder silently widens the shared v0.3 contract schema as an unplanned cross-ticket change.",
+      "spec_anchor": "input-contracts",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-3 revision: visible degrade for non-core ledger fields, park strings through factText, unreadable-events marker, observable holdout scenario (37169370).",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The spec establishes \"fail visibly … The exit stays 0, because a render with a warning is still a summary\" for every input it does not own (ground_truth shape drift, sentry events, facts keys), and \"A missing fact degrades to the bare id, never an error\" as the pure-render principle — then carves the run-ledger out of that principle with a hard exit 2 on any schema-validation failure, with no stated rationale. Worse, the strict whole-ledger validation is coupled to an assumption the spec asserts but never verifies: that the v0.3 schema (`contracts/evidence-v0.3/schema/run-ledger.schema.json`) already models the skill's annotation arrays (`review_adversarial_skipped`, `post_merge_verification_*`, `landing_resumable`, …), which the spec itself describes as appended by a *second* writer (\"run-ledger.js and the skill's annotation appends\"). If the schema does not cover those arrays, every real run's ledger fails validation and the command that exists to produce summaries produces none — strictly worse than the prose status quo it replaces — and the builder's only fixes are an unplanned widening of a shared contract schema (blast radius across every other schema consumer, not in scope) or a spec change.",
+          "spec_anchor": "input-contracts"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The spec guarantees \"No facts string reaches the document by any other path\" via `factText()`, but the guarantee is enforced by an enumerated list of fields, and the Parked-section line renders `park_records`' `root_cause_class` (and `issue_id`) directly (`- <issue_id>: <title> — reason: <root_cause_class>`). Whether `root_cause_class` counts as a \"reason\" in the list is ambiguous, and `park-history.js` describes the class as \"ASSIGNED by the routing_adaptor\" — LLM judgement, not a fixed vocabulary the spec pins. A multi-line or `#`-leading class value would break out of its list item in the Parked section even though the same value is safely JSON-escaped in the `faff-parks` block.",
+      "evidence": "\"Interpolated text is neutralised, by construction\" paragraph; `facts.park_records` row in the Input contracts table; park-history.js context (\"the root_cause_class is ASSIGNED by the routing_adaptor\").",
+      "predicted_consequence": "a park record with a newline-bearing `root_cause_class` injects a synthetic line (potentially a `##` heading) into the Parked section of `summary.md`, which is then posted to the tracker — the exact injection class A24/factText exists to prevent.",
+      "spec_anchor": "input-contracts",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-3 revision: visible degrade for non-core ledger fields, park strings through factText, unreadable-events marker, observable holdout scenario (37169370).",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The spec guarantees \"No facts string reaches the document by any other path\" via `factText()`, but the guarantee is enforced by an enumerated list of fields, and the Parked-section line renders `park_records`' `root_cause_class` (and `issue_id`) directly (`- <issue_id>: <title> — reason: <root_cause_class>`). Whether `root_cause_class` counts as a \"reason\" in the list is ambiguous, and `park-history.js` describes the class as \"ASSIGNED by the routing_adaptor\" — LLM judgement, not a fixed vocabulary the spec pins. A multi-line or `#`-leading class value would break out of its list item in the Parked section even though the same value is safely JSON-escaped in the `faff-parks` block.",
+          "spec_anchor": "input-contracts"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "Step 1 says `E := events.jsonl (unreadable → no sentry line data)`. Unlike the spec's own \"fail visibly on shape drift\" rule (which mandates a `could not read` line for present-but-malformed inputs), a wholly unreadable events file degrades the header to zero sentry checkpoints with no marker. A run that aborted on a sentry intervention would render as if no sentry ran — a misleading audit artifact, and the only input whose absence renders silently rather than visibly.",
+      "evidence": "PROCEDURE step 1 vs the \"Fail visibly on shape drift\" paragraph.",
+      "predicted_consequence": "a sentry-aborted run's summary shows `Sentry: 0 checkpoints`, understating the intervention record that the header exists to surface.",
+      "spec_anchor": "4.1-render-procedure",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-3 revision: visible degrade for non-core ledger fields, park strings through factText, unreadable-events marker, observable holdout scenario (37169370).",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "Step 1 says `E := events.jsonl (unreadable → no sentry line data)`. Unlike the spec's own \"fail visibly on shape drift\" rule (which mandates a `could not read` line for present-but-malformed inputs), a wholly unreadable events file degrades the header to zero sentry checkpoints with no marker. A run that aborted on a sentry intervention would render as if no sentry ran — a misleading audit artifact, and the only input whose absence renders silently rather than visibly.",
+          "spec_anchor": "4.1-render-procedure"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The `holdout:`-tagged scenario unit checks \"For every fixture, `faff run summary` output MUST contain no heading matching…\" — but \"every fixture\" is a set defined inside `test/run-summary.test.mjs`. A code-blind holdout cannot enumerate or run the fixtures, so this unit's check cannot be decided as written; it currently checks nothing and is also hidden from the builder as an observable behaviour.",
+      "evidence": "The `holdout:` scenario unit under `## Scenarios` (\"For every fixture … MUST contain no heading matching 'Deferred'…\").",
+      "predicted_consequence": "The holdout either marks it unverifiable or waves it through; meanwhile the only actually verifying artifact is the test file, which is not an observable criterion. A builder could ship a renderer that injects a banned heading on some non-fixture path and no stated criterion fails.",
+      "spec_anchor": "scenarios",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-3 revision: visible degrade for non-core ledger fields, park strings through factText, unreadable-events marker, observable holdout scenario (37169370).",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The `holdout:`-tagged scenario unit checks \"For every fixture, `faff run summary` output MUST contain no heading matching…\" — but \"every fixture\" is a set defined inside `test/run-summary.test.mjs`. A code-blind holdout cannot enumerate or run the fixtures, so this unit's check cannot be decided as written; it currently checks nothing and is also hidden from the builder as an observable behaviour.",
+          "spec_anchor": "scenarios"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "`faff run summary` shells out to `faff economics` resolved how the spec never says — implicitly via `PATH`. A renderer whose whole selling point is \"pure function of the run directory\" takes its most computed section from whatever `faff` binary happens to be first on the caller's PATH, which need not be the binary doing the rendering.",
+      "evidence": "step 2 of the render procedure (\"spawn `faff economics …`\") and the design-decision rationale (\"subprocess … calling it directly would duplicate that resolution\"). The stated blocker — `computeUnitEconomics` needs pricing opts only `cmdEconomics` resolves — describes a refactorable accident of the current code, not a real boundary: the resolution lives in the same package and could be exported and called in-process, which is the materially simpler design.",
+      "predicted_consequence": "version skew made visible. In a dev checkout or a marketplace plugin copy (the exact environment the ratified stale-emit precedent describes as unable to rebuild), `faff` on PATH may be an older install or absent entirely: the economics block renders \"Unit economics unavailable\" or, worse, figures from an older economics shape, while the rest of the summary comes from the new renderer — and the contract test that pins reconcile's shape does nothing to pin economics', because the subprocess is faked on PATH in the one e2e test.",
+      "spec_anchor": "what",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-4 revision; the self-spawn design was later superseded by the operator's in-process decision (no faff shell-out, §3).",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "major",
+          "claim": "`faff run summary` shells out to `faff economics` resolved how the spec never says — implicitly via `PATH`. A renderer whose whole selling point is \"pure function of the run directory\" takes its most computed section from whatever `faff` binary happens to be first on the caller's PATH, which need not be the binary doing the rendering.",
+          "spec_anchor": "what"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The spec states \"The block's fence is one backtick longer than the longest backtick run in the JSON.\" For a typical park record (`issue_id`, `root_cause_class`, `timestamp` — none containing backticks), the longest backtick run is 0, so the rule yields a **one-backtick fence**, which is not a valid markdown fenced block (fences require three or more backticks, as the template's own ```faff-parks fence shows). A builder following the stated arithmetic literally emits a malformed block; `park-history.js`, which parses \"the run's ```faff-parks fenced JSON block\" as the deterministic repeat-park counting seam, then finds no block and reads zero parks. That is a check the design is supposed to enforce silently degrading to zero — a fail-open in the repeat-park classification that feeds routing (an issue that should be repeat-parked and routed out gets re-prepped as fresh). The test list covers the long-backtick-run case but not the no-backtick case, so the bug ships.",
+      "evidence": "\"Interpolated text is neutralised, by construction\" — \"The block's fence is one backtick longer than the longest backtick run in the JSON\"; `park-history.js` record in context (\"parses each run's ```faff-parks fenced JSON block\"); test list entry \"a park record whose JSON contains a run of backticks\" (no zero-backtick case).",
+      "predicted_consequence": "every ordinary run's summary carries an unparsable parks block; repeat-park counts silently read as zero, so repeat-parked issues are misrouted as fresh — a deterministic seam fails open with no error surfaced.",
+      "spec_anchor": "interpolated-text-is-neutralised-by-construction",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-4 revision; the self-spawn design was later superseded by the operator's in-process decision (no faff shell-out, §3).",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The spec states \"The block's fence is one backtick longer than the longest backtick run in the JSON.\" For a typical park record (`issue_id`, `root_cause_class`, `timestamp` — none containing backticks), the longest backtick run is 0, so the rule yields a **one-backtick fence**, which is not a valid markdown fenced block (fences require three or more backticks, as the template's own ```faff-parks fence shows). A builder following the stated arithmetic literally emits a malformed block; `park-history.js`, which parses \"the run's ```faff-parks fenced JSON block\" as the deterministic repeat-park counting seam, then finds no block and reads zero parks. That is a check the design is supposed to enforce silently degrading to zero — a fail-open in the repeat-park classification that feeds routing (an issue that should be repeat-parked and routed out gets re-prepped as fresh). The test list covers the long-backtick-run case but not the no-backtick case, so the bug ships.",
+          "spec_anchor": "interpolated-text-is-neutralised-by-construction"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "A17 says the section renders \"only when a budget dimension was set and breached with a non-empty build queue remaining\", and \"on a `tokens`/`cost` breach surface the `tokens_source`\" — but no input to the renderer is specified as carrying the breach fact or the `tokens_source` value. `SummaryFacts` has no such field; the input-contracts table has no row for `ledger.budget`'s shape; and the spec is ambiguous between \"the ledger's `outcomes` already mark `unreached-budget`\" (in which case the renderer just renders, and \"breached\" is the orchestrator's judgement) and \"the renderer derives the breach by comparing `ledger.budget` dimensions against run state\" (in which case the comparison logic — until vs what clock, tokens vs what counter — is unspecified and would collide with the determinism requirement).",
+      "evidence": "Rule inventory row A17; Appendix A section list; the `Input contracts` table (no `ledger.budget` row); `3. WHAT` determinism rule (\"The renderer never reads the clock\").",
+      "predicted_consequence": "A tester cannot state the pass condition for the DONE item \"Each conditional section A4–A23 renders only under its rule\" for A17: two faithful builds could disagree on whether a given ledger renders `## Unreached (budget hit)` and on the `tokens_source` string, and both could claim compliance.",
+      "spec_anchor": "rule-inventory-slice-a",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-4 revision; the self-spawn design was later superseded by the operator's in-process decision (no faff shell-out, §3).",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "A17 says the section renders \"only when a budget dimension was set and breached with a non-empty build queue remaining\", and \"on a `tokens`/`cost` breach surface the `tokens_source`\" — but no input to the renderer is specified as carrying the breach fact or the `tokens_source` value. `SummaryFacts` has no such field; the input-contracts table has no row for `ledger.budget`'s shape; and the spec is ambiguous between \"the ledger's `outcomes` already mark `unreached-budget`\" (in which case the renderer just renders, and \"breached\" is the orchestrator's judgement) and \"the renderer derives the breach by comparing `ledger.budget` dimensions against run state\" (in which case the comparison logic — until vs what clock, tokens vs what counter — is unspecified and would collide with the determinism requirement).",
+          "spec_anchor": "rule-inventory-slice-a"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "Step 3d defines duration's endpoint as \"the newest of the heartbeat sidecar, owner.last_heartbeat and the last event's ts\", but \"the heartbeat sidecar\" is never named (no path, no filename pattern, no owner in the input-contracts table). A tester cannot decide what the header's `Duration: Xh Ym` should be for the reference fixture, so the golden's Duration line cannot be verified as correct rather than merely committed.",
+      "evidence": "`### 4.1 Render procedure` step 3d; no corresponding row in `Input contracts`.",
+      "predicted_consequence": "The golden test \"the render matches a committed golden\" passes trivially for any Duration the builder picked; a reviewer cannot refute the value, and the \"determinism\" test cannot distinguish a correct endpoint rule from an arbitrary one.",
+      "spec_anchor": "4-1-render-procedure",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-4 revision; the self-spawn design was later superseded by the operator's in-process decision (no faff shell-out, §3).",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "Step 3d defines duration's endpoint as \"the newest of the heartbeat sidecar, owner.last_heartbeat and the last event's ts\", but \"the heartbeat sidecar\" is never named (no path, no filename pattern, no owner in the input-contracts table). A tester cannot decide what the header's `Duration: Xh Ym` should be for the reference fixture, so the golden's Duration line cannot be verified as correct rather than merely committed.",
+          "spec_anchor": "4-1-render-procedure"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The `SummaryFacts` record requires the orchestrator to embed, verbatim, outputs of commands the renderer could run itself: `facts.ground_truth` is \"`faff reconcile --json` stdout, verbatim\" and `facts.budget_state` is \"the last `faff budget check --json` output … verbatim\". The spec already establishes the correct pattern for exactly this — `faff economics` is self-spawned through `shared-infra`'s `ENTRYPOINT` precisely so the figure \"always comes from the same install that is rendering\". `faff reconcile` is a pure, read-only verb over the same run dir; `faff budget check` likewise. Routing their outputs through an LLM-authored JSON file instead is a materially more expensive and less reliable path for no architectural gain, and it makes the run dir and the facts file competing authorities for the same facts — A21 even names both sides of one section (\"facts.discovered_scope, ledger.discovered_scope_filed\").",
+      "evidence": "`RECORD SummaryFacts` (`ground_truth: Object | null … verbatim`, `budget_state: Object | null … verbatim`); step 2's economics self-spawn rationale; A21 row; the WHY claim \"the skill writes the facts once and makes one call\".",
+      "predicted_consequence": "the two copies drift (the golden and contract tests pin the run-dir side, the facts side is re-transcribed every run by the model), and every transcribed byte is a malformed-JSON risk feeding the failure mode below; the first extension that adds a CLI-derived section forces a choice between growing the LLM transcription or adding another self-spawn — i.e. the seam is already split inconsistently.",
+      "spec_anchor": "record-summaryfacts-every-field-optional-except-format",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed by the operator's redesign (§3, ratified: human): in-process computation, no transcription, never-fail render, synthetic fixture.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "major",
+          "claim": "The `SummaryFacts` record requires the orchestrator to embed, verbatim, outputs of commands the renderer could run itself: `facts.ground_truth` is \"`faff reconcile --json` stdout, verbatim\" and `facts.budget_state` is \"the last `faff budget check --json` output … verbatim\". The spec already establishes the correct pattern for exactly this — `faff economics` is self-spawned through `shared-infra`'s `ENTRYPOINT` precisely so the figure \"always comes from the same install that is rendering\". `faff reconcile` is a pure, read-only verb over the same run dir; `faff budget check` likewise. Routing their outputs through an LLM-authored JSON file instead is a materially more expensive and less reliable path for no architectural gain, and it makes the run dir and the facts file competing authorities for the same facts — A21 even names both sides of one section (\"facts.discovered_scope, ledger.discovered_scope_filed\").",
+          "spec_anchor": "record-summaryfacts-every-field-optional-except-format"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The spec's stated invariant is \"A missing fact degrades to the bare id, never an error\", and every shape-drift rule renders a visible \"could not read\" line at exit 0 — yet a facts file that is not valid JSON is a hard exit 2, with no fallback specified for the caller. The facts file is authored by the LLM orchestrator at run end (the most token-loaded, error-prone moment in the whole flow); the design's own threat model makes malformed JSON the *likely* failure, not a rare one. A run that shipped everything would then terminate with no summary, no park block (which `park-history.js` parses from the summary, so repeat-park counting silently loses the run's parks too), and a non-zero exit the skill has no specified recovery for.",
+      "evidence": "Interface (\"2 usage, missing or malformed ledger, or a facts file that is not valid JSON\"); DONE (\"exits 2 … on a facts file that is not valid JSON\"); the contradicting principle in \"Interpolated text is neutralised\" preamble (\"A missing fact degrades to the bare id, never an error\"); A13's dependence on the summary's `faff-parks` block.",
+      "predicted_consequence": "a completed run ends summary-less and its park records never reach the repeat-park counter, because the skill has no defined path from \"exit 2\" to any rendered output.",
+      "spec_anchor": "31-render-procedure",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed by the operator's redesign (§3, ratified: human): in-process computation, no transcription, never-fail render, synthetic fixture.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "major",
+          "claim": "The spec's stated invariant is \"A missing fact degrades to the bare id, never an error\", and every shape-drift rule renders a visible \"could not read\" line at exit 0 — yet a facts file that is not valid JSON is a hard exit 2, with no fallback specified for the caller. The facts file is authored by the LLM orchestrator at run end (the most token-loaded, error-prone moment in the whole flow); the design's own threat model makes malformed JSON the *likely* failure, not a rare one. A run that shipped everything would then terminate with no summary, no park block (which `park-history.js` parses from the summary, so repeat-park counting silently loses the run's parks too), and a non-zero exit the skill has no specified recovery for.",
+          "spec_anchor": "31-render-procedure"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The spec's injection defence is scoped to \"no fact can create a line or a heading\": `factText()` collapses newlines and backslash-prefixes a leading `#`. But at least one facts string is rendered as a **bare line** — `install_health.warning` is emitted as line 1 of the document (step 3a), before any list prefix. A facts file whose `install_health.warning` begins with a backtick run (```` ``` ````) opens an unclosed fenced code block; every subsequent renderer-generated section (shipped, parked, divergences) is swallowed into that fence when the markdown is rendered. The spec's own claim (\"no fact can create a line\") is satisfied literally, but the structural-corruption path is not closed, and the `faff-parks` fence-length rule shows the spec knows fence-closing is the interesting case — it just doesn't apply that thinking to `factText()`.",
+      "evidence": "\"Interpolated text is neutralised, by construction\" — the helper \"collapses newlines to spaces, and prefixes a backslash when the string would start a line with `#`\"; step 3a renders `facts.install_health.warning` as line 1 with no list prefix; the `faff-parks` paragraph handles fence length only for that one block.",
+      "predicted_consequence": "a hostile or buggy facts file renders a summary whose real sections are invisible inside a code fence in rendered markdown — a human skimming the rendered summary sees only the attacker-chosen first line.",
+      "spec_anchor": "interpolated-text-is-neutralised-by-construction",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed by the operator's redesign (§3, ratified: human): in-process computation, no transcription, never-fail render, synthetic fixture.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "The spec's injection defence is scoped to \"no fact can create a line or a heading\": `factText()` collapses newlines and backslash-prefixes a leading `#`. But at least one facts string is rendered as a **bare line** — `install_health.warning` is emitted as line 1 of the document (step 3a), before any list prefix. A facts file whose `install_health.warning` begins with a backtick run (```` ``` ````) opens an unclosed fenced code block; every subsequent renderer-generated section (shipped, parked, divergences) is swallowed into that fence when the markdown is rendered. The spec's own claim (\"no fact can create a line\") is satisfied literally, but the structural-corruption path is not closed, and the `faff-parks` fence-length rule shows the spec knows fence-closing is the interesting case — it just doesn't apply that thinking to `factText()`.",
+          "spec_anchor": "interpolated-text-is-neutralised-by-construction"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The spec copies a real production run dir (ledger, events, `summary.md`) into `test/fixtures/run-summary/` and commits it, with the only named validation being \"listing it and grepping for token-shaped strings\". A run ledger and its events carry session ids, measure roots, repo paths, PR numbers, issue titles and prose from a real drain — none of which are token-shaped, and all of which become permanently committed repo content. The named control does not cover the class of leak the copy creates; once committed, removal is history-rewriting, not a file delete.",
+      "evidence": "\"**Assumes:** the reference run dir … contains no secrets. Validate by listing it and grepping for token-shaped strings before copying.\"",
+      "predicted_consequence": "internal identifiers or prose from a real run are permanently committed to the repository; a grep miss is unrecoverable without history rewrite.",
+      "spec_anchor": "assumptions",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed by the operator's redesign (§3, ratified: human): in-process computation, no transcription, never-fail render, synthetic fixture.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "The spec copies a real production run dir (ledger, events, `summary.md`) into `test/fixtures/run-summary/` and commits it, with the only named validation being \"listing it and grepping for token-shaped strings\". A run ledger and its events carry session ids, measure roots, repo paths, PR numbers, issue titles and prose from a real drain — none of which are token-shaped, and all of which become permanently committed repo content. The named control does not cover the class of leak the copy creates; once committed, removal is history-rewriting, not a file delete.",
+          "spec_anchor": "assumptions"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The test plan specifies a \"real-CLI end-to-end call with a fake `faff economics` on `PATH`\", but the render procedure explicitly mandates spawning through `shared-infra`'s `ENTRYPOINT`, \"never `PATH`\". If the fake is genuinely resolved from `PATH`, the build violates the spec; if the fake is ignored, the test passes vacuously and asserts nothing about the economics call. As written, the test has no pass condition consistent with the spec.",
+      "evidence": "`### 4.4 Tests` (\"one real-CLI end-to-end call with a fake `faff economics` on `PATH`\") vs. `### 4.1 Render procedure` step 2 (\"never resolves `faff` from PATH\").",
+      "predicted_consequence": "The end-to-end test cannot decide compliance with step 2: a green run is compatible with both \"renderer honours ENTRYPOINT and the fake was never consulted\" and \"renderer used PATH\". Either the test must inject the fake at the ENTRYPOINT seam, or it must assert the fake is *not* invoked.",
+      "spec_anchor": "4-4-tests-in-test-only-node-test-no-selftest",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed by the operator's redesign (§3, ratified: human): in-process computation, no transcription, never-fail render, synthetic fixture.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "The test plan specifies a \"real-CLI end-to-end call with a fake `faff economics` on `PATH`\", but the render procedure explicitly mandates spawning through `shared-infra`'s `ENTRYPOINT`, \"never `PATH`\". If the fake is genuinely resolved from `PATH`, the build violates the spec; if the fake is ignored, the test passes vacuously and asserts nothing about the economics call. As written, the test has no pass condition consistent with the spec.",
+          "spec_anchor": "4-4-tests-in-test-only-node-test-no-selftest"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "§4.1 asserts \"one run dir always renders the same bytes\" because the command never reads the clock, but the extracted functions are specified as `economicsForRun(runDir, { root, sessionId, env })` and `budgetCheckForRun(runDir, { root, sessionId, env })` — the explicit `env` parameter exists precisely because the CLIs' resolution order includes environment-dependent pricing/metering source. If `env` can change the economics output (which is why it is threaded through at all), then the same run dir renders different bytes in different environments, and the committed golden fixture (rendered once, compared in CI) becomes an environment-bound artefact rather than a determinism proof.",
+      "evidence": "§4.1 step 4 and the \"The command never reads the clock\" paragraph; §3 extraction bullets (`env` in both signatures); §4.5 determinism test (\"clock stubbed to two times, byte-identical\") which only varies time, never environment; DONE item \"Rendering the same run dir twice at different times gives byte-identical output\".",
+      "predicted_consequence": "a local render of the synthetic fixture differs from the committed golden (or from a CI render) on the economics line, and the determinism DONE item passes while the §4.1 invariant is silently false — the first pricing-source or env difference between boxes surfaces as an unexplained golden mismatch.",
+      "spec_anchor": "41-render-procedure",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in place: economics/budget env built only from the ledger, factText covers the facts parse-error text (comment 2ea0c49d).",
+      "first_round": 6,
+      "last_round": 6,
+      "occurrences": [
+        {
+          "round": 6,
+          "severity": "minor",
+          "claim": "§4.1 asserts \"one run dir always renders the same bytes\" because the command never reads the clock, but the extracted functions are specified as `economicsForRun(runDir, { root, sessionId, env })` and `budgetCheckForRun(runDir, { root, sessionId, env })` — the explicit `env` parameter exists precisely because the CLIs' resolution order includes environment-dependent pricing/metering source. If `env` can change the economics output (which is why it is threaded through at all), then the same run dir renders different bytes in different environments, and the committed golden fixture (rendered once, compared in CI) becomes an environment-bound artefact rather than a determinism proof.",
+          "spec_anchor": "41-render-procedure"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The spec's central injection control, `factText()` (§4.3), is scoped \"by source: any value read from `F`\". But the `⚠ could not read facts: <reason>` line (§4.1 step 2) renders the *parse failure reason*, and in Node/V8 a `JSON.parse` SyntaxError message embeds a verbatim excerpt of the offending line from the file plus trailing newline-bearing boilerplate. A facts file crafted as `{\"format\":1,\"x\":\"\\n## Deferred\"}`-shaped malformed JSON (or simply a raw first line `## Deferred` followed by garbage) produces a reason string containing attacker-controlled text with newlines, which is emitted as the file's first line — outside `factText()` because the string was never successfully \"read from `F`\". The neutralisation rule and the holdout test (\"`\"x\\n## Deferred\"` in every facts string field\") both stop one field short of this path.",
+      "evidence": "§4.1 step 2 (\"note := \"⚠ could not read facts: <reason>\"\"); §4.3 (\"The rule is by source: any value read from `F`\"); §4.5 neutralisation test enumerates \"every facts string field\", not the error-reason channel.",
+      "predicted_consequence": "a hostile or corrupted facts file injects an arbitrary markdown line (a heading, a fence opener, or a list item) into the top of `summary.md`, which the skill then posts to the tracker and prints — the exact `## Deferred`-euphemism outcome rule A24 exists to prevent, reachable through the error path rather than the value path.",
+      "spec_anchor": "the-facts-file-only-what-exists-nowhere-on-disk",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in place: economics/budget env built only from the ledger, factText covers the facts parse-error text (comment 2ea0c49d).",
+      "first_round": 6,
+      "last_round": 6,
+      "occurrences": [
+        {
+          "round": 6,
+          "severity": "minor",
+          "claim": "The spec's central injection control, `factText()` (§4.3), is scoped \"by source: any value read from `F`\". But the `⚠ could not read facts: <reason>` line (§4.1 step 2) renders the *parse failure reason*, and in Node/V8 a `JSON.parse` SyntaxError message embeds a verbatim excerpt of the offending line from the file plus trailing newline-bearing boilerplate. A facts file crafted as `{\"format\":1,\"x\":\"\\n## Deferred\"}`-shaped malformed JSON (or simply a raw first line `## Deferred` followed by garbage) produces a reason string containing attacker-controlled text with newlines, which is emitted as the file's first line — outside `factText()` because the string was never successfully \"read from `F`\". The neutralisation rule and the holdout test (\"`\"x\\n## Deferred\"` in every facts string field\") both stop one field short of this path.",
+          "spec_anchor": "the-facts-file-only-what-exists-nowhere-on-disk"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The spec makes `facts.tracker` the sole carrier of reconcile's tracker observations (sibling end states, superseded delivery), yet also makes a missing facts file a legal exit-0 path (`F := {}`). When facts are absent but `sibling-baseline.json` exists and shipped/superseded outcomes exist, the assembled ReconcileInput has empty tracker observations — reconcile's fail-closed classes (`sibling-check-unproven`, `superseded-unproven`) will fire and render as if they were real ground-truth divergences. The spec explicitly guards the analogous forge-failure case (\"a forge outage is never mistaken for a real divergence\") but provides no such guard for absent tracker observations, even though absent-facts is the spec's own headline degradation path (it is the first scenario in §Scenarios). Compounding this, the section is recomputed at render time, while prose rule A19 scopes it to \"only when step 11.5 found ≥1\" — 11.5 already ran `faff reconcile` and posted tracker comments; the summary can now disagree with that record (forge state moved between 11.5 and render), producing two governance records for the same signal with no rule for which wins.",
+      "evidence": "§3 ReconcileInput assembly (`end_state_terminal` from `facts.tracker.sibling_end_states`; `observed.all_delivered` from `facts.tracker.superseded_delivered`); §4.1 step 2 (`F := {}` on absent facts); step 5 (reconcile skipped only when \"no shipped or superseded outcome, no siblings, and no sibling-baseline.json\" — not when tracker observations are missing); §4.2 A19; §4.4 (\"Step 11.5 keeps its existing `faff reconcile` call\").",
+      "predicted_consequence": "the spec's own first scenario (no facts file, shipped outcomes present) renders fabricated `[sibling-check-unproven]`/`[superseded-unproven]` divergence lines in a run-end summary that humans read as ground truth; at L4 a fabricated divergence escalates the run's apparent disposition.",
+      "spec_anchor": "what-is-computed-and-from-where",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in place after round 7 (comment 8a75e844); round 8 did not raise it again.",
+      "first_round": 7,
+      "last_round": 7,
+      "occurrences": [
+        {
+          "round": 7,
+          "severity": "major",
+          "claim": "The spec makes `facts.tracker` the sole carrier of reconcile's tracker observations (sibling end states, superseded delivery), yet also makes a missing facts file a legal exit-0 path (`F := {}`). When facts are absent but `sibling-baseline.json` exists and shipped/superseded outcomes exist, the assembled ReconcileInput has empty tracker observations — reconcile's fail-closed classes (`sibling-check-unproven`, `superseded-unproven`) will fire and render as if they were real ground-truth divergences. The spec explicitly guards the analogous forge-failure case (\"a forge outage is never mistaken for a real divergence\") but provides no such guard for absent tracker observations, even though absent-facts is the spec's own headline degradation path (it is the first scenario in §Scenarios). Compounding this, the section is recomputed at render time, while prose rule A19 scopes it to \"only when step 11.5 found ≥1\" — 11.5 already ran `faff reconcile` and posted tracker comments; the summary can now disagree with that record (forge state moved between 11.5 and render), producing two governance records for the same signal with no rule for which wins.",
+          "spec_anchor": "what-is-computed-and-from-where"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "§4.1 step 2 rejects a facts file when \"format ≠ 1\", but the `SummaryFacts` record declares `format: 2` and §3 states format-1 files \"are not read\". As written, the only valid format is rejected by the render procedure.",
+      "evidence": "§4.1 step 2 vs §3 RECORD (`format: 2`) and the paragraph \"format: 1 files … take the could-not-read-facts path\".",
+      "predicted_consequence": "a builder following step 2 literally fails every valid facts file; the discrepancy is caught only if the fixture tests use `format: 2` and the builder notices the step contradicts them.",
+      "spec_anchor": "render-procedure",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in place after round 7 (comment 8a75e844); round 8 did not raise it again.",
+      "first_round": 7,
+      "last_round": 7,
+      "occurrences": [
+        {
+          "round": 7,
+          "severity": "minor",
+          "claim": "§4.1 step 2 rejects a facts file when \"format ≠ 1\", but the `SummaryFacts` record declares `format: 2` and §3 states format-1 files \"are not read\". As written, the only valid format is rejected by the render procedure.",
+          "spec_anchor": "render-procedure"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "A26 and the labelling test require \"every line containing a facts value ends with ` _(reported)_`\", and `park_records` is facts-sourced — but A13 renders it as a byte-for-byte `JSON.stringify` fence, explicitly exempt from neutralisation and structurally unable to carry a trailing label on its JSON lines. The two rules are stated with no carve-out for the fence, so the labelling test as specified fails on every render with parks.",
+      "evidence": "§4.2 A13 (\"byte for byte … exempt from neutralisation\"); Rule inventory A26; §4.5 labelling test (\"every line containing a facts value ends with ` _(reported)_`\").",
+      "predicted_consequence": "the covering test cannot be written to pass for both A13 and A26 without an unstated exemption; the builder must silently narrow the labelling rule.",
+      "spec_anchor": "section-sources-that-need-a-rule",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in place after round 7 (comment 8a75e844); round 8 did not raise it again.",
+      "first_round": 7,
+      "last_round": 7,
+      "occurrences": [
+        {
+          "round": 7,
+          "severity": "minor",
+          "claim": "A26 and the labelling test require \"every line containing a facts value ends with ` _(reported)_`\", and `park_records` is facts-sourced — but A13 renders it as a byte-for-byte `JSON.stringify` fence, explicitly exempt from neutralisation and structurally unable to carry a trailing label on its JSON lines. The two rules are stated with no carve-out for the fence, so the labelling test as specified fails on every render with parks.",
+          "spec_anchor": "section-sources-that-need-a-rule"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "§4.1 scopes determinism to \"a fixed disk, config and forge response\", but the HOW test (\"Rendering the same run dir twice at different times gives byte-identical output\") and the 4.5 determinism test stub only the clock and session id — not the forge. A fixture with shipped outcomes hits live `ghJson` twice, so PR state can change between renders and the check flakes or fails for reasons outside the design.",
+      "evidence": "§4.1 determinism paragraph; §7 HOW (\"Rendering the same run dir twice at different times gives byte-identical output\"); §4.5 determinism test (clock and `CLAUDE_CODE_SESSION_ID` stubs only).",
+      "predicted_consequence": "a flaky or falsely-failing determinism test in CI on any fixture that exercises the forge path.",
+      "spec_anchor": "tests-in-test-only-node-test-no-selftest",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in place after round 7 (comment 8a75e844); round 8 did not raise it again.",
+      "first_round": 7,
+      "last_round": 7,
+      "occurrences": [
+        {
+          "round": 7,
+          "severity": "minor",
+          "claim": "§4.1 scopes determinism to \"a fixed disk, config and forge response\", but the HOW test (\"Rendering the same run dir twice at different times gives byte-identical output\") and the 4.5 determinism test stub only the clock and session id — not the forge. A fixture with shipped outcomes hits live `ghJson` twice, so PR state can change between renders and the check flakes or fails for reasons outside the design.",
+          "spec_anchor": "tests-in-test-only-node-test-no-selftest"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The neutralisation invariant (\"no value can create a heading, fence or list item\") is stated over facts *values*, but the unknown-key warning renders key *names*. JSON object keys may contain any string, including newlines and leading `##`. A hostile or merely malformed facts file with a key like `\"x\\n## Deferred\"` reaches the markdown raw, producing a heading — exactly the injection the `factText()` control exists to prevent, and exactly the case the hostile-values test does not cover (it seeds string *fields*, not keys).",
+      "evidence": "§4.1 step 2 (\"Unknown keys → a final `⚠ facts: unknown key(s) …` line\"); §4.3 (\"Every string from the facts file passes through one helper\" — the helper's rule is \"by source: any value read from `F`\", silent on key names); §4.5 hostile-values test seeds \"every facts string field in turn\".",
+      "predicted_consequence": "a crafted or corrupted facts file yields a `## Deferred`-style heading in `summary.md` at exit 0, violating the A24 banned-heading invariant that the test suite claims to pin.",
+      "spec_anchor": "43-neutralisation",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in place after round 7 (comment 8a75e844); round 8 did not raise it again.",
+      "first_round": 7,
+      "last_round": 7,
+      "occurrences": [
+        {
+          "round": 7,
+          "severity": "minor",
+          "claim": "The neutralisation invariant (\"no value can create a heading, fence or list item\") is stated over facts *values*, but the unknown-key warning renders key *names*. JSON object keys may contain any string, including newlines and leading `##`. A hostile or merely malformed facts file with a key like `\"x\\n## Deferred\"` reaches the markdown raw, producing a heading — exactly the injection the `factText()` control exists to prevent, and exactly the case the hostile-values test does not cover (it seeds string *fields*, not keys).",
+          "spec_anchor": "43-neutralisation"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The fixture decision commits the builder to \"compares a local render of the real run with its prose `summary.md`, and lists the departures in the PR description\" — but the prose template has dozens of rendering subtleties (A9 tie-break, `_(reported)_` labels, neutralisation) that the prose itself never enforced, so the departures list can be arbitrarily long and is not a pass/fail criterion. It is work with no DONE criterion attached, not a fixture decision.",
+      "evidence": "§4.5 \"Chosen: a synthetic reference fixture … The builder compares a local render of the real run with its prose `summary.md`, and lists the departures in the PR description.\" The DONE section has no checklist item for this comparison.",
+      "predicted_consequence": "the slice's last leg has no acceptance bar; the builder either ships the PR with an open-ended departures narrative or silently scopes the comparison down. Not separately stated as a blocker — a sequencing/shaping concern, since the synthetic-golden test is the actual gate.",
+      "spec_anchor": "test-fixture",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in place after round 7 (comment 8a75e844); round 8 did not raise it again.",
+      "first_round": 7,
+      "last_round": 7,
+      "occurrences": [
+        {
+          "round": 7,
+          "severity": "minor",
+          "claim": "The fixture decision commits the builder to \"compares a local render of the real run with its prose `summary.md`, and lists the departures in the PR description\" — but the prose template has dozens of rendering subtleties (A9 tie-break, `_(reported)_` labels, neutralisation) that the prose itself never enforced, so the departures list can be arbitrarily long and is not a pass/fail criterion. It is work with no DONE criterion attached, not a fixture decision.",
+          "spec_anchor": "test-fixture"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "major",
+      "claim": "Step 2 of the render procedure rejects any facts file whose `format ≠ 1`, but the `RECORD SummaryFacts` block this same spec defines declares `format: 2`. As written, every conforming facts file takes the could-not-read path, and a builder cannot tell which value is intended — the two lines cannot both be satisfied.",
+      "evidence": "`### 4.1 Render procedure` step 2: \"format ≠ 1 → F := {} and note\"; `### The facts file` RECORD: `format: 2`. The DONE item \"exits 0 and its first line starts `⚠ could not read facts`\" for *invalid* facts is testable, but there is no way to decide whether a *valid* format-2 file renders normally or takes the error path.",
+      "predicted_consequence": "the builder picks one value arbitrarily; the \"facts problems\" test fixtures are written against whichever value the builder chose, and a reviewer comparing the spec to the build cannot call either choice a defect. The primary happy path (facts present and well-formed) is unspecified.",
+      "spec_anchor": "41-render-procedure",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in place after round 7 (comment 8a75e844); round 8 did not raise it again.",
+      "first_round": 7,
+      "last_round": 7,
+      "occurrences": [
+        {
+          "round": 7,
+          "severity": "major",
+          "claim": "Step 2 of the render procedure rejects any facts file whose `format ≠ 1`, but the `RECORD SummaryFacts` block this same spec defines declares `format: 2`. As written, every conforming facts file takes the could-not-read path, and a builder cannot tell which value is intended — the two lines cannot both be satisfied.",
+          "spec_anchor": "41-render-procedure"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "major",
+      "claim": "A26 requires \"every rendered line containing a facts value ends with ` _(reported)_`\", and the covering test asserts \"every line containing a facts value ends with ` _(reported)_`\". But A13 requires the `faff-parks` fence to be `JSON.stringify(F.run.park_records ?? [])` byte for byte, exempt from neutralisation — its lines contain facts values (issue ids, root_cause_class) and cannot carry a markdown label without breaking `park-history.js` parsing. The spec mandates two mutually exclusive outputs for the same lines.",
+      "evidence": "Rule inventory rows A13 and A26; test list \"parks round-trip\" and \"labelling\" in `### 4.5 Tests`. The labelling test as stated fails on any run with a non-empty `park_records`.",
+      "predicted_consequence": "the builder must silently scope the labelling test to exclude the fence (an unstated exception) or the parks round-trip test fails; either way the spec's own test suite is self-contradictory and \"every facts line labelled\" cannot be decided.",
+      "spec_anchor": "42-section-sources-that-need-a-rule",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in place after round 7 (comment 8a75e844); round 8 did not raise it again.",
+      "first_round": 7,
+      "last_round": 7,
+      "occurrences": [
+        {
+          "round": 7,
+          "severity": "major",
+          "claim": "A26 requires \"every rendered line containing a facts value ends with ` _(reported)_`\", and the covering test asserts \"every line containing a facts value ends with ` _(reported)_`\". But A13 requires the `faff-parks` fence to be `JSON.stringify(F.run.park_records ?? [])` byte for byte, exempt from neutralisation — its lines contain facts values (issue ids, root_cause_class) and cannot carry a markdown label without breaking `park-history.js` parsing. The spec mandates two mutually exclusive outputs for the same lines.",
+          "spec_anchor": "42-section-sources-that-need-a-rule"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "A1 says the install-health warning \"is the first line when not clean\", but step 7a emits the facts-problem note first, \"then the install-health warning\", and the first scenario asserts that with no facts file \"the output's first line is `⚠ could not read facts: …`\" — which, combined with an unclean install, contradicts A1. The spec never states which line wins when both a facts problem and an unclean install are present.",
+      "evidence": "Rule inventory A1 (\"first line when not clean\"); `### 4.1 Render procedure` step 7a; first Scenarios block.",
+      "predicted_consequence": "the \"install-health first\" test and the \"could not read facts first\" scenario cannot both pass on a fixture with both conditions; the builder resolves the tie arbitrarily and the ordering is unverifiable against the spec.",
+      "spec_anchor": "42-section-sources-that-need-a-rule",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in place after round 7 (comment 8a75e844); round 8 did not raise it again.",
+      "first_round": 7,
+      "last_round": 7,
+      "occurrences": [
+        {
+          "round": 7,
+          "severity": "minor",
+          "claim": "A1 says the install-health warning \"is the first line when not clean\", but step 7a emits the facts-problem note first, \"then the install-health warning\", and the first scenario asserts that with no facts file \"the output's first line is `⚠ could not read facts: …`\" — which, combined with an unclean install, contradicts A1. The spec never states which line wins when both a facts problem and an unclean install are present.",
+          "spec_anchor": "42-section-sources-that-need-a-rule"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "§3's headline fix for the round-7 fabrication objection asserts that when `facts.tracker` is absent, running `reconcileCore` on `shipped[]` + `sibling_baseline` alone yields no `sibling-check-unproven` / `unowned-sibling-mutation` lines — i.e. that reconcileCore distinguishes \"siblings not supplied\" from \"siblings supplied and unproven\". Nothing in the supplied context establishes that `reconcileCore` has such a mode; its documented design is fail-closed (`sibling-check-unproven` is listed among its divergence classes, and the run-level class exists precisely to flag \"no sibling baseline attested\"). If reconcileCore fail-closes on a present baseline with an absent `siblings[]` — its natural reading — the spec's own first degradation scenario breaks, and the builder's only fixes are both out of bounds: changing reconcile's behaviour (§2 out of scope: \"Behaviour changes to … reconcile\") or filtering reconcileCore's output inside run-summary (which contradicts A19's \"one line per `reconcileCore` divergence\" and the spec's claim that the classes \"fire only on evidence that was actually supplied\"). Alternatively `validateReconcileInput` may reject a baseline-without-siblings input outright, collapsing the path to a `could not read reconcile input` line. The spec asserts the outcome without establishing the precondition.",
+      "evidence": "§3 \"Absent tracker observations never become divergences\"; §2 out-of-scope bullet; §4.2 A19; context `reconcile.js` (fail-closed classes, level gating) and prior-r7's major finding, whose tracker-absence half this is meant to fix.",
+      "predicted_consequence": "the pinned test \"no tracker facts … renders no `superseded-unproven` or `unowned-sibling-mutation` line\" fails against real reconcileCore, forcing either an out-of-scope governance-module change or an unauthorised post-hoc filter — both discovered mid-build, after the extractions are done.",
+      "spec_anchor": "absent-tracker-observations-never-become-divergences",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Mechanism refuted (reconcileSiblingBaseline checks only captured===true, reconcile.js l.120-129), but the check exposed a real defect: sibling_baseline is now step 11.5's {captured,entry_count} attestation, not the array file.",
+      "first_round": 8,
+      "last_round": 8,
+      "occurrences": [
+        {
+          "round": 8,
+          "severity": "major",
+          "claim": "§3's headline fix for the round-7 fabrication objection asserts that when `facts.tracker` is absent, running `reconcileCore` on `shipped[]` + `sibling_baseline` alone yields no `sibling-check-unproven` / `unowned-sibling-mutation` lines — i.e. that reconcileCore distinguishes \"siblings not supplied\" from \"siblings supplied and unproven\". Nothing in the supplied context establishes that `reconcileCore` has such a mode; its documented design is fail-closed (`sibling-check-unproven` is listed among its divergence classes, and the run-level class exists precisely to flag \"no sibling baseline attested\"). If reconcileCore fail-closes on a present baseline with an absent `siblings[]` — its natural reading — the spec's own first degradation scenario breaks, and the builder's only fixes are both out of bounds: changing reconcile's behaviour (§2 out of scope: \"Behaviour changes to … reconcile\") or filtering reconcileCore's output inside run-summary (which contradicts A19's \"one line per `reconcileCore` divergence\" and the spec's claim that the classes \"fire only on evidence that was actually supplied\"). Alternatively `validateReconcileInput` may reject a baseline-without-siblings input outright, collapsing the path to a `could not read reconcile input` line. The spec asserts the outcome without establishing the precondition.",
+          "spec_anchor": "absent-tracker-observations-never-become-divergences"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "DONE requires \"The ground-truth section built from the assembled input matches `faff reconcile --json` on that input\", and 4.5 pins \"the result deep-equals `faff reconcile --json` on the same assembled input\". But the `faff reconcile` CLI assembles its own ReconcileInput from its own sources; the spec adds only `validateReconcileInput` to reconcile's exports — no interface by which the CLI can accept a caller-assembled input. As written, the equivalence test either cannot be built, or silently degrades into \"run the CLI on whatever it assembles itself\", which does not compare the same input and so does not pin the assembly logic (the actual drift risk).",
+      "evidence": "§3 extractions (\"`reconcile.js`: add `validateReconcileInput` to the exports\"); §7 DONE \"The ground-truth section … matches `faff reconcile --json` on that input\"; §4.5 \"reconcile in-process\" test.",
+      "predicted_consequence": "the builder either adds an undocumented CLI input flag (surface change the spec never budgets) or writes a weaker test that passes while the two assemblies drift — the exact failure class the redesign exists to remove.",
+      "spec_anchor": "reconcile-in-process",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "cmdReconcile already reads a ReconcileInput from stdin (reconcile.js l.230); the spec now cites it.",
+      "first_round": 8,
+      "last_round": 8,
+      "occurrences": [
+        {
+          "round": 8,
+          "severity": "minor",
+          "claim": "DONE requires \"The ground-truth section built from the assembled input matches `faff reconcile --json` on that input\", and 4.5 pins \"the result deep-equals `faff reconcile --json` on the same assembled input\". But the `faff reconcile` CLI assembles its own ReconcileInput from its own sources; the spec adds only `validateReconcileInput` to reconcile's exports — no interface by which the CLI can accept a caller-assembled input. As written, the equivalence test either cannot be built, or silently degrades into \"run the CLI on whatever it assembles itself\", which does not compare the same input and so does not pin the assembly logic (the actual drift risk).",
+          "spec_anchor": "reconcile-in-process"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "A26 and the labelling test turn on \"every markdown line … that contains a `facts.tracker` or `facts.run` value\", but several rendered lines contain facts-*derived* bytes without containing a facts *value*: the `⚠ could not read facts: <reason>` line (which 4.3 says can quote the file verbatim via the `JSON.parse` message) and the `⚠ facts: unknown key(s) …` line (which renders key names). The spec never says whether these lines carry the ` _(reported)_` label. A builder writing the labelling test cannot decide the expected output for a render whose only facts problem is an unparseable file: if the test's predicate is \"contains bytes originating from the facts file\", the error line must be labelled and the spec's §4.3 treatment (neutralised but not labelled) contradicts it; if the predicate is \"contains a value\", the test cannot be implemented without an ad-hoc allowlist the spec never defines.",
+      "evidence": "DONE item \"Every rendered markdown line outside the `faff-parks` fence that contains a `facts.tracker` or `facts.run` value ends with ` _(reported)_`\"; 4.5 \"labelling\" test; §4.1 step 2 and §4.3.",
+      "predicted_consequence": "the labelling test's pass/fail line is ambiguous for the facts-problem renders the spec itself mandates (absent file, invalid JSON, unknown keys) — two conforming builds can differ on whether those `⚠` lines carry the label, and the covering test cannot arbitrate.",
+      "spec_anchor": "43-neutralisation",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The two ⚠ facts-file diagnostics are defined as unlabelled and pass through factText (A26, labelling test).",
+      "first_round": 8,
+      "last_round": 8,
+      "occurrences": [
+        {
+          "round": 8,
+          "severity": "minor",
+          "claim": "A26 and the labelling test turn on \"every markdown line … that contains a `facts.tracker` or `facts.run` value\", but several rendered lines contain facts-*derived* bytes without containing a facts *value*: the `⚠ could not read facts: <reason>` line (which 4.3 says can quote the file verbatim via the `JSON.parse` message) and the `⚠ facts: unknown key(s) …` line (which renders key names). The spec never says whether these lines carry the ` _(reported)_` label. A builder writing the labelling test cannot decide the expected output for a render whose only facts problem is an unparseable file: if the test's predicate is \"contains bytes originating from the facts file\", the error line must be labelled and the spec's §4.3 treatment (neutralised but not labelled) contradicts it; if the predicate is \"contains a value\", the test cannot be implemented without an ad-hoc allowlist the spec never defines.",
+          "spec_anchor": "43-neutralisation"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "4.5 requires the assembled-input result to \"deep-equals `faff reconcile --json` on the same assembled input\", and DONE requires \"The ground-truth section built from the assembled input matches `faff reconcile --json` on that input\". But the assembled `ReconcileInput` is an internal artefact of `run summary`; the spec nowhere states that `faff reconcile` can accept a supplied input (file or stdin) rather than assembling its own from disk, tracker and forge. If the CLI only assembles its own input, the test must reproduce the assembly independently and stub `ghJson` identically in both paths — a comparison procedure the spec leaves unstated, and which can silently compare two *different* inputs (e.g. differing on `observed` after a forge stub mismatch) and pass or fail for the wrong reason.",
+      "evidence": "DONE \"The ground-truth section built from the assembled input matches `faff reconcile --json` on that input\"; 4.5 \"reconcile in-process\" test.",
+      "predicted_consequence": "the equivalence DONE item cannot be executed as written unless the builder invents an input-injection mechanism for `faff reconcile` that the spec neither requires nor forbids; the tester cannot state concretely what to run.",
+      "spec_anchor": "45-tests-in-test-only-node-test-no-selftest",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "cmdReconcile already reads a ReconcileInput from stdin (reconcile.js l.230); the spec now cites it.",
+      "first_round": 8,
+      "last_round": 8,
+      "occurrences": [
+        {
+          "round": 8,
+          "severity": "minor",
+          "claim": "4.5 requires the assembled-input result to \"deep-equals `faff reconcile --json` on the same assembled input\", and DONE requires \"The ground-truth section built from the assembled input matches `faff reconcile --json` on that input\". But the assembled `ReconcileInput` is an internal artefact of `run summary`; the spec nowhere states that `faff reconcile` can accept a supplied input (file or stdin) rather than assembling its own from disk, tracker and forge. If the CLI only assembles its own input, the test must reproduce the assembly independently and stub `ghJson` identically in both paths — a comparison procedure the spec leaves unstated, and which can silently compare two *different* inputs (e.g. differing on `observed` after a forge stub mismatch) and pass or fail for the wrong reason.",
+          "spec_anchor": "45-tests-in-test-only-node-test-no-selftest"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The spec's headline fix for fabricated divergences rests entirely on two behavioural assertions about existing governance code — that `reconcileSiblingBaseline` \"checks only `captured: true`\" and that a present `sibling_baseline` with an empty `siblings[]` suppresses the run-level `sibling-check-unproven` class. Neither is established anywhere in the supplied context: `reconcile.js` is documented as fail-closed, and the run-level class exists precisely to fire when \"no sibling baseline attested — the unowned-sibling-mutation check did not run\". If the actual code fail-closes on a baseline-without-siblings input (its natural reading), the degradation path fabricates exactly the divergence line the fix exists to prevent. The builder's only remedies are both out of bounds: changing reconcile's behaviour (§2 excludes \"behaviour changes to … reconcile\") or filtering `reconcileCore`'s output inside run-summary (which contradicts A19's one-line-per-divergence rule and the spec's own claim that classes \"fire only on evidence that was actually supplied\"). Omitting `sibling_baseline` instead is worse — it trips the run-level class per the context's own description. The round-8 revision narrowed this objection by naming a mechanism, but the structural vulnerability survives: the design has exactly one leg, and it is an unverified claim about a module the spec forbids changing.",
+      "evidence": "§3 \"Absent tracker observations never become divergences\" (\"That is valid input: `entry_count` is at least the empty `siblings[]` length, and `reconcileSiblingBaseline` checks only `captured: true`\"); §2 out-of-scope bullet; A19; context `reconcile.js` divergence classes and the summary template's `[sibling-check-unproven] run:` line.",
+      "predicted_consequence": "the `no tracker facts` covering test fails on the real `reconcileCore`; the builder cannot fix it within scope, and the spec goes back to prep anyway — after the extraction refactors and the SKILL.md rewrite have already been built on top of the assumption.",
+      "spec_anchor": "absent-tracker-observations-never-become-divergences",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "reconcileSiblingBaseline returns no divergence when captured===true (reconcile.js l.120-129); cited in the spec. Human accept 2026-10-30.",
+      "first_round": 9,
+      "last_round": 9,
+      "occurrences": [
+        {
+          "round": 9,
+          "severity": "major",
+          "claim": "The spec's headline fix for fabricated divergences rests entirely on two behavioural assertions about existing governance code — that `reconcileSiblingBaseline` \"checks only `captured: true`\" and that a present `sibling_baseline` with an empty `siblings[]` suppresses the run-level `sibling-check-unproven` class. Neither is established anywhere in the supplied context: `reconcile.js` is documented as fail-closed, and the run-level class exists precisely to fire when \"no sibling baseline attested — the unowned-sibling-mutation check did not run\". If the actual code fail-closes on a baseline-without-siblings input (its natural reading), the degradation path fabricates exactly the divergence line the fix exists to prevent. The builder's only remedies are both out of bounds: changing reconcile's behaviour (§2 excludes \"behaviour changes to … reconcile\") or filtering `reconcileCore`'s output inside run-summary (which contradicts A19's one-line-per-divergence rule and the spec's own claim that classes \"fire only on evidence that was actually supplied\"). Omitting `sibling_baseline` instead is worse — it trips the run-level class per the context's own description. The round-8 revision narrowed this objection by naming a mechanism, but the structural vulnerability survives: the design has exactly one leg, and it is an unverified claim about a module the spec forbids changing.",
+          "spec_anchor": "absent-tracker-observations-never-become-divergences"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "§4.5 and DONE pin the ground-truth section to \"deep-equals `faff reconcile --json` … given the same assembled input on stdin\", justified only by the parenthetical \"(the CLI already reads a `ReconcileInput` on stdin)\". Nothing in the supplied context establishes that stdin input path exists: the context shows `reconcile.js`'s exports and selftest shape, not the CLI's input handling, and round 8 already flagged exactly this gap. If the CLI assembles its own input from disk, tracker and forge, the equivalence test as specified cannot be built — and adding stdin input to the CLI is a behaviour change to `faff reconcile`, which §2 excludes. The spec must either verify the stdin path exists (one line of evidence in prep) or specify the actual comparison procedure.",
+      "evidence": "§4.5 \"reconcile in-process\" test bullet; DONE \"The ground-truth section built from the assembled input matches `faff reconcile --json` given that input on stdin\"; §2 \"Behaviour changes to `faff economics`, `budget check` or `reconcile`\" out of scope.",
+      "predicted_consequence": "the builder discovers mid-build that the CLI takes no stdin input, and must either silently widen scope (a reconcile behaviour change) or weaken the DONE item to a non-equivalent comparison that pins nothing.",
+      "spec_anchor": "tests-in-test-only-node-test-no-selftest",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "cmdReconcile reads stdin at reconcile.js l.230; no CLI change. Human accept 2026-10-30.",
+      "first_round": 9,
+      "last_round": 9,
+      "occurrences": [
+        {
+          "round": 9,
+          "severity": "minor",
+          "claim": "§4.5 and DONE pin the ground-truth section to \"deep-equals `faff reconcile --json` … given the same assembled input on stdin\", justified only by the parenthetical \"(the CLI already reads a `ReconcileInput` on stdin)\". Nothing in the supplied context establishes that stdin input path exists: the context shows `reconcile.js`'s exports and selftest shape, not the CLI's input handling, and round 8 already flagged exactly this gap. If the CLI assembles its own input from disk, tracker and forge, the equivalence test as specified cannot be built — and adding stdin input to the CLI is a behaviour change to `faff reconcile`, which §2 excludes. The spec must either verify the stdin path exists (one line of evidence in prep) or specify the actual comparison procedure.",
+          "spec_anchor": "tests-in-test-only-node-test-no-selftest"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The spec's \"Absent tracker observations never become divergences\" rule makes the `unowned-sibling-mutation` / `superseded-unproven` ground-truth checks conditional on a file written by the orchestrator itself — the same actor whose unattributed sibling mutations those classes exist to catch. If `facts.tracker` is missing, unreadable, or fails to parse (a bug, a partial write, or an orchestrator that never wrote it), the command deliberately runs `reconcileCore` on `shipped[]` + `sibling_baseline` alone, asserts in its own test that **no** divergence line renders, and exits 0 with only a non-gating `could not read tracker observations` note. At L4 — the level the supplied `reconcile.js` comment calls \"the only level that runs truly unattended, so it is the only level a false green is unrecoverable by a watching human\" — this converts a would-be `needs-human` disposition into a completed, shipped run. The mitigation is a rendered line, but L4 has no human on the loop to read it; the run's terminal state is unchanged. This is a fail-open path in the run's integrity net whose trigger is an input the audited party supplies.",
+      "evidence": "§3 \"Absent tracker observations never become divergences\" (\"the command leaves out the parts that need it … a missing facts file never fabricates `superseded-unproven` or `unowned-sibling-mutation` lines\"); §4.5 test \"no tracker facts … renders no `superseded-unproven`, `unowned-sibling-mutation` or `sibling-check-unproven` line\"; context `reconcile.js` level-gating comment (\"L4 is the only level that runs truly unattended … hard-block (needs-human)\"); context rule \"An unattributable evidence row is closed at the writer, never tolerated at the gate\".",
+      "predicted_consequence": "An L4 run whose facts write fails (or is omitted) ships with sibling mutations unverified and no `needs-human` escalation; the only trace is one warn line in a summary no unattended run surfaces. The `unowned-sibling-mutation` detection — whose purpose is catching mutations \"this run cannot attribute to any actor\" — is bypassable by omitting one file.",
+      "spec_anchor": "absent-tracker-observations-never-become-divergences",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "The summary renders and does not gate: step 11.5's own faff reconcile call owns the run's disposition, so a missing facts file cannot turn an L4 needs-human into a completed run. Human accept 2026-10-30.",
+      "first_round": 9,
+      "last_round": 9,
+      "occurrences": [
+        {
+          "round": 9,
+          "severity": "major",
+          "claim": "The spec's \"Absent tracker observations never become divergences\" rule makes the `unowned-sibling-mutation` / `superseded-unproven` ground-truth checks conditional on a file written by the orchestrator itself — the same actor whose unattributed sibling mutations those classes exist to catch. If `facts.tracker` is missing, unreadable, or fails to parse (a bug, a partial write, or an orchestrator that never wrote it), the command deliberately runs `reconcileCore` on `shipped[]` + `sibling_baseline` alone, asserts in its own test that **no** divergence line renders, and exits 0 with only a non-gating `could not read tracker observations` note. At L4 — the level the supplied `reconcile.js` comment calls \"the only level that runs truly unattended, so it is the only level a false green is unrecoverable by a watching human\" — this converts a would-be `needs-human` disposition into a completed, shipped run. The mitigation is a rendered line, but L4 has no human on the loop to read it; the run's terminal state is unchanged. This is a fail-open path in the run's integrity net whose trigger is an input the audited party supplies.",
+          "spec_anchor": "absent-tracker-observations-never-become-divergences"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "§3 specifies that when the baseline file is missing or unreadable the `sibling_baseline` field is \"left out (never `{captured: false}`)\", but the spec never states what the ground-truth section then renders. The documented reconcile behaviour (context: the run-level class `[sibling-check-unproven] run: no sibling baseline attested — the unowned-sibling-mutation check did not run`) fires precisely on an absent baseline, so the likely render is a divergence line the spec neither authorises nor suppresses. A19 pins \"one line per `reconcileCore` divergence\" (no filtering) and §2 forbids behaviour changes to reconcile — so if the class fires, the builder has no legal way to make the output match the spec's framing that \"reconcile's fail-closed classes fire only on evidence that was actually supplied\"; if it does not fire, the render is fine. Code-blind, the expected output for this branch is undecidable.",
+      "evidence": "§3 \"ReconcileInput assembly\" third bullet; A19; the test list's \"no tracker facts\" fixture and the DONE item both use a **readable** `sibling-baseline.json`, so the missing/unreadable branch the spec itself names has no covering test anywhere.",
+      "predicted_consequence": "a run whose step-11.5 write was skipped — the exact case the run-level class exists for — renders a `[sibling-check-unproven] run:` line whose correctness nobody can judge against this spec; the builder's covering test either pins whatever reconcile happens to do (asserting nothing about intent) or fails with both remediations out of scope.",
+      "spec_anchor": "what-is-computed-and-from-where",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Missing-baseline branch now renders the sibling-check-unproven line as a disk fact, with a covering test.",
+      "first_round": 9,
+      "last_round": 9,
+      "occurrences": [
+        {
+          "round": 9,
+          "severity": "minor",
+          "claim": "§3 specifies that when the baseline file is missing or unreadable the `sibling_baseline` field is \"left out (never `{captured: false}`)\", but the spec never states what the ground-truth section then renders. The documented reconcile behaviour (context: the run-level class `[sibling-check-unproven] run: no sibling baseline attested — the unowned-sibling-mutation check did not run`) fires precisely on an absent baseline, so the likely render is a divergence line the spec neither authorises nor suppresses. A19 pins \"one line per `reconcileCore` divergence\" (no filtering) and §2 forbids behaviour changes to reconcile — so if the class fires, the builder has no legal way to make the output match the spec's framing that \"reconcile's fail-closed classes fire only on evidence that was actually supplied\"; if it does not fire, the render is fine. Code-blind, the expected output for this branch is undecidable.",
+          "spec_anchor": "what-is-computed-and-from-where"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "the fixture mirrors a real run's outcomes, and every `shipped` outcome forces a `ghJson` forge read for reconcile's `observed` (§3). The smoke test runs the real CLI (`faff run summary --run-dir T --facts F`) with no stated forge control, so the rendered bytes depend on whether `gh` exists, authenticates and succeeds in the environment — and the `could not read forge: <reason>` text varies by environment. The golden's own rendering conditions (stubbed forge? live? failing?) are unstated, so there is no defined condition under which the golden is reproducible.",
+      "evidence": "4.5 fixture paragraph (\"rendered to a committed golden\") and the \"Integration smoke test\" block (\"T/summary.md equals the committed golden\"); §3 \"Its `observed` … comes from `ghJson([...])` on the forge\".",
+      "predicted_consequence": "the smoke test fails on any machine whose `gh` behaviour differs from the golden-rendering machine, or passes only vacuously where it happens to match — the AC \"T/summary.md equals the committed golden\" cannot be decided as written. The in-process determinism test is fine (it stubs `ghJson`); only the CLI-level smoke path is broken.",
+      "spec_anchor": "4-5-tests-in-test-only-node-test-no-selftest",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The golden renders in-process with ghJson stubbed (land.js deps pattern); the CLI smoke test excludes the ground-truth section.",
+      "first_round": 9,
+      "last_round": 9,
+      "occurrences": [
+        {
+          "round": 9,
+          "severity": "minor",
+          "claim": "the fixture mirrors a real run's outcomes, and every `shipped` outcome forces a `ghJson` forge read for reconcile's `observed` (§3). The smoke test runs the real CLI (`faff run summary --run-dir T --facts F`) with no stated forge control, so the rendered bytes depend on whether `gh` exists, authenticates and succeeds in the environment — and the `could not read forge: <reason>` text varies by environment. The golden's own rendering conditions (stubbed forge? live? failing?) are unstated, so there is no defined condition under which the golden is reproducible.",
+          "spec_anchor": "4-5-tests-in-test-only-node-test-no-selftest"
+        }
+      ]
+    }
+  ]
+}

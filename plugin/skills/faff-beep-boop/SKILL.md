@@ -24,7 +24,7 @@ Beep-boop uses these `slots` from `.faff/config.yaml` when set:
 
 The gateway-load preamble (gateway → **Install health (doctor-at-entry)**) already runs `"$faff" doctor` once on entry; in autonomous mode it never prompts and never runs `faff sync` — that rule is unchanged. What beep-boop adds is **surfacing**: the same doctor exit code is threaded into *this run's own* report, so a dirty install is loud up front instead of discoverable only via a mid-run symptom or the next `/faff-wtf`.
 
-- **exit 1 (install not clean)** — prepend `"$faff" doctor`'s own `RESULT: …` line to `.faff/runs/<run-id>/summary.md`, ahead of the Methodology line (see `## Reporting`), as a loud warning:
+- **exit 1 (install not clean)** — `faff run summary` puts doctor's own `RESULT: …` line first in `.faff/runs/<run-id>/summary.md` (it runs doctor in-process; see `## Reporting`), as a loud warning:
 
       ⚠ INSTALL-HEALTH: <doctor's RESULT line, verbatim> — remediation: run `faff sync`.
 
@@ -372,7 +372,7 @@ faff runcheck   # audits the latest .faff/runs/* ledger
 
 Runs immediately **after** step 11's `runcheck` (completeness) and **before** writing the run summary — a **separate** gate for a **separate** property. `runcheck` proves the ledger is internally complete (`admitted − outcomes = ∅`); this gate confronts each ledger claim with **live** reality (git/forge + tracker), so a phantom merge or a wrongly-mutated sibling doesn't survive to a "complete" run report uncaught. `faff reconcile`'s assertion core is pure (no model judgement in the gate itself) — this step is the orchestrator's impure evidence-gathering half, mirroring the `merge-gate` split.
 
-1. **Assemble `ReconcileInput`.** For every ledger outcome `== "shipped"`, read `<run-dir>/<issue>/merge-record.json` (written by `merge-gate` on the merge-ok path) as `recorded`, and observe the **live** forge (`gh pr view <pr> --json state,headRefOid`) for `observed: {pr_merged: state == "MERGED", merged_head_sha: headRefOid}`. **Observe `headRefOid`, NOT `mergeCommit`** — `recorded.head_sha` is the PR **head** sha `merge-gate` pinned with `--match-head-commit` (the same `headRefOid`); comparing it against the squash/merge **commit** sha would false-positive a `phantom-merge` on every clean squash merge (the forge always mints a new commit sha for a squash), so the comparison must be head-against-head. An unreadable/missing record is passed through as `recorded: null` — never silently dropped or assumed-fine (the reconcile core fails it closed to a divergence). For siblings, re-read step 4's `<run-dir>/sibling-baseline.json` entries **live** (their current state-category) into `end_state_terminal`, carrying `admitted` as membership in the run's final `admitted[]` (so a later-wave chain-unlock is excluded).
+1. **Assemble `ReconcileInput`.** For every ledger outcome `== "shipped"`, read `<run-dir>/<issue>/merge-record.json` (written by `merge-gate` on the merge-ok path) as `recorded`, and observe the **live** forge (`gh pr view <pr> --json state,headRefOid`) for `observed: {pr_merged: state == "MERGED", merged_head_sha: headRefOid}`. **Observe `headRefOid`, NOT `mergeCommit`** — `recorded.head_sha` is the PR **head** sha `merge-gate` pinned with `--match-head-commit` (the same `headRefOid`); comparing it against the squash/merge **commit** sha would false-positive a `phantom-merge` on every clean squash merge (the forge always mints a new commit sha for a squash), so the comparison must be head-against-head. An unreadable/missing record is passed through as `recorded: null` — never silently dropped or assumed-fine (the reconcile core fails it closed to a divergence). For siblings, re-read step 4's `<run-dir>/sibling-baseline.json` entries **live** (their current state-category) into `end_state_terminal`, carrying `admitted` as membership in the run's final `admitted[]` (so a later-wave chain-unlock is excluded). Write the same sibling end states and supersession-delivery observations into the summary facts file's `tracker` object (`## Reporting` → §1).
 
    **Git-only mode (no pushable remote; `merge-record.json.pr` is `0`, the null-coerced sentinel).** There is no forge to call `gh pr view` against, so gather `observed` from **git ground truth** instead: `observed.pr_merged := git merge-base --is-ancestor <recorded.head_sha> <base>` exits 0 (the base-resolution is the same one `merge-gate --local` and the `merge-fence` matcher use), and `observed.merged_head_sha := recorded.head_sha` when that check succeeds (else omit it — an unprovable local merge stays fail-closed to `claimed-shipped-unmerged`, identical to an unreadable forge read). `reconcileShipped` then classifies **consistent** exactly as for a PR merge — no `reconcile.js` change; only this evidence-gathering half branches. **Superseded evidence:** for every ledger outcome `== "superseded"`, read `<run-dir>/<issue>/supersession.json` into `recorded` (unreadable/missing → `recorded: null`, same fail-closed treatment as a missing `merge-record.json`), and observe each `recorded.superseded_by` ticket's live terminal state into `observed.all_delivered` (tracker: Done/Cancelled; git-only: best-effort `git log --grep` / `git merge-base --is-ancestor` presence on `main`, fail-closed on unprovable) — append `{issue, recorded, observed}` to `ReconcileInput.superseded[]`. Nothing writes `supersession.json` today (producer is a sibling ticket, not yet shipped); until it ships every `superseded` outcome is hand-authored, so this keeps the fail-closed path exercised. **Attest the sibling baseline:** try to read `<run-dir>/sibling-baseline.json` (step 4's write) — readable → `ReconcileInput.sibling_baseline = {captured: true, entry_count: <the file's entry count, same as siblings[].length above>}`; missing/unreadable/step-4-never-ran → **omit `sibling_baseline` entirely** (never synthesise `{captured: false}` — absence and explicit-false read identically). This proves the assembler read the file, catching the omission this ticket exists for; it does **not** prove the read was genuine — with zero siblings `entry_count(0) >= siblings.length(0)` trivially, so never invent a plausible `entry_count` just to satisfy the gate.
 2. **Pipe to the pure gate:** `faff reconcile --run-dir "$run_dir" --level <L1..L4> --json` (stdin = the assembled `ReconcileInput`, now carrying `sibling_baseline`; the CLI stamps its own `level` from the flag). Heartbeat `faff heartbeat "$run_dir"` before/after — this step touches the forge and can be the longest quiet sub-step at run-end.
@@ -587,122 +587,26 @@ On run completion, first append the `run-end` event (per the phase-closer table 
 
 ### 1. `.faff/runs/<run-id>/summary.md`
 
-When this run's install-health preflight (above) found the install not clean, the file's **first line** is that section's `⚠ INSTALL-HEALTH: …` warning — ahead of everything else below.
+Write the facts file, then render the summary with one call. It writes `summary.md` and prints the same bytes:
 
-When a `methodology` skill is configured, the next line (the first line, when install-health is clean) is the literal string:
-
-    Methodology: [skill-name]
-
-(followed by the existing summary layout below). When neither applies, the file starts with the `# Beep-Boop Run …` heading as normal.
-
-```markdown
-# Beep-Boop Run — YYYY-MM-DD HH:MM:SS
-Mode: [full | explicit-list] · Duration: Xh Ym
-Waves: N · Sentry: N checkpoints · max intervention: <continue|surface|pause|correct|abort>
-Stop reason: queue-drained | all-remaining-parked | budget-hit(<dims>) | budget-escalated(<dims>) | sentry-abort | converged/both-dry | non-convergence | product-incomplete
-
-## Unit economics — call `faff economics --run-dir <run-dir> --json --root "$measure_root" --session-id "$session_id"` (pure) after step-11 runcheck; the CLI computes, beep-boop only renders
-Run spend <tokens_total> (<tokens_source>)[ · $<cost_total>] · per shipped <tokens_each>[· $x] (`— (0 shipped) ⚠ ZERO-SHIP` when zero_ship) · per attempt <tokens_each> (<attempt_count>) · per bucket shipped N·parked N (`no build outcomes this run` if empty) · per issue SHF-49 6.1M (omit if per_issue empty) · one `⚠ <warning>` per warnings[] · `⚠ metering degraded at mint: estimate-only (budget.on_estimate_only: warn)` when the run ledger's `budget.metering.degraded` is true
-
-## Methodology findings (rendered only when a methodology skill is configured)
-
-(One-line summary of how the lens shaped this run — e.g. "Re-ordered 2 collision groups for value-aware sequencing; no methodology violations surfaced." Or list the diagnoses the methodology surfaced during the run, one per line, as it returned them.) **PRD-distance (under a resolved target PRD):** note that the `prd-distance` input was assembled and handed to the ordering outputs; and ⚠ **silent-no-op tripwire** — when the supplied map matched **zero** queue-issue containers (siblings exist but no queue issue slug-matched any `Entry.container`, likely a container-slug vocabulary drift), surface a one-line warning so the mapping gets fixed.
-
-## Build queue verdicts at admission
-- fire-and-forget: N
-- likely-fire: N
-(admitted: N total)
-
-## Routed out (not built — needs human action)
-
-gap-blocked (N)
-- ISSUE-BB  [synthesis gloss] — spec assumes [named gap]
-
-circular-blocked (N)
-- ISSUE-CC  [synthesis gloss] — in cycle [CC → DD → EE → CC]
-
-repeat-parked ⚠ (N)
-- ISSUE-DD  [synthesis gloss] — parked N runs same root cause: [class]
-
-## Resolve-attempts (appetite high/full)
-- Attempted: N — Succeeded (proceeded with audit trail): N — Failed (parked): N
-
-### Proceeded on medium confidence: N
-> These shipped autonomously on an inferred answer. The audit-trail comment is on each PR — review before merge if you disagree; faff re-parks on a dissenting comment. Full record in `.faff/calibration/appetite-decisions/`.
-- ISSUE-PP  [synthesis gloss] — inferred [answer] from [evidence]; PR #nnn (audit comment posted)
-
-## Shipped (auto-merged): N
-- ISSUE-XX: title (PR #nnn)
-
-## Shipped (adversarial review skipped — chain outage): N
-- ISSUE-XX: title (PR #nnn) — every adversarial backend was unreachable; merged on Phase-1 + AC + CI, WITHOUT a second-opinion pass (ledger: review_adversarial_skipped)
-
-## Shipped (post-merge verification flagged): N (rendered only when either ledger array is non-empty)
-- ISSUE-XX: title (PR #nnn) — merged main HEAD failed its own declared test command on re-run: `<command>` (sha `<short-sha>`); tracker comment + discovered-scope entry filed, NOT reverted, NOT reopened (ledger: post_merge_verification_failures)
-- ISSUE-YY: title (PR #nnn) — no declared UNIT rung, or a worktree/execution error; verdict unobtainable, not a defect (ledger: post_merge_verification_unverified)
-
-## Superseded (delivered by prior tickets): N (rendered only when ≥1 `superseded` outcome)
-- ISSUE-XX: title — deliverables already on `main` via ISSUE-AA, ISSUE-BB (supersession: `.faff/runs/<run-id>/ISSUE-XX/supersession.json`)
-
-## PR open for human review: N
-- ISSUE-YY: title (PR #nnn) — reason: CI failing on e2e; AC3 requires visual review
-
-## Awaiting landing (resumable): N (rendered only when `landing_resumable` is non-empty)
-- ISSUE-QQ: title (PR #nnn) — landing-time budget elapsed mid-CI-wait; PR open, non-draft; a later drain resumes the landing loop via the recovery-claim (ledger: landing_resumable)
-
-## Parked: N
-- ISSUE-ZZ: title — reason: low-confidence fresh-spec (log: ISSUE-ZZ/prep.md)
-- ISSUE-AA: title — reason: unresolved Punt — [short topic] (decides: [owner]); resolve-attempt failed
-```faff-parks
-[]
+```bash
+"$faff" run summary --run-dir "$FAFF_RUN_DIR" --facts "$FAFF_RUN_DIR/summary-facts.json"
 ```
-(the run's `park_records` accumulator, rendered once — `[]` for zero parks; gateway → **Park protocol (shared)** → _the accumulator and render boundary_)
-## Awaiting review (adversarial outage): N (rendered only when `review_outage_pending` is non-empty)
-- ISSUE-XX: title — review provider unavailable; build held (branch pushed, checkpoint intact); attempt n/N; auto-resumes at review next drain (ledger: review_outage_pending)
-## Awaiting spec-review (adversarial outage): N (rendered only when `spec_review_outage_pending` is non-empty)
-- ISSUE-XX: title — spec-review provider unavailable; spec attached and held; attempt n/N; auto-resumes at review next prep drain (ledger: spec_review_outage_pending)
 
-## Awaiting spec-review (slow fan-out): N (rendered only when `spec_review_turn_budget_pending` is non-empty)
-- ISSUE-XX: title — spec-review did not finish this turn; spec attached and held; attempt n/N; auto-resumes at review next prep drain (ledger: spec_review_turn_budget_pending)
-## Errored: N
-- ISSUE-WW: title — MCP timeout during build
+The command computes everything faff can read itself: the outcome buckets and annotation arrays, the header, unit economics, install health, PR numbers, superseded ids, the holdout split and the ground-truth divergences. A missing or malformed facts file renders a `⚠ could not read facts` line at exit 0; exit 2 means the ledger itself is unreadable. Lines built from the facts file end ` _(reported)_`. The facts file carries only what faff's CLI cannot read: tracker reads and in-run judgements.
 
-## Unreached (budget hit): N
-- ISSUE-VV: title — admitted to build queue, not dispatched (--until 06:00 fired before launch)
-
-## Product-incomplete (holdout escalation): rendered only when the L4 holdout phase ran
-- The per-run holdout verdict rolled up `fails`/`gaps`/`needs-human` → run escalated, PRD-done not claimed: [aggregate] (holdout: `.faff/holdout/<run-id>.json`). When it carries `needs_human_reasons`, name the **environment-gap** subset (`no-surface`/`wire-error`/`credentials-unavailable`/`env-not-ready`/`unspecified` — fix the env and re-run) apart from the **human-only** subset, so an environment problem is never presented as an authoring one
-
-## Ground-truth divergences: N (rendered only when step 11.5 found ≥1): warn (≤L3) / ESCALATED (L4)
-- [phantom-merge] ISSUE-XX: shipped on abc123 but forge merged def456 (rollback: `git revert def456`)
-- [claimed-shipped-unmerged] ISSUE-YY: shipped claim with no merge on record/forge
-- [unowned-sibling-mutation] ISSUE-ZZ: a spec-referenced non-admitted sibling moved terminal within the run's window; this run cannot attribute it to any actor (classes also include `superseded-unproven` and the run-level `sibling-check-unproven` — e.g. `[sibling-check-unproven] run: no sibling baseline attested — the unowned-sibling-mutation check did not run`, usually meaning step 4's write was skipped)
-
-## Inferred build-order deps: N (run-local — no tracker write)
-- ISSUE-E ← ISSUE-D (consumer ← producer; firm, paraphrase): serialised D-before-E — E **Assumes:** a rate limiter; D produces module `rate_limiter`
-- Surfaced, not serialised (ambiguous): N
-  - ISSUE-F: "integrate with the new infra somehow" — no nameable producer; left independent
-- Cycle flagged (likely spec error): ISSUE-G ↔ ISSUE-H — collapsed to one serialised group, ticket-id order
-(Appears only when heuristic 6 inferred ≥1 edge. Audit detail in `.faff/runs/<run-id>/conflict-analysis.md`.)
-
-## Discovered scope (execution-reported): N filed
-- ISSUE-XX → filed SHF-NN (downstream): "title" — discovered during build, Backlog (next run preps it)
-- Deduped (already tracked): N — Surfaced only (vague, or low appetite): N
-  - ISSUE-YY: "logging inconsistent across handlers" — vague, not filed
-
-## Human follow-ups: N
-- ISSUE-XX: delete local branch `feat/issue-xx` (cleanup skipped — shell was inside worktree)
-- ISSUE-YY: remove worktree `~/.faff/worktrees/faff/issue-yy` (cleanup skipped — permission denied); ISSUE-ZZ: bump tracker status to Done (MCP returned 5xx during post-merge update)
-
-## Prep queue summary (full mode only)
-- Refreshed: N
-- Promoted: N
-- Promoted (needs review, medium confidence): N
-- Parked: N
-- Errored: N
-
-## Tidy findings (full mode only) — see logs/YYYY-MM-DD/HHMMSS-tidy.md
 ```
+{ "format": 2,
+  "tracker": { "titles": {ID: title}, "sibling_end_states": {ID: {"end_state_terminal": bool}}, "superseded_delivered": {ID: bool} },
+  "run": { "gloss": {ID: text}, "methodology_findings": {"findings": [text], "prd_distance"?: text},
+           "verdicts": {"fire_and_forget": N, "likely_fire": N, "routed_out": {"gap-blocked"|"circular-blocked"|"repeat-parked": [{"id", "detail"}]}},
+           "resolve_attempts": {"attempted", "succeeded", "failed", "proceeded_medium": [{"id", "inferred", "evidence", "pr"}]} | null,
+           "park_records": [{"issue_id", "root_cause_class", "timestamp"}], "reasons": {ID: text}, "inferred_deps": {...} | null,
+           "discovered_scope": {"filed": [{"from", "id", "title", "relationship"}], "deduped": N, "surfaced": [{"id", "text", "why"}]} | null,
+           "follow_ups": [text], "prep_summary": {...} | null, "tidy_log": path | null, "waves": N } }
+```
+
+`tracker.sibling_end_states` and `tracker.superseded_delivered` are the live observations step 11.5 already made for `faff reconcile`. `park_records` is the run's park accumulator (gateway → **Park protocol (shared)**); the command renders it as the `faff-parks` fence.
 
 The **Human follow-ups** section captures post-merge housekeeping that was skipped so the run could continue — branch/worktree cleanup, tracker status bumps, label cleanup, shell return-to-main. See the gateway's Autonomous Mode Contract ("Post-merge housekeeping failures never halt the queue"). These are one-liners the human can clear in a minute the next morning; none of them block shipped work, so none of them justify stopping the pipeline.
 

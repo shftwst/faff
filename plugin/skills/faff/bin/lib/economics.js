@@ -1236,6 +1236,85 @@ function cmdEconomics(args) {
   try { ledger = readLedger(runDir); }
   catch { process.stderr.write(`faff economics: cannot read ${path.join(runDir, "run-ledger.json")}\n`); return 2; }
 
+  const { econ, effortRun, engineSpend, measuredSource, effectiveEnv, runStartMs, measuredTotal, priceMap, closedSpend } =
+    economicsCore(runDir, ledger, { root, sessionIdFlag, baseEnv: process.env, byAxis });
+
+  // No `--by` → today's behaviour, byte-for-byte (always-JSON UnitEconomics blob).
+  if (byAxis == null) {
+    console.log(JSON.stringify(econ));
+    return 0;
+  }
+
+  // `--by <axis>`: pivot the SAME transcript record set into the requested axis'
+  // buckets. topLineTotal is the RAW measureTokens sum over the same files (never
+  // baseline-subtracted), so `--by class` reconciles by construction.
+  let bd;
+  if (byAxis === "effort") {
+    // FAFF-415: the effort axis reads events.jsonl (the only place request-time
+    // effort is recorded), independent of whether the live transcript is resolvable.
+    // The dominant model + top-line come from the transcript when available (used to
+    // price + report coverage), else null.
+    const { events, malformed } = effortRun;
+    // FAFF-705: fold engine-spend into the effort axis too. An engine-only run (no events.jsonl
+    // but codex effort-tagged spend) still folds — so keep the estimate short-circuit ONLY when
+    // there are neither events NOR engine-spend records (byte-identical to today's empty case).
+    if (events.length === 0 && !(engineSpend && engineSpend.records > 0)) {
+      bd = { axis: "effort", source: "estimate", rows: [],
+        reconciliation: { events_token_total: 0, top_line_total: null, coverage_pct: null, reconciles: null, malformed_lines: malformed } };
+    } else {
+      let dominant = null, topLine = null;
+      if (measuredSource === "transcript") {
+        const { records } = readRunTranscriptRecords(root, effectiveEnv, runStartMs);
+        dominant = economicsDominantModel(records);
+        topLine = measuredTotal;
+      }
+      bd = economicsEffortBreakdown(events, priceMap, dominant, topLine, malformed, engineSpend);
+    }
+  } else if (measuredSource !== "transcript") {
+    bd = { axis: byAxis, source: "estimate", rows: [],
+      reconciliation: { grand_total: 0, top_line_total: null, reconciles: false } };
+  } else if (byAxis === "phase") {
+    // FAFF-500: the JOIN axis — per-file transcript census (to tell parent synthesis
+    // from explore child) crossed with events.jsonl windows (to tell prep from build).
+    // Reuses measuredTotal as the reconciliation top-line, so it reconciles by
+    // construction over the SAME record population the flat measure summed. Reads
+    // `effectiveEnv` (not process.env) so a `--session-id` override selects the SAME
+    // session the top-line measured against — otherwise the census and the top-line
+    // could diverge under --session-id and break reconciliation (FAFF-488 parity).
+    const { files } = readRunTranscriptRecordsByFile(root, effectiveEnv, runStartMs);
+    const { events, malformed } = readRunEvents(runDir);
+    const windows = phaseWindowsFromEvents(events);
+    const flat = [];
+    for (const f of files) for (const r of f.records) flat.push(r);
+    const dominant = economicsDominantModel(flat);
+    bd = economicsPhaseBreakdown(files, windows, priceMap, dominant, measuredTotal, malformed);
+  } else {
+    const { records } = readRunTranscriptRecords(root, effectiveEnv, runStartMs);
+    if (byAxis === "mcp") {
+      bd = economicsMcpBreakdown(records, priceMap, economicsDominantModel(records));
+    } else {
+      // FAFF-933: `closedSpend.byModel` rides through so the class/model axes can
+      // fold the prior epochs and stay reconciled to the epoch-spanning top line.
+      // The breakdown itself decides which axes fold — day/mcp/effort/phase never do.
+      bd = economicsBreakdown(records, byAxis, priceMap, measuredTotal, engineSpend, closedSpend.byModel);
+    }
+  }
+
+  if (args.includes("--json")) {
+    console.log(JSON.stringify({ ...econ, breakdown: bd }));
+    return 0;
+  }
+  console.log(renderEconomicsBreakdown(bd));
+  return 0;
+}
+
+
+// FAFF-1435: the whole-run economics computation, moved verbatim out of cmdEconomics so
+// `faff run summary` reads the same figure in-process. `baseEnv` is the env the measure
+// functions see (cmdEconomics passes process.env, byte-for-byte its old behaviour); `byAxis`
+// only decides which epoch-scoping warnings apply. Returns the UnitEconomics blob `faff
+// economics --json` prints plus the intermediates the `--by` breakdowns read.
+function economicsCore(runDir, ledger, { root, sessionIdFlag = null, baseEnv = process.env, byAxis = null }) {
   // FAFF-933: a run resumed across epochs is ONE run made of several sessions,
   // each with its own transcript. FAFF-527 records every prior epoch in the
   // ledger as a CLOSED span carrying its measured per-model delta, and
@@ -1256,7 +1335,7 @@ function cmdEconomics(args) {
   // process.env, byte-for-byte today's ambient resolution.
   const openSpanSessionId = budgetSessions ? ((currentOpenSpan(budgetSessions) || {}).session_id || null) : null;
   const measureSessionId = sessionIdFlag || openSpanSessionId || (ledger.budget && ledger.budget.measure_session_id) || null;
-  const effectiveEnv = measureSessionId ? { ...process.env, CLAUDE_CODE_SESSION_ID: measureSessionId } : process.env;
+  const effectiveEnv = measureSessionId ? { ...baseEnv, CLAUDE_CODE_SESSION_ID: measureSessionId } : baseEnv;
 
   const closedSpend = budgetSessions ? closedSessionsSpend(budgetSessions) : { total: 0, byModel: new Map() };
   // PRESENCE, not magnitude. A closed span whose measured delta is 0 (a degraded
@@ -1536,73 +1615,14 @@ function cmdEconomics(args) {
     econ.warnings.push(`engine(s) with telemetry: none in the fleet — ${unmeteredAll.join(", ")}; their spend is unobservable and is NOT counted in the figures above`);
   }
 
-  // No `--by` → today's behaviour, byte-for-byte (always-JSON UnitEconomics blob).
-  if (byAxis == null) {
-    console.log(JSON.stringify(econ));
-    return 0;
-  }
+  return { econ, effortRun, engineSpend, measuredSource, effectiveEnv, runStartMs, measuredTotal, priceMap, closedSpend };
+}
 
-  // `--by <axis>`: pivot the SAME transcript record set into the requested axis'
-  // buckets. topLineTotal is the RAW measureTokens sum over the same files (never
-  // baseline-subtracted), so `--by class` reconciles by construction.
-  let bd;
-  if (byAxis === "effort") {
-    // FAFF-415: the effort axis reads events.jsonl (the only place request-time
-    // effort is recorded), independent of whether the live transcript is resolvable.
-    // The dominant model + top-line come from the transcript when available (used to
-    // price + report coverage), else null.
-    const { events, malformed } = effortRun;
-    // FAFF-705: fold engine-spend into the effort axis too. An engine-only run (no events.jsonl
-    // but codex effort-tagged spend) still folds — so keep the estimate short-circuit ONLY when
-    // there are neither events NOR engine-spend records (byte-identical to today's empty case).
-    if (events.length === 0 && !(engineSpend && engineSpend.records > 0)) {
-      bd = { axis: "effort", source: "estimate", rows: [],
-        reconciliation: { events_token_total: 0, top_line_total: null, coverage_pct: null, reconciles: null, malformed_lines: malformed } };
-    } else {
-      let dominant = null, topLine = null;
-      if (measuredSource === "transcript") {
-        const { records } = readRunTranscriptRecords(root, effectiveEnv, runStartMs);
-        dominant = economicsDominantModel(records);
-        topLine = measuredTotal;
-      }
-      bd = economicsEffortBreakdown(events, priceMap, dominant, topLine, malformed, engineSpend);
-    }
-  } else if (measuredSource !== "transcript") {
-    bd = { axis: byAxis, source: "estimate", rows: [],
-      reconciliation: { grand_total: 0, top_line_total: null, reconciles: false } };
-  } else if (byAxis === "phase") {
-    // FAFF-500: the JOIN axis — per-file transcript census (to tell parent synthesis
-    // from explore child) crossed with events.jsonl windows (to tell prep from build).
-    // Reuses measuredTotal as the reconciliation top-line, so it reconciles by
-    // construction over the SAME record population the flat measure summed. Reads
-    // `effectiveEnv` (not process.env) so a `--session-id` override selects the SAME
-    // session the top-line measured against — otherwise the census and the top-line
-    // could diverge under --session-id and break reconciliation (FAFF-488 parity).
-    const { files } = readRunTranscriptRecordsByFile(root, effectiveEnv, runStartMs);
-    const { events, malformed } = readRunEvents(runDir);
-    const windows = phaseWindowsFromEvents(events);
-    const flat = [];
-    for (const f of files) for (const r of f.records) flat.push(r);
-    const dominant = economicsDominantModel(flat);
-    bd = economicsPhaseBreakdown(files, windows, priceMap, dominant, measuredTotal, malformed);
-  } else {
-    const { records } = readRunTranscriptRecords(root, effectiveEnv, runStartMs);
-    if (byAxis === "mcp") {
-      bd = economicsMcpBreakdown(records, priceMap, economicsDominantModel(records));
-    } else {
-      // FAFF-933: `closedSpend.byModel` rides through so the class/model axes can
-      // fold the prior epochs and stay reconciled to the epoch-spanning top line.
-      // The breakdown itself decides which axes fold — day/mcp/effort/phase never do.
-      bd = economicsBreakdown(records, byAxis, priceMap, measuredTotal, engineSpend, closedSpend.byModel);
-    }
-  }
-
-  if (args.includes("--json")) {
-    console.log(JSON.stringify({ ...econ, breakdown: bd }));
-    return 0;
-  }
-  console.log(renderEconomicsBreakdown(bd));
-  return 0;
+// FAFF-1435: the object `faff economics --json` prints for a run dir, computed in-process.
+// Throws when the run ledger cannot be read (the CLI turns that into its exit-2 message).
+function economicsForRun(runDir, { root, sessionId = null, env = process.env } = {}) {
+  const ledger = readLedger(runDir);
+  return economicsCore(runDir, ledger, { root: root || findRoot(), sessionIdFlag: sessionId, baseEnv: env, byAxis: null }).econ;
 }
 
 // Selftest — drives the pure core (computeUnitEconomics) + the attribution
@@ -1856,4 +1876,4 @@ function economicsSelftest() {
 }
 
 
-module.exports = { BY_AXES, ECONOMICS_BUCKET_ORDER, ECON_B2T, EFFORT_NONE_KEY, EFFORT_ORDER, PRICE_PER_MTOK, attributePerIssueCosts, cmdEconomics, computeUnitEconomics, econAttributeCacheRead, econBlockSizeChars, econIsCompactBoundary, econOrderLineage, econToLightRecord, economicsAttributeIssue, economicsBreakdown, economicsDayOf, economicsDominantModel, economicsEffortBreakdown, economicsMcpBreakdown, economicsPhaseBreakdown, economicsPriceForModel, economicsRowCost, economicsSelftest, economicsTokFromChars, economicsUsageOf, phaseWindowsFromEvents, readRunEvents, readRunTranscriptRecords, readRunTranscriptRecordsByFile, renderEconomicsBreakdown, resolveEconomicsPriceMap };
+module.exports = { BY_AXES, ECONOMICS_BUCKET_ORDER, ECON_B2T, EFFORT_NONE_KEY, EFFORT_ORDER, PRICE_PER_MTOK, attributePerIssueCosts, cmdEconomics, computeUnitEconomics, economicsForRun, econAttributeCacheRead, econBlockSizeChars, econIsCompactBoundary, econOrderLineage, econToLightRecord, economicsAttributeIssue, economicsBreakdown, economicsDayOf, economicsDominantModel, economicsEffortBreakdown, economicsMcpBreakdown, economicsPhaseBreakdown, economicsPriceForModel, economicsRowCost, economicsSelftest, economicsTokFromChars, economicsUsageOf, phaseWindowsFromEvents, readRunEvents, readRunTranscriptRecords, readRunTranscriptRecordsByFile, renderEconomicsBreakdown, resolveEconomicsPriceMap };

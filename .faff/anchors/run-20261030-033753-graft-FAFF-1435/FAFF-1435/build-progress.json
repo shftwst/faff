@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1435",
+  "build": {
+    "status": "complete",
+    "diff_hash": "90414d7741175e8929a0398a5c805b7ef1a8f4f510b01d45e7599b6746dcf4ad",
+    "branch": "faff-1435-run-summary",
+    "pushed_at": "2026-10-30T04:24:13.182Z"
+  },
+  "updated_at": "2026-10-30T04:24:13.182Z"
+}

@@ -355,6 +355,15 @@ test("andon fail-open: a non-zero pump leaves the action unchanged and adds a fa
   assert.deepEqual(called(deps, "andon pump")[0].args, ["andon", "pump", "--run-dir", join(fx.root, ".faff", "runs", RUN_ID)]);
 });
 
+test("spawn throws: a throwing subcommand spawn is that step's failed read, never a crash", () => {
+  const fx = budgetFx();
+  writeFileSync(join(fx.runDir, "run-ledger.json"), JSON.stringify({ level: "L4", budget: { measure_root: fx.root } }));
+  const boom = () => { throw new Error("spawn EMFILE"); };
+  const r = run(fx, fakeDeps({ "effects check": boom, "sentry check": boom }));
+  assert.equal(r.action, "fail-closed");
+  assert.ok(r.faults.includes("effects-check-failed") && r.faults.includes("sentry-consult-failed"), JSON.stringify(r.faults));
+});
+
 test("abort spawn fails: the action stays abort, sentry_aborted false, fault recorded", () => {
   const fx = budgetFx();
   writeFileSync(join(fx.runDir, "run-ledger.json"), JSON.stringify({ level: "L4", budget: { measure_root: fx.root } }));

@@ -211,7 +211,15 @@ function runCheckpoint(args, deps) {
     const runDir = path.join(root, ".faff", "runs", runId);
     const level = str(field(ledger, "level")) ?? null;
     const sessionArgs = args.sessionId === null ? [] : ["--session-id", args.sessionId];
-    const faff = (argv, input) => deps.faff(argv, input === undefined ? { cwd: root } : { cwd: root, input });
+    // A spawn that throws is a failed read like any other non-zero exit, so it lands as its step's fault.
+    const faff = (argv, input) => {
+        try {
+            return deps.faff(argv, input === undefined ? { cwd: root } : { cwd: root, input });
+        }
+        catch (e) {
+            return { status: null, stdout: "", stderr: errText(e) };
+        }
+    };
     // A malformed base config degrades to the built-in defaults exactly as `sentry check` does, and is
     // recorded; any other config fault is the dispatch boundary's loud exit.
     let cfg;

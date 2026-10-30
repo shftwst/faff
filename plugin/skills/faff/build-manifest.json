@@ -6,7 +6,7 @@
     "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
   },
   "config": {
-    "tsconfig.json": "b3a4e5634628f7433504c5487967ef6155405fd4406f950725893d7a3a132f0d"
+    "tsconfig.json": "248782c0d2dc6efefe0b4f8143b25c085b0c26997579ea89cfb573a0519d160a"
   },
   "lock": {
     "package-lock.json": "b64bb7ba6298d47694b5700301c5fbec5aec2d5ce8351937d1cda8873fc5697a",
@@ -31,6 +31,8 @@
     "bin/lib/prep-attach.ts": "edc5cd6bd5dd74419ec5ba34581d808c017f21f536d34edacfddf8620ddfb974",
     "bin/lib/producer-auth.ts": "fcaed615b47929a0db1d307553291ac8d15aca206003cdedd5e6807fc3914272",
     "bin/lib/result.ts": "9faed77603fd2095150b6b405444d9fe4c6783a0da9339e8dc6121cb1921c4a3",
+    "bin/lib/run-summary.ts": "694a5eb76583f055050a0f9a4f38d3e082ee765cbdf32bbf6cc85ff104cf519d",
+    "bin/lib/run.ts": "039b0a6f98a515701fffcd8db71aaf0bd93350d6a2fe56ac8c9465a4d963f3d3",
     "bin/lib/spec-commit.ts": "bf42fe6bfbc1d6bab90726bcc13f42e8323433a7f1b439144a9b157bee7366a5"
   },
   "outputs": {
@@ -52,7 +54,9 @@
     "bin/lib/prep-attach.js": "c7134252d62695133de5909ffab6eeeaeb58dc238c7552e250735794b3f1ad81",
     "bin/lib/producer-auth.js": "6ef8d8a93c885992b0f58c3156f1e2df96518cbedd4df95cd7e2b72fa9009baf",
     "bin/lib/result.js": "09f1ec919a2ff84a38e1fe1e8ac5ed983ddabb90f75bfa8647cfccce561ff03e",
+    "bin/lib/run-summary.js": "903f8ac62899aac2b47e32d6205400a565de3a138301c1127efc3b7dfc4f9071",
+    "bin/lib/run.js": "f014a55391a95e0d4700f1f0ea8ea75d128d3175d448844817338b91f11bd203",
     "bin/lib/spec-commit.js": "a67e16c5350409137c63faa17ba1d0458cfea84414e9f42814caa92574cb4d58"
   },
-  "output_digest": "091a198533e0596c3dd4c124d28c47a1586ead34ab3636ea82f60465ee6a1584"
+  "output_digest": "0335723ec83b2d9bdac312259e09269f9eb4ee8e9a5d7b1c4281772d8577fd81"
 }

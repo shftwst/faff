@@ -47,6 +47,7 @@ const { cmdLand } = lazy(() => require("./lib/land"), ["cmdLand"]);
 const { cmdSpec } = lazy(() => require("./lib/spec-commit"), ["cmdSpec"]);
 const { cmdPrep } = lazy(() => require("./lib/prep-attach"), ["cmdPrep"]);
 const { cmdGraft } = lazy(() => require("./lib/graft-admit"), ["cmdGraft"]);
+const { cmdRun } = lazy(() => require("./lib/run"), ["cmdRun"]);
 const { cmdClaimVerdict } = lazy(() => require("./lib/claim-verdict"), ["cmdClaimVerdict"]);
 const { cmdParkVerdict } = lazy(() => require("./lib/park-verdict"), ["cmdParkVerdict"]);
 const { cmdPuntScan } = lazy(() => require("./lib/punt-scan"), ["cmdPuntScan"]);
@@ -242,6 +243,7 @@ const COMMANDS = {
   spec: cmdSpec,
   prep: cmdPrep,
   graft: cmdGraft,
+  run: cmdRun,
   "post-merge-check": cmdPostMergeCheck,
   "pr-body": cmdPrBody,
   "governance-check": cmdGovernanceCheck,

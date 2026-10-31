@@ -1,0 +1,318 @@
+"use strict";
+// ===========================================================================
+// === region:factory — run-close — FAFF-1437: beep-boop's run-end bracket as one verb ===
+//
+// `faff run close` runs the run-end bracket that used to live as prose in faff-beep-boop ("At
+// orchestrator exit", the governed conclude, the git-only anchor and bundle, the judge-trail mint,
+// the `run-end` event and the andon pump). It refuses, writing nothing, while an admitted issue has
+// no recorded outcome, except on a sentry abort that deliberately left its in-flight issue
+// re-enterable. Each step spawns the existing subcommand; a failed step is a fault and the close
+// proceeds, as the prose did.
+// ===========================================================================
+Object.defineProperty(exports, "__esModule", { value: true });
+const fs = require("node:fs");
+const path = require("node:path");
+const childProcess = require("node:child_process");
+const heartbeatApi = require("./heartbeat");
+const runcheckApi = require("./runcheck");
+const argvApi = require("./argv");
+const ENTRYPOINT = path.resolve(__dirname, "..", "faff");
+const STATUS_TIMEOUT_MS = 30000;
+// --- Untyped-JSON helpers. ---
+function isRecord(v) {
+    return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+function field(o, key) {
+    return isRecord(o) ? Reflect.get(o, key) : undefined;
+}
+function str(v) {
+    return typeof v === "string" ? v : undefined;
+}
+function isStringArray(v) {
+    return Array.isArray(v) && v.every((x) => typeof x === "string");
+}
+function parseJsonObject(text) {
+    try {
+        const v = JSON.parse(text);
+        return isRecord(v) ? v : undefined;
+    }
+    catch {
+        return undefined;
+    }
+}
+function errText(e) {
+    return e instanceof Error ? e.message : String(e);
+}
+function exitDetail(r) {
+    return r.status === null ? "timeout" : String(r.status);
+}
+// --- Stop tokens (§3). ---
+const PLAIN_TOKENS = ["queue-drained", "all-remaining-parked", "sentry-abort", "converged/both-dry", "non-convergence", "product-incomplete", "governance-admit-failed"];
+const BUDGET_DIMS = ["until", "max_attempts", "tokens", "cost", "window"];
+function validStopToken(token) {
+    if (PLAIN_TOKENS.includes(token))
+        return true;
+    const m = /^budget-(hit|escalated)\(([^()]+)\)$/.exec(token);
+    const list = m === null ? undefined : m[2];
+    if (list === undefined)
+        return false;
+    const dims = list.split(",");
+    return dims.every((d) => BUDGET_DIMS.includes(d));
+}
+function skippedSteps() {
+    return { run_end: "skipped", owner_close: "skipped", poller_stop: "skipped", governance_probe: "skipped", conclude: "skipped", anchor_run: "skipped", anchor_commit: "skipped", bundle_publish: "skipped", judge_trail: "skipped", andon: "skipped" };
+}
+class CloseUsageError extends Error {
+}
+// --- The run dir, the ledger and the root (shared with `run checkpoint`'s rule). ---
+function canonical(p) {
+    try {
+        return fs.realpathSync(p);
+    }
+    catch {
+        return path.resolve(p);
+    }
+}
+function readLedger(runDir) {
+    const file = path.join(runDir, "run-ledger.json");
+    let text;
+    try {
+        text = fs.readFileSync(file, "utf8");
+    }
+    catch (e) {
+        throw new CloseUsageError(`cannot read ${file}: ${errText(e)}`);
+    }
+    const ledger = parseJsonObject(text);
+    if (ledger === undefined)
+        throw new CloseUsageError(`${file} is not a JSON object`);
+    return ledger;
+}
+// root := the ledger's pinned measure_root, else --root, else the repo root above the run dir. A
+// disagreement between the two is `root-drift`; neither present is `root-inferred`.
+function resolveRoot(runDir, rootFlag, ledger) {
+    const pinned = str(field(field(ledger, "budget"), "measure_root")) ?? null;
+    const faults = [];
+    let root;
+    if (pinned !== null) {
+        root = pinned;
+        if (rootFlag !== null && canonical(rootFlag) !== canonical(pinned))
+            faults.push("root-drift");
+    }
+    else if (rootFlag !== null) {
+        root = rootFlag;
+    }
+    else {
+        root = path.resolve(runDir, "..", "..", "..");
+        faults.push("root-inferred");
+    }
+    const expected = path.join(canonical(root), ".faff", "runs", path.basename(path.resolve(runDir)));
+    if (canonical(runDir) !== expected) {
+        throw new CloseUsageError(`run dir ${runDir} is not ${path.join(root, ".faff", "runs", path.basename(runDir))}`);
+    }
+    return { root, faults };
+}
+function spawn(cmd, args, cwd, input, timeoutMs) {
+    const opts = { cwd, encoding: "utf8", input, env: process.env };
+    if (timeoutMs !== undefined)
+        opts.timeout = timeoutMs;
+    const r = childProcess.spawnSync(cmd, args, opts);
+    return { status: r.status, stdout: r.stdout ?? "", stderr: r.stderr ?? "" };
+}
+function realDeps() {
+    return {
+        faff: (args, opts) => spawn(process.execPath, [ENTRYPOINT, ...args], opts.cwd, opts.input ?? "", opts.timeoutMs),
+        git: (args, cwd) => spawn("git", args, cwd, ""),
+        mutateLedger: (runDir, mutate) => heartbeatApi.mutateLedgerUnderLock(runDir, mutate),
+    };
+}
+function countOutcomes(ledger, state) {
+    const outcomes = field(ledger, "outcomes");
+    return isRecord(outcomes) ? Object.values(outcomes).filter((v) => v === state).length : 0;
+}
+function runClose(args, deps) {
+    const faults = [];
+    const usage = (reason) => {
+        faults.push(reason);
+        return { code: 2, result: { closed: false, undispatched: [], abort_exempt: false, owner_status: null, steps: skippedSteps(), faults }, reason };
+    };
+    // 1. The token, the root, the ledger, and a prior close with a different token.
+    if (!validStopToken(args.stopReason))
+        return usage(`unknown stop reason ${JSON.stringify(args.stopReason)}`);
+    let ledger;
+    let root;
+    try {
+        ledger = readLedger(args.runDir);
+        const resolved = resolveRoot(args.runDir, args.root, ledger);
+        root = resolved.root;
+        faults.push(...resolved.faults);
+    }
+    catch (e) {
+        if (e instanceof CloseUsageError)
+            return usage(e.message);
+        throw e;
+    }
+    const runId = path.basename(path.resolve(args.runDir));
+    const runDir = path.join(root, ".faff", "runs", runId);
+    const prior = str(field(ledger, "stop_reason")) ?? null;
+    if (prior !== null && prior !== args.stopReason)
+        return usage(`run already closed as ${prior}`);
+    const ownerRead = str(field(field(ledger, "owner"), "status")) ?? null;
+    // 2. Completeness.
+    let audit;
+    try {
+        audit = runcheckApi.auditLedger(ledger, runId);
+    }
+    catch (e) {
+        return usage(`malformed ledger: ${errText(e)}`);
+    }
+    const refuse = (undispatched) => ({ code: 3, result: { closed: false, undispatched, abort_exempt: false, owner_status: ownerRead, steps: skippedSteps(), faults }, reason: null });
+    if (audit.invalid_outcomes.length > 0) {
+        faults.push(`invalid outcomes: ${audit.invalid_outcomes.join(", ")}`);
+        return refuse(audit.undispatched);
+    }
+    let abortExempt = false;
+    if (audit.undispatched.length > 0) {
+        const aborted = field(field(ledger, "abort"), "status") === "aborted-resumable" || ownerRead === "aborted-resumable";
+        abortExempt = args.stopReason === "sentry-abort" && aborted;
+        if (!abortExempt)
+            return refuse(audit.undispatched);
+    }
+    const steps = skippedSteps();
+    // A spawn that throws is a failed step like any other non-zero exit.
+    const faff = (argv, opts = {}) => {
+        try {
+            return deps.faff(argv, { cwd: root, ...opts });
+        }
+        catch (e) {
+            return { status: null, stdout: "", stderr: errText(e) };
+        }
+    };
+    const git = (argv) => {
+        try {
+            return deps.git(argv, root);
+        }
+        catch (e) {
+            return { status: null, stdout: "", stderr: errText(e) };
+        }
+    };
+    const record = (step, r, fault) => {
+        if (r.status === 0) {
+            Reflect.set(steps, step, "ok");
+            return true;
+        }
+        Reflect.set(steps, step, `failed:${exitDetail(r)}`);
+        faults.push(fault);
+        return false;
+    };
+    // 3. The run-end event, token-tagged.
+    const sessionArgs = args.sessionId === null ? [] : ["--session-id", args.sessionId];
+    const runEnd = { phase: "run", type: "run-end", data: { stop_reason: args.stopReason, shipped: countOutcomes(ledger, "shipped"), parked: countOutcomes(ledger, "parked") } };
+    record("run_end", faff(["events", "append", "--run", runId, "--root", root, "--tokens", ...sessionArgs], { input: JSON.stringify(runEnd) }), "run-end-append-failed");
+    // 4. The owner close and stop_reason, one locked write; an aborted-resumable owner keeps its status.
+    let ownerStatus = ownerRead;
+    try {
+        deps.mutateLedger(runDir, (fresh) => {
+            if (!isRecord(fresh))
+                throw new Error("run-ledger.json is missing or not a JSON object");
+            Reflect.set(fresh, "stop_reason", args.stopReason);
+            const owner = field(fresh, "owner");
+            if (isRecord(owner)) {
+                if (field(owner, "status") !== "aborted-resumable")
+                    Reflect.set(owner, "status", "done");
+                ownerStatus = str(field(owner, "status")) ?? null;
+            }
+            return fresh;
+        });
+        steps.owner_close = "ok";
+        const lw = faff(["events", "append", "--run", runId, "--root", root], { input: JSON.stringify({ phase: "run", type: "ledger-write" }) });
+        if (lw.status !== 0)
+            faults.push("ledger-write-append-failed");
+    }
+    catch (e) {
+        steps.owner_close = "failed:write";
+        faults.push(`owner-close-failed: ${errText(e)}`);
+    }
+    // 5. The poller (belt; it also self-stops on the close).
+    record("poller_stop", faff(["sentry-poller", "stop", "--run-dir", runDir]), "sentry-poller-stop-failed");
+    // 6. Governed conclude. A probe that cannot answer is treated as governed: on an ungoverned run
+    // reconcile only reads and conclude refuses with no write.
+    const status = faff(["commissaire", "contract", "status", "--run-dir", runDir], { timeoutMs: STATUS_TIMEOUT_MS });
+    const governed = status.status === 0 ? field(parseJsonObject(status.stdout.trim()), "governed") : undefined;
+    if (typeof governed === "boolean")
+        steps.governance_probe = "ok";
+    else {
+        steps.governance_probe = `failed:${status.status === null ? "timeout" : status.status !== 0 ? String(status.status) : "unparseable"}`;
+        faults.push("governance-probe-failed");
+    }
+    if (governed !== false) {
+        const admitted = field(ledger, "admitted");
+        const issues = isStringArray(admitted) ? [...new Set(admitted)] : [];
+        const entries = [];
+        for (const issue of issues) {
+            const rec = faff(["commissaire", "effect", "reconcile", "--run-dir", runDir, "--unit-id", issue]);
+            const con = faff(["commissaire", "verdict", "conclude", "--run-dir", runDir, "--unit-id", issue]);
+            entries.push({ issue, reconcile_exit: rec.status, conclude_exit: con.status });
+            if (rec.status !== 0)
+                faults.push(`reconcile-failed:${issue}`);
+            if (con.status !== 0)
+                faults.push(`conclude-failed:${issue}`);
+        }
+        steps.conclude = entries;
+    }
+    // 7. The git-only run-level anchor, its path-limited commit, and the run-close bundle.
+    if (args.gitOnly) {
+        if (record("anchor_run", faff(["events", "anchor-run", "--run-dir", runDir]), "anchor-run-failed")) {
+            const anchorPath = path.join(".faff", "anchors", runId);
+            const add = git(["add", "--", anchorPath]);
+            const staged = add.status === 0 ? git(["diff", "--cached", "--quiet", "--", anchorPath]) : add;
+            if (add.status !== 0) {
+                steps.anchor_commit = `failed:${exitDetail(add)}`;
+                faults.push("anchor-commit-failed");
+            }
+            else if (staged.status === 0)
+                steps.anchor_commit = "ok";
+            else
+                record("anchor_commit", git(["commit", "-m", `chore(anchor): run-level evidence anchor for ${runId}`, "--", anchorPath]), "anchor-commit-failed");
+            record("bundle_publish", faff(["bundle", "publish", "--run-dir", runDir, "--boundary-kind", "run-close", "--boundary-key", "run-close"]), "bundle-publish-failed");
+        }
+    }
+    // 8–9. The judge trail on every run, then andon (fail-open).
+    record("judge_trail", faff(["judge-trail", "mint", "--run-dir", runDir]), "judge-trail-failed");
+    record("andon", faff(["andon", "pump", "--run-dir", runDir]), "andon-pump-failed");
+    return { code: 0, result: { closed: true, undispatched: abortExempt ? audit.undispatched : [], abort_exempt: abortExempt, owner_status: ownerStatus, steps, faults }, reason: null };
+}
+// --- The verb. ---
+const CLOSE_SPEC = {
+    flags: {
+        "--run-dir": { arity: 1 },
+        "--stop-reason": { arity: 1 },
+        "--git-only": { arity: 0 },
+        "--root": { arity: 1 },
+        "--session-id": { arity: 1 },
+        "--json": { arity: 0 },
+    },
+};
+const CLOSE_USAGE = "usage: faff run close --run-dir DIR --stop-reason TOKEN [--git-only] [--root DIR] [--session-id ID] [--json]";
+function cmdRunClose(argv, deps = realDeps()) {
+    const { values, errors } = argvApi.parseArgs(argv, CLOSE_SPEC);
+    if (errors.length)
+        return argvApi.usageError(errors, CLOSE_USAGE);
+    const runDir = str(values["--run-dir"]);
+    const stopReason = str(values["--stop-reason"]);
+    if (runDir === undefined || runDir === "")
+        return argvApi.usageError([{ code: "missing-required", detail: "--run-dir DIR is required" }], CLOSE_USAGE);
+    if (stopReason === undefined || stopReason === "")
+        return argvApi.usageError([{ code: "missing-required", detail: "--stop-reason TOKEN is required" }], CLOSE_USAGE);
+    const outcome = runClose({ runDir, stopReason, gitOnly: values["--git-only"] === true, root: str(values["--root"]) ?? null, sessionId: str(values["--session-id"]) ?? null }, deps);
+    const { code, result } = outcome;
+    if (outcome.reason !== null)
+        process.stderr.write(`faff run close: ${outcome.reason}\n`);
+    if (values["--json"] === true)
+        process.stdout.write(`${JSON.stringify(result)}\n`);
+    else if (code === 0)
+        process.stdout.write(`run close: closed as ${stopReason}${result.abort_exempt ? ` (abort exemption; undispatched: ${result.undispatched.join(", ")})` : ""}${result.faults.length ? `\n${result.faults.map((f) => `fault: ${f}`).join("\n")}` : ""}\n`);
+    else if (code === 3)
+        process.stdout.write(`run close: refused — undispatched: ${result.undispatched.join(", ") || "(none)"}${result.faults.length ? `\n${result.faults.map((f) => `fault: ${f}`).join("\n")}` : ""}\n`);
+    return code;
+}
+module.exports = { cmdRunClose, runClose, realDeps, validStopToken, CLOSE_USAGE };

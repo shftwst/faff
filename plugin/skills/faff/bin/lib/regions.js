@@ -566,6 +566,9 @@ const REGION_MAP = {
   // FAFF-1414: graft admit composes the factory kernels next, eligible, intake-provenance, admissibility,
   // claim-verdict and decision-capture with the build-claim store read (bundle.js, factory).
   graft: "factory",
+  // FAFF-1416: pr open composes pr-create, pr-body, events anchor, bundle publish, effects and the
+  // merge-authorize input derivation, and reaches Commissaire only through its existing facade verbs.
+  pr: "factory",
   // FAFF-1435: run summary composes economics, gates-doctor, merge-gate-gh and config-core (factory)
   // with the governance reconcile, budget, events, heartbeat and holdout-record functions.
   run: "factory",
@@ -805,6 +808,8 @@ const REGION_SELFTEST_ARGV = {
   prep: null,
   // FAFF-1414: no --selftest (tests live in test/ only); lint-cli-coverage's TEST_FILE_COVERAGE names them.
   graft: null,
+  // FAFF-1416: no --selftest (tests live in test/ only); lint-cli-coverage's TEST_FILE_COVERAGE names them.
+  pr: null,
   // FAFF-1435: no --selftest (tests live in test/ only); lint-cli-coverage's TEST_FILE_COVERAGE names them.
   run: null,
   // FAFF-1442: no --selftest (tests live in test/ only); lint-cli-coverage's TEST_FILE_COVERAGE names them.

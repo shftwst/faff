@@ -373,6 +373,14 @@ test("export output: two shell-quoted export lines on 0 and on 3, nothing on 2",
   assert.equal(ro.shellQuote("a'b"), `'a'\\''b'`);
 });
 
+test("hooks report on stderr: without --json the hooks-ensure line and each fault go to stderr, keeping --export's stdout to two lines", () => {
+  const r = capture(() => ro.cmdRunOpen(["--mode", "full", "--root", ROOT, "--session-id", "S", "--export"], fakeDeps({ "hooks-ensure": ok("added runcheck → .claude/settings.json"), "sentry-poller start": fail(1) })));
+  assert.equal(r.code, 0);
+  assert.equal(r.out.trim().split("\n").length, 2);
+  assert.match(r.err, /faff run open: hooks-ensure: added runcheck → \.claude\/settings\.json/);
+  assert.match(r.err, /faff run open: fault: sentry-poller-start-failed/);
+});
+
 test("--json prints the whole OpenResult on every exit", () => {
   const keys = ["budget_envelope", "fail_closed_cause", "faults", "governance", "hooks_report", "run_dir", "steps"];
   for (const [deps, code] of [[fakeDeps(), 0], [fakeDeps({ "commissaire contract status": fail(1) }), 3], [fakeDeps({ "run-ledger init-self-drain": fail(1) }), 2]]) {

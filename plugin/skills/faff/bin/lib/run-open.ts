@@ -409,7 +409,12 @@ function cmdRunOpen(argv: string[], deps: Deps = realDeps()): number {
   const { code, result } = outcome;
   if (code === 2 && outcome.reason !== null) process.stderr.write(`faff run open: ${outcome.reason}${result.run_dir === null ? "" : ` (run dir ${result.run_dir})`}\n`);
   if (asJson) process.stdout.write(`${JSON.stringify(result)}\n`);
-  else if (code !== 2 && result.run_dir !== null) {
+  else {
+    // Without --json the report and the faults go to stderr, so --export's stdout stays two eval-able lines.
+    if (result.hooks_report !== null) process.stderr.write(`faff run open: hooks-ensure: ${result.hooks_report}\n`);
+    if (code !== 2) for (const f of result.faults) process.stderr.write(`faff run open: fault: ${f}\n`);
+  }
+  if (!asJson && code !== 2 && result.run_dir !== null) {
     if (asExport) process.stdout.write(`export FAFF_RUN_DIR=${shellQuote(result.run_dir)}\nexport FAFF_SESSION_ID=${shellQuote(path.basename(result.run_dir))}\n`);
     else process.stdout.write(`${result.run_dir}\n`);
   }

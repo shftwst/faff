@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-checkpoint.ts::throwing subcommand spawn escapes runcheckpoint",
+      "title": "throwing subcommand spawn escapes runCheckpoint",
+      "location": "plugin/skills/faff/bin/lib/run-checkpoint.ts",
+      "action": "Treat a spawn that throws as that step's failed read.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "runCheckpoint's spawn wrapper now turns a throw into status null, so it lands as the step's named fault and fail-closed on an acting run (test 'spawn throws'). The rethrow of a non-parse config error stays deliberate: readGovernanceConfig's legacy-name refusal is meant to exit loud, and the caller treats that exit as fail-closed.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "throwing subcommand spawn escapes runCheckpoint",
+          "location": "plugin/skills/faff/bin/lib/run-checkpoint.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-checkpoint.ts::acting decision read from one ledger snapshot in runcheckpoint",
+      "title": "acting decision read from one ledger snapshot in runCheckpoint",
+      "location": "plugin/skills/faff/bin/lib/run-checkpoint.ts",
+      "action": null,
+      "location_present": true,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The spec pins a single ledger read at step 0 (level := ledger.level), and faff sentry abort is idempotent and resumable, as the reviewer notes.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "acting decision read from one ledger snapshot in runCheckpoint",
+          "location": "plugin/skills/faff/bin/lib/run-checkpoint.ts",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

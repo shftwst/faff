@@ -1,0 +1,282 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 3,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The spec requires \"a pure `decideCheckpoint(inputs) → CheckpointResult` (step 6 below)\", yet step b of the very decision table it must compute says \"spawn `faff sentry abort --run-dir`; exit 0 → `sentry_aborted := true`\". A pure function cannot spawn a subprocess, and `sentry_aborted` is a field of the CheckpointResult it returns. The deps-injection escape hatch is attached to `runCheckpoint`, not to `decideCheckpoint`, so the pinned unit tests (\"decideCheckpoint cases for each acting-table row … abort\") cannot exercise the abort rows as specified. The builder must invent an unspecified two-phase shape (decide → act → re-decide, or a directive field) that the spec never defines — and the b-before-c ordering (abort mark must run even when escalate wins) makes the naive one-shot shape wrong, not just impure.",
+      "evidence": "§3 \"The module exports a pure `decideCheckpoint(inputs) → CheckpointResult` (step 6 below)\"; §4.2 rule b; §4.5 \"decideCheckpoint cases for each acting-table row\".",
+      "predicted_consequence": "the builder restructures the decision into an ad-hoc two-phase flow the spec doesn't describe, and the \"one pure decision function … table-driven unit test\" rationale (§5) is silently defeated for exactly the kill-switch rows the tests exist to pin.",
+      "spec_anchor": "what",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-1 revision: decideCheckpoint returns abort_required; runCheckpoint runs the faff sentry abort spawn (review record 6e921d9c).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The spec requires \"a pure `decideCheckpoint(inputs) → CheckpointResult` (step 6 below)\", yet step b of the very decision table it must compute says \"spawn `faff sentry abort --run-dir`; exit 0 → `sentry_aborted := true`\". A pure function cannot spawn a subprocess, and `sentry_aborted` is a field of the CheckpointResult it returns. The deps-injection escape hatch is attached to `runCheckpoint`, not to `decideCheckpoint`, so the pinned unit tests (\"decideCheckpoint cases for each acting-table row … abort\") cannot exercise the abort rows as specified. The builder must invent an unspecified two-phase shape (decide → act → re-decide, or a directive field) that the spec never defines — and the b-before-c ordering (abort mark must run even when escalate wins) makes the naive one-shot shape wrong, not just impure.",
+          "spec_anchor": "what"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The prose being replaced says an attended run \"logs + surfaces the verdicts (shared telemetry + the threshold-calibration feed)\" for pause, correct and abort, and B13/B15 mark this `kept`. The replacement routing table has no branch that does it: `continue` says only \"proceed. Write a run-scoped surface when `intervention` is `surface`\", and the pause/stop/abort rows describe acting or stopping. An attended L3 run whose consult returns `pause` gets `action: continue, intervention: pause` and, per the table as written, proceeds with no log, no `/faff-wtf` surface, and no calibration-feed write. The advisory half of the acting table — the behaviour that makes attended runs the threshold-calibration feed — is deleted by the rewrite, not carried.",
+      "evidence": "§4.3 routing table vs SKILL.md l. 112 (\"logs + surfaces the verdicts (shared telemetry + the threshold-calibration feed)\") and the Non-L4 column of the acting table (l. 118–120); rule inventory B13/B15 marked `kept`.",
+      "predicted_consequence": "attended-run pause/abort verdicts stop reaching `/faff-wtf` and the andon/calibration surface; the PR's own line-mapping claim (\"every deleted line maps to B1–B28\") cannot be honestly made for the log+surface sentences.",
+      "spec_anchor": "43-skill-changes",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-1 revision: advisory routing row added for attended runs (B13a) (review record 6e921d9c).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The prose being replaced says an attended run \"logs + surfaces the verdicts (shared telemetry + the threshold-calibration feed)\" for pause, correct and abort, and B13/B15 mark this `kept`. The replacement routing table has no branch that does it: `continue` says only \"proceed. Write a run-scoped surface when `intervention` is `surface`\", and the pause/stop/abort rows describe acting or stopping. An attended L3 run whose consult returns `pause` gets `action: continue, intervention: pause` and, per the table as written, proceeds with no log, no `/faff-wtf` surface, and no calibration-feed write. The advisory half of the acting table — the behaviour that makes attended runs the threshold-calibration feed — is deleted by the rewrite, not carried.",
+          "spec_anchor": "43-skill-changes"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec's own exit contract routes \"a missing or malformed ledger\" and \"a run dir that is not `<root>/.faff/runs/<run-id>`\" to exit 2, and §4.4/§4.5 make malformed ledger a first-class case. The plot repoint sentence says it halts \"on exit 3 and also on any `faults` entry naming a failed consult or budget read\". Exit 2 is neither: a plot descent whose ledger went malformed mid-run gets exit 2 and, per the repoint as written, does not halt before dispatching the next level — exactly the `run-20260818-192940` gap the plot paragraph exists to keep closed (\"a producer that can't confirm the run is still alive must not dispatch more of it\").",
+      "evidence": "§3 exit codes; §4.3 \"`faff-plot/SKILL.md` l. 58 points at `faff run checkpoint --phase prep`, halting on exit 3 and also on any `faults` entry naming a failed consult or budget read\"; §4.5 \"malformed ledger (exit 2)\".",
+      "predicted_consequence": "the first malformed-ledger checkpoint during a lights-out plot descent dispatches the next ticket-shaping batch on an unreadable run — the precise failure mode plot l. 58 was written to prevent.",
+      "spec_anchor": "43-skill-changes",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-1 revision: faff-plot now halts on any non-zero exit (review record 6e921d9c).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The spec's own exit contract routes \"a missing or malformed ledger\" and \"a run dir that is not `<root>/.faff/runs/<run-id>`\" to exit 2, and §4.4/§4.5 make malformed ledger a first-class case. The plot repoint sentence says it halts \"on exit 3 and also on any `faults` entry naming a failed consult or budget read\". Exit 2 is neither: a plot descent whose ledger went malformed mid-run gets exit 2 and, per the repoint as written, does not halt before dispatching the next level — exactly the `run-20260818-192940` gap the plot paragraph exists to keep closed (\"a producer that can't confirm the run is still alive must not dispatch more of it\").",
+          "spec_anchor": "43-skill-changes"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The spec's definition of a FAILED consult is exhaustive: \"exit ≠ 0, OR stdout is unparseable, OR payload.indeterminate === true\" (§4.1 step 5). A payload that parses as JSON but is missing `intervention`/`verdicts`, or carries an `intervention` outside the enum, is a COMPLETED consult by this definition. `decideCheckpoint` then matches no acting row (not abort, not pause, not correct), falls through to step i, and an acting (unattended) run continues dispatching with `acted: false` — the exact fail-open the fail-closed branch exists to prevent. Same gap on the budget side: a parseable payload with a missing/unknown `outcome` or a non-array `breached` matches none of c/e/h and yields `continue` even at an acting run. The spec closes the known `indeterminate` trap explicitly (rule B25) but never validates the shape of what it consumes, so the neighbouring degradation mode slips past the same control.",
+      "evidence": "§4.1 step 5 (\"The consult FAILED when: exit ≠ 0, OR stdout is unparseable, OR payload.indeterminate === true\"); §4.2 decision table (rows d/g/f key on `intervention` with no default-else toward supervision; only i \"otherwise → continue\" catches an unrecognised value); step 1 (budget failure defined only as \"non-zero exit, unparseable stdout, or outcome 'indeterminate'\"). Contrast with the spec's own posture elsewhere: `sentry.js` l. 811's unmapped-signal fallback (`|| \"pause\"`) and the `heartbeat-progress-mismatch` comment (\"an unmapped signal silently defaults to pause\") show the surrounding system deliberately fails toward supervision on unrecognised values — the new decision function does not.",
+      "predicted_consequence": "on a degraded or partially corrupted `sentry check`/`budget check` output (parse succeeds, fields absent or misspelled), a declared-unattended run dispatches the next unit with the kill-switch silently disarmed and `faults: []` — no operator-visible trace that the consult result was unusable.",
+      "spec_anchor": "41-procedure",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-1 revision: out-of-enum payload values count as a failed read (review record 6e921d9c).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The spec's definition of a FAILED consult is exhaustive: \"exit ≠ 0, OR stdout is unparseable, OR payload.indeterminate === true\" (§4.1 step 5). A payload that parses as JSON but is missing `intervention`/`verdicts`, or carries an `intervention` outside the enum, is a COMPLETED consult by this definition. `decideCheckpoint` then matches no acting row (not abort, not pause, not correct), falls through to step i, and an acting (unattended) run continues dispatching with `acted: false` — the exact fail-open the fail-closed branch exists to prevent. Same gap on the budget side: a parseable payload with a missing/unknown `outcome` or a non-array `breached` matches none of c/e/h and yields `continue` even at an acting run. The spec closes the known `indeterminate` trap explicitly (rule B25) but never validates the shape of what it consumes, so the neighbouring degradation mode slips past the same control.",
+          "spec_anchor": "41-procedure"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "Whether `faff sentry check` trips a member-scoped `wall-clock-runaway` pause for FAFF-9 depends on heartbeat age vs `stall_window_secs` and `now_ms` (sentry.js l. 750–760). The scenario's Given states only \"three build-start events for FAFF-9 and no outcome for it\" — it says nothing about the heartbeat being stale or the clock being past the stall window. The same fixture with a fresh heartbeat yields `action: \"continue\"`, and the scenario as written cannot distinguish the two.",
+      "evidence": "the ```` ```holdout ```` scenario beginning \"Given a declared-unattended L3 run whose events hold three build-start events for FAFF-9\".",
+      "predicted_consequence": "the holdout check for this unit is not decidable from its stated givens — a correct build can fail it (or an incorrect one pass it) depending on an unstated fixture detail (heartbeat timestamp / evaluation clock).",
+      "spec_anchor": "scenarios",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-1 revision: holdout Givens pinned (legacy-exempt fixture, fresh heartbeat, until ceiling) (review record 6e921d9c).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "Whether `faff sentry check` trips a member-scoped `wall-clock-runaway` pause for FAFF-9 depends on heartbeat age vs `stall_window_secs` and `now_ms` (sentry.js l. 750–760). The scenario's Given states only \"three build-start events for FAFF-9 and no outcome for it\" — it says nothing about the heartbeat being stale or the clock being past the stall window. The same fixture with a fresh heartbeat yields `action: \"continue\"`, and the scenario as written cannot distinguish the two.",
+          "spec_anchor": "scenarios"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The inventory cites covering tests by name — \"budget args pinned\", \"andon fail-open\", \"forbidden flag passed\", \"surface continues\", \"alias honoured\", \"phase wave\", \"consult fail × 3 levels\", among others — but §4.5's enumerated bullets for `test/run-checkpoint.test.mjs` use different names and do not list cases for `andon pump` fail-open, the `--forbidden-side-effect` flag being passed, the surface row, or the alias row at all. A builder cannot tell whether \"andon fail-open exists and passes\" is satisfied by the \"events\" bullet, a new case, or nothing.",
+      "evidence": "DONE item \"Every `kept` and `changed` row's covering test exists and passes\" (### Rule inventory) against the §4.5 bullet list (### 4.5 tests).",
+      "predicted_consequence": "the DONE criterion is undecidable for rows B1, B9, B11, B14, B19, B21 — two builders can both honestly claim it, with different test files.",
+      "spec_anchor": "rule-inventory",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-1 revision: section 4.5 case names now match the rule inventory (review record 6e921d9c).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The inventory cites covering tests by name — \"budget args pinned\", \"andon fail-open\", \"forbidden flag passed\", \"surface continues\", \"alias honoured\", \"phase wave\", \"consult fail × 3 levels\", among others — but §4.5's enumerated bullets for `test/run-checkpoint.test.mjs` use different names and do not list cases for `andon pump` fail-open, the `--forbidden-side-effect` flag being passed, the surface row, or the alias row at all. A builder cannot tell whether \"andon fail-open exists and passes\" is satisfied by the \"events\" bullet, a new case, or nothing.",
+          "spec_anchor": "rule-inventory"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The spec moves all checkpoint routing into a table over `CheckpointResult.action`, but exit 2 (a missing/malformed ledger, or a run dir outside root) prints no result record and is not in the `action` enum. §4.3's routing table covers only the seven actions; it has no row for a non-zero exit or an unparseable `--json` payload. The prose being replaced handled this implicitly (the orchestrator always got *some* sentinel); the spec's replacement leaves the most common corrupt-state path undefined at the caller, so the builder's most natural implementation (treat an unparseable checkpoint like an advisory log-and-continue, or skip the checkpoint and dispatch the next unit) silently skips the entire kill-switch consult.",
+      "evidence": "§3 \"Exit codes\" (2 = usage/ledger/run-dir error, no CheckpointResult semantics given); §4.3 routing table enumerating only `continue`…`fail-closed` actions; contrast faff-plot, which the spec explicitly teaches to halt on any non-zero exit — the beep-boop routing table gets no such instruction.",
+      "predicted_consequence": "a run whose `run-ledger.json` is corrupt or absent (exactly the state a crash or tampering produces) exits 2 at every checkpoint and keeps dispatching units with no budget, escape, or sentry consult ever running — the fail-closed \"kill-switch evaluator down\" posture exists for a failed consult but is unreachable for a failed checkpoint.",
+      "spec_anchor": "how-43-skill-changes",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-2 revision: exit 2 or unreadable output is handled as fail-closed at every level (B30) (review record 6e921d9c).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The spec moves all checkpoint routing into a table over `CheckpointResult.action`, but exit 2 (a missing/malformed ledger, or a run dir outside root) prints no result record and is not in the `action` enum. §4.3's routing table covers only the seven actions; it has no row for a non-zero exit or an unparseable `--json` payload. The prose being replaced handled this implicitly (the orchestrator always got *some* sentinel); the spec's replacement leaves the most common corrupt-state path undefined at the caller, so the builder's most natural implementation (treat an unparseable checkpoint like an advisory log-and-continue, or skip the checkpoint and dispatch the next unit) silently skips the entire kill-switch consult.",
+          "spec_anchor": "how-43-skill-changes"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "When `--root` and `ledger.budget.measure_root` disagree, the spec resolves to the ledger value and proceeds, recording only a `root-drift` fault. The prose's pinned root is the control that keeps budget accounting measurable across a cwd reset; the spec demotes it to a tie-loser rather than refusing. The drifted root drives the run-id resolution, `budget check`, `events append` and `effects` calls, and the non-JSON output (`checkpoint: <action>`) never prints `faults`, so an operator running the human path sees a clean `continue` on a checkpoint that measured the wrong run.",
+      "evidence": "§3 \"Root and session\" (\"the ledger value is used and `root-drift` is added to `faults`\"); §3 \"Without `--json` it prints one line, `checkpoint: <action>`…\" (faults unprinted).",
+      "predicted_consequence": "a stale or wrong `measure_root` in the ledger redirects budget measurement to a different run/root; spend is under- or over-counted and the checkpoint exits 0 with no visible fault to the human reader, so the run keeps dispatching on a mis-measured budget. A hardening edit in place: refuse (exit 2) or fail-closed on drift, and/or print faults on the human line.",
+      "spec_anchor": "root-and-session",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Partly refuted: the pinned ledger root is the one used, so the drift claim was wrong. The real part, faults missing from the human-readable output, is fixed (review record 6e921d9c).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "When `--root` and `ledger.budget.measure_root` disagree, the spec resolves to the ledger value and proceeds, recording only a `root-drift` fault. The prose's pinned root is the control that keeps budget accounting measurable across a cwd reset; the spec demotes it to a tie-loser rather than refusing. The drifted root drives the run-id resolution, `budget check`, `events append` and `effects` calls, and the non-JSON output (`checkpoint: <action>`) never prints `faults`, so an operator running the human path sees a clean `continue` on a checkpoint that measured the wrong run.",
+          "spec_anchor": "root-and-session"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The scenario expects `action: \"park-issues\"` with `park_issues: [\"FAFF-9\"]`, which per §4.2 row f requires a trip-severity pause verdict naming FAFF-9. The only signal that produces that from three build-start events with no outcome is the member-scoped `wall-clock-runaway` (sentry.js l. 750–760), which fires only when `age > th.stall_window_secs`, where age is computed from the member beat and/or the build-start event timestamp. The Givens pin the **run** heartbeat (\"within the last minute\") and `owner.started_at`, but say nothing about the age of the three build-start events or any member beat for FAFF-9. If those events are recent (the natural reading of a freshly-built fixture), age < stall_window, no trip fires, and the correct action is `continue` — the scenario's `Then` would fail on a correct build.",
+      "evidence": "The third `## Scenarios` unit (the `holdout` one for FAFF-9); §4.2 row f; sentry.js l. 750–760 excerpted in context.",
+      "predicted_consequence": "The holdout evaluator cannot decide the scenario from its Givens; a correct build fails it (or an incorrect build passes it, depending on fixture timing the spec does not control).",
+      "spec_anchor": "scenarios",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "fix-review-thrash trips at 3 build-starts under the default profile (sentry.js l. 502-527; governance-profile.js l. 165); the Given now cites this (review record 6e921d9c).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The scenario expects `action: \"park-issues\"` with `park_issues: [\"FAFF-9\"]`, which per §4.2 row f requires a trip-severity pause verdict naming FAFF-9. The only signal that produces that from three build-start events with no outcome is the member-scoped `wall-clock-runaway` (sentry.js l. 750–760), which fires only when `age > th.stall_window_secs`, where age is computed from the member beat and/or the build-start event timestamp. The Givens pin the **run** heartbeat (\"within the last minute\") and `owner.started_at`, but say nothing about the age of the three build-start events or any member beat for FAFF-9. If those events are recent (the natural reading of a freshly-built fixture), age < stall_window, no trip fires, and the correct action is `continue` — the scenario's `Then` would fail on a correct build.",
+          "spec_anchor": "scenarios"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "§4.1 step 0 reads the ledger and computes `acts`, but never states that `level` is `ledger.level` (or anything else). §4.2's inputs include `level`, row e branches on `level = L4`, `acted` for `correct` branches on it, and holdout scenario 5 declares \"an L4 run with no mint marker\" — so the tester must know how a legacy-exempt run is L4 to build the fixture and judge the output. As written, \"L4 run\" is not tied to any observable field.",
+      "evidence": "§4.1 step 0, §4.2 inputs and row e, the fifth `## Scenarios` unit.",
+      "predicted_consequence": "Two builders can read `level` from different places (ledger vs. mint marker presence vs. config); the \"correct L4\" test and holdout scenario 5 are not reproducibly decidable.",
+      "spec_anchor": "41-procedure",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-2 revision: level := ledger.level is stated in step 0 (review record 6e921d9c).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "§4.1 step 0 reads the ledger and computes `acts`, but never states that `level` is `ledger.level` (or anything else). §4.2's inputs include `level`, row e branches on `level = L4`, `acted` for `correct` branches on it, and holdout scenario 5 declares \"an L4 run with no mint marker\" — so the tester must know how a legacy-exempt run is L4 to build the fixture and judge the output. As written, \"L4 run\" is not tied to any observable field.",
+          "spec_anchor": "41-procedure"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The \"Chosen\" root/session decision justifies omitting `--session-id` when the caller doesn't pass it on the grounds that \"forcing the mint-time session would override a resumed run's open span\" — but §4.3's replacement call in `faff-beep-boop/SKILL.md` hard-codes `--session-id \"$session_id\"` unconditionally, and §6 assumes \"the skill passes `--root \"$measure_root\" --session-id \"$session_id\"` as it does today\". If the skill always passes it, the omission path never fires and the stated rationale (preserving a resumed run's open-span precedence, `budget.js` l. 977) can never materialise; if the intent is for the skill to stop passing it, §4.3 and §6 say the opposite. The builder implements and tests a branch the only real caller never exercises, under a rationale the shipped configuration nullifies.",
+      "evidence": "§3 \"Root and session\" second Chosen paragraph vs §4.3's call line `faff run checkpoint --run-dir \"$run_dir\" --phase <prep|build|wave> --root \"$measure_root\" --session-id \"$session_id\" --json` vs §6 \"Assumes\".",
+      "predicted_consequence": "dead omission branch shipped with a misleading rationale; a later editor either \"fixes\" the skill to omit the flag (silently weakening B1's pinned-session measurability guarantee) or deletes the branch as unused — either way the §3 decision text no longer describes the system.",
+      "spec_anchor": "root-and-session",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-3 revision: the session-id rationale now matches the skill caller (review record 6e921d9c).",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The \"Chosen\" root/session decision justifies omitting `--session-id` when the caller doesn't pass it on the grounds that \"forcing the mint-time session would override a resumed run's open span\" — but §4.3's replacement call in `faff-beep-boop/SKILL.md` hard-codes `--session-id \"$session_id\"` unconditionally, and §6 assumes \"the skill passes `--root \"$measure_root\" --session-id \"$session_id\"` as it does today\". If the skill always passes it, the omission path never fires and the stated rationale (preserving a resumed run's open-span precedence, `budget.js` l. 977) can never materialise; if the intent is for the skill to stop passing it, §4.3 and §6 say the opposite. The builder implements and tests a branch the only real caller never exercises, under a rationale the shipped configuration nullifies.",
+          "spec_anchor": "root-and-session"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "§3's root resolution falls back from the pinned ledger value to \"the repo root above the run dir\" whenever `--root` is absent *and* `ledger.budget.measure_root` is absent. The spec defines a `root-drift` fault only for the both-present-and-differ case; the inference case — the run consulting governance config, budget ceilings and sentry thresholds under a root the run was never pinned to, derived from ambient filesystem layout — records nothing. An ambient cwd placement (a run dir copied, symlinked, or resolved from a different checkout) silently selects a different `readGovernanceConfig` root, so an unattended run's abort thresholds and budget ceilings come from wherever the directory sits, with no `faults` entry and no `--json` field a consumer could notice. The spec's own rationale (\"the pinned root is what keeps budget accounting measurable\") is exactly the guarantee this branch abandons without a trace.",
+      "evidence": "§3 \"Root and session\" — \"root := `--root` if given, else `ledger.budget.measure_root`, else the repo root above the run dir\"; the drift fault is specified only for the both-present case. Contrast step 8, where even a fail-open pump gets a fault line.",
+      "predicted_consequence": "an acting run evaluates the kill-switch against a governance config the operator never pinned for that run, with no `faults` entry or payload field distinguishing it from the healthy pinned case.",
+      "spec_anchor": "root-and-session",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-3 revision: a root-inferred fault is recorded (review record 6e921d9c).",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "§3's root resolution falls back from the pinned ledger value to \"the repo root above the run dir\" whenever `--root` is absent *and* `ledger.budget.measure_root` is absent. The spec defines a `root-drift` fault only for the both-present-and-differ case; the inference case — the run consulting governance config, budget ceilings and sentry thresholds under a root the run was never pinned to, derived from ambient filesystem layout — records nothing. An ambient cwd placement (a run dir copied, symlinked, or resolved from a different checkout) silently selects a different `readGovernanceConfig` root, so an unattended run's abort thresholds and budget ceilings come from wherever the directory sits, with no `faults` entry and no `--json` field a consumer could notice. The spec's own rationale (\"the pinned root is what keeps budget accounting measurable\") is exactly the guarantee this branch abandons without a trace.",
+          "spec_anchor": "root-and-session"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "`CheckpointResult.acted` is declared as a always-present `bool`, but §4.2 defines `acted` only \"for abort and pause; for correct…; for surface; for continue and null\" — no value is given when the decision is `fail-closed` (row a). A test asserting the full CheckpointResult on the fail-closed path (which scenario 1 exercises) has no oracle for this field: two correct builds could emit `acted: true` or `acted: false` and both satisfy the spec.",
+      "evidence": "§3 RECORD (`acted: bool`), §4.2 `acted` definition, scenario 1 (`action is \"fail-closed\"` asserts nothing about `acted`).",
+      "predicted_consequence": "the \"consult fail × 3 levels\" and fail-closed tests cannot fully pin the output record; a builder's choice on this field is unverifiable.",
+      "spec_anchor": "42-decision",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-3 revision: acted is defined on fail-closed (review record 6e921d9c).",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "`CheckpointResult.acted` is declared as a always-present `bool`, but §4.2 defines `acted` only \"for abort and pause; for correct…; for surface; for continue and null\" — no value is given when the decision is `fail-closed` (row a). A test asserting the full CheckpointResult on the fail-closed path (which scenario 1 exercises) has no oracle for this field: two correct builds could emit `acted: true` or `acted: false` and both satisfy the spec.",
+          "spec_anchor": "42-decision"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1436",
+  "build": {
+    "status": "complete",
+    "diff_hash": "f3cb6f1a9a2ce3dc2522a3a79c0743770f2aeae5aff61a839e914a62b69df8f8",
+    "branch": "faff-1436-run-checkpoint",
+    "pushed_at": "2026-10-30T17:17:39.300Z"
+  },
+  "updated_at": "2026-10-30T17:17:39.300Z"
+}

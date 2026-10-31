@@ -353,3 +353,182 @@ test("smoke: stage, confirm, prepcheck, then faff spec commit records source_che
   assert.equal(r.status, 0, r.stderr);
   assert.deepEqual([r.json().token, r.json().source_check], ["committed", "match"]);
 });
+
+// --- FAFF-1443: the advisory admissibility result on every ready-to-post or attached spec ---
+
+const BULLET = (n) => `- **Given** x, **when** y, **then** it exits ${n}.`;
+const PLAIN = ["```", "Given a stageable spec", "When it is staged", "Then the verdict is admissible", "```"];
+// A stageable spec: an H1, a confidence line, a readiness block and one concrete DONE item, so stage
+// returns ready-to-post and R2a/R2b pass. `scenarios` is the Scenarios section body, or null for none.
+function stageable({ scenarios = [BULLET(1), BULLET(1), BULLET(1)], done = ["- [ ] `faff x` exits 0"], confidence = "confidence: high" } = {}) {
+  return [
+    "# EX: a stageable spec", "", "## Decisions", "", "**Chosen:** one thing.", "",
+    ...(scenarios ? ["## Scenarios", "", ...scenarios, ""] : []),
+    "## 7. DONE", "", ...done, "",
+    ...(confidence ? [confidence, ""] : []),
+    READY, "",
+  ].join("\n");
+}
+const admLines = (f) => readFileSync(f.specFile, "utf8").split("\n").filter((l) => l.startsWith("admissibility:"));
+const KEYS = ["admissible", "reasons", "scenarios_prose"];
+function assertShape(a) {
+  assert.deepEqual(Object.keys(a).sort(), KEYS);
+  assert.equal(typeof a.admissible, "boolean");
+  assert.ok(Array.isArray(a.reasons) && a.reasons.every((r) => typeof r === "string"));
+  assert.ok(Array.isArray(a.scenarios_prose) && a.scenarios_prose.every((r) => typeof r === "string"));
+}
+
+test("FAFF-1443 scenario 1: three bold bullets are refused, three prose ids, one refused line", () => {
+  const f = fixture({ text: stageable() });
+  const r = cli(f.root, ["prep", "attach", "--issue", "FAFF-9001", "--spec", f.specFile, "--mode", "interactive", "--root", f.root, "--json"]);
+  assert.equal(r.status, 0, r.stderr);
+  const out = r.json();
+  assert.equal(out.token, "ready-to-post");
+  assertShape(out.admissibility);
+  assert.equal(out.admissibility.admissible, false);
+  assert.ok(out.admissibility.reasons.includes("0 born-verifiable scenario(s) (need >=1)"));
+  assert.deepEqual(out.admissibility.scenarios_prose, ["scenarios:1", "scenarios:2", "scenarios:3"]);
+  assert.equal(out.admissibility_line, undefined, "the line value is a text-mode detail, never a JSON key");
+  assert.deepEqual(admLines(f), ["admissibility: refused — R1.scenarios (0 of 3 units count); prose scenarios: scenarios:1, scenarios:2, scenarios:3"]);
+});
+
+test("FAFF-1443 scenario 2: one fenced plain Given/When/Then block is admissible", () => {
+  const f = fixture({ text: stageable({ scenarios: PLAIN }) });
+  const out = stage(f, [], "FAFF-9001").json();
+  assert.equal(out.token, "ready-to-post");
+  assert.deepEqual(out.admissibility, { admissible: true, reasons: [], scenarios_prose: [] });
+  assert.deepEqual(admLines(f), ["admissibility: admissible"]);
+});
+
+test("FAFF-1443 scenario 3: a re-stage keeps exactly one line and the marker records the same object", () => {
+  const f = fixture({ text: stageable() });
+  stage(f, [], "FAFF-9001");
+  const before = readFileSync(f.specFile, "utf8");
+  const out = stage(f, [], "FAFF-9001").json();
+  assert.equal(admLines(f).length, 1);
+  assert.equal(readFileSync(f.specFile, "utf8"), before, "an unchanged spec re-stages to the same bytes");
+  assert.deepEqual(readJson(f.marker("FAFF-9001")).admissibility, out.admissibility);
+});
+
+test("FAFF-1443 scenario 4: a plain block plus a bold bullet is admissible and names the prose unit", () => {
+  const f = fixture({ text: stageable({ scenarios: [...PLAIN, "", BULLET(2)] }) });
+  const out = stage(f, [], "FAFF-9002").json();
+  assert.equal(out.admissibility.admissible, true);
+  assert.deepEqual(out.admissibility.scenarios_prose, ["scenarios:2"]);
+  assert.deepEqual(admLines(f), ["admissibility: admissible — prose scenarios: scenarios:2"]);
+});
+
+test("FAFF-1443 scenario 5: a vague DONE item adds R2b to the line by id, never its text", () => {
+  const f = fixture({ text: stageable({ done: ["- [ ] `faff x` exits 0", "- [ ] admissibility: admissible, works correctly"] }) });
+  const out = stage(f, [], "FAFF-9001").json();
+  assert.ok(out.admissibility.reasons.some((r) => r.includes("vague DONE item") && r.includes("admissibility: admissible, works correctly")));
+  assert.deepEqual(admLines(f), ["admissibility: refused — R1.scenarios (0 of 3 units count), R2b.done-concrete; prose scenarios: scenarios:1, scenarios:2, scenarios:3"]);
+  assert.ok(readFileSync(f.specFile, "utf8").includes("- [ ] admissibility: admissible, works correctly"), "a DONE item containing the word is left alone");
+});
+
+test("FAFF-1443 scenario 6: git-only autonomous attached carries the field and the store carries the line", () => {
+  const f = fixture({ text: stageable() });
+  const r = cli(f.root, ["prep", "attach", "--issue", "FAFF-9003", "--spec", f.specFile, "--mode", "autonomous", "--git-only", "--root", f.root, "--json"]);
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.json().token, "attached");
+  assert.equal(r.json().admissibility.admissible, false);
+  const store = readFileSync(join(f.root, ".faff", "specs", "FAFF-9003.md"), "utf8");
+  assert.ok(store.split("\n").includes("admissibility: refused — R1.scenarios (0 of 3 units count); prose scenarios: scenarios:1, scenarios:2, scenarios:3"));
+  assert.deepEqual(readJson(f.marker("FAFF-9003")).admissibility, r.json().admissibility);
+});
+
+test("FAFF-1443 scenario 7: invalid and needs-judgement results carry no admissibility key", () => {
+  let f = fixture({ text: stageable({ confidence: null }) });
+  let out = stage(f, [], "FAFF-9001").json();
+  assert.equal(out.token, "invalid");
+  assert.equal("admissibility" in out, false);
+  assert.equal(readJson(f.marker("FAFF-9001")).admissibility, undefined);
+  f = fixture({ text: stageable().replace(READY, "") });
+  out = stage(f, [], "FAFF-9001").json();
+  assert.equal(out.token, "needs-judgement");
+  assert.equal("admissibility" in out, false);
+});
+
+test("FAFF-1443: no Scenarios section reads (no Scenarios units); the line sits directly after build-tier", () => {
+  const f = fixture({ text: stageable({ scenarios: null }) });
+  const out = stage(f, [], "FAFF-9001").json();
+  assert.equal(out.admissibility.admissible, false);
+  assert.deepEqual(out.admissibility.scenarios_prose, []);
+  const lines = readFileSync(f.specFile, "utf8").split("\n");
+  const at = lines.findIndex((l) => l.startsWith("build-tier:"));
+  assert.equal(lines[at + 1], "admissibility: refused — R1.scenarios (no Scenarios units)");
+  assert.equal(lines[at - 1], "confidence: high");
+});
+
+test("FAFF-1443: spec_sha256 hashes the file bytes including the line; text mode prints its value", () => {
+  const f = fixture({ text: stageable() });
+  const out = stage(f, [], "FAFF-9001").json();
+  assert.equal(out.spec_sha256, sha(readFileSync(f.specFile)));
+  const f2 = fixture({ text: stageable({ scenarios: PLAIN }) });
+  const t = cli(f2.root, ["prep", "attach", "--issue", "FAFF-9001", "--spec", f2.specFile, "--mode", "interactive", "--root", f2.root]);
+  assert.equal(t.status, 0, t.stderr);
+  assert.match(t.stdout, /^prep attach FAFF-9001: ready-to-post \(post .+; admissibility: admissible\)\n$/);
+});
+
+test("FAFF-1443: an admissibility line inside a fence is content and stays; a stale one outside is replaced", () => {
+  const f = fixture({ text: stageable({ scenarios: [...PLAIN, "", "```", "admissibility: admissible", "```"] }).replace("confidence: high", "confidence: high\nadmissibility: admissible") });
+  stage(f, [], "FAFF-9001");
+  const text = readFileSync(f.specFile, "utf8");
+  assert.ok(text.includes("```\nadmissibility: admissible\n```"));
+  assert.equal(admLines(f).length, 2, "the fenced example plus exactly one retained line");
+});
+
+test("FAFF-1443: a fault while classifying is admissible:false with the unknown line, and the token is unchanged", () => {
+  const f = fixture({ text: stageable({ scenarios: PLAIN }) });
+  const deps = { ...prepAttach.defaultDeps(f.root), admissibility: {
+    verdict: (t) => require("../plugin/skills/faff/bin/lib/admissibility.js").admissibleVerdict(t, true),
+    classify: () => { throw new Error("forced dodClassify failure"); },
+    countScenarios: () => 0,
+  } };
+  const res = prepAttach.stage({ issue: "FAFF-9001", specPath: f.specFile, mode: "interactive", gitOnly: false, gateHistory: null, extractionPath: null, root: f.root }, deps);
+  assert.equal(res.token, "ready-to-post");
+  assertShape(res.admissibility);
+  assert.equal(res.admissibility.admissible, false);
+  assert.deepEqual(res.admissibility.scenarios_prose, []);
+  assert.ok(res.admissibility.reasons[0].startsWith("admissibility check failed:"));
+  assert.deepEqual(admLines(f), ["admissibility: unknown — check failed"]);
+});
+
+test("FAFF-1443: the key set and types hold on the success, refused and fault paths", () => {
+  const ok = prepAttach.applyAdmissibility("build-tier: mechanical\n\n" + stageable({ scenarios: PLAIN }));
+  const refused = prepAttach.applyAdmissibility("build-tier: mechanical\n\n" + stageable());
+  const fault = prepAttach.applyAdmissibility("build-tier: mechanical\n", { verdict: () => null, classify: () => null, countScenarios: () => 0 });
+  for (const a of [ok, refused, fault]) assertShape(a.admissibility);
+  assert.deepEqual([ok.admissibility.admissible, refused.admissibility.admissible, fault.admissibility.admissible], [true, false, false]);
+  assert.equal(fault.line, "unknown — check failed");
+});
+
+test("FAFF-1443: the line is capped at 300 characters", () => {
+  const many = Array.from({ length: 60 }, (_, i) => BULLET(i));
+  const a = prepAttach.applyAdmissibility("build-tier: mechanical\n\n" + stageable({ scenarios: many }));
+  const line = a.text.split("\n").find((l) => l.startsWith("admissibility:"));
+  assert.equal(line.length, 300);
+  assert.ok(line.endsWith("…"));
+});
+
+test("FAFF-1443: FAFF-1431's committed spec stages refused with eight prose Scenarios units", () => {
+  const f = fixture({ text: readFileSync(join(HERE, "fixtures", "prep-attach", "faff-1431-spec.md"), "utf8") });
+  const ex = join(f.root, "ex.json");
+  writeFileSync(ex, JSON.stringify({ confidence: "high", decisions: [{ marker: "chosen" }] }));
+  const out = stage(f, ["--extraction", ex], "FAFF-1431").json();
+  assert.equal(out.token, "ready-to-post");
+  assert.equal(out.admissibility.admissible, false);
+  assert.ok(out.admissibility.reasons.includes("0 born-verifiable scenario(s) (need >=1)"));
+  assert.equal(out.admissibility.scenarios_prose.length, 8);
+});
+
+test("FAFF-1443: faff admissible and faff tier give the same result with and without the line", () => {
+  const f = fixture({ text: stageable() });
+  stage(f, [], "FAFF-9001");
+  const withLine = readFileSync(f.specFile, "utf8");
+  const without = join(f.root, "without.md");
+  writeFileSync(without, withLine.split("\n").filter((l) => !l.startsWith("admissibility:")).join("\n"));
+  const adm = (p) => { const j = JSON.parse(cli(f.root, ["admissible", "--lights-out", "--spec", p, "--json"]).stdout); return [j.admissible, j.reasons, j.checks]; };
+  assert.deepEqual(adm(f.specFile), adm(without));
+  assert.equal(cli(f.root, ["tier", f.specFile]).stdout, cli(f.root, ["tier", without]).stdout);
+});

@@ -254,6 +254,10 @@
         "epoch": {
           "type": "integer"
         },
+        "utc_offset_min": {
+          "type": "integer",
+          "description": "UTC offset in minutes of the writing process's timezone when it wrote started_at, -840 to 840 (FAFF-1444); budget.until resolves in the run origin's offset; absent on ledgers written before FAFF-1444"
+        },
         "faff_version": {
           "type": "string",
           "description": "faff plugin release version that wrote this document (FAFF-1395); \"unknown\" when unresolved; absent on documents written before FAFF-1395"
@@ -295,6 +299,10 @@
           },
           "epoch": {
             "type": "integer"
+          },
+          "utc_offset_min": {
+            "type": "integer",
+            "description": "UTC offset in minutes of the writing process's timezone when it wrote started_at, -840 to 840 (FAFF-1444); budget.until resolves in the run origin's offset; absent on ledgers written before FAFF-1444"
           },
           "faff_version": {
             "type": "string",

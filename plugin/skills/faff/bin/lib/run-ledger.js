@@ -36,6 +36,7 @@ const { parseArgs, usageError } = require("./argv");
 const { findRoot, latestRunDir } = require("./shared-infra");
 const { isLedgerSchemaError, mutateLedgerUnderLock } = require("./heartbeat");
 const { resolveFaffVersion } = require("./faff-version"); // FAFF-1395
+const { utcOffsetField } = require("./budget"); // FAFF-1444
 const { appendRecordUnderLock, appendEventRecord, computeChainHead, emitGenesisRunStart, verifyChain, verifyExitCode, EVENT_LEDGER_OUTCOMES } = require("./events");
 // FAFF-1028: lazy-resolved at mint time (not required at module top) — merge-gate.js is a much
 // heavier module (contract-defs/container-check/commissaire/gates/…) than run-ledger.js needs
@@ -116,6 +117,7 @@ function buildInteractiveLedger({ runId, issue, nowIso, sessionId, pid, baseSha,
       session_id: sessionId || runId,
       pid,
       started_at: nowIso,
+      ...utcOffsetField(nowIso), // FAFF-1444: the timezone budget.until resolves in
       last_heartbeat: nowIso,
       ...(faffVersion === undefined ? {} : { faff_version: faffVersion }),
     },
@@ -142,6 +144,7 @@ function buildSelfDrainLedger({ runId, nowIso, sessionId, pid, baseSha, faffVers
       session_id: sessionId || runId,
       pid,
       started_at: nowIso,
+      ...utcOffsetField(nowIso), // FAFF-1444: the timezone budget.until resolves in
       last_heartbeat: nowIso,
       ...(faffVersion === undefined ? {} : { faff_version: faffVersion }),
     },

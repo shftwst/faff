@@ -63,7 +63,7 @@ function withTranscripts(root, cwd, sid, files) {
 
 const baseLedger = (over = {}) => ({
   run_id: "run-test", admitted: ["X-1"], outcomes: { "X-1": "shipped" },
-  owner: { status: "running", started_at: "2026-06-23T15:00:00Z" },
+  owner: { status: "running", started_at: "2026-06-23T15:00:00Z", utc_offset_min: 0 },
   ...over,
 });
 
@@ -1828,4 +1828,253 @@ test("FAFF-604 REGRESSION: an unmetered engine with NO cost ceiling keeps its in
     assert.deepEqual(s.unmetered_engines, [{ engine: "lan", waived: false }]);
     assert.ok(s.warnings.some((w) => /telemetry: none/.test(w)));
   } finally { f.cleanup(); }
+});
+
+// ---------------------------------------------------------------------------------------------
+// FAFF-1444 — the `until` deadline resolves once, against the run origin (the earliest
+// owner_history/owner started_at) in that owner's recorded utc_offset_min, never against the
+// check's own clock (which rolled a passed HH:MM to tomorrow on every check, so `until` could
+// never breach). Every CLI case pins TZ=UTC and the --now-ms clock seam.
+// ---------------------------------------------------------------------------------------------
+
+const ms = (iso) => String(Date.parse(iso));
+const UNTIL_0600 = "budget:\n  until: \"06:00\"\n";
+const untilLedger = (owner, over = {}) => ({ run_id: "run-test", admitted: ["X-1"], outcomes: {}, owner: { status: "running", ...owner }, ...over });
+
+function untilCheck(f, nowIso, env = { TZ: "UTC" }, extra = []) {
+  const r = run(["budget", "check", "--run-dir", f.runDir, "--root", f.root, "--now-ms", ms(nowIso), "--json", ...extra], env);
+  assert.equal(r.code, 0, r.err);
+  return { s: JSON.parse(r.out), err: r.err };
+}
+
+test("FAFF-1444: origin before deadline — not breached at 05:59, breached at 06:00, same until_at", () => {
+  const f = fixture({ rc: UNTIL_0600, ledger: untilLedger({ started_at: "2026-10-29T23:00:00Z", utc_offset_min: 0 }) });
+  try {
+    const a = untilCheck(f, "2026-10-30T05:59:00Z").s;
+    const b = untilCheck(f, "2026-10-30T06:00:00Z").s;
+    assert.ok(!a.breached.includes("until"));
+    assert.ok(b.breached.includes("until"));
+    assert.equal(a.spent.until_at, "2026-10-30T06:00:00.000Z");
+    assert.equal(b.spent.until_at, "2026-10-30T06:00:00.000Z");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-1444: a deadline already passed the same day breaches (never-breach regression)", () => {
+  const f = fixture({ rc: UNTIL_0600, ledger: untilLedger({ started_at: "2026-10-30T05:00:00Z", utc_offset_min: 0 }) });
+  try {
+    const { s } = untilCheck(f, "2026-10-30T07:00:00Z");
+    assert.ok(s.breached.includes("until"), JSON.stringify(s));
+    assert.equal(s.outcome, "stop");
+    assert.equal(s.spent.until_at, "2026-10-30T06:00:00.000Z");
+    assert.ok(!("warnings" in s), "an anchored run with a recorded offset warns about nothing");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-1444: midnight — origin 23:55, until 23:58, a check at 00:02 the next day is breached", () => {
+  const f = fixture({ rc: "budget:\n  until: \"23:58\"\n", ledger: untilLedger({ started_at: "2026-10-29T23:55:00Z", utc_offset_min: 0 }) });
+  try {
+    const { s } = untilCheck(f, "2026-10-30T00:02:00Z");
+    assert.ok(s.breached.includes("until"));
+    assert.equal(s.spent.until_at, "2026-10-29T23:58:00.000Z");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-1444: a resume keeps the origin — resumed after the deadline breaches at the first check", () => {
+  const f = fixture({
+    rc: UNTIL_0600,
+    ledger: untilLedger({ started_at: "2026-10-30T07:00:00Z", utc_offset_min: 0, epoch: 1 },
+      { owner_history: [{ status: "aborted-resumable", started_at: "2026-10-29T23:00:00Z", utc_offset_min: 0, epoch: 0 }] }),
+  });
+  try {
+    const { s } = untilCheck(f, "2026-10-30T07:05:00Z");
+    assert.ok(s.breached.includes("until"));
+    assert.equal(s.spent.until_at, "2026-10-30T06:00:00.000Z");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-1444: holdout-shaped resume — origin 22:00, until 07:30, resumed 08:00, checked 08:10", () => {
+  const f = fixture({
+    rc: "budget:\n  until: \"07:30\"\n",
+    ledger: untilLedger({ started_at: "2026-10-30T08:00:00Z", epoch: 1 },
+      { owner_history: [{ status: "aborted-resumable", started_at: "2026-10-29T22:00:00Z", utc_offset_min: 0, epoch: 0 }] }),
+  });
+  try {
+    const { s } = untilCheck(f, "2026-10-30T08:10:00Z");
+    assert.ok(s.breached.includes("until"));
+    assert.equal(s.spent.until_at, "2026-10-30T07:30:00.000Z");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-1444: missing anchor — until treated as reached, until_at null, warning, exit 0", () => {
+  const f = fixture({ rc: UNTIL_0600, ledger: untilLedger({}) });
+  try {
+    const { s, err } = untilCheck(f, "2026-10-30T04:00:00Z");
+    assert.ok(s.breached.includes("until"));
+    assert.equal(s.spent.until_at, null);
+    assert.ok(s.warnings.some((w) => w.includes("no usable run-start anchor (owner.started_at missing or unparseable)")), JSON.stringify(s.warnings));
+    assert.match(err, /faff budget check: budget\.until has no usable run-start anchor/);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-1444: an unparseable started_at is a missing anchor too", () => {
+  const f = fixture({ rc: UNTIL_0600, ledger: untilLedger({ started_at: "not-a-date", utc_offset_min: 0 }) });
+  try {
+    const { s } = untilCheck(f, "2026-10-30T04:00:00Z");
+    assert.ok(s.breached.includes("until"));
+    assert.equal(s.spent.until_at, null);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-1444: a future anchor (> 5 min ahead) is unusable — reached, until_at null, warning names it", () => {
+  const f = fixture({ rc: UNTIL_0600, ledger: untilLedger({ started_at: "2027-01-01T00:00:00Z", utc_offset_min: 0 }) });
+  try {
+    const { s } = untilCheck(f, "2026-10-30T07:00:00Z");
+    assert.ok(s.breached.includes("until"));
+    assert.equal(s.spent.until_at, null);
+    assert.ok(s.warnings.some((w) => w.includes("(run start is in the future)")), JSON.stringify(s.warnings));
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-1444: clock skew within five minutes anchors normally", () => {
+  const f = fixture({ rc: UNTIL_0600, ledger: untilLedger({ started_at: "2026-10-30T07:03:00Z", utc_offset_min: 0 }) });
+  try {
+    const { s } = untilCheck(f, "2026-10-30T07:00:00Z");
+    assert.ok(!s.breached.includes("until"));
+    assert.equal(s.spent.until_at, "2026-10-31T06:00:00.000Z");
+    assert.ok(!("warnings" in s));
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-1444: no run — clock-relative deadline, no anchor warning, no until breach, until_at printed", () => {
+  const root = mkdtempSync(join(tmpdir(), "faff-budget-norun-"));
+  try {
+    writeFileSync(join(root, ".faffrc.yaml"), UNTIL_0600);
+    const r = run(["budget", "check", "--root", root, "--now-ms", ms("2026-10-30T07:00:00Z"), "--json"], { TZ: "UTC" });
+    assert.equal(r.code, 0, r.err);
+    const s = JSON.parse(r.out);
+    assert.ok(!s.breached.includes("until"));
+    assert.equal(s.spent.until_at, "2026-10-31T06:00:00.000Z");
+    assert.ok(!(s.warnings || []).some((w) => /run-start anchor/.test(w)));
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-1444: the recorded offset wins; with it removed the box's timezone is used and warns", () => {
+  const withOffset = fixture({ rc: UNTIL_0600, ledger: untilLedger({ started_at: "2026-10-30T03:00:00Z", utc_offset_min: 60 }) });
+  const noOffset = fixture({ rc: UNTIL_0600, ledger: untilLedger({ started_at: "2026-10-30T03:00:00Z" }) });
+  try {
+    const a = untilCheck(withOffset, "2026-10-30T05:30:00Z").s;
+    assert.ok(a.breached.includes("until"));
+    assert.equal(a.spent.until_at, "2026-10-30T05:00:00.000Z");
+    const b = untilCheck(noOffset, "2026-10-30T05:30:00Z").s;
+    assert.ok(!b.breached.includes("until"));
+    assert.equal(b.spent.until_at, "2026-10-30T06:00:00.000Z");
+    assert.ok(b.warnings.some((w) => w.includes("resolved in this box's timezone (the run records no UTC offset)")), JSON.stringify(b.warnings));
+  } finally { withOffset.cleanup(); noOffset.cleanup(); }
+});
+
+test("FAFF-1444: cross-box — the same ledger gives the same until_at under TZ=UTC and TZ=America/New_York", () => {
+  const f = fixture({ rc: UNTIL_0600, ledger: untilLedger({ started_at: "2026-10-30T03:00:00Z", utc_offset_min: 60 }) });
+  try {
+    const a = untilCheck(f, "2026-10-30T05:30:00Z", { TZ: "UTC" }).s;
+    const b = untilCheck(f, "2026-10-30T05:30:00Z", { TZ: "America/New_York" }).s;
+    assert.ok(a.breached.includes("until") && b.breached.includes("until"));
+    assert.equal(a.spent.until_at, "2026-10-30T05:00:00.000Z");
+    assert.equal(b.spent.until_at, "2026-10-30T05:00:00.000Z");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-1444: holdout-shaped escalate — origin 22:50Z at +60, until 23:57, checked 23:05Z", () => {
+  const f = fixture({ rc: "budget:\n  until: \"23:57\"\n  at_ceiling: escalate\n", ledger: untilLedger({ started_at: "2026-10-30T22:50:00Z", utc_offset_min: 60 }) });
+  try {
+    const { s } = untilCheck(f, "2026-10-30T23:05:00Z");
+    assert.ok(s.breached.includes("until"));
+    assert.equal(s.outcome, "escalate");
+    assert.equal(s.spent.until_at, "2026-10-30T22:57:00.000Z");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-1444: stable — two checks of one anchored run at different clocks print the same until_at", () => {
+  const f = fixture({ rc: UNTIL_0600, ledger: untilLedger({ started_at: "2026-10-29T12:00:00Z", utc_offset_min: 0 }) });
+  try {
+    const a = untilCheck(f, "2026-10-29T13:00:00Z").s;
+    const b = untilCheck(f, "2026-10-31T13:00:00Z").s;
+    assert.equal(a.spent.until_at, "2026-10-30T06:00:00.000Z");
+    assert.equal(b.spent.until_at, a.spent.until_at);
+    assert.ok(!a.breached.includes("until") && b.breached.includes("until"));
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-1444: --until flag overrides config and anchors the same way", () => {
+  const f = fixture({ rc: "budget:\n  until: \"23:00\"\n", ledger: untilLedger({ started_at: "2026-10-30T05:00:00Z", utc_offset_min: 0 }) });
+  try {
+    const { s } = untilCheck(f, "2026-10-30T07:00:00Z", { TZ: "UTC" }, ["--until", "06:00"]);
+    assert.ok(s.breached.includes("until"));
+    assert.equal(s.spent.until_at, "2026-10-30T06:00:00.000Z");
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-1444: no until ceiling — no until_at key", () => {
+  const f = fixture({ rc: "budget:\n  max_attempts: 5\n", ledger: untilLedger({ started_at: "2026-10-30T05:00:00Z", utc_offset_min: 0 }) });
+  try {
+    const { s } = untilCheck(f, "2026-10-30T07:00:00Z");
+    assert.ok(!("until_at" in s.spent));
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-1444: a malformed until prints no until_at key and still warns (FAFF-364 unchanged)", () => {
+  const f = fixture({ rc: "budget:\n  until: \"25:00\"\n", ledger: untilLedger({ started_at: "2026-10-30T05:00:00Z", utc_offset_min: 0 }) });
+  try {
+    const { s } = untilCheck(f, "2026-10-30T07:00:00Z");
+    assert.ok(!("until_at" in s.spent));
+    assert.ok(!s.breached.includes("until"));
+    assert.equal(s.warnings.length, 1);
+    assert.match(s.warnings[0], /until ceiling ignored/);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-1444: elapsed_ms still measures from the current owner's started_at, not the origin", () => {
+  const f = fixture({
+    rc: UNTIL_0600,
+    ledger: untilLedger({ started_at: "2026-10-30T07:00:00Z", utc_offset_min: 0, epoch: 1 },
+      { owner_history: [{ status: "aborted-resumable", started_at: "2026-10-29T23:00:00Z", utc_offset_min: 0, epoch: 0 }] }),
+  });
+  try {
+    const { s } = untilCheck(f, "2026-10-30T07:05:00Z");
+    assert.equal(s.spent.elapsed_ms, 5 * 60 * 1000);
+  } finally { f.cleanup(); }
+});
+
+test("FAFF-1444: runOrigin picks the earliest parseable entry and its offset", async () => {
+  const { runOrigin } = await import("../plugin/skills/faff/bin/lib/budget.js");
+  const t = (iso) => Date.parse(iso);
+  assert.equal(runOrigin({}), null);
+  assert.equal(runOrigin(null), null);
+  assert.equal(runOrigin({ owner: { status: "running" } }), null);
+  assert.equal(runOrigin({ owner: { started_at: "garbage" }, owner_history: [{ started_at: "" }] }), null);
+  assert.deepEqual(runOrigin({ owner: { started_at: "2026-10-30T07:00:00Z", utc_offset_min: 60 } }), { ms: t("2026-10-30T07:00:00Z"), offset_min: 60 });
+  assert.deepEqual(
+    runOrigin({ owner: { started_at: "2026-10-30T07:00:00Z", utc_offset_min: 60 }, owner_history: [{ started_at: "2026-10-29T23:00:00Z", utc_offset_min: -300 }, { started_at: "2026-10-30T01:00:00Z" }] }),
+    { ms: t("2026-10-29T23:00:00Z"), offset_min: -300 });
+  // offset null when absent, non-integer or outside ±840
+  for (const off of [undefined, 1.5, "60", 841, -841, null]) {
+    assert.equal(runOrigin({ owner: { started_at: "2026-10-30T07:00:00Z", utc_offset_min: off } }).offset_min, null, String(off));
+  }
+  for (const off of [840, -840, 0]) {
+    assert.equal(runOrigin({ owner: { started_at: "2026-10-30T07:00:00Z", utc_offset_min: off } }).offset_min, off);
+  }
+});
+
+test("FAFF-1444: untilToEpochAtOffset across offsets, with the roll-over at or before the anchor", async () => {
+  const { untilToEpochAtOffset } = await import("../plugin/skills/faff/bin/lib/budget.js");
+  const iso = (n) => new Date(n).toISOString();
+  const a = Date.parse("2026-10-30T03:00:00Z");
+  assert.equal(iso(untilToEpochAtOffset("06:00", a, 0)), "2026-10-30T06:00:00.000Z");
+  assert.equal(iso(untilToEpochAtOffset("06:00", a, 60)), "2026-10-30T05:00:00.000Z");
+  assert.equal(iso(untilToEpochAtOffset("06:00", a, 330)), "2026-10-31T00:30:00.000Z"); // 03:00Z is 08:30 at +5:30 → next day's 06:00
+  assert.equal(iso(untilToEpochAtOffset("06:00", a, -300)), "2026-10-30T11:00:00.000Z"); // 03:00Z is 22:00 the day before at -5
+  // exactly at the anchor rolls a day (strict "after")
+  assert.equal(iso(untilToEpochAtOffset("03:00", a, 0)), "2026-10-31T03:00:00.000Z");
+  assert.equal(iso(untilToEpochAtOffset("02:59", a, 0)), "2026-10-31T02:59:00.000Z");
+  assert.equal(untilToEpochAtOffset("25:00", a, 0), null);
+  assert.equal(untilToEpochAtOffset("nope", a, 0), null);
 });

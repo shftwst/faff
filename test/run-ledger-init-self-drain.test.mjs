@@ -294,3 +294,14 @@ test("emitGenesisRunStart: L3's call shape (init-self-drain) → data:{level:'L3
   assert.deepEqual(rec.data, { level: "L3", faff_version: FAFF_VERSION });
   rmSync(root, { recursive: true, force: true });
 });
+
+// FAFF-1444 — every mint records the UTC offset budget.until resolves in, beside started_at.
+test("FAFF-1444: init-self-drain writes an integer owner.utc_offset_min", () => {
+  const { buildSelfDrainLedger } = require("../plugin/skills/faff/bin/lib/run-ledger.js");
+  const nowIso = "2026-10-30T05:00:00.000Z";
+  const owner = buildSelfDrainLedger({ runId: "r", nowIso, sessionId: null, pid: 1 }).owner;
+  assert.ok(Number.isInteger(owner.utc_offset_min), JSON.stringify(owner));
+  assert.equal(owner.utc_offset_min, 0 - new Date(nowIso).getTimezoneOffset());
+  assert.equal("utc_offset_min" in buildSelfDrainLedger({ runId: "r", nowIso: "not-a-date", sessionId: null, pid: 1 }).owner, false,
+    "an unparseable mint instant writes no offset rather than a non-integer one");
+});

@@ -60,12 +60,13 @@ Every spec faff-prep attaches (freshly produced by the `spec` slot, or refreshed
 
 ### Stage and attach (`faff prep attach`)
 
-Same-turn attach is a **mechanical guarantee**: `faff prepcheck --hook` blocks session end on a produced-but-not-attached spec, reading the `.faff/prep/<ISSUE>.json` marker that `faff prep attach` writes before any step that can fail. The command also writes the provenance stamp the gateway's _Spec readiness (fixed)_ defines, the retained `build-tier:` line and the marker's `spec_sha256`, which graft's `faff spec commit` checks against the posted spec.
+Same-turn attach is a **mechanical guarantee**: `faff prepcheck --hook` blocks session end on a produced-but-not-attached spec, reading the `.faff/prep/<ISSUE>.json` marker that `faff prep attach` writes before any step that can fail. The command also writes the provenance stamp the gateway's _Spec readiness (fixed)_ defines, the retained `build-tier:` line, the retained advisory `admissibility:` line (the `faff admissible --lights-out` result, which never changes the token) and the marker's `spec_sha256`, which graft's `faff spec commit` checks against the posted spec.
 
 - **When.** Stage the instant the `spec` slot returns, before rendering the spec into the conversation, on every attach path: Scenario A, Scenario B refresh or iterate, autonomous Path 1 and Path 2. Stage again before every re-post (a revise round, the retained `spec-review:` line, the methodology critique, a refresh). Stage replaces the stamp and tier lines; it never duplicates them.
 - **Stage.** `faff prep attach --issue <ISSUE> --spec <spec-file> --mode interactive|autonomous [--git-only] [--gate-history N] --json`. `--mode` is `autonomous` under the autonomous-mode signal, else `interactive`; `N` is the issue's prior park or needs-human count when prep has it to hand.
 - **Confirm.** After `save_comment` returns, `faff prep attach --issue <ISSUE> --confirm --comment-id <returned id> --json`. Confirm re-hashes the staged file and refuses if it changed since stage.
 - **Park.** On a by-design park, `faff prep attach --issue <ISSUE> --park --json` records `disposition:"parked"`, so `prepcheck` does not false-block a legitimate non-attach.
+- **Promote (interactive).** Before any move to Todo, a human accept included, read `.faff/prep/<ISSUE>.json`: promote only when it reads `attached: true` with an `admissibility` object (otherwise stage, post and confirm again), print its `admissibility`, and when it is refused or names prose scenarios offer revise the scenarios (recommended), promote anyway, or leave in Backlog. The human may promote an inadmissible spec; the retained line records it. Autonomous prep does not act on it.
 
 | Token | Action |
 |---|---|

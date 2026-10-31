@@ -137,6 +137,8 @@ When <the change/action>
 Then <the observable, testable outcome>
 ```
 
+**One scenario format, read by every counter.** Write each behavioural scenario as its own fenced block (plain or `holdout`), one step per line, each line starting with a capitalised `Given`, `When`, `Then` or `And`, with no bullet and no bold. The scenario counters do not read a bulleted scenario (`- Given … Then …`), bold keywords (`**Given**`) or a lowercase `then`, and `faff admissible --lights-out` refuses a spec whose scenarios use only those forms.
+
 **Non-functional objectives → assertions/constraints**, not forced Given-When-Then. A constraint like "no PII in logs", "10k rps sustained", or "p99 < 200ms" is an assertion line — two complementary forms, behaviour vs non-functional, not one format jammed onto both.
 
 This is the same language as holdout BDD; a holdout is just the withheld subset of these scenarios (one language, two visibilities).

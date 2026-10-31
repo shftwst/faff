@@ -332,6 +332,37 @@ test("hooks on fail-closed: hooks-ensure still runs on the fail-closed path and 
   assert.equal(called(deps, "sentry-poller start").length, 0);
 });
 
+test("fail-closed write refused: a refused owner-close write on the fail-closed path is a fault and stays exit 3", () => {
+  let n = 0;
+  const deps = fakeDeps({ "commissaire contract status": fail(1) });
+  const inner = deps.mutateLedger;
+  deps.mutateLedger = (runDir, mutate) => { n += 1; if (n === 3) throw new Error("lock busy"); return inner(runDir, mutate); };
+  const r = open(deps);
+  assert.equal(r.code, 3);
+  assert.equal(r.result.governance, "fail-closed");
+  assert.equal(r.result.fail_closed_cause, "commissaire-status-failed");
+  assert.ok(r.result.faults.some((f) => f.startsWith("owner-close-failed")));
+  assert.equal(called(deps, "sentry-poller start").length, 0);
+});
+
+test("mint without a ledger: a mint whose printed path holds no readable ledger exits 2", () => {
+  const deps = fakeDeps({ "run-ledger init-self-drain": ok(`${RUN_DIR}\n`) });
+  const r = open(deps);
+  assert.equal(r.code, 2);
+  assert.equal(r.result.steps.mint, "failed:no-ledger");
+  assert.equal(r.result.run_dir, null);
+  assert.equal(called(deps, "harness identify").length, 0);
+});
+
+test("envelope reported from the ledger: an envelope already present under the lock is reported, not the fresh one", () => {
+  const recorded = { ceilings: { until: null, max_attempts: 2, tokens: null, cost: null } };
+  const deps = fakeDeps({ "run-ledger init-self-drain": () => { deps.state.ledger = baseLedger({ budget: { envelope: recorded } }); return ok(`${RUN_DIR}\n`); } }, { config: { budget: { max_attempts: 9 } } });
+  const r = open(deps);
+  assert.equal(r.code, 0);
+  assert.equal(r.result.steps.envelope, "skipped");
+  assert.deepEqual(r.result.budget_envelope, recorded);
+});
+
 // --- Faults that do not stop the open ---
 
 test("poller after governance: poller, hooks, baseline and identify failures are faults with exit 0", () => {

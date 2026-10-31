@@ -18,6 +18,7 @@ interface FsApi {
   readFileSync(file: string, encoding: "utf8"): string;
   writeFileSync(file: string, data: string): void;
   renameSync(from: string, to: string): void;
+  rmSync(file: string, opts: { force: boolean }): void;
   mkdirSync(dir: string, opts: { recursive: boolean }): void;
 }
 interface PathApi {
@@ -145,8 +146,13 @@ function realDeps(): Deps {
       fs.mkdirSync(dir, { recursive: true });
       const file = path.join(dir, "governance-required.json");
       const tmp = `${file}.tmp-${process.pid}`;
-      fs.writeFileSync(tmp, `${JSON.stringify(body)}\n`);
-      fs.renameSync(tmp, file);
+      try {
+        fs.writeFileSync(tmp, `${JSON.stringify(body)}\n`);
+        fs.renameSync(tmp, file);
+      } catch (e) {
+        fs.rmSync(tmp, { force: true });
+        throw e;
+      }
     },
     env: process.env,
   };
@@ -234,6 +240,10 @@ function runOpen(args: OpenArgs, deps: Deps): OpenOutcome {
         return refuse(`mint failed (exit ${exitDetail(mint)}): ${mint.stderr.trim()}`, null);
       }
       runDir = path.resolve(minted);
+      if (deps.readLedger(runDir) === undefined) {
+        steps.mint = "failed:no-ledger";
+        return refuse(`mint printed ${JSON.stringify(minted)} but no readable run-ledger.json is there`, null);
+      }
       steps.mint = "ok";
     }
     result.run_dir = runDir;
@@ -242,7 +252,7 @@ function runOpen(args: OpenArgs, deps: Deps): OpenOutcome {
       const r = faff(["events", "append", "--run", runId, "--root", root], { input: JSON.stringify({ phase: "run", type: "ledger-write" }) });
       if (r.status !== 0) faults.push("ledger-write-append-failed");
     };
-    const mutate = (fn: (ledger: object) => boolean): void => {
+    const mutate = (fn: (ledger: object) => boolean): boolean => {
       let changed = false;
       try {
         deps.mutateLedger(runDir, (fresh) => {
@@ -254,6 +264,7 @@ function runOpen(args: OpenArgs, deps: Deps): OpenOutcome {
         throw new OpenRefusal(`ledger write refused in ${runDir}: ${errText(e)}`, runDir);
       }
       if (changed) ledgerWrite();
+      return changed;
     };
 
     // 2. Enrich the owner with harness/model, only where absent; every other owner field is kept.
@@ -277,25 +288,24 @@ function runOpen(args: OpenArgs, deps: Deps): OpenOutcome {
     }
 
     // 3. The envelope, write-once, then the write-once baseline.
+    // The locked write re-checks under the lock; whatever is on the ledger afterwards is what is reported.
+    const wrote = mutate((ledger) => {
+      const existing = field(ledger, "budget");
+      const budget = isRecord(existing) ? existing : {};
+      if (field(budget, "envelope") !== undefined) return false;
+      Reflect.set(budget, "envelope", envelope);
+      Reflect.set(budget, "measure_root", root);
+      Reflect.set(ledger, "budget", budget);
+      return true;
+    });
     const recorded = field(field(deps.readLedger(runDir), "budget"), "envelope");
-    if (isRecord(recorded)) {
+    if (!wrote) {
       const conflict = envelopeConflict(recorded, envelope, args);
       if (conflict !== null) return refuse(`budget envelope already set: ${conflict}`, runDir);
-      result.budget_envelope = recorded;
-      steps.envelope = "skipped";
-    } else {
-      mutate((ledger) => {
-        const existing = field(ledger, "budget");
-        const budget = isRecord(existing) ? existing : {};
-        if (field(budget, "envelope") !== undefined) return false;
-        Reflect.set(budget, "envelope", envelope);
-        Reflect.set(budget, "measure_root", root);
-        Reflect.set(ledger, "budget", budget);
-        return true;
-      });
-      result.budget_envelope = isRecord(envelope) ? envelope : null;
-      steps.envelope = "ok";
     }
+    if (!isRecord(recorded)) return refuse(`budget envelope missing from ${path.join(runDir, "run-ledger.json")} after the write`, runDir);
+    result.budget_envelope = recorded;
+    steps.envelope = wrote ? "ok" : "skipped";
     const baseline = faff(["budget", "baseline", "--run-dir", runDir, "--root", root, "--session-id", args.sessionId]);
     if (baseline.status === 0) steps.baseline = "ok";
     else { steps.baseline = `failed:${exitDetail(baseline)}`; faults.push("budget-baseline-failed"); }
@@ -316,12 +326,17 @@ function runOpen(args: OpenArgs, deps: Deps): OpenOutcome {
       const park = faff(["events", "append", "--run", runId, "--root", root], { input: JSON.stringify({ phase: "run", type: "park", issue: runId, data: { reason: "needs-human" } }) });
       if (park.status !== 0) faults.push("park-append-failed");
       if (faff(["andon", "pump", "--run-dir", runDir]).status !== 0) faults.push("andon-pump-failed");
-      mutate((ledger) => {
-        const owner = field(ledger, "owner");
-        if (isRecord(owner)) Reflect.set(owner, "status", "done");
-        Reflect.set(ledger, "stop_reason", "governance-admit-failed");
-        return true;
-      });
+      // A refused close write is a fault on the fail-closed outcome, never a change of exit class.
+      try {
+        mutate((ledger) => {
+          const owner = field(ledger, "owner");
+          if (isRecord(owner)) Reflect.set(owner, "status", "done");
+          Reflect.set(ledger, "stop_reason", "governance-admit-failed");
+          return true;
+        });
+      } catch (e) {
+        faults.push(`owner-close-failed: ${errText(e)}`);
+      }
       hooks();
       result.governance = "fail-closed";
       result.fail_closed_cause = cause;

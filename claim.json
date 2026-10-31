@@ -1,0 +1,15 @@
+{
+  "issue": "FAFF-1442",
+  "owner": {
+    "status": "running",
+    "epoch": 1,
+    "session_id": "run-20261031-143123-graft-FAFF-1442",
+    "pid": 261014,
+    "started_at": "2026-10-31T14:31:33.337Z",
+    "last_heartbeat": "2026-10-31T14:31:33.337Z"
+  },
+  "machine_id": "b35cfcc0a199290c066db3fa48b2fa34e83b68ed7b78a7594f83e50f31931aa2",
+  "heartbeating": true,
+  "claim_epoch": 0,
+  "claimed_at": "2026-10-31T14:31:33.607Z"
+}

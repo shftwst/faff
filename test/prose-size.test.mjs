@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, statSync, unlinkSync, writeFileSync, appendFileSync } from "node:fs";
+import { chmodSync, cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, statSync, unlinkSync, writeFileSync, appendFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -271,6 +271,23 @@ test("ticketOf takes the last parenthesised key; parseLsTree keeps covered blobs
   ].join("\n");
   assert.deepEqual(prose.parseLsTree(ls, "all"), { "faff-graft/SKILL.md": 120, "faff/references/kernel.md": 30 });
   assert.deepEqual(prose.parseLsTree(ls, "hot"), { "faff-graft/SKILL.md": 120 });
+});
+
+test("parseLsTree reads NUL-separated -z output, so a path git would C-quote is still counted", () => {
+  const z = ["100644 blob aaa      12\tplugin/skills/my skill/SKILL.md", "100644 blob bbb       5\tplugin/skills/x/references/é.md", ""].join("\0");
+  assert.deepEqual(prose.parseLsTree(z, "all"), { "my skill/SKILL.md": 12, "x/references/é.md": 5 });
+});
+
+test("proseRatchet turns a covered-file read failure into a FAIL line, not a throw", { skip: process.getuid && process.getuid() === 0 ? "root ignores directory permissions" : false }, () => {
+  const dir = fixture();
+  const refs = join(dir, "demo", "references");
+  chmodSync(refs, 0o000);
+  let res;
+  try { res = prose.proseRatchet(dir, false); } finally { chmodSync(refs, 0o755); }
+  rmSync(dir, { recursive: true, force: true });
+  assert.equal(res.failed, true);
+  assert.equal(res.lines[0], "FAIL  prose-baseline.json (prose bytes)");
+  assert.match(res.lines[1], /✗ could not measure the covered files/);
 });
 
 test("the committed baseline equals the real tree exactly, entry for entry", () => {

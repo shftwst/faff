@@ -146,7 +146,14 @@ function proseRatchet(skillsDir, required) {
             return { failed: false, lines: [`INFO  prose bytes: no baseline at faff/${BASELINE_FILE}; byte ratchet not applied`] };
         return { failed: true, lines: [`FAIL  ${BASELINE_FILE} (prose bytes)`, `        ✗ ${read.reason}: faff/${BASELINE_FILE}`] };
     }
-    const { fails, ratchets } = compareProse(measure(skillsDir), read.files);
+    let measured;
+    try {
+        measured = measure(skillsDir);
+    }
+    catch (e) {
+        return { failed: true, lines: [`FAIL  ${BASELINE_FILE} (prose bytes)`, `        ✗ could not measure the covered files: ${e instanceof Error ? e.message : String(e)}`] };
+    }
+    const { fails, ratchets } = compareProse(measured, read.files);
     const lines = [];
     for (const f of fails) {
         lines.push(`FAIL  ${f.path} (prose bytes)`);
@@ -203,10 +210,11 @@ function ticketOf(subject) {
     const last = all[all.length - 1];
     return last === undefined || last[1] === undefined ? "untagged" : last[1];
 }
-// Parse `git ls-tree -r -l` output into covered sizes for a scope. Pure.
+// Parse `git ls-tree -r -l -z` output (NUL-separated, so paths are never C-quoted) into covered sizes for a
+// scope. Newline-separated output is accepted too. Pure.
 function parseLsTree(out, scope) {
     const sizes = {};
-    for (const line of out.split("\n")) {
+    for (const line of out.split(/\0|\n/)) {
         const tab = line.indexOf("\t");
         if (tab === -1)
             continue;
@@ -242,7 +250,7 @@ function tally(opts, git = defaultGit) {
     if (to === null)
         return { ok: false, reason: `cannot resolve --to ${opts.to}` };
     const sizesAt = (sha) => {
-        const r = git(root, ["ls-tree", "-r", "-l", sha, "--", "plugin/skills"]);
+        const r = git(root, ["ls-tree", "-r", "-l", "-z", sha, "--", "plugin/skills"]);
         return r.status === 0 ? parseLsTree(r.stdout, opts.scope) : null;
     };
     const list = git(root, ["rev-list", "--first-parent", "--reverse", `${from}..${to}`]);
@@ -330,7 +338,15 @@ function cmdBaseline(args) {
         process.stderr.write(`faff prose-size baseline: ${read.reason}: ${file}\n`);
         return 2;
     }
-    const { files, report } = lowerBaseline(measure(skillsDir), read.files);
+    let measured;
+    try {
+        measured = measure(skillsDir);
+    }
+    catch (e) {
+        process.stderr.write(`faff prose-size baseline: could not measure the covered files: ${e instanceof Error ? e.message : String(e)}\n`);
+        return 2;
+    }
+    const { files, report } = lowerBaseline(measured, read.files);
     try {
         fs.writeFileSync(file, serialiseBaseline(files));
     }

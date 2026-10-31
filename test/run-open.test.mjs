@@ -317,6 +317,13 @@ test("admit-required unparseable: a non-zero or unparseable admit-required reads
   }
 });
 
+test("hooks spawned: hooks-ensure runs once with --root on an ordinary open", () => {
+  const deps = fakeDeps();
+  const r = open(deps);
+  assert.deepEqual(called(deps, "hooks-ensure").map((c) => c.args), [["hooks-ensure", "--root", ROOT]]);
+  assert.equal(r.result.steps.hooks, "ok");
+});
+
 test("hooks on fail-closed: hooks-ensure still runs on the fail-closed path and the poller does not", () => {
   const deps = fakeDeps({ "commissaire contract status": fail(1) });
   const r = open(deps);

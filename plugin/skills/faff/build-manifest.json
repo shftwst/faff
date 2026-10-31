@@ -6,7 +6,7 @@
     "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
   },
   "config": {
-    "tsconfig.json": "a9f5de236d435ddd028187b6b61621ed35c2d0724b5a78f433d323c24c8b6b78"
+    "tsconfig.json": "55ffe0deb732f512818217941547d67d3eb0abcbdc8ec28616ca1707b7721e82"
   },
   "lock": {
     "package-lock.json": "b64bb7ba6298d47694b5700301c5fbec5aec2d5ce8351937d1cda8873fc5697a",
@@ -30,6 +30,7 @@
     "bin/lib/peer-cred.ts": "cae4373dd609abe1198786cbb4099792e128d9e1cded88b69d0ebfbee534ab95",
     "bin/lib/prep-attach.ts": "edc5cd6bd5dd74419ec5ba34581d808c017f21f536d34edacfddf8620ddfb974",
     "bin/lib/producer-auth.ts": "fcaed615b47929a0db1d307553291ac8d15aca206003cdedd5e6807fc3914272",
+    "bin/lib/prose-size.ts": "b023f9d062334bf0cda61eefd2972a1511fdc50da01d417c953faa0a2e500c5d",
     "bin/lib/result.ts": "9faed77603fd2095150b6b405444d9fe4c6783a0da9339e8dc6121cb1921c4a3",
     "bin/lib/run-checkpoint.ts": "9bee010306fced736b573cd2b7f377b08a1be140d1c9fa7ff3ca07405162ea98",
     "bin/lib/run-summary.ts": "4e329a73b830a2a536d2cea8a3e22313e49586c27870c80bda47451e366d266c",
@@ -54,11 +55,12 @@
     "bin/lib/peer-cred.js": "ff6a21e82bfa839e2aa234687e37b7267fa164d49a58ff41ea6986b50ea536de",
     "bin/lib/prep-attach.js": "c7134252d62695133de5909ffab6eeeaeb58dc238c7552e250735794b3f1ad81",
     "bin/lib/producer-auth.js": "6ef8d8a93c885992b0f58c3156f1e2df96518cbedd4df95cd7e2b72fa9009baf",
+    "bin/lib/prose-size.js": "85c344282bf95f0bff9a57cd452c5ea369e4472d101ac75e733b42405ce2811e",
     "bin/lib/result.js": "09f1ec919a2ff84a38e1fe1e8ac5ed983ddabb90f75bfa8647cfccce561ff03e",
     "bin/lib/run-checkpoint.js": "55718b976a814ef789c62578a60c3aa44bd1e72de37f04aec242b4166700de35",
     "bin/lib/run-summary.js": "a323cf7e77b993b559c37014f3205105b76b52e4ac9ede00713229e9b624ba42",
     "bin/lib/run.js": "2b5a0d37343d9c0b29a851ad41ac3eb87e79c03f0768681270539f8d237fc316",
     "bin/lib/spec-commit.js": "a67e16c5350409137c63faa17ba1d0458cfea84414e9f42814caa92574cb4d58"
   },
-  "output_digest": "f5b5ba7224a4f93dd8216f1b221ab6bbfbb9ddd245a674ab42a8673daee03ade"
+  "output_digest": "79220d54f4f059cb2d0e27287525554c7cab72c6ce95f66c287dcb09b4414a04"
 }

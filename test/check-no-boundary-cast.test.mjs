@@ -71,7 +71,7 @@ test("S3: each assertion FORM is detected (not just `as`)", { skip }, () => {
 });
 
 test("S3: realSources() lists the fifteen tsconfig include entries", () => {
-  assert.deepEqual(realSources().map((f) => path.relative(LIB, f)), ["producer-auth.ts", "commissaire.ts", "commissaire-governor-client.ts", "commissaire-trust.ts", "commissaire-verify.ts", "ids.ts", "result.ts", "decision-policy.ts", "governor.ts", "governor-install.ts", "governor-admin.ts", "peer-cred.ts", "prep-attach.ts", "judge-dispositions.ts", "merge-authorize.ts", "graft-admit.ts", "gates-progress.ts", "land.ts", "spec-commit.ts", "run-summary.ts", "run.ts", "run-checkpoint.ts"]);
+  assert.deepEqual(realSources().map((f) => path.relative(LIB, f)), ["producer-auth.ts", "commissaire.ts", "commissaire-governor-client.ts", "commissaire-trust.ts", "commissaire-verify.ts", "ids.ts", "result.ts", "decision-policy.ts", "governor.ts", "governor-install.ts", "governor-admin.ts", "peer-cred.ts", "prep-attach.ts", "judge-dispositions.ts", "merge-authorize.ts", "graft-admit.ts", "gates-progress.ts", "land.ts", "spec-commit.ts", "run-summary.ts", "run.ts", "run-checkpoint.ts", "prose-size.ts"]);
 });
 
 test("S3: the real cluster sources are clean (exit 0)", { skip }, () => {

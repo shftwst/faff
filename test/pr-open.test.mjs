@@ -277,22 +277,36 @@ test("other refusals", () => {
     assert.deepEqual(noneOf(gh.calls, outwardCalls), []);
   }
 
-  const refused = run({ resp: { "pr-create": exit(1, "", '{"verdict":"refuse","opened":false,"blockers":["Commissaire pr-create decision absent or invalid"]}\n') } });
-  assert.equal(refused.r.token, "refused");
-  assert.equal(refused.r.cause, "pr-create-refused");
-  assert.deepEqual(refused.r.blockers, ["Commissaire pr-create decision absent or invalid"]);
-
-  const noOp = run({ resp: { remote: ok("") } });
-  assert.equal(noOp.r.token, "no-op");
-  assert.equal(noOp.r.exit, 0);
-  assert.deepEqual(noneOf(noOp.calls, ["review", "sanitize", ...outwardCalls]), []);
-
   for (const branch of [ok("main\n"), ok("HEAD\n"), ok("-x\n"), exit(128, "fatal")]) {
     const wrong = run({ resp: { branch } });
     assert.equal(wrong.r.token, "errored");
     assert.match(wrong.r.cause, /^wrong-branch/);
     assert.deepEqual(noneOf(wrong.calls, ["review", ...outwardCalls]), []);
   }
+});
+
+// The rule inventory's covering-test cells name these two cases (P3, P21).
+test("no-op", () => {
+  const noOp = run({ resp: { remote: ok("") } });
+  assert.equal(noOp.r.token, "no-op");
+  assert.equal(noOp.r.exit, 0);
+  assert.deepEqual(noneOf(noOp.calls, ["review", "sanitize", ...outwardCalls]), []);
+  // pr-create's own git-only answer maps to no-op too.
+  const late = run({ resp: { "pr-create": ok('{"verdict":"no-op","opened":false}\n') } });
+  assert.equal(late.r.token, "no-op");
+  assert.equal(late.r.exit, 0);
+});
+
+test("pr-create-refused", () => {
+  const refused = run({ resp: { "pr-create": exit(1, "", '{"verdict":"refuse","opened":false,"blockers":["Commissaire pr-create decision absent or invalid"]}\n') } });
+  assert.equal(refused.r.token, "refused");
+  assert.equal(refused.r.exit, 1);
+  assert.equal(refused.r.cause, "pr-create-refused");
+  assert.deepEqual(refused.r.blockers, ["Commissaire pr-create decision absent or invalid"]);
+  assert.ok(refused.calls.indexOf("push") < refused.calls.indexOf("pr-create"), "the anchor is already pushed");
+  const crashed = run({ resp: { "pr-create": exit(2, "faff pr-create: --title is required") } });
+  assert.equal(crashed.r.token, "refused");
+  assert.deepEqual(crashed.r.blockers, ["faff pr-create: --title is required"]);
 });
 
 test("usage errors", () => {

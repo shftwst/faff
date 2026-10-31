@@ -33,11 +33,12 @@ function scenariosSection(text, heading) {
   return lines.slice(start + 1, end);
 }
 
-// Every bare-fenced block in the section whose first line starts with Given, dedented.
+// Every plain or `holdout` fenced block in the section whose first line starts with Given, dedented. Both
+// forms are ones the format rule permits, so neither may be skipped.
 function scenarioExamples(section) {
   const examples = [];
   for (let i = 0; i < section.length; i++) {
-    const open = /^(\s*)```\s*$/.exec(section[i]);
+    const open = /^(\s*)```(?:holdout)?\s*$/.exec(section[i]);
     if (!open) continue;
     const indent = open[1].length;
     const body = [];
@@ -60,6 +61,9 @@ for (const { skill, heading } of PRODUCERS) {
     const examples = scenarioExamples(scenariosSection(text, heading));
     assert.ok(examples.length >= 1, "the Scenarios section carries at least one fenced example");
     const spec = minimalSpec(examples.flatMap((body) => ["```", ...body, "```", ""]));
+    const held = minimalSpec(["```", "Given a held example", "When it runs", "Then it passes", "```", "", "```holdout", ...examples[0], "```", ""]);
+    assert.equal(scenarioExamples(held.split("\n")).length, 2, "the extractor reads a holdout fence too");
+    assert.equal(parseScenarios(held), 2);
     const units = dodClassify(spec).criteria.filter((c) => c.source === "scenarios");
     assert.equal(units.length, examples.length);
     for (const u of units) assert.equal(u.class, "scenario", u.text);

@@ -522,7 +522,10 @@ test("FAFF-1443: FAFF-1431's committed spec stages refused with eight prose Scen
   assert.equal(out.admissibility.scenarios_prose.length, 8);
 });
 
-test("FAFF-1443: faff admissible and faff tier give the same result with and without the line", () => {
+// `spec_lines` is a tier feature, so one extra line can move the tier at a size boundary; stage re-tiers over
+// the final text so the recorded tier always matches the file (the boundary test above). This fixture sits far
+// from any tier cut, so the comparison isolates what the line's content does to both verdicts: nothing.
+test("FAFF-1443: away from a tier boundary, faff admissible and faff tier give the same result with and without the line", () => {
   const f = fixture({ text: stageable() });
   stage(f, [], "FAFF-9001");
   const withLine = readFileSync(f.specFile, "utf8");

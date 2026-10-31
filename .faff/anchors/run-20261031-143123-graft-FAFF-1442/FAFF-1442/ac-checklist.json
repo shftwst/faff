@@ -1,0 +1,187 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "`faff prose-size tally --from a30b6504^ --to 8e8765d4 --scope hot --group extractions=FAFF-1396,FAFF-1404,FAFF-1405,FAFF-1406,FAFF-1426,FAFF-1414` on this repo reports start 519,644, end 513,271, extractions net −23,289 and other +16,916; the PR description pastes its output.",
+      "verified": "Command reports start 519644, end 513271, extractions group -23289, other +16916; output pasted in the PR description.",
+      "passed": true,
+      "ac_id": "faff-1442#done:1",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff prose-size tally --from a30b6504^ --to 8e8765d4 --scope hot --group extractions=FAFF-1396,FAFF-1404,FAFF-1405,FAFF-1406,FAFF-1426,FAFF-1414"
+        }
+      ]
+    },
+    {
+      "ac": "The same range with `--scope all` reports start 1,441,534 and end 1,442,705.",
+      "verified": "Command reports start_bytes 1441534, end_bytes 1442705 (net +1171, 17 rows).",
+      "passed": true,
+      "ac_id": "faff-1442#done:2",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff prose-size tally --from a30b6504^ --to 8e8765d4 --json"
+        }
+      ]
+    },
+    {
+      "ac": "`faff validate-adapters` fails a covered file that grows past its baseline and names the file and the delta.",
+      "verified": "Test passes: +10 bytes exits 1 and prints the file, its baseline and +10.",
+      "passed": true,
+      "ac_id": "faff-1442#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prose-size.test.mjs::validate-adapters fails a covered file that grows, naming it, its baseline and the delta"
+        }
+      ]
+    },
+    {
+      "ac": "`faff validate-adapters` with no `--skills-dir` fails when `prose-baseline.json` is missing or malformed.",
+      "verified": "Test passes: a copied bundled tree run with no --skills-dir exits 1 naming prose-baseline.json missing, and again when malformed.",
+      "passed": true,
+      "ac_id": "faff-1442#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prose-size.test.mjs::the bundled tree fails closed when its baseline is missing or malformed (copied tree, no --skills-dir)"
+        }
+      ]
+    },
+    {
+      "ac": "`.gitattributes` marks `plugin/skills/*/SKILL.md` and `plugin/skills/*/references/*.md` as `-text`, and `git check-attr text` reports `unset` for every covered file.",
+      "verified": "Test passes: git check-attr text reports unset for all 41 covered files.",
+      "passed": true,
+      "ac_id": "faff-1442#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prose-size.test.mjs::.gitattributes keeps git from converting line endings in every covered file"
+        },
+        {
+          "kind": "command",
+          "locator": "git check-attr text -- plugin/skills/faff-graft/SKILL.md plugin/skills/faff/references/kernel.md"
+        }
+      ]
+    },
+    {
+      "ac": "`prose-baseline.json` lists exactly the covered set (41 files on the build's base) at their exact sizes, sorted, one entry per line with blank lines between.",
+      "verified": "Test passes: the 41 entries equal the covered set at exact sizes and the file equals serialiseBaseline output (sorted, blank line between entries).",
+      "passed": true,
+      "ac_id": "faff-1442#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prose-size.test.mjs::the committed baseline equals the real tree exactly, entry for entry"
+        }
+      ]
+    },
+    {
+      "ac": "`faff prose-size baseline --lower` never raises, adds or removes an entry.",
+      "verified": "Tests pass: a grown entry is left and reported, a new file is not added, a stale entry is not removed.",
+      "passed": true,
+      "ac_id": "faff-1442#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prose-size.test.mjs::prose-size baseline --lower lowers a shrunk entry, leaves a grown one, reports both, keeps the format"
+        },
+        {
+          "kind": "test",
+          "locator": "test/prose-size.test.mjs::prose-size baseline --lower never adds or removes an entry, and refuses without --lower or a baseline"
+        }
+      ]
+    },
+    {
+      "ac": "Every existing line check is unchanged: `SKILL_LINE_CAP`, `SKILL_LINE_BASELINE` and `KERNEL_LINE_BASELINE` keep their values and enforcement, and the existing `test/validate-adapters.test.mjs` cases pass with no assertion weakened.",
+      "verified": "The validate-adapters.js diff adds only the byte-ratchet call; SKILL_LINE_CAP, SKILL_LINE_BASELINE and KERNEL_LINE_BASELINE are untouched; test/validate-adapters.test.mjs passes unchanged in the UNIT rung.",
+      "passed": true,
+      "ac_id": "faff-1442#done:8",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main -- plugin/skills/faff/bin/lib/validate-adapters.js"
+        },
+        {
+          "kind": "test",
+          "locator": "test/prose-size.test.mjs::a 601-line SKILL.md with a matching byte baseline still fails the line cap"
+        }
+      ]
+    },
+    {
+      "ac": "`prose-size.ts` is TypeScript with its committed emit and `build-manifest.json`, is in the tsconfig include and the boundary-cast pin list, and `faff regions check` passes.",
+      "verified": "prose-size.ts compiles with the committed prose-size.js emit; build-manifest check, check-no-boundary-cast (23 sources, pin list updated) and regions check pass.",
+      "passed": true,
+      "ac_id": "faff-1442#done:9",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "cd plugin/skills/faff && npm run build && node scripts/build-manifest.js check"
+        },
+        {
+          "kind": "command",
+          "locator": "node scripts/check-no-boundary-cast.mjs"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        }
+      ]
+    },
+    {
+      "ac": "`prose-size` is registered in the factory region with `REGION_SELFTEST_ARGV` null and a `TEST_FILE_COVERAGE` entry, and `lint-cli-coverage` passes.",
+      "verified": "regions.js maps prose-size to factory with REGION_SELFTEST_ARGV null; lint-cli-coverage passes with test/prose-size.test.mjs declared.",
+      "passed": true,
+      "ac_id": "faff-1442#done:10",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-coverage"
+        }
+      ]
+    },
+    {
+      "ac": "`docs/reference/skill-authoring.md` and `docs/guide/cli.md` are updated per §4.3.",
+      "verified": "skill-authoring.md gains the prose bytes lint-table row and the honest-limits extension; cli.md gains the prose-size row and the validate-adapters byte lines; lint-refs passes.",
+      "passed": true,
+      "ac_id": "faff-1442#done:11",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main -- docs/reference/skill-authoring.md docs/guide/cli.md"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-refs"
+        }
+      ]
+    },
+    {
+      "ac": "The §4.5 cases exist in `test/prose-size.test.mjs` and pass under `node --test`; no `--selftest` case is added.",
+      "verified": "node --test test/prose-size.test.mjs: 20 pass, 0 fail; prose-size.ts has no --selftest.",
+      "passed": true,
+      "ac_id": "faff-1442#done:12",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/prose-size.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "The PR diff touches no `commissaire*` file.",
+      "verified": "git diff --name-only origin/main lists no commissaire file.",
+      "passed": true,
+      "ac_id": "faff-1442#done:13",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --name-only origin/main"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1442",
+  "build": {
+    "status": "complete",
+    "diff_hash": "a97c5f1c7753f7fb9b26cda447dbb5d98c0d58ddd86cbc72c7b5e88aaba09a84",
+    "branch": "faff-1442-prose-bytes-ratchet",
+    "pushed_at": "2026-10-31T15:41:42.770Z"
+  },
+  "updated_at": "2026-10-31T15:41:42.770Z"
+}

@@ -14,6 +14,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { runCli } from "./helpers/run-cli.mjs";
+import { seedFloor as seedFloorFiles } from "./helpers/evidence-anchor-fixtures.mjs";
 
 const require = createRequire(import.meta.url);
 const { resolveAnchorLevel, readAcComplete, readReviewVerdict } =
@@ -54,12 +55,7 @@ function mint(root, mode = "full", env = cleanEnv()) {
   return JSON.parse(r.stdout).run_dir;
 }
 
-function seedFloor(runDir, issue) {
-  const d = path.join(runDir, issue);
-  mkdirSync(d, { recursive: true });
-  writeFileSync(path.join(d, "ac-checklist.json"), JSON.stringify({ all_verified: true }));
-  writeFileSync(path.join(d, "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
-}
+const seedFloor = (runDir, issue) => seedFloorFiles(runDir, issue);
 
 function anchorAndCommit(repo, runDir, issue) {
   const dest = path.join(".faff", "anchors", path.basename(runDir), issue);

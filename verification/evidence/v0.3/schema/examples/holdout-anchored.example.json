@@ -16,7 +16,7 @@
   "violations": [],
   "criteria": [
     {
-      "id": "scenarios:0",
+      "id": "scenarios:1",
       "text": "Given an empty input the command exits 0",
       "holdout": true,
       "class": "scenario",

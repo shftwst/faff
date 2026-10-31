@@ -13,6 +13,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { createHash } from "node:crypto";
+import { seedFloor } from "./helpers/evidence-anchor-fixtures.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "..");
@@ -113,9 +114,7 @@ test("evidence-spec: v0.2 chain-head example is reproducible from a fresh `faff 
   writeFileSync(join(src, "events.jsonl"), JSON.stringify(genesis) + "\n");
   // FAFF-1155: a per-PR anchor over a valid genesis requires ac-checklist.json + review-verdict.json
   // under <run-dir>/<issue>/ — seed both so the anchor reaches the head-compute path under test.
-  mkdirSync(join(src, "FAFF-TEST"), { recursive: true });
-  writeFileSync(join(src, "FAFF-TEST", "ac-checklist.json"), JSON.stringify({ all_verified: true }));
-  writeFileSync(join(src, "FAFF-TEST", "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
+  seedFloor(src, "FAFF-TEST");
 
   const r = spawnSync(process.execPath, [BIN, "events", "anchor", "--run-dir", src, "--issue", "FAFF-TEST", "--dest", dest], { encoding: "utf8" });
   assert.equal(r.status, 0, r.stdout + r.stderr);

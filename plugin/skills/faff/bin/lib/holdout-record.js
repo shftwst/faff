@@ -157,11 +157,15 @@ function delegationViolations(doc) {
   return found;
 }
 
-// Pure. Schema first, then the writer-only constraints. Messages name key paths, never values.
-function holdoutRecordViolations(doc) {
-  const found = validateAgainstSchema(doc, loadSchema()).map((m) => m.replace(/^<root>: /, ""));
+// Pure. The writer-only constraints the schema cannot express (id pattern, met/unmet detail, needs-human
+// reason, length, prose rule) plus the delegation rules. Messages name key paths, never values. Anchor
+// validation calls this alone, since it has already run the (possibly candidate) schema. The delegation
+// rules run on a record that carries `delegated`: the writer always emits it from FAFF-1291 on, and a
+// record committed before then was valid under its writer and stays valid (anchors are immutable).
+function holdoutConstraintViolations(doc) {
+  const found = [];
   if (!isObject(doc) || !Array.isArray(doc.criteria)) return found;
-  found.push(...delegationViolations(doc));
+  if (Object.prototype.hasOwnProperty.call(doc, "delegated")) found.push(...delegationViolations(doc));
   doc.criteria.forEach((c, i) => {
     if (!isObject(c)) return;
     const at = `criteria[${i}]`;
@@ -175,10 +179,23 @@ function holdoutRecordViolations(doc) {
     if (c.verdict === "needs-human" && (c.reason === null || c.reason === undefined)) {
       found.push(`${at}.reason: required (non-null) when verdict is needs-human`);
     }
-    // FAFF-1292: the reason_code cross-field rules — the WRITER (strict) half of the split. A fresh
-    // emission MUST carry a valid reason_code on a needs-human criterion (fail-closed refusal); the
-    // contract's absent-code tolerance is a read-side re-validation property only. Messages name key
-    // paths, never the offending value.
+    for (const key of DETAIL_KEYS) {
+      if (typeof c[key] === "string" && c[key].length > MAX_DETAIL) found.push(`${at}.${key}: longer than ${MAX_DETAIL} characters`);
+    }
+  });
+  return found;
+}
+
+// FAFF-1292: the reason_code cross-field rules — the WRITER (strict) half of the split. A fresh
+// emission MUST carry a valid reason_code on a needs-human criterion (fail-closed refusal); the
+// contract's absent-code tolerance is a read-side re-validation property only, so anchor validation
+// (holdoutConstraintViolations alone) never applies these. Messages name key paths, never the value.
+function reasonCodeViolations(doc) {
+  const found = [];
+  if (!isObject(doc) || !Array.isArray(doc.criteria)) return found;
+  doc.criteria.forEach((c, i) => {
+    if (!isObject(c)) return;
+    const at = `criteria[${i}]`;
     const rc = c.reason_code;
     const hasRc = rc !== null && rc !== undefined;
     if (hasRc && !HOLDOUT_REASON_CODES.includes(rc)) found.push(`${at}.reason_code: not in {${HOLDOUT_REASON_CODES.join(",")}}`);
@@ -186,11 +203,14 @@ function holdoutRecordViolations(doc) {
     if (c.verdict === "needs-human" && !hasRc) found.push(`${at}.reason_code: required (non-null) when verdict is needs-human`);
     if (c.class === "prose" && hasRc && rc !== "human-only") found.push(`${at}.reason_code: a prose criterion must be human-only`);
     if ((c.class === "scenario" || c.class === "assertion") && c.verdict === "needs-human" && hasRc && rc === "human-only") found.push(`${at}.reason_code: a born-verifiable criterion is never human-only`);
-    for (const key of DETAIL_KEYS) {
-      if (typeof c[key] === "string" && c[key].length > MAX_DETAIL) found.push(`${at}.${key}: longer than ${MAX_DETAIL} characters`);
-    }
   });
   return found;
+}
+
+// Pure. Schema first, then the writer-only constraints.
+function holdoutRecordViolations(doc) {
+  const found = validateAgainstSchema(doc, loadSchema()).map((m) => m.replace(/^<root>: /, ""));
+  return [...found, ...holdoutConstraintViolations(doc), ...reasonCodeViolations(doc)];
 }
 
 function serialise(doc) {
@@ -444,5 +464,5 @@ function holdoutRecordSelftest() {
 }
 
 module.exports = {
-  HOLDOUT_REASON_CODES, buildHoldoutRecord, delegationViolations, deriveHoldoutAggregate, holdoutRecordViolations, holdoutRecordSelftest, isSafeHoldoutKey, resolveContained, writeHoldoutRecord,
+  HOLDOUT_REASON_CODES, buildHoldoutRecord, delegationViolations, deriveHoldoutAggregate, holdoutConstraintViolations, holdoutRecordViolations, holdoutRecordSelftest, isSafeHoldoutKey, resolveContained, writeHoldoutRecord,
 };

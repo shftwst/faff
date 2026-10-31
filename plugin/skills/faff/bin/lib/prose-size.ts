@@ -147,8 +147,8 @@ function proseRatchet(skillsDir: string, required: boolean): { failed: boolean; 
   const file = baselinePath(skillsDir);
   const read = readBaseline(file);
   if (!read.ok) {
-    if (read.missing && !required) return { failed: false, lines: [`INFO  prose bytes: no baseline at ${file}; byte ratchet not applied`] };
-    return { failed: true, lines: [`FAIL  ${BASELINE_FILE} (prose bytes)`, `        ✗ ${read.reason}: ${file}`] };
+    if (read.missing && !required) return { failed: false, lines: [`INFO  prose bytes: no baseline at faff/${BASELINE_FILE}; byte ratchet not applied`] };
+    return { failed: true, lines: [`FAIL  ${BASELINE_FILE} (prose bytes)`, `        ✗ ${read.reason}: faff/${BASELINE_FILE}`] };
   }
   const { fails, ratchets } = compareProse(measure(skillsDir), read.files);
   const lines: string[] = [];

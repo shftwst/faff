@@ -1,0 +1,215 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "On a run whose origin is before today's HH:MM and whose check clock is after it, `faff budget check` reports `breached` containing `\"until\"`. It does not on `main`.",
+      "verified": "test passes; on origin/main the same ledger (origin 05:00Z, until 06:00, check 07:00Z) reports breached:[] and on this branch breached:[\"until\"]",
+      "passed": true,
+      "ac_id": "faff-1444#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/budget.test.mjs::FAFF-1444: a deadline already passed the same day breaches (never-breach regression)"
+        }
+      ]
+    },
+    {
+      "ac": "`faff budget check --json` prints a `spent.until_at` key exactly when an `until` ceiling is set. For a run with a usable anchor it is an ISO-8601 string, the same on every check of that run.",
+      "verified": "tests pass: until_at present only with an until ceiling, identical across checks of one anchored run; a budget-checkpoint event relaying it is accepted by the closed event schema",
+      "passed": true,
+      "ac_id": "faff-1444#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/budget.test.mjs::FAFF-1444: stable — two checks of one anchored run at different clocks print the same until_at"
+        },
+        {
+          "kind": "test",
+          "locator": "test/budget.test.mjs::FAFF-1444: no until ceiling — no until_at key"
+        },
+        {
+          "kind": "test",
+          "locator": "test/budget.test.mjs::FAFF-1444: a budget-checkpoint event relaying a BudgetState with spent.until_at is accepted by the event schema"
+        }
+      ]
+    },
+    {
+      "ac": "A ledger with an `until` ceiling and no parseable `started_at`, or one more than five minutes in the future, reports `until` breached, `spent.until_at: null`, a `warnings` entry naming which case it was, and exit 0.",
+      "verified": "tests pass: missing, unparseable and future anchors report until breached, until_at null, a named warning, exit 0",
+      "passed": true,
+      "ac_id": "faff-1444#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/budget.test.mjs::FAFF-1444: missing anchor — until treated as reached, until_at null, warning, exit 0"
+        },
+        {
+          "kind": "test",
+          "locator": "test/budget.test.mjs::FAFF-1444: a future anchor (> 5 min ahead) is unusable — reached, until_at null, warning names it"
+        }
+      ]
+    },
+    {
+      "ac": "With no run under the root, a configured `until` produces no anchor warning and no `until` breach, and prints `spent.until_at` as the clock-relative deadline (the first HH:MM after the check's clock).",
+      "verified": "test passes: no run under the root → no anchor warning, no until breach, until_at 06:00Z the next day",
+      "passed": true,
+      "ac_id": "faff-1444#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/budget.test.mjs::FAFF-1444: no run — clock-relative deadline, no anchor warning, no until breach, until_at printed"
+        }
+      ]
+    },
+    {
+      "ac": "The deadline is computed from the earliest parseable `started_at` across `owner_history` and `owner`. A resumed ledger whose original start is before HH:MM and whose resume is after it breaches at the first check.",
+      "verified": "tests pass: resumed ledger (origin 23:00Z, resume 07:00Z) breaches at 07:05Z; runOrigin picks the earliest parseable entry",
+      "passed": true,
+      "ac_id": "faff-1444#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/budget.test.mjs::FAFF-1444: a resume keeps the origin — resumed after the deadline breaches at the first check"
+        },
+        {
+          "kind": "test",
+          "locator": "test/budget.test.mjs::FAFF-1444: runOrigin picks the earliest parseable entry and its offset"
+        }
+      ]
+    },
+    {
+      "ac": "The deadline is resolved in the origin entry's `utc_offset_min`: the same ledger gives the same `until_at` under `TZ=UTC` and `TZ=America/New_York`. A ledger with no recorded offset resolves in the box's timezone and warns.",
+      "verified": "tests pass: same until_at under TZ=UTC and TZ=America/New_York; no-offset ledger resolves in the box's timezone and warns",
+      "passed": true,
+      "ac_id": "faff-1444#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/budget.test.mjs::FAFF-1444: cross-box — the same ledger gives the same until_at under TZ=UTC and TZ=America/New_York"
+        },
+        {
+          "kind": "test",
+          "locator": "test/budget.test.mjs::FAFF-1444: the recorded offset wins; with it removed the box's timezone is used and warns"
+        }
+      ]
+    },
+    {
+      "ac": "`run-ledger init-interactive`, `run-ledger init-self-drain`, the `faff lights-out` mint and `lights-out --resume` write an integer `owner.utc_offset_min`, and a resume leaves `runOrigin` unchanged.",
+      "verified": "tests pass: both run-ledger mints, the real lights-out mint (TZ=Asia/Kolkata → 330) and applyResumeToLedger write an integer utc_offset_min; runOrigin unchanged across a resume",
+      "passed": true,
+      "ac_id": "faff-1444#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-ledger-init-interactive.test.mjs::FAFF-1444: init-interactive writes an integer owner.utc_offset_min, the minting process's offset"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-ledger-init-self-drain.test.mjs::FAFF-1444: init-self-drain writes an integer owner.utc_offset_min"
+        },
+        {
+          "kind": "test",
+          "locator": "test/lights-out.test.mjs::FAFF-1444: lights-out mint writes an integer owner.utc_offset_min from the minting process"
+        },
+        {
+          "kind": "test",
+          "locator": "test/lights-out-resume.test.mjs::FAFF-1444: applyResumeToLedger writes utc_offset_min and leaves runOrigin unchanged"
+        }
+      ]
+    },
+    {
+      "ac": "The PR description lists the owner-writer grep hits from §6, each classified as a mint, a resume or a field merge.",
+      "verified": "grep re-run: 160 hits; 6 outside selftests, each classified in the PR description (3 mints, 1 resume, 1 field merge, 1 read-only probe object)",
+      "passed": true,
+      "ac_id": "faff-1444#done:8",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -rn \"\\.owner = \\|owner: {\" plugin/skills/faff/bin/lib/*.js"
+        }
+      ]
+    },
+    {
+      "ac": "`elapsed_ms` and the token baselines still use the current owner's `started_at`; the existing `test/budget.test.mjs` cases pass with no assertion weakened.",
+      "verified": "test passes (elapsed_ms = 5 min from the resumed owner, not the origin); runStartMs unchanged; full budget.test.mjs passes, only change to existing cases is baseLedger gaining utc_offset_min: 0",
+      "passed": true,
+      "ac_id": "faff-1444#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/budget.test.mjs::FAFF-1444: elapsed_ms still measures from the current owner's started_at, not the origin"
+        },
+        {
+          "kind": "command",
+          "locator": "node --test test/budget.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "A malformed `until` still yields no breach, a warning and exit 0 (FAFF-364), and prints no `until_at` key.",
+      "verified": "test passes: until 25:00 → no until_at key, no breach, one warning, exit 0",
+      "passed": true,
+      "ac_id": "faff-1444#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/budget.test.mjs::FAFF-1444: a malformed until prints no until_at key and still warns (FAFF-364 unchanged)"
+        }
+      ]
+    },
+    {
+      "ac": "`faff-beep-boop/SKILL.md` l. 65 says the deadline is resolved once against the run's start and kept across a resume, with the file's line count unchanged; `faff validate-adapters` passes.",
+      "verified": "beep-boop SKILL.md l.65 edited in place (1 line changed, count unchanged); faff validate-adapters PASS",
+      "passed": true,
+      "ac_id": "faff-1444#done:11",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "`docs/guide/cli.md`'s `budget check` row documents the anchor, `spent.until_at` and the missing-anchor warning.",
+      "verified": "cli.md budget check row documents the anchor, spent.until_at and the missing-anchor warning; lint-cli-doc PASS",
+      "passed": true,
+      "ac_id": "faff-1444#done:12",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-doc"
+        }
+      ]
+    },
+    {
+      "ac": "The §4.5 cases exist in `test/budget.test.mjs` and pass under `node --test`; `budget --selftest` passes with no case added.",
+      "verified": "all §4.5 cases in test/budget.test.mjs pass (113/113 in the file); budget --selftest PASS 107 checks, none added; full suite green in the gate ladder",
+      "passed": true,
+      "ac_id": "faff-1444#done:13",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/budget.test.mjs"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff budget --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "The PR diff touches no `commissaire*` file.",
+      "verified": "git diff --name-only origin/main...HEAD lists no commissaire* path",
+      "passed": true,
+      "ac_id": "faff-1444#done:14",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --name-only origin/main...HEAD"
+        }
+      ]
+    }
+  ]
+}

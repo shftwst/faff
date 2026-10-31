@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "verdict": "revise",
+  "final_verdict": "revise",
+  "rounds_total": 3,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The procedure's only branches are \"no until ceiling\" and \"resolve anchor, else treat as reached\". It never special-cases the legitimately-empty surface (`resolved.empty` → `ledger = {}`, `runDir = null`), which `cmdBudget` still passes into `budgetCheckCompose` (budget.js: `const runDir = resolved.empty ? null : resolved.runDir; const ledger = resolved.empty ? {} : resolved.ledger;` followed by an unconditional `budgetCheckCompose(...)` call). With `budget.until` set in config and no run under the root, `runOriginMs({})` returns null, so the procedure lands in the missing-anchor branch: `untilEpoch := nowMs`, `breached` gains `\"until\"`, `outcome` becomes `stop`, and a warning fires. That directly contradicts the spec's own edge-case line (\"No run. Unchanged: a check with no ledger takes the existing `outcome:\"none\"` path and computes nothing\") and turns a clean no-op poll into a permanent phantom breach — which any JSON-reading consumer (e.g. the sentry budget read) will act on, not merely mis-read via exit code.",
+      "evidence": "§4.1 procedure vs §4.4 bullet \"No run.\"; `cmdBudget` in `plugin/skills/faff/bin/lib/budget.js` calls `budgetCheckCompose` unconditionally after `resolveLedgerOrFault`, including on the empty path.",
+      "predicted_consequence": "`faff budget check` with `budget.until` configured and no run prints `breached:[\"until\"]`, `outcome:\"stop\"` and the missing-anchor warning on every poll — the spec's own DONE/edge-case claim is falsified by its own build instruction, and a polling consumer sees a standing breach for a run that does not exist.",
+      "spec_anchor": "41-procedure",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The no-run surface (runDir null, ledger {}) keeps today's clock-relative deadline and never takes the missing-anchor branch or warns. Correction recorded at the human accept: the spec's reason for treating a missing anchor as reached says a non-zero budget check exit reads as unbreached to sentryReadBudget; in fact sentry.js l. 922 reads any non-zero exit as indeterminate, not unbreached. The decision (missing anchor counts as reached, exit 0) stands: it is the clearer fail-toward-breaching signal.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The procedure's only branches are \"no until ceiling\" and \"resolve anchor, else treat as reached\". It never special-cases the legitimately-empty surface (`resolved.empty` → `ledger = {}`, `runDir = null`), which `cmdBudget` still passes into `budgetCheckCompose` (budget.js: `const runDir = resolved.empty ? null : resolved.runDir; const ledger = resolved.empty ? {} : resolved.ledger;` followed by an unconditional `budgetCheckCompose(...)` call). With `budget.until` set in config and no run under the root, `runOriginMs({})` returns null, so the procedure lands in the missing-anchor branch: `untilEpoch := nowMs`, `breached` gains `\"until\"`, `outcome` becomes `stop`, and a warning fires. That directly contradicts the spec's own edge-case line (\"No run. Unchanged: a check with no ledger takes the existing `outcome:\"none\"` path and computes nothing\") and turns a clean no-op poll into a permanent phantom breach — which any JSON-reading consumer (e.g. the sentry budget read) will act on, not merely mis-read via exit code.",
+          "spec_anchor": "41-procedure"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "`runOriginMs` takes the *minimum* across `owner_history` and `owner`, but nothing constrains that minimum to the past. A hand-written or corrupt ledger (the exact class the spec already contemplates in §4.2's missing-anchor decision) carrying a future-dated `started_at` — e.g. a typo'd year, or a ledger copied from a template — makes `untilToEpoch(hhmm, origin)` resolve the deadline to the first HH:MM *after that future instant*. The `until` ceiling then cannot breach for as long as the bogus date stands, which is precisely the never-breaching failure the spec's WHY section calls the bug. The spec handles the \"no parseable anchor\" corrupt-ledger case fail-safely (treat as reached + warn) but leaves the \"parseable yet future\" corrupt-ledger case fail-open, with no warning at all — strictly worse than the missing-anchor path, which at least names itself.",
+      "evidence": "§4.1 procedure — `origin := runOriginMs(ledger)` with no past/future check; §4.2 \"Pre-fix ledgers, and a missing or unparseable anchor\" explicitly reasons about hand-written/corrupt ledgers but only for the unparseable case; `untilToEpoch`'s documented rule \"past → next-day same time\" applied to a future anchor yields a deadline beyond the anchor.",
+      "predicted_consequence": "a corrupt or hand-edited ledger with a future `started_at` keeps an `until`-governed run (including an L4 governor minted by `faff lights-out`) running past its intended wall-clock deadline with no breach and no warning — the exact silent-never-stop defect FAFF-1444 is filed to close, reintroduced through a different corrupt-data path.",
+      "spec_anchor": "42-decisions",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "A started_at more than five minutes in the future counts as an unusable anchor: until treated as reached, until_at null, warning names it.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "`runOriginMs` takes the *minimum* across `owner_history` and `owner`, but nothing constrains that minimum to the past. A hand-written or corrupt ledger (the exact class the spec already contemplates in §4.2's missing-anchor decision) carrying a future-dated `started_at` — e.g. a typo'd year, or a ledger copied from a template — makes `untilToEpoch(hhmm, origin)` resolve the deadline to the first HH:MM *after that future instant*. The `until` ceiling then cannot breach for as long as the bogus date stands, which is precisely the never-breaching failure the spec's WHY section calls the bug. The spec handles the \"no parseable anchor\" corrupt-ledger case fail-safely (treat as reached + warn) but leaves the \"parseable yet future\" corrupt-ledger case fail-open, with no warning at all — strictly worse than the missing-anchor path, which at least names itself.",
+          "spec_anchor": "42-decisions"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "Two DONE criteria cannot both hold. \"prints `spent.until_at` … and the same value on every check of one run\" is falsified by the spec's own missing-anchor path, which sets `untilEpoch := nowMs` — so two checks of the same anchor-less run print different `until_at` values (and the missing-anchor scenario would print a different `until_at` on every run of the test).",
+      "evidence": "`### 4.2 Decisions` (\"untilEpoch := nowMs # fail toward breaching\") vs the WHAT DONE item \"`faff budget check --json` prints `spent.until_at` (ISO-8601) exactly when an `until` ceiling is set, and the same value on every check of one run.\"",
+      "predicted_consequence": "a builder cannot satisfy both DONE items as written; the \"same value on every check\" clause fails on any anchor-less ledger, and a tester cannot decide whether the build is correct without guessing which clause wins.",
+      "spec_anchor": "4-2-decisions",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "until_at is null on the missing-anchor path; the same-on-every-check rule applies to anchored runs only.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "Two DONE criteria cannot both hold. \"prints `spent.until_at` … and the same value on every check of one run\" is falsified by the spec's own missing-anchor path, which sets `untilEpoch := nowMs` — so two checks of the same anchor-less run print different `until_at` values (and the missing-anchor scenario would print a different `until_at` on every run of the test).",
+          "spec_anchor": "4-2-decisions"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "`untilToEpoch(hhmm, origin)` builds the target instant from `new Date(origin)` fields interpreted in the **process's local timezone** (`budget.js` l. 322–331: `new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, min, …)`). The spec anchors the *date* at the run origin but leaves the *timezone* of the HH:MM interpretation to whichever box runs the check. The spec explicitly budgets for cross-box **clock** skew (`ORIGIN_SKEW_MS = 300000`) but never for cross-box **timezone** skew, and it pins \"HH:MM is local wall-clock, as today\" only in the single-box test context (`TZ=UTC`). A run minted on box A and governed by `faff sentry check` / `run-done --budget` on box B in a different TZ (or the same box across a DST transition) resolves the same `until 06:00` to a deadline up to ~23 hours later than the operator intended — silently, with a well-formed `until_at` string that looks authoritative. That is precisely the fail-open direction (\"never weaken a gate\") the spec's own design principles forbid, reached without any corrupt input: two honest boxes disagree.",
+      "evidence": "§4.1 procedure (`untilEpoch := untilToEpoch(env.ceilings.until, origin)` — no timezone parameter); §4.4 \"Local time. HH:MM is local wall-clock, as today. Tests pin `TZ=UTC`…\"; §4.2 chosen anchor \"the run origin\"; the ratified cross-box precedent (`cross-box-liveness-for-a-read-only-recovery-verb`) establishes cross-box checking as a real deployment shape, not hypothetical.",
+      "predicted_consequence": "an L4 run governed from a box in a different UTC offset (or across a DST boundary) runs past its operator-set `until` deadline for up to most of a day while every `budget check` on that box reports a plausible, non-breaching `spent.until_at` — the gate the ticket fixes is silently defeated again, by deployment topology instead of by the original bug.",
+      "spec_anchor": "44-edge-cases",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Every mint and resume records owner.utc_offset_min; the deadline resolves in the origin's offset; a pre-fix ledger falls back to the box's timezone with a warning.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "`untilToEpoch(hhmm, origin)` builds the target instant from `new Date(origin)` fields interpreted in the **process's local timezone** (`budget.js` l. 322–331: `new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, min, …)`). The spec anchors the *date* at the run origin but leaves the *timezone* of the HH:MM interpretation to whichever box runs the check. The spec explicitly budgets for cross-box **clock** skew (`ORIGIN_SKEW_MS = 300000`) but never for cross-box **timezone** skew, and it pins \"HH:MM is local wall-clock, as today\" only in the single-box test context (`TZ=UTC`). A run minted on box A and governed by `faff sentry check` / `run-done --budget` on box B in a different TZ (or the same box across a DST transition) resolves the same `until 06:00` to a deadline up to ~23 hours later than the operator intended — silently, with a well-formed `until_at` string that looks authoritative. That is precisely the fail-open direction (\"never weaken a gate\") the spec's own design principles forbid, reached without any corrupt input: two honest boxes disagree.",
+          "spec_anchor": "44-edge-cases"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The design grants the deadline to whatever `min(started_at)` appears across `owner_history` + `owner`. Its correctness depends on the §6 assumption that no writer replaces `ledger.owner` without first pushing the prior owner onto `owner_history` — if any writer does, the origin silently becomes the new start and the deadline extends, reintroducing the never-breach bug through a side door. The spec prescribes a grep (\"Check before building\") but encodes the outcome nowhere: no DONE criterion, no test, no runtime guard. For a trust decision on a ledger-written input, the spec should establish the invariant as a checked property, not an instruction to remember.",
+      "evidence": "§6 \"Assumes: no writer other than `applyResumeToLedger` replaces `ledger.owner` without first pushing the prior owner onto `owner_history`. Check before building: `grep -rn …`\"; §7 DONE contains no corresponding item; the only resume test is \"resume keeps the origin\" (§4.5), which covers one writer, not the invariant.",
+      "predicted_consequence": "a current or future mint/resume-adjacent writer that swaps `owner` in place extends the deadline silently; nothing in the shipped tests or DONE checklist would catch it.",
+      "spec_anchor": "6-open-questions-and-assumptions",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added a resume-preserves-origin test, writer tests, and a DONE item listing the owner-writer grep hits in the PR.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The design grants the deadline to whatever `min(started_at)` appears across `owner_history` + `owner`. Its correctness depends on the §6 assumption that no writer replaces `ledger.owner` without first pushing the prior owner onto `owner_history` — if any writer does, the origin silently becomes the new start and the deadline extends, reintroducing the never-breach bug through a side door. The spec prescribes a grep (\"Check before building\") but encodes the outcome nowhere: no DONE criterion, no test, no runtime guard. For a trust decision on a ledger-written input, the spec should establish the invariant as a checked property, not an instruction to remember.",
+          "spec_anchor": "6-open-questions-and-assumptions"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "major",
+      "claim": "The WHY section stakes the ticket's value on FAFF-1436: \"FAFF-1436's scenarios 4 and 5 (5 is a holdout) cannot pass until it is fixed.\" But §4.4 then concedes that scenario 5 \"must be told this, or that scenario's wording tightened, before the holdout runs. That is the operator's call.\" So the fix this slice ships does not, by its own admission, make its motivating consumer pass — an additional action (evaluator briefing or an edit to an accepted spec this ticket explicitly refuses to make, per §2) is required, and it is assigned to no ticket, no owner, and no ordering edge.",
+      "evidence": "§1 \"FAFF-1436's scenarios 4 and 5 (5 is a holdout) cannot pass until it is fixed\"; §2 \"FAFF-1436's scenario wording. That spec is accepted, so this ticket does not edit it\"; §4.4 \"The evaluator of FAFF-1436's holdout must be told this, or that scenario's wording tightened, before the holdout runs. That is the operator's call\"; Methodology critique \"Deps surfaced?\" names only the merge-ordering dependency, not the wording dependency.",
+      "predicted_consequence": "FAFF-1444 merges, FAFF-1436's holdout runs on the fixed tree, scenario 5 still fails (or is silently re-interpreted), and the failure is attributed to this slice — a re-litigation loop the merge-ordering note was supposed to prevent. The dependency exists but is not drawn as one (no tracker edge, no named follow-up), so the pipeline cannot see it.",
+      "spec_anchor": "44-edge-cases",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "FAFF-1444 now blocks FAFF-1436 in the tracker, and the spec assigns the evaluator briefing to FAFF-1436's holdout coordinator.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "major",
+          "claim": "The WHY section stakes the ticket's value on FAFF-1436: \"FAFF-1436's scenarios 4 and 5 (5 is a holdout) cannot pass until it is fixed.\" But §4.4 then concedes that scenario 5 \"must be told this, or that scenario's wording tightened, before the holdout runs. That is the operator's call.\" So the fix this slice ships does not, by its own admission, make its motivating consumer pass — an additional action (evaluator briefing or an edit to an accepted spec this ticket explicitly refuses to make, per §2) is required, and it is assigned to no ticket, no owner, and no ordering edge.",
+          "spec_anchor": "44-edge-cases"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The core defect (never-breaching `until`) is fixed entirely by the anchor change in `budget.js`; the offset field is a cross-box determinism improvement layered on top, touching `run-ledger.js`, `lights-out.js`, `resume.js`, their tests, and adding a third code path (the no-offset fallback + warning) to the call site. That is a second, independently shippable increment wearing one ticket: the fallback path exists precisely because the offset field is optional, so the fix works without the field and the field could land as its own slice.",
+      "evidence": "§3 Interface defines the no-offset fallback (\"a ledger minted before this fix… resolves in the checking box's timezone, as today, with a warning\"); §4.1's pseudocode has a distinct `ELSE` branch for absent offsets; §4.5's \"recorded offset wins\" test exercises both branches of the same fixture.",
+      "predicted_consequence": "not separately stated — the combined slice is still one coherent behaviour (\"the deadline resolves the same everywhere\"), and the fallback path is the migration story, so this is a shaping taste, not a defect. If the builder stalls on the four-writer field change, the gate fix is hostage to it.",
+      "spec_anchor": "3-what",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The offset field closes round 2's fail-open major; splitting it out would ship a gate that is wrong across boxes.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The core defect (never-breaching `until`) is fixed entirely by the anchor change in `budget.js`; the offset field is a cross-box determinism improvement layered on top, touching `run-ledger.js`, `lights-out.js`, `resume.js`, their tests, and adding a third code path (the no-offset fallback + warning) to the call site. That is a second, independently shippable increment wearing one ticket: the fallback path exists precisely because the offset field is optional, so the fix works without the field and the field could land as its own slice.",
+          "spec_anchor": "3-what"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "§4.1's pseudocode says the `runDir == null` branch prints `until_at` (\"It prints `until_at` when an `until` ceiling is configured\"), but no DONE criterion and no scenario checks that output. A builder can omit `until_at` on the empty surface and pass every acceptance item.",
+      "evidence": "§4.1 pseudocode branch `ELSE IF runDir == null … until_at := ISO(untilEpoch)`; scenario \"no run\" asserts only `breached` excludes `until` and no anchor warning; DONE item \"With no run under the root, a configured `until` produces no anchor warning and no `until` breach\" is silent on `until_at`.",
+      "predicted_consequence": "a build that drops the `until_at` key on the no-run surface satisfies all DONE items and all scenarios, while §4.1's specified behaviour silently diverges — the discrepancy is undiscoverable by the acceptance suite.",
+      "spec_anchor": "41-procedure",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added a DONE item and a test case for until_at on the no-run surface.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "§4.1's pseudocode says the `runDir == null` branch prints `until_at` (\"It prints `until_at` when an `until` ceiling is configured\"), but no DONE criterion and no scenario checks that output. A builder can omit `until_at` on the empty surface and pass every acceptance item.",
+          "spec_anchor": "41-procedure"
+        }
+      ]
+    }
+  ]
+}

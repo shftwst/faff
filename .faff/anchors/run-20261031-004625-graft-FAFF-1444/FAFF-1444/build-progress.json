@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1444",
+  "build": {
+    "status": "complete",
+    "diff_hash": "27721718c9ca041c5430c2d1f64513fa359c99a8fb05c9d0f2d179462bf005c4",
+    "branch": "faff-1444-until-anchor",
+    "pushed_at": "2026-10-31T01:07:56.162Z"
+  },
+  "updated_at": "2026-10-31T01:07:56.162Z"
+}

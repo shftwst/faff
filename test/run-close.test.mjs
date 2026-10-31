@@ -160,6 +160,31 @@ test("owner close refused: a refused or yielded owner-close write exits 2 with c
   }
 });
 
+test("owner fence: a resume on another box between the read and the lock makes the close yield, writing nothing over the live owner", () => {
+  // The poller aborted the run; another box ran `lights-out --resume` (a new epoch and session, owner running)
+  // before this session's `run close --stop-reason sentry-abort` took the ledger lock. The yield comes from
+  // the real mutateLedgerUnderLock epoch fence, reached through resume.js's real owner change.
+  const { applyResumeToLedger, reconstructResumePlan } = require("../plugin/skills/faff/bin/lib/resume.js");
+  const fx = makeRun({ admitted: ["A", "B"], outcomes: { A: "shipped" }, abort: { status: "aborted-resumable" }, owner: { status: "aborted-resumable", session_id: "old-sid", epoch: 0, started_at: "2026-01-01T00:00:00Z" } });
+  const real = rcl.realDeps();
+  const deps = { ...fakeDeps({ "commissaire contract status": ok({ governed: true }) }), mutateLedger: (runDir, mutate, expectedOwner) => {
+    const file = join(runDir, "run-ledger.json");
+    const { ledger: resumed } = applyResumeToLedger(JSON.parse(readFileSync(file, "utf8")), { nowIso: "2026-01-01T01:00:00Z", sessionId: "new-sid", pid: 42, priorState: "aborted-resumable", plan: reconstructResumePlan({ admitted: ["A", "B"] }, {}) });
+    writeFileSync(file, JSON.stringify(resumed, null, 2));
+    return real.mutateLedger(runDir, mutate, expectedOwner);
+  } };
+  const r = close(fx, deps, { stopReason: "sentry-abort" });
+  assert.equal(r.code, 2);
+  assert.equal(r.result.closed, false);
+  assert.match(r.reason, /a newer owner holds the run/);
+  const l = readLedger(fx);
+  assert.equal(l.owner.status, "running");
+  assert.equal(l.owner.epoch, 1);
+  assert.equal(l.owner.session_id, "new-sid");
+  assert.equal(l.stop_reason, undefined);
+  assert.equal(called(deps, "commissaire verdict conclude").length, 0);
+});
+
 test("aborted kept: an aborted-resumable owner keeps its status, any other owner becomes done", () => {
   const fx = makeRun({ owner: { status: "aborted-resumable" }, abort: { status: "aborted-resumable" } });
   assert.equal(close(fx, fakeDeps(), { stopReason: "sentry-abort" }).result.owner_status, "aborted-resumable");

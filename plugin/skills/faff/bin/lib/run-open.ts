@@ -34,8 +34,9 @@ interface BudgetApi {
   readGovernanceConfig(root: string): unknown;
   envelopeFrom(cfg: unknown, flags: { until?: string; max_attempts?: string }): unknown;
 }
+type ExpectedOwner = { epoch: number; session_id?: string };
 interface HeartbeatApi {
-  mutateLedgerUnderLock(runDir: string, mutate: (fresh: unknown) => unknown): unknown;
+  mutateLedgerUnderLock(runDir: string, mutate: (fresh: unknown) => unknown, expectedOwner: ExpectedOwner): unknown;
 }
 interface RuncheckApi {
   ownedByEnvPointer(runDir: string, env: { [k: string]: string | undefined }): boolean;
@@ -81,6 +82,17 @@ function countOutcomes(ledger: unknown, state: string): number {
   const outcomes = field(ledger, "outcomes");
   return isRecord(outcomes) ? Object.values(outcomes).filter((v) => v === state).length : 0;
 }
+// The owner-epoch write fence (heartbeat.js ownerEpochFenceStale): the locked write yields, writing
+// nothing, when the on-disk owner's epoch or session moved on since this verb read it.
+function expectedOwnerOf(ledger: unknown): ExpectedOwner {
+  const owner = field(ledger, "owner");
+  const epoch = Number(field(owner, "epoch") ?? 0);
+  const session = str(field(owner, "session_id"));
+  const out: ExpectedOwner = { epoch: Number.isFinite(epoch) ? epoch : 0 };
+  if (session !== undefined) out.session_id = session;
+  return out;
+}
+
 function exitDetail(r: SpawnResult): string {
   return r.status === null ? "timeout" : String(r.status);
 }
@@ -125,7 +137,7 @@ class OpenRefusal extends Error {
 interface Deps {
   faff(args: string[], opts: { cwd: string; input?: string; timeoutMs?: number }): SpawnResult;
   readConfig(root: string): unknown;
-  mutateLedger(runDir: string, mutate: (fresh: unknown) => unknown): unknown;
+  mutateLedger(runDir: string, mutate: (fresh: unknown) => unknown, expectedOwner: ExpectedOwner): unknown;
   readLedger(runDir: string): object | undefined;
   writeSentinel(runDir: string, body: object): void;
   env: { [k: string]: string | undefined };
@@ -140,7 +152,7 @@ function realDeps(): Deps {
       return { status: r.status, stdout: r.stdout ?? "", stderr: r.stderr ?? "" };
     },
     readConfig: (root) => budgetApi.readGovernanceConfig(root),
-    mutateLedger: (runDir, mutate) => heartbeatApi.mutateLedgerUnderLock(runDir, mutate),
+    mutateLedger: (runDir, mutate, expectedOwner) => heartbeatApi.mutateLedgerUnderLock(runDir, mutate, expectedOwner),
     readLedger: (runDir) => {
       try { return parseJsonObject(fs.readFileSync(path.join(runDir, "run-ledger.json"), "utf8")); }
       catch { return undefined; }
@@ -229,6 +241,7 @@ function runOpen(args: OpenArgs, deps: Deps): OpenOutcome {
 
     // 1. Mint, or adopt this session's own running run.
     let runDir: string;
+    let expectedOwner: ExpectedOwner;
     if (args.adoptRunDir !== null) {
       runDir = path.resolve(args.adoptRunDir);
       const ledger = deps.readLedger(runDir);
@@ -236,6 +249,7 @@ function runOpen(args: OpenArgs, deps: Deps): OpenOutcome {
       const status = field(field(ledger, "owner"), "status");
       if (status !== "running") return refuse(`adopt refused: owner.status is ${JSON.stringify(status ?? null)}, not "running"`, null);
       if (!runcheckApi.ownedByEnvPointer(runDir, deps.env)) return refuse("adopt refused: $FAFF_RUN_DIR does not name this run", null);
+      expectedOwner = expectedOwnerOf(ledger);
     } else {
       const mint = faff(["run-ledger", "init-self-drain", "--mode", args.mode ?? "", "--root", root]);
       const minted = mint.stdout.trim().split("\n").pop() ?? "";
@@ -244,10 +258,12 @@ function runOpen(args: OpenArgs, deps: Deps): OpenOutcome {
         return refuse(`mint failed (exit ${exitDetail(mint)}): ${mint.stderr.trim()}`, null);
       }
       runDir = path.resolve(minted);
-      if (deps.readLedger(runDir) === undefined) {
+      const mintedLedger = deps.readLedger(runDir);
+      if (mintedLedger === undefined) {
         steps.mint = "failed:no-ledger";
         return refuse(`mint printed ${JSON.stringify(minted)} but no readable run-ledger.json is there`, null);
       }
+      expectedOwner = expectedOwnerOf(mintedLedger);
       steps.mint = "ok";
     }
     result.run_dir = runDir;
@@ -267,7 +283,7 @@ function runOpen(args: OpenArgs, deps: Deps): OpenOutcome {
           if (status !== "running") throw new Error(`owner.status is ${JSON.stringify(status ?? null)}, not "running"`);
           changed = fn(fresh);
           return changed ? fresh : null;
-        });
+        }, expectedOwner);
       } catch (e) {
         throw new OpenRefusal(`ledger write refused in ${runDir}: ${errText(e)}`, runDir);
       }

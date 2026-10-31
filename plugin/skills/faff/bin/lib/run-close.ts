@@ -26,8 +26,9 @@ type SpawnResult = { status: number | null; stdout: string; stderr: string };
 interface ChildProcessApi {
   spawnSync(cmd: string, args: string[], opts: { cwd: string; encoding: "utf8"; input: string; env: { [k: string]: string | undefined }; timeout?: number }): SpawnResult;
 }
+type ExpectedOwner = { epoch: number; session_id?: string };
 interface HeartbeatApi {
-  mutateLedgerUnderLock(runDir: string, mutate: (fresh: unknown) => unknown): unknown;
+  mutateLedgerUnderLock(runDir: string, mutate: (fresh: unknown) => unknown, expectedOwner: ExpectedOwner): unknown;
 }
 type Audit = { undispatched: string[]; invalid_outcomes: string[] };
 interface RuncheckApi {
@@ -71,6 +72,17 @@ function parseJsonObject(text: string): object | undefined {
 function errText(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
 }
+// The owner-epoch write fence (heartbeat.js ownerEpochFenceStale): the locked write yields, writing
+// nothing, when the on-disk owner's epoch or session moved on since this verb read it.
+function expectedOwnerOf(ledger: unknown): ExpectedOwner {
+  const owner = field(ledger, "owner");
+  const epoch = Number(field(owner, "epoch") ?? 0);
+  const session = str(field(owner, "session_id"));
+  const out: ExpectedOwner = { epoch: Number.isFinite(epoch) ? epoch : 0 };
+  if (session !== undefined) out.session_id = session;
+  return out;
+}
+
 function exitDetail(r: SpawnResult): string {
   return r.status === null ? "timeout" : String(r.status);
 }
@@ -162,7 +174,7 @@ function resolveRoot(runDir: string, rootFlag: string | null, ledger: object): {
 interface Deps {
   faff(args: string[], opts: { cwd: string; input?: string; timeoutMs?: number }): SpawnResult;
   git(args: string[], cwd: string): SpawnResult;
-  mutateLedger(runDir: string, mutate: (fresh: unknown) => unknown): unknown;
+  mutateLedger(runDir: string, mutate: (fresh: unknown) => unknown, expectedOwner: ExpectedOwner): unknown;
 }
 
 function spawn(cmd: string, args: string[], cwd: string, input: string, timeoutMs?: number): SpawnResult {
@@ -176,7 +188,7 @@ function realDeps(): Deps {
   return {
     faff: (args, opts) => spawn(process.execPath, [ENTRYPOINT, ...args], opts.cwd, opts.input ?? "", opts.timeoutMs),
     git: (args, cwd) => spawn("git", args, cwd, ""),
-    mutateLedger: (runDir, mutate) => heartbeatApi.mutateLedgerUnderLock(runDir, mutate),
+    mutateLedger: (runDir, mutate, expectedOwner) => heartbeatApi.mutateLedgerUnderLock(runDir, mutate, expectedOwner),
   };
 }
 
@@ -280,7 +292,7 @@ function runClose(args: CloseArgs, deps: Deps): CloseOutcome {
         staged = str(field(owner, "status")) ?? null;
       }
       return fresh;
-    });
+    }, expectedOwnerOf(ledger));
     if (field(res, "yielded") === true) writeError = "a newer owner holds the run";
   } catch (e) {
     writeError = errText(e);

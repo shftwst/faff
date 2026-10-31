@@ -25,6 +25,7 @@ const SITE_PHRASE = "the governed-run check reports governed";
 const SITES = { "faff-graft": 10 };   // FAFF-1437 drops faff-beep-boop (its run-start check is `faff run open` step 4a). FAFF-1242 +1 faff-graft (Step-9b In Review governed tracker-write bracket refers to the governed-run check)
 const FORBIDDEN = ["governor.json", "governor material", "commissaire-status-fault", "run the bracket"];
 
+const FALLBACK = /proceed|fall ?back|ungoverned|treat(ed)? (it )?as (governed|not governed)|run the (bracket|step) anyway/i;
 const count = (hay, needle) => hay.split(needle).length - 1;
 const skillText = (name) => readFileSync(join(SKILLS, name, "SKILL.md"), "utf8");
 
@@ -41,12 +42,12 @@ for (const [name, sites] of Object.entries(SITES)) {
     // Outside the canonical sentence, no sentence that names the stop may soften it into a fallback.
     const sentences = text.split(CANONICAL).join(" ").split(/(?<=[.!?])\s+/);
     for (const s of sentences.filter((x) => x.includes("commissaire-status-failed"))) {
-      assert.doesNotMatch(s, /proceed|fall ?back|ungoverned|treat(ed)? (it )?as (governed|not governed)|run the (bracket|step) anyway/i, `fallback wording beside the stop: ${s}`);
+      assert.doesNotMatch(s, FALLBACK, `fallback wording beside the stop: ${s}`);
     }
   });
 }
 
-test("no other skill names the governor file, calls the status verb, or uses a forbidden phrase", () => {
+test("no other skill names the governor file, calls the status verb, uses a forbidden phrase, or softens the stop into a fallback", () => {
   for (const name of readdirSync(SKILLS)) {
     if (name in SITES) continue;
     const p = join(SKILLS, name, "SKILL.md");
@@ -55,6 +56,10 @@ test("no other skill names the governor file, calls the status verb, or uses a f
     assert.equal(count(text, "governor.json"), 0, `${name} names governor.json`);
     assert.equal(count(text, "commissaire contract status"), 0, `${name} calls the status verb directly`);
     for (const phrase of FORBIDDEN) assert.equal(count(text, phrase), 0, `${name}: forbidden phrase: ${phrase}`);
+    // The same no-fallback rule the SITES skills get: no sentence naming the stop softens it into a fallback.
+    for (const s of text.split(/(?<=[.!?])\s+/).filter((x) => x.includes("commissaire-status-failed"))) {
+      assert.doesNotMatch(s, FALLBACK, `${name}: fallback wording beside the stop: ${s}`);
+    }
   }
 });
 

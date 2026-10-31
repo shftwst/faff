@@ -380,6 +380,34 @@ test("owner re-checked under the lock: a run aborted after the adopt check is re
   assert.equal(late.state.ledger.stop_reason, undefined);
 });
 
+test("owner fence: a resume on another box after the adopt read makes run open's first locked write yield", () => {
+  // Real ledger file, real mutateLedgerUnderLock: resume.js's own owner change (epoch +1, a new session,
+  // owner running) lands between the adopt check and the enrich's locked write.
+  const { applyResumeToLedger, reconstructResumePlan } = require("../plugin/skills/faff/bin/lib/resume.js");
+  const root = mkdtempSync(join(tmpdir(), "faff-run-open-fence-"));
+  const runDir = join(root, ".faff", "runs", RUN_ID);
+  mkdirSync(runDir, { recursive: true });
+  const file = join(runDir, "run-ledger.json");
+  writeFileSync(file, JSON.stringify({ run_id: RUN_ID, level: "L3", admitted: [], outcomes: {}, owner: { status: "running", session_id: RUN_ID, epoch: 0, started_at: "2026-01-01T00:00:00Z", last_heartbeat: "2026-01-01T00:00:00Z" } }, null, 2));
+  writeFileSync(join(runDir, "events.jsonl"), "");
+  const real = ro.realDeps();
+  const deps = fakeDeps({}, { env: { FAFF_RUN_DIR: runDir } });
+  deps.readLedger = real.readLedger;
+  deps.mutateLedger = (dir, mutate, expectedOwner) => {
+    const { ledger: resumed } = applyResumeToLedger(JSON.parse(readFileSync(file, "utf8")), { nowIso: "2026-01-01T01:00:00Z", sessionId: "other-box", pid: 42, priorState: "dead-running", plan: reconstructResumePlan({ admitted: [] }, {}) });
+    writeFileSync(file, JSON.stringify(resumed, null, 2));
+    return real.mutateLedger(dir, mutate, expectedOwner);
+  };
+  const r = ro.runOpen({ mode: null, adoptRunDir: runDir, until: null, max: null, root, sessionId: "S" }, deps);
+  assert.equal(r.code, 2);
+  assert.match(r.reason, /ledger write yielded/);
+  const l = JSON.parse(readFileSync(file, "utf8"));
+  assert.equal(l.owner.epoch, 1);
+  assert.equal(l.owner.session_id, "other-box");
+  assert.equal(l.owner.harness, undefined, "nothing was written over the new owner");
+  assert.equal(called(deps, "commissaire contract status").length, 0);
+});
+
 test("fail-closed run-end: the fail-closed path appends a token-tagged run-end with stop_reason governance-admit-failed before the andon pump", () => {
   const deps = fakeDeps({ "commissaire contract status": fail(1) });
   const r = open(deps);

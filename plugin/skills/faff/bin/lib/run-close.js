@@ -43,6 +43,17 @@ function parseJsonObject(text) {
 function errText(e) {
     return e instanceof Error ? e.message : String(e);
 }
+// The owner-epoch write fence (heartbeat.js ownerEpochFenceStale): the locked write yields, writing
+// nothing, when the on-disk owner's epoch or session moved on since this verb read it.
+function expectedOwnerOf(ledger) {
+    const owner = field(ledger, "owner");
+    const epoch = Number(field(owner, "epoch") ?? 0);
+    const session = str(field(owner, "session_id"));
+    const out = { epoch: Number.isFinite(epoch) ? epoch : 0 };
+    if (session !== undefined)
+        out.session_id = session;
+    return out;
+}
 function exitDetail(r) {
     return r.status === null ? "timeout" : String(r.status);
 }
@@ -122,7 +133,7 @@ function realDeps() {
     return {
         faff: (args, opts) => spawn(process.execPath, [ENTRYPOINT, ...args], opts.cwd, opts.input ?? "", opts.timeoutMs),
         git: (args, cwd) => spawn("git", args, cwd, ""),
-        mutateLedger: (runDir, mutate) => heartbeatApi.mutateLedgerUnderLock(runDir, mutate),
+        mutateLedger: (runDir, mutate, expectedOwner) => heartbeatApi.mutateLedgerUnderLock(runDir, mutate, expectedOwner),
     };
 }
 function countOutcomes(ledger, state) {
@@ -225,7 +236,7 @@ function runClose(args, deps) {
                 staged = str(field(owner, "status")) ?? null;
             }
             return fresh;
-        });
+        }, expectedOwnerOf(ledger));
         if (field(res, "yielded") === true)
             writeError = "a newer owner holds the run";
     }

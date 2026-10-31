@@ -209,9 +209,12 @@ function runClose(args, deps) {
     const runEnd = { phase: "run", type: "run-end", data: { stop_reason: args.stopReason, shipped: countOutcomes(ledger, "shipped"), parked: countOutcomes(ledger, "parked") } };
     record("run_end", faff(["events", "append", "--run", runId, "--root", root, "--tokens", ...sessionArgs], { input: JSON.stringify(runEnd) }), "run-end-append-failed");
     // 4. The owner close and stop_reason, one locked write; an aborted-resumable owner keeps its status.
-    let ownerStatus = ownerRead;
+    // The status is reported only once the write has landed; a refused or yielded write is a post-read
+    // write failure and exits 2 with nothing after it run.
+    let staged = null;
+    let writeError = null;
     try {
-        deps.mutateLedger(runDir, (fresh) => {
+        const res = deps.mutateLedger(runDir, (fresh) => {
             if (!isRecord(fresh))
                 throw new Error("run-ledger.json is missing or not a JSON object");
             Reflect.set(fresh, "stop_reason", args.stopReason);
@@ -219,19 +222,27 @@ function runClose(args, deps) {
             if (isRecord(owner)) {
                 if (field(owner, "status") !== "aborted-resumable")
                     Reflect.set(owner, "status", "done");
-                ownerStatus = str(field(owner, "status")) ?? null;
+                staged = str(field(owner, "status")) ?? null;
             }
             return fresh;
         });
-        steps.owner_close = "ok";
-        const lw = faff(["events", "append", "--run", runId, "--root", root], { input: JSON.stringify({ phase: "run", type: "ledger-write" }) });
-        if (lw.status !== 0)
-            faults.push("ledger-write-append-failed");
+        if (field(res, "yielded") === true)
+            writeError = "a newer owner holds the run";
     }
     catch (e) {
-        steps.owner_close = "failed:write";
-        faults.push(`owner-close-failed: ${errText(e)}`);
+        writeError = errText(e);
     }
+    if (writeError !== null) {
+        steps.owner_close = "failed:write";
+        const reason = `owner close refused in ${runDir}: ${writeError}`;
+        faults.push(reason);
+        return { code: 2, result: { closed: false, undispatched: [], abort_exempt: false, owner_status: null, steps, faults }, reason };
+    }
+    const ownerStatus = staged;
+    steps.owner_close = "ok";
+    const lw = faff(["events", "append", "--run", runId, "--root", root], { input: JSON.stringify({ phase: "run", type: "ledger-write" }) });
+    if (lw.status !== 0)
+        faults.push("ledger-write-append-failed");
     // 5. The poller (belt; it also self-stops on the close).
     record("poller_stop", faff(["sentry-poller", "stop", "--run-dir", runDir]), "sentry-poller-stop-failed");
     // 6. Governed conclude. A probe that cannot answer is treated as governed: on an ungoverned run
@@ -246,7 +257,11 @@ function runClose(args, deps) {
     }
     if (governed !== false) {
         const admitted = field(ledger, "admitted");
-        const issues = isStringArray(admitted) ? [...new Set(admitted)] : [];
+        // Under the abort exemption the undispatched issues stay unconcluded, so the resume concludes them
+        // at the real close (operator decision A, 2026-10-31): a conclusion written now would come back as an
+        // idempotent repeat for the resumed merge and skip its grant-coverage check.
+        const resumable = abortExempt ? audit.undispatched : [];
+        const issues = isStringArray(admitted) ? [...new Set(admitted)].filter((i) => !resumable.includes(i)) : [];
         const entries = [];
         for (const issue of issues) {
             const rec = faff(["commissaire", "effect", "reconcile", "--run-dir", runDir, "--unit-id", issue]);

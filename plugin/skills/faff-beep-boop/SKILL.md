@@ -425,7 +425,7 @@ The invariant runcheck enforces: `admitted − outcomes.keys() == ∅`. Any admi
 
 ### Owner stamp & heartbeat
 
-- **At run start** (before step 4), capture `measure_root=$PWD` (before any worktree work) and `session_id=$CLAUDE_CODE_SESSION_ID` — every later token call passes them as `--root "$measure_root" --session-id "$session_id"` — then run the bracket and branch on the exit before evaluating anything:
+- **At run start** (before step 4), capture `measure_root=$PWD` (before any worktree work) and `session_id=$CLAUDE_CODE_SESSION_ID` — every later token call passes them as `--root "$measure_root" --session-id "$session_id"` — then call `run open` and branch on its exit before evaluating anything:
 
   ```bash
   out=$("$faff" run open --mode <mode> [--until HH:MM] [--max N] --root "$measure_root" --session-id "$session_id" --export); rc=$?
@@ -437,10 +437,10 @@ The invariant runcheck enforces: `admitted − outcomes.keys() == ∅`. Any admi
   | `rc` | Action |
   |---|---|
   | `0` | Proceed to step 4. Relay the `hooks-ensure:` line `run open` prints on stderr to the user when it says hooks were added. |
-  | `3` | Governance failed closed: no build starts; go to `## Reporting` (`run summary`), and do not call `run close`. |
+  | `3` | Governance failed closed: `run open` already appended `run-end` (`governance-admit-failed`) and closed the owner, and no build starts. On an adopted run that already had admitted work, run `faff runcheck "$FAFF_RUN_DIR" --json` and park each issue in its `undispatched` per the shared protocol (cause `governance-admit-failed`), so the done run trips no Stop hook. Then go to `## Reporting` (`run summary`); do not call `run close`. |
   | `2`, or unparseable output | Log it and park per the shared protocol, as a mint failure; dispatch nothing. |
 - **Refresh the heartbeat across the WHOLE graft lifecycle, not just at issue boundaries — via `faff heartbeat`, never a hand-rolled ledger edit.** Run `faff heartbeat "$FAFF_RUN_DIR"` at every wave/issue boundary. A tick's only write is the dedicated single-value file `<run-dir>/heartbeat` (atomic tmp + rename) — it never touches the run ledger. This is what structurally closes the concurrent-outcome-write race the old ledger field-merge could only narrow: a single-value tmp+rename file cannot be clobbered by a whole-file ledger write, so there is no interleaving for a tick and an outcome write to lose. The slow phases now run **inside the dispatched build subagent**, which ticks `faff heartbeat` from inside its own long sub-steps (faff-graft Step 7.5 / Step 9) — the orchestrator forwards `run_dir` in the `BuildDispatch` so the subagent resolves the owning ledger deterministically. A boundary-only refresh would let the heartbeat go stale mid-review and false-block again; the default staleness threshold is 900s (`FAFF_RUN_HEARTBEAT_STALE_SECS`) and a single review step can approach it. This is the load-bearing reason liveness is owner-emitted, never inferred from worktree mtimes (a quiet worktree mid-review is *normal in-flight*, not stalled).
-- **At orchestrator exit** (every path), after step 11.6 and before `run summary`, synchronously in-turn (step 11.6 → **Run-end synchronicity invariant**):
+- **At orchestrator exit** (every path but a fail-closed `run open`, whose exit 3 already appended `run-end` and closed the owner), after step 11.6 and before `run summary`, synchronously in-turn (step 11.6 → **Run-end synchronicity invariant**):
 
   ```bash
   "$faff" run close --run-dir "$FAFF_RUN_DIR" --stop-reason <the summary's Stop reason token> [--git-only] --root "$measure_root" --session-id "$session_id" --json
@@ -576,7 +576,7 @@ This is what `/faff-wtf` looks for to surface parked issues in the morning, and 
 
 All human-facing output beep-boop emits — its run summary, the run-summary tracker status post, park comments, and discovered-scope tickets it files — passes through the configured `rendering_adaptor` normalise pass **before it is printed or written** (gateway → **Rendering**, Universal-routing rule), so enumerable sets render as lists, never `·`/comma run-on paragraphs (the prose-skimmability rule). The table-vs-definition-list rule is part of that pass.
 
-On run completion, after `faff run close` (it appends the `run-end` event and pumps andon), produce:
+On run completion, after `faff run close` (it appends the `run-end` event and pumps andon; a fail-closed `run open` did both itself), produce:
 
 ### 1. `.faff/runs/<run-id>/summary.md`
 

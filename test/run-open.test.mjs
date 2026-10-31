@@ -309,6 +309,14 @@ test("status × 5: non-zero, timeout, throw, non-object and non-boolean governed
   }
 });
 
+test("status concatenated objects: two JSON objects on stdout are not exactly one object and fail closed", () => {
+  const deps = fakeDeps({ "commissaire contract status": ok(`${JSON.stringify({ governed: true })}${JSON.stringify({ governed: false })}`) });
+  const r = open(deps);
+  assertGovernance(r, deps, { code: 3, governance: "fail-closed", cause: "commissaire-status-failed", poller: false, hooks: true });
+  const deps2 = fakeDeps({ "commissaire contract status": ok(`${JSON.stringify({ governed: true })}\n${JSON.stringify({ governed: true })}`) });
+  assert.equal(open(deps2).code, 3);
+});
+
 test("admit-required unparseable: a non-zero or unparseable admit-required reads as required", () => {
   for (const reply of [fail(1), ok("not json"), ok({})]) {
     const deps = fakeDeps({ "commissaire contract admit": fail(3), "commissaire admit-required": reply });
@@ -332,17 +340,54 @@ test("hooks on fail-closed: hooks-ensure still runs on the fail-closed path and 
   assert.equal(called(deps, "sentry-poller start").length, 0);
 });
 
-test("fail-closed write refused: a refused owner-close write on the fail-closed path is a fault and stays exit 3", () => {
+test("fail-closed write refused: a refused owner-close write on the fail-closed path exits 2 naming the run dir, with the cause in faults", () => {
   let n = 0;
   const deps = fakeDeps({ "commissaire contract status": fail(1) });
   const inner = deps.mutateLedger;
   deps.mutateLedger = (runDir, mutate) => { n += 1; if (n === 3) throw new Error("lock busy"); return inner(runDir, mutate); };
   const r = open(deps);
-  assert.equal(r.code, 3);
-  assert.equal(r.result.governance, "fail-closed");
-  assert.equal(r.result.fail_closed_cause, "commissaire-status-failed");
-  assert.ok(r.result.faults.some((f) => f.startsWith("owner-close-failed")));
+  assert.equal(r.code, 2);
+  assert.equal(r.result.run_dir, RUN_DIR);
+  assert.equal(r.result.governance, null);
+  assert.equal(r.result.fail_closed_cause, null);
+  assert.ok(r.result.faults.includes("governance-fail-closed:commissaire-status-failed"));
+  assert.match(r.reason, /ledger write refused/);
   assert.equal(called(deps, "sentry-poller start").length, 0);
+  // A writer that yields to a newer owner wrote nothing, and is refused the same way.
+  const y = fakeDeps({ "commissaire contract status": fail(1) });
+  let m = 0;
+  const yInner = y.mutateLedger;
+  y.mutateLedger = (runDir, mutate) => { m += 1; if (m === 3) return { written: false, yielded: true }; return yInner(runDir, mutate); };
+  assert.equal(open(y).code, 2);
+});
+
+test("fail-closed run-end: the fail-closed path appends a token-tagged run-end with stop_reason governance-admit-failed before the andon pump", () => {
+  const deps = fakeDeps({ "commissaire contract status": fail(1) });
+  const r = open(deps);
+  assert.equal(r.code, 3);
+  const ends = called(deps, "events append").filter((c) => JSON.parse(c.input).type === "run-end");
+  assert.equal(ends.length, 1);
+  assert.deepEqual(JSON.parse(ends[0].input), { phase: "run", type: "run-end", data: { stop_reason: "governance-admit-failed", shipped: 0, parked: 0 } });
+  assert.deepEqual(ends[0].args, ["events", "append", "--run", RUN_ID, "--root", ROOT, "--tokens", "--session-id", "S"]);
+  const order = deps.calls.map((c) => key(c.args) + (key(c.args) === "events append" ? `:${JSON.parse(c.input).type}` : ""));
+  assert.ok(order.indexOf("events append:run-end") < order.indexOf("andon pump"));
+  assert.ok(order.indexOf("events append:park") < order.indexOf("events append:run-end"));
+  assert.equal(called(deps, "andon pump").length, 1);
+  // An ordinary open writes no run-end.
+  const ok0 = fakeDeps();
+  open(ok0);
+  assert.equal(called(ok0, "events append").filter((c) => JSON.parse(c.input).type === "run-end").length, 0);
+});
+
+test("fail-closed adopt with admitted work: the admitted issues stay undispatched for the skill to park, and the run is closed", () => {
+  const deps = fakeDeps({ "commissaire contract admit": fail(4), "commissaire admit-required": ok({ governance_required: true }) }, { ledger: baseLedger({ admitted: ["A", "B"], outcomes: { A: "shipped" } }), env: { FAFF_RUN_DIR: RUN_DIR } });
+  const r = adopt(deps);
+  assert.equal(r.code, 3);
+  assert.deepEqual(deps.state.ledger.admitted, ["A", "B"]);
+  assert.deepEqual(deps.state.ledger.outcomes, { A: "shipped" }, "run open writes no outcome; parking is the skill's");
+  assert.equal(deps.state.ledger.owner.status, "done");
+  const end = called(deps, "events append").map((c) => JSON.parse(c.input)).find((e) => e.type === "run-end");
+  assert.deepEqual(end.data, { stop_reason: "governance-admit-failed", shipped: 1, parked: 0 });
 });
 
 test("mint without a ledger: a mint whose printed path holds no readable ledger exits 2", () => {
@@ -503,6 +548,27 @@ test("real CLI: an unreachable configured governor fails closed with no poller",
   assert.ok(existsSync(join(out.run_dir, "commissaire", "governance-required.json")));
   const s = spawnSync("node", [CLI, "sentry-poller", "status", "--run-dir", out.run_dir, "--json"], { encoding: "utf8" });
   assert.deepEqual(JSON.parse(s.stdout), { running: false });
+});
+
+test("real CLI: a fail-closed adopt of a run with admitted work leaves runcheck naming it, and records run-end", () => {
+  const root = repo();
+  writeFileSync(join(root, ".faff", "config.yaml"), "commissaire:\n  governor: 127.0.0.1:9\n");
+  const mint = spawnSync("node", [CLI, "run-ledger", "init-self-drain", "--mode", "full", "--root", root], { cwd: root, encoding: "utf8", env: { ...process.env, FAFF_RUN_DIR: "" } });
+  assert.equal(mint.status, 0, mint.stderr);
+  const runDir = mint.stdout.trim().split("\n").pop();
+  const file = join(runDir, "run-ledger.json");
+  const l = JSON.parse(readFileSync(file, "utf8"));
+  l.admitted = ["FAFF-7"];
+  writeFileSync(file, JSON.stringify(l, null, 2));
+  const r = cli(root, ["run", "open", "--adopt-run-dir", runDir, "--root", root, "--session-id", "S", "--json"], { FAFF_RUN_DIR: runDir });
+  assert.equal(r.code, 3, r.err);
+  const after = JSON.parse(readFileSync(file, "utf8"));
+  assert.equal(after.owner.status, "done");
+  assert.equal(after.stop_reason, "governance-admit-failed");
+  const events = readFileSync(join(runDir, "events.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line));
+  assert.ok(events.some((e) => e.type === "run-end" && e.data.stop_reason === "governance-admit-failed"));
+  const rc = spawnSync("node", [CLI, "runcheck", runDir, "--json"], { cwd: root, encoding: "utf8" });
+  assert.deepEqual(JSON.parse(rc.stdout).undispatched, ["FAFF-7"], "the skill's exit-3 route parks what runcheck names");
 });
 
 test("unknown verb: faff run with no verb names all four verbs", () => {

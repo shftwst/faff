@@ -43,6 +43,10 @@ function parseJsonObject(text) {
 function errText(e) {
     return e instanceof Error ? e.message : String(e);
 }
+function countOutcomes(ledger, state) {
+    const outcomes = field(ledger, "outcomes");
+    return isRecord(outcomes) ? Object.values(outcomes).filter((v) => v === state).length : 0;
+}
 function exitDetail(r) {
     return r.status === null ? "timeout" : String(r.status);
 }
@@ -186,8 +190,9 @@ function runOpen(args, deps) {
         };
         const mutate = (fn) => {
             let changed = false;
+            let res;
             try {
-                deps.mutateLedger(runDir, (fresh) => {
+                res = deps.mutateLedger(runDir, (fresh) => {
                     if (!isRecord(fresh))
                         throw new Error("run-ledger.json is missing or not a JSON object");
                     changed = fn(fresh);
@@ -197,6 +202,9 @@ function runOpen(args, deps) {
             catch (e) {
                 throw new OpenRefusal(`ledger write refused in ${runDir}: ${errText(e)}`, runDir);
             }
+            // A writer that yielded to a newer owner wrote nothing.
+            if (field(res, "yielded") === true)
+                throw new OpenRefusal(`ledger write yielded in ${runDir}: a newer owner holds the run`, runDir);
             if (changed)
                 ledgerWrite();
             return changed;
@@ -279,21 +287,24 @@ function runOpen(args, deps) {
             const park = faff(["events", "append", "--run", runId, "--root", root], { input: JSON.stringify({ phase: "run", type: "park", issue: runId, data: { reason: "needs-human" } }) });
             if (park.status !== 0)
                 faults.push("park-append-failed");
+            // The run ends here, so it records run-end as `run close` would (operator decision B, 2026-10-31):
+            // `faff audit` sees a complete lifecycle and the andon run-end ping fires on the pump below.
+            const ledgerNow = deps.readLedger(runDir);
+            const runEnd = { phase: "run", type: "run-end", data: { stop_reason: "governance-admit-failed", shipped: countOutcomes(ledgerNow, "shipped"), parked: countOutcomes(ledgerNow, "parked") } };
+            const end = faff(["events", "append", "--run", runId, "--root", root, "--tokens", "--session-id", args.sessionId], { input: JSON.stringify(runEnd) });
+            if (end.status !== 0)
+                faults.push("run-end-append-failed");
             if (faff(["andon", "pump", "--run-dir", runDir]).status !== 0)
                 faults.push("andon-pump-failed");
-            // A refused close write is a fault on the fail-closed outcome, never a change of exit class.
-            try {
-                mutate((ledger) => {
-                    const owner = field(ledger, "owner");
-                    if (isRecord(owner))
-                        Reflect.set(owner, "status", "done");
-                    Reflect.set(ledger, "stop_reason", "governance-admit-failed");
-                    return true;
-                });
-            }
-            catch (e) {
-                faults.push(`owner-close-failed: ${errText(e)}`);
-            }
+            // A refused close write is a post-mint write failure: exit 2 (spec §3), the cause kept in faults.
+            faults.push(`governance-fail-closed:${cause}`);
+            mutate((ledger) => {
+                const owner = field(ledger, "owner");
+                if (isRecord(owner))
+                    Reflect.set(owner, "status", "done");
+                Reflect.set(ledger, "stop_reason", "governance-admit-failed");
+                return true;
+            });
             hooks();
             result.governance = "fail-closed";
             result.fail_closed_cause = cause;

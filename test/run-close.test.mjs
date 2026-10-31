@@ -130,6 +130,36 @@ test("abort exemption: a sentry-abort close of a run with the abort mark closes,
   assert.equal(close(makeRun({ admitted: ["A"], outcomes: {} }), fakeDeps(), { stopReason: "sentry-abort" }).code, 3, "sentry-abort with no abort mark");
 });
 
+test("abort exemption leaves resumable work unconcluded: undispatched issues are neither reconciled nor concluded on a governed run", () => {
+  const aborted = { admitted: ["A", "B", "C"], outcomes: { A: "shipped", C: "parked" }, abort: { status: "aborted-resumable" }, owner: { status: "aborted-resumable" } };
+  const deps = fakeDeps({ "commissaire contract status": ok({ governed: true }) });
+  const r = close(makeRun(aborted), deps, { stopReason: "sentry-abort" });
+  assert.equal(r.code, 0);
+  assert.deepEqual(r.result.undispatched, ["B"]);
+  assert.deepEqual(r.result.steps.conclude.map((e) => e.issue), ["A", "C"]);
+  for (const k of ["commissaire effect reconcile", "commissaire verdict conclude"]) {
+    assert.ok(!called(deps, k).some((c) => c.args.includes("B")), `${k} never names B`);
+  }
+  // Outside the exemption every admitted issue is concluded.
+  const full = fakeDeps({ "commissaire contract status": ok({ governed: true }) });
+  close(makeRun({ admitted: ["A", "B"], outcomes: { A: "shipped", B: "parked" } }), full);
+  assert.equal(called(full, "commissaire verdict conclude").length, 2);
+});
+
+test("owner close refused: a refused or yielded owner-close write exits 2 with closed false and owner_status null, and nothing after it runs", () => {
+  for (const mutateLedger of [() => { throw new Error("schema: owner.status"); }, () => ({ written: false, yielded: true })]) {
+    const fx = makeRun({ admitted: ["A"], outcomes: { A: "shipped" } });
+    const deps = { ...fakeDeps({ "commissaire contract status": ok({ governed: true }) }), mutateLedger };
+    const r = close(fx, deps);
+    assert.equal(r.code, 2);
+    assert.equal(r.result.closed, false);
+    assert.equal(r.result.owner_status, null);
+    assert.equal(r.result.steps.owner_close, "failed:write");
+    assert.equal(readLedger(fx).owner.status, "running");
+    for (const k of ["sentry-poller stop", "commissaire verdict conclude", "judge-trail mint", "andon pump"]) assert.equal(called(deps, k).length, 0, k);
+  }
+});
+
 test("aborted kept: an aborted-resumable owner keeps its status, any other owner becomes done", () => {
   const fx = makeRun({ owner: { status: "aborted-resumable" }, abort: { status: "aborted-resumable" } });
   assert.equal(close(fx, fakeDeps(), { stopReason: "sentry-abort" }).result.owner_status, "aborted-resumable");

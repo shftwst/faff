@@ -46,7 +46,7 @@ for (const [name, sites] of Object.entries(SITES)) {
   });
 }
 
-test("no other skill names the governor file or calls the status verb", () => {
+test("no other skill names the governor file, calls the status verb, or uses a forbidden phrase", () => {
   for (const name of readdirSync(SKILLS)) {
     if (name in SITES) continue;
     const p = join(SKILLS, name, "SKILL.md");
@@ -54,6 +54,7 @@ test("no other skill names the governor file or calls the status verb", () => {
     const text = readFileSync(p, "utf8");
     assert.equal(count(text, "governor.json"), 0, `${name} names governor.json`);
     assert.equal(count(text, "commissaire contract status"), 0, `${name} calls the status verb directly`);
+    for (const phrase of FORBIDDEN) assert.equal(count(text, phrase), 0, `${name}: forbidden phrase: ${phrase}`);
   }
 });
 

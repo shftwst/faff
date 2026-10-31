@@ -33,8 +33,8 @@
     "bin/lib/prose-size.ts": "a359145a4d7d807f8b97cfe4e0f84eb03f6091baeaf2fbe658016832b671e9aa",
     "bin/lib/result.ts": "9faed77603fd2095150b6b405444d9fe4c6783a0da9339e8dc6121cb1921c4a3",
     "bin/lib/run-checkpoint.ts": "9bee010306fced736b573cd2b7f377b08a1be140d1c9fa7ff3ca07405162ea98",
-    "bin/lib/run-close.ts": "ac78a6157d473fd5f2a0a6c963cfa215cf95da10ace228130a0b74d0905932bb",
-    "bin/lib/run-open.ts": "dc4ac69c3ad5f57c3f20fb2d590b300f386339d7183ef797be35d3ed9a0b0110",
+    "bin/lib/run-close.ts": "e98d34bd63220fc97b461f26a44910bba42254bd2751aa751eabb139b89694a4",
+    "bin/lib/run-open.ts": "a0247b0fea233509ca82afc54c9effac1546313eb11e2a25d339c30984a41f71",
     "bin/lib/run-summary.ts": "4e329a73b830a2a536d2cea8a3e22313e49586c27870c80bda47451e366d266c",
     "bin/lib/run.ts": "bef5991ae66638821c5dfe25cf73ffe7f48743915d04189b022cb8b67a03ab2e",
     "bin/lib/spec-commit.ts": "bf42fe6bfbc1d6bab90726bcc13f42e8323433a7f1b439144a9b157bee7366a5"
@@ -60,11 +60,11 @@
     "bin/lib/prose-size.js": "df29582b5c00b007ad6dd3f135859edae851c540c2f254b5e7cf869981d5c5a7",
     "bin/lib/result.js": "09f1ec919a2ff84a38e1fe1e8ac5ed983ddabb90f75bfa8647cfccce561ff03e",
     "bin/lib/run-checkpoint.js": "55718b976a814ef789c62578a60c3aa44bd1e72de37f04aec242b4166700de35",
-    "bin/lib/run-close.js": "46f18e5e40f7cc74aaff6c2d0177e8f9096c2029f42cfe82ffc7fad1c69ebd53",
-    "bin/lib/run-open.js": "50aaf9de344a07d671cc657ef5ce1a0d99f50239b5689bdda442f65996adb3a3",
+    "bin/lib/run-close.js": "d48ee93f7ba88dce8150142bedf917ff1f8074a281036a002f444acb99f17fb1",
+    "bin/lib/run-open.js": "085ddd67463300763b458e7ed006e243e33098945681474d2cc9e397818ce98f",
     "bin/lib/run-summary.js": "a323cf7e77b993b559c37014f3205105b76b52e4ac9ede00713229e9b624ba42",
     "bin/lib/run.js": "0c4f9cc33bb945823f48567f6b882722cc79e559b0117f8f5e497d20244c11c1",
     "bin/lib/spec-commit.js": "a67e16c5350409137c63faa17ba1d0458cfea84414e9f42814caa92574cb4d58"
   },
-  "output_digest": "8ac73560979644fe76b956bfe4e5863e0f5bc3fecc3716c2b9bb3545529a4677"
+  "output_digest": "8fb54c862b8969825af0969e64430449b16afce4ab1179dc13a4b33f2705fdb7"
 }

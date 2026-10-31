@@ -2,7 +2,7 @@
   "schema_version": 1,
   "faff_version": "0.44.0",
   "signal": "pass",
-  "rounds_total": 4,
+  "rounds_total": 5,
   "round_history": "recorded",
   "findings": [
     {
@@ -342,7 +342,7 @@
       "model": "openai/z-ai/glm-5.3-flash",
       "disposition": "fixed",
       "refutation": null,
-      "disposition_rationale": "Every run open locked edit now refuses (exit 2) unless the fresh ledger's owner.status is running, so an abort or close landing after step 1 is never written over and an aborted-resumable owner is never set to done (test 'owner re-checked under the lock').",
+      "disposition_rationale": null,
       "first_round": 4,
       "last_round": 4,
       "occurrences": [
@@ -402,6 +402,56 @@
           "location": "plugin/skills/faff/bin/lib/run-open.ts",
           "severity": "observation",
           "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-close.ts::neither verb passed expectedowner, so the yield branch was unreachable and run close could write done over a resumed owner",
+      "title": "neither verb passed expectedOwner, so the yield branch was unreachable and run close could write done over a resumed owner",
+      "location": "plugin/skills/faff/bin/lib/run-close.ts",
+      "action": "Pass the pre-read owner's {epoch, session_id} as expectedOwner in both verbs.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": null,
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Independent delta review relayed by the coordinator. Both verbs now pass the pre-read owner as expectedOwner; tests 'owner fence' in run-open and run-close reach the yield through resume.js's real owner change, and fail with expectedOwner removed.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "title": "neither verb passed expectedOwner, so the yield branch was unreachable and run close could write done over a resumed owner",
+          "location": "plugin/skills/faff/bin/lib/run-close.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/commissaire-status-skill-sites.test.mjs::the fallback-wording check no longer applied to beep-boop",
+      "title": "the fallback-wording check no longer applied to beep-boop",
+      "location": "test/commissaire-status-skill-sites.test.mjs",
+      "action": "Run the fallback-wording loop for every skill outside SITES.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": null,
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Independent delta review. The loop now runs for every skill outside SITES; a planted 'On commissaire-status-failed, proceed ungoverned.' line in beep-boop failed it, and the line was removed.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "title": "the fallback-wording check no longer applied to beep-boop",
+          "location": "test/commissaire-status-skill-sites.test.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
         }
       ]
     }

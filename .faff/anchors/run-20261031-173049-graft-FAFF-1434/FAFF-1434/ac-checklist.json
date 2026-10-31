@@ -145,7 +145,7 @@
     },
     {
       "ac": "`SKILL_LINE_BASELINE[\"faff-beep-boop\"]` is lowered to the count measured after the branch is rebased on `main`, so a sibling that changed it first (FAFF-1436) is absorbed, not overwritten.",
-      "verified": "baseline 677 -> 676 on a branch based on main d6d845d4 (FAFF-1436 included); `faff validate-adapters` exits 0",
+      "verified": "line baseline 677 -> 676 measured on main d6d845d4 (FAFF-1436 included); after rebasing onto 00753119 (FAFF-1442, #1172) the prose-byte baselines for beep-boop and graft are lowered with `faff prose-size baseline --lower`; `faff validate-adapters` exits 0",
       "passed": true,
       "ac_id": "faff-1434#done:12",
       "verifications": [
@@ -157,7 +157,7 @@
     },
     {
       "ac": "`ANCHOR_PHRASES[\"faff-beep-boop\"]` is unchanged and `faff validate-adapters` reports no RATCHET.",
-      "verified": "ANCHOR_PHRASES unchanged in the diff; `faff validate-adapters` prints no RATCHET",
+      "verified": "ANCHOR_PHRASES unchanged in the diff; `faff validate-adapters` prints no RATCHET, line or byte",
       "passed": true,
       "ac_id": "faff-1434#done:13",
       "verifications": [
@@ -193,7 +193,7 @@
     },
     {
       "ac": "The action-marker replay matches 31 markers and classifies the other 21 exactly as section 4.3 lists, failing on an unclassified marker, a listed exception that matches, or a missing correlation id.",
-      "verified": "replay test passes: 31 markers match, 21 classed 5/2/8/2/4; mutation-checked on 4c550b96 (a wrong class, a dropped entry and a missing correlation id each fail it)",
+      "verified": "replay test passes: 31 markers match, 21 classed 5/2/8/2/4; mutation-checked before the rebase (a wrong class, a dropped entry and a missing correlation id each fail it)",
       "passed": true,
       "ac_id": "faff-1434#done:16",
       "verifications": [
@@ -241,7 +241,7 @@
     },
     {
       "ac": "`faff gates run` passes.",
-      "verified": "`faff gates run --json --resume` pass 9/9 on 4c550b96 and again on a89a6a1d after the review fix (one run in between failed two docker-gated test/env.test.mjs cases under parallel load; that file passes 25/25 alone and is untouched here)",
+      "verified": "`faff gates run --json --resume` pass 9/9 on the rebased head 84c3167e (and before the rebase; one run in between failed two docker-gated test/env.test.mjs cases under parallel load, a file this PR does not touch, which passes 25/25 alone)",
       "passed": true,
       "ac_id": "faff-1434#done:20",
       "verifications": [

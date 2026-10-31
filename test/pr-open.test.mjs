@@ -167,6 +167,19 @@ test("body-unsafe", () => {
   assert.deepEqual(seen, ["SAFE\n"]);
 });
 
+test("anchor codes: the classifier's two contracts hold on the real modules", () => {
+  // validateAnchorGenesis is exported, and a valid-genesis run with a missing floor file makes the real
+  // `faff events anchor` print the prefix the classifier keys on.
+  const events = require("../plugin/skills/faff/bin/lib/events.js");
+  assert.equal(typeof events.validateAnchorGenesis, "function");
+  assert.equal(typeof defaultDeps(process.cwd()).validateAnchorGenesis, "function");
+  const fx = cliFixture();
+  rmSync(join(fx.runDir, CLI_ISSUE, "ac-checklist.json"));
+  const r = runCli(["events", "anchor", "--run-dir", fx.runDir, "--issue", CLI_ISSUE, "--dest", join(fx.root, "anchor-out")], { cwd: fx.repo, env: fx.env });
+  assert.equal(r.code, 3);
+  assert.ok(r.stderr.split("\n").some((l) => l.startsWith("faff events anchor: floor-incomplete")), r.stderr);
+});
+
 test("anchor codes", () => {
   const cases = [
     [{ anchor: exit(3, "faff events anchor: no events.jsonl in /runs/run-1 — nothing to anchor\n") }, { valid: false, code: "no-events" }, /^anchor-no-events/],
@@ -583,6 +596,19 @@ test("CLI-level: an empty events.jsonl parks as anchor-genesis-invalid and leave
   assert.equal(creates(fx).length, 0);
 });
 
+test("CLI-level: a run dir missing its AC checklist parks as anchor-floor-incomplete", () => {
+  const fx = cliFixture();
+  rmSync(join(fx.runDir, CLI_ISSUE, "ac-checklist.json"));
+  const before = fx.originHead();
+  const r = fx.open();
+  assert.equal(r.code, 3, r.stderr + r.stdout);
+  const out = JSON.parse(r.stdout);
+  assert.equal(out.token, "needs-human");
+  assert.match(out.cause, /^anchor-floor-incomplete: .*build-evidence defect/);
+  assert.equal(fx.originHead(), before);
+  assert.equal(creates(fx).length, 0);
+});
+
 test("CLI-level: a re-run on the unchanged tree returns already-open and pushes nothing", () => {
   const fx = cliFixture();
   assert.equal(fx.open().code, 0);
@@ -643,7 +669,10 @@ test("validate-adapters: the real faff-graft Step 9b passes the re-targeted lint
 test("validate-adapters: a Step 9b that bypasses faff pr open fails", () => {
   const clean = validateGraft(step9b("Run `faff pr open --run-dir \"$run_dir\" --issue <ISSUE> --base <base> --title <t> --body-file draft.md --json`."));
   assert.doesNotMatch(clean.stdout, /Step 9b/);
-  for (const call of ["gh pr create --body-file safe.md", "faff pr-create --run-dir d --issue X", "faff pr-body sanitize --target X", "faff events anchor --run-dir d", "git push origin b"]) {
+  // The shell form the skills use, in a fenced block, counts as the call.
+  const fenced = validateGraft(step9b('```bash\n"$faff" pr open --run-dir "$run_dir" --issue <ISSUE> --json\n```'));
+  assert.doesNotMatch(fenced.stdout, /Step 9b/);
+  for (const call of ["gh pr create --body-file safe.md", "faff pr-create --run-dir d --issue X", "faff pr-body sanitize --target X", "faff events anchor --run-dir d", "git push origin b", '"$faff" pr-create --run-dir d', '"$faff" events anchor --run-dir d']) {
     const r = validateGraft(step9b(`Run \`faff pr open --run-dir d\`, then \`${call}\`.`));
     assert.match(r.stdout, /FAIL {2}faff-graft \(Step 9b PR open\)/, call);
     assert.notEqual(r.status, 0, call);
@@ -656,6 +685,10 @@ test("validate-adapters: a Step 9b that bypasses faff pr open fails", () => {
 test("validate-adapters: a Step 9b that never invokes faff pr open fails, and a missing section still fails", () => {
   const without = validateGraft(step9b("Open the PR by hand."));
   assert.match(without.stdout, /FAIL {2}faff-graft \(Step 9b PR open\)/);
+  // A prose mention with no flags is not the call.
+  const mentionOnly = validateGraft(step9b("**In Review transition (after `faff pr open` returns `opened`).** Move the ticket."));
+  assert.match(mentionOnly.stdout, /FAIL {2}faff-graft \(Step 9b PR open\)/);
+  assert.match(mentionOnly.stdout, /must open the PR with/);
   const missing = validateGraft("# faff-graft fixture\n\n**Step 9x: Open the PR**\n\n**Step 10: Merge-confidence gate**\n");
   assert.match(missing.stdout, /FAIL {2}faff-graft \(Step 9b PR open\)/);
   assert.match(missing.stdout, /bounded Step 9b section/);

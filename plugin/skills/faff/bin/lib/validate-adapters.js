@@ -776,7 +776,7 @@ function lintGatewayManifest(root) {
 // FAFF-1416: faff-graft's Step 9b opens the PR through one command, `faff pr open`, which owns the
 // anchor-before-PR order (FAFF-1001) and the no-broad-swallow anchor commit (FAFF-1005) as tested code
 // (test/pr-open.test.mjs pins both on its recorded call sequence). This lint keeps the prose from
-// re-growing its own sequence: the bounded Step 9b section must invoke `faff pr open` in a code span,
+// re-growing its own sequence: the bounded Step 9b section must invoke `faff pr open` (with its flags) in a code span,
 // and no code span in it may invoke `gh pr create`, `faff pr-create`, `faff pr-body`, `faff events
 // anchor` or `git push` directly. Only code spans count, so prose that names a command it forbids
 // stays clean. Pure (exported for unit tests); the fail-closed absent-section policy lives at the
@@ -799,19 +799,22 @@ function collectStep9bCodeSpans(section) {
   // prose into whole-line spans and raise a false FAIL.
   return spans;
 }
+// `faff"?` also matches the `"$faff" <verb>` shell form the skills use.
 const STEP9B_DIRECT_CALLS = [
   ["gh pr create", /\bgh\s+pr\s+create\b/],
-  ["faff pr-create", /\bfaff\s+pr-create\b/],
-  ["faff pr-body", /\bfaff\s+pr-body\b/],
-  ["faff events anchor", /\bfaff\s+events\s+anchor\b/],
+  ["faff pr-create", /\bfaff"?\s+pr-create\b/],
+  ["faff pr-body", /\bfaff"?\s+pr-body\b/],
+  ["faff events anchor", /\bfaff"?\s+events\s+anchor\b/],
   ["git push", /\bgit\s+push\b/],
 ];
+// An invocation carries flags; a bare `faff pr open` mention in prose does not count as the call.
+const STEP9B_PR_OPEN_CALL = /\bfaff"?\s+pr\s+open\s+--/;
 function checkStep9bPrOpen(text) {
   const start = text.indexOf("**Step 9b:");
   const end = text.indexOf("**Step 10:", start + 1);
   if (start === -1 || end === -1) return { scoped: false, ok: true, invokesPrOpen: false, hits: [] };
   const spans = collectStep9bCodeSpans(text.slice(start, end));
-  const invokesPrOpen = spans.some((s) => /\bfaff\s+pr\s+open\b/.test(s));
+  const invokesPrOpen = spans.some((s) => STEP9B_PR_OPEN_CALL.test(s));
   const hits = [];
   for (const span of spans) for (const [name, re] of STEP9B_DIRECT_CALLS) if (re.test(span)) hits.push({ name, span });
   return { scoped: true, ok: invokesPrOpen && hits.length === 0, invokesPrOpen, hits };

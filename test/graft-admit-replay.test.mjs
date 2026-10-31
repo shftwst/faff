@@ -9,10 +9,10 @@
 //      the sidecar's listed exceptions, each classed.
 // The sidecar (test/fixtures/graft-admit/corpus-facts.json) supplies what the corpus lacks. An
 // ordinary node --test case; it gates nothing beyond the test run.
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, writeFileSync, readFileSync } from "node:fs";
+import { mkdtempSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -65,12 +65,16 @@ function factsFor(rec) {
   };
 }
 
-// Every `next` record through the CLI once, memoised: the disposition and marker passes share it.
+// Every `next` record through the CLI once, memoised only once complete: the disposition and marker
+// passes share it, and a failed replay throws again on the next call rather than serving a partial map.
 let replayed = null;
+const roots = [];
+after(() => { for (const r of roots) rmSync(r, { recursive: true, force: true }); });
 function replayDispositions() {
   if (replayed) return replayed;
   assert.deepEqual(SIDECAR.build_claim_refs, {}, "the sidecar plants no build-claim ref");
   const root = mkdtempSync(join(tmpdir(), "faff-graft-admit-corpus-"));
+  roots.push(root);
   spawnSync("git", ["-C", root, "init", "-q"]);
   writeFileSync(join(root, ".faffrc.yaml"), "bundle_store: local\n");
   writeFileSync(join(root, "admissible.md"), SIDECAR.admissible_spec);
@@ -78,14 +82,17 @@ function replayDispositions() {
   const env = { ...process.env };
   delete env.FAFF_RUN_DIR;
   delete env.FAFF_SESSION_ID;
-  replayed = new Map();
+  const byId = new Map();
   for (const rec of NEXT) {
     const spec = rec.issue in SIDECAR.refused_specs ? `refused-${rec.issue}.md` : "admissible.md";
     const r = spawnSync("node", [CLI, "graft", "admit", "--json", "--mode", "autonomous", "--facts", "-", "--spec-file", join(root, spec), "--root", root, "--now", rec.ts],
       { cwd: root, encoding: "utf8", input: JSON.stringify(factsFor(rec)), env });
     assert.equal(r.status, 0, `${rec.data.correlation_id}: ${r.stderr}`);
-    replayed.set(rec.data.correlation_id, { rec, out: JSON.parse(r.stdout) });
+    let out;
+    try { out = JSON.parse(r.stdout); } catch (e) { assert.fail(`${rec.data.correlation_id}: stdout is not JSON (${e.message}): ${r.stdout}`); }
+    byId.set(rec.data.correlation_id, { rec, out });
   }
+  replayed = byId;
   return replayed;
 }
 
@@ -93,6 +100,21 @@ test("the corpus holds 40 next and 23 eligible base records and 52 next/eligible
   assert.equal(NEXT.length, 40);
   assert.equal(ELIGIBLE.length, 23);
   assert.equal(MARKERS.length, 52);
+});
+
+// The replay keys on these, so a duplicate or a missing input would silently replay different facts.
+test("the replayed records are well-formed: unique keys, every next input present, a timestamp on each", () => {
+  const ids = [...NEXT, ...ELIGIBLE].map((r) => r.data.correlation_id);
+  assert.ok(ids.every((id) => typeof id === "string" && id !== ""), "every next/eligible base carries a correlation id");
+  assert.equal(new Set(ids).size, ids.length, "next/eligible base correlation ids are unique");
+  const markerKeys = MARKERS.map((m) => `${m.run_id}#${m.seq}`);
+  assert.equal(new Set(markerKeys).size, markerKeys.length, "markers are unique by run and seq");
+  for (const rec of NEXT) {
+    const ni = rec.data.normalised_inputs;
+    for (const k of ["status", "spec"]) assert.equal(typeof ni[k], "string", `${rec.data.correlation_id}: ${k}`);
+    for (const k of ["eligible", "parked", "blocked", "ifEligible", "awaitingSpecReview"]) assert.equal(typeof ni[k], "boolean", `${rec.data.correlation_id}: ${k}`);
+    assert.ok(!Number.isNaN(Date.parse(rec.ts)), `${rec.data.correlation_id}: ts`);
+  }
 });
 
 test("kernel replay: every next and eligible base record reproduces its recorded verdict", () => {

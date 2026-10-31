@@ -2078,3 +2078,24 @@ test("FAFF-1444: untilToEpochAtOffset across offsets, with the roll-over at or b
   assert.equal(untilToEpochAtOffset("25:00", a, 0), null);
   assert.equal(untilToEpochAtOffset("nope", a, 0), null);
 });
+
+test("FAFF-1444: a budget-checkpoint event relaying a BudgetState with spent.until_at is accepted by the event schema", () => {
+  const root = mkdtempSync(join(tmpdir(), "faff-budget-event-"));
+  try {
+    mkdirSync(join(root, ".git"), { recursive: true });
+    const mint = run(["run-ledger", "init-interactive", "--issue", "X-1", "--root", root], { TZ: "UTC" });
+    assert.equal(mint.code, 0, mint.err);
+    const runDir = mint.out.trim();
+    const check = run(["budget", "check", "--run-dir", runDir, "--root", root, "--until", "06:00", "--json"], { TZ: "UTC" });
+    assert.equal(check.code, 0, check.err);
+    const state = JSON.parse(check.out);
+    assert.ok("until_at" in state.spent, JSON.stringify(state));
+    for (const s of [state, { ...state, spent: { ...state.spent, until_at: null } }]) {
+      const r = spawnSync("node", [CLI, "events", "append", "--run", runDir.split("/").pop(), "--root", root], {
+        encoding: "utf8", input: JSON.stringify({ phase: "run", type: "budget-checkpoint", data: s }),
+        env: { HOME: process.env.HOME, PATH: process.env.PATH, TZ: "UTC" },
+      });
+      assert.equal(r.status, 0, r.stderr);
+    }
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});

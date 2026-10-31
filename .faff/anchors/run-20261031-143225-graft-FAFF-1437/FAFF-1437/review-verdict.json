@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 2,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-open.ts::run open's hooks report is unreachable from the skill's --export call",
+      "title": "run open's hooks report is unreachable from the skill's --export call",
+      "location": "plugin/skills/faff/bin/lib/run-open.ts",
+      "action": "Print the hooks-ensure report (and faults) on stderr outside --json, and point the skill's routing row at that line.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": null,
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "run open's hooks report is unreachable from the skill's --export call",
+          "location": "plugin/skills/faff/bin/lib/run-open.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-open.ts::fail-closed open degrades to exit 2 when its own owner-close write fails",
+      "title": "fail-closed open degrades to exit 2 when its own owner-close write fails",
+      "location": "plugin/skills/faff/bin/lib/run-open.ts",
+      "action": "Record the refused write as a fault on the fail-closed outcome.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "failClosed now catches the refused owner-close write, records owner-close-failed and keeps exit 3 with governance fail-closed and no poller (test 'fail-closed write refused').",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "fail-closed open degrades to exit 2 when its own owner-close write fails",
+          "location": "plugin/skills/faff/bin/lib/run-open.ts",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-close.ts::run close's bracket spawns have no timeouts",
+      "title": "run close's bracket spawns have no timeouts",
+      "location": "plugin/skills/faff/bin/lib/run-close.ts",
+      "action": null,
+      "location_present": true,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "These are the same subcommands the prose ran with no bound (reconcile, conclude, anchor-run, bundle publish, judge-trail, andon); the bounded-wait rule the invariant names is for forge and tracker waits. An arbitrary timeout could abort a legitimate bundle publish mid-write; only the status probe carries the spec's 30 s bound.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "run close's bracket spawns have no timeouts",
+          "location": "plugin/skills/faff/bin/lib/run-close.ts",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-open.ts::an unreadable pre-check ledger bypasses the envelope conflict refusal and misreports the step",
+      "title": "an unreadable pre-check ledger bypasses the envelope conflict refusal and misreports the step",
+      "location": "plugin/skills/faff/bin/lib/run-open.ts",
+      "action": "Report the envelope the locked write left and refuse a conflict after it.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The envelope step now runs the locked write first, re-reads the ledger, refuses a conflicting flag when nothing was written, and reports the recorded envelope with steps.envelope ok or skipped from the write itself (test 'envelope reported from the ledger').",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "an unreadable pre-check ledger bypasses the envelope conflict refusal and misreports the step",
+          "location": "plugin/skills/faff/bin/lib/run-open.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-open.ts::minted run dir taken from the last stdout line of init-self-drain",
+      "title": "minted run dir taken from the last stdout line of init-self-drain",
+      "location": "plugin/skills/faff/bin/lib/run-open.ts",
+      "action": "Check a readable ledger exists at the printed path.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "A minted path with no readable run-ledger.json now exits 2 with steps.mint failed:no-ledger before any other step (test 'mint without a ledger').",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "minted run dir taken from the last stdout line of init-self-drain",
+          "location": "plugin/skills/faff/bin/lib/run-open.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-open.ts::writesentinel leaves a stray tmp file on failure",
+      "title": "writeSentinel leaves a stray tmp file on failure",
+      "location": "plugin/skills/faff/bin/lib/run-open.ts",
+      "action": "Remove the temp file when the write or rename throws.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "realDeps().writeSentinel removes its .tmp file (rmSync force) before rethrowing.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "writeSentinel leaves a stray tmp file on failure",
+          "location": "plugin/skills/faff/bin/lib/run-open.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-open.ts::no spec-gaming findings",
+      "title": "no spec-gaming findings",
+      "location": "plugin/skills/faff/bin/lib/run-open.ts",
+      "action": null,
+      "location_present": true,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Clean-review observation from the second opinion; nothing to act on.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "no spec-gaming findings",
+          "location": "plugin/skills/faff/bin/lib/run-open.ts",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

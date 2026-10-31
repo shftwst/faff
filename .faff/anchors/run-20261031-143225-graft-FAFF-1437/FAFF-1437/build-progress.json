@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1437",
+  "build": {
+    "status": "complete",
+    "diff_hash": "b3f44f04253972526e435576a89a9b22b0fabb0f95fd90a1cbd45d3747164c12",
+    "branch": "faff-1437-run-open-close",
+    "pushed_at": "2026-10-31T15:48:59.468Z"
+  },
+  "updated_at": "2026-10-31T15:48:59.468Z"
+}

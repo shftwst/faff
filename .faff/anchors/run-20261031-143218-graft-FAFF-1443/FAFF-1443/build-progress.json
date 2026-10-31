@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1443",
+  "build": {
+    "status": "complete",
+    "diff_hash": "bed310a8ee341fa5b185d136944d47be33481ce4b869d81e61069a1f8bfe4b94",
+    "branch": "faff-1443-admissibility-at-attach",
+    "pushed_at": "2026-10-31T15:33:55.607Z"
+  },
+  "updated_at": "2026-10-31T15:33:55.607Z"
+}

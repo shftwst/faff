@@ -148,5 +148,60 @@ test("deriveCaptureKernels returns exactly the nine shipped captureDecision kern
 
 test("captureWiringUnwired reports nothing unwired on the shipped tree", () => {
   const kernels = va.deriveCaptureKernels(LIB);
-  assert.deepEqual(va.captureWiringUnwired(SKILLS, kernels), []);
+  const inProcess = va.inProcessWiredKernels(SKILLS, va.deriveInProcessCapture(LIB));
+  assert.deepEqual(va.captureWiringUnwired(SKILLS, kernels, inProcess), []);
+  assert.deepEqual(va.captureSameCommandUnwired(SKILLS, kernels, inProcess), []);
+  // FAFF-1434: beep-boop's admission captures next and eligible through `faff graft admit`, so only
+  // those two rely on the in-process route; every other kernel still has its own driver.
+  assert.deepEqual(va.captureWiringUnwired(SKILLS, kernels), ["eligible", "next"]);
+});
+
+// --- FAFF-1434: in-process capture through a composing command ---
+
+// A fixture lib with the kernel plus a stand-in graft-admit.js, and one SKILL.md.
+function runOnInProcessFixture({ admitSrc, skillBody }) {
+  const dir = mkdtempSync(join(tmpdir(), "faff-1434-lint-"));
+  mkdirSync(join(dir, "faff", "bin", "lib"), { recursive: true });
+  writeFileSync(join(dir, "faff", "bin", "lib", "fixkernel.js"), KERNEL_SRC);
+  writeFileSync(join(dir, "faff", "bin", "lib", "graft-admit.js"), admitSrc);
+  mkdirSync(join(dir, "zz-capture-fixture"));
+  writeFileSync(join(dir, "zz-capture-fixture", "SKILL.md"), skillBody);
+  const r = spawnSync(process.execPath, [BIN, "validate-adapters", "--skills-dir", dir], { encoding: "utf8" });
+  rmSync(dir, { recursive: true, force: true });
+  return r;
+}
+const ADMIT_SRC = `const decisionCapture = require("./decision-capture");
+function base(kernel) { return decisionCapture.mintConsultCorrelationId(".", "run", "X-1", kernel, undefined); }
+const cap = { base };
+cap.base("fixkernel", {}, {});
+`;
+const ADMIT_CALL = 'run `printf \'%s\' "$facts_json" | faff graft admit --mode autonomous --facts - --run-dir "$run_dir" --wave <w> --json` per candidate.\n';
+
+test("pass: a SKILL.md running `faff graft admit` with a run dir wires the kernels it captures in-process", () => {
+  const r = runOnInProcessFixture({ admitSrc: ADMIT_SRC, skillBody: ADMIT_CALL });
+  assert.match(r.stdout, /pass\s+capture-wiring[^\n]*fixkernel via `faff graft admit`'s in-process capture/);
+  assert.match(r.stdout, /pass\s+capture-same-command[^\n]*fixkernel via/);
+});
+
+test("fail: the same call with no run dir mints no consult id, so the kernel stays unwired", () => {
+  const r = runOnInProcessFixture({ admitSrc: ADMIT_SRC, skillBody: 'run `faff graft admit --mode autonomous --facts - --json` per candidate.\n' });
+  assert.match(r.stdout, /FAIL\s+capture-wiring/);
+  assert.match(r.stdout, /FAIL\s+capture-same-command/);
+  assert.equal(r.status, 1);
+});
+
+test("fail: a kernel the composing command does not capture is not wired by calling it", () => {
+  const r = runOnInProcessFixture({ admitSrc: ADMIT_SRC.replace('cap.base("fixkernel"', 'cap.base("other"'), skillBody: ADMIT_CALL });
+  assert.match(r.stdout, /kernel "fixkernel" mints a base in-kernel/);
+  assert.equal(r.status, 1);
+});
+
+test("fail: a composing module that mints no consult id wires nothing", () => {
+  const r = runOnInProcessFixture({ admitSrc: ADMIT_SRC.replace("mintConsultCorrelationId", "noMint"), skillBody: ADMIT_CALL });
+  assert.match(r.stdout, /FAIL\s+capture-wiring/);
+  assert.equal(r.status, 1);
+});
+
+test("deriveInProcessCapture reads graft-admit's captured kernels from its source", () => {
+  assert.deepEqual(va.deriveInProcessCapture(LIB).map((e) => e.kernels), [["claim-verdict", "eligible", "next"]]);
 });

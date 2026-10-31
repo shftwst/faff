@@ -55,8 +55,8 @@ const TEST_FILE_COVERAGE = {
   "prep": "test/prep-attach.test.mjs",
   // graft (FAFF-1414): `faff graft admit` has no `--selftest`; its dispositions, exit-2 causes and
   // marker table are exercised through the real CLI entrypoint, and the In Review corpus replay
-  // runs the 14 named decision-corpus records through it.
-  "graft": ["test/graft-admit.test.mjs", "test/graft-admit-replay-in-review.test.mjs"],
+  // runs the 14 named decision-corpus records through it; FAFF-1434's full replay runs all 40.
+  "graft": ["test/graft-admit.test.mjs", "test/graft-admit-replay-in-review.test.mjs", "test/graft-admit-replay.test.mjs"],
   // run (FAFF-1435, FAFF-1436): `faff run summary` and `faff run checkpoint` have no `--selftest`;
   // summary's sections, facts handling, forge and doctor paths, and checkpoint's decision table,
   // read faults and exit codes, are exercised through the real CLI entrypoint and in-process.

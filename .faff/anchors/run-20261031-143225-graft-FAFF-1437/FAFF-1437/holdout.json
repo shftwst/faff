@@ -1,0 +1,222 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1437",
+  "aggregate": "meets-spec",
+  "code_blind": true,
+  "spawner_attested": false,
+  "attestation": null,
+  "violations": [],
+  "criteria": [
+    {
+      "id": "scenarios:1",
+      "text": "Given a repo whose config sets no commissaire.governor\nWhen `faff run open --mode full --root R --session-id S --json` runs\nThen it exits 0 with governance \"admitted\" and steps.poller \"ok\"\nAnd the new run ledger has owner.status \"running\", an owner.harness value and budget.measure_root equal to R",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "faff run open --mode full --root /tmp/eval/s1 --session-id sess-s1 --json (fresh git repo, no .faff/config.yaml, commissaire.governor unset: config get exit 3); then read run-ledger.json",
+      "expected": "exit 0, governance \"admitted\", steps.poller \"ok\"; ledger owner.status \"running\", owner.harness set, budget.measure_root == /tmp/eval/s1",
+      "observed": "exit 0; governance \"admitted\"; steps.poller \"ok\"; ledger owner.status \"running\", owner.harness \"claude-code\", budget.measure_root \"/tmp/eval/s1\"",
+      "evidence_ref": "report section scenarios:1",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:2",
+      "text": "Given a repo whose config sets commissaire.governor to an endpoint nothing listens on\nWhen `faff run open --mode full --root R --session-id S --json` runs\nThen it exits 3 with governance \"fail-closed\"\nAnd the ledger shows owner.status \"done\" and stop_reason \"governance-admit-failed\"\nAnd <run_dir>/commissaire/governance-required.json exists\nAnd `faff sentry-poller status --run-dir <run_dir> --json` prints running false with no pid",
+      "holdout": true,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "repo with .faff/config.yaml commissaire.governor: 127.0.0.1:9 (config get prints it); faff run open --mode full --root /tmp/eval/s2 --session-id sess-s2 --json; read ledger; cat <run_dir>/commissaire/governance-required.json; faff sentry-poller status --run-dir <run_dir> --json",
+      "expected": "exit 3, governance \"fail-closed\"; owner.status \"done\", stop_reason \"governance-admit-failed\"; governance-required.json exists; poller status running false with no pid",
+      "observed": "exit 3; governance \"fail-closed\", fail_closed_cause \"governor-unreachable\", steps.poller \"skipped\"; ledger owner.status \"done\", stop_reason \"governance-admit-failed\"; governance-required.json = {\"governance_required\":true,\"governor\":\"127.0.0.1:9\"}; poller status {\"running\":false}",
+      "evidence_ref": "report section scenarios:2",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:3",
+      "text": "Given a run D opened by `faff run open --mode full --max 5` that exited 0, and FAFF_RUN_DIR set to D\nWhen `faff run open --adopt-run-dir D --root R --session-id S --json` runs, and then again with --max 9\nThen the first exits 0 with governance \"already-governed\" and the second exits 2\nAnd the ledger's budget envelope still has max_attempts 5",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "out=$(faff run open --mode full --max 5 --root R --session-id S --export); rc=$?; eval \"$out\" (rc 0, FAFF_RUN_DIR=D); faff run open --adopt-run-dir D --root R --session-id S --json; then same with --max 9; read budget.envelope.ceilings",
+      "expected": "first adopt exit 0 governance \"already-governed\"; second exit 2; envelope max_attempts 5",
+      "observed": "adopt 1: exit 0, governance \"already-governed\"; adopt 2: exit 2, fault \"budget envelope already set: max_attempts 9 differs from the recorded 5\"; ceilings.max_attempts 5; ledger byte-identical across adopt 2",
+      "evidence_ref": "report section scenarios:3",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:4",
+      "text": "Given `faff run open --mode full --until 25:99 --root R --session-id S`\nWhen it runs\nThen it exits 2\nAnd no new directory exists under R/.faff/runs",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "fresh repo (no .faff); faff run open --mode full --until 25:99 --root /tmp/eval/s4 --session-id sess-s4 (also with --json, and again with a pre-existing .faff/runs/run-preexisting)",
+      "expected": "exit 2; no new directory under R/.faff/runs",
+      "observed": "exit 2, stderr 'until \"25:99\" is not a valid HH:MM'; R/.faff/runs absent; with a pre-existing runs dir it still holds only run-preexisting",
+      "evidence_ref": "report section scenarios:4",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:5",
+      "text": "Given a run ledger with admitted [\"A\",\"B\"] and outcomes {\"A\":\"shipped\"}\nWhen `faff run close --run-dir D --stop-reason queue-drained --json` runs\nThen it exits 3 with undispatched [\"B\"]\nAnd run-ledger.json and events.jsonl are byte-identical to before",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "run minted by faff run open, poller stopped, ledger set to admitted [A,B], outcomes {A:shipped}; sha256 of run-ledger.json and events.jsonl; faff run close --run-dir D --stop-reason queue-drained --json; sha256sum -c",
+      "expected": "exit 3 with undispatched [\"B\"]; ledger and events byte-identical",
+      "observed": "exit 3; closed false, undispatched [\"B\"], every step skipped; sha256sum -c: run-ledger.json OK, events.jsonl OK",
+      "evidence_ref": "report section scenarios:5",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:6",
+      "text": "Given a run ledger with admitted [\"A\",\"B\"], outcomes {\"A\":\"shipped\"}, an abort entry with status \"aborted-resumable\" and owner.status \"aborted-resumable\"\nWhen `faff run close --run-dir D --stop-reason sentry-abort --json` runs\nThen it exits 0 with undispatched [\"B\"]\nAnd the ledger's stop_reason is \"sentry-abort\", owner.status is still \"aborted-resumable\" and outcomes has no entry for \"B\"\nAnd events.jsonl contains a run-end event with data.stop_reason \"sentry-abort\"",
+      "holdout": true,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "run minted by faff run open, ledger admitted [A,B] outcomes {A:shipped}; faff sentry abort --run-dir D (writes abort.status and owner.status aborted-resumable); faff run close --run-dir D --stop-reason sentry-abort --json; read ledger; grep run-end events.jsonl",
+      "expected": "exit 0 undispatched [\"B\"]; stop_reason \"sentry-abort\"; owner.status \"aborted-resumable\"; no outcomes B; run-end event with data.stop_reason \"sentry-abort\"",
+      "observed": "exit 0; undispatched [\"B\"], abort_exempt true, owner_status \"aborted-resumable\"; ledger stop_reason \"sentry-abort\", owner.status \"aborted-resumable\", outcomes {\"A\":\"shipped\"}; events.jsonl run-end data.stop_reason \"sentry-abort\" (shipped 1, parked 0); faff events validate OK",
+      "evidence_ref": "report section scenarios:6",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:7",
+      "text": "Given a run ledger with every admitted issue terminal\nWhen `faff run close --run-dir D --stop-reason queue-drianed` runs\nThen it exits 2 and run-ledger.json is unchanged",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "run minted by faff run open, ledger admitted [A,B] outcomes {A:shipped,B:parked}; sha256; faff run close --run-dir D --stop-reason queue-drianed; sha256sum -c",
+      "expected": "exit 2; run-ledger.json unchanged",
+      "observed": "exit 2, stderr 'unknown stop reason \"queue-drianed\"'; run-ledger.json OK (and events.jsonl OK); control: queue-drained then exits 0",
+      "evidence_ref": "report section scenarios:7",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:8",
+      "text": "Given a run D whose owner.status is \"running\" and FAFF_RUN_DIR is unset\nWhen `faff run open --adopt-run-dir D --root R --session-id S` runs\nThen it exits 2\nAnd run-ledger.json is byte-identical to before",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "run minted by faff run open (owner.status running), FAFF_RUN_DIR unset; sha256; faff run open --adopt-run-dir D --root R --session-id S; sha256sum -c",
+      "expected": "exit 2; run-ledger.json byte-identical",
+      "observed": "exit 2, stderr 'adopt refused: $FAFF_RUN_DIR does not name this run'; run-ledger.json OK (events.jsonl OK); same with FAFF_RUN_DIR naming another dir; control with FAFF_RUN_DIR=D exits 0",
+      "evidence_ref": "report section scenarios:8",
+      "reason": null,
+      "reason_code": null
+    }
+  ],
+  "delegated": [
+    {
+      "id": "done:1",
+      "text": "`faff-beep-boop/SKILL.md` calls `faff run open` (captured, then eval'd) and `faff run close` in place of l. 391, 428–438, 440–444, 450–457 and the l. 581 sentence, with routing on each exit, and `SKILL_LINE_BASELINE[\"faff-beep-boop\"]` is lowered to the new count.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1437#done:1"
+    },
+    {
+      "id": "done:2",
+      "text": "`faff validate-adapters` passes with no RATCHET finding for `faff-beep-boop`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1437#done:2"
+    },
+    {
+      "id": "done:3",
+      "text": "`faff run open --json` prints an OpenResult and `faff run close --json` a CloseResult with every §3 field, each exiting 0, 3 or 2 per §3.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1437#done:3"
+    },
+    {
+      "id": "done:4",
+      "text": "`run-open.ts` and `run-close.ts` are in `tsconfig.json` `include`, with committed `.js` emits and `build-manifest.json`; `check-no-boundary-cast` passes and its test pins both.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1437#done:4"
+    },
+    {
+      "id": "done:5",
+      "text": "`faff run` with no verb exits 2 with a usage line naming all four verbs: `summary`, `checkpoint`, `open`, `close`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1437#done:5"
+    },
+    {
+      "id": "done:6",
+      "text": "`TEST_FILE_COVERAGE.run` names `test/run-open.test.mjs` and `test/run-close.test.mjs`; `faff regions check` and `faff lint-cli-coverage` pass; no selftest block gains a case.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1437#done:6"
+    },
+    {
+      "id": "done:7",
+      "text": "The PR diff touches no `commissaire*` file, and `faff commissaire --help` output is byte-identical before and after.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1437#done:7"
+    },
+    {
+      "id": "done:8",
+      "text": "Every governance branch in §4.1 step 4 has a test asserting the exit code, `governance`, `fail_closed_cause` and whether the poller and hooks were spawned.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1437#done:8"
+    },
+    {
+      "id": "done:9",
+      "text": "A `run close` refusal leaves `run-ledger.json` and `events.jsonl` byte-identical.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1437#done:9"
+    },
+    {
+      "id": "done:10",
+      "text": "Every line the PR deletes from `faff-beep-boop/SKILL.md` maps to a row C1–C41; the PR description lists the deleted line ranges against row ids.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1437#done:10"
+    },
+    {
+      "id": "done:11",
+      "text": "Every `kept` and `changed` row with a covering test has that test, and it passes.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1437#done:11"
+    },
+    {
+      "id": "done:12",
+      "text": "`test/run-open.test.mjs`, `test/run-close.test.mjs`, `test/run-checkpoint.test.mjs` and `test/run-summary.test.mjs` pass under `node --test`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1437#done:12"
+    }
+  ]
+}

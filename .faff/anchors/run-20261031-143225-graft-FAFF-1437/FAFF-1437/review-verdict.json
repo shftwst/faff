@@ -2,7 +2,7 @@
   "schema_version": 1,
   "faff_version": "0.44.0",
   "signal": "pass",
-  "rounds_total": 2,
+  "rounds_total": 4,
   "round_history": "recorded",
   "findings": [
     {
@@ -42,7 +42,7 @@
       "model": "openai/z-ai/glm-5.3-flash",
       "disposition": "fixed",
       "refutation": null,
-      "disposition_rationale": "failClosed now catches the refused owner-close write, records owner-close-failed and keeps exit 3 with governance fail-closed and no poller (test 'fail-closed write refused').",
+      "disposition_rationale": null,
       "first_round": 2,
       "last_round": 2,
       "occurrences": [
@@ -92,7 +92,7 @@
       "model": "openai/z-ai/glm-5.3-flash",
       "disposition": "fixed",
       "refutation": null,
-      "disposition_rationale": "The envelope step now runs the locked write first, re-reads the ledger, refuses a conflicting flag when nothing was written, and reports the recorded envelope with steps.envelope ok or skipped from the write itself (test 'envelope reported from the ledger').",
+      "disposition_rationale": null,
       "first_round": 2,
       "last_round": 2,
       "occurrences": [
@@ -117,7 +117,7 @@
       "model": "openai/z-ai/glm-5.3-flash",
       "disposition": "fixed",
       "refutation": null,
-      "disposition_rationale": "A minted path with no readable run-ledger.json now exits 2 with steps.mint failed:no-ledger before any other step (test 'mint without a ledger').",
+      "disposition_rationale": null,
       "first_round": 2,
       "last_round": 2,
       "occurrences": [
@@ -142,7 +142,7 @@
       "model": "openai/z-ai/glm-5.3-flash",
       "disposition": "fixed",
       "refutation": null,
-      "disposition_rationale": "realDeps().writeSentinel removes its .tmp file (rmSync force) before rethrowing.",
+      "disposition_rationale": null,
       "first_round": 2,
       "last_round": 2,
       "occurrences": [
@@ -174,6 +174,231 @@
         {
           "round": 2,
           "title": "no spec-gaming findings",
+          "location": "plugin/skills/faff/bin/lib/run-open.ts",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/commissaire-status-skill-sites.test.mjs::the skills-sites test dropped beep-boop's forbidden-phrase check, and skill.md said 'run the bracket'",
+      "title": "the skills-sites test dropped beep-boop's forbidden-phrase check, and SKILL.md said 'run the bracket'",
+      "location": "test/commissaire-status-skill-sites.test.mjs",
+      "action": "Apply the FORBIDDEN loop to every other skill and reword the line.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "standard",
+      "model": null,
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "the skills-sites test dropped beep-boop's forbidden-phrase check, and SKILL.md said 'run the bracket'",
+          "location": "test/commissaire-status-skill-sites.test.mjs",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-close.ts::run close reported owner_status done when its owner-close write failed",
+      "title": "run close reported owner_status done when its owner-close write failed",
+      "location": "plugin/skills/faff/bin/lib/run-close.ts",
+      "action": "Report the status only after the write lands; exit 2 on a refused or yielded write.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "standard",
+      "model": null,
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "run close reported owner_status done when its owner-close write failed",
+          "location": "plugin/skills/faff/bin/lib/run-close.ts",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-open.ts::a fail-closed adopt of a run with admitted work leaves a done run with undispatched work",
+      "title": "a fail-closed adopt of a run with admitted work leaves a done run with undispatched work",
+      "location": "plugin/skills/faff/bin/lib/run-open.ts",
+      "action": "Give the exit-3 route an explicit park path.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": null,
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "a fail-closed adopt of a run with admitted work leaves a done run with undispatched work",
+          "location": "plugin/skills/faff/bin/lib/run-open.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-open.ts::the fail-closed owner-close write failure exited 3, but section 3 says post-mint write failures exit 2",
+      "title": "the fail-closed owner-close write failure exited 3, but section 3 says post-mint write failures exit 2",
+      "location": "plugin/skills/faff/bin/lib/run-open.ts",
+      "action": "Exit 2, keeping the cause in faults.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": null,
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "the fail-closed owner-close write failure exited 3, but section 3 says post-mint write failures exit 2",
+          "location": "plugin/skills/faff/bin/lib/run-open.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-close.ts::abort-exempt close concluded the resumable issues",
+      "title": "abort-exempt close concluded the resumable issues",
+      "location": "plugin/skills/faff/bin/lib/run-close.ts",
+      "action": "Leave undispatched issues out of the conclude loop.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "standard",
+      "model": null,
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "abort-exempt close concluded the resumable issues",
+          "location": "plugin/skills/faff/bin/lib/run-close.ts",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-open.ts::a fail-closed run open wrote no run-end event",
+      "title": "a fail-closed run open wrote no run-end event",
+      "location": "plugin/skills/faff/bin/lib/run-open.ts",
+      "action": "Append run-end on the fail-closed path.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": null,
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "a fail-closed run open wrote no run-end event",
+          "location": "plugin/skills/faff/bin/lib/run-open.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-open.ts::adopt's owner-status gate is checked outside the ledger lock",
+      "title": "adopt's owner-status gate is checked outside the ledger lock",
+      "location": "plugin/skills/faff/bin/lib/run-open.ts",
+      "action": "Re-check owner.status inside every locked edit.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Every run open locked edit now refuses (exit 2) unless the fresh ledger's owner.status is running, so an abort or close landing after step 1 is never written over and an aborted-resumable owner is never set to done (test 'owner re-checked under the lock').",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "title": "adopt's owner-status gate is checked outside the ledger lock",
+          "location": "plugin/skills/faff/bin/lib/run-open.ts",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-close.ts::run close's run-end counts come from a pre-lock ledger read",
+      "title": "run close's run-end counts come from a pre-lock ledger read",
+      "location": "plugin/skills/faff/bin/lib/run-close.ts",
+      "action": null,
+      "location_present": true,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The spec orders run-end (step 3) before the locked close (step 4), and the orchestrator writes every outcome in-turn at steps 7 and 11 before it calls run close, so no concurrent outcome writer exists at close time.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "title": "run close's run-end counts come from a pre-lock ledger read",
+          "location": "plugin/skills/faff/bin/lib/run-close.ts",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-open.ts::no other findings",
+      "title": "no other findings",
+      "location": "plugin/skills/faff/bin/lib/run-open.ts",
+      "action": null,
+      "location_present": true,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Clean-review observation from the second opinion.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "title": "no other findings",
           "location": "plugin/skills/faff/bin/lib/run-open.ts",
           "severity": "observation",
           "disposition": "accepted-risk"

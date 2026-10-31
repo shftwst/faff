@@ -136,10 +136,26 @@
       ]
     },
     {
-      "ac": "Every line the PR deletes from `faff-beep-boop/SKILL.md` maps to a row C1–C41; the PR description lists the deleted line ranges against row ids.",
-      "verified": "Every deleted SKILL.md hunk (l. 112, 385, 391, 406, 419, 421, 428-437, 440-444, 446, 450-457, 581 on main) maps to C-rows; the PR description lists each range against its rows.",
+      "ac": "A fail-closed `run open` appends a `run-end` event with `data.stop_reason` `governance-admit-failed`, and a `sentry-abort` close under the abort exemption concludes none of the `undispatched` issues, each pinned by a test.",
+      "verified": "Both pinned and passing: the fail-closed path appends a token-tagged run-end (governance-admit-failed) before the andon pump; an abort-exempt sentry-abort close neither reconciles nor concludes the undispatched issues.",
       "passed": true,
       "ac_id": "faff-1437#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-open.test.mjs::fail-closed run-end: the fail-closed path appends a token-tagged run-end with stop_reason governance-admit-failed before the andon pump"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-close.test.mjs::abort exemption leaves resumable work unconcluded: undispatched issues are neither reconciled nor concluded on a governed run"
+        }
+      ]
+    },
+    {
+      "ac": "Every line the PR deletes from `faff-beep-boop/SKILL.md` maps to a row C1–C45; the PR description lists the deleted line ranges against row ids.",
+      "verified": "Every deleted SKILL.md hunk (l. 112, 385, 391, 406, 419, 421, 428-437, 440-444, 446, 450-457, 581 on main) maps to rows C1-C45; the PR description lists each range against its rows.",
+      "passed": true,
+      "ac_id": "faff-1437#done:11",
       "verifications": [
         {
           "kind": "command",
@@ -151,7 +167,7 @@
       "ac": "Every `kept` and `changed` row with a covering test has that test, and it passes.",
       "verified": "Every inventory-cited covering test exists by name in run-open/run-close tests and passes (39 names checked).",
       "passed": true,
-      "ac_id": "faff-1437#done:11",
+      "ac_id": "faff-1437#done:12",
       "verifications": [
         {
           "kind": "command",
@@ -163,7 +179,7 @@
       "ac": "`test/run-open.test.mjs`, `test/run-close.test.mjs`, `test/run-checkpoint.test.mjs` and `test/run-summary.test.mjs` pass under `node --test`.",
       "verified": "All four files pass under node --test (gate UNIT rung and a direct run).",
       "passed": true,
-      "ac_id": "faff-1437#done:12",
+      "ac_id": "faff-1437#done:13",
       "verifications": [
         {
           "kind": "command",

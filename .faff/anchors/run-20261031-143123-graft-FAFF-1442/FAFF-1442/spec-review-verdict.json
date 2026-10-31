@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 1,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The ratchet compares raw working-tree bytes (`fs.statSync(p).size`, no normalisation) against a baseline committed from one checkout. This makes the entire CI gate hostage to an environmental invariant the spec asserts but does not secure: that every checkout and CI runner materialises identical bytes. §6 notes only \"no `.gitattributes` today\" — but the moment anyone adds eol normalisation (a common repo hygiene change, often unrelated to faff), or a Windows contributor with `core.autocrlf=true` runs locally, every one of the 41 covered files mismatches its baseline simultaneously and the gate reds with 41 spurious FAILs that no `--lower` call can fix (the files did not shrink; the checkout changed).",
+      "evidence": "§3 Vocabulary (\"bytes … with no normalisation\"), §4.4 \"CRLF or BOM. Bytes are counted raw\", §6 \"This holds while the repo has no `.gitattributes` … the repo has no `.gitattributes` today\". The spec treats eol drift as a *correct* signal (\"a line-ending change shows as growth or shrink, which is correct\") — true for an intentional edit, false for an environmental conversion touching all 41 files at once, which the design cannot distinguish.",
+      "predicted_consequence": "the first `.gitattributes` introduction (or an autocrlf contributor) turns the gate permanently red or forces a whole-file baseline rewrite that masks real drift; the fix is a one-line spec edit (pin `* -text` for the covered set, or state the invariant as a guarded assumption with a doctor/CI check).",
+      "spec_anchor": "44-edge-cases",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "A new .gitattributes marks the covered set -text, so checkouts cannot convert line endings (spec §4.2, DONE item added).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The ratchet compares raw working-tree bytes (`fs.statSync(p).size`, no normalisation) against a baseline committed from one checkout. This makes the entire CI gate hostage to an environmental invariant the spec asserts but does not secure: that every checkout and CI runner materialises identical bytes. §6 notes only \"no `.gitattributes` today\" — but the moment anyone adds eol normalisation (a common repo hygiene change, often unrelated to faff), or a Windows contributor with `core.autocrlf=true` runs locally, every one of the 41 covered files mismatches its baseline simultaneously and the gate reds with 41 spurious FAILs that no `--lower` call can fix (the files did not shrink; the checkout changed).",
+          "spec_anchor": "44-edge-cases"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The slice lands a zero-headroom byte baseline over all 41 covered files while two open PRs (#1169 FAFF-1436, #1170 FAFF-1444) already edit `SKILL.md` files. Whichever merges after this one cannot pass CI without a baseline edit on rebase — a hard sequencing coupling the critique surfaces as a \"sequencing note\" but the spec never elevates to a dependency or a mitigation (e.g. land this after both, or pre-agree the rebase step with those PR owners).",
+      "evidence": "Methodology critique: \"Open PRs #1169 (FAFF-1436) and #1170 (FAFF-1444) both edit `SKILL.md` files and will need a one-line baseline update on rebase.\" Spec §4.4: \"Parallel PRs after this lands… whichever merges after this one rebases and runs `--lower` or a hand raise.\"",
+      "predicted_consequence": "One of the two open PRs fails `validate-adapters` on rebase with a `prose bytes` FAIL its author did not plan for, producing either an unplanned mid-review baseline edit or a blocked PR until someone runs `--lower`.",
+      "spec_anchor": "what-4-4-edge-cases",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "§4.2 sequences this graft after PRs #1169 and #1170 merge; both have merged.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The slice lands a zero-headroom byte baseline over all 41 covered files while two open PRs (#1169 FAFF-1436, #1170 FAFF-1444) already edit `SKILL.md` files. Whichever merges after this one cannot pass CI without a baseline edit on rebase — a hard sequencing coupling the critique surfaces as a \"sequencing note\" but the spec never elevates to a dependency or a mitigation (e.g. land this after both, or pre-agree the rebase step with those PR owners).",
+          "spec_anchor": "what-4-4-edge-cases"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "§4.5's instruction for testing the absent-baseline FAIL (\"run against a temp copy of the skills dir, never by touching the real file\") contradicts the interface table: with `--skills-dir` given and the baseline absent, the specified behaviour is an INFO skip, not a FAIL. The FAIL-missing branch is reachable only via the default skills-dir resolution, which is script-relative to the real binary — so a tester following the spec's named route observes INFO + exit 0 where the DONE item (\"fails when prose-baseline.json is missing\") expects exit 1.",
+      "evidence": "§4.5 bullet \"The bundled tree with the baseline file moved aside fails `missing` (run against a temp copy of the skills dir, never by touching the real file)\"; interface row \"baseline file absent, `--skills-dir` given → INFO … none\"; DONE \"faff validate-adapters with no --skills-dir fails when prose-baseline.json is missing or malformed\".",
+      "predicted_consequence": "the DONE item's test, built exactly as the spec describes, passes vacuously (it exercises the INFO-skip branch) while the FAIL-missing branch ships untested — or a builder \"fixes\" the test by touching the real file, which the spec forbids.",
+      "spec_anchor": "45-tests-in-test-only-node-test-no-selftest",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "§4.5 runs a copied binary with no --skills-dir so the script-relative default resolves to the copy and exercises the missing-baseline FAIL.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "§4.5's instruction for testing the absent-baseline FAIL (\"run against a temp copy of the skills dir, never by touching the real file\") contradicts the interface table: with `--skills-dir` given and the baseline absent, the specified behaviour is an INFO skip, not a FAIL. The FAIL-missing branch is reachable only via the default skills-dir resolution, which is script-relative to the real binary — so a tester following the spec's named route observes INFO + exit 0 where the DONE item (\"fails when prose-baseline.json is missing\") expects exit 1.",
+          "spec_anchor": "45-tests-in-test-only-node-test-no-selftest"
+        }
+      ]
+    }
+  ]
+}

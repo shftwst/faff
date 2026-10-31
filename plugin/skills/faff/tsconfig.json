@@ -44,6 +44,7 @@
     "bin/lib/spec-commit.ts",
     "bin/lib/run-summary.ts",
     "bin/lib/run.ts",
-    "bin/lib/run-checkpoint.ts"
+    "bin/lib/run-checkpoint.ts",
+    "bin/lib/prose-size.ts"
   ]
 }

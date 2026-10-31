@@ -1323,6 +1323,12 @@ function cmdValidateAdapters(args) {
       dupWindows.get(key).add(name);
     }
   }
+  // FAFF-1442: per-file byte ratchet over every SKILL.md and references/*.md, on top of the line caps
+  // above (which stay unchanged). A missing baseline fails on the bundled tree (no --skills-dir) and
+  // only skips with an INFO line for an explicit skills dir.
+  const prose = require("./prose-size").proseRatchet(skillsDir, values["--skills-dir"] === undefined);
+  for (const line of prose.lines) console.log(line);
+  if (prose.failed) failed = true;
   // cross-file duplicated-block report (single-source it per FAFF-115)
   const reportedDup = new Set();
   for (const [key, names] of dupWindows) {

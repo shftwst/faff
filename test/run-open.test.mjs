@@ -361,6 +361,25 @@ test("fail-closed write refused: a refused owner-close write on the fail-closed 
   assert.equal(open(y).code, 2);
 });
 
+test("owner re-checked under the lock: a run aborted after the adopt check is refused at the first locked edit and never set to done", () => {
+  const deps = fakeDeps({ "commissaire contract status": fail(1) }, { ledger: baseLedger(), env: { FAFF_RUN_DIR: RUN_DIR } });
+  // A concurrent `faff sentry abort` lands between step 1's read and the enrich's locked write.
+  const inner = deps.mutateLedger;
+  let first = true;
+  deps.mutateLedger = (runDir, mutate) => { if (first) { first = false; deps.state.ledger.owner.status = "aborted-resumable"; } return inner(runDir, mutate); };
+  const r = adopt(deps);
+  assert.equal(r.code, 2);
+  assert.match(r.reason, /owner.status is "aborted-resumable"/);
+  assert.equal(deps.state.ledger.owner.status, "aborted-resumable");
+  assert.equal(called(deps, "commissaire contract status").length, 0);
+  // The same guard holds at the fail-closed owner close: an abort mid-open stays aborted-resumable.
+  const late = fakeDeps({ "commissaire contract status": () => { late.state.ledger.owner.status = "aborted-resumable"; return fail(1); } });
+  const r2 = open(late);
+  assert.equal(r2.code, 2);
+  assert.equal(late.state.ledger.owner.status, "aborted-resumable");
+  assert.equal(late.state.ledger.stop_reason, undefined);
+});
+
 test("fail-closed run-end: the fail-closed path appends a token-tagged run-end with stop_reason governance-admit-failed before the andon pump", () => {
   const deps = fakeDeps({ "commissaire contract status": fail(1) });
   const r = open(deps);

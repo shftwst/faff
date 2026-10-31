@@ -262,6 +262,9 @@ function runOpen(args: OpenArgs, deps: Deps): OpenOutcome {
       try {
         res = deps.mutateLedger(runDir, (fresh) => {
           if (!isRecord(fresh)) throw new Error("run-ledger.json is missing or not a JSON object");
+          // Re-checked under the lock: a run aborted or closed since step 1 is never written over.
+          const status = field(field(fresh, "owner"), "status");
+          if (status !== "running") throw new Error(`owner.status is ${JSON.stringify(status ?? null)}, not "running"`);
           changed = fn(fresh);
           return changed ? fresh : null;
         });

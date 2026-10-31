@@ -38,7 +38,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { parseArgs, usageError } = require("./argv");
-const { AT_CEILING_OUTCOMES, byModelClassTotal, closeSpanDeltaByModel, envelopeFrom, measureTokensByClass, measureTokensByModelClass } = require("./budget");
+const { AT_CEILING_OUTCOMES, byModelClassTotal, closeSpanDeltaByModel, envelopeFrom, measureTokensByClass, measureTokensByModelClass, utcOffsetField } = require("./budget");
 const { unmeteredFleetEngines } = require("./backends");
 const { DEFAULTS, loadConfig } = require("./config");
 const { containerCheck, hostSocketProbe, realFsq } = require("./container-check");
@@ -1190,6 +1190,7 @@ function mintLightsOut({ root, cfg, json, get, pf, envelope, metering, correctiv
       session_id: process.env.FAFF_SESSION_ID || null,
       pid: process.pid,
       started_at: nowIso,
+      ...utcOffsetField(nowIso), // FAFF-1444: the timezone budget.until resolves in
       last_heartbeat: nowIso,
       faff_version: resolveFaffVersion().version, // FAFF-1395
     },

@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/budget.js::in-flight runs whose until has already passed now stop at the first check",
+      "title": "in-flight runs whose until has already passed now stop at the first check",
+      "location": "plugin/skills/faff/bin/lib/budget.js",
+      "action": "No change: intended behaviour, pinned by the resume and missing-anchor tests.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "This is the intended behaviour change (spec §4.2 and the methodology critique's risk profile): a run minted before this fix with a passed until, or resumed after its deadline, breaches at its next check. Pinned by the resume and missing-anchor tests.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "in-flight runs whose until has already passed now stop at the first check",
+          "location": "plugin/skills/faff/bin/lib/budget.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/budget.test.mjs::holdout-shaped resume fixture omits utc_offset_min on the current owner, so its until_at depends on the box timezone",
+      "title": "holdout-shaped resume fixture omits utc_offset_min on the current owner, so its until_at depends on the box timezone",
+      "location": "test/budget.test.mjs",
+      "action": "Add utc_offset_min to the resumed owner or assert the no-offset warning.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "runOrigin takes the offset from the origin entry, owner_history[0], which carries utc_offset_min: 0; the current owner's missing offset is never read. The same fixture run under TZ=UTC, TZ=Asia/Kolkata and TZ=America/Los_Angeles reports breached [until], until_at 2026-10-30T07:30:00.000Z and no warnings in all three. The fixture mirrors the spec's holdout scenario, where only owner_history[0] states an offset.",
+      "disposition_rationale": "Refuted against the code and a three-timezone run of the fixture.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "holdout-shaped resume fixture omits utc_offset_min on the current owner, so its until_at depends on the box timezone",
+          "location": "test/budget.test.mjs",
+          "severity": "major",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/budget.js::missing-anchor warning names owner.started_at when the corrupt entry is in owner_history",
+      "title": "missing-anchor warning names owner.started_at when the corrupt entry is in owner_history",
+      "location": "plugin/skills/faff/bin/lib/budget.js",
+      "action": "No change: the warning text is fixed by the spec interface.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The warning text is fixed by the spec's interface (§3); the branch fails toward breaching, so the imprecise field name never weakens the gate.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "missing-anchor warning names owner.started_at when the corrupt entry is in owner_history",
+          "location": "plugin/skills/faff/bin/lib/budget.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "records/specs/2026-10-31-FAFF-1444-budget-until-ceiling-never-breaches-untiltoepoch-rolls-a-past-hh-mm-to-tomorrow-on-every-check-design.md::the owner-writer grep list lives in the pr description, which the diff cannot show",
+      "title": "the owner-writer grep list lives in the PR description, which the diff cannot show",
+      "location": "records/specs/2026-10-31-FAFF-1444-budget-until-ceiling-never-breaches-untiltoepoch-rolls-a-past-hh-mm-to-tomorrow-on-every-check-design.md",
+      "action": "List the classified grep hits in the PR body.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The PR body carries the classified owner-writer grep list (AC faff-1444#done:8).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "the owner-writer grep list lives in the PR description, which the diff cannot show",
+          "location": "records/specs/2026-10-31-FAFF-1444-budget-until-ceiling-never-breaches-untiltoepoch-rolls-a-past-hh-mm-to-tomorrow-on-every-check-design.md",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/budget.test.mjs::the no-run test writes .faffrc.yaml inline instead of through fixture()",
+      "title": "the no-run test writes .faffrc.yaml inline instead of through fixture()",
+      "location": "test/budget.test.mjs",
+      "action": "No change: the no-run case cannot use fixture(), which always creates a run dir.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "fixture() always creates a run dir, which the no-run case must not have; the inline write mirrors fixture()'s own write and the finally block cleans up. No behaviour defect.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "the no-run test writes .faffrc.yaml inline instead of through fixture()",
+          "location": "test/budget.test.mjs",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

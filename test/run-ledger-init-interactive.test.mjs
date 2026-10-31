@@ -365,3 +365,19 @@ test("run-ledger --selftest passes (pure shape + guard + terminal-outcome + gene
   const r = runCli(["run-ledger", "--selftest"], { env: cleanEnv() });
   assert.equal(r.code, 0, r.stdout + r.stderr);
 });
+
+// FAFF-1444 — every mint records the UTC offset budget.until resolves in, beside started_at.
+test("FAFF-1444: init-interactive writes an integer owner.utc_offset_min, the minting process's offset", () => {
+  const { buildInteractiveLedger } = require("../plugin/skills/faff/bin/lib/run-ledger.js");
+  const nowIso = "2026-10-30T05:00:00.000Z";
+  const owner = buildInteractiveLedger({ runId: "r", issue: ISSUE, nowIso, sessionId: null, pid: 1 }).owner;
+  assert.ok(Number.isInteger(owner.utc_offset_min), JSON.stringify(owner));
+  assert.equal(owner.utc_offset_min, 0 - new Date(nowIso).getTimezoneOffset());
+  const root = mkTmp("faff-1444-mint-");
+  try {
+    const r = runCli(["run-ledger", "init-interactive", "--issue", ISSUE, "--root", root], { env: cleanEnv({ TZ: "Asia/Kolkata" }) });
+    assert.equal(r.code, 0, r.stdout + r.stderr);
+    const ledger = JSON.parse(readFileSync(path.join(r.stdout.trim(), "run-ledger.json"), "utf8"));
+    assert.equal(ledger.owner.utc_offset_min, 330, "the CLI mint records the writing process's offset");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});

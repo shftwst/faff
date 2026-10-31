@@ -1069,3 +1069,14 @@ test("lights-out: runcheck reads identically with and without the two new ledger
   assert.equal(withFields.stdout, withoutFields.stdout, "byte-identical runcheck output");
   fs.rmSync(root, { recursive: true, force: true });
 });
+
+// FAFF-1444 — the real lights-out mint records the UTC offset budget.until resolves in.
+test("FAFF-1444: lights-out mint writes an integer owner.utc_offset_min from the minting process", () => {
+  const root = tmpRoot({ budget: "budget:\n  tokens: 50000000\n  on_estimate_only: warn\n" });
+  try {
+    const { stdout, code } = runCli(["lights-out", "--root", root, "--json"], { env: { ...CONTAINED, TZ: "Asia/Kolkata" } });
+    assert.equal(code, 0, stdout);
+    const ledger = JSON.parse(fs.readFileSync(path.join(JSON.parse(stdout).run_dir, "run-ledger.json"), "utf8"));
+    assert.equal(ledger.owner.utc_offset_min, 330);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});

@@ -19,6 +19,7 @@
 // ===========================================================================
 
 const { reconcileShipped } = require("./reconcile");
+const { utcOffsetField } = require("./budget"); // FAFF-1444
 
 // The escalate-class stop_reason tokens (mirrors disposition.js's ESCALATE_STOP set —
 // inlined here rather than required, because disposition.js is a `factory`-region module
@@ -167,6 +168,7 @@ function applyResumeToLedger(ledger, ctx) {
     session_id: ctx.sessionId ?? null,
     pid: ctx.pid ?? null,
     started_at: nowIso,
+    ...utcOffsetField(nowIso), // FAFF-1444; the origin stays the first owner's (runOrigin)
     last_heartbeat: nowIso,
     // FAFF-1395: the resuming faff's release, supplied by the caller (this builder stays pure and
     // never resolves it). The prior owner above keeps its own faff_version in owner_history.

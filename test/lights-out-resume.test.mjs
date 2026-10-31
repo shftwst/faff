@@ -19,7 +19,7 @@ import {
 import { eventViolations } from "../plugin/skills/faff/bin/lib/events.js";
 import { DELIVERY_PROFILE } from "../plugin/skills/faff/bin/lib/governance-profile.js";
 import { ownerEpochFenceStale, mutateLedgerUnderLock } from "../plugin/skills/faff/bin/lib/heartbeat.js";
-import { closeSpanDeltaByModel, closedSessionsSpend, currentOpenSpan, byModelClassTotal } from "../plugin/skills/faff/bin/lib/budget.js";
+import { closeSpanDeltaByModel, closedSessionsSpend, currentOpenSpan, byModelClassTotal, runOrigin } from "../plugin/skills/faff/bin/lib/budget.js";
 
 // ---------------------------------------------------------------------------
 // Re-enterable-state classification (spec §3 ENUM).
@@ -283,4 +283,20 @@ test("CLI: --resume + --id is exit 2; a missing run is exit 2; --check writes no
   assert.match(JSON.parse(doneRes.stdout.trim().split("\n").pop()).error, /not in a re-enterable state/);
   assert.equal(fs.readFileSync(ledgerPath, "utf8"), before, "refused resume left the ledger byte-identical");
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+// FAFF-1444 — a resume writes the resuming process's offset on the new owner, and never moves the
+// run origin budget.until anchors at (the prior owner goes to owner_history intact).
+test("FAFF-1444: applyResumeToLedger writes utc_offset_min and leaves runOrigin unchanged", () => {
+  const before = {
+    run_id: "R", admitted: [], outcomes: {},
+    owner: { status: "aborted-resumable", session_id: "s1", epoch: 1, started_at: "2026-10-30T02:00:00.000Z", utc_offset_min: 60 },
+    owner_history: [{ status: "aborted-resumable", session_id: "s0", epoch: 0, started_at: "2026-10-29T22:00:00.000Z", utc_offset_min: 60 }],
+  };
+  const plan = reconstructResumePlan(before, {});
+  const nowIso = "2026-10-30T08:00:00.000Z";
+  const { ledger: after } = applyResumeToLedger(before, { nowIso, sessionId: "s2", pid: 3, priorState: "aborted-resumable", plan });
+  assert.equal(after.owner.utc_offset_min, 0 - new Date(nowIso).getTimezoneOffset());
+  assert.deepEqual(runOrigin(after), runOrigin(before));
+  assert.deepEqual(runOrigin(after), { ms: Date.parse("2026-10-29T22:00:00.000Z"), offset_min: 60 });
 });

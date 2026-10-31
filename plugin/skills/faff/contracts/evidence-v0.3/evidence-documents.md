@@ -26,6 +26,16 @@ last; the other documents carry the release that wrote them. In the ledger it si
 resume records the resuming release in the new owner and keeps the earlier owner's in
 `owner_history`. The addition is optional and does not change `schema_version`.
 
+## The `utc_offset_min` field
+
+Each `owner` and `owner_history` entry of the run ledger accepts an optional integer
+`utc_offset_min` from -840 to 840 (FAFF-1444): the UTC offset, in minutes, of the writing
+process's timezone when it wrote `started_at`. Every mint and resume writes it. `faff budget
+check` resolves the `until` ceiling in the offset of the run origin, the earliest `started_at`
+across `owner_history` and `owner`, so every machine that checks a run gets the same deadline. A
+ledger written before FAFF-1444 has no such field, and is still valid. The addition does not
+change `schema_version`.
+
 ## Run ledger
 
 Only `schema_version` and `run_id` are required, because the ledger is written by CLI code and

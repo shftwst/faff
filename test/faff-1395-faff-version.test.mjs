@@ -220,7 +220,7 @@ test("the L4 genesis data is exactly { level, faff_version } and the chain verif
 
 test("ledger builders take the version as a parameter and omit the field when none is supplied", () => {
   const base = { runId: "r", issue: "FAFF-1", nowIso: "2026-01-01T00:00:00.000Z", sessionId: null, pid: 1 };
-  assert.deepEqual(Object.keys(buildInteractiveLedger({ ...base, faffVersion: "0.42.0" }).owner), ["status", "session_id", "pid", "started_at", "last_heartbeat", "faff_version"]);
+  assert.deepEqual(Object.keys(buildInteractiveLedger({ ...base, faffVersion: "0.42.0" }).owner), ["status", "session_id", "pid", "started_at", "utc_offset_min", "last_heartbeat", "faff_version"]);
   assert.equal(buildSelfDrainLedger({ ...base, faffVersion: "0.42.0" }).owner.faff_version, "0.42.0");
   assert.equal("faff_version" in buildInteractiveLedger(base).owner, false);
 });

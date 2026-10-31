@@ -314,8 +314,13 @@ function parseHHMM(value) {
   return { h, min };
 }
 
-// `--until HH:MM` → an absolute epoch-ms relative to `nowMs`, next-day if already past
-// (mirrors beep-boop's `--until` semantic: `--until 06:00` at 23:00 means 06:00 tomorrow).
+// `--until HH:MM` → an absolute epoch-ms: the first HH:MM, in this process's local
+// timezone, strictly after `nowMs` (mirrors beep-boop's `--until` semantic: `--until 06:00`
+// at 23:00 means 06:00 tomorrow). FAFF-1444: `nowMs` is the ANCHOR the launch rule applies
+// to — the check's clock only on the no-run surface; for a run with no recorded UTC offset
+// (a ledger minted before FAFF-1444) it is the run origin. A run's deadline is never
+// resolved against the check's own clock, which rolled a passed HH:MM to tomorrow on every
+// check so `until` could never breach.
 // Returns null on a malformed value (treated as no ceiling — never throws). Defensive:
 // unreachable from real callers since FAFF-364 (resolve_until already rejected a
 // malformed value before it can reach here), kept so a direct call stays safe.
@@ -328,6 +333,79 @@ function untilToEpoch(hhmm, nowMs) {
   let t = target.getTime();
   if (t <= nowMs) t += 24 * 60 * 60 * 1000; // past → next-day same time
   return t;
+}
+
+// FAFF-1444 — the same launch rule in a FIXED UTC offset (minutes; UTC+1 is 60), pure
+// arithmetic on UTC fields so the result never depends on the checking box's timezone.
+// The first HH:MM wall-clock in `offsetMin` strictly after `anchorMs`; null on a malformed
+// HH:MM.
+function untilToEpochAtOffset(hhmm, anchorMs, offsetMin) {
+  const parsed = parseHHMM(hhmm);
+  if (!parsed) return null;
+  const offMs = offsetMin * 60 * 1000;
+  const wall = new Date(anchorMs + offMs); // the anchor as wall-clock, read through UTC fields
+  let t = Date.UTC(wall.getUTCFullYear(), wall.getUTCMonth(), wall.getUTCDate(), parsed.h, parsed.min, 0, 0) - offMs;
+  if (t <= anchorMs) t += 24 * 60 * 60 * 1000;
+  return t;
+}
+
+// FAFF-1444 — the run origin: the earliest parseable `started_at` across
+// `owner_history[*]` and `owner`, with that entry's recorded `utc_offset_min` (null when
+// absent, non-integer, or outside ±14h). A resume pushes the prior owner onto
+// `owner_history`, so the origin is the instant the run was first minted and never moves.
+// Null when no entry carries a parseable `started_at`. Pure.
+function runOrigin(ledger) {
+  const src = ledger && typeof ledger === "object" ? ledger : {};
+  const entries = (Array.isArray(src.owner_history) ? src.owner_history : []).concat([src.owner]);
+  let best = null;
+  for (const o of entries) {
+    if (!o || typeof o !== "object") continue;
+    const ms = Date.parse(o.started_at);
+    if (!Number.isFinite(ms)) continue;
+    const off = o.utc_offset_min;
+    const offsetMin = Number.isInteger(off) && off >= -840 && off <= 840 ? off : null;
+    if (best == null || ms < best.ms) best = { ms, offset_min: offsetMin };
+  }
+  return best;
+}
+
+// FAFF-1444 — `{ utc_offset_min }`: the UTC offset (minutes) of this process's timezone at
+// `iso`, spread into every ledger owner beside `started_at` so `until` resolves in the minting
+// timezone wherever it is checked. `{}` when `iso` is unparseable, so no owner ever carries a
+// non-integer offset.
+function utcOffsetField(iso) {
+  const ms = Date.parse(iso);
+  return Number.isFinite(ms) ? { utc_offset_min: 0 - new Date(ms).getTimezoneOffset() } : {};
+}
+
+// FAFF-1444 — cross-box clock skew tolerated before a future run start counts as corrupt.
+const ORIGIN_SKEW_MS = 5 * 60 * 1000;
+
+// FAFF-1444 — the `until` deadline for one check. Returns { epoch, until_at, warnings }.
+// `epoch`/`until_at` are null when no ceiling is set. No run (`runDir` null, the
+// legitimately-empty surface) keeps the clock-relative deadline: nothing to govern. A run
+// anchors at its origin, in the origin's recorded offset; a missing, unparseable or
+// future origin fails toward breaching (`epoch = nowMs`, `until_at` null, a warning).
+function resolveUntilDeadline(until, runDir, ledger, nowMs) {
+  if (until == null) return { epoch: null, until_at: null, warnings: [] };
+  const iso = (t) => (t == null ? null : new Date(t).toISOString());
+  if (runDir == null) {
+    const t = untilToEpoch(until, nowMs);
+    return { epoch: t, until_at: iso(t), warnings: [] };
+  }
+  const origin = runOrigin(ledger);
+  let reason = null;
+  if (origin == null) reason = "owner.started_at missing or unparseable";
+  else if (origin.ms > nowMs + ORIGIN_SKEW_MS) reason = "run start is in the future";
+  if (reason != null) {
+    return { epoch: nowMs, until_at: null, warnings: [`budget.until has no usable run-start anchor (${reason}) — until treated as reached`] };
+  }
+  if (origin.offset_min != null) {
+    const t = untilToEpochAtOffset(until, origin.ms, origin.offset_min);
+    return { epoch: t, until_at: iso(t), warnings: [] };
+  }
+  const t = untilToEpoch(until, origin.ms);
+  return { epoch: t, until_at: iso(t), warnings: ["budget.until resolved in this box's timezone (the run records no UTC offset)"] };
 }
 
 // FAFF-364 — resolve a raw `until` value (already flag-over-config selected) into
@@ -1174,7 +1252,9 @@ function budgetCheckCompose({ root, runDir, ledger, flags, sessionIdFlag = null,
       costWarnings.push(`unpriced model(s) priced at the costliest known rate (fail-safe overcount): ${priced.unpriced_models.join(", ")}`);
     }
   }
-  const untilEpoch = untilToEpoch(env.ceilings.until, nowMs);
+  // FAFF-1444: anchored at the run origin, never the check's clock (see resolveUntilDeadline).
+  const untilDeadline = resolveUntilDeadline(env.ceilings.until, runDir, ledger, nowMs);
+  const untilEpoch = untilDeadline.epoch;
 
   // FAFF-594: resolve + roll the global 5h window state. `runDir == null` (no
   // live run) degrades to "never breaches" — there is nowhere to persist a
@@ -1233,6 +1313,9 @@ function budgetCheckCompose({ root, runDir, ledger, flags, sessionIdFlag = null,
     window_tokens: windowTokens,
     window_reset_epoch: windowResetEpoch,
   }, tokensSource);
+  // FAFF-1444: the deadline this check compared against — present only when an until
+  // ceiling is set, so a run without one prints byte-identical JSON.
+  if (env.ceilings.until != null) state.spent.until_at = untilDeadline.until_at;
 
   // FAFF-364 — a malformed until (config or --until) degrades to a WARNING, never a
   // hard failure: sentryReadBudget/run-done --budget treat any non-zero exit as the
@@ -1245,6 +1328,12 @@ function budgetCheckCompose({ root, runDir, ledger, flags, sessionIdFlag = null,
   const warnings = [];
   if (env.until_invalid != null) {
     const msg = `budget.until '${env.until_invalid}' is not a valid HH:MM — until ceiling ignored`;
+    warnings.push(msg);
+    stderr.push(`faff budget check: ${msg}`);
+  }
+  // FAFF-1444 — an unusable run-start anchor (treated as reached) or a pre-fix ledger with
+  // no recorded offset. Warnings, never a non-zero exit, for the same reason as above.
+  for (const msg of untilDeadline.warnings) {
     warnings.push(msg);
     stderr.push(`faff budget check: ${msg}`);
   }
@@ -1980,4 +2069,4 @@ function budgetSelftest(now = Date.now()) {
 }
 
 
-module.exports = { AT_CEILING_OUTCOMES, BUDGET_NON_ATTEMPT_OUTCOMES, BUDGET_TOKEN_USAGE_KEYS, ENGINE_SPEND_FILENAME, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, UNKNOWN_TTL_WRITE_CLASS, appendEngineSpend, attemptsFromLedger, budgetCheckForRun, budgetSelftest, byModelClassTotal, childOwningSession, classCountsFromUsage, closeSpanDeltaByModel, closedSessionsSpend, cmdBudget, cmdBudgetBaseline, computeBudgetState, conservativePriceRow, currentOpenSpan, economicsPriceForModel, engineSpendPath, envelopeFrom, envelopeFromLedger, measureRunSpend, measureTokens, measureTokensByClass, measureTokensByModelClass, parseHHMM, priceModelClassSums, readEngineSpend, readGovernanceConfig, resolveBudgetNow, resolveEconomicsPriceMap, resolveUntil, routeUnknownTtlWrite, sessionOwnedTranscriptFiles, sumTranscriptFile, sumTranscriptFileByClass, sumTranscriptFileByModelClass, transcriptBaseDir, untilToEpoch };
+module.exports = { AT_CEILING_OUTCOMES, BUDGET_NON_ATTEMPT_OUTCOMES, BUDGET_TOKEN_USAGE_KEYS, ENGINE_SPEND_FILENAME, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, UNKNOWN_TTL_WRITE_CLASS, appendEngineSpend, attemptsFromLedger, budgetCheckForRun, budgetSelftest, byModelClassTotal, childOwningSession, classCountsFromUsage, closeSpanDeltaByModel, closedSessionsSpend, cmdBudget, cmdBudgetBaseline, computeBudgetState, conservativePriceRow, currentOpenSpan, economicsPriceForModel, engineSpendPath, envelopeFrom, envelopeFromLedger, measureRunSpend, measureTokens, measureTokensByClass, measureTokensByModelClass, parseHHMM, priceModelClassSums, readEngineSpend, readGovernanceConfig, resolveBudgetNow, resolveEconomicsPriceMap, resolveUntil, resolveUntilDeadline, routeUnknownTtlWrite, runOrigin, sessionOwnedTranscriptFiles, sumTranscriptFile, sumTranscriptFileByClass, sumTranscriptFileByModelClass, transcriptBaseDir, untilToEpoch, untilToEpochAtOffset, utcOffsetField };

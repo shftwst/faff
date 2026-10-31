@@ -78,6 +78,13 @@
                 "number",
                 "null"
               ]
+            },
+            "until_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "The until deadline the check compared against (FAFF-1444): present only when an until ceiling is set; null when the run-start anchor was unusable and until was treated as reached"
             }
           }
         },

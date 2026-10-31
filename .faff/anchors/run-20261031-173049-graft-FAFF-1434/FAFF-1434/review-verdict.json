@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/validate-adapters.js::the in-process capture route also covers claim-verdict, which tidy already wires with its own driver",
+      "title": "The in-process capture route also covers claim-verdict, which tidy already wires with its own driver",
+      "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+      "action": "The pass line names only the kernels that rely on the in-process route (eligible, next), so a missing tidy driver is not hidden behind graft admit's coverage in the report.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The lint stays an existence check per kernel, as before; the report now distinguishes which kernels depend on the new route.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "The in-process capture route also covers claim-verdict, which tidy already wires with its own driver",
+          "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "docs/guide/unattended.md::docs/guide/unattended.md and references/tracker.md still say claim-before-admit",
+      "title": "docs/guide/unattended.md and references/tracker.md still say claim-before-admit",
+      "location": "docs/guide/unattended.md",
+      "action": "No change.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Both use claim-before-admit as the name of the gate (a fresh claim check before admission), which faff graft admit's claim check now performs on both calls; the statements stay true. The two pointers that named the removed paragraph (beep-boop phase selector, graft's endgame entry) were updated.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "docs/guide/unattended.md and references/tracker.md still say claim-before-admit",
+          "location": "docs/guide/unattended.md",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/graft-admit-replay.test.mjs::replaydispositions memoised a partial map when a spawn failed mid-loop",
+      "title": "replayDispositions memoised a partial map when a spawn failed mid-loop",
+      "location": "test/graft-admit-replay.test.mjs",
+      "action": "Build into a local map and assign the memo only after the loop; a failed replay now throws again on the next call. JSON.parse failures name the correlation id.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Valid: a mid-loop failure would have fed later tests a truncated map.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "replayDispositions memoised a partial map when a spawn failed mid-loop",
+          "location": "test/graft-admit-replay.test.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/graft-admit-replay.test.mjs::keyed maps assume unique correlation ids and run#seq keys",
+      "title": "Keyed maps assume unique correlation ids and run#seq keys",
+      "location": "test/graft-admit-replay.test.mjs",
+      "action": "Added a test asserting next/eligible base correlation ids are non-empty and unique and markers are unique by run and seq. The run-done marker stays excluded on purpose: the spec scopes the marker replay to the 52 next/eligible markers.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Checked the corpus: no run#seq or next/eligible id repeats (only empty run-level ids do), so nothing collided today; the guard keeps a future corpus from silently collapsing records.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Keyed maps assume unique correlation ids and run#seq keys",
+          "location": "test/graft-admit-replay.test.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/graft-admit-replay.test.mjs::factsfor reads normalised inputs with no shape check",
+      "title": "factsFor reads normalised inputs with no shape check",
+      "location": "test/graft-admit-replay.test.mjs",
+      "action": "The well-formedness test asserts every next record carries status/spec strings, the five booleans and a parseable ts.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Valid: a renamed key would otherwise replay different facts.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "factsFor reads normalised inputs with no shape check",
+          "location": "test/graft-admit-replay.test.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/graft-admit-replay.test.mjs::the replay's temp root is never removed",
+      "title": "The replay's temp root is never removed",
+      "location": "test/graft-admit-replay.test.mjs",
+      "action": "An after() hook removes every temp root the replay created.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Valid, minor.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "The replay's temp root is never removed",
+          "location": "test/graft-admit-replay.test.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    }
+  ]
+}

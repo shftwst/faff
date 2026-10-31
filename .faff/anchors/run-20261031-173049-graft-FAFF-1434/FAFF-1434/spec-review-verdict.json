@@ -1,0 +1,219 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 2,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "Today's step 4 performs the claim-before-admit re-read *after* the re-scan, narrow prep and routing verdict, immediately before appending to `admitted` — the narrowest possible window. The spec moves the one live read to the front of 4.1 (the command needs facts), and the re-admit rule fires **only when the spec changed**. So for the two common paths — re-scan finds nothing, or narrow prep confirms the spec without changing it — no second call runs, and the peer-claim window widens from ~zero to the entire re-scan + comment fetches + (where prep runs) a minutes-long narrow-prep dispatch. A peer that claims the issue inside that window is caught only by graft Step 5's backstop (row 31), which fires *after* beep-boop has already appended the issue to `admitted` and dispatched a build that graft then refuses. The spec's disposition table maps dispositions of the **admit call**; it says nothing about which bucket or ledger outcome a post-admit graft-Step-5 refusal lands in, yet rows 29/32 and the cited `admitted − outcomes == ∅` invariant are precisely about keeping that ledger clean.",
+      "evidence": "section 4.1 pseudocode (\"out := admission_call … IF the narrow-prep refresh or a successful resolve-attempt changed the spec: out := admission_call\"); the Interface block (\"the claim-before-admit re-read, moved to the front\"); row 31 (\"graft's Step 5 claim stays the backstop\"); row 32 and the claim-before-admit prose in the context file (\"do not append it to `admitted` (so `runcheck`'s `admitted − outcomes == ∅` invariant stays true)\").",
+      "predicted_consequence": "on any multi-candidate wave with a slow re-scan or a no-change narrow prep, a peer-claimed issue is appended to `admitted`, dispatched, refused by graft Step 5, and its refusal has no spec-defined bucket — the builder must invent one, and the invariant the spec leans on is either violated or preserved only by an unmapped ad-hoc outcome record.",
+      "spec_anchor": "`4-1-step-4-per-candidate`",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "A final faff graft admit call on a fresh live read now always runs immediately before the append, so the claim check is as fresh as today's claim-before-admit re-read.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "Today's step 4 performs the claim-before-admit re-read *after* the re-scan, narrow prep and routing verdict, immediately before appending to `admitted` — the narrowest possible window. The spec moves the one live read to the front of 4.1 (the command needs facts), and the re-admit rule fires **only when the spec changed**. So for the two common paths — re-scan finds nothing, or narrow prep confirms the spec without changing it — no second call runs, and the peer-claim window widens from ~zero to the entire re-scan + comment fetches + (where prep runs) a minutes-long narrow-prep dispatch. A peer that claims the issue inside that window is caught only by graft Step 5's backstop (row 31), which fires *after* beep-boop has already appended the issue to `admitted` and dispatched a build that graft then refuses. The spec's disposition table maps dispositions of the **admit call**; it says nothing about which bucket or ledger outcome a post-admit graft-Step-5 refusal lands in, yet rows 29/32 and the cited `admitted − outcomes == ∅` invariant are precisely about keeping that ledger clean.",
+          "spec_anchor": "`4-1-step-4-per-candidate`"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The command's `writeMarkers()` emits `next: graft`, `eligible: eligible`, `claim-verdict: proceed` on every `proceed`. For a `proceed` whose facts say `in-review`, beep-boop routes to the endgame landing check, which by design never appends to `admitted` and never dispatches a build. The spec's section 6 bullet reasons explicitly about the marker semantics for the routing-verdict-routes-out case, but is silent on the in-review case — the one new `proceed` path this ticket creates. The corpus will therefore carry `next: graft` records for issues whose actual action was a landing resume or a `claimed-by-peer` fall-through: exactly the prescribed-versus-actual gap section 4.3 exists to classify, reintroduced by the new wiring and guaranteed to surface as unclassified noise in the next replay.",
+      "evidence": "section 6, third \"Chosen\" bullet; `writeMarkers()` in `graft-admit.ts` (`case \"proceed\": cap.marker(\"next\", \"graft\") …`); the endgame step 6 (\"the issue is **not** appended to this run's `admitted`\").",
+      "predicted_consequence": "every stale-In-Review candidate the endgame check handles produces a `next: graft` marker with no corresponding graft dispatch; a future corpus replay (built the way 4.3 builds its sidecar) must either classify a new exception class the spec never named or fail on unclassified markers.",
+      "spec_anchor": "`6-decisions-and-assumptions`",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "An In Review proceed writes next: graft; section 6 names it as the endgame-from-proceed class.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The command's `writeMarkers()` emits `next: graft`, `eligible: eligible`, `claim-verdict: proceed` on every `proceed`. For a `proceed` whose facts say `in-review`, beep-boop routes to the endgame landing check, which by design never appends to `admitted` and never dispatches a build. The spec's section 6 bullet reasons explicitly about the marker semantics for the routing-verdict-routes-out case, but is silent on the in-review case — the one new `proceed` path this ticket creates. The corpus will therefore carry `next: graft` records for issues whose actual action was a landing resume or a `claimed-by-peer` fall-through: exactly the prescribed-versus-actual gap section 4.3 exists to classify, reintroduced by the new wiring and guaranteed to surface as unclassified noise in the next replay.",
+          "spec_anchor": "`6-decisions-and-assumptions`"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "Row 34 asserts the intake guard's move into the command produces \"warnings only, no outcome changes\", justified by \"`faff-automate` satisfies it\". But the disposition table itself defines a `blocked` → On-hold (`intake:<reason>`) outcome, which is reachable whenever the configured intake gate is `block` and a candidate lacks provenance — an outcome beep-boop's prose never produced, since beep-boop ran no intake guard. Whether `faff-automate` actually satisfies `intakeVerdict` is not established anywhere in the supplied `graft-admit.ts` (the call signature takes labels, but the satisfaction rule is not shown), and the disposition replay can only confirm it for the corpus candidates under the corpus's gate config, not for a `block`-gate deployment. The spec asserts a universal behavioural equivalence it has not pinned.",
+      "evidence": "row 34 in section 4.4; the `blocked` row of section 3's table; `intakeApi.intakeVerdict(marker, facts.labels, gate, prefix, automateName)` in `graft-admit.ts` (no stated rule that the automate label satisfies it).",
+      "predicted_consequence": "under an `intake_gate: block` config, a candidate beep-boop would have admitted today is routed to On-hold with reason `intake:<reason>` — a silent routing change the spec's own row 34 claims does not exist, discoverable only after ship.",
+      "spec_anchor": "`4-4-rule-inventory`",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Row 34 now cites the eligibility-gesture basis and the existing intake_gate: block test.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "Row 34 asserts the intake guard's move into the command produces \"warnings only, no outcome changes\", justified by \"`faff-automate` satisfies it\". But the disposition table itself defines a `blocked` → On-hold (`intake:<reason>`) outcome, which is reachable whenever the configured intake gate is `block` and a candidate lacks provenance — an outcome beep-boop's prose never produced, since beep-boop ran no intake guard. Whether `faff-automate` actually satisfies `intakeVerdict` is not established anywhere in the supplied `graft-admit.ts` (the call signature takes labels, but the satisfaction rule is not shown), and the disposition replay can only confirm it for the corpus candidates under the corpus's gate config, not for a `block`-gate deployment. The spec asserts a universal behavioural equivalence it has not pinned.",
+          "spec_anchor": "`4-4-rule-inventory`"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The design principle \"The last gate sees the spec that will be built\" is enforced by beep-boop writing `admit-spec.md` before the second `faff graft admit` call. The spec never requires that write to be verified: if the refreshed-spec write fails (disk full, bad path, prep returned prose but no artifact), the second call runs against the *previous* call's file content and a `proceed` admits on the stale spec — exactly the fail-open the principle exists to prevent. The command cannot detect this; from its side the file is readable and admissible.",
+      "evidence": "§4.1 procedure (\"out := admission_call(issue, wave) # fresh observed_at, read, facts and spec file\") and the Interface bullet \"written by beep-boop before the call and overwritten on every call\"; Design principles: \"The last gate sees the spec that will be built.\"",
+      "predicted_consequence": "A candidate whose spec was refreshed by narrow prep (e.g. a human Resolution folded in) is admitted and built on the pre-refresh spec, so the build contradicts the human's steering comment — the precise failure the live-thread re-scan was added to stop.",
+      "spec_anchor": "41-step-4-per-candidate",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The previous admit-spec.md is deleted before each write, so a failed write exits 2 and routes out admit-errored; a stale file is never graded.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The design principle \"The last gate sees the spec that will be built\" is enforced by beep-boop writing `admit-spec.md` before the second `faff graft admit` call. The spec never requires that write to be verified: if the refreshed-spec write fails (disk full, bad path, prep returned prose but no artifact), the second call runs against the *previous* call's file content and a `proceed` admits on the stale spec — exactly the fail-open the principle exists to prevent. The command cannot detect this; from its side the file is readable and admissible.",
+          "spec_anchor": "41-step-4-per-candidate"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The DONE criterion and section 4.3 disagree on how many FAFF-1318 records must replay as `inadmissible`, and therefore on how many records replay as a clean mapped verdict. Section 4.3's own enumeration yields **6** FAFF-1318 `next` records as disposition divergences (the 4 `intended-divergence` markers in `…36511a`, `…1456d4`, `…906233`, `…c7df54`, plus `seq8` and `seq13`, which section 4.3 classifies as `mis-joined`, not as `inadmissible` dispositions — and `seq14` is an `eligible` record, not a disposition at all). Yet the disposition-replay paragraph and the DONE item both say \"**the 7 FAFF-1318 records (expected `inadmissible`)**\". Consequently the matching count is 40 − 14 − 6 = **20**, not the stated **19**.",
+      "evidence": "\"The disposition replay gives the mapped verdict for **19** `next` records, `claimed-by-peer` for the 14 In Review records and `inadmissible` for the **7** FAFF-1318 records\" (### Corpus replay) vs. section 4.3's classification lists (`mis-joined` (8) includes FAFF-1318 seqs 8/13/14; `intended-divergence` (4) is the FAFF-1318 set).",
+      "predicted_consequence": "The replay test's expected-result set is ambiguous: a builder following the prose count (7) will either misclassify the two `mis-joined` FAFF-1318 records as `inadmissible` dispositions (contradicting section 4.3's own classes, failing the \"a listed exception actually matches\" guard) or assert 19 matches when the enumerated set yields 20 — the DONE item cannot be checked against either number without guessing which is authoritative.",
+      "spec_anchor": "corpus-replay",
+      "disposition": "refuted",
+      "refutation": "There are 7 FAFF-1318 next base records, one per run; the marker classes are a separate count.",
+      "disposition_rationale": "Wording clarified in section 4.3.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The DONE criterion and section 4.3 disagree on how many FAFF-1318 records must replay as `inadmissible`, and therefore on how many records replay as a clean mapped verdict. Section 4.3's own enumeration yields **6** FAFF-1318 `next` records as disposition divergences (the 4 `intended-divergence` markers in `…36511a`, `…1456d4`, `…906233`, `…c7df54`, plus `seq8` and `seq13`, which section 4.3 classifies as `mis-joined`, not as `inadmissible` dispositions — and `seq14` is an `eligible` record, not a disposition at all). Yet the disposition-replay paragraph and the DONE item both say \"**the 7 FAFF-1318 records (expected `inadmissible`)**\". Consequently the matching count is 40 − 14 − 6 = **20**, not the stated **19**.",
+          "spec_anchor": "corpus-replay"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec maps the command's `needs-prep` disposition in explicit-list mode to \"the explicit-list prep path … as today's 'spec missing' bullet does\". But `needs-prep` is `next`'s `prep` step, which fires for more than a missing spec — the full pipeline's step 4 already routes `next: prep` (low-confidence specs, and presumably `awaiting-spec-review`) to the prep queue. Today's explicit-list mode consults no `faff next` at all: a *present but low-confidence* spec is queued for build and routed out at the inline verdict. Under this spec it would instead be dispatched to `faff-prep` (possibly parked). That is a real gating behavior change in explicit-list mode, and it appears in neither the rule inventory (row 47 records only the re-scan reordering) nor the DONE list — breaking the spec's own discipline that every behavior change carries a row a PR reviewer can check.",
+      "evidence": "Spec §4.2 (\"A `needs-prep` disposition runs the explicit-list prep path … as today's 'spec missing' bullet does\"); §4.4 row 47; supplied `faff-beep-boop/SKILL.md` explicit-list mode (spec present → re-scan → queue for build, no `faff next` consult); step 4's established \"`prep` rejoins the prep queue\" routing.",
+      "predicted_consequence": "An explicit-list issue with a present low-confidence spec gets a prep dispatch (and can be parked) where today it is queued and routed out at the verdict; the PR description's row mapping cannot account for the change, so the review trail silently misses a gate-behavior delta.",
+      "spec_anchor": "42-the-other-call-sites",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "In explicit-list mode a faff-awaiting-spec-review hold now resumes through prep (new row 49); low and medium specs still route out.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The spec maps the command's `needs-prep` disposition in explicit-list mode to \"the explicit-list prep path … as today's 'spec missing' bullet does\". But `needs-prep` is `next`'s `prep` step, which fires for more than a missing spec — the full pipeline's step 4 already routes `next: prep` (low-confidence specs, and presumably `awaiting-spec-review`) to the prep queue. Today's explicit-list mode consults no `faff next` at all: a *present but low-confidence* spec is queued for build and routed out at the inline verdict. Under this spec it would instead be dispatched to `faff-prep` (possibly parked). That is a real gating behavior change in explicit-list mode, and it appears in neither the rule inventory (row 47 records only the re-scan reordering) nor the DONE list — breaking the spec's own discipline that every behavior change carries a row a PR reviewer can check.",
+          "spec_anchor": "42-the-other-call-sites"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The spec fixes the write target as `$run_dir/<ISSUE>/admit-spec.md`, where `<ISSUE>` originates from the live tracker read — untrusted input driving a filesystem path. Beep-boop deletes the previous file and writes the new one *before* invoking the command, and the only validation in the pipeline (`ISSUE_RE` in `graft-admit.ts` `validateFacts`) runs **after** the write. A tracker key that is not a safe path component (or a beep-boop bug mapping a fetched issue to a key with `/`, `..`, or leading `-`) would make the delete/write escape the run dir or hit an unintended path — and the delete step makes the blast radius a destroyed file, not just a bad read. The spec establishes no validation requirement on the id at the write site.",
+      "evidence": "§3 Interface — \"`admit-spec.md` holds the candidate's current spec body. Before every call beep-boop deletes the previous file, then writes the spec it is about to admit\"; path template `$run_dir/<ISSUE>/admit-spec.md`. `graft-admit.ts` `validateFacts`: `if (typeof issue !== \"string\" || !ISSUE_RE.test(issue))` — enforced only inside the command, post-write.",
+      "predicted_consequence": "A malformed tracker issue key causes a delete/write outside `$run_dir/<ISSUE>/` (e.g. overwriting an adjacent run artifact) before the command's own validation refuses with `facts-invalid`; the candidate routes out `admit-errored` but the filesystem damage is already done.",
+      "spec_anchor": "interface",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The issue key is checked against ^[A-Za-z][A-Za-z0-9]*-[0-9]+$ before any filesystem write; a failure routes out admit-errored:issue-key.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The spec fixes the write target as `$run_dir/<ISSUE>/admit-spec.md`, where `<ISSUE>` originates from the live tracker read — untrusted input driving a filesystem path. Beep-boop deletes the previous file and writes the new one *before* invoking the command, and the only validation in the pipeline (`ISSUE_RE` in `graft-admit.ts` `validateFacts`) runs **after** the write. A tracker key that is not a safe path component (or a beep-boop bug mapping a fetched issue to a key with `/`, `..`, or leading `-`) would make the delete/write escape the run dir or hit an unintended path — and the delete step makes the blast radius a destroyed file, not just a bad read. The spec establishes no validation requirement on the id at the write site.",
+          "spec_anchor": "interface"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "major",
+      "claim": "The spec's own sequencing honesty rule — an ordering constraint between sibling tickets is carried as a tracker `blocks` edge, never as a note in a spec — is violated by the only real delivery dependency this slice has. FAFF-1436 (PR #1169, unmerged) edits step 8.1 immediately next to step 8.4 and mutates the same `SKILL_LINE_BASELINE` line this ticket also mutates; the spec records this only in the Methodology critique and a DONE caveat (\"whichever lands second rebases\").",
+      "evidence": "Spec §Methodology critique \"Deps surfaced?\" and DONE bullet \"`SKILL_LINE_BASELINE[\\\"faff-beep-boop\\\"]` is lowered to the count measured after the branch is rebased on `main`, so a sibling that changed it first (FAFF-1436) is absorbed, not overwritten\"; settled precedent `an-unattributable-evidence-row-is-closed-at-the-writer-never-tolerated-at-the-ga` (\"the ordering is carried as a tracker `blocks` edge, not as a note in a spec\").",
+      "predicted_consequence": "The pipeline's dependency machinery cannot see FAFF-1436, so dispatch order is unconstrained: if this slice lands first with a baseline lowered against a tree that already contains #1169's edits (or vice versa), `faff validate-adapters` fails on the merged result and the DONE bullet's \"rebased on `main`\" instruction is untestable at the time the branch is built — a merge-order conflict discoverable only at the second PR's CI.",
+      "spec_anchor": "done",
+      "disposition": "refuted",
+      "refutation": "The overlap with FAFF-1436 is textual (step 8.1 and the baseline line), not an ordering constraint: either PR can land first and the second rebases.",
+      "disposition_rationale": "The methodology critique now says so; no blocks edge is drawn.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The spec's own sequencing honesty rule — an ordering constraint between sibling tickets is carried as a tracker `blocks` edge, never as a note in a spec — is violated by the only real delivery dependency this slice has. FAFF-1436 (PR #1169, unmerged) edits step 8.1 immediately next to step 8.4 and mutates the same `SKILL_LINE_BASELINE` line this ticket also mutates; the spec records this only in the Methodology critique and a DONE caveat (\"whichever lands second rebases\").",
+          "spec_anchor": "done"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The increment bundles two shippable artefacts: the SKILL.md rewiring (section 3/4.1) and a 52-record forensic replay with a committed facts sidecar that classifies the *old prose's* mis-joins, orphans and capture-joins by correlation id. The replay's value is grading FAFF-1414's aftermath, not gating this wiring; it could land separately without delaying the one-home outcome.",
+      "evidence": "§4.3 \"The corpus replay\" — the test's failure conditions (\"any marker is unclassified, a listed exception actually matches, or a listed correlation id is absent\") encode a point-in-time classification of historical drift that will never change again once merged.",
+      "predicted_consequence": "not separately stated (the replay is cheap, committed, and the critique calls the slice right-sized; this is a taste-level split concern, not a defect).",
+      "spec_anchor": "4.3-the-corpus-replay",
+      "disposition": "refuted",
+      "refutation": "The ticket description assigns the rest of the replay to this ticket by operator decision.",
+      "disposition_rationale": "Splitting the replay out would contradict the operator's scoping.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The increment bundles two shippable artefacts: the SKILL.md rewiring (section 3/4.1) and a 52-record forensic replay with a committed facts sidecar that classifies the *old prose's* mis-joins, orphans and capture-joins by correlation id. The replay's value is grading FAFF-1414's aftermath, not gating this wiring; it could land separately without delaying the one-home outcome.",
+          "spec_anchor": "4.3-the-corpus-replay"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "Section 4.3 states the disposition replay matches \"the recorded verdict mapped `graft→proceed`, `prep→needs-prep`, `needs-human→needs-human`, for 19 records\" and that \"the other 21 are the sidecar's intended divergences\", listing exactly the 14 In Review records plus the 7 FAFF-1318 records. But the corpus contains two `next` base records whose recorded verdict is `prep` and whose marker is `graft` — FAFF-1293 `next/1` and FAFF-1249 `next/1` in `…162841-…36511a` (the spec's own `capture-join` marker class, and visible in the prep-time replay output as `mismatch(needs-prep: exp prep, got graft)`). Under the stated mapping rule those two records expect `needs-prep`, while the command on their facts (Todo, spec found, eligible) returns `proceed` — they cannot be among the 19 matches, yet they are not among the 21 listed divergences. 19 + 21 = 40 accounts for every `next` record, so the partition as written is contradictory: either the two records match (then the mapping rule or the facts construction needs to explain how) or they diverge (then the counts are 17/23 and the divergence list is incomplete).",
+      "evidence": "section 4.3 disposition-replay paragraph; DONE item \"The disposition replay gives the mapped verdict for 19 `next` records, `claimed-by-peer` for the 14 In Review records and `inadmissible` for the 7 FAFF-1318 records\".",
+      "predicted_consequence": "a builder who implements the replay exactly as specified gets a failing test on FAFF-1293/FAFF-1249 and must improvise the fix (reclassify the two as divergences and change the DONE counts), so the DONE criterion as numbered is unachievable as written and the PR's stated replay result is wrong.",
+      "spec_anchor": "43-the-corpus-replay",
+      "disposition": "refuted",
+      "refutation": "The two capture-join records' base records are Backlog with no spec and replay cleanly to needs-prep; only their action markers diverge.",
+      "disposition_rationale": "Wording clarified in section 4.3.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "Section 4.3 states the disposition replay matches \"the recorded verdict mapped `graft→proceed`, `prep→needs-prep`, `needs-human→needs-human`, for 19 records\" and that \"the other 21 are the sidecar's intended divergences\", listing exactly the 14 In Review records plus the 7 FAFF-1318 records. But the corpus contains two `next` base records whose recorded verdict is `prep` and whose marker is `graft` — FAFF-1293 `next/1` and FAFF-1249 `next/1` in `…162841-…36511a` (the spec's own `capture-join` marker class, and visible in the prep-time replay output as `mismatch(needs-prep: exp prep, got graft)`). Under the stated mapping rule those two records expect `needs-prep`, while the command on their facts (Todo, spec found, eligible) returns `proceed` — they cannot be among the 19 matches, yet they are not among the 21 listed divergences. 19 + 21 = 40 accounts for every `next` record, so the partition as written is contradictory: either the two records match (then the mapping rule or the facts construction needs to explain how) or they diverge (then the counts are 17/23 and the divergence list is incomplete).",
+          "spec_anchor": "43-the-corpus-replay"
+        }
+      ]
+    }
+  ]
+}

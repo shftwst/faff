@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.45.0](https://github.com/shftwst/faff/compare/faff--v0.44.0...faff--v0.45.0) (2026-10-31)
+
+
+### Features
+
+* **decision-capture:** a suppressed capture's reason keeps its violations when the kernel name is long (FAFF-1421) ([#1161](https://github.com/shftwst/faff/issues/1161)) ([bfe1cbd](https://github.com/shftwst/faff/commit/bfe1cbd6843be2374e93a6142e700c0812a84f4c))
+* **gates:** faff gates run --budget-secs N --resume, so a lane can finish a long gate run across foreground calls (FAFF-1405) ([#1158](https://github.com/shftwst/faff/issues/1158)) ([d0414ee](https://github.com/shftwst/faff/commit/d0414ee49fcc5cd9499d26632f3dfa12ea5470fd))
+* **graft:** faff graft admit runs graft's Step 2 gate chain as one read-only command (FAFF-1414) ([#1166](https://github.com/shftwst/faff/issues/1166)) ([8e8765d](https://github.com/shftwst/faff/commit/8e8765d48b3a88df2bf5ebe023d0f1b2d57ece69))
+* **merge:** faff merge authorize and observe write a stopped governed graft's merge grants from the run's own facts (FAFF-1426) ([#1165](https://github.com/shftwst/faff/issues/1165)) ([5af26c8](https://github.com/shftwst/faff/commit/5af26c8af6241d292f61575592b15cec454fbbaa))
+* **prep:** faff prep attach and collate-evidence --from-judge (FAFF-1406) ([#1156](https://github.com/shftwst/faff/issues/1156)) ([55c0f79](https://github.com/shftwst/faff/commit/55c0f79507a1eb5f7a219d8362a5dc661d6b9e77))
+* **regions:** fail regions check on a new bin/lib JavaScript module with no TypeScript source (FAFF-1431) ([#1164](https://github.com/shftwst/faff/issues/1164)) ([608181a](https://github.com/shftwst/faff/commit/608181ac404564d61814b65c6ea5b241aef1e572))
+* **run:** faff run checkpoint runs beep-boop's between-units checkpoint as one verb (FAFF-1436) ([#1169](https://github.com/shftwst/faff/issues/1169)) ([948a8f1](https://github.com/shftwst/faff/commit/948a8f1d2f5950cc6c160639a0d9a76edc9c7f0d))
+* **run:** faff run summary renders beep-boop's run summary from the run directory (FAFF-1435) ([#1168](https://github.com/shftwst/faff/issues/1168)) ([56eb34c](https://github.com/shftwst/faff/commit/56eb34c384607131dcc6931af06f3726ffbb9c01))
+* **runner:** skip pre-check hits a drain declined and nobody changed since (FAFF-1412) ([#1157](https://github.com/shftwst/faff/issues/1157)) ([09074e2](https://github.com/shftwst/faff/commit/09074e278543a2bf6d404fba87def5da718c95a7))
+
+
+### Bug Fixes
+
+* **budget:** anchor the until deadline at the run's start so it can breach (FAFF-1444) ([#1170](https://github.com/shftwst/faff/issues/1170)) ([d6d845d](https://github.com/shftwst/faff/commit/d6d845d4f068d2b480c6d3a4c9cf66595bdc8f20))
+* **custody:** admit the faff_version stamp in a custody verdict (FAFF-1424) ([#1160](https://github.com/shftwst/faff/issues/1160)) ([d95b158](https://github.com/shftwst/faff/commit/d95b1582584421ae6fe7db22c1f016a3b9c263cf))
+
 ## [0.44.0](https://github.com/shftwst/faff/compare/faff--v0.43.0...faff--v0.44.0) (2026-10-28)
 
 

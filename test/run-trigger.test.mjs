@@ -132,6 +132,25 @@ test("T3/T38 fault spawns nothing and exits 3 via the token", () => {
   assert.deepEqual(deps.calls, []);
 });
 
+test("T1 classify runs first, on the run dir the caller passed, before any child spawns", () => {
+  const seen = [];
+  const deps = fakeDeps({ files: filesFor() });
+  const realFaff = deps.faff;
+  deps.classify = (runDir) => { seen.push({ classify: runDir, spawnedBefore: deps.calls.length }); return { verdict: "inherited-l4", runDir: RUN_DIR }; };
+  deps.faff = (a, o) => realFaff(a, o);
+  rt.runTrigger(withInputs(), deps);
+  assert.deepEqual(seen, [{ classify: RUN_DIR, spawnedBefore: 0 }]);
+});
+
+test("T4 inherited-l4: the classified run dir is the one run dir every child and the record use", () => {
+  const deps = fakeDeps({ replies: { "prdr coverage": ok({ covered: true, uncovered_goals: [] }) }, files: filesFor() });
+  const r = rt.runTrigger(withInputs(), deps);
+  assert.equal(r.run_dir, RUN_DIR);
+  for (const c of deps.calls) assert.equal(c.env.FAFF_RUN_DIR, RUN_DIR, c.args.join(" "));
+  const rec = deps.calls.find((c) => c.args[0] === "run-record-prd");
+  assert.equal(rec.args[rec.args.indexOf("--run-dir") + 1], RUN_DIR);
+});
+
 test("T5/T28 no path mints or calls lights-out", () => {
   const deps = fakeDeps({ files: filesFor() });
   rt.runTrigger(withInputs(), deps);

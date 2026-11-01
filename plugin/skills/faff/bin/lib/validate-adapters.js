@@ -886,36 +886,115 @@ function deriveCaptureKernels(libDir) {
 }
 
 // FAFF-1434: a composing command that captures a kernel's base in-process, under a consult id it mints
-// itself (mintConsultCorrelationId), wires that kernel wherever a SKILL.md runs it with a run dir; no
-// `decide --export` is needed, because no env crosses a shell. `faff graft admit` is the one such
-// command. The kernel set is read from its source (each `cap.base("<k>"` call), never declared, so a
-// kernel it stops capturing stops counting as wired. Returns [] when the module is absent; throws on a
-// read error so the caller maps it to exit 2, never a silent pass.
+// itself (mintConsultCorrelationId), wires that kernel wherever a SKILL.md really runs it with a run
+// dir: no env crosses a shell, so no `decide --export` is needed. The route is narrow by construction:
+//  - `covers` is the operator-decided set (2026-11-01): only kernels no skill drives itself, today
+//    `next` and `eligible`, never `claim-verdict`, which faff-tidy drives;
+//  - it applies only while the module's non-comment code calls mintConsultCorrelationId and captures
+//    the kernel (`cap.base("<k>"`), so a commented-out or renamed capture stops counting;
+//  - it counts only a real invocation (isInProcessInvocation), never prose that names the command;
+//  - a covered kernel that some skill also drives with its own `decide --export` fails the lint
+//    (inProcessDriven), so the route can never hide a driver.
 const IN_PROCESS_CAPTURE = [
-  { module: "graft-admit.js", invocation: /\bfaff"?\s+graft\s+admit\b(?:[^\n`]|\\\n)*?--run-dir\b/ },
+  { module: "graft-admit.js", verb: ["graft", "admit"], covers: ["eligible", "next"] },
 ];
-function deriveInProcessCapture(libDir) {
-  const out = [];
-  for (const { module: mod, invocation } of IN_PROCESS_CAPTURE) {
-    const file = path.join(libDir, mod);
-    if (!fs.existsSync(file)) continue;
-    const src = fs.readFileSync(file, "utf8");
-    if (!src.includes("mintConsultCorrelationId(")) continue;
-    const kernels = [...src.matchAll(/\.base\(\s*["']([^"']+)["']/g)].map((m) => m[1]);
-    out.push({ invocation, kernels: [...new Set(kernels)].sort() });
+
+// Strip // and /* */ comments from JavaScript source, keeping string, template and regex literals.
+function stripJsComments(src) {
+  let out = "";
+  let prev = "";
+  for (let i = 0; i < src.length;) {
+    const ch = src[i];
+    const nx = src[i + 1];
+    if (ch === "/" && nx === "/") { while (i < src.length && src[i] !== "\n") i++; continue; }
+    if (ch === "/" && nx === "*") { const e = src.indexOf("*/", i + 2); i = e < 0 ? src.length : e + 2; out += " "; continue; }
+    if (ch === '"' || ch === "'" || ch === "`") {
+      let j = i + 1;
+      while (j < src.length && src[j] !== ch) j += src[j] === "\\" ? 2 : 1;
+      out += src.slice(i, j + 1); prev = ch; i = j + 1; continue;
+    }
+    if (ch === "/" && (prev === "" || "(,=:[!&|?{};".includes(prev))) {
+      let j = i + 1;
+      let inClass = false;
+      while (j < src.length && src[j] !== "\n" && (inClass || src[j] !== "/")) {
+        if (src[j] === "\\") j += 1;
+        else if (src[j] === "[") inClass = true;
+        else if (src[j] === "]") inClass = false;
+        j += 1;
+      }
+      out += src.slice(i, j + 1); prev = "/"; i = j + 1; continue;
+    }
+    out += ch;
+    if (!/\s/.test(ch)) prev = ch;
+    i += 1;
   }
   return out;
 }
-// The kernels some SKILL.md wires through an in-process capturing command it invokes with a run dir.
+
+// The route entries whose module's live code still mints consult ids, each with `kernels` (what its
+// code captures) and `wires` (its cover list narrowed to those). Returns [] when no module is present.
+function deriveInProcessCapture(libDir) {
+  const out = [];
+  for (const { module: mod, verb, covers } of IN_PROCESS_CAPTURE) {
+    const file = path.join(libDir, mod);
+    if (!fs.existsSync(file)) continue;
+    const code = stripJsComments(fs.readFileSync(file, "utf8"));
+    if (!code.includes("mintConsultCorrelationId(")) continue;
+    const kernels = [...new Set([...code.matchAll(/\.base\(\s*["']([^"']+)["']/g)].map((m) => m[1]))].sort();
+    out.push({ module: mod, verb, kernels, wires: covers.filter((k) => kernels.includes(k)).sort() });
+  }
+  return out;
+}
+
+// Every shell command a SKILL.md shows as code: each logical line of a fenced block (backslash
+// continuations joined) and each inline code span, split into simple commands at |, ||, && and ;.
+function codeCommands(text) {
+  const lines = [];
+  const rest = text.replace(/^[ \t]*```[^\n]*\n([\s\S]*?)^[ \t]*```[ \t]*$/gm, (m, body) => {
+    lines.push(...body.replace(/\\\n/g, " ").split("\n"));
+    return "";
+  });
+  for (const m of rest.matchAll(/`([^`\n]+)`/g)) lines.push(m[1]);
+  return lines.flatMap((l) => l.split(/\|\||&&|[|;]/)).map((c) => c.trim()).filter(Boolean);
+}
+
+// A simple command that runs `faff <verb…>` with --mode, --facts and a valued --run-dir of its own.
+function isInProcessInvocation(command, verb) {
+  const toks = command.split(/\s+/);
+  let i = 0;
+  while (i < toks.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(toks[i])) i++;
+  if (!/^(?:"?\$faff"?|faff)$/.test(toks[i] || "")) return false;
+  if (verb.some((v, k) => toks[i + 1 + k] !== v)) return false;
+  const args = toks.slice(i + 1 + verb.length);
+  const valued = (flag) => { const j = args.indexOf(flag); return j >= 0 && j + 1 < args.length && !args[j + 1].startsWith("-"); };
+  return args.includes("--mode") && args.includes("--facts") && valued("--run-dir");
+}
+
+// The covered kernels some SKILL.md really wires through an in-process capturing command.
 function inProcessWiredKernels(skillsDir, inProcess) {
   const texts = fs.readdirSync(skillsDir)
     .filter((d) => fs.existsSync(path.join(skillsDir, d, "SKILL.md")))
     .map((d) => fs.readFileSync(path.join(skillsDir, d, "SKILL.md"), "utf8"));
   const wired = new Set();
-  for (const { invocation, kernels } of inProcess) {
-    if (texts.some((t) => invocation.test(t))) for (const k of kernels) wired.add(k);
+  for (const { verb, wires } of inProcess) {
+    if (texts.some((t) => codeCommands(t).some((c) => isInProcessInvocation(c, verb)))) for (const k of wires) wired.add(k);
   }
   return wired;
+}
+
+// Covered kernels that some SKILL.md also drives with its own `decide --kernel <k> --export`, each
+// with the skill that does. Such a kernel is never exempted, and its presence fails the lint.
+function inProcessDriven(skillsDir, kernels) {
+  const out = [];
+  const skills = fs.readdirSync(skillsDir).filter((d) => fs.existsSync(path.join(skillsDir, d, "SKILL.md"))).sort();
+  for (const k of kernels) {
+    const kRe = flaggedKernelRe(k);
+    for (const d of skills) {
+      const lines = fs.readFileSync(path.join(skillsDir, d, "SKILL.md"), "utf8").split("\n");
+      if (lines.some((l) => /\bdecide\b/.test(l) && /--export\b/.test(l) && kRe.test(l))) { out.push({ kernel: k, skill: d }); break; }
+    }
+  }
+  return out;
 }
 
 // A structural token match on the flagged `--kernel <k>`, never a naive substring: the kernel name
@@ -1594,8 +1673,10 @@ function cmdValidateAdapters(args) {
       fs.statSync(path.join(skillsDir, "faff", "bin", "lib")).isDirectory()) {
     const libDir = path.join(skillsDir, "faff", "bin", "lib");
     let kernels;
+    let inProcess;
     try {
       kernels = deriveCaptureKernels(libDir);
+      inProcess = deriveInProcessCapture(libDir);
     } catch (e) {
       console.log(`FAIL  capture-wiring (kernel-set derivation)`);
       console.log(`        ✗ could not read the captureDecision kernel set from ${libDir}: ${e && e.message} — fail-closed, never a pass (FAFF-1009: exit 2)`);
@@ -1606,14 +1687,18 @@ function cmdValidateAdapters(args) {
       console.log(`        ✗ no captureDecision kernels derived from ${libDir} — the brace-aware match found nothing; fail-closed rather than vacuously pass (FAFF-1009: exit 2)`);
       return 2;
     }
-    let inProcessWired;
-    try {
-      inProcessWired = inProcessWiredKernels(skillsDir, deriveInProcessCapture(libDir));
-    } catch (e) {
-      console.log(`FAIL  capture-wiring (in-process capture derivation)`);
-      console.log(`        ✗ could not read the in-process capture set from ${libDir}: ${e && e.message} — fail-closed, never a pass (FAFF-1434: exit 2)`);
-      return 2;
+    // FAFF-1434: kernels a real `faff graft admit … --run-dir` invocation wires in-process, minus any
+    // a skill also drives itself (that combination fails here, so the route never hides a driver).
+    const routed = inProcessWiredKernels(skillsDir, inProcess);
+    const driven = inProcessDriven(skillsDir, [...routed].sort());
+    if (driven.length) {
+      failed = true;
+      console.log(`FAIL  capture-wiring (in-process route, FAFF-1434)`);
+      for (const { kernel, skill } of driven) {
+        console.log(`        ✗ kernel "${kernel}" is covered by \`faff graft admit\`'s in-process route but ${skill}/SKILL.md also drives it with its own \`decide --kernel ${kernel} --export\`; the route covers only kernels no skill drives, so drop it from IN_PROCESS_CAPTURE's covers`);
+      }
     }
+    const inProcessWired = new Set([...routed].filter((k) => !driven.some((d) => d.kernel === k)));
     // Name only the kernels that rely on the in-process route, so the pass line never hides a driver
     // that went missing behind one that a composing command also covers.
     const viaNote = (bare) => {
@@ -1659,4 +1744,4 @@ function cmdValidateAdapters(args) {
 }
 
 
-module.exports = { ANCHOR_PHRASES, CAPTURE_WIRING_WINDOW, COMMISSAIRE_ISSUE_RE, DUP_BLOCK_WINDOW, DUP_SIG_MINLEN, HANDREAD, NON_NORMATIVE, PARA_WORD_CAP, REFER_BACK, REGISTRY, RENDERING_REF, REQUIRED_METHODOLOGY_OUTPUTS, SKILL_LINE_CAP, SKILL_LINE_BASELINE, KERNEL_LINE_BASELINE, SKIP, SLOT_TYPES, STRAY_RETRO, STRAY_TRANSCRIPT, balancedCallArg, c3CalibrationFloor, captureSameCommandUnwired, captureWiringUnwired, checkAnchorBeforePrOrder, checkAnchorCommitNoBroadSwallow, checkCalibrated, checksFor, cmdIsBundled, cmdValidateAdapters, deriveCaptureKernels, deriveInProcessCapture, inProcessWiredKernels, extractVoicePathToken, hasUserInvocableFalse, inlineEnumLintSets, isProseLine, isParagraphLine, anchorResolves, normalizeHeading, lintCommissaireUnitId, lintGatewayManifest, lintInlineEnumRestatement, lintVoicePointer, loadSeamRegistryForLint, locateSkill, readJudgementSeam, reconcileSeam, resolveSkillsDir, validateConfigured };
+module.exports = { ANCHOR_PHRASES, CAPTURE_WIRING_WINDOW, COMMISSAIRE_ISSUE_RE, DUP_BLOCK_WINDOW, DUP_SIG_MINLEN, HANDREAD, NON_NORMATIVE, PARA_WORD_CAP, REFER_BACK, REGISTRY, RENDERING_REF, REQUIRED_METHODOLOGY_OUTPUTS, SKILL_LINE_CAP, SKILL_LINE_BASELINE, KERNEL_LINE_BASELINE, SKIP, SLOT_TYPES, STRAY_RETRO, STRAY_TRANSCRIPT, balancedCallArg, c3CalibrationFloor, captureSameCommandUnwired, captureWiringUnwired, checkAnchorBeforePrOrder, checkAnchorCommitNoBroadSwallow, checkCalibrated, checksFor, cmdIsBundled, cmdValidateAdapters, deriveCaptureKernels, deriveInProcessCapture, inProcessWiredKernels, inProcessDriven, codeCommands, isInProcessInvocation, stripJsComments, extractVoicePathToken, hasUserInvocableFalse, inlineEnumLintSets, isProseLine, isParagraphLine, anchorResolves, normalizeHeading, lintCommissaireUnitId, lintGatewayManifest, lintInlineEnumRestatement, lintVoicePointer, loadSeamRegistryForLint, locateSkill, readJudgementSeam, reconcileSeam, resolveSkillsDir, validateConfigured };

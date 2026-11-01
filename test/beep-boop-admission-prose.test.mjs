@@ -35,8 +35,11 @@ for (const [name, text] of [["step 4", STEP4], ["explicit-list mode", EXPLICIT]]
   });
 }
 
-test("step 4 passes a run dir and wave, so the command writes the decision captures itself", () => {
-  assert.match(STEP4, /faff graft admit --mode autonomous --facts - --spec-file "\$run_dir\/<ISSUE>\/admit-spec\.md" --run-dir "\$run_dir" --wave <w>/);
+test("step 4 passes a run dir and no wave, so each call mints a fresh consult id and writes its own captures", () => {
+  assert.match(STEP4, /faff graft admit --mode autonomous --facts - --spec-file "\$run_dir\/<ISSUE>\/admit-spec\.md" --run-dir "\$run_dir" --json`/);
+  // An explicit --wave skips the consult counter, so the first call, the final call and graft's own
+  // Step 2 call would all mint the same id and only one would grade (FAFF-1394).
+  assert.doesNotMatch(STEP4, /graft admit[^`]*--wave/);
 });
 
 test("step 4 routes all eight dispositions and a non-zero exit", () => {

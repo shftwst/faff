@@ -247,8 +247,15 @@ function runTrigger(args, deps) {
         if (goals === undefined)
             goals = null;
     }
-    // Children run against this run dir with the capture env of the consult they serve.
-    const childEnv = (extra) => ({ ...process.env, FAFF_RUN_DIR: runDir, ...extra });
+    // Children run against this run dir with the capture env of the consult they serve, and only that: a
+    // correlation id or issue exported in the caller's shell never reaches a child, so a base can only be
+    // written under an id this command minted.
+    const childEnv = (extra) => {
+        const env = { ...process.env, FAFF_RUN_DIR: runDir };
+        delete env.FAFF_DECISION_CORRELATION_ID;
+        delete env.FAFF_DECISION_ISSUE;
+        return { ...env, ...extra };
+    };
     const call = (argv, input, env) => {
         const opts = input === undefined ? { cwd: root, env: env ?? childEnv({}) } : { cwd: root, input, env: env ?? childEnv({}) };
         try {

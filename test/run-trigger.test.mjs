@@ -508,6 +508,25 @@ test("T36 an inward outward marks the inward reason; plan writes no run-start ma
   assert.ok(!deps2.markers.some((m) => m.kernel === "run-start"));
 });
 
+test("T35 a caller's exported correlation id or issue never reaches a child", () => {
+  const saved = { id: process.env.FAFF_DECISION_CORRELATION_ID, issue: process.env.FAFF_DECISION_ISSUE };
+  process.env.FAFF_DECISION_CORRELATION_ID = "caller/__run__/next/9";
+  process.env.FAFF_DECISION_ISSUE = "CALLER-1";
+  try {
+    const deps = fakeDeps({ files: filesFor() });
+    deps.mintId = () => { throw new Error("mint failed"); };
+    rt.runTrigger(withInputs(), deps);
+    assert.ok(deps.calls.length > 0);
+    for (const c of deps.calls) {
+      assert.equal(c.env.FAFF_DECISION_CORRELATION_ID, undefined, c.args.join(" "));
+      assert.equal(c.env.FAFF_DECISION_ISSUE, undefined, c.args.join(" "));
+    }
+  } finally {
+    if (saved.id === undefined) delete process.env.FAFF_DECISION_CORRELATION_ID; else process.env.FAFF_DECISION_CORRELATION_ID = saved.id;
+    if (saved.issue === undefined) delete process.env.FAFF_DECISION_ISSUE; else process.env.FAFF_DECISION_ISSUE = saved.issue;
+  }
+});
+
 test("T35 a failing capture never changes the token", () => {
   const deps = fakeDeps({ files: filesFor() });
   deps.mintId = () => { throw new Error("mint failed"); };

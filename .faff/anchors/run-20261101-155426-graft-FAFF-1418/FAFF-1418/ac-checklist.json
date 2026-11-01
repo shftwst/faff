@@ -1,0 +1,235 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "`faff-beep-boop/SKILL.md` §0a calls `faff run trigger` and routes on `token` in place of steps 0–7 and the capture note, and `SKILL_LINE_BASELINE[\"faff-beep-boop\"]` is lowered to the new count.",
+      "verified": "§0a is one `faff run trigger --run-dir \"$FAFF_RUN_DIR\"` call, a judgement handoff and a token routing table whose plan row routes the `--json` after-plan call; SKILL_LINE_BASELINE beep-boop lowered 674→668",
+      "passed": true,
+      "ac_id": "faff-1418#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-start-wiring.test.mjs::static: the §0a call-site carries no ad-hoc --autonomous/--plan flag or env sniff gating the run-start call — the only guard is the inherited ledger's own classified level"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-start-wiring.test.mjs::static: a plan verdict invokes /faff-plot --autonomous (nested reuse, no mint), records the licence via run-record-prd, and falls through on the inherited runDir (no STOP, converge don't stop)"
+        }
+      ]
+    },
+    {
+      "ac": "`faff validate-adapters` passes with no RATCHET finding for `faff-beep-boop` or `faff-plot`.",
+      "verified": "validate-adapters: RESULT PASS, no RATCHET line for faff-beep-boop or faff-plot; beep-boop byte baseline 157,377 (lowered from main's 164,925, then raised by the 287 bytes of restored plan-row clauses), plot 45,906",
+      "passed": true,
+      "ac_id": "faff-1418#done:2",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "`faff run trigger --json` prints a TriggerResult with every field in §3 and exits 0, 3 or 2 per §3.",
+      "verified": "`run trigger --json` keys equal the §3 TriggerResult field list in order; exit 0/3/2 pinned by cmdRunTrigger and usage tests",
+      "passed": true,
+      "ac_id": "faff-1418#done:3",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff run trigger --run-dir \"\" --json"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-trigger.test.mjs::cmdRunTrigger maps tokens to exits: skip 0, plan 0, refuse 3, fault 3, record-failed 3"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-trigger.test.mjs::exit 2 on bad flag combinations, printing no result"
+        }
+      ]
+    },
+    {
+      "ac": "`run-trigger.ts` is in `tsconfig.json` `include`, with committed `run-trigger.js` and `build-manifest.json`; `check-no-boundary-cast` passes and its test pins `run-trigger.ts`.",
+      "verified": "run-trigger.ts is in the tsconfig include with committed emit and manifest entry; check-no-boundary-cast passes and pins run-trigger.ts",
+      "passed": true,
+      "ac_id": "faff-1418#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/check-no-boundary-cast.test.mjs::S3: realSources() lists the fifteen tsconfig include entries"
+        },
+        {
+          "kind": "command",
+          "locator": "cd plugin/skills/faff && npx tsc --noEmit -p tsconfig.json"
+        }
+      ]
+    },
+    {
+      "ac": "`TEST_FILE_COVERAGE.run` names `test/run-trigger.test.mjs`; `faff regions check` and `faff lint-cli-coverage` pass; no selftest block gains a case.",
+      "verified": "TEST_FILE_COVERAGE.run names test/run-trigger.test.mjs; regions check and lint-cli-coverage exit 0; the diff adds no selftest case",
+      "passed": true,
+      "ac_id": "faff-1418#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-coverage"
+        }
+      ]
+    },
+    {
+      "ac": "The PR diff touches no `commissaire*` file and no line of `run-start.js`, `run-outward.js` or `contract-defs-prd.js`.",
+      "verified": "`git diff --name-only origin/main...HEAD` lists no commissaire* file, run-start.js, run-outward.js or contract-defs-prd.js",
+      "passed": true,
+      "ac_id": "faff-1418#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --name-only origin/main...HEAD"
+        }
+      ]
+    },
+    {
+      "ac": "`decideTrigger` yields signals that drive `faff run-start` to each of the eight verdict × reason pairs, plus `needs-judgement:prd-inputs`.",
+      "verified": "eight verdict × reason cases plus needs-judgement pass through the real run-start ladder",
+      "passed": true,
+      "ac_id": "faff-1418#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-trigger.test.mjs::T6 decideTrigger drives run-start to plan/coverage-thin"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-trigger.test.mjs::T6 decideTrigger: needs_prd_inputs yields needs-judgement:prd-inputs and no signals"
+        }
+      ]
+    },
+    {
+      "ac": "With `FAFF_RUN_DIR` unset, `runTrigger` returns `skip` and its injected spawn is never called.",
+      "verified": "with FAFF_RUN_DIR unset runTrigger returns skip and the injected spawn records no call",
+      "passed": true,
+      "ac_id": "faff-1418#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-trigger.test.mjs::T2/T37 not-l4 is skip and spawns nothing, reads no config and mints nothing"
+        }
+      ]
+    },
+    {
+      "ac": "`faff-plot/SKILL.md` no longer references \"§0a … steps 1–2\".",
+      "verified": "faff-plot/SKILL.md has no \"§0a … steps 1–2\" reference; line 42 names `faff run trigger`'s selection rule",
+      "passed": true,
+      "ac_id": "faff-1418#done:9",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c \"§0a uses — its steps 1–2\" plugin/skills/faff-plot/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "`docs/guide/cli.md` has a `run trigger` row.",
+      "verified": "docs/guide/cli.md carries one `run trigger` row; lint-cli-doc passes",
+      "passed": true,
+      "ac_id": "faff-1418#done:10",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c '^| `run trigger' docs/guide/cli.md"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-doc"
+        }
+      ]
+    },
+    {
+      "ac": "`validate-adapters`' in-process capture route covers `faff run trigger` for `run-outward` and `run-start`, and `test/faff-1009-capture-wiring-lint.test.mjs` pins the three closed loose spots and run-trigger cases mirroring the FAFF-1434 bypass suite.",
+      "verified": "the route covers run trigger for run-outward/run-start; the three loose-spot tests fail on main's lint; the flag-value and whole-sentence/fence negation tests fail on the previous head's lint; all pass",
+      "passed": true,
+      "ac_id": "faff-1418#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1009-capture-wiring-lint.test.mjs::loose spot 1: a heredoc body inside a fenced block is not a command"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1009-capture-wiring-lint.test.mjs::loose spot 2: a code span inside a negating sentence does not count"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1009-capture-wiring-lint.test.mjs::loose spot 3: required flags need a value, and a flag inside $(…) never counts for the outer command"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1009-capture-wiring-lint.test.mjs::run trigger pass: a real `faff run trigger --run-dir …` code span wires run-outward and run-start"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1009-capture-wiring-lint.test.mjs::flag values: --run-dir -, --run-dir -x and --run-dir=-x never count; --run-dir=x does"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1009-capture-wiring-lint.test.mjs::negation after the span: a code span whose sentence negates it later does not count"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1009-capture-wiring-lint.test.mjs::negated fence: a fenced block that directly follows a negating sentence does not count"
+        }
+      ]
+    },
+    {
+      "ac": "Every line the PR deletes from `faff-beep-boop/SKILL.md` maps to a row T1–T39; the PR description lists the deleted line ranges against row ids.",
+      "verified": "the PR description's rule-inventory mapping lists deleted main lines 136–158 of faff-beep-boop/SKILL.md against rows T1–T39",
+      "passed": true,
+      "ac_id": "faff-1418#done:12",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff -U0 origin/main...HEAD -- plugin/skills/faff-beep-boop/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "Every `kept` and `changed` row other than the five \"kept in prose\" or skill-routing rows (T19, T22, T29, T32, T39) has a covering test that exists and passes; those five are checked by the PR description quoting the SKILL.md line that carries each.",
+      "verified": "every kept/changed row except T19, T22, T29, T32, T39 has a named test in test/run-trigger.test.mjs (T1–T38 titles); the PR description quotes the SKILL.md lines for the five prose rows",
+      "passed": true,
+      "ac_id": "faff-1418#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-trigger.test.mjs::T1 classify runs first, on the run dir the caller passed, before any child spawns"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-trigger.test.mjs::T4 inherited-l4: the classified run dir is the one run dir every child and the record use"
+        }
+      ]
+    },
+    {
+      "ac": "`test/run-trigger.test.mjs`, `test/run-start-wiring.test.mjs`, `test/run-checkpoint.test.mjs` and `test/run-summary.test.mjs` pass under `node --test`.",
+      "verified": "node --test over the four named files plus the lint and boundary-cast suites: 211 pass, 0 fail",
+      "passed": true,
+      "ac_id": "faff-1418#done:14",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/run-trigger.test.mjs test/run-start-wiring.test.mjs test/run-checkpoint.test.mjs test/run-summary.test.mjs"
+        }
+      ]
+    }
+  ]
+}

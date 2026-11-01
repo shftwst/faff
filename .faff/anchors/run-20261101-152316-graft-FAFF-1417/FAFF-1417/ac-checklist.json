@@ -289,7 +289,7 @@
     },
     {
       "ac": "`test/spec-review-round.test.mjs` and `test/spec-review-hold.test.mjs` pass under `node --test`; no `--selftest` case is added.",
-      "verified": "75 tests pass (56 round, 19 hold); no --selftest case added",
+      "verified": "84 tests pass (64 round, 20 hold); no --selftest case added",
       "passed": true,
       "ac_id": "faff-1417#done:17",
       "verifications": [

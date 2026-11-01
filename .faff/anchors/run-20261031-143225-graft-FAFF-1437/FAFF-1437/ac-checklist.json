@@ -1,0 +1,191 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "`faff-beep-boop/SKILL.md` calls `faff run open` (captured, then eval'd) and `faff run close` in place of l. 391, 428–438, 440–444, 450–457 and the l. 581 sentence, with routing on each exit, and `SKILL_LINE_BASELINE[\"faff-beep-boop\"]` is lowered to the new count.",
+      "verified": "SKILL.md replaces those ranges with a captured-then-eval'd `faff run open` call and a `faff run close` call, each with an exit routing table; SKILL_LINE_BASELINE faff-beep-boop 677 -> 675.",
+      "passed": true,
+      "ac_id": "faff-1437#done:1",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "`faff validate-adapters` passes with no RATCHET finding for `faff-beep-boop`.",
+      "verified": "validate-adapters RESULT: PASS with no RATCHET line for faff-beep-boop (gate LINT rung).",
+      "passed": true,
+      "ac_id": "faff-1437#done:2",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "`faff run open --json` prints an OpenResult and `faff run close --json` a CloseResult with every §3 field, each exiting 0, 3 or 2 per §3.",
+      "verified": "--json prints every OpenResult/CloseResult field on exits 0, 3 and 2; tests pass.",
+      "passed": true,
+      "ac_id": "faff-1437#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-open.test.mjs::--json prints the whole OpenResult on every exit"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-close.test.mjs::--json field values: the whole CloseResult on 0, 3 and 2"
+        }
+      ]
+    },
+    {
+      "ac": "`run-open.ts` and `run-close.ts` are in `tsconfig.json` `include`, with committed `.js` emits and `build-manifest.json`; `check-no-boundary-cast` passes and its test pins both.",
+      "verified": "Both in tsconfig include, emits and build-manifest committed (build-manifest check passes); boundary-cast test pins both and passes.",
+      "passed": true,
+      "ac_id": "faff-1437#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/check-no-boundary-cast.test.mjs::S3: realSources() lists the fifteen tsconfig include entries"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/scripts/build-manifest.js check"
+        }
+      ]
+    },
+    {
+      "ac": "`faff run` with no verb exits 2 with a usage line naming all four verbs: `summary`, `checkpoint`, `open`, `close`.",
+      "verified": "`faff run` exits 2 naming summary, checkpoint, open, close.",
+      "passed": true,
+      "ac_id": "faff-1437#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-open.test.mjs::unknown verb: faff run with no verb names all four verbs"
+        }
+      ]
+    },
+    {
+      "ac": "`TEST_FILE_COVERAGE.run` names `test/run-open.test.mjs` and `test/run-close.test.mjs`; `faff regions check` and `faff lint-cli-coverage` pass; no selftest block gains a case.",
+      "verified": "TEST_FILE_COVERAGE.run names both files; regions check and lint-cli-coverage PASS; the diff adds no selftest case.",
+      "passed": true,
+      "ac_id": "faff-1437#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-coverage"
+        }
+      ]
+    },
+    {
+      "ac": "The PR diff touches no `commissaire*` file, and `faff commissaire --help` output is byte-identical before and after.",
+      "verified": "No Commissaire module is in the diff and `faff commissaire --help` hashes identically before and after; the one commissaire-prefixed path touched is test/commissaire-status-skill-sites.test.mjs, which pinned the beep-boop prose this spec moves into code.",
+      "passed": true,
+      "ac_id": "faff-1437#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff commissaire --help | sha256sum"
+        }
+      ]
+    },
+    {
+      "ac": "Every governance branch in §4.1 step 4 has a test asserting the exit code, `governance`, `fail_closed_cause` and whether the poller and hooks were spawned.",
+      "verified": "Each governance branch has a test asserting exit, governance, fail_closed_cause, and whether poller and hooks spawned.",
+      "passed": true,
+      "ac_id": "faff-1437#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-open.test.mjs::status × 5: non-zero, timeout, throw, non-object and non-boolean governed all fail closed"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-open.test.mjs::required failure: a required run's failed admit fails closed with sentinel, park event, stop_reason and no poller"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-open.test.mjs::governor unreachable: a configured unreachable governor fails closed even when admit-required says optional"
+        }
+      ]
+    },
+    {
+      "ac": "A `run close` refusal leaves `run-ledger.json` and `events.jsonl` byte-identical.",
+      "verified": "A refusal leaves both files byte-identical (injected and real CLI).",
+      "passed": true,
+      "ac_id": "faff-1437#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-close.test.mjs::refusal: undispatched admitted issues and invalid outcomes exit 3 and leave the ledger and events byte-identical"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-close.test.mjs::real CLI: a refusal exits 3 with undispatched and leaves the files byte-identical"
+        }
+      ]
+    },
+    {
+      "ac": "A fail-closed `run open` appends a `run-end` event with `data.stop_reason` `governance-admit-failed`, and a `sentry-abort` close under the abort exemption concludes none of the `undispatched` issues, each pinned by a test.",
+      "verified": "Both pinned and passing: the fail-closed path appends a token-tagged run-end (governance-admit-failed) before the andon pump; an abort-exempt sentry-abort close neither reconciles nor concludes the undispatched issues.",
+      "passed": true,
+      "ac_id": "faff-1437#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-open.test.mjs::fail-closed run-end: the fail-closed path appends a token-tagged run-end with stop_reason governance-admit-failed before the andon pump"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-close.test.mjs::abort exemption leaves resumable work unconcluded: undispatched issues are neither reconciled nor concluded on a governed run"
+        }
+      ]
+    },
+    {
+      "ac": "Every line the PR deletes from `faff-beep-boop/SKILL.md` maps to a row C1–C46; the PR description lists the deleted line ranges against row ids.",
+      "verified": "Every deleted SKILL.md hunk (l. 112, 385, 391, 406, 419, 421, 428-437, 440-444, 446, 450-457, 581 on main) maps to rows C1-C46; the PR description lists each range against its rows.",
+      "passed": true,
+      "ac_id": "faff-1437#done:11",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff -U0 origin/main...HEAD -- plugin/skills/faff-beep-boop/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "Every `kept` and `changed` row with a covering test has that test, and it passes.",
+      "verified": "Every inventory-cited covering test exists by name in run-open/run-close tests and passes (39 names checked).",
+      "passed": true,
+      "ac_id": "faff-1437#done:12",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/run-open.test.mjs test/run-close.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`test/run-open.test.mjs`, `test/run-close.test.mjs`, `test/run-checkpoint.test.mjs` and `test/run-summary.test.mjs` pass under `node --test`.",
+      "verified": "All four files pass under node --test (gate UNIT rung and a direct run).",
+      "passed": true,
+      "ac_id": "faff-1437#done:13",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/run-open.test.mjs test/run-close.test.mjs test/run-checkpoint.test.mjs test/run-summary.test.mjs"
+        }
+      ]
+    }
+  ]
+}

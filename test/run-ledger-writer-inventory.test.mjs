@@ -234,6 +234,28 @@ test("sentry.js: abort writes every abort key and validates", () => {
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
+test("run-open.js and run-close.js: the run-start enrich, envelope and fail-closed writes and the run-end close validate", () => {
+  const root = gitRepo();
+  let runDir;
+  try {
+    mkdirSync(path.join(root, ".faff"), { recursive: true });
+    writeFileSync(path.join(root, ".faff", "config.yaml"), "budget:\n  until: \"06:00\"\n  max_attempts: 4\ncommissaire:\n  governor: 127.0.0.1:9\n");
+    const open = faff(["run", "open", "--mode", "full", "--root", root, "--session-id", "S", "--json"], { cwd: root });
+    assert.equal(open.code, 3, open.out + open.err);
+    runDir = JSON.parse(open.out).run_dir;
+    const l = ledgerOf(runDir);
+    assert.equal(typeof l.owner.harness, "string");
+    assert.equal(l.budget.envelope.ceilings.max_attempts, 4);
+    assert.equal(l.budget.measure_root, root);
+    assert.equal(l.stop_reason, "governance-admit-failed");
+    assertValid(runDir, "run open", open.err);
+    const close = faff(["run", "close", "--run-dir", runDir, "--stop-reason", "governance-admit-failed", "--json"], { cwd: root });
+    assert.equal(close.code, 0, close.out + close.err);
+    assert.equal(ledgerOf(runDir).owner.status, "done");
+    assertValid(runDir, "run close", close.err);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
 // ---- the static half: the inventory itself ----
 
 function libFiles() {
@@ -257,7 +279,7 @@ test("the set of modules calling mutateLedgerUnderLock equals the inventory", ()
     .filter((f) => codeLines(f).some((l) => /\bmutateLedgerUnderLock\(/.test(l.code)))
     .map((f) => path.basename(f, ".js"))
     .sort();
-  assert.deepEqual(callers, ["budget", "bundle-recover", "events", "lights-out", "park-reconsider", "resumecheck", "run-ledger", "run-record-prd", "sentry"]);
+  assert.deepEqual(callers, ["budget", "bundle-recover", "events", "lights-out", "park-reconsider", "resumecheck", "run-close", "run-ledger", "run-open", "run-record-prd", "sentry"]);
 });
 
 test("no non-selftest code writes run-ledger.json except the serialiser and the bundle-recover restore", () => {

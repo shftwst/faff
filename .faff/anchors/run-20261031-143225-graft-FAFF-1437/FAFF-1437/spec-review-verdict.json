@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 2,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The design closes every run through one guard, but the sentry-abort exit is precisely the case where an admitted issue is *deliberately* left without a terminal outcome — `applySentryAbort` \"NEVER writes outcomes — the in-flight issue stays undispatched so the run is re-enterable\". On that exit, `close` step 2 always refuses (exit 3), and the spec's only routing is \"step 11's 'dispatch or park' for `undispatched`, then close again\". But a sentry-aborted run must not dispatch (\"no further builds launch\", SKILL l. 639), so the only way to satisfy the guard is to park the in-flight issue — which converts a resumable abort into terminal parks. The alternative — the skill simply never reaching a successful `close` — means no `stop_reason`, no owner close, no `run-end` event, no judge-trail for one of the six documented stop conditions, violating the run-end synchronicity invariant the spec itself carries at l. 385. The builder cannot fix this in the build: the guard's position and the refusal semantics are spec'd, and the spec explicitly rules out a terminal bucket (§2) without noticing that the aborted path is where one is structurally needed.",
+      "evidence": "spec §4.2 step 2 and the edge case \"An aborted run with undispatched admitted issues. `close` refuses (exit 3) exactly as `runcheck` and its Stop hook already do today\"; `bin/lib/sentry.js` l. 883–886 (\"the in-flight issue stays undispatched so the run is re-enterable\"); `bin/lib/resume.js` l. 43 (aborted-resumable is the first re-enterable state); SKILL l. 639 (sentry-abort is a run-level stop). Note the spec's own C33 rationale (\"`aborted-resumable` owner kept at close\") only addresses the owner-status write in close step 4 — which is unreachable on this path because step 2 refused first.",
+      "predicted_consequence": "every real sentry abort ends with either (a) the in-flight issue force-parked, so `faff resume` finds no `aborted-resumable` work to re-enter and the abort's resumability guarantee is silently destroyed, or (b) the run-end bracket never runs and the ledger is left without `stop_reason`/`owner` close — the exact abandoned-run failure FAFF-1437 exists to mechanise.",
+      "spec_anchor": "44-edge-cases",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Abort exemption: a sentry-abort close of a run carrying the abort mark closes, reports undispatched, leaves outcomes untouched.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The design closes every run through one guard, but the sentry-abort exit is precisely the case where an admitted issue is *deliberately* left without a terminal outcome — `applySentryAbort` \"NEVER writes outcomes — the in-flight issue stays undispatched so the run is re-enterable\". On that exit, `close` step 2 always refuses (exit 3), and the spec's only routing is \"step 11's 'dispatch or park' for `undispatched`, then close again\". But a sentry-aborted run must not dispatch (\"no further builds launch\", SKILL l. 639), so the only way to satisfy the guard is to park the in-flight issue — which converts a resumable abort into terminal parks. The alternative — the skill simply never reaching a successful `close` — means no `stop_reason`, no owner close, no `run-end` event, no judge-trail for one of the six documented stop conditions, violating the run-end synchronicity invariant the spec itself carries at l. 385. The builder cannot fix this in the build: the guard's position and the refusal semantics are spec'd, and the spec explicitly rules out a terminal bucket (§2) without noticing that the aborted path is where one is structurally needed.",
+          "spec_anchor": "44-edge-cases"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "Prose runs `hooks-ensure` \"on first autonomous run\" unconditionally (l. 450); the spec moves it into `open` step 6 but orders governance ahead of it, so on the exit-3 fail-closed path — plausibly a repo's *first* autonomous run, since an unconfigured/misconfigured governor is exactly a first-run condition — hooks are never ensured, while §4.3 deletes the standalone `hooks-ensure` block from the skill. A first run that fail-closes leaves the Stop-hook backstop unregistered with no remaining call site.",
+      "evidence": "spec §4.1 step 7 FAIL_CLOSED (\"Steps 5 and 6 never run\"); §4.3 \"Stop hook (l. 450–457): the `hooks-ensure` code block goes\".",
+      "predicted_consequence": "on a fail-closed first run, `runcheck --hook` and `prepcheck --hook` are not registered; the hook backstop is absent for that session's subsequent runs.",
+      "spec_anchor": "43-skill-changes",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "hooks-ensure now runs on both the success and fail-closed paths.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "Prose runs `hooks-ensure` \"on first autonomous run\" unconditionally (l. 450); the spec moves it into `open` step 6 but orders governance ahead of it, so on the exit-3 fail-closed path — plausibly a repo's *first* autonomous run, since an unconfigured/misconfigured governor is exactly a first-run condition — hooks are never ensured, while §4.3 deletes the standalone `hooks-ensure` block from the skill. A first run that fail-closes leaves the Stop-hook backstop unregistered with no remaining call site.",
+          "spec_anchor": "43-skill-changes"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "`run open --adopt-run-dir` accepts any directory containing a parseable `run-ledger.json` and proceeds through enrich, governance, poller start and exit 0 with no check that the adopted run is not already **live-held by a concurrent session**, not `done-clean`, and not `aborted-resumable`-pending-resume. The concurrent-session threat model is not hypothetical here: the ledger's whole owner/heartbeat apparatus exists precisely because \"a parallel session's hook can't distinguish 'an orchestrator is actively draining this' from 'this queue was deferred'\", and `faff resume` enforces exactly this via `classifyReEnterable` (refusing `live-running` and `done-clean`, ledger untouched, exit 2). The spec's adopt path bypasses that classification entirely: a second session (or a second orchestrator turn in the same repo) can adopt a run whose heartbeat sidecar is fresh, start a second sentry-poller, pass governance as `already-governed` under the *same* producer identity, and begin dispatching builds against a run another driver is actively draining — interleaved event appends, two pollers, two build lanes on one `admitted` list. Note there is no per-session ownership field to fall back on: the prose itself records `owner.session_id` as the run-id, so the heartbeat-held bit is the *only* live-driver signal, and the spec's step 1 validation stops at \"must parse to an object\".",
+      "evidence": "§4.1 step 1 — \"IF --adopt-run-dir: run_dir := it; its run-ledger.json must parse to an object, else exit 2\" — is the sole adopt validation; §4.4 \"Re-running `open --adopt-run-dir`\" considers only the re-open/envelope case, never the live-held case; context `resume.js` l.40–51 defines the refusal states the verb never consults; SKILL.md l.420 states the concurrent-session threat the design otherwise guards.",
+      "predicted_consequence": "two concurrent drivers drain one run under one Commissaire producer identity; the second driver's dispatches and event appends interleave with the first's, and the run's completeness/governance evidence chain is written by two unsynchronised writers.",
+      "spec_anchor": "41-run-open",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "--adopt-run-dir adopts only a running run whose $FAFF_RUN_DIR names it.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "`run open --adopt-run-dir` accepts any directory containing a parseable `run-ledger.json` and proceeds through enrich, governance, poller start and exit 0 with no check that the adopted run is not already **live-held by a concurrent session**, not `done-clean`, and not `aborted-resumable`-pending-resume. The concurrent-session threat model is not hypothetical here: the ledger's whole owner/heartbeat apparatus exists precisely because \"a parallel session's hook can't distinguish 'an orchestrator is actively draining this' from 'this queue was deferred'\", and `faff resume` enforces exactly this via `classifyReEnterable` (refusing `live-running` and `done-clean`, ledger untouched, exit 2). The spec's adopt path bypasses that classification entirely: a second session (or a second orchestrator turn in the same repo) can adopt a run whose heartbeat sidecar is fresh, start a second sentry-poller, pass governance as `already-governed` under the *same* producer identity, and begin dispatching builds against a run another driver is actively draining — interleaved event appends, two pollers, two build lanes on one `admitted` list. Note there is no per-session ownership field to fall back on: the prose itself records `owner.session_id` as the run-id, so the heartbeat-held bit is the *only* live-driver signal, and the spec's step 1 validation stops at \"must parse to an object\".",
+          "spec_anchor": "41-run-open"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "the prose runs `effect reconcile` + `verdict conclude` only \"for each issue admitted on **a governed run**\" — knowledge settled at open time. The spec replaces that with a fresh close-time status probe and, on probe failure/timeout/unparseable output, flips to the governed branch and runs the conclude loop anyway. This rests on the unverified assertion that conclude on an ungoverned run \"fails harmlessly\" — a claim about an unchanged Commissaire subsystem the spec does not evidence. If conclude's ungoverned-run behaviour is not a clean non-zero no-write (e.g. it records an unanchored/unsigned verdict row), the spec has built a fail-open path: a governance probe outage causes governance-grade verdict writes on a run that was never admitted. The safe direction is the prose's own: carry open-time governance forward, or on probe failure skip (fail toward \"no governance write\"), never run governance writes on an unverified run.",
+      "evidence": "§4.2 step 6 — \"IF probe.governed === true, OR the probe failed, timed out or was unparseable: … conclude loop\"; Chosen rationale asserts only that \"on an ungoverned run, `effect reconcile` and `verdict conclude` fail harmlessly and are logged\"; prose l.441 gates on governed-run membership, not a fresh probe.",
+      "predicted_consequence": "a Commissaire outage at close time turns into conclude calls against an ungoverned run; harmless only if Commissaire's ungoverned conclude is verified no-write — which the spec asserts but no test pins (the test list covers \"a failed status probe still running the loop\" on a governed ledger, not on an ungoverned one).",
+      "spec_anchor": "42-run-close",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The probe-failure-as-governed conclude loop cites cmdReconcile (read-only) and cmdTerminalVerdict (no write unless admitted), with a test.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "the prose runs `effect reconcile` + `verdict conclude` only \"for each issue admitted on **a governed run**\" — knowledge settled at open time. The spec replaces that with a fresh close-time status probe and, on probe failure/timeout/unparseable output, flips to the governed branch and runs the conclude loop anyway. This rests on the unverified assertion that conclude on an ungoverned run \"fails harmlessly\" — a claim about an unchanged Commissaire subsystem the spec does not evidence. If conclude's ungoverned-run behaviour is not a clean non-zero no-write (e.g. it records an unanchored/unsigned verdict row), the spec has built a fail-open path: a governance probe outage causes governance-grade verdict writes on a run that was never admitted. The safe direction is the prose's own: carry open-time governance forward, or on probe failure skip (fail toward \"no governance write\"), never run governance writes on an unverified run.",
+          "spec_anchor": "42-run-close"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The second holdout scenario's final `Then` asserts a negative — \"no sentry-poller handle exists for the run\" — but the spec never states where or in what form a started poller leaves an observable handle (pid file, ledger key, state dir). A code-blind holdout evaluator, and a tester running the scenario cold, cannot decide this without inventing the observation method, and a builder could satisfy or fail it depending on which handle representation they assume.",
+      "evidence": "Holdout scenario \"Given a repo whose config sets commissaire.governor to an endpoint nothing listens on … And … no sentry-poller handle exists for the run\".",
+      "predicted_consequence": "The holdout verdict for this scenario is undecidable as written; two correct builds could be judged differently on the same assertion.",
+      "spec_anchor": "4-how",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The holdout's poller assertion uses faff sentry-poller status --json.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The second holdout scenario's final `Then` asserts a negative — \"no sentry-poller handle exists for the run\" — but the spec never states where or in what form a started poller leaves an observable handle (pid file, ledger key, state dir). A code-blind holdout evaluator, and a tester running the scenario cold, cannot decide this without inventing the observation method, and a builder could satisfy or fail it depending on which handle representation they assume.",
+          "spec_anchor": "4-how"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "`open` step 5 (and FAIL_CLOSED) spawn `faff hooks-ensure --root`, but the prose (C16, l. 450–457) and every context excerpt show `hooks-ensure` invoked bare with no flags; nothing in the supplied context establishes that the verb accepts `--root`. The spec hard-codes the flag into both the success and fail-closed paths.",
+      "evidence": "spec §4.1 step 5 / FAIL_CLOSED (\"Spawn `faff hooks-ensure --root`\"); SKILL.md l. 452–455 runs `\"$faff\" hooks-ensure` with no arguments.",
+      "predicted_consequence": "if the verb does not take `--root`, every open (including every fail-closed open) records `steps.hooks: \"failed:<exit>\"` with `hooks_report: null` while still exiting 0 — the skill relays nothing (C17) and the Stop-hook backstop is never registered, yet the DONE item \"run open runs it\" reads as satisfied. A one-line spec edit (drop the flag, or state that `hooks-ensure` gains it) removes the risk.",
+      "spec_anchor": "how",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "hooks-ensure --root is the verb's existing flag: usage: faff hooks-ensure [--root DIR] [--local] [--dry-run] [--json].",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "`open` step 5 (and FAIL_CLOSED) spawn `faff hooks-ensure --root`, but the prose (C16, l. 450–457) and every context excerpt show `hooks-ensure` invoked bare with no flags; nothing in the supplied context establishes that the verb accepts `--root`. The spec hard-codes the flag into both the success and fail-closed paths.",
+          "spec_anchor": "how"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "`close` step 4 rewrites `stop_reason := token` unconditionally on every pass, and §4.4's \"close twice\" edge case assumes \"the second call re-writes the same `stop_reason`\" — but nothing enforces sameness. A run closed once with an escalate-class token (`non-convergence`, `sentry-abort`, `governance-admit-failed`, `budget-escalated(...)`) can be closed again with a quiet token (e.g. `queue-drained`), and the escalate-class value that `faff disposition` keys on — the durable signal a human sees after the container dies — is silently replaced in the same locked edit that re-stamps `owner.status:\"done\"`. The prose (l. 440) writes `stop_reason` once at the real exit; the verb makes it a rewritable field with no guard, and the refusal path (step 2) does not run because a fail-closed or escalated run can easily have zero undispatched issues (all parked). This is the failure-as-bypass shape: the second close is an error path that silently removes a check the first close established.",
+      "evidence": "§4.2 step 4 (\"Locked edit, one write: stop_reason := token; owner.status := 'done'…\"); §4.4 \"close twice\" (\"The second call re-writes the same `stop_reason`… a second `run-end` event is appended\"); §3 Stop tokens lists `governance-admit-failed` \"so a re-close of a fail-closed run validates\" — i.e. re-close is an anticipated path, yet no idempotence-or-refuse rule is stated for a differing token; `disposition.js` (`isEscalateStopReason`) reads only `ledger.stop_reason`.",
+      "predicted_consequence": "`faff disposition` classifies the run as a configured quiet stop and raises no run-escalation item; a run that ended in `non-convergence` or a sentry abort pages nobody, with the ledger showing a clean drain.",
+      "spec_anchor": "42-run-close (the `PROCEDURE run_close` block; attackable edit is step 4) — under `### 4.2 \\`run close\\``.",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "A re-close with a different token exits 2 and writes nothing; the same token is idempotent.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "`close` step 4 rewrites `stop_reason := token` unconditionally on every pass, and §4.4's \"close twice\" edge case assumes \"the second call re-writes the same `stop_reason`\" — but nothing enforces sameness. A run closed once with an escalate-class token (`non-convergence`, `sentry-abort`, `governance-admit-failed`, `budget-escalated(...)`) can be closed again with a quiet token (e.g. `queue-drained`), and the escalate-class value that `faff disposition` keys on — the durable signal a human sees after the container dies — is silently replaced in the same locked edit that re-stamps `owner.status:\"done\"`. The prose (l. 440) writes `stop_reason` once at the real exit; the verb makes it a rewritable field with no guard, and the refusal path (step 2) does not run because a fail-closed or escalated run can easily have zero undispatched issues (all parked). This is the failure-as-bypass shape: the second close is an error path that silently removes a check the first close established.",
+          "spec_anchor": "42-run-close (the `PROCEDURE run_close` block; attackable edit is step 4) — under `### 4.2 \\`run close\\``."
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "A tester cannot state the expected `OpenResult`/`CloseResult` JSON for the failure exits. §3 says `owner_status: ENUM done | aborted-resumable | null` without saying *when* it is null; likewise `run_dir` / `fail_closed_cause` / `budget_envelope` on exit 2 (refused adopt, malformed `--until`, post-mint write failure) and on a `close` exit-3 refusal. The DONE item \"`--json` prints an OpenResult and a CloseResult with every §3 field, each exiting 0, 3 or 2 per §3\" is only decidable once these per-exit field values are fixed.",
+      "evidence": "DONE item \"`faff run open --json` prints an OpenResult and `faff run close --json` a CloseResult with every §3 field, each exiting 0, 3 or 2 per §3\" against the §3 RECORD definitions and the exit-code table.",
+      "predicted_consequence": "two builders pass every listed test yet emit different JSON for the same refusal (one with `run_dir` set, one without), and a reviewer cannot adjudicate which is correct — the \"every field\" AC is undecidable for the 2 and refusal-3 exits.",
+      "spec_anchor": "interface",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "--json field values are defined for every exit of both verbs.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "A tester cannot state the expected `OpenResult`/`CloseResult` JSON for the failure exits. §3 says `owner_status: ENUM done | aborted-resumable | null` without saying *when* it is null; likewise `run_dir` / `fail_closed_cause` / `budget_envelope` on exit 2 (refused adopt, malformed `--until`, post-mint write failure) and on a `close` exit-3 refusal. The DONE item \"`--json` prints an OpenResult and a CloseResult with every §3 field, each exiting 0, 3 or 2 per §3\" is only decidable once these per-exit field values are fixed.",
+          "spec_anchor": "interface"
+        }
+      ]
+    }
+  ]
+}

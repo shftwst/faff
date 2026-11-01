@@ -1,8 +1,10 @@
 // FAFF-1176 — the custody seam stays inside commissaire.ts. Two plain string checks, no judgement:
 //
-//  1. The two skills decide "is this run governed?" only through one governed-run check sentence,
-//     byte-identical in both files, which fails closed on any failed `commissaire contract status` call
-//     (human decision on FAFF-1176, comments 08c09091 and dcb4ad5c). No skill names the governor file.
+//  1. faff-graft decides "is this run governed?" only through one governed-run check sentence, which
+//     fails closed on any failed `commissaire contract status` call (human decision on FAFF-1176,
+//     comments 08c09091 and dcb4ad5c). No skill names the governor file. faff-beep-boop's run-start
+//     check moved into `faff run open` (FAFF-1437, tested in test/run-open.test.mjs), so beep-boop now
+//     falls under the stricter third test: it neither names the governor file nor calls the status verb.
 //  2. No production module under bin/lib/ outside commissaire.ts/.js builds a governor or producer
 //     key-file path, except the anchor's public-key copy inside events.js's mintIssueAnchor (events.js is
 //     in the governance region and may not require the factory-region commissaire module).
@@ -20,9 +22,10 @@ const LIB = join(SKILLS, "faff", "bin", "lib");
 
 const CANONICAL = 'Governed-run check: run `"$faff" commissaire contract status --run-dir <run dir>`. If the call exits non-zero, has not returned within 30 seconds, or its stdout is anything other than exactly one parseable JSON object with a boolean `governed`, stop with the error `commissaire-status-failed` and take neither the governed nor the ungoverned path, whatever `"governed"` appears to say; otherwise the run is governed when that object\'s `governed` is `true` and not governed when it is `false`.';
 const SITE_PHRASE = "the governed-run check reports governed";
-const SITES = { "faff-graft": 10, "faff-beep-boop": 1 };   // FAFF-1242 +1 faff-graft (Step-9b In Review governed tracker-write bracket refers to the governed-run check)
+const SITES = { "faff-graft": 10 };   // FAFF-1437 drops faff-beep-boop (its run-start check is `faff run open` step 4a). FAFF-1242 +1 faff-graft (Step-9b In Review governed tracker-write bracket refers to the governed-run check)
 const FORBIDDEN = ["governor.json", "governor material", "commissaire-status-fault", "run the bracket"];
 
+const FALLBACK = /proceed|fall ?back|ungoverned|treat(ed)? (it )?as (governed|not governed)|run the (bracket|step) anyway/i;
 const count = (hay, needle) => hay.split(needle).length - 1;
 const skillText = (name) => readFileSync(join(SKILLS, name, "SKILL.md"), "utf8");
 
@@ -39,12 +42,12 @@ for (const [name, sites] of Object.entries(SITES)) {
     // Outside the canonical sentence, no sentence that names the stop may soften it into a fallback.
     const sentences = text.split(CANONICAL).join(" ").split(/(?<=[.!?])\s+/);
     for (const s of sentences.filter((x) => x.includes("commissaire-status-failed"))) {
-      assert.doesNotMatch(s, /proceed|fall ?back|ungoverned|treat(ed)? (it )?as (governed|not governed)|run the (bracket|step) anyway/i, `fallback wording beside the stop: ${s}`);
+      assert.doesNotMatch(s, FALLBACK, `fallback wording beside the stop: ${s}`);
     }
   });
 }
 
-test("no other skill names the governor file or calls the status verb", () => {
+test("no other skill names the governor file, calls the status verb, uses a forbidden phrase, or softens the stop into a fallback", () => {
   for (const name of readdirSync(SKILLS)) {
     if (name in SITES) continue;
     const p = join(SKILLS, name, "SKILL.md");
@@ -52,6 +55,11 @@ test("no other skill names the governor file or calls the status verb", () => {
     const text = readFileSync(p, "utf8");
     assert.equal(count(text, "governor.json"), 0, `${name} names governor.json`);
     assert.equal(count(text, "commissaire contract status"), 0, `${name} calls the status verb directly`);
+    for (const phrase of FORBIDDEN) assert.equal(count(text, phrase), 0, `${name}: forbidden phrase: ${phrase}`);
+    // The same no-fallback rule the SITES skills get: no sentence naming the stop softens it into a fallback.
+    for (const s of text.split(/(?<=[.!?])\s+/).filter((x) => x.includes("commissaire-status-failed"))) {
+      assert.doesNotMatch(s, FALLBACK, `${name}: fallback wording beside the stop: ${s}`);
+    }
   }
 });
 

@@ -45,6 +45,8 @@
     "bin/lib/run-summary.ts",
     "bin/lib/run.ts",
     "bin/lib/run-checkpoint.ts",
-    "bin/lib/prose-size.ts"
+    "bin/lib/prose-size.ts",
+    "bin/lib/run-open.ts",
+    "bin/lib/run-close.ts"
   ]
 }

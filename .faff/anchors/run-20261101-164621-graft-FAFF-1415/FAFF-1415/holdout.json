@@ -1,0 +1,440 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1415",
+  "aggregate": "meets-spec",
+  "code_blind": true,
+  "spawner_attested": false,
+  "attestation": null,
+  "violations": [],
+  "criteria": [
+    {
+      "id": "scenarios:1",
+      "text": "Given a git repo with an origin remote, no worktree for FAFF-9, and branch_naming issue-slug\nWhen faff worktree ensure --issue FAFF-9 --mode interactive --slug demo --json runs\nThen it exits 0 with disposition \"ready\", mode \"fresh\", cause \"no-worktree\", resume_at \"start\", branch \"FAFF-9-demo\"\nAnd wt is a directory under the resolved worktree root whose checked-out branch is FAFF-9-demo",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "docker exec faff-holdout-1415-a (cwd fixture repo, FAFF_WORKTREE_ROOT=<fixture>/wt, SKIP_NPM_PACKAGES_INSTALL=1): fixture s1 (bare origin, branch_naming issue-slug); faff worktree ensure --issue FAFF-9 --mode interactive --slug demo --json; then test -d wt, git -C wt branch --show-current, faff worktree-root --assert wt",
+      "expected": "exit 0; disposition ready, mode fresh, cause no-worktree, resume_at start, branch FAFF-9-demo; wt a directory under the resolved root on branch FAFF-9-demo",
+      "observed": "exit=0; disposition ready, mode fresh, cause no-worktree, resume_at start, branch FAFF-9-demo, wt /tmp/eval/s1/wt/FAFF-9-demo; test -d ok; branch --show-current FAFF-9-demo; worktree-root --assert exit 0",
+      "evidence_ref": "report s1",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:2",
+      "text": "Given an existing worktree for FAFF-9 that is one commit behind origin's default branch with no conflicting change\nWhen faff worktree ensure --issue FAFF-9 --mode autonomous --slug demo --labels '[]' --run-dir D --json runs\nThen it exits 0 with disposition \"ready\", mode \"rebased\", cause \"stale-rebased\", resume_at \"existing\"\nAnd the worktree's branch contains origin's new commit",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "docker exec faff-holdout-1415-a (cwd fixture repo, FAFF_WORKTREE_ROOT=<fixture>/wt, SKIP_NPM_PACKAGES_INSTALL=1): fixture s2: worktree created by ensure plus one local commit; another clone pushes a non-conflicting commit 18e8cd2 to origin/main; ensure --mode autonomous --labels '[]' --run-dir D --json; git merge-base --is-ancestor 18e8cd2 HEAD in wt",
+      "expected": "exit 0; ready, rebased, stale-rebased, existing; branch contains origin's new commit",
+      "observed": "exit=0; disposition ready, mode rebased, cause stale-rebased, resume_at existing, behind 1; merge-base --is-ancestor succeeded (wt log: wt work, origin new, init)",
+      "evidence_ref": "report s2",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:3",
+      "text": "Given an existing worktree for FAFF-9 whose branch and origin's default branch changed the same line of the same file\nWhen faff worktree ensure --issue FAFF-9 --mode autonomous --slug demo --labels '[]' --run-dir D --json runs\nThen it exits 0 with disposition \"parked\" and cause \"rebase-conflict\"\nAnd git status in that worktree shows no rebase in progress",
+      "holdout": true,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "docker exec faff-holdout-1415-a (cwd fixture repo, FAFF_WORKTREE_ROOT=<fixture>/wt, SKIP_NPM_PACKAGES_INSTALL=1): fixture s3: worktree branch and origin/main each change line 1 of a.txt; ensure --mode autonomous --labels '[]' --run-dir D --json; git status in wt",
+      "expected": "exit 0; parked, rebase-conflict; no rebase in progress",
+      "observed": "exit=0; disposition parked, cause rebase-conflict; git status: 'On branch FAFF-9-demo ... have diverged' (no rebase in progress), HEAD unchanged",
+      "evidence_ref": "report s3",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:4",
+      "text": "Given the same conflicting worktree\nWhen faff worktree ensure --issue FAFF-9 --mode interactive --slug demo --json runs\nThen it exits 0 with disposition \"hand-over\" and cause \"rebase-conflict\"\nAnd git status in that worktree shows a rebase in progress",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "docker exec faff-holdout-1415-a (cwd fixture repo, FAFF_WORKTREE_ROOT=<fixture>/wt, SKIP_NPM_PACKAGES_INSTALL=1): same s3 worktree after scenario 3; ensure --mode interactive --slug demo --json; git status in wt",
+      "expected": "exit 0; hand-over, rebase-conflict; rebase in progress",
+      "observed": "exit=0; disposition hand-over, cause rebase-conflict; git status: 'interactive rebase in progress; onto 49b286f'",
+      "evidence_ref": "report s3",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:5",
+      "text": "Given no worktree for FAFF-9, a pushed branch FAFF-9-demo on origin, and a build-progress checkpoint in run dir D whose diff_hash is the sha256 of git diff origin/main...origin/FAFF-9-demo\nWhen faff worktree ensure --issue FAFF-9 --mode autonomous --slug demo --labels '[]' --run-dir D --json runs\nThen it exits 0 with disposition \"ready\", mode \"resumed\", cause \"checkpoint-match\", resume_at \"gate\"\nAnd wt is a worktree with branch FAFF-9-demo checked out at origin's tip",
+      "holdout": true,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "docker exec faff-holdout-1415-a (cwd fixture repo, FAFF_WORKTREE_ROOT=<fixture>/wt, SKIP_NPM_PACKAGES_INSTALL=1): fixture s5: FAFF-9-demo pushed to origin, local branch deleted, no worktree; faff build-progress write D FAFF-9 --build-complete --diff-hash sha256(git diff origin/main...origin/FAFF-9-demo) --branch FAFF-9-demo; ensure --mode autonomous --labels '[]' --run-dir D --json; compare wt HEAD with origin/FAFF-9-demo",
+      "expected": "exit 0; ready, resumed, checkpoint-match, gate; wt on FAFF-9-demo at origin's tip",
+      "observed": "exit=0; disposition ready, mode resumed, cause checkpoint-match, resume_at gate; wt branch FAFF-9-demo, HEAD 1e8eebf2 == origin/FAFF-9-demo 1e8eebf2",
+      "evidence_ref": "report s5",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:6",
+      "text": "Given the same setup but a checkpoint diff_hash that does not match\nWhen faff worktree ensure --issue FAFF-9 --mode autonomous --slug demo --labels '[]' --run-dir D --json runs\nThen it exits 0 with mode \"fresh\" and cause \"checkpoint-mismatch\", and the checkpoint file is unchanged",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "docker exec faff-holdout-1415-a (cwd fixture repo, FAFF_WORKTREE_ROOT=<fixture>/wt, SKIP_NPM_PACKAGES_INSTALL=1): fixture s6: as s5 but checkpoint diff_hash 000...0; sha256+mtime of D/FAFF-9/build-progress.json before and after ensure --mode autonomous --labels '[]' --run-dir D --json",
+      "expected": "exit 0; mode fresh, cause checkpoint-mismatch; checkpoint file unchanged",
+      "observed": "exit=0; disposition ready, mode fresh, cause checkpoint-mismatch; file sha256 9c306cea... before and after, mtime unchanged",
+      "evidence_ref": "report s6",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:7",
+      "text": "Given no worktree for FAFF-9, no checkpoint in run dir D, and no resume store\nWhen faff worktree ensure --issue FAFF-9 --mode autonomous --slug demo --labels '[\"faff-awaiting-review\"]' --run-dir D --json runs\nThen it exits 0 with disposition \"needs-human\" and cause \"store-missing\", and no worktree was created",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "docker exec faff-holdout-1415-a (cwd fixture repo, FAFF_WORKTREE_ROOT=<fixture>/wt, SKIP_NPM_PACKAGES_INSTALL=1): fixture s7: no worktree, empty run dir D, no .faff/resume; ensure --mode autonomous --labels '[\"faff-awaiting-review\"]' --run-dir D --json; git worktree list, ls wt root",
+      "expected": "exit 0; needs-human, store-missing; no worktree created",
+      "observed": "exit=0; disposition needs-human, cause store-missing, wt null; git worktree list shows only the main checkout; wt root empty; no FAFF-9 branch",
+      "evidence_ref": "report s7",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:8",
+      "text": "Given no worktree for FAFF-9, no checkpoint in run dir D, a pushed branch FAFF-9-demo on origin, and a resume store for FAFF-9 stashed by faff resume-store stash with cause build-review-dialogue, whose build-progress diff_hash is the sha256 of git diff origin/main...origin/FAFF-9-demo\nWhen faff worktree ensure --issue FAFF-9 --mode autonomous --slug demo --labels '[\"faff-awaiting-review\"]' --run-dir D --json runs\nThen it exits 0 with disposition \"ready\", mode \"resumed-from-store\", cause \"store-restored\", resume_at \"review\"\nAnd resume.cause is \"build-review-dialogue\" and resume.dialogue equals the dialogue faff resume-store read prints for FAFF-9",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "docker exec faff-holdout-1415-a (cwd fixture repo, FAFF_WORKTREE_ROOT=<fixture>/wt, SKIP_NPM_PACKAGES_INSTALL=1): fixture s8: FAFF-9-demo pushed; prior run dir P with build-progress (matching hash) and build-review/round-1.json; faff resume-store stash --issue FAFF-9 --run-dir P --cause build-review-dialogue --fix-rounds-used 1 --rebuttal-rounds-used 0 --store-root repo/.faff/resume; faff resume-store read; ensure --mode autonomous --labels '[\"faff-awaiting-review\"]' --run-dir D(empty) --json",
+      "expected": "exit 0; ready, resumed-from-store, store-restored, review; resume.cause build-review-dialogue; resume.dialogue equals resume-store read's dialogue",
+      "observed": "exit=0; disposition ready, mode resumed-from-store, cause store-restored, resume_at review; resume.cause build-review-dialogue; resume.dialogue {hold_count:1,next_round:2,fix_rounds_used:1,rebuttal_rounds_used:0,stage:dialogue} == read's dialogue; store files unchanged",
+      "evidence_ref": "report s8",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:9",
+      "text": "Given an existing, fresh worktree for FAFF-9 located outside the resolved worktree root\nWhen faff worktree ensure --issue FAFF-9 --mode autonomous --slug demo --labels '[]' --run-dir D --json runs\nThen it exits 0 with disposition \"parked\" and cause \"root-outside\"",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "docker exec faff-holdout-1415-a (cwd fixture repo, FAFF_WORKTREE_ROOT=<fixture>/wt, SKIP_NPM_PACKAGES_INSTALL=1): fixture s9: git worktree add -b FAFF-9-demo /tmp/eval/s9/elsewhere/FAFF-9-demo origin/main (worktree-check exit 0, behind 0), FAFF_WORKTREE_ROOT=/tmp/eval/s9/wt; ensure --mode autonomous --labels '[]' --run-dir D --json",
+      "expected": "exit 0; parked, root-outside",
+      "observed": "exit=0; disposition parked, cause root-outside, detail.resolved_root /tmp/eval/s9/wt, detail.actual /tmp/eval/s9/elsewhere/FAFF-9-demo",
+      "evidence_ref": "report s9",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "done:15",
+      "text": "A `tracker-hint` branch name that fails `git check-ref-format --branch` or lacks the issue id as a token is replaced by `<issue>-<slug>`, with a warning.",
+      "holdout": false,
+      "class": "assertion",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "docker exec faff-holdout-1415-a (cwd fixture repo, FAFF_WORKTREE_ROOT=<fixture>/wt, SKIP_NPM_PACKAGES_INSTALL=1): .faffrc.yaml conventions.branch_naming tracker-hint (conventions get -> tracker-hint); one clean fixture per hint; ensure --mode interactive --slug demo --tracker-branch <hint> --json for 'feature/no-issue-here', 'bad..FAFF-9', 'FAFF-9 spaced', 'FAFF-90-demo', and the valid 'alec/faff-9-demo-hint'",
+      "expected": "an invalid or issue-id-less hint is replaced by FAFF-9-demo with a warning",
+      "observed": "no-issue-id and FAFF-90-demo hints: branch FAFF-9-demo, warning 'does not carry the issue id; using FAFF-9-demo'; bad..FAFF-9 and 'FAFF-9 spaced': warning 'is not a valid branch name; using FAFF-9-demo'; valid hint used (branch alec-faff-9-demo-hint), no warning",
+      "evidence_ref": "report done:15",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "done:16",
+      "text": "The resume recreate's path is `<root>/<branch with \"/\" replaced by \"-\">`, and it is checked to be strictly under the resolved root before `git worktree add` runs.",
+      "holdout": false,
+      "class": "assertion",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "docker exec faff-holdout-1415-a (cwd fixture repo, FAFF_WORKTREE_ROOT=<fixture>/wt, SKIP_NPM_PACKAGES_INSTALL=1): fixture s16: feature/FAFF-9-demo pushed, checkpoint with matching hash and --branch feature/FAFF-9-demo; ensure --mode autonomous --labels '[]' --run-dir D --json. Containment probes: git-only checkpoint branch '..'; pre-existing symlink <root>/FAFF-9-demo -> outside dir",
+      "expected": "recreate path <root>/feature-FAFF-9-demo, strictly under the resolved root before git worktree add",
+      "observed": "ready resumed, wt /tmp/eval/s16/wt/feature-FAFF-9-demo on feature/FAFF-9-demo; '..' branch: checkpoint-mismatch, nothing added outside root; symlink probe: parked root-outside",
+      "evidence_ref": "report done:16",
+      "reason": null,
+      "reason_code": null
+    }
+  ],
+  "delegated": [
+    {
+      "id": "done:1",
+      "text": "`faff worktree ensure` returns, for each mode and refusal cause in section 3, the outcome Step 3's prose reaches for the same repository state, except the changes named in section 4.5 rows 20, 21, 24, 25, 27, 38, 40, 45, 47 and 52.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:1"
+    },
+    {
+      "id": "done:2",
+      "text": "Graft Step 3 calls `faff worktree ensure` and no longer shells `faff worktree-check`, `faff worktree-heal`, `faff build-progress read`, `faff resume-store restore`, `faff conventions mine`, `faff conventions get branch_naming`, `setup-worktree.sh` or `faff worktree-root --assert`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:2"
+    },
+    {
+      "id": "done:3",
+      "text": "Autonomous mode without a run dir exits 2; so does a missing `--issue`, `--mode` or `--slug`, a slug outside `^[a-z0-9]+(-[a-z0-9]+)*$`, and a missing or unparseable `--labels` when the hold check is reached. A reused worktree in autonomous mode with no `--labels` is not exit 2.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:3"
+    },
+    {
+      "id": "done:4",
+      "text": "The output carries `resume_at` (`start`, `existing`, `gate`, `review`) and no graft step number; each `ready` result carries exactly one `cause` from section 3's table.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:4"
+    },
+    {
+      "id": "done:5",
+      "text": "Interactive mode never reads a build-progress checkpoint or a resume store.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:5"
+    },
+    {
+      "id": "done:6",
+      "text": "An autonomous rebase conflict leaves no rebase in progress; an interactive one leaves it in progress.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:6"
+    },
+    {
+      "id": "done:7",
+      "text": "A `clobbered-recoverable` worktree is healed and re-checked once; a heal failure or a second exit 2 is `heal-failed`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:7"
+    },
+    {
+      "id": "done:8",
+      "text": "No exit-2 reason other than `no-worktree` leads to a fresh create.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:8"
+    },
+    {
+      "id": "done:9",
+      "text": "The resume store and the build-progress checkpoint are never deleted or modified by the command, except through `resume-store restore`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:9"
+    },
+    {
+      "id": "done:10",
+      "text": "The hold check matches the `awaiting-review` and `awaiting-adjudication` roles under a configured non-default label prefix.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:10"
+    },
+    {
+      "id": "done:11",
+      "text": "With no checkpoint, no hold label and a resume store directory on disk, the result is a fresh create whose `warnings` name the store and whose `detail.store_path` is set.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:11"
+    },
+    {
+      "id": "done:12",
+      "text": "Every result carries every output key; on a non-`ready` result `mode`, `resume_at`, `setup_script` and `resume` are `null` and `detail` carries the blocker's data as section 3 lists.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:12"
+    },
+    {
+      "id": "done:13",
+      "text": "The project wrapper `scripts/setup-worktree.sh` is used when present, else the bundled script; neither is modified.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:13"
+    },
+    {
+      "id": "done:14",
+      "text": "A non-zero script exit or empty output is `setup-failed`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:14"
+    },
+    {
+      "id": "done:17",
+      "text": "When the recreate path is already a registered worktree on the recorded branch at the verified tip, the recreate reuses it without `git worktree add` and the result is `resumed`; at any other branch or tip it is `resume-recreate-failed`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:17"
+    },
+    {
+      "id": "done:18",
+      "text": "The resume recreate never resets or deletes a local branch; a diverged local branch is `resume-branch-diverged`, and a failed add or a `HEAD` other than the verified tip is `resume-recreate-failed`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:18"
+    },
+    {
+      "id": "done:19",
+      "text": "No `ready` result names a path that is not an existing directory.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:19"
+    },
+    {
+      "id": "done:20",
+      "text": "The root assert runs on every `ready` path, including `reused`, `rebased` and `healed`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:20"
+    },
+    {
+      "id": "done:21",
+      "text": "`graft_skill_dir` is the bundled `faff-graft` directory on every result.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:21"
+    },
+    {
+      "id": "done:22",
+      "text": "The command makes no tracker call.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:22"
+    },
+    {
+      "id": "done:23",
+      "text": "`docs/guide/cli.md` documents the command, its output and its tables.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:23"
+    },
+    {
+      "id": "done:24",
+      "text": "`faff commissaire` and every `commissaire*` module are unchanged by this PR.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:24"
+    },
+    {
+      "id": "done:25",
+      "text": "The command lives in `bin/lib/worktree-ensure.ts` with its committed emit `bin/lib/worktree-ensure.js`; the `.ts` is in `tsconfig.json` `include`, and `build-manifest.json` is updated in the same commit.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:25"
+    },
+    {
+      "id": "done:26",
+      "text": "`worktree-ensure.ts` contains no `as`, non-null `!` or `satisfies`, and `test/check-no-boundary-cast.test.mjs` lists it and passes.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:26"
+    },
+    {
+      "id": "done:27",
+      "text": "`faff regions check` passes, and CI's committed-emit check passes.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:27"
+    },
+    {
+      "id": "done:28",
+      "text": "Graft Step 3 routes every disposition, `resume_at` token and a non-zero exit as section 4.2 lists, and returns only tokens already in graft's return-value list.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:28"
+    },
+    {
+      "id": "done:29",
+      "text": "Graft's Configuration paragraph and `references/build.md` name `faff worktree ensure` as the invoker of `setup-worktree.sh`; the Worktree policy rules are otherwise unchanged.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:29"
+    },
+    {
+      "id": "done:30",
+      "text": "Every row in section 4.5 has its listed test case, or is marked agent or dropped with a reason.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:30"
+    },
+    {
+      "id": "done:31",
+      "text": "Every line the PR deletes from `faff-graft/SKILL.md` maps to a row in section 4.5; the PR description lists the mapping by row number.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:31"
+    },
+    {
+      "id": "done:32",
+      "text": "`SKILL_LINE_BASELINE[\"faff-graft\"]` is lowered to the count measured after the branch is rebased on `main`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:32"
+    },
+    {
+      "id": "done:33",
+      "text": "`test/worktree-ensure.test.mjs` covers every row's named case, both modes, git-only, each `branch_naming` scheme, and each `uncertifiable:<reason>`, using temporary git repositories with a bare origin and `SKIP_NPM_PACKAGES_INSTALL=1`, plus injected `Deps` for the store and restore exit codes.",
+      "holdout": false,
+      "verification_tier": "integration",
+      "verifier": "review-merge-floor",
+      "ac_id": "faff-1415#done:33"
+    },
+    {
+      "id": "done:34",
+      "text": "`REGION_SELFTEST_ARGV[\"worktree\"] = null` with a `TEST_FILE_COVERAGE` entry naming `test/worktree-ensure.test.mjs`, and `lint-cli-coverage` passes.",
+      "holdout": false,
+      "verification_tier": "integration",
+      "verifier": "review-merge-floor",
+      "ac_id": "faff-1415#done:34"
+    },
+    {
+      "id": "done:35",
+      "text": "No `--selftest` case is added in any module.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:35"
+    },
+    {
+      "id": "done:36",
+      "text": "`faff gates run` passes.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1415#done:36"
+    }
+  ]
+}

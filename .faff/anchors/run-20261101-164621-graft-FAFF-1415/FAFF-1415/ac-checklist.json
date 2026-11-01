@@ -93,7 +93,7 @@
     },
     {
       "ac": "An autonomous rebase conflict leaves no rebase in progress; an interactive one leaves it in progress.",
-      "verified": "autonomous conflict: no rebase-merge/rebase-apply dir; interactive: rebase in progress",
+      "verified": "autonomous conflict: no rebase-merge/rebase-apply dir; interactive: rebase in progress; a failed abort is needs-human rebase-abort-failed, never a clean park",
       "passed": true,
       "ac_id": "faff-1415#done:6",
       "verifications": [
@@ -104,6 +104,10 @@
         {
           "kind": "test",
           "locator": "test/worktree-ensure.test.mjs::interactive rebase conflict hands over"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::a failed rebase --abort is never a clean park"
         }
       ]
     },
@@ -177,7 +181,7 @@
     },
     {
       "ac": "Every result carries every output key; on a non-`ready` result `mode`, `resume_at`, `setup_script` and `resume` are `null` and `detail` carries the blocker's data as section 3 lists.",
-      "verified": "key set identical on ready and parked results; mode/resume_at/setup_script/resume null on parked; detail per cause asserted across the blocker tests",
+      "verified": "key set identical on ready and parked results; mode/resume_at/setup_script/resume null on parked; detail per cause asserted across the blocker tests; base_ref populated on every fresh result",
       "passed": true,
       "ac_id": "faff-1415#done:12",
       "verifications": [
@@ -192,6 +196,10 @@
         {
           "kind": "test",
           "locator": "test/worktree-ensure.test.mjs::store restore failure needs human"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::base_ref is populated on every fresh create"
         }
       ]
     },
@@ -245,7 +253,7 @@
     },
     {
       "ac": "The resume recreate's path is `<root>/<branch with \"/\" replaced by \"-\">`, and it is checked to be strictly under the resolved root before `git worktree add` runs.",
-      "verified": "team/FAFF-9-demo recreates at <wtroot>/team-FAFF-9-demo; the strictly-under check runs before git worktree add (worktree-ensure.ts recreate)",
+      "verified": "team/FAFF-9-demo recreates at <wtroot>/team-FAFF-9-demo; the strictly-under check runs before git worktree add (worktree-ensure.ts recreate); a symlink or any entry at the path is refused before the add, and the real parent must be under the real root",
       "passed": true,
       "ac_id": "faff-1415#done:16",
       "verifications": [
@@ -256,6 +264,10 @@
         {
           "kind": "test",
           "locator": "test/worktree-ensure.test.mjs::checkpoint match resumes"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::a symlink at the recreate path never registers a worktree outside the root"
         }
       ]
     },
@@ -288,6 +300,10 @@
         {
           "kind": "test",
           "locator": "test/worktree-ensure.test.mjs::failed recreate parks"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::a symlink at the recreate path never registers a worktree outside the root"
         }
       ]
     },
@@ -477,7 +493,7 @@
     },
     {
       "ac": "`test/worktree-ensure.test.mjs` covers every row's named case, both modes, git-only, each `branch_naming` scheme, and each `uncertifiable:<reason>`, using temporary git repositories with a bare origin and `SKIP_NPM_PACKAGES_INSTALL=1`, plus injected `Deps` for the store and restore exit codes.",
-      "verified": "45 cases over real repos with a bare origin and SKIP_NPM_PACKAGES_INSTALL=1, both modes, git-only, each scheme, each uncertifiable reason, injected Deps for store and restore exits",
+      "verified": "53 cases over real repos with a bare origin and SKIP_NPM_PACKAGES_INSTALL=1, both modes, git-only, each scheme, each uncertifiable reason, injected Deps for store and restore exits",
       "passed": true,
       "ac_id": "faff-1415#done:33",
       "verifications": [

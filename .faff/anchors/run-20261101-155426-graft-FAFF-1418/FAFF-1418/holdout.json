@@ -1,0 +1,210 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1418",
+  "aggregate": "meets-spec",
+  "code_blind": true,
+  "spawner_attested": false,
+  "attestation": null,
+  "violations": [],
+  "criteria": [
+    {
+      "id": "scenarios:1",
+      "text": "Given FAFF_RUN_DIR is unset\nWhen `faff run trigger --json` runs\nThen it exits 0 with token \"skip\" and classify.verdict \"not-l4\"\nAnd verdict is null",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "docker exec -w /work/repo faff-holdout-1418-a sh -c 'unset FAFF_RUN_DIR; faff run trigger --json'",
+      "expected": "exit 0; token \"skip\"; classify.verdict \"not-l4\"; verdict null",
+      "observed": "exit 0; token \"skip\"; classify {verdict:\"not-l4\", reason:\"no FAFF_RUN_DIR\"}; verdict null",
+      "evidence_ref": "Scenario 1",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:2",
+      "text": "Given FAFF_RUN_DIR names a directory with no run-ledger.json\nWhen `faff run trigger --json` runs\nThen it exits 3 with token \"fault\"\nAnd no file under that directory is created or modified",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "FAFF_RUN_DIR=/tmp/eval/s2/rundir (holds only marker.txt, no run-ledger.json) faff run trigger --json; stat+sha256 of every entry before/after; repeated on an empty dir /tmp/eval/s2e/rd",
+      "expected": "exit 3; token \"fault\"; no file under the dir created or modified",
+      "observed": "exit 3; token \"fault\" (reason \"FAFF_RUN_DIR names a dir with no run-ledger.json\"); listing, sizes, mtimes and hash identical; empty dir still has 0 entries",
+      "evidence_ref": "Scenario 2",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:3",
+      "text": "Given an L4 lights-out-shaped run directory as FAFF_RUN_DIR, tracking.repo and tracking.container unset, and one Active PRD with container \"Demo\" whose file exists\nWhen `faff run trigger --json` runs without readiness input\nThen it exits 0 with token \"needs-judgement:prd-inputs\"\nAnd prd.path names the Demo PRD file and verdict is null",
+      "holdout": true,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "fixture /tmp/eval/fx3 (tracking.repo/container unset; faff prd new Demo --status Active), run dir minted by faff lights-out; FAFF_RUN_DIR=/tmp/eval/fx3/.faff/runs/run-20261101-221421-lights-out faff run trigger --json",
+      "expected": "exit 0; token \"needs-judgement:prd-inputs\"; prd.path names the Demo PRD file; verdict null",
+      "observed": "exit 0; token \"needs-judgement:prd-inputs\"; prd.path \"/tmp/eval/fx3/docs/prd/demo.md\" (container \"Demo\"); verdict null",
+      "evidence_ref": "Scenario 3",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:4",
+      "text": "Given the same run directory and PRD, a readiness file holding one faff-contract:prd-readiness block with verdict \"admissible\", stop_conditions_verifiable true and creative_licence \"tight\", and a goals file [\"g1\"] where no live PRDR under \"Demo\" cites \"g1\"\nWhen `faff run trigger --prd-readiness <file> --prd-goals <file> --json` runs\nThen it exits 0 with token \"plan\" and verdict.reason \"coverage-thin\"\nAnd creative_licence is \"tight\" and signals.outward is true",
+      "holdout": true,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "same fixture; FAFF_RUN_DIR=/tmp/eval/fx3/.faff/runs/run-20261101-221421-lights-out faff run trigger --prd-readiness readiness.out (one prd-readiness block: admissible, stop_conditions_verifiable true, creative_licence tight) --prd-goals [\"g1\"] --json; zero PRDRs under Demo (variant: one PRDR under Demo citing g2)",
+      "expected": "exit 0; token \"plan\"; verdict.reason \"coverage-thin\"; creative_licence \"tight\"; signals.outward true",
+      "observed": "exit 0; token \"plan\"; verdict {plan, coverage-thin}; creative_licence \"tight\"; signals.outward true (same with the g2 PRDR present)",
+      "evidence_ref": "Scenario 4",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:5",
+      "text": "Given the same run directory and PRD and an admissible readiness file, and a goals file []\nWhen `faff run trigger --prd-readiness <file> --prd-goals <file> --json` runs\nThen it exits 3 with token \"refuse\" and verdict.reason \"coverage-unmeasurable\"\nAnd diagnostics includes \"prd-goals-empty\"",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "same fixture and readiness file; FAFF_RUN_DIR=/tmp/eval/fx3/.faff/runs/run-20261101-221421-lights-out faff run trigger --prd-readiness readiness.out --prd-goals [] --json",
+      "expected": "exit 3; token \"refuse\"; verdict.reason \"coverage-unmeasurable\"; diagnostics includes \"prd-goals-empty\"",
+      "observed": "exit 3; token \"refuse\"; verdict {refuse, coverage-unmeasurable}; diagnostics [\"prd-goals-empty\"]",
+      "evidence_ref": "Scenario 5",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:6",
+      "text": "Given an L4 lights-out-shaped run directory as FAFF_RUN_DIR, tracking.repo set (so the target repo is the self repo) and no PRD file in the PRD directory\nWhen `faff run trigger --json` runs\nThen it exits 3 with token \"refuse\" and verdict.reason \"self-directed\"\nAnd the run-ledger.json bytes are unchanged",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "fixture /tmp/eval/fx6 (tracking.repo acme/fx6, no docs/prd), run dir minted by faff lights-out; sha256 run dir files; FAFF_RUN_DIR=<rd> faff run trigger --json; sha256 again",
+      "expected": "exit 3; token \"refuse\"; verdict.reason \"self-directed\"; run-ledger.json bytes unchanged",
+      "observed": "exit 3; token \"refuse\"; verdict {refuse, self-directed}; run-ledger.json sha256 d6cd77fc… before and after",
+      "evidence_ref": "Scenario 6",
+      "reason": null,
+      "reason_code": null
+    }
+  ],
+  "delegated": [
+    {
+      "id": "done:1",
+      "text": "`faff-beep-boop/SKILL.md` §0a calls `faff run trigger` and routes on `token` in place of steps 0–7 and the capture note, and `SKILL_LINE_BASELINE[\"faff-beep-boop\"]` is lowered to the new count.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1418#done:1"
+    },
+    {
+      "id": "done:2",
+      "text": "`faff validate-adapters` passes with no RATCHET finding for `faff-beep-boop` or `faff-plot`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1418#done:2"
+    },
+    {
+      "id": "done:3",
+      "text": "`faff run trigger --json` prints a TriggerResult with every field in §3 and exits 0, 3 or 2 per §3.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1418#done:3"
+    },
+    {
+      "id": "done:4",
+      "text": "`run-trigger.ts` is in `tsconfig.json` `include`, with committed `run-trigger.js` and `build-manifest.json`; `check-no-boundary-cast` passes and its test pins `run-trigger.ts`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1418#done:4"
+    },
+    {
+      "id": "done:5",
+      "text": "`TEST_FILE_COVERAGE.run` names `test/run-trigger.test.mjs`; `faff regions check` and `faff lint-cli-coverage` pass; no selftest block gains a case.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1418#done:5"
+    },
+    {
+      "id": "done:6",
+      "text": "The PR diff touches no `commissaire*` file and no line of `run-start.js`, `run-outward.js` or `contract-defs-prd.js`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1418#done:6"
+    },
+    {
+      "id": "done:7",
+      "text": "`decideTrigger` yields signals that drive `faff run-start` to each of the eight verdict × reason pairs, plus `needs-judgement:prd-inputs`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1418#done:7"
+    },
+    {
+      "id": "done:8",
+      "text": "With `FAFF_RUN_DIR` unset, `runTrigger` returns `skip` and its injected spawn is never called.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1418#done:8"
+    },
+    {
+      "id": "done:9",
+      "text": "`faff-plot/SKILL.md` no longer references \"§0a … steps 1–2\".",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1418#done:9"
+    },
+    {
+      "id": "done:10",
+      "text": "`docs/guide/cli.md` has a `run trigger` row.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1418#done:10"
+    },
+    {
+      "id": "done:11",
+      "text": "`validate-adapters`' in-process capture route covers `faff run trigger` for `run-outward` and `run-start`, and `test/faff-1009-capture-wiring-lint.test.mjs` pins the three closed loose spots and run-trigger cases mirroring the FAFF-1434 bypass suite.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1418#done:11"
+    },
+    {
+      "id": "done:12",
+      "text": "Every line the PR deletes from `faff-beep-boop/SKILL.md` maps to a row T1–T39; the PR description lists the deleted line ranges against row ids.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1418#done:12"
+    },
+    {
+      "id": "done:13",
+      "text": "Every `kept` and `changed` row other than the five \"kept in prose\" or skill-routing rows (T19, T22, T29, T32, T39) has a covering test that exists and passes; those five are checked by the PR description quoting the SKILL.md line that carries each.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1418#done:13"
+    },
+    {
+      "id": "done:14",
+      "text": "`test/run-trigger.test.mjs`, `test/run-start-wiring.test.mjs`, `test/run-checkpoint.test.mjs` and `test/run-summary.test.mjs` pass under `node --test`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1418#done:14"
+    }
+  ]
+}

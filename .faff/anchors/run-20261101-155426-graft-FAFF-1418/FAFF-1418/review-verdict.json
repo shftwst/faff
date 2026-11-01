@@ -1,0 +1,319 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 2,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/validate-adapters.js::lint negation matching treats a bare \"not\" anywhere in the span's sentence as negating",
+      "title": "Lint negation matching treats a bare \"not\" anywhere in the span's sentence as negating",
+      "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+      "action": "No change: the miss direction is fail-closed (a real invocation stops counting, so the capture lints FAIL loudly); a false pass is impossible.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Stricter-only: the whole-sentence window can only stop a real invocation counting, which fails the capture lints loudly; it can never fabricate a driver.",
+      "first_round": 1,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Lint negation matching treats a bare \"not\" anywhere in the span's sentence as negating",
+          "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        },
+        {
+          "round": 2,
+          "title": "Lint negation matching treats a bare \"not\" anywhere in the span's sentence as negating",
+          "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/validate-adapters.js::a <<<word here-string can be read as a heredoc opener and drop the following fenced lines",
+      "title": "A <<<word here-string can be read as a heredoc opener and drop the following fenced lines",
+      "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+      "action": "No change: dropping lines only hides commands from the lint, which fails closed.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Fail-closed direction; no SKILL.md uses here-strings in a fenced block today.",
+      "first_round": 1,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "A <<<word here-string can be read as a heredoc opener and drop the following fenced lines",
+          "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        },
+        {
+          "round": 2,
+          "title": "A <<<word here-string can be read as a heredoc opener and drop the following fenced lines",
+          "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-trigger.ts::dangling run-start capture base when plot refuses after a plan token",
+      "title": "Dangling run-start capture base when plot refuses after a plan token",
+      "location": "plugin/skills/faff/bin/lib/run-trigger.ts",
+      "action": "No change.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "Spec §4.3 step 3 decides this explicitly: when plot refuses or errors, the run-start consult stays action-uncaptured, which is the honest record because the planned action was not taken. The base carries a non-empty correlation id, so it is not the FAFF-1009 empty-id class.",
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Dangling run-start capture base when plot refuses after a plan token",
+          "location": "plugin/skills/faff/bin/lib/run-trigger.ts",
+          "severity": "minor",
+          "disposition": "refuted"
+        },
+        {
+          "round": 2,
+          "title": "Dangling run-start capture base when plot refuses after a plan token",
+          "location": "plugin/skills/faff/bin/lib/run-trigger.ts",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-trigger.ts::--prd-goals readability is validated only after classify returns inherited-l4",
+      "title": "--prd-goals readability is validated only after classify returns inherited-l4",
+      "location": "plugin/skills/faff/bin/lib/run-trigger.ts",
+      "action": "No change.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "Spec §4.4 'Flags on a not-l4 or fault run. Ignored after classify; the token is still skip or fault.' The deferral is the specified behaviour; test 'an unreadable --prd-goals path on the L4 path is exit 2 with no result' pins the L4 half.",
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "--prd-goals readability is validated only after classify returns inherited-l4",
+          "location": "plugin/skills/faff/bin/lib/run-trigger.ts",
+          "severity": "minor",
+          "disposition": "refuted"
+        },
+        {
+          "round": 2,
+          "title": "--prd-goals readability is validated only after classify returns inherited-l4",
+          "location": "plugin/skills/faff/bin/lib/run-trigger.ts",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-trigger.ts::is_self reduces to tracking.repo != null, so an install with tracking.repo set always refuses self-directed",
+      "title": "is_self reduces to tracking.repo != null, so an install with tracking.repo set always refuses self-directed",
+      "location": "plugin/skills/faff/bin/lib/run-trigger.ts",
+      "action": "No change in this PR; reported to the operator as possible discovered scope.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Faithful to the replaced prose and to spec §4.1 B4 / rows T14 and T16 (one tracking.repo read reused for self.repo); changing the self oracle is out of scope for a prose-to-code move.",
+      "first_round": 1,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "is_self reduces to tracking.repo != null, so an install with tracking.repo set always refuses self-directed",
+          "location": "plugin/skills/faff/bin/lib/run-trigger.ts",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        },
+        {
+          "round": 2,
+          "title": "is_self reduces to tracking.repo != null, so an install with tracking.repo set always refuses self-directed",
+          "location": "plugin/skills/faff/bin/lib/run-trigger.ts",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff-beep-boop/SKILL.md::the after-plan call has no --json and no routing",
+      "title": "The after-plan call has no --json and no routing",
+      "location": "plugin/skills/faff-beep-boop/SKILL.md",
+      "action": "The plan row runs the after-plan call with --json and routes recorded → step 1, record-failed / exit 2 / any other exit / unparseable → fail loud; pinned in the repointed run-start-wiring plan check.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "independent-review",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "The after-plan call has no --json and no routing",
+          "location": "plugin/skills/faff-beep-boop/SKILL.md",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/validate-adapters.js::the lint flag-value check is looser than main's",
+      "title": "The lint flag-value check is looser than main's",
+      "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+      "action": "Every required flag rejects a value starting with -, except a lone - for --facts; --flag=value takes the same check; one test per form.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "standard",
+      "model": "independent-review",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "The lint flag-value check is looser than main's",
+          "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/validate-adapters.js::a negation after the span, or a fence after a negating sentence, still counts",
+      "title": "A negation after the span, or a fence after a negating sentence, still counts",
+      "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+      "action": "The whole sentence around a span is checked, and a fence following a negating sentence is skipped; one test each.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "independent-review",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "A negation after the span, or a fence after a negating sentence, still counts",
+          "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff-beep-boop/SKILL.md::the plan row lost two clauses of the replaced prose",
+      "title": "The plan row lost two clauses of the replaced prose",
+      "location": "plugin/skills/faff-beep-boop/SKILL.md",
+      "action": "Restored 'Unconditional at L4 — no config flag gates this fall-through' and the run-done / backstop stop condition; the first is pinned in the repointed plan check.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "independent-review",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "The plan row lost two clauses of the replaced prose",
+          "location": "plugin/skills/faff-beep-boop/SKILL.md",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-trigger.ts::run-trigger children inherit the caller's faff_decision_correlation_id / faff_decision_issue",
+      "title": "run-trigger children inherit the caller's FAFF_DECISION_CORRELATION_ID / FAFF_DECISION_ISSUE",
+      "location": "plugin/skills/faff/bin/lib/run-trigger.ts",
+      "action": "childEnv strips both before adding the consult env; pinned by a T35 test that fails without the strip.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "run-trigger children inherit the caller's FAFF_DECISION_CORRELATION_ID / FAFF_DECISION_ISSUE",
+          "location": "plugin/skills/faff/bin/lib/run-trigger.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/run-trigger.ts::non-usage exceptions escape cmdruntrigger as an unstructured crash",
+      "title": "Non-usage exceptions escape cmdRunTrigger as an unstructured crash",
+      "location": "plugin/skills/faff/bin/lib/run-trigger.ts",
+      "action": "No change.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The skill treats any exit other than 0 or 3 as refuse, and the stack lands on stderr; the dispatcher's crash path is the same for every faff verb.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "Non-usage exceptions escape cmdRunTrigger as an unstructured crash",
+          "location": "plugin/skills/faff/bin/lib/run-trigger.ts",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

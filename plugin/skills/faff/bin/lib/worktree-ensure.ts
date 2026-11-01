@@ -24,6 +24,7 @@ interface FsApi {
   realpathSync(p: string): string;
 }
 interface PathApi {
+  delimiter: string;
   join(...parts: string[]): string;
   resolve(...parts: string[]): string;
   dirname(p: string): string;
@@ -159,7 +160,13 @@ function realDeps(env: NodeJS.ProcessEnv = process.env): Deps {
       const r = childProcess.spawnSync("git", args, { cwd, env });
       return { status: r.status, stdout: r.stdout ?? new Uint8Array(0), stderr: r.stderr ?? new Uint8Array(0) };
     },
-    bash: (script, args, cwd) => run("bash", [script, ...args], cwd),
+    // The provisioner resolves the worktree root through `faff worktree-root`, found on PATH. Put this
+    // install's bin dir first so it uses the same resolver the step-6 root assert uses; every other
+    // variable (FAFF_WORKTREE_BASE_REF, SKIP_NPM_PACKAGES_INSTALL, ...) passes through unchanged.
+    bash: (script, args, cwd) => {
+      const r = childProcess.spawnSync("bash", [script, ...args], { cwd, env: { ...env, PATH: [path.dirname(ENTRYPOINT), env.PATH ?? ""].join(path.delimiter) }, encoding: "utf8" });
+      return { status: r.status, stdout: r.stdout ?? "", stderr: r.stderr ?? "" };
+    },
     isDir: (p) => { try { return fs.statSync(p).isDirectory(); } catch { return false; } },
     isFile: (p) => { try { return fs.existsSync(p) && !fs.statSync(p).isDirectory(); } catch { return false; } },
     realpath: (p) => { try { return fs.realpathSync(p); } catch { return p; } },

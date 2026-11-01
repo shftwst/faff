@@ -750,6 +750,28 @@ test("failed provision parks or hands over", () => {
   } finally { cleanup(fx); }
 });
 
+test("the provisioner resolves the same worktree root with no faff on PATH", () => {
+  const fx = fixture();
+  try {
+    // Only git, bash and node stay reachable, so setup-worktree.sh can find faff only through the
+    // command's own bin dir.
+    const keep = new Set(["git", "bash", "node", "sh", "date", "tr", "basename", "dirname", "mkdir", "cat", "sed", "head", "tail", "grep", "env", "timeout", "gtimeout", "ssh", "cp", "rm", "find", "ls", "printf", "awk", "cut", "wc", "sleep", "mktemp", "uname"]);
+    const bin = mkdtempSync(path.join(fx.parent, "bin-"));
+    for (const name of keep) {
+      const r = spawnSync("sh", ["-c", `command -v ${name}`], { encoding: "utf8" });
+      const target = r.stdout.trim();
+      if (r.status === 0 && target.startsWith("/")) spawnSync("ln", ["-s", target, path.join(bin, name)]);
+    }
+    const env = { ...fx.env, PATH: bin };
+    delete env.CLAUDE_PLUGIN_ROOT;
+    assert.notEqual(spawnSync("sh", ["-c", "command -v faff"], { env, encoding: "utf8" }).status, 0, "fixture invariant: faff is not on PATH");
+    const d = { ...we.realDeps(env) };
+    const out = we.ensure({ issue: ISSUE, mode: "autonomous", slug: "demo", trackerBranch: null, labels: "[]", runDir: fx.runDir, root: fx.repo }, d);
+    assert.equal(out.disposition, "ready", JSON.stringify(out));
+    assert.equal(out.wt, path.join(fx.wtroot, "FAFF-9-demo"));
+  } finally { cleanup(fx); }
+});
+
 test("graft_skill_dir is the bundled dir", () => {
   const fx = fixture();
   try {

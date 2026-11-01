@@ -194,7 +194,8 @@ function runHold(o) {
     let pinned;
     let outageCheck = () => undefined;
     if (o.dir !== null) {
-        const records = readRecords(o.dir, o.cause === "outage");
+        const dir = o.dir;
+        const records = readRecords(dir, o.cause === "outage");
         const ns = [...records.keys()].sort((a, b) => a - b);
         const latest = ns.length ? ns[ns.length - 1] : undefined;
         heldAtRound = latest;
@@ -211,7 +212,13 @@ function runHold(o) {
             outageCheck = () => {
                 // Read under the lock, so held_at_round cannot move between this check and the write.
                 const prior = view(classify(readText(p.file))).held_at_round ?? 0;
-                const attempt = roundApi.outageAttempt(records, latest, prior);
+                const locked = readRecords(dir, true); // re-read under the lock: a round appended since the first read counts
+                const ns2 = [...locked.keys()].sort((a, b) => a - b);
+                const last = ns2.length ? ns2[ns2.length - 1] : undefined;
+                if (last === undefined || str(field(locked.get(last), "verdict")) !== "unavailable") {
+                    throw new HoldFault("--cause outage: the latest round record in --dir is not unavailable");
+                }
+                const attempt = roundApi.outageAttempt(locked, last, prior);
                 if (attempt <= retryLimit)
                     throw new HoldFault(`--cause outage: ${attempt} unavailable dispatch(es) this round, not above the retry limit ${retryLimit}`);
             };

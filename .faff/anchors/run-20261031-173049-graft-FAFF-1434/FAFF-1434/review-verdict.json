@@ -2,7 +2,7 @@
   "schema_version": 1,
   "faff_version": "0.44.0",
   "signal": "pass",
-  "rounds_total": 1,
+  "rounds_total": 2,
   "round_history": "recorded",
   "findings": [
     {
@@ -17,7 +17,7 @@
       "model": "claude-opus-5-5",
       "disposition": "fixed",
       "refutation": null,
-      "disposition_rationale": "The lint stays an existence check per kernel, as before; the report now distinguishes which kernels depend on the new route.",
+      "disposition_rationale": null,
       "first_round": 1,
       "last_round": 1,
       "occurrences": [
@@ -67,7 +67,7 @@
       "model": "openai/z-ai/glm-5.3-flash",
       "disposition": "fixed",
       "refutation": null,
-      "disposition_rationale": "Valid: a mid-loop failure would have fed later tests a truncated map.",
+      "disposition_rationale": null,
       "first_round": 1,
       "last_round": 1,
       "occurrences": [
@@ -92,7 +92,7 @@
       "model": "openai/z-ai/glm-5.3-flash",
       "disposition": "fixed",
       "refutation": null,
-      "disposition_rationale": "Checked the corpus: no run#seq or next/eligible id repeats (only empty run-level ids do), so nothing collided today; the guard keeps a future corpus from silently collapsing records.",
+      "disposition_rationale": null,
       "first_round": 1,
       "last_round": 1,
       "occurrences": [
@@ -117,7 +117,7 @@
       "model": "openai/z-ai/glm-5.3-flash",
       "disposition": "fixed",
       "refutation": null,
-      "disposition_rationale": "Valid: a renamed key would otherwise replay different facts.",
+      "disposition_rationale": null,
       "first_round": 1,
       "last_round": 1,
       "occurrences": [
@@ -142,7 +142,7 @@
       "model": "openai/z-ai/glm-5.3-flash",
       "disposition": "fixed",
       "refutation": null,
-      "disposition_rationale": "Valid, minor.",
+      "disposition_rationale": null,
       "first_round": 1,
       "last_round": 1,
       "occurrences": [
@@ -152,6 +152,206 @@
           "location": "test/graft-admit-replay.test.mjs",
           "severity": "minor",
           "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/validate-adapters.js::the in-process route exempted claim-verdict, which faff-tidy drives itself",
+      "title": "The in-process route exempted claim-verdict, which faff-tidy drives itself",
+      "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+      "action": "The route's covers are fixed to next and eligible (operator decision 2026-11-01), intersected with graft-admit's live captures; a covered kernel that a skill also drives fails the lint. Tests: bypass 1 and bypass 5.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "standard",
+      "model": "independent-reviewer",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Reproduced by deleting tidy's claim-verdict driver; both lints now fail.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "The in-process route exempted claim-verdict, which faff-tidy drives itself",
+          "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/validate-adapters.js::prose naming faff graft admit --run-dir counted as an invocation",
+      "title": "Prose naming `faff graft admit --run-dir` counted as an invocation",
+      "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+      "action": "Only a simple command in a fenced block or code span that runs faff graft admit with --mode, --facts and its own valued --run-dir counts. Tests: bypass 2 and bypass 3.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "standard",
+      "model": "independent-reviewer",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The planted prose and a --run-dir on a different command in the same span both now fail.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "Prose naming `faff graft admit --run-dir` counted as an invocation",
+          "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/validate-adapters.js::commented-out cap.base or mint calls still counted",
+      "title": "Commented-out cap.base or mint calls still counted",
+      "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+      "action": "Kernels and the mintConsultCorrelationId check are read from comment-stripped code. Test: bypass 4.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "standard",
+      "model": "independent-reviewer",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Reproduced with // and /* */ comments; both now fail.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "Commented-out cap.base or mint calls still counted",
+          "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/validate-adapters.js::the new exit-2 branch was unreachable",
+      "title": "The new exit-2 branch was unreachable",
+      "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+      "action": "Removed; the in-process derivation runs inside the existing kernel-set derivation guard.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "independent-reviewer",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "deriveCaptureKernels reads every module first, so a separate branch could never fire.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "The new exit-2 branch was unreachable",
+          "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff-beep-boop/SKILL.md::an explicit --wave on beep-boop's admission call collided consult ids",
+      "title": "An explicit --wave on beep-boop's admission call collided consult ids",
+      "location": "plugin/skills/faff-beep-boop/SKILL.md",
+      "action": "Dropped --wave (operator decision 2026-11-01); the prose test pins its absence and test/graft-admit-consult-ids.test.mjs asserts distinct ids and a full grade count, with an explicit-wave control.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "standard",
+      "model": "independent-reviewer",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Three admissions now grade three of three.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "An explicit --wave on beep-boop's admission call collided consult ids",
+          "location": "plugin/skills/faff-beep-boop/SKILL.md",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff-tidy/SKILL.md::three faff-tidy pointers named beep-boop's removed core-loop driver block",
+      "title": "Three faff-tidy pointers named beep-boop's removed core-loop driver block",
+      "location": "plugin/skills/faff-tidy/SKILL.md",
+      "action": "Removed the pointers at lines 200, 273 and 288; the driver command is spelled out at each site.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "independent-reviewer",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The coordinator named two; a third at line 200 had the same stale reference.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "Three faff-tidy pointers named beep-boop's removed core-loop driver block",
+          "location": "plugin/skills/faff-tidy/SKILL.md",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/validate-adapters.js::a route-discovery miss read as a plain unwired kernel",
+      "title": "A route-discovery miss read as a plain unwired kernel",
+      "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+      "action": "The unwired lines for a covered kernel now say the route found no real invocation and what it looks for; test asserts the hint.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The miss already failed closed; the message now names the cause.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "A route-discovery miss read as a plain unwired kernel",
+          "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/validate-adapters.js::read errors, malformed fences and multi-line spans in route discovery",
+      "title": "Read errors, malformed fences and multi-line spans in route discovery",
+      "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+      "action": "No change.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/deepseek/deepseek-v4-flash-0731",
+      "disposition": "refuted",
+      "refutation": "Each case leaves next/eligible unwired, which fails the lints; a read error throws a non-zero exit as the existing lints already do when reading the same files, and a closing fence with an info string is not a closing fence in CommonMark.",
+      "disposition_rationale": "Fail-closed in every case; none can make the route pass wrongly.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "Read errors, malformed fences and multi-line spans in route discovery",
+          "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+          "severity": "observation",
+          "disposition": "refuted"
         }
       ]
     }

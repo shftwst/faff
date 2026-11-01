@@ -22,5 +22,10 @@
     "utc_offset_min": 0,
     "last_heartbeat": "2026-10-31T17:30:49.071Z",
     "faff_version": "0.44.0"
+  },
+  "capabilities": {
+    "FAFF-1434": {
+      "sut_env_stood": true
+    }
   }
 }

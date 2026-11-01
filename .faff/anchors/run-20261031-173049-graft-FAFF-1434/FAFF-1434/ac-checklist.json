@@ -145,7 +145,7 @@
     },
     {
       "ac": "`SKILL_LINE_BASELINE[\"faff-beep-boop\"]` is lowered to the count measured after the branch is rebased on `main`, so a sibling that changed it first (FAFF-1436) is absorbed, not overwritten.",
-      "verified": "line baseline 677 -> 676 measured on main d6d845d4 (FAFF-1436 included); after rebasing onto 00753119 (FAFF-1442, #1172) the prose-byte baselines for beep-boop and graft are lowered with `faff prose-size baseline --lower`; `faff validate-adapters` exits 0",
+      "verified": "line baseline 677 -> 676 for faff-beep-boop, merged with FAFF-1443's faff-prep entry on rebase onto main 8d111cb9; prose-byte baselines lowered with `faff prose-size baseline --lower` (beep-boop, graft, tidy), none raised; `faff validate-adapters` exits 0",
       "passed": true,
       "ac_id": "faff-1434#done:12",
       "verifications": [
@@ -217,7 +217,7 @@
     },
     {
       "ac": "`test/beep-boop-admission-prose.test.mjs` asserts that step 4 and explicit-list mode call `faff graft admit --mode autonomous`, contain no `faff next`, `faff eligible` or `faff admissible` invocation and no `--kernel next`/`--kernel eligible` driver, name all eight dispositions and the non-zero exit, route `proceed` with `in-review` to the endgame check, and carry the final-call rule.",
-      "verified": "test/beep-boop-admission-prose.test.mjs passes 7/7 here and fails 7/7 on main's SKILL.md",
+      "verified": "test/beep-boop-admission-prose.test.mjs passes 7/7 here (including the no-`--wave` assertion) and fails on main's SKILL.md",
       "passed": true,
       "ac_id": "faff-1434#done:18",
       "verifications": [
@@ -228,10 +228,54 @@
       ]
     },
     {
+      "ac": "The capture lints exempt `next` and `eligible` through the in-process route only for a real invocation with `--run-dir`, read from non-comment code, never `claim-verdict`, and fail when a covered kernel has its own driver; a test covers each bypass.",
+      "verified": "lint tests pass 17/17; the five bypass tests (claim-verdict without its driver, prose mentions, --run-dir on another command, comment-only captures and mints, a covered kernel with its own driver) each fail on the previous lint; deleting tidy's claim-verdict driver in a copy of the shipped skills fails both lints",
+      "passed": true,
+      "ac_id": "faff-1434#done:19",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1009-capture-wiring-lint.test.mjs::bypass 1: the route never covers claim-verdict, so deleting its own driver fails both lints"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1009-capture-wiring-lint.test.mjs::bypass 2: prose that only names the command does not count, with or without a code span"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1009-capture-wiring-lint.test.mjs::bypass 3: --run-dir belonging to a different command in the same span does not count"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1009-capture-wiring-lint.test.mjs::bypass 4: a capture or a consult-id mint left only in a comment does not count"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1009-capture-wiring-lint.test.mjs::bypass 5: a covered kernel that a skill also drives with its own decide --export fails the route"
+        }
+      ]
+    },
+    {
+      "ac": "Repeated `faff graft admit --run-dir` calls for one issue, with capture on and alongside a counter-based consult, mint distinct consult correlation ids, and every decision grades.",
+      "verified": "consult-id test passes: three admission calls plus a counter-based consult mint next/1..4, three distinct eligible ids, and the study grades 4 next and 3 eligible decisions; the explicit-wave control collides on one id",
+      "passed": true,
+      "ac_id": "faff-1434#done:20",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/graft-admit-consult-ids.test.mjs::repeated admission calls with --run-dir and no --wave, beside a counter-based consult, mint distinct ids and all grade"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit-consult-ids.test.mjs::control: an explicit --wave collides every admission call on one id, so only one grades"
+        }
+      ]
+    },
+    {
       "ac": "No `--selftest` case is added in any module.",
       "verified": "the diff adds no selftest case (the only `selftest` hit is the committed spec's own DONE line)",
       "passed": true,
-      "ac_id": "faff-1434#done:19",
+      "ac_id": "faff-1434#done:21",
       "verifications": [
         {
           "kind": "command",
@@ -241,9 +285,9 @@
     },
     {
       "ac": "`faff gates run` passes.",
-      "verified": "`faff gates run --json --resume` pass 9/9 on the rebased head 84c3167e (and before the rebase; one run in between failed two docker-gated test/env.test.mjs cases under parallel load, a file this PR does not touch, which passes 25/25 alone)",
+      "verified": "`faff gates run --json --resume` pass 9/9 on 12f85da6, rebased onto main 8d111cb9 (one run before it failed one test/eval-resume.test.mjs case under load, a file this PR does not touch, which passes 24/24 alone)",
       "passed": true,
-      "ac_id": "faff-1434#done:20",
+      "ac_id": "faff-1434#done:22",
       "verifications": [
         {
           "kind": "command",

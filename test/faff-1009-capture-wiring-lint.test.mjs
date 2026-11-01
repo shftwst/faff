@@ -151,9 +151,10 @@ test("captureWiringUnwired reports nothing unwired on the shipped tree", () => {
   const inProcess = va.inProcessWiredKernels(SKILLS, va.deriveInProcessCapture(LIB));
   assert.deepEqual(va.captureWiringUnwired(SKILLS, kernels, inProcess), []);
   assert.deepEqual(va.captureSameCommandUnwired(SKILLS, kernels, inProcess), []);
-  // FAFF-1434: beep-boop's admission captures next and eligible through `faff graft admit`, so only
-  // those two rely on the in-process route; every other kernel still has its own driver.
-  assert.deepEqual(va.captureWiringUnwired(SKILLS, kernels), ["eligible", "next"]);
+  // FAFF-1434 / FAFF-1418: beep-boop's admission captures next and eligible through `faff graft admit`,
+  // and §0a captures run-outward and run-start through `faff run trigger`, so only those four rely on the
+  // in-process route; every other kernel still has its own driver.
+  assert.deepEqual(va.captureWiringUnwired(SKILLS, kernels), ["eligible", "next", "run-outward", "run-start"]);
 });
 
 // --- FAFF-1434: in-process capture through `faff graft admit` (operator decision, 2026-11-01) ---
@@ -251,11 +252,137 @@ test("bypass 5: a covered kernel that a skill also drives with its own decide --
 });
 
 test("the route's helpers: real invocations only, comments stripped, covers narrowed to next and eligible", () => {
-  assert.equal(va.isInProcessInvocation('faff graft admit --mode autonomous --facts - --run-dir "$run_dir" --json', ["graft", "admit"]), true);
-  assert.equal(va.isInProcessInvocation('"$faff" graft admit --mode autonomous --facts - --run-dir "$run_dir"', ["graft", "admit"]), true);
-  assert.equal(va.isInProcessInvocation("faff graft admit --run-dir", ["graft", "admit"]), false);
-  assert.equal(va.isInProcessInvocation("faff graft admit --mode autonomous --facts - --run-dir --json", ["graft", "admit"]), false);
+  const REQ = ["--mode", "--facts", "--run-dir"];
+  assert.equal(va.isInProcessInvocation('faff graft admit --mode autonomous --facts - --run-dir "$run_dir" --json', ["graft", "admit"], REQ), true);
+  assert.equal(va.isInProcessInvocation('"$faff" graft admit --mode autonomous --facts - --run-dir "$run_dir"', ["graft", "admit"], REQ), true);
+  assert.equal(va.isInProcessInvocation("faff graft admit --run-dir", ["graft", "admit"], REQ), false);
+  assert.equal(va.isInProcessInvocation("faff graft admit --mode autonomous --facts - --run-dir --json", ["graft", "admit"], REQ), false);
+  assert.equal(va.isInProcessInvocation('faff run trigger --run-dir "$FAFF_RUN_DIR" --json', ["run", "trigger"], ["--run-dir"]), true);
+  assert.equal(va.isInProcessInvocation("faff run trigger --json", ["run", "trigger"], ["--run-dir"]), false);
   assert.deepEqual(va.codeCommands("a `x | faff y && z; w` b"), ["x", "faff y", "z", "w"]);
   assert.equal(va.stripJsComments('a("//x"); // b\n/* c */ d(/\\//);'), 'a("//x"); \n  d(/\\//);');
-  assert.deepEqual(va.deriveInProcessCapture(LIB).map((e) => [e.kernels, e.wires]), [[["claim-verdict", "eligible", "next"], ["eligible", "next"]]]);
+  assert.deepEqual(va.deriveInProcessCapture(LIB).map((e) => [e.module, e.kernels, e.wires]), [
+    ["graft-admit.js", ["claim-verdict", "eligible", "next"], ["eligible", "next"]],
+    ["run-trigger.js", ["run-outward", "run-start"], ["run-outward", "run-start"]],
+  ]);
+});
+
+// --- FAFF-1418: three loose spots the FAFF-1434 independent review found (operator decision, 2026-11-01).
+// Each case passed the lint as it stood on main after #1175.
+
+test("loose spot 1: a heredoc body inside a fenced block is not a command", () => {
+  const body = "```bash\ncat > notes.txt <<'EOF'\nfaff graft admit --mode autonomous --facts - --run-dir \"$run_dir\"\nEOF\n```\n";
+  const r = runOnRouteFixture({ skillBody: body + CLAIM_DRIVER });
+  assert.match(r.stdout, /FAIL\s+capture-wiring \(FAFF-1009\)/);
+  assert.deepEqual([...new Set(unwiredIn(r.stdout))].sort(), ["eligible", "next"]);
+  assert.equal(r.status, 1);
+});
+
+test("loose spot 2: a code span inside a negating sentence does not count", () => {
+  for (const lead of ["Never run", "Don't run", "Do not run", "You must not run"]) {
+    const body = `${lead} \`faff graft admit --mode autonomous --facts - --run-dir "$run_dir"\` here.\n`;
+    const r = runOnRouteFixture({ skillBody: body + CLAIM_DRIVER });
+    assert.match(r.stdout, /FAIL\s+capture-wiring \(FAFF-1009\)/, lead);
+    assert.deepEqual([...new Set(unwiredIn(r.stdout))].sort(), ["eligible", "next"], lead);
+  }
+});
+
+test("loose spot 3: required flags need a value, and a flag inside $(…) never counts for the outer command", () => {
+  for (const span of [
+    "faff graft admit --mode --facts --run-dir d",
+    "faff graft admit --mode autonomous --facts - --json \"$(faff run summary --run-dir d)\"",
+  ]) {
+    const r = runOnRouteFixture({ skillBody: `Run \`${span}\` per candidate.\n` + CLAIM_DRIVER });
+    assert.match(r.stdout, /FAIL\s+capture-wiring \(FAFF-1009\)/, span);
+    assert.deepEqual([...new Set(unwiredIn(r.stdout))].sort(), ["eligible", "next"], span);
+  }
+});
+
+// --- FAFF-1418: the same route through `faff run trigger` (operator decision, 2026-11-01), mirroring
+// the FAFF-1434 bypass suite. run trigger requires a valued --run-dir and covers run-outward and
+// run-start only.
+
+const TRIGGER_KERNELS_SRC = `const { captureDecision } = require("./decision-capture");
+function a() { captureDecision({ kernel: "run-outward", normalised_inputs: {}, verdict: {}, issue: "__run__" }); }
+function b() { captureDecision({ kernel: "run-start", normalised_inputs: {}, verdict: {}, issue: "__run__" }); }
+module.exports = { a, b };
+`;
+const TRIGGER_SRC = `const decisionCapture = require("./decision-capture");
+const mintId = (root, run, kernel) => decisionCapture.mintConsultCorrelationId(root, run, "__run__", kernel, undefined);
+const safeMint = (kernel) => mintId(".", "run", kernel);
+safeMint("run-outward");
+safeMint("run-start");
+`;
+const TRIGGER_SPAN = 'Run `faff run trigger --run-dir "$FAFF_RUN_DIR" --json` first.\n';
+
+function runOnTriggerFixture({ triggerSrc = TRIGGER_SRC, skillBody }) {
+  const dir = mkdtempSync(join(tmpdir(), "faff-1418-lint-"));
+  mkdirSync(join(dir, "faff", "bin", "lib"), { recursive: true });
+  writeFileSync(join(dir, "faff", "bin", "lib", "kernels.js"), TRIGGER_KERNELS_SRC);
+  writeFileSync(join(dir, "faff", "bin", "lib", "run-trigger.js"), triggerSrc);
+  mkdirSync(join(dir, "zz-capture-fixture"));
+  writeFileSync(join(dir, "zz-capture-fixture", "SKILL.md"), skillBody);
+  const r = spawnSync(process.execPath, [BIN, "validate-adapters", "--skills-dir", dir], { encoding: "utf8" });
+  rmSync(dir, { recursive: true, force: true });
+  return r;
+}
+
+test("run trigger pass: a real `faff run trigger --run-dir …` code span wires run-outward and run-start", () => {
+  const r = runOnTriggerFixture({ skillBody: TRIGGER_SPAN });
+  assert.match(r.stdout, /pass\s+capture-wiring[^\n]*run-outward, run-start via `faff run trigger`'s in-process capture/);
+  assert.match(r.stdout, /pass\s+capture-same-command[^\n]*run-outward, run-start via `faff run trigger`/);
+});
+
+test("run trigger pass: a fenced bash block counts", () => {
+  const r = runOnTriggerFixture({ skillBody: "```bash\n\"$faff\" run trigger --run-dir \"$FAFF_RUN_DIR\" \\\n  --json\n```\n" });
+  assert.match(r.stdout, /pass\s+capture-wiring/);
+});
+
+test("run trigger bypass 1: a call with no --run-dir value does not count", () => {
+  for (const span of ["faff run trigger --json", "faff run trigger --run-dir --json"]) {
+    const r = runOnTriggerFixture({ skillBody: `Run \`${span}\` first.\n` });
+    assert.match(r.stdout, /FAIL\s+capture-wiring \(FAFF-1009\)/, span);
+    assert.deepEqual([...new Set(unwiredIn(r.stdout))].sort(), ["run-outward", "run-start"], span);
+    assert.match(r.stdout, /covered by `faff run trigger`'s in-process route, but no SKILL\.md runs `faff run trigger --run-dir …`/);
+  }
+});
+
+test("run trigger bypass 2: prose or a negated span that names the command does not count", () => {
+  for (const body of ["Never run `faff run trigger --run-dir d --json`.\n", "Run faff run trigger --run-dir d --json first.\n"]) {
+    const r = runOnTriggerFixture({ skillBody: body });
+    assert.match(r.stdout, /FAIL\s+capture-wiring \(FAFF-1009\)/, body);
+    assert.deepEqual([...new Set(unwiredIn(r.stdout))].sort(), ["run-outward", "run-start"], body);
+  }
+});
+
+test("run trigger bypass 3: --run-dir belonging to a different command in the same span does not count", () => {
+  const r = runOnTriggerFixture({ skillBody: "Run `faff run trigger --json && faff run summary --run-dir d`.\n" });
+  assert.match(r.stdout, /FAIL\s+capture-wiring \(FAFF-1009\)/);
+  assert.deepEqual([...new Set(unwiredIn(r.stdout))].sort(), ["run-outward", "run-start"]);
+});
+
+test("run trigger bypass 4: a capture or a consult-id mint left only in a comment does not count", () => {
+  const commentedCaptures = TRIGGER_SRC.replace('safeMint("run-outward");', '// safeMint("run-outward");').replace('safeMint("run-start");', '/* safeMint("run-start"); */');
+  const commentedMint = TRIGGER_SRC.replace("decisionCapture.mintConsultCorrelationId(", "decisionCapture.mint( // mintConsultCorrelationId(\n");
+  for (const triggerSrc of [commentedCaptures, commentedMint]) {
+    const r = runOnTriggerFixture({ triggerSrc, skillBody: TRIGGER_SPAN });
+    assert.match(r.stdout, /FAIL\s+capture-wiring \(FAFF-1009\)/);
+    assert.deepEqual([...new Set(unwiredIn(r.stdout))].sort(), ["run-outward", "run-start"]);
+    assert.equal(r.status, 1);
+  }
+});
+
+test("run trigger bypass 5: a covered kernel that a skill also drives with its own decide --export fails the route", () => {
+  const ownStart = 'Run `eval "$(faff decision-capture decide --run <run> --issue __run__ --kernel run-start --export)" && faff run-start --signals {}`.\n';
+  const r = runOnTriggerFixture({ skillBody: TRIGGER_SPAN + ownStart });
+  assert.match(r.stdout, /FAIL\s+capture-wiring \(in-process route, FAFF-1434\)/);
+  assert.match(r.stdout, /kernel "run-start" is covered by `faff run trigger`'s in-process route but zz-capture-fixture\/SKILL\.md also drives it/);
+  assert.equal(r.status, 1);
+});
+
+test("run trigger: the route covers only what run-trigger.js really captures", () => {
+  const onlyStart = TRIGGER_SRC.replace('safeMint("run-outward");', "");
+  const r = runOnTriggerFixture({ triggerSrc: onlyStart, skillBody: TRIGGER_SPAN });
+  assert.match(r.stdout, /FAIL\s+capture-wiring \(FAFF-1009\)/);
+  assert.deepEqual([...new Set(unwiredIn(r.stdout))], ["run-outward"]);
 });

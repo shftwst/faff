@@ -133,11 +133,11 @@ Two independent phases. The **prep queue** drains fully first. Then the **build 
 
 ### 0a. Run-start trigger — PLAN / drain / refuse (L4 lights-out only)
 
-Resolve the binary per gateway → **Resolving the `faff` executable**, then run `faff run trigger --json`. It classifies the inherited handoff (`$FAFF_RUN_DIR`; §0a never mints and never calls `faff lights-out`), performs the PRD, target, outward, readiness and coverage reads, spawns `faff run-start` for the verdict, records the creative licence on `drain`, and writes the `run-outward`/`run-start` decision captures itself under `__run__`. Treat exit 2, any exit other than 0 or 3, and stdout that does not parse as a result as `refuse`. On `needs-judgement:prd-inputs`:
+Resolve the binary per gateway → **Resolving the `faff` executable**, then run `faff run trigger --run-dir "$FAFF_RUN_DIR" --json`. It classifies the inherited handoff (`$FAFF_RUN_DIR`; §0a never mints and never calls `faff lights-out`), performs the PRD, target, outward, readiness and coverage reads, spawns `faff run-start` for the verdict, records the creative licence on `drain`, and writes the `run-outward`/`run-start` decision captures itself under `__run__`. Treat exit 2, any exit other than 0 or 3, and stdout that does not parse as a result as `refuse`. On `needs-judgement:prd-inputs`:
 
 1. Invoke the `prd` slot (`prd.slot`) on `prd.path` via the Skill tool (gateway → **Sibling-skill invocation**), and write its whole output to `<run_dir>/trigger/prd-readiness.out`. If the slot cannot be invoked, pass `--prd-slot-unreachable` in place of `--prd-readiness` below.
 2. Read the PRD file's declared goals into `<run_dir>/trigger/prd-goals.json` as a JSON array of goal strings.
-3. Run `faff run trigger --prd-readiness <run_dir>/trigger/prd-readiness.out --prd-goals <run_dir>/trigger/prd-goals.json --json` and route on its token.
+3. Run `faff run trigger --run-dir "$FAFF_RUN_DIR" --prd-readiness <run_dir>/trigger/prd-readiness.out --prd-goals <run_dir>/trigger/prd-goals.json --json` and route on its token.
 
 | `token` | Action |
 |---|---|
@@ -145,7 +145,7 @@ Resolve the binary per gateway → **Resolving the `faff` executable**, then run
 | `fault` | Fail loud: print `classify.reason`, start nothing, never mint, never drop to L3 |
 | `refuse` | Surface `verdict.reason` for `/faff-wtf` and start nothing. The run dir is never closed |
 | `drain` | Step 1 (tidy) and the ordinary pipeline, on the same run dir |
-| `plan` | Invoke `/faff-plot --autonomous` against `target` (it inherits `FAFF_RUN_DIR`), then `faff run trigger --after-plan --correlation-id <run_start_correlation_id>` with the same readiness and goals flags, then step 1 on the same run dir. Converge, don't stop: a still-thin coverage is not a stop condition |
+| `plan` | Invoke `/faff-plot --autonomous` against `target` (it inherits `FAFF_RUN_DIR`), then `faff run trigger --run-dir "$FAFF_RUN_DIR" --after-plan --correlation-id <run_start_correlation_id>` with the same readiness and goals flags, then step 1 on the same run dir. Converge, don't stop: a still-thin coverage is not a stop condition |
 | `plan`, but plot refuses ignition or errors | Surface plot's reason for `/faff-wtf`; do not call `--after-plan`; start nothing |
 | `record-failed` | Fail loud: build nothing |
 

@@ -22,7 +22,7 @@ const LIB = join(SKILLS, "faff", "bin", "lib");
 
 const CANONICAL = 'Governed-run check: run `"$faff" commissaire contract status --run-dir <run dir>`. If the call exits non-zero, has not returned within 30 seconds, or its stdout is anything other than exactly one parseable JSON object with a boolean `governed`, stop with the error `commissaire-status-failed` and take neither the governed nor the ungoverned path, whatever `"governed"` appears to say; otherwise the run is governed when that object\'s `governed` is `true` and not governed when it is `false`.';
 const SITE_PHRASE = "the governed-run check reports governed";
-const SITES = { "faff-graft": 10 };   // FAFF-1437 drops faff-beep-boop (its run-start check is `faff run open` step 4a). FAFF-1242 +1 faff-graft (Step-9b In Review governed tracker-write bracket refers to the governed-run check)
+const SITES = { "faff-graft": 8 };   // FAFF-1416 -2 faff-graft (Step 9b's anchor-head push bracket and pr-create producer half now run inside `faff pr open`, which applies the same governed-run check in code; the In Review bracket keeps its site). FAFF-1437 drops faff-beep-boop (its run-start check is `faff run open` step 4a). FAFF-1242 +1 faff-graft (Step-9b In Review governed tracker-write bracket refers to the governed-run check)
 const FORBIDDEN = ["governor.json", "governor material", "commissaire-status-fault", "run the bracket"];
 
 const FALLBACK = /proceed|fall ?back|ungoverned|treat(ed)? (it )?as (governed|not governed)|run the (bracket|step) anyway/i;

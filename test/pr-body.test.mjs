@@ -160,28 +160,26 @@ test("CLI sanitize round-trip on the repeated-target fixture matches the committ
   assert.equal(r.stdout, expected);
 });
 
-// --- FAFF-214 §4: the faff-graft Step 9b block's git-only no-op guard must
-// textually precede the sanitizer invocation, so the documented no-op cannot
-// silently disappear or be reordered behind the sanitize/check/gh sequence. ---
-test("faff-graft SKILL.md Step 9b: the git-only no-op guard precedes the pr-body sanitize invocation", () => {
+// --- FAFF-214 §4, re-pointed by FAFF-1416: the faff-graft Step 9b block's git-only no-op guard must
+// textually precede the PR-open call, so the documented no-op cannot silently disappear or be
+// reordered behind it. The sanitize → check → create sequence now runs inside `faff pr open`, and
+// test/pr-open.test.mjs pins it (body-unsafe stops before anything outward; the CLI-level case checks
+// the bytes `gh pr create` receives). ---
+test("faff-graft SKILL.md Step 9b: the git-only no-op guard precedes the faff pr open call", () => {
   const skillPath = path.join(repoRoot, "plugin", "skills", "faff-graft", "SKILL.md");
   const text = fs.readFileSync(skillPath, "utf8");
 
   const stepStart = text.indexOf("**Step 9b: Open the PR");
   assert.ok(stepStart >= 0, "Step 9b heading not found in faff-graft/SKILL.md");
-  // Bound the search to the Step 9b section (up to the next "**Step" or "###" heading).
+  // Bound the search to the Step 9b section (up to the next "**Step" heading).
   const nextHeading = text.indexOf("\n**Step ", stepStart + 1);
   const section = nextHeading === -1 ? text.slice(stepStart) : text.slice(stepStart, nextHeading);
 
-  const gitOnlyIdx = section.search(/Git-only mode[^.]*no-op[^.]*does not compose a PR body[^.]*invoke `pr-body`/);
-  const sanitizeInvokeIdx = section.indexOf("pr-body sanitize --target");
+  const gitOnlyIdx = section.search(/Git-only mode[^.]*no-op[^.]*composes no PR body/);
+  const openIdx = section.indexOf("faff\" pr open --run-dir");
   assert.ok(gitOnlyIdx >= 0, "git-only no-op guard sentence not found in Step 9b");
-  assert.ok(sanitizeInvokeIdx >= 0, "pr-body sanitize invocation not found in Step 9b");
-  assert.ok(gitOnlyIdx < sanitizeInvokeIdx, "git-only no-op guard must precede the sanitizer invocation");
-
-  // The sequence also names check + the PR-create invocation with --body-file, per FAFF-214 §3/§4.
-  // FAFF-1118: the create is now `faff pr-create` (the sole sanctioned gh-pr-create path), never a
-  // raw `gh pr create`.
-  assert.match(section, /pr-body check --target/);
-  assert.match(section, /faff pr-create[^\n]*--body-file/);
+  assert.ok(openIdx >= 0, "faff pr open invocation not found in Step 9b");
+  assert.ok(gitOnlyIdx < openIdx, "git-only no-op guard must precede the faff pr open call");
+  assert.match(section, /--body-file/);
+  assert.doesNotMatch(section, /pr-body sanitize --target/, "Step 9b no longer runs the sanitizer itself");
 });

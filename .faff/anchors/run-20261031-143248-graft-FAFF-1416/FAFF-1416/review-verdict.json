@@ -1,0 +1,234 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "records/specs/2026-10-31-FAFF-1416-faff-pr-open-move-graft-s-step-9b-pr-opening-from-prose-into-a-command-design.md::spec scenarios use an issue id pr-body refuses (x-1)",
+      "title": "spec scenarios use an issue id pr-body refuses (X-1)",
+      "location": "records/specs/2026-10-31-FAFF-1416-faff-pr-open-move-graft-s-step-9b-pr-opening-from-prose-into-a-command-design.md",
+      "action": "Amend the scenarios to a two-character prefix before the holdout runs.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "A spec defect, not a code one: pr-body's target pattern (unchanged, out of scope) needs two characters before the dash, so X-1 refuses at the sanitize step. The code follows the spec; the CLI-level tests run the same scenarios with TT-1. Reported for the operator to amend before the holdout.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "spec scenarios use an issue id pr-body refuses (X-1)",
+          "location": "records/specs/2026-10-31-FAFF-1416-faff-pr-open-move-graft-s-step-9b-pr-opening-from-prose-into-a-command-design.md",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/cli-surface.js::cli-surface grammar not updated for the new pr dispatcher",
+      "title": "cli-surface grammar not updated for the new pr dispatcher",
+      "location": "plugin/skills/faff/bin/lib/cli-surface.js",
+      "action": null,
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "faff cli-surface --selftest passes (149 verbs, 126 with no declared spec); graft, land and run export no SURFACE either, so pr follows the same pattern and no pinned table is exhaustive over it.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "cli-surface grammar not updated for the new pr dispatcher",
+          "location": "plugin/skills/faff/bin/lib/cli-surface.js",
+          "severity": "major",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/validate-adapters.js::step 9b lint's invokes-pr-open check satisfied by a prose mention",
+      "title": "Step 9b lint's invokes-pr-open check satisfied by a prose mention",
+      "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+      "action": null,
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Correct: the quoted \"$faff\" pr open form did not match. The call now has to carry flags (faff\"?\\s+pr\\s+open\\s+--) and the direct-call patterns accept the quoted form; tests add a mention-only Step 9b that fails and a fenced shell call that passes (commit 8c5f1eb0).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Step 9b lint's invokes-pr-open check satisfied by a prose mention",
+          "location": "plugin/skills/faff/bin/lib/validate-adapters.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/pr-open.ts::pr open derives grant inputs with repo null",
+      "title": "pr open derives grant inputs with repo null",
+      "location": "plugin/skills/faff/bin/lib/pr-open.ts",
+      "action": null,
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "resolveAnchorLevel reads the anchor with git show at the head first and uses the repo slug only as the contents-API fallback; pr open derives at the local HEAD it has just committed and pushed, so git show always succeeds and the slug is never consulted. No PR (and so no PR url) exists yet at that step.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "pr open derives grant inputs with repo null",
+          "location": "plugin/skills/faff/bin/lib/pr-open.ts",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/pr-open.ts::toctou between the existing-pr lookup and pr-create",
+      "title": "TOCTOU between the existing-PR lookup and pr-create",
+      "location": "plugin/skills/faff/bin/lib/pr-open.ts",
+      "action": null,
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "gh pr create itself refuses when an open PR for the head already targets the base, so a PR opened in the window makes faff pr-create return refuse and pr open returns refused / pr-create-refused; no second PR opens.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "TOCTOU between the existing-PR lookup and pr-create",
+          "location": "plugin/skills/faff/bin/lib/pr-open.ts",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/pr-open.ts::late no-op from pr-create after the anchor push",
+      "title": "late no-op from pr-create after the anchor push",
+      "location": "plugin/skills/faff/bin/lib/pr-open.ts",
+      "action": null,
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Spec step 16 maps pr-create's no-op to no-op explicitly. It needs a remote that existed at step 2 and accepted the push to vanish before step 16; kept as specced rather than inventing a token.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "late no-op from pr-create after the anchor push",
+          "location": "plugin/skills/faff/bin/lib/pr-open.ts",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/pr-open.ts::anchor-refusal classification rests on an unverified export and a stderr prefix",
+      "title": "anchor-refusal classification rests on an unverified export and a stderr prefix",
+      "location": "plugin/skills/faff/bin/lib/pr-open.ts",
+      "action": null,
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Both contracts are now pinned against the real modules: validateAnchorGenesis is exported, and the real faff events anchor prints the floor-incomplete prefix; a CLI-level case parks a run missing its AC checklist as anchor-floor-incomplete (commit 8c5f1eb0).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "anchor-refusal classification rests on an unverified export and a stderr prefix",
+          "location": "plugin/skills/faff/bin/lib/pr-open.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/pr-open.ts::declared-but-never-observed effects on deny or failed push",
+      "title": "declared-but-never-observed effects on deny or failed push",
+      "location": "plugin/skills/faff/bin/lib/pr-open.ts",
+      "action": null,
+      "location_present": true,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The same as the prose sequence it replaces: the bracket is record-only and an unobserved declare is not an escape.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "declared-but-never-observed effects on deny or failed push",
+          "location": "plugin/skills/faff/bin/lib/pr-open.ts",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/pr-open.ts::prs[0] picks one of several same-base prs",
+      "title": "prs[0] picks one of several same-base PRs",
+      "location": "plugin/skills/faff/bin/lib/pr-open.ts",
+      "action": null,
+      "location_present": true,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "GitHub allows one open PR per head and base, so two same-base matches cannot be listed.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "prs[0] picks one of several same-base PRs",
+          "location": "plugin/skills/faff/bin/lib/pr-open.ts",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

@@ -87,10 +87,13 @@ function resolveLocalTarget(baseFlag, branchFlag, cwd) {
     return { base, head: null, headSha: sha.stdout, merged, repo: null, trust };
 }
 // Level, attendance and holdout, each from the source `merge-gate` reads for the same decision.
-function deriveInputs(runDir, issue, target, cwd) {
-    const anchor = floor.resolveAnchorLevel(cwd, target.repo, runDir, issue, target.headSha);
+// `faff pr open` (FAFF-1416) derives its pr-create grant inputs through this same function, so the
+// two commands cannot disagree about a run's level, attendance or holdout.
+function deriveGrantInputs(runDir, issue, at) {
+    const { cwd } = at;
+    const anchor = floor.resolveAnchorLevel(cwd, at.repo, runDir, issue, at.headSha);
     if (anchor.status !== "ok" || anchor.level === null) {
-        throw new MergeAuthorizeError(2, `no trusted committed anchor level for run ${path.basename(runDir)} issue ${issue} at head ${target.headSha} (${anchor.status}); re-anchor (graft Step 9b) so the head carries .faff/anchors/…/run-ledger.json`);
+        throw new MergeAuthorizeError(2, `no trusted committed anchor level for run ${path.basename(runDir)} issue ${issue} at head ${at.headSha} (${anchor.status}); re-anchor (graft Step 9b) so the head carries .faff/anchors/…/run-ledger.json`);
     }
     let ledger = null;
     try {
@@ -104,7 +107,10 @@ function deriveInputs(runDir, issue, target, cwd) {
     // Attendance is judged at the level that will be enforced, so the grant's level and attended agree.
     const atAnchor = isRecord(ledger) ? { ...ledger, level: anchor.level } : { level: anchor.level };
     const attended = !configResolve.verificationUnattended(atAnchor, cfg);
-    return { level: anchor.level, attended, holdout: floor.readHoldout(runDir, issue), base: target.base, head: target.head };
+    return { level: anchor.level, attended, holdout: floor.readHoldout(runDir, issue) };
+}
+function deriveInputs(runDir, issue, target, cwd) {
+    return { ...deriveGrantInputs(runDir, issue, { cwd, repo: target.repo, headSha: target.headSha }), base: target.base, head: target.head };
 }
 function effectSet(target, deleteBranch) {
     const set = [{ kind: "merge", target: target.base }];
@@ -299,4 +305,4 @@ function cmdMerge(args) {
         throw e;
     }
 }
-module.exports = { cmdMerge, grantRecordsInputs, producerRecordCovers };
+module.exports = { cmdMerge, deriveGrantInputs, grantRecordsInputs, producerRecordCovers };

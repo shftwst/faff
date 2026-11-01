@@ -39,8 +39,8 @@
     "bin/lib/run-summary.ts": "4e329a73b830a2a536d2cea8a3e22313e49586c27870c80bda47451e366d266c",
     "bin/lib/run.ts": "bef5991ae66638821c5dfe25cf73ffe7f48743915d04189b022cb8b67a03ab2e",
     "bin/lib/spec-commit.ts": "bf42fe6bfbc1d6bab90726bcc13f42e8323433a7f1b439144a9b157bee7366a5",
-    "bin/lib/spec-review-hold.ts": "e79eb3d9da574a15f17f99aaa95d617fa4a80b7323c4accd134db0e1f340254d",
-    "bin/lib/spec-review-round.ts": "cdd75fe303b22a6f291c4766de0e69769520f94734f6de14cf7685d73f3833c7",
+    "bin/lib/spec-review-hold.ts": "6965656bfad385b391c7ea83551f65d374f1e28efe42d5c36386c44e5f511ba8",
+    "bin/lib/spec-review-round.ts": "9242d61780c9ada1cc3b3f6f8069db0d78002aa251ab3e5bd9a40f03520a0bd8",
     "bin/lib/worktree-ensure.ts": "b86c68c74977c3b9dd44f97af7078a4a4e920e850da8f6c9e02a2bfc36a3828c"
   },
   "outputs": {
@@ -70,9 +70,9 @@
     "bin/lib/run-summary.js": "a323cf7e77b993b559c37014f3205105b76b52e4ac9ede00713229e9b624ba42",
     "bin/lib/run.js": "0c4f9cc33bb945823f48567f6b882722cc79e559b0117f8f5e497d20244c11c1",
     "bin/lib/spec-commit.js": "a67e16c5350409137c63faa17ba1d0458cfea84414e9f42814caa92574cb4d58",
-    "bin/lib/spec-review-hold.js": "4952cb601beb52387c082074686beb0d6fa1dbe4ad361482c56fe17edc8ce97f",
-    "bin/lib/spec-review-round.js": "1758edb0117fb7cc18d4886e7a7fdb937701db97d11a34a18b8169684a130bed",
+    "bin/lib/spec-review-hold.js": "40d49e587bdac02727b92ddc1dab9f1bf427a81e3c3fe1b9f5b3abe040a1478e",
+    "bin/lib/spec-review-round.js": "74e440f169877e32bfb2c2bb2d7c28e163fdbdabbb1749c868376aa625c65f59",
     "bin/lib/worktree-ensure.js": "f8cca3880167caf0315d694182e6bdf7fcb47cd65fbe3db250468f3d858c2269"
   },
-  "output_digest": "0be00052d934225f94a5149b5d3498223cc972109ff450c66725f4fa5a4b07d1"
+  "output_digest": "5b50910088d40ec93b678f70e790be72d0e1c4c95d8447201c2e580343e7da1a"
 }

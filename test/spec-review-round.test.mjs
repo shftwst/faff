@@ -41,19 +41,19 @@ function runDirAt(root, level) {
   return runDir;
 }
 // round(fx, verdictText, flags) -> { code, res, stderr }; defaults: single-pass, autonomous, high.
-function round(fx, verdictText, flags = {}) {
+function round(fx, verdictText, flags = {}, env = {}) {
   const f = join(fx.root, "out.md");
   writeFileSync(f, verdictText);
   const opts = { occupant: "single-pass", mode: "autonomous", appetite: "high", ...flags };
   const args = ["spec-review", "round", "--issue", opts.issue ?? "FAFF-9001", "--dir", fx.dir, "--verdict-file", f, "--root", fx.root, "--json"];
   for (const k of ["occupant", "mode", "appetite", "served", "run-dir", "retry-limit"]) if (opts[k] !== undefined && opts[k] !== null) args.push(`--${k}`, String(opts[k]));
-  const r = spawnSync(process.execPath, [CLI, ...args], { encoding: "utf8", env: { ...process.env, FAFF_RUN_DIR: "" } });
+  const r = spawnSync(process.execPath, [CLI, ...args], { encoding: "utf8", env: { ...process.env, FAFF_RUN_DIR: "", FAFF_APPETITE: "", ...env } });
   let res = null;
   try { res = JSON.parse(r.stdout); } catch { res = null; }
   return { code: r.status, res, stderr: r.stderr };
 }
-function cli(args) {
-  const r = spawnSync(process.execPath, [CLI, ...args], { encoding: "utf8", env: { ...process.env, FAFF_RUN_DIR: "" } });
+function cli(args, env = {}) {
+  const r = spawnSync(process.execPath, [CLI, ...args], { encoding: "utf8", env: { ...process.env, FAFF_RUN_DIR: "", FAFF_APPETITE: "", ...env } });
   let res = null;
   try { res = JSON.parse(r.stdout); } catch { res = null; }
   return { code: r.status, res, stdout: r.stdout, stderr: r.stderr };
@@ -213,6 +213,92 @@ test("window bounds convergence: the yield reads only rounds [window_start .. n]
   assert.equal(res.action, "fix-and-rerun");
   assert.equal(res.cap.yielded, true);
   assert.deepEqual(res.convergence.totals, [2, 1]);
+});
+
+// --- The default appetite resolves exactly as `faff config get appetite` (fix 1) ---
+
+test("appetite resolves like config get: FAFF_APPETITE applies when no --appetite is passed", () => {
+  const fx = scratch({ 1: REVISE_ARCH });
+  const { res } = round(fx, block(REVISE_ARCH), { appetite: null }, { FAFF_APPETITE: "low" });
+  assert.equal(res.cap.limit, 1);
+  assert.equal(res.action, "park", "cap 1 reached at round 2 without convergence");
+});
+
+test("appetite resolves like config get: a live L4 run forces full", () => {
+  const fx = scratch({ 1: REVISE_ARCH });
+  const runDir = join(fx.root, "run");
+  mkdirSync(runDir);
+  writeFileSync(join(runDir, "run-ledger.json"), JSON.stringify({ level: "L4", owner: { status: "running", last_heartbeat: new Date().toISOString() } }));
+  const { res } = round(fx, block(REVISE_ARCH), { appetite: null }, { FAFF_RUN_DIR: runDir });
+  assert.equal(res.cap.limit, 10);
+});
+
+// --- Human-only verbs refuse under any named run (fixes 2, 3) ---
+
+function runLedger(root, name, ledger) {
+  const d = join(root, name);
+  mkdirSync(d, { recursive: true });
+  if (ledger !== undefined) writeFileSync(join(d, "run-ledger.json"), JSON.stringify(ledger));
+  return d;
+}
+
+test("mark-ratified refused under any run: empty --run-dir, a missing run dir, L1/L2 ledgers and $FAFF_RUN_DIR all refuse", () => {
+  const fx = scratch({ 1: REVISE_ARCH }, { "decision-1.json": { action: "fix-and-rerun" } });
+  const base = ["spec-review", "round", "--dir", fx.dir, "--mark-ratified", "1", "--comment-id", "c", "--mode", "interactive", "--json"];
+  const l3 = runLedger(fx.root, "l3", { level: "L3" });
+  assert.equal(cli([...base, "--run-dir", ""], { FAFF_RUN_DIR: l3 }).code, 2, "an empty --run-dir does not mask $FAFF_RUN_DIR");
+  assert.equal(cli([...base, "--run-dir", join(fx.root, "nope")]).code, 2, "a named run dir with no readable ledger refuses");
+  assert.equal(cli([...base, "--run-dir", runLedger(fx.root, "l1", { level: "L1" })]).code, 2, "an L1 run refuses");
+  assert.equal(cli(base, { FAFF_RUN_DIR: runLedger(fx.root, "l2", { level: "L2" }) }).code, 2, "an L2 run from the env refuses");
+  assert.equal(existsSync(join(fx.dir, "ratified-1.json")), false);
+  assert.equal(cli(base).code, 0, "no run dir: the present human ratifies");
+});
+
+test("open window refused under any run: a named run dir, the env, or an unreadable ledger refuses", () => {
+  const fx = scratch({ 1: REVISE_ARCH }, { "decision-1.json": { action: "park" } });
+  const base = ["spec-review", "round", "--open-window", "--dir", fx.dir, "--json"];
+  assert.equal(cli([...base, "--run-dir", runLedger(fx.root, "l2", { level: "L2" })]).code, 2);
+  assert.equal(cli(base, { FAFF_RUN_DIR: runLedger(fx.root, "l4", { level: "L4" }) }).code, 2);
+  assert.equal(cli([...base, "--run-dir", runLedger(fx.root, "torn")]).code, 2, "a run dir with no ledger refuses");
+  assert.equal(existsSync(join(fx.dir, "cap-reset.json")), false);
+  assert.equal(cli([...base, "--run-dir", ""]).code, 0, "an empty --run-dir and no env: the human unpark proceeds");
+});
+
+// --- Limit flags may lower, never raise, under a run (fix 4) ---
+
+test("limit flags under a run: --appetite and --retry-limit may lower the resolved ceilings but never raise them", () => {
+  const fx = scratch();
+  const run = runLedger(fx.root, "l3", { level: "L3" });
+  assert.equal(round(fx, block(REVISE_ARCH), { appetite: "full", "run-dir": run }).code, 2, "full (cap 10) raises the resolved high (cap 5)");
+  const low = round(scratch(), block(REVISE_ARCH), { appetite: "low", "run-dir": run });
+  assert.equal(low.code, 0);
+  assert.equal(low.res.cap.limit, 1, "lowering is allowed");
+  assert.equal(round(scratch(), block(REVISE_ARCH), { "retry-limit": 3, "run-dir": run }).code, 2, "3 raises the configured 2");
+  assert.equal(round(scratch(), block(rec("unavailable", [o("QA", "major")])), { "retry-limit": 1, "run-dir": run }).res.retry_limit, 1, "lowering is allowed");
+  assert.equal(round(scratch(), block(REVISE_ARCH), { appetite: "full" }).code, 0, "with no run, the flag is the interactive operator's call");
+});
+
+// --- Retry boundary and govern returning nothing (fix 6) ---
+
+test("outage retry boundary: with retry limit 2 exactly two dispatches retry and the third holds", () => {
+  const fx = scratch();
+  const U = rec("unavailable", [o("QA", "major")]);
+  const actions = [1, 2, 3].map(() => round(fx, block(U), { "retry-limit": 2 }).res.action);
+  assert.deepEqual(actions, ["retry-outage", "retry-outage", "hold-outage"]);
+});
+
+test("govern returns nothing: a govern with no result resets window_start to n and warns", () => {
+  const fx = scratch({ 1: REVISE_ARCH }, { "window.json": { window_start: 1 } });
+  const govern = (dir, n) => { writeFileSync(join(dir, `governance-${n}.json`), "{}"); return { code: 2, result: null, detail: "window marker unreadable" }; };
+  const res = srr.runRound({ issue: "FAFF-9001", dir: fx.dir, verdictText: block(rec("revise", [o("architectural", "minor")])), mode: "autonomous", occupant: "adversarial", served: "any", runDir: null, appetite: "high", retryLimit: 2, root: fx.root }, { govern });
+  assert.equal(res.window_start, 2);
+  assert.ok(res.warnings.includes("govern-fault: window marker unreadable"), JSON.stringify(res.warnings));
+});
+
+test("govern anomaly carries the pin-capture reason", () => {
+  const fx = scratch({}, { "served-1.json": { served_identity: "p|m|h" }, "pin-capture.json": { state: "failed", round: 1, reason: "backends-json unreadable" } });
+  const { res } = round(fx, block(REVISE_ARCH), { occupant: "adversarial", served: "any" });
+  assert.ok(res.warnings.some((w) => w.includes("round1-capture-missed") && w.includes("(pin-capture: backends-json unreadable)")), JSON.stringify(res.warnings));
 });
 
 test("open window: after a recorded park, --open-window moves window_start and the cap reset", () => {

@@ -21,6 +21,7 @@ const churnApi = require("./spec-review-churn");
 const convergenceApi = require("./spec-review-convergence");
 const capApi = require("./spec-review-iteration-cap");
 const configApi = require("./config-core");
+const appetiteApi = require("./config-resolve");
 const sharedInfra = require("./shared-infra");
 const argvApi = require("./argv");
 // --- Untyped-JSON helpers. ---
@@ -271,6 +272,46 @@ function readLevel(runDir) {
     const lv = field(readJsonFile(path.join(runDir, "run-ledger.json")).value, "level");
     return lv === "L3" || lv === "L4" ? lv : null;
 }
+// namedRunDir(flag) -> the run dir a call names: a non-empty --run-dir, else a non-empty
+// $FAFF_RUN_DIR, else null. An empty string names nothing, so `--run-dir ""` cannot mask the env.
+function namedRunDir(flag) {
+    const f = str(flag);
+    if (f !== undefined && f !== "")
+        return f;
+    const e = process.env["FAFF_RUN_DIR"];
+    return e !== undefined && e !== "" ? e : null;
+}
+// refuseUnderRun(what, runDir) -> throws when any run is named. --open-window and
+// --mark-ratified lift a termination bound and stand for a present human (prep's "human unpark"
+// and ratify), and interactive prep runs with no run dir by design; so a named run dir refuses at
+// any level, and so does one whose ledger cannot be read.
+function refuseUnderRun(what, runDir) {
+    if (runDir === null)
+        return;
+    const r = readJsonFile(path.join(runDir, "run-ledger.json"));
+    const lv = field(r.value, "level");
+    const state = r.value !== undefined ? `run ${runDir} (level ${typeof lv === "string" ? lv : "unset"})` : `run dir ${runDir}, whose ledger cannot be read`;
+    throw new RoundFault(`${what} is refused under ${state}: only a present human with no run in flight does this`);
+}
+// resolvedAppetite(root) -> the appetite exactly as `faff config get appetite` resolves it:
+// FAFF_APPETITE, then a live L4 run forcing `full`, then config, then the default.
+function resolvedAppetite(root) {
+    let data;
+    try {
+        data = configApi.loadConfig(root)[0];
+    }
+    catch (e) {
+        throw new RoundFault(`config unreadable: ${errText(e)}`);
+    }
+    const v = appetiteApi.resolveAppetite(data, process.env);
+    return typeof v === "string" ? v : String(v);
+}
+function capFor(appetite) {
+    const r = capApi.resolveReviewIterationCap(appetite);
+    if (r.error !== undefined || r.cap === undefined)
+        throw new RoundFault(r.error ?? "appetite did not resolve");
+    return r.cap;
+}
 // configValue(root, key) -> the dotted key from .faff/config.yaml, else the registry default.
 function configValue(root, key) {
     let data;
@@ -341,10 +382,27 @@ function runRound(o, deps = realDeps()) {
         throw new RoundFault("--occupant single-pass takes no --served");
     if (o.occupant === "single-pass" && fs.existsSync(path.join(o.dir, `served-${n}.json`)))
         throw new RoundFault(`--occupant single-pass but served-${n}.json is present: this round was adversarial`);
-    const capLimitRes = capApi.resolveReviewIterationCap(o.appetite ?? configValue(o.root, "appetite") ?? "");
-    if (capLimitRes.error !== undefined || capLimitRes.cap === undefined)
-        throw new RoundFault(capLimitRes.error ?? "appetite did not resolve");
-    const retryLimit = o.retryLimit ?? parseLimit(configValue(o.root, "prep.spec_review_outage_retry_limit"), "prep.spec_review_outage_retry_limit");
+    // The ceilings: the resolved values, which a flag may lower; under a run a flag may never raise them.
+    const underRun = o.runDir !== null && o.runDir !== "";
+    const resolvedCap = capFor(resolvedAppetite(o.root));
+    let capLimit = resolvedCap;
+    if (o.appetite !== null) {
+        capLimit = capFor(o.appetite);
+        if (underRun && capLimit > resolvedCap)
+            throw new RoundFault(`--appetite ${o.appetite} (cap ${capLimit}) raises the resolved cap ${resolvedCap} under a run; a flag may only lower it`);
+    }
+    let retryLimit;
+    if (o.retryLimit === null)
+        retryLimit = parseLimit(configValue(o.root, "prep.spec_review_outage_retry_limit"), "prep.spec_review_outage_retry_limit");
+    else {
+        retryLimit = o.retryLimit;
+        if (underRun) {
+            const configured = parseLimit(configValue(o.root, "prep.spec_review_outage_retry_limit"), "prep.spec_review_outage_retry_limit");
+            if (retryLimit > configured)
+                throw new RoundFault(`--retry-limit ${retryLimit} raises the configured ${configured} under a run; a flag may only lower it`);
+        }
+    }
+    const capLimitRes = { cap: capLimit };
     const level = readLevel(o.runDir);
     const warnings = [];
     // 3. Window governance, adversarial occupant only.
@@ -363,8 +421,10 @@ function runRound(o, deps = realDeps()) {
                 governance.window_start = n;
                 warnings.push(`govern-fault: ${String(anomaly ?? g.detail ?? "exit 2")}`);
             }
-            else if (anomaly !== null && anomaly !== undefined)
-                warnings.push(`govern-anomaly: ${String(field(g.result, "action"))} ${String(anomaly)}`);
+            else if (anomaly !== null && anomaly !== undefined) {
+                const reason = str(field(readJsonFile(path.join(o.dir, "pin-capture.json")).value, "reason"));
+                warnings.push(`govern-anomaly: ${String(field(g.result, "action"))} ${String(anomaly)}${reason === undefined ? "" : ` (pin-capture: ${reason})`}`);
+            }
         }
         else {
             windowStart = n;
@@ -503,6 +563,7 @@ function cmdSpecReviewRound(argv) {
         return argvApi.usageError([{ code: "missing-required", detail: "--dir <scratch> is required" }], ROUND_USAGE);
     try {
         if (values["--open-window"] === true) {
+            refuseUnderRun("--open-window", namedRunDir(values["--run-dir"]));
             const r = openWindow(dir);
             process.stdout.write(json ? `${JSON.stringify(r)}\n` : `window opened at round ${r.window_start}\n`);
             return 0;
@@ -516,9 +577,7 @@ function cmdSpecReviewRound(argv) {
             const commentId = str(values["--comment-id"]);
             if (commentId === undefined || commentId === "")
                 throw new RoundFault("--mark-ratified requires --comment-id <id>");
-            const level = readLevel(str(values["--run-dir"]) ?? process.env["FAFF_RUN_DIR"] ?? null);
-            if (level !== null)
-                throw new RoundFault(`--mark-ratified is refused on an autonomous ${level} run: only a present human ratifies`);
+            refuseUnderRun("--mark-ratified", namedRunDir(values["--run-dir"]));
             const r = markRatified(dir, parseInt(markRaw, 10), commentId);
             process.stdout.write(json ? `${JSON.stringify(r)}\n` : `round ${r.round} ratified\n`);
             return 0;
@@ -546,7 +605,7 @@ function cmdSpecReviewRound(argv) {
         const retryRaw = str(values["--retry-limit"]);
         const result = runRound({
             issue, dir, verdictText, mode, occupant, served,
-            runDir: str(values["--run-dir"]) ?? process.env["FAFF_RUN_DIR"] ?? null,
+            runDir: namedRunDir(values["--run-dir"]),
             appetite: str(values["--appetite"]) ?? null,
             retryLimit: retryRaw === undefined ? null : parseLimit(retryRaw, "--retry-limit"),
             root: str(values["--root"]) ?? sharedInfra.findRoot(),
@@ -560,4 +619,4 @@ function cmdSpecReviewRound(argv) {
         return emitFault(json, `unexpected: ${errText(e)}`);
     }
 }
-module.exports = { cmdSpecReviewRound, decideRound, runRound, realDeps, outageAttempt, outagedLenses, verdictBlocks, summarise, readLevel, configValue, parseLimit, RoundFault, ROUND_USAGE, CAUSE };
+module.exports = { cmdSpecReviewRound, decideRound, runRound, realDeps, namedRunDir, outageAttempt, outagedLenses, verdictBlocks, summarise, readLevel, configValue, parseLimit, RoundFault, ROUND_USAGE, CAUSE };

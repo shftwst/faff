@@ -26,8 +26,8 @@ function fx(issue = "FAFF-9001", store = undefined, siblings = {}) {
   for (const [name, body] of Object.entries(siblings)) writeFileSync(join(dir, name), body);
   return { root, dir, file: join(dir, "spec-review-hold.json") };
 }
-function hold(root, args) {
-  const r = spawnSync(process.execPath, [CLI, "spec-review", "hold", "--root", root, "--json", ...args], { encoding: "utf8" });
+function hold(root, args, env = {}) {
+  const r = spawnSync(process.execPath, [CLI, "spec-review", "hold", "--root", root, "--json", ...args], { encoding: "utf8", env: { ...process.env, FAFF_RUN_DIR: "", ...env } });
   let res = null;
   try { res = JSON.parse(r.stdout); } catch { res = null; }
   return { code: r.status, res, stderr: r.stderr };
@@ -182,6 +182,22 @@ test("lenses validated: --lenses outside the lens vocabulary exits 2", () => {
   const s = outageScratch(f.root, 3);
   assert.equal(hold(f.root, ["--issue", "FAFF-9001", "--cause", "outage", "--mode", "autonomous", "--dir", s, "--retry-limit", "2", "--lenses", "QA,;drop"]).code, 2);
   assert.equal(existsSync(f.file), false);
+});
+
+test("limit flags under a run: --hold-limit and --retry-limit may lower the configured ceilings but never raise them", () => {
+  const run = join(mkdtempSync(join(tmpdir(), "faff-srh-run-")), "run");
+  mkdirSync(run);
+  writeFileSync(join(run, "run-ledger.json"), JSON.stringify({ level: "L3" }));
+  const env = { FAFF_RUN_DIR: run };
+  const tb = (limit) => hold(fx().root, ["--issue", "FAFF-9001", "--cause", "turn-budget", "--mode", "autonomous", "--hold-limit", String(limit)], env);
+  assert.equal(tb(5).code, 2, "5 raises the configured 3");
+  assert.equal(tb(2).res.limit, 2, "lowering is allowed");
+  const f = fx();
+  const s7 = outageScratch(join(f.root, "seven"), 7); // 7 dispatches clear a limit of 5, so only the raise guard can refuse
+  assert.equal(hold(f.root, ["--issue", "FAFF-9001", "--cause", "outage", "--mode", "autonomous", "--dir", s7, "--retry-limit", "5"], env).code, 2, "5 raises the configured 2");
+  const s = outageScratch(f.root, 3);
+  assert.equal(hold(f.root, ["--issue", "FAFF-9001", "--cause", "outage", "--mode", "autonomous", "--dir", s, "--retry-limit", "1"], env).res.action, "hold", "lowering is allowed");
+  assert.equal(hold(fx().root, ["--issue", "FAFF-9001", "--cause", "turn-budget", "--mode", "autonomous", "--hold-limit", "5"]).code, 0, "with no run, the flag is the operator's call");
 });
 
 // --- --read and --clear (P51, P58, P62) ---

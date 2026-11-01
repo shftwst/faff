@@ -192,6 +192,7 @@ function runHold(o) {
     // 2. The outage precondition: the in-turn ceiling was actually hit.
     let heldAtRound;
     let pinned;
+    let outageCheck = () => undefined;
     if (o.dir !== null) {
         const records = readRecords(o.dir, o.cause === "outage");
         const ns = [...records.keys()].sort((a, b) => a - b);
@@ -202,19 +203,31 @@ function runHold(o) {
             if (latest === undefined || str(field(records.get(latest), "verdict")) !== "unavailable") {
                 throw new HoldFault("--cause outage: the latest round record in --dir is not unavailable");
             }
-            const retryLimit = o.retryLimit ?? roundApi.parseLimit(roundApi.configValue(o.root, "prep.spec_review_outage_retry_limit"), "prep.spec_review_outage_retry_limit");
-            const prior = view(classify(readText(p.file))).held_at_round ?? 0;
-            const attempt = roundApi.outageAttempt(records, latest, prior);
-            if (attempt <= retryLimit)
-                throw new HoldFault(`--cause outage: ${attempt} unavailable dispatch(es) this round, not above the retry limit ${retryLimit}`);
+            const configuredRetry = () => roundApi.parseLimit(roundApi.configValue(o.root, "prep.spec_review_outage_retry_limit"), "prep.spec_review_outage_retry_limit");
+            const retryLimit = o.retryLimit ?? configuredRetry();
+            if (o.retryLimit !== null && o.underRun && o.retryLimit > configuredRetry()) {
+                throw new HoldFault(`--retry-limit ${o.retryLimit} raises the configured ${configuredRetry()} under a run; a flag may only lower it`);
+            }
+            outageCheck = () => {
+                // Read under the lock, so held_at_round cannot move between this check and the write.
+                const prior = view(classify(readText(p.file))).held_at_round ?? 0;
+                const attempt = roundApi.outageAttempt(records, latest, prior);
+                if (attempt <= retryLimit)
+                    throw new HoldFault(`--cause outage: ${attempt} unavailable dispatch(es) this round, not above the retry limit ${retryLimit}`);
+            };
         }
     }
     else if (o.cause === "outage") {
         throw new HoldFault("--cause outage requires --dir <scratch>");
     }
-    const limit = o.holdLimit ?? roundApi.parseLimit(roundApi.configValue(o.root, LIMIT_KEY[o.cause]), LIMIT_KEY[o.cause]);
+    const configuredLimit = () => roundApi.parseLimit(roundApi.configValue(o.root, LIMIT_KEY[o.cause]), LIMIT_KEY[o.cause]);
+    const limit = o.holdLimit ?? configuredLimit();
+    if (o.holdLimit !== null && o.underRun && o.holdLimit > configuredLimit()) {
+        throw new HoldFault(`--hold-limit ${o.holdLimit} raises the configured ${configuredLimit()} under a run; a flag may only lower it`);
+    }
     // 3. Under the resume-store lock.
     return withLock(p.storeRoot, o.issue, () => {
+        outageCheck();
         const text = readText(p.file);
         const store = classify(text);
         const d = decideHold(store, o.cause, limit, {
@@ -331,6 +344,7 @@ function cmdSpecReviewHold(argv) {
             holdLimit: holdRaw === undefined ? null : roundApi.parseLimit(holdRaw, "--hold-limit"),
             retryLimit: retryRaw === undefined ? null : roundApi.parseLimit(retryRaw, "--retry-limit"),
             root,
+            underRun: (process.env["FAFF_RUN_DIR"] ?? "") !== "",
         });
         printResult(json, r);
         return 0;

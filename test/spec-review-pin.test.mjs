@@ -630,6 +630,7 @@ test("prep SKILL asserts the governance step ran: the round call fails safe on a
   const body = readFileSync(PREP_SKILL, "utf8");
   assert.match(body, /governance-<n>\.json/);
   assert.match(body, /window_start := n/, "a fault or a missing governance record resets the window to n");
+  assert.match(body, /Copy every `warnings` line into `prep\.md`/, "the governance anomaly, fault and missing-record warnings are surfaced loud into prep.md");
 });
 
 test("prep SKILL bounds churn to the window: the round call compares against the previous round in the window", () => {

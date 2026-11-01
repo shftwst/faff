@@ -1,0 +1,224 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1416",
+  "aggregate": "meets-spec",
+  "code_blind": true,
+  "spawner_attested": false,
+  "attestation": null,
+  "violations": [],
+  "criteria": [
+    {
+      "id": "scenarios:1",
+      "text": "Given a feature worktree on branch b with a local bare remote as origin, a run dir whose genesis events chain, ac-checklist.json and review-verdict.json (signal pass) are valid, and a gh stub that answers `pr list` with [] and `pr create` with https://example.invalid/pr/7\nWhen `faff pr open --run-dir D --issue TT-1 --base main --title T --body-file draft.md --json` runs\nThen it exits 0 with token \"opened\" and pr_url \"https://example.invalid/pr/7\"\nAnd origin's branch b head is a commit with subject \"chore(TT-1): anchor run evidence\" that adds .faff/anchors/<run-id>/TT-1/\nAnd the gh call log shows `pr create` after origin's branch b already pointed at that commit",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "fixture /tmp/eval/s1: bare origin, branch b (not pre-pushed), run dir minted by `faff run-ledger init-interactive --issue TT-1` + `evidence write ac-checklist` + `evidence write review-verdict --terminal-only` (signal pass); gh stub answers pr list [] / pr create https://example.invalid/pr/7 and logs origin b head per call. Ran `faff pr open --run-dir D --issue TT-1 --base main --title T --body-file draft.md --json`",
+      "expected": "exit 0, token opened, pr_url https://example.invalid/pr/7; origin b head = commit 'chore(TT-1): anchor run evidence' adding .faff/anchors/<run-id>/TT-1/; gh log shows pr create after origin b pointed at it",
+      "observed": "rc=0; {\"token\":\"opened\",\"pr_url\":\"https://example.invalid/pr/7\"}; origin b = cbb57645 'chore(TT-1): anchor run evidence', name-status A .faff/anchors/run-20261031-180922-graft-TT-1/TT-1/{ac-checklist,chain-head,events,review-verdict,run-ledger}; gh log: '[origin_b=none] pr list ...' then '[origin_b=cbb57645...] pr create --body-file ... --title T'",
+      "evidence_ref": "report: scenarios:1",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:2",
+      "text": "Given the same setup and a draft body that cites a sibling issue X-2 and the target TT-1\nWhen `faff pr open` runs\nThen the file passed to `gh pr create --body-file` contains no bare tracker-recognisable X-2 identifier\nAnd it contains exactly one closing reference to TT-1",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "fixture /tmp/eval/s2 (as s1), draft body 'Delivers TT-1. Builds on the groundwork from X-2 (see X-2 ...). Closes TT-1'; ran faff pr open; gh stub copied the --body-file passed to gh pr create. Supplementary /tmp/eval/s2b with siblings XX-2 and X-2 and duplicate 'Closes TT-1'/'Fixes TT-1'",
+      "expected": "file passed to gh pr create --body-file has no bare tracker-recognisable X-2 identifier and exactly one closing reference to TT-1",
+      "observed": "rc=0 opened; created body: prose 'TT‑1' (U+2011), 'X-2' left as ASCII (X-2 does not match the tree's id rule [A-Z][A-Z0-9]{1,15}-[1-9][0-9]*, so it is not tracker-recognisable); exactly one 'Closes TT-1'. s2b: 'XX‑2' neutralised, duplicate Closes/Fixes TT-1 neutralised, one appended 'Closes TT-1'",
+      "evidence_ref": "report: scenarios:2",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:3",
+      "text": "Given a feature worktree with origin and a run dir whose review-verdict.json has signal fail\nWhen `faff pr open --run-dir D --issue TT-1 --base main --title T --body-file draft.md --json` runs\nThen it exits 1 with token \"refused\" and cause \"review-not-pass\"\nAnd origin's branch head is unchanged, no anchor commit exists locally, and the gh call log has no `pr create`",
+      "holdout": true,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "fixture /tmp/eval/s3: branch b pre-pushed to origin, review-verdict.json signal fail; ran faff pr open ... --json",
+      "expected": "exit 1, token refused, cause review-not-pass; origin b unchanged, no local anchor commit, no gh pr create",
+      "observed": "rc=1; {\"token\":\"refused\",\"cause\":\"review-not-pass\"}; origin b 0e16dee before=after; local log only 'feat: the feature','init'; gh log empty",
+      "evidence_ref": "report: scenarios:3",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:4",
+      "text": "Given a feature worktree with origin and a run dir whose review-verdict.json has signal pass but whose events.jsonl is empty\nWhen `faff pr open --run-dir D --issue TT-1 --base main --title T --body-file draft.md --json` runs\nThen it exits 3 with token \"needs-human\" and cause \"anchor-genesis-invalid\"\nAnd events.jsonl is byte-for-byte unchanged, origin's branch head is unchanged, and the gh call log has no `pr create`",
+      "holdout": true,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "fixture /tmp/eval/s4: b pre-pushed, review verdict pass, events.jsonl truncated to 0 bytes; ran faff pr open ... --json",
+      "expected": "exit 3, token needs-human, cause anchor-genesis-invalid; events.jsonl byte-identical; origin b unchanged; no gh pr create",
+      "observed": "rc=3; token needs-human, cause 'anchor-genesis-invalid: <run dir> has no valid genesis chain; a provisioning fault, re-mint the run dir'; events.jsonl sha256 e3b0c442... before=after (0 bytes); origin b before=after; gh log only 'pr list'",
+      "evidence_ref": "report: scenarios:4",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:5",
+      "text": "Given the first scenario has already run and the gh stub now answers `pr list` with that PR (base main, headRefOid equal to the worktree's HEAD)\nWhen `faff pr open` runs again on the unchanged tree\nThen it exits 0 with token \"already-open\", that PR's url, and a tracker_transition to \"In Review\"\nAnd no new commit is created, origin's branch head is unchanged, and the gh call log has no second `pr create`",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "re-ran faff pr open on /tmp/eval/s1 after scenarios:1 with gh stub pr list answering [{number:7,url:https://example.invalid/pr/7,baseRefName:main,headRefOid:<HEAD>}]",
+      "expected": "exit 0, token already-open, PR url, tracker_transition to In Review; no new commit, origin b unchanged, no second gh pr create",
+      "observed": "rc=0; token already-open, pr_url https://example.invalid/pr/7, pr_number 7, tracker_transition.to 'In Review'; HEAD and origin b cbb57645 before=after; commit count 3->3; gh log has 1 pr create total",
+      "evidence_ref": "report: scenarios:5",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:6",
+      "text": "Given a worktree with a pre-commit hook that exits 1, origin, and a run dir with a pass review verdict and a valid chain\nWhen `faff pr open` runs\nThen it exits 2 with token \"errored\"\nAnd origin's branch head is unchanged and the gh call log has no `pr create`",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "fixture /tmp/eval/s6: b pre-pushed, pass verdict, valid chain, .git/hooks/pre-commit exiting 1; ran faff pr open ... --json",
+      "expected": "exit 2, token errored; origin b unchanged; no gh pr create",
+      "observed": "rc=2; {\"token\":\"errored\",\"cause\":\"commit failure: git commit exited 1: pre-commit: rejected\"}; origin b before=after; gh log only 'pr list'",
+      "evidence_ref": "report: scenarios:6",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:7",
+      "text": "Given a repository with no remote\nWhen `faff pr open --run-dir D --issue TT-1 --base main --title T --body-file draft.md --json` runs\nThen it exits 0 with token \"no-op\" and creates no commit",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "fixture /tmp/eval/s7: repository with no remote; ran faff pr open ... --json (and text mode)",
+      "expected": "exit 0, token no-op, no commit created",
+      "observed": "rc=0; {\"token\":\"no-op\",\"cause\":\"git-only (no remote): no PR to open\"}; HEAD before=after, commit count 2->2, clean tree, no gh call",
+      "evidence_ref": "report: scenarios:7",
+      "reason": null,
+      "reason_code": null
+    }
+  ],
+  "delegated": [
+    {
+      "id": "done:1",
+      "text": "`faff pr open` refuses with `refused` / `review-not-pass` unless `review-verdict.json` re-validates to `pass`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1416#done:1"
+    },
+    {
+      "id": "done:2",
+      "text": "Graft Step 9b calls `faff pr open` and no longer contains its own `faff events anchor`, `git push`, `faff pr-body` or `faff pr-create` invocations.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1416#done:2"
+    },
+    {
+      "id": "done:3",
+      "text": "`plugin/skills/faff/bin/lib/pr-open.ts` exists with its committed `.js` emit; `build-manifest.json` is regenerated and `node scripts/build-manifest.js check` passes.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1416#done:3"
+    },
+    {
+      "id": "done:4",
+      "text": "`pr-open.ts` is in the `tsconfig.json` include list and the `test/check-no-boundary-cast.test.mjs` pin list.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1416#done:4"
+    },
+    {
+      "id": "done:5",
+      "text": "`regions.js` maps `pr` to `factory` with `REGION_SELFTEST_ARGV.pr = null`, and `TEST_FILE_COVERAGE.pr` names `test/pr-open.test.mjs`; `faff regions check` and `lint-cli-coverage` pass.",
+      "holdout": false,
+      "verification_tier": "integration",
+      "verifier": "review-merge-floor",
+      "ac_id": "faff-1416#done:5"
+    },
+    {
+      "id": "done:6",
+      "text": "`merge-gate-pr-create.js`, `pr-body.js`, `events.js`, `bundle.js` and every `commissaire*` module are unchanged by the PR.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1416#done:6"
+    },
+    {
+      "id": "done:7",
+      "text": "`docs/guide/cli.md` has a `pr open` row.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1416#done:7"
+    },
+    {
+      "id": "done:8",
+      "text": "Every token and exit code in the 3. WHAT table is produced by at least one test.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1416#done:8"
+    },
+    {
+      "id": "done:9",
+      "text": "`validate-adapters` fails a faff-graft Step 9b that invokes `gh pr create`, `faff pr-create`, `faff pr-body`, `faff events anchor` or `git push` directly, or does not invoke `faff pr open`, and still fails a missing Step 9b section.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1416#done:9"
+    },
+    {
+      "id": "done:10",
+      "text": "`SKILL_LINE_BASELINE[\"faff-graft\"]` is lowered to the new line count with a `FAFF-1416` comment entry, and `ANCHOR_PHRASES` for faff-graft still resolve (`validate-adapters` reports no RATCHET and no FAIL).",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1416#done:10"
+    },
+    {
+      "id": "done:11",
+      "text": "Every line the PR deletes from `faff-graft/SKILL.md` maps to a row P1–P44 below; the PR description lists the deleted line ranges against row ids.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1416#done:11"
+    },
+    {
+      "id": "done:12",
+      "text": "Every `kept` and `changed` row whose covering-test cell names a test has that named case in `test/pr-open.test.mjs` (or the named CLI-level / validate-adapters test), and it passes. Rows marked `agent-side` (prose, no executable unit) or `unchanged: <command>` (behaviour owned by an unchanged command and its existing tests) are exempt, and every row is one of these three kinds.",
+      "holdout": false,
+      "verification_tier": "integration",
+      "verifier": "review-merge-floor",
+      "ac_id": "faff-1416#done:12"
+    },
+    {
+      "id": "done:13",
+      "text": "`test/pr-open.test.mjs` passes under `node --test`, including the order and commit-failure cases in 4.6.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1416#done:13"
+    },
+    {
+      "id": "done:14",
+      "text": "The full gate ladder (`faff gates run`) passes.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1416#done:14"
+    }
+  ]
+}

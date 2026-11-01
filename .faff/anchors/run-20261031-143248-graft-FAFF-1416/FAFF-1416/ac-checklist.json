@@ -1,0 +1,215 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "`faff pr open` refuses with `refused` / `review-not-pass` unless `review-verdict.json` re-validates to `pass`.",
+      "verified": "review-not-pass test: fail/needs-human/unavailable/missing each refuse exit 1 with no outward call; CLI-level fail-verdict case passes",
+      "passed": true,
+      "ac_id": "faff-1416#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/pr-open.test.mjs::review-not-pass"
+        },
+        {
+          "kind": "test",
+          "locator": "test/pr-open.test.mjs::CLI-level: a fail review verdict refuses before anything outward"
+        }
+      ]
+    },
+    {
+      "ac": "Graft Step 9b calls `faff pr open` and no longer contains its own `faff events anchor`, `git push`, `faff pr-body` or `faff pr-create` invocations.",
+      "verified": "Step 9b calls faff pr open; validate-adapters' Step 9b lint passes on the real skill and the pr-body prose test asserts no sanitize call",
+      "passed": true,
+      "ac_id": "faff-1416#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/pr-open.test.mjs::validate-adapters: the real faff-graft Step 9b passes the re-targeted lint"
+        },
+        {
+          "kind": "test",
+          "locator": "test/pr-body.test.mjs::faff-graft SKILL.md Step 9b: the git-only no-op guard precedes the faff pr open call"
+        }
+      ]
+    },
+    {
+      "ac": "`plugin/skills/faff/bin/lib/pr-open.ts` exists with its committed `.js` emit; `build-manifest.json` is regenerated and `node scripts/build-manifest.js check` passes.",
+      "verified": "pr-open.ts and pr-open.js committed; node scripts/build-manifest.js check exits 0",
+      "passed": true,
+      "ac_id": "faff-1416#done:3",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "cd plugin/skills/faff && node scripts/build-manifest.js check"
+        }
+      ]
+    },
+    {
+      "ac": "`pr-open.ts` is in the `tsconfig.json` include list and the `test/check-no-boundary-cast.test.mjs` pin list.",
+      "verified": "pr-open.ts is in tsconfig include and the pinned list; check-no-boundary-cast clean (23 sources)",
+      "passed": true,
+      "ac_id": "faff-1416#done:4",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node scripts/check-no-boundary-cast.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`regions.js` maps `pr` to `factory` with `REGION_SELFTEST_ARGV.pr = null`, and `TEST_FILE_COVERAGE.pr` names `test/pr-open.test.mjs`; `faff regions check` and `lint-cli-coverage` pass.",
+      "verified": "regions.js pr: factory and REGION_SELFTEST_ARGV.pr = null; TEST_FILE_COVERAGE.pr names test/pr-open.test.mjs; regions check exit 0, lint-cli-coverage PASS",
+      "passed": true,
+      "ac_id": "faff-1416#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-coverage"
+        }
+      ]
+    },
+    {
+      "ac": "`merge-gate-pr-create.js`, `pr-body.js`, `events.js`, `bundle.js` and every `commissaire*` module are unchanged by the PR.",
+      "verified": "git diff origin/main...HEAD touches none of merge-gate-pr-create.js, pr-body.js, events.js, bundle.js or any commissaire module",
+      "passed": true,
+      "ac_id": "faff-1416#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --name-only origin/main...HEAD"
+        }
+      ]
+    },
+    {
+      "ac": "`docs/guide/cli.md` has a `pr open` row.",
+      "verified": "docs/guide/cli.md carries a pr open row; lint-cli-doc passes in the gate ladder",
+      "passed": true,
+      "ac_id": "faff-1416#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-doc"
+        }
+      ]
+    },
+    {
+      "ac": "Every token and exit code in the 3. WHAT table is produced by at least one test.",
+      "verified": "opened/already-open/no-op 0, refused 1, errored 2, needs-human 3 each asserted by a named test",
+      "passed": true,
+      "ac_id": "faff-1416#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/pr-open.test.mjs::happy path"
+        },
+        {
+          "kind": "test",
+          "locator": "test/pr-open.test.mjs::already-open anchored"
+        },
+        {
+          "kind": "test",
+          "locator": "test/pr-open.test.mjs::no-op"
+        },
+        {
+          "kind": "test",
+          "locator": "test/pr-open.test.mjs::review-not-pass"
+        },
+        {
+          "kind": "test",
+          "locator": "test/pr-open.test.mjs::usage errors"
+        },
+        {
+          "kind": "test",
+          "locator": "test/pr-open.test.mjs::commissaire-status-failed"
+        }
+      ]
+    },
+    {
+      "ac": "`validate-adapters` fails a faff-graft Step 9b that invokes `gh pr create`, `faff pr-create`, `faff pr-body`, `faff events anchor` or `git push` directly, or does not invoke `faff pr open`, and still fails a missing Step 9b section.",
+      "verified": "validate-adapters fails each direct call, a Step 9b without faff pr open, and a missing Step 9b section",
+      "passed": true,
+      "ac_id": "faff-1416#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/pr-open.test.mjs::validate-adapters: a Step 9b that bypasses faff pr open fails"
+        },
+        {
+          "kind": "test",
+          "locator": "test/pr-open.test.mjs::validate-adapters: a Step 9b that never invokes faff pr open fails, and a missing section still fails"
+        }
+      ]
+    },
+    {
+      "ac": "`SKILL_LINE_BASELINE[\"faff-graft\"]` is lowered to the new line count with a `FAFF-1416` comment entry, and `ANCHOR_PHRASES` for faff-graft still resolve (`validate-adapters` reports no RATCHET and no FAIL).",
+      "verified": "SKILL_LINE_BASELINE faff-graft 855 -> 843 with a FAFF-1416 entry; validate-adapters exits 0 with no RATCHET or FAIL",
+      "passed": true,
+      "ac_id": "faff-1416#done:10",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "Every line the PR deletes from `faff-graft/SKILL.md` maps to a row P1–P44 below; the PR description lists the deleted line ranges against row ids.",
+      "verified": "old Step 9b lines 502-554 mapped to P1-P44 in the PR description's rule-inventory table",
+      "passed": true,
+      "ac_id": "faff-1416#done:11",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main...HEAD -- plugin/skills/faff-graft/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "Every `kept` and `changed` row whose covering-test cell names a test has that named case in `test/pr-open.test.mjs` (or the named CLI-level / validate-adapters test), and it passes. Rows marked `agent-side` (prose, no executable unit) or `unchanged: <command>` (behaviour owned by an unchanged command and its existing tests) are exempt, and every row is one of these three kinds.",
+      "verified": "every named covering test exists in test/pr-open.test.mjs and passes (34/34)",
+      "passed": true,
+      "ac_id": "faff-1416#done:12",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/pr-open.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`test/pr-open.test.mjs` passes under `node --test`, including the order and commit-failure cases in 4.6.",
+      "verified": "node --test test/pr-open.test.mjs: 34 pass, 0 fail, including order guarantee and commit-failure",
+      "passed": true,
+      "ac_id": "faff-1416#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/pr-open.test.mjs::order guarantee"
+        },
+        {
+          "kind": "test",
+          "locator": "test/pr-open.test.mjs::commit-failure"
+        }
+      ]
+    },
+    {
+      "ac": "The full gate ladder (`faff gates run`) passes.",
+      "verified": "faff gates run: signal pass, 9/9 rungs (quality-gates contract conformant)",
+      "passed": true,
+      "ac_id": "faff-1416#done:14",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gates run --json --resume"
+        }
+      ]
+    }
+  ]
+}

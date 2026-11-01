@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "verdict": "revise",
+  "final_verdict": "revise",
+  "rounds_total": 2,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "Step 8 (anchor mint) runs unconditionally before Step 12 (existing-PR check), and the first run's `faff pr-create` appends schema:2 declare/observe entries to the run's events ledger *after* the first anchor was minted (merge-gate-pr-create.js step 5). On a re-run, `faff events anchor` therefore mints an anchor over a grown `events.jsonl` — different bytes from the anchor already at the PR head — so `git add` stages it, the \"nothing staged\" skip does not fire, a new `chore(...)` commit is created, and `git push origin <branch>` moves an open PR's head. That contradicts scenario 5's \"no new commit is created\" and D5's \"a re-run on an unchanged tree pushes nothing new\" (the tree is *not* unchanged — the anchor file changed), and it fires CI on the open PR via `on: pull_request` synchronize, the exact waste P23's \"CI fires here for the first time\" claim is supposed to prevent. The builder cannot fix this by implementation choice: 4.1 fixes the order (\"A step that refuses stops the command; later steps never run\" — but nothing refuses here), and `faff events anchor` is explicitly out of scope to change, so no idempotency rescue is available.",
+      "evidence": "4.1 steps 8–12 ordering; D5; scenario 5 (\"no new commit is created and the gh call log has no second `pr create`\"); out-of-scope \"Changing … `faff events anchor`\"; merge-gate-pr-create.js's post-create `appendEffectEntries`.",
+      "predicted_consequence": "the `already-open` test as specified fails (a commit *is* created), or the builder silently reorders the existing-PR check before the anchor — a spec deviation — and every future re-run of an open PR pushes a fresh anchor commit and triggers a CI run.",
+      "spec_anchor": "43-graft-step-9b-after-the-change",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-1 revision: existing-PR lookup moved before anything outward, plus the anchored-HEAD short-circuit (steps 8-9) (review record 8b9164ed).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "Step 8 (anchor mint) runs unconditionally before Step 12 (existing-PR check), and the first run's `faff pr-create` appends schema:2 declare/observe entries to the run's events ledger *after* the first anchor was minted (merge-gate-pr-create.js step 5). On a re-run, `faff events anchor` therefore mints an anchor over a grown `events.jsonl` — different bytes from the anchor already at the PR head — so `git add` stages it, the \"nothing staged\" skip does not fire, a new `chore(...)` commit is created, and `git push origin <branch>` moves an open PR's head. That contradicts scenario 5's \"no new commit is created\" and D5's \"a re-run on an unchanged tree pushes nothing new\" (the tree is *not* unchanged — the anchor file changed), and it fires CI on the open PR via `on: pull_request` synchronize, the exact waste P23's \"CI fires here for the first time\" claim is supposed to prevent. The builder cannot fix this by implementation choice: 4.1 fixes the order (\"A step that refuses stops the command; later steps never run\" — but nothing refuses here), and `faff events anchor` is explicitly out of scope to change, so no idempotency rescue is available.",
+          "spec_anchor": "43-graft-step-9b-after-the-change"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "On a governed run, step 12 returns `already-open` exit 0 before steps 13–15 ever run, and the spec mandates \"(no declare, no create)\" for that path. Any open PR matching `--head <branch> --base <base>` — including one opened out-of-band with a raw `gh pr create` after (or instead of) a denied `authorize` — is converted by the command into a sanctioned success token that graft's routing table (4.3 item 5) treats identically to `opened`: proceed to the In Review transition and Step 10. The pr-create grant — the thing D1 says the chokepoint exists to verify — is never consulted on this path, and no effect record, warning, or lineage note is emitted, so the governed run's event chain shows a clean successful PR-open sequence with no pr-create lineage at all. The spec's own headline property (\"no ungranted governed PR\", §1) is not maintained on this token.",
+      "evidence": "4.1 step 12 (\"Exactly one match → `already-open` exit 0 … no declare, no create\"); result table row `already-open` (\"head pushed, no create\"); 4.3 item 5 routing `opened` / `already-open` identically; contrast step 13's fail-closed `deny` handling.",
+      "predicted_consequence": "A governed run whose pr-create authorization was denied can be driven to a green `faff pr open` exit 0 by opening the PR out-of-band and re-running the command; the run proceeds to In Review and merge with an unattributed, never-granted PR-open in its lineage. (The merge itself remains separately gated, which is why this is not critical.)",
+      "spec_anchor": "what-4-1-procedure (and `d5-already-open-on-re-run`)",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-1 revision: governed already-open requires the chokepoint pr-create grant leg, else needs-human already-open-ungranted (review record 8b9164ed).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "On a governed run, step 12 returns `already-open` exit 0 before steps 13–15 ever run, and the spec mandates \"(no declare, no create)\" for that path. Any open PR matching `--head <branch> --base <base>` — including one opened out-of-band with a raw `gh pr create` after (or instead of) a denied `authorize` — is converted by the command into a sanctioned success token that graft's routing table (4.3 item 5) treats identically to `opened`: proceed to the In Review transition and Step 10. The pr-create grant — the thing D1 says the chokepoint exists to verify — is never consulted on this path, and no effect record, warning, or lineage note is emitted, so the governed run's event chain shows a clean successful PR-open sequence with no pr-create lineage at all. The spec's own headline property (\"no ungranted governed PR\", §1) is not maintained on this token.",
+          "spec_anchor": "what-4-1-procedure (and `d5-already-open-on-re-run`)"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The DONE criterion requires a covering test for **every** `kept` and `changed` row, but the rule inventory itself marks nine kept rows with `n/a` or a non-test name as their covering test (P4 \"n/a (tracker read)\", P7 \"n/a\", P19 \"usage\", P23 \"n/a\", P32 \"n/a\", P34 \"n/a\", P35 \"n/a\", P42 \"n/a (tracker write)\", P43 \"n/a\", P44 \"descriptor test\"). A builder cannot decide whether DONE is met: either the criterion fails on the inventory's own rows, or \"n/a\" rows are silently exempt and the criterion's scope is undefined. Several \"covering test\" cells are prose labels (\"happy path\", \"usage\", \"descriptor test\"), not named tests, so even for rows with a label there is no decidable mapping from row to test.",
+      "evidence": "`### From HOW` → \"Every `kept` and `changed` row's covering test exists and passes\"; the `## Rule inventory` table rows P4, P7, P19, P23, P32, P34, P35, P42, P43, P44.",
+      "predicted_consequence": "done cannot be decided for the rule-inventory criterion — a reviewer and the builder can legitimately disagree about whether P42/P43 (kept, \"n/a\") satisfy it, and the PR-description mapping requirement (\"lists the deleted line ranges against row ids\") inherits the same ambiguity.",
+      "spec_anchor": "rule-inventory",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-1 revision: covering tests named per row; agent-side and unchanged rows are an explicit exempt kind (review record 8b9164ed).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The DONE criterion requires a covering test for **every** `kept` and `changed` row, but the rule inventory itself marks nine kept rows with `n/a` or a non-test name as their covering test (P4 \"n/a (tracker read)\", P7 \"n/a\", P19 \"usage\", P23 \"n/a\", P32 \"n/a\", P34 \"n/a\", P35 \"n/a\", P42 \"n/a (tracker write)\", P43 \"n/a\", P44 \"descriptor test\"). A builder cannot decide whether DONE is met: either the criterion fails on the inventory's own rows, or \"n/a\" rows are silently exempt and the criterion's scope is undefined. Several \"covering test\" cells are prose labels (\"happy path\", \"usage\", \"descriptor test\"), not named tests, so even for rows with a label there is no decidable mapping from row to test.",
+          "spec_anchor": "rule-inventory"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "Decision D7 states the chosen push is `git push origin <branch>`, but procedure step 12 specifies `git push origin refs/heads/<branch>:refs/heads/<branch>` with its own rationale (the full refspec keeps a branch value from being read as an option). These are different commands and the spec gives no reconciliation; a builder cannot tell which is authoritative.",
+      "evidence": "D7 (\"**Chosen:** `git push origin <branch>`, matching Step 8b's form\") vs step 12 (\"Then `git push origin refs/heads/<branch>:refs/heads/<branch>` (no force; the full refspec keeps a branch value from ever being read as an option)\").",
+      "predicted_consequence": "the implementer picks one, the test asserting the push call records the other, and the order-guarantee test (which pins the recorded call sequence) fails or is written against the wrong form; at best a wasted review round.",
+      "spec_anchor": "d7-push-target",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-2 revision: D7 now states the full refspec form used in step 12 (review record 8b9164ed).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "Decision D7 states the chosen push is `git push origin <branch>`, but procedure step 12 specifies `git push origin refs/heads/<branch>:refs/heads/<branch>` with its own rationale (the full refspec keeps a branch value from being read as an option). These are different commands and the spec gives no reconciliation; a builder cannot tell which is authoritative.",
+          "spec_anchor": "d7-push-target"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "DONE requires graft Step 9b to \"no longer contain its own … `faff pr-body` … invocations\", but D6's re-targeted lint forbids only `gh pr create`, `faff pr-create`, `faff events anchor` and `git push` in the Step 9b section. The automated guard and the stated DONE criterion disagree, so the one remaining direct-invocation path (`faff pr-body sanitize|check` left in prose) would pass the lint while failing DONE — or, more likely, the builder omits it from the lint because the lint list is the spec's operative definition.",
+      "evidence": "D6 (\"now also fails when that section does not invoke `faff pr open`, or when a code span inside it invokes `gh pr create`, `faff pr-create`, `faff events anchor` or `git push` directly\") vs the DONE bullet (\"no longer contains its own `faff events anchor`, `git push`, `faff pr-body` or `faff pr-create` invocations\").",
+      "predicted_consequence": "a Step 9b rewrite that still pipes the draft through `faff pr-body` passes `validate-adapters` and the PR ships with the sanitizer invoked outside the command's step-7 refusal ordering, silently reintroducing the P10 \"never fall back to the draft\" hazard the lint exists to guard.",
+      "spec_anchor": "d6-lint-retargeted-guarantee-moved-to-tests",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-2 revision: faff pr-body added to the D6 lint list and the DONE item (review record 8b9164ed).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "DONE requires graft Step 9b to \"no longer contain its own … `faff pr-body` … invocations\", but D6's re-targeted lint forbids only `gh pr create`, `faff pr-create`, `faff events anchor` and `git push` in the Step 9b section. The automated guard and the stated DONE criterion disagree, so the one remaining direct-invocation path (`faff pr-body sanitize|check` left in prose) would pass the lint while failing DONE — or, more likely, the builder omits it from the lint because the lint list is the spec's operative definition.",
+          "spec_anchor": "d6-lint-retargeted-guarantee-moved-to-tests"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The spec asserts both that the shared derivation \"changes one recorded value: an absent holdout is recorded as `missing` instead of omitted, and a stale `meets-spec` is now `blocked`\" (D4) and that \"`faff merge authorize`'s behaviour is unchanged (its existing tests pass unmodified)\" (Where the code lives). If the shared function produces `missing`/`blocked`, merge authorize's recorded payload changes with it — both claims cannot hold unless no existing merge-authorize test pins the absent-holdout or stale-holdout payload, which the spec never states. Separately, no test in 4.6 pins the new values: the `inputs-equal` test compares pr open's inputs to merge authorize's derivation *post-change*, so it passes trivially under either semantics and verifies nothing about D4's claimed change.",
+      "evidence": "D4 in 4.2; the `merge-authorize.ts` bullet in \"Where the code lives\"; the `inputs-equal` test in 4.6.",
+      "predicted_consequence": "A builder extracting the shared function cannot decide whether to change its absent-holdout/stale-holdout output (breaking the unchanged-merge-authorize DONE claim if any existing test pins the old payload) or keep merge authorize's semantics (leaving D4's stated change unimplemented); and the D4 change ships with no test that would fail if it were not made.",
+      "spec_anchor": "d4-inputs-derived-never-passed",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-2 revision: D4 reworded (merge authorize already derives this way) and the holdout payload test added (review record 8b9164ed).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The spec asserts both that the shared derivation \"changes one recorded value: an absent holdout is recorded as `missing` instead of omitted, and a stale `meets-spec` is now `blocked`\" (D4) and that \"`faff merge authorize`'s behaviour is unchanged (its existing tests pass unmodified)\" (Where the code lives). If the shared function produces `missing`/`blocked`, merge authorize's recorded payload changes with it — both claims cannot hold unless no existing merge-authorize test pins the absent-holdout or stale-holdout payload, which the spec never states. Separately, no test in 4.6 pins the new values: the `inputs-equal` test compares pr open's inputs to merge authorize's derivation *post-change*, so it passes trivially under either semantics and verifies nothing about D4's claimed change.",
+          "spec_anchor": "d4-inputs-derived-never-passed"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "D7 says the push is \"`git push origin <branch>`, matching Step 8b's form\"; step 12 says \"`git push origin refs/heads/<branch>:refs/heads/<branch>` (no force; the full refspec…)\". These are different command forms, and the `order guarantee` / `happy path` tests will pin whichever one the builder picked — the spec does not say which.",
+      "evidence": "D7 in 4.2 vs step 12 in 4.1; P15/P16's covering tests cite `order guarantee` and `happy path`.",
+      "predicted_consequence": "The call-sequence tests assert one form; a reviewer checking the build against the other spec line reads it as a deviation, and the D7 rationale (\"branch with no upstream still pushes\") is never actually verified for the refspec form.",
+      "spec_anchor": "d7-push-target",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-2 revision: D7 and step 12 now agree on the refspec push form (review record 8b9164ed).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "D7 says the push is \"`git push origin <branch>`, matching Step 8b's form\"; step 12 says \"`git push origin refs/heads/<branch>:refs/heads/<branch>` (no force; the full refspec…)\". These are different command forms, and the `order guarantee` / `happy path` tests will pin whichever one the builder picked — the spec does not say which.",
+          "spec_anchor": "d7-push-target"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The DONE item requires graft Step 9b to \"no longer contain its own `faff events anchor`, `git push`, `faff pr-body` or `faff pr-create` invocations\", but D6's re-targeted lint fails a Step 9b only for `gh pr create`, `faff pr-create`, `faff events anchor` or `git push` — `faff pr-body` is missing from the lint's blocked-invocation list, so the DONE criterion's named enforcement mechanism cannot detect its violation.",
+      "evidence": "DONE \"From WHY\" second bullet vs D6 in 4.2.",
+      "predicted_consequence": "A build can pass `validate-adapters` while Step 9b still shells `faff pr-body sanitize|check` directly, satisfying the lint and violating the DONE item; the criterion is then decidable only by manual inspection the spec never assigns.",
+      "spec_anchor": "d6-lint-re-targeted-guarantee-moved-to-tests",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in round-2 revision: faff pr-body added to the D6 lint list so the lint matches the DONE item (review record 8b9164ed).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The DONE item requires graft Step 9b to \"no longer contain its own `faff events anchor`, `git push`, `faff pr-body` or `faff pr-create` invocations\", but D6's re-targeted lint fails a Step 9b only for `gh pr create`, `faff pr-create`, `faff events anchor` or `git push` — `faff pr-body` is missing from the lint's blocked-invocation list, so the DONE criterion's named enforcement mechanism cannot detect its violation.",
+          "spec_anchor": "d6-lint-re-targeted-guarantee-moved-to-tests"
+        }
+      ]
+    }
+  ]
+}

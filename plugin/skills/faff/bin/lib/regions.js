@@ -572,6 +572,9 @@ const REGION_MAP = {
   // FAFF-1435: run summary composes economics, gates-doctor, merge-gate-gh and config-core (factory)
   // with the governance reconcile, budget, events, heartbeat and holdout-record functions.
   run: "factory",
+  // FAFF-1415: worktree ensure composes the factory primitives worktree-check, worktree-heal,
+  // build-progress, resume-store, conventions and the worktree-root resolver.
+  worktree: "factory",
   // FAFF-1442: prose-size reads the skills dir and git history only; validate-adapters (factory) calls it.
   "prose-size": "factory",
   // FAFF-363: governance-check references the SAME factory identifiers merge-gate does
@@ -812,6 +815,8 @@ const REGION_SELFTEST_ARGV = {
   pr: null,
   // FAFF-1435: no --selftest (tests live in test/ only); lint-cli-coverage's TEST_FILE_COVERAGE names them.
   run: null,
+  // FAFF-1415: no --selftest (tests live in test/ only); lint-cli-coverage's TEST_FILE_COVERAGE names them.
+  worktree: null,
   // FAFF-1442: no --selftest (tests live in test/ only); lint-cli-coverage's TEST_FILE_COVERAGE names them.
   "prose-size": null,
   "governance-check": ["governance-check", "--selftest"],

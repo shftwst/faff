@@ -1,0 +1,535 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "`faff worktree ensure` returns, for each mode and refusal cause in section 3, the outcome Step 3's prose reaches for the same repository state, except the changes named in section 4.5 rows 20, 21, 24, 25, 27, 38, 40, 45, 47 and 52.",
+      "verified": "each section 3 mode and refusal cause has a real-repo test reaching the prose's outcome; the named changes are the rows listed",
+      "passed": true,
+      "ac_id": "faff-1415#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::existing fresh worktree is reused"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::stale worktree rebases cleanly"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::checkpoint match resumes"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::store restore resumes"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::uncertifiable never fresh-creates"
+        }
+      ]
+    },
+    {
+      "ac": "Graft Step 3 calls `faff worktree ensure` and no longer shells `faff worktree-check`, `faff worktree-heal`, `faff build-progress read`, `faff resume-store restore`, `faff conventions mine`, `faff conventions get branch_naming`, `setup-worktree.sh` or `faff worktree-root --assert`.",
+      "verified": "Step 3's section of faff-graft/SKILL.md contains none of the listed invocations; it calls faff worktree ensure",
+      "passed": true,
+      "ac_id": "faff-1415#done:2",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "python3 scan of the Step 3 section for each invocation string"
+        }
+      ]
+    },
+    {
+      "ac": "Autonomous mode without a run dir exits 2; so does a missing `--issue`, `--mode` or `--slug`, a slug outside `^[a-z0-9]+(-[a-z0-9]+)*$`, and a missing or unparseable `--labels` when the hold check is reached. A reused worktree in autonomous mode with no `--labels` is not exit 2.",
+      "verified": "every exit-2 case and the reused-worktree non-exit-2 case pass",
+      "passed": true,
+      "ac_id": "faff-1415#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::bad invocations exit 2 before anything runs"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::non-kebab slug exits 2"
+        }
+      ]
+    },
+    {
+      "ac": "The output carries `resume_at` (`start`, `existing`, `gate`, `review`) and no graft step number; each `ready` result carries exactly one `cause` from section 3's table.",
+      "verified": "resume_at is one of start/existing/gate/review on every ready path; each ready result carries one cause",
+      "passed": true,
+      "ac_id": "faff-1415#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::every result carries every key, nulls on a non-ready result"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::checkpoint match resumes"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::dialogue-cause store resumes at review"
+        }
+      ]
+    },
+    {
+      "ac": "Interactive mode never reads a build-progress checkpoint or a resume store.",
+      "verified": "interactive mode with a checkpoint and a held store present calls neither build-progress nor resume-store",
+      "passed": true,
+      "ac_id": "faff-1415#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::interactive never resumes"
+        }
+      ]
+    },
+    {
+      "ac": "An autonomous rebase conflict leaves no rebase in progress; an interactive one leaves it in progress.",
+      "verified": "autonomous conflict: no rebase-merge/rebase-apply dir; interactive: rebase in progress",
+      "passed": true,
+      "ac_id": "faff-1415#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::autonomous rebase conflict aborts and parks"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::interactive rebase conflict hands over"
+        }
+      ]
+    },
+    {
+      "ac": "A `clobbered-recoverable` worktree is healed and re-checked once; a heal failure or a second exit 2 is `heal-failed`.",
+      "verified": "real clobber heals with exactly two worktree-check runs; heal exit 1 and a second exit 2 are heal-failed",
+      "passed": true,
+      "ac_id": "faff-1415#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::clobbered worktree heals and is reused"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::heal failure parks or hands over"
+        }
+      ]
+    },
+    {
+      "ac": "No exit-2 reason other than `no-worktree` leads to a fresh create.",
+      "verified": "each of the five other reasons, both modes, never calls setup-worktree.sh",
+      "passed": true,
+      "ac_id": "faff-1415#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::uncertifiable never fresh-creates"
+        }
+      ]
+    },
+    {
+      "ac": "The resume store and the build-progress checkpoint are never deleted or modified by the command, except through `resume-store restore`.",
+      "verified": "checkpoint bytes and the store tree are unchanged after mismatches",
+      "passed": true,
+      "ac_id": "faff-1415#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::checkpoint mismatch creates fresh"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::store mismatch creates fresh, store kept"
+        }
+      ]
+    },
+    {
+      "ac": "The hold check matches the `awaiting-review` and `awaiting-adjudication` roles under a configured non-default label prefix.",
+      "verified": "label_prefix sd: sd-awaiting-adjudication and sd-awaiting-review hold; faff-awaiting-review does not",
+      "passed": true,
+      "ac_id": "faff-1415#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::custom prefix hold label"
+        }
+      ]
+    },
+    {
+      "ac": "With no checkpoint, no hold label and a resume store directory on disk, the result is a fresh create whose `warnings` name the store and whose `detail.store_path` is set.",
+      "verified": "fresh create, warning names the store path, detail.store_path set, resume-store never called",
+      "passed": true,
+      "ac_id": "faff-1415#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::unlabelled store warns"
+        }
+      ]
+    },
+    {
+      "ac": "Every result carries every output key; on a non-`ready` result `mode`, `resume_at`, `setup_script` and `resume` are `null` and `detail` carries the blocker's data as section 3 lists.",
+      "verified": "key set identical on ready and parked results; mode/resume_at/setup_script/resume null on parked; detail per cause asserted across the blocker tests",
+      "passed": true,
+      "ac_id": "faff-1415#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::every result carries every key, nulls on a non-ready result"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::autonomous rebase conflict aborts and parks"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::store restore failure needs human"
+        }
+      ]
+    },
+    {
+      "ac": "The project wrapper `scripts/setup-worktree.sh` is used when present, else the bundled script; neither is modified.",
+      "verified": "project wrapper wins when present, bundled otherwise; neither script is in the diff",
+      "passed": true,
+      "ac_id": "faff-1415#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::project wrapper preferred"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::bundled script used"
+        },
+        {
+          "kind": "command",
+          "locator": "git diff --name-only origin/main...HEAD"
+        }
+      ]
+    },
+    {
+      "ac": "A non-zero script exit or empty output is `setup-failed`.",
+      "verified": "non-zero exit, empty output and blank lines are setup-failed with setup_log",
+      "passed": true,
+      "ac_id": "faff-1415#done:14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::failed provision parks or hands over"
+        }
+      ]
+    },
+    {
+      "ac": "A `tracker-hint` branch name that fails `git check-ref-format --branch` or lacks the issue id as a token is replaced by `<issue>-<slug>`, with a warning.",
+      "verified": "hint without the token, with the token embedded in a longer number, and an invalid ref all fall back with a warning",
+      "passed": true,
+      "ac_id": "faff-1415#done:15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::tracker hint without issue id falls back"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::invalid tracker hint falls back"
+        }
+      ]
+    },
+    {
+      "ac": "The resume recreate's path is `<root>/<branch with \"/\" replaced by \"-\">`, and it is checked to be strictly under the resolved root before `git worktree add` runs.",
+      "verified": "team/FAFF-9-demo recreates at <wtroot>/team-FAFF-9-demo; the strictly-under check runs before git worktree add (worktree-ensure.ts recreate)",
+      "passed": true,
+      "ac_id": "faff-1415#done:16",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::recreate path flattens slashes under the resolved root"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::checkpoint match resumes"
+        }
+      ]
+    },
+    {
+      "ac": "When the recreate path is already a registered worktree on the recorded branch at the verified tip, the recreate reuses it without `git worktree add` and the result is `resumed`; at any other branch or tip it is `resume-recreate-failed`.",
+      "verified": "second resume reuses the registered worktree with no git worktree add; a non-matching registered path is resume-recreate-failed",
+      "passed": true,
+      "ac_id": "faff-1415#done:17",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::recreate reuses its own earlier worktree"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::failed recreate parks"
+        }
+      ]
+    },
+    {
+      "ac": "The resume recreate never resets or deletes a local branch; a diverged local branch is `resume-branch-diverged`, and a failed add or a `HEAD` other than the verified tip is `resume-recreate-failed`.",
+      "verified": "diverged local branch parks and keeps its tip; occupied path is resume-recreate-failed",
+      "passed": true,
+      "ac_id": "faff-1415#done:18",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::diverged local branch parks"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::failed recreate parks"
+        }
+      ]
+    },
+    {
+      "ac": "No `ready` result names a path that is not an existing directory.",
+      "verified": "a provisioner path that does not exist is worktree-missing, never ready",
+      "passed": true,
+      "ac_id": "faff-1415#done:19",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::missing worktree path refuses"
+        }
+      ]
+    },
+    {
+      "ac": "The root assert runs on every `ready` path, including `reused`, `rebased` and `healed`.",
+      "verified": "root assert parks an outside-root reused worktree autonomously and warns interactively",
+      "passed": true,
+      "ac_id": "faff-1415#done:20",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::worktree outside root parks"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::interactive outside root warns"
+        }
+      ]
+    },
+    {
+      "ac": "`graft_skill_dir` is the bundled `faff-graft` directory on every result.",
+      "verified": "graft_skill_dir equals the bundled faff-graft dir on ready and non-ready results, including when the project wrapper wins",
+      "passed": true,
+      "ac_id": "faff-1415#done:21",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::graft_skill_dir is the bundled dir"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::project wrapper preferred"
+        }
+      ]
+    },
+    {
+      "ac": "The command makes no tracker call.",
+      "verified": "only conventions/worktree-check/worktree-heal/build-progress/resume-store children are spawned; the source names no tracker",
+      "passed": true,
+      "ac_id": "faff-1415#done:22",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::the command makes no tracker call and spawns only the composed primitives"
+        }
+      ]
+    },
+    {
+      "ac": "`docs/guide/cli.md` documents the command, its output and its tables.",
+      "verified": "docs/guide/cli.md has the worktree ensure row with the output object and the disposition/mode/cause tables; lint-cli-doc passes",
+      "passed": true,
+      "ac_id": "faff-1415#done:23",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-doc"
+        }
+      ]
+    },
+    {
+      "ac": "`faff commissaire` and every `commissaire*` module are unchanged by this PR.",
+      "verified": "git diff --name-only origin/main...HEAD lists no commissaire file",
+      "passed": true,
+      "ac_id": "faff-1415#done:24",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --name-only origin/main...HEAD"
+        }
+      ]
+    },
+    {
+      "ac": "The command lives in `bin/lib/worktree-ensure.ts` with its committed emit `bin/lib/worktree-ensure.js`; the `.ts` is in `tsconfig.json` `include`, and `build-manifest.json` is updated in the same commit.",
+      "verified": "worktree-ensure.ts and .js committed together, tsconfig include and build-manifest.json updated in the same commit",
+      "passed": true,
+      "ac_id": "faff-1415#done:25",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git show --stat fb342dd5"
+        }
+      ]
+    },
+    {
+      "ac": "`worktree-ensure.ts` contains no `as`, non-null `!` or `satisfies`, and `test/check-no-boundary-cast.test.mjs` lists it and passes.",
+      "verified": "check-no-boundary-cast lists worktree-ensure.ts and passes",
+      "passed": true,
+      "ac_id": "faff-1415#done:26",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/check-no-boundary-cast.test.mjs::S3: the real cluster sources are clean (exit 0)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/check-no-boundary-cast.test.mjs::S3: realSources() lists the fifteen tsconfig include entries"
+        }
+      ]
+    },
+    {
+      "ac": "`faff regions check` passes, and CI's committed-emit check passes.",
+      "verified": "regions check exit 0; npm run build leaves the committed emit unchanged",
+      "passed": true,
+      "ac_id": "faff-1415#done:27",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        },
+        {
+          "kind": "command",
+          "locator": "cd plugin/skills/faff && npm run build && git diff --exit-code"
+        }
+      ]
+    },
+    {
+      "ac": "Graft Step 3 routes every disposition, `resume_at` token and a non-zero exit as section 4.2 lists, and returns only tokens already in graft's return-value list.",
+      "verified": "Step 3 routes ready by resume_at, hand-over, parked/needs-human, claimed-by-peer and a non-zero exit; all returned tokens are in graft's return-value list",
+      "passed": true,
+      "ac_id": "faff-1415#done:28",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "read faff-graft/SKILL.md Step 3: disposition table (ready, hand-over, parked/needs-human, claimed-by-peer, non-zero exit) and resume_at table; tokens checked against the Return values list"
+        }
+      ]
+    },
+    {
+      "ac": "Graft's Configuration paragraph and `references/build.md` name `faff worktree ensure` as the invoker of `setup-worktree.sh`; the Worktree policy rules are otherwise unchanged.",
+      "verified": "Configuration paragraph and references/build.md name faff worktree ensure; policy rules unchanged",
+      "passed": true,
+      "ac_id": "faff-1415#done:29",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main...HEAD -- plugin/skills/faff/references/build.md"
+        }
+      ]
+    },
+    {
+      "ac": "Every row in section 4.5 has its listed test case, or is marked agent or dropped with a reason.",
+      "verified": "every 4.5 row's named test exists in test/worktree-ensure.test.mjs, or the row is agent/dropped",
+      "passed": true,
+      "ac_id": "faff-1415#done:30",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep the named cases in test/worktree-ensure.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "Every line the PR deletes from `faff-graft/SKILL.md` maps to a row in section 4.5; the PR description lists the mapping by row number.",
+      "verified": "the PR description maps every deleted Step 3 line to its 4.5 row",
+      "passed": true,
+      "ac_id": "faff-1415#done:31",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "gh pr view <pr> --json body: the Rule inventory mapping section"
+        }
+      ]
+    },
+    {
+      "ac": "`SKILL_LINE_BASELINE[\"faff-graft\"]` is lowered to the count measured after the branch is rebased on `main`.",
+      "verified": "SKILL_LINE_BASELINE faff-graft lowered 843 -> 802, the measured count on main 00e1e54d; validate-adapters passes with no RATCHET",
+      "passed": true,
+      "ac_id": "faff-1415#done:32",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "`test/worktree-ensure.test.mjs` covers every row's named case, both modes, git-only, each `branch_naming` scheme, and each `uncertifiable:<reason>`, using temporary git repositories with a bare origin and `SKIP_NPM_PACKAGES_INSTALL=1`, plus injected `Deps` for the store and restore exit codes.",
+      "verified": "45 cases over real repos with a bare origin and SKIP_NPM_PACKAGES_INSTALL=1, both modes, git-only, each scheme, each uncertifiable reason, injected Deps for store and restore exits",
+      "passed": true,
+      "ac_id": "faff-1415#done:33",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::branch naming per scheme"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::git-only checkpoint match resumes"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::store busy is claimed-by-peer"
+        }
+      ]
+    },
+    {
+      "ac": "`REGION_SELFTEST_ARGV[\"worktree\"] = null` with a `TEST_FILE_COVERAGE` entry naming `test/worktree-ensure.test.mjs`, and `lint-cli-coverage` passes.",
+      "verified": "REGION_SELFTEST_ARGV.worktree = null and TEST_FILE_COVERAGE.worktree names the test; lint-cli-coverage passes",
+      "passed": true,
+      "ac_id": "faff-1415#done:34",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-coverage"
+        }
+      ]
+    },
+    {
+      "ac": "No `--selftest` case is added in any module.",
+      "verified": "no added --selftest case in any module",
+      "passed": true,
+      "ac_id": "faff-1415#done:35",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main...HEAD | grep '^+.*--selftest'"
+        }
+      ]
+    },
+    {
+      "ac": "`faff gates run` passes.",
+      "verified": "faff gates run passes 9/9",
+      "passed": true,
+      "ac_id": "faff-1415#done:36",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff gates run --json --resume"
+        }
+      ]
+    }
+  ]
+}

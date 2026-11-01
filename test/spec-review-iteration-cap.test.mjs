@@ -79,19 +79,9 @@ test("faff spec-review-iteration-cap --selftest exits 0 and reports PASS", () =>
 
 // --- Drift guard: faff-prep names the resolver, never a bare hardcoded loop-cap integer -----
 
-test("drift guard: faff-prep/SKILL.md's Loop cap paragraph resolves the cap via the resolver", () => {
+test("drift guard: faff-prep/SKILL.md's gate counts the cap through `spec-review round`, never a bare integer", () => {
   const body = readFileSync(PREP_SKILL, "utf8");
-  const loopCap = body.split("\n").find((line) => line.startsWith("**Loop cap.**"));
-  assert.ok(loopCap, "the Loop cap paragraph must exist");
-  assert.match(
-    loopCap,
-    /faff spec-review-iteration-cap/,
-    "the Loop cap must resolve the ceiling via `faff spec-review-iteration-cap`, never state a bare integer",
-  );
-  // The exact drift this change removes: the fixed-2 form `capped at **N iterations**`.
-  assert.doesNotMatch(
-    loopCap,
-    /capped at \*\*\d+ iterations?\*\*/i,
-    "the Loop cap must not restate a bare hardcoded loop-cap integer — it resolves through the resolver",
-  );
+  assert.match(body, /counts the appetite cap from disk/, "the cap is resolved inside the round call, by appetite");
+  assert.doesNotMatch(body, /capped at \*\*\d+ iterations?\*\*/i, "the gate must not restate a bare hardcoded loop-cap integer");
+  assert.doesNotMatch(body, /\(cap \d+( iterations)?\)/, "the Scenario A and Path 2 references point at the gate, not a number");
 });

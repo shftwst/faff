@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1417",
+  "build": {
+    "status": "complete",
+    "diff_hash": "e09edf34c39b19ea84764803b87f26df161f40529e1351406cd1d0fda00a7784",
+    "branch": "faff-1417-spec-review-round-and-hold",
+    "pushed_at": "2026-11-01T22:58:00.369Z"
+  },
+  "updated_at": "2026-11-01T22:58:00.369Z"
+}

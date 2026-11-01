@@ -1,0 +1,21 @@
+{
+  "verdict": "revise",
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec mandates the subset assertion \"at module load, and again in `--selftest`\", calling a violation \"a build-time fault (the selftest fails), not a runtime degradation\". But `bin/faff` eagerly requires every `lib/*.js` (the load-order constraint `cli-surface.js` documents), so an assertion that throws at module load turns a drifted `CLASSIFIER_TABLE` key into a crash of the entire `faff` CLI — every verb, not just `github-templates` — which contradicts the never-throw posture the spec otherwise holds as load-bearing (\"a scanner that can throw would be a defect in the invariant\").",
+      "evidence": "Spec, \"The subset assertion (the mechanical half of the taxonomy share)\" — \"At module load, and again in `--selftest`, assert that…\"; contrast the spec's own purity section (\"Nothing it does can throw at the caller\") and `native-map.js`'s reader posture in the supplied context.",
+      "predicted_consequence": "The first taxonomy rename (the exact event the assertion exists to catch) takes down every `faff` verb with an unhandled require-time throw, instead of failing one selftest — the failure mode lands on the widest possible blast radius at precisely the moment the table is being edited.",
+      "spec_anchor": "the-subset-assertion-the-mechanical-half-of-the-taxonomy-share"
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "DONE requires \"`classify` resolves `labels` before `name` before `about`\", but no scenario constructs a template whose signals disagree across tiers (e.g. `name: Bug report` with `labels: [feature]` must classify `feature`), and no scenario classifies a file via its `about` field alone. A build that scans the signals in the wrong order (name first, or about before name) passes every listed scenario, including both holdouts — the holdout RFC case tests *table* order (spike before feature), not *signal* order.",
+      "evidence": "DONE item \"classify resolves `labels` before `name` before `about`…\" under \"From HOW (behaviour)\"; scenarios all use single-signal or agreeing-signal fixtures.",
+      "predicted_consequence": "done cannot be decided for the precedence criterion by the shipped scenario set; a reordered-signal build ships green.",
+      "spec_anchor": "from-how-behaviour"
+    }
+  ]
+}

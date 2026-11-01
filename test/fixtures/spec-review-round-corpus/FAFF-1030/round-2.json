@@ -1,0 +1,9 @@
+{ "verdict": "reject-approach",
+  "objections": [
+    { "lens": "architectural", "severity": "minor" },
+    { "lens": "methodology", "severity": "major" },
+    { "lens": "methodology", "severity": "minor" },
+    { "lens": "methodology", "severity": "minor" },
+    { "lens": "QA", "severity": "minor" },
+    { "lens": "QA", "severity": "minor" }
+  ] }

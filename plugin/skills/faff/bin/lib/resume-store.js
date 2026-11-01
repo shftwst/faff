@@ -435,6 +435,7 @@ module.exports = {
   cmdResumeStore,
   read,
   recover,
+  releaseLock,
   restore,
   resumeStoreSelftest,
   stash,

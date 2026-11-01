@@ -189,28 +189,24 @@ test("faff spec-review-churn --selftest exits 0 and reports PASS", () => {
 
 // --- faff-prep/SKILL.md wiring -------------------------------------------------------------
 
-test("faff-prep/SKILL.md: Loop cap paragraph names the churn check and its downgrade behaviour", () => {
+test("faff-prep/SKILL.md: the round call checks churn and prep parks on its action", () => {
   const body = readFileSync(PREP_SKILL, "utf8");
-  assert.match(body, /faff spec-review-churn/, "the Loop cap paragraph must resolve churn via the CLI, never eyeball it");
-  assert.match(body, /churn: true/, "must name the churn:true downgrade");
-  assert.match(body, /without spending|do not spend/i, "must state the earlier-bail behaviour (skip the remaining iteration)");
+  assert.match(body, /checks churn against the previous round in the window/, "the round call runs the churn check");
+  assert.match(body, /\| `park` \| Park protocol with `cause`/, "a churn would-be-park routes to the park protocol");
+  assert.match(body, /\*\*Anti-pattern:\*\* running `spec-review route`, `spec-review-churn`/, "no churn check beside the round call");
 });
 
-test("faff-prep/SKILL.md: Park causes gains a spec-review-churn entry", () => {
+test("faff-prep/SKILL.md: Park causes names the round call's churn cause", () => {
   const body = readFileSync(PREP_SKILL, "utf8");
   const parkCausesLine = body.split("\n").find((line) => line.startsWith("**Park causes**"));
   assert.ok(parkCausesLine, "Park causes line must exist");
-  assert.match(parkCausesLine, /spec-review churn detected/, "Park causes must gain the churn-detected cause string");
+  assert.match(parkCausesLine, /`faff spec-review round`/, "Park causes points at the round call's causes");
+  assert.match(parkCausesLine, /spec-review churn detected/, "Park causes still names the churn-detected cause string");
 });
 
-test("faff-prep/SKILL.md: the count-cap resolves through the appetite resolver, with the convergence-yield clause preserved", () => {
+test("faff-prep/SKILL.md: the count-cap and convergence yield run inside `spec-review round`", () => {
   const body = readFileSync(PREP_SKILL, "utf8");
-  // FAFF-908 (absorbed into FAFF-922): the fixed-2 cap is now an appetite-scaled ceiling `N`
-  // resolved through the CLI — the Loop cap must name the resolver, never a bare integer.
-  assert.match(body, /faff spec-review-iteration-cap/, "the Loop cap must resolve the ceiling via the resolver, never a hardcoded integer");
-  assert.match(body, /unresolved `revise`\/`reject-approach`/, "the would-be-park fallback on N unresolved rounds must still be stated");
-  // FAFF-874: the drift guard still pins the convergence-yield clause the count cap carries.
-  assert.match(body, /faff spec-review-convergence/, "the Loop cap must resolve convergence via the CLI, never eyeball it");
-  assert.match(body, /yields to a convergence signal/, "must state the count cap yields to the convergence signal");
-  assert.match(body, /converging direction only/, "must state the yield is converging-direction-only (thrashing still parks)");
+  assert.match(body, /counts the appetite cap from disk and applies the convergence yield/, "the round call owns the cap and the yield");
+  assert.match(body, /spec-review loop cap reached — <verdict>/, "the cap's would-be-park cause is still named");
+  assert.doesNotMatch(body, /\(cap 2/, "no bare hardcoded loop-cap integer");
 });

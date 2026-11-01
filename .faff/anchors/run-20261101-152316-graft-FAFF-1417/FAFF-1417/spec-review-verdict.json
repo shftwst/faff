@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 2,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The LOOP grants a round whenever `detectSpecReviewConvergence` reports `converging`, and the spec's safety argument is that \"a strictly-decreasing objection count is self-terminating.\" But `window_start` is reset to `n` by every `swap-reset` (and every govern fault), so on a reviewer swap round the convergence window is `[n .. n]` — a single record. Over one record, \"total objection count strictly falling every round\" and \"no new objecting lens since the prior round\" are vacuously true; only \"latest round carrying no blocker\" does any work. A pin that flaps every round (the exact case the spec's Chosen claims is safe: \"a pin that flaps every round cannot loop forever\") plus an all-minor objection set reaches the cap, yields via vacuous convergence, and yields again at every subsequent would-be park — the loop never terminates, and the cap is no longer a backstop. The spec's own rationale for the cap-counting decision is contradicted by its own LOOP ordering (govern runs before decideRound, so the swap reset is visible to the same round's convergence check).",
+      "evidence": "§4.1 LOOP (`convergence := detectSpecReviewConvergence(records in [window_start .. n])`; `convergence.converging → fix-and-rerun, cap.yielded = true`) combined with step 3 (`g.result present → window_start := g.result.window_start`) and the §4.2 Chosen \"count the cap from disk… a pin that flaps every round cannot loop forever.\"",
+      "predicted_consequence": "an autonomous prep loop that never parks and never terminates on a flapping reviewer pin — the exact failure the Chosen line claims the design prevents; the run drains until an external wall-clock kills it.",
+      "spec_anchor": "42-decisions",
+      "disposition": "refuted",
+      "refutation": "detectSpecReviewConvergence returns converging: false for fewer than two rounds (spec-review-convergence.js l. 84), so a one-round window after a reviewer swap cannot yield.",
+      "disposition_rationale": "A clarifying bullet was added anyway.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The LOOP grants a round whenever `detectSpecReviewConvergence` reports `converging`, and the spec's safety argument is that \"a strictly-decreasing objection count is self-terminating.\" But `window_start` is reset to `n` by every `swap-reset` (and every govern fault), so on a reviewer swap round the convergence window is `[n .. n]` — a single record. Over one record, \"total objection count strictly falling every round\" and \"no new objecting lens since the prior round\" are vacuously true; only \"latest round carrying no blocker\" does any work. A pin that flaps every round (the exact case the spec's Chosen claims is safe: \"a pin that flaps every round cannot loop forever\") plus an all-minor objection set reaches the cap, yields via vacuous convergence, and yields again at every subsequent would-be park — the loop never terminates, and the cap is no longer a backstop. The spec's own rationale for the cap-counting decision is contradicted by its own LOOP ordering (govern runs before decideRound, so the swap reset is visible to the same round's convergence check).",
+          "spec_anchor": "42-decisions"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "`decideRound` derives `attempt` as \"the trailing run of unavailable records above `held_at_round`\", and `hold`'s precondition (§4.4 step 2) requires that attempt to exceed the retry limit. Under the prose being replaced, retries are in-turn re-dispatches that write no round record — one round, one record. If the edited skill (§4.6) calls `round` once per review round and retries the occupant in between, the trailing run is always 1, `retry-outage` fires forever, `hold-outage` is unreachable, and the hold limit never escalates. The design only works if every in-turn re-dispatch re-invokes `round` (and thus writes an `unavailable` round record), but §4.6 says only that \"the outage pseudocode… become `faff spec-review hold` calls and a token table\" — the retry loop's relationship to `round` is unstated. One sentence fixes it; as written, a reasonable builder can ship the unreachable-escalation version.",
+      "evidence": "§4.1 (`attempt := count of consecutive unavailable records ending at n, numbered above held_at_round`), §4.4 step 2, §4.6 (skill-edit bullet for the outage pseudocode).",
+      "predicted_consequence": "a persistent provider outage holds never — the issue loops `retry-outage` every drain with no escalation to `needs-human`, or (if the builder instead records retries) the round sequence fills with duplicate `unavailable` records the churn/convergence readers were never validated against.",
+      "spec_anchor": "46-skill-edit-faff-prep-skill-md",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The retry loop's relation to round is now stated in sections 4.1 and 4.6.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "`decideRound` derives `attempt` as \"the trailing run of unavailable records above `held_at_round`\", and `hold`'s precondition (§4.4 step 2) requires that attempt to exceed the retry limit. Under the prose being replaced, retries are in-turn re-dispatches that write no round record — one round, one record. If the edited skill (§4.6) calls `round` once per review round and retries the occupant in between, the trailing run is always 1, `retry-outage` fires forever, `hold-outage` is unreachable, and the hold limit never escalates. The design only works if every in-turn re-dispatch re-invokes `round` (and thus writes an `unavailable` round record), but §4.6 says only that \"the outage pseudocode… become `faff spec-review hold` calls and a token table\" — the retry loop's relationship to `round` is unstated. One sentence fixes it; as written, a reasonable builder can ship the unreachable-escalation version.",
+          "spec_anchor": "46-skill-edit-faff-prep-skill-md"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The window-governance rule keys on **pin evidence**, not on the occupant mode prep already knows. P8 (\"no pin no govern\") makes `--served` optional when `pinned-reviewer.json` is absent, and P9 makes a *missing `--served` with pin present* a fail-closed exit 2 — but the symmetric case, **pin absent under a configured adversarial mode**, is resolved fail-open: prep treats the round as single-pass and never governs it. If the L4 adversarial occupant's unconditional pin capture fails on round 1 (crash, disk fault, a retry that loses the write), no `pinned-reviewer.json` exists, prep classifies the occupant as single-pass by its absence, and the entire window/churn/convergence machinery is silently inert for the whole loop. The spec nowhere states how prep distinguishes \"single-pass occupant\" from \"adversarial occupant whose capture failed\" — yet the lens-selection step already resolves `mode`, so the information to fail closed is in hand and unused. This is exactly the failure-as-bypass shape: an error path in the occupant causes the approach to silently skip a check (window bounding, churn detection, reviewer-swap detection) it was supposed to enforce.",
+      "evidence": "P8 (\"`--served` optional\", disposition `kept`) vs P9 (\"`--served` omitted with pin evidence → exit 2\", disposition `changed: new, fail-closed`) — the fail-closed rule covers only the pin-present half; the \"Reviewer pin\" paragraph's \"the default single-pass occupant never calls `review-call.mjs` … prep never governs a round it never ran\" asserts a distinction prep has no stated mechanism to make; the `round1-capture-missed` anomaly is only surfaced *when govern runs*, which it never does here.",
+      "predicted_consequence": "A reviewer swap or capture loss goes undetected; `window_start` is never set, so churn and convergence compare over an undefined/unbounded window — a non-converging reviewer loops to cap on stale comparisons, or a swap-contaminated convergence signal yields the cap and admits a spec the prose would park.",
+      "spec_anchor": "reviewer-pin-the-loop-level-half-the-occupant-owns-pin-capture-prep-owns-the-scratch-dir-window-governance",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Prep now passes --occupant from the lens selection's mode instead of the command inferring it from pin files.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The window-governance rule keys on **pin evidence**, not on the occupant mode prep already knows. P8 (\"no pin no govern\") makes `--served` optional when `pinned-reviewer.json` is absent, and P9 makes a *missing `--served` with pin present* a fail-closed exit 2 — but the symmetric case, **pin absent under a configured adversarial mode**, is resolved fail-open: prep treats the round as single-pass and never governs it. If the L4 adversarial occupant's unconditional pin capture fails on round 1 (crash, disk fault, a retry that loses the write), no `pinned-reviewer.json` exists, prep classifies the occupant as single-pass by its absence, and the entire window/churn/convergence machinery is silently inert for the whole loop. The spec nowhere states how prep distinguishes \"single-pass occupant\" from \"adversarial occupant whose capture failed\" — yet the lens-selection step already resolves `mode`, so the information to fail closed is in hand and unused. This is exactly the failure-as-bypass shape: an error path in the occupant causes the approach to silently skip a check (window bounding, churn detection, reviewer-swap detection) it was supposed to enforce.",
+          "spec_anchor": "reviewer-pin-the-loop-level-half-the-occupant-owns-pin-capture-prep-owns-the-scratch-dir-window-governance"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "major",
+      "claim": "`hold`'s outage precondition requires reading \"the latest round record in dir is unavailable with its trailing attempt\" from disk, but the spec fixes the round-record shape as exactly `{verdict, objections}` (\"Why sidecars, not a wider round record… `round-<n>.json` stays `{verdict, objections}`\"). No field is defined that carries the in-turn attempt number or the outaged-lens set, so neither the precondition check nor the §4.2 decision \"derive the in-turn outage attempt from disk: the trailing run of `unavailable` records above the hold store's `held_at_round`\" can be computed from any artefact the spec defines. A builder must invent a record extension or an out-of-band file; a tester cannot decide exit 2 vs proceed.",
+      "evidence": "§4.4 `hold` procedure step 2; §4.2 Chosen (attempt from disk); §4.2 Chosen (sidecar shape `round-<n>.json` stays `{verdict, objections}`); §4.5 test plan asserts round records deep-equal `{verdict, objections}` — which forbids the obvious fix of adding an `attempt` field.",
+      "predicted_consequence": "`test/spec-review-hold.test.mjs`'s outage-precondition case (\"outage precondition\", P49) cannot be written without inventing an on-disk format the spec does not define; two builders produce incompatible stores and the corpus replay's deep-equal assertion contradicts whichever they pick.",
+      "spec_anchor": "4-4-hold-procedure",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "One round call per dispatch writes one unavailable record per dispatch, so the outage attempt count has an on-disk source; outaged_lenses come from claim-less objections.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "`hold`'s outage precondition requires reading \"the latest round record in dir is unavailable with its trailing attempt\" from disk, but the spec fixes the round-record shape as exactly `{verdict, objections}` (\"Why sidecars, not a wider round record… `round-<n>.json` stays `{verdict, objections}`\"). No field is defined that carries the in-turn attempt number or the outaged-lens set, so neither the precondition check nor the §4.2 decision \"derive the in-turn outage attempt from disk: the trailing run of `unavailable` records above the hold store's `held_at_round`\" can be computed from any artefact the spec defines. A builder must invent a record extension or an out-of-band file; a tester cannot decide exit 2 vs proceed.",
+          "spec_anchor": "4-4-hold-procedure"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The spec pins exact retain strings for the judge paths (`spec-review: accept (judge, L4-final)`, `spec-review: accept (judge, L3-provisional)`) but never states the retain string for an ordinary `approve` verdict. The only occurrence of one is inside the integration smoke test's comment (`retain \"spec-review: approve\"`), which is an example, not a contract. A builder cannot decide what the retained line must be, and no DONE item or test pins it.",
+      "evidence": "\"Routing on a conformant verdict\" table (`approve` → \"Continue to the confidence gate + promote\", no retain string); the Deterministic admit roll-up table (judge retain strings only); the Integration smoke test.",
+      "predicted_consequence": "A build that retains `spec-review: accept` (or omits the line) satisfies every named AC; the discrepancy is only discoverable by diffing against the smoke test's inline comment.",
+      "spec_anchor": "routing-on-a-conformant-verdict",
+      "disposition": "refuted",
+      "refutation": "The retained string for approve is in RoundResult.retain.",
+      "disposition_rationale": "Added to the section 4.3 table as well.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The spec pins exact retain strings for the judge paths (`spec-review: accept (judge, L4-final)`, `spec-review: accept (judge, L3-provisional)`) but never states the retain string for an ordinary `approve` verdict. The only occurrence of one is inside the integration smoke test's comment (`retain \"spec-review: approve\"`), which is an example, not a contract. A builder cannot decide what the retained line must be, and no DONE item or test pins it.",
+          "spec_anchor": "routing-on-a-conformant-verdict"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "`round` exits 2 when `--occupant single-pass` is given and the scratch dir holds `pinned-reviewer.json`, `pin-capture.json` or any `served-<n>.json`. The scratch dir is per-issue and persistent across sessions (`.faff/spec-review/<ISSUE>` for interactive prep, `<run-dir>/<ISSUE>/spec-review` for runs). An issue first reviewed under an adversarial occupant (L4 run, or a configured adversarial chain) legitimately re-prepped later as single-pass — mode downgrade, re-prep after unpark, or a config change — inherits those files forever. The check as specified cannot distinguish \"this round was served adversarially\" from \"some past round was\", so the fail-closed guard becomes a permanent lockout that only a hand-delete of pin artifacts (unmentioned in §4.6's skill edit) clears.",
+      "evidence": "§4.1 step 2 (\"`--occupant single-pass` AND (served present OR dir holds pinned-reviewer.json | pin-capture.json | served-*.json) → exit 2\"); §3 Where-the-code-lives; the scratch-dir persistence stated in the Vocabulary row and in faff-prep's Reviewer-pin paragraph.",
+      "predicted_consequence": "the first L4-reviewed issue that is later re-prepped interactively cannot record any round without manual scratch-dir surgery the skill text never names; the agent hits exit 2, treats it as `errored`, and parks a spec whose review is fine.",
+      "spec_anchor": "interface-faff-spec-review-round",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Only this round's served-<n>.json counts, so single-pass no longer locks out on old pin files from earlier adversarial rounds.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "`round` exits 2 when `--occupant single-pass` is given and the scratch dir holds `pinned-reviewer.json`, `pin-capture.json` or any `served-<n>.json`. The scratch dir is per-issue and persistent across sessions (`.faff/spec-review/<ISSUE>` for interactive prep, `<run-dir>/<ISSUE>/spec-review` for runs). An issue first reviewed under an adversarial occupant (L4 run, or a configured adversarial chain) legitimately re-prepped later as single-pass — mode downgrade, re-prep after unpark, or a config change — inherits those files forever. The check as specified cannot distinguish \"this round was served adversarially\" from \"some past round was\", so the fail-closed guard becomes a permanent lockout that only a hand-delete of pin artifacts (unmentioned in §4.6's skill edit) clears.",
+          "spec_anchor": "interface-faff-spec-review-round"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The `round` verb grants two state writes that directly weaken the review-loop's termination guarantees — `--open-window` (resets the cap counter, P7/P37) and `--mark-rated`/`--mark-ratified` (excludes a round from cap counting, P26) — on the strength of nothing but the calling agent's claim that a human unparked the issue or ratified the objections. The prose procedures (explicit human reply, never inferred from silence; the audited tracker quote) gate *when the skill should call them*, but the verb itself performs no check that the triggering human event occurred. This is a self-vouching authority grant: the same agent that is under the cap is the actor that can lift it. A buggy or looping agent that calls `--open-window` each round, or `--mark-ratified` on rounds no human ratified, never reaches `cap.used >= limit`, and the loop-cap park — the designed backstop against an irreconcilable producer↔reviewer disagreement — never fires.",
+      "evidence": "§4.1 `--open-window` / `--mark-ratified` definitions; P7 (\"changed: also writes the cap reset\"), P26 (\"changed: honoured when every objection of the round was ratified\"), P37 (\"cap counted from disk since the cap reset\"); the ratify procedure's step 4 (\"never inferred from silence\") which the verb does not enforce.",
+      "predicted_consequence": "cap evasion — `cap.used` never reaches the appetite ceiling across rounds in a misbehaving run, so a churning reviewer loops without the would-be-park/judge/human escalation; checkable by replaying a corpus dir with a spurious `cap-reset.json` or `ratified-<n>.json` and observing the cap never trips.",
+      "spec_anchor": "4-2-decisions",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Each round writes decision-<n>.json; --open-window needs a recorded park or judge, and --mark-ratified needs interactive mode and the quote's comment id.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The `round` verb grants two state writes that directly weaken the review-loop's termination guarantees — `--open-window` (resets the cap counter, P7/P37) and `--mark-rated`/`--mark-ratified` (excludes a round from cap counting, P26) — on the strength of nothing but the calling agent's claim that a human unparked the issue or ratified the objections. The prose procedures (explicit human reply, never inferred from silence; the audited tracker quote) gate *when the skill should call them*, but the verb itself performs no check that the triggering human event occurred. This is a self-vouching authority grant: the same agent that is under the cap is the actor that can lift it. A buggy or looping agent that calls `--open-window` each round, or `--mark-ratified` on rounds no human ratified, never reaches `cap.used >= limit`, and the loop-cap park — the designed backstop against an irreconcilable producer↔reviewer disagreement — never fires.",
+          "spec_anchor": "4-2-decisions"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "§4.5 requires a test for \"the lock-busy exit 4\", and §4.2's decisions confirm `hold` takes the resume-store lock and can return exit 4 — but the §4.6 skill edit specifies only \"a routing table over `action`\" for `round` and \"a token table\" for the outage/turn-budget pseudocode replacement. No row tells prep what to do when `faff spec-review hold` exits 4 (another process holds the issue lock). A builder cannot decide whether to retry, park, or surface.",
+      "evidence": "§4.5 test list (\"the lock-busy exit 4\"); §4.6 skill-edit bullet (\"a routing table over `action` (approve, fix-and-rerun, park, judge, re-slice, retry-outage, hold-outage, surface-outage)\").",
+      "predicted_consequence": "an autonomous drain that hits a concurrent hold write has no specified action — two builders could implement retry-forever vs immediate-park, and done cannot be decided for that path.",
+      "spec_anchor": "46-skill-edit-faff-prepskillmd",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "hold exit 4 (lock busy) is routed: retry once, then errored.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "§4.5 requires a test for \"the lock-busy exit 4\", and §4.2's decisions confirm `hold` takes the resume-store lock and can return exit 4 — but the §4.6 skill edit specifies only \"a routing table over `action`\" for `round` and \"a token table\" for the outage/turn-budget pseudocode replacement. No row tells prep what to do when `faff spec-review hold` exits 4 (another process holds the issue lock). A builder cannot decide whether to retry, park, or surface.",
+          "spec_anchor": "46-skill-edit-faff-prepskillmd"
+        }
+      ]
+    }
+  ]
+}

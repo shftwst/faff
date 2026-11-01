@@ -1,0 +1,9 @@
+{ "verdict": "revise",
+  "objections": [
+    { "lens": "architectural", "severity": "major" },
+    { "lens": "architectural", "severity": "major" },
+    { "lens": "QA", "severity": "major" },
+    { "lens": "QA", "severity": "major" },
+    { "lens": "methodology", "severity": "major" },
+    { "lens": "infosec", "severity": "minor" }
+  ] }

@@ -608,30 +608,33 @@ test("occupant SKILL documents served-<n>.json is written on EVERY served round,
   assert.match(body, /round 1 and rounds ≥ 2 alike/);
 });
 
-test("prep SKILL resolves the scratch dir via `spec-review-dir` and points convergence/churn at it", () => {
+test("prep SKILL resolves the scratch dir via `spec-review-dir` and hands it to `spec-review round`", () => {
   const body = readFileSync(PREP_SKILL, "utf8");
   assert.match(body, /spec-review-dir --issue/, "prep resolves the scratch dir");
-  assert.match(body, /faff spec-review-convergence --dir \$scratch/, "convergence reads the resolved dir");
-  assert.match(body, /\$scratch\/round-<n>\.json/, "round records land under the resolved dir");
+  assert.match(body, /"\$faff" spec-review round --issue <ISSUE-XX> --dir "\$scratch"/, "the round call records and reads under the resolved dir");
+  assert.doesNotMatch(body, /faff spec-review-convergence --dir/, "convergence is read inside the round call, never beside it");
   assert.doesNotMatch(body, /faff spec-review-convergence --dir <the run's spec-review dir>/, "no stale hardcoded-dir wording");
 });
 
-test("prep SKILL governs the window via `spec-review-window --govern`, never a hand-derived swap comparison", () => {
+test("prep SKILL governs the window through `spec-review round --served`, never a hand-derived swap comparison", () => {
   const body = readFileSync(PREP_SKILL, "utf8");
-  assert.match(body, /spec-review-window --govern --dir \$scratch --round \$n/, "prep governs via the deterministic CLI");
-  assert.match(body, /--any-served/);
-  assert.match(body, /--no-lens/);
+  assert.match(body, /--occupant <adversarial\|single-pass> \[--served any\|none\]/, "the round call carries the occupant and its servedness");
+  assert.match(body, /--served any/);
+  assert.match(body, /--served none/);
+  assert.doesNotMatch(body, /spec-review-window --govern/, "prep no longer calls the governance CLI by hand — the round call runs it");
   assert.doesNotMatch(body, /the served backend \(read from the occupant's.*header\) differs from the pinned backend/, "the old hand-derived swap-comparison prose is gone");
-  assert.doesNotMatch(body, /"\$faff" spec-review-window --set \$n --dir \$scratch/, "prep no longer hand-sets window_start on a swap — --govern owns that write");
+  assert.doesNotMatch(body, /"\$faff" spec-review-window --set \$n --dir \$scratch/, "prep never hand-sets window_start on a swap");
 });
 
-test("prep SKILL asserts the governance step ran: re-reads governance-<n>.json, fails safe on absence", () => {
+test("prep SKILL asserts the governance step ran: the round call fails safe on a missing governance-<n>.json", () => {
   const body = readFileSync(PREP_SKILL, "utf8");
   assert.match(body, /governance-<n>\.json/);
-  assert.match(body, /govern-record-missing/);
+  assert.match(body, /window_start := n/, "a fault or a missing governance record resets the window to n");
+  assert.match(body, /Copy every `warnings` line into `prep\.md`/, "the governance anomaly, fault and missing-record warnings are surfaced loud into prep.md");
 });
 
-test("prep SKILL documents the convergence-window range [window_start .. n]", () => {
+test("prep SKILL bounds churn to the window: the round call compares against the previous round in the window", () => {
   const body = readFileSync(PREP_SKILL, "utf8");
-  assert.match(body, /\[window_start \.\. n\]/);
+  assert.match(body, /checks churn against the previous round in the window/);
+  assert.match(body, /spec-review round --open-window --dir \$scratch/, "a human unpark opens a new window through the round call");
 });

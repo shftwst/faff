@@ -1,0 +1,559 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 2,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-hold.ts::takelock errors other than eexist escape the hold verb as an uncaught exception",
+      "title": "takeLock errors other than EEXIST escape the hold verb as an uncaught exception",
+      "location": "plugin/skills/faff/bin/lib/spec-review-hold.ts",
+      "action": "Any unexpected error in either verb now maps to exit 2 with errored (fix commit 26b9ca0e); covered by the unexpected-errors test.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "observation",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "takeLock errors other than EEXIST escape the hold verb as an uncaught exception",
+          "location": "plugin/skills/faff/bin/lib/spec-review-hold.ts",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-round.ts::--mark-ratified trusts the skill that every objection of the round was ratified",
+      "title": "--mark-ratified trusts the skill that every objection of the round was ratified",
+      "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+      "action": "Keep: the spec places the every-objection check in the ratify procedure; the verb refuses autonomous runs, needs a comment id, a loop round and a recorded fix-and-rerun or park decision.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "observation",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Spec §4.1 and P26 assign the every-objection judgement to the human-present ratify procedure; the verb enforces the mechanical preconditions.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "--mark-ratified trusts the skill that every objection of the round was ratified",
+          "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-round.ts::--mark-ratified grants a cap exemption on an unverified claim; --open-window trusts an editable decision sidecar",
+      "title": "--mark-ratified grants a cap exemption on an unverified claim; --open-window trusts an editable decision sidecar",
+      "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+      "action": "--mark-ratified is now refused when the run ledger (--run-dir or $FAFF_RUN_DIR) says L3 or L4, so an autonomous run cannot claim interactive mode; test ratify refused autonomous.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "--mark-ratified grants a cap exemption on an unverified claim; --open-window trusts an editable decision sidecar",
+          "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-hold.ts::a turn-budget hold cannot be written when a round record is unreadable",
+      "title": "a turn-budget hold cannot be written when a round record is unreadable",
+      "location": "plugin/skills/faff/bin/lib/spec-review-hold.ts",
+      "action": "Turn-budget reads records for held_at_round provenance only and skips an unreadable one; the outage precondition still fails loud. Test: turn budget survives a damaged scratch dir.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "a turn-budget hold cannot be written when a round record is unreadable",
+          "location": "plugin/skills/faff/bin/lib/spec-review-hold.ts",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-round.ts::a governance fault takes the callee-reported window_start instead of forcing n",
+      "title": "a governance fault takes the callee-reported window_start instead of forcing n",
+      "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+      "action": "A non-zero govern now forces window_start := n (P5). Test: govern fault forces n; mutation M3 makes it fail.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "a governance fault takes the callee-reported window_start instead of forcing n",
+          "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-round.ts::non-domain exceptions crash instead of the documented exit 2",
+      "title": "non-domain exceptions crash instead of the documented exit 2",
+      "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+      "action": "Both verbs map any unexpected error to exit 2 with {action: errored}. Test: unexpected errors.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "non-domain exceptions crash instead of the documented exit 2",
+          "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-round.ts::no lock on the scratch dir; concurrent round calls could clobber records",
+      "title": "no lock on the scratch dir; concurrent round calls could clobber records",
+      "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+      "action": "Keep: one prep owns an issue's scratch dir at a time (build claim and in-flight marker), exactly as the replaced prose assumed.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Prep is the single writer per issue; the hold store is locked because resume-store stash is a second writer, which the scratch dir does not have.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "no lock on the scratch dir; concurrent round calls could clobber records",
+          "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-hold.ts::--retry-limit and --hold-limit overrides can weaken the escalation ceilings",
+      "title": "--retry-limit and --hold-limit overrides can weaken the escalation ceilings",
+      "location": "plugin/skills/faff/bin/lib/spec-review-hold.ts",
+      "action": "Keep: the flags are the spec §3 interface; the skill never passes them, so production reads the config ceilings.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Spec §3 defines both flags; their defaults are the config values.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "--retry-limit and --hold-limit overrides can weaken the escalation ceilings",
+          "location": "plugin/skills/faff/bin/lib/spec-review-hold.ts",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-hold.ts::--lenses values are written to the hold store unvalidated",
+      "title": "--lenses values are written to the hold store unvalidated",
+      "location": "plugin/skills/faff/bin/lib/spec-review-hold.ts",
+      "action": "--lenses is checked against SPEC_REVIEW_LENSES and exits 2 on an unknown lens. Test: lenses validated.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "--lenses values are written to the hold store unvalidated",
+          "location": "plugin/skills/faff/bin/lib/spec-review-hold.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-round.ts::the default appetite bypassed resolveappetite, ignoring faff_appetite and a live l4 run's forced full",
+      "title": "the default appetite bypassed resolveAppetite, ignoring FAFF_APPETITE and a live L4 run's forced full",
+      "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+      "action": "With no --appetite the cap resolves through resolveAppetite(loadConfig(root)[0], process.env), as faff config get appetite does. Tests: appetite resolves like config get (FAFF_APPETITE; live L4 full). Mutation M16.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "major",
+      "source": "standard",
+      "model": "independent-reviewer (coordinator)",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "the default appetite bypassed resolveAppetite, ignoring FAFF_APPETITE and a live L4 run's forced full",
+          "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-round.ts::the --mark-ratified refusal could be bypassed with an empty or missing --run-dir, an l1/l2 ledger, or no ledger",
+      "title": "the --mark-ratified refusal could be bypassed with an empty or missing --run-dir, an L1/L2 ledger, or no ledger",
+      "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+      "action": "An empty --run-dir no longer masks $FAFF_RUN_DIR; --mark-ratified refuses whenever a run dir is named, at any level, including an unreadable ledger. Test: mark-ratified refused under any run. Mutations M20, M21.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "major",
+      "source": "standard",
+      "model": "independent-reviewer (coordinator)",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "the --mark-ratified refusal could be bypassed with an empty or missing --run-dir, an L1/L2 ledger, or no ledger",
+          "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-round.ts::--open-window reset the cap with no mode or level check",
+      "title": "--open-window reset the cap with no mode or level check",
+      "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+      "action": "--open-window carries the same guard. Test: open window refused under any run. Mutations M20, M21.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "major",
+      "source": "standard",
+      "model": "independent-reviewer (coordinator)",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "--open-window reset the cap with no mode or level check",
+          "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-round.ts,::limit flags could raise ceilings above the configured or resolved values",
+      "title": "limit flags could raise ceilings above the configured or resolved values",
+      "location": "plugin/skills/faff/bin/lib/spec-review-round.ts, plugin/skills/faff/bin/lib/spec-review-hold.ts",
+      "action": "Under a run, --appetite, --retry-limit and --hold-limit may lower but never raise. Tests: limit flags under a run (round and hold). Mutations M22, M23, H1, H2.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "major",
+      "source": "standard",
+      "model": "independent-reviewer (coordinator)",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "limit flags could raise ceilings above the configured or resolved values",
+          "location": "plugin/skills/faff/bin/lib/spec-review-round.ts, plugin/skills/faff/bin/lib/spec-review-hold.ts",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-round.ts::the governance-warning duty and pin-capture reason were lost from the prose pin",
+      "title": "the governance-warning duty and pin-capture reason were lost from the prose pin",
+      "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+      "action": "The repointed prose pin asserts the Copy every warnings line into prep.md sentence; the anomaly warning carries pin-capture.json's reason. Test: govern anomaly carries the pin-capture reason. Mutation M19.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "standard",
+      "model": "independent-reviewer (coordinator)",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "the governance-warning duty and pin-capture reason were lost from the prose pin",
+          "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-round.ts::the retry boundary and govern-returns-nothing branches were untested",
+      "title": "the retry boundary and govern-returns-nothing branches were untested",
+      "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+      "action": "Tests: outage retry boundary (exactly two retries, the third holds); govern returns nothing. Mutations M17, M18.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "standard",
+      "model": "independent-reviewer (coordinator)",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "the retry boundary and govern-returns-nothing branches were untested",
+          "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-hold.ts::held_at_round in the outage precondition was read before the lock",
+      "title": "held_at_round in the outage precondition was read before the lock",
+      "location": "plugin/skills/faff/bin/lib/spec-review-hold.ts",
+      "action": "The precondition runs inside the resume-store lock, reading held_at_round and the round records there.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "standard",
+      "model": "independent-reviewer (coordinator)",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "held_at_round in the outage precondition was read before the lock",
+          "location": "plugin/skills/faff/bin/lib/spec-review-hold.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-hold.ts::the outage attempt count used records snapshotted before the lock",
+      "title": "the outage attempt count used records snapshotted before the lock",
+      "location": "plugin/skills/faff/bin/lib/spec-review-hold.ts",
+      "action": "The locked check re-reads the scratch dir (commit fea56189).",
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "the outage attempt count used records snapshotted before the lock",
+          "location": "plugin/skills/faff/bin/lib/spec-review-hold.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-round.ts::readlevel grants judge or re-slice from a stale ledger with no liveness check",
+      "title": "readLevel grants judge or re-slice from a stale ledger with no liveness check",
+      "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+      "action": "Keep: the level whitelist matches the spec (P22) and the replaced prose, which read the level alone.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Spec §3 and P22 define the level as a whitelist read; adding liveness is a behaviour change beyond this ticket.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "readLevel grants judge or re-slice from a stale ledger with no liveness check",
+          "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-hold.ts::a hold write replaces a foreign cause such as reconsider-input-changed",
+      "title": "a hold write replaces a foreign cause such as reconsider-input-changed",
+      "location": "plugin/skills/faff/bin/lib/spec-review-hold.ts",
+      "action": "Keep: spec §4.4 writes s with cause set to the hold's cause; unknown keys are kept.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The spec's write rule sets cause; the reconsider writer keeps its own path (out of scope).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "a hold write replaces a foreign cause such as reconsider-input-changed",
+          "location": "plugin/skills/faff/bin/lib/spec-review-hold.ts",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-round.ts::outagedlenses relies on an unvalidated claim-less convention",
+      "title": "outagedLenses relies on an unvalidated claim-less convention",
+      "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+      "action": "Keep: a spec assumption checked at build time against aggregate.mjs and parse-refutation.mjs.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Spec §4.2 Assumes; only outaged_lenses would be affected if the occupant changes.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "outagedLenses relies on an unvalidated claim-less convention",
+          "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-round.ts::concurrent round calls on one scratch dir are unguarded",
+      "title": "concurrent round calls on one scratch dir are unguarded",
+      "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+      "action": "Keep: prep is the single writer per issue.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "As accepted in round 1.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "concurrent round calls on one scratch dir are unguarded",
+          "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-round.ts::an explicit --appetite still fails on an unreadable config",
+      "title": "an explicit --appetite still fails on an unreadable config",
+      "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+      "action": "Keep: the resolved cap is needed for the under-run raise guard; failing loud is the safe direction.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Fail-loud, never a weaker cap.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "an explicit --appetite still fails on an unreadable config",
+          "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

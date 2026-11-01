@@ -219,13 +219,12 @@ test("specReviewConvergenceSelftest() returns 0 in-process", () => {
 
 // --- faff-prep/SKILL.md wiring ---------------------------------------------------------
 
-test("faff-prep/SKILL.md: Loop cap gains the convergence-yield clause naming the CLI + behaviour", () => {
+test("faff-prep/SKILL.md: the convergence yield runs inside `spec-review round` and prep routes on its action", () => {
   const body = readFileSync(PREP_SKILL, "utf8");
-  assert.match(body, /faff spec-review-convergence/, "the Loop cap must resolve convergence via the CLI, never eyeball it");
-  assert.match(body, /yields to a convergence signal/, "must state the count cap yields to the convergence signal");
-  assert.match(body, /converging: true/, "must name the converging:true yield");
-  assert.match(body, /converging: false/, "must name the converging:false park");
-  assert.match(body, /converging direction only/, "must state the yield is converging-direction-only (thrashing still parks)");
+  assert.match(body, /applies the convergence yield/, "the round call applies the yield");
+  assert.match(body, /\| `fix-and-rerun` \|/, "a yielded round routes as fix-and-rerun");
+  assert.match(body, /\| `judge` \|/, "a non-converging would-be-park routes to the judge");
+  assert.doesNotMatch(body, /faff spec-review-convergence/, "prep never eyeballs or re-runs convergence beside the round call");
 });
 
 // --- FAFF-909: --window-start N read-time filter ----------------------------------------

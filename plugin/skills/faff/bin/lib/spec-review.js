@@ -63,7 +63,7 @@ function routeRejectApproach(record) {
 }
 
 const SPEC_REVIEW_SPEC = { flags: { "--selftest": { arity: 0 }, "--file": { arity: 1 }, "--dir": { arity: 1 }, "--dispositions": { arity: 1 }, "--comment": { arity: 0 }, "--from-judge": { arity: 0 }, "--spec": { arity: 1 }, "--judge-dir": { arity: 1 }, "--before": { arity: 1 }, "--after": { arity: 1 }, "--root": { arity: 1 } }, positionals: { min: 0, max: 1, name: "verb selector" } };
-const SPEC_REVIEW_USAGE = "usage: faff spec-review (extract-evidence [--file <spec> | --file -] | collate-evidence --dir <scratch> [--dispositions <file> | --from-judge --spec <file> [--judge-dir <dir>]] [--comment] | carry-check --before <file> --after <file> [--root <dir>] | route [--file <verdict.json> | --file -])";
+const SPEC_REVIEW_USAGE = "usage: faff spec-review (extract-evidence [--file <spec> | --file -] | collate-evidence --dir <scratch> [--dispositions <file> | --from-judge --spec <file> [--judge-dir <dir>]] [--comment] | carry-check --before <file> --after <file> [--root <dir>] | route [--file <verdict.json> | --file -] | round … | hold …)";
 const CARRY_CHECK_USAGE = "usage: faff spec-review carry-check --before <file> --after <file> [--root <dir>]";
 
 // makePathExists(root) -> pathExists(token) -> boolean. The sole I/O the carry-check verb adds
@@ -142,6 +142,8 @@ function cmdCollateEvidence(values) {
 }
 
 function cmdSpecReview(args) {
+  if (args[0] === "round") return require("./spec-review-round").cmdSpecReviewRound(args.slice(1));
+  if (args[0] === "hold") return require("./spec-review-hold").cmdSpecReviewHold(args.slice(1));
   if (args.includes("--selftest")) return specReviewSelftest();
   const { values, positionals, errors } = parseArgs(args, SPEC_REVIEW_SPEC);
   if (errors.length) return usageError(errors, SPEC_REVIEW_USAGE);
@@ -170,7 +172,7 @@ function cmdSpecReview(args) {
     return 0;
   }
   if (action !== "extract-evidence") {
-    process.stderr.write("faff spec-review: expected: extract-evidence | collate-evidence | carry-check | route (or --selftest)\n");
+    process.stderr.write("faff spec-review: expected: extract-evidence | collate-evidence | carry-check | route | round | hold (or --selftest)\n");
     return 2;
   }
   const filePath = values["--file"];

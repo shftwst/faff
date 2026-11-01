@@ -1,0 +1,268 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1417",
+  "aggregate": "meets-spec",
+  "code_blind": true,
+  "spawner_attested": false,
+  "attestation": null,
+  "violations": [],
+  "criteria": [
+    {
+      "id": "scenarios:1",
+      "text": "Given a scratch dir holding round-1.json {\"verdict\":\"revise\",\"objections\":[{\"lens\":\"architectural\",\"severity\":\"major\"}]} and round-2.json {\"verdict\":\"revise\",\"objections\":[{\"lens\":\"architectural\",\"severity\":\"minor\"}]}\nWhen `faff spec-review round --issue FAFF-9001 --dir D --verdict-file F --occupant single-pass --mode autonomous --appetite high --json` runs with F holding a spec-review-verdict block {\"verdict\":\"revise\",\"objections\":[{\"lens\":\"architectural\",\"severity\":\"minor\"},{\"lens\":\"QA\",\"severity\":\"minor\"}]}\nThen it exits 0 with action \"park\"\nAnd cause is \"spec-review churn detected — new objecting lens(es) since round 2: QA\"\nAnd D/round-3.json exists with verdict \"revise\"",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "faff spec-review round --issue FAFF-9001 --dir D --verdict-file F --occupant single-pass --mode autonomous --appetite high --json; D holds round-1 {revise, architectural:major} and round-2 {revise, architectural:minor}; F holds a block {revise, [architectural:minor, QA:minor]}",
+      "expected": "exit 0, action park, cause 'spec-review churn detected — new objecting lens(es) since round 2: QA', D/round-3.json with verdict revise",
+      "observed": "exit 0; action \"park\"; cause \"spec-review churn detected — new objecting lens(es) since round 2: QA\"; D/round-3.json present, verdict \"revise\"",
+      "evidence_ref": "report: scenarios:1",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:2",
+      "text": "Given an empty scratch dir\nWhen `faff spec-review round --issue FAFF-9001 --dir D --verdict-file F --occupant single-pass --mode interactive --json` runs with F holding the block {\"verdict\":\"approve\",\"objections\":[{\"lens\":\"QA\",\"severity\":\"minor\"}]}\nThen it exits 0 with action \"park\" and cause \"spec-review contract not satisfied (exit 1)\"\nAnd D/round-1.json does not exist",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "faff spec-review round --issue FAFF-9001 --dir D --verdict-file F --occupant single-pass --mode interactive --json; D empty; F holds {approve, [QA:minor]}",
+      "expected": "exit 0, action park, cause 'spec-review contract not satisfied (exit 1)', D/round-1.json absent",
+      "observed": "exit 0; action \"park\"; cause \"spec-review contract not satisfied (exit 1)\"; D lists only decision-1.json (no round-1.json)",
+      "evidence_ref": "report: scenarios:2",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:3",
+      "text": "Given a scratch dir holding revise rounds 1 and 2 with 3 and 2 architectural objections\nWhen `faff spec-review round --issue FAFF-9001 --dir D --verdict-file F --occupant single-pass --mode autonomous --appetite medium --json` runs with F holding a revise block with 1 architectural minor objection\nThen it exits 0 with action \"fix-and-rerun\"\nAnd cap.limit is 3, cap.used is 3 and cap.yielded is true",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "faff spec-review round ... --occupant single-pass --mode autonomous --appetite medium --json; D holds revise rounds 1 and 2 with 3 and 2 architectural objections (run twice: all minor, all major); F holds {revise, [architectural:minor]}",
+      "expected": "exit 0, action fix-and-rerun, cap.limit 3, cap.used 3, cap.yielded true",
+      "observed": "both runs: exit 0; action \"fix-and-rerun\"; cap {limit:3, used:3, reached:true, yielded:true}; convergence.converging true (totals 3→2→1)",
+      "evidence_ref": "report: scenarios:3",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:4",
+      "text": "Given a run dir whose run-ledger.json has \"level\": \"L3\", and a scratch dir holding revise rounds 1 and 2 each with 2 QA minor objections\nWhen `faff spec-review round --issue FAFF-9001 --dir D --verdict-file F --occupant single-pass --mode autonomous --run-dir R --appetite medium --json` runs with F holding a revise block with 2 QA minor objections\nThen it exits 0 with action \"judge\"\nAnd cause is \"spec-review loop cap reached — revise\"\nAnd convergence.converging is false",
+      "holdout": true,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "run dir minted with faff run-ledger init-interactive, copied, run-ledger.json level set to \"L3\"; faff spec-review round ... --occupant single-pass --mode autonomous --run-dir R --appetite medium --json; D holds revise rounds 1 and 2 each with 2 QA minor; F holds {revise, [QA:minor, QA:minor]}",
+      "expected": "exit 0, action judge, cause 'spec-review loop cap reached — revise', convergence.converging false",
+      "observed": "exit 0; action \"judge\"; cause \"spec-review loop cap reached — revise\"; convergence.converging false; level \"L3\". Controls: L4 → judge; level \"l3\" and no run dir → park, level null",
+      "evidence_ref": "report: scenarios:4",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:5",
+      "text": "Given R/.faff/resume/FAFF-9001/spec-review-hold.json holding {\"turn_budget_holds\":1}\nWhen `faff spec-review hold --issue FAFF-9001 --cause turn-budget --mode autonomous --root R --json` runs\nThen it exits 0 with action \"hold\" and token \"spec-review-pending\"\nAnd the store holds turn_budget_holds 2 and cause \"turn-budget\"\nAnd label_ops is [{\"op\":\"add\",\"label\":\"faff-awaiting-spec-review\"}]",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "R/.faff/resume/FAFF-9001/spec-review-hold.json = {\"turn_budget_holds\":1}; faff spec-review hold --issue FAFF-9001 --cause turn-budget --mode autonomous --root R --json",
+      "expected": "exit 0, action hold, token spec-review-pending, store turn_budget_holds 2 and cause turn-budget, label_ops [{op:add,label:faff-awaiting-spec-review}]",
+      "observed": "exit 0; action \"hold\"; token \"spec-review-pending\"; label_ops [{\"op\":\"add\",\"label\":\"faff-awaiting-spec-review\"}]; store file {turn_budget_holds:2, cause:\"turn-budget\", held_at:...}",
+      "evidence_ref": "report: scenarios:5",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:6",
+      "text": "Given R/.faff/resume/FAFF-9002/spec-review-hold.json holding {\"turn_budget_holds\":\"two\",\"outage_holds\":1}\nWhen `faff spec-review hold --issue FAFF-9002 --cause turn-budget --mode autonomous --root R --json` runs\nThen it exits 0 with action \"park\" and cause \"spec-review-hold.json corrupt — cannot read turn_budget_holds\"\nAnd R/.faff/resume/FAFF-9002/spec-review-hold.json does not exist\nAnd R/.faff/resume/FAFF-9002 holds one file whose name starts \"spec-review-hold.corrupt-\" with the original bytes",
+      "holdout": true,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "R/.faff/resume/FAFF-9002/spec-review-hold.json = {\"turn_budget_holds\":\"two\",\"outage_holds\":1} (sha256 a490d284…); faff spec-review hold --issue FAFF-9002 --cause turn-budget --mode autonomous --root R --json",
+      "expected": "exit 0, action park, cause 'spec-review-hold.json corrupt — cannot read turn_budget_holds', store file gone, one spec-review-hold.corrupt-* file with original bytes",
+      "observed": "exit 0; action \"park\"; cause \"spec-review-hold.json corrupt — cannot read turn_budget_holds\"; dir holds only spec-review-hold.corrupt-2026-11-01T22-18-50-100Z.json, sha256 a490d284… (identical)",
+      "evidence_ref": "report: scenarios:6",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "done:11",
+      "text": "`round-<n>.json` written by the verb deep-equals `{verdict, objections}` from the block.",
+      "holdout": false,
+      "class": "assertion",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "faff spec-review round on 4 blocks: approve round 1 (smoke test); revise with extra top-level keys and enriched objections (claim, evidence, disposition, nested extra, unicode, escaped quotes) inside surrounding prose; needs-human as round 2; unavailable via --verdict-file - with --occupant adversarial --served none. Each round-<n>.json compared with util.isDeepStrictEqual against {verdict, objections} parsed from the block",
+      "expected": "round-<n>.json deep-equals {verdict, objections} from the block",
+      "observed": "all 4: keys verdict,objections; deepEqual true (extra top-level keys dropped, objection enrichment preserved verbatim)",
+      "evidence_ref": "report: done:11",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "done:12",
+      "text": "`--occupant adversarial` without `--served` exits 2; `--occupant single-pass` exits 2 when this round's `served-<n>.json` exists and proceeds when only earlier rounds' pin files exist.",
+      "holdout": false,
+      "class": "assertion",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "(a) round --occupant adversarial with no --served (autonomous --json and interactive plain); (b) --occupant single-pass with served-1.json present for round 1; (b2) single-pass with --served any; (c) single-pass at round 3 with served-1.json, served-2.json, pinned-reviewer.json, governance-1.json present",
+      "expected": "(a) exit 2; (b) exit 2; (c) proceeds",
+      "observed": "(a) exit 2, {action:errored, reason:'--occupant adversarial requires --served any|none'}, nothing written; (b) exit 2, reason 'served-1.json is present: this round was adversarial'; (b2) exit 2; (c) exit 0, action fix-and-rerun, round-3.json written, governance null",
+      "evidence_ref": "report: done:12",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "done:13",
+      "text": "`--open-window` exits 2 when the latest `decision-<k>.json` action is not `park` or `judge`, and `--mark-ratified` exits 2 without `--mode interactive` and `--comment-id`.",
+      "holdout": false,
+      "class": "assertion",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "--open-window with no decision, after a fix-and-rerun decision, after an approve decision, and after park then a later fix-and-rerun; positive control after a park. --mark-ratified 1 on a fix-and-rerun loop round with --mode autonomous, with no --mode, with --mode interactive and no --comment-id, with an empty --comment-id; positive control interactive + --comment-id",
+      "expected": "--open-window exits 2 unless the latest decision is park or judge; --mark-ratified exits 2 without --mode interactive and --comment-id",
+      "observed": "open-window: exit 2 in all four non-stop cases (reason 'needs a recorded stop'); exit 0 {window_start:2, cap_from:2} after park, cap-reset.json written. mark-ratified: exit 2 in all four cases, no ratified file written; positive control exit 0 {round:1, ratified:true}, ratified-1.json {round, comment_id, ts}",
+      "evidence_ref": "report: done:13",
+      "reason": null,
+      "reason_code": null
+    }
+  ],
+  "delegated": [
+    {
+      "id": "done:1",
+      "text": "`faff-prep/SKILL.md` calls `faff spec-review round` and `faff spec-review hold` in place of the prose in §4.6, and `SKILL_LINE_BASELINE[\"faff-prep\"]` is lowered to the new count with its comment entry.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1417#done:1"
+    },
+    {
+      "id": "done:2",
+      "text": "`faff validate-adapters` passes with no RATCHET finding for `faff-prep`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1417#done:2"
+    },
+    {
+      "id": "done:3",
+      "text": "`faff spec-review round --json` prints a RoundResult with every §3 field and exits 0 or 2 per §3.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1417#done:3"
+    },
+    {
+      "id": "done:4",
+      "text": "`faff spec-review hold --json` prints a HoldResult with every §3 field and exits 0, 2 or 4 per §3.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1417#done:4"
+    },
+    {
+      "id": "done:5",
+      "text": "`spec-review-round.ts` and `spec-review-hold.ts` are in `tsconfig.json` `include` and the `check-no-boundary-cast` pin list, with committed `.js` emits and `build-manifest.json`; `node scripts/build-manifest.js check` passes.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1417#done:5"
+    },
+    {
+      "id": "done:6",
+      "text": "`docs/guide/cli.md` has rows for both verbs.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1417#done:6"
+    },
+    {
+      "id": "done:7",
+      "text": "The PR diff touches no `commissaire*` file.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1417#done:7"
+    },
+    {
+      "id": "done:8",
+      "text": "`decideRound` returns the §4.1 action for each verdict × mode × level combination in a table test.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1417#done:8"
+    },
+    {
+      "id": "done:9",
+      "text": "Every park cause in §4.3 is produced by at least one test, as an exact string.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1417#done:9"
+    },
+    {
+      "id": "done:10",
+      "text": "`hold --clear` and an exhausted hold delete only `spec-review-hold.json`; a sibling `hold.json` survives.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1417#done:10"
+    },
+    {
+      "id": "done:14",
+      "text": "A hold write preserves `outage_holds` when it increments `turn_budget_holds`, and the reverse.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1417#done:14"
+    },
+    {
+      "id": "done:15",
+      "text": "Every line the PR deletes from `faff-prep/SKILL.md` maps to a row P1–P62. The PR description lists the deleted line ranges against row ids.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1417#done:15"
+    },
+    {
+      "id": "done:16",
+      "text": "Every row with a covering test has that test, by name, and it passes.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1417#done:16"
+    },
+    {
+      "id": "done:17",
+      "text": "`test/spec-review-round.test.mjs` and `test/spec-review-hold.test.mjs` pass under `node --test`; no `--selftest` case is added.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1417#done:17"
+    },
+    {
+      "id": "done:18",
+      "text": "The corpus replay over `test/fixtures/spec-review-round-corpus/` passes, and the PR description reports the full-corpus replay's action counts and mismatches.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1417#done:18"
+    },
+    {
+      "id": "done:19",
+      "text": "`faff gates run` passes.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1417#done:19"
+    }
+  ]
+}

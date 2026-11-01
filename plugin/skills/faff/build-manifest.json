@@ -6,7 +6,7 @@
     "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
   },
   "config": {
-    "tsconfig.json": "c0e0edcb3d866dcf9760d367b890b25c8a574bdb6d095238bfdd116016df46de"
+    "tsconfig.json": "2674f7e9d907d219088bd9b061643e6b8f121927c07b63a94878bf70367a05d7"
   },
   "lock": {
     "package-lock.json": "b64bb7ba6298d47694b5700301c5fbec5aec2d5ce8351937d1cda8873fc5697a",
@@ -39,6 +39,8 @@
     "bin/lib/run-summary.ts": "4e329a73b830a2a536d2cea8a3e22313e49586c27870c80bda47451e366d266c",
     "bin/lib/run.ts": "bef5991ae66638821c5dfe25cf73ffe7f48743915d04189b022cb8b67a03ab2e",
     "bin/lib/spec-commit.ts": "bf42fe6bfbc1d6bab90726bcc13f42e8323433a7f1b439144a9b157bee7366a5",
+    "bin/lib/spec-review-hold.ts": "13ae0305154493c7b141febc049dfb6de687fabad4ee286017e0a01772579b67",
+    "bin/lib/spec-review-round.ts": "9242d61780c9ada1cc3b3f6f8069db0d78002aa251ab3e5bd9a40f03520a0bd8",
     "bin/lib/worktree-ensure.ts": "b86c68c74977c3b9dd44f97af7078a4a4e920e850da8f6c9e02a2bfc36a3828c"
   },
   "outputs": {
@@ -68,7 +70,9 @@
     "bin/lib/run-summary.js": "a323cf7e77b993b559c37014f3205105b76b52e4ac9ede00713229e9b624ba42",
     "bin/lib/run.js": "0c4f9cc33bb945823f48567f6b882722cc79e559b0117f8f5e497d20244c11c1",
     "bin/lib/spec-commit.js": "a67e16c5350409137c63faa17ba1d0458cfea84414e9f42814caa92574cb4d58",
+    "bin/lib/spec-review-hold.js": "7b211c4a49ba3042c0e73469e502f3c1fcd87708aec12b359313063094f46e37",
+    "bin/lib/spec-review-round.js": "74e440f169877e32bfb2c2bb2d7c28e163fdbdabbb1749c868376aa625c65f59",
     "bin/lib/worktree-ensure.js": "f8cca3880167caf0315d694182e6bdf7fcb47cd65fbe3db250468f3d858c2269"
   },
-  "output_digest": "eeae5dde9c59a62b49d6c72d56ce876cbd5b53d24706b11d23efc2a70d106956"
+  "output_digest": "84a14b19b2fb187251766c1665bfb5c39370a4e5e2c06c05881b641785ef29dd"
 }

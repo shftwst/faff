@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1415",
+  "build": {
+    "status": "complete",
+    "diff_hash": "1ff4aafd3270f24666318d11fbb8dfa367ff31f048a57b0898ac9a7297ee0dec",
+    "branch": "FAFF-1415-worktree-ensure",
+    "pushed_at": "2026-11-01T18:09:21.690Z"
+  },
+  "updated_at": "2026-11-01T18:09:21.690Z"
+}

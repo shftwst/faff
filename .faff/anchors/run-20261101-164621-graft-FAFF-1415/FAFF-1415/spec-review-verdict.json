@@ -1,0 +1,366 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 4,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The command's reuse path is `faff worktree-check --issue <issue>`, whose matcher (imported from `worktree-prune`, \"fail-safe against the same issue-id prefix collision\") finds a worktree by the issue id in its path, and the Worktree policy states reuse works by \"match on the issue id in the worktree path\". But the spec's own branch resolution (step 1, rule 38 kept) lets scheme `tracker-hint` use the tracker's `gitBranchName` **verbatim** — a name that need not contain the issue id at all. The worktree created at step 5 is then unfindable by `worktree-check --issue` on the next graft.",
+      "evidence": "spec §4.1 step 1 (`tracker-hint -> trackerBranch when given`), rule 1 (\"`worktree-check` does the match\"), rule 38 (\"tracker-hint (fallback issue-slug)\"); `worktree-check.js` resolves worktrees solely from `--issue` via `ownMatches(e, {issue})`; Worktree policy: \"match on the issue id in the worktree path\".",
+      "predicted_consequence": "the second graft of the same issue under a tracker-hint branch gets `no-worktree`, falls through to fresh create, and `setup-worktree.sh`'s `git worktree add -b <SAFE_NAME>` fails with \"already checked out\" → `setup-failed` park on every subsequent run, until a human deletes the branch or worktree. This directly falsifies the spec's own claim that \"Per-issue isolation (one worktree per issue, never a fresh-create onto a checked-out path) … keep their current outcome in both modes\".",
+      "spec_anchor": "`41-procedure`",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "A tracker-hint branch is used only when it carries the issue id as a token; otherwise <issue>-<slug> with a warning, so worktree-check can always find the worktree.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The command's reuse path is `faff worktree-check --issue <issue>`, whose matcher (imported from `worktree-prune`, \"fail-safe against the same issue-id prefix collision\") finds a worktree by the issue id in its path, and the Worktree policy states reuse works by \"match on the issue id in the worktree path\". But the spec's own branch resolution (step 1, rule 38 kept) lets scheme `tracker-hint` use the tracker's `gitBranchName` **verbatim** — a name that need not contain the issue id at all. The worktree created at step 5 is then unfindable by `worktree-check --issue` on the next graft.",
+          "spec_anchor": "`41-procedure`"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The resume recreate runs `git worktree add <rootDir>/<safe(branch)> <cp.build.branch>` — that checks out the **local** branch ref. `git fetch origin` does not advance a local branch, so after a remote-tip advance the checked-out tree is not at origin's tip, while the diff-hash match was computed against `origin/<branch>`. The scenario asserts \"checked out at origin's tip\", which the stated mechanism does not deliver; the recreated worktree can then differ from the diff that was gated, defeating the resume's \"cheap re-confirm\" premise.",
+      "evidence": "spec §4.1 step 3 (`git worktree add <rootDir>/<safe(branch)> <cp.build.branch>`) vs. the `resumed` scenario (\"wt is a worktree with branch FAFF-9-demo checked out at origin's tip\"); `cur` is hashed against `base...origin/<branch>` per the Remote-backed resume diff rule (rule 19).",
+      "predicted_consequence": "either the DONE scenario fails in CI, or the builder silently diverges from the written procedure (e.g. checking out `origin/<branch>` detached or force-updating the local branch) — the latter being an unpinned semantic change to a gate path the spec claims is byte-faithful to today.",
+      "spec_anchor": "`scenarios`",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The recreate refuses a diverged local branch (resume-branch-diverged), never resets it, and checks HEAD equals the verified tip.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The resume recreate runs `git worktree add <rootDir>/<safe(branch)> <cp.build.branch>` — that checks out the **local** branch ref. `git fetch origin` does not advance a local branch, so after a remote-tip advance the checked-out tree is not at origin's tip, while the diff-hash match was computed against `origin/<branch>`. The scenario asserts \"checked out at origin's tip\", which the stated mechanism does not deliver; the recreated worktree can then differ from the diff that was gated, defeating the resume's \"cheap re-confirm\" premise.",
+          "spec_anchor": "`scenarios`"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The procedure names explicit failure branches for the rebase (`rebase-conflict`), the heal (`heal-failed`), the provisioning script (`setup-failed`), the base resolver (`resume-base-unresolvable`) and the store (`store-*`) — but not for the resume recreate's `git worktree add <rootDir>/<safe(branch)> <cp.build.branch>`. A faithful build following the pseudocode runs the add, and on failure (plausible: a stale non-empty directory left by teardown housekeeping at the target path, or the branch checked out somewhere `worktree-check`'s matcher did not attribute to this issue) has no disposition to emit. The only downstream check, step 6's root assert, then makes it worse by design: `git -C <wt> rev-parse --show-toplevel` on a nonexistent path is \"actual unresolvable → warnings += … (never a refusal, as today)\" — rule 51's skip-on-tooling-failure, kept verbatim, is written to catch the assert's *own* tooling failing but as specified also swallows \"the worktree was never created\". Result: disposition `ready`, mode `resumed`, `next step-7.5`, with `wt` pointing at a directory that does not exist, and graft's routing (section 4.2) does no existence check — it binds `wt := .wt` and proceeds to the gate ladder and build.",
+      "evidence": "section 4.1 step 3 (`git worktree add … mode resumed, next step-7.5, go to 6` — no failure arm); section 4.1 step 6 (`actual unresolvable → warnings += … never a refusal`); rule 51 in section 4.5 (`warning, stays ready`); section 4.2 (`wt := .wt`, no existence validation).",
+      "predicted_consequence": "an autonomous run reports `ready/resumed` and graft runs Steps 7.5, 8 and 9 against a nonexistent worktree path — every subsequent command fails or the agent improvises against the main checkout, i.e. the per-issue isolation guarantee silently does not hold on this path while the result says it does.",
+      "spec_anchor": "`4-1-procedure`",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "A failed git worktree add returns resume-recreate-failed, and every ready result must name an existing directory (worktree-missing).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The procedure names explicit failure branches for the rebase (`rebase-conflict`), the heal (`heal-failed`), the provisioning script (`setup-failed`), the base resolver (`resume-base-unresolvable`) and the store (`store-*`) — but not for the resume recreate's `git worktree add <rootDir>/<safe(branch)> <cp.build.branch>`. A faithful build following the pseudocode runs the add, and on failure (plausible: a stale non-empty directory left by teardown housekeeping at the target path, or the branch checked out somewhere `worktree-check`'s matcher did not attribute to this issue) has no disposition to emit. The only downstream check, step 6's root assert, then makes it worse by design: `git -C <wt> rev-parse --show-toplevel` on a nonexistent path is \"actual unresolvable → warnings += … (never a refusal, as today)\" — rule 51's skip-on-tooling-failure, kept verbatim, is written to catch the assert's *own* tooling failing but as specified also swallows \"the worktree was never created\". Result: disposition `ready`, mode `resumed`, `next step-7.5`, with `wt` pointing at a directory that does not exist, and graft's routing (section 4.2) does no existence check — it binds `wt := .wt` and proceeds to the gate ladder and build.",
+          "spec_anchor": "`4-1-procedure`"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The scenario \"Given an existing worktree for FAFF-9 located outside the resolved worktree root / When `faff worktree ensure --issue FAFF-9 --mode autonomous` runs\" omits `--slug`, `--labels` and `--run-dir`. Section 3 says autonomous mode without a run dir or without parseable `--labels` is exit 2, and `--slug` is required. As written, the command exits 2 before ever reaching the root assert, so the scenario can never observe `parked`/`root-outside` — a builder following the scenario literally produces a failing test, and a tester cannot tell whether a failure means the root assert is broken or the invocation is.",
+      "evidence": "`## Scenarios` last block; interface/exit rules in `### Interface` and step 0 of `### 4.1 Procedure`.",
+      "predicted_consequence": "the scenario cannot be executed as specified; the root-outside autonomous behaviour (inventory row 49) has no runnable check in the Scenarios unit.",
+      "spec_anchor": "scenarios",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The root-outside scenario now passes every required flag.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The scenario \"Given an existing worktree for FAFF-9 located outside the resolved worktree root / When `faff worktree ensure --issue FAFF-9 --mode autonomous` runs\" omits `--slug`, `--labels` and `--run-dir`. Section 3 says autonomous mode without a run dir or without parseable `--labels` is exit 2, and `--slug` is required. As written, the command exits 2 before ever reaching the root assert, so the scenario can never observe `parked`/`root-outside` — a builder following the scenario literally produces a failing test, and a tester cannot tell whether a failure means the root assert is broken or the invocation is.",
+          "spec_anchor": "scenarios"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "`worktree ensure` is presented as graft-agnostic plumbing (\"The agent reads the tracker; the command reads git\", \"graft's prose keeps the routing\"), yet its stable JSON contract emits graft-specific `next` tokens (`step-4`, `step-5`, `step-7.5`, `step-9-dialogue`, `step-9-judge`), and the command itself parses `resume.dialogue.stage` to choose between the last two. That is graft's routing logic leaking into the command, not staying in graft.",
+      "evidence": "the \"Modes and `next`\" table fixes the tokens as part of the output object; section 4.1's step 4 derives `next` from `r.cause`/`r.dialogue.stage` inside the command; section 5 simultaneously claims \"Graft keeps the routing … moving them into a worktree command would couple it to Step 9's internals\" — which is exactly what the `next` vocabulary does.",
+      "predicted_consequence": "the first graft step renumber or insertion (a realistic event — the spec itself notes FAFF-1416 edits the same `SKILL.md` and baselines, and the prose already contains a `7.5` half-step, the residue of a previous insertion) forces a change to the CLI's JSON contract, its docs tables and `worktree-ensure.test.mjs` — an unrelated factory-region command — for every graft layout edit. A neutral vocabulary (`build`, `gate`, `dialogue`, `judge`) mapped to step numbers in graft's 4.2 routing table would have made the command graft-layout-proof.",
+      "spec_anchor": "modes-and-next",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Graft step numbers are replaced by resume_at in the command's own vocabulary (start, existing, gate, review); the store's dialogue object passes through untouched.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "`worktree ensure` is presented as graft-agnostic plumbing (\"The agent reads the tracker; the command reads git\", \"graft's prose keeps the routing\"), yet its stable JSON contract emits graft-specific `next` tokens (`step-4`, `step-5`, `step-7.5`, `step-9-dialogue`, `step-9-judge`), and the command itself parses `resume.dialogue.stage` to choose between the last two. That is graft's routing logic leaking into the command, not staying in graft.",
+          "spec_anchor": "modes-and-next"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "the interface text says `--labels` \"is read only in autonomous mode, for the resume-store hold check\", but the exit-2 rule makes it *required* in autonomous mode unconditionally — including the `reused`/`rebased`/`healed` paths and a plain fresh create, where no hold check ever runs. This contradicts the stated read-scope and forces the agent to thread tracker data into every autonomous git call.",
+      "evidence": "section 3 Interface bullet on `--labels`; the exit-2 sentence (\"autonomous mode … without parseable `--labels`, or an unreadable repo root\"); section 4.1 step 4, where labels are consulted only on the no-worktree-and-no-checkpoint branch.",
+      "predicted_consequence": "autonomous graft invocations fail with exit 2 (a park, per the caller contract) for purely local reuse work because a Step-1 tracker field was absent — a spurious failure class the prose today does not have. One-line spec edit: require `--labels` only when the hold check is reachable (autonomous, no worktree, no checkpoint).",
+      "spec_anchor": "interface",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "--labels exits 2 only when the hold check is reached.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "the interface text says `--labels` \"is read only in autonomous mode, for the resume-store hold check\", but the exit-2 rule makes it *required* in autonomous mode unconditionally — including the `reused`/`rebased`/`healed` paths and a plain fresh create, where no hold check ever runs. This contradicts the stated read-scope and forces the agent to thread tracker data into every autonomous git call.",
+          "spec_anchor": "interface"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The command accepts the tracker's `gitBranchName` (written by any tracker user who can edit the ticket) and, under the `tracker-hint` scheme, uses it verbatim as the branch name — which becomes the worktree directory name via `setup-worktree.sh`'s `tr '/' '-'`. The spec's only guard is the issue-id token match, which is a *findability* guard (so the next graft can locate the worktree), not a *safety* validation of the string as a git ref name or path component. The spec validates its other new input (`--labels` unparseable → exit 2) but says nothing about validating this one, even though its own rationale for the token-match guard shows it treats the hint as hostile-adjacent.",
+      "evidence": "§4.1 step 1 (\"tracker-hint → trackerBranch when given AND it contains the issue id as a token … else fallback + warning\"); §6 \"the `tracker-hint` scheme uses the tracker's branch name only when it contains the issue id as a token\"; contrast the explicit `--labels` exit-2 rule in the Interface section.",
+      "predicted_consequence": "A crafted hint that is a valid-enough string but not a safe ref name (leading dash, control chars, `@{`, `.lock` suffix) flows into `git worktree add -b \"${SAFE_NAME}\"` and the worktree path. Git's own ref-name validation and the script's `tr` contain the dangerous shapes today, so the realistic impact is a failed provision (fail-closed `setup-failed`) or an odd branch name — but the spec should say which control it is relying on, because a future change to the provisioning path (e.g. the command building the path itself, as the resume path already does) would silently lose git's validation.",
+      "spec_anchor": "41-procedure",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The tracker hint is validated with git check-ref-format --branch before use; an invalid slug is exit 2.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The command accepts the tracker's `gitBranchName` (written by any tracker user who can edit the ticket) and, under the `tracker-hint` scheme, uses it verbatim as the branch name — which becomes the worktree directory name via `setup-worktree.sh`'s `tr '/' '-'`. The spec's only guard is the issue-id token match, which is a *findability* guard (so the next graft can locate the worktree), not a *safety* validation of the string as a git ref name or path component. The spec validates its other new input (`--labels` unparseable → exit 2) but says nothing about validating this one, even though its own rationale for the token-match guard shows it treats the hint as hostile-adjacent.",
+          "spec_anchor": "41-procedure"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The resume recreate builds the worktree path as `<rootDir>/<safe(b)>` where `b` is the checkpoint's or store's recorded `build.branch` — but `safe()` is never defined. The fresh-create path's sanitization lives in `setup-worktree.sh` (`tr '/' '-'`), which the resume path does not call; the spec must state what `safe()` does, or a slash-scoped branch (`feature/FAFF-9-x`) produces a nested or malformed path, and any future branch-name source with hostile characters produces an uncontained path.",
+      "evidence": "§4.1 `recreate(b, fref)`: \"`git worktree add <rootDir>/<safe(b)> <b>`\"; §4.4 \"Slash-scoped branches\" acknowledges the `/`→`-` transform for the script but never defines the resume path's equivalent.",
+      "predicted_consequence": "A slash-scoped or otherwise unusual recorded branch name yields a worktree path outside the expected flat layout under the resolved root (or a failed add → park, fail-closed). Not exploitable for traversal today (git refs cannot contain `..`), but the sanitization contract is unstated where the spec elsewhere insists on naming its controls.",
+      "spec_anchor": "41-procedure",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "safe() is defined as the script's / to - rule, with a strictly-under-root check before git worktree add.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The resume recreate builds the worktree path as `<rootDir>/<safe(b)>` where `b` is the checkpoint's or store's recorded `build.branch` — but `safe()` is never defined. The fresh-create path's sanitization lives in `setup-worktree.sh` (`tr '/' '-'`), which the resume path does not call; the spec must state what `safe()` does, or a slash-scoped branch (`feature/FAFF-9-x`) produces a nested or malformed path, and any future branch-name source with hostile characters produces an uncontained path.",
+          "spec_anchor": "41-procedure"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "Section 3 lists the `cause` values \"on a `ready` result\" as `fresh-base, stale-rebased, clobbered-healed, checkpoint-match, store-restored, no-worktree, checkpoint-mismatch, store-mismatch`. Four of these (`fresh-base`, `no-worktree`, `checkpoint-mismatch`, `store-mismatch`) all describe paths that end in `mode: fresh`, and `fresh-base` vs `no-worktree` appear to be synonyms for the same path (fresh create because no worktree existed). A tester writing the primary fresh-create scenario cannot decide which `cause` value to assert — the spec's own first scenario sidesteps this by not asserting `cause` at all.",
+      "evidence": "`### Output` / `### Dispositions` — \"`cause` on a `ready` result says why that mode was chosen (fresh-base, stale-rebased, clobbered-healed, checkpoint-match, store-restored, no-worktree, checkpoint-mismatch, store-mismatch)\"; procedure step 5 sets only `mode fresh; next step-4`, never naming which cause.",
+      "predicted_consequence": "the builder picks one of two redundant values, the test asserts the other, and the DONE item \"returns … the outcome Step 3's prose reaches\" fails or is waived as a naming dispute — an avoidable build/test mismatch on the command's most common result.",
+      "spec_anchor": "dispositions",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "One cause per path, tabled.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "Section 3 lists the `cause` values \"on a `ready` result\" as `fresh-base, stale-rebased, clobbered-healed, checkpoint-match, store-restored, no-worktree, checkpoint-mismatch, store-mismatch`. Four of these (`fresh-base`, `no-worktree`, `checkpoint-mismatch`, `store-mismatch`) all describe paths that end in `mode: fresh`, and `fresh-base` vs `no-worktree` appear to be synonyms for the same path (fresh create because no worktree existed). A tester writing the primary fresh-create scenario cannot decide which `cause` value to assert — the spec's own first scenario sidesteps this by not asserting `cause` at all.",
+          "spec_anchor": "dispositions"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The interface says `--slug` is \"the agent's kebab-case slug\" and \"Required\", but the spec never says what the command does when the slug is not kebab-case (contains spaces, uppercase, or `/`). Exit 2? Pass-through (where `/` would be mangled by the script's `tr '/' '-'` into a different branch than reported)? The procedure's step 0 validation list (\"missing or invalid flag\") does not name slug format as an invalid value.",
+      "evidence": "`### Interface` — \"`--slug` is the agent's kebab-case slug for the issue title. Required.\"; `### 4.1 Procedure` step 0 — \"validate flags; autonomous requires runDir and parseable labels -> else exit 2\".",
+      "predicted_consequence": "a builder either validates and exits 2 or passes the slug through; a test of the invalid-slug input asserts different exits under the two readings, and the slash case additionally produces a `branch` field that disagrees with the name handed to the provisioning script.",
+      "spec_anchor": "interface",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The slug must match ^[a-z0-9]+(-[a-z0-9]+)*$, else exit 2.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The interface says `--slug` is \"the agent's kebab-case slug\" and \"Required\", but the spec never says what the command does when the slug is not kebab-case (contains spaces, uppercase, or `/`). Exit 2? Pass-through (where `/` would be mangled by the script's `tr '/' '-'` into a different branch than reported)? The procedure's step 0 validation list (\"missing or invalid flag\") does not name slug format as an invalid value.",
+          "spec_anchor": "interface"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec replaces today's gate-time label read with a label set captured at Step 1's fetch, so the resume-store hold check (the only thing deciding `needs-human store-missing` vs a fresh rebuild, and the only guard before `resume-store restore`) can fire on stale data.",
+      "evidence": "\"The agent reads the tracker; the command reads git… The agent passes the issue's labels (for the hold check) and the tracker's branch hint from the Step 1 fetch\"; `--labels` \"is the issue's live label set from Step 1's fetch\"; step 4 gates the store read on that array. Today's prose checks the hold labels at the fallback point itself (\"the issue carries `faff-awaiting-review` OR the `awaiting-adjudication` role\"), i.e. at gate time.",
+      "predicted_consequence": "In a parallel-executor window between Step 1 and the ensure call, a peer drain can apply a hold label (or a human clear one); the command then either fresh-rebuilds over an active review hold, or restores a store for a hold the human just cancelled. The `store-busy` exit-4 backstop covers only the simultaneous-restore race, not the label-flip race. A fresh tracker read immediately before the call preserves the stated \"the agent reads the tracker\" principle; as pinned, the stale read is the design.",
+      "spec_anchor": "the-agent-reads-the-tracker-the-command-reads-git",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Labels now come from a fresh get_issue immediately before the call; round 4 did not re-raise it.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The spec replaces today's gate-time label read with a label set captured at Step 1's fetch, so the resume-store hold check (the only thing deciding `needs-human store-missing` vs a fresh rebuild, and the only guard before `resume-store restore`) can fire on stale data.",
+          "spec_anchor": "the-agent-reads-the-tracker-the-command-reads-git"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The resume-store fallback is the fail-safe that stops a held issue (`awaiting-review` / `awaiting-adjudication`) from being silently rebuilt — the prose is explicit that a fresh build there \"resets the hold counters\" and breaks the p-07 bound. The spec moves that gate into `faff worktree ensure`, but the gate's key is `--labels`, a JSON array the *agent itself* transcribes from Step 1's tracker fetch. The command makes no tracker call (a stated Chosen constraint), so it has no way to verify the labels are current or complete. An agent that omits a hold label — through transcription error, a stale Step-1 fetch, or prompt manipulation — passes e.g. `--labels '[]'`, the hold check finds nothing held, and the command proceeds to a fresh build that resets the hold counters. The gate is now code-shaped (it looks enforced, exits 2 on *missing* labels) but is fail-open to *incomplete* labels, which is the only realistic failure. The spec's control (exit 2 when the value is missing or unparseable) answers absence, not incompleteness, and no builder-side fix closes the gap: the only real fixes are a tracker read (contradicts the Chosen \"no tracker call\") or a fail-safe default the spec does not specify.",
+      "evidence": "Interface section (`--labels` … \"It is read only when the resume-store hold check is reached\"); §4.1 step 4 (`held := labels contain the resolved awaiting-review OR awaiting-adjudication role name`); §2 (\"The command makes no tracker call\"); §5 (\"The agent reads the tracker; the command reads git\"); the prose this replaces: \"never a fresh build that resets the hold counters\".",
+      "predicted_consequence": "An issue carrying a live hold label is fresh-built by the command with `disposition: \"ready\"`, `mode: \"fresh\"`; the hold counters reset and the outage-retry counter loses its monotonicity, reproducing exactly the infinite-hold-loop failure the deleted prose paragraph exists to prevent — with no warning in the output, because the command believes no hold exists.",
+      "spec_anchor": "interface",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Today's prose trusts the same agent-read labels, so the command does not weaken the hold check. Mitigated by a fresh get_issue immediately before the call and a warning naming any resume store on disk when no hold label is passed. Round 4's infosec lens downgraded it to an observation; the operator accepted the residual risk at human accept on 2026-10-31.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "major",
+          "claim": "The resume-store fallback is the fail-safe that stops a held issue (`awaiting-review` / `awaiting-adjudication`) from being silently rebuilt — the prose is explicit that a fresh build there \"resets the hold counters\" and breaks the p-07 bound. The spec moves that gate into `faff worktree ensure`, but the gate's key is `--labels`, a JSON array the *agent itself* transcribes from Step 1's tracker fetch. The command makes no tracker call (a stated Chosen constraint), so it has no way to verify the labels are current or complete. An agent that omits a hold label — through transcription error, a stale Step-1 fetch, or prompt manipulation — passes e.g. `--labels '[]'`, the hold check finds nothing held, and the command proceeds to a fresh build that resets the hold counters. The gate is now code-shaped (it looks enforced, exits 2 on *missing* labels) but is fail-open to *incomplete* labels, which is the only realistic failure. The spec's control (exit 2 when the value is missing or unparseable) answers absence, not incompleteness, and no builder-side fix closes the gap: the only real fixes are a tracker read (contradicts the Chosen \"no tracker call\") or a fail-safe default the spec does not specify.",
+          "spec_anchor": "interface"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The output schema (section 3, \"Output\") shows one JSON object with `mode`, `cause`, `resume_at`, `wt`, `branch`, `base_ref`, `setup_script`, `resume`, `warnings` — but only for a `ready` result. For `hand-over`, `parked`, `needs-human` and `claimed-by-peer`, the spec never says what `mode`, `resume_at`, `wt`, `setup_script` or `resume` contain (null? omitted? last-known values?). It also says `setup-failed` reports \"with the setup.log path\" without naming any field that carries it, and `uncertifiable:<reason>` / `store-restore-failed:<exit>` embed data in `cause` while the parallel details (`worktree_path` from a stale check, the behind count) have no stated home on a non-ready result.",
+      "evidence": "Section 3 \"Output\" and the disposition/cause tables; section 4.1 step 5 (\"with the setup.log path\").",
+      "predicted_consequence": "A tester writing the output-shape assertions for `test/worktree-ensure.test.mjs` cannot decide whether `{\"disposition\":\"parked\",\"cause\":\"rebase-conflict\"}` with `mode: null` or `mode: \"rebased\"` (or the field absent) is correct — every non-ready branch's assertion is guessable two ways, so the tests the DONE items require cannot be written deterministically.",
+      "spec_anchor": "output",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The output shape on non-ready results is defined for the dispositions it named; round 4 extended it to uncertifiable:<reason>.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The output schema (section 3, \"Output\") shows one JSON object with `mode`, `cause`, `resume_at`, `wt`, `branch`, `base_ref`, `setup_script`, `resume`, `warnings` — but only for a `ready` result. For `hand-over`, `parked`, `needs-human` and `claimed-by-peer`, the spec never says what `mode`, `resume_at`, `wt`, `setup_script` or `resume` contain (null? omitted? last-known values?). It also says `setup-failed` reports \"with the setup.log path\" without naming any field that carries it, and `uncertifiable:<reason>` / `store-restore-failed:<exit>` embed data in `cause` while the parallel details (`worktree_path` from a stale check, the behind count) have no stated home on a non-ready result.",
+          "spec_anchor": "output"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The disposition table defines `ready` as \"the worktree exists, is certified **and is under the resolved root**\", but the cause table routes an interactive `root-outside` to \"`ready` with a warning\". A builder implementing the output contract from the tables cannot decide whether `root-outside` interactive is a `ready` result (with `mode`/`resume_at` populated) or a non-`ready` one (those keys `null` per the Output rules) — the two readings produce different JSON for the same state, and graft's routing (`ready → by resume_at` vs `hand-over → stop`) diverges accordingly.",
+      "evidence": "Dispositions table (\"`ready` | The worktree exists, is certified and is under the resolved root\") vs cause table row \"`root-outside` | … | `ready` with a warning\"; Output section (\"On a non-`ready` result, `mode`, `resume_at`, `setup_script` and `resume` are `null`\").",
+      "predicted_consequence": "The `test/worktree-ensure.test.mjs` output-shape assertions for interactive `root-outside` are writable two ways; the DONE item \"Every result carries every output key; on a non-`ready` result …\" is undecidable for this cause until the tables agree.",
+      "spec_anchor": "dispositions",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The ready disposition now covers an interactive worktree outside the root, with root-outside in warnings and resolved_root and actual in detail.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The disposition table defines `ready` as \"the worktree exists, is certified **and is under the resolved root**\", but the cause table routes an interactive `root-outside` to \"`ready` with a warning\". A builder implementing the output contract from the tables cannot decide whether `root-outside` interactive is a `ready` result (with `mode`/`resume_at` populated) or a non-`ready` one (those keys `null` per the Output rules) — the two readings produce different JSON for the same state, and graft's routing (`ready → by resume_at` vs `hand-over → stop`) diverges accordingly.",
+          "spec_anchor": "dispositions"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The rule-38 tightening (a tracker hint must carry the issue id as a token) exists precisely because \"a hint without it would create a worktree the next graft cannot find, and the next fresh create would collide\". The resume recreate builds its path from `cp.build.branch` / `sp.build.branch` — names the command did not build and validates only implicitly (\"a recorded name was validated when it was first created\", i.e. ref-format at `git worktree add`). A checkpoint recorded before this change against a hint-derived branch lacking the token recreates a worktree at `<rootDir>/<safe(b)>` that `worktree-check`'s issue-id matcher will never match. The next drain: `no-worktree` → checkpoint still matches → recreate → `git worktree add` onto the already-checked-out path fails → `resume-recreate-failed` park, on every drain, with the verified work sitting right there.",
+      "evidence": "Section 4.1 step 3 `recreate(b, fref)` (\"path := <rootDir>/<safe(b)>\"); section 4.4 \"Untrusted branch names\" (claims only ref-format validation and the `resume-recreate-failed` backstop); section 4.5 row 38's own rationale for the token requirement.",
+      "predicted_consequence": "An autonomous issue with a pre-change checkpoint and a token-less branch name livelocks at `parked resume-recreate-failed` instead of resuming at `gate`, needing a human per drain — the exact shape of failure the ticket's extraction is meant to remove from prose.",
+      "spec_anchor": "untrusted-branch-names",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The recreate reuses a registered worktree already at its path when it is on the recorded branch at the verified tip; any other branch or tip still refuses.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The rule-38 tightening (a tracker hint must carry the issue id as a token) exists precisely because \"a hint without it would create a worktree the next graft cannot find, and the next fresh create would collide\". The resume recreate builds its path from `cp.build.branch` / `sp.build.branch` — names the command did not build and validates only implicitly (\"a recorded name was validated when it was first created\", i.e. ref-format at `git worktree add`). A checkpoint recorded before this change against a hint-derived branch lacking the token recreates a worktree at `<rootDir>/<safe(b)>` that `worktree-check`'s issue-id matcher will never match. The next drain: `no-worktree` → checkpoint still matches → recreate → `git worktree add` onto the already-checked-out path fails → `resume-recreate-failed` park, on every drain, with the verified work sitting right there.",
+          "spec_anchor": "untrusted-branch-names"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The Scenarios section covers `fresh`, `reused`, `rebased`, `resumed` (checkpoint), and two refusal modes, but `resumed-from-store` — the mode with the most semantics the command must get right (two `resume_at` values split on the store's `cause`, the `dialogue` object carried verbatim, the `judge` stage that routes to the chunked judge loop) — has zero Given/When/Then units.",
+      "evidence": "Section 3's mode table lists `resumed-from-store` with causes `store-restored` and `resume_at` `gate`/`review`; section 4.1 step 4 and rows 28/32–35 of the inventory describe it; no scenario exercises it.",
+      "predicted_consequence": "The holdout grades the Scenarios section and cannot verify this mode's behaviour at all — including the `gate`-vs-`review` split on `r.cause` and the `resume: {cause, dialogue}` carry — because the only coverage is a test-file reference the code-blind holdout cannot read. A builder regression that drops `resume.dialogue` or mis-splits the two store causes would pass every listed scenario.",
+      "spec_anchor": "modes-causes-and-resume_at",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Added a resumed-from-store scenario: resume_at review and resume.dialogue carried verbatim.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The Scenarios section covers `fresh`, `reused`, `rebased`, `resumed` (checkpoint), and two refusal modes, but `resumed-from-store` — the mode with the most semantics the command must get right (two `resume_at` values split on the store's `cause`, the `dialogue` object carried verbatim, the `judge` stage that routes to the chunked judge loop) — has zero Given/When/Then units.",
+          "spec_anchor": "modes-causes-and-resume_at"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "Section 3's Output says `detail` carries \"`worktree_path`, `base_ref` and `behind` from `worktree-check`\" and that non-ready `wt` is \"the worktree path the blocker concerns when one is known (… the uncertifiable match …)\". But `worktree-check`'s exit-2 JSON is `{issue, error, reason}` — it emits none of those fields for any reason except `clobbered-recoverable` (which carries only `worktree_path`). For `ambiguous-match` there are multiple matching worktrees and the JSON names none of them.",
+      "evidence": "Section 3 Output bullet on `detail`; the `uncertifiable:<reason>` row of the cause table; `worktree-check.js` `fail()` emits only `{issue, error, reason}` on exit 2.",
+      "predicted_consequence": "A tester writing the output-shape assertions for `uncertifiable:ambiguous-match`, `no-branch`, `base-unresolvable`, `unreadable-behind` or `git-unavailable` cannot decide whether `wt` is null or a path, and which path, nor what `detail` contains — the assertion is guessable two ways, exactly the gap round 3's P3 fixed for the other dispositions.",
+      "spec_anchor": "output",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "For uncertifiable:<reason>, wt is null and detail is {reason}.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "Section 3's Output says `detail` carries \"`worktree_path`, `base_ref` and `behind` from `worktree-check`\" and that non-ready `wt` is \"the worktree path the blocker concerns when one is known (… the uncertifiable match …)\". But `worktree-check`'s exit-2 JSON is `{issue, error, reason}` — it emits none of those fields for any reason except `clobbered-recoverable` (which carries only `worktree_path`). For `ambiguous-match` there are multiple matching worktrees and the JSON names none of them.",
+          "spec_anchor": "output"
+        }
+      ]
+    }
+  ]
+}

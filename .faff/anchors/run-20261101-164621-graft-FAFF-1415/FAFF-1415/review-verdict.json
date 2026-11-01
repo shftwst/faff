@@ -1,0 +1,534 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 3,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/worktree-ensure.ts::a build-progress read exit other than 0 or 3 falls through to the hold check like exit 3",
+      "title": "A build-progress read exit other than 0 or 3 falls through to the hold check like exit 3",
+      "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+      "action": "No change: the spec routes only exit 0 to the resume check; any other exit reaches the hold check, which needs labels and a held store before anything is read.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "build-progress read exits only 0, 3 or 2 (usage); a usage fault there is unreachable with the arguments the command builds.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "A build-progress read exit other than 0 or 3 falls through to the hold check like exit 3",
+          "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/worktree-ensure.ts::unbounded git fetch in the rebase and recreate paths",
+      "title": "Unbounded git fetch in the rebase and recreate paths",
+      "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+      "action": "Both fetches now run through gitNet: FAFF_GIT_NET_TIMEOUT (default 30s) with SIGKILL, GIT_TERMINAL_PROMPT=0 and an ssh BatchMode/ConnectTimeout/ServerAlive bound unless GIT_SSH_COMMAND is set; tests cover a killed fetch and a black-holed ssh origin.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Unbounded git fetch in the rebase and recreate paths",
+          "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "docs/guide/cli.md::exit 2 fires after the conventions cache write, and a label-config failure exits 2",
+      "title": "Exit 2 fires after the conventions cache write, and a label-config failure exits 2",
+      "location": "docs/guide/cli.md",
+      "action": "The doc row now says exit 2 comes before any worktree is created and names an unresolvable label configuration.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Exit 2 fires after the conventions cache write, and a label-config failure exits 2",
+          "location": "docs/guide/cli.md",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/worktree-ensure.ts::store restore runs before recreate",
+      "title": "Store restore runs before recreate",
+      "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+      "action": "No change.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Spec section 4.1 step 4 orders restore before recreate; restore refuses occupied run-dir folders and each drain mints a fresh run dir, so a parked recreate does not block the next drain.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Store restore runs before recreate",
+          "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/worktree-ensure.ts::an exit-0 restore with an unparseable record degrades a dialogue hold to gate",
+      "title": "An exit-0 restore with an unparseable record degrades a dialogue hold to gate",
+      "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+      "action": "A restore record without a string cause is now needs-human store-restore-failed:0, before any recreate; test added.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "An exit-0 restore with an unparseable record degrades a dialogue hold to gate",
+          "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/worktree-ensure.ts::verifycheckpoint treats a git failure as a hash mismatch",
+      "title": "verifyCheckpoint treats a git failure as a hash mismatch",
+      "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+      "action": "No change.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Spec section 4.1 step 3 and prose rule 23: a ref that does not resolve or a hash that does not match is checkpoint-mismatch and a fresh rebuild, which fails safe.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "verifyCheckpoint treats a git failure as a hash mismatch",
+          "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/worktree-ensure.test.mjs::the no-tracker test greps source text",
+      "title": "The no-tracker test greps source text",
+      "location": "test/worktree-ensure.test.mjs",
+      "action": "No change.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The call-log assertion in the same test is the behavioural check; the grep is a cheap extra tripwire.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "The no-tracker test greps source text",
+          "location": "test/worktree-ensure.test.mjs",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/worktree-ensure.ts::toctou between the registered-worktree check and git worktree add",
+      "title": "TOCTOU between the registered-worktree check and git worktree add",
+      "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+      "action": "No change.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The losing peer's add fails into resume-recreate-failed (park); the build claim is the mutex that prevents two peers resuming one issue.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "TOCTOU between the registered-worktree check and git worktree add",
+          "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/worktree-ensure.ts::setup-worktree.sh resolves the worktree root through faff on path, so with none it uses the home default while the root assert uses the configured root",
+      "title": "setup-worktree.sh resolves the worktree root through faff on PATH, so with none it uses the HOME default while the root assert uses the configured root",
+      "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+      "action": "The provisioner now runs with this install's bin dir first on PATH, so it calls the same worktree-root resolver as the step-6 assert; every other variable passes through unchanged. Regression test 'the provisioner resolves the same worktree root with no faff on PATH' fails without the fix.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "setup-worktree.sh resolves the worktree root through faff on PATH, so with none it uses the HOME default while the root assert uses the configured root",
+          "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/worktree-ensure.ts::a symlink at the recreate path escapes the root: the pre-add check compared path text only",
+      "title": "A symlink at the recreate path escapes the root: the pre-add check compared path text only",
+      "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+      "action": "Before the add: a symlink (dangling or not) or any entry at the path, other than the registered-worktree reuse case, is resume-recreate-failed, and the path's real parent must sit under the real root. Tests: a symlink to an outside dir and a dangling symlink; no worktree is registered in either.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "standard",
+      "model": "independent-reviewer",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Spec section 4.4 promises the check happens before the add.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "A symlink at the recreate path escapes the root: the pre-add check compared path text only",
+          "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff-graft/SKILL.md::dropped guarantee: a review-outage store resume no longer seeds the dialogue counters",
+      "title": "Dropped guarantee: a review-outage store resume no longer seeds the dialogue counters",
+      "location": "plugin/skills/faff-graft/SKILL.md",
+      "action": "The gate row again says a resume.dialogue seeds {fix_rounds_used, rebuttal_rounds_used, hold_count} if the dialogue loop re-enters, caps not reset; spec row 32 and the dated note carry it.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "standard",
+      "model": "independent-reviewer",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "resume-store stash writes dialogue for review-outage, so the clause is load-bearing.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "Dropped guarantee: a review-outage store resume no longer seeds the dialogue counters",
+          "location": "plugin/skills/faff-graft/SKILL.md",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/graft-remote-base.test.mjs::the faff-708 test no longer guards against a hardcoded origin/main base in the resume derivation",
+      "title": "The FAFF-708 test no longer guards against a hardcoded origin/main base in the resume derivation",
+      "location": "test/graft-remote-base.test.mjs",
+      "action": "The identity test now runs on an origin whose default is trunk; hardcoding origin/main in verifyCheckpoint fails it (mutation run, reverted).",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "standard",
+      "model": "independent-reviewer",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Restores main's strictness for the resume leg.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "The FAFF-708 test no longer guards against a hardcoded origin/main base in the resume derivation",
+          "location": "test/graft-remote-base.test.mjs",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/worktree-ensure.ts::base_ref is null on a plain fresh create but set after a checkpoint mismatch",
+      "title": "base_ref is null on a plain fresh create but set after a checkpoint mismatch",
+      "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+      "action": "base_ref is populated on every fresh result: FAFF_WORKTREE_BASE_REF when set, else remote-diff-base.sh's base, else null with a warning; tested.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "independent-reviewer",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Matches the spec's output example.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "base_ref is null on a plain fresh create but set after a checkpoint mismatch",
+          "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/worktree-ensure.ts::a failed rebase --abort is ignored",
+      "title": "A failed rebase --abort is ignored",
+      "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+      "action": "A failed abort is needs-human rebase-abort-failed, with abort_exit and abort_stderr in detail; tested.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "independent-reviewer",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Never claim a clean park over a half-rebased tree.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "A failed rebase --abort is ignored",
+          "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/worktree-ensure.ts::the provisioner path join can add the current directory",
+      "title": "The provisioner PATH join can add the current directory",
+      "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+      "action": "provisionerPath drops empty entries; unit-tested for unset, empty and doubled separators.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "independent-reviewer",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "An empty PATH entry means the current directory.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "The provisioner PATH join can add the current directory",
+          "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff-graft/SKILL.md::the autonomous stale-rebase note is no longer logged to graft.md",
+      "title": "The autonomous stale-rebase note is no longer logged to graft.md",
+      "location": "plugin/skills/faff-graft/SKILL.md",
+      "action": "Step 3 now says to log the stale note (wt, base_ref, behind) to graft.md on mode rebased in autonomous mode.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "independent-reviewer",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Rule row 5's agent half.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "The autonomous stale-rebase note is no longer logged to graft.md",
+          "location": "plugin/skills/faff-graft/SKILL.md",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/worktree-ensure.ts::toctou between the on-disk probes and git worktree add",
+      "title": "TOCTOU between the on-disk probes and git worktree add",
+      "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+      "action": "Comment added in recreate.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Requires another local process planting a link in the worktree root mid-call; the build claim keeps one runner per issue and the step-6 root assert still refuses a worktree resolving outside the root.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "TOCTOU between the on-disk probes and git worktree add",
+          "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/worktree-ensure.ts::a pinned faff_worktree_base_ref is not reported after a checkpoint mismatch",
+      "title": "A pinned FAFF_WORKTREE_BASE_REF is not reported after a checkpoint mismatch",
+      "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+      "action": "On a fresh create a pinned base now wins over the base the resume check resolved; tested.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The pin is what setup-worktree.sh branched from.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "A pinned FAFF_WORKTREE_BASE_REF is not reported after a checkpoint mismatch",
+          "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/worktree-ensure.ts::freshbase resolves the base after the worktree exists",
+      "title": "freshBase resolves the base after the worktree exists",
+      "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+      "action": "No change.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "base_ref is metadata; a failed resolve is null with a warning and never blocks a ready worktree.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "freshBase resolves the base after the worktree exists",
+          "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/worktree-ensure.ts::provisionerpath with no path yields only the faff bin dir",
+      "title": "provisionerPath with no PATH yields only the faff bin dir",
+      "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+      "action": "No change.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "spawnSync itself needs a PATH to find bash; the case is not reachable in practice.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "provisionerPath with no PATH yields only the faff bin dir",
+          "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/worktree-ensure.ts::signal-killed children record a null exit in detail",
+      "title": "Signal-killed children record a null exit in detail",
+      "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+      "action": "No change.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Diagnostic only; null is the honest value for a signal death.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "Signal-killed children record a null exit in detail",
+          "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

@@ -64,6 +64,7 @@ const TEST_FILE_COVERAGE = {
   // summary's sections, facts handling, forge and doctor paths, and checkpoint's decision table,
   // read faults and exit codes, are exercised through the real CLI entrypoint and in-process.
   "run": ["test/run-summary.test.mjs", "test/run-checkpoint.test.mjs", "test/run-open.test.mjs", "test/run-close.test.mjs"],
+  "worktree": "test/worktree-ensure.test.mjs",
   // prose-size (FAFF-1442): `faff prose-size baseline --lower` and `tally` have no `--selftest`; both, and
   // the validate-adapters byte ratchet, are exercised through the real CLI entrypoint and in-process.
   "prose-size": "test/prose-size.test.mjs",

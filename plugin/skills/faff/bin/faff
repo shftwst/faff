@@ -50,6 +50,7 @@ const { cmdGraft } = lazy(() => require("./lib/graft-admit"), ["cmdGraft"]);
 const { cmdRun } = lazy(() => require("./lib/run"), ["cmdRun"]);
 const { cmdProseSize } = lazy(() => require("./lib/prose-size"), ["cmdProseSize"]);
 const { cmdPr } = lazy(() => require("./lib/pr-open"), ["cmdPr"]);
+const { cmdWorktree } = lazy(() => require("./lib/worktree-ensure"), ["cmdWorktree"]);
 const { cmdClaimVerdict } = lazy(() => require("./lib/claim-verdict"), ["cmdClaimVerdict"]);
 const { cmdParkVerdict } = lazy(() => require("./lib/park-verdict"), ["cmdParkVerdict"]);
 const { cmdPuntScan } = lazy(() => require("./lib/punt-scan"), ["cmdPuntScan"]);
@@ -248,6 +249,7 @@ const COMMANDS = {
   run: cmdRun,
   "prose-size": cmdProseSize,
   pr: cmdPr,
+  worktree: cmdWorktree,
   "post-merge-check": cmdPostMergeCheck,
   "pr-body": cmdPrBody,
   "governance-check": cmdGovernanceCheck,

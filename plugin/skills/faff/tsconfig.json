@@ -48,6 +48,7 @@
     "bin/lib/prose-size.ts",
     "bin/lib/run-open.ts",
     "bin/lib/run-close.ts",
-    "bin/lib/pr-open.ts"
+    "bin/lib/pr-open.ts",
+    "bin/lib/worktree-ensure.ts"
   ]
 }

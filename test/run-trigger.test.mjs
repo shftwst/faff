@@ -420,6 +420,16 @@ test("T34 refuse writes nothing: no record, no close", () => {
   assert.ok(!childNames(deps).some((n) => n === "run-record-prd" || n === "run close" || n === "run-ledger close"));
 });
 
+test("T34 refuse with a validated licence still records nothing", () => {
+  const deps = fakeDeps({ files: filesFor(BLOCK, []) });
+  const r = rt.runTrigger(withInputs(), deps);
+  assert.equal(r.token, "refuse");
+  assert.equal(r.verdict.reason, "coverage-unmeasurable");
+  assert.equal(r.creative_licence, "tight");
+  assert.ok(!childNames(deps).some((n) => n === "run-record-prd" || n === "run close" || n === "run-ledger close"));
+  assert.equal(r.recorded, null);
+});
+
 // --- Phase C (T30, T31) ---
 
 test("T30/T31 after-plan records licence and container, marks plan on the given id, returns recorded", () => {

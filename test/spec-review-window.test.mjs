@@ -265,12 +265,14 @@ test("specReviewWindowSelftest() returns 0 in-process", () => {
 
 // --- faff-prep/SKILL.md rewire ----------------------------------------------------------
 
-test("faff-prep/SKILL.md: the loop resolves the window + round number via the new CLI", () => {
+test("faff-prep/SKILL.md: the loop resolves the window + round number through `spec-review round`", () => {
   const body = readFileSync(PREP_SKILL, "utf8");
-  assert.match(body, /spec-review-window --read --dir \$scratch/, "loop entry resolves window_start from --read");
-  assert.match(body, /spec-review-window --govern --dir \$scratch --round \$n/, "per-round governance now runs via --govern, not a hand --set");
-  assert.match(body, /spec-review-window --next-round --dir \$scratch/, "the round number is derived from --next-round");
-  assert.match(body, /spec-review-convergence --dir \$scratch --window-start \$window_start/, "convergence reads pass --window-start");
+  assert.match(body, /"\$faff" spec-review round --issue <ISSUE-XX> --dir "\$scratch"/, "each round is recorded by the round call, which reads window_start and the round number from disk");
+  assert.match(body, /spec-review round --open-window --dir \$scratch/, "a human unpark opens the window through the round call");
+  for (const verb of ["--read", "--govern", "--next-round", "--set"]) {
+    assert.doesNotMatch(body, new RegExp(`spec-review-window ${verb}`), `prep no longer calls spec-review-window ${verb} by hand`);
+  }
+  assert.doesNotMatch(body, /spec-review-convergence --dir/, "convergence is read inside the round call");
 });
 
 // --- FAFF-1052: `--govern` deterministic window governance --------------------------------

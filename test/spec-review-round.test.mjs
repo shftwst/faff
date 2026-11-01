@@ -77,6 +77,8 @@ test("scenario 1: churn at round 3 parks with the exact cause and keeps round-3.
   assert.equal(res.action, "park");
   assert.equal(res.cause, "spec-review churn detected — new objecting lens(es) since round 2: QA");
   assert.equal(readJson(join(fx.dir, "round-3.json")).verdict, "revise");
+  assert.equal(res.cap.reached, false, "churn parks before the remaining cap iterations are spent");
+  assert.equal(res.convergence, null, "churn parks before the cap and the yield are consulted");
 });
 
 test("scenario 2: an approve carrying objections parks exit 1 and leaves no round-1.json", () => {
@@ -184,6 +186,17 @@ test("window bounds churn: a round before window_start is never the churn compar
   const { res } = round(fx, block(rec("revise", [o("QA", "major"), o("infosec", "major")])));
   assert.equal(res.churn, null);
   assert.equal(res.action, "fix-and-rerun");
+});
+
+test("window bounds convergence: the yield reads only rounds [window_start .. n]", () => {
+  const arch = (k) => Array.from({ length: k }, () => o("architectural", "major"));
+  // Rounds 1–2 are flat (2 → 2), so a whole-directory read is not converging; inside the window
+  // (rounds 2 → 3) the count falls, so the windowed read yields.
+  const fx = scratch({ 1: rec("revise", arch(2)), 2: rec("revise", arch(2)) }, { "window.json": { window_start: 2 } });
+  const { res } = round(fx, block(rec("revise", arch(1))), { appetite: "low" });
+  assert.equal(res.action, "fix-and-rerun");
+  assert.equal(res.cap.yielded, true);
+  assert.deepEqual(res.convergence.totals, [2, 1]);
 });
 
 test("open window: after a recorded park, --open-window moves window_start and the cap reset", () => {

@@ -393,6 +393,8 @@ function recreate(s: State, v: { branch: string; fref: string; tip: string }): R
   }
   // Before the add, on disk: a symlink at the path (dangling or not) is refused outright, and the
   // path's real parent must sit under the real root, so a link can never place the worktree outside it.
+  // A link planted between this probe and the add is outside this check; the build claim keeps one
+  // runner per issue, and the step-6 root assert still refuses a worktree that resolves outside the root.
   const onDisk = s.deps.lstat(wtPath);
   if (onDisk === "symlink") return { kind: "blocked", out: blocked(s, "resume-recreate-failed", wtPath, { reason: "path is a symlink" }) };
   const realCandidate = path.join(s.deps.realpath(path.dirname(wtPath)), path.basename(wtPath));
@@ -459,7 +461,11 @@ function freshCreate(s: State, cause: string): Placed {
   if (out.status !== 0 || wt === "") {
     return { kind: "done", out: blocked(s, "setup-failed", null, { exit: out.status, setup_log: path.join(worktreeRootDir(s), "setup.log") }) };
   }
-  if (s.baseRef === null) s.baseRef = freshBase(s);
+  // A pinned stack base is what the script branched from, so it wins over a base the resume check
+  // resolved earlier; otherwise keep that base, or resolve one now.
+  const pinned = str(s.deps.env.FAFF_WORKTREE_BASE_REF);
+  if (pinned !== undefined && pinned !== "") s.baseRef = pinned;
+  else if (s.baseRef === null) s.baseRef = freshBase(s);
   return { kind: "placed", wt, mode: "fresh", cause, resumeAt: "start", setupScript: which, resume: null };
 }
 

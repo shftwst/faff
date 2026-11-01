@@ -825,9 +825,19 @@ test("base_ref is populated on every fresh create", () => {
   } finally { cleanup(fx2); }
   const fx3 = fixture();
   try {
-    const out = run(fx3, {}, {}, { FAFF_WORKTREE_BASE_REF: "origin/main" }).out;
-    assert.equal(out.base_ref, "origin/main", "a pinned stack base is reported as given");
+    const tip = git(fx3.repo, "rev-parse", "origin/main");
+    const out = run(fx3, {}, {}, { FAFF_WORKTREE_BASE_REF: tip }).out;
+    assert.equal(out.base_ref, tip, "a pinned stack base is reported as given");
   } finally { cleanup(fx3); }
+  const fx4 = fixture();
+  try {
+    pushedBranch(fx4);
+    writeCheckpoint(fx4, fx4.runDir, "FAFF-9-demo", "0".repeat(64));
+    const tip = git(fx4.repo, "rev-parse", "origin/main");
+    const out = run(fx4, { mode: "autonomous" }, {}, { FAFF_WORKTREE_BASE_REF: tip }).out;
+    assert.equal(out.cause, "checkpoint-mismatch");
+    assert.equal(out.base_ref, tip, "after a mismatch, the pinned base the script branched from is reported");
+  } finally { cleanup(fx4); }
 });
 
 test("the provisioner PATH never gains an empty entry", () => {

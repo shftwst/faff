@@ -145,7 +145,7 @@ Resolve the binary per gateway → **Resolving the `faff` executable**, then run
 | `fault` | Fail loud: print `classify.reason`, start nothing, never mint, never drop to L3 |
 | `refuse` | Surface `verdict.reason` for `/faff-wtf` and start nothing. The run dir is never closed |
 | `drain` | Step 1 (tidy) and the ordinary pipeline, on the same run dir |
-| `plan` | Invoke `/faff-plot --autonomous` against `target` (it inherits `FAFF_RUN_DIR`), then `faff run trigger --run-dir "$FAFF_RUN_DIR" --after-plan --correlation-id <run_start_correlation_id>` with the same readiness and goals flags, then step 1 on the same run dir. Converge, don't stop: a still-thin coverage is not a stop condition |
+| `plan` | Invoke `/faff-plot --autonomous` against `target` (it inherits `FAFF_RUN_DIR`), then `faff run trigger --run-dir "$FAFF_RUN_DIR" --after-plan --correlation-id <run_start_correlation_id> --json` with the same readiness and goals flags. On `recorded`, step 1 on the same run dir; on `record-failed`, exit 2, any other exit or unparseable output, fail loud and build nothing. Converge, don't stop: a still-thin coverage is not a stop condition, and the wave loop runs until `faff run-done` reports the PRD fulfilled or a budget/convergence backstop fires. Unconditional at L4 — no config flag gates this fall-through |
 | `plan`, but plot refuses ignition or errors | Surface plot's reason for `/faff-wtf`; do not call `--after-plan`; start nothing |
 | `record-failed` | Fail loud: build nothing |
 

@@ -885,7 +885,7 @@ function deriveCaptureKernels(libDir) {
 //  - a covered kernel that some skill also drives with its own `decide --export` fails the lint
 //    (inProcessDriven), so the route can never hide a driver.
 const IN_PROCESS_CAPTURE = [
-  { module: "graft-admit.js", verb: ["graft", "admit"], required: ["--mode", "--facts", "--run-dir"], capture: /\.base\(\s*["']([^"']+)["']/g, covers: ["eligible", "next"] },
+  { module: "graft-admit.js", verb: ["graft", "admit"], required: ["--mode", "--facts", "--run-dir"], stdin: ["--facts"], capture: /\.base\(\s*["']([^"']+)["']/g, covers: ["eligible", "next"] },
   { module: "run-trigger.js", verb: ["run", "trigger"], required: ["--run-dir"], capture: /\bsafeMint\(\s*["']([^"']+)["']/g, covers: ["run-outward", "run-start"] },
 ];
 
@@ -928,13 +928,13 @@ function stripJsComments(src) {
 // Returns [] when no module is present.
 function deriveInProcessCapture(libDir, entries = IN_PROCESS_CAPTURE) {
   const out = [];
-  for (const { module: mod, verb, required, capture, covers } of entries) {
+  for (const { module: mod, verb, required, stdin = [], capture, covers } of entries) {
     const file = path.join(libDir, mod);
     if (!fs.existsSync(file)) continue;
     const code = stripJsComments(fs.readFileSync(file, "utf8"));
     if (!code.includes("mintConsultCorrelationId(")) continue;
     const kernels = [...new Set([...code.matchAll(new RegExp(capture.source, "g"))].map((m) => m[1]))].sort();
-    out.push({ module: mod, verb, required, kernels, wires: covers.filter((k) => kernels.includes(k)).sort() });
+    out.push({ module: mod, verb, required, stdin, kernels, wires: covers.filter((k) => kernels.includes(k)).sort() });
   }
   return out;
 }
@@ -961,15 +961,40 @@ function maskSubstitutions(line) {
   return out;
 }
 
-// A sentence prefix that negates the command it introduces: "never run …", "don't run …", "do not …".
+// A word that negates a command in its sentence: "never run …", "… must never be run", "do not …".
 const NEGATION_RE = /\b(?:never|not|don['’]t|doesn['’]t|cannot|can['’]t|mustn['’]t|shouldn['’]t|avoid)\b/i;
+const SENTENCE_END_RE = /[.!?]\s|\n\s*\n|\n\s*[-*]\s|\|/g;
+
+// Blank every inline code span to spaces (same length), so span contents neither end a sentence nor
+// negate one.
+const blankSpans = (t) => t.replace(/`[^`\n]*`/g, (x) => " ".repeat(x.length));
+
+// The sentence around [start, end) in `masked`: back to the previous sentence end, blank line, list item
+// or table cell, and forward to the next one.
+function sentenceAround(masked, start, end) {
+  let cut = 0;
+  for (const b of masked.slice(0, start).matchAll(SENTENCE_END_RE)) cut = b.index + b[0].length;
+  const tail = masked.slice(end);
+  const next = tail.search(/[.!?]\s|\n\s*\n|\n\s*[-*]\s|\|/);
+  return masked.slice(cut, start) + " " + (next < 0 ? tail : tail.slice(0, next));
+}
+
+// The last sentence of the paragraph a fence follows (blank lines before the fence skipped).
+function sentenceBefore(text, start) {
+  const before = blankSpans(text.slice(0, start)).replace(/\s+$/, "");
+  let cut = 0;
+  for (const b of before.matchAll(SENTENCE_END_RE)) cut = b.index + b[0].length;
+  return before.slice(cut);
+}
 
 // Every shell command a SKILL.md shows as code: each logical line of a fenced block (backslash
-// continuations joined, heredoc bodies dropped) and each inline code span whose sentence does not negate
-// it, split into simple commands at |, ||, && and ; after masking `$(…)`.
+// continuations joined, heredoc bodies dropped) unless the fence follows a negating sentence, and each
+// inline code span whose sentence does not negate it, split into simple commands at |, ||, && and ;
+// after masking `$(…)`.
 function codeCommands(text) {
   const lines = [];
-  const rest = text.replace(/^[ \t]*```[^\n]*\n([\s\S]*?)^[ \t]*```[ \t]*$/gm, (m, body) => {
+  const rest = text.replace(/^[ \t]*```[^\n]*\n([\s\S]*?)^[ \t]*```[ \t]*$/gm, (m, body, offset) => {
+    if (NEGATION_RE.test(sentenceBefore(text, offset))) return "\n\n";
     let heredoc = null;
     for (const line of body.replace(/\\\n/g, " ").split("\n")) {
       if (heredoc !== null) { if (line.trim() === heredoc) heredoc = null; continue; }
@@ -979,31 +1004,30 @@ function codeCommands(text) {
     }
     return "\n\n";
   });
+  const masked = blankSpans(rest);
   for (const m of rest.matchAll(/`([^`\n]+)`/g)) {
-    // The span's sentence: back to the last sentence end, blank line, list item or table cell, with
-    // other code spans blanked so their contents neither end the sentence nor negate it.
-    const before = rest.slice(0, m.index).replace(/`[^`\n]*`/g, (x) => " ".repeat(x.length));
-    let cut = 0;
-    for (const b of before.matchAll(/[.!?]\s|\n\s*\n|\n\s*[-*]\s|\|/g)) cut = b.index + b[0].length;
-    if (NEGATION_RE.test(before.slice(cut))) continue;
+    if (NEGATION_RE.test(sentenceAround(masked, m.index, m.index + m[0].length))) continue;
     lines.push(m[1]);
   }
   return lines.map(maskSubstitutions).flatMap((l) => l.split(/\|\||&&|[|;]/)).map((c) => c.trim()).filter(Boolean);
 }
 
-// A simple command that runs `faff <verb…>` with each required flag carrying a value of its own (the
-// next token, not another flag, or `--flag=value`). A masked `$(…)` is never a flag.
-function isInProcessInvocation(command, verb, required) {
+// A simple command that runs `faff <verb…>` with each required flag carrying a value of its own: the
+// next token, or `--flag=value`. A value never starts with `-` (it would be another flag), except a lone
+// `-` for a flag listed in `stdin` (`--facts -` reads stdin). A masked `$(…)` is never a flag.
+function isInProcessInvocation(command, verb, required, stdin = []) {
   const toks = command.split(/\s+/);
   let i = 0;
   while (i < toks.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(toks[i])) i++;
   if (!/^(?:"?\$faff"?|faff)$/.test(toks[i] || "")) return false;
   if (verb.some((v, k) => toks[i + 1 + k] !== v)) return false;
   const args = toks.slice(i + 1 + verb.length);
+  const okValue = (flag, v) => v !== undefined && v !== "" && (!v.startsWith("-") || (v === "-" && stdin.includes(flag)));
   const valued = (flag) => {
-    if (args.some((a) => a.startsWith(`${flag}=`) && a.length > flag.length + 1)) return true;
+    const eq = args.find((a) => a.startsWith(`${flag}=`));
+    if (eq !== undefined) return okValue(flag, eq.slice(flag.length + 1));
     const j = args.indexOf(flag);
-    return j >= 0 && j + 1 < args.length && !args[j + 1].startsWith("--");
+    return j >= 0 && okValue(flag, args[j + 1]);
   };
   return required.every(valued);
 }
@@ -1020,7 +1044,7 @@ function inProcessRoutes(skillsDir, inProcess) {
   const commands = texts.flatMap((t) => codeCommands(t));
   const routes = new Map();
   for (const entry of inProcess) {
-    if (commands.some((c) => isInProcessInvocation(c, entry.verb, entry.required))) for (const k of entry.wires) if (!routes.has(k)) routes.set(k, entry);
+    if (commands.some((c) => isInProcessInvocation(c, entry.verb, entry.required, entry.stdin))) for (const k of entry.wires) if (!routes.has(k)) routes.set(k, entry);
   }
   return routes;
 }

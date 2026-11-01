@@ -224,6 +224,14 @@ test("static: a plan verdict invokes /faff-plot --autonomous (nested reuse, no m
   assert.doesNotMatch(planRow, /faff lights-out/);
   assert.doesNotMatch(planRow, /\bSTOP\b/);
   assert.match(planRow, /Converge, don't stop/);
+  // The after-plan call is parsed and routed: recorded → step 1, anything else fails loud.
+  assert.match(planRow, /--after-plan --correlation-id <run_start_correlation_id> --json/);
+  assert.match(planRow, /On `recorded`, step 1/);
+  assert.match(planRow, /on `record-failed`[^.]*fail loud and build nothing/);
+  // Kept from the replaced prose (rule row T32): the fall-through is unconditional, and the wave loop's
+  // stop condition is run-done or a backstop, never a still-thin coverage.
+  assert.match(planRow, /Unconditional at L4 — no config flag gates this fall-through/);
+  assert.match(planRow, /until `faff run-done` reports the PRD fulfilled or a budget\/convergence backstop fires/);
 });
 
 test("static: a drain verdict records the licence via run-record-prd (no mint); a refuse verdict leaves the inherited runDir untouched (no mint, nothing to close)", () => {

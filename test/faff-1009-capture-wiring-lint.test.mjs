@@ -253,8 +253,8 @@ test("bypass 5: a covered kernel that a skill also drives with its own decide --
 
 test("the route's helpers: real invocations only, comments stripped, covers narrowed to next and eligible", () => {
   const REQ = ["--mode", "--facts", "--run-dir"];
-  assert.equal(va.isInProcessInvocation('faff graft admit --mode autonomous --facts - --run-dir "$run_dir" --json', ["graft", "admit"], REQ), true);
-  assert.equal(va.isInProcessInvocation('"$faff" graft admit --mode autonomous --facts - --run-dir "$run_dir"', ["graft", "admit"], REQ), true);
+  assert.equal(va.isInProcessInvocation('faff graft admit --mode autonomous --facts - --run-dir "$run_dir" --json', ["graft", "admit"], REQ, ["--facts"]), true);
+  assert.equal(va.isInProcessInvocation('"$faff" graft admit --mode autonomous --facts - --run-dir "$run_dir"', ["graft", "admit"], REQ, ["--facts"]), true);
   assert.equal(va.isInProcessInvocation("faff graft admit --run-dir", ["graft", "admit"], REQ), false);
   assert.equal(va.isInProcessInvocation("faff graft admit --mode autonomous --facts - --run-dir --json", ["graft", "admit"], REQ), false);
   assert.equal(va.isInProcessInvocation('faff run trigger --run-dir "$FAFF_RUN_DIR" --json', ["run", "trigger"], ["--run-dir"]), true);
@@ -385,4 +385,55 @@ test("run trigger: the route covers only what run-trigger.js really captures", (
   const r = runOnTriggerFixture({ triggerSrc: onlyStart, skillBody: TRIGGER_SPAN });
   assert.match(r.stdout, /FAIL\s+capture-wiring \(FAFF-1009\)/);
   assert.deepEqual([...new Set(unwiredIn(r.stdout))], ["run-outward"]);
+});
+
+// --- FAFF-1418 review round 2: a required flag's value never starts with `-` (main's rule), except a lone
+// `-` for --facts (stdin); `--flag=value` takes the same value check.
+
+test("flag values: --run-dir -, --run-dir -x and --run-dir=-x never count; --run-dir=x does", () => {
+  for (const runDir of ["--run-dir -", "--run-dir -x", "--run-dir=-x", "--run-dir="]) {
+    const r = runOnRouteFixture({ skillBody: `Run \`faff graft admit --mode autonomous --facts - ${runDir} --json\` per candidate.\n` + CLAIM_DRIVER });
+    assert.match(r.stdout, /FAIL\s+capture-wiring \(FAFF-1009\)/, runDir);
+    assert.deepEqual([...new Set(unwiredIn(r.stdout))].sort(), ["eligible", "next"], runDir);
+  }
+  const ok = runOnRouteFixture({ skillBody: 'Run `faff graft admit --mode autonomous --facts - --run-dir="$run_dir" --json` per candidate.\n' + CLAIM_DRIVER });
+  assert.match(ok.stdout, /pass\s+capture-wiring[^\n]*eligible, next via `faff graft admit`/);
+});
+
+test("flag values: --facts accepts only a lone - from the dash family; --mode accepts no dash value", () => {
+  for (const span of [
+    "faff graft admit --mode autonomous --facts -x --run-dir d",
+    "faff graft admit --mode autonomous --facts=-x --run-dir d",
+    "faff graft admit --mode - --facts - --run-dir d",
+    "faff graft admit --mode -x --facts - --run-dir d",
+  ]) {
+    const r = runOnRouteFixture({ skillBody: `Run \`${span}\` per candidate.\n` + CLAIM_DRIVER });
+    assert.match(r.stdout, /FAIL\s+capture-wiring \(FAFF-1009\)/, span);
+  }
+  for (const span of ["faff graft admit --mode autonomous --facts - --run-dir d", "faff graft admit --mode=autonomous --facts=- --run-dir=d"]) {
+    const r = runOnRouteFixture({ skillBody: `Run \`${span}\` per candidate.\n` + CLAIM_DRIVER });
+    assert.match(r.stdout, /pass\s+capture-wiring/, span);
+  }
+});
+
+// --- FAFF-1418 review round 2: negation anywhere in the sentence, and a fence that follows a negating
+// sentence, do not count.
+
+test("negation after the span: a code span whose sentence negates it later does not count", () => {
+  const r = runOnTriggerFixture({ skillBody: "`faff run trigger --run-dir d --json` must never be run.\n" });
+  assert.match(r.stdout, /FAIL\s+capture-wiring \(FAFF-1009\)/);
+  assert.deepEqual([...new Set(unwiredIn(r.stdout))].sort(), ["run-outward", "run-start"]);
+});
+
+test("negated fence: a fenced block that directly follows a negating sentence does not count", () => {
+  for (const body of [
+    "Never run this:\n```bash\nfaff run trigger --run-dir \"$FAFF_RUN_DIR\" --json\n```\n",
+    "Never run this:\n\n```bash\nfaff run trigger --run-dir \"$FAFF_RUN_DIR\" --json\n```\n",
+  ]) {
+    const r = runOnTriggerFixture({ skillBody: body });
+    assert.match(r.stdout, /FAIL\s+capture-wiring \(FAFF-1009\)/, body);
+    assert.deepEqual([...new Set(unwiredIn(r.stdout))].sort(), ["run-outward", "run-start"], body);
+  }
+  const ok = runOnTriggerFixture({ skillBody: "Run this:\n```bash\nfaff run trigger --run-dir \"$FAFF_RUN_DIR\" --json\n```\n" });
+  assert.match(ok.stdout, /pass\s+capture-wiring/);
 });

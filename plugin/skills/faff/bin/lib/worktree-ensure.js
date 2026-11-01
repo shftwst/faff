@@ -40,6 +40,11 @@ function netEnv(env) {
         : `ssh -o BatchMode=yes -o ConnectTimeout=${t} -o ServerAliveInterval=${t} -o ServerAliveCountMax=1`;
     return { ...env, GIT_TERMINAL_PROMPT: "0", GIT_SSH_COMMAND: ssh };
 }
+// This install's bin dir first, then the caller's PATH with empty entries dropped (an empty entry
+// would put the current directory on the search path).
+function provisionerPath(pathEnv) {
+    return [path.dirname(ENTRYPOINT), ...(pathEnv ?? "").split(path.delimiter)].filter((e) => e !== "").join(path.delimiter);
+}
 function realDeps(env = process.env) {
     const run = (cmd, args, cwd) => {
         const r = childProcess.spawnSync(cmd, args, { cwd, env, encoding: "utf8" });
@@ -60,7 +65,7 @@ function realDeps(env = process.env) {
         // install's bin dir first so it uses the same resolver the step-6 root assert uses; every other
         // variable (FAFF_WORKTREE_BASE_REF, SKIP_NPM_PACKAGES_INSTALL, ...) passes through unchanged.
         bash: (script, args, cwd) => {
-            const r = childProcess.spawnSync("bash", [script, ...args], { cwd, env: { ...env, PATH: [path.dirname(ENTRYPOINT), env.PATH ?? ""].join(path.delimiter) }, encoding: "utf8" });
+            const r = childProcess.spawnSync("bash", [script, ...args], { cwd, env: { ...env, PATH: provisionerPath(env.PATH) }, encoding: "utf8" });
             return { status: r.status, stdout: r.stdout ?? "", stderr: r.stderr ?? "" };
         },
         isDir: (p) => { try {
@@ -68,6 +73,12 @@ function realDeps(env = process.env) {
         }
         catch {
             return false;
+        } },
+        lstat: (p) => { try {
+            return fs.lstatSync(p).isSymbolicLink() ? "symlink" : "other";
+        }
+        catch {
+            return "none";
         } },
         isFile: (p) => { try {
             return fs.existsSync(p) && !fs.statSync(p).isDirectory();
@@ -189,8 +200,12 @@ function reuseFrom(s, chk) {
         const rebase = s.deps.git(["-C", wt, "rebase", baseRef], s.args.root);
         if (rebase.status === 0)
             return { kind: "reuse", wt, rebased: true };
-        if (s.args.mode === "autonomous")
-            s.deps.git(["-C", wt, "rebase", "--abort"], s.args.root);
+        if (s.args.mode === "autonomous") {
+            const abort = s.deps.git(["-C", wt, "rebase", "--abort"], s.args.root);
+            if (abort.status !== 0) {
+                return { kind: "blocked", out: result(s, "needs-human", null, "rebase-abort-failed", null, wt, null, null, { ...stale, abort_exit: abort.status, abort_stderr: firstLine(abort.stderr) }) };
+            }
+        }
         return { kind: "blocked", out: blocked(s, "rebase-conflict", wt, stale) };
     }
     const reason = str(field(chk.json, "reason")) ?? "git-unavailable";
@@ -272,12 +287,23 @@ function recreate(s, v) {
     if (!lightsOut.isStrictlyUnderRoot(rootDir, wtPath)) {
         return { kind: "blocked", out: blocked(s, "resume-recreate-failed", wtPath, { resolved_root: rootDir }) };
     }
+    // Before the add, on disk: a symlink at the path (dangling or not) is refused outright, and the
+    // path's real parent must sit under the real root, so a link can never place the worktree outside it.
+    const onDisk = s.deps.lstat(wtPath);
+    if (onDisk === "symlink")
+        return { kind: "blocked", out: blocked(s, "resume-recreate-failed", wtPath, { reason: "path is a symlink" }) };
+    const realCandidate = path.join(s.deps.realpath(path.dirname(wtPath)), path.basename(wtPath));
+    if (!lightsOut.isStrictlyUnderRoot(s.deps.realpath(rootDir), realCandidate)) {
+        return { kind: "blocked", out: blocked(s, "resume-recreate-failed", wtPath, { resolved_root: rootDir, real_path: realCandidate }) };
+    }
     const existing = registeredWorktrees(s).find((w) => samePath(s, w.path, wtPath));
     if (existing !== undefined) {
         if (existing.branch === b && existing.head === v.tip)
             return { kind: "ok", wt: wtPath };
         return { kind: "blocked", out: blocked(s, "resume-recreate-failed", wtPath, { registered_branch: existing.branch, registered_head: existing.head }) };
     }
+    if (onDisk !== "none")
+        return { kind: "blocked", out: blocked(s, "resume-recreate-failed", wtPath, { reason: "path already exists" }) };
     const add = s.deps.git(["worktree", "add", wtPath, b], s.args.root);
     if (add.status !== 0)
         return { kind: "blocked", out: blocked(s, "resume-recreate-failed", wtPath, { stderr: firstLine(add.stderr) }) };
@@ -304,6 +330,20 @@ function parseLabels(raw) {
         throw new EnsureUsageError("--labels must be a JSON array of strings");
     return v.filter((x) => typeof x === "string");
 }
+// The base a fresh worktree was branched from, as setup-worktree.sh resolves it: the caller's
+// FAFF_WORKTREE_BASE_REF when set, else the base remote-diff-base.sh prints (the fetched origin
+// default; git-only: the local default). A failed resolve leaves base_ref null with a warning.
+function freshBase(s) {
+    const pinned = str(s.deps.env.FAFF_WORKTREE_BASE_REF);
+    if (pinned !== undefined && pinned !== "")
+        return pinned;
+    const r = s.deps.bash(path.join(s.deps.graftSkillDir, "remote-diff-base.sh"), [], s.args.root);
+    const base = r.status === 0 ? r.stdout.trim() : "";
+    if (base !== "")
+        return base;
+    s.warnings.push(`base_ref unresolved: remote-diff-base.sh exited ${String(r.status)}`);
+    return null;
+}
 // Step 5: a fresh worktree from the provisioning script.
 function freshCreate(s, cause) {
     const project = path.join(s.args.root, "scripts", "setup-worktree.sh");
@@ -325,6 +365,8 @@ function freshCreate(s, cause) {
     if (out.status !== 0 || wt === "") {
         return { kind: "done", out: blocked(s, "setup-failed", null, { exit: out.status, setup_log: path.join(worktreeRootDir(s), "setup.log") }) };
     }
+    if (s.baseRef === null)
+        s.baseRef = freshBase(s);
     return { kind: "placed", wt, mode: "fresh", cause, resumeAt: "start", setupScript: which, resume: null };
 }
 // Steps 3 and 4: the autonomous resume checks, then the fresh create.
@@ -519,4 +561,4 @@ function cmdWorktree(args) {
         return argvApi.usageError([{ code: "bad-value", detail: "expected a verb: ensure" }], WORKTREE_USAGE);
     return cmdWorktreeEnsure(args.slice(1));
 }
-module.exports = { cmdWorktree, cmdWorktreeEnsure, ensure, realDeps, ENSURE_USAGE, GRAFT_SKILL_DIR };
+module.exports = { cmdWorktree, cmdWorktreeEnsure, ensure, realDeps, provisionerPath, ENSURE_USAGE, GRAFT_SKILL_DIR };

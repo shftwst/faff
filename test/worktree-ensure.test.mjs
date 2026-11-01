@@ -7,7 +7,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, realpathSync, rmSync, chmodSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, realpathSync, rmSync, chmodSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -68,8 +68,8 @@ function cleanup(fx) {
 
 // Real deps for the fixture, with per-call overrides and a call log. An override returns a spawn
 // result to replace the real call, or undefined to let it run.
-function deps(fx, over = {}) {
-  const real = we.realDeps(fx.env);
+function deps(fx, over = {}, extraEnv = {}) {
+  const real = we.realDeps({ ...fx.env, ...extraEnv });
   const calls = [];
   const wrap = (kind) => (...a) => {
     calls.push({ kind, args: a[0], extra: a[1] });
@@ -79,8 +79,8 @@ function deps(fx, over = {}) {
   return { calls, d: { ...real, faff: wrap("faff"), git: wrap("git"), gitNet: wrap("gitNet"), gitBytes: wrap("gitBytes"), bash: wrap("bash"), ...(over.graftSkillDir ? { graftSkillDir: over.graftSkillDir } : {}) } };
 }
 
-function run(fx, opts = {}, over = {}) {
-  const { calls, d } = deps(fx, over);
+function run(fx, opts = {}, over = {}, extraEnv = {}) {
+  const { calls, d } = deps(fx, over, extraEnv);
   const out = we.ensure({
     issue: ISSUE,
     mode: opts.mode ?? "interactive",
@@ -770,6 +770,67 @@ test("the provisioner resolves the same worktree root with no faff on PATH", () 
     assert.equal(out.disposition, "ready", JSON.stringify(out));
     assert.equal(out.wt, path.join(fx.wtroot, "FAFF-9-demo"));
   } finally { cleanup(fx); }
+});
+
+test("a symlink at the recreate path never registers a worktree outside the root", () => {
+  for (const dangling of [false, true]) {
+    const fx = fixture();
+    try {
+      const { hash } = pushedBranch(fx);
+      writeCheckpoint(fx, fx.runDir, "FAFF-9-demo", hash);
+      const outside = path.join(fx.parent, "outside-target");
+      if (!dangling) mkdirSync(outside);
+      symlinkSync(outside, path.join(fx.wtroot, "FAFF-9-demo"));
+      const { out, calls } = run(fx, { mode: "autonomous" });
+      assert.equal(out.disposition, "parked", JSON.stringify(out));
+      assert.equal(out.cause, "resume-recreate-failed");
+      assert.equal(out.detail.reason, "path is a symlink");
+      assert.equal(calls.filter((c) => c.kind === "git" && c.args[0] === "worktree" && c.args[1] === "add").length, 0, `dangling=${dangling}`);
+      const registered = git(fx.repo, "worktree", "list", "--porcelain").split("\n").filter((l) => l.startsWith("worktree ")).length;
+      assert.equal(registered, 1, "only the main checkout is registered");
+    } finally { cleanup(fx); }
+  }
+});
+
+test("a failed rebase --abort is never a clean park", () => {
+  const fx = fixture();
+  try {
+    const wt = conflicted(fx);
+    const over = { git: (a) => (a[0] === "-C" && a[2] === "rebase" && a[3] === "--abort" ? reply(1, "", "fatal: could not abort\n") : undefined) };
+    const { out } = run(fx, { mode: "autonomous" }, over);
+    assert.equal(out.disposition, "needs-human");
+    assert.equal(out.cause, "rebase-abort-failed");
+    assert.equal(out.wt, wt);
+    assert.equal(out.detail.abort_exit, 1);
+    assert.equal(out.detail.abort_stderr, "fatal: could not abort");
+  } finally { cleanup(fx); }
+});
+
+test("base_ref is populated on every fresh create", () => {
+  const fx = fixture();
+  try {
+    assert.equal(run(fx).out.base_ref, "origin/main", "plain fresh create");
+  } finally { cleanup(fx); }
+  const fx2 = fixture();
+  try {
+    pushedBranch(fx2);
+    writeCheckpoint(fx2, fx2.runDir, "FAFF-9-demo", "0".repeat(64));
+    const out = run(fx2, { mode: "autonomous" }).out;
+    assert.equal(out.cause, "checkpoint-mismatch");
+    assert.equal(out.base_ref, "origin/main", "fresh create after a mismatch");
+  } finally { cleanup(fx2); }
+  const fx3 = fixture();
+  try {
+    const out = run(fx3, {}, {}, { FAFF_WORKTREE_BASE_REF: "origin/main" }).out;
+    assert.equal(out.base_ref, "origin/main", "a pinned stack base is reported as given");
+  } finally { cleanup(fx3); }
+});
+
+test("the provisioner PATH never gains an empty entry", () => {
+  const bin = path.dirname(CLI);
+  assert.equal(we.provisionerPath(undefined), bin);
+  assert.equal(we.provisionerPath(""), bin);
+  assert.equal(we.provisionerPath("/usr/bin::/bin:"), [bin, "/usr/bin", "/bin"].join(path.delimiter));
 });
 
 test("graft_skill_dir is the bundled dir", () => {

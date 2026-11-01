@@ -94,20 +94,20 @@ function rmParent(parent) {
   spawnSync("rm", ["-rf", parent]);
 }
 
-// Fixture: origin/main = A→B; a work checkout whose LOCAL main is stale at A; a feature branch based
+// Fixture (default branch `main`, or the one passed): origin/<default> = A→B; a work checkout whose LOCAL default is stale at A; a feature branch based
 // on origin/main (B) with feature commit C, pushed to origin. The honest three-dot review diff
 // (origin/main...HEAD) shows ONLY C; the buggy local (main...HEAD) would also show B.
-function setupFixture() {
+function setupFixture(defaultBranch = "main") {
   const parent = mkdtempSync(path.join(tmpdir(), "faff708-graft-"));
   const origin = path.join(parent, "origin.git");
-  git(parent, "init", "--bare", "-b", "main", "origin.git");
+  git(parent, "init", "--bare", "-b", defaultBranch, "origin.git");
 
   const seed = path.join(parent, "seed");
   git(parent, "clone", "-q", origin, "seed");
   git(seed, "config", "user.email", "t@t.test");
   git(seed, "config", "user.name", "t");
   commitFile(seed, "A.txt", "A\n", "commit A (base)");
-  git(seed, "push", "-q", "origin", "HEAD:main");
+  git(seed, "push", "-q", "origin", `HEAD:${defaultBranch}`);
 
   // work: cloned while origin is at A, so local main stays stale at A.
   const work = path.join(parent, "work");
@@ -118,18 +118,18 @@ function setupFixture() {
 
   // Advance origin/main to B (the just-merged sibling) via seed; work's local main is NOT advanced.
   const shaB = commitFile(seed, "B.txt", "B\n", "commit B (remote-only sibling)");
-  git(seed, "push", "-q", "origin", "HEAD:main");
+  git(seed, "push", "-q", "origin", `HEAD:${defaultBranch}`);
 
   // Fetch so origin/main is known locally (graft's blocks fetch too, but the feature branch must be
   // based on the true remote base B), then branch feature off origin/main and add feature commit C.
-  git(work, "fetch", "-q", "origin", "main");
+  git(work, "fetch", "-q", "origin", defaultBranch);
   const branch = "faff-708-feature";
-  git(work, "checkout", "-q", "-b", branch, "origin/main");
+  git(work, "checkout", "-q", "-b", branch, `origin/${defaultBranch}`);
   const shaC = commitFile(work, "C.txt", "C\n", "commit C (feature)");
   git(work, "push", "-q", "origin", `${branch}:${branch}`); // origin/<branch> == HEAD, for the remote-ref diffs
 
   // Local main stays stale at A (never fast-forwarded) — the whole point.
-  assert.equal(git(work, "rev-parse", "main").trim(), shaA, "fixture invariant: local main must stay stale at A");
+  assert.equal(git(work, "rev-parse", defaultBranch).trim(), shaA, `fixture invariant: local ${defaultBranch} must stay stale at A`);
   return { parent, work, branch, shaA, shaB, shaC };
 }
 
@@ -148,7 +148,9 @@ function ensureFromCheckpoint(fx, hash) {
 }
 
 test("the review and build-progress blocks and worktree ensure's resume share one remote-based diff identity (FAFF-708)", () => {
-  const fx = setupFixture();
+  // The origin's default is `trunk`, so any derivation that hardcodes `main`/`origin/main` instead of
+  // asking remote-diff-base.sh fails the match (no such ref), in the prose blocks and in the command alike.
+  const fx = setupFixture("trunk");
   const diffFile = path.join(fx.parent, "review.diff");
   try {
     // Review block: captures the diff once to $diff_file and hashes those exact bytes into cur_hash.

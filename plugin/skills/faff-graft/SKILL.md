@@ -134,7 +134,7 @@ PROCEDURE build_time_premise_superseded_gate(spec, issue, run_dir, mode):
   --run-dir "$run_dir" --root "$repo_root" --json
 ```
 
-Set `wt := .wt` and `graft_skill_dir := .graft_skill_dir`; every later step uses `$wt` with absolute paths. Surface every `warnings` entry. Route on `disposition`:
+Set `wt := .wt` and `graft_skill_dir := .graft_skill_dir`; every later step uses `$wt` with absolute paths. Surface every `warnings` entry. On `mode: rebased` in autonomous mode, log the stale note (`wt`, `base_ref`, `behind`) to `graft.md`. Route on `disposition`:
 
 | `disposition` | Action |
 |---|---|
@@ -148,7 +148,7 @@ Set `wt := .wt` and `graft_skill_dir := .graft_skill_dir`; every later step uses
 |---|---|
 | `start` | Step 4 |
 | `existing` | Step 5 (the spec was committed on the first graft) |
-| `gate` | Skip Steps 4–7, re-run 7.5 and 8 in `$wt`, then Step 9. The issue is already In Progress or In Review, so Step 5's claim is a no-op. From a `review-outage` store, Step 9 reads the carried `review-progress.json` and restores `outage_retries` |
+| `gate` | Skip Steps 4–7, re-run 7.5 and 8 in `$wt`, then Step 9. The issue is already In Progress or In Review, so Step 5's claim is a no-op. From a `review-outage` store, Step 9 reads the carried `review-progress.json` and restores `outage_retries`, and a `resume.dialogue` seeds `{fix_rounds_used, rebuttal_rounds_used, hold_count}` if the dialogue loop re-enters, caps not reset |
 | `review` | Skip Steps 4–8 and branch on `resume.dialogue.stage` (below) |
 
 On `mode: resumed-from-store`, log "resumed from store" to `graft.md`; `resume` carries the store's `{cause, dialogue}` verbatim. A `review` resume seeds `{fix_rounds_used, rebuttal_rounds_used, hold_count}` from `resume.dialogue` with the caps **not reset**: never restart at round 1 and never reset `hold_count`, because that counter is what makes `graft.build_review_hold_limit` a real ceiling across drains. Then:

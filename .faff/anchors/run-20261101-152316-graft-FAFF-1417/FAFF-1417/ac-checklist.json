@@ -1,0 +1,327 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "`faff-prep/SKILL.md` calls `faff spec-review round` and `faff spec-review hold` in place of the prose in §4.6, and `SKILL_LINE_BASELINE[\"faff-prep\"]` is lowered to the new count with its comment entry.",
+      "verified": "prep names `faff spec-review round` 4 times and `faff spec-review hold` 3 times; SKILL_LINE_BASELINE[\"faff-prep\"] 665 → 612 with its comment entry",
+      "passed": true,
+      "ac_id": "faff-1417#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-window.test.mjs::faff-prep/SKILL.md: the loop resolves the window + round number through `spec-review round`"
+        },
+        {
+          "kind": "command",
+          "locator": "grep -c \"faff spec-review round\\|faff spec-review hold\" plugin/skills/faff-prep/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "`faff validate-adapters` passes with no RATCHET finding for `faff-prep`.",
+      "verified": "validate-adapters RESULT: PASS, no RATCHET line for faff-prep (line 611 under 612, bytes 104391 at baseline)",
+      "passed": true,
+      "ac_id": "faff-1417#done:2",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "`faff spec-review round --json` prints a RoundResult with every §3 field and exits 0 or 2 per §3.",
+      "verified": "round --json carries all 17 §3 fields; exit 0 on every action, 2 on each fault",
+      "passed": true,
+      "ac_id": "faff-1417#done:3",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff spec-review round --issue FAFF-9001 --dir <tmp>/s --verdict-file <tmp>/o.md --occupant single-pass --mode interactive --appetite high --root <tmp> --json"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-round.test.mjs::fault exits: usage, an unreadable verdict file and a corrupt window.json exit 2 with errored"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-round.test.mjs::decision record: every round call writes decision-<n>.json with its RoundResult"
+        }
+      ]
+    },
+    {
+      "ac": "`faff spec-review hold --json` prints a HoldResult with every §3 field and exits 0, 2 or 4 per §3.",
+      "verified": "hold --json carries all 9 §3 fields; exit 0, 2 (usage, outage precondition), 4 (lock busy)",
+      "passed": true,
+      "ac_id": "faff-1417#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-hold.test.mjs::scenario 5: a turn-budget hold increments the counter, writes the cause and adds the label"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-hold.test.mjs::usage exits: a bad issue id or a missing cause exits 2"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-hold.test.mjs::lock busy: a held resume-store lock exits 4"
+        }
+      ]
+    },
+    {
+      "ac": "`spec-review-round.ts` and `spec-review-hold.ts` are in `tsconfig.json` `include` and the `check-no-boundary-cast` pin list, with committed `.js` emits and `build-manifest.json`; `node scripts/build-manifest.js check` passes.",
+      "verified": "both .ts in tsconfig include and the pin list; .js emits and build-manifest committed; build-manifest check exit 0",
+      "passed": true,
+      "ac_id": "faff-1417#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/scripts/build-manifest.js check"
+        },
+        {
+          "kind": "test",
+          "locator": "test/check-no-boundary-cast.test.mjs::S3: realSources() lists the fifteen tsconfig include entries"
+        }
+      ]
+    },
+    {
+      "ac": "`docs/guide/cli.md` has rows for both verbs.",
+      "verified": "two rows beside `spec-review route`",
+      "passed": true,
+      "ac_id": "faff-1417#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c \"^| `spec-review round\\|^| `spec-review hold\" docs/guide/cli.md"
+        }
+      ]
+    },
+    {
+      "ac": "The PR diff touches no `commissaire*` file.",
+      "verified": "no commissaire* module in the code diff; the only matching path is the run anchor evidence file .faff/anchors/<run>/FAFF-1417/commissaire/producer/pk.json",
+      "passed": true,
+      "ac_id": "faff-1417#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --name-only origin/main...HEAD -- \":!.faff/anchors\" | grep -c commissaire"
+        }
+      ]
+    },
+    {
+      "ac": "`decideRound` returns the §4.1 action for each verdict × mode × level combination in a table test.",
+      "verified": "15-case verdict × mode × level table passes",
+      "passed": true,
+      "ac_id": "faff-1417#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-round.test.mjs::decideRound table: every verdict × mode × level returns the §4.1 action"
+        }
+      ]
+    },
+    {
+      "ac": "Every park cause in §4.3 is produced by at least one test, as an exact string.",
+      "verified": "every §4.3 cause produced as an exact string",
+      "passed": true,
+      "ac_id": "faff-1417#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-round.test.mjs::scenario 1: churn at round 3 parks with the exact cause and keeps round-3.json"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-round.test.mjs::scenario 2: an approve carrying objections parks exit 1 and leaves no round-1.json"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-round.test.mjs::scenario 4: L3 autonomous, plateaued at the cap, goes to the judge"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-round.test.mjs::needs-human: parks with the lensed objections in the cause"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-round.test.mjs::route error: a reject-approach the router refuses parks with the route cause"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-round.test.mjs::route plot: reject-approach with a methodology major parks for /faff-plot"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-round.test.mjs::plot park carried: carried design-lens objections ride in the cause and the field"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-round.test.mjs::fail loud: a block whose verdict is outside the vocabulary parks exit 2 and deletes the record"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-hold.test.mjs::outage exhausted: at the hold limit the store file alone is deleted and the issue parks"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-hold.test.mjs::turn budget exhausted: at the hold limit the turn-budget hold parks with its cause"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-hold.test.mjs::scenario 6: a corrupt counter parks and renames the store aside with its original bytes"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-hold.test.mjs::decideHold: absent counts from zero, corrupt and exhausted never write"
+        }
+      ]
+    },
+    {
+      "ac": "`hold --clear` and an exhausted hold delete only `spec-review-hold.json`; a sibling `hold.json` survives.",
+      "verified": "--clear and both exhaustions delete only spec-review-hold.json; the sibling hold.json survives",
+      "passed": true,
+      "ac_id": "faff-1417#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-hold.test.mjs::clear keeps hold.json: --clear deletes only spec-review-hold.json, idempotently"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-hold.test.mjs::outage exhausted: at the hold limit the store file alone is deleted and the issue parks"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-hold.test.mjs::turn budget exhausted: at the hold limit the turn-budget hold parks with its cause"
+        }
+      ]
+    },
+    {
+      "ac": "`round-<n>.json` written by the verb deep-equals `{verdict, objections}` from the block.",
+      "verified": "written record deep-equals {verdict, objections}, extra top-level keys dropped",
+      "passed": true,
+      "ac_id": "faff-1417#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-round.test.mjs::write before pipe: the written round record deep-equals {verdict, objections} from the block"
+        }
+      ]
+    },
+    {
+      "ac": "`--occupant adversarial` without `--served` exits 2; `--occupant single-pass` exits 2 when this round's `served-<n>.json` exists and proceeds when only earlier rounds' pin files exist.",
+      "verified": "adversarial without --served exits 2; single-pass exits 2 with this round served-<n>.json, proceeds with only earlier rounds",
+      "passed": true,
+      "ac_id": "faff-1417#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-round.test.mjs::served required: --occupant adversarial without --served exits 2"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-round.test.mjs::single-pass served this round: single-pass with --served, or with this round's served-<n>.json, exits 2"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-round.test.mjs::single-pass after old adversarial rounds: earlier rounds' pin files do not refuse a single-pass round"
+        }
+      ]
+    },
+    {
+      "ac": "`--open-window` exits 2 when the latest `decision-<k>.json` action is not `park` or `judge`, and `--mark-ratified` exits 2 without `--mode interactive` and `--comment-id`.",
+      "verified": "--open-window refused mid-loop; --mark-ratified refused without interactive mode or comment id",
+      "passed": true,
+      "ac_id": "faff-1417#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-round.test.mjs::open window refused mid-loop: --open-window exits 2 unless the latest decision is park or judge"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-round.test.mjs::ratify refused autonomous: --mark-ratified needs interactive mode, a comment id, a loop round and a recorded decision"
+        }
+      ]
+    },
+    {
+      "ac": "A hold write preserves `outage_holds` when it increments `turn_budget_holds`, and the reverse.",
+      "verified": "each hold preserves the other counter and unknown keys",
+      "passed": true,
+      "ac_id": "faff-1417#done:14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-hold.test.mjs::counters independent: each hold preserves the other counter and unknown keys"
+        }
+      ]
+    },
+    {
+      "ac": "Every line the PR deletes from `faff-prep/SKILL.md` maps to a row P1–P62. The PR description lists the deleted line ranges against row ids.",
+      "verified": "every deleted prep line range maps to rows P1–P62; the PR description lists the ranges against row ids",
+      "passed": true,
+      "ac_id": "faff-1417#done:15",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main...HEAD -- plugin/skills/faff-prep/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "Every row with a covering test has that test, by name, and it passes.",
+      "verified": "all 61 covering-test names in the rule inventory exist as test titles and pass",
+      "passed": true,
+      "ac_id": "faff-1417#done:16",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-round.test.mjs::window read: window_start comes from window.json on disk"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-hold.test.mjs::read states: --read reports absent, valid and corrupt stores"
+        }
+      ]
+    },
+    {
+      "ac": "`test/spec-review-round.test.mjs` and `test/spec-review-hold.test.mjs` pass under `node --test`; no `--selftest` case is added.",
+      "verified": "75 tests pass (56 round, 19 hold); no --selftest case added",
+      "passed": true,
+      "ac_id": "faff-1417#done:17",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/spec-review-round.test.mjs test/spec-review-hold.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "The corpus replay over `test/fixtures/spec-review-round-corpus/` passes, and the PR description reports the full-corpus replay's action counts and mismatches.",
+      "verified": "fixture replay passes (14 dirs, churn/cap/outage/plot all seen); full-corpus counts and mismatches in the PR description",
+      "passed": true,
+      "ac_id": "faff-1417#done:18",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-round.test.mjs::corpus replay: every historical round re-records identically and churn and convergence match the standalone CLIs"
+        }
+      ]
+    },
+    {
+      "ac": "`faff gates run` passes.",
+      "verified": "9/9 gates pass on the final tree (an earlier run lost one docker-gated env/holdout case to load; it passed 27/27 alone)",
+      "passed": true,
+      "ac_id": "faff-1417#done:19",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gates run --json --resume --budget-secs 480"
+        }
+      ]
+    }
+  ]
+}

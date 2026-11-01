@@ -1,0 +1,234 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-hold.ts::takelock errors other than eexist escape the hold verb as an uncaught exception",
+      "title": "takeLock errors other than EEXIST escape the hold verb as an uncaught exception",
+      "location": "plugin/skills/faff/bin/lib/spec-review-hold.ts",
+      "action": "Any unexpected error in either verb now maps to exit 2 with errored (fix commit 26b9ca0e); covered by the unexpected-errors test.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "observation",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Folded into the adversarial uncaught-exception finding and fixed there.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "takeLock errors other than EEXIST escape the hold verb as an uncaught exception",
+          "location": "plugin/skills/faff/bin/lib/spec-review-hold.ts",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-round.ts::--mark-ratified trusts the skill that every objection of the round was ratified",
+      "title": "--mark-ratified trusts the skill that every objection of the round was ratified",
+      "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+      "action": "Keep: the spec places the every-objection check in the ratify procedure; the verb refuses autonomous runs, needs a comment id, a loop round and a recorded fix-and-rerun or park decision.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "observation",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Spec §4.1 and P26 assign the every-objection judgement to the human-present ratify procedure; the verb enforces the mechanical preconditions.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "--mark-ratified trusts the skill that every objection of the round was ratified",
+          "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-round.ts::--mark-ratified grants a cap exemption on an unverified claim; --open-window trusts an editable decision sidecar",
+      "title": "--mark-ratified grants a cap exemption on an unverified claim; --open-window trusts an editable decision sidecar",
+      "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+      "action": "--mark-ratified is now refused when the run ledger (--run-dir or $FAFF_RUN_DIR) says L3 or L4, so an autonomous run cannot claim interactive mode; test ratify refused autonomous.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The mode flag was caller-supplied; the ledger level now gates it. The CLI makes no tracker calls by design, so comment existence stays with the skill's audited re-attach. --open-window reads a verb-written sidecar inside the same scratch-dir trust boundary as every round record; accepted.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "--mark-ratified grants a cap exemption on an unverified claim; --open-window trusts an editable decision sidecar",
+          "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-hold.ts::a turn-budget hold cannot be written when a round record is unreadable",
+      "title": "a turn-budget hold cannot be written when a round record is unreadable",
+      "location": "plugin/skills/faff/bin/lib/spec-review-hold.ts",
+      "action": "Turn-budget reads records for held_at_round provenance only and skips an unreadable one; the outage precondition still fails loud. Test: turn budget survives a damaged scratch dir.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "a turn-budget hold cannot be written when a round record is unreadable",
+          "location": "plugin/skills/faff/bin/lib/spec-review-hold.ts",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-round.ts::a governance fault takes the callee-reported window_start instead of forcing n",
+      "title": "a governance fault takes the callee-reported window_start instead of forcing n",
+      "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+      "action": "A non-zero govern now forces window_start := n (P5). Test: govern fault forces n; mutation M3 makes it fail.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "a governance fault takes the callee-reported window_start instead of forcing n",
+          "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-round.ts::non-domain exceptions crash instead of the documented exit 2",
+      "title": "non-domain exceptions crash instead of the documented exit 2",
+      "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+      "action": "Both verbs map any unexpected error to exit 2 with {action: errored}. Test: unexpected errors.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "non-domain exceptions crash instead of the documented exit 2",
+          "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-round.ts::no lock on the scratch dir; concurrent round calls could clobber records",
+      "title": "no lock on the scratch dir; concurrent round calls could clobber records",
+      "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+      "action": "Keep: one prep owns an issue's scratch dir at a time (build claim and in-flight marker), exactly as the replaced prose assumed.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Prep is the single writer per issue; the hold store is locked because resume-store stash is a second writer, which the scratch dir does not have.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "no lock on the scratch dir; concurrent round calls could clobber records",
+          "location": "plugin/skills/faff/bin/lib/spec-review-round.ts",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-hold.ts::--retry-limit and --hold-limit overrides can weaken the escalation ceilings",
+      "title": "--retry-limit and --hold-limit overrides can weaken the escalation ceilings",
+      "location": "plugin/skills/faff/bin/lib/spec-review-hold.ts",
+      "action": "Keep: the flags are the spec §3 interface; the skill never passes them, so production reads the config ceilings.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Spec §3 defines both flags; their defaults are the config values.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "--retry-limit and --hold-limit overrides can weaken the escalation ceilings",
+          "location": "plugin/skills/faff/bin/lib/spec-review-hold.ts",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review-hold.ts::--lenses values are written to the hold store unvalidated",
+      "title": "--lenses values are written to the hold store unvalidated",
+      "location": "plugin/skills/faff/bin/lib/spec-review-hold.ts",
+      "action": "--lenses is checked against SPEC_REVIEW_LENSES and exits 2 on an unknown lens. Test: lenses validated.",
+      "location_present": false,
+      "action_present": false,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "--lenses values are written to the hold store unvalidated",
+          "location": "plugin/skills/faff/bin/lib/spec-review-hold.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    }
+  ]
+}

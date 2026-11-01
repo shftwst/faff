@@ -2,7 +2,7 @@
   "schema_version": 1,
   "faff_version": "0.44.0",
   "signal": "pass",
-  "rounds_total": 1,
+  "rounds_total": 2,
   "round_history": "recorded",
   "findings": [
     {
@@ -42,7 +42,7 @@
       "model": "openai/z-ai/glm-5.3-flash",
       "disposition": "fixed",
       "refutation": null,
-      "disposition_rationale": "Same bound remote-diff-base.sh applies (FAFF-708/744).",
+      "disposition_rationale": null,
       "first_round": 1,
       "last_round": 1,
       "occurrences": [
@@ -67,7 +67,7 @@
       "model": "openai/z-ai/glm-5.3-flash",
       "disposition": "fixed",
       "refutation": null,
-      "disposition_rationale": "The order (conventions mine at step 1, labels at step 4) is the spec's own; only the doc overclaimed.",
+      "disposition_rationale": null,
       "first_round": 1,
       "last_round": 1,
       "occurrences": [
@@ -117,7 +117,7 @@
       "model": "openai/z-ai/glm-5.3-flash",
       "disposition": "fixed",
       "refutation": null,
-      "disposition_rationale": "Never silently drop the dialogue counters the hold limit depends on.",
+      "disposition_rationale": null,
       "first_round": 1,
       "last_round": 1,
       "occurrences": [
@@ -202,6 +202,31 @@
           "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
           "severity": "observation",
           "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/worktree-ensure.ts::setup-worktree.sh resolves the worktree root through faff on path, so with none it uses the home default while the root assert uses the configured root",
+      "title": "setup-worktree.sh resolves the worktree root through faff on PATH, so with none it uses the HOME default while the root assert uses the configured root",
+      "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+      "action": "The provisioner now runs with this install's bin dir first on PATH, so it calls the same worktree-root resolver as the step-6 assert; every other variable passes through unchanged. Regression test 'the provisioner resolves the same worktree root with no faff on PATH' fails without the fix.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Surfaced by CI on PR #1176, where no faff is on PATH: fresh creates landed at the HOME default and collided.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "setup-worktree.sh resolves the worktree root through faff on PATH, so with none it uses the HOME default while the root assert uses the configured root",
+          "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+          "severity": "major",
+          "disposition": "fixed"
         }
       ]
     }

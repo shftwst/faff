@@ -451,7 +451,11 @@ function runRound(o: RoundOpts, deps: RoundDeps = realDeps()): RoundResult {
       const anomaly = field(g.result, "anomaly");
       governance = { action: field(g.result, "action"), window_start: windowStart };
       if (anomaly !== null && anomaly !== undefined) governance.anomaly = anomaly;
-      if (g.code !== 0) warnings.push(`govern-fault: ${String(anomaly ?? g.detail ?? "exit 2")}`);
+      if (g.code !== 0) {
+        windowStart = n; // a governance fault never compares across a boundary it cannot prove (P5)
+        governance.window_start = n;
+        warnings.push(`govern-fault: ${String(anomaly ?? g.detail ?? "exit 2")}`);
+      }
       else if (anomaly !== null && anomaly !== undefined) warnings.push(`govern-anomaly: ${String(field(g.result, "action"))} ${String(anomaly)}`);
     } else {
       windowStart = n;
@@ -604,6 +608,8 @@ function cmdSpecReviewRound(argv: string[]): number {
       if (values["--mode"] !== "interactive") throw new RoundFault("--mark-ratified requires --mode interactive");
       const commentId = str(values["--comment-id"]);
       if (commentId === undefined || commentId === "") throw new RoundFault("--mark-ratified requires --comment-id <id>");
+      const level = readLevel(str(values["--run-dir"]) ?? process.env["FAFF_RUN_DIR"] ?? null);
+      if (level !== null) throw new RoundFault(`--mark-ratified is refused on an autonomous ${level} run: only a present human ratifies`);
       const r = markRatified(dir, parseInt(markRaw, 10), commentId);
       process.stdout.write(json ? `${JSON.stringify(r)}\n` : `round ${r.round} ratified\n`);
       return 0;
@@ -635,7 +641,7 @@ function cmdSpecReviewRound(argv: string[]): number {
     return 0;
   } catch (e) {
     if (e instanceof RoundFault) return emitFault(json, e.message);
-    throw e;
+    return emitFault(json, `unexpected: ${errText(e)}`);
   }
 }
 

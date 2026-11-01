@@ -165,6 +165,25 @@ test("hold writes no round: a hold never writes a round record or a verdict", ()
   assert.deepEqual(readdirSync(scratch).sort(), before);
 });
 
+test("turn budget survives a damaged scratch dir: an unreadable round record never blocks the hand-back", () => {
+  const f = fx();
+  const s = join(f.root, "scratch");
+  mkdirSync(s);
+  writeFileSync(join(s, "round-1.json"), "{ torn");
+  const { code, res } = hold(f.root, ["--issue", "FAFF-9001", "--cause", "turn-budget", "--mode", "autonomous", "--dir", s]);
+  assert.equal(code, 0);
+  assert.equal(res.action, "hold");
+  const o = hold(f.root, ["--issue", "FAFF-9001", "--cause", "outage", "--mode", "autonomous", "--dir", s, "--retry-limit", "0"]);
+  assert.equal(o.code, 2, "the outage precondition still fails loud on an unreadable record");
+});
+
+test("lenses validated: --lenses outside the lens vocabulary exits 2", () => {
+  const f = fx();
+  const s = outageScratch(f.root, 3);
+  assert.equal(hold(f.root, ["--issue", "FAFF-9001", "--cause", "outage", "--mode", "autonomous", "--dir", s, "--retry-limit", "2", "--lenses", "QA,;drop"]).code, 2);
+  assert.equal(existsSync(f.file), false);
+});
+
 // --- --read and --clear (P51, P58, P62) ---
 
 test("read states: --read reports absent, valid and corrupt stores", () => {

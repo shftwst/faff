@@ -358,8 +358,11 @@ function runRound(o, deps = realDeps()) {
             governance = { action: field(g.result, "action"), window_start: windowStart };
             if (anomaly !== null && anomaly !== undefined)
                 governance.anomaly = anomaly;
-            if (g.code !== 0)
+            if (g.code !== 0) {
+                windowStart = n; // a governance fault never compares across a boundary it cannot prove (P5)
+                governance.window_start = n;
                 warnings.push(`govern-fault: ${String(anomaly ?? g.detail ?? "exit 2")}`);
+            }
             else if (anomaly !== null && anomaly !== undefined)
                 warnings.push(`govern-anomaly: ${String(field(g.result, "action"))} ${String(anomaly)}`);
         }
@@ -513,6 +516,9 @@ function cmdSpecReviewRound(argv) {
             const commentId = str(values["--comment-id"]);
             if (commentId === undefined || commentId === "")
                 throw new RoundFault("--mark-ratified requires --comment-id <id>");
+            const level = readLevel(str(values["--run-dir"]) ?? process.env["FAFF_RUN_DIR"] ?? null);
+            if (level !== null)
+                throw new RoundFault(`--mark-ratified is refused on an autonomous ${level} run: only a present human ratifies`);
             const r = markRatified(dir, parseInt(markRaw, 10), commentId);
             process.stdout.write(json ? `${JSON.stringify(r)}\n` : `round ${r.round} ratified\n`);
             return 0;
@@ -551,7 +557,7 @@ function cmdSpecReviewRound(argv) {
     catch (e) {
         if (e instanceof RoundFault)
             return emitFault(json, e.message);
-        throw e;
+        return emitFault(json, `unexpected: ${errText(e)}`);
     }
 }
 module.exports = { cmdSpecReviewRound, decideRound, runRound, realDeps, outageAttempt, outagedLenses, verdictBlocks, summarise, readLevel, configValue, parseLimit, RoundFault, ROUND_USAGE, CAUSE };

@@ -56,6 +56,8 @@ const convergenceApi: ConvergenceApi = require("./spec-review-convergence");
 const churnApi: ChurnApi = require("./spec-review-churn");
 const sharedInfra: SharedInfraApi = require("./shared-infra");
 const argvApi: ArgvApi = require("./argv");
+const vocabApi: { SPEC_REVIEW_LENSES: string[] } = require("./review-vocab");
+const LENSES = vocabApi.SPEC_REVIEW_LENSES;
 
 // --- Untyped-JSON helpers. ---
 
@@ -201,7 +203,10 @@ function withLock<T>(storeRoot: string, issue: string, body: () => T): T {
   }
 }
 
-function readRecords(dir: string): Map<number, unknown> {
+// readRecords(dir, strict) -> the round records on disk. Strict (the outage precondition) faults on
+// an unreadable record; lenient (turn-budget provenance only) skips it, so a damaged scratch dir
+// never stops the hand-back it exists to survive.
+function readRecords(dir: string, strict: boolean): Map<number, unknown> {
   const out = new Map<number, unknown>();
   let files: { n: number; path: string }[];
   try {
@@ -212,7 +217,7 @@ function readRecords(dir: string): Map<number, unknown> {
   for (const f of files) {
     const r = churnApi.readRoundRecord(f.path);
     if (r.record !== undefined) out.set(f.n, r.record);
-    else throw new HoldFault(`${f.path} is unreadable`);
+    else if (strict) throw new HoldFault(`${f.path} is unreadable`);
   }
   return out;
 }
@@ -261,7 +266,7 @@ function runHold(o: HoldOpts): HoldResult {
   let heldAtRound: number | undefined;
   let pinned: unknown;
   if (o.dir !== null) {
-    const records = readRecords(o.dir);
+    const records = readRecords(o.dir, o.cause === "outage");
     const ns = [...records.keys()].sort((a, b) => a - b);
     const latest = ns.length ? ns[ns.length - 1] : undefined;
     heldAtRound = latest;
@@ -378,10 +383,13 @@ function cmdSpecReviewHold(argv: string[]): number {
     const holdRaw = str(values["--hold-limit"]);
     const retryRaw = str(values["--retry-limit"]);
     const lensesRaw = str(values["--lenses"]);
+    const lenses = lensesRaw === undefined ? null : lensesRaw.split(",").map((s) => s.trim()).filter((s) => s !== "");
+    const unknown = (lenses ?? []).filter((l) => !LENSES.includes(l));
+    if (unknown.length) return fail(2, `--lenses names unknown lens(es): ${unknown.join(", ")} (legal: ${LENSES.join(", ")})`);
     const r = runHold({
       issue, cause, mode,
       kind: str(values["--kind"]) ?? null,
-      lenses: lensesRaw === undefined ? null : lensesRaw.split(",").map((s) => s.trim()).filter((s) => s !== ""),
+      lenses,
       dir: str(values["--dir"]) ?? null,
       holdLimit: holdRaw === undefined ? null : roundApi.parseLimit(holdRaw, "--hold-limit"),
       retryLimit: retryRaw === undefined ? null : roundApi.parseLimit(retryRaw, "--retry-limit"),
@@ -393,7 +401,7 @@ function cmdSpecReviewHold(argv: string[]): number {
     if (e instanceof LockBusy) return fail(4, e.message);
     if (e instanceof HoldFault) return fail(2, e.message);
     if (e instanceof roundApi.RoundFault) return fail(2, e.message);
-    throw e;
+    return fail(2, `unexpected: ${errText(e)}`);
   }
 }
 

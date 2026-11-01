@@ -145,6 +145,22 @@ test("govern fault: a missing served identity under a pin resets window_start to
   assert.ok(res.warnings.some((w) => w.startsWith("govern-fault: ")), JSON.stringify(res.warnings));
 });
 
+test("govern fault forces n: a faulting govern that reports an older window still resets window_start to n", () => {
+  const fx = scratch({ 1: REVISE_ARCH }, { "window.json": { window_start: 1 } });
+  const govern = (dir, n) => { writeFileSync(join(dir, `governance-${n}.json`), "{}"); return { code: 2, result: { round: n, window_start: 1, action: "fault", anomaly: "x" } }; };
+  const res = srr.runRound({ issue: "FAFF-9001", dir: fx.dir, verdictText: block(rec("revise", [o("architectural", "minor")])), mode: "autonomous", occupant: "adversarial", served: "any", runDir: null, appetite: "high", retryLimit: 2, root: fx.root }, { govern });
+  assert.equal(res.window_start, 2);
+  assert.equal(res.governance.window_start, 2);
+});
+
+test("unexpected errors: an I/O failure exits 2 with errored, never a crash", () => {
+  const fx = scratch();
+  mkdirSync(join(fx.dir, "round-1.json")); // a directory where the round record is written
+  const { code, res } = round(fx, block(REVISE_ARCH));
+  assert.equal(code, 2);
+  assert.equal(res.action, "errored");
+});
+
 test("govern record missing: an absent governance-<n>.json resets window_start to n", () => {
   const fx = scratch({ 1: REVISE_ARCH }, { "window.json": { window_start: 1 } });
   const govern = () => ({ code: 0, result: { round: 2, window_start: 1, action: "unchanged", anomaly: null } }); // writes no record
@@ -437,6 +453,8 @@ test("ratify refused autonomous: --mark-ratified needs interactive mode, a comme
   assert.equal(cli([...base, "--mark-ratified", "1", "--comment-id", "c", "--mode", "autonomous"]).code, 2);
   assert.equal(cli([...base, "--mark-ratified", "1", "--mode", "interactive"]).code, 2);
   assert.equal(cli([...base, "--mark-ratified", "2", "--comment-id", "c", "--mode", "interactive"]).code, 2);
+  const l3 = runDirAt(fx.root, "L3");
+  assert.equal(cli([...base, "--mark-ratified", "1", "--comment-id", "c", "--mode", "interactive", "--run-dir", l3]).code, 2, "an L3 run cannot claim interactive mode to ratify");
   const nodec = scratch({ 1: REVISE_ARCH });
   assert.equal(cli(["spec-review", "round", "--dir", nodec.dir, "--mark-ratified", "1", "--comment-id", "c", "--mode", "interactive"]).code, 2);
 });

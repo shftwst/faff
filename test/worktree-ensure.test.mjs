@@ -76,7 +76,7 @@ function deps(fx, over = {}) {
     const o = over[kind] && over[kind](...a);
     return o === undefined ? real[kind](...a) : o;
   };
-  return { calls, d: { ...real, faff: wrap("faff"), git: wrap("git"), gitBytes: wrap("gitBytes"), bash: wrap("bash"), ...(over.graftSkillDir ? { graftSkillDir: over.graftSkillDir } : {}) } };
+  return { calls, d: { ...real, faff: wrap("faff"), git: wrap("git"), gitNet: wrap("gitNet"), gitBytes: wrap("gitBytes"), bash: wrap("bash"), ...(over.graftSkillDir ? { graftSkillDir: over.graftSkillDir } : {}) } };
 }
 
 function run(fx, opts = {}, over = {}) {
@@ -585,6 +585,57 @@ test("store busy is claimed-by-peer", () => {
     const { out } = run(fx, { mode: "autonomous", labels: JSON.stringify(["faff-awaiting-review"]) }, over);
     assert.equal(out.disposition, "claimed-by-peer");
     assert.equal(out.cause, "store-busy");
+  } finally { cleanup(fx); }
+});
+
+test("a failed or overrun fetch parks the recreate and warns on the stale path", () => {
+  const fx = fixture();
+  try {
+    const { hash } = pushedBranch(fx);
+    writeCheckpoint(fx, fx.runDir, "FAFF-9-demo", hash);
+    const over = { gitNet: (a) => (a[0] === "fetch" ? reply(null, "", "killed after the network bound\n") : undefined) };
+    const { out } = run(fx, { mode: "autonomous" }, over);
+    assert.equal(out.disposition, "parked");
+    assert.equal(out.cause, "resume-recreate-failed");
+    assert.equal(out.detail.stage, "fetch");
+    assert.deepEqual(readdirSync(fx.wtroot), [], "no worktree was added after the failed fetch");
+  } finally { cleanup(fx); }
+  const fx2 = fixture();
+  try {
+    freshWorktree(fx2);
+    writeFileSync(path.join(fx2.repo, "b.txt"), "new\n");
+    git(fx2.repo, "add", "b.txt");
+    git(fx2.repo, "commit", "-q", "-m", "main moves");
+    git(fx2.repo, "push", "-q", "origin", "main");
+    const over = { gitNet: (a) => (a[0] === "-C" && a[2] === "fetch" ? reply(128, "", "unreachable\n") : undefined) };
+    const { out } = run(fx2, { mode: "autonomous" }, over);
+    assert.equal(out.mode, "rebased", JSON.stringify(out));
+    assert.ok(out.warnings.some((w) => w.includes("git fetch") && w.includes("failed")), JSON.stringify(out.warnings));
+  } finally { cleanup(fx2); }
+});
+
+test("fetches run under the network bound", () => {
+  const fx = fixture();
+  try {
+    const d = we.realDeps({ ...fx.env, FAFF_GIT_NET_TIMEOUT: "1", GIT_SSH_COMMAND: "" });
+    git(fx.repo, "remote", "set-url", "origin", "ssh://git@192.0.2.1/x.git");
+    const t0 = Date.now();
+    const r = d.gitNet(["fetch", "origin"], fx.repo);
+    assert.notEqual(r.status, 0);
+    assert.ok(Date.now() - t0 < 15000, "a black-holed origin fails within the bound, never hangs");
+  } finally { cleanup(fx); }
+});
+
+test("an unparseable restore record needs a human, never a silent gate", () => {
+  const fx = fixture();
+  try {
+    const { hash } = pushedBranch(fx);
+    stash(fx, "build-review-dialogue", "FAFF-9-demo", hash);
+    const over = { faff: (a) => (a[0] === "resume-store" ? reply(0, "not json\n") : undefined) };
+    const { out, calls } = run(fx, { mode: "autonomous", labels: JSON.stringify(["faff-awaiting-adjudication"]) }, over);
+    assert.equal(out.disposition, "needs-human");
+    assert.equal(out.cause, "store-restore-failed:0");
+    assert.equal(calls.filter((c) => c.kind === "git" && c.args[0] === "worktree" && c.args[1] === "add").length, 0);
   } finally { cleanup(fx); }
 });
 

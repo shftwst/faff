@@ -26,6 +26,20 @@ const ENTRYPOINT = path.resolve(__dirname, "..", "faff");
 // The bundled faff-graft skill dir, beside this module's install: plugin/skills/faff/bin/lib -> plugin/skills/faff-graft.
 const GRAFT_SKILL_DIR = path.resolve(__dirname, "..", "..", "..", "faff-graft");
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+// The network bound remote-diff-base.sh applies (FAFF-708/744): FAFF_GIT_NET_TIMEOUT seconds when a
+// positive integer, else 30; no credential prompt; ssh gets its own connect and liveness bound unless
+// the operator set GIT_SSH_COMMAND. A fetch that overruns is killed and reads as a failed fetch.
+function netTimeoutSecs(env) {
+    const raw = env.FAFF_GIT_NET_TIMEOUT ?? "";
+    return /^[0-9]+$/.test(raw) && Number(raw) > 0 ? Number(raw) : 30;
+}
+function netEnv(env) {
+    const t = netTimeoutSecs(env);
+    const ssh = env.GIT_SSH_COMMAND !== undefined && env.GIT_SSH_COMMAND !== ""
+        ? env.GIT_SSH_COMMAND
+        : `ssh -o BatchMode=yes -o ConnectTimeout=${t} -o ServerAliveInterval=${t} -o ServerAliveCountMax=1`;
+    return { ...env, GIT_TERMINAL_PROMPT: "0", GIT_SSH_COMMAND: ssh };
+}
 function realDeps(env = process.env) {
     const run = (cmd, args, cwd) => {
         const r = childProcess.spawnSync(cmd, args, { cwd, env, encoding: "utf8" });
@@ -34,6 +48,10 @@ function realDeps(env = process.env) {
     return {
         faff: (args, cwd) => run(process.execPath, [ENTRYPOINT, ...args], cwd),
         git: (args, cwd) => run("git", args, cwd),
+        gitNet: (args, cwd) => {
+            const r = childProcess.spawnSync("git", args, { cwd, env: netEnv(env), encoding: "utf8", timeout: netTimeoutSecs(env) * 1000, killSignal: "SIGKILL" });
+            return { status: r.status, stdout: r.stdout ?? "", stderr: r.stderr ?? "" };
+        },
         gitBytes: (args, cwd) => {
             const r = childProcess.spawnSync("git", args, { cwd, env });
             return { status: r.status, stdout: r.stdout ?? new Uint8Array(0), stderr: r.stderr ?? new Uint8Array(0) };
@@ -159,7 +177,7 @@ function reuseFrom(s, chk) {
             return { kind: "reuse", wt, rebased: false };
         process.stderr.write(`faff worktree ensure: ${wt} is ${String(s.behind)} commit(s) behind ${baseRef}; rebasing in place\n`);
         const stale = { worktree_path: wt, base_ref: baseRef, behind: s.behind };
-        const fetch = s.deps.git(["-C", wt, "fetch"], s.args.root);
+        const fetch = s.deps.gitNet(["-C", wt, "fetch"], s.args.root);
         if (fetch.status !== 0)
             s.warnings.push(`git fetch in ${wt} failed (exit ${String(fetch.status)}); rebasing onto ${baseRef} as worktree-check fetched it`);
         const rebase = s.deps.git(["-C", wt, "rebase", baseRef], s.args.root);
@@ -235,9 +253,9 @@ function worktreeRootDir(s) {
 function recreate(s, v) {
     const b = v.branch;
     if (hasOrigin(s)) {
-        const f = s.deps.git(["fetch", "origin"], s.args.root);
+        const f = s.deps.gitNet(["fetch", "origin"], s.args.root);
         if (f.status !== 0)
-            return { kind: "blocked", out: blocked(s, "resume-recreate-failed", null, { stderr: firstLine(f.stderr) }) };
+            return { kind: "blocked", out: blocked(s, "resume-recreate-failed", null, { stage: "fetch", exit: f.status, stderr: firstLine(f.stderr) }) };
     }
     const local = s.deps.git(["rev-parse", "--verify", "--quiet", `refs/heads/${b}^{commit}`], s.args.root);
     if (local.status === 0 && local.stdout.trim() !== v.tip) {
@@ -352,11 +370,14 @@ function noWorktree(s) {
     const rec = parseJson(r.stdout.trim());
     const storeCause = field(rec, "cause");
     const dialogue = field(rec, "dialogue");
+    if (typeof storeCause !== "string") {
+        return { kind: "done", out: result(s, "needs-human", null, "store-restore-failed:0", null, null, null, null, { exit: 0, stderr: "resume-store restore printed no hold record with a cause" }) };
+    }
     const rc = recreate(s, v);
     if (rc.kind === "blocked")
         return { kind: "done", out: rc.out };
     const resumeAt = storeCause === "build-review-dialogue" ? "review" : "gate";
-    return { kind: "placed", wt: rc.wt, mode: "resumed-from-store", cause: "store-restored", resumeAt, setupScript: null, resume: { cause: storeCause ?? null, dialogue: dialogue ?? null } };
+    return { kind: "placed", wt: rc.wt, mode: "resumed-from-store", cause: "store-restored", resumeAt, setupScript: null, resume: { cause: storeCause, dialogue: dialogue ?? null } };
 }
 function place(s) {
     let chk = worktreeCheck(s);

@@ -351,21 +351,29 @@ function runOpen(args: OpenArgs, deps: Deps): OpenOutcome {
       catch (e) { faults.push(`governance-sentinel-write-failed: ${errText(e)}`); }
       const park = faff(["events", "append", "--run", runId, "--root", root], { input: JSON.stringify({ phase: "run", type: "park", issue: runId, data: { reason: "needs-human" } }) });
       if (park.status !== 0) faults.push("park-append-failed");
-      // The run ends here, so it records run-end as `run close` would (operator decision B, 2026-10-31):
-      // `faff audit` sees a complete lifecycle and the andon run-end ping fires on the pump below.
+      // The owner close lands first (operator decision, 2026-11-01). A refused or yielded write, such as a
+      // sentry abort landing mid-open, is a post-mint write failure: exit 2 (spec §3) with no run-end and no
+      // andon ping, since the run did not end here. hooks-ensure still runs on that path, because the skill
+      // calls it nowhere else and it only registers the Stop hooks.
+      faults.push(`governance-fail-closed:${cause}`);
+      try {
+        mutate((ledger) => {
+          const owner = field(ledger, "owner");
+          if (isRecord(owner)) Reflect.set(owner, "status", "done");
+          Reflect.set(ledger, "stop_reason", "governance-admit-failed");
+          return true;
+        });
+      } catch (e) {
+        hooks();
+        throw e;
+      }
+      // Only now has the run ended, so it records run-end as `run close` would (operator decision B,
+      // 2026-10-31): `faff audit` sees a complete lifecycle and the andon run-end ping fires on the pump.
       const ledgerNow = deps.readLedger(runDir);
       const runEnd = { phase: "run", type: "run-end", data: { stop_reason: "governance-admit-failed", shipped: countOutcomes(ledgerNow, "shipped"), parked: countOutcomes(ledgerNow, "parked") } };
       const end = faff(["events", "append", "--run", runId, "--root", root, "--tokens", "--session-id", args.sessionId], { input: JSON.stringify(runEnd) });
       if (end.status !== 0) faults.push("run-end-append-failed");
       if (faff(["andon", "pump", "--run-dir", runDir]).status !== 0) faults.push("andon-pump-failed");
-      // A refused close write is a post-mint write failure: exit 2 (spec §3), the cause kept in faults.
-      faults.push(`governance-fail-closed:${cause}`);
-      mutate((ledger) => {
-        const owner = field(ledger, "owner");
-        if (isRecord(owner)) Reflect.set(owner, "status", "done");
-        Reflect.set(ledger, "stop_reason", "governance-admit-failed");
-        return true;
-      });
       hooks();
       result.governance = "fail-closed";
       result.fail_closed_cause = cause;

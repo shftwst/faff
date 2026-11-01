@@ -378,6 +378,14 @@ test("owner re-checked under the lock: a run aborted after the adopt check is re
   assert.equal(r2.code, 2);
   assert.equal(late.state.ledger.owner.status, "aborted-resumable");
   assert.equal(late.state.ledger.stop_reason, undefined);
+  // The run did not end here: no run-end event and no andon ping, but the Stop hooks are still registered.
+  const types = called(late, "events append").map((c) => JSON.parse(c.input).type);
+  assert.ok(!types.includes("run-end"), `no run-end on a refused owner close: ${types.join(",")}`);
+  assert.equal(called(late, "andon pump").length, 0, "no andon ping on a refused owner close");
+  assert.deepEqual(types, ["ledger-write", "ledger-write", "park"], "only the enrich/envelope writes and the park event");
+  assert.equal(called(late, "hooks-ensure").length, 1, "hooks-ensure still runs on the refused path");
+  assert.equal(r2.result.steps.hooks, "ok");
+  assert.equal(called(late, "sentry-poller start").length, 0);
 });
 
 test("owner fence: a resume on another box after the adopt read makes run open's first locked write yield", () => {
@@ -424,6 +432,27 @@ test("fail-closed run-end: the fail-closed path appends a token-tagged run-end w
   const ok0 = fakeDeps();
   open(ok0);
   assert.equal(called(ok0, "events append").filter((c) => JSON.parse(c.input).type === "run-end").length, 0);
+});
+
+test("fail-closed order: park, then the owner close, then run-end, then the andon pump and hooks-ensure", () => {
+  const deps = fakeDeps({ "commissaire contract status": fail(1) });
+  const seq = [];
+  const inner = deps.mutateLedger;
+  deps.mutateLedger = (runDir, mutate, exp) => {
+    const res = inner(runDir, mutate, exp);
+    if (deps.state.ledger.stop_reason === "governance-admit-failed" && !seq.includes("owner-close")) seq.push("owner-close");
+    return res;
+  };
+  const faff = deps.faff;
+  deps.faff = (args, o) => {
+    const k = key(args);
+    if (k === "events append") { const t = JSON.parse(o.input).type; if (t !== "ledger-write") seq.push(t); }
+    else if (k === "andon pump" || k === "hooks-ensure") seq.push(k);
+    return faff(args, o);
+  };
+  const r = open(deps);
+  assert.equal(r.code, 3);
+  assert.deepEqual(seq, ["park", "owner-close", "run-end", "andon pump", "hooks-ensure"]);
 });
 
 test("fail-closed adopt with admitted work: the admitted issues stay undispatched for the skill to park, and the run is closed", () => {

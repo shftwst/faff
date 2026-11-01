@@ -51,6 +51,7 @@
     "bin/lib/pr-open.ts",
     "bin/lib/worktree-ensure.ts",
     "bin/lib/spec-review-round.ts",
-    "bin/lib/spec-review-hold.ts"
+    "bin/lib/spec-review-hold.ts",
+    "bin/lib/run-trigger.ts"
   ]
 }

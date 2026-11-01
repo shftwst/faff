@@ -1,0 +1,29 @@
+{
+  "verdict": "reject-approach",
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec makes \"no input makes the scan throw at its caller\" a load-bearing invariant and a DONE item, but `PROCEDURE scan` step 3 reads the directory with an unguarded existence-check-then-readdir sequence. A concurrent session creating/deleting `.github/ISSUE_TEMPLATE/` between the step-3 existence check and the listing makes `readdirSync` throw (or return `ENOTDIR` after a file replaces the dir), violating the invariant the spec itself pins. The repo has an established, named pattern for exactly this discovery shape — `latestRunDir` in `shared-infra.js` (FAFF-578: \"readdirSync → null; scan continues\") and `conventions.js`'s `listDirMatches`/`walkDocsForNames` try/catch idiom, both cited by this spec as precedents — so the omission is in the spec's own procedure text, not a builder's free choice.",
+      "evidence": "Spec `## HOW — Behaviour`, `PROCEDURE scan` step 3 (\"IF dir exists AND is a directory: … For each entry in dir\"); the invariant bullet in the trailing guarantees list (\"No input makes the scan throw at its caller\"); contrast `shared-infra.js` `latestRunDir` and `conventions.js` `listDirMatches`, which the spec's Reference context names as the idioms to follow.",
+      "predicted_consequence": "A build that follows the pseudocode literally ships a scanner whose one throw path is a concurrent-session race — the exact churn faff's own multi-session operating premise produces — failing the spec's own DONE item only under concurrency, i.e. the hardest case to reproduce.",
+      "spec_anchor": "how-behaviour"
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The spec justifies omitting `name`/`about` from the non-JSON rendering on the grounds that the human line \"carries only the closed-vocabulary and path fields that need no escaping rule\" — but the specified line format is `<path>\\t<type or \"universal\">\\t<labels joined by \",\">`, and `labels` is neither closed-vocabulary nor path: it is repo-committed free text that the spec's own trust-classification section declares untrusted. A label containing a tab, a comma, or a newline (all legal in a YAML flow sequence, and `normalize_labels` only trims and strips one quote layer — it does not strip control characters) is emitted raw into a tab-delimited line, so a crafted `labels: [\"bug\\t(dropped: unreadable)\"]` can fabricate additional lines in the human rendering, and a label containing a newline can inject arbitrary lines into terminal output. The JSON lane is escaped and is the consumed lane, so this is display-integrity, not data flow — but the spec's stated rationale for the format is false as written, and the fix is a one-line spec edit, not a builder judgement call.",
+      "evidence": "\"the human line carries only the closed-vocabulary and path fields that need no escaping rule\" vs. the format line `<path>\\t<type or \"universal\">\\t<labels joined by \",\">`; the trust classification (\"Every field a candidate carries — `path`, `name`, `about`, `labels` — is repo-committed content, not ratified configuration\"); `normalize_labels`'s procedure performs no control-character filtering.",
+      "predicted_consequence": "a committed template with a crafted label produces a human-lane scan output containing forged candidate/dropped lines (e.g. a fake `(dropped: …)` entry), misleading a human reading the scan; no effect on the JSON lane the create boundary consumes.",
+      "spec_anchor": "the-cli-surface"
+    },
+    {
+      "lens": "QA",
+      "severity": "major",
+      "claim": "The DONE item requires \"The selftest **fails** when a key is renamed, removed, added outside `FAFF_TYPES`, or set to `default`\" and then gives two incompatible verification procedures: \"temporarily edit `CLASSIFIER_TABLE`, run the selftest, confirm non-zero, and revert\" versus \"The test file drives this by constructing the table variants in-process rather than editing the shipped source.\" These cannot both hold. The shipped `--selftest` reads the module's own table; an in-process variant of the table can exercise only a pure assertion function, not the shipped selftest's wiring to that table. So the committed test suite can never decide the DONE criterion as written — either the mutation edit is the method (and is not automatable, and contradicts the in-process clause), or the in-process variants are the method (and the shipped selftest's drift-failure is untested, only the assertion helper is).",
+      "evidence": "DONE item \"The subset assertion … is checked in `--selftest` and at the `scan` command entry\" + the mutation-verification bullet under \"From WHAT (types and interfaces)\".",
+      "predicted_consequence": "A build can ship a selftest that asserts a table it never actually reads (or an assertion function the selftest never calls), pass every committed test, and the drift-detection guarantee the spec's taxonomy-share decision rests on (\"renaming a token breaks the assertion, so the table edit cannot be forgotten\") is vacuous. The same contradiction leaves the second gating site — the `scan` command entry's pre-filesystem refusal — with no reachable test path at all, since that too requires drifting the shipped table.",
+      "spec_anchor": "done-definition-of-done"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "verdict": "reject-approach",
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The chosen answer to the shared-classifier question — \"import `FAFF_TYPES` from `./native-map` instead of re-literalling the six tokens, so a future taxonomy change cannot leave the two legs disagreeing about what the types are\" — is overstated by the spec's own design. The classifier's actual mapping lives in `CLASSIFIER_TABLE`, whose keys are the five substantive type tokens written as literals; importing the enum covers only set membership, not the mapping. A taxonomy rename or addition still requires hand-editing the table, at which point the two legs can disagree exactly as before. The DONE item compounds this: \"the module contains no literal list of the six\" is unachievable as written — the table keys are literal type tokens, and the bad-enum usage message (which the spec says must match `native-map get`'s `Accepted: bug, feature, …` wording) needs the six names too.",
+      "evidence": "\"Design decision — share a classifier with the Linear leg…\" (`**Chosen:**` paragraph); `CLASSIFIER_TABLE` table in HOW; DONE item \"The six faff-type tokens appear in the module only via `FAFF_TYPES`…\".",
+      "predicted_consequence": "A builder either fails the literal reading of the DONE item, or satisfies it vacuously while the claimed drift-closure never existed — the first taxonomy change silently desynchronises the GitHub table from the Linear leg, the exact failure the decision was made to prevent.",
+      "spec_anchor": "design-decision-share-a-classifier-with-the-linear-leg-or-keep-two-independent-legs"
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The slice ships a candidate set whose only consumer is FAFF-1113; until that sibling lands, the scan runs for nobody. The critique itself names this (\"FAFF-1112 on its own lights up no observable end-user value\") and recommends only that FAFF-1113 \"belong adjacent in the build queue\" — a recommendation with no mechanism behind it, so the sequencing consequence is left to queue discipline rather than a dependency edge or a plot-level constraint.",
+      "evidence": "Methodology critique, \"Sequencing consequence worth naming (principle 2)\"; spec's own OUT OF SCOPE entry deferring the scorer/selection verb to FAFF-1113.",
+      "predicted_consequence": "FAFF-1112 clears review, lands, and sits unused while unrelated work interleaves before FAFF-1113 — the accepted cost of the right-sizing split becomes an unbounded one, and the scan's registration cost (six points, two lint-enforced) is paid for a verb with zero reachable consumers in the interim.",
+      "spec_anchor": "methodology-critique"
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The DONE item \"The six faff-type tokens appear in the module only via `FAFF_TYPES` imported from `./native-map`; the module contains no literal list of the six\" cannot be satisfied by the classifier the same spec mandates: `CLASSIFIER_TABLE`'s rows are keyed by the literal tokens `bug`, `spike`, `chore`, `epic`, `feature` — five faff-type tokens appearing as literals in the module, outside any `FAFF_TYPES` import. A tester applying the criterion as written must fail every conforming build; a builder reading it as intended (\"don't re-literal the taxonomy *array*\") passes. The criterion is decidable but self-contradictory, so its pass/fail line is not the one the spec means.",
+      "evidence": "DONE item under \"### From WHAT (types and interfaces)\" vs the `CLASSIFIER_TABLE` in \"### HOW — Behaviour\".",
+      "predicted_consequence": "the build's own DONE checklist contains an item that is mechanically false for the mandated implementation — either the criterion is silently ignored (dead AC) or a correct build is failed against it; neither outcome verifies what the criterion was written to prevent (taxonomy drift between the two legs).",
+      "spec_anchor": "from-what-types-and-interfaces"
+    }
+  ]
+}

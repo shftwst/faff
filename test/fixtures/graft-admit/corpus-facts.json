@@ -1,0 +1,264 @@
+{
+  "_comment": "FAFF-1434: what the decision corpus lacks for the full-chain replay in test/graft-admit-replay.test.mjs. No issue has a build-claim ref. Every found spec is admissible_spec except FAFF-1318's, which stands in for its real admissibility refusal. The divergences and marker exceptions are the intended differences between the recorded prose decisions and faff graft admit, listed by correlation id (markers also by run and seq, since one correlation id can carry several markers).",
+  "build_claim_refs": {},
+  "admissible_spec": "## Scenarios\n\n```\nGiven a spec\nWhen it is graded\nThen it is admissible\n```\n\n## 8. DONE\n\n- [ ] the command MUST exit 0\n",
+  "refused_specs": {
+    "FAFF-1318": "## 8. DONE\n\n- [ ] the command MUST exit 0\n- [ ] the resolver MUST read the configured path\n"
+  },
+  "disposition_divergences": [
+    {
+      "correlation_id": "run-20261026-213652-beepboop-list-31f750/FAFF-1403/next/1",
+      "expected": "claimed-by-peer"
+    },
+    {
+      "correlation_id": "run-20261027-024440-beepboop-list-fa4ec4/FAFF-1403/next/2",
+      "expected": "claimed-by-peer"
+    },
+    {
+      "correlation_id": "run-20261027-162841-beepboop-list-36511a/FAFF-1292/next/1",
+      "expected": "claimed-by-peer"
+    },
+    {
+      "correlation_id": "run-20261027-162841-beepboop-list-36511a/FAFF-1207/next/1",
+      "expected": "claimed-by-peer"
+    },
+    {
+      "correlation_id": "run-20261027-162841-beepboop-list-36511a/FAFF-1205/next/1",
+      "expected": "claimed-by-peer"
+    },
+    {
+      "correlation_id": "run-20261027-185215-beepboop-list-1456d4/FAFF-1292/next/1",
+      "expected": "claimed-by-peer"
+    },
+    {
+      "correlation_id": "run-20261027-185215-beepboop-list-1456d4/FAFF-1207/next/1",
+      "expected": "claimed-by-peer"
+    },
+    {
+      "correlation_id": "run-20261027-185215-beepboop-list-1456d4/FAFF-1205/next/1",
+      "expected": "claimed-by-peer"
+    },
+    {
+      "correlation_id": "run-20261027-185806-beepboop-list-620a46/FAFF-1292/next/1",
+      "expected": "claimed-by-peer"
+    },
+    {
+      "correlation_id": "run-20261027-185806-beepboop-list-620a46/FAFF-1207/next/1",
+      "expected": "claimed-by-peer"
+    },
+    {
+      "correlation_id": "run-20261027-185806-beepboop-list-620a46/FAFF-1205/next/1",
+      "expected": "claimed-by-peer"
+    },
+    {
+      "correlation_id": "run-20261027-191711-beepboop-list-7a746f/FAFF-1292/next/1",
+      "expected": "claimed-by-peer"
+    },
+    {
+      "correlation_id": "run-20261027-191711-beepboop-list-7a746f/FAFF-1207/next/1",
+      "expected": "claimed-by-peer"
+    },
+    {
+      "correlation_id": "run-20261027-191711-beepboop-list-7a746f/FAFF-1205/next/1",
+      "expected": "claimed-by-peer"
+    },
+    {
+      "correlation_id": "run-20261027-162841-beepboop-list-36511a/FAFF-1318/next/1",
+      "expected": "inadmissible"
+    },
+    {
+      "correlation_id": "run-20261027-185215-beepboop-list-1456d4/FAFF-1318/next/1",
+      "expected": "inadmissible"
+    },
+    {
+      "correlation_id": "run-20261027-185806-beepboop-list-620a46/FAFF-1318/next/1",
+      "expected": "inadmissible"
+    },
+    {
+      "correlation_id": "run-20261027-190707-beepboop-list-906233/FAFF-1318/next/1",
+      "expected": "inadmissible"
+    },
+    {
+      "correlation_id": "run-20261027-191213-beepboop-list-fe15ad/FAFF-1318/next/1",
+      "expected": "inadmissible"
+    },
+    {
+      "correlation_id": "run-20261027-191711-beepboop-list-7a746f/FAFF-1318/next/1",
+      "expected": "inadmissible"
+    },
+    {
+      "correlation_id": "run-20261027-192721-beepboop-list-c7df54/FAFF-1318/next/1",
+      "expected": "inadmissible"
+    }
+  ],
+  "marker_exceptions": [
+    {
+      "correlation_id": "run-20261026-031227-fly-l3/FAFF-1016/eligible/1",
+      "run_id": "run-20261026-031227-fly-l3",
+      "seq": 53,
+      "issue": "FAFF-1016",
+      "kernel": "eligible",
+      "class": "orphan"
+    },
+    {
+      "correlation_id": "run-20261027-025421-beepboop-list-1f19c0/FAFF-1306/next/1",
+      "run_id": "run-20261027-025421-beepboop-list-1f19c0",
+      "seq": 5,
+      "issue": "FAFF-1306",
+      "kernel": "next",
+      "class": "orphan"
+    },
+    {
+      "correlation_id": "run-20261027-025421-beepboop-list-1f19c0/FAFF-1306/eligible/1",
+      "run_id": "run-20261027-025421-beepboop-list-1f19c0",
+      "seq": 6,
+      "issue": "FAFF-1306",
+      "kernel": "eligible",
+      "class": "orphan"
+    },
+    {
+      "correlation_id": "run-20261027-032405-beepboop-list-88c035/FAFF-1306/next/1",
+      "run_id": "run-20261027-032405-beepboop-list-88c035",
+      "seq": 5,
+      "issue": "FAFF-1306",
+      "kernel": "next",
+      "class": "orphan"
+    },
+    {
+      "correlation_id": "run-20261027-032405-beepboop-list-88c035/FAFF-1306/eligible/1",
+      "run_id": "run-20261027-032405-beepboop-list-88c035",
+      "seq": 6,
+      "issue": "FAFF-1306",
+      "kernel": "eligible",
+      "class": "orphan"
+    },
+    {
+      "correlation_id": "run-20261026-165441-beepboop-list-c8818e/FAFF-1351/eligible/1",
+      "run_id": "run-20261026-165441-beepboop-list-c8818e",
+      "seq": 26,
+      "issue": "FAFF-1351",
+      "kernel": "eligible",
+      "class": "no-next-record"
+    },
+    {
+      "correlation_id": "run-20261027-030828-beepboop-list-9fd3e4/FAFF-1306/eligible/2",
+      "run_id": "run-20261027-030828-beepboop-list-9fd3e4",
+      "seq": 6,
+      "issue": "FAFF-1306",
+      "kernel": "eligible",
+      "class": "no-next-record"
+    },
+    {
+      "correlation_id": "run-20261027-065425-beepboop-list-d4c19d/FAFF-1199/next/1",
+      "run_id": "run-20261027-065425-beepboop-list-d4c19d",
+      "seq": 74,
+      "issue": "FAFF-1199",
+      "kernel": "eligible",
+      "class": "mis-joined"
+    },
+    {
+      "correlation_id": "run-20261027-162841-beepboop-list-36511a/FAFF-1249/next/3",
+      "run_id": "run-20261027-162841-beepboop-list-36511a",
+      "seq": 60,
+      "issue": "FAFF-1249",
+      "kernel": "eligible",
+      "class": "mis-joined"
+    },
+    {
+      "correlation_id": "run-20261027-191213-beepboop-list-fe15ad/FAFF-1318/eligible/2",
+      "run_id": "run-20261027-191213-beepboop-list-fe15ad",
+      "seq": 8,
+      "issue": "FAFF-1318",
+      "kernel": "next",
+      "class": "mis-joined"
+    },
+    {
+      "correlation_id": "run-20261027-191711-beepboop-list-7a746f/FAFF-1205/eligible/1",
+      "run_id": "run-20261027-191711-beepboop-list-7a746f",
+      "seq": 13,
+      "issue": "FAFF-1318",
+      "kernel": "next",
+      "class": "mis-joined"
+    },
+    {
+      "correlation_id": "run-20261027-191711-beepboop-list-7a746f/FAFF-1205/eligible/1",
+      "run_id": "run-20261027-191711-beepboop-list-7a746f",
+      "seq": 14,
+      "issue": "FAFF-1318",
+      "kernel": "eligible",
+      "class": "mis-joined"
+    },
+    {
+      "correlation_id": "run-20261027-191711-beepboop-list-7a746f/FAFF-1205/eligible/1",
+      "run_id": "run-20261027-191711-beepboop-list-7a746f",
+      "seq": 15,
+      "issue": "FAFF-1292",
+      "kernel": "next",
+      "class": "mis-joined"
+    },
+    {
+      "correlation_id": "run-20261027-191711-beepboop-list-7a746f/FAFF-1205/eligible/1",
+      "run_id": "run-20261027-191711-beepboop-list-7a746f",
+      "seq": 16,
+      "issue": "FAFF-1207",
+      "kernel": "next",
+      "class": "mis-joined"
+    },
+    {
+      "correlation_id": "run-20261027-191711-beepboop-list-7a746f/FAFF-1205/eligible/1",
+      "run_id": "run-20261027-191711-beepboop-list-7a746f",
+      "seq": 17,
+      "issue": "FAFF-1205",
+      "kernel": "next",
+      "class": "mis-joined"
+    },
+    {
+      "correlation_id": "run-20261027-162841-beepboop-list-36511a/FAFF-1293/next/1",
+      "run_id": "run-20261027-162841-beepboop-list-36511a",
+      "seq": 31,
+      "issue": "FAFF-1293",
+      "kernel": "next",
+      "class": "capture-join"
+    },
+    {
+      "correlation_id": "run-20261027-162841-beepboop-list-36511a/FAFF-1249/next/1",
+      "run_id": "run-20261027-162841-beepboop-list-36511a",
+      "seq": 34,
+      "issue": "FAFF-1249",
+      "kernel": "next",
+      "class": "capture-join"
+    },
+    {
+      "correlation_id": "run-20261027-162841-beepboop-list-36511a/FAFF-1318/next/1",
+      "run_id": "run-20261027-162841-beepboop-list-36511a",
+      "seq": 36,
+      "issue": "FAFF-1318",
+      "kernel": "next",
+      "class": "intended-divergence"
+    },
+    {
+      "correlation_id": "run-20261027-185215-beepboop-list-1456d4/FAFF-1318/next/1",
+      "run_id": "run-20261027-185215-beepboop-list-1456d4",
+      "seq": 15,
+      "issue": "FAFF-1318",
+      "kernel": "next",
+      "class": "intended-divergence"
+    },
+    {
+      "correlation_id": "run-20261027-190707-beepboop-list-906233/FAFF-1318/next/1",
+      "run_id": "run-20261027-190707-beepboop-list-906233",
+      "seq": 7,
+      "issue": "FAFF-1318",
+      "kernel": "next",
+      "class": "intended-divergence"
+    },
+    {
+      "correlation_id": "run-20261027-192721-beepboop-list-c7df54/FAFF-1318/next/1",
+      "run_id": "run-20261027-192721-beepboop-list-c7df54",
+      "seq": 7,
+      "issue": "FAFF-1318",
+      "kernel": "next",
+      "class": "intended-divergence"
+    }
+  ]
+}

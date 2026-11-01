@@ -1,0 +1,299 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "Beep-boop step 4, explicit-list mode and wave re-entry run admission through `faff graft admit --mode autonomous`, and none of them shells `faff next`, `faff eligible` or `faff admissible` for admission.",
+      "verified": "prose test passes: step 4 and explicit-list mode call `faff graft admit --mode autonomous` with no next/eligible/admissible invocation; step 8.4 re-runs step 4",
+      "passed": true,
+      "ac_id": "faff-1434#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/beep-boop-admission-prose.test.mjs::step 4 calls faff graft admit --mode autonomous and nothing else for admission"
+        },
+        {
+          "kind": "test",
+          "locator": "test/beep-boop-admission-prose.test.mjs::explicit-list mode calls faff graft admit --mode autonomous and nothing else for admission"
+        }
+      ]
+    },
+    {
+      "ac": "`faff graft admit` (`graft-admit.ts` and its emit) is unchanged by this PR.",
+      "verified": "`git diff --name-only origin/main...HEAD` lists no graft-admit.ts or graft-admit.js",
+      "passed": true,
+      "ac_id": "faff-1434#done:2",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --name-only origin/main...HEAD"
+        }
+      ]
+    },
+    {
+      "ac": "`faff commissaire` and every `commissaire*` module are unchanged by this PR.",
+      "verified": "`git diff --name-only origin/main...HEAD` lists no commissaire* file",
+      "passed": true,
+      "ac_id": "faff-1434#done:3",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --name-only origin/main...HEAD"
+        }
+      ]
+    },
+    {
+      "ac": "Step 4 maps every disposition and a non-zero exit to the bucket in section 3's table.",
+      "verified": "prose test passes: all eight dispositions and the non-zero exit are routed in step 4's table",
+      "passed": true,
+      "ac_id": "faff-1434#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/beep-boop-admission-prose.test.mjs::step 4 routes all eight dispositions and a non-zero exit"
+        }
+      ]
+    },
+    {
+      "ac": "A `proceed` with status `in-review` enters the endgame landing check and is never dispatched to a build.",
+      "verified": "prose test passes: the `proceed` with status `in-review` row goes to the endgame landing check, never built",
+      "passed": true,
+      "ac_id": "faff-1434#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/beep-boop-admission-prose.test.mjs::a proceed with status in-review goes to the endgame landing check, never a build"
+        }
+      ]
+    },
+    {
+      "ac": "Step 4 runs a final `faff graft admit` call on a fresh live read and the current spec immediately before every append to `admitted`, and appends only on its `proceed`.",
+      "verified": "prose test passes: the final-call rule runs immediately before the append and only its proceed admits",
+      "passed": true,
+      "ac_id": "faff-1434#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/beep-boop-admission-prose.test.mjs::step 4 carries the final-call rule"
+        }
+      ]
+    },
+    {
+      "ac": "Step 4 deletes the previous `admit-spec.md` before writing the next one, so a failed write routes the candidate out as `admit-errored`.",
+      "verified": "prose test passes: step 4 deletes the previous admit-spec.md before writing the next",
+      "passed": true,
+      "ac_id": "faff-1434#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/beep-boop-admission-prose.test.mjs::step 4 checks the issue key and replaces the spec file before every call"
+        }
+      ]
+    },
+    {
+      "ac": "An issue key that fails `^[A-Za-z][A-Za-z0-9]*-[0-9]+$` routes out as `admit-errored:issue-key` before any filesystem write or call.",
+      "verified": "prose test passes: the issue-key shape check and `admit-errored:issue-key` route-out precede any write",
+      "passed": true,
+      "ac_id": "faff-1434#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/beep-boop-admission-prose.test.mjs::step 4 checks the issue key and replaces the spec file before every call"
+        }
+      ]
+    },
+    {
+      "ac": "Step 4 runs no `decision-capture decide` driver and no `next`/`eligible` `action` call; the run-level kernel capture notes elsewhere in the skill are unchanged.",
+      "verified": "prose test passes: no `--kernel next|eligible` or decision-capture decide/action invocation in step 4; step 8's run-done/queue-state capture note is unchanged in the diff",
+      "passed": true,
+      "ac_id": "faff-1434#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/beep-boop-admission-prose.test.mjs::step 4 calls faff graft admit --mode autonomous and nothing else for admission"
+        },
+        {
+          "kind": "command",
+          "locator": "git diff origin/main...HEAD -- plugin/skills/faff-beep-boop/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "Routed-out and claimed-by-peer candidates still get `faff run-ledger record-declined` with a per-candidate `observed_at`.",
+      "verified": "the Record-to-the-run-ledger paragraph keeps record-declined with a per-candidate observed_at captured before the declining call's live read",
+      "passed": true,
+      "ac_id": "faff-1434#done:10",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main...HEAD -- plugin/skills/faff-beep-boop/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "Every line the PR deletes from `faff-beep-boop/SKILL.md` maps to a row in section 4.4; the PR description lists the mapping by row number.",
+      "verified": "the PR description's Rule inventory mapping lists every deleted SKILL.md line by row number",
+      "passed": true,
+      "ac_id": "faff-1434#done:11",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff -U0 origin/main...HEAD -- plugin/skills/faff-beep-boop/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "`SKILL_LINE_BASELINE[\"faff-beep-boop\"]` is lowered to the count measured after the branch is rebased on `main`, so a sibling that changed it first (FAFF-1436) is absorbed, not overwritten.",
+      "verified": "rebased onto main f6297f83 (FAFF-1437, which set beep-boop to 675): faff-beep-boop line baseline 675 -> 674, merged with the faff-prep entry from FAFF-1443; prose-byte baselines lowered with `faff prose-size baseline --lower` (beep-boop 167304 -> 164925, graft, tidy), none raised; `faff validate-adapters` exits 0",
+      "passed": true,
+      "ac_id": "faff-1434#done:12",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "`ANCHOR_PHRASES[\"faff-beep-boop\"]` is unchanged and `faff validate-adapters` reports no RATCHET.",
+      "verified": "ANCHOR_PHRASES unchanged in the diff; `faff validate-adapters` prints no RATCHET, line or byte",
+      "passed": true,
+      "ac_id": "faff-1434#done:13",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "`test/graft-admit-replay.test.mjs` reproduces all 40 `next` and 23 `eligible` base verdicts through the kernels.",
+      "verified": "replay test passes: 40 next and 23 eligible base verdicts reproduced through the committed emit's kernels",
+      "passed": true,
+      "ac_id": "faff-1434#done:14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/graft-admit-replay.test.mjs::kernel replay: every next and eligible base record reproduces its recorded verdict"
+        }
+      ]
+    },
+    {
+      "ac": "The disposition replay gives the mapped verdict for 19 `next` records, `claimed-by-peer` for the 14 In Review records and `inadmissible` for the 7 FAFF-1318 records, each listed by correlation id in `test/fixtures/graft-admit/corpus-facts.json`.",
+      "verified": "replay test passes: 19 mapped, 14 claimed-by-peer, 7 inadmissible, each divergence listed by correlation id in the sidecar",
+      "passed": true,
+      "ac_id": "faff-1434#done:15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/graft-admit-replay.test.mjs::disposition replay: 19 records give the mapped verdict, 21 give the sidecar's intended divergence"
+        }
+      ]
+    },
+    {
+      "ac": "The action-marker replay matches 31 markers and classifies the other 21 exactly as section 4.3 lists, failing on an unclassified marker, a listed exception that matches, or a missing correlation id.",
+      "verified": "replay test passes: 31 markers match, 21 classed 5/2/8/2/4; mutation-checked before the rebase (a wrong class, a dropped entry and a missing correlation id each fail it)",
+      "passed": true,
+      "ac_id": "faff-1434#done:16",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/graft-admit-replay.test.mjs::action-marker replay: 31 markers match and the other 21 are classified exactly as the sidecar lists"
+        }
+      ]
+    },
+    {
+      "ac": "`TEST_FILE_COVERAGE[\"graft\"]` in `lint-cli-coverage.js` also names `test/graft-admit-replay.test.mjs`, and `lint-cli-coverage` passes.",
+      "verified": "TEST_FILE_COVERAGE.graft names the replay test; `faff lint-cli-coverage` passes",
+      "passed": true,
+      "ac_id": "faff-1434#done:17",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-coverage"
+        }
+      ]
+    },
+    {
+      "ac": "`test/beep-boop-admission-prose.test.mjs` asserts that step 4 and explicit-list mode call `faff graft admit --mode autonomous`, contain no `faff next`, `faff eligible` or `faff admissible` invocation and no `--kernel next`/`--kernel eligible` driver, name all eight dispositions and the non-zero exit, route `proceed` with `in-review` to the endgame check, and carry the final-call rule.",
+      "verified": "test/beep-boop-admission-prose.test.mjs passes 7/7 here (including the no-`--wave` assertion) and fails on main's SKILL.md",
+      "passed": true,
+      "ac_id": "faff-1434#done:18",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/beep-boop-admission-prose.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "The capture lints exempt `next` and `eligible` through the in-process route only for a real invocation with `--run-dir`, read from non-comment code, never `claim-verdict`, and fail when a covered kernel has its own driver; a test covers each bypass.",
+      "verified": "lint tests pass 17/17; the five bypass tests (claim-verdict without its driver, prose mentions, --run-dir on another command, comment-only captures and mints, a covered kernel with its own driver) each fail on the previous lint; deleting tidy's claim-verdict driver in a copy of the shipped skills fails both lints",
+      "passed": true,
+      "ac_id": "faff-1434#done:19",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1009-capture-wiring-lint.test.mjs::bypass 1: the route never covers claim-verdict, so deleting its own driver fails both lints"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1009-capture-wiring-lint.test.mjs::bypass 2: prose that only names the command does not count, with or without a code span"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1009-capture-wiring-lint.test.mjs::bypass 3: --run-dir belonging to a different command in the same span does not count"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1009-capture-wiring-lint.test.mjs::bypass 4: a capture or a consult-id mint left only in a comment does not count"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1009-capture-wiring-lint.test.mjs::bypass 5: a covered kernel that a skill also drives with its own decide --export fails the route"
+        }
+      ]
+    },
+    {
+      "ac": "Repeated `faff graft admit --run-dir` calls for one issue, with capture on and alongside a counter-based consult, mint distinct consult correlation ids, and every decision grades.",
+      "verified": "consult-id test passes: three admission calls plus a counter-based consult mint next/1..4, three distinct eligible ids, and the study grades 4 next and 3 eligible decisions; the explicit-wave control collides on one id",
+      "passed": true,
+      "ac_id": "faff-1434#done:20",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/graft-admit-consult-ids.test.mjs::repeated admission calls with --run-dir and no --wave, beside a counter-based consult, mint distinct ids and all grade"
+        },
+        {
+          "kind": "test",
+          "locator": "test/graft-admit-consult-ids.test.mjs::control: an explicit --wave collides every admission call on one id, so only one grades"
+        }
+      ]
+    },
+    {
+      "ac": "No `--selftest` case is added in any module.",
+      "verified": "the diff adds no selftest case (the only `selftest` hit is the committed spec's own DONE line)",
+      "passed": true,
+      "ac_id": "faff-1434#done:21",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main...HEAD"
+        }
+      ]
+    },
+    {
+      "ac": "`faff gates run` passes.",
+      "verified": "`faff gates run --json --resume` pass 9/9 on 16578621, rebased onto main f6297f83",
+      "passed": true,
+      "ac_id": "faff-1434#done:22",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff gates run --json --resume"
+        }
+      ]
+    }
+  ]
+}

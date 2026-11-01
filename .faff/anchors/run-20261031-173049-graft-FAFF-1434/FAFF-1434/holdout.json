@@ -1,0 +1,258 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1434",
+  "aggregate": "meets-spec",
+  "code_blind": true,
+  "spawner_attested": false,
+  "attestation": null,
+  "violations": [],
+  "criteria": [
+    {
+      "id": "scenarios:1",
+      "text": "Given the decision corpus record run-20261026-213652-beepboop-list-31f750/FAFF-1403/next/1 (status in-review, spec high, eligible) as a facts object with no build-claim ref\nWhen faff graft admit --mode autonomous --facts - --json runs with an admissible spec file\nThen it exits 0, disposition is \"claimed-by-peer\", and kernels.next.step is \"graft\"",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "printf '<facts FAFF-1403: status in-review, labels [faff-automate], spec {found:true,confidence:high}, externally_blocked:false, claimed_at:null, tracker git-only reachable>' | faff graft admit --mode autonomous --facts - --spec-file /tmp/eval/admissible.md --now 2026-10-26T21:38:32.444Z --json (fixture git repo, no build-claim ref, FAFF_SESSION_ID unset)",
+      "expected": "exit 0, disposition claimed-by-peer, kernels.next.step graft",
+      "observed": "EXIT=0; disposition \"claimed-by-peer\"; kernels.next.step \"graft\"; kernels.claim.ref \"missing\"",
+      "evidence_ref": "report: scenarios:1",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:2",
+      "text": "Given the facts of corpus record run-20261027-162841-beepboop-list-36511a/FAFF-1318/next/1 (status todo, spec high, eligible) and a spec file with a DONE list but no Given/When/Then scenario\nWhen faff graft admit --mode autonomous --facts - --json runs\nThen it exits 0, disposition is \"inadmissible\", reason names the missing born-verifiable scenarios, and kernels.next.step is \"graft\"",
+      "holdout": true,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "printf '<facts FAFF-1318: status todo, labels [faff-automate], spec {found:true,confidence:high}, no claim, tracker git-only reachable>' | faff graft admit --mode autonomous --facts - --spec-file /tmp/eval/noscenario.md --now 2026-10-27T16:30:53.293Z --json (spec has 2 DONE items, no Given/When/Then)",
+      "expected": "exit 0, disposition inadmissible, reason names missing born-verifiable scenarios, kernels.next.step graft",
+      "observed": "EXIT=0; disposition \"inadmissible\"; reason \"0 born-verifiable scenario(s) (need >=1)\"; kernels.next.step \"graft\"",
+      "evidence_ref": "report: scenarios:2",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:3",
+      "text": "Given the facts of corpus record run-20261026-031227-fly-l3/FAFF-1385/next/1 (status backlog, spec high, eligible) and an admissible spec file\nWhen faff graft admit --mode autonomous --facts - --json runs\nThen it exits 0 and disposition is \"proceed\"",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "printf '<facts FAFF-1385: status backlog, labels [faff-automate], spec {found:true,confidence:high}, no claim, tracker git-only reachable>' | faff graft admit --mode autonomous --facts - --spec-file /tmp/eval/admissible.md --now 2026-10-26T03:21:48.405Z --json",
+      "expected": "exit 0, disposition proceed",
+      "observed": "EXIT=0; disposition \"proceed\"",
+      "evidence_ref": "report: scenarios:3",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:4",
+      "text": "Given the facts of corpus record run-20261027-191711-beepboop-list-7a746f/FAFF-1205/next/1 (status in-review, spec none, eligible)\nWhen faff graft admit --mode autonomous --facts - --json runs\nThen disposition is \"claimed-by-peer\" and kernels.next.step is \"prep\"",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "printf '<facts FAFF-1205: status in-review, labels [faff-automate], spec {found:false,confidence:none}, no claim, tracker git-only reachable>' | faff graft admit --mode autonomous --facts - --now 2026-10-27T19:18:50.802Z --json (no --spec-file)",
+      "expected": "disposition claimed-by-peer, kernels.next.step prep",
+      "observed": "EXIT=0; disposition \"claimed-by-peer\"; kernels.next.step \"prep\"",
+      "evidence_ref": "report: scenarios:4",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:5",
+      "text": "Given the faff-beep-boop SKILL.md on this branch\nWhen its \"4. Build queue assembly\" and \"Explicit-list mode\" sections are searched\nThen each contains \"faff graft admit --mode autonomous\", and neither contains a \"faff next\", \"faff eligible \" or \"faff admissible\" invocation",
+      "holdout": true,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "in /work/repo on branch pr: extract plugin/skills/faff-beep-boop/SKILL.md lines 195-235 (### 4. Build queue assembly up to ### 5) and 485-499 (## Explicit-list mode up to ## Conflict analysis); grep -cF for each phrase",
+      "expected": "each section contains 'faff graft admit --mode autonomous'; neither contains a 'faff next', 'faff eligible ' or 'faff admissible' invocation",
+      "observed": "step 4: graft admit --mode autonomous x1, faff next 0, faff eligible 0, faff admissible 0; explicit-list: graft admit --mode autonomous x1, others 0 (base 8c35d10 step 4 had 7x 'faff next', 1x 'faff eligible ')",
+      "evidence_ref": "report: scenarios:5",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:6",
+      "text": "Given the tree on this branch\nWhen faff validate-adapters runs\nThen it exits 0 with no RATCHET finding for faff-beep-boop",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "cd /work/repo (PR head) && faff validate-adapters",
+      "expected": "exit 0 with no RATCHET finding for faff-beep-boop",
+      "observed": "exit=0; 'RESULT: PASS (21 slot skills linted)'; 0 lines containing RATCHET (faff-beep-boop has only WARN paragraph/anchor lines)",
+      "evidence_ref": "report: scenarios:6",
+      "reason": null,
+      "reason_code": null
+    }
+  ],
+  "delegated": [
+    {
+      "id": "done:1",
+      "text": "Beep-boop step 4, explicit-list mode and wave re-entry run admission through `faff graft admit --mode autonomous`, and none of them shells `faff next`, `faff eligible` or `faff admissible` for admission.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1434#done:1"
+    },
+    {
+      "id": "done:2",
+      "text": "`faff graft admit` (`graft-admit.ts` and its emit) is unchanged by this PR.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1434#done:2"
+    },
+    {
+      "id": "done:3",
+      "text": "`faff commissaire` and every `commissaire*` module are unchanged by this PR.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1434#done:3"
+    },
+    {
+      "id": "done:4",
+      "text": "Step 4 maps every disposition and a non-zero exit to the bucket in section 3's table.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1434#done:4"
+    },
+    {
+      "id": "done:5",
+      "text": "A `proceed` with status `in-review` enters the endgame landing check and is never dispatched to a build.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1434#done:5"
+    },
+    {
+      "id": "done:6",
+      "text": "Step 4 runs a final `faff graft admit` call on a fresh live read and the current spec immediately before every append to `admitted`, and appends only on its `proceed`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1434#done:6"
+    },
+    {
+      "id": "done:7",
+      "text": "Step 4 deletes the previous `admit-spec.md` before writing the next one, so a failed write routes the candidate out as `admit-errored`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1434#done:7"
+    },
+    {
+      "id": "done:8",
+      "text": "An issue key that fails `^[A-Za-z][A-Za-z0-9]*-[0-9]+$` routes out as `admit-errored:issue-key` before any filesystem write or call.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1434#done:8"
+    },
+    {
+      "id": "done:9",
+      "text": "Step 4 runs no `decision-capture decide` driver and no `next`/`eligible` `action` call; the run-level kernel capture notes elsewhere in the skill are unchanged.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1434#done:9"
+    },
+    {
+      "id": "done:10",
+      "text": "Routed-out and claimed-by-peer candidates still get `faff run-ledger record-declined` with a per-candidate `observed_at`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1434#done:10"
+    },
+    {
+      "id": "done:11",
+      "text": "Every line the PR deletes from `faff-beep-boop/SKILL.md` maps to a row in section 4.4; the PR description lists the mapping by row number.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1434#done:11"
+    },
+    {
+      "id": "done:12",
+      "text": "`SKILL_LINE_BASELINE[\"faff-beep-boop\"]` is lowered to the count measured after the branch is rebased on `main`, so a sibling that changed it first (FAFF-1436) is absorbed, not overwritten.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1434#done:12"
+    },
+    {
+      "id": "done:13",
+      "text": "`ANCHOR_PHRASES[\"faff-beep-boop\"]` is unchanged and `faff validate-adapters` reports no RATCHET.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1434#done:13"
+    },
+    {
+      "id": "done:14",
+      "text": "`test/graft-admit-replay.test.mjs` reproduces all 40 `next` and 23 `eligible` base verdicts through the kernels.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1434#done:14"
+    },
+    {
+      "id": "done:15",
+      "text": "The disposition replay gives the mapped verdict for 19 `next` records, `claimed-by-peer` for the 14 In Review records and `inadmissible` for the 7 FAFF-1318 records, each listed by correlation id in `test/fixtures/graft-admit/corpus-facts.json`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1434#done:15"
+    },
+    {
+      "id": "done:16",
+      "text": "The action-marker replay matches 31 markers and classifies the other 21 exactly as section 4.3 lists, failing on an unclassified marker, a listed exception that matches, or a missing correlation id.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1434#done:16"
+    },
+    {
+      "id": "done:17",
+      "text": "`TEST_FILE_COVERAGE[\"graft\"]` in `lint-cli-coverage.js` also names `test/graft-admit-replay.test.mjs`, and `lint-cli-coverage` passes.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1434#done:17"
+    },
+    {
+      "id": "done:18",
+      "text": "`test/beep-boop-admission-prose.test.mjs` asserts that step 4 and explicit-list mode call `faff graft admit --mode autonomous`, contain no `faff next`, `faff eligible` or `faff admissible` invocation and no `--kernel next`/`--kernel eligible` driver, name all eight dispositions and the non-zero exit, route `proceed` with `in-review` to the endgame check, and carry the final-call rule.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1434#done:18"
+    },
+    {
+      "id": "done:19",
+      "text": "No `--selftest` case is added in any module.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1434#done:19"
+    },
+    {
+      "id": "done:20",
+      "text": "`faff gates run` passes.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1434#done:20"
+    }
+  ]
+}

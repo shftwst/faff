@@ -148,5 +148,114 @@ test("deriveCaptureKernels returns exactly the nine shipped captureDecision kern
 
 test("captureWiringUnwired reports nothing unwired on the shipped tree", () => {
   const kernels = va.deriveCaptureKernels(LIB);
-  assert.deepEqual(va.captureWiringUnwired(SKILLS, kernels), []);
+  const inProcess = va.inProcessWiredKernels(SKILLS, va.deriveInProcessCapture(LIB));
+  assert.deepEqual(va.captureWiringUnwired(SKILLS, kernels, inProcess), []);
+  assert.deepEqual(va.captureSameCommandUnwired(SKILLS, kernels, inProcess), []);
+  // FAFF-1434: beep-boop's admission captures next and eligible through `faff graft admit`, so only
+  // those two rely on the in-process route; every other kernel still has its own driver.
+  assert.deepEqual(va.captureWiringUnwired(SKILLS, kernels), ["eligible", "next"]);
+});
+
+// --- FAFF-1434: in-process capture through `faff graft admit` (operator decision, 2026-11-01) ---
+// The route covers `next` and `eligible` only, counts only a real invocation with its own --run-dir,
+// reads the composing module's non-comment code, and fails when a covered kernel is also driven by a
+// skill. Each bypass below passed the lint before the route was narrowed.
+
+// A fixture lib whose kernels capture next, eligible and claim-verdict in-kernel, plus a stand-in
+// graft-admit.js, and one SKILL.md.
+const ROUTE_KERNELS_SRC = `const { captureDecision } = require("./decision-capture");
+function a() { captureDecision({ kernel: "next", normalised_inputs: {}, verdict: "graft", issue: "" }); }
+function b() { captureDecision({ kernel: "eligible", normalised_inputs: {}, verdict: {}, issue: "" }); }
+function c() { captureDecision({ kernel: "claim-verdict", normalised_inputs: {}, verdict: {}, issue: "" }); }
+module.exports = { a, b, c };
+`;
+const ADMIT_SRC = `const decisionCapture = require("./decision-capture");
+class Capture { base(kernel) { return decisionCapture.mintConsultCorrelationId(".", "run", "X-1", kernel, undefined); } }
+const cap = new Capture();
+cap.base("eligible", {}, {});
+cap.base("next", {}, "graft");
+cap.base("claim-verdict", {}, {});
+`;
+// tidy-style own driver for claim-verdict, so the fixture is otherwise fully wired.
+const CLAIM_DRIVER = 'Run `eval "$(faff decision-capture decide --run <run> --issue <i> --kernel claim-verdict --export)" && faff claim-verdict --json` in one command.\n';
+const ADMIT_SPAN = 'Run `printf \'%s\' "$facts_json" | faff graft admit --mode autonomous --facts - --spec-file s.md --run-dir "$run_dir" --json` per candidate.\n';
+
+function runOnRouteFixture({ admitSrc = ADMIT_SRC, skillBody }) {
+  const dir = mkdtempSync(join(tmpdir(), "faff-1434-lint-"));
+  mkdirSync(join(dir, "faff", "bin", "lib"), { recursive: true });
+  writeFileSync(join(dir, "faff", "bin", "lib", "kernels.js"), ROUTE_KERNELS_SRC);
+  writeFileSync(join(dir, "faff", "bin", "lib", "graft-admit.js"), admitSrc);
+  mkdirSync(join(dir, "zz-capture-fixture"));
+  writeFileSync(join(dir, "zz-capture-fixture", "SKILL.md"), skillBody);
+  const r = spawnSync(process.execPath, [BIN, "validate-adapters", "--skills-dir", dir], { encoding: "utf8" });
+  rmSync(dir, { recursive: true, force: true });
+  return r;
+}
+const unwiredIn = (stdout) => [...stdout.matchAll(/kernel "([^"]+)"/g)].map((m) => m[1]);
+
+test("pass: a real `faff graft admit … --run-dir` code span wires next and eligible; claim-verdict keeps its own driver", () => {
+  const r = runOnRouteFixture({ skillBody: ADMIT_SPAN + CLAIM_DRIVER });
+  assert.match(r.stdout, /pass\s+capture-wiring[^\n]*eligible, next via `faff graft admit`'s in-process capture/);
+  assert.match(r.stdout, /pass\s+capture-same-command[^\n]*eligible, next via/);
+});
+
+test("pass: a fenced bash block with a backslash continuation is a real invocation", () => {
+  const fenced = "```bash\nprintf '%s' \"$facts_json\" | \"$faff\" graft admit --mode autonomous --facts - \\\n  --spec-file s.md --run-dir \"$run_dir\" --json\n```\n";
+  const r = runOnRouteFixture({ skillBody: fenced + CLAIM_DRIVER });
+  assert.match(r.stdout, /pass\s+capture-wiring/);
+  assert.match(r.stdout, /pass\s+capture-same-command/);
+});
+
+test("bypass 1: the route never covers claim-verdict, so deleting its own driver fails both lints", () => {
+  const r = runOnRouteFixture({ skillBody: ADMIT_SPAN });
+  assert.match(r.stdout, /FAIL\s+capture-wiring \(FAFF-1009\)/);
+  assert.match(r.stdout, /FAIL\s+capture-same-command/);
+  assert.deepEqual([...new Set(unwiredIn(r.stdout))], ["claim-verdict"]);
+  assert.equal(r.status, 1);
+});
+
+test("bypass 2: prose that only names the command does not count, with or without a code span", () => {
+  for (const body of ["Never run `faff graft admit --run-dir`.\n", "Never run faff graft admit --mode autonomous --facts - --run-dir d.\n"]) {
+    const r = runOnRouteFixture({ skillBody: body + CLAIM_DRIVER });
+    assert.match(r.stdout, /FAIL\s+capture-wiring \(FAFF-1009\)/, body);
+    assert.deepEqual([...new Set(unwiredIn(r.stdout))].sort(), ["eligible", "next"], body);
+    assert.match(r.stdout, /kernel "next"[^\n]*covered by `faff graft admit`'s in-process route, but no SKILL\.md runs/, body);
+  }
+});
+
+test("bypass 3: --run-dir belonging to a different command in the same span does not count", () => {
+  const body = "Run `faff graft admit --mode autonomous --facts - --json && faff run summary --run-dir d`.\n";
+  const r = runOnRouteFixture({ skillBody: body + CLAIM_DRIVER });
+  assert.match(r.stdout, /FAIL\s+capture-wiring \(FAFF-1009\)/);
+  assert.deepEqual([...new Set(unwiredIn(r.stdout))].sort(), ["eligible", "next"]);
+});
+
+test("bypass 4: a capture or a consult-id mint left only in a comment does not count", () => {
+  const commentedCaptures = ADMIT_SRC.replace('cap.base("eligible"', '// cap.base("eligible", …)\ncap.capture("eligible"')
+    .replace('cap.base("next"', '/* cap.base("next", …) */ cap.capture("next"');
+  const commentedMint = ADMIT_SRC.replace("decisionCapture.mintConsultCorrelationId(", "decisionCapture.mint( // mintConsultCorrelationId(\n");
+  for (const admitSrc of [commentedCaptures, commentedMint]) {
+    const r = runOnRouteFixture({ admitSrc, skillBody: ADMIT_SPAN + CLAIM_DRIVER });
+    assert.match(r.stdout, /FAIL\s+capture-wiring \(FAFF-1009\)/);
+    assert.deepEqual([...new Set(unwiredIn(r.stdout))].sort(), ["eligible", "next"]);
+    assert.equal(r.status, 1);
+  }
+});
+
+test("bypass 5: a covered kernel that a skill also drives with its own decide --export fails the route", () => {
+  const ownNext = 'Run `eval "$(faff decision-capture decide --run <run> --issue <i> --kernel next --export)" && faff next --status todo --spec high`.\n';
+  const r = runOnRouteFixture({ skillBody: ADMIT_SPAN + CLAIM_DRIVER + ownNext });
+  assert.match(r.stdout, /FAIL\s+capture-wiring \(in-process route, FAFF-1434\)/);
+  assert.match(r.stdout, /kernel "next" is covered by `faff graft admit`'s in-process route but zz-capture-fixture\/SKILL\.md also drives it/);
+  assert.equal(r.status, 1);
+});
+
+test("the route's helpers: real invocations only, comments stripped, covers narrowed to next and eligible", () => {
+  assert.equal(va.isInProcessInvocation('faff graft admit --mode autonomous --facts - --run-dir "$run_dir" --json', ["graft", "admit"]), true);
+  assert.equal(va.isInProcessInvocation('"$faff" graft admit --mode autonomous --facts - --run-dir "$run_dir"', ["graft", "admit"]), true);
+  assert.equal(va.isInProcessInvocation("faff graft admit --run-dir", ["graft", "admit"]), false);
+  assert.equal(va.isInProcessInvocation("faff graft admit --mode autonomous --facts - --run-dir --json", ["graft", "admit"]), false);
+  assert.deepEqual(va.codeCommands("a `x | faff y && z; w` b"), ["x", "faff y", "z", "w"]);
+  assert.equal(va.stripJsComments('a("//x"); // b\n/* c */ d(/\\//);'), 'a("//x"); \n  d(/\\//);');
+  assert.deepEqual(va.deriveInProcessCapture(LIB).map((e) => [e.kernels, e.wires]), [[["claim-verdict", "eligible", "next"], ["eligible", "next"]]]);
 });

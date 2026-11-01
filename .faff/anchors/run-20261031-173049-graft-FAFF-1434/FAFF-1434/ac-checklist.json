@@ -145,7 +145,7 @@
     },
     {
       "ac": "`SKILL_LINE_BASELINE[\"faff-beep-boop\"]` is lowered to the count measured after the branch is rebased on `main`, so a sibling that changed it first (FAFF-1436) is absorbed, not overwritten.",
-      "verified": "line baseline 677 -> 676 for faff-beep-boop, merged with FAFF-1443's faff-prep entry on rebase onto main 8d111cb9; prose-byte baselines lowered with `faff prose-size baseline --lower` (beep-boop, graft, tidy), none raised; `faff validate-adapters` exits 0",
+      "verified": "rebased onto main f6297f83 (FAFF-1437, which set beep-boop to 675): faff-beep-boop line baseline 675 -> 674, merged with the faff-prep entry from FAFF-1443; prose-byte baselines lowered with `faff prose-size baseline --lower` (beep-boop 167304 -> 164925, graft, tidy), none raised; `faff validate-adapters` exits 0",
       "passed": true,
       "ac_id": "faff-1434#done:12",
       "verifications": [
@@ -285,7 +285,7 @@
     },
     {
       "ac": "`faff gates run` passes.",
-      "verified": "`faff gates run --json --resume` pass 9/9 on 12f85da6, rebased onto main 8d111cb9 (one run before it failed one test/eval-resume.test.mjs case under load, a file this PR does not touch, which passes 24/24 alone)",
+      "verified": "`faff gates run --json --resume` pass 9/9 on 16578621, rebased onto main f6297f83",
       "passed": true,
       "ac_id": "faff-1434#done:22",
       "verifications": [

@@ -1,0 +1,263 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "Staging FAFF-1431's committed spec (fixture, with `--extraction`) prints `admissibility.admissible: false`, the R1 reason, and 8 `scenarios_prose` ids.",
+      "verified": "fixture copy of FAFF-1431's committed spec stages ready-to-post with admissible:false, the R1 reason and 8 scenarios_prose ids",
+      "passed": true,
+      "ac_id": "faff-1443#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::FAFF-1443: FAFF-1431's committed spec stages refused with eight prose Scenarios units"
+        }
+      ]
+    },
+    {
+      "ac": "`faff prep attach --spec … --json` prints an `admissibility` object with `admissible` (boolean), `reasons` and `scenarios_prose` (string arrays) on `ready-to-post` and `attached`, and on no other token.",
+      "verified": "object present with the three typed keys on ready-to-post and attached; absent on invalid and needs-judgement",
+      "passed": true,
+      "ac_id": "faff-1443#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::FAFF-1443 scenario 1: three bold bullets are refused, three prose ids, one refused line"
+        },
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::FAFF-1443 scenario 6: git-only autonomous attached carries the field and the store carries the line"
+        },
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::FAFF-1443 scenario 7: invalid and needs-judgement results carry no admissibility key"
+        }
+      ]
+    },
+    {
+      "ac": "A fault while computing (a forced `dodClassify` throw in a test) gives `admissible: false`, a `reasons` entry starting `admissibility check failed:`, `scenarios_prose: []` and the line `admissibility: unknown — check failed`; the stage token is unchanged.",
+      "verified": "forced classify throw gives admissible:false, 'admissibility check failed:' reason, [] and the unknown line; token stays ready-to-post",
+      "passed": true,
+      "ac_id": "faff-1443#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::FAFF-1443: a fault while classifying is admissible:false with the unknown line, and the token is unchanged"
+        }
+      ]
+    },
+    {
+      "ac": "A spec with no Scenarios units gets `admissibility: refused — R1.scenarios (no Scenarios units)`; a spec with three uncounted units gets `R1.scenarios (0 of 3 units count)`.",
+      "verified": "no Scenarios section reads '(no Scenarios units)'; three bold bullets read '(0 of 3 units count)'",
+      "passed": true,
+      "ac_id": "faff-1443#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::FAFF-1443: no Scenarios section reads (no Scenarios units); the line sits directly after build-tier"
+        },
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::FAFF-1443 scenario 1: three bold bullets are refused, three prose ids, one refused line"
+        }
+      ]
+    },
+    {
+      "ac": "The staged spec carries exactly one `admissibility:` line directly after `build-tier:`, in the formats of the §3 table, built only from the verdict word, check ids and unit ids, capped at 300 characters.",
+      "verified": "one line directly after build-tier, table formats, ids only (a vague DONE item's text stays out), capped at 300 chars",
+      "passed": true,
+      "ac_id": "faff-1443#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::FAFF-1443: no Scenarios section reads (no Scenarios units); the line sits directly after build-tier"
+        },
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::FAFF-1443 scenario 5: a vague DONE item adds R2b to the line by id, never its text"
+        },
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::FAFF-1443: the line is capped at 300 characters"
+        }
+      ]
+    },
+    {
+      "ac": "The stage token and exit code are the same as on `main` for every input in `test/prep-attach.test.mjs`.",
+      "verified": "all 22 pre-existing prep-attach tests pass unchanged",
+      "passed": true,
+      "ac_id": "faff-1443#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/prep-attach.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "The marker `.faff/prep/<ISSUE>.json` records the `admissibility` object.",
+      "verified": "marker admissibility deep-equals the JSON result (tracker and git-only)",
+      "passed": true,
+      "ac_id": "faff-1443#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::FAFF-1443 scenario 3: a re-stage keeps exactly one line and the marker records the same object"
+        }
+      ]
+    },
+    {
+      "ac": "Both producer SKILL.md files state the canonical scenario format and name the bulleted, bold and lowercase forms as unread.",
+      "verified": "both producers state the one-format rule and name the bulleted, bold and lowercase forms",
+      "passed": true,
+      "ac_id": "faff-1443#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-producer-scenario-format.test.mjs::faffter-noon-spec: states the one-format rule and names the forms the counters do not read"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-producer-scenario-format.test.mjs::faffter-dark-nlspec: states the one-format rule and names the forms the counters do not read"
+        }
+      ]
+    },
+    {
+      "ac": "`faffter-noon-spec/SKILL.md`'s self-review treats an R1 refusal with at least one Scenarios unit as a `major` finding.",
+      "verified": "noon self-review: R1 refusal with Scenarios units is a major format finding; none is noted only",
+      "passed": true,
+      "ac_id": "faff-1443#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-producer-scenario-format.test.mjs::the noon self-review treats an R1 refusal with Scenarios units as a major finding"
+        }
+      ]
+    },
+    {
+      "ac": "`faff-prep/SKILL.md` _Stage and attach_ names the admissibility line and says interactive prep promotes only on an attached marker (re-staging, re-posting and confirming otherwise), reads the line from the marker and prints it before any move to Todo, including a human accept, and offers revise, promote anyway or leave in Backlog.",
+      "verified": "Stage and attach names the line and gains the Promote (interactive) bullet: attached marker only, print, offer revise/promote anyway/leave",
+      "passed": true,
+      "ac_id": "faff-1443#done:10",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'Promote (interactive)' plugin/skills/faff-prep/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "`classifyCriterion` and `parseScenarios` in `admissibility.js` are unchanged (`git diff` shows no edit to either).",
+      "verified": "git diff shows no edit to admissibility.js",
+      "passed": true,
+      "ac_id": "faff-1443#done:11",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main...HEAD -- plugin/skills/faff/bin/lib/admissibility.js"
+        }
+      ]
+    },
+    {
+      "ac": "`faff tier` and `faff admissible --lights-out` print the same output for a spec with and without the admissibility line.",
+      "verified": "same faff admissible and faff tier output with and without the line on the test spec (stage re-tiers over the final line count, so build-tier always equals faff tier on the written file)",
+      "passed": true,
+      "ac_id": "faff-1443#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::FAFF-1443: away from a tier boundary, faff admissible and faff tier give the same result with and without the line"
+        },
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::stage: build-tier equals faff tier on the written file, across the spec_lines boundary"
+        }
+      ]
+    },
+    {
+      "ac": "`prep-attach.ts` is rebuilt; the committed `.js` emit and `build-manifest.json` match (`node scripts/build-manifest.js check` passes).",
+      "verified": "npm run build then build-manifest check exits 0",
+      "passed": true,
+      "ac_id": "faff-1443#done:13",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "cd plugin/skills/faff && node scripts/build-manifest.js check"
+        }
+      ]
+    },
+    {
+      "ac": "`docs/guide/cli.md`'s `prep attach` row documents the field, its three keys and the line.",
+      "verified": "prep attach row documents the object, its three keys and types, the line formats and the 300-char cap",
+      "passed": true,
+      "ac_id": "faff-1443#done:14",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'admissibility' docs/guide/cli.md"
+        }
+      ]
+    },
+    {
+      "ac": "A test pins the `admissibility` key set (`admissible`, `reasons`, `scenarios_prose`).",
+      "verified": "key set and types pinned on success, refused and fault paths",
+      "passed": true,
+      "ac_id": "faff-1443#done:15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/prep-attach.test.mjs::FAFF-1443: the key set and types hold on the success, refused and fault paths"
+        }
+      ]
+    },
+    {
+      "ac": "`faff validate-adapters` passes; any `faff-prep` baseline change is +1 at most and carries its comment entry.",
+      "verified": "validate-adapters RESULT: PASS; faff-prep baseline 664 to 665 with its FAFF-1443 comment entry",
+      "passed": true,
+      "ac_id": "faff-1443#done:16",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "The §4.5 cases exist in `test/prep-attach.test.mjs` and `test/spec-producer-scenario-format.test.mjs` and pass under `node --test`; no `--selftest` case is added.",
+      "verified": "43/43 pass across both files; no --selftest added",
+      "passed": true,
+      "ac_id": "faff-1443#done:17",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/prep-attach.test.mjs test/spec-producer-scenario-format.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "The PR diff touches no `commissaire*` file.",
+      "verified": "no commissaire* path in the diff",
+      "passed": true,
+      "ac_id": "faff-1443#done:18",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --name-only origin/main...HEAD"
+        }
+      ]
+    },
+    {
+      "ac": "`faff gates run` passes.",
+      "verified": "gates run signal pass, 9/9 rungs, on build commit 3ffb2635; after the test-only review fix (47a4464e) three reruns each failed one different untouched docker/pool test (run-ledger-serialiser, env, holdout-evaluate-integration; FAFF-1440 class) that passes alone under parallel-graft load; CI on the PR head is the deciding check",
+      "passed": true,
+      "ac_id": "faff-1443#done:19",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gates run --json --resume"
+        }
+      ]
+    }
+  ]
+}

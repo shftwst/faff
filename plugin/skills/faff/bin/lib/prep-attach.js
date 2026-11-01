@@ -19,6 +19,7 @@ const { extractSpecFeatures, tier, DEFAULT_PREP_PARAMS } = require("./tier");
 const { computeSpecReadiness } = require("./contract-defs-review");
 const { resolveFaffVersion } = require("./faff-version");
 const { harnessIdentify } = require("./harness");
+const { admissibleVerdict, dodClassify, parseScenarios } = require("./admissibility");
 const isRecord = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
 // `v[k]` for a value of unknown shape, with JavaScript's own semantics: a primitive reads through its
 // wrapper, and null or undefined throws the TypeError the plain property read would.
@@ -134,6 +135,91 @@ function applyTier(text, gateHistory) {
     lines[at + 1] = `build-tier: ${t}`;
     return { text: lines.join("\n"), tier: t };
 }
+// FAFF-1443: the advisory lights-out admissibility result over `text`, and the value of its retained
+// line. The line carries only fixed vocabulary (the verdict word, failing check ids and `scenarios:<n>`
+// unit ids), never spec text, so a spec cannot forge a verdict inside it. Any fault reads refused-shaped:
+// `admissible: false` and the `unknown` line. It never changes a stage token.
+const ADMISSIBILITY_LINE_CAP = 300;
+const DEFAULT_ADMISSIBILITY = {
+    verdict: (text) => admissibleVerdict(text, true),
+    classify: (text) => dodClassify(text),
+    countScenarios: (text) => parseScenarios(text),
+};
+const isStringArray = (v) => Array.isArray(v) && v.every((x) => typeof x === "string");
+function computeAdmissibility(text, impl) {
+    try {
+        const verdict = impl.verdict(text);
+        const classified = impl.classify(text);
+        const admissible = prop(verdict, "admissible");
+        const reasons = prop(verdict, "reasons");
+        const checks = prop(verdict, "checks");
+        const criteria = prop(classified, "criteria");
+        if (typeof admissible !== "boolean" || !isStringArray(reasons) || !Array.isArray(checks) || !Array.isArray(criteria)) {
+            throw new Error("admissibility verdict or classification has an unexpected shape");
+        }
+        const units = criteria.filter((c) => prop(c, "source") === "scenarios");
+        const prose = [];
+        for (const c of units) {
+            if (prop(c, "class") !== "prose")
+                continue;
+            const id = prop(c, "id");
+            if (typeof id !== "string")
+                throw new Error("a Scenarios unit has no id");
+            prose.push(id);
+        }
+        const proseTail = prose.length ? `prose scenarios: ${prose.join(", ")}` : "";
+        let line;
+        if (admissible)
+            line = proseTail ? `admissible — ${proseTail}` : "admissible";
+        else {
+            const failing = [];
+            for (const c of checks) {
+                if (prop(c, "pass") === true)
+                    continue;
+                const id = prop(c, "id");
+                if (typeof id !== "string")
+                    throw new Error("an admissibility check has no id");
+                if (id !== "R1.scenarios") {
+                    failing.push(id);
+                    continue;
+                }
+                const k = impl.countScenarios(text);
+                if (typeof k !== "number")
+                    throw new Error("the scenario count is not a number");
+                failing.push(units.length === 0 ? "R1.scenarios (no Scenarios units)" : `R1.scenarios (${k} of ${units.length} units count)`);
+            }
+            if (failing.length === 0)
+                failing.push("unparseable");
+            line = `refused — ${failing.join(", ")}${proseTail ? `; ${proseTail}` : ""}`;
+        }
+        return { admissibility: { admissible, reasons: [...reasons], scenarios_prose: prose }, line };
+    }
+    catch (e) {
+        const message = e && typeof prop(e, "message") === "string" ? prop(e, "message") : String(e);
+        return {
+            admissibility: { admissible: false, reasons: [`admissibility check failed: ${message}`], scenarios_prose: [] },
+            line: "unknown — check failed",
+        };
+    }
+}
+// Remove every `admissibility:` line outside fences (a line-start match, so prose or a DONE item that
+// merely contains the word is untouched), compute the result over the remaining text, and insert one
+// line directly after the `build-tier:` line, capped at ADMISSIBILITY_LINE_CAP characters.
+function applyAdmissibility(text, impl = DEFAULT_ADMISSIBILITY) {
+    let lines = text.split("\n");
+    let mask = fenceMask(lines);
+    lines = lines.filter((l, i) => mask[i] || !/^admissibility:/.test(l));
+    const { admissibility, line } = computeAdmissibility(lines.join("\n"), impl);
+    let full = `admissibility: ${line}`;
+    if (full.length > ADMISSIBILITY_LINE_CAP)
+        full = `${full.slice(0, ADMISSIBILITY_LINE_CAP - 1)}…`;
+    mask = fenceMask(lines);
+    let at = lines.findIndex((l, i) => !mask[i] && /^build-tier:/.test(l));
+    if (at < 0)
+        at = lines.findIndex((l, i) => !mask[i] && l.startsWith("> Spec:"));
+    lines.splice(at + 1, 0, full);
+    return { text: lines.join("\n"), admissibility, line: full.slice("admissibility: ".length) };
+}
 // The bodies of every `faff-contract:spec-readiness` fence outside other fences.
 function readinessBlocks(text) {
     const lines = text.split("\n");
@@ -211,9 +297,13 @@ function stage(opts, deps) {
     const stamped = applyStamp(source, line);
     if (stamped === null)
         return result(issue, "invalid", { reason: "no-h1", confidence });
-    const tiered = applyTier(stamped, gateHistory);
+    // Tier, then the admissibility line, then tier again over the final line count: the line adds one line
+    // and `spec_lines` is a tier feature, so the recorded tier is the one `faff tier` prints on the file.
+    const adm = applyAdmissibility(applyTier(stamped, gateHistory).text, deps.admissibility || DEFAULT_ADMISSIBILITY);
+    const tiered = applyTier(adm.text, gateHistory);
     const text = tiered.text;
     const common = { confidence, build_tier: tiered.tier };
+    const success = { ...common, admissibility: adm.admissibility, admissibility_line: adm.line };
     const writeBack = () => deps.writeText(specPath, text);
     let extraction;
     const blocks = readinessBlocks(text);
@@ -271,6 +361,7 @@ function stage(opts, deps) {
     const bodyPath = path.resolve(specPath);
     marker.spec_sha256 = digest;
     marker.body_path = bodyPath;
+    marker.admissibility = adm.admissibility;
     if (gitOnly) {
         try {
             deps.writeTextAtomic(path.join(root, ".faff", "specs", `${issue}.md`), text);
@@ -288,8 +379,8 @@ function stage(opts, deps) {
         return errored(issue, `marker-unwritable: ${prop(e, "code") || prop(e, "message")}`, common);
     }
     if (gitOnly)
-        return result(issue, "attached", { spec_sha256: digest, ...common });
-    return result(issue, "ready-to-post", { body_path: bodyPath, spec_sha256: digest, ...common });
+        return result(issue, "attached", { spec_sha256: digest, ...success });
+    return result(issue, "ready-to-post", { body_path: bodyPath, spec_sha256: digest, ...success });
 }
 function readStagedMarker(root, issue, deps) {
     const m = deps.readJson(markerPath(root, issue));
@@ -379,12 +470,17 @@ function defaultDeps(root) {
 // ---------------------------------------------------------------------------
 // CLI.
 // ---------------------------------------------------------------------------
+// `admissibility_line` is the text-mode detail only; the JSON result carries the `admissibility` object.
 function emit(res, json) {
+    const { admissibility_line: admissibilityLine, ...shown } = res;
     if (json) {
-        console.log(JSON.stringify(res));
+        console.log(JSON.stringify(shown));
         return;
     }
-    const bits = [res.body_path && `post ${res.body_path}`, res.violations && res.violations.join("; ")].filter(Boolean);
+    const bits = [
+        res.body_path && `post ${res.body_path}`, res.violations && res.violations.join("; "),
+        admissibilityLine && `admissibility: ${admissibilityLine}`,
+    ].filter(Boolean);
     console.log(`prep attach ${res.issue}: ${res.token}${res.reason ? `:${res.reason}` : ""}${bits.length ? ` (${bits.join("; ")})` : ""}`);
 }
 function cmdPrep(args, depsOverride) {
@@ -438,6 +534,6 @@ function cmdPrep(args, depsOverride) {
     return res.token === "errored" ? 2 : 0;
 }
 module.exports = {
-    ISSUE_RE, TOKENS, fenceMask, stampConfidence, trackerName, stampLine, applyStamp, applyTier, readinessBlocks,
+    ISSUE_RE, TOKENS, fenceMask, stampConfidence, trackerName, stampLine, applyStamp, applyTier, applyAdmissibility, readinessBlocks,
     markerPath, stage, confirm, park, defaultDeps, cmdPrep,
 };

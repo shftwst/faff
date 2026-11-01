@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 2,
+  "objections": [
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The refused-line format interpolates `reasons` into the retained spec line. `admissibleVerdict` builds reason strings from the spec's own content — the R2b detail embeds vague DONE item text (`vague.map(v => v.replace(/\\s+/g, \" \").slice(0, 50))` in `admissibility.js`), and the R1 reason is a fixed string. A spec (whose prose is downstream of an untrusted issue description) can carry a DONE item whose text is `admissibility: admissible`; the written line then reads `admissibility: refused — … admissibility: admissible …` on one physical line. The spec's own anti-spoof control — \"removes every `admissibility:` line outside fences\" — only removes *standalone* lines, not this embedded occurrence, and any consumer or skimming human matching by substring rather than line-start sees the forged verdict. The machine channel is safe (the JSON `admissibility` object is structured arrays), so this is a provenance-integrity defect on the human-facing retained line, not a gate bypass.",
+      "evidence": "§3 \"The admissibility line\" table (`admissibility: refused — <reasons joined by \"; \">`); §4.1 step 1 (\"removes every `admissibility:` line outside fences\"); `admissibility.js` R2b detail construction (supplied excerpt, `admissibleVerdict`).",
+      "predicted_consequence": "A retained line on the tracker/committed spec that contains a forged `admissibility: admissible` substring inside a genuinely `refused` line, readable as an approval by substring-matching tooling or a skimming reviewer.",
+      "spec_anchor": "the-admissibility-line",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The retained line now carries only the verdict word, failing check ids and scenarios:<n> unit ids; spec-derived reason text stays in the JSON reasons only (§3 'The admissibility line').",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The refused-line format interpolates `reasons` into the retained spec line. `admissibleVerdict` builds reason strings from the spec's own content — the R2b detail embeds vague DONE item text (`vague.map(v => v.replace(/\\s+/g, \" \").slice(0, 50))` in `admissibility.js`), and the R1 reason is a fixed string. A spec (whose prose is downstream of an untrusted issue description) can carry a DONE item whose text is `admissibility: admissible`; the written line then reads `admissibility: refused — … admissibility: admissible …` on one physical line. The spec's own anti-spoof control — \"removes every `admissibility:` line outside fences\" — only removes *standalone* lines, not this embedded occurrence, and any consumer or skimming human matching by substring rather than line-start sees the forged verdict. The machine channel is safe (the JSON `admissibility` object is structured arrays), so this is a provenance-integrity defect on the human-facing retained line, not a gate bypass.",
+          "spec_anchor": "the-admissibility-line"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "major",
+      "claim": "The ticket's motivating failure was a spec reaching Todo through a **human accept** without the refusal ever surfacing. The fix's visibility on that path depends entirely on the `**Assumes:**` that \"the human accept re-posts the spec through `faff prep attach` stage\" — a prose behavioural claim about a skill step, i.e. exactly the class of prose step the spec's own \"Mechanical, not prose\" principle declares untrustworthy (\"a prose `faff admissible` call in faff-prep… is exactly the kind of step that failed for FAFF-1431\"). The spec applies the mechanical guarantee to staging, but the accept-path *re-stage* is left to prose compliance.",
+      "evidence": "§4.2 `**Assumes:**` \"the human accept re-posts the spec through `faff prep attach` stage, as _Stage and attach_ requires\"; §6 concedes the miss is only \"caught at graft\" via the sha check — which is after promotion, not at it; §1 \"Interactive prep and the human accept never call `faff admissible`, so nothing showed the refusal before Todo.\"",
+      "predicted_consequence": "If a session promotes on an already-staged spec without re-staging (the natural interactive path — the spec was staged when the producer returned, the human accepts later in the same session), the retained line is absent or stale at the moment of accept, and the ticket ships having fixed the producer format but not the FAFF-1431 hole it names first. The spec should either verify the assumption against the actual prep flow or add a mechanical catch (e.g. the promotion step reads the marker's `admissibility` object, which exists regardless of re-staging) rather than deferring to graft.",
+      "spec_anchor": "42-decisions",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in place rather than re-sliced: the round-1 route sent this reject-approach to plot on a methodology major, but the major is a design gap (accept-path visibility rested on a prose re-stage), not a sizing or decomposition call, so plot had nothing to re-slice. The line is now written at the first stage, so it is in the comment the human accepts, and promotion requires an attached marker (§3, §4.2).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The ticket's motivating failure was a spec reaching Todo through a **human accept** without the refusal ever surfacing. The fix's visibility on that path depends entirely on the `**Assumes:**` that \"the human accept re-posts the spec through `faff prep attach` stage\" — a prose behavioural claim about a skill step, i.e. exactly the class of prose step the spec's own \"Mechanical, not prose\" principle declares untrustworthy (\"a prose `faff admissible` call in faff-prep… is exactly the kind of step that failed for FAFF-1431\"). The spec applies the mechanical guarantee to staging, but the accept-path *re-stage* is left to prose compliance.",
+          "spec_anchor": "42-decisions"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The supplied critique mandates a sequencing relation — \"FAFF-1423 should build on this ticket… Recommend relating them, with FAFF-1443 first\" — and says FAFF-1423 \"can read the field and line this ticket adds.\" The spec's own text never carries this: §2 lists FAFF-1423 only as out of scope, §6 mentions only the *counter-alignment* ticket as \"recommended, not filed here,\" and the spec has no dependency section at all. The relation lives solely in the methodology critique prose.",
+      "evidence": "Methodology critique \"Deps surfaced?\" clause; spec §2 \"Refusing autonomous promotion… That is FAFF-1423. It can read the field and line this ticket adds\"; §6 \"The counter-alignment ticket (§2) is recommended, not filed here.\"",
+      "predicted_consequence": "FAFF-1423 proceeds without the ordering edge and either re-implements its own admissibility call (the duplication the critique warns against) or builds against the `admissibility` object's shape with no pinned contract — this spec treats the field as advisory and free to change (\"The result never changes a token\" is its only stability claim), so a downstream gate inherits an unpinned schema.",
+      "spec_anchor": "2-out-of-scope",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "FAFF-1423 sequencing moved from the critique into a Dependencies section (§6); the object's keys are documented and test-pinned for FAFF-1423 to consume.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The supplied critique mandates a sequencing relation — \"FAFF-1423 should build on this ticket… Recommend relating them, with FAFF-1443 first\" — and says FAFF-1423 \"can read the field and line this ticket adds.\" The spec's own text never carries this: §2 lists FAFF-1423 only as out of scope, §6 mentions only the *counter-alignment* ticket as \"recommended, not filed here,\" and the spec has no dependency section at all. The relation lives solely in the methodology critique prose.",
+          "spec_anchor": "2-out-of-scope"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The expected outcomes `admissibility: {\"admissible\": true, \"reasons\": [], \"scenarios_prose\": []}` (scenario 2) and `admissibility.admissible is true` (first holdout scenario) are unreachable for the fixtures as their Givens describe them, because `admissibleVerdict` also runs R2a (`doneItems.length >= 1`); a spec with \"an H1, a confidence line, a valid readiness block, and a Scenarios section\" and no `### N. DONE` checklist is refused with a second reason, so `reasons: []` can never hold.",
+      "evidence": "`## Scenarios` units 1–2 and the first `holdout` unit; the R2a check is quoted in the spec's own WHY table (`0 born-verifiable scenario(s) (need >=1)` is R1; R2a is `0 DONE checklist item(s) (need >=1)`).",
+      "predicted_consequence": "A builder constructing the fixture exactly per the Given produces a failing test for scenario 2 and the mixed scenario; the holdout cannot decide whether the build is wrong or the fixture is — the scenario's expected result does not follow from its stated precondition.",
+      "spec_anchor": "scenarios",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "'Stageable spec' defined in the Vocabulary table, including a concrete DONE item, so the expected admissible:true outcomes are reachable.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The expected outcomes `admissibility: {\"admissible\": true, \"reasons\": [], \"scenarios_prose\": []}` (scenario 2) and `admissibility.admissible is true` (first holdout scenario) are unreachable for the fixtures as their Givens describe them, because `admissibleVerdict` also runs R2a (`doneItems.length >= 1`); a spec with \"an H1, a confidence line, a valid readiness block, and a Scenarios section\" and no `### N. DONE` checklist is refused with a second reason, so `reasons: []` can never hold.",
+          "spec_anchor": "scenarios"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The design surfaces the raw `admissibleVerdict` as a permanent retained line, but `admissibleVerdict`'s R1 requires ≥1 Scenarios unit while the `faffter-noon-spec` contract this very ticket edits says a spec may \"legitimately\" have no `## Scenarios` section (\"many small specs will have a short `## Scenarios` section or, legitimately, none\"). Every such valid spec will carry `admissibility: refused — R1.scenarios` on the tracker forever. The spec's own self-review rule even acknowledges the class (\"An R1 refusal with no Scenarios units is noted in the review record only\") but the line does not distinguish it. A retained verdict that is routinely wrong-looking for valid specs trains humans to ignore the line — which is exactly the FAFF-1431 failure mode this ticket exists to fix (a refusal nobody acts on).",
+      "evidence": "Spec §3 \"Producer self-review\" paragraph and the line table in §3 Interface; `faffter-noon-spec/SKILL.md` Scenarios section (\"Proportionate, not always-on… legitimately, none\"); `admissibility.js` `admissibleVerdict` R1 check `scenarios >= 1`.",
+      "predicted_consequence": "Every legitimately scenario-less spec ships with a retained `admissibility: refused` line; over time \"refused\" becomes background noise on the tracker and a genuine FAFF-1431-style refusal is skimmed past, defeating the ticket's stated purpose.",
+      "spec_anchor": "interface",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "R1 now carries '(no Scenarios units)' or '(k of m units count)', so a legitimately scenario-less spec reads differently from a format defect.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The design surfaces the raw `admissibleVerdict` as a permanent retained line, but `admissibleVerdict`'s R1 requires ≥1 Scenarios unit while the `faffter-noon-spec` contract this very ticket edits says a spec may \"legitimately\" have no `## Scenarios` section (\"many small specs will have a short `## Scenarios` section or, legitimately, none\"). Every such valid spec will carry `admissibility: refused — R1.scenarios` on the tracker forever. The spec's own self-review rule even acknowledges the class (\"An R1 refusal with no Scenarios units is noted in the review record only\") but the line does not distinguish it. A retained verdict that is routinely wrong-looking for valid specs trains humans to ignore the line — which is exactly the FAFF-1431 failure mode this ticket exists to fix (a refusal nobody acts on).",
+          "spec_anchor": "interface"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The spec designates the `admissibility` object as a documented, test-pinned interface that FAFF-1423 should consume *instead of* calling `faff admissible` itself (\"It should refuse autonomous promotion by reading the `admissibility` object this ticket adds\"). But on the classify-throws path the line is `admissibility: unknown — classify failed` and the spec only says \"`admissible` from the verdict\" — without pinning what that value is when `admissibleVerdict` throws (the fail-safe branch returns `admissible: false`, but a throw from `dodClassify` inside the prose-id collection may leave the field undefined, or a careless build may default it to `true`). FAFF-1423's refusal gate then has an unspecified input on exactly the path where the check failed — a fail-open seam in the interface this spec creates and hands to a downstream enforcer.",
+      "evidence": "§3 Interface (\"`invalid`, `needs-judgement` … carry no `admissibility` key\" — but the *unknown* case is a success token that does carry the key); the line table row \"classify throws\"; §6 Dependencies (\"FAFF-1423 … should refuse autonomous promotion by reading the `admissibility` object\").",
+      "predicted_consequence": "FAFF-1423 implements its autonomous-promotion refusal as `if (!admissibility.admissible) refuse`; on a classify throw the field is `undefined`/`true`, the refusal is skipped, and an inadmissible spec promotes autonomously — the exact FAFF-1431-class miss this ticket exists to close, now on the automated path.",
+      "spec_anchor": "interface",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed types on every path; any fault gives admissible:false, a reasons entry 'admissibility check failed: …', scenarios_prose: [] and the 'unknown' line (§3 'Stability and fail-closed types').",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The spec designates the `admissibility` object as a documented, test-pinned interface that FAFF-1423 should consume *instead of* calling `faff admissible` itself (\"It should refuse autonomous promotion by reading the `admissibility` object this ticket adds\"). But on the classify-throws path the line is `admissibility: unknown — classify failed` and the spec only says \"`admissible` from the verdict\" — without pinning what that value is when `admissibleVerdict` throws (the fail-safe branch returns `admissible: false`, but a throw from `dodClassify` inside the prose-id collection may leave the field undefined, or a careless build may default it to `true`). FAFF-1423's refusal gate then has an unspecified input on exactly the path where the check failed — a fail-open seam in the interface this spec creates and hands to a downstream enforcer.",
+          "spec_anchor": "interface"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The spec pins the key *set* by test and declares the three keys a stable interface, but the unknown path sets `scenarios_prose: null` while success paths set an array. A consumer (FAFF-1423) that iterates `scenarios_prose` without a null guard breaks on the throw path; the pinning test as described (\"pins the key set\") does not pin the per-path types.",
+      "evidence": "§3 Interface (`\"scenarios_prose\": [\"scenarios:<n>\"…]` vs the unknown row's `scenarios_prose: null`); §4.5 \"A test pins the `admissibility` key set\".",
+      "predicted_consequence": "not separately stated (a downstream TypeError or a silent skip in the consumer's prose-scenario handling).",
+      "spec_anchor": "interface",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "scenarios_prose is always an array, [] on the fault path; a test pins the key set and types on success, refused and fault paths.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The spec pins the key *set* by test and declares the three keys a stable interface, but the unknown path sets `scenarios_prose: null` while success paths set an array. A consumer (FAFF-1423) that iterates `scenarios_prose` without a null guard breaks on the throw path; the pinning test as described (\"pins the key set\") does not pin the per-path types.",
+          "spec_anchor": "interface"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The interactive bullet instructs prep to re-stage when the marker's `spec_sha256` does not match \"the spec being promoted\", then print the fresh verdict. But what the human accepts is the already-posted tracker comment; re-staging rewrites the local file and marker, not the comment. If the local file was edited after posting, the printed verdict describes the edited local text while the accepted comment carries the older line — the operator can be shown `admissible` for a spec whose posted, accepted form says `refused`.",
+      "evidence": "§3 \"Why the human accept sees it without relying on a prose step\" argues visibility rests on the first stage being in the posted comment and explicitly says \"The marker read above is the convenience that prints it; visibility does not depend on it\" — yet the same section's bullet makes the marker read the action path with a re-stage-first rule, and §4.2's Assumes concedes only that staleness \"is caught at graft\", not at the promotion print.",
+      "predicted_consequence": "an operator accepts a comment whose line says `refused`, then sees prep print `admissibility: admissible` from the re-staged local file, and the two retained records (posted comment vs. marker) disagree about the same promotion.",
+      "spec_anchor": "what-the-human-accept-sees-it-without-relying-on-a-prose-step",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Prep promotes only on a marker reading attached:true with an admissibility object; otherwise it stages, posts and confirms again before printing and promoting (§3 faff-prep/SKILL.md).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The interactive bullet instructs prep to re-stage when the marker's `spec_sha256` does not match \"the spec being promoted\", then print the fresh verdict. But what the human accepts is the already-posted tracker comment; re-staging rewrites the local file and marker, not the comment. If the local file was edited after posting, the printed verdict describes the edited local text while the accepted comment carries the older line — the operator can be shown `admissible` for a spec whose posted, accepted form says `refused`.",
+          "spec_anchor": "what-the-human-accept-sees-it-without-relying-on-a-prose-step"
+        }
+      ]
+    }
+  ]
+}

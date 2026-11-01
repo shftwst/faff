@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/prep-attach.ts::the admissibility line adds one line, and spec_lines is a tier feature, so the spec's claim that the line changes no extractspecfeatures input is false at a size boundary",
+      "title": "the admissibility line adds one line, and spec_lines is a tier feature, so the spec's claim that the line changes no extractSpecFeatures input is false at a size boundary",
+      "location": "plugin/skills/faff/bin/lib/prep-attach.ts",
+      "action": "Stage re-tiers over the final text after inserting the line, so the recorded build-tier always equals faff tier on the file; the existing boundary test pins it.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Spec deviation, fixed in the build: tier, then the admissibility line, then tier again over the final line count. The existing 'build-tier equals faff tier on the written file, across the spec_lines boundary' test passes with the extra line.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "the admissibility line adds one line, and spec_lines is a tier feature, so the spec's claim that the line changes no extractSpecFeatures input is false at a size boundary",
+          "location": "plugin/skills/faff/bin/lib/prep-attach.ts",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/prep-attach.test.mjs::the tier-unchanged-by-the-line test is boundary-fragile",
+      "title": "the tier-unchanged-by-the-line test is boundary-fragile",
+      "location": "test/prep-attach.test.mjs",
+      "action": "Scoped the test title and comment to a fixture away from any tier cut; the boundary invariant stays pinned by the existing spec_lines boundary test.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Valid: the comparison only isolates the line's content effect away from a tier cut. Test renamed and commented in 47a4464e; the recorded-tier-matches-file invariant is the boundary test's job.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "the tier-unchanged-by-the-line test is boundary-fragile",
+          "location": "test/prep-attach.test.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/spec-producer-scenario-format.test.mjs::the producer-format test skipped holdout-fenced examples the format rule permits",
+      "title": "the producer-format test skipped holdout-fenced examples the format rule permits",
+      "location": "test/spec-producer-scenario-format.test.mjs",
+      "action": "The extractor now reads plain and holdout fences, with an assertion that a holdout-fenced example is extracted and counted.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Valid: fixed in 47a4464e.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "the producer-format test skipped holdout-fenced examples the format rule permits",
+          "location": "test/spec-producer-scenario-format.test.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/spec-producer-scenario-format.test.mjs::producer scenario-format conformance is checked against documentation, not runtime output",
+      "title": "producer scenario-format conformance is checked against documentation, not runtime output",
+      "location": "test/spec-producer-scenario-format.test.mjs",
+      "action": "No change: the runtime signal is the stage-time admissibility line and the noon self-review's major finding; the automated path still refuses at build.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Inherent to prose producers and the spec's chosen advisory posture (§4.2): the mechanical check is the stage-time verdict every attach path computes; FAFF-1423 adds the autonomous-promotion refusal.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "producer scenario-format conformance is checked against documentation, not runtime output",
+          "location": "test/spec-producer-scenario-format.test.mjs",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/prep-attach.ts::an indented admissibility: line survives the removal filter",
+      "title": "an indented admissibility: line survives the removal filter",
+      "location": "plugin/skills/faff/bin/lib/prep-attach.ts",
+      "action": "No change: the spec mandates a line-start match (§4.1) so prose or a DONE item containing the word is untouched, the same rule build-tier: uses.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Stage only ever writes an unindented line, so a survivor needs a hand edit; widening the match would also strip legitimate indented content.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "an indented admissibility: line survives the removal filter",
+          "location": "plugin/skills/faff/bin/lib/prep-attach.ts",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/prep-attach.ts::the first applytier result is discarded",
+      "title": "the first applyTier result is discarded",
+      "location": "plugin/skills/faff/bin/lib/prep-attach.ts",
+      "action": "No change: deliberate, and the stage comment names why the second call must win.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Not a defect: the first call places the build-tier line the admissibility line anchors on; the second computes the tier over the final line count. A regression is caught by the spec_lines boundary test.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "the first applyTier result is discarded",
+          "location": "plugin/skills/faff/bin/lib/prep-attach.ts",
+          "severity": "observation",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/prep-attach.ts::the 300-character cap slices by utf-16 code unit",
+      "title": "the 300-character cap slices by UTF-16 code unit",
+      "location": "plugin/skills/faff/bin/lib/prep-attach.ts",
+      "action": "No change: the line's vocabulary is fixed and BMP-only (ASCII plus the em dash and ellipsis), so no surrogate pair can be split.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Purely defensive; the line never carries spec text by design.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "the 300-character cap slices by UTF-16 code unit",
+          "location": "plugin/skills/faff/bin/lib/prep-attach.ts",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

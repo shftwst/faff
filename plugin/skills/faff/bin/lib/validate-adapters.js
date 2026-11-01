@@ -1699,6 +1699,11 @@ function cmdValidateAdapters(args) {
       }
     }
     const inProcessWired = new Set([...routed].filter((k) => !driven.some((d) => d.kernel === k)));
+    // A covered kernel left unwired says so: the route found no real invocation to count.
+    const covered = new Set(inProcess.flatMap((e) => e.wires));
+    const routeHint = (k) => (covered.has(k) && !routed.has(k)
+      ? ` It is covered by \`faff graft admit\`'s in-process route, but no SKILL.md runs \`faff graft admit --mode … --facts … --run-dir <dir>\` as one command in a fenced block or code span (FAFF-1434).`
+      : "");
     // Name only the kernels that rely on the in-process route, so the pass line never hides a driver
     // that went missing behind one that a composing command also covers.
     const viaNote = (bare) => {
@@ -1710,7 +1715,7 @@ function cmdValidateAdapters(args) {
       failed = true;
       console.log(`FAIL  capture-wiring (FAFF-1009)`);
       for (const k of unwired) {
-        console.log(`        ✗ kernel "${k}" mints a base in-kernel but no SKILL.md states its \`decide --kernel ${k} --export\` runs before the \`faff ${k}\` consult — either same-line ("before ... consult" / "before ... faff ${k}") or as a distinct driver line preceding the consult within ${CAPTURE_WIRING_WINDOW} lines — so its base reads an empty correlation_id and grades nothing (FAFF-1009/FAFF-1014)`);
+        console.log(`        ✗ kernel "${k}" mints a base in-kernel but no SKILL.md states its \`decide --kernel ${k} --export\` runs before the \`faff ${k}\` consult — either same-line ("before ... consult" / "before ... faff ${k}") or as a distinct driver line preceding the consult within ${CAPTURE_WIRING_WINDOW} lines — so its base reads an empty correlation_id and grades nothing (FAFF-1009/FAFF-1014).${routeHint(k)}`);
       }
     } else {
       console.log(`pass  capture-wiring — all ${kernels.length} captureDecision kernels have an adjacent \`decide --export\` (FAFF-1009)${viaNote(captureWiringUnwired(skillsDir, kernels))}`);
@@ -1720,7 +1725,7 @@ function cmdValidateAdapters(args) {
       failed = true;
       console.log(`FAIL  capture-same-command (FAFF-1394)`);
       for (const k of apart) {
-        console.log(`        ✗ kernel "${k}": no SKILL.md runs its driver and its consult in one command, \`eval "$(faff decision-capture decide … --kernel ${k} … --export)" && faff ${k} …\`. Each tool call is a fresh shell, so an export in one call never reaches a consult in the next and the base reads an empty correlation_id`);
+        console.log(`        ✗ kernel "${k}": no SKILL.md runs its driver and its consult in one command, \`eval "$(faff decision-capture decide … --kernel ${k} … --export)" && faff ${k} …\`. Each tool call is a fresh shell, so an export in one call never reaches a consult in the next and the base reads an empty correlation_id.${routeHint(k)}`);
       }
     } else {
       console.log(`pass  capture-same-command — all ${kernels.length} captureDecision kernels run \`decide --export\` and the consult in one command (FAFF-1394)${viaNote(captureSameCommandUnwired(skillsDir, kernels))}`);

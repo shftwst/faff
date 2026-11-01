@@ -219,6 +219,7 @@ test("bypass 2: prose that only names the command does not count, with or withou
     const r = runOnRouteFixture({ skillBody: body + CLAIM_DRIVER });
     assert.match(r.stdout, /FAIL\s+capture-wiring \(FAFF-1009\)/, body);
     assert.deepEqual([...new Set(unwiredIn(r.stdout))].sort(), ["eligible", "next"], body);
+    assert.match(r.stdout, /kernel "next"[^\n]*covered by `faff graft admit`'s in-process route, but no SKILL\.md runs/, body);
   }
 });
 

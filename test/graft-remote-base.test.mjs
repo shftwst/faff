@@ -1,17 +1,19 @@
-// FAFF-708 — graft's coupled diff instructions (review input + its review-progress hash, the
-// resume-at-review recompute, and the Step 8b build-progress hash) must all derive from the FETCHED
-// remote default branch, never a hardcoded local `main` / `origin/main`. The prose owns these as
-// three fenced shell blocks, each immediately under a stable heading:
-//   - `Remote-backed review diff`      (Step 9 — captures the diff ONCE, hashes those exact bytes)
-//   - `Remote-backed resume diff`      (Step 3 — recomputes the checkpoint hash)
+// FAFF-708 — graft's coupled diff identities (review input + its review-progress hash, the
+// resume recompute, and the Step 8b build-progress hash) must all derive from the FETCHED remote
+// default branch, never a hardcoded local `main` / `origin/main`. Two of them are prose, each a fenced
+// shell block immediately under a stable heading in faff-graft's SKILL.md:
+//   - `Remote-backed review diff`         (Step 9 — captures the diff ONCE, hashes those exact bytes)
 //   - `Remote-backed build-progress diff` (Step 8b — durable checkpoint hash)
-// This test locates each by the single-block-under-a-stable-heading anchor (NOT a fuzzy grep of any
-// `git diff`-shaped line — the anchor is the integrity boundary: an unrelated doc edit cannot smuggle
-// a different command into the executed block), executes it in a stale-local-main / newer-remote
-// fixture, and asserts the three share one diff identity: the remote-only sibling commit is excluded,
-// the feature commit is included, and every hash equals the review block's captured-file digest.
-// It also asserts none of the three blocks contains a literal `main...HEAD` or hardcoded `origin/main`
-// base — the prompt-regression guard for the coupled twins.
+// The third, the resume recompute, is code: `faff worktree ensure` (FAFF-1415) hashes the raw bytes of
+// the remote three-dot diff and resumes only on a checkpoint whose hash matches. This test locates each
+// prose block by the single-block-under-a-stable-heading anchor (NOT a fuzzy grep of any `git diff`-shaped
+// line — the anchor is the integrity boundary: an unrelated doc edit cannot smuggle a different command
+// into the executed block), executes it in a stale-local-main / newer-remote fixture, and asserts the
+// two share one diff identity: the remote-only sibling commit is excluded, the feature commit is
+// included, and both hashes are equal. It then runs the real `faff worktree ensure --mode autonomous`
+// in the same fixture: a checkpoint carrying either block's hash resumes, and one carrying any other
+// hash does not, so the resume identity is the same identity. It also asserts neither prose block
+// contains a literal `main...HEAD` or hardcoded `origin/main` base — the prompt-regression guard.
 //
 // Integrity boundary (infosec, spec §3): the extracted blocks are committed, PR-reviewed content
 // (trusted-command-source class), located by a stable structural anchor, and executed only inside a
@@ -30,6 +32,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.join(HERE, "..");
 const GRAFT_SKILL_DIR = path.join(REPO_ROOT, "plugin", "skills", "faff-graft");
 const SKILL_MD = path.join(GRAFT_SKILL_DIR, "SKILL.md");
+const FAFF_BIN = path.join(REPO_ROOT, "plugin", "skills", "faff", "bin", "faff");
 
 function git(cwd, ...args) {
   const r = spawnSync("git", args, { cwd, encoding: "utf8" });
@@ -70,7 +73,6 @@ function extractBlock(md, heading) {
 
 const MD = readFileSync(SKILL_MD, "utf8");
 const REVIEW_BLOCK = extractBlock(MD, "Remote-backed review diff");
-const RESUME_BLOCK = extractBlock(MD, "Remote-backed resume diff");
 const BUILDPROG_BLOCK = extractBlock(MD, "Remote-backed build-progress diff");
 
 // Run an extracted block with an appended `echo "$<var>"`, capturing that variable's value from the
@@ -131,7 +133,21 @@ function setupFixture() {
   return { parent, work, branch, shaA, shaB, shaC };
 }
 
-test("the three coupled graft diff blocks share one remote-based diff identity (FAFF-708)", () => {
+// Write a build-complete checkpoint carrying `hash` for the fixture's feature branch into a fresh run
+// dir, then run the real `faff worktree ensure --mode autonomous` against the work checkout.
+function ensureFromCheckpoint(fx, hash) {
+  const runDir = mkdtempSync(path.join(fx.parent, "run-"));
+  const env = { ...process.env, GIT_TERMINAL_PROMPT: "0", FAFF_WORKTREE_ROOT: path.join(fx.parent, "wtroot"), SKIP_NPM_PACKAGES_INSTALL: "1" };
+  delete env.FAFF_RUN_DIR;
+  const faff = (args) => spawnSync(process.execPath, [FAFF_BIN, ...args], { cwd: fx.work, encoding: "utf8", env });
+  const w = faff(["build-progress", "write", runDir, "FAFF-9", "--build-complete", "--diff-hash", hash, "--branch", fx.branch]);
+  assert.equal(w.status, 0, `checkpoint write failed: ${w.stderr}`);
+  const r = faff(["worktree", "ensure", "--issue", "FAFF-9", "--mode", "autonomous", "--slug", "resume", "--labels", "[]", "--run-dir", runDir, "--root", fx.work, "--json"]);
+  assert.equal(r.status, 0, `worktree ensure exited ${r.status}: ${r.stderr}`);
+  return JSON.parse(r.stdout);
+}
+
+test("the review and build-progress blocks and worktree ensure's resume share one remote-based diff identity (FAFF-708)", () => {
   const fx = setupFixture();
   const diffFile = path.join(fx.parent, "review.diff");
   try {
@@ -146,13 +162,24 @@ test("the three coupled graft diff blocks share one remote-based diff identity (
     const expected = createHash("sha256").update(captured).digest("hex");
     assert.equal(review.value, expected, "cur_hash must be the sha256 of the captured diff file");
 
-    // Resume block: recomputes the checkpoint hash — must equal the review block's hash for this diff.
-    const resume = runBlock(RESUME_BLOCK, fx.work, "cur", { branch: fx.branch });
-    assert.equal(resume.value, review.value, "resume-diff hash must equal the review-diff hash (one identity)");
-
-    // Build-progress block: durable checkpoint hash — must also equal the review block's hash.
+    // Build-progress block: durable checkpoint hash — must equal the review block's hash.
     const buildprog = runBlock(BUILDPROG_BLOCK, fx.work, "diff_hash", { branch: fx.branch });
     assert.equal(buildprog.value, review.value, "build-progress hash must equal the review-diff hash (one identity)");
+
+    // Resume: the real `faff worktree ensure` recomputes the hash and resumes only on a match. Free the
+    // branch from the main checkout first, so the recreate can check it out in its own worktree.
+    git(fx.work, "checkout", "-q", "--detach");
+    const fromBuildProgress = ensureFromCheckpoint(fx, buildprog.value);
+    assert.equal(fromBuildProgress.mode, "resumed", `a checkpoint with the build-progress hash must resume: ${JSON.stringify(fromBuildProgress)}`);
+    assert.equal(fromBuildProgress.cause, "checkpoint-match");
+    assert.equal(git(fromBuildProgress.wt, "rev-parse", "HEAD").trim(), fx.shaC, "the resumed worktree is at the feature tip");
+    git(fx.work, "worktree", "remove", "--force", fromBuildProgress.wt);
+    const fromReview = ensureFromCheckpoint(fx, review.value);
+    assert.equal(fromReview.mode, "resumed", `a checkpoint with the review hash must resume: ${JSON.stringify(fromReview)}`);
+    git(fx.work, "worktree", "remove", "--force", fromReview.wt);
+    const other = ensureFromCheckpoint(fx, createHash("sha256").update(`${captured}\n`).digest("hex"));
+    assert.equal(other.mode, "fresh", `a checkpoint with any other hash must not resume: ${JSON.stringify(other)}`);
+    assert.equal(other.cause, "checkpoint-mismatch");
   } finally {
     rmParent(fx.parent);
   }
@@ -348,7 +375,6 @@ test("operator-set GIT_SSH_COMMAND is passed through verbatim — never clobbere
 test("no coupled graft diff block hardcodes a `main...HEAD` or `origin/main` base (FAFF-708 prompt-regression guard)", () => {
   for (const [name, block] of [
     ["Remote-backed review diff", REVIEW_BLOCK],
-    ["Remote-backed resume diff", RESUME_BLOCK],
     ["Remote-backed build-progress diff", BUILDPROG_BLOCK],
   ]) {
     assert.ok(!block.includes("main...HEAD"), `${name} block must not hardcode a local \`main...HEAD\` base`);

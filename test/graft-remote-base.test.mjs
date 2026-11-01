@@ -137,7 +137,7 @@ function setupFixture(defaultBranch = "main") {
 // dir, then run the real `faff worktree ensure --mode autonomous` against the work checkout.
 function ensureFromCheckpoint(fx, hash) {
   const runDir = mkdtempSync(path.join(fx.parent, "run-"));
-  const env = { ...process.env, GIT_TERMINAL_PROMPT: "0", FAFF_WORKTREE_ROOT: path.join(fx.parent, "wtroot"), SKIP_NPM_PACKAGES_INSTALL: "1" };
+  const env = { ...process.env, HOME: path.join(fx.parent, "home"), GIT_TERMINAL_PROMPT: "0", FAFF_WORKTREE_ROOT: path.join(fx.parent, "wtroot"), SKIP_NPM_PACKAGES_INSTALL: "1" };
   delete env.FAFF_RUN_DIR;
   const faff = (args) => spawnSync(process.execPath, [FAFF_BIN, ...args], { cwd: fx.work, encoding: "utf8", env });
   const w = faff(["build-progress", "write", runDir, "FAFF-9", "--build-complete", "--diff-hash", hash, "--branch", fx.branch]);

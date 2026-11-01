@@ -57,7 +57,11 @@ function fixture({ gitOnly = false } = {}) {
   }
   const runDir = path.join(repo, ".faff", "runs", "run-20261101-000000-graft-FAFF-9");
   mkdirSync(runDir, { recursive: true });
-  const env = { ...process.env, FAFF_WORKTREE_ROOT: wtroot, SKIP_NPM_PACKAGES_INSTALL: "1" };
+  // HOME points inside the fixture: setup-worktree.sh falls back to $HOME/.faff/worktrees/<repo> when its
+  // own root lookup fails, and a test must never leave a worktree in the operator's real HOME.
+  const home = path.join(parent, "home");
+  mkdirSync(home);
+  const env = { ...process.env, HOME: home, FAFF_WORKTREE_ROOT: wtroot, SKIP_NPM_PACKAGES_INSTALL: "1" };
   delete env.FAFF_RUN_DIR;
   return { parent, repo, wtroot, origin, runDir, env };
 }

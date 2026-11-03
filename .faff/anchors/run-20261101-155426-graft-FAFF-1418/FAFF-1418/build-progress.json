@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1418",
+  "build": {
+    "status": "complete",
+    "diff_hash": "106beddfac99cd888fd3daef7e762d106a53f06765d9e3203e911a075def71bc",
+    "branch": "faff-1418-run-trigger",
+    "pushed_at": "2026-11-03T19:18:52.427Z"
+  },
+  "updated_at": "2026-11-03T19:18:52.427Z"
+}

@@ -1,0 +1,240 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 2,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "Step 5 spawns `faff run-outward` \"under the run-outward correlation env\" unconditionally, but the needs-judgement return at step 6 happens *before* step 10 writes any action marker. On the common L4 path (PRD present, first call), the child's in-kernel capture therefore records a run-outward consult with a correlation id that no action marker will ever close; the second call then re-runs steps 2–5 and consults run-outward again under a *new* id, which is the only one ever marked. The decision corpus gains one orphaned consult plus a duplicate consult per L4 run — the exact shape FAFF-956's capture exists to avoid.",
+      "evidence": "§4.1 steps 5→6→10 ordering; the correlation-id paragraph (\"the command mints the id in-process … passes it to the child as FAFF_DECISION_CORRELATION_ID\"); the spec's own claim that the command \"runs the capture itself\" replaces the prose driver.",
+      "predicted_consequence": "every L4 run with a PRD writes two run-outward consult rows where the prose wrote one, one of them permanently unmarked; corpus replay/audit counts inflate and unmarked consults read as interrupted runs.",
+      "spec_anchor": "4-1-procedure",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The needs-judgement return now precedes every kernel consult, so no capture base is written that no marker could close.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "Step 5 spawns `faff run-outward` \"under the run-outward correlation env\" unconditionally, but the needs-judgement return at step 6 happens *before* step 10 writes any action marker. On the common L4 path (PRD present, first call), the child's in-kernel capture therefore records a run-outward consult with a correlation id that no action marker will ever close; the second call then re-runs steps 2–5 and consults run-outward again under a *new* id, which is the only one ever marked. The decision corpus gains one orphaned consult plus a duplicate consult per L4 run — the exact shape FAFF-956's capture exists to avoid.",
+          "spec_anchor": "4-1-procedure"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "On `plan`, the deciding call has already consulted `faff run-start` (verdict `plan` recorded by the kernel's capture) but writes no action marker — step 10 defers it to phase C — and records nothing. The routing table's `plan` row says \"invoke `/faff-plot --autonomous` … then `faff run trigger --after-plan …`\" with no instruction for plot refusing or erroring. If plot stops, the skill has no defined next step: no phase C, no `plan` marker on the open consult, no licence/root-container record, and no converge instruction — the run stalls with an unclosed consult on the one ledger. The spec is rewriting §0a wholesale, so inheriting the prose's silent gap here is a choice the spec makes.",
+      "evidence": "§4.1 step 10 (\"plan is marked by phase C\"), step 15, and the §4.3 routing table `plan` row; contrast with `refuse`/`fault`/`record-failed` rows, which each specify \"start nothing\".",
+      "predicted_consequence": "an L4 run where plot's own guard refuses leaves a marked-verdict-unmarked-action consult and an unrecorded ledger, and the build agent must invent the missing routing (retry? surface? converge?) with no spec to follow.",
+      "spec_anchor": "4-3-skill-changes",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Routing row added for plot refusing or erroring on plan: surface, no --after-plan, start nothing; the consult stays action-uncaptured. Rule T39.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "On `plan`, the deciding call has already consulted `faff run-start` (verdict `plan` recorded by the kernel's capture) but writes no action marker — step 10 defers it to phase C — and records nothing. The routing table's `plan` row says \"invoke `/faff-plot --autonomous` … then `faff run trigger --after-plan …`\" with no instruction for plot refusing or erroring. If plot stops, the skill has no defined next step: no phase C, no `plan` marker on the open consult, no licence/root-container record, and no converge instruction — the run stalls with an unclosed consult on the one ledger. The spec is rewriting §0a wholesale, so inheriting the prose's silent gap here is a choice the spec makes.",
+          "spec_anchor": "4-3-skill-changes"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The methodology critique names FAFF-1442 as a third concurrent ticket touching shared files (\"if it lands first, adds a byte baseline this lowers\"), but the spec's §6 assumptions draw only FAFF-1437 (and the critique prose mentions FAFF-1434). Since FAFF-1442's baseline would land on the same `SKILL_LINE_BASELINE` entry this spec lowers, an unrebased landing order silently breaks the ratchet the spec's own DONE item (`validate-adapters` with no RATCHET finding) checks.",
+      "evidence": "Methodology critique: \"FAFF-1442, if it lands first, adds a byte baseline this lowers.\" Spec §6 \"Assumes\" lists only FAFF-1437 and the shared-file rebase set (`SKILL_LINE_BASELINE`, `run.ts`, `TEST_FILE_COVERAGE`, `tsconfig.json`, `docs/guide/cli.md`).",
+      "predicted_consequence": "If FAFF-1442 lands before this build, the §3 DONE item \"no RATCHET finding for `faff-beep-boop`\" fails at first validation and the build agent must discover the FAFF-1442 interaction unprompted — a rebase cost the pipeline could have sequenced by surfacing it in §6.",
+      "spec_anchor": "section-6-open-questions-and-assumptions",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Section 6 names FAFF-1437, FAFF-1434 and FAFF-1442 and what each shares.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The methodology critique names FAFF-1442 as a third concurrent ticket touching shared files (\"if it lands first, adds a byte baseline this lowers\"), but the spec's §6 assumptions draw only FAFF-1437 (and the critique prose mentions FAFF-1434). Since FAFF-1442's baseline would land on the same `SKILL_LINE_BASELINE` entry this spec lowers, an unrebased landing order silently breaks the ratchet the spec's own DONE item (`validate-adapters` with no RATCHET finding) checks.",
+          "spec_anchor": "section-6-open-questions-and-assumptions"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The scenario runs `faff run trigger --json` with no readiness input and expects `refuse`/`self-directed`. But per §4.1 step 6, when a PRD is present and no `--prd-readiness`/`--prd-slot-unreachable` is given, the token is `needs-judgement:prd-inputs` (exit 0) and run-start is never consulted — so `self-directed` is unreachable on a first call unless no PRD is present. The Given says only \"tracking.repo set\"; it never states whether a PRD exists.",
+      "evidence": "Scenarios unit beginning \"Given an L4 lights-out-shaped run directory as FAFF_RUN_DIR and tracking.repo set (so the target repo is the self repo)\".",
+      "predicted_consequence": "The holdout evaluator (and the builder's fixture) can legitimately produce either `needs-judgement` (PRD present) or `refuse/self-directed` (no PRD) from the stated Given; the scenario fails or passes spuriously depending on an unstated fixture fact.",
+      "spec_anchor": "scenarios",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The self-directed scenario's Given now says no PRD file.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The scenario runs `faff run trigger --json` with no readiness input and expects `refuse`/`self-directed`. But per §4.1 step 6, when a PRD is present and no `--prd-readiness`/`--prd-slot-unreachable` is given, the token is `needs-judgement:prd-inputs` (exit 0) and run-start is never consulted — so `self-directed` is unreachable on a first call unless no PRD is present. The Given says only \"tracking.repo set\"; it never states whether a PRD exists.",
+          "spec_anchor": "scenarios"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "§4.3's routing table says on `refuse` \"start nothing, leave the run dir untouched\", and rule T34 carries the same. But §4.3 step 2 instructs the skill to write `<run_dir>/prd-readiness.out` and `<run_dir>/prd-goals.json` during the `needs-judgement` call — before the deciding call that may refuse. A build following the spec literally leaves two new files in the run dir on a `refuse` outcome, violating \"untouched\" as written.",
+      "evidence": "§4.3 step 2 vs. the routing table's `refuse` row; rule T34.",
+      "predicted_consequence": "A test asserting \"no file under the run dir is created or modified on refuse\" (the natural reading of T34, and the shape of the `fault` scenario) fails on every real refuse that passed through `needs-judgement`; or the test is weakened to \"ledger bytes unchanged\" and T34's guarantee silently narrows without the spec saying so.",
+      "spec_anchor": "4-3-skill-changes",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "T34 now states run-ledger.json byte-unchanged and never closed; the only run-dir writes on refuse are capture events and trigger/ inputs.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "§4.3's routing table says on `refuse` \"start nothing, leave the run dir untouched\", and rule T34 carries the same. But §4.3 step 2 instructs the skill to write `<run_dir>/prd-readiness.out` and `<run_dir>/prd-goals.json` during the `needs-judgement` call — before the deciding call that may refuse. A build following the spec literally leaves two new files in the run dir on a `refuse` outcome, violating \"untouched\" as written.",
+          "spec_anchor": "4-3-skill-changes"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The whole capture design rests on the command minting a correlation id in-process and the *child* kernels (`faff run-start`, `faff run-outward`) writing their capture base under that same id via `FAFF_DECISION_CORRELATION_ID` / `FAFF_DECISION_ISSUE`. Nothing in the supplied context establishes that `captureDecision` honours a caller-supplied id: `run-start.js` and `run-outward.js` call `captureDecision({ kernel, normalised_inputs, verdict, issue: \"__run__\" })` with no id parameter and no visible env read, and the spec's own assumptions list (`classifyInheritedRunDir`, `mintConsultCorrelationId`, `appendActionMarker`) omits exactly this mechanism. If in-kernel capture mints its own id (the only behaviour the supplied code supports), every marker the command writes via `appendActionMarker` lands on an id that shares no base — the pairing is silently broken, and the corpus the design exists to feed is corrupt in exactly the way the prose's driver call avoided.",
+      "evidence": "§4.1 \"Correlation ids\" paragraph; §6 \"Assumes\" list; `run-start.js` / `run-outward.js` `captureDecision` calls (no id, no env contract visible); `decision-capture.js` named in §1's reference context but its env contract never stated.",
+      "predicted_consequence": "on the first L4 lights-out run after this ships, every `run-start`/`run-outward` consult has an orphaned base or an orphaned marker; the FAFF-956 replay cannot pair them, discovered only in post-hoc audit.",
+      "spec_anchor": "correlation-ids",
+      "disposition": "refuted",
+      "refutation": "captureDecisionCore reads FAFF_DECISION_CORRELATION_ID from the environment when no id is passed (decision-capture.js line 568 on 948a8f1d); that is how today's prose driver pairs.",
+      "disposition_rationale": "The spec now cites it, lists it under Assumes, and pins pairing with an end-to-end test.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The whole capture design rests on the command minting a correlation id in-process and the *child* kernels (`faff run-start`, `faff run-outward`) writing their capture base under that same id via `FAFF_DECISION_CORRELATION_ID` / `FAFF_DECISION_ISSUE`. Nothing in the supplied context establishes that `captureDecision` honours a caller-supplied id: `run-start.js` and `run-outward.js` call `captureDecision({ kernel, normalised_inputs, verdict, issue: \"__run__\" })` with no id parameter and no visible env read, and the spec's own assumptions list (`classifyInheritedRunDir`, `mintConsultCorrelationId`, `appendActionMarker`) omits exactly this mechanism. If in-kernel capture mints its own id (the only behaviour the supplied code supports), every marker the command writes via `appendActionMarker` lands on an id that shares no base — the pairing is silently broken, and the corpus the design exists to feed is corrupt in exactly the way the prose's driver call avoided.",
+          "spec_anchor": "correlation-ids"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The design has the command spawn `faff prd list`, `faff prd path`, `faff run-outward`, `faff contract prd-readiness`, `faff prdr coverage`, `faff run-start`, `faff run-record-prd` as child processes. The gateway's \"Resolving the `faff` executable\" rule binds skills, not a Node module spawning from inside the CLI; the spec never says how `run-trigger.ts` locates the binary (PATH? `process.argv[0]`/self re-invocation? a resolved root-relative entry?). In a marketplace install where `faff` on PATH is a different vintage than the skill's resolved executable, the command would assemble signals from a *different* producer set than the one the skill invoked — the exact divergence the \"spawn, don't import\" rationale claims to prevent.",
+      "evidence": "§4.1 steps 2, 3, 6, 7, 8, 9, 11; §5 \"Spawn the producers, don't import them\"; no spawn-resolution clause anywhere in §3/§4.",
+      "predicted_consequence": "a mixed-vintage install assembles signals from two faff versions in one run; a verdict produced by a stale ladder is recorded under the new command's correlation id.",
+      "spec_anchor": "where-the-code-lives",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Spawn resolution named: process.execPath plus the CLI's own entrypoint, never faff from PATH.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The design has the command spawn `faff prd list`, `faff prd path`, `faff run-outward`, `faff contract prd-readiness`, `faff prdr coverage`, `faff run-start`, `faff run-record-prd` as child processes. The gateway's \"Resolving the `faff` executable\" rule binds skills, not a Node module spawning from inside the CLI; the spec never says how `run-trigger.ts` locates the binary (PATH? `process.argv[0]`/self re-invocation? a resolved root-relative entry?). In a marketplace install where `faff` on PATH is a different vintage than the skill's resolved executable, the command would assemble signals from a *different* producer set than the one the skill invoked — the exact divergence the \"spawn, don't import\" rationale claims to prevent.",
+          "spec_anchor": "where-the-code-lives"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The readiness file is agent/LLM-produced output over a PRD that, on an outward run, is *adopter-controlled content*. §4.1 step 7 says the command locates the fenced block, parses it, pipes it to `faff contract prd-readiness`, and then — on `admissible` — takes `creative_licence := block.creative_licence` **from the raw block JSON**, not from the contract verb's validated output. The only downstream validation is `run-record-prd`'s shape check (`\"broad\"` or `\"tight\"`), which happily accepts a forged `\"broad\"`. So a prompt-injected PRD (or a slot output the agent was steered into writing) can assert `creative_licence: \"broad\"` in a block that still passes `contract prd-readiness`'s admissibility check, and the command will record that licence onto the one inherited L4 ledger — widening what the lights-out run is licensed to do, with the write appearing as a legitimate narrow ledger update. The contract verb is the validator; the licence must come from its validated output (or be cross-checked against it), not from the bytes the producer wrote.",
+      "evidence": "§4.1 step 7 (\"`creative_licence := block.creative_licence`\"); §3 TriggerResult (`creative_licence: broad | tight | null # from an admissible prd-readiness block`); §4.1 steps 11/14 write it via `run-record-prd --prd-creative-licence`; `run-record-prd.js` validates only the enum shape.",
+      "predicted_consequence": "an adopter-controlled PRD can escalate the run's recorded creative licence to `broad` on the operator's L4 ledger without any human in the loop.",
+      "spec_anchor": "41-procedure",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "creative_licence is now taken from contract prd-readiness's validated stdout, never the raw block. The residual (a steered prd slot can still emit broad) is today's trust in the slot, stated under Assumes as out of scope.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The readiness file is agent/LLM-produced output over a PRD that, on an outward run, is *adopter-controlled content*. §4.1 step 7 says the command locates the fenced block, parses it, pipes it to `faff contract prd-readiness`, and then — on `admissible` — takes `creative_licence := block.creative_licence` **from the raw block JSON**, not from the contract verb's validated output. The only downstream validation is `run-record-prd`'s shape check (`\"broad\"` or `\"tight\"`), which happily accepts a forged `\"broad\"`. So a prompt-injected PRD (or a slot output the agent was steered into writing) can assert `creative_licence: \"broad\"` in a block that still passes `contract prd-readiness`'s admissibility check, and the command will record that licence onto the one inherited L4 ledger — widening what the lights-out run is licensed to do, with the write appearing as a legitimate narrow ledger update. The contract verb is the validator; the licence must come from its validated output (or be cross-checked against it), not from the bytes the producer wrote.",
+          "spec_anchor": "41-procedure"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The spec's correctness depends on which sibling ticket lands first (FAFF-1437 shares five files; FAFF-1442's byte baseline can fail `validate-adapters` if it lands first), but this lives only in \"OPEN QUESTIONS AND ASSUMPTIONS\" and a \"stated, not edited here\" ordering note — the pipeline cannot see it as a dependency edge.",
+      "evidence": "§6 \"Assumes: FAFF-1437, FAFF-1434 and FAFF-1442 may each land before or after this; whichever lands second rebases\"; the critique itself says \"Building after FAFF-1437 (High) saves FAFF-1437 a rebase\" and flags the FAFF-1442 conditional.",
+      "predicted_consequence": "if FAFF-1442 or FAFF-1437 merges concurrently, the build fails a DONE item (`faff validate-adapters`, baseline lowering) or silently ships a stale `VERBS`/`cli.md` merge; not separately stated which agent owns the rebase.",
+      "spec_anchor": "open-questions-and-assumptions",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The build agent of whichever sibling lands second owns the rebase; recommended order is after FAFF-1437.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The spec's correctness depends on which sibling ticket lands first (FAFF-1437 shares five files; FAFF-1442's byte baseline can fail `validate-adapters` if it lands first), but this lives only in \"OPEN QUESTIONS AND ASSUMPTIONS\" and a \"stated, not edited here\" ordering note — the pipeline cannot see it as a dependency edge.",
+          "spec_anchor": "open-questions-and-assumptions"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "§3 defines `outward: OutwardSignal | null` (\"null when not consulted\") and `coverage: PrdCoverage | null`, but §4.1 steps 6 and 8 specify failure coercions (`outward=false, diagnostic run-outward-failed`; `coverage_measurable=false, diagnostic coverage-failed`) without saying what lands in the `outward` / `coverage` payload fields on those failures — the producer was consulted but returned nothing usable, which is neither \"not consulted\" (null) nor a verbatim signal. Two builds (null vs. a fabricated `{outward:false,...}`) both satisfy the DONE item \"prints a TriggerResult with every field in §3\".",
+      "evidence": "DONE \"From WHAT — `faff run trigger --json` prints a TriggerResult with every field in §3\"; §4.1 steps 6, 8, 9; §4.5 test list includes \"run-outward fails\" and \"coverage exit non-zero\" coercions but pins no field value.",
+      "predicted_consequence": "the coercion tests in `test/run-trigger.test.mjs` can pass under either field convention, so the JSON contract is not pinned and a consumer keying on `result.outward` (e.g. the skill's routing or a future plot reuse) sees different shapes across builds.",
+      "spec_anchor": "4-1-procedure",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "outward and coverage are null on failure with a diagnostic naming which; verdict is {refuse, null} when run-start fails.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "§3 defines `outward: OutwardSignal | null` (\"null when not consulted\") and `coverage: PrdCoverage | null`, but §4.1 steps 6 and 8 specify failure coercions (`outward=false, diagnostic run-outward-failed`; `coverage_measurable=false, diagnostic coverage-failed`) without saying what lands in the `outward` / `coverage` payload fields on those failures — the producer was consulted but returned nothing usable, which is neither \"not consulted\" (null) nor a verbatim signal. Two builds (null vs. a fabricated `{outward:false,...}`) both satisfy the DONE item \"prints a TriggerResult with every field in §3\".",
+          "spec_anchor": "4-1-procedure"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "rows T19, T22, T29, T32 and T39 are marked \"kept in prose\" — they are skill-routing instructions (invoke the `prd` slot, read goals, invoke `/faff-plot --autonomous`, converge, surface plot's refusal). No repository test can decide whether a SKILL.md routing instruction is followed; the only mechanical checks are `validate-adapters` and the line baseline, which the DONE list states separately. As written, the DONE criterion asserts a covering test for rows that cannot have one.",
+      "evidence": "DONE \"From Rule inventory — Every `kept` and `changed` row's covering test exists and passes\"; rule inventory rows T19, T22, T29, T32, T39 (disposition \"kept in prose\").",
+      "predicted_consequence": "at review time the criterion cannot be checked for those five rows — a reviewer cannot name a test that would fail if the skill's `plan` routing (T29/T39) were miswritten, so the DONE item is either vacuously satisfied or unfinishable.",
+      "spec_anchor": "rule-inventory",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The covering-test DONE item excludes the five skill-routing rows, which the PR description checks by quoting their SKILL.md lines.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "rows T19, T22, T29, T32 and T39 are marked \"kept in prose\" — they are skill-routing instructions (invoke the `prd` slot, read goals, invoke `/faff-plot --autonomous`, converge, surface plot's refusal). No repository test can decide whether a SKILL.md routing instruction is followed; the only mechanical checks are `validate-adapters` and the line baseline, which the DONE list states separately. As written, the DONE criterion asserts a covering test for rows that cannot have one.",
+          "spec_anchor": "rule-inventory"
+        }
+      ]
+    }
+  ]
+}

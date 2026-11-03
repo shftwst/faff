@@ -25,7 +25,7 @@
     },
     {
       "ac": "`faff validate-adapters` passes with no RATCHET finding for `faff-beep-boop` or `faff-plot`.",
-      "verified": "validate-adapters: RESULT PASS, no RATCHET line for faff-beep-boop or faff-plot; beep-boop byte baseline 157,377 (lowered from main's 164,925, then raised by the 287 bytes of restored plan-row clauses), plot 45,906",
+      "verified": "validate-adapters: RESULT PASS, no RATCHET line for faff-beep-boop or faff-plot; beep-boop byte baseline 157,460 (lowered from main's 164,925, then raised by the deliberate growth of the restored plan-row clauses and the after-plan value flags), plot 45,906",
       "passed": true,
       "ac_id": "faff-1418#done:2",
       "verifications": [
@@ -156,10 +156,34 @@
       ]
     },
     {
+      "ac": "`faff run trigger --after-plan` records the `--prd-creative-licence` and `--prd-root-container` values it is given, calls no `prd list`, readiness or coverage, and returns `record-failed` with a diagnostic when either value is missing or invalid.",
+      "verified": "after-plan records the passed-back values, makes no prd list/readiness/coverage call, keeps the deciding call's licence when prd list now fails or is ambiguous, and returns record-failed on a missing or invalid value; a re-read mutation fails two of these",
+      "passed": true,
+      "ac_id": "faff-1418#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-trigger.test.mjs::T30 after-plan re-reads nothing: no prd list, prd path, config, readiness, coverage, outward or run-start"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-trigger.test.mjs::T30 after-plan records the deciding call's licence even when prd list would now fail or show two Active PRDs"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-trigger.test.mjs::T31 after-plan: a missing or invalid licence or container is record-failed with a diagnostic, and records nothing"
+        },
+        {
+          "kind": "test",
+          "locator": "test/run-trigger.test.mjs::T30/T31 after-plan records the passed-back licence and container, marks plan on the deciding call's id, returns recorded"
+        }
+      ]
+    },
+    {
       "ac": "`validate-adapters`' in-process capture route covers `faff run trigger` for `run-outward` and `run-start`, and `test/faff-1009-capture-wiring-lint.test.mjs` pins the three closed loose spots and run-trigger cases mirroring the FAFF-1434 bypass suite.",
       "verified": "the route covers run trigger for run-outward/run-start; the three loose-spot tests fail on main's lint; the flag-value and whole-sentence/fence negation tests fail on the previous head's lint; all pass",
       "passed": true,
-      "ac_id": "faff-1418#done:11",
+      "ac_id": "faff-1418#done:12",
       "verifications": [
         {
           "kind": "test",
@@ -195,7 +219,7 @@
       "ac": "Every line the PR deletes from `faff-beep-boop/SKILL.md` maps to a row T1–T39; the PR description lists the deleted line ranges against row ids.",
       "verified": "the PR description's rule-inventory mapping lists deleted main lines 136–158 of faff-beep-boop/SKILL.md against rows T1–T39",
       "passed": true,
-      "ac_id": "faff-1418#done:12",
+      "ac_id": "faff-1418#done:13",
       "verifications": [
         {
           "kind": "command",
@@ -207,7 +231,7 @@
       "ac": "Every `kept` and `changed` row other than the five \"kept in prose\" or skill-routing rows (T19, T22, T29, T32, T39) has a covering test that exists and passes; those five are checked by the PR description quoting the SKILL.md line that carries each.",
       "verified": "every kept/changed row except T19, T22, T29, T32, T39 has a named test in test/run-trigger.test.mjs (T1–T38 titles); the PR description quotes the SKILL.md lines for the five prose rows",
       "passed": true,
-      "ac_id": "faff-1418#done:13",
+      "ac_id": "faff-1418#done:14",
       "verifications": [
         {
           "kind": "test",
@@ -221,9 +245,9 @@
     },
     {
       "ac": "`test/run-trigger.test.mjs`, `test/run-start-wiring.test.mjs`, `test/run-checkpoint.test.mjs` and `test/run-summary.test.mjs` pass under `node --test`.",
-      "verified": "node --test over the four named files plus the lint and boundary-cast suites: 211 pass, 0 fail",
+      "verified": "node --test over the four named files plus the lint and boundary-cast suites: 216 pass, 0 fail",
       "passed": true,
-      "ac_id": "faff-1418#done:14",
+      "ac_id": "faff-1418#done:15",
       "verifications": [
         {
           "kind": "command",

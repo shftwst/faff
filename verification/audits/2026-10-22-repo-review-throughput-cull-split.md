@@ -66,7 +66,7 @@ Eight files in `bin/lib` exceed 2,000 lines: `config.js` 3,881, `contract-defs.j
     - The `project-next` grid spawned the CLI 320 times to check a pure predicate.
   - **What shipped:** a fix for each of those three. On the same filesystem, UNIT went from 136 to 149 s to 106 to 107 s and the gate from 177 to 191 s to 147 to 148 s.
   - **Left alone:** `sentry.test.mjs` drives the real CLI on purpose; moving it in-process would save about 1 s of wall-clock time. `env.test.mjs` is real Docker work.
-- [ ] **Action:** `faff gates run --budget-secs N --resume` with the exit-3 re-invoke idiom the spec judge already uses, so a lane can poll a long gate across foreground calls. This is orchestrator defect 3 from the last run.
+- [x] **Action:** `faff gates run --budget-secs N --resume` with the exit-3 re-invoke idiom the spec judge already uses, so a lane can poll a long gate across foreground calls. This is orchestrator defect 3 from the last run. Done 2026-10-27: FAFF-1405 (#1158).
 
 ### 1.4 The orchestrator is prose
 
@@ -106,9 +106,9 @@ The ten largest A plus C collapses, ranked by prose removed:
 | 10 | `faff run-start assemble` | beep-boop run-start trigger (139 to 163) | ~26 | signal assembler |
 
 - [x] **Action, first:** `faff land`. It is the one place a prose misstep reaches `main`, and the `concurrency` executors must call the same command so the dispatch-cut path cannot drift. Done 2026-10-24: FAFF-1396 (#1119), first used live on FAFF-1112 (#1120), where it returned `ready` on its first call.
-- [ ] **Action, second:** the run lifecycle trio (`run open/close`, `checkpoint`, `run summary`). Almost all pure reads of the run directory.
-- [ ] **Action, third:** `prep attach`, `spec commit`, `collate-evidence --from-judge`. Under 300 lines of code; closes two of the five logged defects and the twice-recurring silent non-attach that `prepcheck` exists for.
-- [ ] Each collapse lowers the matching `SKILL_LINE_BASELINE` entry and keeps or relocates the `ANCHOR_PHRASES` sentences, or `validate-adapters` reports RATCHET and the gain is not locked in.
+- [x] **Action, second:** the run lifecycle trio (`run open/close`, `checkpoint`, `run summary`). Almost all pure reads of the run directory. Done 2026-11-01: `run summary` FAFF-1435 (#1168), `run checkpoint` FAFF-1436 (#1169), `run open`/`run close` FAFF-1437 (#1173).
+- [x] **Action, third:** `prep attach`, `spec commit`, `collate-evidence --from-judge`. Under 300 lines of code; closes two of the five logged defects and the twice-recurring silent non-attach that `prepcheck` exists for. Done: `spec commit` FAFF-1404 (#1152), `prep attach` and `collate-evidence --from-judge` FAFF-1406 (#1156).
+- [x] Each collapse lowers the matching `SKILL_LINE_BASELINE` entry and keeps or relocates the `ANCHOR_PHRASES` sentences, or `validate-adapters` reports RATCHET and the gain is not locked in. Done 2026-11-03: all ten collapses in the table above have landed, each lowering its baseline. The other five are `graft admit` FAFF-1414 (#1166), `worktree ensure` FAFF-1415 (#1176), `pr open` FAFF-1416 (#1174), `spec-review round`/`hold` FAFF-1417 (#1178) and `run trigger` FAFF-1418 (#1177), with beep-boop's admission switched to `graft admit` by FAFF-1434 (#1175). Since FAFF-1442 (#1172) the gain is also locked in bytes, by `prose-baseline.json`.
 - [ ] Each command exits with a typed `needs-judgement` token where B work remains, rather than absorbing an LLM call.
 
 This does not pre-empt v5 Gate 1. These are sequencing mechanics, not kernel decisions (`next`, `run-done`, `queue-state` already exist in code). Composed commands would also emit the action markers the coordination-fidelity study is missing on 52 of 58 decisions, so prose collapse is the enabler of the coordination evidence, not a substitute for it.

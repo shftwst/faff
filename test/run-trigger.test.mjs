@@ -209,6 +209,17 @@ test("T11 a failed prd list is ambiguous and refuses, never a silent no-PRD drai
   }
 });
 
+test("T11 a listed PRD with no container is ambiguous and refuses, never a silent no-PRD drain", () => {
+  for (const entry of [{ slug: "x", status: "Active" }, { slug: "x", container: "", status: "Active" }]) {
+    const deps = fakeDeps({ replies: { "prd list": ok([entry]), "run-outward": ok({ target: {}, outward: true, reason: "outward-adopter" }) }, config: { "tracking.container": "X" } });
+    const r = rt.runTrigger(args(), deps);
+    assert.equal(r.prd.ambiguous, true);
+    assert.ok(r.diagnostics.includes("prd-container-missing"));
+    assert.equal(r.verdict.reason, "prd-ambiguous");
+    assert.equal(r.token, "refuse");
+  }
+});
+
 test("T12 prd path non-zero → no-PRD", () => {
   const deps = fakeDeps({ replies: { "prd path": fail() } });
   const r = rt.runTrigger(args(), deps);

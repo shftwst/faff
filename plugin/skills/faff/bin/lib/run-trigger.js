@@ -120,9 +120,10 @@ function readPrd(call, exists, root, diagnostics) {
     if (candidates.length === 0)
         return none;
     const container = str(field(candidates[0], "container"));
+    // A listed PRD with no container is malformed, not absent: refuse as ambiguous, never drain as no-PRD.
     if (container === undefined || container === "") {
         diagnostics.push("prd-container-missing");
-        return none;
+        return { ...none, ambiguous: true };
     }
     const pathRun = call(["prd", "path", container, "--root", root]);
     const prdPath = pathRun.status === 0 ? pathRun.stdout.trim() : "";

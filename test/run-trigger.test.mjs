@@ -76,7 +76,7 @@ function fakeDeps({ replies = {}, config = {}, files = {}, classify = { verdict:
   };
 }
 
-const args = (over = {}) => ({ runDir: RUN_DIR, root: ROOT, readinessFile: null, slotUnreachable: false, goalsFile: null, afterPlan: false, correlationId: null, ...over });
+const args = (over = {}) => ({ runDir: RUN_DIR, root: ROOT, readinessFile: null, slotUnreachable: false, goalsFile: null, afterPlan: false, correlationId: null, licence: null, rootContainer: null, ...over });
 const withInputs = (over = {}) => args({ readinessFile: "/r.out", goalsFile: "/g.json", ...over });
 const filesFor = (block = BLOCK, goals = ["g1"]) => ({ "/r.out": readinessFile(block), "/g.json": JSON.stringify(goals) });
 const childNames = (deps) => deps.calls.map((c) => (c.args[0].startsWith("run-") ? c.args[0] : `${c.args[0]} ${c.args[1]}`));
@@ -451,31 +451,73 @@ test("T34 refuse with a validated licence still records nothing", () => {
 
 // --- Phase C (T30, T31) ---
 
-test("T30/T31 after-plan records licence and container, marks plan on the given id, returns recorded", () => {
-  const deps = fakeDeps({ files: filesFor() });
-  const r = rt.runTrigger(withInputs({ afterPlan: true, correlationId: `${RUN_ID}/__run__/run-start/7` }), deps);
+const afterPlanArgs = (over = {}) => args({ afterPlan: true, correlationId: `${RUN_ID}/__run__/run-start/7`, licence: "tight", rootContainer: "Demo", ...over });
+
+test("T30/T31 after-plan records the passed-back licence and container, marks plan on the deciding call's id, returns recorded", () => {
+  const deps = fakeDeps();
+  const r = rt.runTrigger(afterPlanArgs(), deps);
   assert.equal(r.token, "recorded");
   const rec = deps.calls.find((c) => c.args[0] === "run-record-prd");
   assert.deepEqual(rec.args, ["run-record-prd", "--run-dir", RUN_DIR, "--prd-creative-licence", "tight", "--prd-root-container", "Demo"]);
+  assert.deepEqual(r.recorded, { licence: "tight", root_container: "Demo" });
   assert.deepEqual(deps.markers, [{ run: RUN_ID, kernel: "run-start", id: `${RUN_ID}/__run__/run-start/7`, action: "plan" }]);
-  assert.ok(!childNames(deps).includes("run-start"));
-  assert.ok(!childNames(deps).includes("run-outward"));
+  assert.equal(r.run_start_correlation_id, `${RUN_ID}/__run__/run-start/7`);
 });
 
-test("T30 after-plan: a still-thin re-read is not a stop; a failed re-read is never read as done", () => {
-  for (const reply of [ok({ covered: false, uncovered_goals: ["g1"] }), fail()]) {
-    const deps = fakeDeps({ replies: { "prdr coverage": reply }, files: filesFor() });
-    const r = rt.runTrigger(withInputs({ afterPlan: true, correlationId: "x/__run__/run-start/1" }), deps);
+test("T30 after-plan re-reads nothing: no prd list, prd path, config, readiness, coverage, outward or run-start", () => {
+  const deps = fakeDeps();
+  let configReads = 0;
+  deps.configGet = () => { configReads += 1; return null; };
+  rt.runTrigger(afterPlanArgs(), deps);
+  assert.deepEqual(childNames(deps), ["run-record-prd"]);
+  assert.equal(configReads, 0);
+  assert.deepEqual(deps.mints, []);
+});
+
+test("T30 after-plan records the deciding call's licence even when prd list would now fail or show two Active PRDs", () => {
+  for (const reply of [fail(), ok([{ container: "A", status: "Active" }, { container: "B", status: "Active" }])]) {
+    const deps = fakeDeps({ replies: { "prd list": reply, "contract prd-readiness": fail(2), "prdr coverage": fail() } });
+    const r = rt.runTrigger(afterPlanArgs({ licence: "broad" }), deps);
     assert.equal(r.token, "recorded");
-    if (reply.status !== 0) assert.ok(r.diagnostics.includes("coverage-failed"));
+    assert.deepEqual(r.recorded, { licence: "broad", root_container: "Demo" });
   }
 });
 
-test("T31 after-plan: a non-zero record is record-failed", () => {
-  const deps = fakeDeps({ replies: { "run-record-prd": fail(1) }, files: filesFor() });
-  const r = rt.runTrigger(withInputs({ afterPlan: true, correlationId: "x/__run__/run-start/1" }), deps);
+test("T31 after-plan: a missing or invalid licence or container is record-failed with a diagnostic, and records nothing", () => {
+  for (const [over, diag] of [
+    [{ licence: null }, "prd-creative-licence-missing"],
+    [{ licence: "wide" }, "prd-creative-licence-invalid"],
+    [{ rootContainer: null }, "prd-root-container-missing"],
+    [{ rootContainer: "" }, "prd-root-container-invalid"],
+    [{ rootContainer: " Demo" }, "prd-root-container-invalid"],
+    [{ rootContainer: "-x" }, "prd-root-container-invalid"],
+    [{ rootContainer: "De\nmo" }, "prd-root-container-invalid"],
+    [{ licence: null, rootContainer: null }, "prd-creative-licence-missing"],
+  ]) {
+    const deps = fakeDeps();
+    const r = rt.runTrigger(afterPlanArgs(over), deps);
+    assert.equal(r.token, "record-failed", JSON.stringify(over));
+    assert.ok(r.diagnostics.includes(diag), `${JSON.stringify(over)} → ${JSON.stringify(r.diagnostics)}`);
+    assert.equal(r.recorded, null);
+    assert.deepEqual(deps.calls, []);
+    assert.deepEqual(deps.markers, []);
+  }
+});
+
+test("T31 after-plan: a non-zero record is record-failed and writes no plan marker", () => {
+  const deps = fakeDeps({ replies: { "run-record-prd": fail(1) } });
+  const r = rt.runTrigger(afterPlanArgs(), deps);
   assert.equal(r.token, "record-failed");
+  assert.ok(r.diagnostics.includes("run-record-prd-exit-1"));
   assert.deepEqual(deps.markers, []);
+});
+
+test("T26 the plan result carries the creative licence and target container the after-plan call passes back", () => {
+  const deps = fakeDeps({ files: filesFor() });
+  const r = rt.runTrigger(withInputs(), deps);
+  assert.equal(r.token, "plan");
+  assert.equal(r.creative_licence, "tight");
+  assert.equal(r.target.container, "Demo");
 });
 
 // --- Capture (T35, T36) ---
@@ -547,7 +589,10 @@ test("exit 2 on bad flag combinations, printing no result", () => {
   for (const argv of [
     ["--prd-readiness", "/x", "--prd-slot-unreachable", "--json"],
     ["--after-plan", "--prd-slot-unreachable", "--json"],
-    ["--after-plan", "--correlation-id", "id", "--json"],
+    ["--after-plan", "--correlation-id", "id", "--prd-goals", "g.json", "--json"],
+    ["--after-plan", "--correlation-id", "id", "--prd-readiness", "r.out", "--json"],
+    ["--prd-creative-licence", "tight", "--json"],
+    ["--prd-root-container", "Demo", "--json"],
     ["--correlation-id", "id", "--json"],
   ]) {
     const r = cli(argv);

@@ -225,7 +225,8 @@ test("static: a plan verdict invokes /faff-plot --autonomous (nested reuse, no m
   assert.doesNotMatch(planRow, /\bSTOP\b/);
   assert.match(planRow, /Converge, don't stop/);
   // The after-plan call is parsed and routed: recorded → step 1, anything else fails loud.
-  assert.match(planRow, /--after-plan --correlation-id <run_start_correlation_id> --json/);
+  assert.match(planRow, /--after-plan --correlation-id <run_start_correlation_id> --prd-creative-licence <creative_licence> --prd-root-container <target\.container> --json/);
+  assert.doesNotMatch(planRow, /--prd-readiness|--prd-goals/);
   assert.match(planRow, /On `recorded`, step 1/);
   assert.match(planRow, /on `record-failed`[^.]*fail loud and build nothing/);
   // Kept from the replaced prose (rule row T32): the fall-through is unconditional, and the wave loop's

@@ -6,8 +6,9 @@
 // ("Run-start trigger — PLAN / drain / refuse", L4 lights-out only). It classifies the inherited
 // handoff, performs the PRD, target, outward, readiness and coverage reads, coerces each result to
 // one of the seven `faff run-start` signals, spawns `faff run-start` for the verdict, and records the
-// creative licence on `drain` (or after `plan`). Each read spawns its existing producer, so no ladder
-// is re-derived here. The two judgement steps (invoking the `prd` slot, reading the PRD's goals) stay
+// creative licence on `drain`. After `plan`, `--after-plan` records the licence and root container the
+// deciding call validated, passed back as flags, and re-reads nothing. Each read spawns its existing
+// producer, so no ladder is re-derived here. The two judgement steps (invoking the `prd` slot, reading the PRD's goals) stay
 // with the skill: the command stops at `needs-judgement:prd-inputs` and takes their results as files.
 // Every failed read lands on the refuse-biased value.
 // ===========================================================================
@@ -220,6 +221,43 @@ function emptyResult(token, classify, runDir) {
         diagnostics: [],
     };
 }
+const LICENCES = ["broad", "tight"];
+// A root container is a non-empty identifier: no surrounding whitespace, no control characters, no
+// leading `-` (it would read as a flag), at most 256 characters.
+function validContainer(c) {
+    return c !== "" && c === c.trim() && c.length <= 256 && !c.startsWith("-") && !/[\u0000-\u001f\u007f]/.test(c);
+}
+// §4.1 C: validate the two values, record them, then mark `plan` on the deciding call's id.
+function afterPlan(args, runDir, result, call, safeMarker) {
+    const diagnostics = result.diagnostics;
+    const licence = args.licence;
+    const container = args.rootContainer;
+    if (licence === null)
+        diagnostics.push("prd-creative-licence-missing");
+    else if (!LICENCES.includes(licence))
+        diagnostics.push("prd-creative-licence-invalid");
+    if (container === null)
+        diagnostics.push("prd-root-container-missing");
+    else if (!validContainer(container))
+        diagnostics.push("prd-root-container-invalid");
+    if (diagnostics.length > 0 || licence === null || container === null) {
+        result.token = "record-failed";
+        return result;
+    }
+    result.creative_licence = licence;
+    result.target = { container, repo: null };
+    const r = call(["run-record-prd", "--run-dir", runDir, "--prd-creative-licence", licence, "--prd-root-container", container]);
+    if (r.status !== 0) {
+        diagnostics.push(`run-record-prd-exit-${r.status === null ? "spawn" : String(r.status)}`);
+        result.token = "record-failed";
+        return result;
+    }
+    result.recorded = { licence, root_container: container };
+    safeMarker("run-start", args.correlationId, "plan");
+    result.run_start_correlation_id = args.correlationId;
+    result.token = "recorded";
+    return result;
+}
 function runTrigger(args, deps) {
     // A. Classify, every call. Nothing else is read on `not-l4` or `fault`.
     const c = deps.classify(args.runDir);
@@ -233,20 +271,6 @@ function runTrigger(args, deps) {
     const runId = path.basename(path.resolve(runDir));
     const result = emptyResult("refuse", classify, runDir);
     const diagnostics = result.diagnostics;
-    // Usage checks that need the L4 path: an unreadable goals file is a usage error, no result.
-    let goals = undefined;
-    if (args.goalsFile !== null) {
-        let text;
-        try {
-            text = deps.readFile(args.goalsFile);
-        }
-        catch (e) {
-            throw new TriggerUsageError(`cannot read --prd-goals ${args.goalsFile}: ${errText(e)}`);
-        }
-        goals = parseJson(text);
-        if (goals === undefined)
-            goals = null;
-    }
     // Children run against this run dir with the capture env of the consult they serve, and only that: a
     // correlation id or issue exported in the caller's shell never reaches a child, so a base can only be
     // written under an id this command minted.
@@ -281,6 +305,25 @@ function runTrigger(args, deps) {
         }
         catch { /* capture is best-effort */ }
     };
+    // C. After plan (operator decision, 2026-11-03): record the licence and root container the deciding
+    // call already validated, passed back by the skill as flags. Nothing is re-read: no prd list, no
+    // readiness, no coverage. A missing or invalid value is record-failed, never an empty `recorded`.
+    if (args.afterPlan)
+        return afterPlan(args, runDir, result, call, safeMarker);
+    // Usage checks that need the L4 path: an unreadable goals file is a usage error, no result.
+    let goals = undefined;
+    if (args.goalsFile !== null) {
+        let text;
+        try {
+            text = deps.readFile(args.goalsFile);
+        }
+        catch (e) {
+            throw new TriggerUsageError(`cannot read --prd-goals ${args.goalsFile}: ${errText(e)}`);
+        }
+        goals = parseJson(text);
+        if (goals === undefined)
+            goals = null;
+    }
     // B2–B4. PRD, target, self.
     const prd = readPrd((argv) => call(argv), deps.exists, root, diagnostics);
     const configContainer = deps.configGet(root, "tracking.container");
@@ -297,37 +340,15 @@ function runTrigger(args, deps) {
         result.token = "needs-judgement:prd-inputs";
         return result;
     }
-    // B7 (and C13). Readiness.
+    // B7. Readiness.
     const readiness = prd.present && !prd.ambiguous ? readReadiness(args, deps, call, diagnostics) : { admissible: false, licence: null };
     result.creative_licence = readiness.licence;
-    // B8 (and C13). Coverage, only for a present and admissible PRD.
+    // B8. Coverage, only for a present and admissible PRD.
     let coverage = { measurable: false, covered: false, block: null };
     if (prd.present && readiness.admissible && prd.container !== null) {
         coverage = readCoverage(goals, prd.container, root, (argv) => call(argv), diagnostics);
     }
     result.coverage = coverage.block;
-    if (args.afterPlan) {
-        // C14. Record licence and container; a non-zero record is fail-loud.
-        if (readiness.licence !== null || container !== null) {
-            const argv = ["run-record-prd", "--run-dir", runDir];
-            if (readiness.licence !== null)
-                argv.push("--prd-creative-licence", readiness.licence);
-            if (container !== null)
-                argv.push("--prd-root-container", container);
-            const r = call(argv);
-            if (r.status !== 0) {
-                diagnostics.push(`run-record-prd-exit-${r.status === null ? "spawn" : String(r.status)}`);
-                result.token = "record-failed";
-                return result;
-            }
-            result.recorded = { licence: readiness.licence, root_container: container };
-        }
-        // C15. The plan marker on the deciding call's id.
-        safeMarker("run-start", args.correlationId, "plan");
-        result.run_start_correlation_id = args.correlationId;
-        result.token = "recorded";
-        return result;
-    }
     // B6. Outward, under the run-outward correlation env.
     const outwardId = safeMint("run-outward");
     const target = { container, repo };
@@ -395,10 +416,12 @@ const TRIGGER_SPEC = {
         "--prd-goals": { arity: 1 },
         "--after-plan": { arity: 0 },
         "--correlation-id": { arity: 1 },
+        "--prd-creative-licence": { arity: 1 },
+        "--prd-root-container": { arity: 1 },
         "--json": { arity: 0 },
     },
 };
-const TRIGGER_USAGE = "usage: faff run trigger [--run-dir DIR] [--root DIR] [--prd-readiness FILE | --prd-slot-unreachable] [--prd-goals FILE] [--after-plan --correlation-id ID] [--json]";
+const TRIGGER_USAGE = "usage: faff run trigger [--run-dir DIR] [--root DIR] [--prd-readiness FILE | --prd-slot-unreachable] [--prd-goals FILE] [--after-plan --correlation-id ID --prd-creative-licence broad|tight --prd-root-container C] [--json]";
 function exitFor(token) {
     return STOP_TOKENS.includes(token) ? 3 : 0;
 }
@@ -419,8 +442,13 @@ function cmdRunTrigger(argv, deps = realDeps()) {
         return usage("--after-plan requires --correlation-id ID");
     if (!afterPlan && correlationId !== null)
         return usage("--correlation-id is only valid with --after-plan");
-    if (afterPlan && readinessFile === null && !slotUnreachable)
-        return usage("--after-plan requires --prd-readiness FILE or --prd-slot-unreachable");
+    const licence = str(values["--prd-creative-licence"]) ?? null;
+    const rootContainer = str(values["--prd-root-container"]) ?? null;
+    const goalsFile = str(values["--prd-goals"]) ?? null;
+    if (afterPlan && (readinessFile !== null || slotUnreachable || goalsFile !== null))
+        return usage("--after-plan takes no --prd-readiness, --prd-slot-unreachable or --prd-goals: it re-reads nothing");
+    if (!afterPlan && (licence !== null || rootContainer !== null))
+        return usage("--prd-creative-licence and --prd-root-container are only valid with --after-plan");
     const runDirFlag = str(values["--run-dir"]);
     const envRunDir = process.env.FAFF_RUN_DIR;
     const runDir = runDirFlag !== undefined && runDirFlag !== "" ? runDirFlag : envRunDir !== undefined && envRunDir !== "" ? envRunDir : undefined;
@@ -434,7 +462,7 @@ function cmdRunTrigger(argv, deps = realDeps()) {
     }
     let result;
     try {
-        result = runTrigger({ runDir, root, readinessFile, slotUnreachable, goalsFile: str(values["--prd-goals"]) ?? null, afterPlan, correlationId }, deps);
+        result = runTrigger({ runDir, root, readinessFile, slotUnreachable, goalsFile, afterPlan, correlationId, licence, rootContainer }, deps);
     }
     catch (e) {
         if (e instanceof TriggerUsageError) {

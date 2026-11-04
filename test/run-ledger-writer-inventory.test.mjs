@@ -62,7 +62,7 @@ function mintL4(root) {
   writeFileSync(path.join(root, ".faffrc.yaml"),
     "slots:\n  review: faffter-dark-adversarial-review\n  spec_review: faffter-dark-spec-review\ngates:\n  fallback: fail-closed\n" +
     "budget:\n  tokens: 50000000\n  on_estimate_only: warn\nautonomous:\n  engine_bounded: true\n");
-  mkdirSync(path.join(root, ".git"), { recursive: true });
+  if (spawnSync("git", ["init", "-q", root]).status !== 0) throw new Error(`git init failed in ${root}`);
   const r = faff(["lights-out", "--root", root, "--json"], { env: { KUBERNETES_SERVICE_HOST: "10.0.0.1" } });
   assert.equal(r.code, 0, r.out + r.err);
   return JSON.parse(r.out).run_dir;

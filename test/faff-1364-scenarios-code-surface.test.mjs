@@ -18,7 +18,7 @@ const BIN = join(HERE, "..", "plugin", "skills", "faff", "bin", "faff");
 const faff = (cwd, args, input) => spawnSync(process.execPath, [BIN, ...args], { cwd, encoding: "utf8", input });
 const scratch = () => {
   const root = mkdtempSync(join(tmpdir(), "faff-1364-"));
-  mkdirSync(join(root, ".git"));
+  if (spawnSync("git", ["init", "-q", root]).status !== 0) throw new Error(`git init failed in ${root}`);
   return root;
 };
 const specFile = (root, text, name = "spec.md") => { const f = join(root, name); writeFileSync(f, text); return f; };

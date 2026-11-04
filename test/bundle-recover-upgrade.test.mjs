@@ -105,7 +105,7 @@ test("idempotencyDecision: equal bytes, stamped upgrade, redacted upgrade, one o
 test("idempotencyDecision matches a stamped upgrade of a snapshot that carried a known secret value", () => {
   const tmp = mkdtempSync(path.join(tmpdir(), "faff-1258-brsecret-"));
   try {
-    mkdirSync(path.join(tmp, ".git"));
+    if (spawnSync("git", ["init", "-q", tmp]).status !== 0) throw new Error(`git init failed in ${tmp}`);
     writeFileSync(path.join(tmp, ".faffrc.yaml"), "andon:\n  token: S3CR3T-SENTINEL\n");
     const script = `
       const { idempotencyDecision } = require(${JSON.stringify(path.join(PLUGIN, "bin/lib/bundle-recover.js"))});

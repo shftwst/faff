@@ -22,7 +22,7 @@ const SCHEMA = JSON.parse(readFileSync(join(HERE, "..", "plugin", "skills", "faf
 function repo() {
   const root = mkdtempSync(join(tmpdir(), "faff-holdout-record-"));
   mkdirSync(join(root, ".faff", "runs", "run-x", "FAFF-1"), { recursive: true });
-  mkdirSync(join(root, ".git"));
+  if (spawnSync("git", ["init", "-q", root]).status !== 0) throw new Error(`git init failed in ${root}`);
   return root;
 }
 const faff = (root, args, input, env = {}) => spawnSync(process.execPath, [BIN, ...args], { cwd: root, encoding: "utf8", input, env: { ...process.env, ...env } });

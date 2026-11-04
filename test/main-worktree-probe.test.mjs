@@ -571,6 +571,13 @@ test("faff config check exits 2 with the dispatch line naming git's message", ()
   assertArmLine(runCli(["config", "check"], { cwd: main, env: envFor(w) }), "config");
 });
 
+// With no config in the checkout the base lookup itself probes, so this reaches the base catch.
+test("faff config check with no config in the checkout exits 2 with the dispatch line from the base lookup", () => {
+  const { main } = makeRepo({ config: null });
+  const w = makeWrapper();
+  assertArmLine(runCli(["config", "check"], { cwd: main, env: envFor(w) }), "config");
+});
+
 test("faff spec-review round exits 2 with the dispatch line naming git's message", () => {
   const { main } = makeRepo({ config: null });
   fs.writeFileSync(path.join(main, "v.json"), "{}");

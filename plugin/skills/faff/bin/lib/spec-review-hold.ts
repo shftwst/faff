@@ -34,6 +34,7 @@ interface RoundApi {
   configValue(root: string, key: string): string | undefined;
   parseLimit(raw: string | undefined, name: string): number;
   RoundFault: new (message: string) => Error;
+  isProbeFailure(e: unknown): boolean;
 }
 interface ConvergenceApi {
   roundFilesInDir(dir: string): { n: number; path: string }[];
@@ -420,6 +421,7 @@ function cmdSpecReviewHold(argv: string[]): number {
     printResult(json, r);
     return 0;
   } catch (e) {
+    if (roundApi.isProbeFailure(e)) throw e; // FAFF-1463: the dispatch arm names git's message
     if (e instanceof LockBusy) return fail(4, e.message);
     if (e instanceof HoldFault) return fail(2, e.message);
     if (e instanceof roundApi.RoundFault) return fail(2, e.message);

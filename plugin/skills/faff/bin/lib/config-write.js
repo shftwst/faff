@@ -823,10 +823,13 @@ function cmdConfigUnset(args, root) {
     process.stdout.write(result.text.endsWith("\n") || result.text === "" ? result.text : result.text + "\n");
     return 0;
   }
+  // FAFF-1463: resolve the other file before writing, so a failed main-checkout probe exits 2
+  // with the config untouched rather than after the key is already removed.
+  const otherPath = resolveOtherConfigPath(root, local);
   writeConfigFile(target, result.text);
   const prunedNote = result.pruned.length ? ` Pruned empty ${result.pruned.join(", ")}.` : "";
   console.log(`config unset: removed ${key} from ${targetName}.${prunedNote}`);
-  noteKeyStillSetElsewhere(root, local, segments, key);
+  noteKeyStillSetElsewhere(root, otherPath, segments, key);
   return 0;
 }
 
@@ -835,21 +838,28 @@ function refuseListKey(key) {
   return 2;
 }
 
-function noteKeyStillSetElsewhere(root, editedLocal, segments, key) {
+// The file the edit did NOT touch (the base when the overlay was edited, and vice versa). Any
+// lookup fault reads as "no other file" (the note is best-effort), except a failed main-checkout
+// probe, which is never skipped (FAFF-1463).
+function resolveOtherConfigPath(root, editedLocal) {
+  try { return editedLocal ? findConfig(root) : findOverlay(root); }
+  catch (e) {
+    if (e && e.message === "git-probe-failed") throw e;
+    return null;
+  }
+}
+
+function noteKeyStillSetElsewhere(root, otherPath, segments, key) {
   try {
-    const otherPath = editedLocal ? findConfig(root) : findOverlay(root);
     if (otherPath === null) return;
     if (hasConfigPath(parseYamlSubset(fs.readFileSync(otherPath, "utf8")), segments)) {
       const shown = isInsideRoot(root, otherPath) ? toPosix(path.relative(root, otherPath)) : otherPath;
       process.stderr.write(`note: ${key} is still set in ${shown}; faff config get reads the merged value.\n`);
     }
-  } catch (e) {
-    if (e && e.message === "git-probe-failed") throw e; // FAFF-1463: a failed main-checkout probe is never skipped
-    /* best-effort: the note never changes the outcome */
-  }
+  } catch { /* best-effort: the note never changes the outcome */ }
 }
 
 // In-memory self-test for removeConfigPath and verifyUnset. Every editing case asserts the exact
 // edited text, because the round-trip proof cannot see comment or blank-line damage.
 
-module.exports = { cmdConfigInit, noteKeyStillSetElsewhere, cmdConfigSet, cmdConfigUnset, emitChainBlock, emitScalar, emitTrackingBlock, INIT_HEADER, isSequenceValuedKey, locationNoticeText, mergeConfigPath, mergeTrackingBlock, printLocationNotice, RECOGNISED_NAMESPACES, removeConfigPath, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, verifyUnset, WRITABLE_NAMESPACES };
+module.exports = { cmdConfigInit, resolveOtherConfigPath, cmdConfigSet, cmdConfigUnset, emitChainBlock, emitScalar, emitTrackingBlock, INIT_HEADER, isSequenceValuedKey, locationNoticeText, mergeConfigPath, mergeTrackingBlock, printLocationNotice, RECOGNISED_NAMESPACES, removeConfigPath, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, verifyUnset, WRITABLE_NAMESPACES };

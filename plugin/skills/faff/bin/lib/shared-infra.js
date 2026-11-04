@@ -821,25 +821,33 @@ function cliPosixGuard() {
   return false;
 }
 
-function runGovernedDispatch(label, handler, args) {
-  try { return handler(args); }
-  catch (e) {
-    if (e && e.faffGovernanceProfileError) { process.stderr.write(`faff: ${e.message}\n`); return 2; }
-    if (e && e.message === "base-parse-error") {
-      process.stderr.write(`faff ${label}: cannot proceed — ${e.file} is malformed (${e.detail}).\n`);
-      return 2;
-    }
-    if (e && e.message === "git-probe-failed") {
-      process.stderr.write(`faff ${label}: cannot proceed — git could not resolve the main checkout for ${e.root}: ${e.detail}\n`);
-      return 2;
-    }
-    if (e && e.message === "legacy-config-name") {
-      const names = (e.legacy || []).join(", ");
-      process.stderr.write(`faff ${label}: cannot proceed — legacy config filename (${names}); rename to ${CANONICAL_CONFIG}.\n`);
-      return 2;
-    }
-    throw e;
+// The exit code for a governance/config fault the dispatch boundary owns, writing its one
+// stderr line; null for any other error (the caller rethrows it).
+function governedExitCode(label, e) {
+  if (e && e.faffGovernanceProfileError) { process.stderr.write(`faff: ${e.message}\n`); return 2; }
+  if (e && e.message === "base-parse-error") {
+    process.stderr.write(`faff ${label}: cannot proceed — ${e.file} is malformed (${e.detail}).\n`);
+    return 2;
   }
+  if (e && e.message === "git-probe-failed") {
+    process.stderr.write(`faff ${label}: cannot proceed — git could not resolve the main checkout for ${e.root}: ${e.detail}\n`);
+    return 2;
+  }
+  if (e && e.message === "legacy-config-name") {
+    const names = (e.legacy || []).join(", ");
+    process.stderr.write(`faff ${label}: cannot proceed — legacy config filename (${names}); rename to ${CANONICAL_CONFIG}.\n`);
+    return 2;
+  }
+  return null;
+}
+
+// FAFF-1463: an async handler's rejection takes the same arms as a synchronous throw, so an
+// async command (gates, andon, …) whose config lookup fails exits 2 with the same line.
+function runGovernedDispatch(label, handler, args) {
+  const onError = (e) => { const code = governedExitCode(label, e); if (code === null) throw e; return code; };
+  let r;
+  try { r = handler(args); } catch (e) { return onError(e); }
+  return r && typeof r.then === "function" ? r.then(undefined, onError) : r;
 }
 
 

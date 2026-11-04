@@ -329,6 +329,12 @@ test("probe success: a linked worktree maps to its main checkout; the main check
   assert.equal(probeMainWorktree(main), main);
 });
 
+test("mainWorktreeRoot returns the probe's value on success: the main checkout for a linked worktree and for itself", () => {
+  const { main, wt } = makeRepo({ worktree: true });
+  assert.equal(mainWorktreeRoot(wt), main);
+  assert.equal(mainWorktreeRoot(main), main);
+});
+
 test("probe success on a bare repo (common dir not named .git) → null", () => {
   const bare = tmp("faff-1463-bare-");
   git(bare, ["init", "-q", "--bare"]);
@@ -458,7 +464,7 @@ const READERS = [
   ["gates-doctor readConfiguredInstallTargets", `require(L + "/gates-doctor.js").readConfiguredInstallTargets(root, "/h")`, []],
   ["post-merge postMergeCheckEnabled", `require(L + "/post-merge.js").postMergeCheckEnabled(root)`, true],
   ["merge-gate-gh readRunnerGhConfig", `require(L + "/merge-gate-gh.js").readRunnerGhConfig().configFault`, true],
-  ["config-write noteKeyStillSetElsewhere", `(require(L + "/config-write.js").noteKeyStillSetElsewhere(root, false, ["tracking", "spec_docs_path"], "tracking.spec_docs_path"), "noted")`, "noted"],
+  ["config-write resolveOtherConfigPath", `require(L + "/config-write.js").resolveOtherConfigPath(root, false)`, null],
 ];
 
 function callReader(expr, root, env) {
@@ -524,4 +530,89 @@ test("resolveRunDir keeps reading a failed probe as no main checkout", () => {
   const w = makeWrapper();
   const got = withWrapper(w, "fail", () => shared.resolveRunDir(wt, "run-x", false));
   assert.equal(got, path.join(wt, ".faff", "runs", "run-x"));
+});
+
+// ---------------------------------------------------------------------------------------
+// Every command path reaches the dispatch arm: async handlers, and commands whose own catch
+// used to turn the probe error into a bare token.
+// ---------------------------------------------------------------------------------------
+
+test("runGovernedDispatch maps an async handler's git-probe-failed rejection to exit 2 with the same line", async () => {
+  const written = [];
+  const orig = process.stderr.write;
+  process.stderr.write = (s) => { written.push(String(s)); return true; };
+  let code;
+  try { code = await runGovernedDispatch("gates", async () => { throw new MainWorktreeProbeError("/r", "boom"); }, []); } finally { process.stderr.write = orig; }
+  assert.equal(code, 2);
+  assert.deepEqual(written, [`faff gates: ${PROBE_LINE} /r: boom\n`]);
+  assert.equal(await runGovernedDispatch("gates", async () => 7, []), 7);
+  await assert.rejects(runGovernedDispatch("gates", async () => { throw new Error("other"); }, []), /other/);
+});
+
+function assertArmLine(r, label) {
+  assert.equal(r.code, 2, r.stdout + r.stderr);
+  assert.ok(r.stderr.startsWith(`faff ${label}: ${PROBE_LINE}`), r.stderr);
+  assert.ok(r.stderr.includes("fatal: injected"), r.stderr);
+  assert.doesNotMatch(r.stderr, /unhandled error/);
+}
+
+test("faff gates discover and gates run exit 2 with the dispatch line in a main checkout, a linked worktree and with --root", () => {
+  const { base, main, wt } = makeRepo({ worktree: true });
+  const w = makeWrapper();
+  assertArmLine(runCli(["gates", "discover"], { cwd: main, env: envFor(w) }), "gates");
+  assertArmLine(runCli(["gates", "run", "--json"], { cwd: main, env: envFor(w) }), "gates");
+  assertArmLine(runCli(["gates", "discover"], { cwd: wt, env: envFor(w) }), "gates");
+  assertArmLine(runCli(["gates", "discover", "--root", main], { cwd: base, env: envFor(w) }), "gates");
+});
+
+test("faff config check exits 2 with the dispatch line naming git's message", () => {
+  const { main } = makeRepo();
+  const w = makeWrapper();
+  assertArmLine(runCli(["config", "check"], { cwd: main, env: envFor(w) }), "config");
+});
+
+test("faff spec-review round exits 2 with the dispatch line naming git's message", () => {
+  const { main } = makeRepo({ config: null });
+  fs.writeFileSync(path.join(main, "v.json"), "{}");
+  const w = makeWrapper();
+  const r = runCli(["spec-review", "round", "--verdict-file", "v.json", "--issue", "FAFF-1", "--dir", "sr", "--mode", "interactive", "--occupant", "single-pass"], { cwd: main, env: envFor(w) });
+  assertArmLine(r, "spec-review");
+});
+
+test("faff spec-review hold exits 2 with the dispatch line when its configured limit read fails", () => {
+  const { main } = makeRepo({ config: null });
+  const w = makeWrapper();
+  const r = runCli(["spec-review", "hold", "--cause", "turn-budget", "--issue", "FAFF-1", "--mode", "autonomous"], { cwd: main, env: envFor(w) });
+  assertArmLine(r, "spec-review");
+});
+
+test("spec-review-round's config readers pass the probe error through instead of a bare RoundFault", () => {
+  const { main } = makeRepo();
+  const w = makeWrapper();
+  const out = callReader(`require(L + "/spec-review-round.js").configValue(root, "appetite")`, main, envFor(w));
+  assert.deepEqual(out, { threw: "git-probe-failed", name: "MainWorktreeProbeError" });
+});
+
+test("faff holdout record exits 2 with the dispatch line when its config lookup's probe fails", () => {
+  const { main } = makeRepo({ config: null });
+  fs.writeFileSync(path.join(main, "spec.md"), "# s\n\n## 5. SCENARIOS\n\n```\nGiven a\nWhen b\nThen c\n```\n");
+  const block = { aggregate: "meets-spec", code_blind: true, violations: [], criteria: [{ id: "scenarios:1", text: "criterion", holdout: false, class: "scenario", verdict: "met", evidence_present: true, exercised: "x", expected: "y", observed: "y", evidence_ref: null, reason: null }] };
+  const w = makeWrapper();
+  const r = runCli(["holdout", "record", "--issue", "FAFF-1", "--spec", "spec.md"], { cwd: main, env: envFor(w), input: JSON.stringify(block) });
+  assertArmLine(r, "holdout");
+  assert.equal(fs.existsSync(path.join(main, ".faff", "holdout")), false);
+});
+
+test("faff config unset with a failing probe exits 2 and leaves the config byte-identical", () => {
+  const { main } = makeRepo();
+  const cfg = path.join(main, ".faff", "config.yaml");
+  const before = fs.readFileSync(cfg);
+  const w = makeWrapper();
+  const r = runCli(["config", "unset", "tracking.spec_docs_path"], { cwd: main, env: envFor(w) });
+  assertArmLine(r, "config");
+  assert.doesNotMatch(r.stdout, /removed/);
+  assert.ok(fs.readFileSync(cfg).equals(before));
+  const healthy = runCli(["config", "unset", "tracking.spec_docs_path"], { cwd: main, env: envFor(w, "pass") });
+  assert.equal(healthy.code, 0, healthy.stderr);
+  assert.match(healthy.stdout, /removed tracking\.spec_docs_path/);
 });

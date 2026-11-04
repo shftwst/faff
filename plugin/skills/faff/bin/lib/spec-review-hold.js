@@ -357,6 +357,8 @@ function cmdSpecReviewHold(argv) {
         return 0;
     }
     catch (e) {
+        if (roundApi.isProbeFailure(e))
+            throw e; // FAFF-1463: the dispatch arm names git's message
         if (e instanceof LockBusy)
             return fail(4, e.message);
         if (e instanceof HoldFault)

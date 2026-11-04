@@ -34,6 +34,10 @@ function field(o, key) {
 function str(v) {
     return typeof v === "string" ? v : undefined;
 }
+// FAFF-1463: a failed main-checkout probe passes through to the dispatch arm, which names git's message.
+function isProbeFailure(e) {
+    return e instanceof Error && e.message === "git-probe-failed";
+}
 function errText(e) {
     return e instanceof Error ? e.message : String(e);
 }
@@ -301,6 +305,8 @@ function resolvedAppetite(root) {
         data = configApi.loadConfig(root)[0];
     }
     catch (e) {
+        if (isProbeFailure(e))
+            throw e;
         throw new RoundFault(`config unreadable: ${errText(e)}`);
     }
     const v = appetiteApi.resolveAppetite(data, process.env);
@@ -319,6 +325,8 @@ function configValue(root, key) {
         data = configApi.loadConfig(root)[0];
     }
     catch (e) {
+        if (isProbeFailure(e))
+            throw e;
         throw new RoundFault(`config unreadable: ${errText(e)}`);
     }
     let cur = data;
@@ -614,9 +622,11 @@ function cmdSpecReviewRound(argv) {
         return 0;
     }
     catch (e) {
+        if (isProbeFailure(e))
+            throw e;
         if (e instanceof RoundFault)
             return emitFault(json, e.message);
         return emitFault(json, `unexpected: ${errText(e)}`);
     }
 }
-module.exports = { cmdSpecReviewRound, decideRound, runRound, realDeps, namedRunDir, outageAttempt, outagedLenses, verdictBlocks, summarise, readLevel, configValue, parseLimit, RoundFault, ROUND_USAGE, CAUSE };
+module.exports = { cmdSpecReviewRound, isProbeFailure, decideRound, runRound, realDeps, namedRunDir, outageAttempt, outagedLenses, verdictBlocks, summarise, readLevel, configValue, parseLimit, RoundFault, ROUND_USAGE, CAUSE };

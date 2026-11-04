@@ -16,7 +16,6 @@ const { spawnSync } = require("child_process");
 const { parseArgs } = require("./argv");
 const { isCovered } = require("./prose-size");
 const { loadConfig, resolveSpecDocsPath } = require("./config-core");
-const { findConfigIn, findOverlayIn } = require("./shared-infra");
 class CheckError extends Error {
 }
 // FAFF-1463: a failed main-checkout probe passes through to the dispatch arm, which names git's message.
@@ -528,30 +527,6 @@ function readBlobs(git, revs) {
     }
     return texts;
 }
-// The shared config lookup falls back from a linked worktree to the main checkout through
-// `git rev-parse --git-common-dir`, and reads a failure of that call as "no main checkout". So when
-// this checkout lacks its own config or overlay, resolve the common dir here (a failure is exit 2)
-// and refuse when the shared lookup found a different file than the fallback should have: a lost
-// fallback would silently read the default spec docs path and skip the check.
-function verifyConfigLocation(git, repo, cfgPath, overlayPath) {
-    const here = findConfigIn(repo);
-    const hereOverlay = findOverlayIn(repo);
-    let mainRoot = null;
-    if (here === null || hereOverlay === null) {
-        let common = must(git, ["rev-parse", "--git-common-dir"], "rev-parse --git-common-dir").toString("utf8").trim();
-        if (common !== "") {
-            if (!path.isAbsolute(common))
-                common = path.resolve(repo, common);
-            if (path.basename(common) === ".git" && path.resolve(path.dirname(common)) !== path.resolve(repo))
-                mainRoot = path.dirname(common);
-        }
-    }
-    const expect = (local, find) => local !== null ? local.path : mainRoot === null ? null : (find(mainRoot)?.path ?? null);
-    const same = (a, b) => (a === null ? b === null : b !== null && path.resolve(a) === path.resolve(b));
-    if (!same(expect(here, findConfigIn), cfgPath) || !same(expect(hereOverlay, findOverlayIn), overlayPath)) {
-        throw new CheckError("config resolution could not run its git lookup (main-checkout fallback); refusing to guess the spec docs path");
-    }
-}
 // The configured spec docs path as a repo-relative posix prefix: `./records/specs/` and `records//specs`
 // both become `records/specs`. An absolute path or one that leaves the repo is a config error (exit 2).
 function specDocsDir(raw) {
@@ -602,8 +577,8 @@ function check(opts) {
     const changed = parseNameStatus(must(git, ["diff", "-z", "--no-renames", "--no-ext-diff", "--name-status", base, "HEAD"], "diff --name-status"));
     let specDir;
     try {
-        const [cfg, cfgPath, overlayPath] = loadConfig(opts.repo);
-        verifyConfigLocation(git, opts.repo, cfgPath, overlayPath);
+        // A failed main-checkout probe in the shared lookup throws MainWorktreeProbeError (FAFF-1463).
+        const [cfg] = loadConfig(opts.repo);
         specDir = specDocsDir(String(resolveSpecDocsPath(opts.repo, cfg, false)));
     }
     catch (e) {

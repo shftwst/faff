@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1463",
+  "build": {
+    "status": "complete",
+    "diff_hash": "c2e286b96e50087e432d394de9e4ff0ec0f2a5dd18df71a0e15c70de8ada024b",
+    "branch": "FAFF-1463-main-worktree-probe",
+    "pushed_at": "2026-11-04T21:18:47.946Z"
+  },
+  "updated_at": "2026-11-04T21:18:47.946Z"
+}

@@ -1,0 +1,434 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 3,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/config-check.js::config check and spec-review round catch git-probe-failed and drop git's detail",
+      "title": "config check and spec-review round catch git-probe-failed and drop git's detail",
+      "location": "plugin/skills/faff/bin/lib/config-check.js:377",
+      "action": "Rethrow git-probe-failed first in both config-check.js catches and in spec-review-round.ts resolvedAppetite/configValue (or carry e.root/e.detail into the RoundFault), rebuild the emit, and add a test per command.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "config check and spec-review round catch git-probe-failed and drop git's detail",
+          "location": "plugin/skills/faff/bin/lib/config-check.js:377",
+          "severity": "minor",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/config-write.js::config unset writes the change then exits 2 from notekeystillsetelsewhere",
+      "title": "config unset writes the change then exits 2 from noteKeyStillSetElsewhere",
+      "location": "plugin/skills/faff/bin/lib/config-write.js:829",
+      "action": "Resolve the other config/overlay path before writeConfigFile so a probe failure exits 2 with the file unchanged, and test exit 2 plus an unchanged file.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "config unset writes the change then exits 2 from noteKeyStillSetElsewhere",
+          "location": "plugin/skills/faff/bin/lib/config-write.js:829",
+          "severity": "minor",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/profile.js::profile.js and fixtures.js blanket-catch sites absent from the patch",
+      "title": "profile.js and fixtures.js blanket-catch sites absent from the patch",
+      "location": "plugin/skills/faff/bin/lib/profile.js:327",
+      "action": "None: the catch already rethrows unrecognised errors; keep it as is.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Both catches already end in throw e for unrecognised errors, so git-probe-failed reaches the dispatch arm; confirmed by AST census.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "profile.js and fixtures.js blanket-catch sites absent from the patch",
+          "location": "plugin/skills/faff/bin/lib/profile.js:327",
+          "severity": "major",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/merge-gate-gh.js::rungh and the runner-identity readers swallow the probe error",
+      "title": "runGh and the runner-identity readers swallow the probe error",
+      "location": "plugin/skills/faff/bin/lib/merge-gate-gh.js:152",
+      "action": "Add the indirect catches to the proposed resolveRunDir census follow-on ticket rather than this change.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Indirect catch outside the spec's direct-call census; effect is a warned omission of forensic identity or observeForgeMerge's documented fail-closed null state, never a gate on defaults.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "runGh and the runner-identity readers swallow the probe error",
+          "location": "plugin/skills/faff/bin/lib/merge-gate-gh.js:152",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/config-write.js::notekeystillsetelsewhere rethrows after the unset write",
+      "title": "noteKeyStillSetElsewhere rethrows after the unset write",
+      "location": "plugin/skills/faff/bin/lib/config-write.js:829",
+      "action": "Resolve the other path before the write.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "noteKeyStillSetElsewhere rethrows after the unset write",
+          "location": "plugin/skills/faff/bin/lib/config-write.js:829",
+          "severity": "minor",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/shared-infra.js::hasenclosinggitentry resolves git_dir against root",
+      "title": "hasEnclosingGitEntry resolves GIT_DIR against root",
+      "location": "plugin/skills/faff/bin/lib/shared-infra.js:573",
+      "action": "None required; optionally add a comment on the export stating GIT_DIR resolves against root.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Spec section 4.3 pins resolution against root, matching git -C root.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "hasEnclosingGitEntry resolves GIT_DIR against root",
+          "location": "plugin/skills/faff/bin/lib/shared-infra.js:573",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/shared-infra.js::non-zero probe exit with stdout now takes the walk path",
+      "title": "non-zero probe exit with stdout now takes the walk path",
+      "location": "plugin/skills/faff/bin/lib/shared-infra.js:596",
+      "action": "None: the behaviour matches the spec's probe-failure definition.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Spec section 3 defines any non-zero exit as a probe failure; fail-closed direction.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "non-zero probe exit with stdout now takes the walk path",
+          "location": "plugin/skills/faff/bin/lib/shared-infra.js:596",
+          "severity": "observation",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/config-check.js::config check base-lookup rethrow has no biting test; its mutant survives",
+      "title": "config check base-lookup rethrow has no biting test; its mutant survives",
+      "location": "plugin/skills/faff/bin/lib/config-check.js:378",
+      "action": "Add a test with makeRepo({ config: null }) and the failing wrapper running faff config check, asserting assertArmLine(r, \"config\"); add the :378 mutant to the mutation proof.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "config check base-lookup rethrow has no biting test; its mutant survives",
+          "location": "plugin/skills/faff/bin/lib/config-check.js:378",
+          "severity": "minor",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/shared-infra.js::async commands now print the proper line for base-parse-error, legacy-config-name and governance-profile faults",
+      "title": "async commands now print the proper line for base-parse-error, legacy-config-name and governance-profile faults",
+      "location": "plugin/skills/faff/bin/lib/shared-infra.js:846",
+      "action": "None required; optionally mention it in the PR body (exit code unchanged at 2).",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "async commands now print the proper line for base-parse-error, legacy-config-name and governance-profile faults",
+          "location": "plugin/skills/faff/bin/lib/shared-infra.js:846",
+          "severity": "observation",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/decision-capture.js::run-start and run-done exit 0 with a degraded decision capture on a failed probe",
+      "title": "run-start and run-done exit 0 with a degraded decision capture on a failed probe",
+      "location": "plugin/skills/faff/bin/lib/decision-capture.js:563",
+      "action": "Out of scope; file 'decision-capture: carry git's probe detail into the degraded-capture note, and stop mintConsultCorrelationId swallowing a config fault silently'.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Authority-inert, best-effort by its own contract, loud on stderr and in the log note; the read is indirect and outside the spec's direct-call census.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "run-start and run-done exit 0 with a degraded decision capture on a failed probe",
+          "location": "plugin/skills/faff/bin/lib/decision-capture.js:563",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/merge-gate-floor.js::indirect config readers fail closed with a bare token or keep their pre-existing fail-safe defaults",
+      "title": "indirect config readers fail closed with a bare token or keep their pre-existing fail-safe defaults",
+      "location": "plugin/skills/faff/bin/lib/merge-gate-floor.js:218",
+      "action": "Out of scope; file an indirect-reader census ticket (or fold into the resolveRunDir census ticket).",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Outside the spec's direct-call census; fail-closed sites are not silent and fail-safe readers default exactly as before the change, so no fail-open is created.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "indirect config readers fail closed with a bare token or keep their pre-existing fail-safe defaults",
+          "location": "plugin/skills/faff/bin/lib/merge-gate-floor.js:218",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/config-check.js::git-probe-failed string match repeated at six sites instead of a shared predicate",
+      "title": "git-probe-failed string match repeated at six sites instead of a shared predicate",
+      "location": "plugin/skills/faff/bin/lib/config-check.js:378",
+      "action": "None required; a shared isProbeFailure beside MainWorktreeProbeError is an optional later tidy.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Spec 4.2a mandates this exact idiom, matching the dispatch arm's token convention; the token check is cross-module safe.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "git-probe-failed string match repeated at six sites instead of a shared predicate",
+          "location": "plugin/skills/faff/bin/lib/config-check.js:378",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/commissaire::async arm changes rungoverneddispatch's return contract for sync consumers",
+      "title": "async arm changes runGovernedDispatch's return contract for sync consumers",
+      "location": "plugin/skills/faff/bin/commissaire:24",
+      "action": "None: cmdCommissaire is synchronous and the behaviour for a sync consumer is unchanged by the delta.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "cmdCommissaire is documented synchronous; a sync consumer got a promise before the delta too; commissaire-standalone tests pass.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "async arm changes runGovernedDispatch's return contract for sync consumers",
+          "location": "plugin/skills/faff/bin/commissaire:24",
+          "severity": "observation",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/main-worktree-probe.test.mjs::config check base-lookup rethrow now has a biting test; its mutant is killed only by the new case",
+      "title": "config check base-lookup rethrow now has a biting test; its mutant is killed only by the new case",
+      "location": "test/main-worktree-probe.test.mjs:585",
+      "action": "None. The :378 mutant fails exactly this case (62/63); the round-2 suite at 1431dcd6 passes 61/61 against the same mutant, and the :386 mutant is killed separately by the case at :578.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "config check base-lookup rethrow now has a biting test; its mutant is killed only by the new case",
+          "location": "test/main-worktree-probe.test.mjs:585",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": ".faff/runs/run-20261104-133548-graft-FAFF-1463/FAFF-1463/classify.json::classify.json in the run dir predates both spec amendments, so its scenarios:6 text and done:10+ ids are stale",
+      "title": "classify.json in the run dir predates both spec amendments, so its scenarios:6 text and done:10+ ids are stale",
+      "location": ".faff/runs/run-20261104-133548-graft-FAFF-1463/FAFF-1463/classify.json",
+      "action": "Before the holdout re-judges scenario 6, re-run faff dod classify on the amended spec-full.md, not the 13:36 snapshot. Its done:10 is now done:11 in the spec and ac-checklist.json.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "open",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "classify.json in the run dir predates both spec amendments, so its scenarios:6 text and done:10+ ids are stale",
+          "location": ".faff/runs/run-20261104-133548-graft-FAFF-1463/FAFF-1463/classify.json",
+          "severity": "observation",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/main-worktree-probe.test.mjs::the new config check test cannot attribute the dispatch line to the base-lookup catch rather than the overlay catch",
+      "title": "the new config check test cannot attribute the dispatch line to the base-lookup catch rather than the overlay catch",
+      "location": "test/main-worktree-probe.test.mjs:585",
+      "action": "None. Mutation shows it does discriminate: with the :378 rethrow removed, the base catch returns 2 with 'faff config check: git-probe-failed' before the overlay lookup runs, and only this case fails.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Scratch-clone mutants: :378 removed kills only this case; :386 removed kills only the case at :578.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "the new config check test cannot attribute the dispatch line to the base-lookup catch rather than the overlay catch",
+          "location": "test/main-worktree-probe.test.mjs:585",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "records/specs/2026-11-04-FAFF-1463-mainworktreeroot-reads-a-failed-git-call-as-no-main-checkout-so-the-config-fallback-is-silently-skipped-design.md::the spec amendment does not weaken the contract; no other regressions",
+      "title": "the spec amendment does not weaken the contract; no other regressions",
+      "location": "records/specs/2026-11-04-FAFF-1463-mainworktreeroot-reads-a-failed-git-call-as-no-main-checkout-so-the-config-fallback-is-silently-skipped-design.md:270",
+      "action": "None.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "open",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "the spec amendment does not weaken the contract; no other regressions",
+          "location": "records/specs/2026-11-04-FAFF-1463-mainworktreeroot-reads-a-failed-git-call-as-no-main-checkout-so-the-config-fallback-is-silently-skipped-design.md:270",
+          "severity": "observation",
+          "disposition": "open"
+        }
+      ]
+    }
+  ]
+}

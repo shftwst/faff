@@ -1,0 +1,363 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "Inside a repo, a failed `rev-parse --git-common-dir` during the config or overlay fallback makes the command exit 2 with the dispatch arm's stderr line, never a silent default.",
+      "verified": "exit 2 + dispatch line for config get, gates (async), config check, config unset (file unchanged), spec-review round/hold and holdout record",
+      "passed": true,
+      "ac_id": "faff-1463#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::linked worktree, config only in the main checkout, failing probe → exit 2 with the dispatch line, stdout empty"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::main checkout with a config and no overlay, failing probe → exit 2 naming git's message"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::a gate reader reached through runGovernedDispatch exits 2 with the dispatch line, not the default policy"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::faff gates discover and gates run exit 2 with the dispatch line in a main checkout, a linked worktree and with --root"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::faff config check exits 2 with the dispatch line naming git's message"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::faff config check with no config in the checkout exits 2 with the dispatch line from the base lookup"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::faff spec-review round exits 2 with the dispatch line naming git's message"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::faff spec-review hold exits 2 with the dispatch line when its configured limit read fails"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::faff holdout record exits 2 with the dispatch line when its config lookup's probe fails"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::faff config unset with a failing probe exits 2 and leaves the config byte-identical"
+        }
+      ]
+    },
+    {
+      "ac": "`shared-infra.js` exports `MainWorktreeProbeError` (message `\"git-probe-failed\"`, fields `root` and `detail`, `detail` stripped of control characters and capped at 200 characters) and `probeMainWorktree`, following the outcome table in section 3.",
+      "verified": "exported; outcome table rows, detail fields, strip and 200-char cap asserted",
+      "passed": true,
+      "ac_id": "faff-1463#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::probe success: a linked worktree maps to its main checkout; the main checkout maps to itself"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::probe success on a bare repo (common dir not named .git) → null"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::probe failure (fail) inside a repo throws MainWorktreeProbeError with detail \"fatal: injected\""
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::the detail is stripped of control characters and capped at 200 characters"
+        }
+      ]
+    },
+    {
+      "ac": "`mainWorktreeRoot` returns exactly what it returned before for every probe outcome, including `null` on a probe failure.",
+      "verified": "wrapper returns the probe value on success (linked worktree and main checkout) and null on every failure shape",
+      "passed": true,
+      "ac_id": "faff-1463#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::mainWorktreeRoot returns the probe's value on success: the main checkout for a linked worktree and for itself"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::probe failure (silent) inside a repo throws MainWorktreeProbeError with detail \"exited 1 with no output\""
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::probe success on a bare repo (common dir not named .git) → null"
+        }
+      ]
+    },
+    {
+      "ac": "`runGovernedDispatch` maps `\"git-probe-failed\"` to exit 2 with the stderr line in section 3.",
+      "verified": "exit 2 and the exact line for an arbitrary label, sync throw or async rejection; other errors still propagate",
+      "passed": true,
+      "ac_id": "faff-1463#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::runGovernedDispatch maps git-probe-failed to exit 2 with one stderr line, any label"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::runGovernedDispatch maps an async handler's git-probe-failed rejection to exit 2 with the same line"
+        }
+      ]
+    },
+    {
+      "ac": "`worktree-ensure.ts`'s `SharedInfraApi` declares `probeMainWorktree`. The committed `.js` emit and `build-manifest.json` are rebuilt with `npm run build`.",
+      "verified": "SharedInfraApi declares probeMainWorktree; emit + build-manifest rebuilt with npm run build; typecheck rung pass",
+      "passed": true,
+      "ac_id": "faff-1463#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "npx tsc --noEmit -p tsconfig.json"
+        }
+      ]
+    },
+    {
+      "ac": "The in-checkout config or overlay still wins with no git call made.",
+      "verified": "wrapper log shows no --git-common-dir call when the worktree has its own config and overlay",
+      "passed": true,
+      "ac_id": "faff-1463#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::a linked worktree with its own config and overlay never runs the probe"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::a linked worktree whose own overlay does not set the key still never runs the probe"
+        }
+      ]
+    },
+    {
+      "ac": "A healthy linked worktree still falls back to the main checkout's config and overlay, each resolved independently.",
+      "verified": "healthy linked worktree resolves base and overlay independently",
+      "passed": true,
+      "ac_id": "faff-1463#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::the same linked worktree with a healthy git still falls back to the main checkout's config"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::a healthy linked worktree falls back for the base and the overlay independently"
+        }
+      ]
+    },
+    {
+      "ac": "A probe failure with no enclosing `.git` entry reads as `null`; with one, it throws.",
+      "verified": "not a repo → -d default (exit 3); inside a repo → throws",
+      "passed": true,
+      "ac_id": "faff-1463#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::probe failure with no enclosing git entry → null (not a repo)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::not a repo (no .git anywhere, no .faff), failing probe → the -d default, never exit 2"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::probe failure (fail) inside a repo throws MainWorktreeProbeError with detail \"fatal: injected\""
+        }
+      ]
+    },
+    {
+      "ac": "Every blanket-catch caller in section 4.2a rethrows `MainWorktreeProbeError` and keeps its fallback for every other error. The PR lists each site found by the re-census with its disposition.",
+      "verified": "8 swallowers rethrow and keep their fallback for a malformed config; census listed in the PR",
+      "passed": true,
+      "ac_id": "faff-1463#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::gates-config gatesFallbackPolicy rethrows MainWorktreeProbeError instead of falling back to defaults"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::gates-config readGatesConfig rethrows MainWorktreeProbeError instead of falling back to defaults"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::state resolveSpec rethrows MainWorktreeProbeError instead of falling back to defaults"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::bundle resolveClaimTtlHours rethrows MainWorktreeProbeError instead of falling back to defaults"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::gates-doctor readConfiguredInstallTargets rethrows MainWorktreeProbeError instead of falling back to defaults"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::post-merge postMergeCheckEnabled rethrows MainWorktreeProbeError instead of falling back to defaults"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::merge-gate-gh readRunnerGhConfig rethrows MainWorktreeProbeError instead of falling back to defaults"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::config-write resolveOtherConfigPath rethrows MainWorktreeProbeError instead of falling back to defaults"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::gates-config gatesFallbackPolicy keeps its fallback for any other config error"
+        }
+      ]
+    },
+    {
+      "ac": "`gates-config.js`'s knob reader rethrows `MainWorktreeProbeError` rather than returning the default knobs. Shown by the unit test `gates-config gatesFallbackPolicy rethrows MainWorktreeProbeError instead of falling back to defaults` and by the \"`gates-config.js` swallows `MainWorktreeProbeError`\" mutant below.",
+      "verified": "unit test passes and the gates-config.js-swallows mutant is killed; scenario 6 shows gates run exits 2 with one dispatch line and empty stdout",
+      "passed": true,
+      "ac_id": "faff-1463#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::gates-config gatesFallbackPolicy rethrows MainWorktreeProbeError instead of falling back to defaults"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::gates-config readGatesConfig rethrows MainWorktreeProbeError instead of falling back to defaults"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::scenario 6: gates run --json with gates.fallback set exits 2, one dispatch line on stderr, stdout empty"
+        }
+      ]
+    },
+    {
+      "ac": "A non-empty `GIT_DIR` that names an existing path counts as an enclosing git entry, and one naming nothing does not; the walk checks both the given path and its realpath; a filesystem error during the walk counts as an entry existing.",
+      "verified": "existing GIT_DIR counts, missing does not; realpath chain; injected fs error throws",
+      "passed": true,
+      "ac_id": "faff-1463#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::GIT_DIR counts only when it names an existing path, resolved against root when relative"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::a repo whose git dir lives outside the work tree via GIT_DIR, failing probe → exit 2"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::not a repo with GIT_DIR naming a path that does not exist → the -d default, never exit 2"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::--root through a symlink into a repo subdirectory, failing probe → exit 2 (the realpath chain)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::a filesystem error during the walk counts as an enclosing entry, so the probe throws"
+        }
+      ]
+    },
+    {
+      "ac": "The `.git` walk tests `.git` only; a `.faff`-only workspace with a failing probe reads as `null`.",
+      "verified": ".faff-only workspace exit 0 with its own config; .faff below .git still exit 2",
+      "passed": true,
+      "ac_id": "faff-1463#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::the walk tests .git only: a .faff entry never stops it or counts as a repo"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::a .faff-only workspace (no git anywhere), failing probe → its own config, exit 0"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::a subdirectory with its own .faff below the repo's .git, failing probe → exit 2"
+        }
+      ]
+    },
+    {
+      "ac": "`worktree ensure` exits 2 with a `faff worktree ensure:` line naming git's detail when its probe fails, and creates no worktree.",
+      "verified": "exit 2, `faff worktree ensure:` line with fatal: injected, worktree list unchanged, no worktree dir",
+      "passed": true,
+      "ac_id": "faff-1463#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::faff worktree ensure in a linked worktree, failing probe → exit 2 naming git's message, no worktree created"
+        }
+      ]
+    },
+    {
+      "ac": "`faff worktree-root` exits 2 through the dispatch arm when its root-mapping probe fails.",
+      "verified": "exit 2 through the dispatch arm, including when the config lookup needs no git",
+      "passed": true,
+      "ac_id": "faff-1463#done:14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::faff worktree-root --json in a linked worktree, failing probe → exit 2 through the dispatch arm"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::faff worktree-root fails on its own root-mapping probe even when the config lookup needs no git"
+        }
+      ]
+    },
+    {
+      "ac": "`admissibility`, `evidence`, `gates-doctor` and `resolveRunDir` still call `mainWorktreeRoot`, unchanged.",
+      "verified": "source pins on all four callers; resolveRunDir still reads a failed probe as no main checkout",
+      "passed": true,
+      "ac_id": "faff-1463#done:15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::admissibility, evidence, gates-doctor and resolveRunDir still call mainWorktreeRoot"
+        },
+        {
+          "kind": "test",
+          "locator": "test/main-worktree-probe.test.mjs::resolveRunDir keeps reading a failed probe as no main checkout"
+        }
+      ]
+    },
+    {
+      "ac": "`test/main-worktree-probe.test.mjs` covers every scenario in section 5, every row of section 3's outcome table, each probe-failure shape (non-zero exit, spawn error, signal kill, empty stdout) with its `detail`, the injected walk-filesystem error, and the control-character strip and 200-character cap, using the PATH `git` wrapper, and passes under `node --test`. The existing `test/config-under-faff-dir.test.mjs` and `test/resolve-run-dir.test.mjs` pass unchanged.",
+      "verified": "63 cases pass; every section-5 scenario, outcome row, failure shape, walk fault and detail rule covered; config-under-faff-dir and resolve-run-dir unchanged and green in the UNIT rung (405 files)",
+      "passed": true,
+      "ac_id": "faff-1463#done:16",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/main-worktree-probe.test.mjs"
+        },
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test"
+        }
+      ]
+    },
+    {
+      "ac": "A mutation test shows the tests bite. Each of these mutants makes at least one case fail:",
+      "verified": "28/28 mutants killed: the spec's 11, worktree ensure back to mainWorktreeRoot, 7 swallowers each swallowing, detail not stripped, async arm bypassed, config check base and overlay lookups / spec-review round / hold / holdout record converting the token, config unset resolving after the write, mainWorktreeRoot dropping its success value",
+      "passed": true,
+      "ac_id": "faff-1463#done:17",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/main-worktree-probe.test.mjs"
+        }
+      ]
+    }
+  ]
+}

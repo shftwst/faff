@@ -684,6 +684,7 @@ function gitWrapper() {
   const bin = mkdtempSync(join(tmpdir(), "faff-ri-gitwrap-"));
   writeFileSync(join(bin, "git"), `#!/bin/sh
 n=$(( $(cat "$GITWRAP_COUNT" 2>/dev/null || echo 0) + 1 )); echo "$n" > "$GITWRAP_COUNT"
+if [ -n "$GITWRAP_LOG" ]; then printf '%s\t%s\n' "$n" "$*" >> "$GITWRAP_LOG"; fi
 if [ -n "$GITWRAP_MATCH" ]; then case " $* " in *"$GITWRAP_MATCH"*) echo "fatal: injected failure" >&2; exit 128;; esac; fi
 if [ -n "$GITWRAP_NTH" ] && [ "$n" = "$GITWRAP_NTH" ]; then echo "fatal: injected failure" >&2; exit 128; fi
 exec ${JSON.stringify(REAL_GIT)} "$@"
@@ -714,15 +715,19 @@ function linkedWorktree() {
   return { fx, wt };
 }
 
-function runWrapped(cwd, bin, env) {
+function runWrapped(cwd, bin, env, args = ["--base", "origin/main", "--json"]) {
   const count = join(bin, "count");
+  const log = join(bin, "log");
   rmSync(count, { force: true });
-  const r = spawnSync(process.execPath, [CLI, "rule-inventory", "check", "--base", "origin/main", "--json"], {
-    cwd, encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITWRAP_COUNT: count, GITWRAP_MATCH: "", GITWRAP_NTH: "", ...env },
+  rmSync(log, { force: true });
+  const r = spawnSync(process.execPath, [CLI, "rule-inventory", "check", ...args], {
+    cwd, encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITWRAP_COUNT: count, GITWRAP_LOG: log, GITWRAP_MATCH: "", GITWRAP_NTH: "", ...env },
   });
   let calls = 0;
   try { calls = Number(readFileSync(count, "utf8").trim()); } catch { calls = 0; }
-  return { ...r, calls };
+  let commands = [];
+  try { commands = readFileSync(log, "utf8").split("\n").filter(Boolean).map((l) => l.split("\t")[1] ?? ""); } catch { commands = []; }
+  return { ...r, calls, commands };
 }
 
 test("a failed main-checkout lookup in the shared config resolution exits 2, never a no-spec skip (holdout scenarios:21)", () => {
@@ -739,20 +744,79 @@ test("a failed main-checkout lookup in the shared config resolution exits 2, nev
   } finally { fx.cleanup(); rmSync(bin, { recursive: true, force: true }); }
 });
 
-test("failing any single git call the check makes yields a non-zero exit (holdout scenarios:21)", () => {
-  const { fx, wt } = linkedWorktree();
+test("a lost overlay fallback in a linked worktree exits 2 (review round 3: overlay half of the config guard)", () => {
+  const fx = fixture();
+  try {
+    writeFileSync(join(fx.dir, ".faff/config.local.yaml"), "tracking:\n    spec_docs_path: design/specs/\n");
+    const wt = join(fx.root, "wt");
+    sh(fx.dir, "worktree", "add", "-q", "-b", "feat2", wt, "main");
+    const g = readFileSync(join(wt, "plugin/skills/faff-graft/SKILL.md"), "utf8");
+    writeFileSync(join(wt, "plugin/skills/faff-graft/SKILL.md"), g.replace(`${PARA}\n\n`, ""));
+    mkdirSync(join(wt, "design/specs"), { recursive: true });
+    writeFileSync(join(wt, "design/specs/2026-11-04-FAFF-9-x-design.md"), "# FAFF-9\n\nNo inventory.\n");
+    sh(wt, "add", "-A");
+    sh(wt, "commit", "-q", "-m", "change");
+    const bin = gitWrapper();
+    try {
+      const healthy = runWrapped(wt, bin, {});
+      assert.equal(healthy.status, 1, healthy.stdout + healthy.stderr);
+      assert.deepEqual(JSON.parse(healthy.stdout).specs, ["design/specs/2026-11-04-FAFF-9-x-design.md"], "the overlay in the main checkout sets the spec docs path");
+      const broken = runWrapped(wt, bin, { GITWRAP_MATCH: "rev-parse --git-common-dir" });
+      assert.equal(broken.status, 2, broken.stdout + broken.stderr);
+      assert.equal(broken.stdout, "");
+    } finally { rmSync(bin, { recursive: true, force: true }); }
+  } finally { fx.cleanup(); }
+});
+
+// Calls that may still exit 0 when failed, pending the operator's decision on shared-infra.js: in a
+// main checkout, the shared overlay lookup (mainWorktreeRoot) runs `git -C <root> rev-parse
+// --git-common-dir` and reads a failure as "no main checkout". There the fallback target is the
+// checkout itself, so the result is unchanged and the check passes. Listed, not skipped.
+const PENDING_OPERATOR = (cmd) => /^-C \S.* rev-parse --git-common-dir$/.test(cmd);
+
+test("from a passing run, failing any single git call exits 2, with and without --base (holdout scenarios:21)", () => {
+  const fx = fixture();
   const bin = gitWrapper();
   try {
-    const healthy = runWrapped(wt, bin, {});
-    assert.equal(healthy.status, 1, healthy.stdout + healthy.stderr);
-    assert.ok(healthy.calls >= 10, `expected the check to make several git calls, saw ${healthy.calls}`);
-    const zero = [];
-    for (let n = 1; n <= healthy.calls; n++) {
-      const r = runWrapped(wt, bin, { GITWRAP_NTH: String(n) });
-      if (r.status === 0) zero.push(n);
+    sh(fx.dir, "remote", "set-head", "origin", "main");
+    chmodSync(join(fx.dir, "plugin/skills/faff-prep/SKILL.md"), 0o755);
+    fx.edit("plugin/skills/faff-graft/SKILL.md", `${BULLET1}\n`, "")
+      .write(SPEC, spec([row("Push the branch before review so a stall", "test/x.test.mjs: \"x behaves\"", "kept")])).commit();
+    const pending = [];
+    for (const args of [["--base", "origin/main", "--json"], ["--json"]]) {
+      const healthy = runWrapped(fx.dir, bin, {}, args);
+      assert.equal(healthy.status, 0, `${args.join(" ")}: ${healthy.stdout}${healthy.stderr}`);
+      assert.equal(JSON.parse(healthy.stdout).result, "pass");
+      const reached = healthy.commands.join("\n");
+      assert.match(reached, /ls-tree -z \S+ -- plugin\/skills\/faff-prep\/SKILL\.md/, "the mode-only file reaches the blob comparison");
+      assert.match(reached, /ls-tree -z HEAD -- test\/x\.test\.mjs/, "the covering test reaches the blob lookup");
+      if (args.length === 1) assert.match(reached, /for-each-ref .*refs\/remotes\/origin\/HEAD/, "no --base reaches the origin/HEAD probe");
+      const notTwo = [];
+      for (let n = 1; n <= healthy.calls; n++) {
+        const r = runWrapped(fx.dir, bin, { GITWRAP_NTH: String(n) }, args);
+        if (r.status !== 2) notTwo.push({ n, cmd: healthy.commands[n - 1] ?? "", status: r.status });
+      }
+      for (const x of notTwo) {
+        assert.ok(PENDING_OPERATOR(x.cmd), `${args.join(" ")}: failing call ${x.n} (git ${x.cmd}) exited ${x.status}, not 2`);
+        assert.equal(x.status, 0);
+        pending.push(`${args.join(" ")} #${x.n}: git ${x.cmd}`);
+      }
     }
-    assert.deepEqual(zero, [], `git calls whose failure still exited 0: ${zero.join(", ")}`);
+    // Pinned so a change on either side is noticed: exactly one pending call per run, the shared overlay probe.
+    assert.equal(pending.length, 2, pending.join("\n"));
   } finally { fx.cleanup(); rmSync(bin, { recursive: true, force: true }); }
+});
+
+test("without --base, the merge-base uses the full refs/remotes/origin/HEAD, never a local branch named origin/HEAD (review round 3)", () => {
+  const fx = fixture();
+  try {
+    fx.edit("plugin/skills/faff-graft/SKILL.md", `${PARA}\n\n`, "").write(SPEC, spec([])).commit();
+    sh(fx.dir, "remote", "set-head", "origin", "main");
+    sh(fx.dir, "update-ref", "refs/heads/origin/HEAD", "HEAD");
+    const r = fx.run(["--json"]);
+    assert.equal(r.status, 1, r.stdout + r.stderr);
+    assert.equal(JSON.parse(r.stdout).base, sh(fx.dir, "rev-parse", "refs/remotes/origin/main").trim());
+  } finally { fx.cleanup(); }
 });
 
 test("without --base, a failing origin/HEAD lookup is an error, not a no-base skip (holdout scenarios:21)", () => {

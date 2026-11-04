@@ -489,10 +489,16 @@ function parseNameStatus(buf) {
     }
     return out;
 }
-// The blob id of <rev>:<path>, or "" when the path does not exist there.
-function blobId(git, rev, p) {
-    const r = git(["rev-parse", "--verify", "--quiet", `${rev}:${p}`]);
-    return r.status === 0 ? r.stdout.toString("utf8").trim() : "";
+// The tree entry for <rev>:<path> from `git ls-tree -z`, or null when the path is absent there.
+// A failing git call is an error (exit 2), never read as absence.
+function treeEntry(git, rev, p) {
+    const out = must(git, ["--literal-pathspecs", "ls-tree", "-z", rev, "--", p], `ls-tree ${clean(p)}`).toString("utf8");
+    for (const rec of out.split("\0")) {
+        const m = /^\d+ (\S+) ([0-9a-f]+)\t([\s\S]*)$/.exec(rec);
+        if (m && m[3] === p && m[1] !== undefined && m[2] !== undefined)
+            return { type: m[1], id: m[2] };
+    }
+    return null;
 }
 // Read many blobs in one `git cat-file --batch`. A missing object throws.
 function readBlobs(git, revs) {
@@ -582,7 +588,7 @@ function check(opts) {
             res.skipped_reason = "no-base";
             return { result: res, notice: false };
         }
-        base = must(git, ["merge-base", "origin/HEAD", "HEAD"], "merge-base origin/HEAD HEAD").toString("utf8").trim();
+        base = must(git, ["merge-base", "refs/remotes/origin/HEAD", "HEAD"], "merge-base refs/remotes/origin/HEAD HEAD").toString("utf8").trim();
     }
     if (!/^[0-9a-f]{40,64}$/.test(base))
         throw new CheckError("the base did not resolve to a commit");
@@ -615,7 +621,9 @@ function check(opts) {
         if (/^Binary files /m.test(diff) || (diff.trim() !== "" && !/^@@ /m.test(diff))) {
             // No text hunk deletes nothing only when the content is unchanged (a mode-only change) or the
             // base file was empty. Any other content change with no hunk is an error, never a skip.
-            if (blobId(git, base, c.path) === blobId(git, "HEAD", c.path) || (baseTexts[k] ?? "") === "")
+            const before = treeEntry(git, base, c.path);
+            const after = treeEntry(git, "HEAD", c.path);
+            if ((before !== null && after !== null && before.id === after.id) || (baseTexts[k] ?? "") === "")
                 return;
             throw new CheckError(`git reported no text hunks for changed skill prose ${clean(c.path)}`);
         }
@@ -681,8 +689,7 @@ function check(opts) {
                 errs.push(`covering test ${t.file} is not a test/<path>.test.mjs path`);
                 continue;
             }
-            const kind = git(["cat-file", "-t", `HEAD:${t.file}`]);
-            if (kind.status !== 0 || kind.stdout.toString("utf8").trim() !== "blob") {
+            if (treeEntry(git, "HEAD", t.file)?.type !== "blob") {
                 errs.push(`covering test ${t.file} does not exist`);
                 continue;
             }

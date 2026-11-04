@@ -565,6 +565,16 @@ test("faff gates discover and gates run exit 2 with the dispatch line in a main 
   assertArmLine(runCli(["gates", "discover", "--root", main], { cwd: base, env: envFor(w) }), "gates");
 });
 
+test("scenario 6: gates run --json with gates.fallback set exits 2, one dispatch line on stderr, stdout empty", () => {
+  const { main } = makeRepo();
+  fs.writeFileSync(path.join(main, ".faff", "config.yaml"), "gates:\n  fallback: advisory\n");
+  const w = makeWrapper();
+  const r = runCli(["gates", "run", "--json"], { cwd: main, env: envFor(w) });
+  assert.equal(r.code, 2, r.stdout + r.stderr);
+  assert.equal(r.stdout, "");
+  assert.deepEqual(r.stderr.split("\n").filter((l) => l !== ""), [`faff gates: ${PROBE_LINE} ${main}: fatal: injected`]);
+});
+
 test("faff config check exits 2 with the dispatch line naming git's message", () => {
   const { main } = makeRepo();
   const w = makeWrapper();

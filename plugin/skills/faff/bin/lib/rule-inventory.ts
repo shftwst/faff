@@ -15,6 +15,7 @@ const { spawnSync } = require("child_process");
 const { parseArgs } = require("./argv");
 const { isCovered } = require("./prose-size");
 const { loadConfig, resolveSpecDocsPath } = require("./config-core");
+const { findConfigIn, findOverlayIn } = require("./shared-infra");
 
 export type Status = "A" | "M" | "D" | "T" | "U" | "X";
 export type ChangedPath = { status: string; path: string };
@@ -467,6 +468,12 @@ function parseNameStatus(buf: Buffer): ChangedPath[] {
   return out;
 }
 
+// The blob id of <rev>:<path>, or "" when the path does not exist there.
+function blobId(git: GitRun, rev: string, p: string): string {
+  const r = git(["rev-parse", "--verify", "--quiet", `${rev}:${p}`]);
+  return r.status === 0 ? r.stdout.toString("utf8").trim() : "";
+}
+
 // Read many blobs in one `git cat-file --batch`. A missing object throws.
 function readBlobs(git: GitRun, revs: string[]): string[] {
   if (revs.length === 0) return [];
@@ -485,6 +492,30 @@ function readBlobs(git: GitRun, revs: string[]): string[] {
     pos = nl + 1 + size + 1;
   }
   return texts;
+}
+
+// The shared config lookup falls back from a linked worktree to the main checkout through
+// `git rev-parse --git-common-dir`, and reads a failure of that call as "no main checkout". So when
+// this checkout lacks its own config or overlay, resolve the common dir here (a failure is exit 2)
+// and refuse when the shared lookup found a different file than the fallback should have: a lost
+// fallback would silently read the default spec docs path and skip the check.
+function verifyConfigLocation(git: GitRun, repo: string, cfgPath: string | null, overlayPath: string | null): void {
+  const here = findConfigIn(repo);
+  const hereOverlay = findOverlayIn(repo);
+  let mainRoot: string | null = null;
+  if (here === null || hereOverlay === null) {
+    let common = must(git, ["rev-parse", "--git-common-dir"], "rev-parse --git-common-dir").toString("utf8").trim();
+    if (common !== "") {
+      if (!path.isAbsolute(common)) common = path.resolve(repo, common);
+      if (path.basename(common) === ".git" && path.resolve(path.dirname(common)) !== path.resolve(repo)) mainRoot = path.dirname(common);
+    }
+  }
+  const expect = (local: { path: string } | null, find: (b: string) => { path: string } | null): string | null =>
+    local !== null ? local.path : mainRoot === null ? null : (find(mainRoot)?.path ?? null);
+  const same = (a: string | null, b: string | null): boolean => (a === null ? b === null : b !== null && path.resolve(a) === path.resolve(b));
+  if (!same(expect(here, findConfigIn), cfgPath) || !same(expect(hereOverlay, findOverlayIn), overlayPath)) {
+    throw new CheckError("config resolution could not run its git lookup (main-checkout fallback); refusing to guess the spec docs path");
+  }
 }
 
 // The configured spec docs path as a repo-relative posix prefix: `./records/specs/` and `records//specs`
@@ -522,8 +553,10 @@ function check(opts: CheckOptions): { result: CheckResult; notice: boolean } {
     if (r.status !== 0) throw new CheckError(`--base ${clean(opts.base)} names no commit`);
     base = r.stdout.toString("utf8").trim();
   } else {
-    const o = git(["rev-parse", "--verify", "--quiet", "origin/HEAD^{commit}"]);
-    if (o.status !== 0) { res.result = "skipped"; res.skipped_reason = "no-base"; return { result: res, notice: false }; }
+    // for-each-ref exits 0 with no output when origin/HEAD is absent, so only a real absence skips;
+    // a failing git call is an error, never a no-base skip.
+    const head = must(git, ["for-each-ref", "--format=%(refname)", "refs/remotes/origin/HEAD"], "for-each-ref origin/HEAD").toString("utf8").trim();
+    if (head === "") { res.result = "skipped"; res.skipped_reason = "no-base"; return { result: res, notice: false }; }
     base = must(git, ["merge-base", "origin/HEAD", "HEAD"], "merge-base origin/HEAD HEAD").toString("utf8").trim();
   }
   if (!/^[0-9a-f]{40,64}$/.test(base)) throw new CheckError("the base did not resolve to a commit");
@@ -533,7 +566,11 @@ function check(opts: CheckOptions): { result: CheckResult; notice: boolean } {
   // 2. Changed paths.
   const changed = parseNameStatus(must(git, ["diff", "-z", "--no-renames", "--no-ext-diff", "--name-status", base, "HEAD"], "diff --name-status"));
   let specDir: string;
-  try { specDir = specDocsDir(String(resolveSpecDocsPath(opts.repo, loadConfig(opts.repo)[0], false))); } catch (e: unknown) {
+  try {
+    const [cfg, cfgPath, overlayPath] = loadConfig(opts.repo);
+    verifyConfigLocation(git, opts.repo, cfgPath, overlayPath);
+    specDir = specDocsDir(String(resolveSpecDocsPath(opts.repo, cfg, false)));
+  } catch (e: unknown) {
     if (e instanceof CheckError) throw e;
     throw new CheckError(`config unreadable: ${clean(e instanceof Error ? e.message : String(e))}`);
   }
@@ -550,6 +587,9 @@ function check(opts: CheckOptions): { result: CheckResult; notice: boolean } {
     // --text: a binary or -diff attribute, or a NUL byte, must never hide a deletion behind "Binary files differ".
     const diff = must(git, ["--literal-pathspecs", "diff", "-U0", "--text", "--no-renames", "--no-ext-diff", "--no-color", "--no-textconv", base, "HEAD", "--", c.path], `diff ${c.path}`).toString("utf8");
     if (/^Binary files /m.test(diff) || (diff.trim() !== "" && !/^@@ /m.test(diff))) {
+      // No text hunk deletes nothing only when the content is unchanged (a mode-only change) or the
+      // base file was empty. Any other content change with no hunk is an error, never a skip.
+      if (blobId(git, base, c.path) === blobId(git, "HEAD", c.path) || (baseTexts[k] ?? "") === "") return;
       throw new CheckError(`git reported no text hunks for changed skill prose ${clean(c.path)}`);
     }
     candidates.push(...deletedBlocks(c.path, baseTexts[k] ?? "", deletedLines(diff)));

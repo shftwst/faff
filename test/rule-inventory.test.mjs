@@ -6,7 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -545,6 +545,39 @@ test("a watched file whose diff has no text hunk is an error, never a skip (revi
   } finally { fx.cleanup(); }
 });
 
+test("a mode-only change or an empty watched file's deletion deletes nothing; a content change with no hunk still exits 2 (review round 2: no-hunk guard)", () => {
+  const fx = fixture({ "plugin/skills/faff-empty/SKILL.md": "" });
+  try {
+    chmodSync(join(fx.dir, "plugin/skills/faff-graft/SKILL.md"), 0o755);
+    fx.rm("plugin/skills/faff-empty/SKILL.md").write(SPEC, spec([])).commit();
+    const { status, out, stderr } = fx.json();
+    assert.equal(status, 0, stderr);
+    assert.equal(out.skipped_reason, "no-prose-deleted");
+  } finally { fx.cleanup(); }
+  const fy = fixture();
+  try {
+    fy.edit("plugin/skills/faff-graft/SKILL.md", `${PARA}\n\n`, "").write(SPEC, spec([])).commit();
+    const real = (args, input) => {
+      const r = spawnSync("git", ["-c", "core.quotePath=false", ...args], { cwd: fy.dir, input });
+      return { status: r.status ?? 128, stdout: r.stdout, stderr: String(r.stderr) };
+    };
+    const git = (args, input) => (args.includes("-U0") ? { status: 0, stdout: Buffer.from("diff --git a/x b/x\nold mode 100644\nnew mode 100755\n"), stderr: "" } : real(args, input));
+    assert.throws(() => ri.check({ repo: fy.dir, base: "origin/main", git }), ri.CheckError, "content changed, no hunk");
+  } finally { fy.cleanup(); }
+});
+
+test("a heading deleted alone while its one-line paragraph is edited is not exempt (review round 2: pure members)", () => {
+  const fx = fixture({ "plugin/skills/faff-prep/SKILL.md": "# Prep\n\n### Never rebase main\n\nRebasing main rewrites history that every open branch was cut from.\n\n### Next\n\nMore text here for the reader of the prep skill.\n" });
+  try {
+    fx.edit("plugin/skills/faff-prep/SKILL.md", "### Never rebase main\n", "")
+      .edit("plugin/skills/faff-prep/SKILL.md", "was cut from.", "was cut from!")
+      .write(SPEC, spec([row("Rebasing main rewrites history that", "—", "changed: punctuation")])).commit();
+    const { status, out } = fx.json();
+    assert.equal(status, 1, JSON.stringify(out));
+    assert.deepEqual(out.uncovered.map((u) => u.base_line), [3]);
+  } finally { fx.cleanup(); }
+});
+
 test("a reworded heading over a partly edited section is not exempt (review: section exemption)", () => {
   const fx = fixture();
   try {
@@ -639,6 +672,101 @@ test("a watched path with glob characters is matched literally (review: literal 
     assert.equal(out.blocks_deleted, 1, "f[a] deleted nothing");
     assert.equal(out.covered_moved, 0);
   } finally { fx.cleanup(); }
+});
+
+// --- Holdout gap (FAFF-1428 scenarios:21): no failing git call may end in exit 0. ---------------
+
+const REAL_GIT = spawnSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).stdout.trim();
+
+// A PATH `git` wrapper: counts every call in $GITWRAP_COUNT, and fails (exit 128) the call whose
+// arguments contain $GITWRAP_MATCH, or the $GITWRAP_NTH-th call.
+function gitWrapper() {
+  const bin = mkdtempSync(join(tmpdir(), "faff-ri-gitwrap-"));
+  writeFileSync(join(bin, "git"), `#!/bin/sh
+n=$(( $(cat "$GITWRAP_COUNT" 2>/dev/null || echo 0) + 1 )); echo "$n" > "$GITWRAP_COUNT"
+if [ -n "$GITWRAP_MATCH" ]; then case " $* " in *"$GITWRAP_MATCH"*) echo "fatal: injected failure" >&2; exit 128;; esac; fi
+if [ -n "$GITWRAP_NTH" ] && [ "$n" = "$GITWRAP_NTH" ]; then echo "fatal: injected failure" >&2; exit 128; fi
+exec ${JSON.stringify(REAL_GIT)} "$@"
+`);
+  chmodSync(join(bin, "git"), 0o755);
+  return bin;
+}
+
+// A linked worktree whose config lives only (untracked) in the main checkout, with
+// tracking.spec_docs_path: design/specs/. The branch deletes a paragraph and commits a spec with no inventory.
+function linkedWorktree() {
+  const fx = fixture();
+  sh(fx.dir, "checkout", "-q", "main");
+  sh(fx.dir, "rm", "-q", "--cached", ".faff/config.yaml");
+  sh(fx.dir, "commit", "-q", "-m", "untrack config");
+  sh(fx.dir, "push", "-q", "origin", "main");
+  sh(fx.dir, "fetch", "-q", "origin");
+  writeFileSync(join(fx.dir, ".faff/config.yaml"), "tracking:\n    spec_docs_path: design/specs/\n");
+  const wt = join(fx.root, "wt");
+  sh(fx.dir, "worktree", "add", "-q", "-b", "feat2", wt, "main");
+  const g = readFileSync(join(wt, "plugin/skills/faff-graft/SKILL.md"), "utf8");
+  writeFileSync(join(wt, "plugin/skills/faff-graft/SKILL.md"), g.replace(`${PARA}\n\n`, "").replace(`${BULLET1}\n`, ""));
+  mkdirSync(join(wt, "design/specs"), { recursive: true });
+  writeFileSync(join(wt, "design/specs/2026-11-04-FAFF-9-x-design.md"),
+    spec([row("Push the branch before review so a stall", "test/x.test.mjs", "kept")]));
+  sh(wt, "add", "-A");
+  sh(wt, "commit", "-q", "-m", "change");
+  return { fx, wt };
+}
+
+function runWrapped(cwd, bin, env) {
+  const count = join(bin, "count");
+  rmSync(count, { force: true });
+  const r = spawnSync(process.execPath, [CLI, "rule-inventory", "check", "--base", "origin/main", "--json"], {
+    cwd, encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITWRAP_COUNT: count, GITWRAP_MATCH: "", GITWRAP_NTH: "", ...env },
+  });
+  let calls = 0;
+  try { calls = Number(readFileSync(count, "utf8").trim()); } catch { calls = 0; }
+  return { ...r, calls };
+}
+
+test("a failed main-checkout lookup in the shared config resolution exits 2, never a no-spec skip (holdout scenarios:21)", () => {
+  const { fx, wt } = linkedWorktree();
+  const bin = gitWrapper();
+  try {
+    const healthy = runWrapped(wt, bin, {});
+    assert.equal(healthy.status, 1, healthy.stdout + healthy.stderr);
+    assert.deepEqual(JSON.parse(healthy.stdout).specs, ["design/specs/2026-11-04-FAFF-9-x-design.md"]);
+    const broken = runWrapped(wt, bin, { GITWRAP_MATCH: "rev-parse --git-common-dir" });
+    assert.equal(broken.status, 2, broken.stdout + broken.stderr);
+    assert.equal(broken.stdout, "");
+    assert.match(broken.stderr, /^rule-inventory: /m);
+  } finally { fx.cleanup(); rmSync(bin, { recursive: true, force: true }); }
+});
+
+test("failing any single git call the check makes yields a non-zero exit (holdout scenarios:21)", () => {
+  const { fx, wt } = linkedWorktree();
+  const bin = gitWrapper();
+  try {
+    const healthy = runWrapped(wt, bin, {});
+    assert.equal(healthy.status, 1, healthy.stdout + healthy.stderr);
+    assert.ok(healthy.calls >= 10, `expected the check to make several git calls, saw ${healthy.calls}`);
+    const zero = [];
+    for (let n = 1; n <= healthy.calls; n++) {
+      const r = runWrapped(wt, bin, { GITWRAP_NTH: String(n) });
+      if (r.status === 0) zero.push(n);
+    }
+    assert.deepEqual(zero, [], `git calls whose failure still exited 0: ${zero.join(", ")}`);
+  } finally { fx.cleanup(); rmSync(bin, { recursive: true, force: true }); }
+});
+
+test("without --base, a failing origin/HEAD lookup is an error, not a no-base skip (holdout scenarios:21)", () => {
+  const fx = fixture();
+  const bin = gitWrapper();
+  try {
+    fx.edit("plugin/skills/faff-graft/SKILL.md", `${PARA}\n\n`, "").write(SPEC, spec([])).commit();
+    const count = join(bin, "count");
+    const env = { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITWRAP_COUNT: count, GITWRAP_NTH: "" };
+    const ok = spawnSync(process.execPath, [CLI, "rule-inventory", "check", "--json"], { cwd: fx.dir, encoding: "utf8", env: { ...env, GITWRAP_MATCH: "" } });
+    assert.equal(JSON.parse(ok.stdout).skipped_reason, "no-base");
+    const bad = spawnSync(process.execPath, [CLI, "rule-inventory", "check", "--json"], { cwd: fx.dir, encoding: "utf8", env: { ...env, GITWRAP_MATCH: "refs/remotes/origin/HEAD" } });
+    assert.equal(bad.status, 2, bad.stdout + bad.stderr);
+  } finally { fx.cleanup(); rmSync(bin, { recursive: true, force: true }); }
 });
 
 // --- Mutation proof: each rule bites. -------------------------------------------------------------

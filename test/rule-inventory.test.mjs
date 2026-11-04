@@ -508,6 +508,139 @@ test("the CLI registration: a factory command with no selftest", () => {
   assert.equal(r.status, 2);
 });
 
+// --- Review round 1 (FAFF-1428): each case closes an escape the first build allowed. ---------------
+
+const EXAMPLE_HEAD = "### Example\n";
+const EXAMPLE_PARA = "An example paragraph that only illustrates the flow for a reader of this file.";
+
+test("a binary or -diff attribute, or a NUL byte at HEAD, never hides a deletion (review: binary diff)", () => {
+  for (const [label, extra, nul] of [
+    ["*.md -diff attribute", { ".gitattributes": "*.md -diff\n" }, false],
+    ["SKILL.md binary attribute", { ".gitattributes": "SKILL.md binary\n" }, false],
+    ["NUL byte at HEAD", {}, true],
+  ]) {
+    const fx = fixture(extra);
+    try {
+      fx.edit("plugin/skills/faff-graft/SKILL.md", `${PARA}\n\n`, nul ? "\u0000\n\n" : "").write(SPEC, spec([])).commit();
+      const { status, out, stderr } = fx.json();
+      assert.equal(status, 1, `${label}: ${stderr}`);
+      assert.equal(out.uncovered.length, 1, label);
+      assert.equal(out.uncovered[0].base_line, 5, label);
+    } finally { fx.cleanup(); }
+  }
+});
+
+test("a watched file whose diff has no text hunk is an error, never a skip (review: binary diff)", () => {
+  const fx = fixture();
+  try {
+    fx.edit("plugin/skills/faff-graft/SKILL.md", `${PARA}\n\n`, "").write(SPEC, spec([])).commit();
+    const real = (args, input) => {
+      const r = spawnSync("git", ["-c", "core.quotePath=false", ...args], { cwd: fx.dir, input });
+      return { status: r.status ?? 128, stdout: r.stdout, stderr: String(r.stderr) };
+    };
+    for (const fake of ["Binary files a/x and b/x differ\n", "diff --git a/x b/x\nindex 1..2 100644\n"]) {
+      const git = (args, input) => (args.includes("-U0") ? { status: 0, stdout: Buffer.from(fake), stderr: "" } : real(args, input));
+      assert.throws(() => ri.check({ repo: fx.dir, base: "origin/main", git }), ri.CheckError, fake);
+    }
+  } finally { fx.cleanup(); }
+});
+
+test("a reworded heading over a partly edited section is not exempt (review: section exemption)", () => {
+  const fx = fixture();
+  try {
+    fx.edit("plugin/skills/faff-graft/SKILL.md", EXAMPLE_HEAD, "### Merging\n")
+      .edit("plugin/skills/faff-graft/SKILL.md", EXAMPLE_PARA, EXAMPLE_PARA.replace("reader", "Reader"))
+      .write(SPEC, spec([row("An example paragraph that only illustrates", "—", "changed: capitalised")])).commit();
+    const { status, out } = fx.json();
+    assert.equal(status, 1, JSON.stringify(out));
+    assert.equal(out.uncovered.length, 1);
+    assert.equal(out.uncovered[0].base_line, 20, "the heading's base line");
+  } finally { fx.cleanup(); }
+});
+
+test("a renamed table header is not exempt when the table's rows reappear (review: table exemption)", () => {
+  const fx = fixture();
+  try {
+    const g = fx.read("plugin/skills/faff-graft/SKILL.md")
+      .replace("| Token | Action |\n|---|---|\n", "| Signal | Action | Note |\n|---|---|---|\n")
+      .replace("| ready | continue to the next step without asking |", "| ready | continue to the next step without asking | x |")
+      .replace("| park | write the park comment and stop the build |", "| park | write the park comment and stop the build | y |")
+      .replace("| hold | release the claim and requeue the issue |", "| hold | release the claim and requeue the issue | z |");
+    fx.write("plugin/skills/faff-graft/SKILL.md", g).write(SPEC, spec([])).commit();
+    const { status, out } = fx.json();
+    assert.equal(status, 1, JSON.stringify(out));
+    assert.equal(out.covered_moved, 3, "data rows reappear inside the widened rows");
+    assert.deepEqual(out.uncovered.map((u) => u.base_line), [14], "the header row needs a row");
+  } finally { fx.cleanup(); }
+});
+
+test("a section moved to another skill under a new heading is not exempt: its old heading needs a row (review: section exemption)", () => {
+  const fx = fixture();
+  try {
+    fx.edit("plugin/skills/faff-graft/SKILL.md", `${EXAMPLE_HEAD}\n${EXAMPLE_PARA}\n\n`, "")
+      .write("plugin/skills/faff-prep/SKILL.md", `${fx.read("plugin/skills/faff-prep/SKILL.md")}\n### Illustration\n\n${EXAMPLE_PARA}\n`)
+      .write(SPEC, spec([])).commit();
+    const { status, out } = fx.json();
+    assert.equal(status, 1, JSON.stringify(out));
+    assert.equal(out.covered_moved, 1);
+    assert.deepEqual(out.uncovered.map((u) => u.base_line), [20]);
+  } finally { fx.cleanup(); }
+});
+
+test("a heading with an empty section is not exempt when deleted (review: empty section)", () => {
+  const fx = fixture({ "plugin/skills/faff-prep/SKILL.md": "# Prep\n\n### A\n\n### B\n\nSome text under the second heading for a reader.\n" });
+  try {
+    fx.edit("plugin/skills/faff-prep/SKILL.md", "### A\n\n", "").write(SPEC, spec([])).commit();
+    const { status, out } = fx.json();
+    assert.equal(status, 1, JSON.stringify(out));
+    assert.deepEqual(out.uncovered.map((u) => u.base_line), [3]);
+  } finally { fx.cleanup(); }
+});
+
+test("a covering test that is a directory at HEAD does not exist (review: cat-file -t)", () => {
+  const fx = fixture({ "test/dir.test.mjs/inner.txt": "not a test file\n" });
+  try {
+    fx.edit("plugin/skills/faff-graft/SKILL.md", `${BULLET1}\n`, "")
+      .write(SPEC, spec([row("Push the branch before review so a stall", "test/dir.test.mjs", "kept")])).commit();
+    const { status, out } = fx.json();
+    assert.equal(status, 1);
+    assert.ok(out.row_errors.some((e) => e.reason === "covering test test/dir.test.mjs does not exist"), JSON.stringify(out.row_errors));
+  } finally { fx.cleanup(); }
+});
+
+test("spec_docs_path is normalised: ./records/specs/ finds the spec; an absolute path exits 2 (review: spec_docs_path)", () => {
+  const fx = fixture({ ".faff/config.yaml": "tracking:\n    spec_docs_path: ./records/specs/\n" });
+  try {
+    fx.edit("plugin/skills/faff-graft/SKILL.md", `${PARA}\n\n`, "").write(SPEC, "# FAFF-9\n\nNo inventory.\n").commit();
+    const { status, out } = fx.json();
+    assert.equal(status, 1, JSON.stringify(out));
+    assert.deepEqual(out.specs, [SPEC]);
+    fx.write(".faff/config.yaml", "tracking:\n    spec_docs_path: /abs/specs/\n").commit("abs");
+    const r = fx.run(["--base", "origin/main"]);
+    assert.equal(r.status, 2);
+    assert.equal(r.stdout, "");
+  } finally { fx.cleanup(); }
+});
+
+test("a watched path with glob characters is matched literally (review: literal pathspecs)", () => {
+  // `f[a]` as a glob pathspec also matches `fa`, so without --literal-pathspecs fa's hunks would be
+  // read against f[a]'s base text and report a deletion f[a] never had.
+  const fx = fixture({
+    "plugin/skills/f[a]/SKILL.md": "# F\n\nA paragraph in the skill whose directory name holds glob characters.\n",
+    "plugin/skills/fa/SKILL.md": "# F\n\nA paragraph in the plain sibling skill that this branch deletes outright.\n",
+  });
+  try {
+    fx.edit("plugin/skills/fa/SKILL.md", "A paragraph in the plain sibling skill that this branch deletes outright.\n", "")
+      .edit("plugin/skills/f[a]/SKILL.md", "holds glob characters.\n", "holds glob characters.\n\nAn added paragraph.\n")
+      .write(SPEC, spec([])).commit();
+    const { status, out } = fx.json();
+    assert.equal(status, 1, JSON.stringify(out));
+    assert.deepEqual(out.uncovered.map((u) => u.file), ["plugin/skills/fa/SKILL.md"]);
+    assert.equal(out.blocks_deleted, 1, "f[a] deleted nothing");
+    assert.equal(out.covered_moved, 0);
+  } finally { fx.cleanup(); }
+});
+
 // --- Mutation proof: each rule bites. -------------------------------------------------------------
 function mutant(from, to) {
   const src = readFileSync(join(LIB, "rule-inventory.js"), "utf8");

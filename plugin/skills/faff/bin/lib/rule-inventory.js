@@ -118,26 +118,47 @@ function parseBlocks(file, text) {
     return blocks;
 }
 const blockText = (b) => normalise(b.lines.join(" "));
-// Deleted base line numbers from `git diff -U0` hunk headers.
 function deletedLines(diff) {
-    const out = new Set();
-    for (const m of diff.matchAll(/^@@ -(\d+)(?:,(\d+))? \+\d+(?:,\d+)? @@/gm)) {
+    const lines = new Set();
+    const replaced = new Set();
+    for (const m of diff.matchAll(/^@@ -(\d+)(?:,(\d+))? \+\d+(?:,(\d+))? @@/gm)) {
         const start = Number(m[1]);
         const count = m[2] === undefined ? 1 : Number(m[2]);
-        for (let k = 0; k < count; k++)
-            out.add(start + k);
+        const added = m[3] === undefined ? 1 : Number(m[3]);
+        for (let k = 0; k < count; k++) {
+            lines.add(start + k);
+            if (added > 0)
+                replaced.add(start + k);
+        }
     }
-    return out;
+    return { lines, replaced };
 }
 const hasLetter = (s) => /\p{L}/u.test(s);
-// The non-exempt deleted blocks of one watched file.
-function deletedBlocks(file, baseText, deleted) {
+// The deleted blocks of one watched file. A heading or a table header row whose whole section or table
+// is deleted, with nothing added in its place, comes back with a `guard`: the normalised text of the section's or table's other lettered
+// blocks. It is exempt only when none of those reappears at HEAD (the check resolves that against the
+// head blocks): content that reappears means the section or table was rewritten, not removed, so its
+// heading or header change needs a row like any other edit.
+function deletedBlocks(file, baseText, deletions) {
     const blocks = parseBlocks(file, baseText);
+    const deleted = deletions.lines;
+    const pure = (b) => {
+        for (let n = b.start; n <= b.end; n++)
+            if (deletions.replaced.has(n))
+                return false;
+        return true;
+    };
     const touched = (b) => {
         for (let n = b.start; n <= b.end; n++)
             if (deleted.has(n))
                 return true;
         return false;
+    };
+    const whole = (b) => {
+        for (let n = b.start; n <= b.end; n++)
+            if (!deleted.has(n))
+                return false;
+        return true;
     };
     const delText = (b) => {
         const parts = [];
@@ -145,6 +166,17 @@ function deletedBlocks(file, baseText, deleted) {
             if (deleted.has(n))
                 parts.push(b.lines[n - b.start] ?? "");
         return parts.join(" ");
+    };
+    // The guard for a structural block whose group (`members`, excluding the block itself) is wholly
+    // deleted by pure-deletion hunks and holds at least one lettered block; null when it is not exempt.
+    // A hunk that adds lines where the heading or header stood is a rewrite, and a rewrite needs a row.
+    const guardOf = (self, members) => {
+        if (!whole(self) || !members.every(whole))
+            return null;
+        if (!pure(self) || !members.every(pure))
+            return null;
+        const lettered = members.filter((m) => hasLetter(m.lines.join(" ")));
+        return lettered.length === 0 ? null : lettered.map(blockText);
     };
     const out = [];
     for (let i = 0; i < blocks.length; i++) {
@@ -154,54 +186,46 @@ function deletedBlocks(file, baseText, deleted) {
         const text = delText(b);
         if (!hasLetter(text))
             continue; // letterless
+        let guard = null;
         if (b.kind === "table") {
             const t = (b.lines[0] ?? "").trim();
             if (SEPARATOR.test(t))
                 continue; // separator row
-            // A header row: the row directly above a separator. Exempt only when every row of its table is deleted.
+            // A header row: the row directly above a separator. Its table is the contiguous run of rows after it.
             const next = blocks[i + 1];
             if (next !== undefined && next.kind === "table" && next.start === b.end + 1 && SEPARATOR.test((next.lines[0] ?? "").trim())) {
-                let j = i;
-                let all = true;
-                while (j < blocks.length) {
+                const rows = [];
+                for (let j = i + 1; j < blocks.length; j++) {
                     const r = blocks[j];
-                    if (r === undefined || r.kind !== "table" || (j > i && r.start !== (blocks[j - 1]?.end ?? -2) + 1))
+                    if (r === undefined || r.kind !== "table" || r.start !== (blocks[j - 1]?.end ?? -2) + 1)
                         break;
-                    if (!touched(r)) {
-                        all = false;
-                        break;
-                    }
-                    j++;
+                    rows.push(r);
                 }
-                if (all)
-                    continue;
+                guard = guardOf(b, rows);
             }
         }
         if (b.kind === "heading") {
-            // Exempt only when its section (to the next heading of the same or higher level) is non-empty and wholly deleted.
-            let j = i + 1;
-            let any = false;
-            let all = true;
-            while (j < blocks.length) {
+            // Its section runs to the next heading of the same or higher level.
+            const section = [];
+            for (let j = i + 1; j < blocks.length; j++) {
                 const r = blocks[j];
                 if (r === undefined || (r.kind === "heading" && r.level <= b.level))
                     break;
-                any = true;
-                if (!touched(r)) {
-                    all = false;
-                    break;
-                }
-                j++;
+                section.push(r);
             }
-            if (any && all)
-                continue;
+            guard = guardOf(b, section);
         }
         let first = b.start;
         while (first <= b.end && !deleted.has(first))
             first++;
-        out.push({ file, base_line: first, text, norm: normalise(text) });
+        out.push({ file, base_line: first, text, norm: normalise(text), guard });
     }
     return out;
+}
+// Drop the structural blocks whose guard holds: none of the guarded text reappears in a head block.
+function resolveExempt(blocks, headBlocks) {
+    const moved = (t) => headBlocks.some((h) => h.includes(t));
+    return blocks.filter((b) => b.guard === null || b.guard.some(moved));
 }
 // ---------------------------------------------------------------------------
 // Inventory parsing.
@@ -488,6 +512,17 @@ function readBlobs(git, revs) {
     }
     return texts;
 }
+// The configured spec docs path as a repo-relative posix prefix: `./records/specs/` and `records//specs`
+// both become `records/specs`. An absolute path or one that leaves the repo is a config error (exit 2).
+function specDocsDir(raw) {
+    const p = raw.trim().replace(/\\/g, "/");
+    if (p === "" || p.startsWith("/") || /^[A-Za-z]:/.test(p))
+        throw new CheckError(`tracking.spec_docs_path ${clean(raw)} must be a repo-relative path`);
+    const n = path.posix.normalize(p).replace(/^(\.\/)+/, "").replace(/\/+$/, "");
+    if (n === "" || n === "." || n === ".." || n.startsWith("../"))
+        throw new CheckError(`tracking.spec_docs_path ${clean(raw)} must be a directory inside the repo`);
+    return n;
+}
 function emptyResult() {
     return {
         result: "pass", skipped_reason: null, footprint_without_spec: false, base: "", specs: [],
@@ -525,25 +560,44 @@ function check(opts) {
     const changed = parseNameStatus(must(git, ["diff", "-z", "--no-renames", "--no-ext-diff", "--name-status", base, "HEAD"], "diff --name-status"));
     let specDir;
     try {
-        specDir = String(resolveSpecDocsPath(opts.repo, loadConfig(opts.repo)[0], false)).replace(/\/+$/, "");
+        specDir = specDocsDir(String(resolveSpecDocsPath(opts.repo, loadConfig(opts.repo)[0], false)));
     }
     catch (e) {
+        if (e instanceof CheckError)
+            throw e;
         throw new CheckError(`config unreadable: ${clean(e instanceof Error ? e.message : String(e))}`);
     }
     const watched = changed.filter((c) => isWatched(c.path));
     const specs = changed.filter((c) => c.status === "A" && c.path.startsWith(`${specDir}/`) && c.path.endsWith("-design.md")).map((c) => c.path).sort();
     const footprint = changed.some((c) => (c.status === "A" || c.status === "M" || c.status === "T") && c.path.startsWith(ANCHORS_PREFIX));
     res.specs = specs;
-    // 3. Deleted blocks.
-    const deleted = [];
+    // 3. Deleted blocks (structural exemptions still pending their guard).
+    const candidates = [];
     const withBase = watched.filter((c) => c.status !== "A");
     const baseTexts = readBlobs(git, withBase.map((c) => `${base}:${c.path}`));
     withBase.forEach((c, k) => {
-        const diff = must(git, ["diff", "-U0", "--no-renames", "--no-ext-diff", "--no-color", "--no-textconv", base, "HEAD", "--", c.path], `diff ${c.path}`).toString("utf8");
-        deleted.push(...deletedBlocks(c.path, baseTexts[k] ?? "", deletedLines(diff)));
+        // --text: a binary or -diff attribute, or a NUL byte, must never hide a deletion behind "Binary files differ".
+        const diff = must(git, ["--literal-pathspecs", "diff", "-U0", "--text", "--no-renames", "--no-ext-diff", "--no-color", "--no-textconv", base, "HEAD", "--", c.path], `diff ${c.path}`).toString("utf8");
+        if (/^Binary files /m.test(diff) || (diff.trim() !== "" && !/^@@ /m.test(diff))) {
+            throw new CheckError(`git reported no text hunks for changed skill prose ${clean(c.path)}`);
+        }
+        candidates.push(...deletedBlocks(c.path, baseTexts[k] ?? "", deletedLines(diff)));
     });
+    if (candidates.length === 0) {
+        res.result = "skipped";
+        res.skipped_reason = "no-prose-deleted";
+        return { result: res, notice: false };
+    }
+    // 4. Head blocks of every watched file at HEAD; resolve the structural exemptions against them.
+    const tree = must(git, ["ls-tree", "-r", "-z", "--name-only", "HEAD", "--", SKILLS_PREFIX], "ls-tree HEAD");
+    const headPaths = tree.toString("utf8").split("\0").filter((p) => p !== "" && isWatched(p));
+    const headTexts = readBlobs(git, headPaths.map((p) => `HEAD:${p}`));
+    const headBlocks = [];
+    headPaths.forEach((p, k) => { for (const b of parseBlocks(p, headTexts[k] ?? ""))
+        headBlocks.push(blockText(b)); });
+    const deleted = resolveExempt(candidates, headBlocks);
     res.blocks_deleted = deleted.length;
-    // 4–5. Scope.
+    // 5–6. Scope.
     if (deleted.length === 0) {
         res.result = "skipped";
         res.skipped_reason = "no-prose-deleted";
@@ -559,13 +613,6 @@ function check(opts) {
         res.skipped_reason = "no-spec-committed";
         return { result: res, notice: true };
     }
-    // 6. Head blocks of every watched file at HEAD.
-    const tree = must(git, ["ls-tree", "-r", "-z", "--name-only", "HEAD", "--", SKILLS_PREFIX], "ls-tree HEAD");
-    const headPaths = tree.toString("utf8").split("\0").filter((p) => p !== "" && isWatched(p));
-    const headTexts = readBlobs(git, headPaths.map((p) => `HEAD:${p}`));
-    const headBlocks = [];
-    headPaths.forEach((p, k) => { for (const b of parseBlocks(p, headTexts[k] ?? ""))
-        headBlocks.push(blockText(b)); });
     // 7. Rows.
     const rows = [];
     let anySection = false;
@@ -596,7 +643,8 @@ function check(opts) {
                 errs.push(`covering test ${t.file} is not a test/<path>.test.mjs path`);
                 continue;
             }
-            if (git(["cat-file", "-e", `HEAD:${t.file}`]).status !== 0) {
+            const kind = git(["cat-file", "-t", `HEAD:${t.file}`]);
+            if (kind.status !== 0 || kind.stdout.toString("utf8").trim() !== "blob") {
                 errs.push(`covering test ${t.file} does not exist`);
                 continue;
             }
@@ -746,7 +794,7 @@ function cmdRuleInventory(args) {
     return fail2(sub === undefined ? "missing subcommand" : `unknown subcommand ${clean(sub)}`);
 }
 module.exports = {
-    normalise, clean, mdEscape, isWatched, parseBlocks, deletedLines, deletedBlocks, splitRow, firstCodeSpan,
+    normalise, clean, mdEscape, isWatched, specDocsDir, resolveExempt, parseBlocks, deletedLines, deletedBlocks, splitRow, firstCodeSpan,
     parseTests, parseDisposition, parseInventory, covers, parseNameStatus, check, renderText, renderSummary,
     cmdRuleInventory, CheckError, MIN_ANCHOR, SKIP_NOTICE,
 };

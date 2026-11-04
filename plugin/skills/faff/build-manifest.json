@@ -33,7 +33,7 @@
     "bin/lib/producer-auth.ts": "fcaed615b47929a0db1d307553291ac8d15aca206003cdedd5e6807fc3914272",
     "bin/lib/prose-size.ts": "a359145a4d7d807f8b97cfe4e0f84eb03f6091baeaf2fbe658016832b671e9aa",
     "bin/lib/result.ts": "9faed77603fd2095150b6b405444d9fe4c6783a0da9339e8dc6121cb1921c4a3",
-    "bin/lib/rule-inventory.ts": "6823bca9c7ddf78553bc29539a8eda22b8ffd10836ce3f4c8b2e85e97a38c3c6",
+    "bin/lib/rule-inventory.ts": "996c900a6d8d23f55cd9f5e67e7837d673ce2ef151f6d2ee02d22d6172a3debc",
     "bin/lib/run-checkpoint.ts": "9bee010306fced736b573cd2b7f377b08a1be140d1c9fa7ff3ca07405162ea98",
     "bin/lib/run-close.ts": "4f6f57ee9305f04f076285af97953ba0a4c69a37c01288748fac5c38cce97fa4",
     "bin/lib/run-open.ts": "ce538c68a6de316a5d5372c8fe9ec52ea6a25802cbcca2a0e06810569ae0a337",
@@ -66,7 +66,7 @@
     "bin/lib/producer-auth.js": "6ef8d8a93c885992b0f58c3156f1e2df96518cbedd4df95cd7e2b72fa9009baf",
     "bin/lib/prose-size.js": "df29582b5c00b007ad6dd3f135859edae851c540c2f254b5e7cf869981d5c5a7",
     "bin/lib/result.js": "09f1ec919a2ff84a38e1fe1e8ac5ed983ddabb90f75bfa8647cfccce561ff03e",
-    "bin/lib/rule-inventory.js": "62badb46efb867d0a14dca1682b986eb451be7dd9cbb7424d24c50f84336a829",
+    "bin/lib/rule-inventory.js": "15594f470a2f149c089a273b5c0cba58fb93d62c2e944a2a3794ef61fe8f2013",
     "bin/lib/run-checkpoint.js": "55718b976a814ef789c62578a60c3aa44bd1e72de37f04aec242b4166700de35",
     "bin/lib/run-close.js": "ebfdac166fd6586f0fc75ee14967babe5c5e2db68bc8672aac6931760c289ea2",
     "bin/lib/run-open.js": "68f9978aadb0cbaad1887be23443e2667ed1678b12c4403e9cd518c5686a553c",
@@ -78,5 +78,5 @@
     "bin/lib/spec-review-round.js": "b02ecc242ee01d37719f7660252f2ba273abc334b79a6d64d2c40e66cb5bc678",
     "bin/lib/worktree-ensure.js": "e9b115786f6867b8b7835ef11322cf15e37a1dd459ea0dda272da45152da1207"
   },
-  "output_digest": "200e9f2bbd2d75ce61f3e194be5d023acb993a43101f7ce3fd485e314df3dafe"
+  "output_digest": "bc998f8cb847050d0b91d14def9a8b7d5a6938fa5af5bfb6137cfe5372556690"
 }

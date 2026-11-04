@@ -462,6 +462,16 @@ test("a failing git command exits 2, never 0", () => {
   } finally { fx.cleanup(); }
 });
 
+test("an unreadable config exits 2, never a pass", () => {
+  const fx = fixture();
+  try {
+    fx.edit("plugin/skills/faff-graft/SKILL.md", `${PARA}\n\n`, "").write(SPEC, spec([])).write(".faff/config.yaml", "- not\n- a mapping\n").commit();
+    const r = fx.run(["--base", "origin/main"]);
+    assert.equal(r.status, 2, r.stdout + r.stderr);
+    assert.equal(r.stdout, "");
+  } finally { fx.cleanup(); }
+});
+
 test("a changed path under plugin/skills/ that is not valid UTF-8 is an error, never a skip", () => {
   const bad = Buffer.concat([Buffer.from("M\0plugin/skills/x/SKILL"), Buffer.from([0xff, 0xfe]), Buffer.from(".md\0")]);
   assert.throws(() => ri.parseNameStatus(bad), ri.CheckError);

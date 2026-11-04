@@ -19,6 +19,10 @@ const { loadConfig, resolveSpecDocsPath } = require("./config-core");
 const { findConfigIn, findOverlayIn } = require("./shared-infra");
 class CheckError extends Error {
 }
+// FAFF-1463: a failed main-checkout probe passes through to the dispatch arm, which names git's message.
+function isProbeFailure(e) {
+    return e instanceof Error && e.message === "git-probe-failed";
+}
 const SKILLS_PREFIX = "plugin/skills/";
 const ANCHORS_PREFIX = ".faff/anchors/";
 const FORMAT_DOC = "docs/reference/skill-authoring.md#rule-inventory";
@@ -603,7 +607,7 @@ function check(opts) {
         specDir = specDocsDir(String(resolveSpecDocsPath(opts.repo, cfg, false)));
     }
     catch (e) {
-        if (e instanceof CheckError)
+        if (e instanceof CheckError || isProbeFailure(e))
             throw e;
         throw new CheckError(`config unreadable: ${clean(e instanceof Error ? e.message : String(e))}`);
     }
@@ -812,6 +816,8 @@ function cmdCheck(args) {
     catch (e) {
         if (e instanceof CheckError)
             return fail2(e.message);
+        if (isProbeFailure(e))
+            throw e;
         return fail2(`unexpected error: ${clean(e instanceof Error ? e.message : String(e))}`);
     }
     const result = cleanResult(outcome.result);

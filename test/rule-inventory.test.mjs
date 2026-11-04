@@ -730,6 +730,11 @@ function runWrapped(cwd, bin, env, args = ["--base", "origin/main", "--json"]) {
   return { ...r, calls, commands };
 }
 
+// FAFF-1463: the shared config lookup's main-checkout probe (`git -C <root> rev-parse --git-common-dir`)
+// raises MainWorktreeProbeError on failure, and the dispatch arm prints this one line.
+const PROBE_CALL = (cmd) => /^-C \S.* rev-parse --git-common-dir$/.test(cmd);
+const probeLine = (root) => `faff rule-inventory: cannot proceed — git could not resolve the main checkout for ${root}: fatal: injected failure`;
+
 test("a failed main-checkout lookup in the shared config resolution exits 2, never a no-spec skip (holdout scenarios:21)", () => {
   const { fx, wt } = linkedWorktree();
   const bin = gitWrapper();
@@ -740,7 +745,7 @@ test("a failed main-checkout lookup in the shared config resolution exits 2, nev
     const broken = runWrapped(wt, bin, { GITWRAP_MATCH: "rev-parse --git-common-dir" });
     assert.equal(broken.status, 2, broken.stdout + broken.stderr);
     assert.equal(broken.stdout, "");
-    assert.match(broken.stderr, /^rule-inventory: /m);
+    assert.deepEqual(broken.stderr.split("\n").filter(Boolean), [probeLine(wt)]);
   } finally { fx.cleanup(); rmSync(bin, { recursive: true, force: true }); }
 });
 
@@ -768,12 +773,6 @@ test("a lost overlay fallback in a linked worktree exits 2 (review round 3: over
   } finally { fx.cleanup(); }
 });
 
-// Calls that may still exit 0 when failed, pending the operator's decision on shared-infra.js: in a
-// main checkout, the shared overlay lookup (mainWorktreeRoot) runs `git -C <root> rev-parse
-// --git-common-dir` and reads a failure as "no main checkout". There the fallback target is the
-// checkout itself, so the result is unchanged and the check passes. Listed, not skipped.
-const PENDING_OPERATOR = (cmd) => /^-C \S.* rev-parse --git-common-dir$/.test(cmd);
-
 test("from a passing run, failing any single git call exits 2, with and without --base (holdout scenarios:21)", () => {
   const fx = fixture();
   const bin = gitWrapper();
@@ -782,7 +781,7 @@ test("from a passing run, failing any single git call exits 2, with and without 
     chmodSync(join(fx.dir, "plugin/skills/faff-prep/SKILL.md"), 0o755);
     fx.edit("plugin/skills/faff-graft/SKILL.md", `${BULLET1}\n`, "")
       .write(SPEC, spec([row("Push the branch before review so a stall", "test/x.test.mjs: \"x behaves\"", "kept")])).commit();
-    const pending = [];
+    const probes = [];
     for (const args of [["--base", "origin/main", "--json"], ["--json"]]) {
       const healthy = runWrapped(fx.dir, bin, {}, args);
       assert.equal(healthy.status, 0, `${args.join(" ")}: ${healthy.stdout}${healthy.stderr}`);
@@ -791,19 +790,19 @@ test("from a passing run, failing any single git call exits 2, with and without 
       assert.match(reached, /ls-tree -z \S+ -- plugin\/skills\/faff-prep\/SKILL\.md/, "the mode-only file reaches the blob comparison");
       assert.match(reached, /ls-tree -z HEAD -- test\/x\.test\.mjs/, "the covering test reaches the blob lookup");
       if (args.length === 1) assert.match(reached, /for-each-ref .*refs\/remotes\/origin\/HEAD/, "no --base reaches the origin/HEAD probe");
-      const notTwo = [];
       for (let n = 1; n <= healthy.calls; n++) {
+        const cmd = healthy.commands[n - 1] ?? "";
         const r = runWrapped(fx.dir, bin, { GITWRAP_NTH: String(n) }, args);
-        if (r.status !== 2) notTwo.push({ n, cmd: healthy.commands[n - 1] ?? "", status: r.status });
-      }
-      for (const x of notTwo) {
-        assert.ok(PENDING_OPERATOR(x.cmd), `${args.join(" ")}: failing call ${x.n} (git ${x.cmd}) exited ${x.status}, not 2`);
-        assert.equal(x.status, 0);
-        pending.push(`${args.join(" ")} #${x.n}: git ${x.cmd}`);
+        assert.equal(r.status, 2, `${args.join(" ")}: failing call ${n} (git ${cmd}) exited ${r.status}, not 2`);
+        assert.equal(r.stdout, "", `${args.join(" ")}: failing call ${n} (git ${cmd}) wrote stdout`);
+        if (PROBE_CALL(cmd)) {
+          assert.deepEqual(r.stderr.split("\n").filter(Boolean), [probeLine(fx.dir)], `${args.join(" ")}: failing call ${n} (git ${cmd})`);
+          probes.push(`${args.join(" ")} #${n}`);
+        }
       }
     }
-    // Pinned so a change on either side is noticed: exactly one pending call per run, the shared overlay probe.
-    assert.equal(pending.length, 2, pending.join("\n"));
+    // Pinned so a change on either side is noticed: the shared main-checkout probe runs once per run.
+    assert.equal(probes.length, 2, probes.join("\n"));
   } finally { fx.cleanup(); rmSync(bin, { recursive: true, force: true }); }
 });
 

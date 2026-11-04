@@ -63,6 +63,11 @@ export type GitRun = (args: string[], input?: Buffer) => { status: number; stdou
 
 class CheckError extends Error {}
 
+// FAFF-1463: a failed main-checkout probe passes through to the dispatch arm, which names git's message.
+function isProbeFailure(e: unknown): boolean {
+  return e instanceof Error && e.message === "git-probe-failed";
+}
+
 const SKILLS_PREFIX = "plugin/skills/";
 const ANCHORS_PREFIX = ".faff/anchors/";
 const FORMAT_DOC = "docs/reference/skill-authoring.md#rule-inventory";
@@ -576,7 +581,7 @@ function check(opts: CheckOptions): { result: CheckResult; notice: boolean } {
     verifyConfigLocation(git, opts.repo, cfgPath, overlayPath);
     specDir = specDocsDir(String(resolveSpecDocsPath(opts.repo, cfg, false)));
   } catch (e: unknown) {
-    if (e instanceof CheckError) throw e;
+    if (e instanceof CheckError || isProbeFailure(e)) throw e;
     throw new CheckError(`config unreadable: ${clean(e instanceof Error ? e.message : String(e))}`);
   }
   const watched = changed.filter((c) => isWatched(c.path));
@@ -750,6 +755,7 @@ function cmdCheck(args: string[]): number {
   let outcome: { result: CheckResult; notice: boolean };
   try { outcome = check({ repo, base }); } catch (e: unknown) {
     if (e instanceof CheckError) return fail2(e.message);
+    if (isProbeFailure(e)) throw e;
     return fail2(`unexpected error: ${clean(e instanceof Error ? e.message : String(e))}`);
   }
   const result = cleanResult(outcome.result);

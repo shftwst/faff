@@ -843,10 +843,13 @@ function noteKeyStillSetElsewhere(root, editedLocal, segments, key) {
       const shown = isInsideRoot(root, otherPath) ? toPosix(path.relative(root, otherPath)) : otherPath;
       process.stderr.write(`note: ${key} is still set in ${shown}; faff config get reads the merged value.\n`);
     }
-  } catch { /* best-effort: the note never changes the outcome */ }
+  } catch (e) {
+    if (e && e.message === "git-probe-failed") throw e; // FAFF-1463: a failed main-checkout probe is never skipped
+    /* best-effort: the note never changes the outcome */
+  }
 }
 
 // In-memory self-test for removeConfigPath and verifyUnset. Every editing case asserts the exact
 // edited text, because the round-trip proof cannot see comment or blank-line damage.
 
-module.exports = { cmdConfigInit, cmdConfigSet, cmdConfigUnset, emitChainBlock, emitScalar, emitTrackingBlock, INIT_HEADER, isSequenceValuedKey, locationNoticeText, mergeConfigPath, mergeTrackingBlock, printLocationNotice, RECOGNISED_NAMESPACES, removeConfigPath, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, verifyUnset, WRITABLE_NAMESPACES };
+module.exports = { cmdConfigInit, noteKeyStillSetElsewhere, cmdConfigSet, cmdConfigUnset, emitChainBlock, emitScalar, emitTrackingBlock, INIT_HEADER, isSequenceValuedKey, locationNoticeText, mergeConfigPath, mergeTrackingBlock, printLocationNotice, RECOGNISED_NAMESPACES, removeConfigPath, SEQUENCE_VALUED_KEYS, TRACKING_KEYS, verifyUnset, WRITABLE_NAMESPACES };

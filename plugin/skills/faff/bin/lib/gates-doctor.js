@@ -181,7 +181,8 @@ function readConfiguredInstallTargets(root, home) {
       if (expanded) out.push(expanded);
     }
     return out;
-  } catch {
+  } catch (e) {
+    if (e && e.message === "git-probe-failed") throw e; // FAFF-1463: a failed main-checkout probe is never a default
     return [];
   }
 }
@@ -672,4 +673,4 @@ function cmdSync(args) {
   return r.status === 0 ? 0 : (r.status === 2 ? 2 : 1);
 }
 
-module.exports = { assertScanSetExpectCopiesInvariant, buildDoctorJson, cmdDoctor, cmdSync, doctorResultLine, gatherDoctorState, hookSettingsAt, mergeFencePresentAt, resolveDoctorScanSet, resolveSyncScript, scanDoctorDirectory };
+module.exports = { assertScanSetExpectCopiesInvariant, readConfiguredInstallTargets, buildDoctorJson, cmdDoctor, cmdSync, doctorResultLine, gatherDoctorState, hookSettingsAt, mergeFencePresentAt, resolveDoctorScanSet, resolveSyncScript, scanDoctorDirectory };

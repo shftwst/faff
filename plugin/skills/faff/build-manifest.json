@@ -42,7 +42,7 @@
     "bin/lib/spec-commit.ts": "bf42fe6bfbc1d6bab90726bcc13f42e8323433a7f1b439144a9b157bee7366a5",
     "bin/lib/spec-review-hold.ts": "13ae0305154493c7b141febc049dfb6de687fabad4ee286017e0a01772579b67",
     "bin/lib/spec-review-round.ts": "9242d61780c9ada1cc3b3f6f8069db0d78002aa251ab3e5bd9a40f03520a0bd8",
-    "bin/lib/worktree-ensure.ts": "b86c68c74977c3b9dd44f97af7078a4a4e920e850da8f6c9e02a2bfc36a3828c"
+    "bin/lib/worktree-ensure.ts": "89de70644056375dbc406bcaaffab0aff02605ff61648f551339c418fdaa0725"
   },
   "outputs": {
     "bin/lib/commissaire-governor-client.js": "9e14c9ebe762d860b0249f853dd308a4abc3ef9d3e92a416d1ad8decd44d0885",
@@ -74,7 +74,7 @@
     "bin/lib/spec-commit.js": "a67e16c5350409137c63faa17ba1d0458cfea84414e9f42814caa92574cb4d58",
     "bin/lib/spec-review-hold.js": "7b211c4a49ba3042c0e73469e502f3c1fcd87708aec12b359313063094f46e37",
     "bin/lib/spec-review-round.js": "74e440f169877e32bfb2c2bb2d7c28e163fdbdabbb1749c868376aa625c65f59",
-    "bin/lib/worktree-ensure.js": "f8cca3880167caf0315d694182e6bdf7fcb47cd65fbe3db250468f3d858c2269"
+    "bin/lib/worktree-ensure.js": "e9b115786f6867b8b7835ef11322cf15e37a1dd459ea0dda272da45152da1207"
   },
-  "output_digest": "cbb50bae20dd20eee3949f204be85d657be1b626e2931d016cfc234e2d191c48"
+  "output_digest": "687244a6f8a623beeb9f371cf6fbf5c5ea499f26fa9f424ee4088c1323a841b1"
 }

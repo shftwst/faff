@@ -13,7 +13,9 @@ function gatesFallbackPolicy(root) {
     const [data] = loadConfig(root);
     const v = dig(data, "gates.fallback");
     if (v === "advisory") return "advisory";
-  } catch { /* default */ }
+  } catch (e) {
+    if (e && e.message === "git-probe-failed") throw e; // FAFF-1463: a failed main-checkout probe is never a default
+  }
   return "fail-closed";
 }
 
@@ -21,7 +23,7 @@ function gatesFallbackPolicy(root) {
 // each defaulting on absent/malformed. gates.exclude is a list read via dig (not a DEFAULTS scalar).
 function readGatesConfig(root) {
   let data = {};
-  try { [data] = loadConfig(root); } catch { data = {}; }
+  try { [data] = loadConfig(root); } catch (e) { if (e && e.message === "git-probe-failed") throw e; data = {}; } // FAFF-1463
   const get = (k) => { try { return dig(data, k); } catch { return undefined; } };
   const fallback = get("gates.fallback") === "advisory" ? "advisory" : "fail-closed";
   const partial = get("gates.partial") === "needs-human" ? "needs-human" : "warn";

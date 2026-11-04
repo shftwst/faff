@@ -550,18 +550,66 @@ function isInsideRoot(root, p) {
   return rel !== "" && rel !== ".." && !rel.startsWith(".." + path.sep) && !path.isAbsolute(rel);
 }
 
+// FAFF-1463: a failed main-checkout probe inside a repo. The message is the
+// "git-probe-failed" token runGovernedDispatch branches on (like "base-parse-error"),
+// so every command whose config lookup throws it exits 2 with one stderr line.
+class MainWorktreeProbeError extends Error {
+  constructor(root, detail) {
+    super("git-probe-failed");
+    this.name = "MainWorktreeProbeError";
+    this.root = root;
+    this.detail = String(detail).replace(/[\u0000-\u001f\u007f-\u009f]/g, "").slice(0, 200);
+  }
+}
+
+const isNotFound = (e) => !!e && (e.code === "ENOENT" || e.code === "ENOTDIR");
+
+// FAFF-1463: is there a `.git` entry at `root` or any ancestor, on the path as given or
+// its realpath, or an existing GIT_DIR? Tests `.git` only (never `.faff`, unlike findRoot).
+// Any filesystem error other than not-found counts as an entry, so a fault can only push
+// the probe toward throwing, never toward a silent null. `fsx` is injectable for tests.
+function hasEnclosingGitEntry(root, env = process.env, fsx = fs) {
+  const given = path.resolve(root);
+  if (env.GIT_DIR) {
+    try { fsx.lstatSync(path.resolve(given, env.GIT_DIR)); return true; } catch (e) { if (!isNotFound(e)) return true; }
+  }
+  let real;
+  try { real = fsx.realpathSync(given); } catch { return true; }
+  for (const start of new Set([given, real])) {
+    for (let d = start; ; d = path.dirname(d)) {
+      try { fsx.lstatSync(path.join(d, ".git")); return true; } catch (e) { if (!isNotFound(e)) return true; }
+      if (path.dirname(d) === d) break;
+    }
+  }
+  return false;
+}
+
 // FAFF-208: the MAIN worktree's root for a linked git worktree, resolved via git's
 // shared common-dir. Returns null outside a repo, on a bare/odd layout, or when `root`
 // already IS the main checkout — so the fallback below only ever fires for a linked
 // worktree and never changes main-checkout behaviour. Read-only git.
-function mainWorktreeRoot(root) {
+// FAFF-1463: a probe failure (non-zero exit, spawn error, signal, empty stdout) is null
+// only when no enclosing git entry exists (not a repo); inside a repo it throws
+// MainWorktreeProbeError rather than reading as "no main checkout".
+function probeMainWorktree(root, deps = {}) {
   const r = spawnSync("git", ["-C", root, "rev-parse", "--git-common-dir"], { encoding: "utf8" });
-  if (r.status !== 0) return null;
-  let commonDir = (r.stdout || "").trim();
-  if (!commonDir) return null;
+  let commonDir = r.status === 0 ? (r.stdout || "").trim() : "";
+  if (!commonDir) {
+    if (!hasEnclosingGitEntry(root, deps.env || process.env, deps.fs || fs)) return null;
+    const stderrLine = (r.stderr || "").split("\n").map((l) => l.trim()).find((l) => l !== "");
+    const detail = stderrLine || (r.error && r.error.message)
+      || (r.signal ? `killed by ${r.signal}` : `exited ${r.status} with no output`);
+    throw new MainWorktreeProbeError(path.resolve(root), detail);
+  }
   if (!path.isAbsolute(commonDir)) commonDir = path.resolve(root, commonDir);
   // `<main>/.git` for a normal repo; the main checkout is its parent. Bail on bare repos.
   return path.basename(commonDir) === ".git" ? path.dirname(commonDir) : null;
+}
+
+// The null-on-failure wrapper, for callers whose null already fails closed (FAFF-1463 §4.2).
+function mainWorktreeRoot(root) {
+  try { return probeMainWorktree(root); }
+  catch (e) { if (e instanceof MainWorktreeProbeError) return null; throw e; }
 }
 
 // FAFF-1385: the exclude file `gitignore-ensure --local` writes to, resolved through
@@ -627,7 +675,7 @@ function resolveRunDir(root, run, rootExplicit) {
 function findLocationWithMainFallback(root, findIn) {
   const here = findIn(root);
   if (here) return here;
-  const mainRoot = mainWorktreeRoot(root);
+  const mainRoot = probeMainWorktree(root);
   if (mainRoot && path.resolve(mainRoot) !== path.resolve(root)) return findIn(mainRoot);
   return null;
 }
@@ -781,6 +829,10 @@ function runGovernedDispatch(label, handler, args) {
       process.stderr.write(`faff ${label}: cannot proceed — ${e.file} is malformed (${e.detail}).\n`);
       return 2;
     }
+    if (e && e.message === "git-probe-failed") {
+      process.stderr.write(`faff ${label}: cannot proceed — git could not resolve the main checkout for ${e.root}: ${e.detail}\n`);
+      return 2;
+    }
     if (e && e.message === "legacy-config-name") {
       const names = (e.legacy || []).join(", ");
       process.stderr.write(`faff ${label}: cannot proceed — legacy config filename (${names}); rename to ${CANONICAL_CONFIG}.\n`);
@@ -822,4 +874,4 @@ function writeOwnerOnlyJson(target, value) {
   }
 }
 
-module.exports = { CANONICAL_CONFIG, CANONICAL_EXAMPLE_CONFIG, CANONICAL_OVERLAY_CONFIG, CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, DEPRECATED_CONFIG, DEPRECATED_OVERLAY_CONFIG, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG, RUN_HEARTBEAT_STALE_SECS_DEFAULT, SELF_INTAKE_REASONS, cliPosixGuard, containerParent, decideSelfIntake, deepMergeConfig, dig, ensureOwnerOnlyDir, findConfig, findConfigIn, findConfigLocation, findNamedIn, findOverlay, findOverlayIn, findOverlayLocation, findRoot, homeDir, isInsideRoot, isPlainConfigMap, isSafeAnchorRelPath, latestRunDir, mainWorktreeRoot, normalizeSelfIntakeSelf, normalizeSelfIntakeTarget, parseAncestry, parseConfigMapStrict, parseOverlayStrict, parseYamlSubset, readBaseConfigStrict, readLedger, requiresSelfConsistencyStamp, resolveInfoExcludeFile, resolveLedgerOrFault, resolveRunDir, runGovernedDispatch, selectNamed, scalar, sortRunDirsByMtimeDesc, stripInlineComment, subtreeContains, writeOwnerOnlyJson, HERE, ENTRYPOINT };
+module.exports = { CANONICAL_CONFIG, CANONICAL_EXAMPLE_CONFIG, CANONICAL_OVERLAY_CONFIG, CONTAIN_ENTRY_TYPES, CONTAIN_ROOT, DEPRECATED_CONFIG, DEPRECATED_OVERLAY_CONFIG, LEGACY_CONFIG, LEGACY_OVERLAY_CONFIG, MainWorktreeProbeError, RUN_HEARTBEAT_STALE_SECS_DEFAULT, SELF_INTAKE_REASONS, cliPosixGuard, containerParent, decideSelfIntake, deepMergeConfig, dig, ensureOwnerOnlyDir, findConfig, findConfigIn, findConfigLocation, findNamedIn, findOverlay, findOverlayIn, findOverlayLocation, findRoot, hasEnclosingGitEntry, homeDir, isInsideRoot, isPlainConfigMap, isSafeAnchorRelPath, latestRunDir, mainWorktreeRoot, normalizeSelfIntakeSelf, normalizeSelfIntakeTarget, parseAncestry, parseConfigMapStrict, parseOverlayStrict, parseYamlSubset, probeMainWorktree, readBaseConfigStrict, readLedger, requiresSelfConsistencyStamp, resolveInfoExcludeFile, resolveLedgerOrFault, resolveRunDir, runGovernedDispatch, selectNamed, scalar, sortRunDirsByMtimeDesc, stripInlineComment, subtreeContains, writeOwnerOnlyJson, HERE, ENTRYPOINT };

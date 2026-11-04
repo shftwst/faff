@@ -22,7 +22,7 @@ const { findRoot, readLedger, sortRunDirsByMtimeDesc } = require("./shared-infra
 function resolveSpec(root, issue) {
   const candidates = [];
   let specDir;
-  try { specDir = resolveSpecDocsPath(root, loadConfig(root)[0], false); } catch { specDir = null; }
+  try { specDir = resolveSpecDocsPath(root, loadConfig(root)[0], false); } catch (e) { if (e && e.message === "git-probe-failed") throw e; specDir = null; } // FAFF-1463
   if (specDir) {
     const dir = path.join(root, specDir);
     try {

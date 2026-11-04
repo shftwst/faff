@@ -1,0 +1,219 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 4,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "Section 3 defines the enclosing-git-entry walk as \"a filesystem walk the same shape as `findRoot`'s\", but `findRoot` (supplied `shared-infra.js`) stops at `.git` **or** `.faff`. The prose definition correctly says the enclosing entry is \"a `.git` file or directory\", but the shape reference invites the builder to reuse the walk verbatim — including the `.faff` marker. Under that misread, a `.faff`-only workspace (no git anywhere — a layout `findRoot` explicitly supports, and one where the probe always fails because `rev-parse` runs outside any repo) classifies as \"enclosing git entry exists\" and throws, so every config-reading command exits 2 in a workspace that has no main checkout to fall back to and never needed the probe at all. That inverts the fix into a new silent-failure class: an environment-level refusal in a legitimately git-less faff workspace.",
+      "evidence": "spec §3 \"Enclosing git entry\" + \"a filesystem walk the same shape as `findRoot`'s\"; supplied `shared-infra.js` `findRoot` accepts `path.join(d, \".faff\")` as a repo marker. The spec's own non-repo holdout fixture (§5, scenario 4) conspicuously requires \"no .faff directory\", showing the author knew the two markers are adjacent — but the spec never states the walk must test `.git` only.",
+      "predicted_consequence": "a build that reuses `findRoot`'s loop makes every faff command exit 2 inside a `.faff`-only workspace; the regression surfaces as the dispatch arm's \"git could not resolve the main checkout\" in a directory where there is no checkout to resolve.",
+      "spec_anchor": "what-types-and-interfaces",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed after round 1: §3 'Enclosing git entry' and §4.3 now say the walk tests `.git` only and never stops at `.faff`, and deliberately does not reuse `findRoot`; scenario 'a .faff/config.yaml in a dir with no .git' pins exit 0 and the '.faff stop' mutant is listed. Re-reviewed in rounds 2-4 with no carried objection.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "Section 3 defines the enclosing-git-entry walk as \"a filesystem walk the same shape as `findRoot`'s\", but `findRoot` (supplied `shared-infra.js`) stops at `.git` **or** `.faff`. The prose definition correctly says the enclosing entry is \"a `.git` file or directory\", but the shape reference invites the builder to reuse the walk verbatim — including the `.faff` marker. Under that misread, a `.faff`-only workspace (no git anywhere — a layout `findRoot` explicitly supports, and one where the probe always fails because `rev-parse` runs outside any repo) classifies as \"enclosing git entry exists\" and throws, so every config-reading command exits 2 in a workspace that has no main checkout to fall back to and never needed the probe at all. That inverts the fix into a new silent-failure class: an environment-level refusal in a legitimately git-less faff workspace.",
+          "spec_anchor": "what-types-and-interfaces"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The DONE list requires \"`lights-out` exits 2 through the dispatch arm when its root-mapping probe fails\", but no scenario in section 5 exercises `lights-out` at all — every scenario targets `config get` or `worktree ensure`. A build could satisfy every scenario and leave the `lights-out.js` adoption unwired (or wired to the wrong call site), and all named tests would still pass.",
+      "evidence": "DONE item under \"From HOW (behaviour)\"; section 5 contains no `lights-out` scenario; section 4.2's table row for `lights-out.js` is the only statement of the behaviour.",
+      "predicted_consequence": "done cannot be decided for the `lights-out` DONE item by any scenario the spec ships; the mutation list also would not catch its omission (none of the four mutants is \"lights-out keeps `mainWorktreeRoot`\").",
+      "spec_anchor": "done-definition-of-done",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed after round 1: §5 adds the `faff worktree-root --json` scenario in a linked worktree (exit 2, dispatch-arm line), and the DONE mutation list adds 'cmdWorktreeRoot goes back to mainWorktreeRoot'. Re-reviewed in rounds 2-4 with no carried objection.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The DONE list requires \"`lights-out` exits 2 through the dispatch arm when its root-mapping probe fails\", but no scenario in section 5 exercises `lights-out` at all — every scenario targets `config get` or `worktree ensure`. A build could satisfy every scenario and leave the `lights-out.js` adoption unwired (or wired to the wrong call site), and all named tests would still pass.",
+          "spec_anchor": "done-definition-of-done"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "Scenario 6's `Then` asserts \"the wrapper, which logs its arguments, recorded no --git-common-dir call\", but section 4.5 defines the PATH `git` wrapper only as one that \"exits 128 … when its arguments include `--git-common-dir`, and otherwise runs the real `git`\" — no logging/recording behaviour is specified. As written, the fixture for scenario 6 is a different, unspecified program, and the \"no git call made\" DONE item (\"The in-checkout config or overlay still wins with no git call made\") has no decidable oracle under the harness the spec defines.",
+      "evidence": "section 4.5 wrapper definition vs. scenario 6's final `Then` and the first DONE item under \"From HOW (behaviour)\".",
+      "predicted_consequence": "the tester cannot state what to run for the no-call assertion without inventing fixture behaviour the spec never pinned; two builders could implement different wrappers and both claim the DONE item.",
+      "spec_anchor": "how-behaviour",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed after round 1: §4.5 now defines the PATH git wrapper as appending its full argument list to a log file named by an environment variable, and the 'no git call made' checks read that log. Re-reviewed in rounds 2-4 with no carried objection.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "Scenario 6's `Then` asserts \"the wrapper, which logs its arguments, recorded no --git-common-dir call\", but section 4.5 defines the PATH `git` wrapper only as one that \"exits 128 … when its arguments include `--git-common-dir`, and otherwise runs the real `git`\" — no logging/recording behaviour is specified. As written, the fixture for scenario 6 is a different, unspecified program, and the \"no git call made\" DONE item (\"The in-checkout config or overlay still wins with no git call made\") has no decidable oracle under the harness the spec defines.",
+          "spec_anchor": "how-behaviour"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "Section 4.3's chosen discriminator — walk up from `root` looking for a `.git` entry — misclassifies a real repository whose git directory is supplied by `GIT_DIR` (or an equivalent external handle) rather than an on-disk `.git` entry. In that layout a genuine probe failure (dubious ownership, git missing from PATH) finds no `.git` entry, so `probeMainWorktree` returns `null`, and the config lookup silently resolves to defaults — exactly the silent gate-degradation the spec's first principle (\"A git failure inside a repo is an error, never an absence\") exists to close. The spec's own rationale for rejecting a filesystem guess at the main-checkout layout names `GIT_DIR` as the defeating case, but the chosen `.git` walk is defeated by the same variable for the in-repo question; the rationale undercuts the decision it supports.",
+      "evidence": "Section 4.3 (\"**Chosen:** the filesystem decides… It deliberately does not reuse `findRoot`\") vs. section 6 (\"which `GIT_DIR` and separate-git-dir layouts can defeat\").",
+      "predicted_consequence": "On a `GIT_DIR`-driven checkout with a broken git environment, `faff config get` and every config-reading command exit 0 on defaults with nothing on stderr — the FAFF-198/FAFF-208 silent-degradation posture this ticket is meant to eliminate survives in that layout, and FAFF-1428's exit-0 prohibition (the stated motivation) is not actually met there.",
+      "spec_anchor": "how-telling-not-a-repo-from-git-failed",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed after round 2: §4.3 counts a `GIT_DIR` naming an existing path as an enclosing git entry; §5 adds the moved-.git + exported GIT_DIR scenario (exit 2) and the DONE mutant 'GIT_DIR is ignored by the walk'. Round 4 refined it further (4#0).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "Section 4.3's chosen discriminator — walk up from `root` looking for a `.git` entry — misclassifies a real repository whose git directory is supplied by `GIT_DIR` (or an equivalent external handle) rather than an on-disk `.git` entry. In that layout a genuine probe failure (dubious ownership, git missing from PATH) finds no `.git` entry, so `probeMainWorktree` returns `null`, and the config lookup silently resolves to defaults — exactly the silent gate-degradation the spec's first principle (\"A git failure inside a repo is an error, never an absence\") exists to close. The spec's own rationale for rejecting a filesystem guess at the main-checkout layout names `GIT_DIR` as the defeating case, but the chosen `.git` walk is defeated by the same variable for the in-repo question; the rationale undercuts the decision it supports.",
+          "spec_anchor": "how-telling-not-a-repo-from-git-failed"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The spec makes `MainWorktreeProbeError` propagate through `findConfigLocation`, `findOverlayLocation`, `findConfig`, `findOverlay` and `loadConfig` (section 4.1), while explicitly leaving the blanket-catch callers unchanged (section 2: `gates-config.js`, `state.js`, `profile.js`, `fixtures.js`, `bundle.js`, `conventions.js`, `validate-adapters.js`). The spec's rationale — \"they already swallow a malformed config the same way; this ticket does not change that pattern\" — is wrong for the overlay path. Before this change, a git failure read as `null`: in a main checkout, `findConfig` succeeded with **no git call at all** (section 4.1 step 1) and only the overlay probe silently no-op'd, so the swallower caller ran on the base config. After this change, the overlay probe throws inside `loadConfig`; if the caller's catch wraps the whole `loadConfig` call (the pattern the spec describes as \"catch every `loadConfig` error locally and fall back to defaults\"), the previously-working **base config is discarded too** and the caller silently runs on defaults. For `gates-config.js` consumers this is a gate reading defaults instead of its configured policy on a broken-git environment (dubious ownership, missing git, transient failure) — exactly the silent gate-degradation FAFF-198/208 exist to prevent, now reachable via an environmental fault rather than a repo defect. The spec's own hook assumption (section 7) only greps for *direct* `loadConfig` use and does not census which swallower callers catch around the whole `loadConfig` versus around individual lookups, so the blast radius is undetermined at spec time.",
+      "evidence": "Section 4.1 (\"`loadConfig` change only in that the error can now propagate through them\"); section 2 (\"Callers that catch every `loadConfig` error locally and fall back to defaults… this ticket does not change that pattern\"); section 4.4 (\"A command that catches config errors locally… keeps swallowing this error the way it swallows a malformed config\"); section 7 assumption (grep for `loadConfig`, `findConfig`, `findOverlay` only).",
+      "predicted_consequence": "A gate or fence command that resolves config through a whole-call catch (e.g. a `gates-config.js` consumer) in a main checkout with a valid `.faff/config.yaml` but a failing `git rev-parse --git-common-dir` silently runs on defaults — configured thresholds/flags dropped — where pre-change it ran on the base config with only the overlay skipped. Enforcement weakened with nothing on stderr.",
+      "spec_anchor": "per-caller-disposition",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed after round 2: new §4.2a makes every blanket-catch `loadConfig` caller rethrow `MainWorktreeProbeError` first (known sites gates-config.js:24, state.js:25, profile.js:327, bundle.js:864, fixtures.js:189; build re-censuses), with the gates-config scenario and the 'gates-config.js swallows' mutant. Re-reviewed in rounds 3-4; infosec raised no carried objection.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The spec makes `MainWorktreeProbeError` propagate through `findConfigLocation`, `findOverlayLocation`, `findConfig`, `findOverlay` and `loadConfig` (section 4.1), while explicitly leaving the blanket-catch callers unchanged (section 2: `gates-config.js`, `state.js`, `profile.js`, `fixtures.js`, `bundle.js`, `conventions.js`, `validate-adapters.js`). The spec's rationale — \"they already swallow a malformed config the same way; this ticket does not change that pattern\" — is wrong for the overlay path. Before this change, a git failure read as `null`: in a main checkout, `findConfig` succeeded with **no git call at all** (section 4.1 step 1) and only the overlay probe silently no-op'd, so the swallower caller ran on the base config. After this change, the overlay probe throws inside `loadConfig`; if the caller's catch wraps the whole `loadConfig` call (the pattern the spec describes as \"catch every `loadConfig` error locally and fall back to defaults\"), the previously-working **base config is discarded too** and the caller silently runs on defaults. For `gates-config.js` consumers this is a gate reading defaults instead of its configured policy on a broken-git environment (dubious ownership, missing git, transient failure) — exactly the silent gate-degradation FAFF-198/208 exist to prevent, now reachable via an environmental fault rather than a repo defect. The spec's own hook assumption (section 7) only greps for *direct* `loadConfig` use and does not census which swallower callers catch around the whole `loadConfig` versus around individual lookups, so the blast radius is undetermined at spec time.",
+          "spec_anchor": "per-caller-disposition"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The holdout scenario for \"not a repo → null\" is only runnable if `faff config get` accepts a `-d <default>` flag. The spec asserts this parenthetically (\"config get's existing -d default flag\") but no DONE item, interface section, or other scenario establishes that the flag exists or what it prints. If the flag does not exist (or has different arity/output), the scenario cannot be executed as written and the \"no enclosing `.git` → null\" outcome — one of the four rows of the section 3 outcome table and a named DONE item — loses its only end-to-end scenario.",
+      "evidence": "fourth scenario in `## 5. SCENARIOS` (\"When faff config get tracking.spec_docs_path -d fallback/ runs there\"); DONE item \"A probe failure with no enclosing `.git` entry reads as `null`\".",
+      "predicted_consequence": "the null-on-not-a-repo DONE item is decided only by that scenario; if the flag is wrong the builder either silently drops the case or invents a different invocation, and the holdout cannot tell which.",
+      "spec_anchor": "5-scenarios",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed after round 2: §3 now documents `config get -d/--default` as an existing flag under an **Assumes:** naming `cmdConfig`'s get branch in config.js, checked 2026-11-04. Re-reviewed in rounds 3-4 with no carried objection.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The holdout scenario for \"not a repo → null\" is only runnable if `faff config get` accepts a `-d <default>` flag. The spec asserts this parenthetically (\"config get's existing -d default flag\") but no DONE item, interface section, or other scenario establishes that the flag exists or what it prints. If the flag does not exist (or has different arity/output), the scenario cannot be executed as written and the \"no enclosing `.git` → null\" outcome — one of the four rows of the section 3 outcome table and a named DONE item — loses its only end-to-end scenario.",
+          "spec_anchor": "5-scenarios"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "Section 4.3 decides \"is this a repo?\" by walking from `root` upward looking for a `.git` entry, using the path as given. That walk is done on the unresolved path. When the working directory (or the `--root` passed in) is reached through a symlink — `/tmp/link/repo` where `/tmp/link` → `/real`, or any bind/symlink layout — the walk checks `/tmp/link/repo/.git`, `/tmp/link/.git`, `/tmp/.git`, `/.git` and never sees `/real/.git`. A probe failure under that layout (dubious ownership is the canonical cause, and symlinked checkouts are a common way to hit it) therefore classifies as \"not a repo\" → `probeMainWorktree` returns `null` → `findLocationWithMainFallback` silently skips the fallback → the command runs on defaults with nothing on stderr. That is precisely the silent gate-degradation (FAFF-198/FAFF-208) the spec's first principle — \"a git failure inside a repo is an error, never an absence\" — forbids. The spec's chosen discriminator, not a careless build, produces the wrong answer; no control in §4.2a or the dispatch arm catches it, because no error is thrown at all.",
+      "evidence": "§4.3 \"walk from `root` up to the filesystem root looking for a `.git` entry … This uses no second git call\"; §1 principle \"A git failure inside a repo is an error, never an absence\"; §3 outcome table row \"Probe failure, no enclosing git entry → `null` (not a repo)\".",
+      "predicted_consequence": "in a symlinked checkout with a failing git probe (e.g. `safe.directory` refusal), `faff config get` and every config-reading command silently resolve to defaults — the exact adversarial-review-localhost misfire class FAFF-198 records — with exit 0 and empty stderr.",
+      "spec_anchor": "43-telling-not-a-repo-from-git-failed",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed after round 3: §3 and §4.3 walk both the given path and its `fs.realpathSync` form; §5 adds the symlinked-main-checkout scenario (exit 2) and the DONE mutant 'the walk checks only the given path, not its realpath'. Round 4 architectural called the fix defensible; infosec raised nothing in round 4.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "major",
+          "claim": "Section 4.3 decides \"is this a repo?\" by walking from `root` upward looking for a `.git` entry, using the path as given. That walk is done on the unresolved path. When the working directory (or the `--root` passed in) is reached through a symlink — `/tmp/link/repo` where `/tmp/link` → `/real`, or any bind/symlink layout — the walk checks `/tmp/link/repo/.git`, `/tmp/link/.git`, `/tmp/.git`, `/.git` and never sees `/real/.git`. A probe failure under that layout (dubious ownership is the canonical cause, and symlinked checkouts are a common way to hit it) therefore classifies as \"not a repo\" → `probeMainWorktree` returns `null` → `findLocationWithMainFallback` silently skips the fallback → the command runs on defaults with nothing on stderr. That is precisely the silent gate-degradation (FAFF-198/FAFF-208) the spec's first principle — \"a git failure inside a repo is an error, never an absence\" — forbids. The spec's chosen discriminator, not a careless build, produces the wrong answer; no control in §4.2a or the dispatch arm catches it, because no error is thrown at all.",
+          "spec_anchor": "43-telling-not-a-repo-from-git-failed"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The mutation-test DONE item requires that \"the `.git` walk also stops at `.faff`\" and \"`GIT_DIR` is ignored by the walk\" each make at least one case fail — but no scenario in §5, no row of §3's outcome table, and no §4 behaviour ever exercises the two situations those mutants are detectable in: (a) a probe failure in a directory that has **both** a `.git` entry and a `.faff` entry (correct behaviour throws; the mutant walks, stops at `.faff`, reports \"no repo\", returns null — same observable exit-0/null as… no wait, correct throws, mutant returns null, but only if such a fixture exists), and (b) a probe failure with `GIT_DIR` set and no on-disk `.git` (correct throws; the mutant returns null). Scenario 7's `.faff`-only workspace does **not** kill the `.faff`-stop mutant: with the mutant the walk stops at `.faff` → null → exit 0, which is byte-identical to the correct outcome (walk finds no `.git` → null → exit 0). Scenario 1's worktree fixture is not stated to contain a `.faff` entry, and `.faff/` is gitignored so it would not inherit one.",
+      "evidence": "DONE item \"A mutation test shows the tests bite\" (### DONE — Definition of Done, From HOW (tests)); §5 scenarios; §3 outcome table; §4.3.",
+      "predicted_consequence": "The mutation DONE criterion is under-determined — a builder implementing exactly the §5 scenarios plus the outcome-table rows can ship with two surviving mutants and no specified case that fails, so the pass/fail line for that DONE item depends on fixtures the builder must invent (including a real behaviour decision: that a `.git`+`.faff` directory under probe failure exits 2, which no scenario currently pins).",
+      "spec_anchor": "done-definition-of-done",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed after round 3: §5 adds the pkg/ subdirectory scenario (.faff below .git, exit 2), which kills the '.faff stop' mutant, and the moved-.git GIT_DIR scenario, which kills the 'GIT_DIR ignored' mutant. Re-reviewed in round 4 with no carried objection.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The mutation-test DONE item requires that \"the `.git` walk also stops at `.faff`\" and \"`GIT_DIR` is ignored by the walk\" each make at least one case fail — but no scenario in §5, no row of §3's outcome table, and no §4 behaviour ever exercises the two situations those mutants are detectable in: (a) a probe failure in a directory that has **both** a `.git` entry and a `.faff` entry (correct behaviour throws; the mutant walks, stops at `.faff`, reports \"no repo\", returns null — same observable exit-0/null as… no wait, correct throws, mutant returns null, but only if such a fixture exists), and (b) a probe failure with `GIT_DIR` set and no on-disk `.git` (correct throws; the mutant returns null). Scenario 7's `.faff`-only workspace does **not** kill the `.faff`-stop mutant: with the mutant the walk stops at `.faff` → null → exit 0, which is byte-identical to the correct outcome (walk finds no `.git` → null → exit 0). Scenario 1's worktree fixture is not stated to contain a `.faff` entry, and `.faff/` is gitignored so it would not inherit one.",
+          "spec_anchor": "done-definition-of-done"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "§4.3 makes any non-empty `GIT_DIR` in the environment an enclosing git entry, unconditionally. `GIT_DIR` is an exported environment variable in real environments (CI wrappers, shell profiles, container entrypoints that set it globally), and it can be set while the process cwd is genuinely outside any repo — `$HOME`, a temp dir, a non-git checkout. In exactly those places the spec's own holdout scenario 4 promises exit 0 with the `-d` default; with a stray `GIT_DIR` exported, the same command exits 2. The walk's fail-toward-throwing rule for *filesystem errors* is sound (an unreadable ancestor is evidence of a repo-ish layout), but an env var is not filesystem evidence at all — it is a weaker signal treated as stronger than the walk itself.",
+      "evidence": "§4.3 \"A non-empty `GIT_DIR` in the environment also counts as an enclosing git entry\"; §5 scenario 4 (holdout: temp dir, no `.git`, `-d fallback/`, exit 0) — that scenario only passes because the test env happens not to export `GIT_DIR`.",
+      "predicted_consequence": "an operator (or CI runner) with `GIT_DIR` exported globally gets exit 2 with \"git could not resolve the main checkout\" on every config-reading faff command run outside a repo — the same silent-broken-environment class of confusion the spec exists to eliminate, now with a misleading message (git was never asked to resolve anything; the walk never looked).",
+      "spec_anchor": "telling-not-a-repo-from-git-failed",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in place after round 4; not re-reviewed: §4.3 counts `GIT_DIR` only when it names an existing file or directory; §5 adds the no-repo + nonexistent GIT_DIR scenario (exit 0, prints fallback/) and the DONE mutant 'any non-empty GIT_DIR counts'. Accepted by the operator after round 4.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "§4.3 makes any non-empty `GIT_DIR` in the environment an enclosing git entry, unconditionally. `GIT_DIR` is an exported environment variable in real environments (CI wrappers, shell profiles, container entrypoints that set it globally), and it can be set while the process cwd is genuinely outside any repo — `$HOME`, a temp dir, a non-git checkout. In exactly those places the spec's own holdout scenario 4 promises exit 0 with the `-d` default; with a stray `GIT_DIR` exported, the same command exits 2. The walk's fail-toward-throwing rule for *filesystem errors* is sound (an unreadable ancestor is evidence of a repo-ish layout), but an env var is not filesystem evidence at all — it is a weaker signal treated as stronger than the walk itself.",
+          "spec_anchor": "telling-not-a-repo-from-git-failed"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "A builder can satisfy every scenario in §5 and every mutant in the DONE mutation list while leaving the fail-toward-throwing walk branch unimplemented, and no named check would notice.",
+      "evidence": "DONE (HOW behaviour): \"a filesystem error during the walk counts as an entry existing\" — and §4.3's round-3-fix note makes this a load-bearing direction (\"the walk can only fail toward throwing, never toward `null`\"). No §5 scenario makes an ancestor unreadable (e.g. a `chmod 000` directory between the worktree and the repo root, or a `realpath` failure), and the mutation list covers nine mutants, none of which flips this branch to fail-toward-`null`.",
+      "predicted_consequence": "The exact regression the round-3 review fixed in a different form (the walk silently degrading to `null` on a filesystem fault) can re-enter unobserved; the DONE checkbox is asserted by nothing runnable.",
+      "spec_anchor": "how-43-telling-not-a-repo-from-git-failed-choosen-the-filesystem-decides",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in place after round 4; not re-reviewed: §4.5 gives the walk an injectable filesystem dependency and a unit case that throws a non-ENOENT error and asserts `MainWorktreeProbeError`; the DONE mutant 'a filesystem error during the walk counts as no entry' is listed. Accepted by the operator after round 4.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "A builder can satisfy every scenario in §5 and every mutant in the DONE mutation list while leaving the fail-toward-throwing walk branch unimplemented, and no named check would notice.",
+          "spec_anchor": "how-43-telling-not-a-repo-from-git-failed-choosen-the-filesystem-decides"
+        }
+      ]
+    }
+  ]
+}

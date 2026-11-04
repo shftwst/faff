@@ -28,7 +28,7 @@ after(() => { for (const r of roots) fs.rmSync(r, { recursive: true, force: true
 function tmpRoot() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "faff-lo-1306-"));
   roots.push(dir);
-  fs.mkdirSync(path.join(dir, ".git"), { recursive: true });
+  if (spawnSync("git", ["init", "-q", dir]).status !== 0) throw new Error(`git init failed in ${dir}`);
   fs.writeFileSync(
     path.join(dir, ".faffrc.yaml"),
     "slots:\n  review: faffter-dark-adversarial-review\n  spec_review: faffter-dark-spec-review\ngates:\n  fallback: fail-closed\nbudget:\n  tokens: 50000000\n  on_estimate_only: warn\nautonomous:\n  engine_bounded: true\n");

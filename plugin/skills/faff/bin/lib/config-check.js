@@ -375,6 +375,7 @@ function cmdConfigCheck(args, root) {
     baseLocation = findConfigLocation(root);
     basePath = baseLocation === null ? null : baseLocation.path;
   } catch (e) {
+    if (e.message === "git-probe-failed") throw e; // FAFF-1463: the dispatch arm names git's message
     if (e.message === "legacy-config-name") legacyBase.push(...e.legacy);
     else { process.stderr.write(`faff config check: ${e.message}\n`); return 2; }
   }
@@ -382,6 +383,7 @@ function cmdConfigCheck(args, root) {
     overlayLocation = findOverlayLocation(root);
     overlayPath = overlayLocation === null ? null : overlayLocation.path;
   } catch (e) {
+    if (e.message === "git-probe-failed") throw e; // FAFF-1463: the dispatch arm names git's message
     if (e.message === "legacy-overlay-config-name") legacyOverlay.push(...e.legacy);
     else { process.stderr.write(`faff config check: ${e.message}\n`); return 2; }
   }

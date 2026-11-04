@@ -1491,7 +1491,10 @@ function cmdHoldoutRecord(args) {
     let classified = null;
     try { classified = dodClassify(fs.readFileSync(specArg, "utf8"), ISSUE_ID_RE.test(issue) ? { issue } : undefined); } catch { classified = null; }
     built = buildHoldoutRecord(parseHoldoutBlock(stdin), { issue, extraSecrets, classified });
-  } catch (e) { process.stderr.write(`faff holdout record: cannot build the record: ${e.message}\n`); return 2; }
+  } catch (e) {
+    if (e && e.message === "git-probe-failed") throw e; // FAFF-1463: the dispatch arm names git's message
+    process.stderr.write(`faff holdout record: cannot build the record: ${e.message}\n`); return 2;
+  }
   try {
     fs.mkdirSync(path.dirname(storeFile), { recursive: true });
     if (unparseable) fs.renameSync(storeFile, `${storeFile}.unparseable-${new Date().toISOString().replace(/[:.]/g, "-")}`);

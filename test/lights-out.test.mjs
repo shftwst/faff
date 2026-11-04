@@ -7,6 +7,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { runCli } from "./helpers/run-cli.mjs";
@@ -88,7 +89,7 @@ function mintFixtureLedger(root, { untilFlag, maxAttempts, sessionId, env } = {}
 // incoherent dial explicitly (see the dial-coherence refuse test).
 function tmpRoot(dial = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "faff-lo-"));
-  fs.mkdirSync(path.join(dir, ".git"), { recursive: true });
+  if (spawnSync("git", ["init", "-q", dir]).status !== 0) throw new Error(`git init failed in ${dir}`);
   const review = dial.review ?? "faffter-dark-adversarial-review";
   const specReview = dial.spec_review ?? "faffter-dark-spec-review";
   const gatesFallback = dial.gates_fallback ?? "fail-closed";
@@ -980,7 +981,7 @@ test("claimRunDir: an entropy-suffixed re-mint id does not disturb mtime-descend
 // reachable without a genuine pid-1 container declaration.
 test("lights-out: an unsafe supplied --id fails loud (exit 2) and creates nothing", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "faff-lo-unsafe-id-"));
-  fs.mkdirSync(path.join(root, ".git"), { recursive: true });
+  if (spawnSync("git", ["init", "-q", root]).status !== 0) throw new Error(`git init failed in ${root}`);
   // NB: a genuine NUL byte can't survive process argv (spawnSync rejects it at the OS
   // level before this CLI ever sees it) — a non-NUL control char exercises the same
   // isSafeRunId control-char branch through a real, passable subprocess arg.
@@ -1000,7 +1001,7 @@ test("lights-out: an unsafe supplied --id fails loud (exit 2) and creates nothin
 // it is checked ahead of the new isSafeRunId validation.
 test("lights-out: --resume + --id stays mutually exclusive (checked ahead of --id safety)", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "faff-lo-resume-id-"));
-  fs.mkdirSync(path.join(root, ".git"), { recursive: true });
+  if (spawnSync("git", ["init", "-q", root]).status !== 0) throw new Error(`git init failed in ${root}`);
   const { stdout, code } = runCli(["lights-out", "--root", root, "--resume", "some-run", "--id", "../evil", "--json"], { env: CONTAINED_NO_TRANSCRIPT });
   const out = JSON.parse(stdout);
   assert.equal(code, 2);

@@ -2082,7 +2082,7 @@ test("FAFF-1444: untilToEpochAtOffset across offsets, with the roll-over at or b
 test("FAFF-1444: a budget-checkpoint event relaying a BudgetState with spent.until_at is accepted by the event schema", () => {
   const root = mkdtempSync(join(tmpdir(), "faff-budget-event-"));
   try {
-    mkdirSync(join(root, ".git"), { recursive: true });
+    if (spawnSync("git", ["init", "-q", root]).status !== 0) throw new Error(`git init failed in ${root}`);
     const mint = run(["run-ledger", "init-interactive", "--issue", "X-1", "--root", root], { TZ: "UTC" });
     assert.equal(mint.code, 0, mint.err);
     const runDir = mint.out.trim();

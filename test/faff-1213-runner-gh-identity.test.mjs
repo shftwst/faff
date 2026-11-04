@@ -6,7 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
@@ -245,7 +245,7 @@ function readConfigInDir(dir, extraEnv = {}) {
 test("readRunnerGhConfig: reads a configured runner credential from a real .faffrc (configFault false)", () => {
   const root = mkdtempSync(join(tmpdir(), "faff1213-cfg-"));
   try {
-    mkdirSync(join(root, ".git"));
+    if (spawnSync("git", ["init", "-q", root]).status !== 0) throw new Error(`git init failed in ${root}`);
     writeFileSync(join(root, ".faffrc.yaml"), "autonomous:\n  runner_github_token_env: RUNNER_GH_TOKEN\n  runner_github_login: my-runner-bot\n");
     const cfg = readConfigInDir(root);
     assert.deepEqual(cfg, { tokenEnvName: "RUNNER_GH_TOKEN", configuredLogin: "my-runner-bot", configFault: false });
@@ -255,7 +255,7 @@ test("readRunnerGhConfig: reads a configured runner credential from a real .faff
 test("readRunnerGhConfig: a repo with no runner keys reads clean (zero-config, no spurious configFault)", () => {
   const root = mkdtempSync(join(tmpdir(), "faff1213-cfg0-"));
   try {
-    mkdirSync(join(root, ".git"));
+    if (spawnSync("git", ["init", "-q", root]).status !== 0) throw new Error(`git init failed in ${root}`);
     writeFileSync(join(root, ".faffrc.yaml"), "appetite: high\n");
     const cfg = readConfigInDir(root);
     assert.deepEqual(cfg, { tokenEnvName: null, configuredLogin: null, configFault: false });

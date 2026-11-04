@@ -862,7 +862,7 @@ function resolveClaimTtlHours(root, env) {
   }
   let raw;
   try { const [cfg] = loadConfig(root); raw = dig(cfg, "claim_ttl_hours"); }
-  catch { raw = undefined; }
+  catch (e) { if (e && e.message === "git-probe-failed") throw e; raw = undefined; } // FAFF-1463: never a default
   const val = (raw === null || raw === undefined || raw === "") ? DEFAULTS["claim_ttl_hours"] : raw;
   const n = Number(val);
   return Number.isFinite(n) && n >= 0 ? n : 6; // config.js CANONICAL_CONFIG default

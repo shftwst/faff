@@ -22,7 +22,7 @@ const { validateAnchorDir } = require("../plugin/skills/faff/bin/lib/evidence.js
 
 function repo() {
   const root = mkdtempSync(join(tmpdir(), "faff-holdout-delegation-"));
-  mkdirSync(join(root, ".git"));
+  if (spawnSync("git", ["init", "-q", root]).status !== 0) throw new Error(`git init failed in ${root}`);
   return root;
 }
 const faff = (root, args, input) => spawnSync(process.execPath, [BIN, ...args], { cwd: root, encoding: "utf8", input });

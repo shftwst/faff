@@ -251,7 +251,7 @@ test("an unavailable schema refuses in enforce mode and writes with a warning in
 test("no serialiser message or stderr line contains a field value, including a known secret", () => {
   const tmp = mkdtempSync(path.join(tmpdir(), "faff-1258-secret-"));
   try {
-    mkdirSync(path.join(tmp, ".git"));
+    if (spawnSync("git", ["init", "-q", tmp]).status !== 0) throw new Error(`git init failed in ${tmp}`);
     writeFileSync(path.join(tmp, ".faffrc.yaml"), "andon:\n  token: S3CR3T-SENTINEL\n");
     const runDir = path.join(tmp, ".faff", "runs", "RUN-S");
     mkdirSync(runDir, { recursive: true });
@@ -279,7 +279,7 @@ test("no serialiser message or stderr line contains a field value, including a k
 test("two known secrets that redact to the same placeholder in an integer field still count as a change", () => {
   const tmp = mkdtempSync(path.join(tmpdir(), "faff-1258-secret2-"));
   try {
-    mkdirSync(path.join(tmp, ".git"));
+    if (spawnSync("git", ["init", "-q", tmp]).status !== 0) throw new Error(`git init failed in ${tmp}`);
     writeFileSync(path.join(tmp, ".faffrc.yaml"), "andon:\n  token: S3CR3T-SENTINEL\n  url: S3CR3T-OTHER-VALUE\n");
     const runDir = path.join(tmp, ".faff", "runs", "RUN-S");
     mkdirSync(runDir, { recursive: true });
@@ -300,7 +300,7 @@ test("two known secrets that redact to the same placeholder in an integer field 
 test("a known secret in a field is written redacted", () => {
   const tmp = mkdtempSync(path.join(tmpdir(), "faff-1258-secret3-"));
   try {
-    mkdirSync(path.join(tmp, ".git"));
+    if (spawnSync("git", ["init", "-q", tmp]).status !== 0) throw new Error(`git init failed in ${tmp}`);
     writeFileSync(path.join(tmp, ".faffrc.yaml"), "andon:\n  token: S3CR3T-SENTINEL\n");
     const runDir = path.join(tmp, ".faff", "runs", "RUN-S");
     mkdirSync(runDir, { recursive: true });
@@ -319,7 +319,7 @@ test("a known secret in a field is written redacted", () => {
 test("a known secret nested inside an outcome_details entry is written redacted", () => {
   const tmp = mkdtempSync(path.join(tmpdir(), "faff-1274-secret-"));
   try {
-    mkdirSync(path.join(tmp, ".git"));
+    if (spawnSync("git", ["init", "-q", tmp]).status !== 0) throw new Error(`git init failed in ${tmp}`);
     writeFileSync(path.join(tmp, ".faffrc.yaml"), "andon:\n  token: S3CR3T-SENTINEL\n");
     const runDir = path.join(tmp, ".faff", "runs", "RUN-S");
     mkdirSync(runDir, { recursive: true });

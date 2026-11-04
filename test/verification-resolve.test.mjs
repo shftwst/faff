@@ -8,6 +8,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { runCli } from "./helpers/run-cli.mjs";
@@ -15,7 +16,7 @@ import { runCli } from "./helpers/run-cli.mjs";
 // A throwaway repo root with a .git marker (so findRoot anchors here) and a .faffrc.yaml body.
 function tmpRoot(rc = "") {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "faff-verif-"));
-  fs.mkdirSync(path.join(dir, ".git"), { recursive: true });
+  if (spawnSync("git", ["init", "-q", dir]).status !== 0) throw new Error(`git init failed in ${dir}`);
   fs.writeFileSync(path.join(dir, ".faffrc.yaml"), rc);
   return dir;
 }

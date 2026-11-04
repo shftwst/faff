@@ -123,6 +123,8 @@ Emit only above the complexity bar (same judgement as Scenarios): a spike, a nov
 
 **Anti-patterns:** near the section they affect, document what NOT to do and why. Format: `**Anti-pattern:** X. Why: Y.`
 
+**Rule inventory:** a spec whose build deletes skill prose carries a `## Rule inventory` in the format at `docs/reference/skill-authoring.md#rule-inventory`, one row per deleted rule; `faff rule-inventory check` fails the PR otherwise.
+
 ### 5. SCENARIOS — born-verifiable main objectives
 
 A dedicated `## Scenarios` section, after HOW, expressing the spec's **main objectives** as scenarios so what the work must achieve is born verifiable — not just prose the verifier has to re-derive.

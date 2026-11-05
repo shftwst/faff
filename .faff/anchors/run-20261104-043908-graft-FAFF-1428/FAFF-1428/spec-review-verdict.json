@@ -1,0 +1,429 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 5,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The `Normalise` definition strips only whitespace (\"Nothing else is stripped; markdown emphasis and backticks inside the text are kept\"). The dominant prose form in the watched files is the house bold-lead mega-bullet (`- **Lean.** Say it once…`, per `docs/reference/skill-authoring.md`). A deleted bullet's normalised deleted text therefore contains literal `**Lean.**` and any inline-code backticks; an author who quotes the rule's words (\"Lean. Say it once…\") — the natural quote — is *not* a substring and the block is uncovered. The spec anticipates backtick-run escaping for anchors *containing* backticks but never says emphasis markers must be reproduced, and the failure message points at the format doc, which won't say it either. Every extraction PR deleting bold-lead bullets hits this systematically until authors discover it by trial.",
+      "evidence": "`Normalise` row in the vocabulary table; the anchor-matching rule in \"How a deleted block maps to a row\"; house style in `docs/reference/skill-authoring.md`.",
+      "predicted_consequence": "the first extraction PR under this check produces a burst of false uncovered-block failures whose fix (embedding `**` inside code spans) is undiscoverable from the failure message; the spec edit is one line — strip `*`/`_` emphasis and backtick delimiters in `Normalise`, or state the reproduction requirement in the format doc.",
+      "spec_anchor": "3-what-vocabulary-types-and-interfaces",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The `Normalise` definition strips only whitespace (\"Nothing else is stripped; markdown emphasis and backticks inside the text are kept\"). The dominant prose form in the watched files is the house bold-lead mega-bullet (`- **Lean.** Say it once…`, per `docs/reference/skill-authoring.md`). A deleted bullet's normalised deleted text therefore contains literal `**Lean.**` and any inline-code backticks; an author who quotes the rule's words (\"Lean. Say it once…\") — the natural quote — is *not* a substring and the block is uncovered. The spec anticipates backtick-run escaping for anchors *containing* backticks but never says emphasis markers must be reproduced, and the failure message points at the format doc, which won't say it either. Every extraction PR deleting bold-lead bullets hits this systematically until authors discover it by trial.",
+          "spec_anchor": "3-what-vocabulary-types-and-interfaces"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "`added_corpus := normalise(join of every added line of every watched file, with single spaces)` concatenates all added lines of all files into one stream. A deleted block's text can then match across the seam between two unrelated added lines (even in different files), counting as \"moved\" when nothing was moved. This is a fail-open hole in a check whose stated principle is \"Fail closed inside scope … It never turns into a pass.\" The fix costs nothing: build the corpus per watched file (or per added block) and test membership against each.",
+      "evidence": "PROCEDURE step 6 and step 9's substring test; the \"Fail closed inside scope\" design principle in section 1.",
+      "predicted_consequence": "a rare but real false pass on exactly the class of deletion the check exists to catch, contradicting the spec's own fail-closed commitment; reviewers cannot distinguish a genuine move from a seam artifact.",
+      "spec_anchor": "3-what-vocabulary-types-and-interfaces",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "`added_corpus := normalise(join of every added line of every watched file, with single spaces)` concatenates all added lines of all files into one stream. A deleted block's text can then match across the seam between two unrelated added lines (even in different files), counting as \"moved\" when nothing was moved. This is a fail-open hole in a check whose stated principle is \"Fail closed inside scope … It never turns into a pass.\" The fix costs nothing: build the corpus per watched file (or per added block) and test membership against each.",
+          "spec_anchor": "3-what-vocabulary-types-and-interfaces"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The check grants \"pass\" on the strength of the `## Rule inventory` rows in the committed spec, but the committed spec is written by the same agent whose PR it gates. An agent (or any PR author) that deletes a rule can satisfy the check by writing its own row — `dropped: <anything>`, or a `kept` row naming a real test that does not test the rule — quoting ≥20 characters of the deleted text. The check verifies only that the quote is a substring of the deleted prose and that named files exist; it cannot distinguish a truthful row from a fabricated one. Worse, rows are pooled across all committed specs with no file binding: a row in an unrelated old spec under the spec docs path covers deletions in any watched file, and one anchor matching duplicated text covers many blocks at once. The design principle \"Coverage is mechanical; correctness stays with review\" is the stated control, but it does not answer the threat: the reviewer sees a plausible-looking table and the mechanical gate adds zero adversarial resistance — it enforces the format, not the coverage, against a non-cooperative actor. The spec must establish who can write the input that grants the pass; it establishes only that the actor is the PR author.",
+      "evidence": "§3 \"Coverage is mechanical; correctness stays with review\"; §3 \"One row may cover several blocks\"; §4 step 7 \"rows := for each spec … parse every inventory table\" (pooled, unbound to the deleted file); §4 step 9 (anchor-substring is the only coverage test).",
+      "predicted_consequence": "an agent PR can delete any rule from any watched skill file and pass `faff rule-inventory check` (exit 0) by authoring a `dropped:` row in any committed spec — the guardrail the ticket exists to add is trivially bypassable by the actor it targets, and the CI log shows a green check.",
+      "spec_anchor": "how-a-deleted-block-maps-to-a-row",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The check grants \"pass\" on the strength of the `## Rule inventory` rows in the committed spec, but the committed spec is written by the same agent whose PR it gates. An agent (or any PR author) that deletes a rule can satisfy the check by writing its own row — `dropped: <anything>`, or a `kept` row naming a real test that does not test the rule — quoting ≥20 characters of the deleted text. The check verifies only that the quote is a substring of the deleted prose and that named files exist; it cannot distinguish a truthful row from a fabricated one. Worse, rows are pooled across all committed specs with no file binding: a row in an unrelated old spec under the spec docs path covers deletions in any watched file, and one anchor matching duplicated text covers many blocks at once. The design principle \"Coverage is mechanical; correctness stays with review\" is the stated control, but it does not answer the threat: the reviewer sees a plausible-looking table and the mechanical gate adds zero adversarial resistance — it enforces the format, not the coverage, against a non-cooperative actor. The spec must establish who can write the input that grants the pass; it establishes only that the actor is the PR author.",
+          "spec_anchor": "how-a-deleted-block-maps-to-a-row"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The check applies only when the PR commits a spec under the spec docs path, and a PR that does not returns `skipped` with exit 0 (§3 exit table: \"exit 0 pass or skipped\"). In branch protection, exit 0 is a green required check — a skip is indistinguishable from a pass. So an agent PR that deletes skill prose and commits no spec sails through the gate. The spec's answer is that graft's `faff spec commit` always commits the spec, and a violation \"is a graft defect to file, not a reason to change this scope\" — but nothing in this check or in CI enforces that invariant; the gate's coverage rests entirely on an unverified precondition controlled by the gated actor. The precedent cited (`governance.yml` `on-missing: pass`) is a governance floor with a documented residual and a named flip-to-fail path; this spec states no such end-state and no detection beyond a human reading CI logs for `skipped_reason: \"no-spec-committed\"` on a PR that carries an anchor footprint.",
+      "evidence": "§3 \"Chosen: scope by artifact footprint\"; §4 failure modes third bullet (\"it is a graft defect to file, not a reason to change this scope\"); §3 exit table (skipped = exit 0).",
+      "predicted_consequence": "a prose-deleting agent PR with no committed spec passes the required `validate` check with exit 0; the rule loss the ticket was created to catch (FAFF-1429/FAFF-1430-shaped) ships green.",
+      "spec_anchor": "pure-prose-edits",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The check applies only when the PR commits a spec under the spec docs path, and a PR that does not returns `skipped` with exit 0 (§3 exit table: \"exit 0 pass or skipped\"). In branch protection, exit 0 is a green required check — a skip is indistinguishable from a pass. So an agent PR that deletes skill prose and commits no spec sails through the gate. The spec's answer is that graft's `faff spec commit` always commits the spec, and a violation \"is a graft defect to file, not a reason to change this scope\" — but nothing in this check or in CI enforces that invariant; the gate's coverage rests entirely on an unverified precondition controlled by the gated actor. The precedent cited (`governance.yml` `on-missing: pass`) is a governance floor with a documented residual and a named flip-to-fail path; this spec states no such end-state and no detection beyond a human reading CI logs for `skipped_reason: \"no-spec-committed\"` on a PR that carries an anchor footprint.",
+          "spec_anchor": "pure-prose-edits"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The committed spec is agent-authored untrusted input, and the command prints spec-derived strings raw: row-error reasons include spec content (the anchor, the reason text, the test name), and `--json`/plain output carries them to the step log. A spec line containing GitHub Actions workflow-command syntax (`::error::`, `::warning::`) or ANSI escapes can forge annotations or conceal real findings in the `validate` job log. The spec sanitises nothing and imposes no character restrictions on the `reason` free text or the anchor.",
+      "evidence": "§3 \"Without `--json` it prints one line per uncovered block and per row error\"; §4 step 8 row errors interpolate spec content; no escaping rule anywhere in §4.",
+      "predicted_consequence": "a crafted `dropped: ::error::…` reason forges a CI annotation or visually suppresses the real row-error output in the validate job log.",
+      "spec_anchor": "command-surface",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The committed spec is agent-authored untrusted input, and the command prints spec-derived strings raw: row-error reasons include spec content (the anchor, the reason text, the test name), and `--json`/plain output carries them to the step log. A spec line containing GitHub Actions workflow-command syntax (`::error::`, `::warning::`) or ANSI escapes can forge annotations or conceal real findings in the `validate` job log. The spec sanitises nothing and imposes no character restrictions on the `reason` free text or the anchor.",
+          "spec_anchor": "command-surface"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "A row's covering-test entry must \"start `test/` and end `.test.mjs`\", but `test/../../<anything>.test.mjs` satisfies both. The check then runs `git cat-file -e HEAD:<file>` and, when a name is given, reads the file's text to assert containment. A crafted row can make the check probe existence of, and string-containment in, any tracked file at HEAD — a small oracle and an inconsistent-with-intent read surface, and the containment assertion against a non-test file is meaningless.",
+      "evidence": "§3 TestRef \"file: Path — repo-relative, must start `test/` and end `.test.mjs`\"; §4 step 8 (`git cat-file -e HEAD:<file>`, \"the file text must contain the name as written\").",
+      "predicted_consequence": "a row naming `test/../../records/…​.test.mjs` passes the shape check and turns the gate into an existence/containment oracle over arbitrary tracked paths.",
+      "spec_anchor": "the-inventory-format-documented-in-docs-references-skill-authoring-md",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "A row's covering-test entry must \"start `test/` and end `.test.mjs`\", but `test/../../<anything>.test.mjs` satisfies both. The check then runs `git cat-file -e HEAD:<file>` and, when a name is given, reads the file's text to assert containment. A crafted row can make the check probe existence of, and string-containment in, any tracked file at HEAD — a small oracle and an inconsistent-with-intent read surface, and the containment assertion against a non-test file is meaningless.",
+          "spec_anchor": "the-inventory-format-documented-in-docs-references-skill-authoring-md"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "\"Exempt block\" is defined as a *block* that states no rule, but two of its criteria are line-level (\"a blank line\", \"a line with no letters\") while others are block-level (\"a heading\", \"a table separator row\", \"the header row\"). For a deleted block containing both a letterless line and a lettered line, the spec does not say whether the block is exempt, partially exempt, or a deleted block whose deleted text includes the letterless line. A builder can implement either reading and both satisfy the text; a tester cannot decide which is correct.",
+      "evidence": "§3 Vocabulary, \"Exempt block\"; DONE item \"Headings, blank lines, table separator rows, table header rows and letterless lines are exempt\" (which repeats the same block/line conflation).",
+      "predicted_consequence": "two conforming builds disagree on whether a mixed block is uncovered, flipping exit 1 vs exit 0 on the same diff; the DONE item cannot be decided for that input.",
+      "spec_anchor": "3-what-vocabulary-types-and-interfaces",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "\"Exempt block\" is defined as a *block* that states no rule, but two of its criteria are line-level (\"a blank line\", \"a line with no letters\") while others are block-level (\"a heading\", \"a table separator row\", \"the header row\"). For a deleted block containing both a letterless line and a lettered line, the spec does not say whether the block is exempt, partially exempt, or a deleted block whose deleted text includes the letterless line. A builder can implement either reading and both satisfy the text; a tester cannot decide which is correct.",
+          "spec_anchor": "3-what-vocabulary-types-and-interfaces"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec requires both that step 5 \"print a `::notice::` line\" and that \"Every printed line starts with the fixed prefix `rule-inventory: `\". GitHub's runner only interprets a workflow command at the start of a line, so under the prefix rule the notice is inert literal text; dropping the prefix for that one line violates the hygiene rule exactly as written (and the rule's stated purpose — no line starting with `::` — is what scenario 10 pins for `::error::`). The spec as written cannot satisfy both; the builder must silently pick one.",
+      "evidence": "§4 step 5 (\"print a ::notice:: line and return skipped\") vs §3 \"Output hygiene\" (\"Every printed line starts with the fixed prefix `rule-inventory: `\"); scenario \"no line of its output starts with `::error::`\".",
+      "predicted_consequence": "Two PRs implementing the same spec emit differently formatted skip notices — one an inert text line, one a working workflow command — and a later hygiene audit flags whichever choice contradicts the letter of the rule.",
+      "spec_anchor": "what-how",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The spec requires both that step 5 \"print a `::notice::` line\" and that \"Every printed line starts with the fixed prefix `rule-inventory: `\". GitHub's runner only interprets a workflow command at the start of a line, so under the prefix rule the notice is inert literal text; dropping the prefix for that one line violates the hygiene rule exactly as written (and the rule's stated purpose — no line starting with `::` — is what scenario 10 pins for `::error::`). The spec as written cannot satisfy both; the builder must silently pick one.",
+          "spec_anchor": "what-how"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The exemption set is decided per block with no content test for headings and header rows — a deleted block is skipped from coverage *because of its markdown shape*, not because it states no rule. A rule carried as a heading (`### Never invoke the prd slot without a run dir`) or as a table header cell is deleted with no row, no move requirement, and no failure: the check returns `skipped(\"no-prose-deleted\")` if that was the only deletion, or omits the block from `uncovered` otherwise. This is a fail-open path the spec itself creates inside its own scope, not a careless-build risk — the exemption list is normative in §3.",
+      "evidence": "§3 \"Exempt block … a heading, a table separator row (`|---|`), the header row of a table … or a block whose deleted text has no letters\"; §4 step 3 \"drop exempt blocks\"; §8 DONE \"Headings, table separator rows, table header rows and blocks whose deleted text has no letters are exempt, decided per block.\"",
+      "predicted_consequence": "an agent PR deletes a rule-bearing heading, the check exits 0, and the rule leaves the runtime prompt with no inventory row and no reviewer-facing `dropped` entry in the step summary.",
+      "spec_anchor": "what-vocabulary-types-and-interfaces",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The exemption set is decided per block with no content test for headings and header rows — a deleted block is skipped from coverage *because of its markdown shape*, not because it states no rule. A rule carried as a heading (`### Never invoke the prd slot without a run dir`) or as a table header cell is deleted with no row, no move requirement, and no failure: the check returns `skipped(\"no-prose-deleted\")` if that was the only deletion, or omits the block from `uncovered` otherwise. This is a fail-open path the spec itself creates inside its own scope, not a careless-build risk — the exemption list is normative in §3.",
+          "spec_anchor": "what-vocabulary-types-and-interfaces"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The scenario cannot be executed as written — the `When` clause omits the `--json` flag whose output the `Then` clause asserts, so a tester cannot decide what command to run or whether a failing build mis-routed the flag.",
+      "evidence": "Scenario \"Given a branch that deletes two bullets from plugin/skills/faff-prep/SKILL.md … When `faff rule-inventory check --base origin/main` runs / Then it exits 0 / And `--json` reports covered_by_row 2 and uncovered []\".",
+      "predicted_consequence": "The fixture test for the check's happy covered-by-row path is ambiguous: a builder may either add `--json` to the command or read the human-readable summary, and the two are not equivalent outputs — the assertion \"covered_by_row 2\" is only decidable on the JSON object.",
+      "spec_anchor": "5-scenarios",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The scenario cannot be executed as written — the `When` clause omits the `--json` flag whose output the `Then` clause asserts, so a tester cannot decide what command to run or whether a failing build mis-routed the flag.",
+          "spec_anchor": "5-scenarios"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec justifies blocking from day one by claiming nine shipped inventories prove the format and \"the only new requirement is the code-span anchor.\" That is not true. Section 3 also introduces (a) a strict disposition grammar — exactly `kept`, `changed: <reason>`, or `dropped: <reason>` — and (b) a mandatory covering test for every `kept` row. The spec's own cited precedent, FAFF-1418's `## Rule inventory` (supplied in context), has no `Covering test` column at all and ~25 `kept` rows, most of them \"kept in prose\" with no test and no test possible. Under the new parser, every one of those rows is a row error, and the format has no natural disposition for a rule kept in prose: `kept` demands a test, so the author must misfile it as `changed: kept in prose`, which reads as a semantic lie in the summary table the reviewer is told to trust.",
+      "evidence": "Design decision \"**Blocking from day one, or report first.**\" (\"the only new requirement is the code-span anchor\") vs section 3's disposition and covering-test rules; FAFF-1418's inventory table in the supplied context.",
+      "predicted_consequence": "The first real extraction PR under this check cannot reuse the proven inventory style its author just shipped; it must retrofit every kept-in-prose row into a disposition the grammar doesn't actually have, or the check reddens on the format the spec cited as proof of readiness.",
+      "spec_anchor": "blocking-from-day-one-or-report-first",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The spec justifies blocking from day one by claiming nine shipped inventories prove the format and \"the only new requirement is the code-span anchor.\" That is not true. Section 3 also introduces (a) a strict disposition grammar — exactly `kept`, `changed: <reason>`, or `dropped: <reason>` — and (b) a mandatory covering test for every `kept` row. The spec's own cited precedent, FAFF-1418's `## Rule inventory` (supplied in context), has no `Covering test` column at all and ~25 `kept` rows, most of them \"kept in prose\" with no test and no test possible. Under the new parser, every one of those rows is a row error, and the format has no natural disposition for a rule kept in prose: `kept` demands a test, so the author must misfile it as `changed: kept in prose`, which reads as a semantic lie in the summary table the reviewer is told to trust.",
+          "spec_anchor": "blocking-from-day-one-or-report-first"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The summary writer strips control characters and caps length, but does not escape markdown metacharacters. A committed spec (untrusted input, written by the gated agent) can carry a `dropped:` reason or anchor containing `|`, backticks, or `![label](https://attacker/px)`; those bytes flow verbatim into the markdown table appended to `$GITHUB_STEP_SUMMARY`, which GitHub renders on the PR's check page. A `|` breaks the table (hiding the dropped-row surfacing the check exists to provide); an image/link renders attacker-chosen content on a GitHub-trusted surface.",
+      "evidence": "§4 \"Output hygiene\" — \"Every spec-derived value is stripped of control characters … and capped at 200 characters before it is … written to the summary\"; the CI step passes `$GITHUB_STEP_SUMMARY`. No escaping of `|`, `` ` ``, `[]()`, `!` is specified anywhere.",
+      "predicted_consequence": "A spec author controls rendered markdown on the PR check page (external-image beacon, link injection, or a broken table that suppresses the dropped/changed rows from the reviewer's view).",
+      "spec_anchor": "output-hygiene-the-committed-spec-is-untrusted-input",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The summary writer strips control characters and caps length, but does not escape markdown metacharacters. A committed spec (untrusted input, written by the gated agent) can carry a `dropped:` reason or anchor containing `|`, backticks, or `![label](https://attacker/px)`; those bytes flow verbatim into the markdown table appended to `$GITHUB_STEP_SUMMARY`, which GitHub renders on the PR's check page. A `|` breaks the table (hiding the dropped-row surfacing the check exists to provide); an image/link renders attacker-chosen content on a GitHub-trusted surface.",
+          "spec_anchor": "output-hygiene-the-committed-spec-is-untrusted-input"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "`footprint := some path with status A starts \".faff/anchors/\"`. A continuation PR on the same run (rebase, follow-up fix, second extraction against the same issue) modifies the anchor graft already committed — status `M`, not `A`. Such a PR deletes prose, carries the agent footprint, commits no new spec, and the check returns `skipped: no-spec-committed` with a `::notice::` — exactly the silent skip the footprint scope exists to prevent. The spec's own failure mode \"An agent PR commits neither a spec nor an anchor\" names the neither-case but not the modified-anchor case.",
+      "evidence": "§3 \"Agent footprint\" definition; §4 step 2; failure mode \"An agent PR commits neither a spec nor an anchor.\"",
+      "predicted_consequence": "an agent PR that deletes skill prose with no inventory row merges green; the check's core guarantee silently does not apply to it, and nothing in the test suite or scenarios would catch it.",
+      "spec_anchor": "3-what-vocabulary-types-and-interfaces",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "`footprint := some path with status A starts \".faff/anchors/\"`. A continuation PR on the same run (rebase, follow-up fix, second extraction against the same issue) modifies the anchor graft already committed — status `M`, not `A`. Such a PR deletes prose, carries the agent footprint, commits no new spec, and the check returns `skipped: no-spec-committed` with a `::notice::` — exactly the silent skip the footprint scope exists to prevent. The spec's own failure mode \"An agent PR commits neither a spec nor an anchor\" names the neither-case but not the modified-anchor case.",
+          "spec_anchor": "3-what-vocabulary-types-and-interfaces"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The moved test matches a deleted block's joined text against a **single** added run (\"Runs are never joined to each other\"), but a reflow that leaves two or more consecutive unchanged lines in the middle of a paragraph splits both the deletions and the additions into separate `-U0` hunks. The block's deleted text (joined across the unchanged line) is then a substring of no single added run, so the block is not moved — directly contradicting the spec's own edge-case bullet, which asserts reflows are always moved.",
+      "evidence": "§3 \"Moved\" definition and the \"Runs are never joined to each other\" clause; §4 edge case \"**A paragraph reflowed.** The deleted lines join to the same normalised text the added lines join to, so it is moved.\"",
+      "predicted_consequence": "A pure word-preserving reflow that happens to preserve an interior line fails as \"uncovered\" and demands a `changed: reworded`-style row for a change that needs none — exactly the noise failure mode §4 names, produced by the spec's own stated guarantee rather than by a careless builder. A builder implementing to the edge-case bullet (e.g., asserting moved-ness in the mutation test) ships a check whose behaviour disagrees with its documented contract.",
+      "spec_anchor": "4-how-behaviour",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The moved test matches a deleted block's joined text against a **single** added run (\"Runs are never joined to each other\"), but a reflow that leaves two or more consecutive unchanged lines in the middle of a paragraph splits both the deletions and the additions into separate `-U0` hunks. The block's deleted text (joined across the unchanged line) is then a substring of no single added run, so the block is not moved — directly contradicting the spec's own edge-case bullet, which asserts reflows are always moved.",
+          "spec_anchor": "4-how-behaviour"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The watched-path list (`plugin/skills/*/SKILL.md` + `plugin/skills/faff/references/*.md`) is a new, independently maintained path list that is **narrower** than the prose set `prose-size.ts`/`prose-baseline.json` already govern (per `docs/reference/skill-authoring.md`: every `SKILL.md` and every `references/*.md`). A rule moved from a watched `SKILL.md` into another skill's `references/*.md` — real skill prose by the charter's definition — is \"not moved\" here and demands a row, while the byte ratchet treats the same file as first-class prose. The two gates now disagree about what counts as skill prose, and the spec names no cross-check.",
+      "evidence": "§3 \"Watched file\" term; §2 OUT OF SCOPE \"Prose outside `plugin/skills/**/SKILL.md` and `plugin/skills/faff/references/*.md`\" with extension point \"the watched-path list in the module\"; reference-context row for `prose-size.ts` (\"defines which files count as skill prose\").",
+      "predicted_consequence": "The next prose surface (e.g., a second skill gains `references/`) is added to `prose-baseline.json` but silently escapes rule-inventory — deletions from it need no rows — and the divergence is invisible until a reviewer notices a rule that the byte ratchet guards but the inventory check does not.",
+      "spec_anchor": "3-what-vocabulary-types-and-interfaces",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The watched-path list (`plugin/skills/*/SKILL.md` + `plugin/skills/faff/references/*.md`) is a new, independently maintained path list that is **narrower** than the prose set `prose-size.ts`/`prose-baseline.json` already govern (per `docs/reference/skill-authoring.md`: every `SKILL.md` and every `references/*.md`). A rule moved from a watched `SKILL.md` into another skill's `references/*.md` — real skill prose by the charter's definition — is \"not moved\" here and demands a row, while the byte ratchet treats the same file as first-class prose. The two gates now disagree about what counts as skill prose, and the spec names no cross-check.",
+          "spec_anchor": "3-what-vocabulary-types-and-interfaces"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The spec pins the diff commands without zero-termination or quoted-path handling. `git diff --no-renames --name-status base HEAD` (and `git diff -U0` for hunk headers, and `git show base:<path>`) quote paths containing spaces, quotes, or non-ASCII characters (`core.quotePath`), emitting `\"plugin/skills/my skill/SKILL.md\"` with C-style escapes. A PR that adds or edits a watched file whose directory name contains a space, a quote, or a non-ASCII character produces a quoted path the parser may fail to match against the watched globs — so deletions in that file are never seen, and the check returns `skipped: no-prose-deleted` or a pass while skill prose was deleted. Because the PR author controls the directory name, this is an input-driven fail-open, not a careless-build risk: the exact commands are specified, and nothing in the spec says to use `-z` or to unquote.",
+      "evidence": "§4 PROCEDURE step 2 (\"git diff --no-renames --name-status base HEAD\") and step 3 (\"git show base:<path>\", \"git diff -U0 … hunk headers\"); no `-z` flag or quoted-path rule appears anywhere in §3/§4.",
+      "predicted_consequence": "a PR deleting rules from `plugin/skills/<name containing a space or non-ASCII char>/SKILL.md` exits 0 (skipped/pass) with the deletion unenforced.",
+      "spec_anchor": "how-behaviour",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The spec pins the diff commands without zero-termination or quoted-path handling. `git diff --no-renames --name-status base HEAD` (and `git diff -U0` for hunk headers, and `git show base:<path>`) quote paths containing spaces, quotes, or non-ASCII characters (`core.quotePath`), emitting `\"plugin/skills/my skill/SKILL.md\"` with C-style escapes. A PR that adds or edits a watched file whose directory name contains a space, a quote, or a non-ASCII character produces a quoted path the parser may fail to match against the watched globs — so deletions in that file are never seen, and the check returns `skipped: no-prose-deleted` or a pass while skill prose was deleted. Because the PR author controls the directory name, this is an input-driven fail-open, not a careless-build risk: the exact commands are specified, and nothing in the spec says to use `-z` or to unquote.",
+          "spec_anchor": "how-behaviour"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The scenario cannot pass as specified, because its own fixture triggers a row error the spec elsewhere mandates.",
+      "evidence": "Scenario \"Given a branch that deletes two bullets and commits a spec with a 'kept' row for one and a 'dropped: superseded by faff x' row for the other … `--summary out.md` … Then it exits 0\". The scenario never states that the `kept` row names a covering test — but §4.1 step 8 and the DONE item make \"kept with no tests\" a row error, which forces exit 1. As written, the fixture's expected outcome contradicts the spec's own validation rule; a builder implementing faithfully fails this scenario, and a builder making it pass must silently add an unstated fixture detail.",
+      "predicted_consequence": "The scenario is unbuildable as stated — either the test fails spuriously or the fixture is amended off-spec, so this scenario verifies nothing.",
+      "spec_anchor": "5-scenarios",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The scenario cannot pass as specified, because its own fixture triggers a row error the spec elsewhere mandates.",
+          "spec_anchor": "5-scenarios"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "§3 says only \"Without `--json` it prints one line per uncovered block and per row error, then a one-line summary\" — it never states what those lines contain. The holdout scenario \"…reads 'dropped:' with nothing after the colon … Then it exits 1 And the output names the row's line in the spec\" asserts a property (`names the row's line`) the spec never requires the printed line to carry. `row_errors` entries carry `line` in the JSON record, but nothing says the human-readable rendering includes it.",
+      "evidence": "Scenario in §5 (the empty-`dropped:` holdout); §3 \"Command surface\" output description.",
+      "predicted_consequence": "The holdout's `Then` cannot be decided from the spec — a build whose row-error lines omit the spec line number satisfies every stated output requirement yet fails the scenario, and there is no way to say which side is wrong.",
+      "spec_anchor": "3-what-vocabulary-types-and-interfaces",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "§3 says only \"Without `--json` it prints one line per uncovered block and per row error, then a one-line summary\" — it never states what those lines contain. The holdout scenario \"…reads 'dropped:' with nothing after the colon … Then it exits 1 And the output names the row's line in the spec\" asserts a property (`names the row's line`) the spec never requires the printed line to carry. `row_errors` entries carry `line` in the JSON record, but nothing says the human-readable rendering includes it.",
+          "spec_anchor": "3-what-vocabulary-types-and-interfaces"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The anchor floor and the coverage rule are inconsistent. Row validation admits any anchor shorter than 20 characters provided it equals the whole normalised deleted text of *some* deleted block; the coverage rule then lets any valid anchor cover any block it is a substring of, with no length or equality restriction. So a short anchor that is legitimately valid for one small block (a short heading, a one-line bullet) silently covers every other deleted block containing that phrase — the spurious coverage the floor was designed to prevent.",
+      "evidence": "§3 Design decisions, \"How a deleted block maps to a row\": \"The 20-character floor stops an anchor like `` `faff next` `` from covering every block that mentions the command. A deleted block shorter than 20 characters is covered by an anchor equal to its whole normalised deleted text.\" Step 8 validates the floor *or* whole-text equality; step 9 applies only \"anchor is a substring of normalise(b.deleted_text)\".",
+      "predicted_consequence": "A deleted block passes as `covered_by_row` on the strength of a row written for an unrelated short block; the gate reports pass where its own floor rationale says it should report uncovered. Fix is a one-line spec edit: a sub-20-character anchor covers only the block it exactly equals.",
+      "spec_anchor": "3-what-vocabulary-types-and-interfaces",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in place after round 5; not re-reviewed. Accepted by the operator after round 5.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "The anchor floor and the coverage rule are inconsistent. Row validation admits any anchor shorter than 20 characters provided it equals the whole normalised deleted text of *some* deleted block; the coverage rule then lets any valid anchor cover any block it is a substring of, with no length or equality restriction. So a short anchor that is legitimately valid for one small block (a short heading, a one-line bullet) silently covers every other deleted block containing that phrase — the spurious coverage the floor was designed to prevent.",
+          "spec_anchor": "3-what-vocabulary-types-and-interfaces"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The DONE item \"Table separator rows and letterless blocks are exempt; a table header row is exempt only when its whole table is deleted, and a heading only when its whole section is deleted\" is required behaviour, but no scenario in section 5 exercises any exemption path, and the tests DONE item only demands \"each scenario in section 5 and each row-error kind\" — exemption is neither, so a spec-compliant test suite may omit it entirely.",
+      "evidence": "`### From HOW (behaviour)` exemption DONE item vs. the fifteen fenced scenarios in `## 5. SCENARIOS`, none of which deletes a table separator, a header row, or a heading-with-partially-deleted-section.",
+      "predicted_consequence": "A build that mis-implements exemption — e.g. treats any deleted heading as exempt, or exempts a header row when only some rows of its table are deleted — passes every scenario and every row-error test while letting a rule carried in a heading or header escape the check unquoted. That is precisely the false-negative the check exists to prevent, and nothing in the spec's own acceptance surface would catch it.",
+      "spec_anchor": "from-how-behaviour",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in place after round 5; not re-reviewed. Accepted by the operator after round 5.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "The DONE item \"Table separator rows and letterless blocks are exempt; a table header row is exempt only when its whole table is deleted, and a heading only when its whole section is deleted\" is required behaviour, but no scenario in section 5 exercises any exemption path, and the tests DONE item only demands \"each scenario in section 5 and each row-error kind\" — exemption is neither, so a spec-compliant test suite may omit it entirely.",
+          "spec_anchor": "from-how-behaviour"
+        }
+      ]
+    }
+  ]
+}

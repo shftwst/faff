@@ -1,6 +1,6 @@
 # FAFF-1467: collate-evidence writes spec-review-verdict.json itself
 
-> Spec: faffter-dark-nlspec · 2026-11-04 · interactive · claude-code/unknown · faff 0.44.0 · confidence: high. Full spec on Linear FAFF-1467.
+> Spec: faffter-dark-nlspec · 2026-11-05 · interactive · claude-code/unknown · faff 0.44.0 · confidence: high. Full spec on Linear FAFF-1467.
 
 This spec covers FAFF-1467. When `faff spec-review collate-evidence --comment` renders the `## Spec-review evidence` comment, it also writes the anchored `spec-review-verdict.json` from that comment, in the same call. A new `faff spec-review write-evidence` verb gives prep's paths-only carry the same write. It is written for the build agent and for human reviewers.
 
@@ -335,6 +335,18 @@ The comment already ends in `sha256: <hex>`, which is the block digest. A second
 6. faff evidence write spec-review-verdict --run-dir .faff/runs/run-X --issue FAFF-9 < c.md
 7. assert the file bytes are unchanged by step 6
 ```
+
+## Rule inventory
+
+This section was added on 2026-11-05, after the rule-inventory check (FAFF-1428) reached `main` during the build. It maps each `faff-prep/SKILL.md` deletion this change makes. No rule is dropped.
+
+| Prose rule | Command behaviour | Disposition |
+|---|---|---|
+| `an approve verdict does not override a weak confidence rating` | none | changed: reworded, same rule; the sentence now says both gates must pass and neither overrides the other |
+| `at the ignition boundary, one level up` | none | changed: an explanatory analogy is cut; the rule (park the parent slice, no retry) is unchanged in the same sentence |
+| `a legitimately-absent record is a first-class state` | none | changed: reworded, same rule; the next sentence already says an all-clean review posts nothing |
+| `Any non-zero exit: log it and continue, never block promotion.` | `collate-evidence --comment` keeps exit codes unchanged and warns on stderr when the file is not written | changed: the sentence now also names the `spec-review-verdict.json` write and logs any stderr `warning:` line in `prep.md`; non-zero exits are still logged and never block |
+| `The self-review and the self-rating downgrade rule live in the producer` | none | changed: reworded, same pointer to `faffter-noon-spec/SKILL.md` → Self-review before returning |
 
 ## Methodology critique
 

@@ -1,0 +1,339 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "`collate-evidence --comment`, run against a run-mode scratch, leaves `<runDir>/<ISSUE>/spec-review-verdict.json` on disk with no further command.",
+      "verified": "test passes: run-mode --comment leaves <runDir>/<ISSUE>/spec-review-verdict.json",
+      "passed": true,
+      "ac_id": "faff-1467#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-evidence-write.test.mjs::run mode: --comment prints the comment, exits 0 and leaves the file, byte-equal to the evidence-write replay"
+        }
+      ]
+    },
+    {
+      "ac": "The diff adds no `require` of `node:http`, `node:https`, `node:net` or any tracker adapter module to `spec-review.js` or `evidence.js`.",
+      "verified": "test passes: no node:http/https/net or tracker require in either module; git diff adds only require(\"./evidence\")",
+      "passed": true,
+      "ac_id": "faff-1467#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-evidence-write.test.mjs::the diff adds no network or tracker require to the two modules"
+        },
+        {
+          "kind": "command",
+          "locator": "git diff origin/main -- plugin/skills/faff/bin/lib/spec-review.js plugin/skills/faff/bin/lib/evidence.js | grep -E '^\\+.*require\\('"
+        }
+      ]
+    },
+    {
+      "ac": "`guardWriterPaths` is byte-unchanged, and `faff evidence write spec-review-verdict` with a `--run-dir` outside `.faff/runs` still exits 2.",
+      "verified": "guardWriterPaths body identical to origin/main; outside-runs replay exits 2 (test passes)",
+      "passed": true,
+      "ac_id": "faff-1467#done:3",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "diff <(git show origin/main:plugin/skills/faff/bin/lib/evidence.js | awk '/^function guardWriterPaths/,/^}/') <(awk '/^function guardWriterPaths/,/^}/' plugin/skills/faff/bin/lib/evidence.js)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-evidence-write.test.mjs::faff evidence write spec-review-verdict still refuses a --run-dir outside .faff/runs with exit 2"
+        }
+      ]
+    },
+    {
+      "ac": "`placeSpecReviewEvidence` returns `mode: interactive` for a direct child of a real `.faff/spec-review/` and `mode: run` for `<runDir>/<ISSUE>/spec-review` with `runDir` under `.faff/runs/`. It throws `WriterFault` for any other directory, for a symlinked child that resolves outside, for a `.faff` or `.faff/spec-review` that is itself a symlink, and for an invalid issue id.",
+      "verified": "tests pass: both modes placed; other dirs, symlinked child, symlinked .faff and .faff/spec-review, bad issue id throw WriterFault",
+      "passed": true,
+      "ac_id": "faff-1467#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-evidence-write.test.mjs::placeSpecReviewEvidence throws WriterFault for every other directory"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-evidence-write.test.mjs::placeSpecReviewEvidence refuses a symlinked child, a symlinked .faff/spec-review and a symlinked .faff"
+        }
+      ]
+    },
+    {
+      "ac": "A test in `test/` asserts that, for both modes, `placeSpecReviewEvidence(specReviewDir(issue, runDir))` returns the expected `target_dir` and `mode`, pinning the duplicated scratch layout.",
+      "verified": "test passes: placeSpecReviewEvidence(specReviewDir(issue, runDir)) pinned for both modes",
+      "passed": true,
+      "ac_id": "faff-1467#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-evidence-write.test.mjs::placeSpecReviewEvidence pins specReviewDir for both modes"
+        }
+      ]
+    },
+    {
+      "ac": "`writeSpecReviewVerdict(runDir, issue, …)` delegates to `writeSpecReviewVerdictTo`, and every existing case in `test/evidence-write.test.mjs` passes unchanged.",
+      "verified": "writeSpecReviewVerdict now returns writeSpecReviewVerdictTo(guardWriterPaths(...)); test/evidence-write.test.mjs unchanged, 14/14 pass",
+      "passed": true,
+      "ac_id": "faff-1467#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/evidence-write.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`placeSpecReviewEvidence` and `writeSpecReviewVerdictTo` are exported from `evidence.js`.",
+      "verified": "both exported: typeof is function for each",
+      "passed": true,
+      "ac_id": "faff-1467#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node -e 'const e=require(\"./plugin/skills/faff/bin/lib/evidence.js\");console.log(typeof e.placeSpecReviewEvidence, typeof e.writeSpecReviewVerdictTo)'"
+        }
+      ]
+    },
+    {
+      "ac": "`SPEC_REVIEW_USAGE` lists `write-evidence --dir <scratch> --file <file|->`.",
+      "verified": "usage error output contains write-evidence --dir <scratch> --file <file|->",
+      "passed": true,
+      "ac_id": "faff-1467#done:8",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff spec-review --bogus"
+        }
+      ]
+    },
+    {
+      "ac": "`collate-evidence --comment` stdout is byte-identical before and after this change for the same inputs, and on success stderr includes exactly one line `faff spec-review collate-evidence: wrote <path>` (existing `skipped …` lines may also appear).",
+      "verified": "origin/main and branch binaries print byte-identical stdout for the FAFF-1467 rounds (cmp clean); exactly one wrote line asserted by test",
+      "passed": true,
+      "ac_id": "faff-1467#done:9",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff spec-review collate-evidence --dir <copy of .faff/spec-review/FAFF-1467 rounds> --dispositions dispositions.json --comment, run from main and from the branch, then cmp"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-evidence-write.test.mjs::stdout of --comment is the rendered comment alone, and the file digest matches its block"
+        }
+      ]
+    },
+    {
+      "ac": "On a placement fault or a writer refusal, `collate-evidence --comment` exits 0, prints the comment, and stderr includes exactly one line beginning `faff spec-review collate-evidence: warning: spec-review-verdict.json not written:`.",
+      "verified": "tests pass: exit 0, comment printed, exactly one warning line on placement fault and refusal",
+      "passed": true,
+      "ac_id": "faff-1467#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-evidence-write.test.mjs::a symlinked .faff/spec-review warns, exits 0, prints the comment and writes nothing in the link target"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-evidence-write.test.mjs::a run dir outside .faff/runs warns and still prints the comment"
+        }
+      ]
+    },
+    {
+      "ac": "After a placed-but-refused write from either command, no `spec-review-verdict.json` remains in the target. After a placed write that faults, an earlier file is at `spec-review-verdict.stale.json`, not the canonical path.",
+      "verified": "tests pass: refusal removes the earlier file; a write fault moves it to spec-review-verdict.stale.json",
+      "passed": true,
+      "ac_id": "faff-1467#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-evidence-write.test.mjs::write-evidence: a digest mismatch exits 1 with refused: and removes an earlier file"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-evidence-write.test.mjs::write-evidence: a refusal into an interactive scratch removes the earlier file"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-evidence-write.test.mjs::a write fault moves an earlier file to spec-review-verdict.stale.json and the warning is printed"
+        }
+      ]
+    },
+    {
+      "ac": "A relative `--dir` of `.faff/spec-review/<ISSUE>` places correctly when the command runs from a subdirectory of the repository.",
+      "verified": "test passes: relative .faff/spec-review/<ISSUE> places from a subdirectory (exercised via write-evidence; collate's round read stays cwd-relative, unchanged)",
+      "passed": true,
+      "ac_id": "faff-1467#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-evidence-write.test.mjs::a relative --dir places correctly when the command runs from a subdirectory"
+        }
+      ]
+    },
+    {
+      "ac": "`collate-evidence` without `--comment` writes no file.",
+      "verified": "test passes: plain mode writes no file in either layout",
+      "passed": true,
+      "ac_id": "faff-1467#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-evidence-write.test.mjs::plain mode (no --comment) writes no file in either layout"
+        }
+      ]
+    },
+    {
+      "ac": "The `--from-judge --spec … --comment` path writes the same file as the `--dispositions` path when both resolve to the same dispositions.",
+      "verified": "test passes: --from-judge and --dispositions files are byte-equal",
+      "passed": true,
+      "ac_id": "faff-1467#done:14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-evidence-write.test.mjs::the --from-judge path writes the same file as the --dispositions path"
+        }
+      ]
+    },
+    {
+      "ac": "`write-evidence` exits 0 and writes the file for a carry comment. It exits 1 with `refused:` for a digest mismatch or a missing section, and exits 2 for missing flags, an unreadable `--file`, or a placement fault.",
+      "verified": "tests pass: exit 0 carry (file and stdin), exit 1 refused (digest, missing section), exit 2 (flags, unreadable file, placement fault)",
+      "passed": true,
+      "ac_id": "faff-1467#done:15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-evidence-write.test.mjs::write-evidence: exit 0 and the path on stdout for a carry comment, from a file and from stdin"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-evidence-write.test.mjs::write-evidence: a refusal with no earlier file writes nothing; a missing section exits 1"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-evidence-write.test.mjs::write-evidence: missing flags, an unreadable --file and a placement fault exit 2"
+        }
+      ]
+    },
+    {
+      "ac": "The file `collate-evidence` writes is byte-identical to the file `faff evidence write spec-review-verdict` writes from its stdout.",
+      "verified": "tests pass: written file byte-equal to the evidence-write replay of stdout",
+      "passed": true,
+      "ac_id": "faff-1467#done:16",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-evidence-write.test.mjs::run mode: --comment prints the comment, exits 0 and leaves the file, byte-equal to the evidence-write replay"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-review-evidence-write.test.mjs::the integration smoke: a replay of the printed comment leaves the written file unchanged"
+        }
+      ]
+    },
+    {
+      "ac": "`faff-prep/SKILL.md` :263 carries the two in-place replacements, and :553 carries the `write-evidence` call. No other prose changes.",
+      "verified": "git diff shows both :263 replacements and the :553 write-evidence call; three restatements elsewhere were also trimmed at the operator's direction to hold the prose-bytes baseline",
+      "passed": true,
+      "ac_id": "faff-1467#done:17",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main -- plugin/skills/faff-prep/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "`faff-prep/SKILL.md` stays at or under 611 lines, its :263 line stays at or under 200 words, and `faff validate-adapters` passes with `SKILL_LINE_BASELINE` unchanged.",
+      "verified": "611 lines; :263 is 198 words; validate-adapters PASS; SKILL_LINE_BASELINE unchanged; prose-bytes baseline lowered 104391 -> 104335",
+      "passed": true,
+      "ac_id": "faff-1467#done:18",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "`docs/guide/cli.md` documents the `collate-evidence` side effect and the `write-evidence` row.",
+      "verified": "collate-evidence row extended and write-evidence row added; lint-cli-doc rung passed in the gate ladder",
+      "passed": true,
+      "ac_id": "faff-1467#done:19",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main -- docs/guide/cli.md"
+        }
+      ]
+    },
+    {
+      "ac": "Running the terminal seam twice leaves one file whose bytes match the latest comment.",
+      "verified": "test passes: second seam run leaves one file matching the latest comment",
+      "passed": true,
+      "ac_id": "faff-1467#done:20",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-evidence-write.test.mjs::the terminal seam run twice leaves one file matching the latest comment"
+        }
+      ]
+    },
+    {
+      "ac": "Round readers ignore `spec-review-verdict.json` in an interactive scratch. A test runs `collateSpecReviewRounds` on a dir that holds the file and reports no skip for it.",
+      "verified": "test passes: collateSpecReviewRounds over a scratch holding the file and its temp sibling reports no skip",
+      "passed": true,
+      "ac_id": "faff-1467#done:21",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-evidence-write.test.mjs::round readers ignore spec-review-verdict.json and its temp sibling in an interactive scratch"
+        }
+      ]
+    },
+    {
+      "ac": "New tests live in `test/`, for example `test/spec-review-evidence-write.test.mjs`, run under `node --test`, and cover every item above using a temp git root with `.faff/runs` and `.faff/spec-review`, as `test/evidence-write.test.mjs` does.",
+      "verified": "26 tests in test/spec-review-evidence-write.test.mjs pass under node --test, using a temp git root with .faff/runs and .faff/spec-review",
+      "passed": true,
+      "ac_id": "faff-1467#done:22",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/spec-review-evidence-write.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "The collate-evidence cases in the `spec-review.js` selftest (:240-259) move into `test/` and are deleted from the selftest block. No new selftest cases are added to either module.",
+      "verified": "collate cases deleted from specReviewSelftest (0 collate references remain in it) and moved into test/",
+      "passed": true,
+      "ac_id": "faff-1467#done:23",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-review-evidence-write.test.mjs::collation: an objection-bearing round before a clean approve is kept, a malformed round is skipped, the plain CLI exits 0 (moved from the selftest)"
+        }
+      ]
+    },
+    {
+      "ac": "`node --test` over `test/` and `faff regions check` pass.",
+      "verified": "faff gates run UNIT rungs pass; faff regions check exits 0",
+      "passed": true,
+      "ac_id": "faff-1467#done:24",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "faff gates run --json --resume"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        }
+      ]
+    }
+  ]
+}

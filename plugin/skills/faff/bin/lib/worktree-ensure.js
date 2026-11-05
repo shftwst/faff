@@ -519,7 +519,17 @@ function resolveRepoRoot(flag, deps) {
     const top = deps.git(["-C", root0, "rev-parse", "--show-toplevel"], root0);
     if (top.status !== 0)
         throw new EnsureUsageError(`repo root ${root0} is not a git work tree`);
-    return sharedInfra.mainWorktreeRoot(root0) ?? root0;
+    // FAFF-1463: --show-toplevel just succeeded, so a failed main-checkout probe is a git
+    // fault, never "use the worktree as the repo root".
+    try {
+        return sharedInfra.probeMainWorktree(root0) ?? root0;
+    }
+    catch (e) {
+        if (e instanceof Error && e.message === "git-probe-failed") {
+            throw new EnsureUsageError(`git could not resolve the main checkout for ${String(field(e, "root"))}: ${String(field(e, "detail"))}`);
+        }
+        throw e;
+    }
 }
 function cmdWorktreeEnsure(argv, deps = realDeps()) {
     const { values, errors } = argvApi.parseArgs(argv, ENSURE_SPEC);

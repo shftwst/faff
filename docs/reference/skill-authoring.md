@@ -34,6 +34,29 @@ Run over every `SKILL.md`. A `FAIL <name> (<category>) ✗ <label>` line exits n
 
 **Honest limits.** The `validate-adapters` rules catch the realistic drift (a skill ballooning, a wall-of-text paragraph, copied prose, a stray war-story idiom, a broken cross-reference). They do **not** measure taste or skimmability — that stays human/agent review judgement. The `stray marker` rule is deliberately narrow (precise idioms, not a blanket ban); ticket/ADR refs are not its job — `faff lint-refs` owns that ban. The two hub files' zero-headroom ratchet has its own honest limit: `validate-adapters` is a **stateless** linter — it reads the working tree, never git history — so it cannot mechanically stop a contributor from hand-raising a `SKILL_LINE_BASELINE` value to fit growth instead of leaning the file. The real gate is that such a raise is a conspicuous, reviewable line in the diff, not a silent pass; a git-history check that asserts baselines never increase across commits is deferred (FAFF-584). The same holds for `prose-baseline.json`: `faff prose-size baseline --lower` only ever lowers an entry, so a raise (or a new or removed entry) is always a hand edit visible in the diff, and `faff prose-size tally --from <ref> --to <ref>` reconstructs every rise and fall per commit and per ticket from git history after the fact.
 
+## Rule inventory
+
+A spec that deletes skill prose (every `SKILL.md` and `references/*.md`, the same covered set as `prose bytes`) carries a `## Rule inventory`. `faff rule-inventory check` runs in the `validate` CI job and fails the PR when a deleted block of skill prose is neither moved word for word into another block of skill prose nor quoted by a row of an inventory in a spec the PR adds under the spec docs path. It proves coverage, never correctness: whether a row's claim is true stays with review and the holdout.
+
+```markdown
+## Rule inventory
+
+| Prose rule | Command behaviour | Covering test | Disposition |
+|---|---|---|---|
+| `Fail closed on an unreadable ledger, never a pass` | exit 2 on a read error | test/run-open.test.mjs: "unreadable ledger exits 2" | kept |
+| `Tick the heartbeat before and after the ladder` | the command ticks it | — | changed: the command ticks it itself |
+| `Log the round to graft.md as well` | none | — | dropped: the round record replaces it |
+```
+
+- **Section.** Any line starting `## Rule inventory` (a suffix such as `(slice A)` is fine). It runs to the next `## ` heading. Every table in it whose header has a `Prose rule` and a `Disposition` column is read; columns are found by name, case-insensitively, a qualifier after the name is allowed, and other columns are free. A header with one of the two and not the other is an error.
+- **Prose rule.** The first code span in the cell is the anchor. Quote the lines the PR deletes, not the block as it stood: when only part of a paragraph goes, the anchor must sit inside the deleted part. Matching ignores `*` and backticks and collapses whitespace, so quote with or without bold leads and code spans. An anchor shorter than 20 characters only covers a deleted block whose whole text it equals. An anchor containing a backtick uses a longer delimiter (``` `` like `this` `` ```); a literal pipe inside a cell is written `\|`.
+- **Covering test.** Zero or more `test/<path>.test.mjs` entries, each optionally followed by `: "<test name>"`, separated by `;` or `,`. Each file must exist, and a named test must appear in it as written. A `kept` row needs at least one, so a table with a `kept` row needs this column.
+- **Disposition.** Exactly one of `kept`, `changed: <reason>` or `dropped: <reason>`; a reason is required.
+
+What needs no row: text that still appears verbatim in one block of skill prose (a move, a rename, a reflow, a rule extended in place), table separator rows, letterless lines, and a heading or table header row deleted together with every line of its section or table, with nothing added in its place and none of that content reappearing elsewhere. A heading over an empty section is never exempt. A reworded rule needs a row, typically `changed: reworded, same rule`; prose moved to `docs/` needs one too, normally `dropped: moved to docs/<file>`.
+
+Scope follows the artifacts graft commits. The check applies when the PR adds a spec under the spec docs path; a PR that adds or modifies a path under `.faff/anchors/` but commits no spec fails; a PR with neither (a hand-written prose edit) is skipped with a notice. The `--summary` table on the check page lists every row-covered block, `dropped` and `changed` first, for the reviewer.
+
 ## Eval coverage — born with the ticket
 
 A judgement seam ships with its eval coverage; the net never plays catch-up (the FAFF-145 / ADR-0004 lesson — every seam used to ship first and the evals chased).

@@ -4,7 +4,7 @@
 // ~/.claude is ever touched. The stub records its argv and exits with a chosen code.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, copyFileSync, cpSync, chmodSync, rmSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
@@ -21,7 +21,7 @@ function run(args, env = {}, opts = {}) {
 // so default (no --script) resolution from cwd can be exercised without touching ~/.claude.
 function mkRepo({ anchor = true } = {}) {
   const dir = realpathSync(mkdtempSync(join(tmpdir(), "sync-repo-")));
-  if (anchor) mkdirSync(join(dir, ".git"));
+  if (anchor && spawnSync("git", ["init", "-q", dir]).status !== 0) throw new Error(`git init failed in ${dir}`);
   mkdirSync(join(dir, "scripts"));
   const script = join(dir, "scripts", "link-skills.sh");
   writeFileSync(script, `#!/usr/bin/env bash\nif [ -n "$FAFF_STUB_LOG" ]; then echo "$@" > "$FAFF_STUB_LOG"; fi\nexit \${FAFF_STUB_EXIT:-0}\n`);

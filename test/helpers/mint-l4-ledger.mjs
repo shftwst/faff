@@ -4,6 +4,7 @@
 // synthesised input). Mirrors `mintFixtureLedger` in test/lights-out.test.mjs without
 // editing that file.
 import fs from "node:fs";
+import { spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { loadConfig } from "../../plugin/skills/faff/bin/lib/config.js";
@@ -13,7 +14,7 @@ import { atomicWriteLedger } from "../../plugin/skills/faff/bin/lib/heartbeat.js
 
 export function mintL4Ledger() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "faff-l4-ledger-"));
-  fs.mkdirSync(path.join(root, ".git"), { recursive: true });
+  if (spawnSync("git", ["init", "-q", root]).status !== 0) throw new Error(`git init failed in ${root}`);
   fs.writeFileSync(
     path.join(root, ".faffrc.yaml"),
     "slots:\n  review: faffter-dark-adversarial-review\n  spec_review: faffter-dark-spec-review\ngates:\n  fallback: fail-closed\nbudget:\n  tokens: 50000000\n  on_estimate_only: warn\nautonomous:\n  engine_bounded: true\n",

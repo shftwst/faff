@@ -52,7 +52,7 @@ const { observeForgeMerge } = require("./forge-merge");
 const { recoveryClaimStore, resolveBundleStoreName } = require("./bundle");
 const { isLedgerSchemaError, mutateLedgerUnderLock, overlayHeartbeat, readHeartbeatFile } = require("./heartbeat");
 const { applyResumeToLedger, classifyReEnterable, reconstructResumePlan, renderResumeBanner, runResumeEvent } = require("./resume");
-const { CANONICAL_OVERLAY_CONFIG, dig, findRoot, homeDir, mainWorktreeRoot, readLedger } = require("./shared-infra");
+const { CANONICAL_OVERLAY_CONFIG, dig, findRoot, homeDir, probeMainWorktree, readLedger } = require("./shared-infra");
 
 // FAFF-1027 — TWO static axes, not one. `enforced` says a shipped pipeline step INVOKES this
 // guardrail's contract. `rechecked` says a DETERMINISTIC GATE INDEPENDENTLY REFUSES when this
@@ -182,11 +182,13 @@ function cmdWorktreeRoot(args) {
   const json = !!values["--json"];
   // Resolve --root to the MAIN checkout: called from a linked worktree (the graft
   // Step-3 assert runs with cwd = the worktree), findRoot() returns the worktree, whose
-  // basename is the branch dir — not the repo. mainWorktreeRoot maps it back to the main
+  // basename is the branch dir — not the repo. probeMainWorktree maps it back to the main
   // checkout so the default `<repo>` suffix matches what the hook (always handed the main
-  // cwd) computes; a null (main checkout / non-git) leaves --root unchanged.
+  // cwd) computes; a null (main checkout / non-git) leaves --root unchanged. A failed
+  // probe inside a repo throws (FAFF-1463) and exits 2 at the dispatch arm, never a
+  // silent fall back to the worktree's own name.
   const root0 = get("--root") || findRoot();
-  const root = mainWorktreeRoot(root0) || root0;
+  const root = probeMainWorktree(root0) || root0;
   const assertPath = get("--assert");
   const [cfg] = loadConfig(root);
   const resolved = resolveWorktreeRoot(root, process.env, cfg);

@@ -66,7 +66,8 @@ function postMergeCheckEnabled(root) {
     const [data] = loadConfig(root);
     const v = dig(data, "post_merge.check");
     return v !== "off" && v !== false;
-  } catch {
+  } catch (e) {
+    if (e && e.message === "git-probe-failed") throw e; // FAFF-1463: a failed main-checkout probe is never a default
     return true; // fail-safe default: on
   }
 }

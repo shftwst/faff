@@ -259,7 +259,7 @@ test("a ledger with no owner.faff_version takes an ordinary write with no schema
 test("build-progress and landing-progress restamp the current writer's release on every write", (t) => {
   const root = mkTmp("faff-1395-prog-");
   t.after(() => rmSync(root, { recursive: true, force: true }));
-  mkdirSync(path.join(root, ".git"));
+  if (spawnSync("git", ["init", "-q", root]).status !== 0) throw new Error(`git init failed in ${root}`);
   const runDir = path.join(root, ".faff", "runs", "RUN-P");
   mkdirSync(path.join(runDir, "FAFF-1"), { recursive: true });
   const cli = (args) => runCli(args, { cwd: root, env: cleanEnv() });
@@ -298,7 +298,7 @@ test("writeMergeRecord stamps the release beside harness and model, with an inje
 test("intake-record stamps the release beside schema, keeps PROVENANCE_SCHEMA 2, and the no-downgrade path writes nothing", (t) => {
   const root = mkTmp("faff-1395-intake-");
   t.after(() => rmSync(root, { recursive: true, force: true }));
-  mkdirSync(path.join(root, ".git"));
+  if (spawnSync("git", ["init", "-q", root]).status !== 0) throw new Error(`git init failed in ${root}`);
   const cli = (args) => runCli(args, { cwd: root, env: cleanEnv() });
   assert.equal(cli(["intake-record", "FAFF-1", "--via", "jot", "--root", root]).code, 0);
   const p = path.join(root, ".faff", "provenance", "FAFF-1.json");

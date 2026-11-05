@@ -68,6 +68,9 @@ const TEST_FILE_COVERAGE = {
   // prose-size (FAFF-1442): `faff prose-size baseline --lower` and `tally` have no `--selftest`; both, and
   // the validate-adapters byte ratchet, are exercised through the real CLI entrypoint and in-process.
   "prose-size": "test/prose-size.test.mjs",
+  // rule-inventory (FAFF-1428): `faff rule-inventory check` has no `--selftest`; it is exercised through the
+  // real CLI entrypoint over fixture git repos with a local bare origin, and in-process.
+  "rule-inventory": "test/rule-inventory.test.mjs",
   // spec-judge-accept-bar — the deterministic accept-bar roll-up (FAFF-945): a pure coercion
   // over two JSON inputs, no standalone `--selftest`; its level-aware floor + fail-closed
   // directions are exercised through the real CLI entrypoint here.

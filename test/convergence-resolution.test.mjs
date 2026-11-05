@@ -10,6 +10,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { runCli } from "./helpers/run-cli.mjs";
@@ -18,7 +19,7 @@ import { runCli } from "./helpers/run-cli.mjs";
 // carrying the given config convergence line. Returns the root dir.
 function tmpRoot(convergenceBlock = "convergence:\n  enabled: false\n") {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "faff-conv-"));
-  fs.mkdirSync(path.join(dir, ".git"), { recursive: true });
+  if (spawnSync("git", ["init", "-q", dir]).status !== 0) throw new Error(`git init failed in ${dir}`);
   fs.writeFileSync(path.join(dir, ".faffrc.yaml"), convergenceBlock);
   return dir;
 }
@@ -152,7 +153,7 @@ test("FAFF-378 parity: live L4 ledger (running + fresh heartbeat) → still reso
 // config and stamps `forced` regardless — the mint neither warns nor refuses over it.
 function lightsOutRoot() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "faff-lo-conv-"));
-  fs.mkdirSync(path.join(dir, ".git"), { recursive: true });
+  if (spawnSync("git", ["init", "-q", dir]).status !== 0) throw new Error(`git init failed in ${dir}`);
   fs.writeFileSync(path.join(dir, ".faffrc.yaml"),
     "convergence:\n  enabled: false\nslots:\n  review: faffter-dark-adversarial-review\n  spec_review: faffter-dark-spec-review\ngates:\n  fallback: fail-closed\nautonomous:\n  engine_bounded: true\n");
   return dir;

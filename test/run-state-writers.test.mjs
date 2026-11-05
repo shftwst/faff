@@ -23,7 +23,7 @@ function faff(args, { cli = path.join(PLUGIN, "bin", "faff"), cwd = REPO } = {})
 
 function fixture(rc) {
   const root = mkdtempSync(path.join(tmpdir(), "faff-1258-prog-"));
-  mkdirSync(path.join(root, ".git"));
+  if (spawnSync("git", ["init", "-q", root]).status !== 0) throw new Error(`git init failed in ${root}`);
   if (rc) writeFileSync(path.join(root, ".faffrc.yaml"), rc);
   const runDir = path.join(root, ".faff", "runs", "RUN-P");
   mkdirSync(path.join(runDir, "FAFF-1"), { recursive: true });

@@ -1,0 +1,559 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 5,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/rule-inventory.ts::binary or -diff attribute hides deleted prose in deletedblocks diff",
+      "title": "binary or -diff attribute hides deleted prose in deletedBlocks diff",
+      "location": "plugin/skills/faff/bin/lib/rule-inventory.ts:508",
+      "action": "Add --text to the per-file git diff and throw CheckError when a watched file's diff has no @@ hunk or reports Binary files.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "standard",
+      "model": "faffter-noon-review",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "binary or -diff attribute hides deleted prose in deletedBlocks diff",
+          "location": "plugin/skills/faff/bin/lib/rule-inventory.ts:508",
+          "severity": "major",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/rule-inventory.ts::heading and table-header exemption keyed on touched, not wholly deleted, section",
+      "title": "heading and table-header exemption keyed on touched, not wholly deleted, section",
+      "location": "plugin/skills/faff/bin/lib/rule-inventory.ts:189",
+      "action": "Exempt a heading or header row only when every line of every block in its section or table is deleted and the section has at least one lettered block.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "standard",
+      "model": "faffter-noon-review",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "heading and table-header exemption keyed on touched, not wholly deleted, section",
+          "location": "plugin/skills/faff/bin/lib/rule-inventory.ts:189",
+          "severity": "major",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/rule-inventory.test.mjs::empty-section heading non-exemption is unpinned by any test",
+      "title": "empty-section heading non-exemption is unpinned by any test",
+      "location": "test/rule-inventory.test.mjs",
+      "action": "Add a case deleting a heading directly followed by a same-level heading and assert it is uncovered.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "faffter-noon-review",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "empty-section heading non-exemption is unpinned by any test",
+          "location": "test/rule-inventory.test.mjs",
+          "severity": "minor",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/rule-inventory.ts::covering-test existence check accepts a directory",
+      "title": "covering-test existence check accepts a directory",
+      "location": "plugin/skills/faff/bin/lib/rule-inventory.ts:548",
+      "action": "Require git cat-file -t HEAD:&lt;file&gt; to return blob.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "faffter-noon-review",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "covering-test existence check accepts a directory",
+          "location": "plugin/skills/faff/bin/lib/rule-inventory.ts:548",
+          "severity": "minor",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/rule-inventory.ts::spec docs path not normalised before prefix match",
+      "title": "spec docs path not normalised before prefix match",
+      "location": "plugin/skills/faff/bin/lib/rule-inventory.ts:495",
+      "action": "Normalise with path.posix.normalize, strip a leading ./, and exit 2 on an absolute path.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "faffter-noon-review",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "spec docs path not normalised before prefix match",
+          "location": "plugin/skills/faff/bin/lib/rule-inventory.ts:495",
+          "severity": "minor",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/rule-inventory.ts::per-file diff pathspec is not literal",
+      "title": "per-file diff pathspec is not literal",
+      "location": "plugin/skills/faff/bin/lib/rule-inventory.ts:508",
+      "action": "Pass --literal-pathspecs to the per-file diff.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "faffter-noon-review",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "per-file diff pathspec is not literal",
+          "location": "plugin/skills/faff/bin/lib/rule-inventory.ts:508",
+          "severity": "minor",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/rule-inventory.ts::no-hunk error false-fires on mode-only change or empty watched file deletion",
+      "title": "no-hunk error false-fires on mode-only change or empty watched file deletion",
+      "location": "plugin/skills/faff/bin/lib/rule-inventory.ts",
+      "action": "Raise the no-hunk CheckError only when base and HEAD blob ids differ and the base blob is non-empty; treat equal-blob or empty-base changes as having no deleted lines.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "faffter-noon-review",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "no-hunk error false-fires on mode-only change or empty watched file deletion",
+          "location": "plugin/skills/faff/bin/lib/rule-inventory.ts",
+          "severity": "minor",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/rule-inventory.test.mjs::member purity check in guardof is unpinned by any test",
+      "title": "member purity check in guardOf is unpinned by any test",
+      "location": "test/rule-inventory.test.mjs",
+      "action": "Add a case deleting a heading alone (blank line kept) while editing its one-line paragraph, with a row only for the paragraph, and assert the heading is uncovered.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "faffter-noon-review",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "member purity check in guardOf is unpinned by any test",
+          "location": "test/rule-inventory.test.mjs",
+          "severity": "minor",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/shared-infra.js::shared-infra overlay fallback probe failure still exits 0 in a main checkout",
+      "title": "shared-infra overlay fallback probe failure still exits 0 in a main checkout",
+      "location": "plugin/skills/faff/bin/lib/shared-infra.js",
+      "action": "Make mainWorktreeRoot distinguish a git failure inside a repo from no main checkout and surface it through loadConfig, or record a human acceptance of the harmless exit 0 and narrow the claim.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "faffter-noon-review",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "shared-infra overlay fallback probe failure still exits 0 in a main checkout",
+          "location": "plugin/skills/faff/bin/lib/shared-infra.js",
+          "severity": "minor",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/rule-inventory.ts::cat-file -t and blobid read git failure as absence",
+      "title": "cat-file -t and blobId read git failure as absence",
+      "location": "plugin/skills/faff/bin/lib/rule-inventory.ts",
+      "action": "Look up the test file and blob ids with git ls-tree -z HEAD -- &lt;path&gt; through must, treating empty output as absent and a failing call as CheckError.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "faffter-noon-review",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "cat-file -t and blobId read git failure as absence",
+          "location": "plugin/skills/faff/bin/lib/rule-inventory.ts",
+          "severity": "minor",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/rule-inventory.test.mjs::overlay half of verifyconfiglocation is unpinned and the every-call test starts from a failing run",
+      "title": "overlay half of verifyConfigLocation is unpinned and the every-call test starts from a failing run",
+      "location": "test/rule-inventory.test.mjs",
+      "action": "Add a linked-worktree overlay-only divergence case expecting exit 2, and run the every-call enumeration from a passing scenario asserting exit 2 per injected failure.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "faffter-noon-review",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "overlay half of verifyConfigLocation is unpinned and the every-call test starts from a failing run",
+          "location": "test/rule-inventory.test.mjs",
+          "severity": "minor",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/rule-inventory.test.mjs::overlay test title names the removed config guard",
+      "title": "overlay test title names the removed config guard",
+      "location": "test/rule-inventory.test.mjs:752",
+      "action": "Retitle to 'a lost overlay fallback in a linked worktree exits 2 (FAFF-1463 shared lookup)' and update the done:24 locator in ac-checklist.json in the same change.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "anthropic/claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "title": "overlay test title names the removed config guard",
+          "location": "test/rule-inventory.test.mjs:752",
+          "severity": "minor",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/rule-inventory.test.mjs::every-call sweep asserts inline and stops at the first failing call",
+      "title": "every-call sweep asserts inline and stops at the first failing call",
+      "location": "test/rule-inventory.test.mjs:793",
+      "action": "Collect status/stdout/stderr mismatches across all n and assert once after the loop, as the pre-62220446 notTwo shape did.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "title": "every-call sweep asserts inline and stops at the first failing call",
+          "location": "test/rule-inventory.test.mjs:793",
+          "severity": "minor",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/rule-inventory.ts::verifyconfiglocation removal drops a wrong-file mismatch check",
+      "title": "verifyConfigLocation removal drops a wrong-file mismatch check",
+      "location": "plugin/skills/faff/bin/lib/rule-inventory.ts:555",
+      "action": "No change: keep the guard removed; the refutation evidence stands.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "Guard recomputed the expectation with the same findConfigIn/findOverlayIn, the same rev-parse --git-common-dir from the same cwd/env, and the same .git-basename rule as findLocationWithMainFallback. Restored guard on FAFF-1463 with an instrumented fallback branch: branch reached in 11 layouts (deprecated name, overlay-only main, abs/relative/polluted GIT_DIR, separate-git-dir, non-ASCII path, symlinked worktree, config-is-dir), never refused; outputs identical with and without guard.",
+      "disposition_rationale": "On probe success the guard is equal to the shared lookup by construction; on probe failure FAFF-1463 throws first. Severity downgraded from critical.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "title": "verifyConfigLocation removal drops a wrong-file mismatch check",
+          "location": "plugin/skills/faff/bin/lib/rule-inventory.ts:555",
+          "severity": "observation",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/rule-inventory.ts::isprobefailure matches the git-probe-failed message token",
+      "title": "isProbeFailure matches the git-probe-failed message token",
+      "location": "plugin/skills/faff/bin/lib/rule-inventory.ts:66",
+      "action": "No change: refuted; see refutation.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "The token is the designed contract: MainWorktreeProbeError sets message git-probe-failed and governedExitCode (shared-infra.js) branches on the same message; spec-review-round.js:39 uses the identical check. Tests 40 and 42 pin the end-to-end dispatch line, so a token drift fails them.",
+      "disposition_rationale": "Repo convention, pinned end to end. Severity downgraded from major.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "title": "isProbeFailure matches the git-probe-failed message token",
+          "location": "plugin/skills/faff/bin/lib/rule-inventory.ts:66",
+          "severity": "observation",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/rule-inventory.ts::cmdcheck rethrows the probe error to an unseen caller",
+      "title": "cmdCheck rethrows the probe error to an unseen caller",
+      "location": "plugin/skills/faff/bin/lib/rule-inventory.ts:733",
+      "action": "No change: refuted; see refutation.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "cmdCheck is reached only through cmdRuleInventory from the bin/faff dispatch table, which wraps every handler in runGovernedDispatch (bin/faff:365); tests 40 and 42 exercise that path and assert exit 2 and the one line.",
+      "disposition_rationale": null,
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "title": "cmdCheck rethrows the probe error to an unseen caller",
+          "location": "plugin/skills/faff/bin/lib/rule-inventory.ts:733",
+          "severity": "observation",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/rule-inventory.test.mjs::probe-line assertion couples to git's stderr wording",
+      "title": "probe-line assertion couples to git's stderr wording",
+      "location": "test/rule-inventory.test.mjs:736",
+      "action": "No change: refuted; see refutation.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "'fatal: injected failure' is written by the test's own PATH git wrapper, not by git, so no git version can change it; the dispatch prefix pin is intentional (62220446).",
+      "disposition_rationale": null,
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "title": "probe-line assertion couples to git's stderr wording",
+          "location": "test/rule-inventory.test.mjs:736",
+          "severity": "observation",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/shared-infra.js::main-checkout probe failure is now fatal where its answer is irrelevant",
+      "title": "main-checkout probe failure is now fatal where its answer is irrelevant",
+      "location": "plugin/skills/faff/bin/lib/shared-infra.js:594",
+      "action": "No change: accepted as FAFF-1463 design; no change in this PR.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "That is FAFF-1463's merged design and the spec's fail-closed rule (any git error exits 2); out of this delta's scope.",
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "title": "main-checkout probe failure is now fatal where its answer is irrelevant",
+          "location": "plugin/skills/faff/bin/lib/shared-infra.js:594",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": ".faff/runs/run-20261104-043908-graft-FAFF-1428/FAFF-1428/holdout.json::holdout predates the rebased head",
+      "title": "holdout predates the rebased head",
+      "location": ".faff/runs/run-20261104-043908-graft-FAFF-1428/FAFF-1428/holdout.json",
+      "action": "Re-run the code-blind holdout on 7c0e20de before merge.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "anthropic/claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "title": "holdout predates the rebased head",
+          "location": ".faff/runs/run-20261104-043908-graft-FAFF-1428/FAFF-1428/holdout.json",
+          "severity": "observation",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/rule-inventory.test.mjs::redundant re-fetch double-sources origin/head in the no-base merge-base test",
+      "title": "Redundant re-fetch double-sources origin/HEAD in the no-base merge-base test",
+      "location": "test/rule-inventory.test.mjs:442",
+      "action": "Drop the fetch after remote set-head so set-head is the only source of origin/HEAD on every git version.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "open",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "title": "Redundant re-fetch double-sources origin/HEAD in the no-base merge-base test",
+          "location": "test/rule-inventory.test.mjs:442",
+          "severity": "observation",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/rule-inventory.test.mjs::update-ref -d on an absent origin/head breaks fixtures on older git",
+      "title": "update-ref -d on an absent origin/HEAD breaks fixtures on older git",
+      "location": "test/rule-inventory.test.mjs:114",
+      "action": "None; deleting a missing ref exits 0.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "git update-ref --no-deref -d on a missing ref exits 0 on git 2.39.5 and 2.30.6; the suite passes 45/45 on 2.39.5.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "title": "update-ref -d on an absent origin/HEAD breaks fixtures on older git",
+          "location": "test/rule-inventory.test.mjs:114",
+          "severity": "major",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/rule-inventory.test.mjs::collect-then-assert sweep loses strictness",
+      "title": "Collect-then-assert sweep loses strictness",
+      "location": "test/rule-inventory.test.mjs:800",
+      "action": "None; the pass/fail conditions are equivalent.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Status, stdout and probe stderr are each still checked per call, and non-probe stderr was never asserted. The inline version also aborted before the probes.length pin. Mutants show one failing run reports 4 and 2 mismatches.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "title": "Collect-then-assert sweep loses strictness",
+          "location": "test/rule-inventory.test.mjs:800",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    }
+  ]
+}

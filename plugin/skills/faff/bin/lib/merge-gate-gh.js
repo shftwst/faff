@@ -49,7 +49,8 @@ function readRunnerGhConfig() {
     const { findRoot } = require("./shared-infra");
     const [data] = require("./config").loadConfig(findRoot()); // lazy — matches this file's config-read convention
     _runnerGhConfigMemo = two(data);
-  } catch {
+  } catch (e) {
+    if (e && e.message === "git-probe-failed") throw e; // FAFF-1463: a failed main-checkout probe is never a default
     // Any config fault (malformed base/overlay, legacy name, …) degrades to ambient
     // with tokenEnvName null — a broken `.faffrc` is an environment problem, never a
     // separation signal, and GitHub diagnostics keep running.

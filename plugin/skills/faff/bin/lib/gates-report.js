@@ -19,7 +19,7 @@ const { CI_COST_PENALTY, CI_RUNNERS, GATE_COST, discoverMakefile, discoverPkgScr
 // 2026-08-19-FAFF-848-639a-gate-discovery-sees-what-ci-sees-design.md.
 // ===========================================================================
 
-// The four invariant-lint patterns, reporting-only. Additive to CI_RUNNERS — never consulted by
+// The invariant-lint patterns, reporting-only. Additive to CI_RUNNERS — never consulted by
 // ciRunnerKind/runLadder. `regions selftest` matches BOTH CI variants (--region factory/governance)
 // as two distinct commands; report-only recognition of the destructive factory variant is safe
 // because 848 executes nothing it reports (human-ratified 2026-08-19 — see the spec §7).
@@ -28,6 +28,8 @@ const INVARIANT_LINT_PATTERNS = [
   { pattern: /(^|[^a-z])regions\s+check([^a-z]|$)/, kind: "STATIC_ANALYSIS" },
   { pattern: /(^|[^a-z])adr\s+validate([^a-z]|$)/, kind: "STATIC_ANALYSIS" },
   { pattern: /(^|[^a-z])prdr\s+validate([^a-z]|$)/, kind: "STATIC_ANALYSIS" },
+  // FAFF-1428: the rule-inventory diff check, beside `regions check` in the validate job.
+  { pattern: /(^|[^a-z])rule-inventory\s+check([^a-z]|$)/, kind: "STATIC_ANALYSIS" },
 ];
 
 // The reporting recogniser = CI_RUNNERS ∪ INVARIANT_LINT_PATTERNS. Reporting-only: never seen by

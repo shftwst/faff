@@ -7,6 +7,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { runCli } from "./helpers/run-cli.mjs";
@@ -15,7 +16,7 @@ import { runCli } from "./helpers/run-cli.mjs";
 // the given config appetite. Returns the root dir.
 function tmpRoot(appetiteLine = "appetite: low\n") {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "faff-app-"));
-  fs.mkdirSync(path.join(dir, ".git"), { recursive: true });
+  if (spawnSync("git", ["init", "-q", dir]).status !== 0) throw new Error(`git init failed in ${dir}`);
   fs.writeFileSync(path.join(dir, ".faffrc.yaml"), appetiteLine);
   return dir;
 }
@@ -163,7 +164,7 @@ test("FAFF-378: live L4 ledger (running + fresh heartbeat) → still resolves `f
 // to prove the mint IGNORES config and forces `full`.
 function lightsOutRoot() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "faff-lo-app-"));
-  fs.mkdirSync(path.join(dir, ".git"), { recursive: true });
+  if (spawnSync("git", ["init", "-q", dir]).status !== 0) throw new Error(`git init failed in ${dir}`);
   // FAFF-333: attest engine_bounded so a REAL host docker socket on the test-running
   // machine (GitHub Actions' own runners carry /var/run/docker.sock — the CI validate
   // job even asserts `docker info` works) never adds an unrelated `host-socket` refusal

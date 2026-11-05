@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 2,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review.js::collate-evidence round reading is cwd-relative from a subdirectory",
+      "title": "collate-evidence round reading is cwd-relative from a subdirectory",
+      "location": "plugin/skills/faff/bin/lib/spec-review.js",
+      "action": "Resolve a relative --dir against findRoot() for round reading too, in a follow-up ticket",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Pre-existing behaviour the spec leaves unchanged (only placement resolves against the root); prep passes the path faff spec-review-dir prints from the repo root. Recorded as discovered scope.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "collate-evidence round reading is cwd-relative from a subdirectory",
+          "location": "plugin/skills/faff/bin/lib/spec-review.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/evidence.js::check-then-act gap between placement and the write in placespecreviewevidence",
+      "title": "check-then-act gap between placement and the write in placeSpecReviewEvidence",
+      "location": "plugin/skills/faff/bin/lib/evidence.js",
+      "action": "Re-verify the target with a no-follow check at rename time",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The write goes to the realpath captured at placement; swapping it needs local write access inside the repository between two syscalls. guardWriterPaths, which every evidence writer uses, has the same check-time posture, and the spec asks for the same narrowness, not a stronger control.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "check-then-act gap between placement and the write in placeSpecReviewEvidence",
+          "location": "plugin/skills/faff/bin/lib/evidence.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review.js::write-evidence --file - waits forever on a terminal stdin",
+      "title": "write-evidence --file - waits forever on a terminal stdin",
+      "location": "plugin/skills/faff/bin/lib/spec-review.js",
+      "action": "Refuse with exit 2 when stdin is a TTY",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "write-evidence --file - waits forever on a terminal stdin",
+          "location": "plugin/skills/faff/bin/lib/spec-review.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff-prep/SKILL.md::faff-prep/skill.md changes three lines beyond the spec's two seams",
+      "title": "faff-prep/SKILL.md changes three lines beyond the spec's two seams",
+      "location": "plugin/skills/faff-prep/SKILL.md",
+      "action": "Revert the extra lines or record the deviation",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The operator chose to trim three restatements so the spec's required prose stays under the prose-bytes baseline rather than raising it; recorded in the commit message and the PR body.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "faff-prep/SKILL.md changes three lines beyond the spec's two seams",
+          "location": "plugin/skills/faff-prep/SKILL.md",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review.js::concurrent refusal can remove a concurrent writer's file in writeevidencefrom",
+      "title": "concurrent refusal can remove a concurrent writer's file in writeEvidenceFrom",
+      "location": "plugin/skills/faff/bin/lib/spec-review.js",
+      "action": "Serialise the evidence write per scratch dir",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Prep runs one terminal seam per issue; a second concurrent writer does not occur, and the outcome is no file, which FAFF-1357 refuses at mint rather than a wrong file.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "concurrent refusal can remove a concurrent writer's file in writeEvidenceFrom",
+          "location": "plugin/skills/faff/bin/lib/spec-review.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/evidence.js::unresolvable repository root reported as a symlink fault in placespecreviewevidence",
+      "title": "unresolvable repository root reported as a symlink fault in placeSpecReviewEvidence",
+      "location": "plugin/skills/faff/bin/lib/evidence.js",
+      "action": "Give the null-root case its own message",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "unresolvable repository root reported as a symlink fault in placeSpecReviewEvidence",
+          "location": "plugin/skills/faff/bin/lib/evidence.js",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-review.js::write-evidence accepts collate-evidence flags without refusing them",
+      "title": "write-evidence accepts collate-evidence flags without refusing them",
+      "location": "plugin/skills/faff/bin/lib/spec-review.js",
+      "action": "Refuse flags that do not apply to write-evidence",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Every spec-review action shares one flag spec and none refuses another action's flags; changing that is module-wide, outside this ticket.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "write-evidence accepts collate-evidence flags without refusing them",
+          "location": "plugin/skills/faff/bin/lib/spec-review.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

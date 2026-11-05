@@ -797,7 +797,12 @@ function schemaFor(name) {
 // writeSpecReviewVerdict(runDir, issue, text, secrets) -> { written } | { refused: [message] }.
 // Throws WriterFault (exit 2) on a path or IO fault. Nothing is written unless every check passes.
 function writeSpecReviewVerdict(runDir, issue, text, secrets) {
-  const issueDir = guardWriterPaths(runDir, issue);
+  return writeSpecReviewVerdictTo(guardWriterPaths(runDir, issue), text, secrets);
+}
+
+// writeSpecReviewVerdictTo(issueDir, text, secrets) -> { written } | { refused: [message] }. The body of
+// writeSpecReviewVerdict after its path guard: the caller has already placed issueDir.
+function writeSpecReviewVerdictTo(issueDir, text, secrets) {
   let collated;
   try { collated = parseSpecReviewComment(text); } catch (e) {
     if (e instanceof EvidenceRefusal) return { refused: [e.message] };
@@ -807,6 +812,38 @@ function writeSpecReviewVerdict(runDir, issue, text, secrets) {
   const violations = [...validateAgainstSchema(doc, schemaFor("spec-review-verdict.json")).map(tidy), ...specReviewWriterViolations(doc)];
   if (violations.length > 0) return { refused: violations };
   return { written: writeEvidenceFile(issueDir, "spec-review-verdict.json", doc) };
+}
+
+// placeSpecReviewEvidence(scratchDir) -> { issue, target_dir, mode }. Works the evidence target and issue id
+// out of the spec-review scratch dir alone. The two layouts restate specReviewDir (spec-review-pin.js, factory):
+// interactive `.faff/spec-review/<ISSUE>` (target is the scratch dir itself) and run `<runDir>/<ISSUE>/spec-review`
+// (target is the per-issue dir, reached through the unchanged guardWriterPaths). A test pins the duplication.
+// Throws WriterFault with nothing written.
+function placeSpecReviewEvidence(scratchDir) {
+  const root = findRoot();
+  const real = typeof scratchDir === "string" && scratchDir !== "" ? realpathOrNull(path.isAbsolute(scratchDir) ? scratchDir : path.join(root, scratchDir)) : null;
+  if (real === null || !fs.statSync(real).isDirectory()) throw new WriterFault("--dir is not a directory");
+  const roots = [root];
+  const main = mainWorktreeRoot(root);
+  if (main && path.resolve(main) !== path.resolve(root)) roots.push(main);
+  for (const r of roots) {
+    const srRoot = realpathOrNull(path.join(r, ".faff", "spec-review"));
+    if (srRoot === null) continue;
+    const realR = realpathOrNull(r);
+    if (realR === null) throw new WriterFault(`the repository root ${r} cannot be resolved`);
+    if (srRoot !== path.join(realR, ".faff", "spec-review")) throw new WriterFault(".faff/spec-review resolves outside the repository");
+    if (path.dirname(real) === srRoot) {
+      const issue = path.basename(real);
+      if (!ISSUE_ID_RE.test(issue) || issue.includes("..")) throw new WriterFault("--dir is not a valid spec-review scratch dir");
+      return { issue, target_dir: real, mode: "interactive" };
+    }
+  }
+  if (path.basename(real) === "spec-review") {
+    const issueDir = path.dirname(real);
+    const issue = path.basename(issueDir);
+    return { issue, target_dir: guardWriterPaths(path.dirname(issueDir), issue), mode: "run" };
+  }
+  throw new WriterFault("--dir is neither <run-dir>/<ISSUE>/spec-review nor .faff/spec-review/<ISSUE>");
 }
 
 // parseStdinObject(text) -> the parsed object, or null. A parse failure is never echoed: the JSON
@@ -1619,5 +1656,5 @@ module.exports = {
   recordReviewRound, writeCollatedReviewVerdict,
   guardWriterPaths, introducedViolations, logRecordChecker, manifestFileNames, noteSchemaUnavailable, preloadEvidenceSchemas,
   renderAcChecklist, resetEvidenceSchemaCache, sanitiseDisplay, validateAnchorDir, validateEvidenceDocument, writeAcChecklist, writeEvidenceFile,
-  writeSpecReviewVerdict, writeTerminalReviewVerdict,
+  writeSpecReviewVerdict, writeSpecReviewVerdictTo, placeSpecReviewEvidence, writeTerminalReviewVerdict,
 };

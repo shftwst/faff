@@ -1,0 +1,376 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1467",
+  "aggregate": "meets-spec",
+  "code_blind": true,
+  "spawner_attested": false,
+  "attestation": null,
+  "violations": [],
+  "criteria": [
+    {
+      "id": "scenarios:1",
+      "text": "Given a run-mode scratch dir <runDir>/FAFF-9/spec-review under .faff/runs holding round-1.json with one objection and round-2.json approving\nWhen faff spec-review collate-evidence --dir <scratch> --dispositions d.json --comment runs\nThen stdout is the rendered evidence comment, exit is 0, and <runDir>/FAFF-9/spec-review-verdict.json exists\nAnd that file's bytes equal the file faff evidence write spec-review-verdict --run-dir <otherRunDir> --issue FAFF-9 writes from the same stdout into a second, separate run dir",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "faff spec-review collate-evidence --dir .faff/runs/run-X/FAFF-9/spec-review --dispositions d.json --comment > c.md; faff evidence write spec-review-verdict --run-dir .faff/runs/run-Y --issue FAFF-9 < c.md; cmp run-X/FAFF-9/spec-review-verdict.json run-Y/FAFF-9/spec-review-verdict.json",
+      "expected": "exit 0, stdout is the evidence comment, <runDir>/FAFF-9/spec-review-verdict.json exists and is byte-equal to the evidence-write replay into a separate run dir",
+      "observed": "exit 0; stdout '## Spec-review evidence' comment ending in a sha256 line; run-X/FAFF-9/spec-review-verdict.json exists; replay into run-Y exit 0; cmp identical",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:2",
+      "text": "Given .faff/spec-review is a symlink to a directory outside the repository, holding FAFF-9/ with valid rounds\nWhen faff spec-review collate-evidence --dir .faff/spec-review/FAFF-9 --dispositions d.json --comment runs\nThen exit is 0, stdout is the full evidence comment, stderr contains \"warning: spec-review-verdict.json not written\", and no spec-review-verdict.json exists in the link target",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "ln -s <outside>/ext2 .faff/spec-review (ext2/FAFF-9 holds rounds); faff spec-review collate-evidence --dir .faff/spec-review/FAFF-9 --dispositions d.json --comment; find <outside>/ext2 -name 'spec-review-verdict*'",
+      "expected": "exit 0, full comment on stdout, stderr contains 'warning: spec-review-verdict.json not written', no file in link target",
+      "observed": "exit 0; stdout byte-identical to the run-mode comment; stderr 'faff spec-review collate-evidence: warning: spec-review-verdict.json not written: .faff/spec-review resolves outside the repository'; find empty",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:3",
+      "text": "Given <runDir>/FAFF-9/spec-review-verdict.json exists from an earlier review\nWhen faff spec-review write-evidence --dir <runDir>/FAFF-9/spec-review --file comment.md runs with a comment whose sha256 line does not match\nThen exit is 1 and <runDir>/FAFF-9/spec-review-verdict.json no longer exists",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "<runDir>/FAFF-9/spec-review-verdict.json present from earlier collate; faff spec-review write-evidence --dir .faff/runs/run-X/FAFF-9/spec-review --file bad.md (sha256 line zeroed); ls .faff/runs/run-X/FAFF-9",
+      "expected": "exit 1 and <runDir>/FAFF-9/spec-review-verdict.json no longer exists",
+      "observed": "exit 1; stderr 'refused: digest mismatch: ...'; ls shows only spec-review/",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:4",
+      "text": "Given an interactive scratch dir .faff/spec-review/FAFF-9 holding one objection-bearing round and one approving round\nWhen faff spec-review collate-evidence --dir .faff/spec-review/FAFF-9 --dispositions d.json --comment runs\nThen .faff/spec-review/FAFF-9/spec-review-verdict.json exists with schema_version 1 and exit is 0",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "mkdir .faff/spec-review/FAFF-9 with round-1 (revise, 1 objection) and round-2 (approve); faff spec-review collate-evidence --dir .faff/spec-review/FAFF-9 --dispositions d.json --comment; read schema_version",
+      "expected": ".faff/spec-review/FAFF-9/spec-review-verdict.json exists with schema_version 1, exit 0",
+      "observed": "exit 0; stderr 'wrote <repo>/.faff/spec-review/FAFF-9/spec-review-verdict.json'; schema_version 1",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:5",
+      "text": "Given a scratch dir outside both .faff/runs and .faff/spec-review holding valid rounds\nWhen faff spec-review collate-evidence --dir <scratch> --dispositions d.json --comment runs\nThen exit is 0, stdout is the full evidence comment, stderr contains \"warning: spec-review-verdict.json not written\", and no spec-review-verdict.json exists anywhere under the scratch dir or its parent",
+      "holdout": true,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "faff spec-review collate-evidence --dir other/FAFF-9/spec-review --dispositions d.json --comment; faff spec-review collate-evidence --dir other2/FAFF-9 --dispositions d.json --comment; find other other2 -name 'spec-review-verdict*'",
+      "expected": "exit 0, full comment on stdout, stderr contains 'warning: spec-review-verdict.json not written', no file under scratch or parent",
+      "observed": "both exit 0 with stdout byte-identical to the run-mode comment; stderr '... not written: --run-dir is not inside .faff/runs/' and '... not written: --dir is neither <run-dir>/<ISSUE>/spec-review nor .faff/spec-review/<ISSUE>'; find empty",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:6",
+      "text": "Given .faff/spec-review/FAFF-9 is a symlink to a directory outside the repository\nWhen faff spec-review write-evidence --dir .faff/spec-review/FAFF-9 --file comment.md runs\nThen exit is 2 and no spec-review-verdict.json is written in the symlink target",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "ln -s <outside>/ext6 .faff/spec-review/FAFF-9; faff spec-review write-evidence --dir .faff/spec-review/FAFF-9 --file c.md; ls -A <outside>/ext6",
+      "expected": "exit 2, no spec-review-verdict.json in symlink target",
+      "observed": "exit 2; stderr '--dir is neither <run-dir>/<ISSUE>/spec-review nor .faff/spec-review/<ISSUE>'; ext6 empty",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:7",
+      "text": "Given a carry comment holding the line \"refresh: paths only, review carried forward\", one path-move bullet, and an earlier evidence block with its matching sha256 line\nWhen faff spec-review write-evidence --dir <run-mode scratch> --file carry-comment.md runs\nThen exit is 0, stdout is the written path, and the file equals what collate-evidence wrote for the original comment",
+      "holdout": true,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "carry-comment.md = 'refresh: paths only, review carried forward' + one path-move bullet + original evidence block and sha256 line; faff spec-review write-evidence --dir .faff/runs/run-C/FAFF-9/spec-review --file carry-comment.md; cmp <collate-written file> run-C/FAFF-9/spec-review-verdict.json",
+      "expected": "exit 0, stdout is the written path, file equals what collate-evidence wrote for the original comment",
+      "observed": "exit 0; stdout '<repo>/.faff/runs/run-C/FAFF-9/spec-review-verdict.json'; cmp identical to the collate-evidence file",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:8",
+      "text": "Given a comment whose fenced block was edited after rendering so its sha256 line no longer matches\nWhen faff spec-review write-evidence --dir <valid scratch> --file comment.md runs\nThen exit is 1, stderr contains \"refused: digest mismatch\", and no file is written",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "edit rounds_total 2->3 inside the fenced block, keep sha256 line; faff spec-review write-evidence --dir .faff/runs/run-Z/FAFF-9/spec-review --file edited.md; find .faff/runs/run-Z -name 'spec-review-verdict*'",
+      "expected": "exit 1, stderr contains 'refused: digest mismatch', no file written",
+      "observed": "exit 1; stderr 'refused: digest mismatch: the evidence block was changed after it was rendered'; find empty",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:9",
+      "text": "faff spec-review collate-evidence without --comment MUST NOT create spec-review-verdict.json in any directory.",
+      "holdout": false,
+      "class": "assertion",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "faff spec-review collate-evidence --dir .faff/runs/run-X/FAFF-9/spec-review --dispositions d.json; faff spec-review collate-evidence --dir .faff/spec-review/FAFF-9 --dispositions d.json; faff spec-review collate-evidence --dir other2/FAFF-9; find for spec-review-verdict* after each",
+      "expected": "no spec-review-verdict.json created by runs without --comment",
+      "observed": "all exit 0 printing the JSON record; find empty after each (run-mode, interactive, other dir)",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:10",
+      "text": "faff evidence write spec-review-verdict with a --run-dir outside .faff/runs MUST still exit 2.",
+      "holdout": false,
+      "class": "assertion",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "faff evidence write spec-review-verdict --run-dir <tmp>/outside --issue FAFF-9 < c.md; faff evidence write spec-review-verdict --run-dir notruns/r --issue FAFF-9 < c.md",
+      "expected": "exit 2",
+      "observed": "both exit 2; stderr '--run-dir is not inside .faff/runs/'; no file written",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "done:1",
+      "text": "`collate-evidence --comment`, run against a run-mode scratch, leaves `<runDir>/<ISSUE>/spec-review-verdict.json` on disk with no further command.",
+      "holdout": false,
+      "class": "assertion",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "faff spec-review collate-evidence --dir .faff/runs/run-X/FAFF-9/spec-review --dispositions d.json --comment; ls .faff/runs/run-X/FAFF-9",
+      "expected": "<runDir>/<ISSUE>/spec-review-verdict.json on disk after that one command",
+      "observed": "exit 0; ls shows spec-review-verdict.json next to spec-review/",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "done:4",
+      "text": "`placeSpecReviewEvidence` returns `mode: interactive` for a direct child of a real `.faff/spec-review/` and `mode: run` for `<runDir>/<ISSUE>/spec-review` with `runDir` under `.faff/runs/`. It throws `WriterFault` for any other directory, for a symlinked child that resolves outside, for a `.faff` or `.faff/spec-review` that is itself a symlink, and for an invalid issue id.",
+      "holdout": false,
+      "class": "assertion",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "collate-evidence --comment on .faff/spec-review/FAFF-9 and on .faff/runs/run-X/FAFF-9/spec-review; collate-evidence --comment on other/FAFF-9/spec-review and other2/FAFF-9; write-evidence on symlinked .faff/spec-review/FAFF-9, symlinked .faff/spec-review, symlinked .faff (target outside and inside repo); write-evidence on .faff/spec-review/FAFF..9, .hidden, 'a b'",
+      "expected": "interactive and run placements accepted; other dirs, symlinked child, symlinked .faff or .faff/spec-review, invalid issue id refused",
+      "observed": "interactive written into the scratch dir; run written into <runDir>/FAFF-9; other dirs 'not written' warnings; symlinked child exit 2 '--dir is neither...'; symlinked .faff (both cases) and .faff/spec-review 'resolves outside the repository' (exit 2 / warning); FAFF..9, .hidden, 'a b' exit 2 '--dir is not a valid spec-review scratch dir'; no file in any refused target",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "done:8",
+      "text": "`SPEC_REVIEW_USAGE` lists `write-evidence --dir <scratch> --file <file|->`.",
+      "holdout": false,
+      "class": "assertion",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "faff spec-review --help (usage line)",
+      "expected": "usage lists write-evidence --dir <scratch> --file <file|->",
+      "observed": "usage contains 'write-evidence --dir <scratch> --file <file|->'",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "done:9",
+      "text": "`collate-evidence --comment` stdout is byte-identical before and after this change for the same inputs, and on success stderr includes exactly one line `faff spec-review collate-evidence: wrote <path>` (existing `skipped …` lines may also appear).",
+      "holdout": false,
+      "class": "assertion",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "faff spec-review collate-evidence ... --comment for run-mode, interactive, symlinked and outside scratch dirs; cmp the stdouts; count stderr lines on success",
+      "expected": "stdout is the rendered comment unchanged by the write; on success exactly one stderr line 'faff spec-review collate-evidence: wrote <path>'",
+      "observed": "stdout byte-identical across successful and failed writes and replays cleanly through faff evidence write; success stderr is 1 line, 1 'wrote' line. No pre-change binary was run (outside the permitted surface)",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "done:12",
+      "text": "A relative `--dir` of `.faff/spec-review/<ISSUE>` places correctly when the command runs from a subdirectory of the repository.",
+      "holdout": false,
+      "class": "assertion",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "cd sub/deep && faff spec-review write-evidence --dir .faff/spec-review/FAFF-9 --file c4.md; find sub -type f; cmp with the collate-written interactive file",
+      "expected": "relative .faff/spec-review/<ISSUE> resolves against the repo root from a subdirectory",
+      "observed": "exit 0; stdout '<repo>/.faff/spec-review/FAFF-9/spec-review-verdict.json'; nothing under sub/; bytes identical to the collate-evidence file. (collate-evidence from the subdir exits 2 'cannot read round files', since round reading stays cwd-relative as the spec leaves it)",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    }
+  ],
+  "delegated": [
+    {
+      "id": "done:2",
+      "text": "The diff adds no `require` of `node:http`, `node:https`, `node:net` or any tracker adapter module to `spec-review.js` or `evidence.js`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1467#done:2"
+    },
+    {
+      "id": "done:3",
+      "text": "`guardWriterPaths` is byte-unchanged, and `faff evidence write spec-review-verdict` with a `--run-dir` outside `.faff/runs` still exits 2.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1467#done:3"
+    },
+    {
+      "id": "done:5",
+      "text": "A test in `test/` asserts that, for both modes, `placeSpecReviewEvidence(specReviewDir(issue, runDir))` returns the expected `target_dir` and `mode`, pinning the duplicated scratch layout.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1467#done:5"
+    },
+    {
+      "id": "done:6",
+      "text": "`writeSpecReviewVerdict(runDir, issue, …)` delegates to `writeSpecReviewVerdictTo`, and every existing case in `test/evidence-write.test.mjs` passes unchanged.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1467#done:6"
+    },
+    {
+      "id": "done:7",
+      "text": "`placeSpecReviewEvidence` and `writeSpecReviewVerdictTo` are exported from `evidence.js`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1467#done:7"
+    },
+    {
+      "id": "done:10",
+      "text": "On a placement fault or a writer refusal, `collate-evidence --comment` exits 0, prints the comment, and stderr includes exactly one line beginning `faff spec-review collate-evidence: warning: spec-review-verdict.json not written:`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1467#done:10"
+    },
+    {
+      "id": "done:11",
+      "text": "After a placed-but-refused write from either command, no `spec-review-verdict.json` remains in the target. After a placed write that faults, an earlier file is at `spec-review-verdict.stale.json`, not the canonical path.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1467#done:11"
+    },
+    {
+      "id": "done:13",
+      "text": "`collate-evidence` without `--comment` writes no file.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1467#done:13"
+    },
+    {
+      "id": "done:14",
+      "text": "The `--from-judge --spec … --comment` path writes the same file as the `--dispositions` path when both resolve to the same dispositions.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1467#done:14"
+    },
+    {
+      "id": "done:15",
+      "text": "`write-evidence` exits 0 and writes the file for a carry comment. It exits 1 with `refused:` for a digest mismatch or a missing section, and exits 2 for missing flags, an unreadable `--file`, or a placement fault.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1467#done:15"
+    },
+    {
+      "id": "done:16",
+      "text": "The file `collate-evidence` writes is byte-identical to the file `faff evidence write spec-review-verdict` writes from its stdout.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1467#done:16"
+    },
+    {
+      "id": "done:17",
+      "text": "`faff-prep/SKILL.md` :263 carries the two in-place replacements, and :553 carries the `write-evidence` call. No other prose changes.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1467#done:17"
+    },
+    {
+      "id": "done:18",
+      "text": "`faff-prep/SKILL.md` stays at or under 611 lines, its :263 line stays at or under 200 words, and `faff validate-adapters` passes with `SKILL_LINE_BASELINE` unchanged.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1467#done:18"
+    },
+    {
+      "id": "done:19",
+      "text": "`docs/guide/cli.md` documents the `collate-evidence` side effect and the `write-evidence` row.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1467#done:19"
+    },
+    {
+      "id": "done:20",
+      "text": "Running the terminal seam twice leaves one file whose bytes match the latest comment.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1467#done:20"
+    },
+    {
+      "id": "done:21",
+      "text": "Round readers ignore `spec-review-verdict.json` in an interactive scratch. A test runs `collateSpecReviewRounds` on a dir that holds the file and reports no skip for it.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1467#done:21"
+    },
+    {
+      "id": "done:22",
+      "text": "New tests live in `test/`, for example `test/spec-review-evidence-write.test.mjs`, run under `node --test`, and cover every item above using a temp git root with `.faff/runs` and `.faff/spec-review`, as `test/evidence-write.test.mjs` does.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1467#done:22"
+    },
+    {
+      "id": "done:23",
+      "text": "The collate-evidence cases in the `spec-review.js` selftest (:240-259) move into `test/` and are deleted from the selftest block. No new selftest cases are added to either module.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1467#done:23"
+    },
+    {
+      "id": "done:24",
+      "text": "`node --test` over `test/` and `faff regions check` pass.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1467#done:24"
+    }
+  ]
+}

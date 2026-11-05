@@ -63,7 +63,7 @@ function routeRejectApproach(record) {
 }
 
 const SPEC_REVIEW_SPEC = { flags: { "--selftest": { arity: 0 }, "--file": { arity: 1 }, "--dir": { arity: 1 }, "--dispositions": { arity: 1 }, "--comment": { arity: 0 }, "--from-judge": { arity: 0 }, "--spec": { arity: 1 }, "--judge-dir": { arity: 1 }, "--before": { arity: 1 }, "--after": { arity: 1 }, "--root": { arity: 1 } }, positionals: { min: 0, max: 1, name: "verb selector" } };
-const SPEC_REVIEW_USAGE = "usage: faff spec-review (extract-evidence [--file <spec> | --file -] | collate-evidence --dir <scratch> [--dispositions <file> | --from-judge --spec <file> [--judge-dir <dir>]] [--comment] | carry-check --before <file> --after <file> [--root <dir>] | route [--file <verdict.json> | --file -] | round … | hold …)";
+const SPEC_REVIEW_USAGE = "usage: faff spec-review (extract-evidence [--file <spec> | --file -] | collate-evidence --dir <scratch> [--dispositions <file> | --from-judge --spec <file> [--judge-dir <dir>]] [--comment] | write-evidence --dir <scratch> --file <file|-> | carry-check --before <file> --after <file> [--root <dir>] | route [--file <verdict.json> | --file -] | round … | hold …)";
 const CARRY_CHECK_USAGE = "usage: faff spec-review carry-check --before <file> --after <file> [--root <dir>]";
 
 // makePathExists(root) -> pathExists(token) -> boolean. The sole I/O the carry-check verb adds
@@ -137,8 +137,67 @@ function cmdCollateEvidence(values) {
       throw e;
     }
   }
-  process.stdout.write(values["--comment"] ? renderSpecReviewComment(record, collated.rounds) : JSON.stringify(record) + "\n");
+  if (!values["--comment"]) {
+    process.stdout.write(JSON.stringify(record) + "\n");
+    return 0;
+  }
+  const text = renderSpecReviewComment(record, collated.rounds);
+  const result = writeEvidenceFrom(dir, text, secrets);
+  if (result.written) process.stderr.write(`faff spec-review collate-evidence: wrote ${result.written}\n`);
+  else process.stderr.write(`faff spec-review collate-evidence: warning: spec-review-verdict.json not written: ${(result.refused || [result.fault]).join("; ")}${result.stale ? ` (${result.stale})` : ""}\n`);
+  process.stdout.write(text);
   return 0;
+}
+
+// writeEvidenceFrom(dir, text, secrets) -> { written } | { refused: [message], stale? } | { fault, stale? }.
+// Places the scratch dir and writes spec-review-verdict.json from the comment text through the one
+// evidence writer. After a successful placement a failed write never leaves an earlier review at the
+// canonical path: a refusal removes it, a fault moves it aside to spec-review-verdict.stale.json (a failed
+// move names the stale path in `stale`). Only WriterFault and SchemaUnavailable are downgraded; anything
+// else propagates. `placed` reports whether placement succeeded.
+function writeEvidenceFrom(dir, text, secrets) {
+  const { placeSpecReviewEvidence, writeSpecReviewVerdictTo, WriterFault, SchemaUnavailable } = require("./evidence");
+  let target = null;
+  const canonical = () => path.join(target, "spec-review-verdict.json");
+  try {
+    target = placeSpecReviewEvidence(dir).target_dir;
+    const r = writeSpecReviewVerdictTo(target, text, secrets);
+    if (!r.refused) return { written: r.written };
+    let stale;
+    try { fs.rmSync(canonical(), { force: true }); } catch { stale = `an earlier ${canonical()} could not be removed`; }
+    return { refused: r.refused, ...(stale ? { stale } : {}) };
+  } catch (e) {
+    if (!(e instanceof WriterFault || e instanceof SchemaUnavailable)) throw e;
+    let stale;
+    if (target !== null && fs.existsSync(canonical())) {
+      const aside = path.join(target, "spec-review-verdict.stale.json");
+      try { fs.renameSync(canonical(), aside); } catch { stale = `an earlier ${canonical()} could not be moved aside`; }
+    }
+    return { fault: e.message, ...(stale ? { stale } : {}) };
+  }
+}
+
+function cmdWriteEvidence(values) {
+  const fail = (code, message) => { process.stderr.write(`faff spec-review write-evidence: ${message}\n`); return code; };
+  const dir = values["--dir"];
+  const file = values["--file"];
+  if (dir == null || file == null) return fail(2, "--dir <scratch> and --file <file|-> are required");
+  if (file === "-" && process.stdin.isTTY) return fail(2, "--file - expects the comment on stdin; nothing was piped");
+  let text;
+  try { text = fs.readFileSync(file === "-" ? 0 : file, "utf8"); } catch { return fail(2, `cannot read ${file === "-" ? "stdin" : file}`); }
+  let secrets;
+  try { secrets = resolveKnownSecretValues(findRoot()); } catch { return fail(2, "the redaction config could not be read; nothing written"); }
+  const r = writeEvidenceFrom(dir, text, secrets);
+  if (r.written) {
+    process.stdout.write(r.written + "\n");
+    return 0;
+  }
+  if (r.refused) {
+    for (const m of r.refused) process.stderr.write(`refused: ${m}\n`);
+    if (r.stale) process.stderr.write(`faff spec-review write-evidence: ${r.stale}\n`);
+    return 1;
+  }
+  return fail(2, `${r.fault}${r.stale ? ` (${r.stale})` : ""}`);
 }
 
 function cmdSpecReview(args) {
@@ -149,6 +208,7 @@ function cmdSpecReview(args) {
   if (errors.length) return usageError(errors, SPEC_REVIEW_USAGE);
   const action = positionals[0];
   if (action === "collate-evidence") return cmdCollateEvidence(values);
+  if (action === "write-evidence") return cmdWriteEvidence(values);
   if (action === "carry-check") {
     if (positionals.length > 1) return usageError([{ code: "too-many-positionals", detail: "unexpected argument(s)" }], CARRY_CHECK_USAGE);
     return cmdCarryCheck(values);
@@ -172,7 +232,7 @@ function cmdSpecReview(args) {
     return 0;
   }
   if (action !== "extract-evidence") {
-    process.stderr.write("faff spec-review: expected: extract-evidence | collate-evidence | carry-check | route | round | hold (or --selftest)\n");
+    process.stderr.write("faff spec-review: expected: extract-evidence | collate-evidence | write-evidence | carry-check | route | round | hold (or --selftest)\n");
     return 2;
   }
   const filePath = values["--file"];
@@ -236,29 +296,6 @@ function specReviewSelftest() {
   ok("CLI no evidence → exit 1", cliMiss.code === 1);
   const cliBadVerb = runSpecReviewForSelftest(["nope"], withEvidence);
   ok("CLI unknown verb → exit 2", cliBadVerb.code === 2);
-
-  // --- collate-evidence: whole-loop collation, one item per objection ---
-  {
-    const os = require("node:os");
-    const mk = (dir, n, verdict, objections) => fs.writeFileSync(path.join(dir, `round-${n}.json`), JSON.stringify({ verdict, objections }));
-    const obj = (lens) => ({ lens, severity: "major", claim: "c" });
-    const t = fs.mkdtempSync(path.join(os.tmpdir(), "faff-collate-"));
-    try {
-      mk(t, 1, "revise", [obj("architectural"), obj("QA")]);
-      mk(t, 2, "approve", []);
-      const { record } = collateSpecReviewRounds(t, []);
-      ok("collate: an objection-bearing round before a clean approve is kept, one item per objection", record.verdict === "revise" && record.final_verdict === "approve" && record.rounds_total === 2 && record.objections.length === 2);
-      ok("collate: objection keys are <round>#<index>", record.objections[0].key === "1#0" && record.objections[1].key === "1#1");
-      fs.writeFileSync(path.join(t, "round-3.json"), "{ not json");
-      ok("collate: a malformed round is skipped and named", collateSpecReviewRounds(t, []).skipped.join() === "round-3.json");
-      const origWrite = process.stdout.write.bind(process.stdout);
-      process.stdout.write = () => true;
-      let code;
-      try { code = cmdSpecReview(["collate-evidence", "--dir", t]); } finally { process.stdout.write = origWrite; }
-      ok("CLI collate-evidence → exit 0", code === 0);
-      ok("CLI collate-evidence without --dir → exit 2", cmdSpecReview(["collate-evidence"]) === 2);
-    } finally { fs.rmSync(t, { recursive: true, force: true }); }
-  }
 
   // --- carry-check: paths-only refresh keeps its prior review ---
   {

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1467",
+  "build": {
+    "status": "complete",
+    "diff_hash": "4f449d92783ebed4c0cc5786883aad6aa862493b8d5cdd186eb707240665f115",
+    "branch": "FAFF-1467-spec-review-collate-evidence-writes-verdict",
+    "pushed_at": "2026-11-05T04:44:25.778Z"
+  },
+  "updated_at": "2026-11-05T04:44:25.778Z"
+}

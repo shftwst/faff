@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 2,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "`placeSpecReviewEvidence` hard-codes the two scratch layouts (`<runDir>/<ISSUE>/spec-review`, `.faff/spec-review/<ISSUE>`) that `specReviewDir` in `spec-review-pin.js` defines. The region boundary (governance must not require factory) forces the duplication, but the spec neither acknowledges it as a deliberate, pinned duplication nor adds any check that the two agree. If a later change moves or renames the scratch layout (a plausible FAFF-1468 follow-on, since 1468 owns the reader side of this same path), `specReviewDir` and `placeSpecReviewEvidence` drift, placement starts throwing `WriterFault`, and evidence reverts to warning-only loss — the exact failure class this ticket exists to eliminate, resurrected silently behind a stderr line prep may or may not copy.",
+      "evidence": "spec §3 Placement procedure (steps 3–4) vs `spec-review-pin.js` `specReviewDir` (:297-300); the spec's own Reference-context table cites `spec-review-pin.js` as \"defines the two scratch layouts this spec derives from\" but the DONE list contains no layout-agreement assertion.",
+      "predicted_consequence": "the first layout change on either side silently breaks the write (warning only, exit 0), and adopter anchors lose `spec-review-verdict.json` again with no failing test.",
+      "spec_anchor": "placement",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Duplicated scratch layout acknowledged and pinned by a test asserting placeSpecReviewEvidence(specReviewDir(issue, runDir)) for both modes.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "`placeSpecReviewEvidence` hard-codes the two scratch layouts (`<runDir>/<ISSUE>/spec-review`, `.faff/spec-review/<ISSUE>`) that `specReviewDir` in `spec-review-pin.js` defines. The region boundary (governance must not require factory) forces the duplication, but the spec neither acknowledges it as a deliberate, pinned duplication nor adds any check that the two agree. If a later change moves or renames the scratch layout (a plausible FAFF-1468 follow-on, since 1468 owns the reader side of this same path), `specReviewDir` and `placeSpecReviewEvidence` drift, placement starts throwing `WriterFault`, and evidence reverts to warning-only loss — the exact failure class this ticket exists to eliminate, resurrected silently behind a stderr line prep may or may not copy.",
+          "spec_anchor": "placement"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The interactive branch of `placeSpecReviewEvidence` establishes containment solely by comparing `dirname(realpath(scratchDir))` against `realpath(<root>/.faff/spec-review)`. It never checks that `realpath(<root>/.faff/spec-review)` lies inside the repo root. If `.faff/spec-review` is itself a symlink pointing outside the repository (e.g. `/tmp/evil`), then a scratch dir under it — reached through that symlink — has its real parent exactly equal to `realpath(.faff/spec-review)`, so step 3 matches, `mode: interactive` is returned, and `spec-review-verdict.json` is written into the out-of-repo directory. The spec explicitly claims this class of escape is closed (\"A symlinked `.faff/spec-review/<ISSUE>` that points outside the repo resolves to some other parent, so it fails step 3\"), but that argument only covers a symlink at the *child* level; a symlink at the *parent* level makes the child's real parent the link target, which is exactly what the comparison treats as authoritative. Since the whole design principle is \"a separate check that is just as narrow\" as `guardWriterPaths`' realpath containment, and the pseudocode a builder implements omits the srRoot-inside-root check, the escape ships unless the spec changes.",
+      "evidence": "`### Placement` step 3 (compare `dirname(real)` to `realpath(r/.faff/spec-review)`, no repo-containment on that target) and the `### Edge cases` bullet asserting the symlinked-child case is caught.",
+      "predicted_consequence": "an agent-supplied `--dir` under a planted symlinked `.faff/spec-review` causes `spec-review-verdict.json` (plus its temp file) to be created in an arbitrary directory outside the repository, bypassing the repo confinement the interactive check exists to enforce — the write primitive the guard promises to fence is open.",
+      "spec_anchor": "placement",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Placement refuses when .faff/spec-review does not resolve to <real root>/.faff/spec-review, closing the parent-level symlink escape.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The interactive branch of `placeSpecReviewEvidence` establishes containment solely by comparing `dirname(realpath(scratchDir))` against `realpath(<root>/.faff/spec-review)`. It never checks that `realpath(<root>/.faff/spec-review)` lies inside the repo root. If `.faff/spec-review` is itself a symlink pointing outside the repository (e.g. `/tmp/evil`), then a scratch dir under it — reached through that symlink — has its real parent exactly equal to `realpath(.faff/spec-review)`, so step 3 matches, `mode: interactive` is returned, and `spec-review-verdict.json` is written into the out-of-repo directory. The spec explicitly claims this class of escape is closed (\"A symlinked `.faff/spec-review/<ISSUE>` that points outside the repo resolves to some other parent, so it fails step 3\"), but that argument only covers a symlink at the *child* level; a symlink at the *parent* level makes the child's real parent the link target, which is exactly what the comparison treats as authoritative. Since the whole design principle is \"a separate check that is just as narrow\" as `guardWriterPaths`' realpath containment, and the pseudocode a builder implements omits the srRoot-inside-root check, the escape ships unless the spec changes.",
+          "spec_anchor": "placement"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "`collate-evidence --comment` is warn-and-continue by design, and `writeEvidenceFile` only replaces the file on success (temp + rename). On a re-run of the terminal seam — a later review round, a re-dispatch after an outage, or a second `write-evidence` with a newer comment — a placement fault or writer refusal leaves the **older** `spec-review-verdict.json` fully intact and current-looking. The failure mode is therefore not the benign \"no file\" state (which FAFF-1357 is stated to catch) but \"stale file posing as the current review's evidence\", differing from the success path only by a stderr line prep is instructed to copy into `prep.md` and then ignore. Nothing in the write path neutralises or renames the stale artifact on failure.",
+      "evidence": "`### HOW / collate-evidence --comment` step 4 (CATCH → warning, exit 0) and the `### Edge cases` \"Re-run of the seam\" bullet, which describes only the success replacement.",
+      "predicted_consequence": "a same-machine build following a re-reviewed spec grafts with the prior review's verdict anchored at mint, and the only distinguishing signal is a stderr warning nobody is required to act on.",
+      "spec_anchor": "collate-evidence-comment",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "A placed-but-failed write no longer leaves an earlier review at the canonical path.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "`collate-evidence --comment` is warn-and-continue by design, and `writeEvidenceFile` only replaces the file on success (temp + rename). On a re-run of the terminal seam — a later review round, a re-dispatch after an outage, or a second `write-evidence` with a newer comment — a placement fault or writer refusal leaves the **older** `spec-review-verdict.json` fully intact and current-looking. The failure mode is therefore not the benign \"no file\" state (which FAFF-1357 is stated to catch) but \"stale file posing as the current review's evidence\", differing from the success path only by a stderr line prep is instructed to copy into `prep.md` and then ignore. Nothing in the write path neutralises or renames the stale artifact on failure.",
+          "spec_anchor": "collate-evidence-comment"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The CLI-surface section says stderr on success is `faff spec-review collate-evidence: wrote <path>` (full command prefix), while the HOW procedure step 4 says `stderr \"wrote \" + r.written` (bare). A builder following the HOW literally produces a message that fails a test asserting the CLI-surface form, and the DONE item \"stderr carries `wrote <path>` on success\" passes under either reading — so the spec does not decide which bytes the warning/wrote lines carry.",
+      "evidence": "`### CLI surface` bullet \"stderr on success: `faff spec-review collate-evidence: wrote <path>`\" vs `### collate-evidence --comment` step 4 `ELSE: stderr \"wrote \" + r.written`; DONE item \"stderr carries `wrote <path>` on success\".",
+      "predicted_consequence": "two conforming builds emit different stderr bytes for the same success; a test written against one form fails the other, and the DONE item cannot arbitrate.",
+      "spec_anchor": "cli-surface",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Stderr bytes settled to the prefixed form in both the CLI surface and the HOW procedure.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The CLI-surface section says stderr on success is `faff spec-review collate-evidence: wrote <path>` (full command prefix), while the HOW procedure step 4 says `stderr \"wrote \" + r.written` (bare). A builder following the HOW literally produces a message that fails a test asserting the CLI-surface form, and the DONE item \"stderr carries `wrote <path>` on success\" passes under either reading — so the spec does not decide which bytes the warning/wrote lines carry.",
+          "spec_anchor": "cli-surface"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The interactive branch of `placeSpecReviewEvidence` realpaths `--dir` against the process cwd, but the interactive layout it must recognise — `.faff/spec-review/<ISSUE>` — is what `specReviewDir` emits as a relative path. The check only matches when the caller's cwd is the repo root (or the caller passes an absolute path). The spec never states the cwd==root precondition, nor instructs placement to resolve a relative `--dir` against the repo root.",
+      "evidence": "WHAT → Placement steps 1/3; `specReviewDir` returns a relative path (spec-review-pin.js).",
+      "predicted_consequence": "Interactive prep run from a subdirectory degrades to the stderr warning with no file.",
+      "spec_anchor": "placement",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "A relative --dir resolves against the repo root, never the cwd.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The interactive branch of `placeSpecReviewEvidence` realpaths `--dir` against the process cwd, but the interactive layout it must recognise — `.faff/spec-review/<ISSUE>` — is what `specReviewDir` emits as a relative path. The check only matches when the caller's cwd is the repo root (or the caller passes an absolute path). The spec never states the cwd==root precondition, nor instructs placement to resolve a relative `--dir` against the repo root.",
+          "spec_anchor": "placement"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec mandates removing an existing spec-review-verdict.json on every placed-but-failed write, including a transient WriterFault (IO fault). Removal only on a refusal that indicts the new input, or a rename-aside, satisfies the no-stale-file invariant while surviving a transient fault.",
+      "evidence": "HOW → collate-evidence --comment step 4 and the Chosen paragraph on removal.",
+      "predicted_consequence": "A transient IO fault on a re-run deletes a valid file.",
+      "spec_anchor": "how",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Refusal removes the old file; an IO or schema fault moves it aside to spec-review-verdict.stale.json.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The spec mandates removing an existing spec-review-verdict.json on every placed-but-failed write, including a transient WriterFault (IO fault). Removal only on a refusal that indicts the new input, or a rename-aside, satisfies the no-stale-file invariant while surviving a transient fault.",
+          "spec_anchor": "how"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "Scenario 1 requires byte-identity between files written into two different run dirs; the spec never states the anchored document is run-dir-independent.",
+      "evidence": "Scenarios unit 1; DONE byte-identical item.",
+      "predicted_consequence": "If anchoredSpecReview embedded run-dir bytes the flagship equality check could never pass.",
+      "spec_anchor": "scenarios",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Spec states the anchored document is run-dir independent (anchoredSpecReview takes only collated content).",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "Scenario 1 requires byte-identity between files written into two different run dirs; the spec never states the anchored document is run-dir-independent.",
+          "spec_anchor": "scenarios"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The DONE item says stderr carries exactly the wrote line, but cmdCollateEvidence already writes a skipped line per malformed round file.",
+      "evidence": "DONE item on stderr; spec-review.js:114.",
+      "predicted_consequence": "A correct build fails its own acceptance test whenever a round is skipped.",
+      "spec_anchor": "how",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "DONE item now requires the wrote line to be included, allowing existing skipped lines.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The DONE item says stderr carries exactly the wrote line, but cmdCollateEvidence already writes a skipped line per malformed round file.",
+          "spec_anchor": "how"
+        }
+      ]
+    }
+  ]
+}

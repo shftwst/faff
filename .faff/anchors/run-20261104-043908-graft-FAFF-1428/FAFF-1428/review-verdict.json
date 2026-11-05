@@ -2,7 +2,7 @@
   "schema_version": 1,
   "faff_version": "0.44.0",
   "signal": "pass",
-  "rounds_total": 4,
+  "rounds_total": 5,
   "round_history": "recorded",
   "findings": [
     {
@@ -290,9 +290,9 @@
       "severity": "minor",
       "source": "standard",
       "model": "anthropic/claude-opus-5-5",
-      "disposition": "open",
+      "disposition": "fixed",
       "refutation": null,
-      "disposition_rationale": "Kept on purpose to preserve the ac-checklist citation; the test now exercises the FAFF-1463 path, so the title misdescribes what it pins.",
+      "disposition_rationale": null,
       "first_round": 4,
       "last_round": 4,
       "occurrences": [
@@ -315,9 +315,9 @@
       "severity": "minor",
       "source": "adversarial",
       "model": "openai/z-ai/glm-5.3-flash",
-      "disposition": "open",
+      "disposition": "fixed",
       "refutation": null,
-      "disposition_rationale": "Valid but diagnostic only: the test still fails on any non-2 call, so the property is held; only the one-run sweep is lost.",
+      "disposition_rationale": null,
       "first_round": 4,
       "last_round": 4,
       "occurrences": [
@@ -465,7 +465,7 @@
       "severity": "observation",
       "source": "standard",
       "model": "anthropic/claude-opus-5-5",
-      "disposition": "open",
+      "disposition": "fixed",
       "refutation": null,
       "disposition_rationale": null,
       "first_round": 4,
@@ -477,6 +477,81 @@
           "location": ".faff/runs/run-20261104-043908-graft-FAFF-1428/FAFF-1428/holdout.json",
           "severity": "observation",
           "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/rule-inventory.test.mjs::redundant re-fetch double-sources origin/head in the no-base merge-base test",
+      "title": "Redundant re-fetch double-sources origin/HEAD in the no-base merge-base test",
+      "location": "test/rule-inventory.test.mjs:442",
+      "action": "Drop the fetch after remote set-head so set-head is the only source of origin/HEAD on every git version.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "claude-opus-5-5",
+      "disposition": "open",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "title": "Redundant re-fetch double-sources origin/HEAD in the no-base merge-base test",
+          "location": "test/rule-inventory.test.mjs:442",
+          "severity": "observation",
+          "disposition": "open"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/rule-inventory.test.mjs::update-ref -d on an absent origin/head breaks fixtures on older git",
+      "title": "update-ref -d on an absent origin/HEAD breaks fixtures on older git",
+      "location": "test/rule-inventory.test.mjs:114",
+      "action": "None; deleting a missing ref exits 0.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "git update-ref --no-deref -d on a missing ref exits 0 on git 2.39.5 and 2.30.6; the suite passes 45/45 on 2.39.5.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "title": "update-ref -d on an absent origin/HEAD breaks fixtures on older git",
+          "location": "test/rule-inventory.test.mjs:114",
+          "severity": "major",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/rule-inventory.test.mjs::collect-then-assert sweep loses strictness",
+      "title": "Collect-then-assert sweep loses strictness",
+      "location": "test/rule-inventory.test.mjs:800",
+      "action": "None; the pass/fail conditions are equivalent.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "Status, stdout and probe stderr are each still checked per call, and non-probe stderr was never asserted. The inline version also aborted before the probes.length pin. Mutants show one failing run reports 4 and 2 mismatches.",
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "title": "Collect-then-assert sweep loses strictness",
+          "location": "test/rule-inventory.test.mjs:800",
+          "severity": "minor",
+          "disposition": "refuted"
         }
       ]
     }

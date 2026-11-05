@@ -108,6 +108,10 @@ function fixture(files = {}) {
   fx.commit("base");
   sh(dir, "push", "-q", "origin", "main");
   sh(dir, "fetch", "-q", "origin");
+  // git 2.48+ creates origin/HEAD on fetch; older git does not. Start every case without it, on any
+  // git version; a case that needs it sets it with `remote set-head`. --no-deref deletes the symref
+  // itself, never refs/remotes/origin/main it points at.
+  sh(dir, "update-ref", "--no-deref", "-d", "refs/remotes/origin/HEAD");
   sh(dir, "checkout", "-q", "-b", "feat");
   return fx;
 }
@@ -702,6 +706,7 @@ function linkedWorktree() {
   sh(fx.dir, "commit", "-q", "-m", "untrack config");
   sh(fx.dir, "push", "-q", "origin", "main");
   sh(fx.dir, "fetch", "-q", "origin");
+  sh(fx.dir, "update-ref", "--no-deref", "-d", "refs/remotes/origin/HEAD"); // as in fixture(): absent on any git version
   writeFileSync(join(fx.dir, ".faff/config.yaml"), "tracking:\n    spec_docs_path: design/specs/\n");
   const wt = join(fx.root, "wt");
   sh(fx.dir, "worktree", "add", "-q", "-b", "feat2", wt, "main");

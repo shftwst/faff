@@ -159,6 +159,8 @@ test("FAFF-1149: on a Linux host the selected-rung set and discovery are unchang
     "node plugin/skills/faff/bin/faff adr validate",
     "node plugin/skills/faff/bin/faff prdr validate",
     "node plugin/skills/faff/bin/faff regions check",
+    // FAFF-1428: the rule-inventory step's literal no-base line is a local rung, beside regions check.
+    "node plugin/skills/faff/bin/faff rule-inventory check",
     "node --import ./test/hermetic-env.mjs --test",
     "node --import ./test/hermetic-env.mjs --test test/env.test.mjs test/holdout-evaluate-integration.test.mjs",
     // FAFF-1171: the Node 24 typecheck job's source-lane checks are discovered as runnable rungs too.

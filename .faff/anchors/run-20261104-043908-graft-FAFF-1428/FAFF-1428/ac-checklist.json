@@ -1,0 +1,495 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A PR that deletes a non-exempt block of skill prose, commits a spec, and has no row or move covering the block fails `faff rule-inventory check` with exit 1, naming the file and base line.",
+      "verified": "exit 1, uncovered names plugin/skills/faff-graft/SKILL.md:5",
+      "passed": true,
+      "ac_id": "faff-1428#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a deleted paragraph with a committed spec and no inventory section fails, naming the file and the missing section"
+        }
+      ]
+    },
+    {
+      "ac": "`faff rule-inventory check [--base REF] [--json] [--summary FILE]` exists, with exits 0 / 1 / 2 as section 3 defines.",
+      "verified": "exits 0/1/2 asserted; self-run on this branch exits 0 (skipped no-prose-deleted)",
+      "passed": true,
+      "ac_id": "faff-1428#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a deleted paragraph with a committed spec and no inventory section fails, naming the file and the missing section"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a --base that is not a plain ref exits 2 and prints nothing on stdout"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a failing git command exits 2, never 0"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff rule-inventory check --base origin/main --json"
+        }
+      ]
+    },
+    {
+      "ac": "`--json` output has every `CheckResult` field.",
+      "verified": "every CheckResult key asserted present",
+      "passed": true,
+      "ac_id": "faff-1428#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a deleted paragraph with a committed spec and no inventory section fails, naming the file and the missing section"
+        }
+      ]
+    },
+    {
+      "ac": "The inventory format (section heading, `Prose rule` code-span anchor, `Covering test`, `Disposition`) is documented in `docs/reference/skill-authoring.md` under a `Rule inventory` heading, and every uncovered-block message names that anchor.",
+      "verified": "section at docs/reference/skill-authoring.md:37; uncovered line names #rule-inventory",
+      "passed": true,
+      "ac_id": "faff-1428#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a deleted paragraph with a committed spec and no inventory section fails, naming the file and the missing section"
+        },
+        {
+          "kind": "command",
+          "locator": "grep -n '^## Rule inventory' docs/reference/skill-authoring.md"
+        }
+      ]
+    },
+    {
+      "ac": "`plugin/skills/faffter-dark-nlspec/SKILL.md` gains one line telling the producer that a spec deleting skill prose carries a `## Rule inventory` in that format, and `prose-baseline.json` is raised by exactly that file's growth.",
+      "verified": "one Rule inventory line added; prose-baseline raised 18443 -> 18680 (+237, the file's exact growth); validate-adapters PASS",
+      "passed": true,
+      "ac_id": "faff-1428#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "The command is TypeScript (`rule-inventory.ts` with its committed `.js` emit and `build-manifest.json`), in the factory region, with `REGION_SELFTEST_ARGV[\"rule-inventory\"] = null`, a `TEST_FILE_COVERAGE` entry for `test/rule-inventory.test.mjs`, and a `docs/guide/cli.md` row; `faff regions check`, `faff lint-cli-coverage` and `faff lint-cli-doc` pass.",
+      "verified": "rule-inventory.ts, committed .js emit and build-manifest; factory region, selftest null, TEST_FILE_COVERAGE, cli.md row; all three lints PASS",
+      "passed": true,
+      "ac_id": "faff-1428#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-coverage"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-doc"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::the CLI registration: a factory command with no selftest"
+        }
+      ]
+    },
+    {
+      "ac": "A row's anchor covers a block only when it is at least 20 characters and a substring of the block's normalised deleted text, or when it equals that whole text; a short anchor never covers a longer block containing it.",
+      "verified": "short anchor covers only equal text; the floor mutation flips the case",
+      "passed": true,
+      "ac_id": "faff-1428#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a short anchor covers only a block whose whole text it equals, never a longer block containing it"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::row errors: no code span, short anchor, bad disposition, empty reason, bad or missing test path, absent test name"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::mutations: dropping the anchor-length floor, the kept-needs-test rule or the moved test each fail a case"
+        }
+      ]
+    },
+    {
+      "ac": "A deleted block whose text sits inside a single head block of any watched file counts as moved, with no row needed, including a reflow that leaves some lines unchanged.",
+      "verified": "cross-file move and partial reflow counted moved; the moved-test mutation flips",
+      "passed": true,
+      "ac_id": "faff-1428#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::text moved verbatim into another skill file, or reflowed in place, is moved and needs no row"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::mutations: dropping the anchor-length floor, the kept-needs-test rule or the moved test each fail a case"
+        }
+      ]
+    },
+    {
+      "ac": "The watched set is `prose-size`'s exported `isCovered`, imported, not a second list.",
+      "verified": "isCovered imported from ./prose-size; no second list",
+      "passed": true,
+      "ac_id": "faff-1428#done:9",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -n 'isCovered' plugin/skills/faff/bin/lib/rule-inventory.ts"
+        }
+      ]
+    },
+    {
+      "ac": "Path listing uses `-z` with `core.quotePath=false`; a watched-looking path the parser cannot decode exits 2.",
+      "verified": "diff -z --name-status under core.quotePath=false; an undecodable plugin/skills/ path throws (exit 2); per-file diff uses --text and --literal-pathspecs, a hunkless or Binary diff exits 2; a mode-only change or empty-base deletion deletes nothing, any other hunkless content change exits 2",
+      "passed": true,
+      "ac_id": "faff-1428#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a changed path under plugin/skills/ that is not valid UTF-8 is an error, never a skip"
+        },
+        {
+          "kind": "command",
+          "locator": "grep -n 'core.quotePath=false' plugin/skills/faff/bin/lib/rule-inventory.ts"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a binary or -diff attribute, or a NUL byte at HEAD, never hides a deletion (review: binary diff)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a watched file whose diff has no text hunk is an error, never a skip (review: binary diff)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a watched path with glob characters is matched literally (review: literal pathspecs)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a mode-only change or an empty watched file's deletion deletes nothing; a content change with no hunk still exits 2 (review round 2: no-hunk guard)"
+        }
+      ]
+    },
+    {
+      "ac": "A move into a non-watched file is not moved.",
+      "verified": "a move into docs/guide/prep.md is uncovered",
+      "passed": true,
+      "ac_id": "faff-1428#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::text moved into a non-watched file is not moved"
+        }
+      ]
+    },
+    {
+      "ac": "Table separator rows and letterless blocks are exempt; a table header row is exempt only when its whole table is deleted, and a heading only when its whole section is deleted.",
+      "verified": "separator and letterless exempt; header exempt only with its whole table; heading only with its whole section; exemption needs every line deleted by pure-deletion hunks, a lettered block, and no reappearance; an empty section is never exempt; a heading deleted alone over an edited paragraph is not exempt",
+      "passed": true,
+      "ac_id": "faff-1428#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a deleted thematic break alone is letterless and exempt"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::exemptions: separator rows are exempt; a header row is exempt only with its whole table"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a whole section deleted counts only its paragraph: the heading is exempt"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a reworded heading alone is not exempt: it needs a row"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a reworded heading over a partly edited section is not exempt (review: section exemption)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a renamed table header is not exempt when the table's rows reappear (review: table exemption)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a section moved to another skill under a new heading is not exempt: its old heading needs a row (review: section exemption)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a heading with an empty section is not exempt when deleted (review: empty section)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a heading deleted alone while its one-line paragraph is edited is not exempt (review round 2: pure members)"
+        }
+      ]
+    },
+    {
+      "ac": "Normalise deletes `*` and backticks and collapses whitespace, on anchors, deleted text and head blocks alike.",
+      "verified": "normalise strips * and backticks and collapses whitespace",
+      "passed": true,
+      "ac_id": "faff-1428#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::normalise, clean and mdEscape"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a qualified header (`Prose rule (\u00a72)`) is read; a kept row in a table with no Covering test column is a row error"
+        }
+      ]
+    },
+    {
+      "ac": "Only specs the diff adds are read; a modified older spec contributes no rows.",
+      "verified": "a modified older spec contributes no rows; ./records/specs/ normalised, absolute path exits 2",
+      "passed": true,
+      "ac_id": "faff-1428#done:14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::only specs the diff adds are read: an older spec the branch modifies contributes no rows"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::spec_docs_path is normalised: ./records/specs/ finds the spec; an absolute path exits 2 (review: spec_docs_path)"
+        }
+      ]
+    },
+    {
+      "ac": "A diff that adds or modifies a path under `.faff/anchors/` but commits no spec fails with `footprint_without_spec: true`.",
+      "verified": "added and modified anchor paths both fail with footprint_without_spec",
+      "passed": true,
+      "ac_id": "faff-1428#done:15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::an added or modified .faff/anchors/ path with deleted prose and no spec fails with footprint_without_spec"
+        }
+      ]
+    },
+    {
+      "ac": "`--summary` escapes markdown metacharacters and HTML in every spec-derived value.",
+      "verified": "mdEscape escapes metacharacters and HTML; no unescaped ![ or pipe",
+      "passed": true,
+      "ac_id": "faff-1428#done:16",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::normalise, clean and mdEscape"
+        }
+      ]
+    },
+    {
+      "ac": "A covering-test path outside `^test/\u2026\\.test\\.mjs$` or with a `..` segment is a row error and is never looked up.",
+      "verified": "src/a.js and test/../escape.test.mjs are row errors and never looked up",
+      "passed": true,
+      "ac_id": "faff-1428#done:17",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::row errors: no code span, short anchor, bad disposition, empty reason, bad or missing test path, absent test name"
+        }
+      ]
+    },
+    {
+      "ac": "Every printed line starts with `rule-inventory: `; spec-derived values are stripped of control characters and capped at 200 characters; a committed spec over 1 MiB exits 2.",
+      "verified": "every stdout line prefixed; ::error:: never starts a line; clean() strips controls and caps at 200; a spec over 1 MiB exits 2",
+      "passed": true,
+      "ac_id": "faff-1428#done:18",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a spec-derived workflow command never starts an output line"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a committed spec over 1 MiB exits 2"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::normalise, clean and mdEscape"
+        }
+      ]
+    },
+    {
+      "ac": "`--summary FILE` appends the row-covered table, `dropped` and `changed` first, and the CI step passes `$GITHUB_STEP_SUMMARY`.",
+      "verified": "summary appends, dropped first; the CI step passes $GITHUB_STEP_SUMMARY",
+      "passed": true,
+      "ac_id": "faff-1428#done:19",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::--summary appends the row-covered table with dropped rows first"
+        },
+        {
+          "kind": "command",
+          "locator": "grep -n 'GITHUB_STEP_SUMMARY' .github/workflows/validate.yml"
+        }
+      ]
+    },
+    {
+      "ac": "A row whose anchor matches no deleted block produces the warning `anchor matches no deleted prose` and does not fail the check.",
+      "verified": "warning emitted, exit 0",
+      "passed": true,
+      "ac_id": "faff-1428#done:20",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a row whose anchor matches no deleted prose warns and does not fail"
+        }
+      ]
+    },
+    {
+      "ac": "`kept` rows with no test, `changed`/`dropped` rows with no reason, and rows naming a missing test file or a test name absent from the file are row errors.",
+      "verified": "kept with no test, empty reason, missing file and absent name are all row errors; a directory is not a covering test (cat-file -t blob); covering-test lookup is ls-tree through the failure guard and must be a blob",
+      "passed": true,
+      "ac_id": "faff-1428#done:21",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a kept row with an empty Covering test cell is a row error"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::row errors: no code span, short anchor, bad disposition, empty reason, bad or missing test path, absent test name"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a covering test that is a directory at HEAD does not exist (review: cat-file -t)"
+        }
+      ]
+    },
+    {
+      "ac": "A PR that commits no spec is `skipped` with `no-spec-committed`; one that deletes no non-exempt prose is `skipped` with `no-prose-deleted`.",
+      "verified": "no-spec-committed and no-prose-deleted skips",
+      "passed": true,
+      "ac_id": "faff-1428#done:22",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::deleted prose with no spec committed is skipped with no-spec-committed and the fixed notice"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a deleted thematic break alone is letterless and exempt"
+        }
+      ]
+    },
+    {
+      "ac": "Without `--base`, the base is the merge-base with `origin/HEAD`, or the result is `skipped` with `no-base`.",
+      "verified": "no origin/HEAD gives no-base; with origin/HEAD the merge-base; a failing origin/HEAD lookup exits 2, never a no-base skip; merge-base takes refs/remotes/origin/HEAD",
+      "passed": true,
+      "ac_id": "faff-1428#done:23",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::without --base: merge-base with origin/HEAD, else skipped no-base"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::without --base, a failing origin/HEAD lookup is an error, not a no-base skip (holdout scenarios:21)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::without --base, the merge-base uses the full refs/remotes/origin/HEAD, never a local branch named origin/HEAD (review round 3)"
+        }
+      ]
+    },
+    {
+      "ac": "A failing git command, an unreadable committed spec, or a bad `--base` exits 2, never 0.",
+      "verified": "git failures (diff, cat-file, ls-tree), a bad ref and an unreadable config all exit 2; hunkless diff and absolute spec_docs_path exit 2; a lost main-checkout config fallback exits 2; a lost overlay fallback exits 2; from a passing run every injected git failure exits 2 with empty stdout, and the shared main-checkout probe prints the dispatch line naming the root and git's message (FAFF-1463)",
+      "passed": true,
+      "ac_id": "faff-1428#done:24",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a failing git command exits 2, never 0"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::an unreadable config exits 2, never a pass"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a --base that is not a plain ref exits 2 and prints nothing on stdout"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a watched file whose diff has no text hunk is an error, never a skip (review: binary diff)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::spec_docs_path is normalised: ./records/specs/ finds the spec; an absolute path exits 2 (review: spec_docs_path)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a failed main-checkout lookup in the shared config resolution exits 2, never a no-spec skip (holdout scenarios:21)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::a lost overlay fallback in a linked worktree exits 2 (FAFF-1463 shared lookup)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::from a passing run, failing any single git call exits 2, with and without --base (holdout scenarios:21)"
+        }
+      ]
+    },
+    {
+      "ac": "`validate.yml` runs the check on `pull_request` with `--base origin/$BASE_REF` and on `push` with `BEFORE`, with event values reaching the script only through `env`, an unfetchable `BEFORE` failing the step, and the literal no-base line present for `faff gates discover`.",
+      "verified": "pull_request --base origin/$BASE_REF, push --base $BEFORE, env-only values, unfetchable BEFORE exits 1, literal no-base line discovered as a STATIC_ANALYSIS rung",
+      "passed": true,
+      "ac_id": "faff-1428#done:25",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gates discover"
+        },
+        {
+          "kind": "command",
+          "locator": "grep -n 'rule-inventory check' .github/workflows/validate.yml"
+        }
+      ]
+    },
+    {
+      "ac": "`test/rule-inventory.test.mjs` covers each scenario in section 5, each row-error kind and each exemption rule (separator, letterless, header row with and without its whole table, heading with and without its whole section), using fixture repos with a local bare origin, and passes under `node --test`.",
+      "verified": "45 cases pass over fixture repos with a local bare origin: builder-view scenarios, every row-error kind and every exemption rule",
+      "passed": true,
+      "ac_id": "faff-1428#done:26",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/rule-inventory.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "A mutation test shows each check bites: removing the anchor-length floor, the kept-needs-test rule, or the moved test each makes at least one case in the file fail.",
+      "verified": "three mutants (floor, kept-needs-test, moved) each fail a case",
+      "passed": true,
+      "ac_id": "faff-1428#done:27",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/rule-inventory.test.mjs::mutations: dropping the anchor-length floor, the kept-needs-test rule or the moved test each fail a case"
+        }
+      ]
+    }
+  ]
+}

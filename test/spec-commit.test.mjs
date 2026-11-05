@@ -76,7 +76,9 @@ test("commit writes the builder view byte for byte as a one-path commit and reco
   assert.ok(written.equals(builderView(f)));
   assert.ok(!written.toString().includes("withheld scenario"));
   const rec = JSON.parse(readFileSync(join(f.rd, "EX-3", "spec-commit.json"), "utf8"));
-  assert.deepEqual(Object.keys(rec).sort(), ["commit", "committed_sha256", "faff_version", "holdouts_withheld", "issue", "path", "source_check", "source_sha256"]);
+  assert.deepEqual(Object.keys(rec).sort(), ["commit", "commit_subject_scheme", "committed_sha256", "faff_version", "holdouts_withheld", "issue", "path", "source_check", "source_sha256", "warnings"]);
+  assert.equal(rec.commit_subject_scheme, "conventional");
+  assert.deepEqual(rec.warnings, []);
   assert.equal(rec.path, res.path);
   assert.equal(rec.commit, git(f.wt, "rev-parse", "HEAD").trim());
   assert.equal(rec.committed_sha256, sha(written));
@@ -401,4 +403,149 @@ test("pure core: a failed commit unstages and removes only the file it created",
   assert.equal(files.size, 0);
   assert.deepEqual(calls.slice(-3), ["add", "commit", "reset"]);
   assert.equal(runSpecVerify({ issue: "EX-3", specPath: "missing.md", worktree: "wt", runDir: null }, deps).reason.startsWith("spec-unreadable"), true);
+});
+
+// FAFF-1429 — the over-withholding advisory and the commit-subject scheme come back out of spec commit.
+const OVER = [
+  "# EX: every scenario withheld", "", "## Scenarios", "",
+  "```holdout", "Given a withheld scenario", "When it runs", "Then it passes", "```", "",
+  "## 7. DONE", "", "- [ ] the item must hold", "",
+].join("\n");
+const BARE = "tracking:\n  tracker: none\nconventions:\n  commit_subject: bare-imperative\n";
+const readRec = (f, rd = f.rd) => readFileSync(join(rd, "EX-3", "spec-commit.json"), "utf8");
+const commitText = (f) => cli(["spec", "commit", "--issue", "EX-3", "--title", "Add a thing", "--spec", f.specFile, "--worktree", f.wt, "--run-dir", f.rd]);
+
+test("an over-withholding spec: the advisory is on stderr, in the result and in the record, and never gates", () => {
+  const f = fixture({ spec: OVER });
+  const r = commit(f);
+  assert.equal(r.status, 0);
+  const res = r.json();
+  assert.equal(res.token, "committed");
+  assert.equal(res.warnings.length, 1);
+  assert.match(res.warnings[0], /^over-withholding advisory/);
+  const lines = r.stderr.split("\n").filter(Boolean);
+  assert.deepEqual(lines, [`spec commit EX-3: warning: ${res.warnings[0]}`]);
+  assert.match(lines[0], /^spec commit EX-3: warning: over-withholding advisory/);
+  assert.deepEqual(JSON.parse(readRec(f)).warnings, res.warnings);
+  assert.equal(r.stdout.trim().split("\n").length, 1);
+});
+
+test("text mode prints the advisory on stderr too, and keeps stdout to one line", () => {
+  const f = fixture({ spec: OVER });
+  const r = commitText(f);
+  assert.equal(r.status, 0);
+  assert.equal(r.stdout.trim().split("\n").length, 1);
+  assert.match(r.stdout, /^spec commit EX-3: committed /);
+  assert.match(r.stderr, /^spec commit EX-3: warning: over-withholding advisory/);
+});
+
+test("a spec that keeps a born-verifiable scenario: no warnings key, an empty record array, nothing on stderr", () => {
+  const f = fixture();
+  const r = commit(f);
+  assert.equal(r.status, 0);
+  assert.equal(Object.prototype.hasOwnProperty.call(r.json(), "warnings"), false);
+  assert.deepEqual(JSON.parse(readRec(f)).warnings, []);
+  assert.equal(r.stderr, "");
+});
+
+test("commit_subject_scheme is returned and recorded, and matches the subject, for both schemes", () => {
+  const conventional = fixture();
+  const a = commit(conventional).json();
+  assert.equal(a.commit_subject_scheme, "conventional");
+  assert.equal(JSON.parse(readRec(conventional)).commit_subject_scheme, "conventional");
+  assert.equal(git(conventional.wt, "log", "-1", "--format=%s").trim(), "docs(EX-3): add spec for Add a thing");
+  const bare = fixture({ config: BARE });
+  const b = commit(bare).json();
+  assert.equal(b.commit_subject_scheme, "bare-imperative");
+  assert.equal(JSON.parse(readRec(bare)).commit_subject_scheme, "bare-imperative");
+  assert.equal(git(bare.wt, "log", "-1", "--format=%s").trim(), "Add spec for Add a thing (EX-3)");
+});
+
+test("already-committed returns the record's scheme and this call's warnings, and leaves the record byte-identical", () => {
+  const f = fixture({ spec: OVER });
+  commit(f);
+  const before = readRec(f);
+  writeFileSync(join(f.wt, ".faff", "config.yaml"), BARE);
+  const r = commit(f);
+  assert.equal(r.status, 0);
+  const res = r.json();
+  assert.equal(res.token, "already-committed");
+  assert.equal(res.commit_subject_scheme, "conventional");
+  assert.equal(res.warnings.length, 1);
+  assert.match(res.warnings[0], /^over-withholding advisory/);
+  assert.match(r.stderr, /^spec commit EX-3: warning: over-withholding advisory/);
+  assert.equal(readRec(f), before);
+});
+
+test("already-committed with no record writes one with the scheme resolved now", () => {
+  const f = fixture();
+  commit(f);
+  writeFileSync(join(f.wt, ".faff", "config.yaml"), BARE);
+  const other = join(f.root, "rd2");
+  const r = cli(["spec", "commit", "--issue", "EX-3", "--title", "Add a thing", "--spec", f.specFile, "--worktree", f.wt, "--run-dir", other, "--json"]);
+  assert.equal(r.json().token, "already-committed");
+  assert.equal(r.json().commit_subject_scheme, "bare-imperative");
+  const rec = JSON.parse(readRec(f, other));
+  assert.equal(rec.commit_subject_scheme, "bare-imperative");
+  assert.deepEqual(rec.warnings, []);
+});
+
+test("already-committed over a record from an older faff resolves the scheme and does not rewrite the record", () => {
+  const f = fixture();
+  commit(f);
+  const old = JSON.parse(readRec(f));
+  delete old.commit_subject_scheme;
+  delete old.warnings;
+  const oldText = JSON.stringify(old, null, 2) + "\n";
+  writeFileSync(join(f.rd, "EX-3", "spec-commit.json"), oldText);
+  writeFileSync(join(f.wt, ".faff", "config.yaml"), BARE);
+  const res = commit(f).json();
+  assert.equal(res.token, "already-committed");
+  assert.equal(res.commit_subject_scheme, "bare-imperative");
+  assert.equal(readRec(f), oldText);
+});
+
+test("pure core: the scheme is resolved once per call, and not at all when the record already has it", () => {
+  const files = new Map();
+  let schemeCalls = 0;
+  let head = null;
+  const recs = new Map();
+  const deps = {
+    git: (_w, a) => {
+      if (a[0] === "ls-tree") return { status: 0, stdout: Buffer.from(head ? `${head.p}\0` : ""), stderr: "" };
+      if (a[0] === "show") return head ? { status: 0, stdout: head.b, stderr: "" } : { status: 128, stdout: Buffer.alloc(0), stderr: "" };
+      if (a[0] === "commit") { const p = a[a.length - 1]; head = { p, b: files.get(join("wt", p)) }; }
+      if (a[0] === "rev-parse" || a[0] === "log") return { status: 0, stdout: Buffer.from("abc\n"), stderr: "" };
+      return { status: 0, stdout: Buffer.alloc(0), stderr: "" };
+    },
+    readBytes: (p) => { if (p === "s.md") return Buffer.from(OVER); const b = files.get(p); if (!b) throw Object.assign(new Error("x"), { code: "ENOENT" }); return b; },
+    exists: (p) => files.has(p) || recs.has(p), mkdirp: () => {}, writeBytes: (p, b) => files.set(p, b), unlink: (p) => files.delete(p),
+    isInside: () => true, realpath: (p) => resolve(p), specDir: () => "docs/specs", commitScheme: () => { schemeCalls++; return "bare-imperative"; },
+    today: () => "2026-10-27", version: () => "0.0.0", prepRoot: () => "root",
+    readJson: (p) => (recs.has(p) ? JSON.parse(recs.get(p)) : null), writeJson: (p, o) => recs.set(p, JSON.stringify(o)),
+  };
+  const opts = { issue: "EX-3", title: "t", specPath: "s.md", worktree: "wt", runDir: "rd" };
+  const first = runSpecCommit(opts, deps);
+  assert.equal(first.token, "committed");
+  assert.equal(first.commit_subject_scheme, "bare-imperative");
+  assert.equal(schemeCalls, 1);
+  assert.equal(JSON.parse(recs.get(join("rd", "EX-3", "spec-commit.json"))).commit_subject_scheme, "bare-imperative");
+  const second = runSpecCommit(opts, deps);
+  assert.equal(second.token, "already-committed");
+  assert.equal(second.commit_subject_scheme, "bare-imperative");
+  assert.equal(second.warnings.length, 1);
+  assert.equal(schemeCalls, 1);
+});
+
+test("graft Steps 4c and 10 read commit_subject_scheme from spec-commit.json, and the stale scheme phrases are gone", () => {
+  const skill = readFileSync(join(REPO, "plugin", "skills", "faff-graft", "SKILL.md"), "utf8");
+  assert.ok(!skill.includes("Step 4 already resolved, never re-mined"));
+  assert.ok(!skill.includes("scheme resolved at Step 4"));
+  const step4c = skill.slice(skill.indexOf("**Step 4c:"), skill.indexOf("**Step 5:"));
+  assert.ok(step4c.length > 0 && step4c.includes("`commit_subject_scheme`") && step4c.includes("spec-commit.json") && step4c.includes("faff conventions get commit_subject"));
+  const renumber = skill.slice(skill.indexOf("Stage the specific renumbered ADR file(s)"));
+  const renumberStep = renumber.slice(0, renumber.indexOf("\n"));
+  assert.ok(renumberStep.includes("`commit_subject_scheme`") && renumberStep.includes("spec-commit.json") && renumberStep.includes("faff conventions get commit_subject"));
+  const step4 = skill.slice(skill.indexOf("**Step 4: Commit spec"), skill.indexOf("**Step 4b:"));
+  assert.ok(step4.includes("`commit_subject_scheme`") && step4.includes("`warnings`") && step4.includes("graft.md"));
 });

@@ -55,17 +55,20 @@ function matchingSpecNames(names, issue) {
         return key.toLowerCase() === want;
     });
 }
-// The builder view as bytes. A spec with nothing to withhold comes back as the very bytes read, so a
-// file that is not valid UTF-8 is not altered by the decode.
-function builderBytes(sourceBuf) {
+// The builder view as bytes, with dodSplit's non-gating advisories (the over-withholding warning). A
+// spec with nothing to withhold comes back as the very bytes read, so a file that is not valid UTF-8 is
+// not altered by the decode.
+function builderView(sourceBuf) {
     const text = sourceBuf.toString("utf8");
-    const split = dodSplit(text, "builder").text;
-    if (split === text)
-        return sourceBuf;
+    const split = dodSplit(text, "builder");
+    const warnings = Array.isArray(split.warnings) ? split.warnings.map(String) : [];
+    if (split.text === text)
+        return { bytes: sourceBuf, warnings };
     if (!Buffer.from(text, "utf8").equals(sourceBuf))
         throw new Error("spec is not valid UTF-8, so withholding scenarios would alter its bytes");
-    return Buffer.from(split, "utf8");
+    return { bytes: Buffer.from(split.text, "utf8"), warnings };
 }
+const builderBytes = (sourceBuf) => builderView(sourceBuf).bytes;
 function holdoutsWithheld(sourceBuf) {
     try {
         return dodClassify(sourceBuf.toString("utf8")).holdout_counts.holdout;
@@ -185,13 +188,18 @@ function runSpecCommit(opts, deps) {
         return errored(issue, `spec-unreadable: ${get(e, "code") || get(e, "message")}`);
     }
     let builder;
+    let warnings;
     try {
-        builder = builderBytes(source);
+        ({ bytes: builder, warnings } = builderView(source));
     }
     catch {
         return errored(issue, "builder-split-failed");
     }
     const builderHash = sha256(builder);
+    // Resolved at most once per call: the same value builds the subject, the result and the record.
+    let scheme = null;
+    const resolveScheme = () => (scheme === null ? (scheme = deps.commitScheme(worktree)) : scheme);
+    const advisories = () => (warnings.length ? { warnings } : {});
     const d = resolveDir(issue, worktree, deps);
     if (d.err)
         return d.err;
@@ -205,6 +213,8 @@ function runSpecCommit(opts, deps) {
             holdouts_withheld: holdoutsWithheld(source),
             source_check: sourceCheck(opts.prepRoot || deps.prepRoot(worktree), issue, source, deps),
             faff_version: deps.version(),
+            warnings,
+            commit_subject_scheme: resolveScheme(),
         };
         deps.writeJson(recordPath(runDir, issue), rec);
         return rec;
@@ -224,9 +234,13 @@ function runSpecCommit(opts, deps) {
         const commit = log.status === 0 ? log.stdout.toString("utf8").trim() : "";
         if (!deps.exists(recordPath(runDir, issue))) {
             const rec = record({ path: first, commit });
-            return result(issue, "already-committed", { path: first, commit, source_check: rec.source_check });
+            return result(issue, "already-committed", { path: first, commit, source_check: rec.source_check, commit_subject_scheme: rec.commit_subject_scheme, ...advisories() });
         }
-        return result(issue, "already-committed", { path: first, commit });
+        // The existing record is authoritative and is not rewritten; an older record has no scheme.
+        const prior = deps.readJson(recordPath(runDir, issue));
+        const recorded = prior ? prior.commit_subject_scheme : undefined;
+        const usedScheme = recorded === "conventional" || recorded === "bare-imperative" ? recorded : resolveScheme();
+        return result(issue, "already-committed", { path: first, commit, commit_subject_scheme: usedScheme, ...advisories() });
     }
     const abs = path.join(worktree, rel);
     let created = false;
@@ -239,7 +253,7 @@ function runSpecCommit(opts, deps) {
         deps.writeBytes(abs, builder);
         created = true;
     }
-    const subject = commitSubject(deps.commitScheme(worktree), issue, collapseTitle(title));
+    const subject = commitSubject(resolveScheme(), issue, collapseTitle(title));
     const add = deps.git(worktree, ["add", "--", rel]);
     const commit = add.status === 0 ? deps.git(worktree, ["commit", "-m", subject, "--", rel]) : add;
     const failedStep = add.status === 0 ? "git-commit-failed" : "git-add-failed";
@@ -256,7 +270,7 @@ function runSpecCommit(opts, deps) {
     }
     const sha = deps.git(worktree, ["rev-parse", "HEAD"]).stdout.toString("utf8").trim();
     const rec = record({ path: rel, commit: sha });
-    return result(issue, "committed", { path: rel, commit: sha, source_check: rec.source_check });
+    return result(issue, "committed", { path: rel, commit: sha, source_check: rec.source_check, commit_subject_scheme: rec.commit_subject_scheme, ...advisories() });
 }
 // ---------------------------------------------------------------------------
 // spec verify.
@@ -346,6 +360,8 @@ function cmdSpec(args, deps) {
     catch (e) {
         res = errored(issue, `unexpected: ${e && get(e, "message") ? get(e, "message") : e}`);
     }
+    for (const w of res.warnings || [])
+        console.error(`spec ${verb} ${issue}: warning: ${w}`);
     emit(res, !!values["--json"], verb);
     if (res.token === "errored")
         return 2;

@@ -182,6 +182,7 @@ function cmdWriteEvidence(values) {
   const dir = values["--dir"];
   const file = values["--file"];
   if (dir == null || file == null) return fail(2, "--dir <scratch> and --file <file|-> are required");
+  if (file === "-" && process.stdin.isTTY) return fail(2, "--file - expects the comment on stdin; nothing was piped");
   let text;
   try { text = fs.readFileSync(file === "-" ? 0 : file, "utf8"); } catch { return fail(2, `cannot read ${file === "-" ? "stdin" : file}`); }
   let secrets;

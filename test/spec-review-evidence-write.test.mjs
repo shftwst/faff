@@ -412,3 +412,20 @@ test("guardWriterPaths still refuses a run dir outside .faff/runs", (t) => {
   const f = fixture(t);
   inRoot(f, () => assert.throws(() => guardWriterPaths(join(f.root, "elsewhere"), ISSUE), WriterFault));
 });
+
+test("write-evidence --file - on a terminal stdin exits 2 instead of waiting for input", (t) => {
+  const f = fixture(t);
+  const desc = Object.getOwnPropertyDescriptor(process.stdin, "isTTY");
+  Object.defineProperty(process.stdin, "isTTY", { value: true, configurable: true });
+  const origErr = process.stderr.write.bind(process.stderr);
+  let err = "";
+  process.stderr.write = (s) => { err += s; return true; };
+  let code;
+  try { code = inRoot(f, () => cmdSpecReview(["write-evidence", "--dir", f.runScratch, "--file", "-"])); } finally {
+    process.stderr.write = origErr;
+    if (desc) Object.defineProperty(process.stdin, "isTTY", desc); else delete process.stdin.isTTY;
+  }
+  assert.equal(code, 2);
+  assert.match(err, /nothing was piped/);
+  assert.ok(!existsSync(f.file(f.runTarget)));
+});

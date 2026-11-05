@@ -830,7 +830,8 @@ function placeSpecReviewEvidence(scratchDir) {
     const srRoot = realpathOrNull(path.join(r, ".faff", "spec-review"));
     if (srRoot === null) continue;
     const realR = realpathOrNull(r);
-    if (realR === null || srRoot !== path.join(realR, ".faff", "spec-review")) throw new WriterFault(".faff/spec-review resolves outside the repository");
+    if (realR === null) throw new WriterFault(`the repository root ${r} cannot be resolved`);
+    if (srRoot !== path.join(realR, ".faff", "spec-review")) throw new WriterFault(".faff/spec-review resolves outside the repository");
     if (path.dirname(real) === srRoot) {
       const issue = path.basename(real);
       if (!ISSUE_ID_RE.test(issue) || issue.includes("..")) throw new WriterFault("--dir is not a valid spec-review scratch dir");

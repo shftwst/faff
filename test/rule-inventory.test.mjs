@@ -749,7 +749,7 @@ test("a failed main-checkout lookup in the shared config resolution exits 2, nev
   } finally { fx.cleanup(); rmSync(bin, { recursive: true, force: true }); }
 });
 
-test("a lost overlay fallback in a linked worktree exits 2 (review round 3: overlay half of the config guard)", () => {
+test("a lost overlay fallback in a linked worktree exits 2 (FAFF-1463 shared lookup)", () => {
   const fx = fixture();
   try {
     writeFileSync(join(fx.dir, ".faff/config.local.yaml"), "tracking:\n    spec_docs_path: design/specs/\n");
@@ -782,6 +782,7 @@ test("from a passing run, failing any single git call exits 2, with and without 
     fx.edit("plugin/skills/faff-graft/SKILL.md", `${BULLET1}\n`, "")
       .write(SPEC, spec([row("Push the branch before review so a stall", "test/x.test.mjs: \"x behaves\"", "kept")])).commit();
     const probes = [];
+    const mismatches = [];
     for (const args of [["--base", "origin/main", "--json"], ["--json"]]) {
       const healthy = runWrapped(fx.dir, bin, {}, args);
       assert.equal(healthy.status, 0, `${args.join(" ")}: ${healthy.stdout}${healthy.stderr}`);
@@ -793,14 +794,18 @@ test("from a passing run, failing any single git call exits 2, with and without 
       for (let n = 1; n <= healthy.calls; n++) {
         const cmd = healthy.commands[n - 1] ?? "";
         const r = runWrapped(fx.dir, bin, { GITWRAP_NTH: String(n) }, args);
-        assert.equal(r.status, 2, `${args.join(" ")}: failing call ${n} (git ${cmd}) exited ${r.status}, not 2`);
-        assert.equal(r.stdout, "", `${args.join(" ")}: failing call ${n} (git ${cmd}) wrote stdout`);
+        const at = `${args.join(" ")}: failing call ${n} (git ${cmd})`;
+        if (r.status !== 2) mismatches.push(`${at} exited ${r.status}, not 2`);
+        if (r.stdout !== "") mismatches.push(`${at} wrote stdout: ${JSON.stringify(r.stdout.slice(0, 200))}`);
         if (PROBE_CALL(cmd)) {
-          assert.deepEqual(r.stderr.split("\n").filter(Boolean), [probeLine(fx.dir)], `${args.join(" ")}: failing call ${n} (git ${cmd})`);
+          const lines = r.stderr.split("\n").filter(Boolean);
+          if (JSON.stringify(lines) !== JSON.stringify([probeLine(fx.dir)])) mismatches.push(`${at} stderr ${JSON.stringify(lines)}, not the one dispatch line`);
           probes.push(`${args.join(" ")} #${n}`);
         }
       }
     }
+    // Collected, then asserted once, so one run reports every failing call.
+    assert.deepEqual(mismatches, []);
     // Pinned so a change on either side is noticed: the shared main-checkout probe runs once per run.
     assert.equal(probes.length, 2, probes.join("\n"));
   } finally { fx.cleanup(); rmSync(bin, { recursive: true, force: true }); }

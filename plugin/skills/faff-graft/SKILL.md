@@ -144,6 +144,8 @@ Set `wt := .wt` and `graft_skill_dir := .graft_skill_dir`; every later step uses
 | `claimed-by-peer` | Return `claimed-by-peer` |
 | a non-zero exit | Autonomous: park. Interactive: surface the stderr line. Both before Step 4 |
 
+On cause `setup-refused` with `detail.reason` `remote branch exists`, the surfaced message names `detail.branch`.
+
 | `resume_at` | Continue at |
 |---|---|
 | `start` | Step 4 |

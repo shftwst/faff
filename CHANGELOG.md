@@ -1,5 +1,38 @@
 # Changelog
 
+## [0.45.0](https://github.com/shftwst/faff/compare/faff--v0.44.0...faff--v0.45.0) (2026-11-06)
+
+
+### Features
+
+* **beep-boop:** build-queue admission calls faff graft admit (FAFF-1434) ([#1175](https://github.com/shftwst/faff/issues/1175)) ([ef0aec5](https://github.com/shftwst/faff/commit/ef0aec5196c0e1bc6c1c19c7cfcbeccc37ae0b70))
+* **decision-capture:** a suppressed capture's reason keeps its violations when the kernel name is long (FAFF-1421) ([#1161](https://github.com/shftwst/faff/issues/1161)) ([bfe1cbd](https://github.com/shftwst/faff/commit/bfe1cbd6843be2374e93a6142e700c0812a84f4c))
+* **gates:** faff gates run --budget-secs N --resume, so a lane can finish a long gate run across foreground calls (FAFF-1405) ([#1158](https://github.com/shftwst/faff/issues/1158)) ([d0414ee](https://github.com/shftwst/faff/commit/d0414ee49fcc5cd9499d26632f3dfa12ea5470fd))
+* **graft:** faff graft admit runs graft's Step 2 gate chain as one read-only command (FAFF-1414) ([#1166](https://github.com/shftwst/faff/issues/1166)) ([8e8765d](https://github.com/shftwst/faff/commit/8e8765d48b3a88df2bf5ebe023d0f1b2d57ece69))
+* **merge:** faff merge authorize and observe write a stopped governed graft's merge grants from the run's own facts (FAFF-1426) ([#1165](https://github.com/shftwst/faff/issues/1165)) ([5af26c8](https://github.com/shftwst/faff/commit/5af26c8af6241d292f61575592b15cec454fbbaa))
+* **prep:** faff prep attach and collate-evidence --from-judge (FAFF-1406) ([#1156](https://github.com/shftwst/faff/issues/1156)) ([55c0f79](https://github.com/shftwst/faff/commit/55c0f79507a1eb5f7a219d8362a5dc661d6b9e77))
+* **prep:** faff prep attach records the lights-out admissibility result on every staged spec (FAFF-1443) ([#1171](https://github.com/shftwst/faff/issues/1171)) ([8d111cb](https://github.com/shftwst/faff/commit/8d111cb9b501f0a611fdbf8e2b9a5bc90404a174))
+* **pr:** faff pr open runs graft's Step 9b PR opening as one command (FAFF-1416) ([#1174](https://github.com/shftwst/faff/issues/1174)) ([00e1e54](https://github.com/shftwst/faff/commit/00e1e54dafa15980728f1185766f797a7eb1d957))
+* **prose-size:** ratchet skill prose in bytes and tally its history from git (FAFF-1442) ([#1172](https://github.com/shftwst/faff/issues/1172)) ([0075311](https://github.com/shftwst/faff/commit/007531198578257c07f917b1db6ef21714a4cff5))
+* **regions:** fail regions check on a new bin/lib JavaScript module with no TypeScript source (FAFF-1431) ([#1164](https://github.com/shftwst/faff/issues/1164)) ([608181a](https://github.com/shftwst/faff/commit/608181ac404564d61814b65c6ea5b241aef1e572))
+* **rule-inventory:** fail a PR whose deleted skill prose maps to no rule-inventory row (FAFF-1428) ([#1182](https://github.com/shftwst/faff/issues/1182)) ([3eb1f6d](https://github.com/shftwst/faff/commit/3eb1f6d3c35e7f371bb544ebfe30d220be6c7803))
+* **run:** faff run checkpoint runs beep-boop's between-units checkpoint as one verb (FAFF-1436) ([#1169](https://github.com/shftwst/faff/issues/1169)) ([948a8f1](https://github.com/shftwst/faff/commit/948a8f1d2f5950cc6c160639a0d9a76edc9c7f0d))
+* **run:** faff run open and run close run beep-boop's run-start and run-end bracket as two verbs (FAFF-1437) ([#1173](https://github.com/shftwst/faff/issues/1173)) ([f6297f8](https://github.com/shftwst/faff/commit/f6297f83536aa95d901a6d8d1700b83c58ed7fc5))
+* **run:** faff run summary renders beep-boop's run summary from the run directory (FAFF-1435) ([#1168](https://github.com/shftwst/faff/issues/1168)) ([56eb34c](https://github.com/shftwst/faff/commit/56eb34c384607131dcc6931af06f3726ffbb9c01))
+* **run:** faff run trigger runs beep-boop's L4 run-start trigger as one verb (FAFF-1418) ([#1177](https://github.com/shftwst/faff/issues/1177)) ([64ae7d9](https://github.com/shftwst/faff/commit/64ae7d99d5524b94a3a58d592bdb2354cca82c54))
+* **runner:** skip pre-check hits a drain declined and nobody changed since (FAFF-1412) ([#1157](https://github.com/shftwst/faff/issues/1157)) ([09074e2](https://github.com/shftwst/faff/commit/09074e278543a2bf6d404fba87def5da718c95a7))
+* **spec-review:** collate-evidence --comment writes spec-review-verdict.json itself (FAFF-1467) ([#1183](https://github.com/shftwst/faff/issues/1183)) ([1a918e4](https://github.com/shftwst/faff/commit/1a918e444917cced487c73f24149f4d797ea3a73))
+* **spec-review:** faff spec-review round and hold run prep's post-dispatch gate and holds as two verbs (FAFF-1417) ([#1178](https://github.com/shftwst/faff/issues/1178)) ([dc23bdf](https://github.com/shftwst/faff/commit/dc23bdf283b1d8d0db983d22791a151bd6753a2c))
+* **worktree:** faff worktree ensure runs graft's Step 3 worktree provisioning as one command (FAFF-1415) ([#1176](https://github.com/shftwst/faff/issues/1176)) ([89a00f6](https://github.com/shftwst/faff/commit/89a00f665340d7890a5236c2aa2fd5f950e3c177))
+
+
+### Bug Fixes
+
+* **budget:** anchor the until deadline at the run's start so it can breach (FAFF-1444) ([#1170](https://github.com/shftwst/faff/issues/1170)) ([d6d845d](https://github.com/shftwst/faff/commit/d6d845d4f068d2b480c6d3a4c9cf66595bdc8f20))
+* **custody:** admit the faff_version stamp in a custody verdict (FAFF-1424) ([#1160](https://github.com/shftwst/faff/issues/1160)) ([d95b158](https://github.com/shftwst/faff/commit/d95b1582584421ae6fe7db22c1f016a3b9c263cf))
+* **shared-infra:** a failed main-checkout git probe inside a repo exits 2 instead of skipping the config fallback (FAFF-1463) ([#1181](https://github.com/shftwst/faff/issues/1181)) ([2a6062a](https://github.com/shftwst/faff/commit/2a6062a2563e937158668d61d32683203fa1fd72))
+* **spec-commit:** surface the over-withholding advisory and return the commit-subject scheme (FAFF-1429) ([#1184](https://github.com/shftwst/faff/issues/1184)) ([f767bdd](https://github.com/shftwst/faff/commit/f767bdd1c0a78f6259c335742c1567a074f512a0))
+
 ## [0.44.0](https://github.com/shftwst/faff/compare/faff--v0.43.0...faff--v0.44.0) (2026-10-28)
 
 

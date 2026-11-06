@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "`spec commit` prints each `dodSplit` warning to stderr, returns them as `warnings`, and records them in `spec-commit.json`, with token and exit unchanged.",
+      "verified": "over-withholding spec: stderr line, result warnings and record warnings carry the advisory; exit 0, token committed; text mode too; already-committed over an older record returns this call's advisory; mutants M1-M3, M8-M10 killed",
+      "passed": true,
+      "ac_id": "faff-1429#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::an over-withholding spec: the advisory is on stderr, in the result and in the record, and never gates"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::text mode prints the advisory on stderr too, and keeps stdout to one line"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::a spec that keeps a born-verifiable scenario: no warnings key, an empty record array, nothing on stderr"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::already-committed returns the record's scheme and this call's warnings, and leaves the record byte-identical"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::already-committed over an older record with no warnings field returns this call's advisory"
+        }
+      ]
+    },
+    {
+      "ac": "`spec commit` returns and records `commit_subject_scheme`, the value its commit subject was built from.",
+      "verified": "commit_subject_scheme returned and recorded for both schemes, subject matches; already-committed returns the record's in-vocabulary value and falls back to the resolved scheme otherwise; resolved once per call; mutants M4-M7, M11 killed",
+      "passed": true,
+      "ac_id": "faff-1429#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::commit_subject_scheme is returned and recorded, and matches the subject, for both schemes"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::already-committed returns the record's scheme and this call's warnings, and leaves the record byte-identical"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::already-committed with no record writes one with the scheme resolved now"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::already-committed over a record from an older faff resolves the scheme and does not rewrite the record"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::pure core: the scheme is resolved once per call, and not at all when the record already has it"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::already-committed over a record whose scheme is outside the vocabulary returns the resolved scheme"
+        }
+      ]
+    },
+    {
+      "ac": "`faff-graft/SKILL.md` Steps 4c and 10 read `commit_subject_scheme` from `spec-commit.json`, with the `faff conventions get commit_subject` fallback, and Step 4 logs `warnings`.",
+      "verified": "pins: stale phrases gone and Steps 4c and 10 name commit_subject_scheme, spec-commit.json and the conventions fallback; Step 4's intro sentence and its committed/already-committed row each name `warnings` and graft.md; the intro names Step 4c and the merge-time ADR renumber as readers; mutants M12-M15 killed",
+      "passed": true,
+      "ac_id": "faff-1429#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::graft Steps 4c and 10 read commit_subject_scheme from spec-commit.json, and the stale scheme phrases are gone"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::graft Step 4's intro says spec commit's warnings are logged to graft.md"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::graft Step 4's committed and already-committed row logs warnings to graft.md"
+        },
+        {
+          "kind": "test",
+          "locator": "test/spec-commit.test.mjs::graft Step 4's intro says Step 4c and the merge-time ADR renumber read commit_subject_scheme"
+        }
+      ]
+    },
+    {
+      "ac": "`docs/guide/cli.md`'s `spec commit` row names both fields.",
+      "verified": "docs/guide/cli.md spec commit row names commit_subject_scheme and warnings; lint-cli-doc passes",
+      "passed": true,
+      "ac_id": "faff-1429#done:4",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c 'commit_subject_scheme' docs/guide/cli.md"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-doc"
+        }
+      ]
+    },
+    {
+      "ac": "`test/spec-commit.test.mjs` passes under `node --test`, with the cases in §4.2.",
+      "verified": "node --test test/spec-commit.test.mjs: 39 tests, 39 pass, 0 fail; full suite 8415 tests, 8409 pass, 0 fail, 6 skipped",
+      "passed": true,
+      "ac_id": "faff-1429#done:5",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/spec-commit.test.mjs"
+        },
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test"
+        }
+      ]
+    },
+    {
+      "ac": "`npm run build` leaves the committed `spec-commit.js` and `build-manifest.json` matching the `.ts`.",
+      "verified": "npm run build in plugin/skills/faff exits 0 and leaves git status clean (spec-commit.js and build-manifest.json match the .ts)",
+      "passed": true,
+      "ac_id": "faff-1429#done:6",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "cd plugin/skills/faff && npm run build && git status --porcelain"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,230 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 3,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "test/spec-commit.test.mjs::graft step 4 static pin does not verify that warnings are logged to graft.md",
+      "title": "graft Step 4 static pin does not verify that warnings are logged to graft.md",
+      "location": "test/spec-commit.test.mjs:550",
+      "action": "Pin the Step 4 sentence and the committed/already-committed table row themselves (for example, assert the row text contains both `warnings` and `graft.md`), so that removing the logging instruction fails the test; graft.md already occurs in Step 4 through the source_check line, which makes the current includes check vacuous.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "standard",
+      "model": "anthropic/claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "graft Step 4 static pin does not verify that warnings are logged to graft.md",
+          "location": "test/spec-commit.test.mjs:550",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/spec-commit.test.mjs::already-committed test cannot tell this call's warnings from the record's",
+      "title": "already-committed test cannot tell this call's warnings from the record's",
+      "location": "test/spec-commit.test.mjs:464",
+      "action": "Add an already-committed case where the existing record's warnings differ from what this call computes (an older record with no warnings field over an over-withholding spec), and assert the result carries this call's advisory.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "anthropic/claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "already-committed test cannot tell this call's warnings from the record's",
+          "location": "test/spec-commit.test.mjs:464",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-commit.ts::no test covers an out-of-vocabulary recorded commit_subject_scheme in the already-committed branch",
+      "title": "no test covers an out-of-vocabulary recorded commit_subject_scheme in the already-committed branch",
+      "location": "plugin/skills/faff/bin/lib/spec-commit.ts:274",
+      "action": "Add a test with a record whose commit_subject_scheme is outside conventional/bare-imperative, and assert the result falls back to the resolved scheme.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "anthropic/claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "no test covers an out-of-vocabulary recorded commit_subject_scheme in the already-committed branch",
+          "location": "plugin/skills/faff/bin/lib/spec-commit.ts:274",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff-graft/SKILL.md::step 4 pointer to step 4c and the merge-time renumber is not pinned",
+      "title": "Step 4 pointer to Step 4c and the merge-time renumber is not pinned",
+      "location": "plugin/skills/faff-graft/SKILL.md:161",
+      "action": "Optionally extend the Step 4 pin to the clause naming Step 4c and the merge-time ADR renumber as readers of commit_subject_scheme.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": "anthropic/claude-opus-5-5",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Step 4 pointer to Step 4c and the merge-time renumber is not pinned",
+          "location": "plugin/skills/faff-graft/SKILL.md:161",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/spec-commit.test.mjs::whole-stream stderr equality in the new advisory tests",
+      "title": "whole-stream stderr equality in the new advisory tests",
+      "location": "test/spec-commit.test.mjs:427",
+      "action": "Narrow the assertion to a line-level match on the advisory prefix.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Operator decision (2026-11-06): whole-stream stderr equality is the stricter check; filtering would loosen the test.",
+      "first_round": 1,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "whole-stream stderr equality in the new advisory tests",
+          "location": "test/spec-commit.test.mjs:427",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        },
+        {
+          "round": 2,
+          "title": "whole-stream stderr equality in the new advisory tests",
+          "location": "test/spec-commit.test.mjs:427",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-commit.ts::unparseable spec-commit.json silently treated as a record with no scheme in runspeccommit",
+      "title": "unparseable spec-commit.json silently treated as a record with no scheme in runSpecCommit",
+      "location": "plugin/skills/faff/bin/lib/spec-commit.ts:272",
+      "action": "When the record exists but readJson returns null, print a one-line stderr advisory before re-resolving, or fail loud.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Deferred to FAFF-1474 at the operator's choice (2026-11-06): the warning is behaviour outside the FAFF-1429 spec.",
+      "first_round": 1,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "unparseable spec-commit.json silently treated as a record with no scheme in runSpecCommit",
+          "location": "plugin/skills/faff/bin/lib/spec-commit.ts:272",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        },
+        {
+          "round": 2,
+          "title": "unparseable spec-commit.json silently treated as a record with no scheme in runSpecCommit",
+          "location": "plugin/skills/faff/bin/lib/spec-commit.ts:272",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/spec-commit.ts::out-of-vocabulary recorded scheme silently re-resolved in runspeccommit",
+      "title": "out-of-vocabulary recorded scheme silently re-resolved in runSpecCommit",
+      "location": "plugin/skills/faff/bin/lib/spec-commit.ts:274",
+      "action": "Print a one-line stderr advisory naming the discarded recorded value before re-resolving.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Deferred to FAFF-1474 at the operator's choice (2026-11-06): the warning is behaviour outside the FAFF-1429 spec.",
+      "first_round": 1,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "out-of-vocabulary recorded scheme silently re-resolved in runSpecCommit",
+          "location": "plugin/skills/faff/bin/lib/spec-commit.ts:274",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        },
+        {
+          "round": 2,
+          "title": "out-of-vocabulary recorded scheme silently re-resolved in runSpecCommit",
+          "location": "plugin/skills/faff/bin/lib/spec-commit.ts:274",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "docs/guide/cli.md::cli.md gloss of commit_subject_scheme overclaims on the already-committed no-record path",
+      "title": "cli.md gloss of commit_subject_scheme overclaims on the already-committed no-record path",
+      "location": "docs/guide/cli.md:113",
+      "action": "Reword the gloss to say that on already-committed with no prior record the value is the one resolved now, or infer the scheme from the HEAD subject on that path.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "title": "cli.md gloss of commit_subject_scheme overclaims on the already-committed no-record path",
+          "location": "docs/guide/cli.md:113",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    }
+  ]
+}

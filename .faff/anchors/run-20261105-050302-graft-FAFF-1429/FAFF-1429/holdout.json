@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1429",
+  "aggregate": "meets-spec",
+  "code_blind": true,
+  "spawner_attested": false,
+  "attestation": null,
+  "violations": [],
+  "criteria": [
+    {
+      "id": "scenarios:1",
+      "text": "Given a git worktree, a run dir, and a captured spec whose only Scenarios-section criterion is a holdout\nWhen `faff spec commit --issue EX-3 --title \"add a thing\" --spec <file> --worktree <wt> --run-dir <rd> --json` runs\nThen it exits 0 with token \"committed\"\nAnd its JSON has a \"warnings\" array whose one entry starts with \"over-withholding advisory\"\nAnd stderr has a line starting \"spec commit EX-3: warning: over-withholding advisory\"\nAnd <rd>/EX-3/spec-commit.json has the same \"warnings\" array",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "Fixture /tmp/e1: git worktree wt (one init commit), empty run dir rd, spec.md whose only Scenarios unit is a ```holdout fence (plus a DONE item). Ran `faff spec commit --issue EX-3 --title \"add a thing\" --spec /tmp/e1/spec.md --worktree /tmp/e1/wt --run-dir /tmp/e1/rd --json`, captured stdout/stderr/exit, read rd/EX-3/spec-commit.json and compared warnings arrays with node.",
+      "expected": "exit 0, token committed; JSON warnings array with one entry starting 'over-withholding advisory'; stderr line starting 'spec commit EX-3: warning: over-withholding advisory'; record warnings equal to the JSON warnings",
+      "observed": "exit=0; token \"committed\"; warnings = [\"over-withholding advisory: the builder view retains ZERO born-verifiable Scenarios-section criteria (the full spec had >= 1) — consider marking fewer scenarios as holdout\"] (length 1); stderr exactly one line 'spec commit EX-3: warning: over-withholding advisory: ...'; spec-commit.json warnings JSON-equal to result warnings (node check true); record also holdouts_withheld 1, commit_subject_scheme conventional",
+      "evidence_ref": "/tmp/e1/out.json, /tmp/e1/err.txt, /tmp/e1/rd/EX-3/spec-commit.json in container faff-holdout-1429-c",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:2",
+      "text": "Given a git worktree with no conventions override, a run dir, and a captured spec with one non-holdout scenario\nWhen `faff spec commit --issue EX-3 --title \"add a thing\" --spec <file> --worktree <wt> --run-dir <rd> --json` runs\nThen its JSON has \"commit_subject_scheme\" \"conventional\" and no \"warnings\" key\nAnd the commit at HEAD has the subject \"docs(EX-3): add spec for add a thing\"\nAnd <rd>/EX-3/spec-commit.json has \"commit_subject_scheme\" \"conventional\" and \"warnings\" []",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "Fixture /tmp/e2: git worktree wt with no .faff dir / conventions override, empty run dir rd, spec.md with one plain (non-holdout) fenced scenario. Ran `faff spec commit --issue EX-3 --title \"add a thing\" --spec /tmp/e2/spec.md --worktree /tmp/e2/wt --run-dir /tmp/e2/rd --json`; read HEAD subject and the record.",
+      "expected": "JSON commit_subject_scheme 'conventional' and no warnings key; HEAD subject 'docs(EX-3): add spec for add a thing'; record commit_subject_scheme 'conventional' and warnings []",
+      "observed": "exit=0, token committed; JSON {issue,token,path,commit,source_check,commit_subject_scheme:\"conventional\"} with no warnings key (node 'warnings' in o = false); stderr empty; git log -1 subject 'docs(EX-3): add spec for add a thing'; spec-commit.json has \"warnings\": [] and \"commit_subject_scheme\": \"conventional\"",
+      "evidence_ref": "/tmp/e2/out1.json, /tmp/e2/err1.txt, /tmp/e2/rec-before.json in container faff-holdout-1429-c",
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:3",
+      "text": "Given the same worktree after that commit\nWhen the same `faff spec commit … --json` runs again\nThen it exits 0 with token \"already-committed\" and \"commit_subject_scheme\" \"conventional\"\nAnd <rd>/EX-3/spec-commit.json is byte-identical to before",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "Same /tmp/e2 worktree after the scenario-2 commit; saved the record (rec-before.json, sha256 7c936580...), re-ran the identical `faff spec commit ... --json` command, then cmp'd the record.",
+      "expected": "exit 0, token already-committed, commit_subject_scheme 'conventional'; spec-commit.json byte-identical to before",
+      "observed": "exit=0; JSON {token:\"already-committed\", commit same 76353b48..., commit_subject_scheme:\"conventional\"} with no warnings key; stderr empty; record sha256 7c93658078a1... before and after, cmp reports identical; no new commit in git log, clean status",
+      "evidence_ref": "/tmp/e2/out2.json, /tmp/e2/err2.txt, /tmp/e2/rec-before.json vs /tmp/e2/rd/EX-3/spec-commit.json in container faff-holdout-1429-c",
+      "reason": null,
+      "reason_code": null
+    }
+  ],
+  "delegated": [
+    {
+      "id": "done:1",
+      "text": "`spec commit` prints each `dodSplit` warning to stderr, returns them as `warnings`, and records them in `spec-commit.json`, with token and exit unchanged.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1429#done:1"
+    },
+    {
+      "id": "done:2",
+      "text": "`spec commit` returns and records `commit_subject_scheme`, the value its commit subject was built from.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1429#done:2"
+    },
+    {
+      "id": "done:3",
+      "text": "`faff-graft/SKILL.md` Steps 4c and 10 read `commit_subject_scheme` from `spec-commit.json`, with the `faff conventions get commit_subject` fallback, and Step 4 logs `warnings`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1429#done:3"
+    },
+    {
+      "id": "done:4",
+      "text": "`docs/guide/cli.md`'s `spec commit` row names both fields.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1429#done:4"
+    },
+    {
+      "id": "done:5",
+      "text": "`test/spec-commit.test.mjs` passes under `node --test`, with the cases in §4.2.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1429#done:5"
+    },
+    {
+      "id": "done:6",
+      "text": "`npm run build` leaves the committed `spec-commit.js` and `build-manifest.json` matching the `.ts`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1429#done:6"
+    }
+  ]
+}

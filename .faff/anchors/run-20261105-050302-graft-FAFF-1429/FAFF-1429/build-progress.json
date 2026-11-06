@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1429",
+  "build": {
+    "status": "complete",
+    "diff_hash": "6bc21f7e77b6ff8fbe3915d36b896a6f5acbbae1e4f8ef58a6b8337b69d90b1e",
+    "branch": "FAFF-1429-spec-commit-advisory-and-scheme",
+    "pushed_at": "2026-11-06T06:25:39.976Z"
+  },
+  "updated_at": "2026-11-06T06:25:39.976Z"
+}

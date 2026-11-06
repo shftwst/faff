@@ -505,6 +505,38 @@ test("already-committed over a record from an older faff resolves the scheme and
   assert.equal(readRec(f), oldText);
 });
 
+test("already-committed over an older record with no warnings field returns this call's advisory", () => {
+  const f = fixture({ spec: OVER });
+  commit(f);
+  const old = JSON.parse(readRec(f));
+  delete old.warnings;
+  delete old.commit_subject_scheme;
+  const oldText = JSON.stringify(old, null, 2) + "\n";
+  writeFileSync(join(f.rd, "EX-3", "spec-commit.json"), oldText);
+  const r = commit(f);
+  assert.equal(r.status, 0);
+  const res = r.json();
+  assert.equal(res.token, "already-committed");
+  assert.equal(res.warnings.length, 1);
+  assert.match(res.warnings[0], /^over-withholding advisory/);
+  assert.match(r.stderr, /^spec commit EX-3: warning: over-withholding advisory/);
+  assert.equal(readRec(f), oldText);
+});
+
+test("already-committed over a record whose scheme is outside the vocabulary returns the resolved scheme", () => {
+  const f = fixture();
+  commit(f);
+  const rec = JSON.parse(readRec(f));
+  rec.commit_subject_scheme = "squash-merge";
+  const recText = JSON.stringify(rec, null, 2) + "\n";
+  writeFileSync(join(f.rd, "EX-3", "spec-commit.json"), recText);
+  writeFileSync(join(f.wt, ".faff", "config.yaml"), BARE);
+  const res = commit(f).json();
+  assert.equal(res.token, "already-committed");
+  assert.equal(res.commit_subject_scheme, "bare-imperative");
+  assert.equal(readRec(f), recText);
+});
+
 test("pure core: the scheme is resolved once per call, and not at all when the record already has it", () => {
   const files = new Map();
   let schemeCalls = 0;
@@ -546,6 +578,34 @@ test("graft Steps 4c and 10 read commit_subject_scheme from spec-commit.json, an
   const renumber = skill.slice(skill.indexOf("Stage the specific renumbered ADR file(s)"));
   const renumberStep = renumber.slice(0, renumber.indexOf("\n"));
   assert.ok(renumberStep.includes("`commit_subject_scheme`") && renumberStep.includes("spec-commit.json") && renumberStep.includes("faff conventions get commit_subject"));
+});
+
+// Step 4's own instructions, not just any line of the step: the intro paragraph and the routing row.
+function step4Prose() {
+  const skill = readFileSync(join(REPO, "plugin", "skills", "faff-graft", "SKILL.md"), "utf8");
   const step4 = skill.slice(skill.indexOf("**Step 4: Commit spec"), skill.indexOf("**Step 4b:"));
-  assert.ok(step4.includes("`commit_subject_scheme`") && step4.includes("`warnings`") && step4.includes("graft.md"));
+  const lines = step4.split("\n");
+  const intro = lines.find((l) => l.startsWith("`faff spec commit` writes")) || "";
+  const sentences = intro.split(/(?<=\.)\s+/);
+  const row = lines.find((l) => l.startsWith("| `committed`, `already-committed` |")) || "";
+  return { sentences, row };
+}
+
+test("graft Step 4's intro says spec commit's warnings are logged to graft.md", () => {
+  const { sentences } = step4Prose();
+  const warned = sentences.filter((x) => x.includes("`warnings`"));
+  assert.ok(warned.length > 0, "no Step 4 intro sentence names `warnings`");
+  assert.ok(warned.every((x) => x.includes("graft.md")), warned.join(" | "));
+});
+
+test("graft Step 4's committed and already-committed row logs warnings to graft.md", () => {
+  const { row } = step4Prose();
+  assert.ok(row.includes("`warnings`") && row.includes("graft.md"), row);
+});
+
+test("graft Step 4's intro says Step 4c and the merge-time ADR renumber read commit_subject_scheme", () => {
+  const { sentences } = step4Prose();
+  const scheme = sentences.filter((x) => x.includes("`commit_subject_scheme`"));
+  assert.ok(scheme.length > 0, "no Step 4 intro sentence names `commit_subject_scheme`");
+  assert.ok(scheme.some((x) => x.includes("Step 4c") && x.includes("merge-time ADR renumber")), scheme.join(" | "));
 });

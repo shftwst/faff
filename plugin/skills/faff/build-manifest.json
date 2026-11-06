@@ -40,7 +40,7 @@
     "bin/lib/run-summary.ts": "4e329a73b830a2a536d2cea8a3e22313e49586c27870c80bda47451e366d266c",
     "bin/lib/run-trigger.ts": "b7e36d37a44dcb213f7dfc3c520454a854238fc4801db30cc640acb562f419c7",
     "bin/lib/run.ts": "99820d088928c4423575e8a8514417b76dbf275901408a0c962d0a87a4560b24",
-    "bin/lib/spec-commit.ts": "bf42fe6bfbc1d6bab90726bcc13f42e8323433a7f1b439144a9b157bee7366a5",
+    "bin/lib/spec-commit.ts": "c158a7e3dee49d9dd77d9abe92998624aa4c5be984640e93f7e82aa0820b0bfa",
     "bin/lib/spec-review-hold.ts": "538479bf72ec1d3f63b6894fdaa462b7a40d0c07d44cb2d45a57a38cced91790",
     "bin/lib/spec-review-round.ts": "f1b34213ddd655e0c5a6c0df3ad07ced73534e91536b179b66e3ea383be7c856",
     "bin/lib/worktree-ensure.ts": "89de70644056375dbc406bcaaffab0aff02605ff61648f551339c418fdaa0725"
@@ -73,10 +73,10 @@
     "bin/lib/run-summary.js": "a323cf7e77b993b559c37014f3205105b76b52e4ac9ede00713229e9b624ba42",
     "bin/lib/run-trigger.js": "3b145b63d920241c7d76ee0eb096351517149afc1d0c1fe239f0ac992450cd77",
     "bin/lib/run.js": "376e436f840d5dd17ed53ebed743d673f625286ad8c0247627b943090c7b177e",
-    "bin/lib/spec-commit.js": "a67e16c5350409137c63faa17ba1d0458cfea84414e9f42814caa92574cb4d58",
+    "bin/lib/spec-commit.js": "1b250425767b1ff8e87c43226b4dfbfcf4776052ca10e32508994166d2d026f7",
     "bin/lib/spec-review-hold.js": "1e3ab668ca1acbb249470c5dfd12f4d0d46c8b530a0fb9443bb79b26baa58f8d",
     "bin/lib/spec-review-round.js": "b02ecc242ee01d37719f7660252f2ba273abc334b79a6d64d2c40e66cb5bc678",
     "bin/lib/worktree-ensure.js": "e9b115786f6867b8b7835ef11322cf15e37a1dd459ea0dda272da45152da1207"
   },
-  "output_digest": "8d9556ccfb7fd60a71913a985b0e266fc1f4a7af32f87e9a5fbff81319237644"
+  "output_digest": "b4724f230b92638beb307db1f0cd240c937d03401dd58e7967c76ab7aac4b6b2"
 }

@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "verdict": "revise",
+  "final_verdict": "revise",
+  "rounds_total": 1,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec resolves the scheme fresh on every `spec commit` call, including the `already-committed` path, and returns that fresh value. If the repo's `commit_subject` convention changed between the original commit and a re-run, the result reports a scheme that does not describe the commit actually in HEAD, while the record (not rewritten) holds the original. The spec's stated rationale for returning the scheme at all is that it \"keeps the original 'resolved once, never re-mined' guarantee the prose states\" — the `already-committed` path quietly breaks that guarantee at the result level, and the spec never says which value wins or that the record's value is authoritative.",
+      "evidence": "§3.2 (\"resolved once per `spec commit` call, through the existing `deps.commitScheme`, and the same value builds the subject and fills both fields\"); §4.1 \"already-committed with an existing record: the record is not rewritten… The result still carries `warnings` and `commit_subject_scheme` computed by this call\"; §5 rationale.",
+      "predicted_consequence": "An agent that trusts the result's `commit_subject_scheme` on a re-run (rather than the record) builds a Step 4c/10 subject under a scheme that does not match the committed spec's subject — the exact re-mining drift the spec exists to close. A one-clause edit (\"on `already-committed`, the result reports the record's scheme when present\") fixes it in place.",
+      "spec_anchor": "32-the-scheme",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in place after round 1; not re-reviewed. Accepted by the operator after round 1.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The spec resolves the scheme fresh on every `spec commit` call, including the `already-committed` path, and returns that fresh value. If the repo's `commit_subject` convention changed between the original commit and a re-run, the result reports a scheme that does not describe the commit actually in HEAD, while the record (not rewritten) holds the original. The spec's stated rationale for returning the scheme at all is that it \"keeps the original 'resolved once, never re-mined' guarantee the prose states\" — the `already-committed` path quietly breaks that guarantee at the result level, and the spec never says which value wins or that the record's value is authoritative.",
+          "spec_anchor": "32-the-scheme"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "§3.1 says the record gains `warnings: string[]` \"(always present, possibly empty)\", yet §4.1 pins that an existing record is never rewritten on `already-committed`. A record written by pre-1429 faff therefore lacks the field indefinitely, and the spec provides the `faff conventions get` fallback only for the scheme, not for `warnings`. The declared invariant and the specified behaviour contradict each other as written.",
+      "evidence": "§3.1 (\"`SpecCommitRecord` gains `warnings: string[]` (always present, possibly empty)\") vs §4.1 (\"The record is not rewritten (current behaviour)\").",
+      "predicted_consequence": "A reader of `spec-commit.json` (an audit or the graft prose) cannot distinguish \"no warnings\" from \"record predates the field\" without version sniffing; the DONE item \"records them in `spec-commit.json`\" is ambiguous for resumed builds. A sentence noting that pre-1429 records may lack the field (mirroring the scheme fallback) resolves it.",
+      "spec_anchor": "41-edge-cases",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in place after round 1; not re-reviewed. Accepted by the operator after round 1.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "§3.1 says the record gains `warnings: string[]` \"(always present, possibly empty)\", yet §4.1 pins that an existing record is never rewritten on `already-committed`. A record written by pre-1429 faff therefore lacks the field indefinitely, and the spec provides the `faff conventions get` fallback only for the scheme, not for `warnings`. The declared invariant and the specified behaviour contradict each other as written.",
+          "spec_anchor": "41-edge-cases"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "The prose-regression pin asserts the absence of `\"already resolved, never re-mined\"`, but no quotation in the spec shows that phrase existing. The spec's own citations of the current text say \"the scheme Step 4 already resolved\" (lines 196, 551), and its rationale paraphrases the guarantee as \"resolved once, never re-mined\" — three different phrasings for the thing being pinned. If the pinned phrase was never in `faff-graft/SKILL.md`, the test passes on the unmodified file and guards nothing.",
+      "evidence": "§4.2: \"A static pin on `faff-graft/SKILL.md`: the phrase 'already resolved, never re-mined' is gone\" — versus §1's quotations of lines 196/551 (\"the scheme Step 4 already resolved\") and §3.2's rationale (\"the original 'resolved once, never re-mined' guarantee\").",
+      "predicted_consequence": "the pin passes before the prose edit lands, so the DONE item \"Steps 4c and 10 read `commit_subject_scheme` from `spec-commit.json`\" ships with a regression guard that never fires; a later revert of the prose edit is not caught.",
+      "spec_anchor": "42-tests-in-test-only-node-test-no-new-selftest-cases",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in place after round 1; not re-reviewed. Accepted by the operator after round 1.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The prose-regression pin asserts the absence of `\"already resolved, never re-mined\"`, but no quotation in the spec shows that phrase existing. The spec's own citations of the current text say \"the scheme Step 4 already resolved\" (lines 196, 551), and its rationale paraphrases the guarantee as \"resolved once, never re-mined\" — three different phrasings for the thing being pinned. If the pinned phrase was never in `faff-graft/SKILL.md`, the test passes on the unmodified file and guards nothing.",
+          "spec_anchor": "42-tests-in-test-only-node-test-no-new-selftest-cases"
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": "§4.1 says to raise `SKILL_LINE_BASELINE[\"faff-graft\"]` \"(if lines grow)\" and `prose-baseline.json` \"by exactly this PR's growth\" — two baselines, one conditional, with no stated measurement for \"exactly this PR's growth\" (line delta? prose-token delta? which tool reports it?). The builder must guess the procedure, and the two baselines can move in opposite directions (lines shrink while prose tokens grow, or vice versa), which the conditional does not cover.",
+      "evidence": "§4.1, \"Prose growth\" bullet: \"Raise `SKILL_LINE_BASELINE[\\\"faff-graft\\\"]` (if lines grow) and `prose-baseline.json` by hand by exactly this PR's growth, and say so in the PR description.\"",
+      "predicted_consequence": "the builder bumps one baseline by the wrong measure and the baseline check fails in CI, or absorbs unrelated drift into the bump — the exact outcome the \"say so in the PR description\" clause is meant to make auditable.",
+      "spec_anchor": "41-edge-cases",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in place after round 1; not re-reviewed. Accepted by the operator after round 1.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "§4.1 says to raise `SKILL_LINE_BASELINE[\"faff-graft\"]` \"(if lines grow)\" and `prose-baseline.json` \"by exactly this PR's growth\" — two baselines, one conditional, with no stated measurement for \"exactly this PR's growth\" (line delta? prose-token delta? which tool reports it?). The builder must guess the procedure, and the two baselines can move in opposite directions (lines shrink while prose tokens grow, or vice versa), which the conditional does not cover.",
+          "spec_anchor": "41-edge-cases"
+        }
+      ]
+    }
+  ]
+}

@@ -200,8 +200,16 @@ function classCountsFromUsage(usage) {
 // (`budget.price_per_mtok_by_model`, via resolveEconomicsPriceMap) supersedes
 // these defaults regardless of how stale this anchor gets — reconfirm and bump
 // this date, or set the override, when the nudge fires.
-const PRICE_TABLE_AS_OF = "2026-07-23";
+const PRICE_TABLE_AS_OF = "2026-10-27";
 const PRICE_PER_MTOK = {
+  // Current generation (FAFF-1199). Cache reads for these models are priced BELOW
+  // the legacy 0.1x-input rule: 0.05x for opus-5-5 / sonnet-5-5 and 0.025x for
+  // fable-5-1 (so $0.20 / $0.10 / $0.25, not a naive $0.40 / $0.20 / $1.00); cache
+  // writes are unchanged at 1.25x (5m) / 2x (1h). Rates from Anthropic's published
+  // pricing page, reconfirmed 2026-10-27.
+  "claude-opus-5-5": { input: 4, output: 20, cache_write_5m: 5, cache_write_1h: 8, cache_read: 0.2 },
+  "claude-sonnet-5-5": { input: 2, output: 10, cache_write_5m: 2.5, cache_write_1h: 4, cache_read: 0.1 },
+  "claude-fable-5-1": { input: 10, output: 50, cache_write_5m: 12.5, cache_write_1h: 20, cache_read: 0.25 },
   "claude-fable-5": { input: 10, output: 50, cache_write_5m: 12.5, cache_write_1h: 20, cache_read: 1.0 },
   "claude-opus-4-8": { input: 5, output: 25, cache_write_5m: 6.25, cache_write_1h: 10, cache_read: 0.5 },
   "claude-opus-4-7": { input: 5, output: 25, cache_write_5m: 6.25, cache_write_1h: 10, cache_read: 0.5 },
@@ -1823,6 +1831,10 @@ function budgetSelftest(now = Date.now()) {
   ok("economicsPriceForModel known model", (() => { const p = economicsPriceForModel("claude-sonnet-4-6", PRICE_PER_MTOK); return p.input === 3 && p.cache_read === 0.3; })());
   ok("economicsPriceForModel dated-suffix strip", JSON.stringify(economicsPriceForModel("claude-opus-4-8-20260101", PRICE_PER_MTOK)) === JSON.stringify(economicsPriceForModel("claude-opus-4-8", PRICE_PER_MTOK)));
   ok("economicsPriceForModel unknown model → null", economicsPriceForModel("mystery-model", PRICE_PER_MTOK) === null);
+  // --- FAFF-1199: current-generation rows priced at the confirmed published rates ---
+  ok("economicsPriceForModel claude-opus-5-5 → 4/20/5/8/0.2", (() => { const p = economicsPriceForModel("claude-opus-5-5", PRICE_PER_MTOK); return p.input === 4 && p.output === 20 && p.cache_write_5m === 5 && p.cache_write_1h === 8 && p.cache_read === 0.2; })());
+  ok("economicsPriceForModel claude-sonnet-5-5 → 2/10/2.5/4/0.1", (() => { const p = economicsPriceForModel("claude-sonnet-5-5", PRICE_PER_MTOK); return p.input === 2 && p.output === 10 && p.cache_write_5m === 2.5 && p.cache_write_1h === 4 && p.cache_read === 0.1; })());
+  ok("economicsPriceForModel claude-fable-5-1 → 10/50/12.5/20/0.25", (() => { const p = economicsPriceForModel("claude-fable-5-1", PRICE_PER_MTOK); return p.input === 10 && p.output === 50 && p.cache_write_5m === 12.5 && p.cache_write_1h === 20 && p.cache_read === 0.25; })());
   const pm427 = resolveEconomicsPriceMap({ budget: { price_per_mtok_by_model: { "claude-opus-4-8": { input: 99, output: 99, cache_write_5m: 99, cache_write_1h: 99, cache_read: 99 } } } });
   ok("resolveEconomicsPriceMap: config override wins per-model, built-ins retained", pm427["claude-opus-4-8"].input === 99 && pm427["claude-sonnet-4-6"].input === 3);
   ok("resolveEconomicsPriceMap: no override → built-in map (identity)", resolveEconomicsPriceMap({}) === PRICE_PER_MTOK);

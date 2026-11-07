@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "run_id": "run-20261027-065425-beepboop-list-d4c19d",
+  "level": "L3",
+  "admitted": [
+    "FAFF-1321",
+    "FAFF-1317",
+    "FAFF-1319",
+    "FAFF-1322",
+    "FAFF-1333",
+    "FAFF-1207",
+    "FAFF-1199",
+    "FAFF-1205",
+    "FAFF-1292"
+  ],
+  "outcomes": {
+    "FAFF-1318": "routed-out"
+  },
+  "base_sha": "291af234bd164d945332c67b68ad9861d237451b",
+  "base_sha_required": true,
+  "owner": {
+    "status": "running",
+    "session_id": "run-20261027-065425-beepboop-list-d4c19d",
+    "pid": 465,
+    "started_at": "2026-10-27T06:54:25.187Z",
+    "last_heartbeat": "2026-10-27T06:54:25.187Z",
+    "faff_version": "0.43.0",
+    "harness": "claude-code",
+    "model": "unknown"
+  },
+  "budget": {
+    "envelope": {
+      "ceilings": {
+        "max_attempts": 40,
+        "tokens": 3000000000
+      },
+      "at_ceiling": "stop",
+      "pricing": "map"
+    },
+    "measure_root": "/home/faff/app",
+    "measure_session_id": "9fbc8a63-22ac-4886-8ab9-1447c3c59056",
+    "tokens_at_start_by_model_class": {
+      "claude-opus-4-8": {
+        "input": 64,
+        "output": 33115,
+        "cache_write_5m": 0,
+        "cache_write_1h": 584942,
+        "cache_read": 3840284
+      }
+    },
+    "tokens_at_start": 4458405,
+    "tokens_at_last_event": {
+      "input": 442,
+      "output": 399707,
+      "cache_write_5m": 0,
+      "cache_write_1h": 1149824,
+      "cache_read": 53322548
+    }
+  },
+  "outcome_details": {
+    "FAFF-1318": {
+      "routed_out_reason": "inadmissible: 0 born-verifiable scenarios (--lights-out DoD floor); pure test-coverage ticket, not holdout-verifiable"
+    }
+  }
+}

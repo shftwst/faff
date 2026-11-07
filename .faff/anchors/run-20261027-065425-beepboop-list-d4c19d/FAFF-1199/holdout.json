@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "issue": "FAFF-1199",
+  "aggregate": "needs-human",
+  "code_blind": false,
+  "spawner_attested": false,
+  "attestation": null,
+  "violations": [
+    "holdout record refused: evaluator block is not a JSON object"
+  ],
+  "criteria": [],
+  "delegated": [
+    {
+      "id": "done:1",
+      "text": "`budget.js` `PRICE_PER_MTOK` has rows for `claude-opus-5-5` (4/20/5/8/0.2), `claude-sonnet-5-5` (2/10/2.5/4/0.1), `claude-fable-5-1` (10/50/12.5/20/0.25), each with all five classes `{input, output, cache_write_5m, cache_write_1h, cache_read}`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1199#done:1"
+    },
+    {
+      "id": "done:2",
+      "text": "`eval/tokenomics.mjs` `RATES` has rows `claude-opus-5-5` `{in:4,out:20}`, `claude-sonnet-5-5` `{in:2,out:10}`, `claude-fable-5-1` `{in:10,out:50}`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1199#done:2"
+    },
+    {
+      "id": "done:3",
+      "text": "`scripts/token-breakdown.mjs` `PRICE_PER_MTOK` has rows `claude-opus-5-5` `{input:4,output:20,cache_write:5,cache_read:0.2}`, `claude-sonnet-5-5` `{input:2,output:10,cache_write:2.5,cache_read:0.1}`, `claude-fable-5-1` `{input:10,output:50,cache_write:12.5,cache_read:0.25}`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1199#done:3"
+    },
+    {
+      "id": "done:4",
+      "text": "`faff economics` prices a `claude-opus-5-5` workload at the committed rates and no longer reports it unpriced/null.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1199#done:4"
+    },
+    {
+      "id": "done:5",
+      "text": "`tokenomics.mjs` `billCalls` applies a per-row `read_mult` for the cache-read leg (0.05 for opus-5-5 / sonnet-5-5, 0.025 for fable-5-1), defaulting to `CACHE_MULT.read` (0.1) when a row omits it; write legs unchanged.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1199#done:5"
+    },
+    {
+      "id": "done:6",
+      "text": "A `tokenomics` bench run on a pre-existing model (`claude-opus-4-8`) is unchanged by this edit.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1199#done:6"
+    },
+    {
+      "id": "done:7",
+      "text": "`budget.js` was edited directly (no `.ts` sibling; no build step), `PRICE_TABLE_AS_OF` bumped to `2026-10-27`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1199#done:7"
+    },
+    {
+      "id": "done:8",
+      "text": "`token-breakdown.mjs` provenance comment and `pricing.source` string no longer assert a universal 0.1× cache-read rule.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1199#done:8"
+    },
+    {
+      "id": "done:9",
+      "text": "No new unlisted-model warning was added; each consumer's existing fallback is unchanged.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1199#done:9"
+    },
+    {
+      "id": "done:10",
+      "text": "`budget.js` `conservativePriceRow` per-class maxima are unchanged after the additions (governor fail-safe preserved).",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1199#done:10"
+    },
+    {
+      "id": "done:11",
+      "text": "`budget.js` selftest passes, including (added) assertions that `economicsPriceForModel` returns the committed rows for the three new model IDs.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1199#done:11"
+    },
+    {
+      "id": "done:12",
+      "text": "`faff regions check` / the repo's standard lint pass stays green.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1199#done:12"
+    }
+  ]
+}

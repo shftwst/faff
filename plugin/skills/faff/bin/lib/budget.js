@@ -200,15 +200,18 @@ function classCountsFromUsage(usage) {
 // (`budget.price_per_mtok_by_model`, via resolveEconomicsPriceMap) supersedes
 // these defaults regardless of how stale this anchor gets — reconfirm and bump
 // this date, or set the override, when the nudge fires.
-const PRICE_TABLE_AS_OF = "2026-10-27";
+const PRICE_TABLE_AS_OF = "2026-11-14";
 const PRICE_PER_MTOK = {
   // Current generation (FAFF-1199). Cache reads for these models are priced BELOW
-  // the legacy 0.1x-input rule: 0.05x for opus-5-5 / sonnet-5-5 and 0.025x for
-  // fable-5-1 (so $0.20 / $0.10 / $0.25, not a naive $0.40 / $0.20 / $1.00); cache
+  // the legacy 0.1x-input rule: 0.05x for opus-5-5 / sonnet-5-5, 0.025x for
+  // fable-5-1 / fable-5-2 (so $0.20 / $0.10 / $0.25 / $0.20, not a naive 0.1x); cache
   // writes are unchanged at 1.25x (5m) / 2x (1h). Rates from Anthropic's published
-  // pricing page, reconfirmed 2026-10-27.
+  // pricing page, reconfirmed 2026-11-14. haiku-5-5 is the up-to-100k-token-prompt
+  // tier; prompts over 100k cost more ($0.50 / $2.50) and are not modelled.
   "claude-opus-5-5": { input: 4, output: 20, cache_write_5m: 5, cache_write_1h: 8, cache_read: 0.2 },
   "claude-sonnet-5-5": { input: 2, output: 10, cache_write_5m: 2.5, cache_write_1h: 4, cache_read: 0.1 },
+  "claude-fable-5-2": { input: 8, output: 40, cache_write_5m: 10, cache_write_1h: 16, cache_read: 0.2 },
+  "claude-haiku-5-5": { input: 0.1, output: 0.5, cache_write_5m: 0.125, cache_write_1h: 0.2, cache_read: 0.01 },
   "claude-fable-5-1": { input: 10, output: 50, cache_write_5m: 12.5, cache_write_1h: 20, cache_read: 0.25 },
   "claude-fable-5": { input: 10, output: 50, cache_write_5m: 12.5, cache_write_1h: 20, cache_read: 1.0 },
   "claude-opus-4-8": { input: 5, output: 25, cache_write_5m: 6.25, cache_write_1h: 10, cache_read: 0.5 },

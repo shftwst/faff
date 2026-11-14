@@ -47,7 +47,7 @@ const CLASS_LABEL = {
 };
 
 // --- pricing (USD per 1M tokens) -----------------------------------------------
-// Source: Anthropic published pricing page (reconfirmed 2026-10-27). `cache_write`
+// Source: Anthropic published pricing page (reconfirmed 2026-11-14). `cache_write`
 // is the 5-minute (1.25x input) rate. `cache_read` is NOT a universal 0.1x of input:
 // current models read lower — claude-opus-5-5 / claude-sonnet-5-5 at 0.05x and
 // claude-fable-5-1 at 0.025x — so the stored `cache_read` value per row already
@@ -60,6 +60,8 @@ const PRICE_PER_MTOK = {
   "claude-opus-5-5": { input: 4, output: 20, cache_write: 5, cache_read: 0.2 },
   "claude-sonnet-5-5": { input: 2, output: 10, cache_write: 2.5, cache_read: 0.1 },
   "claude-fable-5-1": { input: 10, output: 50, cache_write: 12.5, cache_read: 0.25 },
+  "claude-fable-5-2": { input: 8, output: 40, cache_write: 10, cache_read: 0.2 },
+  "claude-haiku-5-5": { input: 0.1, output: 0.5, cache_write: 0.125, cache_read: 0.01 },
   "claude-fable-5": { input: 10, output: 50, cache_write: 12.5, cache_read: 1.0 },
   "claude-opus-4-8": { input: 5, output: 25, cache_write: 6.25, cache_read: 0.5 },
   "claude-opus-4-7": { input: 5, output: 25, cache_write: 6.25, cache_read: 0.5 },
@@ -457,7 +459,7 @@ export function analyze(rawRecords) {
 
   return {
     corpus: { records_with_usage: recordsWithUsage, records_missing_model: recordsMissingModel },
-    pricing: { source: "Anthropic published pricing page (reconfirmed 2026-10-27); cache_write=1.25x input; cache_read varies by model (0.1x legacy, 0.05x opus-5-5/sonnet-5-5, 0.025x fable-5-1 — encoded per row)", per_mtok: PRICE_PER_MTOK },
+    pricing: { source: "Anthropic published pricing page (reconfirmed 2026-11-14); cache_write=1.25x input; cache_read varies by model (0.1x legacy, 0.05x opus-5-5/sonnet-5-5, 0.025x fable-5-1/fable-5-2 — encoded per row)", per_mtok: PRICE_PER_MTOK },
     reconciliation: { grand_total: grand.total, flat_sum: flatReconcile, reconciles: grand.total === flatReconcile },
     grand,
     by_class: { input: byClass.input, output: byClass.output, cache_write: byClass.cache_write, cache_read: byClass.cache_read, cost: byClassCost },

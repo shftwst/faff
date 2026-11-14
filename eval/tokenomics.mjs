@@ -29,12 +29,14 @@ export const GATEWAY_SKILL = join(REPO_ROOT, "plugin", "skills", "faff", "SKILL.
 export const RATES = {
   // Current generation (FAFF-1199). `read_mult` is this row's cache-read multiplier
   // against base input, overriding the flat CACHE_MULT.read: 0.05x for opus-5-5 /
-  // sonnet-5-5, 0.025x for fable-5-1 (the legacy 0.1x no longer holds for these).
+  // sonnet-5-5, 0.025x for fable-5-1 / fable-5-2 (the legacy 0.1x no longer holds for these).
   // Write multipliers (1.25x 5m / 2x 1h) are unchanged. Rates from Anthropic's
-  // published pricing page, reconfirmed 2026-10-27.
+  // published pricing page, reconfirmed 2026-11-14. haiku-5-5 is the up-to-100k-token-prompt tier.
   "claude-opus-5-5": { in: 4.0, out: 20.0, read_mult: 0.05 },
   "claude-sonnet-5-5": { in: 2.0, out: 10.0, read_mult: 0.05 },
   "claude-fable-5-1": { in: 10.0, out: 50.0, read_mult: 0.025 },
+  "claude-fable-5-2": { in: 8.0, out: 40.0, read_mult: 0.025 },
+  "claude-haiku-5-5": { in: 0.1, out: 0.5, read_mult: 0.1 },
   "claude-opus-4-8": { in: 5.0, out: 25.0 },
   "claude-opus-5": { in: 5.0, out: 25.0 },
   "claude-opus-4-7": { in: 5.0, out: 25.0 },

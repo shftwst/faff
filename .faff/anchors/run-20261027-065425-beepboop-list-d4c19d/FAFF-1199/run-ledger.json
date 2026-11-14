@@ -14,16 +14,25 @@
     "FAFF-1292"
   ],
   "outcomes": {
-    "FAFF-1318": "routed-out"
+    "FAFF-1318": "routed-out",
+    "FAFF-1199": "pr-open",
+    "FAFF-1322": "shipped",
+    "FAFF-1317": "shipped",
+    "FAFF-1333": "shipped",
+    "FAFF-1205": "pr-open",
+    "FAFF-1207": "pr-open",
+    "FAFF-1319": "shipped",
+    "FAFF-1292": "pr-open",
+    "FAFF-1321": "shipped"
   },
   "base_sha": "291af234bd164d945332c67b68ad9861d237451b",
   "base_sha_required": true,
   "owner": {
-    "status": "running",
+    "status": "done",
     "session_id": "run-20261027-065425-beepboop-list-d4c19d",
     "pid": 465,
     "started_at": "2026-10-27T06:54:25.187Z",
-    "last_heartbeat": "2026-10-27T06:54:25.187Z",
+    "last_heartbeat": "2026-10-27T09:33:30.759Z",
     "faff_version": "0.43.0",
     "harness": "claude-code",
     "model": "unknown"
@@ -50,16 +59,57 @@
     },
     "tokens_at_start": 4458405,
     "tokens_at_last_event": {
-      "input": 442,
-      "output": 399707,
+      "input": 778,
+      "output": 923994,
       "cache_write_5m": 0,
-      "cache_write_1h": 1149824,
-      "cache_read": 53322548
+      "cache_write_1h": 1710645,
+      "cache_read": 123301717
     }
   },
   "outcome_details": {
     "FAFF-1318": {
       "routed_out_reason": "inadmissible: 0 born-verifiable scenarios (--lights-out DoD floor); pure test-coverage ticket, not holdout-verifiable"
+    },
+    "FAFF-1199": {
+      "pr": 1142,
+      "reason": "held for human pricing spot-check (merge-gate refused: ACs not all verified — external pricing facts)"
+    },
+    "FAFF-1322": {
+      "pr": 1143,
+      "merge_sha": "913a08db7a3d5a8e4fd7e61ce9ebfd22410d4bfc"
+    },
+    "FAFF-1317": {
+      "pr": 1144,
+      "merge_sha": "a6b0051fe7c43f3e5641bbba19a3ad39fbc1aec1"
+    },
+    "FAFF-1333": {
+      "pr": 1145,
+      "merge_sha": "7c2961c4b8de8d28f08fa6863e3fefa1cb3a14aa"
+    },
+    "FAFF-1205": {
+      "pr": 1146,
+      "reason": "green+mergeable; merge-gate refused on FAFF-325 corrective-integrity floor (attestation unasserted this run) — held for trusted/human land"
+    },
+    "FAFF-1207": {
+      "pr": 1147,
+      "reason": "green+mergeable; merge-gate refused on FAFF-325 integrity floor (latent custody-classifier bug + absent boundary attestation) — held for trusted/human land"
+    },
+    "FAFF-1319": {
+      "pr": 1148,
+      "merge_sha": "aae4f81d953654abab78db1f015918cd4cda0df1"
+    },
+    "FAFF-1292": {
+      "pr": 1149,
+      "reason": "green+mergeable; merge-gate refused on FAFF-325 integrity floor; adversarial review chain-outage-skipped (advisory L3) — held for trusted/human land"
+    },
+    "FAFF-1321": {
+      "pr": 1150,
+      "merge_sha": "92d1fc525813de46adc08422ce09dfedba932df5"
     }
-  }
+  },
+  "discovered_scope_filed": 0,
+  "stop_reason": "queue-drained",
+  "review_adversarial_skipped": [],
+  "post_merge_verification_failures": [],
+  "post_merge_verification_unverified": []
 }

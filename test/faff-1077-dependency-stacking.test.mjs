@@ -178,7 +178,7 @@ function scaffoldRepoWithRemote() {
 }
 
 function runSetupWorktree({ name, cwd, baseRef, wtRoot }) {
-  const env = { ...process.env, SKIP_NPM_PACKAGES_INSTALL: "1", FAFF_WORKTREE_ROOT: wtRoot };
+  const env = { ...process.env, SKIP_NPM_PACKAGES_INSTALL: "1", FAFF_WORKTREE_ROOT: wtRoot, CLAUDE_PLUGIN_ROOT: resolve(here, "..", "plugin") };
   if (baseRef !== undefined) env.FAFF_WORKTREE_BASE_REF = baseRef;
   return spawnSync("bash", [setupWorktreeSh, name, cwd], { encoding: "utf8", env });
 }

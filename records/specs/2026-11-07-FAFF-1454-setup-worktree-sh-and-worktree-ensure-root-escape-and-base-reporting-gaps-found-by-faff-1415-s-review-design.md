@@ -1,8 +1,8 @@
-*Agent-written (Claude Code), at the operator's request: FAFF-1454 spec, amended on 2026-11-07 with the operator's approval to add the §4.1 prose-growth bullet.*
+*Agent-written (Claude Code), at the operator's request: FAFF-1454 spec, amended on 2026-11-14 with the operator's approval to correct the branch-name case in two scenarios (faff-9-x to FAFF-9-x), after the code-blind holdout showed the product names the branch FAFF-9-x. Earlier amendment, 2026-11-07: the §4.1 prose-growth bullet.*
 
 # FAFF-1454: close setup-worktree.sh's root-escape and base gaps, and tidy worktree ensure's recreate checks and base reporting
 
-> Spec: faffter-dark-nlspec · 2026-11-07 · interactive · claude-code/unknown · faff 0.44.0 · confidence: high. Full spec on Linear FAFF-1454.
+> Spec: faffter-dark-nlspec · 2026-11-14 · interactive · claude-code/unknown · faff 0.44.0 · confidence: high. Full spec on Linear FAFF-1454.
 
 This spec is for the build agent and its reviewers. It fixes the six gaps FAFF-1415's holdout and independent review found in the bundled `setup-worktree.sh` and in `faff worktree ensure`.
 
@@ -109,7 +109,7 @@ Register the new test file in `lint-cli-coverage.js`' `TEST_FILE_COVERAGE` if th
 ## Scenarios
 
 ```
-Given a git repo with a local bare origin, FAFF_WORKTREE_ROOT set to an empty temp dir, and a symlink at <root>/faff-9-x pointing to /tmp
+Given a git repo with a local bare origin, FAFF_WORKTREE_ROOT set to an empty temp dir, and a symlink at <root>/FAFF-9-x pointing to /tmp
 When `faff worktree ensure --issue FAFF-9 --mode interactive --slug x --root <repo> --json` runs
 Then it exits 0 with disposition "hand-over" and cause "setup-refused"
 And detail.reason is "path is a symlink"
@@ -117,11 +117,11 @@ And `git worktree list` in the repo lists only the main checkout
 ```
 
 ```
-Given the same repo, no symlink, and a branch faff-9-x pushed to the origin but absent locally
+Given the same repo, no symlink, and a branch FAFF-9-x pushed to the origin but absent locally
 When the same `faff worktree ensure … --json` runs
 Then it exits 0 with disposition "hand-over" and cause "setup-refused"
-And detail.reason is "remote branch exists" and detail.branch is "faff-9-x"
-And the repo has no local branch faff-9-x
+And detail.reason is "remote branch exists" and detail.branch is "FAFF-9-x"
+And the repo has no local branch FAFF-9-x
 ```
 
 ```

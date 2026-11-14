@@ -487,3 +487,8 @@ Methodology: faffter-dark-methodology-agile-delivery
 confidence: high
 build-tier: complex
 spec-review: accept (human preference, L2; round 9 minors fixed in place, not re-reviewed)
+## Rule inventory
+
+| Prose rule | Command behaviour | Covering test | Disposition |
+|---|---|---|---|
+| `A non-zero exit is logged and leaves no file; never hand-write a fallback` | `faff evidence write ac-checklist` also refuses a criterion with no `ac_id` | — | changed: names a missing `ac_id` among the refusals and drops "is logged", same rule |

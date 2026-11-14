@@ -104,9 +104,13 @@ function parseOpenPrs(stdout) {
 // `faff events anchor` exit 3 is a refusal; classify it by the fixed stderr prefix and the exported
 // read-only genesis validator, never by free text. A refusal it cannot classify fails closed to
 // genesis-invalid.
+const SCHEMA_REFUSAL_RE = /^faff events anchor: (schema-unavailable|schema-check-error|unschemaed-file|schema-mismatch|anchor-shrink)\b/;
 function anchorRefusalCode(stderr, runDir, deps) {
-    if (stderr.split("\n").some((l) => l.startsWith("faff events anchor: floor-incomplete")))
+    const lines = stderr.split("\n");
+    if (lines.some((l) => l.startsWith("faff events anchor: floor-incomplete")))
         return "floor-incomplete";
+    if (lines.some((l) => SCHEMA_REFUSAL_RE.test(l)))
+        return "schema-refused";
     let code;
     try {
         code = deps.validateAnchorGenesis(runDir).code;
@@ -119,6 +123,8 @@ function anchorRefusalCode(stderr, runDir, deps) {
 function anchorCauseText(code, runDir) {
     if (code === "floor-incomplete")
         return `anchor-floor-incomplete: ${runDir} lacks a required merge-floor file (ac-checklist.json or review-verdict.json); a build-evidence defect, not a provisioning fault`;
+    if (code === "schema-refused")
+        return `anchor-schema-refused: ${runDir} staged an anchor that fails its evidence schema; a build-evidence defect, re-run the writer for the named file then \`faff events anchor --check\``;
     if (code === "no-events")
         return `anchor-no-events: ${runDir} has no events.jsonl; a provisioning fault, re-mint the run dir`;
     return `anchor-genesis-invalid: ${runDir} has no valid genesis chain; a provisioning fault, re-mint the run dir`;

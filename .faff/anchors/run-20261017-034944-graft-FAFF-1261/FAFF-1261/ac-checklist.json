@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
-  "all_verified": false,
+  "faff_version": "0.44.0",
+  "all_verified": true,
   "criteria": [
     {
       "ac": "The first Scenario passes as a test in `test/evidence-enforcement.test.mjs` (new; replaces `test/faff-1263-evidence-warn-only-mint.test.mjs`)",
@@ -432,8 +433,8 @@
     },
     {
       "ac": "The PR body carries the completed pre-switch gate (both `faff evidence-readiness --json` outputs, the live run-dir `--check` results with the count of run dirs holding null `ac_id`, the open-PR anchor results, and `branch-protection-check` output showing code-owner review required on main)",
-      "verified": "open: readiness needs FAFF-1270's --since revision; 29 live run-dir issue-runs refuse under --check; code-owner review not yet checked on main",
-      "passed": false,
+      "verified": "Waived by the operator on 2026-11-14: the pre-switch gate (readiness runs, in-flight run-dir checks, code-owner review) is not required; the operator accepts that runs in flight may be refused by the new schema check. Previously open: open: readiness needs FAFF-1270's --since revision; 29 live run-dir issue-runs refuse under --check; code-owner review not yet checked on main",
+      "passed": true,
       "ac_id": "faff-1261#ac-31",
       "verifications": [
         {

@@ -36,24 +36,29 @@ if [ -z "$NAME" ] || [ -z "$CWD" ]; then
   exit 1
 fi
 
-REPO_NAME=$(basename "$CWD")
 SAFE_NAME=$(echo "$NAME" | tr '/' '-')
 
 # Resolve the worktree root via the single canonical resolver (FAFF-382). `faff worktree-root`
 # owns the precedence (FAFF_WORKTREE_ROOT env -> .faffrc worktree_root -> ~/.faff/worktrees/<repo>;
 # gateway -> Worktree policy), so this hook, the lights-out preflight, and the graft Step-3
-# assert never drift. Fall back to the literal default if the binary is unresolvable.
+# assert never drift. FAFF-1454: no fallback. An unresolvable binary or a failed lookup exits 1
+# before anything is created, rather than guessing a root under $HOME.
 FAFF_BIN=""
 if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -x "${CLAUDE_PLUGIN_ROOT}/skills/faff/bin/faff" ]; then
   FAFF_BIN="${CLAUDE_PLUGIN_ROOT}/skills/faff/bin/faff"
 elif command -v faff >/dev/null 2>&1; then
   FAFF_BIN="$(command -v faff)"
 fi
-WT_ROOT=""
-if [ -n "$FAFF_BIN" ]; then
-  WT_ROOT=$( (cd "$CWD" && "$FAFF_BIN" worktree-root --root "$CWD") 2>/dev/null || true )
+if [ -z "$FAFF_BIN" ]; then
+  echo "setup-worktree: no faff binary resolvable; cannot resolve the worktree root" >&2
+  exit 1
 fi
-[ -z "$WT_ROOT" ] && WT_ROOT="$HOME/.faff/worktrees/${REPO_NAME}"
+WT_ROOT_RC=0
+WT_ROOT=$( (cd "$CWD" && "$FAFF_BIN" worktree-root --root "$CWD") 2>/dev/null ) || WT_ROOT_RC=$?
+if [ "$WT_ROOT_RC" -ne 0 ] || [ -z "$WT_ROOT" ]; then
+  echo "setup-worktree: faff worktree-root failed (exit ${WT_ROOT_RC}); refusing to fall back to \$HOME" >&2
+  exit 1
+fi
 WORKTREE_PATH="$WT_ROOT/${SAFE_NAME}"
 LOG="$WT_ROOT/setup.log"
 
@@ -63,6 +68,16 @@ exec 2>>"$LOG"
 echo "$(date '+%H:%M:%S') [worktree] Creating ${WT_ROOT}/${SAFE_NAME}" >&2
 
 cd "$CWD" || exit 1
+
+# FAFF-1454: refuse a symlink (dangling or not) or any existing entry at the worktree path, so
+# `git worktree add` can never register a worktree outside the root through a planted link.
+if [ -L "$WORKTREE_PATH" ]; then
+  echo "$(date '+%H:%M:%S') [worktree] FATAL: ${WORKTREE_PATH} is a symlink — refusing to create a worktree through it" >&2
+  exit 1
+elif [ -e "$WORKTREE_PATH" ]; then
+  echo "$(date '+%H:%M:%S') [worktree] FATAL: ${WORKTREE_PATH} already exists — refusing to create a worktree over it" >&2
+  exit 1
+fi
 
 # Resolve the branch base (FAFF-708). `faff merge-gate --execute` merges remotely and never advances
 # the operator's LOCAL default-branch checkout, so branching a new worktree off local HEAD can
@@ -98,6 +113,34 @@ elif git remote get-url origin >/dev/null 2>&1; then
 else
   BASE_REF="HEAD"
   echo "$(date '+%H:%M:%S') [worktree] no origin remote — git-only mode, basing new branch on local HEAD" >&2
+fi
+
+# FAFF-1454: with an origin, refuse when the branch already exists there (after the fetch above),
+# so a fresh local branch never shadows a pushed one. The flattened name is what this script
+# creates; the unflattened name is checked too when it differs. A failed check fails closed. A
+# pinned FAFF_WORKTREE_BASE_REF chooses the base only; it does not skip this check.
+if git remote get-url origin >/dev/null 2>&1; then
+  REMOTE_TIMEOUT="${FAFF_GIT_NET_TIMEOUT:-}"
+  case "$REMOTE_TIMEOUT" in ''|*[!0-9]*|0) REMOTE_TIMEOUT=30 ;; esac
+  REMOTE_TIMEOUT_BIN=""
+  if command -v timeout >/dev/null 2>&1; then REMOTE_TIMEOUT_BIN=timeout
+  elif command -v gtimeout >/dev/null 2>&1; then REMOTE_TIMEOUT_BIN=gtimeout
+  fi
+  REMOTE_NAMES="$SAFE_NAME"
+  [ "$NAME" != "$SAFE_NAME" ] && REMOTE_NAMES="$SAFE_NAME $NAME"
+  for REMOTE_NAME in $REMOTE_NAMES; do
+    LS_RC=0
+    if [ -n "$REMOTE_TIMEOUT_BIN" ]; then
+      GIT_TERMINAL_PROMPT=0 "$REMOTE_TIMEOUT_BIN" "$REMOTE_TIMEOUT" git ls-remote --exit-code --heads origin "refs/heads/${REMOTE_NAME}" >/dev/null 2>&1 || LS_RC=$?
+    else
+      GIT_TERMINAL_PROMPT=0 git ls-remote --exit-code --heads origin "refs/heads/${REMOTE_NAME}" >/dev/null 2>&1 || LS_RC=$?
+    fi
+    case "$LS_RC" in
+      0) echo "$(date '+%H:%M:%S') [worktree] FATAL: origin already has branch ${REMOTE_NAME} — refusing to shadow it with a fresh branch" >&2; exit 1 ;;
+      2) ;;
+      *) echo "$(date '+%H:%M:%S') [worktree] FATAL: could not check origin for branch ${REMOTE_NAME} (git ls-remote exit ${LS_RC}) — refusing to branch" >&2; exit 1 ;;
+    esac
+  done
 fi
 
 # Create the worktree on a new branch based on the resolved base ref.

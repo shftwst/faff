@@ -99,6 +99,8 @@ export interface EnsureResult {
   wt: string | null;
   branch: string;
   base_ref: string | null;
+  // FAFF-1454: on a fresh result only, the new worktree's HEAD (the commit it was created from).
+  base_sha?: string | null;
   behind: number | null;
   setup_script: "bundled" | "project" | null;
   graft_skill_dir: string;
@@ -391,16 +393,13 @@ function recreate(s: State, v: { branch: string; fref: string; tip: string }): R
   if (!lightsOut.isStrictlyUnderRoot(rootDir, wtPath)) {
     return { kind: "blocked", out: blocked(s, "resume-recreate-failed", wtPath, { resolved_root: rootDir }) };
   }
-  // Before the add, on disk: a symlink at the path (dangling or not) is refused outright, and the
-  // path's real parent must sit under the real root, so a link can never place the worktree outside it.
-  // A link planted between this probe and the add is outside this check; the build claim keeps one
-  // runner per issue, and the step-6 root assert still refuses a worktree that resolves outside the root.
+  // What keeps the worktree inside the root: the strictly-under-root assert on the path above, and
+  // the symlink refusal (dangling or not) just below. The slug flattens `/`, so the path's parent is
+  // always the root itself and only a link at the path could lead outside it. A link planted between
+  // this probe and the add is outside this check; the build claim keeps one runner per issue, and the
+  // step-6 root assert still refuses a worktree that resolves outside the root.
   const onDisk = s.deps.lstat(wtPath);
   if (onDisk === "symlink") return { kind: "blocked", out: blocked(s, "resume-recreate-failed", wtPath, { reason: "path is a symlink" }) };
-  const realCandidate = path.join(s.deps.realpath(path.dirname(wtPath)), path.basename(wtPath));
-  if (!lightsOut.isStrictlyUnderRoot(s.deps.realpath(rootDir), realCandidate)) {
-    return { kind: "blocked", out: blocked(s, "resume-recreate-failed", wtPath, { resolved_root: rootDir, real_path: realCandidate }) };
-  }
   const existing = registeredWorktrees(s).find((w) => samePath(s, w.path, wtPath));
   if (existing !== undefined) {
     if (existing.branch === b && existing.head === v.tip) return { kind: "ok", wt: wtPath };
@@ -432,19 +431,45 @@ function parseLabels(raw: string | null): string[] {
 }
 
 // The pre-step-6 outcome: a worktree to check, or a finished (non-ready) result.
-type Placed = { kind: "placed"; wt: string; mode: WtMode; cause: string; resumeAt: ResumeAt; setupScript: "bundled" | "project" | null; resume: { cause: unknown; dialogue: unknown } | null } | { kind: "done"; out: EnsureResult };
+type Placed = { kind: "placed"; wt: string; mode: WtMode; cause: string; resumeAt: ResumeAt; setupScript: "bundled" | "project" | null; resume: { cause: unknown; dialogue: unknown } | null; baseSha?: string | null } | { kind: "done"; out: EnsureResult };
 
-// The base a fresh worktree was branched from, as setup-worktree.sh resolves it: the caller's
-// FAFF_WORKTREE_BASE_REF when set, else the base remote-diff-base.sh prints (the fetched origin
-// default; git-only: the local default). A failed resolve leaves base_ref null with a warning.
-function freshBase(s: State): string | null {
+// The base a fresh worktree is branched from, resolved before the script runs (FAFF-1454 section
+// 3.5): a pinned FAFF_WORKTREE_BASE_REF verbatim; for a project script, unknown (null, with a
+// warning); for the bundled script with an origin, the origin/<default> remote-diff-base.sh resolves
+// (reusing the one this run's resume check already resolved, so it runs once); git-only, the root
+// checkout's branch, or HEAD when detached, which is what the bundled script branches from.
+function freshBase(s: State, which: "project" | "bundled", origin: boolean): string | null {
   const pinned = str(s.deps.env.FAFF_WORKTREE_BASE_REF);
   if (pinned !== undefined && pinned !== "") return pinned;
+  if (which === "project") {
+    s.warnings.push("base_ref unknown for a project setup script; see base_sha");
+    return null;
+  }
+  if (!origin) {
+    const head = s.deps.git(["symbolic-ref", "--short", "HEAD"], s.args.root);
+    const name = head.status === 0 ? head.stdout.trim() : "";
+    return name === "" ? "HEAD" : name;
+  }
+  if (s.baseRef !== null) return s.baseRef;
   const r = s.deps.bash(path.join(s.deps.graftSkillDir, "remote-diff-base.sh"), [], s.args.root);
   const base = r.status === 0 ? r.stdout.trim() : "";
   if (base !== "") return base;
   s.warnings.push(`base_ref unresolved: remote-diff-base.sh exited ${String(r.status)}`);
   return null;
+}
+
+// FAFF-1454 section 3.2: does origin already carry this branch? Each name is checked with its own
+// call, so the refusal names the ref that matched. Exit 0 is a match, 2 is no such branch, and any
+// other exit fails closed.
+function remoteBranchRefusal(s: State, names: string[]): { [key: string]: unknown } | null {
+  const matched: string[] = [];
+  for (const name of names) {
+    const r = s.deps.gitNet(["ls-remote", "--exit-code", "--heads", "origin", `refs/heads/${name}`], s.args.root);
+    if (r.status === 0) matched.push(name);
+    else if (r.status !== 2) return { reason: "remote branch check failed", exit: r.status };
+  }
+  if (matched.length === 0) return null;
+  return { reason: "remote branch exists", branch: matched.length === 1 ? matched[0] : matched };
 }
 
 // Step 5: a fresh worktree from the provisioning script.
@@ -456,17 +481,29 @@ function freshCreate(s: State, cause: string): Placed {
   if (s.deps.isFile(project)) { script = project; which = "project"; }
   else if (s.deps.isFile(bundled)) { script = bundled; which = "bundled"; }
   else return { kind: "done", out: blocked(s, "setup-script-unresolvable", null, { tried: [project, bundled] }) };
+  // FAFF-1454 section 3.1: before any script runs, refuse a symlink (dangling or not) or an existing
+  // entry at the path, by the flattened name the bundled script creates and recreate builds.
+  const flat = s.branch.replace(/\//g, "-");
+  const wtPath = path.join(worktreeRootDir(s), flat);
+  const onDisk = s.deps.lstat(wtPath);
+  if (onDisk === "symlink") return { kind: "done", out: blocked(s, "setup-refused", null, { reason: "path is a symlink", path: wtPath }) };
+  if (onDisk !== "none") return { kind: "done", out: blocked(s, "setup-refused", null, { reason: "path already exists", path: wtPath }) };
+  const origin = hasOrigin(s);
+  if (origin) {
+    const refusal = remoteBranchRefusal(s, flat === s.branch ? [flat] : [flat, s.branch]);
+    if (refusal !== null) return { kind: "done", out: blocked(s, "setup-refused", null, refusal) };
+  }
+  const base = freshBase(s, which, origin);
   const out = s.deps.bash(script, [s.branch, s.args.root], s.args.root);
   const wt = lastLine(out.stdout);
   if (out.status !== 0 || wt === "") {
     return { kind: "done", out: blocked(s, "setup-failed", null, { exit: out.status, setup_log: path.join(worktreeRootDir(s), "setup.log") }) };
   }
-  // A pinned stack base is what the script branched from, so it wins over a base the resume check
-  // resolved earlier; otherwise keep that base, or resolve one now.
-  const pinned = str(s.deps.env.FAFF_WORKTREE_BASE_REF);
-  if (pinned !== undefined && pinned !== "") s.baseRef = pinned;
-  else if (s.baseRef === null) s.baseRef = freshBase(s);
-  return { kind: "placed", wt, mode: "fresh", cause, resumeAt: "start", setupScript: which, resume: null };
+  s.baseRef = base;
+  const head = s.deps.git(["-C", wt, "rev-parse", "HEAD"], s.args.root);
+  const sha = head.status === 0 ? head.stdout.trim() : "";
+  if (sha === "") s.warnings.push(`base_sha unresolved: git rev-parse HEAD in ${wt} exited ${String(head.status)}`);
+  return { kind: "placed", wt, mode: "fresh", cause, resumeAt: "start", setupScript: which, resume: null, baseSha: sha === "" ? null : sha };
 }
 
 // Steps 3 and 4: the autonomous resume checks, then the fresh create.
@@ -570,7 +607,8 @@ function ensure(args: EnsureArgs, deps: Deps): EnsureResult {
   }
   const current = deps.git(["-C", wt, "branch", "--show-current"], args.root);
   if (current.status === 0 && current.stdout.trim() !== "") s.branch = current.stdout.trim();
-  return result(s, "ready", placed.mode, placed.cause, placed.resumeAt, wt, placed.setupScript, placed.resume);
+  const ready = result(s, "ready", placed.mode, placed.cause, placed.resumeAt, wt, placed.setupScript, placed.resume);
+  return placed.mode === "fresh" ? { ...ready, base_sha: placed.baseSha ?? null } : ready;
 }
 
 // --- The verb. ---

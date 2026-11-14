@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A fresh create refuses a symlink or an existing entry at the worktree path, in `worktree ensure` before any script runs and in the bundled script, and never registers a worktree outside the root.",
+      "verified": "worktree ensure refuses a symlink (outside-root and dangling) and an existing entry with setup-refused before any script runs, no worktree registered; the bundled script exits 1 and registers nothing for both; mutants killed",
+      "passed": true,
+      "ac_id": "faff-1454#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::a symlink at the fresh path is refused before any script runs"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::an existing entry at the fresh path is refused before any script runs"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::a slash-scoped branch is checked by its flattened name, and by the real name too"
+        },
+        {
+          "kind": "test",
+          "locator": "test/setup-worktree-script.test.mjs::a symlink at the worktree path exits 1 and registers nothing"
+        },
+        {
+          "kind": "test",
+          "locator": "test/setup-worktree-script.test.mjs::an existing entry at the worktree path exits 1 and registers nothing"
+        }
+      ]
+    },
+    {
+      "ac": "A fresh create refuses when `origin/<branch>` exists, or when the check fails, with cause `setup-refused` and the reason in `detail`.",
+      "verified": "ls-remote exit 0 refuses with reason remote branch exists and detail.branch, exit 2 runs the script, any other exit refuses with remote branch check failed; a pinned FAFF_WORKTREE_BASE_REF does not bypass; the script refuses the same and creates no local branch",
+      "passed": true,
+      "ac_id": "faff-1454#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::a fresh create refuses a branch that already exists on origin"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::the remote branch check routes on the ls-remote exit and fails closed"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::a pinned stack base does not bypass the remote branch check"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::a slash-scoped branch is checked by its flattened name, and by the real name too"
+        },
+        {
+          "kind": "test",
+          "locator": "test/setup-worktree-script.test.mjs::a branch already on origin exits 1 and creates no local branch"
+        },
+        {
+          "kind": "test",
+          "locator": "test/setup-worktree-script.test.mjs::a slashed name is refused when origin has the flattened or the real branch"
+        },
+        {
+          "kind": "test",
+          "locator": "test/setup-worktree-script.test.mjs::a pinned base does not bypass the origin check, and a failed check fails closed"
+        }
+      ]
+    },
+    {
+      "ac": "`setup-worktree.sh` exits 1 with a named error when the root lookup fails or no `faff` resolves, and never creates `$HOME/.faff`.",
+      "verified": "a worktree-root stub exiting 1 and a PATH with no faff both exit 1 with the named stderr line, and a temp HOME gains no .faff directory",
+      "passed": true,
+      "ac_id": "faff-1454#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/setup-worktree-script.test.mjs::a failed worktree-root lookup exits 1 and never falls back to $HOME"
+        },
+        {
+          "kind": "test",
+          "locator": "test/setup-worktree-script.test.mjs::no resolvable faff binary exits 1 and never falls back to $HOME"
+        }
+      ]
+    },
+    {
+      "ac": "`recreate` has no `realCandidate` check, its comment names the checks that keep the worktree inside the root, and its \"path already exists\" refusal has a test.",
+      "verified": "realCandidate is absent from worktree-ensure.ts/.js and the comment names the strictly-under-root assert plus the lstat refusal; an empty directory at the recreate path gives resume-recreate-failed with reason path already exists and no worktree add",
+      "passed": true,
+      "ac_id": "faff-1454#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::recreate's realpath check is gone and its comment names the checks that hold"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::recreate refuses an existing empty directory at the path"
+        }
+      ]
+    },
+    {
+      "ac": "A fresh result carries `base_sha` equal to the worktree's `HEAD`, and `base_ref` follows §3.5.",
+      "verified": "base_sha equals the worktree HEAD; base_ref is the pin, origin/<default> resolved before the script (one remote-diff-base run), the root checkout's branch or HEAD in git-only, and null with the warning for a project script; an unreadable base_sha is null with a warning",
+      "passed": true,
+      "ac_id": "faff-1454#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::a fresh create reports base_sha as the worktree's HEAD, and base_ref from before the script"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::git-only base_ref is the root checkout's branch, or HEAD when detached"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::a project setup script reports base_ref null with a warning, and base_sha"
+        },
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::a failed base_sha read is null with a warning and leaves the disposition"
+        }
+      ]
+    },
+    {
+      "ac": "`docs/guide/cli.md` names `setup-refused` and `base_sha`; graft Step 3 names the branch on a `remote branch exists` refusal.",
+      "verified": "docs/guide/cli.md worktree ensure row names setup-refused and base_sha; faff-graft/SKILL.md Step 3 line 147 names detail.branch on remote branch exists",
+      "passed": true,
+      "ac_id": "faff-1454#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/worktree-ensure.test.mjs::graft Step 3 names the branch on a remote-branch-exists refusal, and cli.md names the new cause and field"
+        }
+      ]
+    },
+    {
+      "ac": "`test/worktree-ensure.test.mjs`, `test/setup-worktree-script.test.mjs` and `test/faff-1077-dependency-stacking.test.mjs` pass under `node --test`.",
+      "verified": "node --test on the three files: 85/85 pass, 0 fail, 0 skipped; full suite 8436 tests, 8430 pass, 0 fail, 6 skipped",
+      "passed": true,
+      "ac_id": "faff-1454#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --import ./test/hermetic-env.mjs --test test/worktree-ensure.test.mjs test/setup-worktree-script.test.mjs test/faff-1077-dependency-stacking.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`npm run build` leaves the committed `worktree-ensure.js` and `build-manifest.json` matching the `.ts`.",
+      "verified": "npm run build in plugin/skills/faff exits 0 and git status shows no change to worktree-ensure.js or build-manifest.json",
+      "passed": true,
+      "ac_id": "faff-1454#done:8",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "cd plugin/skills/faff && npm run build && git status --short"
+        }
+      ]
+    }
+  ]
+}

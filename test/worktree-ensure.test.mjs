@@ -57,8 +57,7 @@ function fixture({ gitOnly = false } = {}) {
   }
   const runDir = path.join(repo, ".faff", "runs", "run-20261101-000000-graft-FAFF-9");
   mkdirSync(runDir, { recursive: true });
-  // HOME points inside the fixture: setup-worktree.sh falls back to $HOME/.faff/worktrees/<repo> when its
-  // own root lookup fails, and a test must never leave a worktree in the operator's real HOME.
+  // HOME points inside the fixture, so nothing a run writes can land in the operator's real HOME.
   const home = path.join(parent, "home");
   mkdirSync(home);
   const env = { ...process.env, HOME: home, FAFF_WORKTREE_ROOT: wtroot, SKIP_NPM_PACKAGES_INSTALL: "1" };
@@ -319,9 +318,11 @@ test("uncertifiable never fresh-creates", () => {
 test("interactive never resumes", () => {
   const fx = fixture();
   try {
-    const { hash } = pushedBranch(fx);
-    writeCheckpoint(fx, fx.runDir, "FAFF-9-demo", hash);
-    stash(fx, "review-outage", "FAFF-9-demo", hash);
+    // The checkpoint and store name a pushed branch other than the one a fresh create makes, so the
+    // FAFF-1454 remote-branch refusal does not fire and the fresh create is observable.
+    const { hash } = pushedBranch(fx, "FAFF-9-other");
+    writeCheckpoint(fx, fx.runDir, "FAFF-9-other", hash);
+    stash(fx, "review-outage", "FAFF-9-other", hash);
     const { out, calls } = run(fx, { mode: "interactive", runDir: fx.runDir, labels: JSON.stringify(["faff-awaiting-review"]) });
     assert.equal(out.mode, "fresh");
     assert.equal(out.cause, "no-worktree");
@@ -453,8 +454,8 @@ test("recreate reuses its own earlier worktree", () => {
 test("checkpoint mismatch creates fresh", () => {
   const fx = fixture();
   try {
-    pushedBranch(fx);
-    const file = writeCheckpoint(fx, fx.runDir, "FAFF-9-demo", "0".repeat(64));
+    pushedBranch(fx, "FAFF-9-other");
+    const file = writeCheckpoint(fx, fx.runDir, "FAFF-9-other", "0".repeat(64));
     const before = readFileSync(file, "utf8");
     const { out } = run(fx, { mode: "autonomous" });
     assert.equal(out.mode, "fresh");
@@ -510,8 +511,8 @@ test("hold with missing store needs human", () => {
 test("store mismatch creates fresh, store kept", () => {
   const fx = fixture();
   try {
-    pushedBranch(fx);
-    const store = stash(fx, "review-outage", "FAFF-9-demo", "0".repeat(64));
+    pushedBranch(fx, "FAFF-9-other");
+    const store = stash(fx, "review-outage", "FAFF-9-other", "0".repeat(64));
     const before = snapshot(store);
     const { out, calls } = run(fx, { mode: "autonomous", labels: JSON.stringify(["faff-awaiting-review"]) });
     assert.equal(out.mode, "fresh");
@@ -817,8 +818,8 @@ test("base_ref is populated on every fresh create", () => {
   } finally { cleanup(fx); }
   const fx2 = fixture();
   try {
-    pushedBranch(fx2);
-    writeCheckpoint(fx2, fx2.runDir, "FAFF-9-demo", "0".repeat(64));
+    pushedBranch(fx2, "FAFF-9-other");
+    writeCheckpoint(fx2, fx2.runDir, "FAFF-9-other", "0".repeat(64));
     const out = run(fx2, { mode: "autonomous" }).out;
     assert.equal(out.cause, "checkpoint-mismatch");
     assert.equal(out.base_ref, "origin/main", "fresh create after a mismatch");
@@ -831,8 +832,8 @@ test("base_ref is populated on every fresh create", () => {
   } finally { cleanup(fx3); }
   const fx4 = fixture();
   try {
-    pushedBranch(fx4);
-    writeCheckpoint(fx4, fx4.runDir, "FAFF-9-demo", "0".repeat(64));
+    pushedBranch(fx4, "FAFF-9-other");
+    writeCheckpoint(fx4, fx4.runDir, "FAFF-9-other", "0".repeat(64));
     const tip = git(fx4.repo, "rev-parse", "origin/main");
     const out = run(fx4, { mode: "autonomous" }, {}, { FAFF_WORKTREE_BASE_REF: tip }).out;
     assert.equal(out.cause, "checkpoint-mismatch");
@@ -945,7 +946,8 @@ test("every result carries every key, nulls on a non-ready result", () => {
   const fx = fixture();
   try {
     const ready = run(fx).out;
-    assert.deepEqual(Object.keys(ready).sort(), KEYS);
+    assert.equal(ready.mode, "fresh");
+    assert.deepEqual(Object.keys(ready).sort(), [...KEYS, "base_sha"].sort(), "a fresh result adds base_sha");
     const parked = run(fx, { mode: "autonomous" }, { faff: (a) => (a[0] === "worktree-check" ? reply(2, JSON.stringify({ reason: "ambiguous-match" })) : undefined) }).out;
     assert.deepEqual(Object.keys(parked).sort(), KEYS);
     for (const k of ["mode", "resume_at", "setup_script", "resume"]) assert.equal(parked[k], null, k);
@@ -967,4 +969,234 @@ test("the command makes no tracker call and spawns only the composed primitives"
     const src = readFileSync(path.join(HERE, "..", "plugin", "skills", "faff", "bin", "lib", "worktree-ensure.ts"), "utf8");
     assert.doesNotMatch(src, /linear|get_issue|tracker probe|commissaire/i);
   } finally { cleanup(fx); }
+});
+
+// --- FAFF-1454: fresh-create refusals, recreate's existing-entry refusal, base_ref and base_sha ---
+
+const setupCalls = (calls) => bashCalls(calls, "setup-worktree.sh");
+const worktreeAdds = (calls) => calls.filter((c) => c.kind === "git" && c.args[0] === "worktree" && c.args[1] === "add");
+const registeredCount = (fx) => git(fx.repo, "worktree", "list", "--porcelain").split("\n").filter((l) => l.startsWith("worktree ")).length;
+const localBranch = (fx, b) => spawnSync("git", ["rev-parse", "--verify", "--quiet", `refs/heads/${b}`], { cwd: fx.repo }).status === 0;
+const slashScoped = { faff: (a) => (a[0] === "conventions" && a[1] === "get" ? reply(0, "slash-scoped\n") : undefined) };
+const lsRemote = (calls) => calls.filter((c) => c.kind === "gitNet" && c.args[0] === "ls-remote");
+
+test("a symlink at the fresh path is refused before any script runs", () => {
+  for (const dangling of [false, true]) {
+    for (const mode of ["interactive", "autonomous"]) {
+      const fx = fixture();
+      try {
+        const outside = path.join(fx.parent, "outside-target");
+        if (!dangling) mkdirSync(outside);
+        const at = path.join(fx.wtroot, "FAFF-9-demo");
+        symlinkSync(outside, at);
+        const { out, calls } = run(fx, { mode });
+        const tag = `dangling=${dangling} mode=${mode}`;
+        assert.equal(out.disposition, mode === "autonomous" ? "parked" : "hand-over", `${tag}: ${JSON.stringify(out)}`);
+        assert.equal(out.cause, "setup-refused", tag);
+        assert.equal(out.detail.reason, "path is a symlink", tag);
+        assert.equal(out.detail.path, at, tag);
+        assert.equal(setupCalls(calls).length, 0, `${tag}: the script never runs`);
+        assert.equal(registeredCount(fx), 1, `${tag}: only the main checkout is registered`);
+      } finally { cleanup(fx); }
+    }
+  }
+});
+
+test("an existing entry at the fresh path is refused before any script runs", () => {
+  const fx = fixture();
+  try {
+    const at = path.join(fx.wtroot, "FAFF-9-demo");
+    mkdirSync(at);
+    const { out, calls } = run(fx);
+    assert.equal(out.disposition, "hand-over", JSON.stringify(out));
+    assert.equal(out.cause, "setup-refused");
+    assert.equal(out.detail.reason, "path already exists");
+    assert.equal(out.detail.path, at);
+    assert.equal(setupCalls(calls).length, 0);
+    assert.deepEqual(readdirSync(at), [], "the entry is left as it was");
+  } finally { cleanup(fx); }
+});
+
+test("a fresh create refuses a branch that already exists on origin", () => {
+  const fx = fixture();
+  try {
+    pushedBranch(fx);
+    const { out, calls } = run(fx);
+    assert.equal(out.disposition, "hand-over", JSON.stringify(out));
+    assert.equal(out.cause, "setup-refused");
+    assert.equal(out.detail.reason, "remote branch exists");
+    assert.equal(out.detail.branch, "FAFF-9-demo");
+    assert.equal(setupCalls(calls).length, 0);
+    assert.equal(localBranch(fx, "FAFF-9-demo"), false, "no local branch is created");
+    assert.deepEqual(lsRemote(calls).map((c) => c.args), [["ls-remote", "--exit-code", "--heads", "origin", "refs/heads/FAFF-9-demo"]]);
+    assert.equal(run(fx, { mode: "autonomous" }).out.disposition, "parked");
+  } finally { cleanup(fx); }
+});
+
+test("the remote branch check routes on the ls-remote exit and fails closed", () => {
+  const fx = fixture();
+  try {
+    const exitWith = (status) => ({ gitNet: (a) => (a[0] === "ls-remote" ? reply(status) : undefined) });
+    const two = run(fx, {}, exitWith(2));
+    assert.equal(two.out.disposition, "ready", `exit 2 continues: ${JSON.stringify(two.out)}`);
+    assert.equal(setupCalls(two.calls).length, 1);
+  } finally { cleanup(fx); }
+  const fx2 = fixture();
+  try {
+    const { out, calls } = run(fx2, {}, { gitNet: (a) => (a[0] === "ls-remote" ? reply(128, "", "fatal: unreachable") : undefined) });
+    assert.equal(out.cause, "setup-refused", JSON.stringify(out));
+    assert.equal(out.detail.reason, "remote branch check failed");
+    assert.equal(out.detail.exit, 128);
+    assert.equal(setupCalls(calls).length, 0);
+    const zero = run(fx2, {}, { gitNet: (a) => (a[0] === "ls-remote" ? reply(0, "abc\trefs/heads/FAFF-9-demo\n") : undefined) });
+    assert.equal(zero.out.detail.reason, "remote branch exists");
+  } finally { cleanup(fx2); }
+});
+
+test("a pinned stack base does not bypass the remote branch check", () => {
+  const fx = fixture();
+  try {
+    pushedBranch(fx);
+    const tip = git(fx.repo, "rev-parse", "origin/main");
+    const { out, calls } = run(fx, {}, {}, { FAFF_WORKTREE_BASE_REF: tip });
+    assert.equal(out.cause, "setup-refused", JSON.stringify(out));
+    assert.equal(out.detail.reason, "remote branch exists");
+    assert.equal(setupCalls(calls).length, 0);
+  } finally { cleanup(fx); }
+});
+
+test("a slash-scoped branch is checked by its flattened name, and by the real name too", () => {
+  const fx = fixture();
+  try {
+    const at = path.join(fx.wtroot, "feature-FAFF-9-demo");
+    symlinkSync(path.join(fx.parent, "nowhere"), at);
+    const { out, calls } = run(fx, {}, slashScoped);
+    assert.equal(out.detail.reason, "path is a symlink", JSON.stringify(out));
+    assert.equal(out.detail.path, at);
+    assert.equal(setupCalls(calls).length, 0);
+  } finally { cleanup(fx); }
+  for (const [pushed, want] of [
+    [["feature-FAFF-9-demo"], "feature-FAFF-9-demo"],
+    [["feature/FAFF-9-demo"], "feature/FAFF-9-demo"],
+    [["feature-FAFF-9-demo", "feature/FAFF-9-demo"], ["feature-FAFF-9-demo", "feature/FAFF-9-demo"]],
+  ]) {
+    const fx2 = fixture();
+    try {
+      for (const b of pushed) pushedBranch(fx2, b);
+      const { out, calls } = run(fx2, {}, slashScoped);
+      assert.equal(out.cause, "setup-refused", `${pushed}: ${JSON.stringify(out)}`);
+      assert.equal(out.detail.reason, "remote branch exists");
+      assert.deepEqual(out.detail.branch, want, String(pushed));
+      assert.deepEqual(lsRemote(calls).map((c) => c.args[4]), ["refs/heads/feature-FAFF-9-demo", "refs/heads/feature/FAFF-9-demo"]);
+      assert.equal(setupCalls(calls).length, 0);
+    } finally { cleanup(fx2); }
+  }
+});
+
+test("recreate refuses an existing empty directory at the path", () => {
+  const fx = fixture();
+  try {
+    const { hash } = pushedBranch(fx);
+    writeCheckpoint(fx, fx.runDir, "FAFF-9-demo", hash);
+    mkdirSync(path.join(fx.wtroot, "FAFF-9-demo"));
+    const { out, calls } = run(fx, { mode: "autonomous" });
+    assert.equal(out.disposition, "parked", JSON.stringify(out));
+    assert.equal(out.cause, "resume-recreate-failed");
+    assert.equal(out.detail.reason, "path already exists");
+    assert.equal(worktreeAdds(calls).length, 0, "no git worktree add runs");
+  } finally { cleanup(fx); }
+});
+
+test("recreate's realpath check is gone and its comment names the checks that hold", () => {
+  const src = readFileSync(path.join(HERE, "..", "plugin", "skills", "faff", "bin", "lib", "worktree-ensure.ts"), "utf8");
+  const body = src.slice(src.indexOf("function recreate("), src.indexOf("function holdLabelNames("));
+  assert.ok(body.length > 0);
+  assert.doesNotMatch(body, /realCandidate/);
+  assert.doesNotMatch(body, /real parent must sit under the real root/);
+  assert.match(body, /What keeps the worktree inside the root: the strictly-under-root assert on the path above, and\n\s*\/\/ the symlink refusal/);
+});
+
+test("a fresh create reports base_sha as the worktree's HEAD, and base_ref from before the script", () => {
+  const fx = fixture();
+  try {
+    const { out, calls } = run(fx);
+    assert.equal(out.mode, "fresh", JSON.stringify(out));
+    assert.equal(out.base_ref, "origin/main");
+    assert.equal(out.base_sha, git(out.wt, "rev-parse", "HEAD"));
+    assert.equal(out.base_sha, git(fx.repo, "rev-parse", "origin/main"));
+    assert.equal(bashCalls(calls, "remote-diff-base.sh").length, 1, "remote-diff-base.sh runs once");
+    const rdb = calls.findIndex((c) => c.kind === "bash" && path.basename(c.args) === "remote-diff-base.sh");
+    const setup = calls.findIndex((c) => c.kind === "bash" && path.basename(c.args) === "setup-worktree.sh");
+    assert.ok(rdb >= 0 && rdb < setup, "the base is resolved before the script runs");
+  } finally { cleanup(fx); }
+  const fx2 = fixture();
+  try {
+    pushedBranch(fx2, "FAFF-9-other");
+    writeCheckpoint(fx2, fx2.runDir, "FAFF-9-other", "0".repeat(64));
+    const { out, calls } = run(fx2, { mode: "autonomous" });
+    assert.equal(out.cause, "checkpoint-mismatch", JSON.stringify(out));
+    assert.equal(bashCalls(calls, "remote-diff-base.sh").length, 1, "the resume check's base is reused, never fetched again");
+    assert.equal(out.base_sha, git(out.wt, "rev-parse", "HEAD"));
+  } finally { cleanup(fx2); }
+});
+
+test("git-only base_ref is the root checkout's branch, or HEAD when detached", () => {
+  const fx = fixture({ gitOnly: true });
+  try {
+    git(fx.repo, "checkout", "-q", "-b", "dev");
+    writeFileSync(path.join(fx.repo, "dev.txt"), "dev\n");
+    git(fx.repo, "add", "dev.txt");
+    git(fx.repo, "commit", "-q", "-m", "dev");
+    const { out } = run(fx);
+    assert.equal(out.mode, "fresh", JSON.stringify(out));
+    assert.equal(out.base_ref, "dev");
+    assert.equal(out.base_sha, git(fx.repo, "rev-parse", "dev"));
+    assert.notEqual(out.base_sha, git(fx.repo, "rev-parse", "main"));
+  } finally { cleanup(fx); }
+  const fx2 = fixture({ gitOnly: true });
+  try {
+    git(fx2.repo, "checkout", "-q", "--detach", "HEAD");
+    const { out } = run(fx2);
+    assert.equal(out.mode, "fresh", JSON.stringify(out));
+    assert.equal(out.base_ref, "HEAD");
+    assert.equal(out.base_sha, git(fx2.repo, "rev-parse", "HEAD"));
+  } finally { cleanup(fx2); }
+});
+
+test("a project setup script reports base_ref null with a warning, and base_sha", () => {
+  const fx = fixture();
+  try {
+    mkdirSync(path.join(fx.repo, "scripts"));
+    writeFileSync(path.join(fx.repo, "scripts", "setup-worktree.sh"), `#!/usr/bin/env bash\nexec bash ${JSON.stringify(path.join(BUNDLED, "setup-worktree.sh"))} "$@"\n`);
+    const { out, calls } = run(fx);
+    assert.equal(out.setup_script, "project", JSON.stringify(out));
+    assert.equal(out.base_ref, null);
+    assert.ok(out.warnings.includes("base_ref unknown for a project setup script; see base_sha"), JSON.stringify(out.warnings));
+    assert.equal(out.base_sha, git(out.wt, "rev-parse", "HEAD"));
+    assert.equal(bashCalls(calls, "remote-diff-base.sh").length, 0);
+  } finally { cleanup(fx); }
+});
+
+test("a failed base_sha read is null with a warning and leaves the disposition", () => {
+  const fx = fixture();
+  try {
+    const over = { git: (a) => (a[0] === "-C" && a[2] === "rev-parse" && a[3] === "HEAD" ? reply(128, "", "fatal: no HEAD") : undefined) };
+    const { out } = run(fx, {}, over);
+    assert.equal(out.disposition, "ready", JSON.stringify(out));
+    assert.equal(out.base_sha, null);
+    assert.ok(out.warnings.some((w) => w.startsWith("base_sha unresolved")), JSON.stringify(out.warnings));
+  } finally { cleanup(fx); }
+});
+
+test("graft Step 3 names the branch on a remote-branch-exists refusal, and cli.md names the new cause and field", () => {
+  const skill = readFileSync(path.join(HERE, "..", "plugin", "skills", "faff-graft", "SKILL.md"), "utf8");
+  const step3 = skill.slice(skill.indexOf("**Step 3: Check for Existing Worktree**"), skill.indexOf("**Step 4: Commit spec"));
+  assert.ok(step3.length > 0);
+  const line = step3.split("\n").find((l) => l.includes("`setup-refused`"));
+  assert.ok(line !== undefined, "Step 3 names setup-refused");
+  assert.ok(line.includes("`remote branch exists`") && line.includes("names `detail.branch`"), line);
+  const doc = readFileSync(path.join(HERE, "..", "docs", "guide", "cli.md"), "utf8");
+  const row = doc.split("\n").find((l) => l.startsWith("| `worktree ensure "));
+  assert.ok(row !== undefined);
+  for (const want of ["`setup-refused`", "`base_sha`", "`remote branch exists`", "`path is a symlink`", "`path already exists`", "`remote branch check failed`"]) assert.ok(row.includes(want), want);
 });

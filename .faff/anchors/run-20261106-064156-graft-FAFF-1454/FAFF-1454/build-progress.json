@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1454",
+  "build": {
+    "status": "complete",
+    "diff_hash": "f2cd4eacdc7b156152d7e00ca705f2bc91f9be0c8ab40cd98f486e5df62cbdfe",
+    "branch": "FAFF-1454-setup-worktree-root-escape-and-base",
+    "pushed_at": "2026-11-14T23:27:20.176Z"
+  },
+  "updated_at": "2026-11-14T23:27:20.176Z"
+}

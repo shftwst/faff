@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1454",
+  "aggregate": "meets-spec",
+  "code_blind": true,
+  "spawner_attested": false,
+  "attestation": null,
+  "violations": [],
+  "criteria": [
+    {
+      "id": "scenarios:1",
+      "text": "Given a git repo with a local bare origin, FAFF_WORKTREE_ROOT set to an empty temp dir, and a symlink at <root>/FAFF-9-x pointing to /tmp\nWhen `faff worktree ensure --issue FAFF-9 --mode interactive --slug x --root <repo> --json` runs\nThen it exits 0 with disposition \"hand-over\" and cause \"setup-refused\"\nAnd detail.reason is \"path is a symlink\"\nAnd `git worktree list` in the repo lists only the main checkout",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "Built repo with bare origin, FAFF_WORKTREE_ROOT=empty temp dir, symlink <root>/FAFF-9-x -> /tmp; ran faff worktree ensure --issue FAFF-9 --mode interactive --slug x --root <repo> --json",
+      "expected": "exit 0, hand-over, setup-refused, reason 'path is a symlink', worktree list only main checkout",
+      "observed": "exit 0; disposition hand-over; cause setup-refused; detail.reason 'path is a symlink'; git worktree list showed only the main checkout",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:2",
+      "text": "Given the same repo, no symlink, and a branch FAFF-9-x pushed to the origin but absent locally\nWhen the same `faff worktree ensure … --json` runs\nThen it exits 0 with disposition \"hand-over\" and cause \"setup-refused\"\nAnd detail.reason is \"remote branch exists\" and detail.branch is \"FAFF-9-x\"\nAnd the repo has no local branch FAFF-9-x",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "Fresh repo with bare origin; pushed FAFF-9-x to origin and deleted it locally; ran the same ensure command",
+      "expected": "exit 0, hand-over, setup-refused, reason 'remote branch exists', branch FAFF-9-x, no local branch FAFF-9-x",
+      "observed": "exit 0; hand-over; setup-refused; detail.reason 'remote branch exists'; detail.branch 'FAFF-9-x'; git branch listed only main",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:3",
+      "text": "Given a git repo with no origin, FAFF_WORKTREE_ROOT set to an empty temp dir, and the main checkout on branch main\nWhen `faff worktree ensure --issue FAFF-9 --mode interactive --slug x --root <repo> --json` runs\nThen it exits 0 with disposition \"ready\" and mode \"fresh\"\nAnd base_ref is \"main\"\nAnd base_sha equals `git -C <wt> rev-parse HEAD` and equals `git rev-parse main` in the repo",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "Repo with no remote on main, FAFF_WORKTREE_ROOT=empty temp dir; ran the ensure command; compared base_sha to git rev-parse in worktree and in repo",
+      "expected": "exit 0, ready, fresh, base_ref main, base_sha == wt HEAD == main sha",
+      "observed": "exit 0; disposition ready; mode fresh; base_ref main; base_sha equal to wt HEAD and to git rev-parse main",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:4",
+      "text": "Given PATH holds a faff stub whose worktree-root subcommand exits 1, and HOME is an empty temp dir\nWhen `bash plugin/skills/faff-graft/setup-worktree.sh faff-9-x <repo>` runs\nThen it exits 1\nAnd stderr has a line starting \"setup-worktree: faff worktree-root failed\"\nAnd HOME has no .faff directory",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "Stub faff first on PATH (worktree-root exits 1), HOME=empty temp dir; ran bash setup-worktree.sh faff-9-x <repo> from the bundled skill path",
+      "expected": "exit 1, stderr line starting 'setup-worktree: faff worktree-root failed', no .faff in HOME",
+      "observed": "exit 1; stderr 'setup-worktree: faff worktree-root failed (exit 1); refusing to fall back to $HOME'; HOME remained empty (no .faff)",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "done:2",
+      "text": "A fresh create refuses when `origin/<branch>` exists, or when the check fails, with cause `setup-refused` and the reason in `detail`.",
+      "holdout": false,
+      "class": "assertion",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "worktree ensure --issue FAFF-9 --mode interactive --slug x --json with (a) origin holding FAFF-9-x and local copy deleted, (b) origin set to nonexistent file:///tmp/holdout-1454b-nope.git",
+      "expected": "cause setup-refused with detail.reason saying remote branch exists (a) / remote check failed (b), and no worktree or local branch created",
+      "observed": "(a) cause setup-refused, detail.reason 'remote branch exists', wt null; (b) cause setup-refused, detail.reason 'remote branch check failed' (exit 128), wt null; in both no local FAFF-9-x branch, no extra worktree, root dir empty",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    }
+  ],
+  "delegated": [
+    {
+      "id": "done:1",
+      "text": "A fresh create refuses a symlink or an existing entry at the worktree path, in `worktree ensure` before any script runs and in the bundled script, and never registers a worktree outside the root.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1454#done:1"
+    },
+    {
+      "id": "done:3",
+      "text": "`setup-worktree.sh` exits 1 with a named error when the root lookup fails or no `faff` resolves, and never creates `$HOME/.faff`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1454#done:3"
+    },
+    {
+      "id": "done:4",
+      "text": "`recreate` has no `realCandidate` check, its comment names the checks that keep the worktree inside the root, and its \"path already exists\" refusal has a test.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1454#done:4"
+    },
+    {
+      "id": "done:5",
+      "text": "A fresh result carries `base_sha` equal to the worktree's `HEAD`, and `base_ref` follows §3.5.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1454#done:5"
+    },
+    {
+      "id": "done:6",
+      "text": "`docs/guide/cli.md` names `setup-refused` and `base_sha`; graft Step 3 names the branch on a `remote branch exists` refusal.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1454#done:6"
+    },
+    {
+      "id": "done:7",
+      "text": "`test/worktree-ensure.test.mjs`, `test/setup-worktree-script.test.mjs` and `test/faff-1077-dependency-stacking.test.mjs` pass under `node --test`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1454#done:7"
+    },
+    {
+      "id": "done:8",
+      "text": "`npm run build` leaves the committed `worktree-ensure.js` and `build-manifest.json` matching the `.ts`.",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1454#done:8"
+    }
+  ]
+}

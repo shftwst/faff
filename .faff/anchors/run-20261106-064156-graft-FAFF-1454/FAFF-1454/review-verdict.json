@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/worktree-ensure.ts::project setup scripts are only covered by the typescript pre-check",
+      "title": "Project setup scripts are only covered by the TypeScript pre-check",
+      "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+      "action": "Document that project scripts must use the flattened path, or verify the reported path after the script",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Spec 3.1 chooses the TypeScript pre-check plus the bundled script's own refusals; step 6's strictly-under-root assert still refuses an escaped worktree. Out of this ticket's scope.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Project setup scripts are only covered by the TypeScript pre-check",
+          "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/worktree-ensure.ts::a script-side refusal surfaces as setup-failed, not setup-refused",
+      "title": "A script-side refusal surfaces as setup-failed, not setup-refused",
+      "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+      "action": "Map a refusal-pattern script exit to setup-refused",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Only reachable in the race window the spec puts out of scope; fail-closed either way and the branch name is in the setup log.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "A script-side refusal surfaces as setup-failed, not setup-refused",
+          "location": "plugin/skills/faff/bin/lib/worktree-ensure.ts",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff-graft/setup-worktree.sh::script-side ls-remote has no bound without timeout or gtimeout",
+      "title": "Script-side ls-remote has no bound without timeout or gtimeout",
+      "location": "plugin/skills/faff-graft/setup-worktree.sh",
+      "action": "Add a fallback bound or skip the script-side check",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The script's existing git fetch is equally unbounded on that host, so this adds no new class of hang; worktree ensure bounds its own call via gitNet.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Script-side ls-remote has no bound without timeout or gtimeout",
+          "location": "plugin/skills/faff-graft/setup-worktree.sh",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff-graft/setup-worktree.sh::worktree-root failure detail is discarded",
+      "title": "worktree-root failure detail is discarded",
+      "location": "plugin/skills/faff-graft/setup-worktree.sh",
+      "action": "Capture the resolver's stderr and reword the empty-output case",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The refusal message and exit are exactly as specified in 3.3; richer diagnostics are an improvement for a follow-up.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "worktree-root failure detail is discarded",
+          "location": "plugin/skills/faff-graft/setup-worktree.sh",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/worktree-ensure.test.mjs::a test pins a source comment",
+      "title": "A test pins a source comment",
+      "location": "test/worktree-ensure.test.mjs",
+      "action": "Drop the comment-matching assertions",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Spec 3.4 requires the comment to be rewritten to name the checks; the neighbouring behavioural tests carry the real coverage.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "A test pins a source comment",
+          "location": "test/worktree-ensure.test.mjs",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff-graft/setup-worktree.sh::creating log line precedes the new refusals",
+      "title": "Creating log line precedes the new refusals",
+      "location": "plugin/skills/faff-graft/setup-worktree.sh",
+      "action": "Move the log line after the refusals",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Cosmetic audit-log wording; the FATAL line follows immediately.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Creating log line precedes the new refusals",
+          "location": "plugin/skills/faff-graft/setup-worktree.sh",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

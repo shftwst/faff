@@ -96,6 +96,15 @@ for (const [name, change, pattern] of [
   });
 }
 
+test('a commit that touches neither plugin nor the harness keeps readiness valid', async () => {
+  const p = prepared();
+  writeFileSync(join(p.repo.dir, 'NOTES.md'), 'evidence notes\n');
+  git(p.repo.dir, 'add', 'NOTES.md');
+  git(p.repo.dir, 'commit', '-q', '-m', 'notes');
+  const readiness = await ready(p);
+  assert.equal(readiness.status, 'ready_for_baseline_calibration', JSON.stringify(readiness.reasons));
+});
+
 test('a different CLI, missing credential or failed capture check invalidates readiness', async () => {
   const p = prepared();
   assert.equal((await ready(p, { probe: () => ({ ...fakeProbe(), version: '2.1.312' }) })).status, 'not_ready');

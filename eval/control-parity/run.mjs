@@ -57,7 +57,8 @@ function bindings({ sourceRoot, toolsRoot, pinnedCommit }) {
 function bindingProblems(manifest, current) {
   const problems = [];
   if (current.source.plugin_tree !== current.source.pinned_plugin_tree) problems.push('source plugin tree differs from the pinned commit');
-  for (const [field, label] of [['commit', 'source commit'], ['policy_sha256', 'source policy']]) {
+  // Content is bound, not commits: a commit that touches neither plugin/ nor the harness keeps readiness.
+  for (const [field, label] of [['plugin_tree', 'source plugin tree'], ['policy_sha256', 'source policy']]) {
     if (current.source[field] !== manifest.source[field]) problems.push(`${label} changed`);
   }
   if (canonicalHash(current.tools.files) !== canonicalHash(manifest.tools.files)) problems.push('tools changed');

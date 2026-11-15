@@ -13,6 +13,7 @@ import { TOOL_NAMES } from './tool-server.mjs';
 export const PARSER_VERSION = 'control-parity-stream-2.0.0';
 export const DEFAULT_LIMITS = Object.freeze({ attempts: 5, turns: 12, output_tokens: 8192, attempt_ms: 600_000, batch_ms: 3_600_000, allowance_nanos: 10_000_000_000, workers: 1, retries: 0 });
 export const ALLOWED_TOOLS = Object.freeze(TOOL_NAMES.map(t => `mcp__tracker__${t}`));
+export const CANDIDATE_ALLOWED_TOOLS = Object.freeze([...ALLOWED_TOOLS, 'mcp__tracker__plan_review_comment']);
 // Claude Code 2.1.311 always sends this no-op tool ("never call this tool", defer_loading, empty schema).
 export const HARNESS_TOOLS = Object.freeze(['DeferredToolPlaceholder']);
 const TOOL_SERVER = join(dirname(fileURLToPath(import.meta.url)), 'tool-server.mjs');
@@ -33,6 +34,10 @@ export const HARNESS_INSTRUCTION = [
   '- reconciled: more than one managed comment matched; one was updated and the others left untouched',
   '- blocked: the operation could not be completed safely',
 ].join('\n');
+export const CANDIDATE_HARNESS_INSTRUCTION = HARNESS_INSTRUCTION.replace(
+  'list_comments, create_comment, save_comment and finish on the tracker.',
+  'list_comments, create_comment, save_comment and finish on the tracker, plus plan_review_comment for local computation.',
+);
 
 const LOAD_CLOSURE = Object.freeze({
   loaded: ['plugin/skills/faff/references/review.md#review-findings-comment-identity'],
@@ -65,7 +70,7 @@ export function probeClaude({ binary = 'claude', model, effort, exec = (bin, arg
   return { available: reasons.length === 0, binary, version, reasons, effort_supported, model_status: 'unverified', max_turns_flag: help.includes('--max-turns'), help_sha256: sha256(help) };
 }
 
-export function buildPromptBundle({ policyBytes, input }) {
+export function buildPromptBundle({ policyBytes, input, candidate = false }) {
   const user = [
     `Apply the operation rules below to issue ${input.issue_id}.`,
     '',
@@ -80,11 +85,13 @@ export function buildPromptBundle({ policyBytes, input }) {
     '',
     `Allowed finish reasons: ${input.reason_codes.join(', ')}.`,
   ].join('\n');
+  const system = candidate ? CANDIDATE_HARNESS_INSTRUCTION : HARNESS_INSTRUCTION;
   return {
-    system: HARNESS_INSTRUCTION,
+    system,
+    allowed_tools: candidate ? CANDIDATE_ALLOWED_TOOLS : ALLOWED_TOOLS,
     user,
     load_closure: LOAD_CLOSURE,
-    hashes: { policy_sha256: sha256(policyBytes), harness_sha256: sha256(HARNESS_INSTRUCTION), prompt_sha256: sha256(user) },
+    hashes: { policy_sha256: sha256(policyBytes), harness_sha256: sha256(system), prompt_sha256: sha256(user) },
   };
 }
 
@@ -96,7 +103,7 @@ export function buildClaudeInvocation({ binary = 'claude', settings, promptBundl
     '--tools', '',
     '--strict-mcp-config',
     '--mcp-config', paths.mcpConfig,
-    '--allowedTools', ALLOWED_TOOLS.join(','),
+    '--allowedTools', (promptBundle.allowed_tools ?? ALLOWED_TOOLS).join(','),
     '--permission-mode', 'dontAsk',
     '--setting-sources', '',
     '--no-session-persistence',
@@ -144,6 +151,8 @@ export function parseStreamJson(text) {
   return {
     records,
     malformed,
+    stream_error: records.some(r => r.type === 'system' && r.subtype === 'api_retry') ? 'cli-retry'
+      : records.some(r => r.type === 'error' || (r.type === 'assistant' && r.message?.model === '<synthetic>' && r.error)) ? 'cli-stream-error' : null,
     requests: [...byId.values()],
     served_models: [...new Set([...byId.values()].map(r => r.model).filter(Boolean))],
     result,
@@ -190,6 +199,7 @@ export async function runClaudeScenario({
   trackerDirectory, input, policyBytes, settings, limits = DEFAULT_LIMITS, evidenceDirectory, ledger,
   spawnProcess: spawnFn = spawnProcess, startProxy = realStartProxy, pricing = OPUS_5_5_PRICING,
   workDirectory = join(tmpdir(), 'faff-control-parity-work'), mode = 'forward', parentEnv = process.env,
+  commandBinding = null,
 }) {
   mkdirSync(evidenceDirectory, { recursive: true });
   const privateDir = mkdtempSync(join(tmpdir(), 'faff-cp-private-'));
@@ -198,9 +208,15 @@ export async function runClaudeScenario({
   mkdirSync(workDirectory, { recursive: true });
   const paths = { configDir: join(privateDir, 'cfg'), home: join(privateDir, 'home'), cwd: workDirectory, mcpConfig: join(privateDir, 'mcp.json') };
   mkdirSync(paths.configDir); mkdirSync(paths.home);
-  writeFileSync(paths.mcpConfig, JSON.stringify({ mcpServers: { tracker: { type: 'stdio', command: process.execPath, args: [TOOL_SERVER, trackerDirectory], env: {} } } }));
+  const serverArgs = [TOOL_SERVER, trackerDirectory];
+  if (commandBinding) {
+    const bindingPath = join(privateDir, 'command-binding.json');
+    writeFileSync(bindingPath, JSON.stringify(commandBinding));
+    serverArgs.push(bindingPath);
+  }
+  writeFileSync(paths.mcpConfig, JSON.stringify({ mcpServers: { tracker: { type: 'stdio', command: process.execPath, args: serverArgs, env: {} } } }));
 
-  const bundle = buildPromptBundle({ policyBytes, input });
+  const bundle = buildPromptBundle({ policyBytes, input, candidate: Boolean(commandBinding) });
   const stdoutPath = join(evidenceDirectory, 'stdout.jsonl');
   const stderrPath = join(evidenceDirectory, 'stderr.txt');
   writeFileSync(stdoutPath, '');
@@ -223,7 +239,7 @@ export async function runClaudeScenario({
   };
   let proxy;
   try {
-    proxy = await startProxy({ model: settings.model, effort: settings.effort, limits, pricing, ledger, allowedTools: [...ALLOWED_TOOLS, ...HARNESS_TOOLS], evidenceDir: join(evidenceDirectory, 'requests'), mode, onStop: reason => kill(reason) });
+    proxy = await startProxy({ model: settings.model, effort: settings.effort, limits, pricing, ledger, allowedTools: [...bundle.allowed_tools, ...HARNESS_TOOLS], evidenceDir: join(evidenceDirectory, 'requests'), mode, onStop: reason => kill(reason) });
     const inv = buildClaudeInvocation({ binary: settings.binary, settings, promptBundle: bundle, paths, proxyUrl: proxy.url, limits, parentEnv });
     record.invocation = { bin: inv.bin, args_sha256: sha256(JSON.stringify(inv.args)), flags: inv.args.slice(0, -1).filter(a => a !== bundle.system), env_keys: Object.keys(inv.env).sort(), cwd: inv.cwd };
     save();
@@ -250,6 +266,7 @@ export async function runClaudeScenario({
     ?? (record.exit?.signal ? 'signal' : null)
     ?? (record.exit?.code !== 0 ? 'process-exit' : null)
     ?? (cli.malformed.length ? 'malformed-output' : null)
+    ?? cli.stream_error
     ?? (!cli.result ? 'missing-result' : null)
     ?? (cli.result.is_error ? 'cli-error' : null);
   record.stop = reason ? { reason } : null;

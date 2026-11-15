@@ -6,6 +6,7 @@ import http from 'node:http';
 import https from 'node:https';
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { canonicalHash } from './schema.mjs';
 
 // Rates confirmed by the operator on 2026-11-14 for FAFF-1199 (main 3bef562a): USD per MTok
 // 4 input, 20 output, 5 five-minute write, 8 one-hour write, 0.2 cache read. Held as integer nano-USD
@@ -51,7 +52,7 @@ const mergeMax = (into, from) => {
 };
 
 export function parseSse(text) {
-  const out = { id: null, model: null, usage: null, stop_reason: null, complete: false, malformed: 0 };
+  const out = { id: null, model: null, usage: null, stop_reason: null, complete: false, malformed: 0, stream_error: false };
   try {
     const message = JSON.parse(text);
     if (message?.type === 'message') return { ...out, id: message.id, model: message.model, usage: message.usage ?? null, stop_reason: message.stop_reason, complete: Boolean(message.usage) };
@@ -74,8 +75,9 @@ export function parseSse(text) {
       out.usage = mergeMax(out.usage ?? {}, event.usage);
       out.stop_reason = event.delta?.stop_reason ?? out.stop_reason;
     } else if (event.type === 'message_stop') stop = true;
+    else if (event.type === 'error') out.stream_error = true;
   }
-  out.complete = start && delta && stop && out.malformed === 0;
+  out.complete = start && delta && stop && out.malformed === 0 && !out.stream_error;
   return out;
 }
 
@@ -127,7 +129,7 @@ const chunksOf = async function* (body) {
 
 export async function startProxy({ model, effort, limits, pricing, ledger, allowedTools, evidenceDir, mode = 'forward', upstream = anthropicUpstream(), onStop = () => {} }) {
   mkdirSync(evidenceDir, { recursive: true });
-  const state = { stop: null, admitted: 0, seen: 0, requests: [], captured: [], other_paths: [] };
+  const state = { stop: null, admitted: 0, seen: 0, requests: [], captured: [], other_paths: [], request_runtime: null };
   const stop = reason => { if (!state.stop) { state.stop = reason; onStop(reason); } };
   const refuse = (res, reason) => {
     res.writeHead(400, { 'content-type': 'application/json' });
@@ -160,14 +162,21 @@ export async function startProxy({ model, effort, limits, pricing, ledger, allow
       return refuse(res, 'probe-captured');
     }
     const tools = (body.tools ?? []).map(t => t.name);
+    const { messages, metadata, ...runtime } = body;
+    if (metadata) { runtime.metadata = { ...metadata }; delete runtime.metadata.user_id; }
+    let requestRuntime;
+    try { requestRuntime = canonicalHash(runtime); }
+    catch { stop('invalid-runtime'); return refuse(res, 'invalid-runtime'); }
     const reason = body.model !== model ? 'model-mismatch'
       : effort !== undefined && body.output_config?.effort !== effort ? 'effort-mismatch'
       : !(body.max_tokens <= limits.output_tokens) ? 'output-ceiling'
       : tools.some(t => !allowedTools.includes(t)) ? 'tool-escape'
+      : state.request_runtime && state.request_runtime !== requestRuntime ? 'runtime-changed'
       : state.admitted >= limits.turns ? 'turn-limit'
       : raw.length > pricing.max_input_bytes ? 'pricing-unknown'
       : null;
     if (reason) { stop(reason); return refuse(res, reason); }
+    state.request_runtime ??= requestRuntime;
     const reservation = reservationNanos({ bodyBytes: raw.length, maxTokens: body.max_tokens }, pricing);
     const reservationId = ledger.reserve(reservation);
     if (!reservationId) { stop(ledger.blocked() ? 'usage-missing' : 'allowance'); return refuse(res, state.stop); }
@@ -190,9 +199,12 @@ export async function startProxy({ model, effort, limits, pricing, ledger, allow
     entry.status = reply.status;
     res.writeHead(reply.status, Object.fromEntries(Object.entries(reply.headers ?? {}).filter(([k]) => !DROP_DOWNSTREAM.has(k))));
     const received = [];
-    for await (const chunk of chunksOf(reply.body)) { received.push(chunk); res.write(chunk); }
+    let streamError = null;
+    try { for await (const chunk of chunksOf(reply.body)) { received.push(chunk); res.write(chunk); } }
+    catch (error) { streamError = String(error?.code ?? 'stream-error'); }
     const text = Buffer.concat(received).toString('utf8');
     evidence(n, 'response.txt', text);
+    entry.transport_error = streamError;
     if (reply.status !== 200) {
       ledger.reconcile(reservationId, null);
       stop('upstream-error');
@@ -201,9 +213,10 @@ export async function startProxy({ model, effort, limits, pricing, ledger, allow
     }
     const parsed = parseSse(text);
     Object.assign(entry, { id: parsed.id, served_model: parsed.model, usage: parsed.usage });
-    entry.cost_nanos = parsed.complete ? costNanos(parsed.usage, pricing) : null;
+    entry.cost_nanos = parsed.complete && !streamError ? costNanos(parsed.usage, pricing) : null;
     ledger.reconcile(reservationId, entry.cost_nanos);
-    if (!parsed.complete) stop('usage-missing');
+    if (parsed.stream_error || streamError) stop('upstream-stream-error');
+    else if (!parsed.complete) stop('usage-missing');
     else if (entry.cost_nanos === null) stop('pricing-unknown');
     else if (parsed.model !== model) stop('served-model-mismatch');
     res.end();

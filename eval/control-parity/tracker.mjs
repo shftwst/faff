@@ -163,6 +163,8 @@ export async function captureScenario({ driver, fixture, registryEntry, director
   const events = observed.readEvents()
     .filter(e => TRACE_KINDS.has(e.kind))
     .map((e, i) => (e.kind === 'terminal' ? { ...e, seq: i + 1, final_state_sha256: finalHash } : { ...e, seq: i + 1 }));
+  if (!stop && !events.some(e => e.kind === 'terminal')) stop = { reason: 'no-terminal' };
+  const observedRuntime = result?.observed_runtime_sha256;
   const trace = {
     schema: 2,
     scenario: registryEntry.id,
@@ -170,7 +172,7 @@ export async function captureScenario({ driver, fixture, registryEntry, director
     input_sha256: canonicalHash(fixture),
     policy_sha256: sha256(policyBytes),
     prompt_sha256: promptSha256,
-    runtime_sha256: runtimeSha256,
+    runtime_sha256: observedRuntime ? sha256(`${runtimeSha256}:${observedRuntime}`) : runtimeSha256,
     events,
     final_state_sha256: finalHash,
     stop,

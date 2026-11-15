@@ -3,11 +3,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
-import { existsSync, mkdtempSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { OPUS_5_5_PRICING, costNanos, createLedger, parseSse, reservationNanos, startProxy } from '../eval/control-parity/proxy.mjs';
-import { DEFAULT_LIMITS, buildClaudeInvocation, buildPromptBundle, parseStreamJson, probeClaude, runClaudeScenario } from '../eval/control-parity/claude-driver.mjs';
+import { DEFAULT_LIMITS, buildClaudeInvocation, buildPromptBundle, parseStreamJson, probeClaude, runClaudeScenario, runtimeFingerprint } from '../eval/control-parity/claude-driver.mjs';
 import { TOOL_NAMES, handleMessage } from '../eval/control-parity/tool-server.mjs';
 import { createFixtureTracker } from '../eval/control-parity/tracker.mjs';
 
@@ -420,4 +420,47 @@ test('the proxy admits the fixture tools plus only the declared CLI placeholder'
   const proxy = async args => { allowed = args.allowedTools; return fakeProxy()(); };
   await runFake(fakeProcess({ stdout: SUCCESS_STDOUT }), { proxy });
   assert.deepEqual(allowed, [...TOOL_NAMES.map(t => `mcp__tracker__${t}`), 'DeferredToolPlaceholder']);
+});
+
+test('the proxy refuses a request whose effort differs from the configured effort', async () => {
+  const dir = tmp();
+  const stops = [];
+  const upstream = fakeUpstream([]);
+  const proxy = await startProxy({ model: 'claude-opus-5-5', effort: 'medium', limits: DEFAULT_LIMITS, pricing: OPUS_5_5_PRICING, ledger: createLedger(join(dir, 'l.json'), 10_000_000_000), allowedTools: ['mcp__tracker__list_comments'], evidenceDir: join(dir, 'r'), upstream, onStop: r => stops.push(r) });
+  try {
+    assert.equal((await post(proxy.url, request({ output_config: { effort: 'high' } }))).status, 400);
+    assert.deepEqual(stops, ['effort-mismatch']);
+    assert.equal(upstream.seen.length, 0);
+  } finally { await proxy.close(); }
+});
+
+test('a CLI request the proxy never saw stops the attempt as unmetered', async () => {
+  const stdout = [
+    { type: 'assistant', message: { id: 'msg_1', model: 'claude-opus-5-5', usage: { input_tokens: 1, output_tokens: 1 } } },
+    { type: 'assistant', message: { id: 'msg_2', model: 'claude-opus-5-5', usage: { input_tokens: 1, output_tokens: 1 } } },
+    { type: 'assistant', message: { id: 'synthetic-uuid', model: '<synthetic>', usage: { input_tokens: 0, output_tokens: 0 } } },
+    { type: 'result', subtype: 'success', num_turns: 2 },
+  ].map(l => JSON.stringify(l)).join('\n') + '\n';
+  const { result } = await runFake(fakeProcess({ stdout }), { proxy: fakeProxy({ requests: [{ id: 'msg_1' }] }) });
+  assert.equal(result.stop.reason, 'unmetered-request');
+  const metered = await runFake(fakeProcess({ stdout }), { proxy: fakeProxy({ requests: [{ id: 'msg_1' }, { id: 'msg_2' }] }) });
+  assert.equal(metered.result.stop, null);
+});
+
+test('more CLI turns than admitted requests stops the attempt as unmetered', async () => {
+  const stdout = SUCCESS_STDOUT.replace('"num_turns":1', '"num_turns":3');
+  const { result } = await runFake(fakeProcess({ stdout }));
+  assert.equal(result.stop.reason, 'unmetered-request');
+});
+
+test('the driver reports a runtime fingerprint of the first request without the treatment prompt', async () => {
+  const evidence = tmp();
+  const write = (n, user, system) => { mkdirSync(join(evidence, 'requests'), { recursive: true }); writeFileSync(join(evidence, 'requests', `00${n}.request.json`), JSON.stringify({ body: { model: 'm', system, tools: [], messages: [{ role: 'user', content: [{ type: 'text', text: '<system-reminder>x</system-reminder>' }, { type: 'text', text: user }] }], metadata: { user_id: `s${n}` } } })); };
+  write(1, 'PROMPT-A', 'SYS');
+  const a = runtimeFingerprint(evidence, 'PROMPT-A');
+  write(1, 'PROMPT-B', 'SYS');
+  assert.equal(runtimeFingerprint(evidence, 'PROMPT-B'), a, 'the treatment prompt and session metadata are excluded');
+  write(1, 'PROMPT-B', 'SYS-CHANGED');
+  assert.notEqual(runtimeFingerprint(evidence, 'PROMPT-B'), a);
+  assert.equal(runtimeFingerprint(tmp(), 'x'), null);
 });

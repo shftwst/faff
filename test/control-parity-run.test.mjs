@@ -218,3 +218,39 @@ test('paired runs execute both arms fresh with identical settings and report by 
   assert.equal(stopped.comparison.status, 'incomplete');
   assert.ok(stopped.counts.not_run > 0);
 });
+
+test('an attempt whose trace fails validation stays in the denominator and the report is still written', async () => {
+  const p = prepared();
+  const first = p.manifest.schedule.attempts[0].scenario;
+  const second = p.manifest.schedule.attempts[1].scenario;
+  const factory = ctx => (ctx.scenario === second
+    ? async ({ ports }) => { await ports.finish({ status: 'blocked', reason: 'blocked' }); return { accounting: { usage_complete: 'yes', served_models: [], requests: 1 } }; }
+    : scripted()(ctx));
+  const out = tmpOut('invalid');
+  const report = await runBaseline(p.manifest, await ready(p), { out, driverFactory: factory });
+  assert.equal(report.attempts[0].scenario, first);
+  assert.equal(report.attempts[1].status, 'incomplete');
+  assert.match(report.attempts[1].invalid, /accounting/i);
+  assert.equal(report.stopped_by, `${second}: invalid-trace`);
+  assert.equal(report.counts.planned, 5);
+  assert.ok(existsSync(join(out, 'report.json')));
+  assert.equal(JSON.parse(readFileSync(join(out, 'run.json'), 'utf8')).traces.length, 1);
+});
+
+const withEvidence = requests => ctx => { const d = scripted()(ctx); return async arg => { const r = await d(arg); mkdirSync(ctx.evidenceDirectory, { recursive: true }); writeFileSync(join(ctx.evidenceDirectory, 'attempt.json'), JSON.stringify({ proxy: { requests } })); return r; }; };
+
+test('a request without usage makes token totals and the cache stratum unknown, never zero', async () => {
+  const p = prepared();
+  const report = await runBaseline(p.manifest, await ready(p), { out: tmpOut('nousage'), driverFactory: withEvidence([{ usage: { input_tokens: 5, output_tokens: 5, cache_read_input_tokens: 10 }, cost_nanos: 1 }, { usage: null, cost_nanos: null }]) });
+  assert.equal(report.attempts[0].tokens, null);
+  assert.equal(report.attempts[0].cache_stratum, 'unknown');
+  assert.equal(report.attempts[0].cost_nanos, null);
+});
+
+test('paired arms in different cache strata are reported as separate strata', async () => {
+  const p = prepared();
+  const warm = [{ usage: { input_tokens: 1, output_tokens: 1, cache_read_input_tokens: 100, cache_creation_input_tokens: 0 }, cost_nanos: 1 }];
+  const cold = [{ usage: { input_tokens: 1, output_tokens: 1, cache_read_input_tokens: 0, cache_creation_input_tokens: 100 }, cost_nanos: 1 }];
+  const report = await runPairs(p.manifest, p.repo.dir, p.repo.dir, await ready(p), { out: tmpOut('strata'), driverFactory: ctx => withEvidence(ctx.arm === 'baseline' ? warm : cold)(ctx) });
+  assert.equal(report.strata_differ.length, 5);
+});

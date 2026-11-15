@@ -242,3 +242,26 @@ test('recorder validation: control versus control passes; every decoy fails', as
     assert.equal(compareRuns(registry, baseline, candidate).status, 'fail', name);
   }
 });
+
+test('a driver that returns without finish and without a stop is recorded as a no-terminal stop', async () => {
+  const t = await capture('create-when-absent', async ({ ports, input }) => {
+    await ports.list_comments({ issue_id: input.issue_id });
+    return { accounting: SCRIPTED };
+  });
+  assert.deepEqual(t.stop, { reason: 'no-terminal' });
+  assert.equal(validateTrace(t, entry('create-when-absent'), registry).status, 'incomplete');
+});
+
+test('an observed runtime fingerprint from the driver is folded into the trace runtime hash', async () => {
+  const withObserved = observed => async ({ ports, input }) => {
+    await ports.list_comments({ issue_id: input.issue_id });
+    for (const e of expected.scenarios['create-when-absent'].effects) await ports[e.op](e.args);
+    await ports.finish(expected.scenarios['create-when-absent'].terminal);
+    return { accounting: SCRIPTED, observed_runtime_sha256: observed };
+  };
+  const a = await capture('create-when-absent', withObserved(H('1')));
+  const b = await capture('create-when-absent', withObserved(H('2')));
+  const plain = await capture('create-when-absent', control('create-when-absent'));
+  assert.notEqual(a.runtime_sha256, b.runtime_sha256);
+  assert.equal(plain.runtime_sha256, H('d'));
+});

@@ -11,7 +11,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { canonicalHash, compareRuns, parseStrictJson, sha256, validateRegistry, validateTrace } from './schema.mjs';
 import { REASON_CODES, captureScenario, createFixtureTracker, loadPolicyBytes } from './tracker.mjs';
 import { OPUS_5_5_PRICING, createLedger } from './proxy.mjs';
-import { ALLOWED_TOOLS, DEFAULT_LIMITS, HARNESS_INSTRUCTION, HARNESS_TOOLS, PARSER_VERSION, buildPromptBundle, probeClaude, runClaudeScenario } from './claude-driver.mjs';
+import { ALLOWED_TOOLS, DEFAULT_LIMITS, HARNESS_INSTRUCTION, HARNESS_TOOLS, PARSER_VERSION, buildPromptBundle, probeClaude, runClaudeScenario, runtimeFingerprint, runtimeFingerprintOfBody } from './claude-driver.mjs';
 import { TOOL_DEFINITIONS } from './tool-server.mjs';
 
 const TOOL_FILES = ['schema.mjs', 'tracker.mjs', 'proxy.mjs', 'tool-server.mjs', 'claude-driver.mjs', 'run.mjs', 'registry.json', 'expected-outcomes.json', 'blocked-coverage.json', 'fixtures/review-comments.json'].map(f => `eval/control-parity/${f}`);
@@ -133,6 +133,11 @@ export function evaluateCapture(capture, { model, effort, output_tokens, policy 
   return problems;
 }
 
+function probeUserPrompt(manifest, registry, fixtures) {
+  const s = fixtures.get(registry.scenarios[0].id);
+  return buildPromptBundle({ policyBytes: loadPolicyBytes(manifest.source.root), input: { issue_id: s.issue_id, faff_body: s.faff_body, reason_codes: [...REASON_CODES] } }).user;
+}
+
 async function claudeCaptureProbe({ manifest, out, registry, fixtures }) {
   const scenario = fixtures.get(registry.scenarios[0].id);
   const trackerDirectory = join(out, 'probe', 'tracker');
@@ -190,6 +195,7 @@ export async function preflight(manifest, { out, probe = probeClaude, liveProbe 
     bindings: current,
     fixture_transport: captureProblems.length ? 'failed' : 'capture-refuse-verified',
     live_transport: 'not-observed',
+    observed_runtime_sha256: body ? runtimeFingerprintOfBody(body, probeUserPrompt(manifest, registry, fixtures)) : null,
     harness_overhead: body ? { system_sha256: canonicalHash(body.system), injected_messages_sha256: canonicalHash(body.messages.filter(m => m.role !== 'user')), tool_definitions_sha256: canonicalHash(body.tools), thinking: body.thinking ?? null } : null,
     note: 'Zero-cost checks only. The first calibration attempt is the live transport probe.',
   };
@@ -199,7 +205,7 @@ export async function preflight(manifest, { out, probe = probeClaude, liveProbe 
 
 const claudeDriverFactory = ctx => async ({ input }) => {
   const r = await runClaudeScenario({ trackerDirectory: ctx.trackerDirectory, input, policyBytes: ctx.promptBytes, settings: ctx.settings, limits: ctx.limits, evidenceDirectory: ctx.evidenceDirectory, ledger: ctx.ledger });
-  return { stop: r.stop, accounting: r.accounting };
+  return { stop: r.stop, accounting: r.accounting, observed_runtime_sha256: r.observed_runtime_sha256 };
 };
 
 function assertLaunchable(manifest, readiness) {
@@ -208,16 +214,18 @@ function assertLaunchable(manifest, readiness) {
   if (problems.length) throw new Error(`bindings changed since readiness: ${problems.join('; ')}`);
 }
 
-function attemptEvidence(dir) {
+function attemptEvidence(dir, userPrompt) {
   const path = join(dir, 'evidence', 'attempt.json');
   if (!existsSync(path)) return null;
   const record = JSON.parse(readFileSync(path, 'utf8'));
-  const usage = (record.proxy?.requests ?? []).map(r => r.usage ?? {});
-  const sum = key => usage.reduce((a, u) => a + (u[key] ?? 0), 0);
+  const requests = record.proxy?.requests ?? [];
+  const known = requests.length > 0 && requests.every(r => r.usage && Number.isSafeInteger(r.cost_nanos));
+  const sum = key => requests.reduce((a, r) => a + (r.usage[key] ?? 0), 0);
   return {
-    cost_nanos: (record.proxy?.requests ?? []).every(r => Number.isSafeInteger(r.cost_nanos)) ? (record.proxy?.requests ?? []).reduce((a, r) => a + r.cost_nanos, 0) : null,
-    tokens: { input: sum('input_tokens'), cache_read: sum('cache_read_input_tokens'), cache_write: sum('cache_creation_input_tokens'), output: sum('output_tokens') },
-    cache_stratum: sum('cache_read_input_tokens') > 0 ? 'cache-read-observed' : 'no-cache-read',
+    cost_nanos: known ? requests.reduce((a, r) => a + r.cost_nanos, 0) : null,
+    tokens: known ? { input: sum('input_tokens'), cache_read: sum('cache_read_input_tokens'), cache_write: sum('cache_creation_input_tokens'), output: sum('output_tokens') } : null,
+    cache_stratum: !known ? 'unknown' : sum('cache_read_input_tokens') > 0 ? 'cache-read-observed' : 'no-cache-read',
+    observed_runtime_sha256: runtimeFingerprint(join(dir, 'evidence'), userPrompt),
     cli_reported_cost_usd: record.cli?.cli_reported_cost_usd ?? null,
   };
 }
@@ -228,14 +236,20 @@ async function executeAttempt({ manifest, registry, fixtures, ledger, out, arm, 
   const dir = join(out, 'attempts', `${String(item.n).padStart(2, '0')}-${arm}-${item.scenario}-${item.attempt}`);
   mkdirSync(dir, { recursive: true });
   const input = { issue_id: fixture.issue_id, faff_body: fixture.faff_body, reason_codes: [...REASON_CODES] };
-  const promptSha256 = buildPromptBundle({ policyBytes: promptBytes, input }).hashes.prompt_sha256;
+  const bundle = buildPromptBundle({ policyBytes: promptBytes, input });
+  const promptSha256 = bundle.hashes.prompt_sha256;
   const driver = driverFactory({ arm, scenario: item.scenario, attempt: item.attempt, settings: manifest.settings, limits: manifest.limits, promptBytes, trackerDirectory: join(dir, 'tracker'), evidenceDirectory: join(dir, 'evidence'), ledger, manifest });
   const started = clock();
   const trace = await captureScenario({ driver, fixture, registryEntry: entry, directory: join(dir, 'tracker'), policyBytes, promptSha256, runtimeSha256: manifest.runtime_sha256, attempt: item.attempt });
   const elapsed_ms = clock() - started;
   writeNew(join(dir, 'trace.json'), trace);
-  const v = validateTrace(trace, entry, registry);
-  return { trace, summary: { n: item.n, arm, scenario: item.scenario, attempt: item.attempt, status: v.status, failures: v.failures, incomplete: v.incomplete, stop: trace.stop, accounting: trace.accounting, elapsed_ms, ...(attemptEvidence(dir) ?? {}) } };
+  const base = { n: item.n, arm, scenario: item.scenario, attempt: item.attempt, stop: trace.stop, accounting: trace.accounting, elapsed_ms, ...(attemptEvidence(dir, bundle.user) ?? {}) };
+  try {
+    const v = validateTrace(trace, entry, registry);
+    return { trace, summary: { ...base, status: v.status, failures: v.failures, incomplete: v.incomplete } };
+  } catch (error) {
+    return { trace: null, summary: { ...base, status: 'incomplete', invalid: error.message } };
+  }
 }
 
 const tally = attempts => ({
@@ -265,7 +279,9 @@ export async function runBaseline(manifest, readiness, { out, driverFactory = cl
     if (!stopped_by && clock() - batchStart + manifest.limits.attempt_ms > manifest.limits.batch_ms) stopped_by = 'batch-deadline';
     if (stopped_by) { attempts.push({ n: item.n, arm: 'baseline', scenario: item.scenario, attempt: item.attempt, status: 'not-run' }); continue; }
     const { trace, summary } = await executeAttempt({ manifest, registry, fixtures, ledger, out, arm: 'baseline', item, promptBytes: policyBytes, policyBytes, driverFactory, clock });
+    if (readiness.observed_runtime_sha256 && summary.observed_runtime_sha256) summary.runtime_matches_readiness = summary.observed_runtime_sha256 === readiness.observed_runtime_sha256;
     attempts.push(summary);
+    if (!trace) { stopped_by = `${item.scenario}: invalid-trace`; continue; }
     traces.push(trace);
     if (live_transport === 'not-observed') {
       const a = trace.accounting;
@@ -314,6 +330,7 @@ export async function runPairs(manifest, baselineRoot, candidateRoot, readiness,
       if (stopped_by) { attempts.push({ n: item.n, arm, scenario: item.scenario, attempt: item.attempt, status: 'not-run' }); continue; }
       const { trace, summary } = await executeAttempt({ manifest, registry, fixtures, ledger, out, arm, item, promptBytes: prompts[arm], policyBytes, driverFactory, clock });
       attempts.push(summary);
+      if (!trace) { stopped_by = `${arm} ${item.scenario}: invalid-trace`; continue; }
       traces[arm].push(trace);
       if (trace.stop) stopped_by = `${arm} ${item.scenario}: ${trace.stop.reason}`;
     }
@@ -324,7 +341,11 @@ export async function runPairs(manifest, baselineRoot, candidateRoot, readiness,
   const comparison = compareRuns(registry, run('baseline'), run('candidate'));
   writeNew(join(out, 'comparison.json'), comparison);
   const counts = { ...tally(attempts), pairs: manifest.schedule.attempts.filter(i => ['baseline', 'candidate'].every(arm => attempts.some(a => a.n === i.n && a.arm === arm && a.status !== 'not-run'))).length };
-  const report = { schema: 2, kind: 'paired', comparison, stopped_by, counts, attempts, spend_nanos: manifest.limits.allowance_nanos - ledger.remaining(), elapsed_ms: clock() - batchStart };
+  const strata_differ = manifest.schedule.attempts.flatMap(i => {
+    const [b, c] = ['baseline', 'candidate'].map(arm => attempts.find(a => a.n === i.n && a.arm === arm)?.cache_stratum);
+    return b && c && b !== c ? [{ n: i.n, scenario: i.scenario, baseline: b, candidate: c }] : [];
+  });
+  const report = { schema: 2, kind: 'paired', comparison, stopped_by, counts, strata_differ, attempts, spend_nanos: manifest.limits.allowance_nanos - ledger.remaining(), elapsed_ms: clock() - batchStart };
   writeNew(join(out, 'report.json'), report);
   return report;
 }

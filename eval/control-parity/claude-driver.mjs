@@ -6,7 +6,7 @@ import { once } from 'node:events';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { sha256 } from './schema.mjs';
+import { canonicalHash, sha256 } from './schema.mjs';
 import { OPUS_5_5_PRICING, startProxy as realStartProxy } from './proxy.mjs';
 import { TOOL_NAMES } from './tool-server.mjs';
 
@@ -151,6 +151,24 @@ export function parseStreamJson(text) {
   };
 }
 
+// The runtime the CLI actually sent, minus the treatment prompt and per-session metadata. Equal
+// fingerprints mean equal system blocks, injected context, tool definitions and model settings.
+export function runtimeFingerprintOfBody(body, userPrompt) {
+  const strip = content => (Array.isArray(content) ? content.filter(b => b?.text !== userPrompt) : content === userPrompt ? '' : content);
+  return canonicalHash({
+    model: body.model ?? null, max_tokens: body.max_tokens ?? null, system: body.system ?? null, tools: body.tools ?? null,
+    thinking: body.thinking ?? null, output_config: body.output_config ?? null, context_management: body.context_management ?? null,
+    messages: (body.messages ?? []).map(m => ({ role: m.role, content: strip(m.content) })),
+  });
+}
+
+export function runtimeFingerprint(evidenceDirectory, userPrompt) {
+  try {
+    const first = JSON.parse(readFileSync(join(evidenceDirectory, 'requests', '001.request.json'), 'utf8'));
+    return first.body ? runtimeFingerprintOfBody(first.body, userPrompt) : null;
+  } catch { return null; }
+}
+
 export function spawnProcess(bin, args, { env, cwd }) {
   const child = spawn(bin, args, { env, cwd, detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
   const waited = new Promise(resolve => {
@@ -205,7 +223,7 @@ export async function runClaudeScenario({
   };
   let proxy;
   try {
-    proxy = await startProxy({ model: settings.model, limits, pricing, ledger, allowedTools: [...ALLOWED_TOOLS, ...HARNESS_TOOLS], evidenceDir: join(evidenceDirectory, 'requests'), mode, onStop: reason => kill(reason) });
+    proxy = await startProxy({ model: settings.model, effort: settings.effort, limits, pricing, ledger, allowedTools: [...ALLOWED_TOOLS, ...HARNESS_TOOLS], evidenceDir: join(evidenceDirectory, 'requests'), mode, onStop: reason => kill(reason) });
     const inv = buildClaudeInvocation({ binary: settings.binary, settings, promptBundle: bundle, paths, proxyUrl: proxy.url, limits, parentEnv });
     record.invocation = { bin: inv.bin, args_sha256: sha256(JSON.stringify(inv.args)), flags: inv.args.slice(0, -1).filter(a => a !== bundle.system), env_keys: Object.keys(inv.env).sort(), cwd: inv.cwd };
     save();
@@ -225,7 +243,9 @@ export async function runClaudeScenario({
   await proxy.close();
   const cli = parseStreamJson(readFileSync(stdoutPath, 'utf8'));
   const proxyStop = summary.stop;
-  const reason = proxyStop ?? (record.timed_out ? 'timeout' : null)
+  const metered = new Set(summary.requests.map(r => r.id));
+  const unmetered = mode === 'forward' && (cli.requests.some(r => r.model !== '<synthetic>' && !metered.has(r.id)) || (cli.result?.num_turns ?? 0) > summary.requests.length);
+  const reason = proxyStop ?? (unmetered ? 'unmetered-request' : null) ?? (record.timed_out ? 'timeout' : null)
     ?? (record.exit?.error ? 'spawn-error' : null)
     ?? (record.exit?.signal ? 'signal' : null)
     ?? (record.exit?.code !== 0 ? 'process-exit' : null)
@@ -241,6 +261,7 @@ export async function runClaudeScenario({
     stop: record.stop,
     accounting: { usage_complete: summary.usage_complete && summary.requests.length > 0, served_models: summary.served_models, requests: summary.requests.length },
     proxy: summary,
+    observed_runtime_sha256: runtimeFingerprint(evidenceDirectory, bundle.user),
     bundle,
     recordPath,
   };

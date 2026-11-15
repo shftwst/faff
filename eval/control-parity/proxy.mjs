@@ -125,7 +125,7 @@ const chunksOf = async function* (body) {
   for await (const chunk of body) yield Buffer.from(chunk);
 };
 
-export async function startProxy({ model, limits, pricing, ledger, allowedTools, evidenceDir, mode = 'forward', upstream = anthropicUpstream(), onStop = () => {} }) {
+export async function startProxy({ model, effort, limits, pricing, ledger, allowedTools, evidenceDir, mode = 'forward', upstream = anthropicUpstream(), onStop = () => {} }) {
   mkdirSync(evidenceDir, { recursive: true });
   const state = { stop: null, admitted: 0, seen: 0, requests: [], captured: [], other_paths: [] };
   const stop = reason => { if (!state.stop) { state.stop = reason; onStop(reason); } };
@@ -161,6 +161,7 @@ export async function startProxy({ model, limits, pricing, ledger, allowedTools,
     }
     const tools = (body.tools ?? []).map(t => t.name);
     const reason = body.model !== model ? 'model-mismatch'
+      : effort !== undefined && body.output_config?.effort !== effort ? 'effort-mismatch'
       : !(body.max_tokens <= limits.output_tokens) ? 'output-ceiling'
       : tools.some(t => !allowedTools.includes(t)) ? 'tool-escape'
       : state.admitted >= limits.turns ? 'turn-limit'

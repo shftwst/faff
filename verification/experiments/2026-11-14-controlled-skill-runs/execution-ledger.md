@@ -55,3 +55,4 @@ Final: minor (deferred): runPairs does not apply the attempt limit and does not 
 Final: minor (deferred): no test for SIGKILL escalation after an ignored SIGTERM.
 Final: minor (deferred): request evidence contains the account email the CLI injects; keep request bodies out of committed evidence or redact.
 Final: minor (deferred): add "splice newline framing" to blocked-coverage.json so the compatibility claim names the recorded policy.
+Final: Ruling: readiness binds content (plugin tree, policy bytes, harness file hashes), not the commit; the commit stays as provenance — an evidence-only commit invalidated the recorded manifest — test "a commit that touches neither plugin nor the harness keeps readiness valid" RED→GREEN — cost if wrong: two commits with identical bound content are treated as one source.

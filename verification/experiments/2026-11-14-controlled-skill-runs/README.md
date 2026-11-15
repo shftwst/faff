@@ -20,8 +20,8 @@ The recorder, fixtures, Claude adapter and schedule from the plan are implemente
 
 | Check | Result |
 |---|---|
-| Control-parity tests | 106 pass, no model calls |
-| Existing unit suite | 8517 tests, 0 fail, 35 skipped |
+| Control-parity tests | 107 pass, no model calls |
+| Existing unit suite | 8518 tests, 0 fail, 35 skipped |
 | Independent review | No critical findings; five important findings fixed with failing tests first |
 | `prepare-20261115/` | Manifest bound to the pinned plugin tree, Claude Code 2.1.311, `claude-opus-5-5`, effort `medium` |
 | `preflight-20261115/` | `not_ready`: `CLAUDE_CODE_OAUTH_TOKEN` is not set; every other binding passed |
@@ -36,4 +36,4 @@ node eval/control-parity/run.mjs preflight --manifest verification/experiments/2
 node eval/control-parity/run.mjs baseline --manifest verification/experiments/2026-11-14-controlled-skill-runs/prepare-20261115/manifest.json --readiness <new preflight dir>/readiness.json --out <new calibration dir>
 ```
 
-The manifest binds commit `f2713d5a`. Any later commit under `plugin/` or `eval/control-parity/` needs a new prepare. A successful preflight captures one request body that contains the account email the CLI injects, so do not commit `probe/` or `requests/` directories without redacting them.
+The manifest binds the content of `plugin/` and `eval/control-parity/`, not a commit. Any change to either needs a new prepare; evidence-only commits do not. A successful preflight captures one request body that contains the account email the CLI injects, so do not commit `probe/` or `requests/` directories without redacting them.

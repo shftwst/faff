@@ -1,0 +1,56 @@
+{
+  "schema": 2,
+  "status": "not_ready",
+  "reasons": [
+    "credential variable CLAUDE_CODE_OAUTH_TOKEN is not set"
+  ],
+  "manifest_sha256": "fb5f761e75db49158a0adaf12784f6ad5a97bf8fb3e0ecd4fa1a22a620c9ee9e",
+  "checked_at": "2026-11-15T03:56:38.571Z",
+  "claude": {
+    "available": true,
+    "binary": "claude",
+    "version": "2.1.311",
+    "reasons": [],
+    "effort_supported": true,
+    "model_status": "unverified",
+    "max_turns_flag": false,
+    "help_sha256": "fc9af56f65f8a84a9e7e98cd538ccac13f57d1cc0e22099666508198ba88d64d"
+  },
+  "bindings": {
+    "source": {
+      "root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/controlled-skill-runs",
+      "commit": "f2713d5a7336d6ea402bf680d16ec513f2f087b3",
+      "pinned_commit": "f767bdd1c0a78f6259c335742c1567a074f512a0",
+      "plugin_tree": "0542f44dfb06c24a45e1c46f048efaebfc16e696",
+      "pinned_plugin_tree": "0542f44dfb06c24a45e1c46f048efaebfc16e696",
+      "policy_path": "plugin/skills/faff/references/review.md",
+      "policy_sha256": "4d9d01e702294453cf16233feefe265e18ab5e376bf7d0f1eec40cb3f534edb6"
+    },
+    "tools": {
+      "root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/controlled-skill-runs",
+      "commit": "f2713d5a7336d6ea402bf680d16ec513f2f087b3",
+      "files": {
+        "eval/control-parity/schema.mjs": "0164ccec86e98253e013dea2db3a00db35ef2ee9707de0a7360146b489715234",
+        "eval/control-parity/tracker.mjs": "341e1af1b22a97c7792074c0c6a5fae9f01495dd21ff31b5cdf352a838c12d52",
+        "eval/control-parity/proxy.mjs": "81a97ab918a4abb8b6d19e83e746057ad06c3d917b04e0bb53f0cb1fd21a4974",
+        "eval/control-parity/tool-server.mjs": "634894b21c1d8b4a3b3cf33282fb9492f32f09fbbc0ff2b255cc46166950fb08",
+        "eval/control-parity/claude-driver.mjs": "1322f73a1bb5572e08fdfdef51f3913b58365be6aff0a34380ef52d2718cb6c8",
+        "eval/control-parity/run.mjs": "d73c530906c947233a990c4676ec443af2cb28d7dffd0c5d707ce3cbaded43d4",
+        "eval/control-parity/registry.json": "46089463da1cf6febeb2fa83e8bce6ee5676c7d46d8c9942f39008f3469b7e9c",
+        "eval/control-parity/expected-outcomes.json": "17309cdb40cf0c9c058da10ea0dfc762f3d583ebd62b9dabb662c39d736f5484",
+        "eval/control-parity/blocked-coverage.json": "aacf59f512b48a57841528016e0ec6df49f86487a8be8695f823b479c0d721d4",
+        "eval/control-parity/fixtures/review-comments.json": "11cc255596bf964f0367d37ce08bedda118367a76668e7b8e9d37472026bfd28"
+      }
+    },
+    "registry_sha256": "46089463da1cf6febeb2fa83e8bce6ee5676c7d46d8c9942f39008f3469b7e9c",
+    "fixtures_sha256": "11cc255596bf964f0367d37ce08bedda118367a76668e7b8e9d37472026bfd28",
+    "expected_sha256": "17309cdb40cf0c9c058da10ea0dfc762f3d583ebd62b9dabb662c39d736f5484",
+    "blocked_sha256": "aacf59f512b48a57841528016e0ec6df49f86487a8be8695f823b479c0d721d4",
+    "dirty": []
+  },
+  "fixture_transport": "failed",
+  "live_transport": "not-observed",
+  "observed_runtime_sha256": null,
+  "harness_overhead": null,
+  "note": "Zero-cost checks only. The first calibration attempt is the live transport probe."
+}

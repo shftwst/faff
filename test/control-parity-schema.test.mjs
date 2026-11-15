@@ -236,3 +236,13 @@ test('the CLI exits 0, 1 and 2 for pass, fail and incomplete', () => {
     assert.equal(JSON.parse(readFileSync(out, 'utf8')).status, ['pass', 'fail', 'incomplete'][code]);
   }
 });
+
+test('a pair whose candidate was interrupted is incomplete, not an event difference', () => {
+  const candidate = full();
+  const t = candidate.traces[0];
+  t.events = [t.events[0]];
+  t.stop = { reason: 'timeout' };
+  const result = compareRuns(registry(), full(), candidate);
+  assert.equal(result.status, 'incomplete');
+  assert.ok(!result.differences.some(d => d.reason === 'event-differs'));
+});

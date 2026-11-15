@@ -13,6 +13,7 @@ const TOOLS = [
   { name: 'save_comment', description: 'Replace the full body of an existing comment.', inputSchema: { type: 'object', properties: { id: str('Comment id'), body: str('Full replacement body') }, required: ['id', 'body'], additionalProperties: false } },
   { name: 'finish', description: 'Report the outcome once the operation is complete or cannot proceed. No further tool calls are accepted afterwards.', inputSchema: { type: 'object', properties: { status: { type: 'string', enum: [...STATUSES] }, reason: { type: 'string', enum: [...REASON_CODES] } }, required: ['status', 'reason'], additionalProperties: false } },
 ];
+export const TOOL_DEFINITIONS = TOOLS;
 export const TOOL_NAMES = TOOLS.map(t => t.name);
 
 const reply = (id, result) => ({ jsonrpc: '2.0', id, result });

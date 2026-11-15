@@ -226,6 +226,7 @@ export function compareRuns(registry, baseline, candidate) {
     const after = arms.candidate.byKey.get(key);
     if (!before || !after) { incomplete = true; differences.push({ trace: key, reason: 'unpaired-attempt' }); continue; }
     if (before.runtime_sha256 !== after.runtime_sha256) { incomplete = true; differences.push({ trace: key, reason: 'unpaired-runtime' }); continue; }
+    if (arms.baseline.results.get(key).status === 'incomplete' || arms.candidate.results.get(key).status === 'incomplete') continue;
     const a = projection(before);
     const b = projection(after);
     for (let i = 0; i < Math.max(a.length, b.length); i++) {

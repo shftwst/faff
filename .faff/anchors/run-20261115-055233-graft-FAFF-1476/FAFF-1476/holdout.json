@@ -1,0 +1,278 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1476",
+  "aggregate": "needs-human",
+  "code_blind": true,
+  "spawner_attested": false,
+  "attestation": null,
+  "violations": [],
+  "criteria": [
+    {
+      "id": "scenarios:1",
+      "text": "Given a spec whose DONE item 2 reads \"[ac-2] needs-human: Prices match the published pricing page\" and whose other items are plain\nWhen faff dod classify --json runs on it with --issue FAFF-9\nThen the row for item 2 has human_only true, verification_tier delegated and ac_id faff-9#ac-2, and every other row has human_only false and an unchanged ac_id",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "faff dod classify --spec spec.md --issue FAFF-9 --json on a spec with '- [ ] [ac-1] ...', '- [ ] [ac-2] needs-human: Prices match the published pricing page', '- [ ] [ac-3] ...' under ## DONE (numbered-list format first returned zero or unattributed rows, so the checkbox form was used).",
+      "expected": "Row 2 human_only true, verification_tier delegated, ac_id faff-9#ac-2; other rows human_only false with unchanged ac_id.",
+      "observed": "Row 2: human_only True, verification_tier delegated, ac_id faff-9#ac-2. Rows 1 and 3: human_only False, ac_id faff-9#ac-1 and faff-9#ac-3, tier delegated. Without --issue the rows carry no ac_id key, so 'unchanged' was judged against the plain per-AC form only.",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:2",
+      "text": "Given a run at level L4 with a captured spec whose DONE item 2 is tagged needs-human:\nAnd the worktree copy of the spec and spec-commit.json have been rewritten to tag a different, machine-checkable item\nWhen faff pr open runs\nThen the anchor directory carries human-only-acs.json with issue FAFF-9, level L4, unattended true and human_only [\"faff-9#ac-2\"] only\nAnd the anchored events.jsonl contains a human-only-acs-stamp event for FAFF-9 that is the latest for that issue, whose sha256 equals the SHA-256 of the anchored human-only-acs.json",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "needs-human",
+      "evidence_present": false,
+      "exercised": null,
+      "expected": null,
+      "observed": null,
+      "evidence_ref": null,
+      "reason": "faff pr open refuses at the review gate (token refused, cause review-not-pass) in a local throwaway repo; reaching the mint needs a passing review verdict, gate evidence and a gh/remote PR flow, with no code-blind way to build that state or reach GitHub.",
+      "reason_code": "no-surface"
+    },
+    {
+      "id": "scenarios:3",
+      "text": "Given a run whose captured spec cannot be read\nWhen faff pr open runs\nThen it still opens the PR, its result carries a warning that human-only-acs.json was not minted, and the anchor directory has no such file",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "needs-human",
+      "evidence_present": false,
+      "exercised": null,
+      "expected": null,
+      "observed": null,
+      "evidence_ref": null,
+      "reason": "Same as scenarios:2: pr open stops at review-not-pass and opening a PR needs gh against GitHub, which is out of bounds.",
+      "reason_code": "no-surface"
+    },
+    {
+      "id": "scenarios:4",
+      "text": "Given a first faff pr open committed an anchor directory holding human-only-acs.json\nAnd the captured spec has since become unreadable and a new commit has been added, so the branch head differs from the open PR's head\nWhen faff pr open runs again\nThen the new anchor commit deletes human-only-acs.json from the anchor directory, the run dir has no such file, and the result carries a warning that it was not minted",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "needs-human",
+      "evidence_present": false,
+      "exercised": null,
+      "expected": null,
+      "observed": null,
+      "evidence_ref": null,
+      "reason": "Same: needs two successful pr open runs with anchor commits and an open PR head comparison, which needs GitHub.",
+      "reason_code": "no-surface"
+    },
+    {
+      "id": "scenarios:5",
+      "text": "Given a faulted mint left an untracked human-only-acs.json in the anchor destination and in the run dir\nAnd no open PR has the current head, so faff pr open reaches the mint\nWhen faff pr open runs and the new mint succeeds\nThen the committed anchor file equals the newly written file byte for byte and the older content is gone",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "needs-human",
+      "evidence_present": false,
+      "exercised": null,
+      "expected": null,
+      "observed": null,
+      "evidence_ref": null,
+      "reason": "Same: needs pr open to reach the mint with no open PR for the head, which needs GitHub and a passing review state.",
+      "reason_code": "no-surface"
+    },
+    {
+      "id": "scenarios:6",
+      "text": "Given a checklist document with all_verified true and one criterion passed false\nWhen faff evidence write ac-checklist runs on it\nThen it exits 1 and writes no file",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "met",
+      "evidence_present": true,
+      "exercised": "In a throwaway git repo, piped {all_verified:true, criteria:[{..., passed:false}]} into faff evidence write ac-checklist --run-dir .faff/runs/r1 --issue FAFF-9; then a control with passed:true.",
+      "expected": "Exit 1 and no file written.",
+      "observed": "Exit 1 with 'refused: all_verified: must equal every criterion passed'; find .faff -type f listed nothing. Control with passed:true exited 0 and wrote .faff/runs/r1/FAFF-9/ac-checklist.json.",
+      "evidence_ref": null,
+      "reason": null,
+      "reason_code": null
+    },
+    {
+      "id": "scenarios:7",
+      "text": "Given a committed anchor holding a human-only-acs.json that ends in a newline and an events.jsonl larger than 1 MiB that carries its stamp\nWhen readAnchoredBytes reads each blob at the commit's head\nThen each returned byte sequence equals the committed bytes exactly, and the SHA-256 of the file's bytes equals the sha256 of its stamp event",
+      "holdout": false,
+      "class": "scenario",
+      "verdict": "needs-human",
+      "evidence_present": false,
+      "exercised": null,
+      "expected": null,
+      "observed": null,
+      "evidence_ref": null,
+      "reason": "readAnchoredBytes is an internal function with no CLI surface (checked top-level usage, faff evidence and faff pr usage); not reachable without code access.",
+      "reason_code": "no-surface"
+    },
+    {
+      "id": "done:11",
+      "text": "Before every mint, `faff pr open` runs `git rm -f --ignore-unmatch` on `<dest>human-only-acs.json` and deletes the run-dir copy and any untracked destination copy through a new `removeStale` dependency (not the existing `removeFile`, which removes only the safe-body temp directory)",
+      "holdout": false,
+      "class": "assertion",
+      "verdict": "needs-human",
+      "evidence_present": false,
+      "exercised": null,
+      "expected": null,
+      "observed": null,
+      "evidence_ref": null,
+      "reason": "Assertion about internal dependency wiring (removeStale vs removeFile) of pr open; observable only by running pr open through the mint or reading code, neither available.",
+      "reason_code": "no-surface"
+    }
+  ],
+  "delegated": [
+    {
+      "id": "done:1",
+      "text": "`faff dod classify --json` returns `human_only: true` for a `needs-human:` DONE item with a non-empty reason and `human_only: false` for every other row; a human-only row has tier `delegated` and verifier `ac-checklist`, and the other rows' `id` and `ac_id` values are unchanged",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1476#done:1"
+    },
+    {
+      "id": "done:2",
+      "text": "`needs-human:` with an empty reason leaves the item literal and writes a stderr advisory",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1476#done:2"
+    },
+    {
+      "id": "done:3",
+      "text": "`human-only-acs.schema.json`, one valid and one invalid example, and a manifest entry for `human-only-acs.json` (versioned by field) exist under `verification/evidence/v0.3/`, and `node scripts/evidence-v0.3-compose.mjs --check` exits 0",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1476#done:3"
+    },
+    {
+      "id": "done:4",
+      "text": "The `human-only-acs-stamp` event type has a delivery-profile entry (event type and issue-scoped), a per-type schema, a composed `run-event.schema.json` entry, a valid and an invalid example, and a `logs.md` row, and the files that name `evidence-terminal-only` (`scripts/evidence-v0.3-compose.mjs`, `test/evidence-payload-coverage.test.mjs`, `test/faff-1353-write-core-issue-scoped.test.mjs`) cover the new type",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1476#done:4"
+    },
+    {
+      "id": "done:5",
+      "text": "`faff evidence write human-only-acs` writes the file with `schema_version` 1, appends one `human-only-acs-stamp` event whose `data.sha256` equals the SHA-256 of the written bytes, and refuses, exiting 1 and writing nothing, an issue mismatch, an L1 or L2 document with `unattended` true, an L4 document with `unattended` false, a duplicate id, and an id naming another ticket",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1476#done:5"
+    },
+    {
+      "id": "done:6",
+      "text": "When the stamp append fails, or the run dir has no `events.jsonl`, the writer deletes any file it wrote, exits 2 and leaves no file behind",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1476#done:6"
+    },
+    {
+      "id": "done:7",
+      "text": "`events.js` lists `human-only-acs.json` in `optionalFloorFiles`, and an anchor minted from a run dir holding the file carries it byte-identical, and carries the stamp in the copied `events.jsonl`",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1476#done:7"
+    },
+    {
+      "id": "done:8",
+      "text": "`human-only-acs.ts`, in the governance region, exports the reader of section 4, taking the file and events as bytes, and returns `null` for each failure it lists (unparseable JSON, wrong `schema_version`, issue mismatch, level mismatch, a violated level constraint, a malformed or foreign id, a missing stamp, a mismatched stamp); nothing in the floors calls it until slice 2",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1476#done:8"
+    },
+    {
+      "id": "done:9",
+      "text": "`faff pr open` mints the file from the main-checkout captured spec after step 9 and before the anchor step, through a new `mainCheckout` dependency wrapping `mainWorktreeRoot`; it takes no spec-path flag and reads config from the main checkout; a re-run with an unchanged head and a tracked anchor returns `already-open` and runs none of the removal, mint or stamp, while a re-run after a new commit re-mints",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1476#done:9"
+    },
+    {
+      "id": "done:10",
+      "text": "`readAnchoredBytes` in `merge-gate-floor.js` returns the exact committed bytes (no trim, `maxBuffer` 64 MiB), falls back to an untrimmed Contents API decode, returns null without inline content, leaves `gitRun` and `resolveAnchorLevel` unchanged, and is not called by the floors until slice 2",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1476#done:10"
+    },
+    {
+      "id": "done:12",
+      "text": "On any mint fault, including a null main checkout, an unreadable captured spec, a classify failure, an unreadable level and a writer failure, `faff pr open` warns, leaves neither copy in place, and still proceeds",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1476#done:12"
+    },
+    {
+      "id": "done:13",
+      "text": "`resolveIntegrity` and the mint both call `resolveUnattended`",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1476#done:13"
+    },
+    {
+      "id": "done:14",
+      "text": "With slice 1 only, `faff merge-gate` and `faff governance-check` results for a fixture anchored with and without the file are identical",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1476#done:14"
+    },
+    {
+      "id": "done:15",
+      "text": "`evidence-documents.md` carries a `human-only-acs.json` row and a trust note that names the roster gap and FAFF-1478, in `verification/evidence/v0.3/` and in the regenerated plugin mirror; `anchor-manifest.md` says thirteen files and lists the new row",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1476#done:15"
+    },
+    {
+      "id": "done:16",
+      "text": "`faffter-noon-spec` and `faffter-dark-nlspec` each carry the one-bullet marker guidance in their DONE section",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1476#done:16"
+    },
+    {
+      "id": "done:17",
+      "text": "New tests in `test/` (not `--selftest`) cover every slice 1 scenario and run under `node --test`, in `test/faff-1475-human-only-acs.test.mjs`",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1476#done:17"
+    },
+    {
+      "id": "done:18",
+      "text": "A reader unit test passes for a fixture file ending in a newline and a committed `events.jsonl` larger than 1 MiB: the SHA-256 of the bytes `readAnchoredBytes` returns equals the SHA-256 of the committed file, and a stubbed Contents API response decodes to the same bytes",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1476#done:18"
+    },
+    {
+      "id": "done:19",
+      "text": "The manifest-count cases move out of the `evidence.js` selftest (line 1579) into `test/evidence-v0.3.test.mjs` (lines 50 and 79) and expect thirteen entries",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1476#done:19"
+    },
+    {
+      "id": "done:20",
+      "text": "Each new or edited TypeScript module (`human-only-acs.ts`, `pr-open.ts`) has its committed `.js` emit and `build-manifest.json` regenerated, and `faff regions check` and `lint-cli-coverage` pass",
+      "holdout": false,
+      "verification_tier": "delegated",
+      "verifier": "ac-checklist",
+      "ac_id": "faff-1476#done:20"
+    }
+  ]
+}

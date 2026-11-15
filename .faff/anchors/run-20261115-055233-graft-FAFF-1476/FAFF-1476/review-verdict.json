@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 2,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "docs/guide/cli.md::cli reference rows for dod classify and pr open omit the human_only field and the human-only-acs mint",
+      "title": "CLI reference rows for dod classify and pr open omit the human_only field and the human-only-acs mint",
+      "location": "docs/guide/cli.md:73",
+      "action": "Add human_only and the needs-human: marker rules to the dod classify row and the step 9b clear, mint and stamp to the pr open row.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "faffter-noon-review",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "CLI reference rows for dod classify and pr open omit the human_only field and the human-only-acs mint",
+          "location": "docs/guide/cli.md:73",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    }
+  ]
+}

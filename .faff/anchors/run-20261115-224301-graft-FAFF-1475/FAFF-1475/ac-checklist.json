@@ -1,0 +1,639 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "`faff dod classify --json` returns `human_only: true` for a `needs-human:` DONE item with a non-empty reason and `human_only: false` for every other row; a human-only row has tier `delegated` and verifier `ac-checklist`, and the other rows' `id` and `ac_id` values are unchanged",
+      "verified": "verified by FAFF-1476 (PRs 1190 and 1192, merged): classify returns human_only true for a needs-human: item and false elsewhere; tier delegated and ids unchanged (5 marker tests pass)",
+      "passed": true,
+      "ac_id": "faff-1475#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::a needs-human: DONE item is human_only, delegated, and leaves other rows' ids unchanged"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::positional ids are unchanged by a marker"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::a human_only row naming a code surface stays delegated"
+        }
+      ]
+    },
+    {
+      "ac": "`needs-human:` with an empty reason leaves the item literal and writes a stderr advisory",
+      "verified": "verified by FAFF-1476 (PRs 1190 and 1192, merged): an empty reason leaves the item literal, human_only false, with a stderr advisory",
+      "passed": true,
+      "ac_id": "faff-1475#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::an empty reason is not a marker: literal text, human_only false, stderr advisory"
+        }
+      ]
+    },
+    {
+      "ac": "`human-only-acs.schema.json`, one valid and one invalid example, and a manifest entry for `human-only-acs.json` (versioned by field) exist under `verification/evidence/v0.3/`, and `node scripts/evidence-v0.3-compose.mjs --check` exits 0",
+      "verified": "verified by FAFF-1476 (PRs 1190 and 1192, merged): schema, valid and invalid examples and a thirteen-entry manifest exist and the compose check exits 0",
+      "passed": true,
+      "ac_id": "faff-1475#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::the valid example passes and the invalid example fails the schema"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::the manifest lists the file as a field-versioned json document with thirteen entries in all"
+        },
+        {
+          "kind": "command",
+          "locator": "node scripts/evidence-v0.3-compose.mjs --check"
+        }
+      ]
+    },
+    {
+      "ac": "The `human-only-acs-stamp` event type has a delivery-profile entry (event type and issue-scoped), a per-type schema, a composed `run-event.schema.json` entry, a valid and an invalid example, and a `logs.md` row, and the files that name `evidence-terminal-only` (`scripts/evidence-v0.3-compose.mjs`, `test/evidence-payload-coverage.test.mjs`, `test/faff-1353-write-core-issue-scoped.test.mjs`) cover the new type",
+      "verified": "verified by FAFF-1476 (PRs 1190 and 1192, merged): the stamp event type has its profile entry, schemas, examples and logs row, and the files naming evidence-terminal-only cover it",
+      "passed": true,
+      "ac_id": "faff-1475#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::the stamp event type is in the delivery profile, issue-scoped, and has its example pair"
+        },
+        {
+          "kind": "command",
+          "locator": "node --test test/evidence-payload-coverage.test.mjs test/faff-1353-write-core-issue-scoped.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`faff evidence write human-only-acs` writes the file with `schema_version` 1, appends one `human-only-acs-stamp` event whose `data.sha256` equals the SHA-256 of the written bytes, and refuses, exiting 1 and writing nothing, an issue mismatch, an L1 or L2 document with `unattended` true, an L4 document with `unattended` false, a duplicate id, and an id naming another ticket",
+      "verified": "verified by FAFF-1476 (PRs 1190 and 1192, merged): the writer writes the file, appends one stamp with the file's SHA-256, and refuses each listed document with exit 1 and no write",
+      "passed": true,
+      "ac_id": "faff-1475#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::writes the document with schema_version and faff_version, and appends one stamp holding the file's SHA-256"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::a refusal does not echo the offending id"
+        },
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1475-human-only-acs.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "When the stamp append fails, or the run dir has no `events.jsonl`, the writer deletes any file it wrote, exits 2 and leaves no file behind",
+      "verified": "verified by FAFF-1476 (PRs 1190 and 1192, merged): a failed stamp append or a missing events.jsonl exits 2 and leaves no file",
+      "passed": true,
+      "ac_id": "faff-1475#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::a failed stamp append removes the file, exits 2 and leaves events.jsonl untouched"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::a run dir with no events.jsonl exits 2 and leaves no file"
+        }
+      ]
+    },
+    {
+      "ac": "`events.js` lists `human-only-acs.json` in `optionalFloorFiles`, and an anchor minted from a run dir holding the file carries it byte-identical, and carries the stamp in the copied `events.jsonl`",
+      "verified": "verified by FAFF-1476 (PRs 1190 and 1192, merged): an anchor minted from a run dir holding the file carries it byte-identical and carries the stamp in events.jsonl",
+      "passed": true,
+      "ac_id": "faff-1475#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::an anchor minted from a run dir holding the file carries it byte-identical, and the stamp in events.jsonl"
+        }
+      ]
+    },
+    {
+      "ac": "`human-only-acs.ts`, in the governance region, exports the reader of section 4, taking the file and events as bytes, and returns `null` for each failure it lists (unparseable JSON, wrong `schema_version`, issue mismatch, level mismatch, a violated level constraint, a malformed or foreign id, a missing stamp, a mismatched stamp); nothing in the floors calls it until slice 2",
+      "verified": "verified by FAFF-1476 (PRs 1190 and 1192, merged): human-only-acs.ts is a governance module taking bytes and returning null for each listed failure",
+      "passed": true,
+      "ac_id": "faff-1475#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::returns null for each structural fault"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::a missing or mismatched stamp returns null"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::the reader is a governance module that requires no factory module"
+        }
+      ]
+    },
+    {
+      "ac": "`faff pr open` mints the file from the main-checkout captured spec after step 9 and before the anchor step, through a new `mainCheckout` dependency wrapping `mainWorktreeRoot`; it takes no spec-path flag and reads config from the main checkout; a re-run with an unchanged head and a tracked anchor returns `already-open` and runs none of the removal, mint or stamp, while a re-run after a new commit re-mints",
+      "verified": "verified by FAFF-1476 (PRs 1190 and 1192, merged): pr open mints from the main-checkout captured spec through mainCheckout; an unchanged head returns already-open and runs none of it",
+      "passed": true,
+      "ac_id": "faff-1475#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::scenario 2: mints from the main-checkout captured spec although the worktree spec and spec-commit.json were rewritten"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::an unchanged head with a tracked anchor returns already-open and runs no removal, mint or stamp"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::defaultDeps supplies the mint dependencies, and removeStale deletes a file"
+        }
+      ]
+    },
+    {
+      "ac": "`readAnchoredBytes` in `merge-gate-floor.js` returns the exact committed bytes (no trim, `maxBuffer` 64 MiB), falls back to an untrimmed Contents API decode, returns null without inline content, leaves `gitRun` and `resolveAnchorLevel` unchanged, and is not called by the floors until slice 2",
+      "verified": "verified by FAFF-1476 (PRs 1190 and 1192, merged): readAnchoredBytes returns exact committed bytes, falls back to an untrimmed Contents API decode and returns null without inline content",
+      "passed": true,
+      "ac_id": "faff-1475#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::scenario 7: exact committed bytes for a newline-ended file and an events.jsonl over 1 MiB"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::decodes the base64 content without trimming"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::returns null when the API gives no inline content"
+        }
+      ]
+    },
+    {
+      "ac": "Before every mint, `faff pr open` runs `git rm -f --ignore-unmatch` on `<dest>human-only-acs.json` and deletes the run-dir copy and any untracked destination copy through a new `removeStale` dependency (not the existing `removeFile`, which removes only the safe-body temp directory)",
+      "verified": "verified by FAFF-1476 (PRs 1190 and 1192, merged): each mint runs git rm -f --ignore-unmatch first and removes the run-dir and untracked destination copies through removeStale",
+      "passed": true,
+      "ac_id": "faff-1475#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::git rm runs with -f --ignore-unmatch --quiet on the destination copy"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::scenario 4: a later fault after a committed mint deletes the file from the new anchor commit"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::scenario 5: older untracked copies are replaced, and the committed file is the newly written one"
+        }
+      ]
+    },
+    {
+      "ac": "On any mint fault, including a null main checkout, an unreadable captured spec, a classify failure, an unreadable level and a writer failure, `faff pr open` warns, leaves neither copy in place, and still proceeds",
+      "verified": "verified by FAFF-1476 (PRs 1190 and 1192, merged): every listed mint fault warns, leaves neither copy and still proceeds",
+      "passed": true,
+      "ac_id": "faff-1475#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::scenario 3: an unreadable captured spec still opens the PR, warns, and leaves no file in the anchor"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::a dependency that throws is a warning that clears both copies"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::a writer failure warns and removes the run-dir copy again"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::a level outside L1..L4 warns and mints nothing"
+        }
+      ]
+    },
+    {
+      "ac": "`resolveIntegrity` and the mint both call `resolveUnattended`",
+      "verified": "verified by FAFF-1476 (PRs 1190 and 1192, merged): resolveIntegrity and the mint both call resolveUnattended and branch-6 behaviour is unchanged",
+      "passed": true,
+      "ac_id": "faff-1475#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::resolveIntegrity keeps its branch-6 outcome through the shared fact"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::L3 is unattended only when the config declares it"
+        }
+      ]
+    },
+    {
+      "ac": "With slice 1 only, `faff merge-gate` and `faff governance-check` results for a fixture anchored with and without the file are identical",
+      "verified": "verified by FAFF-1476 (PRs 1190 and 1192, merged): structural: no floor requires or calls the reader or helper, and the existing merge-gate tests pass unmodified (a with/without-file result comparison is not a separate test)",
+      "passed": true,
+      "ac_id": "faff-1475#done:14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::merge-gate-floor.js and governance-check.js are the two files that require the reader"
+        },
+        {
+          "kind": "command",
+          "locator": "node --test test/merge-gate*.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`evidence-documents.md` carries a `human-only-acs.json` row and a trust note that names the roster gap and FAFF-1478, in `verification/evidence/v0.3/` and in the regenerated plugin mirror; `anchor-manifest.md` says thirteen files and lists the new row",
+      "verified": "verified by FAFF-1476 (PRs 1190 and 1192, merged): evidence-documents.md carries the human-only-acs.json row and trust note in both trees and the compose check exits 0",
+      "passed": true,
+      "ac_id": "faff-1475#done:15",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c human-only-acs verification/evidence/v0.3/evidence-documents.md plugin/skills/faff/contracts/evidence-v0.3/evidence-documents.md"
+        },
+        {
+          "kind": "command",
+          "locator": "node scripts/evidence-v0.3-compose.mjs --check"
+        }
+      ]
+    },
+    {
+      "ac": "`faffter-noon-spec` and `faffter-dark-nlspec` each carry the one-bullet marker guidance in their DONE section",
+      "verified": "verified by FAFF-1476 (PRs 1190 and 1192, merged): both producer skills carry the one-bullet needs-human: guidance",
+      "passed": true,
+      "ac_id": "faff-1475#done:16",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c needs-human: plugin/skills/faffter-noon-spec/SKILL.md plugin/skills/faffter-dark-nlspec/SKILL.md"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "New tests in `test/` (not `--selftest`) cover every slice 1 scenario and run under `node --test`, in `test/faff-1475-human-only-acs.test.mjs`",
+      "verified": "verified by FAFF-1476 (PRs 1190 and 1192, merged): the slice 1 scenarios are covered under node --test in the named file (79 tests)",
+      "passed": true,
+      "ac_id": "faff-1475#done:17",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1475-human-only-acs.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "A reader unit test passes for a fixture file ending in a newline and a committed `events.jsonl` larger than 1 MiB: the SHA-256 of the bytes `readAnchoredBytes` returns equals the SHA-256 of the committed file, and a stubbed Contents API response decodes to the same bytes",
+      "verified": "verified by FAFF-1476 (PRs 1190 and 1192, merged): the reader digest check and readAnchoredBytes pass for a newline-ended file and an events.jsonl over 1 MiB, and the Contents API stub decodes to the same bytes",
+      "passed": true,
+      "ac_id": "faff-1475#done:18",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::scenario 7: exact committed bytes for a newline-ended file and an events.jsonl over 1 MiB"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::the digest covers the exact bytes, so a trimmed or re-encoded file fails"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::decodes the base64 content without trimming"
+        }
+      ]
+    },
+    {
+      "ac": "The manifest-count cases move out of the `evidence.js` selftest (line 1579) into `test/evidence-v0.3.test.mjs` (lines 50 and 79) and expect thirteen entries",
+      "verified": "verified by FAFF-1476 (PRs 1190 and 1192, merged): the manifest-count cases moved out of the evidence.js selftest into test/evidence-v0.3.test.mjs and expect thirteen entries",
+      "passed": true,
+      "ac_id": "faff-1475#done:19",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/evidence-v0.3.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "Each new or edited TypeScript module (`human-only-acs.ts`, `pr-open.ts`) has its committed `.js` emit and `build-manifest.json` regenerated, and `faff regions check` and `lint-cli-coverage` pass",
+      "verified": "verified by FAFF-1476 (PRs 1190 and 1192, merged): the emit and build-manifest.json are regenerated and regions check and lint-cli-coverage pass",
+      "passed": true,
+      "ac_id": "faff-1475#done:20",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gates run --json --resume"
+        }
+      ]
+    },
+    {
+      "ac": "The soak is evidenced before the floor change merges: this PR's description cites one merged PR whose anchor carries `human-only-acs.json` and a matching `human-only-acs-stamp` event, by PR number",
+      "verified": "the merged FAFF-1476 PR 1192 anchor carries human-only-acs.json and one matching human-only-acs-stamp event; cited in this PR's description",
+      "passed": true,
+      "ac_id": "faff-1475#done:21",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git show origin/main:.faff/anchors/run-20261115-213937-graft-FAFF-1476/FAFF-1476/events.jsonl | grep -c human-only-acs-stamp"
+        },
+        {
+          "kind": "command",
+          "locator": "git show origin/main:.faff/anchors/run-20261115-213937-graft-FAFF-1476/FAFF-1476/human-only-acs.json"
+        }
+      ]
+    },
+    {
+      "ac": "With an unattended anchored file whose stamp matches, every pending criterion in `human_only` with human-only verifications, and at least one passed criterion, no AC blocker fires, `ac_called_out` lists the pending ids, and `merge-record.json` carries them",
+      "verified": "unattended file with matching stamp: no AC blocker, ac_called_out lists the pending id, merge-record.json carries it",
+      "passed": true,
+      "ac_id": "faff-1475#done:22",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-ac-floor.test.mjs::an unattended pending human-only criterion with another passed criterion is skipped and listed"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-ac-floor.test.mjs::an anchored unattended file with a matching stamp lets the merge through and records the call-out"
+        }
+      ]
+    },
+    {
+      "ac": "With the file absent, `unattended` false, the reader returning null, a missing or mismatched stamp, an anchored level that disagrees with the file, or the level at L1 or L2, the AC blocker fires exactly as today and `ac_called_out` is `[]`",
+      "verified": "each fall-back case blocks with the AC blocker and an empty ac_called_out",
+      "passed": true,
+      "ac_id": "faff-1475#done:23",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-ac-floor.test.mjs::no human-only set, an attended set, or an unreadable checklist blocks as today"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-ac-floor.test.mjs::a file that says attended (L2, unattended false) blocks with the AC blocker"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-ac-floor.test.mjs::an anchored level that disagrees with the file blocks"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-ac-floor.test.mjs::a file edited after mint, so it no longer matches its stamp, blocks"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-ac-floor.test.mjs::a file with no stamp event blocks"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-ac-floor.test.mjs::no file in the anchor blocks as today"
+        }
+      ]
+    },
+    {
+      "ac": "A pending criterion outside `human_only`, without an `ac_id`, with a non-human verification, or with no passed criterion in the checklist keeps the AC blocker",
+      "verified": "an outside id, a missing ac_id, a non-human verification and no passed criterion each keep the blocker",
+      "passed": true,
+      "ac_id": "faff-1475#done:24",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-ac-floor.test.mjs::a pending criterion outside the human-only ids keeps the blocker"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-ac-floor.test.mjs::a pending criterion without an ac_id keeps the blocker"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-ac-floor.test.mjs::a pending criterion with a non-human or empty verification keeps the blocker"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-ac-floor.test.mjs::a checklist with no passed criterion keeps the blocker"
+        }
+      ]
+    },
+    {
+      "ac": "merge-gate, `merge-gate --local`, the already-merged reconcile and the governance-check anchor leg all decide through `readAcFloor`, and they agree for an L3 run declared unattended at mint and for one that was not; the `--local` case is covered on fixtures only",
+      "verified": "merge-gate, --local, the reconcile and the governance-check anchor leg all decide through readAcFloor and agree for an L3 run declared and not declared unattended",
+      "passed": true,
+      "ac_id": "faff-1475#done:25",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-ac-floor.test.mjs::merge-gate and governance-check agree on an L3 run declared unattended at mint"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-ac-floor.test.mjs::merge-gate and governance-check agree on an L3 run not declared unattended at mint"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-ac-floor.test.mjs::a skip is reported, and written to the merge record"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-ac-floor.test.mjs::an anchored unattended file at the PR head removes the AC blocker and lists the call-out"
+        }
+      ]
+    },
+    {
+      "ac": "The governance-check live-run-dir leg passes no `humanOnly` and blocks as today",
+      "verified": "the live run-dir leg passes no human-only set and blocks as today",
+      "passed": true,
+      "ac_id": "faff-1475#done:26",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-ac-floor.test.mjs::the live run-dir leg passes no human-only set and blocks as today"
+        }
+      ]
+    },
+    {
+      "ac": "Every merge-gate result that evaluates the AC leg carries `ac_called_out` as an array",
+      "verified": "the floor result and the reconcile result carry ac_called_out as an array",
+      "passed": true,
+      "ac_id": "faff-1475#done:27",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-ac-floor.test.mjs::a clean merge records no ac_called_out and reports an empty list"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-ac-floor.test.mjs::without a human-only set it refuses with the AC blocker and writes nothing"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-ac-floor.test.mjs::an attended file at the PR head blocks with the AC blocker"
+        }
+      ]
+    },
+    {
+      "ac": "The governance-check leg's failure text stays \"ac-checklist.json missing/incomplete\" and the merge-gate legs' stays \"ACs not all verified\"",
+      "verified": "the governance leg keeps its own failure text and merge-gate keeps ACs not all verified",
+      "passed": true,
+      "ac_id": "faff-1475#done:28",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-ac-floor.test.mjs::with the file deleted from the anchor the leg fails with its own reason"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-ac-floor.test.mjs::no file in the anchor blocks as today"
+        }
+      ]
+    },
+    {
+      "ac": "`run-summary` renders `## Shipped (human-only ACs called out)` from `merge-record.json`, applies the stated precedence, and names called-out ids in any higher-precedence line for the same issue",
+      "verified": "run summary renders the called-out section from merge-record.json with the stated precedence and names the ids in a higher-precedence line",
+      "passed": true,
+      "ac_id": "faff-1475#done:29",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-surfacing.test.mjs::a called-out issue is listed in its own section and is absent from the auto-merged one"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-surfacing.test.mjs::an issue appears under exactly one shipped subsection: post-merge flagged outranks called out, which outranks adversarial skipped"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-surfacing.test.mjs::a higher-precedence line for a called-out issue names its called-out ids"
+        }
+      ]
+    },
+    {
+      "ac": "The governance-check text output names called-out ids when the leg passes by skip",
+      "verified": "governance-check text output names the called-out ids on a skip pass",
+      "passed": true,
+      "ac_id": "faff-1475#done:30",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-ac-floor.test.mjs::the text output names the called-out ids"
+        }
+      ]
+    },
+    {
+      "ac": "Graft Step 8, graft Step 9b and beep-boop's shipped-subsection list describe the rule, and `faff validate-adapters` and the prose-size ratchet pass",
+      "verified": "graft Step 8, Step 9b and beep-boop's shipped list describe the rule; validate-adapters and the prose ratchet pass",
+      "passed": true,
+      "ac_id": "faff-1475#done:31",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        },
+        {
+          "kind": "command",
+          "locator": "grep -c human-only plugin/skills/faff-graft/SKILL.md plugin/skills/faff-beep-boop/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "If any graft or beep-boop sentence is deleted rather than reworded, this spec's PR carries a `## Rule inventory` with a row per deleted rule and `faff rule-inventory check` passes",
+      "verified": "no sentence was deleted, only appended to; the rule-inventory check passes",
+      "passed": true,
+      "ac_id": "faff-1475#done:32",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff rule-inventory check"
+        }
+      ]
+    },
+    {
+      "ac": "`ac-checklist.schema.json` is byte-identical to before and `action.yml` has no new input",
+      "verified": "ac-checklist.schema.json and action.yml are byte-identical to main",
+      "passed": true,
+      "ac_id": "faff-1475#done:33",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --exit-code origin/main -- plugin/skills/faff/contracts/evidence-v0.3/schema/ac-checklist.schema.json verification/evidence/v0.3/schema/ac-checklist.schema.json action.yml"
+        }
+      ]
+    },
+    {
+      "ac": "`holdout-record.js` and `contract-defs-registry.js` are unchanged",
+      "verified": "holdout-record.js and contract-defs-registry.js are unchanged",
+      "passed": true,
+      "ac_id": "faff-1475#done:34",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --exit-code origin/main -- plugin/skills/faff/bin/lib/holdout-record.js plugin/skills/faff/bin/lib/contract-defs-registry.js"
+        }
+      ]
+    },
+    {
+      "ac": "New tests in `test/` (not `--selftest`) cover every slice 2 scenario and run under `node --test`: `test/faff-1475-ac-floor.test.mjs` and `test/faff-1475-surfacing.test.mjs`",
+      "verified": "every slice 2 scenario is covered under node --test in the two named files (43 tests)",
+      "passed": true,
+      "ac_id": "faff-1475#done:35",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1475-ac-floor.test.mjs test/faff-1475-surfacing.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "The existing tests at `test/merge-gate-local.test.mjs:166` and `test/merge-gate-controlflow.test.mjs:277` still pass unmodified",
+      "verified": "the existing local and controlflow merge-gate tests pass unmodified",
+      "passed": true,
+      "ac_id": "faff-1475#done:36",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/merge-gate-local.test.mjs test/merge-gate-controlflow.test.mjs"
+        },
+        {
+          "kind": "command",
+          "locator": "git diff --exit-code origin/main -- test/merge-gate-local.test.mjs test/merge-gate-controlflow.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "Each new or edited TypeScript module (`run-summary.ts`, and `human-only-acs.ts` if slice 2 touches it) has its committed `.js` emit and `build-manifest.json` regenerated, and `faff regions check` and `lint-cli-coverage` pass",
+      "verified": "run-summary.ts has its committed emit and manifest; regions check and lint-cli-coverage pass",
+      "passed": true,
+      "ac_id": "faff-1475#done:37",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-coverage"
+        }
+      ]
+    }
+  ]
+}

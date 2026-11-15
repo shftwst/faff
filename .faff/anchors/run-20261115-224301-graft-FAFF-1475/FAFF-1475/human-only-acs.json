@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1475",
+  "level": "L2",
+  "unattended": false,
+  "human_only": []
+}

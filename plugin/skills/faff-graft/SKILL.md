@@ -308,7 +308,7 @@ The **full suite + lint** backstop already ran once as Step 7.5's UNIT and LINT 
 The PR description's `## Acceptance Criteria` block is printed by `faff evidence render ac-checklist` from the written anchor. Never hand-write it.
 
 - **Source.** Take the AC list from `faff dod classify --spec <spec> --issue <ISSUE> --json` (`<spec>` is the worktree file at the `path` from `spec verify`): its `done` criteria in order, each with `text` and the qualified `ac_id` (for example `faff-1287#ac-3`).
-- **Verify and note.** Tick each AC as its verification passes, with a one-line `verified` note (test result, or command + observed result). An AC that cannot be auto-verified (visual, subjective, auth-required) stays unticked with `"Needs human verification: <reason>"`.
+- **Verify and note.** Tick each AC as its verification passes, with a one-line `verified` note (test result, or command + observed result). An AC that cannot be auto-verified (visual, subjective, auth-required) stays unticked with `"Needs human verification: <reason>"`. A classify row with `human_only` is never ticked by the builder and is recorded with `{ "kind": "human" }`; an unattended merge skips only those rows, so any other unverified AC still blocks it.
 - **Record methods.** `verifications` lists each method used: `{ "kind": "test", "locator": "<file>::<test title>" }` (repo-relative file, the test's own title), `{ "kind": "command", "locator": "<exact command>" }`, or `{ "kind": "human" }` (no locator).
 - **Secrets.** A `command` locator names a secret by environment variable (`$TOKEN`), never by value. It is committed in the anchor and published in the PR body.
 
@@ -473,7 +473,7 @@ Reached **only** when Step 9 returned `pass`: the single PR-creation point, the 
   --body-file <draft> [--spec-review-evidence <evidence file>] --json
 ```
 
-It refuses unless the review verdict is `pass`, runs the governed-run check, writes `spec-review-verdict.json`, sanitizes and checks the body (Linear auto-transitions every tracker identifier a PR body carries, so only the target keeps one), then mints, commits and pushes the anchor, publishes the recovery bundle, drives the governed pr-create grant and opens a regular PR through the `pr-create` chokepoint. The anchor precedes the PR, so a crash never strands a review-passed PR whose head lacks it, and CI fires first at PR open. Route on `token`:
+It refuses unless the review verdict is `pass`, runs the governed-run check, writes `spec-review-verdict.json`, sanitizes and checks the body (Linear auto-transitions every tracker identifier a PR body carries, so only the target keeps one), then mints, commits and pushes the anchor, publishes the recovery bundle, drives the governed pr-create grant and opens a regular PR through the `pr-create` chokepoint. The anchor precedes the PR, so a crash never strands a review-passed PR whose head lacks it, and CI fires first at PR open. Route on `token`: (the same call writes `human-only-acs.json` from the captured spec, the set an unattended merge may skip)
 
 | `token` | Action |
 |---|---|

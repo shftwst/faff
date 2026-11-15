@@ -26,7 +26,9 @@ function append(directory, event) {
   try { writeSync(fd, JSON.stringify(event) + '\n'); fsyncSync(fd); } finally { closeSync(fd); }
 }
 
-export function createCommandAdapter({ binding, directory, tracker, maxCalls = 16, invoke = invokeCandidateCommand }) {
+export const COMMAND_LIMITS = Object.freeze({ timeoutMs: 5000, maxInputBytes: 1024 * 1024, maxOutputBytes: 1024 * 1024, maxCalls: 16 });
+
+export function createCommandAdapter({ binding, directory, tracker, limits = COMMAND_LIMITS, maxCalls = limits.maxCalls, invoke = invokeCandidateCommand }) {
   if (!Number.isSafeInteger(maxCalls) || maxCalls < 1) throw new Error('invalid command call limit');
   return { async call(input) {
     const prior = readCommandEvents(directory);
@@ -39,7 +41,7 @@ export function createCommandAdapter({ binding, directory, tracker, maxCalls = 1
         throw new Error('session finished; no further calls are accepted');
       }
       if (call_seq > maxCalls) throw new CommandInputError('command call limit exceeded', 'command-call-limit');
-      result = invoke(binding, input);
+      result = invoke(binding, input, limits);
     } catch (error) {
       const modelError = error instanceof CommandInputError;
       result = { plan: null, evidence: { error: error.message, reason: modelError ? error.reason : 'command-refused', refused: !modelError, elapsed_ms: 0 } };

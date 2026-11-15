@@ -50,7 +50,7 @@ export async function handleMessage(tracker, message, log = () => {}, command = 
 
 export function serve(directory, input = process.stdin, output = process.stdout, commandBinding = null) {
   const tracker = createFixtureTracker({ directory });
-  const command = commandBinding ? createCommandAdapter({ binding: commandBinding, directory, tracker }) : null;
+  const command = commandBinding ? createCommandAdapter({ binding: commandBinding.binding ?? commandBinding, limits: commandBinding.limits, directory, tracker }) : null;
   const log = entry => appendFileSync(join(directory, 'tool-calls.jsonl'), JSON.stringify({ at: new Date().toISOString(), ...entry }) + '\n');
   const lines = createInterface({ input });
   let queue = Promise.resolve();

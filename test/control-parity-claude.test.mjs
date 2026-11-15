@@ -221,6 +221,39 @@ const proxyWith = async ({ upstream = fakeUpstream([]), mode = 'forward', allowa
   return { proxy, ledger, dir, upstream, stops };
 };
 
+test('runtime settings and tool definitions cannot change on a later provider turn', async () => {
+  for (const mutate of [b => { b.system = 'changed instructions'; }, b => { b.tools[0].input_schema = { type: 'object' }; }]) {
+    const upstream = fakeUpstream([]);
+    const { proxy, stops } = await proxyWith({ upstream });
+    try {
+      await (await post(proxy.url, request())).text();
+      const changed = request(); mutate(changed);
+      await (await post(proxy.url, changed)).text();
+      assert.equal(upstream.seen.length, 1);
+      assert.deepEqual(stops, ['runtime-changed']);
+    } finally { await proxy.close(); }
+  }
+});
+
+test('a failed response stream retains partial provider usage and holds its reservation', async () => {
+  const partial = sse([START(), DELTA]);
+  const upstream = async () => ({ status: 200, headers: { 'content-type': 'text/event-stream' }, body: (async function* () {
+    yield Buffer.from(partial);
+    throw Object.assign(new Error('connection closed'), { code: 'ECONNRESET' });
+  })() });
+  const { proxy, ledger, stops, dir } = await proxyWith({ upstream });
+  try {
+    await (await post(proxy.url, request())).text();
+    const summary = proxy.summary();
+    assert.equal(summary.requests[0].usage.input_tokens, 10);
+    assert.equal(summary.requests[0].usage.cache_creation.ephemeral_1h_input_tokens, 100);
+    assert.equal(summary.requests[0].cost_nanos, null);
+    assert.equal(ledger.entries()[0].state, 'held');
+    assert.deepEqual(stops, ['upstream-stream-error']);
+    assert.equal(readFileSync(join(dir, 'requests/001.response.txt'), 'utf8'), partial);
+  } finally { await proxy.close(); }
+});
+
 test('the proxy forwards, meters provider usage and reconciles the reservation', async () => {
   const { proxy, ledger, dir, upstream } = await proxyWith();
   try {

@@ -53,10 +53,14 @@ Task 2 while the release condition is pending. Keep strict comparison unchanged;
 a separate report classifies narrow declared differences and candidate conformance.
 
 - [x] Test a fixture-only command adapter and command-invocation evidence.
-- [ ] Bind source/artifact hashes, arm tool definitions and complete schedule.
-- [ ] Add paired CLI entry, source-drift and deliberate mutant tests.
-- [ ] Run deterministic harness checks and obtain Claude's independent review.
-- [ ] Commit the reviewed candidate before model admission.
+- [x] Bind source/artifact hashes, arm tool definitions and complete schedule.
+- [x] Add paired CLI entry, source-drift and deliberate mutant tests.
+- [x] Run deterministic harness checks and obtain Claude's independent review.
+- [ ] Bind the production candidate from Task 2 before model admission.
+
+The reviewed harness has 171 passing deterministic tests. It can be committed
+independently of production changes. `planner-boundaries.md` records proposals
+for the unresolved input boundaries, not additional operator decisions.
 
 ### Task 4: Reduce caller prose and verify it in Claude Code
 

@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "decisions_sha256": "02f9589094ced73fa4633dd383674404c5dcce135be3a34c56f597de9a41ae22",
+  "historical_run_sha256": "368708e38a6c3c8f3a567bf48886df5dfedd1a801c2a9e86b368c0ee5310b4ab",
+  "entries": [
+    {
+      "scenario": "author-not-preferred",
+      "input_sha256": "b52eece352297aa7f3859685b9ae2b4154cbc75cb3b20377093b11418ac38a2e",
+      "policy_sha256": "4d9d01e702294453cf16233feefe265e18ab5e376bf7d0f1eec40cb3f534edb6",
+      "candidate_expected_sha256": "5d5c1125093810e5a781694226460714dea38bc2d522f1a589cc8751071de523",
+      "baseline_projection_sha256": "3f2097834a983acb056c1ecf7c809475256a80d10ed6c93e822e30131f545bc7",
+      "decision": "author-preference",
+      "reason": "Select by listing and timestamp order without authorship preference.",
+      "candidate_projection_sha256": "1cdd720ee4b8ecd8d2243a33bca2e1f30beb8b69e19049bf48cdac1f67a6b4a6"
+    },
+    {
+      "scenario": "indented-and-trailing-whitespace",
+      "input_sha256": "3a670b48f4184ba4beccc07ee1d348763318b2e14f76535a9fed2b3e40412bf3",
+      "policy_sha256": "4d9d01e702294453cf16233feefe265e18ab5e376bf7d0f1eec40cb3f534edb6",
+      "candidate_expected_sha256": "9a59659dc5ec800622bb8e1818aa3397aa6b66a058e807542a22728be22d3c9d",
+      "baseline_projection_sha256": "65cbc16b1bb0bacc32695f0be3286a1b0080f463d7fd3889b14638132a786bcc",
+      "decision": "indented-marker",
+      "reason": "Ignore indented marker lines while accepting trailing whitespace.",
+      "candidate_projection_sha256": "4106bc04b4a603870a832675b026e225e6264c7342c0692b5dd0359c2f779437"
+    },
+    {
+      "scenario": "timestamp-ties",
+      "input_sha256": "4a353597cf9471890764e58680251330a0e115358c841360bce1e10d6a522686",
+      "policy_sha256": "4d9d01e702294453cf16233feefe265e18ab5e376bf7d0f1eec40cb3f534edb6",
+      "candidate_expected_sha256": "2370905bc91f9cc0d5be6057a4df7d60a89f68f34afe29f5d60551b94d998269",
+      "baseline_projection_sha256": "194159c453b86085cd28f19ff47a6642babc81ff6116c4be99813d31f2cbb0ab",
+      "decision": "equal-or-missing-created-at",
+      "reason": "Keep listing order for tied timestamps and place missing timestamps last.",
+      "candidate_projection_sha256": "b5c6aae830798c0645f86c2c017bfa2a4746fd8046ef56bda0d6e57339dd7156"
+    },
+    {
+      "scenario": "crlf-outside-region",
+      "input_sha256": "ad9a88356eb8082755fc3473ee02c076f9770bc7d15342cfb337741b1d8f4620",
+      "policy_sha256": "4d9d01e702294453cf16233feefe265e18ab5e376bf7d0f1eec40cb3f534edb6",
+      "candidate_expected_sha256": "325ded13fe104ad4777eab712adf479410edebcc90e837dccc2b7fa7414a1e65",
+      "baseline_projection_sha256": "b4214f6bf7e74dd9cad2e952828805a3acd2c7330415be5b44c38477c5c9397b",
+      "decision": "line-ending-normalisation",
+      "reason": "Preserve CRLF bytes outside the replaced region.",
+      "candidate_projection_sha256": "cd93c83a7f6340a6ef9b082d57105ddf0f9a1a5bf51a2280b056b1372d23eb93"
+    }
+  ]
+}

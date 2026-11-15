@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "whole::part 1 ships without the pr open mint",
+      "title": "Part 1 ships without the pr open mint",
+      "location": "whole diff",
+      "action": "Land the mint as part 2 and keep FAFF-1476 open.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The split into two PRs was chosen by the operator because the base-commit validator rejects an anchor carrying the new event type before main knows it. The mint ships as part 2; FAFF-1476 stays open until it merges.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Part 1 ships without the pr open mint",
+          "location": "whole diff",
+          "severity": "major",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/admissibility.js::dodclassify misses needs-human: when the ac id falls back to positional",
+      "title": "dodClassify misses needs-human: when the ac id falls back to positional",
+      "location": "plugin/skills/faff/bin/lib/admissibility.js",
+      "action": "Tolerate a leading [ac-N] in the marker match.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Fails closed: the item stays literal and human_only false, so a run is not skipped wrongly. Slice 2 owns the surfacing.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "dodClassify misses needs-human: when the ac id falls back to positional",
+          "location": "plugin/skills/faff/bin/lib/admissibility.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/evidence.js::stamp-failure rollback deletes whatever sits at the target path",
+      "title": "Stamp-failure rollback deletes whatever sits at the target path",
+      "location": "plugin/skills/faff/bin/lib/evidence.js",
+      "action": "Delete only if the bytes still hash to this write.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "Single-writer path matches the spec; the concurrent case fails closed because the reader returns null.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Stamp-failure rollback deletes whatever sits at the target path",
+          "location": "plugin/skills/faff/bin/lib/evidence.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/helpers/evidence-anchor-fixtures.mjs::fixture seeds a human-only-acs.json whose level contradicts the ledger",
+      "title": "Fixture seeds a human-only-acs.json whose level contradicts the ledger",
+      "location": "test/helpers/evidence-anchor-fixtures.mjs",
+      "action": "Seed a level matching the fixture ledger.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "No slice 1 test depends on it; slice 2 floor tests will seed their own consistent fixture.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Fixture seeds a human-only-acs.json whose level contradicts the ledger",
+          "location": "test/helpers/evidence-anchor-fixtures.mjs",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/evidence.js::dead constant human_only_acs_levels",
+      "title": "Dead constant HUMAN_ONLY_ACS_LEVELS",
+      "location": "plugin/skills/faff/bin/lib/evidence.js",
+      "action": "Drop the constant.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Removed in d0e1351e.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Dead constant HUMAN_ONLY_ACS_LEVELS",
+          "location": "plugin/skills/faff/bin/lib/evidence.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/human-only-acs.ts::reader does not cross-check a stamp's data.issue",
+      "title": "Reader does not cross-check a stamp's data.issue",
+      "location": "plugin/skills/faff/bin/lib/human-only-acs.ts",
+      "action": "Reject a stamp whose data.issue differs.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Reader now treats a mismatched data.issue as a mismatch, with a test, in d0e1351e.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Reader does not cross-check a stamp's data.issue",
+          "location": "plugin/skills/faff/bin/lib/human-only-acs.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "records/specs/2026-11-15-FAFF-1476-design.md::committed spec record lacks a trailing newline",
+      "title": "Committed spec record lacks a trailing newline",
+      "location": "records/specs/2026-11-15-FAFF-1476-design.md",
+      "action": "Add a trailing newline.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The spec is committed byte for byte from the captured spec and its digest is checked, so it is not edited.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Committed spec record lacks a trailing newline",
+          "location": "records/specs/2026-11-15-FAFF-1476-design.md",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

@@ -300,20 +300,31 @@ function dodClassify(specText, opts) {
   const markerTiers = [];                                       // FAFF-961: parallel to criteria — the explicit-marker tier (or null) per criterion
   const scenBody = sectionBody(specText, SCENARIOS_HEADING_RE, { extraStop: scenariosBoundaryStop });
   if (scenBody != null) {
-    for (const u of classifyAcceptanceCriteria(scenBody)) { criteria.push({ text: u.text, class: u.kind, source: "scenarios", holdout: u.holdout }); markerTiers.push(u.tier || null); }
+    for (const u of classifyAcceptanceCriteria(scenBody)) { criteria.push({ text: u.text, class: u.kind, source: "scenarios", holdout: u.holdout, human_only: false }); markerTiers.push(u.tier || null); }
   }
   const doneAdvisories = [];
   const doneItems = assignLocalAcIds(parseDoneChecklist(specText));
-  for (const { text: t } of doneItems) {
+  const emptyHumanMarkers = [];
+  for (const { text: item } of doneItems) {
+    let t = item;
+    // FAFF-1476: a DONE item beginning `needs-human: <reason>` is human-only. The marker is stripped before
+    // classification; an empty reason is no marker (text stays literal, advisory below).
+    const hm = /^needs-human:[ \t]*(.*)$/i.exec(t);
+    const humanOnly = hm !== null && hm[1].trim() !== "";
+    if (humanOnly) t = hm[1].trim();
+    else if (hm !== null) emptyHumanMarkers.push(t);
     // FAFF-275: DONE mirrors the body 1:1 and is NEVER withheld (the closed-loop rule — a withheld
     // DONE item would silently break graft's AC checklist + the merge-gate floor). A `holdout:`-prefixed
     // DONE item is left LITERAL (no strip, holdout stays false) and draws an advisory, never a strip/removal.
     if (/^holdout:\s*/i.test(t)) doneAdvisories.push(t);
-    criteria.push({ text: t, class: classifyCriterion(t), source: "done", holdout: false });
+    criteria.push({ text: t, class: classifyCriterion(t), source: "done", holdout: false, human_only: humanOnly });
     markerTiers.push(null);                                     // FAFF-961: DONE items carry no tier marker (mirrors the holdout-literal rule); the FAFF-1360 code-surface step, then keyword/default, still apply below
   }
   for (const t of doneAdvisories) {
     process.stderr.write(`dod classify: DONE item begins "holdout:" but DONE items are never withheld (marker ignored, text kept literal): ${t.replace(/\s+/g, " ").slice(0, 60)}\n`);
+  }
+  for (const t of emptyHumanMarkers) {
+    process.stderr.write(`dod classify: DONE item begins "needs-human:" with no reason (marker ignored, text kept literal): ${t.replace(/\s+/g, " ").slice(0, 60)}\n`);
   }
   const counts = { scenario: 0, assertion: 0, prose: 0 };
   for (const c of criteria) counts[c.class]++;
@@ -334,7 +345,7 @@ function dodClassify(specText, opts) {
   const verification_tier_counts = { "running-stack": 0, integration: 0, delegated: 0 };
   for (let i = 0; i < criteria.length; i++) {
     const c = criteria[i];
-    c.verification_tier = resolveVerificationTier(c.text, markerTiers[i], c);
+    c.verification_tier = c.human_only ? "delegated" : resolveVerificationTier(c.text, markerTiers[i], c);
     c.verifier = TIER_VERIFIER[c.verification_tier];
     verification_tier_counts[c.verification_tier]++;
   }

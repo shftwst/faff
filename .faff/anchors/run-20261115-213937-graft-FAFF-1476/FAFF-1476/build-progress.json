@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1476",
+  "build": {
+    "status": "complete",
+    "diff_hash": "e95dfb0fb3d6789090fc40b38bdef5b183e04592532aeb35e2bd4e92ae5b9277",
+    "branch": "FAFF-1476-pr-open-mint",
+    "pushed_at": "2026-11-15T21:51:26.011Z"
+  },
+  "updated_at": "2026-11-15T21:51:26.011Z"
+}

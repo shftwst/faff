@@ -1895,7 +1895,7 @@ function mintIssueAnchor(runDir, issue, destDir) {
   // spec-review evidence (objections + dispositions). Best-effort, never required: it is legitimately
   // absent for a clean first-round approve, a git-only spec without the block, or an outage-resumed
   // path, so it is NOT added to the FAFF-1155 floor-incomplete required guard.
-  const optionalFloorFiles = ["ac-checklist.json", "review-verdict.json", "spec-review-verdict.json", "holdout.json", "build-progress.json", "landing-progress.json"];
+  const optionalFloorFiles = ["ac-checklist.json", "review-verdict.json", "spec-review-verdict.json", "holdout.json", "build-progress.json", "landing-progress.json", "human-only-acs.json"];
   const issueDir = path.join(runDir, issue);
   const copiedFloorFiles = [];
   for (const f of optionalFloorFiles) {

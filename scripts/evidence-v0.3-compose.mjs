@@ -35,7 +35,8 @@ const S = { type: "string" };
 const I = { type: "integer" };
 
 // Schema-1 lines are legacy and frozen as slice 1 published them (data open).
-const SCHEMA_1_EVENT_TYPES = DELIVERY_PROFILE.event_types.filter((t) => t !== "evidence-terminal-only");
+const SCHEMA_2_ONLY_EVENT_TYPES = ["evidence-terminal-only", "human-only-acs-stamp"];
+const SCHEMA_1_EVENT_TYPES = DELIVERY_PROFILE.event_types.filter((t) => !SCHEMA_2_ONLY_EVENT_TYPES.includes(t));
 
 const readJson = (p) => JSON.parse(readFileSync(p, "utf8"));
 const serialise = (doc) => JSON.stringify(doc, null, 2) + "\n";

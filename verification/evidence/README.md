@@ -82,6 +82,12 @@ cross-link rather than merge.
 
 ## Changelog
 
+- **v0.3 — 2026-11-15 (FAFF-1476, current).** Adds `human-only-acs.json` as a thirteenth
+  manifest entry (`versioned_by: "field"`) with its closed `human-only-acs` schema, and the
+  `human-only-acs-stamp` event type (28 event types), whose `data.sha256` is the digest of the
+  exact bytes of the file. `faff evidence write human-only-acs` writes both. Additive under the
+  draft rule: every committed anchor that validated still gives the same result, and nothing
+  reads the file to decide a merge yet.
 - **v0.3 — 2026-10-17 (FAFF-1261, current, slice 6).** v0.3 freezes and becomes current: the
   per-PR mint (`faff events anchor`) validates a staged anchor and refuses one that fails its
   schema, and the governance-check Action's `evidence-schema` input defaults to `require`. The

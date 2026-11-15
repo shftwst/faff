@@ -1367,7 +1367,8 @@ export function frontierDriver(args = {}) {
 
 // Preset: local — the SAME `claude -p` path with ollama's Anthropic-API env redirect + --model.
 // `baseUrl` is REQUIRED — there is deliberately no localhost default (ollama is served over Tailscale).
-export function localOpts({ baseUrl, model, bin = "claude", bare = true, pluginDir = DEFAULT_PLUGIN_DIR } = {}) {
+// `authToken` defaults to $LOCAL_API_KEY for gateways that reject ollama's placeholder token.
+export function localOpts({ baseUrl, model, bin = "claude", bare = true, pluginDir = DEFAULT_PLUGIN_DIR, authToken = process.env.LOCAL_API_KEY || "ollama" } = {}) {
   if (!baseUrl) throw new Error("localDriver requires a baseUrl (the ollama host); no localhost default");
   return {
     bin,
@@ -1376,7 +1377,7 @@ export function localOpts({ baseUrl, model, bin = "claude", bare = true, pluginD
     bare,
     pluginDir,
     forwardCreds: false, // FAFF-138 SECURITY: never copy the real Anthropic credential to the ollama host
-    env: { ANTHROPIC_BASE_URL: baseUrl, ANTHROPIC_AUTH_TOKEN: "ollama", ANTHROPIC_API_KEY: "" },
+    env: { ANTHROPIC_BASE_URL: baseUrl, ANTHROPIC_AUTH_TOKEN: authToken, ANTHROPIC_API_KEY: "" },
   };
 }
 export function localDriver(args = {}) {

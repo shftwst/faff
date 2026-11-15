@@ -186,10 +186,10 @@ function foldMergeFloorAuthority(mountGate, digestVerify) {
 }
 
 // The forge-surface path set for a run: the corrective-artifact dir + run-ledger.json
-// (FAFF-373), PLUS — when `issue` is given — the five per-issue evidence members:
-// the three merge-floor artifacts F1's audit fold added (FAFF-325):
+// (FAFF-373), PLUS — when `issue` is given — the six per-issue evidence members:
+// the four merge-floor artifacts F1's audit fold added (FAFF-325, and FAFF-1478 for the last):
 // <run-dir>/<issue>/ac-checklist.json, <run-dir>/<issue>/review-verdict.json,
-// <run-dir>/<issue>/holdout.json, and (FAFF-751, ADR-0077 Decision 7 delivered) the
+// <run-dir>/<issue>/holdout.json, <run-dir>/<issue>/human-only-acs.json, and (FAFF-751, ADR-0077 Decision 7 delivered) the
 // two merge-tail records now written on the trusted side after slices 1–2 relocated
 // their writers above the dispatch cut: <run-dir>/<issue>/merge-record.json and
 // <run-dir>/<issue>/post-merge-verification.json. Omitting `issue` (the L4 run-start

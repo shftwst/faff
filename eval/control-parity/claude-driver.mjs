@@ -144,6 +144,8 @@ export function parseStreamJson(text) {
   return {
     records,
     malformed,
+    stream_error: records.some(r => r.type === 'system' && r.subtype === 'api_retry') ? 'cli-retry'
+      : records.some(r => r.type === 'error' || (r.type === 'assistant' && r.message?.model === '<synthetic>' && r.error)) ? 'cli-stream-error' : null,
     requests: [...byId.values()],
     served_models: [...new Set([...byId.values()].map(r => r.model).filter(Boolean))],
     result,
@@ -250,6 +252,7 @@ export async function runClaudeScenario({
     ?? (record.exit?.signal ? 'signal' : null)
     ?? (record.exit?.code !== 0 ? 'process-exit' : null)
     ?? (cli.malformed.length ? 'malformed-output' : null)
+    ?? cli.stream_error
     ?? (!cli.result ? 'missing-result' : null)
     ?? (cli.result.is_error ? 'cli-error' : null);
   record.stop = reason ? { reason } : null;

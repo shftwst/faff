@@ -29,6 +29,7 @@ export async function handleMessage(tracker, message, log = () => {}) {
     const name = params?.name;
     const args = params?.arguments ?? {};
     if (!TOOL_NAMES.includes(name)) {
+      tracker.recordViolation('unknown-tool', typeof name === 'string' ? name : '<missing>', args);
       log({ name, arguments: args, isError: true, error: 'unknown-tool' });
       return reply(id, text(`unknown tool ${name}`, true));
     }

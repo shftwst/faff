@@ -212,6 +212,42 @@ test('calls after finish are refused and do not reach the tracker', async () => 
   assert.deepEqual(t.events.map(e => e.kind), ['terminal']);
 });
 
+test('swallowing a post-finish write error cannot make a completed operation pass', async () => {
+  const t = await capture('create-when-absent', async ctx => {
+    const result = await control('create-when-absent')(ctx);
+    await assert.rejects(ctx.ports.create_comment({ issue_id: ctx.input.issue_id, body: 'late write' }), /finished/);
+    return result;
+  });
+  assert.equal(validateTrace(t, entry('create-when-absent'), registry).status, 'incomplete');
+  assert.equal(t.stop.reason, 'post-finish-call');
+  assert.match(readFileSync(join(t.__directory, 'events.jsonl'), 'utf8'), /post-finish-call/);
+  assert.equal(createFixtureTracker({ directory: t.__directory }).readState().creates, 1);
+});
+
+test('a swallowed invalid finish is retained even when the driver later completes correctly', async () => {
+  const t = await capture('create-when-absent', async ctx => {
+    await assert.rejects(ctx.ports.finish({ status: 'done', reason: 'created' }), /status/);
+    return control('create-when-absent')(ctx);
+  });
+  assert.equal(validateTrace(t, entry('create-when-absent'), registry).status, 'incomplete');
+  assert.equal(t.stop.reason, 'invalid-finish');
+});
+
+for (const [name, call] of [
+  ['read', ctx => ctx.ports.list_comments({ issue_id: ctx.input.issue_id })],
+  ['second finish', ctx => ctx.ports.finish({ status: 'completed', reason: 'created' })],
+]) {
+  test(`a post-finish ${name} remains visible when the driver swallows the error`, async () => {
+    const t = await capture('create-when-absent', async ctx => {
+      const result = await control('create-when-absent')(ctx);
+      await assert.rejects(call(ctx), /finished/);
+      return result;
+    });
+    assert.equal(validateTrace(t, entry('create-when-absent'), registry).status, 'incomplete');
+    assert.equal(t.stop.reason, 'post-finish-call');
+  });
+}
+
 test('finish rejects a status or reason outside the visible vocabulary', async () => {
   await capture('create-when-absent', async ({ ports }) => {
     await assert.rejects(ports.finish({ status: 'done', reason: 'created' }), /status/);

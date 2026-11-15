@@ -51,7 +51,7 @@ const mergeMax = (into, from) => {
 };
 
 export function parseSse(text) {
-  const out = { id: null, model: null, usage: null, stop_reason: null, complete: false, malformed: 0 };
+  const out = { id: null, model: null, usage: null, stop_reason: null, complete: false, malformed: 0, stream_error: false };
   try {
     const message = JSON.parse(text);
     if (message?.type === 'message') return { ...out, id: message.id, model: message.model, usage: message.usage ?? null, stop_reason: message.stop_reason, complete: Boolean(message.usage) };
@@ -74,8 +74,9 @@ export function parseSse(text) {
       out.usage = mergeMax(out.usage ?? {}, event.usage);
       out.stop_reason = event.delta?.stop_reason ?? out.stop_reason;
     } else if (event.type === 'message_stop') stop = true;
+    else if (event.type === 'error') out.stream_error = true;
   }
-  out.complete = start && delta && stop && out.malformed === 0;
+  out.complete = start && delta && stop && out.malformed === 0 && !out.stream_error;
   return out;
 }
 
@@ -203,7 +204,8 @@ export async function startProxy({ model, effort, limits, pricing, ledger, allow
     Object.assign(entry, { id: parsed.id, served_model: parsed.model, usage: parsed.usage });
     entry.cost_nanos = parsed.complete ? costNanos(parsed.usage, pricing) : null;
     ledger.reconcile(reservationId, entry.cost_nanos);
-    if (!parsed.complete) stop('usage-missing');
+    if (parsed.stream_error) stop('upstream-stream-error');
+    else if (!parsed.complete) stop('usage-missing');
     else if (entry.cost_nanos === null) stop('pricing-unknown');
     else if (parsed.model !== model) stop('served-model-mismatch');
     res.end();

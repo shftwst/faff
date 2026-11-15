@@ -74,7 +74,29 @@ const seededOrder = (seed, items) => [...items].sort((a, b) => sha256(`${seed}:$
 function loadInputs(toolsRoot) {
   const registry = validateRegistry(readJson(join(toolsRoot, 'eval/control-parity/registry.json')));
   const fixtures = readJson(join(toolsRoot, 'eval/control-parity/fixtures/review-comments.json'));
-  return { registry, fixtures: new Map(fixtures.scenarios.map(s => [s.id, s])) };
+  const expected = readJson(join(toolsRoot, 'eval/control-parity/expected-outcomes.json'));
+  return { registry, fixtures: new Map(fixtures.scenarios.map(s => [s.id, s])), fixtureEntries: fixtures.scenarios, expected };
+}
+
+function inputProblems(inputs, policyBytes) {
+  const { registry, fixtures, fixtureEntries, expected } = inputs;
+  const problems = [];
+  if (fixtures.size !== fixtureEntries.length) problems.push('duplicate fixture identity');
+  const known = new Set(registry.scenarios.map(s => s.id));
+  for (const id of fixtures.keys()) if (!known.has(id)) problems.push(`unexpected fixture ${id}`);
+  for (const id of Object.keys(expected.scenarios)) if (!known.has(id)) problems.push(`unexpected expectation ${id}`);
+  for (const s of registry.scenarios) {
+    const fixture = fixtures.get(s.id);
+    if (!fixture || canonicalHash(fixture) !== s.input_sha256) problems.push(`${s.id}: fixture input hash differs from registry`);
+    if (sha256(policyBytes) !== s.policy_sha256) problems.push(`${s.id}: policy hash differs from registry`);
+    const outcome = expected.scenarios[s.id];
+    if (!outcome || canonicalHash(outcome.effects) !== canonicalHash(s.expected.effects)
+      || canonicalHash(outcome.terminal) !== canonicalHash(s.expected.terminal)
+      || canonicalHash(outcome.final_comments) !== s.expected.final_state_sha256) {
+      problems.push(`${s.id}: expected outcomes differ from registry`);
+    }
+  }
+  return problems;
 }
 
 export function prepareExperiment({ sourceRoot, toolsRoot = sourceRoot, pinnedCommit, settings, limits = DEFAULT_LIMITS, out, seed = randomBytes(16).toString('hex'), repetitions = 1, probe = probeClaude }) {
@@ -161,7 +183,9 @@ export async function preflight(manifest, { out, probe = probeClaude, liveProbe 
   const reasons = [];
   const current = bindings({ sourceRoot: manifest.source.root, toolsRoot: manifest.tools.root, pinnedCommit: manifest.source.pinned_commit });
   reasons.push(...bindingProblems(manifest, current));
-  const { registry, fixtures } = loadInputs(manifest.tools.root);
+  const inputs = loadInputs(manifest.tools.root);
+  const { registry, fixtures } = inputs;
+  reasons.push(...inputProblems(inputs, loadPolicyBytes(manifest.source.root)));
   const scheduled = manifest.schedule.attempts.map(a => a.scenario);
   for (const s of registry.scenarios) {
     if (!fixtures.has(s.id)) reasons.push(`fixture missing for ${s.id}`);
@@ -213,6 +237,8 @@ function assertLaunchable(manifest, readiness) {
   if (readiness?.status !== READY || readiness.manifest_sha256 !== canonicalHash(manifest)) throw new Error('readiness does not match this manifest or is not ready');
   const problems = bindingProblems(manifest, bindings({ sourceRoot: manifest.source.root, toolsRoot: manifest.tools.root, pinnedCommit: manifest.source.pinned_commit }));
   if (problems.length) throw new Error(`bindings changed since readiness: ${problems.join('; ')}`);
+  const inputs = inputProblems(loadInputs(manifest.tools.root), loadPolicyBytes(manifest.source.root));
+  if (inputs.length) throw new Error(`invalid experiment inputs: ${inputs.join('; ')}`);
 }
 
 function attemptEvidence(dir, userPrompt) {
@@ -308,6 +334,7 @@ export async function runBaseline(manifest, readiness, { out, driverFactory = cl
 
 export async function runPairs(manifest, baselineRoot, candidateRoot, readiness, { out, driverFactory = claudeDriverFactory, clock = Date.now, promptBytesFor = loadPolicyBytes } = {}) {
   assertLaunchable(manifest, readiness);
+  if (manifest.schedule.attempts.length * 2 > manifest.limits.attempts) throw new Error('paired schedule exceeds the total attempt limit');
   freshDirectory(out);
   writeNew(join(out, 'manifest.json'), manifest);
   const { registry, fixtures } = loadInputs(manifest.tools.root);

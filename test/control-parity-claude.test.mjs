@@ -38,6 +38,18 @@ test('an SSE stream without its final delta is incomplete and has no cost', () =
   assert.equal(costNanos(null, OPUS_5_5_PRICING), null);
 });
 
+test('an in-stream provider error cannot be hidden by a later message stop', async () => {
+  const body = sse([START(), DELTA, { type: 'error', error: { type: 'overloaded_error', message: 'interrupted' } }, STOP]);
+  assert.equal(parseSse(body).complete, false);
+  const { proxy, ledger, stops } = await proxyWith({ upstream: fakeUpstream([{ status: 200, body }]) });
+  try {
+    await (await post(proxy.url, request())).text();
+    assert.equal(proxy.summary().usage_complete, false);
+    assert.equal(ledger.blocked(), true);
+    assert.deepEqual(stops, ['upstream-stream-error']);
+  } finally { await proxy.close(); }
+});
+
 test('unpriced usage dimensions make cost unknown rather than zero', () => {
   const base = parseSse(CAPTURED).usage;
   for (const extra of [{ speed: 'fast' }, { inference_geo: 'eu' }, { server_tool_use: { web_search_requests: 1 } }]) {
@@ -324,6 +336,13 @@ test('the tool server lists exactly the fixture ports', async () => {
   assert.equal(await handleMessage(tracker, { jsonrpc: '2.0', method: 'notifications/initialized' }), null);
 });
 
+test('an unknown tool attempt is preserved by the recorder', async () => {
+  const tracker = createFixtureTracker({ directory: trackerDir() });
+  const response = await handleMessage(tracker, { id: 1, method: 'tools/call', params: { name: 'run_shell', arguments: { command: 'ignored' } } });
+  assert.equal(response.result.isError, true);
+  assert.ok(tracker.readEvents().some(e => e.kind === 'protocol-violation' && e.reason === 'unknown-tool' && e.op === 'run_shell'));
+});
+
 test('tool calls reach the recorder and tracker errors return as tool errors', async () => {
   const dir = trackerDir();
   const tracker = createFixtureTracker({ directory: dir });
@@ -333,7 +352,7 @@ test('tool calls reach the recorder and tracker errors return as tool errors', a
   assert.equal(bad.result.isError, true);
   const unknown = await handleMessage(tracker, { jsonrpc: '2.0', id: 5, method: 'tools/call', params: { name: 'run_shell', arguments: {} } });
   assert.equal(unknown.result.isError, true);
-  assert.deepEqual(createFixtureTracker({ directory: dir }).readEvents().map(e => e.kind), ['effect-attempt', 'effect-result', 'effect-attempt', 'effect-result']);
+  assert.deepEqual(createFixtureTracker({ directory: dir }).readEvents().map(e => e.kind), ['effect-attempt', 'effect-result', 'effect-attempt', 'effect-result', 'protocol-violation']);
 });
 
 // --- process lifecycle ----------------------------------------------------------------------
@@ -381,6 +400,16 @@ test('a clean run returns provider accounting and records the attempt', async ()
   assert.equal(record.exit.code, 0);
   assert.equal(record.stop, null);
 });
+
+for (const [name, record, reason] of [
+  ['retry', { type: 'system', subtype: 'api_retry', attempt: 1, max_retries: 10, retry_delay_ms: 1000, error_status: 529 }, 'cli-retry'],
+  ['synthetic error', { type: 'assistant', error: 'unknown', message: { id: 'synthetic-error', model: '<synthetic>', role: 'assistant', content: [{ type: 'text', text: 'API Error: interrupted' }] } }, 'cli-stream-error'],
+]) {
+  test(`a CLI ${name} cannot be hidden by a later success result`, async () => {
+    const { result } = await runFake(fakeProcess({ stdout: JSON.stringify(record) + '\n' + SUCCESS_STDOUT }));
+    assert.equal(result.stop?.reason, reason);
+  });
+}
 
 for (const [name, proc, reason] of [
   ['a non-zero exit', fakeProcess({ stdout: SUCCESS_STDOUT, code: 1 }), 'process-exit'],

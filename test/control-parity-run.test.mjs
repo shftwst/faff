@@ -41,10 +41,10 @@ const goodCapture = (repo) => ({
 });
 const tmpOut = name => join(mkdtempSync(join(tmpdir(), 'cp-run-out-')), name);
 const env = { CLAUDE_CODE_OAUTH_TOKEN: 'present' };
-const prepared = () => {
+const prepared = ({ limits = LIMITS } = {}) => {
   const repo = makeRepo();
   const out = tmpOut('prepare');
-  const manifest = prepareExperiment({ sourceRoot: repo.dir, toolsRoot: repo.dir, pinnedCommit: repo.pinned, settings: SETTINGS, limits: LIMITS, out, seed: 'fixed-seed', probe: fakeProbe });
+  const manifest = prepareExperiment({ sourceRoot: repo.dir, toolsRoot: repo.dir, pinnedCommit: repo.pinned, settings: SETTINGS, limits, out, seed: 'fixed-seed', probe: fakeProbe });
   return { repo, manifest, manifestPath: join(out, 'manifest.json') };
 };
 const ready = async ({ manifest, repo }, extra = {}) => preflight(manifest, { out: tmpOut('preflight'), probe: fakeProbe, liveProbe: async () => goodCapture(repo.dir), env, ...extra });
@@ -122,6 +122,39 @@ test('a missing required case blocks launch', async () => {
   assert.equal(readiness.status, 'not_ready');
   assert.match(readiness.reasons.join(' '), /schedule/);
 });
+
+test('a fixture committed before preparation cannot bypass its independent registry hash', async () => {
+  const repo = makeRepo();
+  commitChange(repo.dir, 'eval/control-parity/fixtures/review-comments.json', s => s.replace('Looks good to me', 'Altered input'));
+  const manifest = prepareExperiment({ sourceRoot: repo.dir, toolsRoot: repo.dir, pinnedCommit: repo.pinned, settings: SETTINGS, limits: LIMITS, out: tmpOut('changed-fixture'), seed: 'fixed', probe: fakeProbe });
+  let probes = 0;
+  const readiness = await ready({ repo, manifest }, { liveProbe: async () => { probes++; return goodCapture(repo.dir); } });
+  assert.equal(readiness.status, 'not_ready');
+  assert.match(readiness.reasons.join(' '), /fixture.*hash|input.*hash/);
+  assert.equal(probes, 0, 'invalid inputs must be rejected before invoking Claude');
+});
+
+test('eleven pairs require twenty-two admitted attempts before any driver runs', async () => {
+  const p = prepared();
+  let calls = 0;
+  const driverFactory = ctx => { calls++; return scripted()(ctx); };
+  await assert.rejects(runPairs(p.manifest, p.repo.dir, p.repo.dir, await ready(p), { out: tmpOut('too-many-pairs'), driverFactory }), /attempt limit/);
+  assert.equal(calls, 0);
+});
+
+for (const [name, path, mutate, pattern] of [
+  ['policy', 'plugin/skills/faff/references/review.md', s => s.replace('Never delete', 'Do not delete'), /policy hash/],
+  ['oracle', 'eval/control-parity/expected-outcomes.json', s => s.replace('Steering note:', 'Altered note:'), /expected outcomes/],
+]) {
+  test(`a ${name} changed before preparation is checked against the independent registry`, async () => {
+    const repo = makeRepo();
+    commitChange(repo.dir, path, mutate);
+    const manifest = prepareExperiment({ sourceRoot: repo.dir, toolsRoot: repo.dir, pinnedCommit: git(repo.dir, 'rev-parse', 'HEAD'), settings: SETTINGS, limits: LIMITS, out: tmpOut('changed-input'), probe: fakeProbe });
+    const readiness = await ready({ repo, manifest }, { liveProbe: async () => { assert.fail('invalid inputs reached the capture probe'); } });
+    assert.equal(readiness.status, 'not_ready');
+    assert.match(readiness.reasons.join(' '), pattern);
+  });
+}
 
 test('capture evaluation names each failed expectation', () => {
   const repo = makeRepo().dir;
@@ -214,7 +247,7 @@ test('readiness from another manifest, or a stale one, cannot launch a batch', a
 });
 
 test('paired runs execute both arms fresh with identical settings and report by the comparator', async () => {
-  const p = prepared();
+  const p = prepared({ limits: { ...LIMITS, attempts: 22 } });
   const readiness = await ready(p);
   const both = await runPairs(p.manifest, p.repo.dir, p.repo.dir, readiness, { out: tmpOut('pairs'), driverFactory: scripted() });
   assert.equal(both.comparison.status, 'pass');
@@ -259,7 +292,7 @@ test('a request without usage makes token totals and the cache stratum unknown, 
 });
 
 test('paired arms in different cache strata are reported as separate strata', async () => {
-  const p = prepared();
+  const p = prepared({ limits: { ...LIMITS, attempts: 22 } });
   const warm = [{ usage: { input_tokens: 1, output_tokens: 1, cache_read_input_tokens: 100, cache_creation_input_tokens: 0 }, cost_nanos: 1 }];
   const cold = [{ usage: { input_tokens: 1, output_tokens: 1, cache_read_input_tokens: 0, cache_creation_input_tokens: 100 }, cost_nanos: 1 }];
   const report = await runPairs(p.manifest, p.repo.dir, p.repo.dir, await ready(p), { out: tmpOut('strata'), driverFactory: ctx => withEvidence(ctx.arm === 'baseline' ? warm : cold)(ctx) });

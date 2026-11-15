@@ -62,15 +62,19 @@ export function createFixtureTracker({ directory, initialState, issueId, faults 
   const readState = () => JSON.parse(readFileSync(statePath, 'utf8'));
   const readEvents = () => readFileSync(eventsPath, 'utf8').split('\n').filter(Boolean).map(line => JSON.parse(line));
   const record = event => appendDurable(eventsPath, { seq: readEvents().length + 1, ...event });
+  const recordViolation = (reason, op, args) => record({ kind: 'protocol-violation', reason, op, args: jsonSafe(args) });
 
-  const open = () => {
+  const open = (op, args) => {
     const state = readState();
-    if (state.finished) throw new TrackerError('session finished; no further calls are accepted');
+    if (state.finished) {
+      recordViolation('post-finish-call', op, args);
+      throw new TrackerError('session finished; no further calls are accepted');
+    }
     return state;
   };
 
   const effect = async (op, args, keys, apply) => {
-    const state = open();
+    const state = open(op, args);
     const n = (state.op_counts[op] ?? 0) + 1;
     state.op_counts[op] = n;
     writeAtomic(statePath, state);
@@ -101,7 +105,7 @@ export function createFixtureTracker({ directory, initialState, issueId, faults 
 
   const ports = {
     async list_comments(args) {
-      const state = open();
+      const state = open('list_comments', args);
       if (!exactStrings(args, ['issue_id'])) {
         record({ kind: 'read', op: 'list_comments', args: jsonSafe(args), result: { error: 'invalid-arguments' } });
         throw new TrackerError('invalid arguments; expected string field issue_id');
@@ -127,10 +131,14 @@ export function createFixtureTracker({ directory, initialState, issueId, faults 
       return { value: { id: args.id } };
     }),
     async finish(args) {
-      const state = open();
-      if (!exactStrings(args, ['status', 'reason'])) throw new TrackerError('invalid arguments; expected string fields status, reason');
-      if (!STATUSES.includes(args.status)) throw new TrackerError(`status must be one of ${STATUSES.join(', ')}`);
-      if (!REASON_CODES.includes(args.reason)) throw new TrackerError(`reason must be one of ${REASON_CODES.join(', ')}`);
+      const state = open('finish', args);
+      const error = !exactStrings(args, ['status', 'reason']) ? 'invalid arguments; expected string fields status, reason'
+        : !STATUSES.includes(args.status) ? `status must be one of ${STATUSES.join(', ')}`
+        : !REASON_CODES.includes(args.reason) ? `reason must be one of ${REASON_CODES.join(', ')}` : null;
+      if (error) {
+        recordViolation('invalid-finish', 'finish', args);
+        throw new TrackerError(error);
+      }
       state.finished = { status: args.status, reason: args.reason };
       writeAtomic(statePath, state);
       record({ kind: 'terminal', status: args.status, reason: args.reason });
@@ -138,7 +146,7 @@ export function createFixtureTracker({ directory, initialState, issueId, faults 
     },
   };
 
-  return { ports, readState, readEvents, close() {} };
+  return { ports, readState, readEvents, recordViolation, close() {} };
 }
 
 const MISSING_ACCOUNTING = Object.freeze({ usage_complete: false, served_models: [], requests: 0 });
@@ -160,7 +168,10 @@ export async function captureScenario({ driver, fixture, registryEntry, director
   const observed = createFixtureTracker({ directory });
   const state = observed.readState();
   const finalHash = finalStateHash(state);
-  const events = observed.readEvents()
+  const recorded = observed.readEvents();
+  const violation = recorded.find(e => e.kind === 'protocol-violation');
+  if (violation && !stop) stop = { reason: violation.reason };
+  const events = recorded
     .filter(e => TRACE_KINDS.has(e.kind))
     .map((e, i) => (e.kind === 'terminal' ? { ...e, seq: i + 1, final_state_sha256: finalHash } : { ...e, seq: i + 1 }));
   if (!stop && !events.some(e => e.kind === 'terminal')) stop = { reason: 'no-terminal' };

@@ -1,0 +1,40 @@
+{
+  "verified_at": "2026-11-14T23:28:39.553Z",
+  "commit": "f767bdd1c0a78f6259c335742c1567a074f512a0",
+  "source_files_verified": 1759,
+  "skill_files_verified": 41,
+  "contiguous_blocks_verified": 6793,
+  "totals": {
+    "files": 41,
+    "bytes": 1371305,
+    "est_tokens": 339730,
+    "blocks": 6793
+  },
+  "historical_unique_requests": 843,
+  "cache_write_buckets_reconcile": true,
+  "historical_cost_reproduced": {
+    "cost": 132.913,
+    "byModel": {
+      "claude-opus-4-8": 132.909
+    },
+    "legs": {
+      "read": 77.539,
+      "write": 30.467,
+      "input": 0.008,
+      "output": 24.898
+    }
+  },
+  "replay_records": 128,
+  "replay_actual_runs": 16,
+  "graded_decisions": 40,
+  "unobserved_kernels": [
+    "claim-verdict",
+    "park-verdict",
+    "project-next",
+    "queue-state",
+    "run-outward",
+    "run-start"
+  ],
+  "source_unchanged": true,
+  "source_archive_skill_files_verified": 41
+}

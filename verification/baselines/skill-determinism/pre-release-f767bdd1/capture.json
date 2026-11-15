@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "started_at": "2026-11-14T23:22:42.996Z",
+  "finished_at": "2026-11-14T23:22:44.711Z",
+  "commit": "f767bdd1c0a78f6259c335742c1567a074f512a0",
+  "tree": "19f6b889c270200d0c786f2d19b1f095c758901b",
+  "root": "/Users/shftwst/.codex/worktrees/a713/faff",
+  "operator_root": "/Users/shftwst/workspace/shftwst/faff",
+  "node": "v22.23.4",
+  "os": {
+    "platform": "linux",
+    "release": "7.2.9-orbstack-00391-g2b298d05fbd4",
+    "arch": "arm64"
+  },
+  "command": [
+    "/usr/local/bin/node",
+    "/Users/shftwst/workspace/shftwst/faff/verification/baselines/skill-determinism/pre-release-f767bdd1/capture.mjs",
+    "/Users/shftwst/.codex/worktrees/a713/faff",
+    "/Users/shftwst/workspace/shftwst/faff/eval/skill-audit.mjs",
+    "/Users/shftwst/workspace/shftwst/faff/verification/baselines/skill-determinism/pre-release-f767bdd1",
+    "/Users/shftwst/workspace/shftwst/faff"
+  ],
+  "source_status_before": "",
+  "source_status_after": "",
+  "analysis_tool": {
+    "original_path": "/Users/shftwst/workspace/shftwst/faff/eval/skill-audit.mjs",
+    "original_sha256": "f2a34121c311bd9bacaec4a7611c02be5b072fa8e34ba44869d90d0d6554d1de",
+    "bound_sha256": "ec9e92bb63d968e788a2939d8a67e23111ff4c04ac129631417aa33246ac73c2",
+    "binding": "Only two import paths replaced with file URLs into the pinned source. All inventory calls pass the source root explicitly."
+  },
+  "archive": {
+    "path": "source.tar.gz",
+    "sha256": "1c7f6faa89ba3394fb833bcca8d0f56e7e6bf46d32fa66152cac3c1b8e579b26",
+    "scope": "Tracked plugin, scripts, eval, tests, CI workflows, contributor guidance and skill authoring standard."
+  },
+  "historical_evidence": {
+    "root": "/Users/shftwst/workspace/shftwst/faff",
+    "storage": "Local original workspace; absent from clean worktree. Raw sources individually hashed in historical-cost.json. Content-free parsed request usage retained in historical-usage.jsonl."
+  },
+  "limitations": [
+    "Static tokens use ceil(JS string length / 4).",
+    "No paid model call, live tracker write or install mutation.",
+    "No candidate arm exists, so no measured migration savings or behavioural parity claim.",
+    "Historical cost uses repository rates, not current pricing or invoices."
+  ]
+}

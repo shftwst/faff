@@ -1,0 +1,19 @@
+{
+  "HEAD": "f767bdd1c0a78f6259c335742c1567a074f512a0",
+  "node": "v22.23.4",
+  "recorded_at": "2026-11-14T21:33:02.321Z",
+  "source_hashes": [
+    {
+      "path": "eval/skill-audit.mjs",
+      "sha256": "f2a34121c311bd9bacaec4a7611c02be5b072fa8e34ba44869d90d0d6554d1de"
+    },
+    {
+      "path": "eval/control-parity.mjs",
+      "sha256": "b790f1a992477231d2ce11d0caf4afa1fc50e4d0fca54a596c1c342a37d81f81"
+    },
+    {
+      "path": "plugin/skills/faff/bin/lib/shadow-fidelity.js",
+      "sha256": "5f4a5226fc6ccec3417ad488ccc557451da969a993e6d172903c8bf9cc163ec1"
+    }
+  ]
+}

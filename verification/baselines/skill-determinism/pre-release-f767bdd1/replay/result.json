@@ -1,0 +1,554 @@
+{
+  "record_count": 128,
+  "null_result": false,
+  "null_reason": null,
+  "in_scope_kernels": [
+    "claim-verdict",
+    "eligible",
+    "next",
+    "park-verdict",
+    "project-next",
+    "queue-state",
+    "run-done",
+    "run-outward",
+    "run-start"
+  ],
+  "coverage": {
+    "replayable": 75,
+    "uncovered": 0,
+    "missing_input": 0
+  },
+  "matrix": {
+    "claim-verdict": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "eligible": {
+      "agreement": 7,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 7
+    },
+    "next": {
+      "agreement": 18,
+      "harmless": 0,
+      "wasteful": 14,
+      "wrong": 0,
+      "denominator": 32
+    },
+    "park-verdict": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "project-next": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "queue-state": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "run-done": {
+      "agreement": 1,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 1
+    },
+    "run-outward": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "run-start": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    }
+  },
+  "divergences": [
+    {
+      "kernel": "next",
+      "prescribed": "prep",
+      "actual": "graft",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-162841-beepboop-list-36511a",
+      "seq": 7
+    },
+    {
+      "kernel": "next",
+      "prescribed": "prep",
+      "actual": "graft",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-162841-beepboop-list-36511a",
+      "seq": 8
+    },
+    {
+      "kernel": "next",
+      "prescribed": "graft",
+      "actual": "none",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-162841-beepboop-list-36511a",
+      "seq": 13
+    },
+    {
+      "kernel": "next",
+      "prescribed": "graft",
+      "actual": "none",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-162841-beepboop-list-36511a",
+      "seq": 14
+    },
+    {
+      "kernel": "next",
+      "prescribed": "graft",
+      "actual": "none",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-162841-beepboop-list-36511a",
+      "seq": 15
+    },
+    {
+      "kernel": "next",
+      "prescribed": "graft",
+      "actual": "needs-human",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-185215-beepboop-list-1456d4",
+      "seq": 6
+    },
+    {
+      "kernel": "next",
+      "prescribed": "graft",
+      "actual": "none",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-185215-beepboop-list-1456d4",
+      "seq": 7
+    },
+    {
+      "kernel": "next",
+      "prescribed": "graft",
+      "actual": "none",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-185215-beepboop-list-1456d4",
+      "seq": 8
+    },
+    {
+      "kernel": "next",
+      "prescribed": "graft",
+      "actual": "none",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-185215-beepboop-list-1456d4",
+      "seq": 9
+    },
+    {
+      "kernel": "next",
+      "prescribed": "graft",
+      "actual": "none",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-185806-beepboop-list-620a46",
+      "seq": 5
+    },
+    {
+      "kernel": "next",
+      "prescribed": "graft",
+      "actual": "none",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-185806-beepboop-list-620a46",
+      "seq": 6
+    },
+    {
+      "kernel": "next",
+      "prescribed": "graft",
+      "actual": "none",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-185806-beepboop-list-620a46",
+      "seq": 7
+    },
+    {
+      "kernel": "next",
+      "prescribed": "graft",
+      "actual": "none",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-185806-beepboop-list-620a46",
+      "seq": 8
+    },
+    {
+      "kernel": "next",
+      "prescribed": "graft",
+      "actual": "needs-human",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-192721-beepboop-list-c7df54",
+      "seq": 6
+    }
+  ],
+  "exclusions": {
+    "version_skew": [],
+    "input_uncaptured": [],
+    "replay_error": [],
+    "verdict_skew": []
+  },
+  "missing_input_records": [],
+  "uncovered_records": [],
+  "out_of_scope_records": [],
+  "action_uncaptured": [
+    {
+      "kernel": "run-outward",
+      "correlation_id": "",
+      "run_id": "run-20261026-031227-fly-l3",
+      "seq": 89
+    },
+    {
+      "kernel": "run-outward",
+      "correlation_id": "",
+      "run_id": "run-20261026-031227-fly-l3",
+      "seq": 90
+    },
+    {
+      "kernel": "run-outward",
+      "correlation_id": "",
+      "run_id": "run-20261026-031227-fly-l3",
+      "seq": 91
+    },
+    {
+      "kernel": "run-start",
+      "correlation_id": "",
+      "run_id": "run-20261026-031227-fly-l3",
+      "seq": 92
+    },
+    {
+      "kernel": "run-outward",
+      "correlation_id": "",
+      "run_id": "run-20261026-031227-fly-l3",
+      "seq": 93
+    },
+    {
+      "kernel": "run-start",
+      "correlation_id": "",
+      "run_id": "run-20261026-031227-fly-l3",
+      "seq": 94
+    },
+    {
+      "kernel": "run-outward",
+      "correlation_id": "",
+      "run_id": "run-20261026-031227-fly-l3",
+      "seq": 95
+    },
+    {
+      "kernel": "run-start",
+      "correlation_id": "",
+      "run_id": "run-20261026-031227-fly-l3",
+      "seq": 96
+    },
+    {
+      "kernel": "run-start",
+      "correlation_id": "",
+      "run_id": "run-20261026-031227-fly-l3",
+      "seq": 97
+    },
+    {
+      "kernel": "run-outward",
+      "correlation_id": "",
+      "run_id": "run-20261026-031227-fly-l3",
+      "seq": 98
+    },
+    {
+      "kernel": "run-start",
+      "correlation_id": "",
+      "run_id": "run-20261026-031227-fly-l3",
+      "seq": 99
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "run-20261026-213652-beepboop-list-31f750/FAFF-1403/eligible/1",
+      "run_id": "run-20261026-213652-beepboop-list-31f750",
+      "seq": 5
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "run-20261026-213652-beepboop-list-31f750/FAFF-1403/next/1",
+      "run_id": "run-20261026-213652-beepboop-list-31f750",
+      "seq": 6
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "run-20261027-024440-beepboop-list-fa4ec4/FAFF-1306/eligible/2",
+      "run_id": "run-20261027-024440-beepboop-list-fa4ec4",
+      "seq": 4
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "run-20261027-024440-beepboop-list-fa4ec4/FAFF-1306/next/2",
+      "run_id": "run-20261027-024440-beepboop-list-fa4ec4",
+      "seq": 5
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "run-20261027-024440-beepboop-list-fa4ec4/FAFF-1403/eligible/2",
+      "run_id": "run-20261027-024440-beepboop-list-fa4ec4",
+      "seq": 6
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "run-20261027-024440-beepboop-list-fa4ec4/FAFF-1403/next/2",
+      "run_id": "run-20261027-024440-beepboop-list-fa4ec4",
+      "seq": 7
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "run-20261027-162841-beepboop-list-36511a/FAFF-1318/eligible/2",
+      "run_id": "run-20261027-162841-beepboop-list-36511a",
+      "seq": 10
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "run-20261027-185215-beepboop-list-1456d4/FAFF-1318/eligible/2",
+      "run_id": "run-20261027-185215-beepboop-list-1456d4",
+      "seq": 10
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "run-20261027-185215-beepboop-list-1456d4/FAFF-1292/eligible/1",
+      "run_id": "run-20261027-185215-beepboop-list-1456d4",
+      "seq": 11
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "run-20261027-185215-beepboop-list-1456d4/FAFF-1207/eligible/1",
+      "run_id": "run-20261027-185215-beepboop-list-1456d4",
+      "seq": 12
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "run-20261027-185215-beepboop-list-1456d4/FAFF-1205/eligible/1",
+      "run_id": "run-20261027-185215-beepboop-list-1456d4",
+      "seq": 13
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "run-20261027-185806-beepboop-list-620a46/FAFF-1318/eligible/2",
+      "run_id": "run-20261027-185806-beepboop-list-620a46",
+      "seq": 9
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "run-20261027-190707-beepboop-list-906233/FAFF-1318/eligible/2",
+      "run_id": "run-20261027-190707-beepboop-list-906233",
+      "seq": 6
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "run-20261027-191213-beepboop-list-fe15ad/FAFF-1318/next/1",
+      "run_id": "run-20261027-191213-beepboop-list-fe15ad",
+      "seq": 6
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "run-20261027-191213-beepboop-list-fe15ad/FAFF-1318/eligible/2",
+      "run_id": "run-20261027-191213-beepboop-list-fe15ad",
+      "seq": 7
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "run-20261027-191711-beepboop-list-7a746f/FAFF-1318/next/1",
+      "run_id": "run-20261027-191711-beepboop-list-7a746f",
+      "seq": 5
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "run-20261027-191711-beepboop-list-7a746f/FAFF-1318/eligible/1",
+      "run_id": "run-20261027-191711-beepboop-list-7a746f",
+      "seq": 6
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "run-20261027-191711-beepboop-list-7a746f/FAFF-1292/next/1",
+      "run_id": "run-20261027-191711-beepboop-list-7a746f",
+      "seq": 7
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "run-20261027-191711-beepboop-list-7a746f/FAFF-1292/eligible/1",
+      "run_id": "run-20261027-191711-beepboop-list-7a746f",
+      "seq": 8
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "run-20261027-191711-beepboop-list-7a746f/FAFF-1207/next/1",
+      "run_id": "run-20261027-191711-beepboop-list-7a746f",
+      "seq": 9
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "run-20261027-191711-beepboop-list-7a746f/FAFF-1207/eligible/1",
+      "run_id": "run-20261027-191711-beepboop-list-7a746f",
+      "seq": 10
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "run-20261027-191711-beepboop-list-7a746f/FAFF-1205/next/1",
+      "run_id": "run-20261027-191711-beepboop-list-7a746f",
+      "seq": 11
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "run-20261027-191711-beepboop-list-7a746f/FAFF-1205/eligible/1",
+      "run_id": "run-20261027-191711-beepboop-list-7a746f",
+      "seq": 12
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "run-20261027-192721-beepboop-list-c7df54/FAFF-1318/eligible/1",
+      "run_id": "run-20261027-192721-beepboop-list-c7df54",
+      "seq": 5
+    }
+  ],
+  "set_aside": [
+    {
+      "command": "decision-capture",
+      "classification": "decision-kernel-not-replayable",
+      "reason": "the instrumentation itself, not a decision the shadow would replay",
+      "captured_count": 0
+    },
+    {
+      "command": "park-reconsider",
+      "classification": "decision-kernel-not-replayable",
+      "reason": "set aside per the state-authority map + registry derivation",
+      "captured_count": 0
+    },
+    {
+      "command": "regions",
+      "classification": "instrumented-non-decision-kernel",
+      "reason": "instrumented but classified harness-and-skill-orchestration by the state-authority map, not a coordinator-transition decision",
+      "captured_count": 0
+    },
+    {
+      "command": "run-ledger",
+      "classification": "decision-kernel-not-replayable",
+      "reason": "record-mint entry (a record writer), not a pure prescribe-an-action predicate",
+      "captured_count": 0
+    },
+    {
+      "command": "shadow-fidelity",
+      "classification": "decision-kernel-not-replayable",
+      "reason": "set aside per the state-authority map + registry derivation",
+      "captured_count": 0
+    },
+    {
+      "command": "state",
+      "classification": "decision-kernel-not-replayable",
+      "reason": "read-model producer, not a prescribe-an-action predicate — no verdict to compare against selected_action",
+      "captured_count": 0
+    },
+    {
+      "command": "tier",
+      "classification": "instrumented-non-decision-kernel",
+      "reason": "instrumented but classified software-delivery-policy by the state-authority map, not a coordinator-transition decision",
+      "captured_count": 0
+    }
+  ],
+  "map_source": "state-authority-map",
+  "cost": {
+    "note": "cost is a recorded observation joined to the corpus by run_id, NOT a content-addressed reproducible output; the corpus digest covers only the decision-capture records",
+    "artifacts_present": false,
+    "run_ids": [
+      "run-20261026-031227-fly-l3",
+      "run-20261026-165441-beepboop-list-c8818e",
+      "run-20261026-213652-beepboop-list-31f750",
+      "run-20261026-214540-beepboop-list-9d5e07",
+      "run-20261027-024440-beepboop-list-fa4ec4",
+      "run-20261027-025421-beepboop-list-1f19c0",
+      "run-20261027-030828-beepboop-list-9fd3e4",
+      "run-20261027-032405-beepboop-list-88c035",
+      "run-20261027-065425-beepboop-list-d4c19d",
+      "run-20261027-162841-beepboop-list-36511a",
+      "run-20261027-185215-beepboop-list-1456d4",
+      "run-20261027-185806-beepboop-list-620a46",
+      "run-20261027-190707-beepboop-list-906233",
+      "run-20261027-191213-beepboop-list-fe15ad",
+      "run-20261027-191711-beepboop-list-7a746f",
+      "run-20261027-192721-beepboop-list-c7df54"
+    ],
+    "runs": {
+      "run-20261026-031227-fly-l3": {
+        "available": false,
+        "reason": "run-ledger.json absent (gitignored / not on this checkout)"
+      },
+      "run-20261026-165441-beepboop-list-c8818e": {
+        "available": false,
+        "reason": "run-ledger.json absent (gitignored / not on this checkout)"
+      },
+      "run-20261026-213652-beepboop-list-31f750": {
+        "available": false,
+        "reason": "run-ledger.json absent (gitignored / not on this checkout)"
+      },
+      "run-20261026-214540-beepboop-list-9d5e07": {
+        "available": false,
+        "reason": "run-ledger.json absent (gitignored / not on this checkout)"
+      },
+      "run-20261027-024440-beepboop-list-fa4ec4": {
+        "available": false,
+        "reason": "run-ledger.json absent (gitignored / not on this checkout)"
+      },
+      "run-20261027-025421-beepboop-list-1f19c0": {
+        "available": false,
+        "reason": "run-ledger.json absent (gitignored / not on this checkout)"
+      },
+      "run-20261027-030828-beepboop-list-9fd3e4": {
+        "available": false,
+        "reason": "run-ledger.json absent (gitignored / not on this checkout)"
+      },
+      "run-20261027-032405-beepboop-list-88c035": {
+        "available": false,
+        "reason": "run-ledger.json absent (gitignored / not on this checkout)"
+      },
+      "run-20261027-065425-beepboop-list-d4c19d": {
+        "available": false,
+        "reason": "run-ledger.json absent (gitignored / not on this checkout)"
+      },
+      "run-20261027-162841-beepboop-list-36511a": {
+        "available": false,
+        "reason": "run-ledger.json absent (gitignored / not on this checkout)"
+      },
+      "run-20261027-185215-beepboop-list-1456d4": {
+        "available": false,
+        "reason": "run-ledger.json absent (gitignored / not on this checkout)"
+      },
+      "run-20261027-185806-beepboop-list-620a46": {
+        "available": false,
+        "reason": "run-ledger.json absent (gitignored / not on this checkout)"
+      },
+      "run-20261027-190707-beepboop-list-906233": {
+        "available": false,
+        "reason": "run-ledger.json absent (gitignored / not on this checkout)"
+      },
+      "run-20261027-191213-beepboop-list-fe15ad": {
+        "available": false,
+        "reason": "run-ledger.json absent (gitignored / not on this checkout)"
+      },
+      "run-20261027-191711-beepboop-list-7a746f": {
+        "available": false,
+        "reason": "run-ledger.json absent (gitignored / not on this checkout)"
+      },
+      "run-20261027-192721-beepboop-list-c7df54": {
+        "available": false,
+        "reason": "run-ledger.json absent (gitignored / not on this checkout)"
+      }
+    }
+  }
+}

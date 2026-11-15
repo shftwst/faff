@@ -1,0 +1,15 @@
+{
+  "recorded_at": "2026-11-14T23:30:08.937963+00:00",
+  "roots": [
+    {
+      "root": "/Users/shftwst/.codex/worktrees/a713/faff",
+      "commit": "f767bdd1c0a78f6259c335742c1567a074f512a0",
+      "tracked_status": ""
+    },
+    {
+      "root": "/Users/shftwst/workspace/shftwst/faff",
+      "commit": "f767bdd1c0a78f6259c335742c1567a074f512a0",
+      "tracked_status": ""
+    }
+  ]
+}

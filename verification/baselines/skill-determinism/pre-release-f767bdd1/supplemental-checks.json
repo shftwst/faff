@@ -1,0 +1,262 @@
+{
+  "checks": [
+    {
+      "name": "compiler-dependent-tests",
+      "command": [
+        "node",
+        "--import",
+        "./test/hermetic-env.mjs",
+        "--test",
+        "--test-concurrency=4",
+        "test/check-no-boundary-cast.test.mjs",
+        "test/ts-equivalence.test.mjs",
+        "test/ts-brand-negative.test.mjs",
+        "test/commissaire-trust.test.mjs"
+      ],
+      "cwd": "/Users/shftwst/.codex/worktrees/a713/faff",
+      "exit_code": 0,
+      "wall_seconds": 1.7518792890477926,
+      "finished_at": "2026-11-14T23:26:18.200349+00:00"
+    },
+    {
+      "name": "typecheck",
+      "command": [
+        "node",
+        "plugin/skills/faff/node_modules/typescript/bin/tsc",
+        "-p",
+        "plugin/skills/faff/tsconfig.json",
+        "--noEmit"
+      ],
+      "cwd": "/Users/shftwst/.codex/worktrees/a713/faff",
+      "exit_code": 0,
+      "wall_seconds": 1.1465693190693855,
+      "finished_at": "2026-11-14T23:26:19.347134+00:00"
+    },
+    {
+      "name": "replay-reproduce",
+      "command": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "shadow-fidelity",
+        "reproduce",
+        "--dir",
+        "/Users/shftwst/workspace/shftwst/faff/verification/baselines/skill-determinism/pre-release-f767bdd1/replay",
+        "--root",
+        "/Users/shftwst/.codex/worktrees/a713/faff",
+        "--json"
+      ],
+      "cwd": "/Users/shftwst/.codex/worktrees/a713/faff",
+      "exit_code": 0,
+      "wall_seconds": 0.04641491384245455,
+      "finished_at": "2026-11-14T23:26:19.393753+00:00"
+    }
+  ],
+  "scope": "Revisit tests skipped because pinned devDependencies were absent; typecheck uses --noEmit; replay reproduce reads saved evidence only.",
+  "compiler_test_summary": {
+    "tests": 61,
+    "suites": 0,
+    "pass": 61,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "duration_ms": 1734.857665
+  },
+  "resolved_dependency_skips": [
+    {
+      "line": 7216,
+      "tap": "ok 1155 - S3: every planted boundary-cast fixture is caught (as / <T> / as any / ! / satisfies / any-reader / untyped require / retired and foreign mints) # SKIP typescript compiler API not installed (run `npm install` under plugin/skills/faff)",
+      "type": "test"
+    },
+    {
+      "line": 7222,
+      "tap": "ok 1156 - S3: the clean fixture (no assertion, typed producer-auth / ids / result requires) passes # SKIP typescript compiler API not installed (run `npm install` under plugin/skills/faff)",
+      "type": "test"
+    },
+    {
+      "line": 7228,
+      "tap": "ok 1157 - S3: each assertion FORM is detected (not just `as`) # SKIP typescript compiler API not installed (run `npm install` under plugin/skills/faff)",
+      "type": "test"
+    },
+    {
+      "line": 7240,
+      "tap": "ok 1159 - S3: the real cluster sources are clean (exit 0) # SKIP typescript compiler API not installed (run `npm install` under plugin/skills/faff)",
+      "type": "test"
+    },
+    {
+      "line": 7246,
+      "tap": "ok 1160 - S3: the one brand assertion is allowed in the real ids.ts and nowhere else # SKIP typescript compiler API not installed (run `npm install` under plugin/skills/faff)",
+      "type": "test"
+    },
+    {
+      "line": 7276,
+      "tap": "ok 1165 - S3: the planted-fixture set is present (no silent coverage shrinkage) # SKIP typescript compiler API not installed (run `npm install` under plugin/skills/faff)",
+      "type": "test"
+    },
+    {
+      "line": 9104,
+      "tap": "ok 1467 - corpus equivalence: smol-toml parses each accepted file to the same values # SKIP smol-toml not resolvable (run `npm install` under plugin/skills/faff); equivalence check skipped",
+      "type": "test"
+    },
+    {
+      "line": 49155,
+      "tap": "ok 7987 - S2: a raw string at the branded admission API fails tsc with TS2345 # SKIP typescript compiler not installed (run `npm install` under plugin/skills/faff)",
+      "type": "test"
+    },
+    {
+      "line": 49161,
+      "tap": "ok 7988 - FAFF-1180: a RunId and a raw string where a UnitId is required are exactly two TS2345 diagnostics # SKIP typescript compiler not installed (run `npm install` under plugin/skills/faff)",
+      "type": "test"
+    },
+    {
+      "line": 49185,
+      "tap": "ok 7992 - exit 0: a pair that differs only by toolchain preamble # SKIP typescript compiler API not installed (run `npm install` under plugin/skills/faff)",
+      "type": "test"
+    },
+    {
+      "line": 49191,
+      "tap": "ok 7993 - exit 0: preamble only, with a base that already starts with \"use strict\" # SKIP typescript compiler API not installed (run `npm install` under plugin/skills/faff)",
+      "type": "test"
+    },
+    {
+      "line": 49197,
+      "tap": "ok 7994 - exit 0: an inserted get helper and one rewritten read, with matching entries # SKIP typescript compiler API not installed (run `npm install` under plugin/skills/faff)",
+      "type": "test"
+    },
+    {
+      "line": 49203,
+      "tap": "ok 7995 - exit 0: a bound-local undefined guard, with a matching entry # SKIP typescript compiler API not installed (run `npm install` under plugin/skills/faff)",
+      "type": "test"
+    },
+    {
+      "line": 49209,
+      "tap": "ok 7996 - exit 1 naming the statement: reordered with no allow entry # SKIP typescript compiler API not installed (run `npm install` under plugin/skills/faff)",
+      "type": "test"
+    },
+    {
+      "line": 49215,
+      "tap": "ok 7997 - exit 1 naming the statement: class-field with no allow entry # SKIP typescript compiler API not installed (run `npm install` under plugin/skills/faff)",
+      "type": "test"
+    },
+    {
+      "line": 49221,
+      "tap": "ok 7998 - exit 1 naming the statement: string-literal with no allow entry # SKIP typescript compiler API not installed (run `npm install` under plugin/skills/faff)",
+      "type": "test"
+    },
+    {
+      "line": 49227,
+      "tap": "ok 7999 - exit 1 naming the statement: reflect-get-unallowed with no allow entry # SKIP typescript compiler API not installed (run `npm install` under plugin/skills/faff)",
+      "type": "test"
+    },
+    {
+      "line": 49233,
+      "tap": "ok 8000 - exit 1 naming the entry: an allow entry that matches no difference # SKIP typescript compiler API not installed (run `npm install` under plugin/skills/faff)",
+      "type": "test"
+    },
+    {
+      "line": 49239,
+      "tap": "ok 8001 - exit 2: a malformed allow file (allow-empty-reason.json) # SKIP typescript compiler API not installed (run `npm install` under plugin/skills/faff)",
+      "type": "test"
+    },
+    {
+      "line": 49245,
+      "tap": "ok 8002 - exit 2: a malformed allow file (allow-bad-kind.json) # SKIP typescript compiler API not installed (run `npm install` under plugin/skills/faff)",
+      "type": "test"
+    },
+    {
+      "line": 49251,
+      "tap": "ok 8003 - exit 2: a malformed allow file (allow-both-empty.json) # SKIP typescript compiler API not installed (run `npm install` under plugin/skills/faff)",
+      "type": "test"
+    }
+  ],
+  "remaining_skips": [
+    {
+      "line": 15519,
+      "tap": "ok 2521 - integration: postgres env stands up, seeds, and tears down [docker-gated] # SKIP docker unavailable",
+      "type": "test"
+    },
+    {
+      "line": 15525,
+      "tap": "ok 2522 - integration: mongo env stands up, mongoimport-seeds, and tears down [docker-gated] # SKIP docker unavailable",
+      "type": "test"
+    },
+    {
+      "line": 15531,
+      "tap": "ok 2523 - integration: redis env stands up, command-replay-seeds, and tears down [docker-gated] # SKIP docker unavailable",
+      "type": "test"
+    },
+    {
+      "line": 15537,
+      "tap": "ok 2524 - integration: minio env stands up, object-upload-seeds, and tears down [docker-gated] # SKIP docker unavailable",
+      "type": "test"
+    },
+    {
+      "line": 15567,
+      "tap": "ok 2529 - integration: real Node + Postgres app tier (connects at boot) stands up healthy via env lane [docker-gated] # SKIP docker unavailable",
+      "type": "test"
+    },
+    {
+      "line": 24881,
+      "tap": "ok 4031 - curation is deterministic across two runs (evidence, manifest, report, README byte-identical; validation.json excluded) # SKIP source capture not present (dev-only test)",
+      "type": "test"
+    },
+    {
+      "line": 24887,
+      "tap": "ok 4032 - full 33-file inventory: each SOURCE file is classified exactly once as member or omission # SKIP source capture not present (dev-only test)",
+      "type": "test"
+    },
+    {
+      "line": 24893,
+      "tap": "ok 4033 - manifest source hashes match the real source bytes (source-drift detector) # SKIP source capture not present (dev-only test)",
+      "type": "test"
+    },
+    {
+      "line": 24899,
+      "tap": "ok 4034 - transcript exclusion in the SOURCE inventory: transcripts are private-risk omissions, never members # SKIP source capture not present (dev-only test)",
+      "type": "test"
+    },
+    {
+      "line": 26729,
+      "tap": "ok 4333 - governor pin and status against a governor on a second OS user # SKIP docker daemon is not reachable",
+      "type": "suite"
+    },
+    {
+      "line": 27269,
+      "tap": "ok 4423 - the governor image on a local volume # SKIP docker daemon is not reachable",
+      "type": "suite"
+    },
+    {
+      "line": 27389,
+      "tap": "ok 4443 - governor install in a Linux container # SKIP docker daemon is not reachable",
+      "type": "suite"
+    },
+    {
+      "line": 27941,
+      "tap": "ok 4535 - linux multi-user intruder (FAFF-1109 spike): gated to a root host with useradd # SKIP needs root + useradd (host-isolated container); run the documented procedure under records/",
+      "type": "test"
+    },
+    {
+      "line": 29027,
+      "tap": "ok 4716 - holdout loop: a satisfying feature \u2192 met \u2192 meets-spec, env torn down (docker-gated) # SKIP docker unavailable",
+      "type": "test"
+    },
+    {
+      "line": 29033,
+      "tap": "ok 4717 - holdout loop: a violating feature \u2192 unmet (the known-broken negative) (docker-gated) # SKIP docker unavailable",
+      "type": "test"
+    },
+    {
+      "line": 29183,
+      "tap": "ok 4742 - code-interface holdout: live conformance + real-spawner e2e + topology (docker-gated) # SKIP docker daemon unavailable",
+      "type": "test"
+    },
+    {
+      "line": 46841,
+      "tap": "ok 7630 - FAFF-1054 integration probe: prime-then-parallel over a real prefix-caching backend: post-prime TTFT <= 1/5 of the prime's # SKIP no prefix-caching backend configured (set FAFF_SPEC_REVIEW_CACHE_PROBE_HOST to run)",
+      "type": "test"
+    }
+  ],
+  "resolved_test_count": 21,
+  "remaining_test_count": 14,
+  "remaining_suite_count": 3
+}

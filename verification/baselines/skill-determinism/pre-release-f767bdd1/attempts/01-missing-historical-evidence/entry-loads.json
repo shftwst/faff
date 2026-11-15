@@ -1,0 +1,270 @@
+{
+  "interpretation": "Cold entry with declared references, loaded once each. Excludes catalog, system/developer prompts, delegated skills, dynamic outputs and history. Same-context nesting unions files rather than adding every entry total.",
+  "rows": [
+    {
+      "skill": "faff-beep-boop",
+      "source_line": 14,
+      "own_est_tokens": 39018,
+      "references": [
+        {
+          "path": "plugin/skills/faff/references/kernel.md",
+          "est_tokens": 23646
+        },
+        {
+          "path": "plugin/skills/faff/references/build.md",
+          "est_tokens": 2993
+        },
+        {
+          "path": "plugin/skills/faff/references/tracker.md",
+          "est_tokens": 5994
+        },
+        {
+          "path": "plugin/skills/faff/references/autonomous.md",
+          "est_tokens": 9729
+        },
+        {
+          "path": "plugin/skills/faff/references/methodology.md",
+          "est_tokens": 8778
+        },
+        {
+          "path": "plugin/skills/faff/references/l4.md",
+          "est_tokens": 6461
+        },
+        {
+          "path": "plugin/skills/faff/references/park.md",
+          "est_tokens": 3627
+        }
+      ],
+      "shared_est_tokens": 61228,
+      "total_est_tokens": 100246
+    },
+    {
+      "skill": "faff-graft",
+      "source_line": 14,
+      "own_est_tokens": 44384,
+      "references": [
+        {
+          "path": "plugin/skills/faff/references/kernel.md",
+          "est_tokens": 23646
+        },
+        {
+          "path": "plugin/skills/faff/references/build.md",
+          "est_tokens": 2993
+        },
+        {
+          "path": "plugin/skills/faff/references/tracker.md",
+          "est_tokens": 5994
+        },
+        {
+          "path": "plugin/skills/faff/references/autonomous.md",
+          "est_tokens": 9729
+        },
+        {
+          "path": "plugin/skills/faff/references/review.md",
+          "est_tokens": 1887
+        },
+        {
+          "path": "plugin/skills/faff/references/methodology.md",
+          "est_tokens": 8778
+        },
+        {
+          "path": "plugin/skills/faff/references/l4.md",
+          "est_tokens": 6461
+        },
+        {
+          "path": "plugin/skills/faff/references/park.md",
+          "est_tokens": 3627
+        }
+      ],
+      "shared_est_tokens": 63115,
+      "total_est_tokens": 107499
+    },
+    {
+      "skill": "faff-jot",
+      "source_line": 19,
+      "own_est_tokens": 5804,
+      "references": [
+        {
+          "path": "plugin/skills/faff/references/kernel.md",
+          "est_tokens": 23646
+        },
+        {
+          "path": "plugin/skills/faff/references/tracker.md",
+          "est_tokens": 5994
+        },
+        {
+          "path": "plugin/skills/faff/references/autonomous.md",
+          "est_tokens": 9729
+        },
+        {
+          "path": "plugin/skills/faff/references/methodology.md",
+          "est_tokens": 8778
+        },
+        {
+          "path": "plugin/skills/faff/references/create.md",
+          "est_tokens": 2265
+        }
+      ],
+      "shared_est_tokens": 50412,
+      "total_est_tokens": 56216
+    },
+    {
+      "skill": "faff-map",
+      "source_line": 17,
+      "own_est_tokens": 6049,
+      "references": [
+        {
+          "path": "plugin/skills/faff/references/kernel.md",
+          "est_tokens": 23646
+        },
+        {
+          "path": "plugin/skills/faff/references/tracker.md",
+          "est_tokens": 5994
+        },
+        {
+          "path": "plugin/skills/faff/references/methodology.md",
+          "est_tokens": 8778
+        }
+      ],
+      "shared_est_tokens": 38418,
+      "total_est_tokens": 44467
+    },
+    {
+      "skill": "faff-onboard",
+      "source_line": 14,
+      "own_est_tokens": 5733,
+      "references": [
+        {
+          "path": "plugin/skills/faff/references/kernel.md",
+          "est_tokens": 23646
+        },
+        {
+          "path": "plugin/skills/faff/references/tracker.md",
+          "est_tokens": 5994
+        }
+      ],
+      "shared_est_tokens": 29640,
+      "total_est_tokens": 35373
+    },
+    {
+      "skill": "faff-plot",
+      "source_line": 15,
+      "own_est_tokens": 11342,
+      "references": [
+        {
+          "path": "plugin/skills/faff/references/kernel.md",
+          "est_tokens": 23646
+        },
+        {
+          "path": "plugin/skills/faff/references/tracker.md",
+          "est_tokens": 5994
+        },
+        {
+          "path": "plugin/skills/faff/references/autonomous.md",
+          "est_tokens": 9729
+        },
+        {
+          "path": "plugin/skills/faff/references/methodology.md",
+          "est_tokens": 8778
+        },
+        {
+          "path": "plugin/skills/faff/references/create.md",
+          "est_tokens": 2265
+        },
+        {
+          "path": "plugin/skills/faff/references/park.md",
+          "est_tokens": 3627
+        }
+      ],
+      "shared_est_tokens": 54039,
+      "total_est_tokens": 65381
+    },
+    {
+      "skill": "faff-prep",
+      "source_line": 19,
+      "own_est_tokens": 25883,
+      "references": [
+        {
+          "path": "plugin/skills/faff/references/kernel.md",
+          "est_tokens": 23646
+        },
+        {
+          "path": "plugin/skills/faff/references/tracker.md",
+          "est_tokens": 5994
+        },
+        {
+          "path": "plugin/skills/faff/references/autonomous.md",
+          "est_tokens": 9729
+        },
+        {
+          "path": "plugin/skills/faff/references/methodology.md",
+          "est_tokens": 8778
+        },
+        {
+          "path": "plugin/skills/faff/references/review.md",
+          "est_tokens": 1887
+        },
+        {
+          "path": "plugin/skills/faff/references/park.md",
+          "est_tokens": 3627
+        }
+      ],
+      "shared_est_tokens": 53661,
+      "total_est_tokens": 79544
+    },
+    {
+      "skill": "faff-tidy",
+      "source_line": 18,
+      "own_est_tokens": 18866,
+      "references": [
+        {
+          "path": "plugin/skills/faff/references/kernel.md",
+          "est_tokens": 23646
+        },
+        {
+          "path": "plugin/skills/faff/references/build.md",
+          "est_tokens": 2993
+        },
+        {
+          "path": "plugin/skills/faff/references/tracker.md",
+          "est_tokens": 5994
+        },
+        {
+          "path": "plugin/skills/faff/references/autonomous.md",
+          "est_tokens": 9729
+        },
+        {
+          "path": "plugin/skills/faff/references/methodology.md",
+          "est_tokens": 8778
+        },
+        {
+          "path": "plugin/skills/faff/references/park.md",
+          "est_tokens": 3627
+        }
+      ],
+      "shared_est_tokens": 54767,
+      "total_est_tokens": 73633
+    },
+    {
+      "skill": "faff-wtf",
+      "source_line": 14,
+      "own_est_tokens": 7806,
+      "references": [
+        {
+          "path": "plugin/skills/faff/references/kernel.md",
+          "est_tokens": 23646
+        },
+        {
+          "path": "plugin/skills/faff/references/tracker.md",
+          "est_tokens": 5994
+        },
+        {
+          "path": "plugin/skills/faff/references/methodology.md",
+          "est_tokens": 8778
+        }
+      ],
+      "shared_est_tokens": 38418,
+      "total_est_tokens": 46224
+    }
+  ]
+}

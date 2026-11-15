@@ -1,0 +1,1 @@
+{"reproduced":true,"corpus_sha256":"1310d43e4cb7cb4ff0716896bbe4fc3cc7671a43c2aad2a84f5fb44587b8fbcd","record_count":128,"cost_snapshot_read_back":true,"map":{"pinned":true,"sha256":"09d980a08b6714b99b82a32d32f265f4d4a3ffa50476a987bf6de452a5c993b2","commit":"f767bdd1c0a78f6259c335742c1567a074f512a0","verified_by":"live"}}

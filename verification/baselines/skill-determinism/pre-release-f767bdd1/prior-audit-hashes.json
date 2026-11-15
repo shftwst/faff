@@ -1,0 +1,32 @@
+{
+  "files": [
+    {
+      "path": "verification/audits/2026-11-14-skill-determinism/README.md",
+      "sha256": "342f90e2226db0a9f3d1721e7d432ed97f5a69bd13394a1e73eeb1a63e9f81de"
+    },
+    {
+      "path": "verification/audits/2026-11-14-skill-determinism/astra-adversarial-review.md",
+      "sha256": "9e558d6bfc7cf0afd8e3d198e62abd6423b0a93a3ec672f9ca792cb07edc6b5a"
+    },
+    {
+      "path": "verification/audits/2026-11-14-skill-determinism/implementation-plan.md",
+      "sha256": "c16d2b8e93c7dd7625ac32eb2c6121575bb7e6594403643130c8f9a82556f5d5"
+    },
+    {
+      "path": "verification/audits/2026-11-14-skill-determinism/entry-skills.md",
+      "sha256": "c7e5bba79242ba22cf578524ef829f78501fc363e6d34fcfa3a8aaeb571eee81"
+    },
+    {
+      "path": "verification/audits/2026-11-14-skill-determinism/slot-skills.md",
+      "sha256": "7e5ff4e1956a6d1d17b18d5af97ccb8d6b92be0fc6f8fc19464751c7f0b29861"
+    },
+    {
+      "path": "verification/audits/2026-11-14-skill-determinism/shared-prose.md",
+      "sha256": "ade786914d119514d394b52aa688e87347d92af775a87b6907466bf539ffccb4"
+    },
+    {
+      "path": "verification/audits/2026-11-14-skill-determinism/measurements.md",
+      "sha256": "a88a14290a466613a2750b57d2d7e8f6ec0eda5ce57d0914e53f91134184f01f"
+    }
+  ]
+}

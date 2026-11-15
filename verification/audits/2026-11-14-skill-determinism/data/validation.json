@@ -1,0 +1,43 @@
+{
+  "checks": [
+    {
+      "name": "analysis-and-existing-substrate",
+      "command": "node --test test/skill-audit.test.mjs test/control-parity.test.mjs test/eval-tokenomics.test.mjs test/eval-prefix-planner.test.mjs test/skill-harness.test.mjs test/harness-golden.test.mjs test/rule-inventory.test.mjs test/shadow-fidelity.test.mjs",
+      "summary": {
+        "tests": "108",
+        "pass": "104",
+        "fail": "4",
+        "skipped": "0",
+        "duration_ms": "4005.559722"
+      }
+    },
+    {
+      "name": "fidelity-scoped-signing-rerun",
+      "command": "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=commit.gpgsign GIT_CONFIG_VALUE_0=false node --test test/shadow-fidelity.test.mjs",
+      "summary": {
+        "tests": "14",
+        "pass": "14",
+        "fail": "0",
+        "skipped": "0",
+        "duration_ms": "766.330928"
+      }
+    },
+    {
+      "name": "final-analysis-tests",
+      "command": "node --test test/control-parity.test.mjs test/skill-audit.test.mjs",
+      "summary": {
+        "tests": "11",
+        "pass": "11",
+        "fail": "0",
+        "skipped": "0",
+        "duration_ms": "252.68536"
+      }
+    },
+    {
+      "name": "validate-adapters",
+      "command": "node plugin/skills/faff/bin/faff validate-adapters",
+      "result": "RESULT: PASS (21 slot skills linted)"
+    }
+  ],
+  "note": "Initial four failures came from temporary Git commits inheriting host SSH signing. Scoped rerun resolved all four. No global Git config changed; no production edits."
+}

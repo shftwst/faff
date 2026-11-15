@@ -1,0 +1,6 @@
+{
+  "stage": "capture.mjs historical evidence",
+  "exit_code": 1,
+  "error": "ENOENT: evidence/cost-run-20260829-100405/transcripts absent from clean source worktree",
+  "resolution": "Read historical evidence from original workspace, preserve per-source SHA-256 and content-free parsed usage; keep all analysis modules pinned to source worktree."
+}

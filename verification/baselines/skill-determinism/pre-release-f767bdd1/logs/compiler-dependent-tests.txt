@@ -1,0 +1,376 @@
+TAP version 13
+# Subtest: S3: every planted boundary-cast fixture is caught (as / <T> / as any / ! / satisfies / any-reader / untyped require / retired and foreign mints)
+ok 1 - S3: every planted boundary-cast fixture is caught (as / <T> / as any / ! / satisfies / any-reader / untyped require / retired and foreign mints)
+  ---
+  duration_ms: 15.651708
+  type: 'test'
+  ...
+# Subtest: S3: the clean fixture (no assertion, typed producer-auth / ids / result requires) passes
+ok 2 - S3: the clean fixture (no assertion, typed producer-auth / ids / result requires) passes
+  ---
+  duration_ms: 1.219209
+  type: 'test'
+  ...
+# Subtest: S3: each assertion FORM is detected (not just `as`)
+ok 3 - S3: each assertion FORM is detected (not just `as`)
+  ---
+  duration_ms: 3.794292
+  type: 'test'
+  ...
+# Subtest: S3: realSources() lists the fifteen tsconfig include entries
+ok 4 - S3: realSources() lists the fifteen tsconfig include entries
+  ---
+  duration_ms: 2.248292
+  type: 'test'
+  ...
+# Subtest: S3: the real cluster sources are clean (exit 0)
+ok 5 - S3: the real cluster sources are clean (exit 0)
+  ---
+  duration_ms: 278.97157
+  type: 'test'
+  ...
+# Subtest: S3: the one brand assertion is allowed in the real ids.ts and nowhere else
+ok 6 - S3: the one brand assertion is allowed in the real ids.ts and nowhere else
+  ---
+  duration_ms: 1.070084
+  type: 'test'
+  ...
+# Subtest: S3: realSources() exits 2 naming a bin/lib .ts that include omits
+ok 7 - S3: realSources() exits 2 naming a bin/lib .ts that include omits
+  ---
+  duration_ms: 31.107998
+  type: 'test'
+  ...
+# Subtest: S3: realSources() exits 2 naming a nested bin/lib .ts that include omits
+ok 8 - S3: realSources() exits 2 naming a nested bin/lib .ts that include omits
+  ---
+  duration_ms: 25.501499
+  type: 'test'
+  ...
+# Subtest: S3: realSources() exits 2 when include has no literal .ts entry
+ok 9 - S3: realSources() exits 2 when include has no literal .ts entry
+  ---
+  duration_ms: 23.523415
+  type: 'test'
+  ...
+# Subtest: S3: realSources() passes a package whose include covers every bin/lib .ts
+ok 10 - S3: realSources() passes a package whose include covers every bin/lib .ts
+  ---
+  duration_ms: 22.099291
+  type: 'test'
+  ...
+# Subtest: S3: the planted-fixture set is present (no silent coverage shrinkage)
+ok 11 - S3: the planted-fixture set is present (no silent coverage shrinkage)
+  ---
+  duration_ms: 0.314292
+  type: 'test'
+  ...
+# Subtest: parser corpus: every accepted file parses without error
+ok 12 - parser corpus: every accepted file parses without error
+  ---
+  duration_ms: 1.384042
+  type: 'test'
+  ...
+# Subtest: accepted: the hash inside quotes is preserved verbatim
+ok 13 - accepted: the hash inside quotes is preserved verbatim
+  ---
+  duration_ms: 0.451709
+  type: 'test'
+  ...
+# Subtest: accepted: a multi-line array resumes after the closing bracket, never re-reading an array line
+ok 14 - accepted: a multi-line array resumes after the closing bracket, never re-reading an array line
+  ---
+  duration_ms: 0.1025
+  type: 'test'
+  ...
+# Subtest: accepted: `0` parses as integer; the empty array is []
+ok 15 - accepted: `0` parses as integer; the empty array is []
+  ---
+  duration_ms: 0.084875
+  type: 'test'
+  ...
+# Subtest: parser corpus: every refused file is trust-file-invalid with the right line and reason
+ok 16 - parser corpus: every refused file is trust-file-invalid with the right line and reason
+  ---
+  duration_ms: 0.470125
+  type: 'test'
+  ...
+# Subtest: control character and invalid utf-8 in a string are refused
+ok 17 - control character and invalid utf-8 in a string are refused
+  ---
+  duration_ms: 0.134334
+  type: 'test'
+  ...
+# Subtest: an integer above MAX_SAFE_INTEGER is refused
+ok 18 - an integer above MAX_SAFE_INTEGER is refused
+  ---
+  duration_ms: 0.155166
+  type: 'test'
+  ...
+# Subtest: schema-1: a full valid file validates with the right shape and defaults
+ok 19 - schema-1: a full valid file validates with the right shape and defaults
+  ---
+  duration_ms: 0.293958
+  type: 'test'
+  ...
+# Subtest: schema-1: defaults when keys are absent
+ok 20 - schema-1: defaults when keys are absent
+  ---
+  duration_ms: 0.426083
+  type: 'test'
+  ...
+# Subtest: schema-1: missing schema is invalid with a null line
+ok 21 - schema-1: missing schema is invalid with a null line
+  ---
+  duration_ms: 0.371291
+  type: 'test'
+  ...
+# Subtest: schema-1: schema not 1 is invalid at the schema line
+ok 22 - schema-1: schema not 1 is invalid at the schema line
+  ---
+  duration_ms: 0.1675
+  type: 'test'
+  ...
+# Subtest: schema-1: an unknown key is invalid at that key's line
+ok 23 - schema-1: an unknown key is invalid at that key's line
+  ---
+  duration_ms: 0.092792
+  type: 'test'
+  ...
+# Subtest: schema-1: a bad fingerprint (not 64 lowercase hex) is refused
+ok 24 - schema-1: a bad fingerprint (not 64 lowercase hex) is refused
+  ---
+  duration_ms: 0.228875
+  type: 'test'
+  ...
+# Subtest: schema-1: duplicate fingerprints are refused
+ok 25 - schema-1: duplicate fingerprints are refused
+  ---
+  duration_ms: 0.066375
+  type: 'test'
+  ...
+# Subtest: schema-1: require_pinned_governor must be a boolean
+ok 26 - schema-1: require_pinned_governor must be a boolean
+  ---
+  duration_ms: 0.053459
+  type: 'test'
+  ...
+# Subtest: schema-1: strict mode with an empty fingerprint list is refused at the strict line
+ok 27 - schema-1: strict mode with an empty fingerprint list is refused at the strict line
+  ---
+  duration_ms: 0.047375
+  type: 'test'
+  ...
+# Subtest: schema-1: pin_change_approvers must be an array of strings
+ok 28 - schema-1: pin_change_approvers must be an array of strings
+  ---
+  duration_ms: 0.04225
+  type: 'test'
+  ...
+# Subtest: schema-1: an empty file is invalid (missing required key schema)
+ok 29 - schema-1: an empty file is invalid (missing required key schema)
+  ---
+  duration_ms: 0.046708
+  type: 'test'
+  ...
+# Subtest: local reader: reads the committed file on the ref and labels it local-ref
+ok 30 - local reader: reads the committed file on the ref and labels it local-ref
+  ---
+  duration_ms: 14.012332
+  type: 'test'
+  ...
+# Subtest: no-local-override: a working-tree edit and an untracked trust.local.toml change nothing
+ok 31 - no-local-override: a working-tree edit and an untracked trust.local.toml change nothing
+  ---
+  duration_ms: 10.698041
+  type: 'test'
+  ...
+# Subtest: local reader: a genuinely absent file returns present:false (no pins)
+ok 32 - local reader: a genuinely absent file returns present:false (no pins)
+  ---
+  duration_ms: 8.118249
+  type: 'test'
+  ...
+# Subtest: local reader: a bad ref is trust-file-invalid (line null), never present:false
+ok 33 - local reader: a bad ref is trust-file-invalid (line null), never present:false
+  ---
+  duration_ms: 7.636291
+  type: 'test'
+  ...
+# Subtest: local reader: an invalid committed file fails closed (never no-pins)
+ok 34 - local reader: an invalid committed file fails closed (never no-pins)
+  ---
+  duration_ms: 12.183708
+  type: 'test'
+  ...
+# Subtest: remote reader: a successful contents read strips base64 newlines, decodes, labels remote-base
+ok 35 - remote reader: a successful contents read strips base64 newlines, decodes, labels remote-base
+  ---
+  duration_ms: 0.373792
+  type: 'test'
+  ...
+# Subtest: remote reader: a 404 proven file-absent by a 200 repo-root probe returns present:false
+ok 36 - remote reader: a 404 proven file-absent by a 200 repo-root probe returns present:false
+  ---
+  duration_ms: 0.539583
+  type: 'test'
+  ...
+# Subtest: remote reader: a 404 with a non-200 repo-root probe is trust-file-invalid, NOT present:false
+ok 37 - remote reader: a 404 with a non-200 repo-root probe is trust-file-invalid, NOT present:false
+  ---
+  duration_ms: 0.112375
+  type: 'test'
+  ...
+# Subtest: remote reader: a non-404 file status (e.g. 403) is trust-file-invalid
+ok 38 - remote reader: a non-404 file status (e.g. 403) is trust-file-invalid
+  ---
+  duration_ms: 0.126417
+  type: 'test'
+  ...
+# Subtest: remote reader: a null status line (network down / gh missing) fails closed
+ok 39 - remote reader: a null status line (network down / gh missing) fails closed
+  ---
+  duration_ms: 0.059
+  type: 'test'
+  ...
+# Subtest: remote reader: a missing repoSlug is a Read error
+ok 40 - remote reader: a missing repoSlug is a Read error
+  ---
+  duration_ms: 0.042666
+  type: 'test'
+  ...
+# Subtest: corpus equivalence: smol-toml parses each accepted file to the same values
+ok 41 - corpus equivalence: smol-toml parses each accepted file to the same values
+  ---
+  duration_ms: 4.000584
+  type: 'test'
+  ...
+# Subtest: the trust module's require closure is a subset of {node:*} ∪ governance files, excluding config/budget/denylist
+ok 42 - the trust module's require closure is a subset of {node:*} ∪ governance files, excluding config/budget/denylist
+  ---
+  duration_ms: 4.805042
+  type: 'test'
+  ...
+# Subtest: the shipped emit never requires the test-only smol-toml library
+ok 43 - the shipped emit never requires the test-only smol-toml library
+  ---
+  duration_ms: 0.186417
+  type: 'test'
+  ...
+# Subtest: the closure guard fires against a tainted ./config require (proves it is not vacuous)
+ok 44 - the closure guard fires against a tainted ./config require (proves it is not vacuous)
+  ---
+  duration_ms: 86.246788
+  type: 'test'
+  ...
+# Subtest: package.json declares no runtime dependencies and lists smol-toml only under devDependencies
+ok 45 - package.json declares no runtime dependencies and lists smol-toml only under devDependencies
+  ---
+  duration_ms: 0.131917
+  type: 'test'
+  ...
+# Subtest: S2: a raw string at the branded admission API fails tsc with TS2345
+ok 46 - S2: a raw string at the branded admission API fails tsc with TS2345
+  ---
+  duration_ms: 632.275719
+  type: 'test'
+  ...
+# Subtest: FAFF-1180: a RunId and a raw string where a UnitId is required are exactly two TS2345 diagnostics
+ok 47 - FAFF-1180: a RunId and a raw string where a UnitId is required are exactly two TS2345 diagnostics
+  ---
+  duration_ms: 400.891023
+  type: 'test'
+  ...
+# Subtest: exit 0: a pair that differs only by toolchain preamble
+ok 48 - exit 0: a pair that differs only by toolchain preamble
+  ---
+  duration_ms: 179.118783
+  type: 'test'
+  ...
+# Subtest: exit 0: preamble only, with a base that already starts with "use strict"
+ok 49 - exit 0: preamble only, with a base that already starts with "use strict"
+  ---
+  duration_ms: 152.644826
+  type: 'test'
+  ...
+# Subtest: exit 0: an inserted get helper and one rewritten read, with matching entries
+ok 50 - exit 0: an inserted get helper and one rewritten read, with matching entries
+  ---
+  duration_ms: 141.626576
+  type: 'test'
+  ...
+# Subtest: exit 0: a bound-local undefined guard, with a matching entry
+ok 51 - exit 0: a bound-local undefined guard, with a matching entry
+  ---
+  duration_ms: 122.229244
+  type: 'test'
+  ...
+# Subtest: exit 1 naming the statement: reordered with no allow entry
+ok 52 - exit 1 naming the statement: reordered with no allow entry
+  ---
+  duration_ms: 127.504952
+  type: 'test'
+  ...
+# Subtest: exit 1 naming the statement: class-field with no allow entry
+ok 53 - exit 1 naming the statement: class-field with no allow entry
+  ---
+  duration_ms: 128.684744
+  type: 'test'
+  ...
+# Subtest: exit 1 naming the statement: string-literal with no allow entry
+ok 54 - exit 1 naming the statement: string-literal with no allow entry
+  ---
+  duration_ms: 118.875577
+  type: 'test'
+  ...
+# Subtest: exit 1 naming the statement: reflect-get-unallowed with no allow entry
+ok 55 - exit 1 naming the statement: reflect-get-unallowed with no allow entry
+  ---
+  duration_ms: 117.689703
+  type: 'test'
+  ...
+# Subtest: exit 1 naming the entry: an allow entry that matches no difference
+ok 56 - exit 1 naming the entry: an allow entry that matches no difference
+  ---
+  duration_ms: 123.088244
+  type: 'test'
+  ...
+# Subtest: exit 2: a malformed allow file (allow-empty-reason.json)
+ok 57 - exit 2: a malformed allow file (allow-empty-reason.json)
+  ---
+  duration_ms: 117.257827
+  type: 'test'
+  ...
+# Subtest: exit 2: a malformed allow file (allow-bad-kind.json)
+ok 58 - exit 2: a malformed allow file (allow-bad-kind.json)
+  ---
+  duration_ms: 111.705911
+  type: 'test'
+  ...
+# Subtest: exit 2: a malformed allow file (allow-both-empty.json)
+ok 59 - exit 2: a malformed allow file (allow-both-empty.json)
+  ---
+  duration_ms: 109.743036
+  type: 'test'
+  ...
+# Subtest: equivalence-allow.json: every entry has a known kind and a reason, and each path has at most one helper
+ok 60 - equivalence-allow.json: every entry has a known kind and a reason, and each path has at most one helper
+  ---
+  duration_ms: 0.8205
+  type: 'test'
+  ...
+# Subtest: strict-mode-audit.json: one row per strict-mode change for land and gates-progress, each cleared with evidence
+ok 61 - strict-mode-audit.json: one row per strict-mode change for land and gates-progress, each cleared with evidence
+  ---
+  duration_ms: 0.727333
+  type: 'test'
+  ...
+1..61
+# tests 61
+# suites 0
+# pass 61
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1734.857665

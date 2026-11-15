@@ -1,0 +1,219 @@
+{
+  "source_commit": "f767bdd1c0a78f6259c335742c1567a074f512a0",
+  "source_path": "verification/reports/FAFF-974-post-fix-fidelity/decision-corpus.jsonl",
+  "source_sha256": "1310d43e4cb7cb4ff0716896bbe4fc3cc7671a43c2aad2a84f5fb44587b8fbcd",
+  "selection": "First occurrence of each observed kernel, then first distinct normalised-input signatures until five. Development material already exposed in the audit.",
+  "scope": "Real historical decision snapshots; incomplete ticket context. Recorded verdicts are observations, not independent expected outcomes. No migration pass bar derives from them.",
+  "records": [
+    {
+      "source_line": 1,
+      "record": {
+        "schema": 2,
+        "run_id": "run-20261026-031227-fly-l3",
+        "seq": 5,
+        "ts": "2026-10-26T03:21:48.405Z",
+        "prev": "d14e62bd86fdce58f9fb7a443076ed0a654a5f67c64d5ef539186b80f85c4787",
+        "phase": "run",
+        "type": "decision-capture",
+        "issue": "FAFF-1385",
+        "data": {
+          "kernel": "next",
+          "kernel_version": "next@1",
+          "normalised_inputs": {
+            "status": "backlog",
+            "spec": "high",
+            "eligible": true,
+            "parked": false,
+            "blocked": false,
+            "ifEligible": false,
+            "awaitingSpecReview": false
+          },
+          "verdict": "graft",
+          "coverage": "replayable",
+          "missing_inputs": [],
+          "correlation_id": "run-20261026-031227-fly-l3/FAFF-1385/next/1",
+          "causation": {
+            "seq": 4,
+            "sha256": "d14e62bd86fdce58f9fb7a443076ed0a654a5f67c64d5ef539186b80f85c4787"
+          }
+        }
+      }
+    },
+    {
+      "source_line": 24,
+      "record": {
+        "schema": 2,
+        "run_id": "run-20261026-031227-fly-l3",
+        "seq": 89,
+        "ts": "2026-10-26T05:07:18.722Z",
+        "prev": "c06d3810317bb42b03a8a679d2d8a50c1ec7ad5fe4eed91bf9760e79b41528b0",
+        "phase": "run",
+        "type": "decision-capture",
+        "issue": "__run__",
+        "data": {
+          "kernel": "run-outward",
+          "kernel_version": "run-outward@1",
+          "normalised_inputs": {
+            "targetRaw": {
+              "container": "ADOPT-1",
+              "repo": "acme/widget"
+            },
+            "selfRaw": {
+              "container": null,
+              "repo": "shftwst/faff",
+              "is_self": false
+            }
+          },
+          "verdict": {
+            "target": {
+              "container": "ADOPT-1",
+              "repo": "acme/widget",
+              "source": "unresolved"
+            },
+            "outward": true,
+            "reason": "outward-adopter"
+          },
+          "coverage": "replayable",
+          "missing_inputs": [],
+          "correlation_id": "",
+          "causation": {
+            "seq": 88,
+            "sha256": "c06d3810317bb42b03a8a679d2d8a50c1ec7ad5fe4eed91bf9760e79b41528b0"
+          }
+        }
+      }
+    },
+    {
+      "source_line": 27,
+      "record": {
+        "schema": 2,
+        "run_id": "run-20261026-031227-fly-l3",
+        "seq": 92,
+        "ts": "2026-10-26T05:07:20.039Z",
+        "prev": "63c28dcca86c24bea190a6244bebadf33fcfdbd732834f389f19ad3ab41fafb6",
+        "phase": "run",
+        "type": "decision-capture",
+        "issue": "__run__",
+        "data": {
+          "kernel": "run-start",
+          "kernel_version": "run-start@1",
+          "normalised_inputs": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "verdict": {
+            "verdict": "plan",
+            "reason": "coverage-thin"
+          },
+          "coverage": "replayable",
+          "missing_inputs": [],
+          "correlation_id": "",
+          "causation": {
+            "seq": 91,
+            "sha256": "63c28dcca86c24bea190a6244bebadf33fcfdbd732834f389f19ad3ab41fafb6"
+          }
+        }
+      }
+    },
+    {
+      "source_line": 35,
+      "record": {
+        "schema": 2,
+        "run_id": "run-20261026-165441-beepboop-list-c8818e",
+        "seq": 25,
+        "ts": "2026-10-26T17:36:21.892Z",
+        "prev": "e82d2dd3e62cf5656d3cae8ab247db4bbb559b4572aee7a7543a351b4946bb0f",
+        "phase": "run",
+        "type": "decision-capture",
+        "issue": "FAFF-1351",
+        "data": {
+          "kernel": "eligible",
+          "kernel_version": "eligible@1",
+          "normalised_inputs": {
+            "labels": [
+              "faff-jot-intake",
+              "Tech",
+              "Size: S",
+              "Bug",
+              "faff-automate"
+            ],
+            "automationDefault": "opt-in",
+            "trackerPresent": true
+          },
+          "verdict": {
+            "eligible": true
+          },
+          "coverage": "replayable",
+          "missing_inputs": [],
+          "correlation_id": "run-20261026-165441-beepboop-list-c8818e/FAFF-1351/eligible/1",
+          "causation": {
+            "seq": 24,
+            "sha256": "e82d2dd3e62cf5656d3cae8ab247db4bbb559b4572aee7a7543a351b4946bb0f"
+          }
+        }
+      }
+    },
+    {
+      "source_line": 84,
+      "record": {
+        "schema": 2,
+        "run_id": "run-20261027-162841-beepboop-list-36511a",
+        "seq": 67,
+        "ts": "2026-10-27T18:45:27.330Z",
+        "prev": "02db74bcc08450f1e8163a4b45f7b78403c8cb511d2fcab0de721e76f62ad493",
+        "phase": "run",
+        "type": "decision-capture",
+        "issue": "__run__",
+        "data": {
+          "kernel": "run-done",
+          "kernel_version": "run-done@1",
+          "normalised_inputs": {
+            "queue_empty": true,
+            "all_parked": false,
+            "ledger_clean": true,
+            "budget": {
+              "breached": [],
+              "outcome": "none"
+            },
+            "prd_satisfied": null,
+            "inflection": "none",
+            "non_convergence": false
+          },
+          "verdict": {
+            "verdict": "run-complete",
+            "reason": "drained",
+            "signals": {
+              "queue_empty": true,
+              "all_parked": false,
+              "ledger_clean": true,
+              "budget": {
+                "breached": [],
+                "outcome": "none"
+              },
+              "prd_satisfied": null,
+              "inflection": "none",
+              "non_convergence": false,
+              "decided_by": "clean-complete",
+              "floor": false
+            },
+            "policy_source": "structural-default",
+            "conformant": true,
+            "violations": []
+          },
+          "coverage": "replayable",
+          "missing_inputs": [],
+          "correlation_id": "run-20261027-162841-beepboop-list-36511a/__run__/run-done/1",
+          "causation": {
+            "seq": 66,
+            "sha256": "02db74bcc08450f1e8163a4b45f7b78403c8cb511d2fcab0de721e76f62ad493"
+          }
+        }
+      }
+    }
+  ]
+}

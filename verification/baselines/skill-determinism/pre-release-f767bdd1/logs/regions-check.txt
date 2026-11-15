@@ -1,0 +1,1 @@
+PASS  regions check: require-graph direction invariant holds (governance↛factory, shared-infra↛any local module), every bin/lib module has a TypeScript source or a legacy allowlist entry

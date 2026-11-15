@@ -1,0 +1,167 @@
+{
+  "transcripts": 19,
+  "rawRows": 2281,
+  "malformedLines": 0,
+  "assistantWithoutId": 0,
+  "calls": 843,
+  "cross_file_request_duplicates": [],
+  "global_unique_requests": 843,
+  "totals": {
+    "cr": 155078239,
+    "cw": 4241578,
+    "cw1h": 1055346,
+    "cw5m": 3186232,
+    "in": 1686,
+    "out": 995907
+  },
+  "unbucketed_write_tokens": 0,
+  "overbucketed_calls": [],
+  "bill": {
+    "cost": 132.913,
+    "byModel": {
+      "claude-opus-4-8": 132.909
+    },
+    "legs": {
+      "read": 77.539,
+      "write": 30.467,
+      "input": 0.008,
+      "output": 24.898
+    }
+  },
+  "sensitivity": [
+    {
+      "lean": 0,
+      "bench": {
+        "name": "lean-gateway (66153->0)",
+        "note": "shrink injected prefix to the lean target",
+        "cost": 104.202,
+        "delta": -28.711,
+        "pct": -21.601,
+        "byModel": {
+          "claude-opus-4-8": 104.207
+        },
+        "legs": {
+          "read": 54.121,
+          "write": 25.175,
+          "input": 0.008,
+          "output": 24.898
+        }
+      }
+    },
+    {
+      "lean": 8300,
+      "bench": {
+        "name": "lean-gateway (66153->8300)",
+        "note": "shrink injected prefix to the lean target",
+        "cost": 107.804,
+        "delta": -25.109,
+        "pct": -18.891,
+        "byModel": {
+          "claude-opus-4-8": 107.793
+        },
+        "legs": {
+          "read": 57.059,
+          "write": 25.839,
+          "input": 0.008,
+          "output": 24.898
+        }
+      }
+    },
+    {
+      "lean": 15000,
+      "bench": {
+        "name": "lean-gateway (66153->15000)",
+        "note": "shrink injected prefix to the lean target",
+        "cost": 110.712,
+        "delta": -22.201,
+        "pct": -16.703,
+        "byModel": {
+          "claude-opus-4-8": 110.707
+        },
+        "legs": {
+          "read": 59.431,
+          "write": 26.375,
+          "input": 0.008,
+          "output": 24.898
+        }
+      }
+    },
+    {
+      "lean": 30000,
+      "bench": {
+        "name": "lean-gateway (66153->30000)",
+        "note": "shrink injected prefix to the lean target",
+        "cost": 117.222,
+        "delta": -15.691,
+        "pct": -11.805,
+        "byModel": {
+          "claude-opus-4-8": 117.226
+        },
+        "legs": {
+          "read": 64.741,
+          "write": 27.575,
+          "input": 0.008,
+          "output": 24.898
+        }
+      }
+    },
+    {
+      "lean": 50000,
+      "bench": {
+        "name": "lean-gateway (66153->50000)",
+        "note": "shrink injected prefix to the lean target",
+        "cost": 125.902,
+        "delta": -7.011,
+        "pct": -5.275,
+        "byModel": {
+          "claude-opus-4-8": 125.906
+        },
+        "legs": {
+          "read": 71.821,
+          "write": 29.175,
+          "input": 0.008,
+          "output": 24.898
+        }
+      }
+    },
+    {
+      "lean": 60000,
+      "bench": {
+        "name": "lean-gateway (66153->60000)",
+        "note": "shrink injected prefix to the lean target",
+        "cost": 130.242,
+        "delta": -2.671,
+        "pct": -2.01,
+        "byModel": {
+          "claude-opus-4-8": 130.247
+        },
+        "legs": {
+          "read": 75.361,
+          "write": 29.975,
+          "input": 0.008,
+          "output": 24.898
+        }
+      }
+    },
+    {
+      "lean": 63557,
+      "bench": {
+        "name": "lean-gateway (66153->63557)",
+        "note": "shrink injected prefix to the lean target",
+        "cost": 131.786,
+        "delta": -1.127,
+        "pct": -0.848,
+        "byModel": {
+          "claude-opus-4-8": 131.785
+        },
+        "legs": {
+          "read": 76.62,
+          "write": 30.26,
+          "input": 0.008,
+          "output": 24.898
+        }
+      }
+    }
+  ],
+  "prefix_eligible_calls": 719
+}

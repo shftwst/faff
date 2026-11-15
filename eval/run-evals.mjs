@@ -620,9 +620,9 @@ export function resolveDriver(argv, presets) {
     return presets.frontierDriver({ bin, pluginDir, model, effort });
   }
   if (which === "local") {
-    if (effort) console.warn("[run-evals] WARN: --effort is ignored for --driver local (no reasoning-effort knob on the ollama lane)"); // FAFF-722
     const { baseUrl, model } = resolveLocalParams(argv);
-    return presets.localDriver({ baseUrl, model, bin, pluginDir });
+    const localEffort = argFlag(argv, "--effort") ? effort : null; // only an explicit flag: the pinned eval.effort is the frontier baseline's lineage
+    return presets.localDriver({ baseUrl, model, bin, pluginDir, effort: localEffort });
   }
   if (which === "ollama-direct") {
     if (effort) console.warn("[run-evals] WARN: --effort is ignored for --driver ollama-direct (no reasoning-effort knob on the ollama lane)"); // FAFF-722

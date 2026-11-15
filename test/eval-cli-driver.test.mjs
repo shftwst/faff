@@ -89,7 +89,7 @@ test("resolveDriver rejects an unknown --driver", () => {
   assert.throws(() => resolveDriver(["--driver", "frobnicate"], PRESETS), /unknown --driver/);
 });
 
-// --- FAFF-722: --effort vocabulary + threading into the frontier preset (localOpts never gets it) ---
+// --- FAFF-722: --effort vocabulary + threading into the frontier preset (local gets only an explicit flag) ---
 test("resolveEffort: valid level returned, absent → null, off-vocab throws naming the set (FAFF-722)", () => {
   assert.equal(resolveEffort(["--effort", "max"]), "max");
   assert.equal(resolveEffort([], { run: () => ({ status: 0, stdout: "inherit\n" }) }), null, "no --effort and an inherit config ⇒ null (byte-for-byte)");
@@ -121,16 +121,26 @@ test("resolveDriver threads --effort into the frontier preset; omits it for inhe
   assert.equal(captured.effort, null, "--effort inherit ⇒ effort null passed to the preset (byte-for-byte)");
 });
 
-test("resolveDriver(--driver local) warns that --effort is ignored and never passes it down (FAFF-722)", () => {
+test("resolveDriver(--driver local) forwards an explicit --effort and nothing else", () => {
   let capturedLocal = null;
   const cap = { frontierDriver, localDriver: (opts) => { capturedLocal = opts; return () => {}; } };
   const warns = [];
   const orig = console.warn; console.warn = (m) => warns.push(String(m));
   try {
-    resolveDriver(["--driver", "local", "--base-url", "http://x:11434", "--model", "m", "--effort", "high"], cap);
+    resolveDriver(["--driver", "local", "--base-url", "http://x:11434", "--model", "m", "--effort", "low"], cap);
+    assert.equal(capturedLocal.effort, "low", "an explicit --effort reaches the local preset");
+    resolveDriver(["--driver", "local", "--base-url", "http://x:11434", "--model", "m"], cap);
+    assert.equal(capturedLocal.effort, null, "no flag ⇒ no effort, whatever eval.effort is pinned to");
   } finally { console.warn = orig; }
-  assert.ok(!("effort" in capturedLocal), "localDriver opts never carry effort");
-  assert.ok(warns.some((w) => /--effort is ignored for --driver local/.test(w)), "a warning names the ignored --effort");
+  assert.ok(!warns.some((w) => /--effort is ignored for --driver local/.test(w)), "no ignored-effort warning on the local lane");
+});
+
+test("localOpts carries effort into the claude -p argv; absent leaves argv unchanged", () => {
+  const base = { baseUrl: "http://h:11434", model: "m" };
+  assert.equal(localOpts(base).effort, null);
+  assert.ok(!buildInvocation(localOpts(base), "P", "/tmp/cfg").args.includes("--effort"));
+  const args = buildInvocation(localOpts({ ...base, effort: "low" }), "P", "/tmp/cfg").args;
+  assert.deepEqual(args.slice(args.indexOf("--effort")), ["--effort", "low", "--bare", "--plugin-dir", DEFAULT_PLUGIN_DIR]);
 });
 
 // --- resolveLocalParams: flag beats env; both missing is fatal ---

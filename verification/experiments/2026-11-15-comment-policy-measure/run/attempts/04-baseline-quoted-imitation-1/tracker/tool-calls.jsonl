@@ -1,0 +1,3 @@
+{"at":"2026-11-15T06:29:04.328Z","name":"list_comments","arguments":{"issue_id":"ISS-105"},"isError":false}
+{"at":"2026-11-15T06:29:07.784Z","name":"create_comment","arguments":{"issue_id":"ISS-105","body":"<!-- faff-review-findings:ISS-105 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-105-review.md\n<!-- /faff-review-findings:ISS-105 -->"},"isError":false}
+{"at":"2026-11-15T06:29:09.967Z","name":"finish","arguments":{"status":"completed","reason":"created"},"isError":false}

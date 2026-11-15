@@ -1,0 +1,71 @@
+{
+  "schema": 2,
+  "scenario": "duplicate-reconcile",
+  "attempt": 1,
+  "input_sha256": "61510d42205e7737bcd58d6cd5eebba6a6229c894f497e513c6cd65d7b754f45",
+  "policy_sha256": "4d9d01e702294453cf16233feefe265e18ab5e376bf7d0f1eec40cb3f534edb6",
+  "prompt_sha256": "e97c1cbdd7a77e338c42b98827bdf18113743e66d6a61cdb688578eb23a00d8d",
+  "runtime_sha256": "6a56551b8f9a5fbb0b26c229194cc146b19243700bdff2f142b798b3a5ef9bf4",
+  "events": [
+    {
+      "seq": 1,
+      "kind": "read",
+      "op": "list_comments",
+      "args": {
+        "issue_id": "ISS-104"
+      },
+      "result": {
+        "comments": [
+          {
+            "id": "ISS-104-c1",
+            "created_at": "2026-11-01T08:00:00Z",
+            "body": "<!-- faff-review-findings:ISS-104 -->\nVerdict: changes requested (truncated"
+          },
+          {
+            "id": "ISS-104-c2",
+            "created_at": "2026-11-02T08:00:00Z",
+            "body": "<!-- faff-review-findings:ISS-104 -->\nVerdict: changes requested\nResolved 0 findings across 1 pass.\n<!-- /faff-review-findings:ISS-104 -->"
+          },
+          {
+            "id": "ISS-104-c3",
+            "created_at": "2026-11-03T08:00:00Z",
+            "body": "<!-- faff-review-findings:ISS-104 -->\nVerdict: approve\nResolved 1 finding across 2 passes.\n<!-- /faff-review-findings:ISS-104 -->\nHuman addendum: newer duplicate."
+          }
+        ]
+      }
+    },
+    {
+      "seq": 2,
+      "kind": "effect-attempt",
+      "id": "e1",
+      "op": "save_comment",
+      "args": {
+        "id": "ISS-104-c2",
+        "body": "<!-- faff-review-findings:ISS-104 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-104-review.md\n<!-- /faff-review-findings:ISS-104 -->"
+      }
+    },
+    {
+      "seq": 3,
+      "kind": "effect-result",
+      "attempt_id": "e1",
+      "outcome": "applied",
+      "acknowledged": true
+    },
+    {
+      "seq": 4,
+      "kind": "terminal",
+      "status": "completed",
+      "reason": "reconciled",
+      "final_state_sha256": "2a36c4a24f08238f0c0d11d5dc34e143a0915f2169ec7d4b247106e31f80c443"
+    }
+  ],
+  "final_state_sha256": "2a36c4a24f08238f0c0d11d5dc34e143a0915f2169ec7d4b247106e31f80c443",
+  "stop": null,
+  "accounting": {
+    "usage_complete": true,
+    "served_models": [
+      "claude-opus-5-5"
+    ],
+    "requests": 3
+  }
+}

@@ -1,0 +1,3 @@
+{"at":"2026-11-15T06:29:17.952Z","name":"list_comments","arguments":{"issue_id":"ISS-109"},"isError":false}
+{"at":"2026-11-15T06:29:24.467Z","name":"save_comment","arguments":{"id":"ISS-109-c1","body":"<!-- faff-review-findings:ISS-109 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-109-review.md\n<!-- /faff-review-findings:ISS-109 -->\nHuman note between pairs.\n<!-- faff-review-findings:ISS-109 -->\nVerdict: old second\n<!-- /faff-review-findings:ISS-109 -->"},"isError":false}
+{"at":"2026-11-15T06:29:26.677Z","name":"finish","arguments":{"status":"completed","reason":"updated"},"isError":false}

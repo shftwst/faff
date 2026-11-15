@@ -1,0 +1,61 @@
+{
+  "seed": "fce28a2c239538300ea8aff099c75591",
+  "repetitions": 1,
+  "attempts": [
+    {
+      "n": 1,
+      "scenario": "author-not-preferred",
+      "attempt": 1
+    },
+    {
+      "n": 2,
+      "scenario": "indented-and-trailing-whitespace",
+      "attempt": 1
+    },
+    {
+      "n": 3,
+      "scenario": "create-when-absent",
+      "attempt": 1
+    },
+    {
+      "n": 4,
+      "scenario": "quoted-imitation",
+      "attempt": 1
+    },
+    {
+      "n": 5,
+      "scenario": "repeated-pairs",
+      "attempt": 1
+    },
+    {
+      "n": 6,
+      "scenario": "preserve-human-text",
+      "attempt": 1
+    },
+    {
+      "n": 7,
+      "scenario": "duplicate-reconcile",
+      "attempt": 1
+    },
+    {
+      "n": 8,
+      "scenario": "legacy-open-only",
+      "attempt": 1
+    },
+    {
+      "n": 9,
+      "scenario": "crlf-outside-region",
+      "attempt": 1
+    },
+    {
+      "n": 10,
+      "scenario": "timestamp-ties",
+      "attempt": 1
+    },
+    {
+      "n": 11,
+      "scenario": "fenced-example",
+      "attempt": 1
+    }
+  ]
+}

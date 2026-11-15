@@ -1,5 +1,5 @@
 // Preparation, readiness and scheduling for controlled skill runs.
-//   node eval/control-parity/run.mjs prepare --source-root DIR --pinned-commit SHA --credential-env NAME --out DIR [--seed S]
+//   node eval/control-parity/run.mjs prepare --source-root DIR --pinned-commit SHA --credential-env NAME --out DIR [--seed S] [--attempts N]
 //   node eval/control-parity/run.mjs preflight --manifest FILE --out DIR
 //   node eval/control-parity/run.mjs baseline --manifest FILE --readiness FILE --out DIR
 // Every output directory must not exist yet; nothing is overwritten.
@@ -14,7 +14,7 @@ import { OPUS_5_5_PRICING, createLedger } from './proxy.mjs';
 import { ALLOWED_TOOLS, DEFAULT_LIMITS, HARNESS_INSTRUCTION, HARNESS_TOOLS, PARSER_VERSION, buildPromptBundle, probeClaude, runClaudeScenario, runtimeFingerprint, runtimeFingerprintOfBody } from './claude-driver.mjs';
 import { TOOL_DEFINITIONS } from './tool-server.mjs';
 
-const TOOL_FILES = ['schema.mjs', 'tracker.mjs', 'proxy.mjs', 'tool-server.mjs', 'claude-driver.mjs', 'run.mjs', 'registry.json', 'expected-outcomes.json', 'blocked-coverage.json', 'fixtures/review-comments.json'].map(f => `eval/control-parity/${f}`);
+const TOOL_FILES = ['schema.mjs', 'tracker.mjs', 'proxy.mjs', 'tool-server.mjs', 'claude-driver.mjs', 'run.mjs', 'registry.json', 'expected-outcomes.json', 'blocked-coverage.json', 'policy-decisions.json', 'fixtures/review-comments.json'].map(f => `eval/control-parity/${f}`);
 const POLICY_PATH = 'plugin/skills/faff/references/review.md';
 const PRICING = { 'claude-opus-5-5': OPUS_5_5_PRICING };
 const READY = 'ready_for_baseline_calibration';
@@ -369,7 +369,9 @@ export async function main(argv = process.argv.slice(2)) {
   if (command === 'prepare') {
     const sourceRoot = resolve(f['source-root']);
     const settings = { binary: f.binary ?? 'claude', model: f.model ?? configValue(sourceRoot, 'eval.model'), effort: f.effort ?? configValue(sourceRoot, 'eval.effort'), credential_env: f['credential-env'] };
-    prepareExperiment({ sourceRoot, toolsRoot, pinnedCommit: f['pinned-commit'], settings, out: resolve(f.out), ...(f.seed ? { seed: f.seed } : {}) });
+    const limits = f.attempts ? { ...DEFAULT_LIMITS, attempts: Number.parseInt(f.attempts, 10) } : DEFAULT_LIMITS;
+    if (!Number.isSafeInteger(limits.attempts) || limits.attempts < 1) throw new Error('--attempts must be a positive integer');
+    prepareExperiment({ sourceRoot, toolsRoot, pinnedCommit: f['pinned-commit'], settings, limits, out: resolve(f.out), ...(f.seed ? { seed: f.seed } : {}) });
     return 0;
   }
   if (command === 'preflight') {

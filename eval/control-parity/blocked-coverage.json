@@ -1,30 +1,5 @@
 {
   "schema": 2,
-  "note": "Comment cases whose intended policy is unresolved in review.md. No expected output exists for them; resolve the policy before any extraction claims compatibility here.",
-  "cases": [
-    {
-      "id": "indented-marker",
-      "reason": "One sentence trims surrounding whitespace; another excludes indented markers."
-    },
-    {
-      "id": "equal-or-missing-created-at",
-      "reason": "No final ordering or missing-value rule for the oldest-wins tie-break."
-    },
-    {
-      "id": "author-preference",
-      "reason": "Faff-authored preference is optional; the policy to freeze is not chosen."
-    },
-    {
-      "id": "nested-or-repeated-pairs",
-      "reason": "No pairing algorithm stated."
-    },
-    {
-      "id": "fenced-marker-text",
-      "reason": "The structural rule does not define fenced code handling."
-    },
-    {
-      "id": "line-ending-normalisation",
-      "reason": "Outside-region preservation is explicit; CRLF and marker whitespace at the splice boundary are not."
-    }
-  ]
+  "note": "Comment cases whose intended policy is unresolved. Every case formerly listed here was decided on 2026-11-15; see policy-decisions.json.",
+  "cases": []
 }

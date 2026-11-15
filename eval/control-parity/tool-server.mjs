@@ -8,7 +8,7 @@ import { TrackerError, createFixtureTracker, REASON_CODES, STATUSES } from './tr
 
 const str = description => ({ type: 'string', description });
 const TOOLS = [
-  { name: 'list_comments', description: 'List every comment on an issue, oldest first, with id, created_at and body.', inputSchema: { type: 'object', properties: { issue_id: str('Issue id') }, required: ['issue_id'], additionalProperties: false } },
+  { name: 'list_comments', description: 'List every comment on an issue, in the order the tracker returns them, with each comment\'s fields as stored.', inputSchema: { type: 'object', properties: { issue_id: str('Issue id') }, required: ['issue_id'], additionalProperties: false } },
   { name: 'create_comment', description: 'Create a new comment on an issue.', inputSchema: { type: 'object', properties: { issue_id: str('Issue id'), body: str('Full comment body') }, required: ['issue_id', 'body'], additionalProperties: false } },
   { name: 'save_comment', description: 'Replace the full body of an existing comment.', inputSchema: { type: 'object', properties: { id: str('Comment id'), body: str('Full replacement body') }, required: ['id', 'body'], additionalProperties: false } },
   { name: 'finish', description: 'Report the outcome once the operation is complete or cannot proceed. No further tool calls are accepted afterwards.', inputSchema: { type: 'object', properties: { status: { type: 'string', enum: [...STATUSES] }, reason: { type: 'string', enum: [...REASON_CODES] } }, required: ['status', 'reason'], additionalProperties: false } },

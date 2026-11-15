@@ -190,6 +190,16 @@ test('the prompt bundle binds exact skill bytes and declares its load closure', 
   assert.match(bundle.hashes.harness_sha256, /^[a-f0-9]{64}$/);
 });
 
+test('candidate invocation exposes exactly one extra planner tool and declares it in the harness', () => {
+  const input = { issue_id: 'ISS-1', faff_body: 'B', reason_codes: ['created'] };
+  const base = buildPromptBundle({ policyBytes: Buffer.from('R'), input });
+  const bundle = buildPromptBundle({ policyBytes: Buffer.from('R'), input, candidate: true });
+  assert.equal(bundle.user, base.user);
+  assert.ok(bundle.system.includes('plan_review_comment'));
+  const inv = buildClaudeInvocation({ settings: { model: 'm', effort: 'medium' }, promptBundle: bundle, paths: paths('/x'), proxyUrl: 'http://p', limits: DEFAULT_LIMITS, parentEnv: {} });
+  assert.deepEqual(inv.args[inv.args.indexOf('--allowedTools') + 1].split(','), [...TOOL_NAMES, 'plan_review_comment'].map(n => `mcp__tracker__${n}`));
+});
+
 // --- admission proxy ------------------------------------------------------------------------
 
 const fakeUpstream = (responses) => {

@@ -13,6 +13,7 @@ import { loadPolicyBytes } from '../eval/control-parity/tracker.mjs';
 const ROOT = new URL('..', import.meta.url).pathname;
 const FILES = ['plugin/skills/faff/references/review.md', 'eval/control-parity/schema.mjs', 'eval/control-parity/tracker.mjs', 'eval/control-parity/proxy.mjs', 'eval/control-parity/tool-server.mjs', 'eval/control-parity/claude-driver.mjs', 'eval/control-parity/run.mjs', 'eval/control-parity/registry.json', 'eval/control-parity/expected-outcomes.json', 'eval/control-parity/blocked-coverage.json', 'eval/control-parity/policy-decisions.json', 'eval/control-parity/fixtures/review-comments.json'];
 const git = (cwd, ...args) => execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', '-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=/dev/null', ...args], { cwd, encoding: 'utf8' }).trim();
+FILES.push('eval/control-parity/candidate-command.mjs', 'eval/control-parity/command-use.mjs');
 const makeRepo = () => {
   const dir = mkdtempSync(join(tmpdir(), 'cp-run-repo-'));
   for (const f of FILES) { mkdirSync(dirname(join(dir, f)), { recursive: true }); cpSync(join(ROOT, f), join(dir, f)); }

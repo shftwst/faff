@@ -12,8 +12,8 @@ Source branch starts at `576888cbd7a83b63583127d53584c3cf8a49cb00`.
 - Until the operator resolves the recorded release condition, edit only the
   evaluation harness, its tests and implementation records.
 - Keep model and effort at the existing recorded settings for paired evaluation.
-- Keep live tracker effects out of experiments. No push, merge or release is
-  part of this task.
+- Keep live tracker effects out of experiments. Prepare reviewable commits and
+  PR updates as part of driving the work. Merge and release remain separate.
 - Independent expectations must not be exposed to the model or planner adapter.
 
 ## Review focus
@@ -48,10 +48,11 @@ create/update plan with reason, comment ID, body and original-body SHA-256.
 
 ### Task 3: Bind the real command and compare declared treatments
 
-Consumes Task 2's command contract. Keep strict comparison unchanged; a separate
-report classifies narrow declared differences and candidate conformance.
+Consumes Task 2's command contract. Fixture-only adapter work proceeds before
+Task 2 while the release condition is pending. Keep strict comparison unchanged;
+a separate report classifies narrow declared differences and candidate conformance.
 
-- [ ] Test a fixture-only command adapter and command-invocation evidence.
+- [x] Test a fixture-only command adapter and command-invocation evidence.
 - [ ] Bind source/artifact hashes, arm tool definitions and complete schedule.
 - [ ] Add paired CLI entry, source-drift and deliberate mutant tests.
 - [ ] Run deterministic harness checks and obtain Claude's independent review.

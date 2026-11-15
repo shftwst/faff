@@ -14,7 +14,7 @@ import { OPUS_5_5_PRICING, createLedger } from './proxy.mjs';
 import { ALLOWED_TOOLS, DEFAULT_LIMITS, HARNESS_INSTRUCTION, HARNESS_TOOLS, PARSER_VERSION, buildPromptBundle, probeClaude, runClaudeScenario, runtimeFingerprint, runtimeFingerprintOfBody } from './claude-driver.mjs';
 import { TOOL_DEFINITIONS } from './tool-server.mjs';
 
-const TOOL_FILES = ['schema.mjs', 'tracker.mjs', 'proxy.mjs', 'tool-server.mjs', 'claude-driver.mjs', 'run.mjs', 'registry.json', 'expected-outcomes.json', 'blocked-coverage.json', 'policy-decisions.json', 'fixtures/review-comments.json'].map(f => `eval/control-parity/${f}`);
+const TOOL_FILES = ['schema.mjs', 'tracker.mjs', 'proxy.mjs', 'tool-server.mjs', 'candidate-command.mjs', 'command-use.mjs', 'claude-driver.mjs', 'run.mjs', 'registry.json', 'expected-outcomes.json', 'blocked-coverage.json', 'policy-decisions.json', 'fixtures/review-comments.json'].map(f => `eval/control-parity/${f}`);
 const POLICY_PATH = 'plugin/skills/faff/references/review.md';
 const PRICING = { 'claude-opus-5-5': OPUS_5_5_PRICING };
 const READY = 'ready_for_baseline_calibration';

@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 2,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/merge-gate-floor.js::readacfloor accepts an unattended all_verified:false checklist whose rows all passed",
+      "title": "readAcFloor accepts an unattended all_verified:false checklist whose rows all passed",
+      "location": "plugin/skills/faff/bin/lib/merge-gate-floor.js",
+      "action": "Return blocked when nothing is pending.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "standard",
+      "model": "faffter-noon-review",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "readAcFloor accepts an unattended all_verified:false checklist whose rows all passed",
+          "location": "plugin/skills/faff/bin/lib/merge-gate-floor.js",
+          "severity": "major",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/merge-gate.js::skip evidence read at the pre-rebase head",
+      "title": "Skip evidence read at the pre-rebase head",
+      "location": "plugin/skills/faff/bin/lib/merge-gate.js",
+      "action": "Re-read after the interlock.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Skip evidence read at the pre-rebase head",
+          "location": "plugin/skills/faff/bin/lib/merge-gate.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/governance-check.js::merge_floor summary cell not pipe-escaped",
+      "title": "merge_floor summary cell not pipe-escaped",
+      "location": "plugin/skills/faff/bin/lib/governance-check.js",
+      "action": "Escape the cell.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "merge_floor summary cell not pipe-escaped",
+          "location": "plugin/skills/faff/bin/lib/governance-check.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/governance-check.js::called-out note renders on failing merge_floor legs",
+      "title": "Called-out note renders on failing merge_floor legs",
+      "location": "plugin/skills/faff/bin/lib/governance-check.js",
+      "action": "None.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The note is accurate: those ids were skipped even though another leg failed. Cosmetic.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Called-out note renders on failing merge_floor legs",
+          "location": "plugin/skills/faff/bin/lib/governance-check.js",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/faff-1475-ac-floor.test.mjs::pr-path skip never exercised to merge-ok",
+      "title": "PR-path skip never exercised to merge-ok",
+      "location": "test/faff-1475-ac-floor.test.mjs",
+      "action": "Add a PR-path merge test.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "PR-path skip never exercised to merge-ok",
+          "location": "test/faff-1475-ac-floor.test.mjs",
+          "severity": "observation",
+          "disposition": "fixed"
+        }
+      ]
+    }
+  ]
+}

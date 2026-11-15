@@ -394,6 +394,15 @@ PROCEDURE smoke():
   7. expect exit 1, the human-only-acs.json row result == "hash-mismatch", run dir otherwise unchanged
 ```
 
+## Rule inventory
+
+| Prose rule | Command behaviour | Covering test | Disposition |
+|---|---|---|---|
+| `over the seven-entry forge surface` | `faff integrity-digest snapshot` covers the eight-entry roster | test/integrity-digest.test.mjs: "a stable tree's snapshot is unchanged by the leaf read: plain, events, symlink and directory members keep their record shapes" | changed: the count follows the roster, now eight entries |
+| `review_verdict:{present,sha256} }` per member | `faff evidence return` prints the third digest | test/evidence-return.test.mjs: "return prints one EvidenceReturn line with lowercase hex digests and exits 0" | changed: the lane-side shape gains `human_only_acs` |
+| `review-verdict.json` · `holdout.json`) plus the merge-tail | `correctiveIntegrityDirs` lists the new member | test/corrective-integrity.test.mjs: "correctiveIntegrityDirs(runDir, issue): 8 entries — 2 base + 4 merge-floor + 2 merge-tail (FAFF-751, FAFF-1478)" | changed: the roster list names `human-only-acs.json` |
+| `it re-hashes ac-checklist.json / review-verdict.json to the same leaf sha256` | `faff evidence verify-return` re-hashes three files | test/evidence-return.test.mjs: "a change to human-only-acs.json after the return is a hash-mismatch naming that file as tampered" | changed: the file list gains `human-only-acs.json` and one honest-scope sentence is added |
+
 ## 9. APPENDICES
 
 ### Appendix A: self-review record

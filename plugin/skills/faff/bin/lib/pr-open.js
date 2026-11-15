@@ -25,6 +25,7 @@ const childProcess = require("node:child_process");
 const argvApi = require("./argv");
 const ghApi = require("./merge-gate-gh");
 const floorApi = require("./merge-gate-floor");
+const sharedInfraApi = require("./shared-infra");
 const prBodyApi = require("./pr-body");
 const eventsApi = require("./events");
 const effectsApi = require("./merge-gate-effects");
@@ -40,6 +41,8 @@ const PR_OPEN_SPEC = {
         "--body-file": { arity: 1 }, "--spec-review-evidence": { arity: 1 }, "--json": { arity: 0 },
     },
 };
+const HUMAN_ONLY_ACS = "human-only-acs.json";
+const LEVELS = ["L1", "L2", "L3", "L4"];
 const PR_OPEN_USAGE = "usage: faff pr open --run-dir DIR --issue ID --base BRANCH --title T --body-file FILE [--spec-review-evidence FILE] [--json]";
 // --- Helpers ---------------------------------------------------------------------------------------
 function isRecord(v) {
@@ -128,6 +131,80 @@ function anchorCauseText(code, runDir) {
     if (code === "no-events")
         return `anchor-no-events: ${runDir} has no events.jsonl; a provisioning fault, re-mint the run dir`;
     return `anchor-genesis-invalid: ${runDir} has no valid genesis chain; a provisioning fault, re-mint the run dir`;
+}
+// Clears both copies first so a fault leaves neither in place, then derives the human-only set from the
+// main-checkout captured spec (never the worktree copy) and has the evidence writer freeze it. Returns a
+// warning for a fault and null on success; a fault never refuses the PR.
+function mintHumanOnlyAcs(runDir, issue, dest, deps, removeStale, mainCheckout) {
+    const destFile = `${dest}${HUMAN_ONLY_ACS}`;
+    const runFile = path.join(runDir, issue, HUMAN_ONLY_ACS);
+    const unminted = (why) => `${HUMAN_ONLY_ACS} not minted: ${why}`;
+    const removed = deps.git(["rm", "-f", "--ignore-unmatch", "--quiet", "--", destFile]);
+    removeStale(destFile);
+    removeStale(runFile);
+    if (removed.status !== 0)
+        return unminted(`git rm exited ${String(removed.status)}: ${firstLine(removed.stderr)}`);
+    const mainRoot = mainCheckout();
+    if (mainRoot === null)
+        return unminted("main checkout not resolved");
+    const captured = path.join(mainRoot, ".faff", "graft", issue, "captured-spec.md");
+    if (deps.readFile(captured) === null)
+        return unminted("captured spec unreadable");
+    const classified = deps.faff(["dod", "classify", "--spec", captured, "--issue", issue, "--json"], null, DEFAULT_TIMEOUT_MS);
+    if (classified.status !== 0)
+        return unminted(`faff dod classify exited ${String(classified.status)}: ${firstLine(classified.stderr)}`);
+    const ids = humanOnlyIds(classified.stdout);
+    if ("fault" in ids)
+        return unminted(ids.fault);
+    const level = ledgerLevel(deps.readFile(path.join(runDir, "run-ledger.json")));
+    if (level === null)
+        return unminted("run-ledger level unreadable or not L1 to L4");
+    const unattended = (deps.unattendedFor ?? defaultUnattendedFor)(level, mainRoot);
+    const written = deps.faff(["evidence", "write", "human-only-acs", "--run-dir", runDir, "--issue", issue], JSON.stringify({ issue, level, unattended, human_only: ids.ids }), DEFAULT_TIMEOUT_MS);
+    if (written.status !== 0) {
+        removeStale(runFile);
+        return unminted(`faff evidence write human-only-acs exited ${String(written.status)}: ${firstLine(written.stderr)}`);
+    }
+    return null;
+}
+function humanOnlyIds(stdout) {
+    let parsed;
+    try {
+        parsed = JSON.parse(stdout);
+    }
+    catch {
+        return { fault: "faff dod classify printed unparseable output" };
+    }
+    const rows = isRecord(parsed) ? parsed["criteria"] : null;
+    if (!Array.isArray(rows))
+        return { fault: "faff dod classify printed no criteria" };
+    const ids = [];
+    for (const row of rows) {
+        if (!isRecord(row) || row["source"] !== "done" || row["human_only"] !== true)
+            continue;
+        const id = str(row["ac_id"]);
+        if (id === null)
+            return { fault: "a human-only criterion has no ac_id" };
+        ids.push(id);
+    }
+    return { ids };
+}
+function ledgerLevel(raw) {
+    if (raw === null)
+        return null;
+    let parsed;
+    try {
+        parsed = JSON.parse(raw);
+    }
+    catch {
+        return null;
+    }
+    const level = isRecord(parsed) ? parsed["level"] : null;
+    return typeof level === "string" && LEVELS.includes(level) ? level : null;
+}
+function defaultUnattendedFor(level, mainRoot) {
+    const configApi = require("./config"); // lazy: the config module is large and only this step needs it
+    return floorApi.resolveUnattended(level, configApi.loadConfig(mainRoot)[0]);
 }
 // --- The sequence ------------------------------------------------------------------------------------
 function runPrOpen(opts, deps) {
@@ -228,6 +305,23 @@ function runPrOpen(opts, deps) {
             if (tree.status === 0 && tree.stdout.trim() !== "") {
                 return done({ token: "already-open", exit: 0, ...existingFields(), head_sha: localHead, anchor_dest: dest, governed, tracker_transition: transition(issue, governed) });
             }
+        }
+        // 9b. Mint human-only-acs.json, after the already-open return so an unchanged head mints nothing.
+        if (deps.removeStale !== undefined && deps.mainCheckout !== undefined) {
+            let fault;
+            try {
+                fault = mintHumanOnlyAcs(runDir, issue, dest, deps, deps.removeStale, deps.mainCheckout);
+            }
+            catch (e) {
+                fault = `${HUMAN_ONLY_ACS} not minted: ${e instanceof Error ? e.message : String(e)}`;
+                try {
+                    deps.removeStale(path.join(runDir, issue, HUMAN_ONLY_ACS));
+                    deps.removeStale(`${dest}${HUMAN_ONLY_ACS}`);
+                }
+                catch { /* best-effort */ }
+            }
+            if (fault !== null)
+                warnings.push(fault);
         }
         // 10. Anchor.
         const anchor = deps.faff(["events", "anchor", "--run-dir", runDir, "--issue", issue, "--dest", dest], null, DEFAULT_TIMEOUT_MS);
@@ -365,6 +459,11 @@ function defaultDeps(cwd) {
             fs.writeFileSync(file, content);
             return file;
         },
+        removeStale: (file) => { try {
+            fs.unlinkSync(path.resolve(cwd, file));
+        }
+        catch { /* absent or unremovable: the writer or git reports a real fault */ } },
+        mainCheckout: () => sharedInfraApi.mainWorktreeRoot(cwd),
         removeFile: () => {
             if (tmpDir !== null) {
                 try {

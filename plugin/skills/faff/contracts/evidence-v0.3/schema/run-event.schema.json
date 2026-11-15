@@ -5684,6 +5684,81 @@
                   }
                 }
               }
+            },
+            "human-only-acs-stamp": {
+              "title": "events.jsonl schema-2 record, type human-only-acs-stamp",
+              "description": "evidence.js writeHumanOnlyAcs (FAFF-1476): appended after human-only-acs.json lands. Issue-scoped; data repeats the issue and carries the SHA-256 of the exact bytes written. The latest stamp for an issue is the one that counts.",
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "schema",
+                "run_id",
+                "seq",
+                "ts",
+                "phase",
+                "type",
+                "prev",
+                "issue",
+                "data"
+              ],
+              "properties": {
+                "schema": {
+                  "type": "integer",
+                  "enum": [
+                    2
+                  ]
+                },
+                "run_id": {
+                  "type": "string"
+                },
+                "seq": {
+                  "type": "integer"
+                },
+                "ts": {
+                  "type": "string"
+                },
+                "prev": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "phase": {
+                  "type": "string",
+                  "enum": [
+                    "run",
+                    "tidy",
+                    "prep",
+                    "build",
+                    "plot"
+                  ]
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "human-only-acs-stamp"
+                  ]
+                },
+                "issue": {
+                  "type": "string"
+                },
+                "data": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "issue",
+                    "sha256"
+                  ],
+                  "properties": {
+                    "issue": {
+                      "type": "string",
+                      "pattern": "."
+                    },
+                    "sha256": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    }
+                  }
+                }
+              }
             }
           }
         }

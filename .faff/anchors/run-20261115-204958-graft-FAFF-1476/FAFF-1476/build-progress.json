@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1476",
+  "build": {
+    "status": "complete",
+    "diff_hash": "e09692b7115dede9bcab4aa438ef078493def718d91a33e620ffa00e289245a8",
+    "branch": "FAFF-1476-faff-pr-open-mints-human-only-acs-json",
+    "pushed_at": "2026-11-15T21:00:27.163Z"
+  },
+  "updated_at": "2026-11-15T21:00:27.163Z"
+}

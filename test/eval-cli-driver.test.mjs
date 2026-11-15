@@ -156,6 +156,19 @@ test("localOpts defaults to the repo plugin + --bare alongside the ollama redire
   assert.equal(o.env.ANTHROPIC_BASE_URL, "http://h:11434");
 });
 
+test("localOpts sends $LOCAL_API_KEY as the auth token, falling back to the ollama placeholder", () => {
+  const saved = process.env.LOCAL_API_KEY;
+  try {
+    delete process.env.LOCAL_API_KEY;
+    assert.equal(localOpts({ baseUrl: "http://h:11434", model: "m" }).env.ANTHROPIC_AUTH_TOKEN, "ollama");
+    process.env.LOCAL_API_KEY = "sk-local";
+    assert.equal(localOpts({ baseUrl: "http://h:11434", model: "m" }).env.ANTHROPIC_AUTH_TOKEN, "sk-local");
+    assert.equal(localOpts({ baseUrl: "http://h:11434", model: "m", authToken: "explicit" }).env.ANTHROPIC_AUTH_TOKEN, "explicit");
+  } finally {
+    if (saved === undefined) delete process.env.LOCAL_API_KEY; else process.env.LOCAL_API_KEY = saved;
+  }
+});
+
 // --- frontier args: --plugin-dir, NO --bare (FAFF-138) ---
 test("buildInvocation emits --plugin-dir (no --bare) for the frontier preset", () => {
   const inv = buildInvocation(frontierOpts(), "PROMPT", "/tmp/cfg");

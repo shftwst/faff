@@ -495,7 +495,7 @@ test("smoke: recorded rounds collate into an anchor that validates and a floor t
   assert.equal(cli(["evidence", "write", "review-verdict", "--run-dir", runDir, "--issue", "ISSUE-1"], "").code, 0);
   const doc = JSON.parse(readFileSync(join(runDir, "ISSUE-1", "review-verdict.json"), "utf8"));
   assert.deepEqual([doc.findings.length, doc.findings[0].occurrences.length, doc.findings[0].disposition], [1, 2, "fixed"]);
-  assert.equal(cli(["evidence", "write", "ac-checklist", "--run-dir", runDir, "--issue", "ISSUE-1"], JSON.stringify({ all_verified: true, criteria: [{ ac: "a", verified: "Verified: t", passed: true }] })).code, 0);
+  assert.equal(cli(["evidence", "write", "ac-checklist", "--run-dir", runDir, "--issue", "ISSUE-1"], JSON.stringify({ all_verified: true, criteria: [{ ac: "a", verified: "Verified: t", passed: true, ac_id: "issue-1#ac-1" }] })).code, 0);
   assert.equal(cli(["build-progress", "write", runDir, "ISSUE-1", "--build-complete", "--diff-hash", "a".repeat(64), "--branch", "b"]).code, 0);
   const dest = join(".faff", "anchors", "smoke", "ISSUE-1");
   const anchor = cli(["events", "anchor", "--run-dir", runDir, "--issue", "ISSUE-1", "--dest", dest]);

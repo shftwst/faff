@@ -20,7 +20,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
 
-import { mkChainedRun, writeEvidence, repoRoot } from "./helpers/evidence-anchor-fixtures.mjs";
+import { example, mkChainedRun, writeEvidence, repoRoot } from "./helpers/evidence-anchor-fixtures.mjs";
 import { runCli } from "./helpers/run-cli.mjs";
 
 const require = createRequire(import.meta.url);
@@ -102,8 +102,8 @@ test("the Action verdict output is pinned to the fail-closed form and evidence-r
   assert.ok(actionText.includes("    value: ${{ steps.evidence-schema-base.outputs.evidence_result }}"));
 });
 
-test("the evidence-schema input defaults to report and the head verb gets the flag only under require", () => {
-  assert.match(actionText, /\n {2}evidence-schema:\n(?: {4}.*\n)+? {4}default: "report"\n/);
+test("the evidence-schema input defaults to require and the head verb gets the flag only under require", () => {
+  assert.match(actionText, /\n {2}evidence-schema:\n(?: {4}.*\n)+? {4}default: "require"\n/);
   const block = blocks["governance-check"];
   const guarded = /if \[ "\$\{\{ inputs\.evidence-schema \}\}" = "require" \]; then\n\s+ARGS\+=\(--require-evidence-schema\)\n\s+fi/;
   assert.match(block, guarded);
@@ -155,7 +155,8 @@ function commitAll(dir, message) {
 }
 
 // A template repo per base flavour, cloned per case: "cli" (this branch), "old-cli" (no
-// capabilities subcommand) and "no-cli" (no plugin at all).
+// capabilities subcommand), "no-binding-cli" (capabilities without holdout-binding) and "no-cli"
+// (no plugin at all).
 const templates = new Map();
 function template(flavour) {
   if (templates.has(flavour)) return templates.get(flavour);
@@ -170,6 +171,12 @@ function template(flavour) {
     for (const rel of files) {
       mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
       cpSync(path.join(repoRoot, rel), path.join(dir, rel));
+    }
+    if (flavour === "no-binding-cli") {
+      const lib = path.join(dir, PLUGIN, "bin/lib/evidence.js");
+      const text = readFileSync(lib, "utf8");
+      assert.ok(text.includes(', "holdout-binding"]'));
+      writeFileSync(lib, text.replace(', "holdout-binding"]', "]"));
     }
     if (flavour === "old-cli") {
       const lib = path.join(dir, PLUGIN, "bin/lib/evidence.js");
@@ -609,14 +616,25 @@ test("anchor dir names carrying ::, a control character or | are neutralised in 
   for (const row of rows) assert.equal(row.split(/(?<!\\)\|/).length, 7, row);
 });
 
+const boundHoldout = (d) => writeFileSync(path.join(d, "holdout.json"), JSON.stringify({ ...JSON.parse(example("holdout-anchored")), issue: "FAFF-1" }));
+
 test("under require a base CLI without holdout-binding warns that the holdout binding was not checked", () => {
-  const s = scenario((dir) => placeAnchor(dir, `${ANCHORS}/run-x/FAFF-1`, (d) => writeFileSync(path.join(d, "holdout.json"), "{}")));
+  const s = scenario((dir) => placeAnchor(dir, `${ANCHORS}/run-x/FAFF-1`, boundHoldout), { flavour: "no-binding-cli" });
   const r = runLeg(s.dir, { base: s.base, head: s.head, mode: "require" });
   assert.equal(r.resolve.outputs["holdout-binding"], "false");
   assert.ok(annotations(r.base.stdout, "warning").some((l) => l.endsWith("holdout binding not checked: base CLI predates FAFF-1261")));
   assert.match(r.base.summary, /- holdout binding not checked: base CLI predates FAFF-1261/);
   const rep = runLeg(s.dir, { base: s.base, head: s.head, mode: "report" });
   assert.ok(!rep.base.stdout.includes("holdout binding not checked"));
+});
+
+test("under require a base CLI listing holdout-binding emits no holdout binding warning", () => {
+  const s = scenario((dir) => placeAnchor(dir, `${ANCHORS}/run-x/FAFF-1`, boundHoldout));
+  const r = runLeg(s.dir, { base: s.base, head: s.head, mode: "require" });
+  assert.equal(r.resolve.outputs["holdout-binding"], "true");
+  assert.ok(!r.base.stdout.includes("holdout binding not checked"));
+  assert.ok(!r.base.summary.includes("holdout binding not checked"));
+  assert.equal(r.base.outputs.verdict, "pass", r.log);
 });
 
 test("a .faffrc.yaml and FAFF_* variables in the PR checkout do not change the base leg's result", () => {
@@ -661,8 +679,12 @@ test("FAFF-1263's report-only leg is unchanged without --require-evidence-schema
   const root = mkdtempSync(path.join(TMP, "gov-"));
   const legacy = path.join(root, "legacy");
   const run = mkChainedRun(path.join(root, "legacy-run"));
-  writeEvidence(run, "legacy");
+  writeEvidence(run, "v03");
   assert.equal(runCli(["events", "anchor", "--run-dir", run, "--issue", "FAFF-1", "--dest", legacy]).code, 0);
+  // The mint refuses a legacy anchor, so the legacy shape is made by rewriting a minted one.
+  rmSync(path.join(legacy, "run-ledger.json"));
+  writeFileSync(path.join(legacy, "ac-checklist.json"), JSON.stringify({ all_verified: true }));
+  writeFileSync(path.join(legacy, "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
   const invalid = path.join(root, "invalid");
   cpSync(conformingAnchor(), invalid, { recursive: true });
   breakReview(invalid);
@@ -708,6 +730,6 @@ test("FAFF-1263's report-only leg is unchanged without --require-evidence-schema
 test("faff evidence capabilities --json prints the documented object", () => {
   const r = runCli(["evidence", "capabilities", "--json"]);
   assert.equal(r.code, 0, r.stderr);
-  assert.deepEqual(JSON.parse(r.stdout), { validate: ["require-evidence-schema", "candidate-schemas"] });
+  assert.deepEqual(JSON.parse(r.stdout), { validate: ["require-evidence-schema", "candidate-schemas", "holdout-binding"] });
 });
 

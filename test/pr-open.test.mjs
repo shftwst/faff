@@ -15,6 +15,7 @@ import { tmpdir } from "node:os";
 import { join, basename, delimiter } from "node:path";
 import { createRequire } from "node:module";
 import { runCli } from "./helpers/run-cli.mjs";
+import { floorAcChecklist, floorReviewVerdict } from "./helpers/evidence-anchor-fixtures.mjs";
 
 const require = createRequire(import.meta.url);
 const { runPrOpen, defaultDeps } = require("../plugin/skills/faff/bin/lib/pr-open.js");
@@ -186,6 +187,8 @@ test("anchor codes", () => {
     [{ anchor: exit(3, "faff events anchor: /runs/run-1 has no valid genesis chain\n") }, { valid: false, code: "genesis-invalid" }, /^anchor-genesis-invalid/],
     [{ anchor: exit(3, "faff events anchor: floor-incomplete — TT-1/ac-checklist.json is required\n") }, { valid: true }, /^anchor-floor-incomplete: .*build-evidence defect/],
     [{ anchor: exit(3, "something unexpected\n") }, { valid: true }, /^anchor-genesis-invalid/],
+    [{ anchor: exit(3, "faff events anchor: schema-mismatch TT-1/ac-checklist.json: invalid, 2 violation(s)\n") }, { valid: true }, /^anchor-schema-refused: .*build-evidence defect/],
+    [{ anchor: exit(3, "faff events anchor: anchor-shrink holdout.json: present in the existing anchor, absent from the staged anchor\n") }, { valid: true }, /^anchor-schema-refused/],
   ];
   for (const [resp, genesis, cause] of cases) {
     const { r, calls } = run({ resp, genesis });
@@ -529,8 +532,8 @@ function cliFixture({ review = "pass", remote = true, emptyEvents = false } = {}
   const runDir = minted.stdout.trim();
   const issueDir = join(runDir, CLI_ISSUE);
   mkdirSync(issueDir, { recursive: true });
-  writeFileSync(join(issueDir, "ac-checklist.json"), JSON.stringify({ all_verified: true }));
-  writeFileSync(join(issueDir, "review-verdict.json"), JSON.stringify({ signal: review, findings: [] }));
+  writeFileSync(join(issueDir, "ac-checklist.json"), floorAcChecklist());
+  writeFileSync(join(issueDir, "review-verdict.json"), JSON.stringify({ ...JSON.parse(floorReviewVerdict()), signal: review }));
   if (emptyEvents) writeFileSync(join(runDir, "events.jsonl"), "");
   const draft = join(root, "draft.md");
   writeFileSync(draft, "Summary of the change.\n\nRelated to TT-2. Implements TT-1.\n");

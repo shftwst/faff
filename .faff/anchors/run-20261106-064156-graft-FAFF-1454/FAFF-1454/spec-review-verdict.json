@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "verdict": "reject-approach",
+  "final_verdict": "reject-approach",
+  "rounds_total": 2,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "For any branch name containing `/`, the fresh-create guard in §3.2 checks the wrong ref and therefore does not apply to exactly the case where the flattening hazard exists. `setup-worktree.sh` creates the branch as `SAFE_NAME` (`tr '/' '-'`), so the only branch that can ever be pushed and shadowed is the flattened one; §4.1 mandates that \"the `ls-remote` check uses the real branch name\", which is a ref nothing in this system ever creates. The TypeScript-side check on `s.branch` will always get exit 2 (continue) for a slash-scoped scheme, and if the script-side check follows the same \"real branch name\" wording it will also pass while `git worktree add -b <flattened>` shadows a pushed flattened branch — reintroducing, silently, the precise divergence this spec exists to close.",
+      "evidence": "§3.2 (\"`git ls-remote --exit-code --heads origin <branch>`\"), §4.1 (\"Branch names with `/`. The slug flattens them for the path; the `ls-remote` check uses the real branch name\"), against `setup-worktree.sh`'s `SAFE_NAME=$(echo \"$NAME\" | tr '/' '-')` and `git worktree add -b \"${SAFE_NAME}\"`, and `worktree-ensure.ts`'s `slash-scoped` scheme producing `feature/<issue>-<slug>`.",
+      "predicted_consequence": "on a repo using the `slash-scoped` branch_naming scheme, a previously pushed `feature-FAFF-9-x` is shadowed by a fresh create with no refusal and no diagnostic — the DONE item \"A fresh create refuses when `origin/<branch>` exists\" is vacuously satisfied while the failure it describes still occurs.",
+      "spec_anchor": "an-existing-origin-branch",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "For any branch name containing `/`, the fresh-create guard in §3.2 checks the wrong ref and therefore does not apply to exactly the case where the flattening hazard exists. `setup-worktree.sh` creates the branch as `SAFE_NAME` (`tr '/' '-'`), so the only branch that can ever be pushed and shadowed is the flattened one; §4.1 mandates that \"the `ls-remote` check uses the real branch name\", which is a ref nothing in this system ever creates. The TypeScript-side check on `s.branch` will always get exit 2 (continue) for a slash-scoped scheme, and if the script-side check follows the same \"real branch name\" wording it will also pass while `git worktree add -b <flattened>` shadows a pushed flattened branch — reintroducing, silently, the precise divergence this spec exists to close.",
+          "spec_anchor": "an-existing-origin-branch"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "§3.1 specifies the refusal against \"the path `<root>/<branch-slug>`\", but the script computes the worktree path as `WT_ROOT/${SAFE_NAME}` where `SAFE_NAME` flattens `/` to `-` (setup-worktree.sh: `SAFE_NAME=$(echo \"$NAME\" | tr '/' '-')`). Under the `slash-scoped` branch_naming scheme (`feature/<issue>-<slug>`) these are different strings: a TypeScript check against the unflattened `<root>/feature/faff-9-x` never sees a symlink planted at the flattened `<root>/feature-faff-9-x`. The bundled script's own check covers the bundled-script path, and the step-6 root assert still refuses an escaped worktree, so nothing exploitable ships — but a project-supplied `scripts/setup-worktree.sh` that does its own path computation gets only a check against a path it never creates, i.e. the §3.1 TypeScript floor is vacuous for exactly the case it was added to cover.",
+      "evidence": "spec §3.1 (\"the path `<root>/<branch-slug>`\"); `setup-worktree.sh` `SAFE_NAME=$(echo \"$NAME\" | tr '/' '-')`; spec §3.1 Chosen rationale (\"the TypeScript check covers a project-specific `scripts/setup-worktree.sh`\"); worktree-ensure.ts `resolveBranch` (`slash-scoped` → `feature/${issueSlug}`).",
+      "predicted_consequence": "with a project setup script, a symlink at the flattened worktree path is not refused before provisioning; the worktree registers outside the root and the issue parks `root-outside` on every drain until manual cleanup (the exact pre-existing failure this spec's §3.1 claims to close).",
+      "spec_anchor": "3-1-root-escape-on-a-fresh-create",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "§3.1 specifies the refusal against \"the path `<root>/<branch-slug>`\", but the script computes the worktree path as `WT_ROOT/${SAFE_NAME}` where `SAFE_NAME` flattens `/` to `-` (setup-worktree.sh: `SAFE_NAME=$(echo \"$NAME\" | tr '/' '-')`). Under the `slash-scoped` branch_naming scheme (`feature/<issue>-<slug>`) these are different strings: a TypeScript check against the unflattened `<root>/feature/faff-9-x` never sees a symlink planted at the flattened `<root>/feature-faff-9-x`. The bundled script's own check covers the bundled-script path, and the step-6 root assert still refuses an escaped worktree, so nothing exploitable ships — but a project-supplied `scripts/setup-worktree.sh` that does its own path computation gets only a check against a path it never creates, i.e. the §3.1 TypeScript floor is vacuous for exactly the case it was added to cover.",
+          "spec_anchor": "3-1-root-escape-on-a-fresh-create"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "§3.2 has `freshCreate` check the flattened name and, when different, the unflattened branch name, refusing if *either* exists, with detail `{ reason: \"remote branch exists\", branch }` — a single branch field. `git ls-remote` exits 0 when any pattern matches; with both patterns passed (or two calls), the result cannot say which ref matched. The spec then routes on this field: §4.1 requires graft Step 3 to \"surface the message names the branch\", and the stated rationale is that a human can \"delete it or resume deliberately\". A surfaced name that may be the wrong one of the two sends the operator at the wrong ref.",
+      "evidence": "§3.2 (\"it checks both, and refuses if either exists\", detail `{ reason, branch }`); §4.1 (\"the surfaced message names the branch\").",
+      "predicted_consequence": "an operator following the surfaced `detail.branch` deletes or inspects the wrong remote branch (e.g. deletes `feature/faff-9-x` when the match was the flattened `faff-9-x`), leaving the actual shadowing branch in place and the next drain parked again.",
+      "spec_anchor": "an-existing-originbranch",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in place after round 2; not re-reviewed. Accepted by the operator after round 2.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "§3.2 has `freshCreate` check the flattened name and, when different, the unflattened branch name, refusing if *either* exists, with detail `{ reason: \"remote branch exists\", branch }` — a single branch field. `git ls-remote` exits 0 when any pattern matches; with both patterns passed (or two calls), the result cannot say which ref matched. The spec then routes on this field: §4.1 requires graft Step 3 to \"surface the message names the branch\", and the stated rationale is that a human can \"delete it or resume deliberately\". A surfaced name that may be the wrong one of the two sends the operator at the wrong ref.",
+          "spec_anchor": "an-existing-originbranch"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "§3.3 names two distinct failure branches in the script — root-lookup failure and no-`faff`-binary-at-all — and DONE item 3 requires both (\"exits 1 with a named error when the root lookup fails or no `faff` resolves\"). Only the first is covered: scenario 4 and the §4.2 test both drive a stub whose `worktree-root` exits 1. Nothing anywhere decides the no-binary branch, which has its own distinct error string (`setup-worktree: no faff binary resolvable…`).",
+      "evidence": "§3.3 second bullet; DONE item 3; §4.2 `test/setup-worktree-script.test.mjs` list (stub covers exit-1 only).",
+      "predicted_consequence": "DONE item 3's second disjunct cannot be marked done by any named test or scenario; a builder who never implements the no-binary branch still passes every listed test.",
+      "spec_anchor": "how",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Fixed in place after round 2; not re-reviewed. Accepted by the operator after round 2.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "§3.3 names two distinct failure branches in the script — root-lookup failure and no-`faff`-binary-at-all — and DONE item 3 requires both (\"exits 1 with a named error when the root lookup fails or no `faff` resolves\"). Only the first is covered: scenario 4 and the §4.2 test both drive a stub whose `worktree-root` exits 1. Nothing anywhere decides the no-binary branch, which has its own distinct error string (`setup-worktree: no faff binary resolvable…`).",
+          "spec_anchor": "how"
+        }
+      ]
+    }
+  ]
+}

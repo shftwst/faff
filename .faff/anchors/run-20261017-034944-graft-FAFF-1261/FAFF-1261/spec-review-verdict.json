@@ -1,0 +1,890 @@
+{
+  "schema_version": 1,
+  "verdict": "revise",
+  "final_verdict": "revise",
+  "rounds_total": 9,
+  "objections": [
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "Step 9 of the staged mint (`IF dest exists: rm -r dest`) replaces an existing anchor with exactly the staged set. If the source run dir has lost an optional floor file since the previous mint (run dirs are mutable until close; graft legitimately re-runs Step 9b), the re-mint passes validation — absent optional files are not checked — and the committed anchor silently loses that evidence. The merge-floor leg passes through holdout absence (FAFF-1040 posture, per `ctx-1261-govcheck.js`), and the evidence-schema leg only validates files that are present, so nothing fails. A spec whose purpose is preventing evidence loss introduces an undetected evidence-deletion path, and Scenario 2 endorses the deletion as correct behaviour.",
+      "evidence": "\"Staged mint\" procedure step 8–9; Scenario 2 (\"`<d>` contains exactly the staged file set (no holdout.json)\"); edge case \"No `spec-review-verdict.json` or `holdout.json`: absent optional files are not checked\".",
+      "predicted_consequence": "a re-mint over an existing anchor drops `holdout.json` (or another optional floor file) that the previous anchor carried; CI passes; the evidence is gone from the audit record with no refusal or warning anywhere.",
+      "spec_anchor": "staged-mint",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "Step 9 of the staged mint (`IF dest exists: rm -r dest`) replaces an existing anchor with exactly the staged set. If the source run dir has lost an optional floor file since the previous mint (run dirs are mutable until close; graft legitimately re-runs Step 9b), the re-mint passes validation — absent optional files are not checked — and the committed anchor silently loses that evidence. The merge-floor leg passes through holdout absence (FAFF-1040 posture, per `ctx-1261-govcheck.js`), and the evidence-schema leg only validates files that are present, so nothing fails. A spec whose purpose is preventing evidence loss introduces an undetected evidence-deletion path, and Scenario 2 endorses the deletion as correct behaviour.",
+          "spec_anchor": "staged-mint"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec defines the output as `steps.evidence-schema-base.outputs.verdict == 'fail' && 'fail' || <today's expression>`, while step 6 of `evidence-schema-base` exits 0 under `report` even when its verdict is `fail`. Under `report` with a failing base leg, the required check passes but the `verdict` output — the value downstream consumers and the workflow's own outputs block expose — reads `fail`. The output and the enforced result disagree.",
+      "evidence": "\"Action changes\" input table (\"`report` runs both and never fails on them\") and the verdict-output sentence; `evidence-schema-base` step 6.",
+      "predicted_consequence": "an adopter in rollout mode (`report`) sees a green required check with `verdict=fail`, so anything branching on the output (a job summary consumer, a dependent workflow) misreports the PR as failing.",
+      "spec_anchor": "action-changes",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The spec defines the output as `steps.evidence-schema-base.outputs.verdict == 'fail' && 'fail' || <today's expression>`, while step 6 of `evidence-schema-base` exits 0 under `report` even when its verdict is `fail`. Under `report` with a failing base leg, the required check passes but the `verdict` output — the value downstream consumers and the workflow's own outputs block expose — reads `fail`. The output and the enforced result disagree.",
+          "spec_anchor": "action-changes"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The `resolve-trusted-cli` step derives the plugin subtree path from `inputs.faff-binary`, which is a PR-controlled input. A PR that edits `.github/actions/governance-check/action.yml` (or the workflow) can set `faff-binary` to a path inside the PR's own committed tree (e.g. `plugin/skills/faff/bin/faff` is the default, but the input is free-form), and the step will `git archive \"$BASE_SHA\" -- \"$PLUGIN\"` that path. If the PR also adds a file at that path in the head commit, the archive extraction still pulls the *base* version — so this specific path is safe. However, the deeper issue is that the entire `resolve-trusted-cli` step, including the `git archive` command and the `PLUGIN` derivation, is itself PR-controlled code (the Action runs from the PR head). A PR can rewrite the step to extract from `HEAD_SHA` instead of `BASE_SHA`, or to skip the archive entirely and use the head binary. The spec acknowledges this limit (\"What the base commit cannot cover\") and defers it to CODEOWNERS review — but CODEOWNERS review is a *report-only* check (`branch-protection-check` reports `code_owner_review: true|false|null`; it never enforces). The spec's own DONE items only require the *report* to exist, not that the ruleset actually requires code-owner review. So the stated control (CODEOWNERS) is not verified to be active, and the trust boundary is held by a setting the spec never confirms is enabled.",
+      "evidence": "\"What the base commit cannot cover. GitHub runs the workflow and the composite Action from the PR head, so a PR that edits `.github/` can skip or rewrite these steps, and the `faff-binary` input it passes. That is held by required code-owner review, below, stated as the limit.\" and \"Chosen: report the setting, never set it. Same assert-don't-enforce posture as the required-check runbook.\"",
+      "predicted_consequence": "A PR that edits `.github/` (which the spec admits can rewrite the steps) and whose code-owner review is not actually enabled in the ruleset (which the spec never verifies) can make the evidence-schema leg run the head's own validator over the head's own anchors — the exact self-vouching the base-commit leg exists to prevent. The check silently becomes advisory.",
+      "spec_anchor": "action-changes",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The `resolve-trusted-cli` step derives the plugin subtree path from `inputs.faff-binary`, which is a PR-controlled input. A PR that edits `.github/actions/governance-check/action.yml` (or the workflow) can set `faff-binary` to a path inside the PR's own committed tree (e.g. `plugin/skills/faff/bin/faff` is the default, but the input is free-form), and the step will `git archive \"$BASE_SHA\" -- \"$PLUGIN\"` that path. If the PR also adds a file at that path in the head commit, the archive extraction still pulls the *base* version — so this specific path is safe. However, the deeper issue is that the entire `resolve-trusted-cli` step, including the `git archive` command and the `PLUGIN` derivation, is itself PR-controlled code (the Action runs from the PR head). A PR can rewrite the step to extract from `HEAD_SHA` instead of `BASE_SHA`, or to skip the archive entirely and use the head binary. The spec acknowledges this limit (\"What the base commit cannot cover\") and defers it to CODEOWNERS review — but CODEOWNERS review is a *report-only* check (`branch-protection-check` reports `code_owner_review: true|false|null`; it never enforces). The spec's own DONE items only require the *report* to exist, not that the ruleset actually requires code-owner review. So the stated control (CODEOWNERS) is not verified to be active, and the trust boundary is held by a setting the spec never confirms is enabled.",
+          "spec_anchor": "action-changes"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "`chooseSchemas` handles a candidate schema that is unparseable or non-additive by falling back to the base schema. But the procedure never handles a candidate manifest that *omits* a path the base manifest lists, or a candidate schema file that is *absent* (not unparseable — missing). Step 2 requires the candidate manifest to `deepEqual` the base manifest, so a manifest edit is caught. But a PR that deletes a schema file without editing the manifest (leaving the manifest pointing at a now-missing file) is not covered: step 3 reads \"candidate schema bytes == base bytes -> base; candidate unparseable -> base; isAdditive -> candidate; else -> base\". A missing file is neither \"unparseable\" (the read throws) nor handled by any branch. If the code treats a read failure as \"use base\", that is safe (stricter). But if the code treats it as \"candidate schema is the empty/absent schema\" and the additive check runs against `undefined`, the result is undefined behaviour — potentially \"candidate accepted\" with no schema to compare, which would let the PR's anchors validate against nothing. The spec does not state the missing-file branch, and the failure mode section does not list it.",
+      "evidence": "\"candidate unparseable -> base, reason 'unparseable <schema>'\" — no branch for \"candidate file absent\"; \"candidate problems never fail the check on their own; they only fall back to the base schema, the stricter direction\" — the spec asserts the fallback is always stricter, but a missing-file branch is not specified.",
+      "predicted_consequence": "A PR that deletes a schema file (e.g. `review-verdict-anchored.schema.json`) and whose anchors rely on that deletion (the file is no longer checked) could pass the base-commit leg if the missing-file branch is implemented as \"no schema to compare against\" rather than \"use base schema\". The check fails open on a path the spec does not enumerate.",
+      "spec_anchor": "additive-rule",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "`chooseSchemas` handles a candidate schema that is unparseable or non-additive by falling back to the base schema. But the procedure never handles a candidate manifest that *omits* a path the base manifest lists, or a candidate schema file that is *absent* (not unparseable — missing). Step 2 requires the candidate manifest to `deepEqual` the base manifest, so a manifest edit is caught. But a PR that deletes a schema file without editing the manifest (leaving the manifest pointing at a now-missing file) is not covered: step 3 reads \"candidate schema bytes == base bytes -> base; candidate unparseable -> base; isAdditive -> candidate; else -> base\". A missing file is neither \"unparseable\" (the read throws) nor handled by any branch. If the code treats a read failure as \"use base\", that is safe (stricter). But if the code treats it as \"candidate schema is the empty/absent schema\" and the additive check runs against `undefined`, the result is undefined behaviour — potentially \"candidate accepted\" with no schema to compare, which would let the PR's anchors validate against nothing. The spec does not state the missing-file branch, and the failure mode section does not list it.",
+          "spec_anchor": "additive-rule"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The spec correctly moves anchor *discovery* to the trusted CLI, but the `touched` boolean that gates whether the base-commit steps run at all is computed in the Action's shell from `git diff --name-only \"$BASE_SHA\" \"$HEAD_SHA\" -- \"$ANCHORS_PATH\"`. A PR that edits the Action (which the spec admits is possible) can change the `touched` computation to always print `false`, skipping both base-commit steps entirely. The spec's own \"What the base commit cannot cover\" paragraph concedes this, and CODEOWNERS is the stated control — but as noted above, CODEOWNERS is report-only and never verified active. This is the same trust gap as the first objection, but narrower: even with CODEOWNERS active, a PR that *only* edits the Action's `touched` computation (not the workflow) is still subject to code-owner review, so the control would catch it — but only if the control is actually enabled.",
+      "evidence": "\"It is computed in the Action's own shell, not by the head binary.\" and \"What the base commit cannot cover. GitHub runs the workflow and the composite Action from the PR head, so a PR that edits `.github/` can skip or rewrite these steps\"",
+      "predicted_consequence": "If code-owner review is not enabled (never verified by the spec), a PR can set `touched=false` unconditionally and the base-commit evidence leg never runs, silently downgrading the check to the head's own (PR-controlled) validation.",
+      "spec_anchor": "action-changes",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The spec correctly moves anchor *discovery* to the trusted CLI, but the `touched` boolean that gates whether the base-commit steps run at all is computed in the Action's shell from `git diff --name-only \"$BASE_SHA\" \"$HEAD_SHA\" -- \"$ANCHORS_PATH\"`. A PR that edits the Action (which the spec admits is possible) can change the `touched` computation to always print `false`, skipping both base-commit steps entirely. The spec's own \"What the base commit cannot cover\" paragraph concedes this, and CODEOWNERS is the stated control — but as noted above, CODEOWNERS is report-only and never verified active. This is the same trust gap as the first objection, but narrower: even with CODEOWNERS active, a PR that *only* edits the Action's `touched` computation (not the workflow) is still subject to code-owner review, so the control would catch it — but only if the control is actually enabled.",
+          "spec_anchor": "action-changes"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The spec states both that `report` \"never fails on them\" and that the composite verdict becomes `fail` when the base step's verdict output is `fail` — but the base step sets `output verdict = pass | fail` in all modes and only varies its *exit code* by mode. Under `report` with a failing base leg, the proposed expression `steps.evidence-schema-base.outputs.verdict == 'fail' && 'fail' || <today's expression>` yields `fail`, while the step exits 0 and the input table says report \"never fails on them\". A tester cannot tell which observable is the acceptance oracle: the step exit code, the `verdict` output, or the job result.",
+      "evidence": "DONE item \"the base step exits 1 on `fail` under `require` and 0 under `report`; the Action `verdict` output is `fail` when either step failed\" — where \"failed\" is never defined (non-zero exit vs. `outputs.verdict == 'fail'`), and the two definitions diverge exactly in the `report` mode the input table introduces.",
+      "predicted_consequence": "The DONE item cannot be decided: a build that propagates `outputs.verdict` fails the \"never fails on them\" contract; a build that propagates only exit codes fails the \"verdict output is fail when either step failed\" reading. Two conforming builds give different `verdict` outputs for the same PR, and no scenario pins either.",
+      "spec_anchor": "action-changes",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "minor",
+          "claim": "The spec states both that `report` \"never fails on them\" and that the composite verdict becomes `fail` when the base step's verdict output is `fail` — but the base step sets `output verdict = pass | fail` in all modes and only varies its *exit code* by mode. Under `report` with a failing base leg, the proposed expression `steps.evidence-schema-base.outputs.verdict == 'fail' && 'fail' || <today's expression>` yields `fail`, while the step exits 0 and the input table says report \"never fails on them\". A tester cannot tell which observable is the acceptance oracle: the step exit code, the `verdict` output, or the job result.",
+          "spec_anchor": "action-changes"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The trusted CLI judges head-side anchor data with the base commit's *code*, not just its schemas: `eventViolations`, `declaredEffectViolations` and `holdoutConstraintViolations` all run from the extracted base subtree. `--candidate-bundle` relaxes only schema JSON, and `isAdditive` explicitly rejects widened enums. So a PR that introduces a new event type or effect kind — which slice 5 (FAFF-1260) and the parent explicitly contemplate (\"a new event type or effect kind must ship with its schema\") — cannot pass its own CI: the base `run-event` schema's `type` enum doesn't contain the new type (widening is non-additive, so the candidate is rejected), and the base line validator likely rejects the unknown type too. The spec's stated remedy (\"land the schema change in its own PR first\") does not resolve this, because the schema-only PR can merge, but the *writer* PR — the one that actually emits the new type into an anchor's `events.jsonl` — is still judged by base `eventViolations` code that has never heard of the type. Every code-side extension of the validators that reaches an anchored log is blocked until after it merges, which it cannot do without passing.",
+      "evidence": "\"Additive rule\" (`isAdditive` step 2: `otherwise: deepEqual` — enum widening is listed as a false case in the DONE unit table); `evidence-schema-base` step 3 runs `node \"$TRUSTED\" evidence validate`, so all line validators are base code; slice 5's contract \"the events and effects writers refuse a type that has no schema\" plus the parent's per-type schema design; failure mode \"The additive rule is too strict for a real change\" offers only the schema-PR-first remedy.",
+      "predicted_consequence": "the first PR that adds a legitimate event type or effect kind and carries its own anchor fails the evidence-schema-base leg with no recovery path the spec names; the builder must either strip the new type from the run's events (impossible — the log is append-only and hash-chained) or revert the enforcement leg for that PR, which the parent forbids (\"revert the enforcement slice, never loosen the schema\" is the only sanctioned rollback, and it is the whole slice).",
+      "spec_anchor": "additive-rule",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The trusted CLI judges head-side anchor data with the base commit's *code*, not just its schemas: `eventViolations`, `declaredEffectViolations` and `holdoutConstraintViolations` all run from the extracted base subtree. `--candidate-bundle` relaxes only schema JSON, and `isAdditive` explicitly rejects widened enums. So a PR that introduces a new event type or effect kind — which slice 5 (FAFF-1260) and the parent explicitly contemplate (\"a new event type or effect kind must ship with its schema\") — cannot pass its own CI: the base `run-event` schema's `type` enum doesn't contain the new type (widening is non-additive, so the candidate is rejected), and the base line validator likely rejects the unknown type too. The spec's stated remedy (\"land the schema change in its own PR first\") does not resolve this, because the schema-only PR can merge, but the *writer* PR — the one that actually emits the new type into an anchor's `events.jsonl` — is still judged by base `eventViolations` code that has never heard of the type. Every code-side extension of the validators that reaches an anchored log is blocked until after it merges, which it cannot do without passing.",
+          "spec_anchor": "additive-rule"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The `resolve-trusted-cli` step resolves the trusted CLI from `inputs.faff-binary`, which is a PR-controlled input. The workflow and composite Action run from the PR head, so the PR can set `faff-binary` to any path in the checkout (e.g. a binary it committed, or a path whose base-commit `git cat-file -e` check passes against a file the PR also controls). The step's `git cat-file -e \"$BASE_SHA:$inputs.faff-binary\"` only proves the base commit has *a* file at that path — it does not prove that file is faff's CLI, nor that the extracted subtree is the trusted code. A PR that adds its own `plugin/skills/faff/bin/faff` (or points the input at a file it controls that exists on base) gets its own code run as the \"base-commit\" validator.",
+      "evidence": "Spec §\"Action changes\": \"`resolve-trusted-cli`: 1. IF check-binary.in-checkout == true: PLUGIN := dirname(dirname(inputs.faff-binary)) … IF `git cat-file -e \"$BASE_SHA:$inputs.faff-binary\"` fails: output unavailable=true … ELSE: git archive \"$BASE_SHA\" -- \"$PLUGIN\"\". The spec's own \"What the base commit cannot cover\" paragraph admits the PR controls the workflow and the `faff-binary` input, and defers only to CODEOWNERS — but CODEOWNERS review is a human process, not a cryptographic or structural guarantee, and the spec's own pre-switch gate only *checks* that code-owner review is enabled, it does not make the trust sound.",
+      "predicted_consequence": "A PR that edits `.github/` (or that is merged by a human after a code-owner review that misses the input change) can make the \"base-commit\" evidence leg run the PR's own validator, turning the enforcement leg into a self-attestation. The CI evidence leg then passes any anchor the PR's code accepts, defeating the entire base-commit trust design.",
+      "spec_anchor": "action-changes",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The `resolve-trusted-cli` step resolves the trusted CLI from `inputs.faff-binary`, which is a PR-controlled input. The workflow and composite Action run from the PR head, so the PR can set `faff-binary` to any path in the checkout (e.g. a binary it committed, or a path whose base-commit `git cat-file -e` check passes against a file the PR also controls). The step's `git cat-file -e \"$BASE_SHA:$inputs.faff-binary\"` only proves the base commit has *a* file at that path — it does not prove that file is faff's CLI, nor that the extracted subtree is the trusted code. A PR that adds its own `plugin/skills/faff/bin/faff` (or points the input at a file it controls that exists on base) gets its own code run as the \"base-commit\" validator.",
+          "spec_anchor": "action-changes"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "`--candidate-bundle` accepts a head schema that adds an optional typed closed property, and the CI leg then validates the PR's anchors against that head schema. The spec's additive rule checks only the schema's *shape* (new optional, typed, closed properties), never that the property is actually produced by a writer that shipped in the same PR, nor that the property's semantics are what the schema claims. A PR can add an optional property to the schema, add the same property to its anchor files by hand (or via a writer that emits it), and pass — while the property's *meaning* (e.g. a field that the merge gate or a future reader will trust) is unvalidated. More concretely: the additive rule permits a PR to add an optional property that a *future* gate will read, and the anchor carries it, but nothing in this slice proves the property was produced by the canonical writer rather than hand-edited into the evidence.",
+      "evidence": "Spec §\"Additive rule\": \"every key only in C.properties: NOT in C.required, has 'type', every type name one of the seven known names, closedSchemaViolations(C.properties[key]) is empty\". The rule validates the schema node, not the data's provenance. The spec's own failure mode \"The additive rule is too strict for a real change\" addresses the opposite direction (a legitimate change rejected), not this one.",
+      "predicted_consequence": "A PR can extend the schema with an optional field and hand-stamp it into its anchor, passing CI, and a later slice that reads that field (e.g. a new merge-floor criterion) will trust data whose provenance is unverified — the same class of trust the whole slice exists to close, reopened through the additive path.",
+      "spec_anchor": "additive-rule",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "`--candidate-bundle` accepts a head schema that adds an optional typed closed property, and the CI leg then validates the PR's anchors against that head schema. The spec's additive rule checks only the schema's *shape* (new optional, typed, closed properties), never that the property is actually produced by a writer that shipped in the same PR, nor that the property's semantics are what the schema claims. A PR can add an optional property to the schema, add the same property to its anchor files by hand (or via a writer that emits it), and pass — while the property's *meaning* (e.g. a field that the merge gate or a future reader will trust) is unvalidated. More concretely: the additive rule permits a PR to add an optional property that a *future* gate will read, and the anchor carries it, but nothing in this slice proves the property was produced by the canonical writer rather than hand-edited into the evidence.",
+          "spec_anchor": "additive-rule"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "Step 8 of the staged mint refuses only when a file present in `--dest` is absent from the staged anchor. It does not compare the *bytes* of files present in both. A re-mint whose run dir has a *modified* (e.g. truncated, or re-written with different content) `events.jsonl` or `run-ledger.json` will replace the old anchor's bytes with the new ones, and the old bytes are destroyed. The spec's own scenario \"an older anchor already at <d> whose files are a subset of the new mint's and one of which (review-verdict.json) differs\" explicitly blesses this replacement. If the run dir's file was corrupted or hand-edited between the original mint and the re-mint, the re-mint silently destroys the only committed copy of the original evidence.",
+      "evidence": "Spec §\"Staged mint\", step 8: \"FOR each file f in dest not in staging: refuse anchor-shrink f … rm -r dest # replace wholesale, never merge\"; step 9: \"copy every staged file\". The scenario in §Scenarios: \"an older anchor already at <d> whose files are a subset of the new mint's and one of which (review-verdict.json) differs … <d> contains exactly the staged file set with the new review-verdict.json bytes\".",
+      "predicted_consequence": "A re-mint over a run dir whose evidence was accidentally or maliciously altered (a partial write, a truncation, a hand edit) permanently destroys the prior committed anchor's bytes, and the new anchor passes validation because the altered file is itself v0.3-valid. The audit record this slice exists to protect is silently rewritten.",
+      "spec_anchor": "staged-mint",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "Step 8 of the staged mint refuses only when a file present in `--dest` is absent from the staged anchor. It does not compare the *bytes* of files present in both. A re-mint whose run dir has a *modified* (e.g. truncated, or re-written with different content) `events.jsonl` or `run-ledger.json` will replace the old anchor's bytes with the new ones, and the old bytes are destroyed. The spec's own scenario \"an older anchor already at <d> whose files are a subset of the new mint's and one of which (review-verdict.json) differs\" explicitly blesses this replacement. If the run dir's file was corrupted or hand-edited between the original mint and the re-mint, the re-mint silently destroys the only committed copy of the original evidence.",
+          "spec_anchor": "staged-mint"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The trusted CLI is extracted to `$RUNNER_TEMP/faff-base` and invoked as `node \"$TRUSTED\" evidence validate …`. The spec says the CLI resolves its bundled schemas from its own path — but the spec does not state that the CLI's *entire* runtime resolution is confined to that extracted subtree. The CLI (`bin/faff`, `bin/lib/*`) may resolve other modules, config, or data relative to CWD or to environment variables (e.g. `FAFF_*` env vars, a `.faffrc` in the checkout, or `findRoot()` walking up from CWD). The PR controls the checkout's CWD and any config files in it. If any of the CLI's resolution paths consult the working tree, the PR can influence the trusted CLI's behaviour (e.g. point it at a looser config, or at a different manifest).",
+      "evidence": "Spec §\"Action changes\", step `evidence-schema-base`: \"node \"$TRUSTED\" evidence validate \"$d\" --require-evidence-schema --json\". The spec's §\"Reference context\" lists `findRoot()` in `governance-check.js` as an existing CWD-walking resolution. The spec never states the trusted CLI is run with a neutral CWD or an isolated environment.",
+      "predicted_consequence": "A PR that places a config file or a symlink in the checkout that the trusted CLI's `findRoot()` or config resolution picks up can alter the trusted CLI's behaviour (e.g. change the anchors root, or the manifest path), making the base-commit leg validate something other than the PR's anchors, or validate them against a PR-controlled manifest.",
+      "spec_anchor": "action-changes",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "The trusted CLI is extracted to `$RUNNER_TEMP/faff-base` and invoked as `node \"$TRUSTED\" evidence validate …`. The spec says the CLI resolves its bundled schemas from its own path — but the spec does not state that the CLI's *entire* runtime resolution is confined to that extracted subtree. The CLI (`bin/faff`, `bin/lib/*`) may resolve other modules, config, or data relative to CWD or to environment variables (e.g. `FAFF_*` env vars, a `.faffrc` in the checkout, or `findRoot()` walking up from CWD). The PR controls the checkout's CWD and any config files in it. If any of the CLI's resolution paths consult the working tree, the PR can influence the trusted CLI's behaviour (e.g. point it at a looser config, or at a different manifest).",
+          "spec_anchor": "action-changes"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "`touched` is set from `git diff --name-only \"$BASE_SHA\" \"$HEAD_SHA\" -- \"$ANCHORS_PATH\"` printing anything. A PR that *deletes* an anchor dir (removing all its files) produces a diff that prints the deleted paths, so `touched=true` — but the base leg's `--derive-anchor-dirs` skips dirs that no longer exist at HEAD (\"a dir the PR itself deleted is skipped\", per the existing discovery core). So the leg runs, discovers nothing, and reports pass. The spec's own \"PR deletes an anchor dir: discovery skips it, as today\" edge case confirms this. The consequence: a PR can delete a committed anchor (the audit record) and the evidence leg reports pass, because there is nothing left to validate.",
+      "evidence": "Spec §\"Edge cases\": \"PR deletes an anchor dir: discovery skips it, as today.\" The existing `deriveAnchorDirs` in `governance-check.js` (context) skips deleted dirs: \"A dir the PR itself deleted is skipped ('not carried anymore')\".",
+      "predicted_consequence": "A PR that removes a committed anchor (whether to hide evidence or by accident) passes the evidence-schema leg, and the anchor's deletion is only caught by the human diff review — the automated enforcement this slice adds does not see it.",
+      "spec_anchor": "edge-cases",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "`touched` is set from `git diff --name-only \"$BASE_SHA\" \"$HEAD_SHA\" -- \"$ANCHORS_PATH\"` printing anything. A PR that *deletes* an anchor dir (removing all its files) produces a diff that prints the deleted paths, so `touched=true` — but the base leg's `--derive-anchor-dirs` skips dirs that no longer exist at HEAD (\"a dir the PR itself deleted is skipped\", per the existing discovery core). So the leg runs, discovers nothing, and reports pass. The spec's own \"PR deletes an anchor dir: discovery skips it, as today\" edge case confirms this. The consequence: a PR can delete a committed anchor (the audit record) and the evidence leg reports pass, because there is nothing left to validate.",
+          "spec_anchor": "edge-cases"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "`--check` \"reuses the real path, so it cannot drift from it\" — but the real path's step 8 (dest checks, `rm -r dest`) and step 9 (copy) are the mutation steps. If `--check` is implemented as a flag that skips steps 8-9, a future edit that moves the skip point (or a bug in the flag's placement) makes `--check` mutate `--dest`. The spec's DONE item \"`--check` … leaves `--dest` byte-identical\" is a test, not a structural guarantee. This is a minor hardening concern, not a current defect.",
+      "evidence": "Spec §\"`faff events anchor --check`\": \"Runs every check the real mint runs … but always deletes the staged anchor and never touches `--dest`.\" The spec does not specify *how* the skip is implemented.",
+      "predicted_consequence": "A future refactor of the shared path could make the recovery/drain tool (`--check`) destructive, deleting a committed anchor during a routine drain check. Low likelihood, but the tool is explicitly the one operators run on live run dirs.",
+      "spec_anchor": "faff-events-anchor-check",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "`--check` \"reuses the real path, so it cannot drift from it\" — but the real path's step 8 (dest checks, `rm -r dest`) and step 9 (copy) are the mutation steps. If `--check` is implemented as a flag that skips steps 8-9, a future edit that moves the skip point (or a bug in the flag's placement) makes `--check` mutate `--dest`. The spec's DONE item \"`--check` … leaves `--dest` byte-identical\" is a test, not a structural guarantee. This is a minor hardening concern, not a current defect.",
+          "spec_anchor": "faff-events-anchor-check"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The refusal table offers two remedies for `anchor-shrink` — restore the file via its writer, or \"delete the stale anchor deliberately and re-mint\". The second remedy contradicts the Action's immutability check: any `--name-status` line with status other than `A` against the merge base fails with `anchor-immutable`, and deleting an anchor present at the merge base is status `D`. So for the exact case the remedy names (a stale anchor already on the base branch), the \"deliberate delete and re-mint\" path can never ship through CI.",
+      "evidence": "Mint refusal section, `anchor-shrink` row (\"The remedy is to restore the file through its writer, or to delete the stale anchor deliberately and re-mint\") vs the `evidence-schema-base` step 2a (\"FOR each line … with status other than A: fail `anchor-immutable <path>`\").",
+      "predicted_consequence": "An agent following the spec's own recovery text for a stale committed anchor parks the run on a refusal whose documented escape hatch is itself a CI failure; the recovery loop dead-ends until someone realises only the writer-restore path is legal.",
+      "spec_anchor": "`mint-refusal`",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The refusal table offers two remedies for `anchor-shrink` — restore the file via its writer, or \"delete the stale anchor deliberately and re-mint\". The second remedy contradicts the Action's immutability check: any `--name-status` line with status other than `A` against the merge base fails with `anchor-immutable`, and deleting an anchor present at the merge base is status `D`. So for the exact case the remedy names (a stale anchor already on the base branch), the \"deliberate delete and re-mint\" path can never ship through CI.",
+          "spec_anchor": "`mint-refusal`"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The immutability failure is folded into `evidence_result`, and step 6 only fails the job when `evidence_result = fail` **and** `inputs.evidence-schema == require`. But a PR that edits or deletes a committed anchor violates the CI leg's premise (\"every anchor in a PR diff is new\") regardless of schema mode; under the `report` default-adjacent rollout mode the job passes with only a warning. The spec treats a premise break as a schema finding, which misclassifies it.",
+      "evidence": "`evidence-schema-base` steps 2a, 5 and 6; the `evidence-schema` input table (`report` \"runs both and never fails on them\").",
+      "predicted_consequence": "During an adopter's `report` rollout window, a PR that rewrites history inside a committed anchor passes CI with a warning annotation, and the corrupted anchor merges — the exact post-hoc-edit case the immutability check exists to catch.",
+      "spec_anchor": "`action-changes`",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The immutability failure is folded into `evidence_result`, and step 6 only fails the job when `evidence_result = fail` **and** `inputs.evidence-schema == require`. But a PR that edits or deletes a committed anchor violates the CI leg's premise (\"every anchor in a PR diff is new\") regardless of schema mode; under the `report` default-adjacent rollout mode the job passes with only a warning. The spec treats a premise break as a schema finding, which misclassifies it.",
+          "spec_anchor": "`action-changes`"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "Step 2 pipes changed paths into `run_trusted governance-check --derive-anchor-dirs` but specifies no handling for that command exiting non-zero (the spec's own fail-closed principle says a missing means of checking must never report \"nothing to check\"). A non-zero discovery whose stdout is empty yields `DIRS=\"\"`, the per-dir loop runs zero iterations, and the leg reports pass — the vacuous \"nothing to check\" outcome the design principles forbid.",
+      "evidence": "Design principle \"Fail closed when the means of checking is missing\"; `evidence-schema-base` step 2 (no error branch stated, unlike step 1 and step 3, which both name their failure handling).",
+      "predicted_consequence": "A base CLI whose derive mode faults (or a future refactor of `--derive-anchor-dirs`) turns the enforcement leg into a no-op that reports pass, discovered only when someone notices the summary section lists zero rows.",
+      "spec_anchor": "`action-changes`",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "Step 2 pipes changed paths into `run_trusted governance-check --derive-anchor-dirs` but specifies no handling for that command exiting non-zero (the spec's own fail-closed principle says a missing means of checking must never report \"nothing to check\"). A non-zero discovery whose stdout is empty yields `DIRS=\"\"`, the per-dir loop runs zero iterations, and the leg reports pass — the vacuous \"nothing to check\" outcome the design principles forbid.",
+          "spec_anchor": "`action-changes`"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The staged-mint procedure introduces `commitMint`, which does `rm -r dest` before copying, but `checkDest` is defined only as \"lstat + file-set comparison\" — there is no requirement that `--dest` resolve inside the anchors tree. The parent spec and this slice's sibling writers establish realpath containment for `--issue`, `--key` and `--run-dir` precisely because agent-supplied path arguments are fallible and injectable; the mint's `--dest` — now the most destructive argument in the CLI — is the one write path left unguarded. The `anchor-shrink` check narrows the blast radius (a dest with any file the staged anchor lacks is refused), but a dest whose files all happen to share anchor filenames, or an empty directory the user cares about, passes `checkDest` and is then deleted or polluted.",
+      "evidence": "\"Staged mint\" procedure steps 7–9 (`checkDest` = \"read-only: lstat + file-set comparison\"; `commitMint`: \"IF dest exists: rm -r dest\"); contrast the parent's writer guard (\"`--run-dir` must resolve, by realpath, inside the repo's `.faff/runs/` directory\") and this spec's own `dest-not-directory` refusal, which shows the spec agrees `--dest` needs guarding but stops at symlink detection.",
+      "predicted_consequence": "a mistyped or injected `--dest` (e.g. a directory whose contents are all named like anchor files, or an empty valued directory) is deleted wholesale or overwritten with anchor bytes by a single `faff events anchor` invocation; today's handler only ever writes into `--dest`, it never deletes.",
+      "spec_anchor": "staged-mint",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The staged-mint procedure introduces `commitMint`, which does `rm -r dest` before copying, but `checkDest` is defined only as \"lstat + file-set comparison\" — there is no requirement that `--dest` resolve inside the anchors tree. The parent spec and this slice's sibling writers establish realpath containment for `--issue`, `--key` and `--run-dir` precisely because agent-supplied path arguments are fallible and injectable; the mint's `--dest` — now the most destructive argument in the CLI — is the one write path left unguarded. The `anchor-shrink` check narrows the blast radius (a dest with any file the staged anchor lacks is refused), but a dest whose files all happen to share anchor filenames, or an empty directory the user cares about, passes `checkDest` and is then deleted or polluted.",
+          "spec_anchor": "staged-mint"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The two base-commit steps are gated on `steps.discover-anchors.outputs.touched == 'true'`, and `touched` is \"set from whether `git diff --name-only …` printed anything\". A `git diff` that errors (rather than returning empty) prints nothing, so `touched=false` and the base-commit leg — the only check that cannot be weakened by the PR — is silently skipped while the job still runs and can pass on the head verb alone. This contradicts the spec's own principle \"Fail closed when the means of checking is missing\": the shell gate has exactly the fail-open shape the CLI checks are designed against. The spec correctly moves `touched` out of the PR-controlled binary but does not require the shell computation to distinguish \"no changed anchor paths\" from \"the diff command failed\".",
+      "evidence": "\"Action changes\": \"gains one shell-computed output, `touched=true|false`, set from whether `git diff --name-only \"$BASE_SHA\" \"$HEAD_SHA\" -- \"$ANCHORS_PATH\"` printed anything\"; step gating `if: ${{ !cancelled() && steps.discover-anchors.outputs.touched == 'true' }}`; design principle \"Fail closed when the means of checking is missing\".",
+      "predicted_consequence": "any runner-level diff failure (base sha unavailable mid-run, git error) yields a green job on a PR carrying a non-conforming anchor, with no annotation or summary row indicating the base leg never ran.",
+      "spec_anchor": "action-changes",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The two base-commit steps are gated on `steps.discover-anchors.outputs.touched == 'true'`, and `touched` is \"set from whether `git diff --name-only …` printed anything\". A `git diff` that errors (rather than returning empty) prints nothing, so `touched=false` and the base-commit leg — the only check that cannot be weakened by the PR — is silently skipped while the job still runs and can pass on the head verb alone. This contradicts the spec's own principle \"Fail closed when the means of checking is missing\": the shell gate has exactly the fail-open shape the CLI checks are designed against. The spec correctly moves `touched` out of the PR-controlled binary but does not require the shell computation to distinguish \"no changed anchor paths\" from \"the diff command failed\".",
+          "spec_anchor": "action-changes"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The immutability check lives inside `evidence-schema-base`, whose step-6 rule is \"output verdict = fail only when evidence_result = fail AND inputs.evidence-schema == require\". An `anchor-immutable` failure is record tampering — a modified or deleted committed audit artifact — not a schema-conformance finding, and there is no rollout rationale for making it advisory: the `report` input exists for adopters who are not yet stamping `schema_version`, but every anchor covered by the immutability check is by definition already committed and already on the base branch. As specified, a repo running `evidence-schema: report` gets a warning annotation (at best) while a PR rewrites or deletes committed anchors.",
+      "evidence": "\"Action changes\" step 2a (\"fail `anchor-immutable <path>`\") inside the same step whose verdict is mode-gated in step 6; input table: \"`report` runs both and never fails on them (adopter rollout)\".",
+      "predicted_consequence": "under `report`, a PR that edits or deletes files of an anchor already on the base branch passes CI with only a warning; the tampered anchor merges.",
+      "spec_anchor": "action-changes",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The immutability check lives inside `evidence-schema-base`, whose step-6 rule is \"output verdict = fail only when evidence_result = fail AND inputs.evidence-schema == require\". An `anchor-immutable` failure is record tampering — a modified or deleted committed audit artifact — not a schema-conformance finding, and there is no rollout rationale for making it advisory: the `report` input exists for adopters who are not yet stamping `schema_version`, but every anchor covered by the immutability check is by definition already committed and already on the base branch. As specified, a repo running `evidence-schema: report` gets a warning annotation (at best) while a PR rewrites or deletes committed anchors.",
+          "spec_anchor": "action-changes"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The `resolve-trusted-cli` step sets `CANDIDATE := \"$PLUGIN/contracts/evidence-v0.3\"` — a path relative to the PR checkout — but the `run_trusted` contract states \"Every path argument is absolute\" and runs with `cwd` set to an empty directory under `$RUNNER_TEMP`. Passed as written, `--candidate-bundle \"$CANDIDATE\"` resolves against the empty cwd, the directory is not found, and the candidate is rejected — so Scenarios 3 and 4 (`candidate: partial` / `candidate: accepted`) cannot pass for the reason the spec intends; they would only pass if the builder silently deviates from one of the two stated rules. The step itself shows the authors know the rule (step 2 prefixes changed paths with `$GITHUB_WORKSPACE/`), which makes the omission a contradiction, not an open choice.",
+      "evidence": "`STEP resolve-trusted-cli` line `CANDIDATE := \"$PLUGIN/contracts/evidence-v0.3\"`; `run_trusted` paragraph \"Every path argument is absolute\"; Scenarios 3 and 4; DONE \"The third, fourth and fifth Scenarios pass through the Action-body test harness\".",
+      "predicted_consequence": "The harness test for the additive rule either fails (catching the bug) or passes only via an unspecified fix, so the shipped behaviour of `--candidate-bundle` is not the behaviour the spec specifies; a reviewer cannot tell whether a build that reports `rejected` everywhere is correct or broken.",
+      "spec_anchor": "what-the-action",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The `resolve-trusted-cli` step sets `CANDIDATE := \"$PLUGIN/contracts/evidence-v0.3\"` — a path relative to the PR checkout — but the `run_trusted` contract states \"Every path argument is absolute\" and runs with `cwd` set to an empty directory under `$RUNNER_TEMP`. Passed as written, `--candidate-bundle \"$CANDIDATE\"` resolves against the empty cwd, the directory is not found, and the candidate is rejected — so Scenarios 3 and 4 (`candidate: partial` / `candidate: accepted`) cannot pass for the reason the spec intends; they would only pass if the builder silently deviates from one of the two stated rules. The step itself shows the authors know the rule (step 2 prefixes changed paths with `$GITHUB_WORKSPACE/`), which makes the omission a contradiction, not an open choice.",
+          "spec_anchor": "what-the-action"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The spec claims \"a PR that adds a field and its writer passes\" under the additive rule, but for `events.jsonl` and `declared-effects.jsonl` the effective validator is not the (possibly candidate-accepted) schema — it is the base commit's `eventViolations`/`declaredEffectViolations` JS, wired in `evidence.js` as `LINE_VALIDATORS`. `--candidate-schemas` only swaps schema documents; it cannot carry a head-side line-validator change. The spec's own failure-modes section concedes the line validators \"know only the base vocabulary\" but treats that as an enum-widening problem only; an additive *field* on a JSONL record hits the same wall, and the spec never establishes that `eventViolations` tolerates unknown keys.",
+      "evidence": "\"Additive rule\" section (\"A PR that adds a field and its writer passes\"); `evidence.js` `LINE_VALIDATORS` mapping those two files to base-code validators; failure mode \"A PR's own anchor uses vocabulary only the PR adds\" (covers types/enums, not additive fields).",
+      "predicted_consequence": "The first PR that adds an optional field to an events/effects record — exactly the change the README freeze and this spec promise lands \"in one PR\" — fails the base leg despite `candidate: accepted`, and must fall back to the two-PR sequencing the spec reserves for non-additive changes. The versioning rule written into `verification/evidence/README.md` is then wrong for two of the twelve anchor files, and every such PR rediscovers this by a failed CI run.",
+      "spec_anchor": "`additive-rule`",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "major",
+          "claim": "The spec claims \"a PR that adds a field and its writer passes\" under the additive rule, but for `events.jsonl` and `declared-effects.jsonl` the effective validator is not the (possibly candidate-accepted) schema — it is the base commit's `eventViolations`/`declaredEffectViolations` JS, wired in `evidence.js` as `LINE_VALIDATORS`. `--candidate-schemas` only swaps schema documents; it cannot carry a head-side line-validator change. The spec's own failure-modes section concedes the line validators \"know only the base vocabulary\" but treats that as an enum-widening problem only; an additive *field* on a JSONL record hits the same wall, and the spec never establishes that `eventViolations` tolerates unknown keys.",
+          "spec_anchor": "`additive-rule`"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec's stated remedy for `anchor-shrink` is \"restore the file through its writer.\" But the refusal fires precisely when the run dir no longer produces that file — which includes the case where the file's presence was itself the defect (a writer bug emitting a file it should not, since fixed). Restoring it fabricates evidence; the only honest remedy (delete the anchor and re-mint) is available solely while the anchor is feature-branch-only, and the spec itself notes the immutability check refuses deletion once it is on base. The remedy as written cannot be followed in the motivating case, and no post-base recovery path is stated.",
+      "evidence": "\"Mint refusal\" — \"The remedy is to restore the file through its writer. Deleting the existing anchor and re-minting is possible only while that anchor exists solely on the feature branch; once it is on the base branch, the CI immutability check refuses any deletion.\"",
+      "predicted_consequence": "An operator following Step 9b's recovery pointer re-runs a writer to resurrect a file that should not exist, baking the defect into the committed record permanently; the only escape is reverting the slice, which the failure-modes table reserves for writer lag, not for this.",
+      "spec_anchor": "`mint-refusal`",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The spec's stated remedy for `anchor-shrink` is \"restore the file through its writer.\" But the refusal fires precisely when the run dir no longer produces that file — which includes the case where the file's presence was itself the defect (a writer bug emitting a file it should not, since fixed). Restoring it fabricates evidence; the only honest remedy (delete the anchor and re-mint) is available solely while the anchor is feature-branch-only, and the spec itself notes the immutability check refuses deletion once it is on base. The remedy as written cannot be followed in the motivating case, and no post-base recovery path is stated.",
+          "spec_anchor": "`mint-refusal`"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The verdict combination is specified as `steps.evidence-schema-base.outputs.verdict == 'fail' && 'fail' || <today's expression>`. That expression only overrides on the literal string `fail`. If the base step exits — or is killed, or an unhandled shell error fires — *before* it writes its `verdict` output (steps 4–6: summary append, output writes, and any command the pseudocode gives no error posture for), the output is empty, `'' == 'fail'` is false, and the Action verdict falls back to the head verb's expression. The head verb runs PR-controlled code; a PR that patches head `governance-check` to always pass, and crafts anchor data that faults the trusted CLI mid-step (a parser or path-handling bug in base code triggered by PR-authored bytes), escapes base judging entirely. The checklist's failure-as-bypass category, reached through an error path the spec's own expression defines as non-failing.",
+      "evidence": "\"Action changes\" step 6: \"output verdict = fail when any integrity_fail was raised … else pass. Exit 1 when verdict = fail, else exit 0\" — combined with \"`steps.evidence-schema-base.outputs.verdict == 'fail' && 'fail' || <today's expression>`\". Nothing specifies fail-closed behaviour for a base step that terminates without emitting `verdict`; the pseudocode's error handling covers validator exit codes (step 3) and named integrity_fail conditions only.",
+      "predicted_consequence": "a PR carrying a non-conforming or tampered anchor passes the required check when base-code faulting on that anchor suppresses the `verdict` output; enforcement silently rests on the PR's own code.",
+      "spec_anchor": "`action-changes`",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "major",
+          "claim": "The verdict combination is specified as `steps.evidence-schema-base.outputs.verdict == 'fail' && 'fail' || <today's expression>`. That expression only overrides on the literal string `fail`. If the base step exits — or is killed, or an unhandled shell error fires — *before* it writes its `verdict` output (steps 4–6: summary append, output writes, and any command the pseudocode gives no error posture for), the output is empty, `'' == 'fail'` is false, and the Action verdict falls back to the head verb's expression. The head verb runs PR-controlled code; a PR that patches head `governance-check` to always pass, and crafts anchor data that faults the trusted CLI mid-step (a parser or path-handling bug in base code triggered by PR-authored bytes), escapes base judging entirely. The checklist's failure-as-bypass category, reached through an error path the spec's own expression defines as non-failing.",
+          "spec_anchor": "`action-changes`"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The spec's own refusal-output rationale is counts-only *because* \"refusal stderr reaches graft's park comment on the tracker\". But Graft routing then instructs the build agent, on a refusal, to \"run `faff events anchor --check --json` for the detail\" — the one output the spec explicitly exempts from the counts-only rule (\"`--check --json` and `faff evidence validate` may\" carry the sentinel). The agent is directed to produce full violation text — which the JSONL line validators echo as field values — inside the graft flow, with no stated guard that it stays local and is never quoted into the park comment. The sentinel DONE item codifies the exemption rather than closing the route.",
+      "evidence": "\"Refusal output carries paths and counts, never violation text … refusal stderr reaches graft's park comment\" vs. Graft routing's \"run `faff events anchor --check --json` for the detail\"; DONE item: \"no mint stderr line, no governance-check output and no base-leg summary row contains it (`--check --json` and `faff evidence validate` may)\".",
+      "predicted_consequence": "evidence file field values (event payloads, verdict text) from a refused anchor are pasted into a tracker park comment by the recovery flow the spec itself defines.",
+      "spec_anchor": "`graft-routing`",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The spec's own refusal-output rationale is counts-only *because* \"refusal stderr reaches graft's park comment on the tracker\". But Graft routing then instructs the build agent, on a refusal, to \"run `faff events anchor --check --json` for the detail\" — the one output the spec explicitly exempts from the counts-only rule (\"`--check --json` and `faff evidence validate` may\" carry the sentinel). The agent is directed to produce full violation text — which the JSONL line validators echo as field values — inside the graft flow, with no stated guard that it stays local and is never quoted into the park comment. The sentinel DONE item codifies the exemption rather than closing the route.",
+          "spec_anchor": "`graft-routing`"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The base leg's discovery and validation run over `git diff --name-only \"$BASE_SHA\" \"$HEAD_SHA\"`, a tree-to-tree diff that includes changes made on the base branch after the PR forked. The immutability check deliberately uses `git merge-base` \"because … the merge-base diff ignores base-branch commits made after the PR forked\" — but discovery and validation do not. A legacy (pre-v0.3, no `schema_version`) anchor landing on main between a PR's BASE_SHA and HEAD appears in every such PR's diff, is discovered by the trusted CLI, and fails `--require-evidence-schema` as legacy/`schema-mismatch`. The PR cannot fix it: the immutability check refuses any modification or deletion of an anchor present at the merge base. Fail-closed, but a self-inflicted merge freeze on unrelated PRs, and an inconsistency in the spec's own trust framing (\"base-commit code judges PR data\" here judges base data).",
+      "evidence": "step 2 uses `git diff --name-only \"$BASE_SHA\" \"$HEAD_SHA\" -- \"$ANCHORS_PATH\"`; step 2a uses `git diff --name-status --no-renames \"$MB\" \"$HEAD_SHA\"` with the stated rationale \"The merge-base diff ignores base-branch commits made after the PR forked\"; the refusal table maps `legacy` to `schema-mismatch` at mint and `--require-evidence-schema` fails legacy in CI.",
+      "predicted_consequence": "after this slice merges, any PR with a pre-dating base sha fails CI on a legacy main-side anchor it did not create and is forbidden from touching, until a direct main-branch commit re-mints it.",
+      "spec_anchor": "`action-changes`",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The base leg's discovery and validation run over `git diff --name-only \"$BASE_SHA\" \"$HEAD_SHA\"`, a tree-to-tree diff that includes changes made on the base branch after the PR forked. The immutability check deliberately uses `git merge-base` \"because … the merge-base diff ignores base-branch commits made after the PR forked\" — but discovery and validation do not. A legacy (pre-v0.3, no `schema_version`) anchor landing on main between a PR's BASE_SHA and HEAD appears in every such PR's diff, is discovered by the trusted CLI, and fails `--require-evidence-schema` as legacy/`schema-mismatch`. The PR cannot fix it: the immutability check refuses any modification or deletion of an anchor present at the merge base. Fail-closed, but a self-inflicted merge freeze on unrelated PRs, and an inconsistency in the spec's own trust framing (\"base-commit code judges PR data\" here judges base data).",
+          "spec_anchor": "`action-changes`"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The `evidence-schema-base` pseudo-code cannot be followed as written because its two steps disagree about whether derived anchor dirs are absolute or workspace-relative. Step 2 pipes changed paths \"prefixed with `$GITHUB_WORKSPACE/`\" into `--derive-anchor-dirs \"$GITHUB_WORKSPACE/$ANCHORS_PATH\"`, so the trusted CLI prints dirs as `${GITHUB_WORKSPACE}/${ANCHORS_PATH}/<run>/<issue>` — absolute. Step 3 then runs `run_trusted evidence validate \"$GITHUB_WORKSPACE/$d\"`, which would double-prefix every absolute `d` into an invalid path. A tester writing the FAFF-1047-style harness test cannot state the expected command line for step 3.",
+      "evidence": "`evidence-schema-base` steps 2 and 3 in the Action changes pseudo-code; DONE item \"A test extracts the `resolve-trusted-cli` and `evidence-schema-base` bodies…\".",
+      "predicted_consequence": "The harness test's expected invocation for step 3 is undecidable from the spec; two builders following the text verbatim produce different (one broken) implementations, and the \"every path argument is absolute\" assertion cannot be checked against a stable expected form.",
+      "spec_anchor": "action-changes",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 4,
+      "last_round": 4,
+      "occurrences": [
+        {
+          "round": 4,
+          "severity": "minor",
+          "claim": "The `evidence-schema-base` pseudo-code cannot be followed as written because its two steps disagree about whether derived anchor dirs are absolute or workspace-relative. Step 2 pipes changed paths \"prefixed with `$GITHUB_WORKSPACE/`\" into `--derive-anchor-dirs \"$GITHUB_WORKSPACE/$ANCHORS_PATH\"`, so the trusted CLI prints dirs as `${GITHUB_WORKSPACE}/${ANCHORS_PATH}/<run>/<issue>` — absolute. Step 3 then runs `run_trusted evidence validate \"$GITHUB_WORKSPACE/$d\"`, which would double-prefix every absolute `d` into an invalid path. A tester writing the FAFF-1047-style harness test cannot state the expected command line for step 3.",
+          "spec_anchor": "action-changes"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "The base-commit leg's discovery treats a *successful* trusted `--derive-anchor-dirs` run as authoritative even when it dropped every candidate path. `deriveAnchorDirs` (evidence.js, and the spec's own description) drops paths on traversal segments, symlink escape, unresolvable realpath, and too-shallow depth — exiting 0 with a `dropped` list that the Action step only writes to stderr. The spec's step 2 says only \"derive exits non-zero → integrity_fail\". So a PR that commits an anchor dir whose path is a symlink escaping the anchors root (git happily stores symlinks; the target can be a file the same PR commits elsewhere in the checkout) is dropped by *both* the head discovery and the trusted re-derivation, the base leg validates zero dirs, the immutability check sees only status-A additions, and the PR lands a non-conforming anchor that no leg ever judged. This is precisely the failure the slice exists to prevent, and it contradicts the spec's own design principle \"fail closed when the means of checking is missing\" — here the means of checking was present and declined.",
+      "evidence": "`evidence.js` `deriveAnchorDirs` pushes to `dropped` and returns `{dirs, dropped}` with exit 0; spec step 2 of `evidence-schema-base` gates only on derive's exit code; the spec's own text \"dropped paths are warned on stderr, never silently skipped\" — a stderr warning does not fail a step, and the spec nowhere makes a drop an `integrity_fail`.",
+      "predicted_consequence": "a malicious or careless PR commits `.faff/anchors/<run>/<issue>` as a symlink to a directory elsewhere in the tree holding a schema-violating `events.jsonl`; both discovery passes drop it, the base leg reports pass over an empty dir set, the job is green, and the unvalidated anchor is in the committed record — the slice's core guarantee (\"refuse to mint or merge anchors that fail their schema\") is void for exactly the adversary the base-commit machinery was built against.",
+      "spec_anchor": "what-the-base-commit-cannot-cover",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "major",
+          "claim": "The base-commit leg's discovery treats a *successful* trusted `--derive-anchor-dirs` run as authoritative even when it dropped every candidate path. `deriveAnchorDirs` (evidence.js, and the spec's own description) drops paths on traversal segments, symlink escape, unresolvable realpath, and too-shallow depth — exiting 0 with a `dropped` list that the Action step only writes to stderr. The spec's step 2 says only \"derive exits non-zero → integrity_fail\". So a PR that commits an anchor dir whose path is a symlink escaping the anchors root (git happily stores symlinks; the target can be a file the same PR commits elsewhere in the checkout) is dropped by *both* the head discovery and the trusted re-derivation, the base leg validates zero dirs, the immutability check sees only status-A additions, and the PR lands a non-conforming anchor that no leg ever judged. This is precisely the failure the slice exists to prevent, and it contradicts the spec's own design principle \"fail closed when the means of checking is missing\" — here the means of checking was present and declined.",
+          "spec_anchor": "what-the-base-commit-cannot-cover"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec asserts that a base CLI without `evidence capabilities` is treated as lacking all three capabilities \"the stricter direction\". For `candidate-schemas` that is true (base schemas only). For `holdout-binding` it is the *laxer* direction: a base without the capability runs `evidence validate` with no holdout issue-binding check at all, so a PR introducing a new anchor whose `holdout.json` `issue` disagrees with `chain-head.json` passes the base leg (the head verb's validator is PR-controlled and the mint's binding runs only on the installing CLI). The spec's own Scenario 8 (\"the evidence leg fails\") does not hold on a pre-slice base.",
+      "evidence": "spec §\"faff evidence capabilities\" (\"A base CLI without `capabilities` … is treated as having none of the three, the stricter direction\") vs. the CONSTRAINT under \"Mint refusal\", which is enforced inside `validateAnchorDir` only when the running validator has it.",
+      "predicted_consequence": "on any base commit predating this slice (i.e., every PR opened between this slice's merge and the base advancing — plus all adopter repos pinning an older `faff-version`), the holdout issue-binding is unenforced in CI while the spec's DONE/Scenario text claims it is; a mismatched `holdout.json` lands with a green base leg.",
+      "spec_anchor": "faff-evidence-validate-and-faff-evidence-capabilities",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "The spec asserts that a base CLI without `evidence capabilities` is treated as lacking all three capabilities \"the stricter direction\". For `candidate-schemas` that is true (base schemas only). For `holdout-binding` it is the *laxer* direction: a base without the capability runs `evidence validate` with no holdout issue-binding check at all, so a PR introducing a new anchor whose `holdout.json` `issue` disagrees with `chain-head.json` passes the base leg (the head verb's validator is PR-controlled and the mint's binding runs only on the installing CLI). The spec's own Scenario 8 (\"the evidence leg fails\") does not hold on a pre-slice base.",
+          "spec_anchor": "faff-evidence-validate-and-faff-evidence-capabilities"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The evidence-schema-base step derives the anchor dirs to validate from `git diff --name-only` piped through the trusted `--derive-anchor-dirs`. The spec gates only on derive exiting non-zero (\"derive exits non-zero → integrity_fail … never an empty, vacuous pass\") and never on derive *dropping or failing to resolve* a path. The shipped `deriveAnchorDirs` silently `continue`s on any changed path whose directory does not `statSync` (no `dropped` entry), and `git diff --name-only` emits non-ASCII/control-character paths quoted (`core.quotePath`), so a PR that commits an anchor under a directory name like `run-Ünïcode` produces a quoted diff line whose prefixed path never stats — the anchor is skipped by *both* the head discovery and the trusted re-derivation, with no dropped-path record and no non-zero exit. A non-conforming or hand-forged anchor at such a path then merges with the base leg reporting pass on the anchors it did see.",
+      "evidence": "Spec step `evidence-schema-base` step 2 (\"derive exits non-zero -> integrity_fail … never an empty, vacuous pass\"); `deriveAnchorDirs` in `governance-check.js` (`try { st = fs.statSync(dir); } catch { continue; }` — silent, no `dropped` entry); the Action's own discovery-step comment claims dropped paths are \"warned on stderr, never silently skipped\", which the stat-failure path contradicts.",
+      "predicted_consequence": "A PR author hides a non-conforming (or schema-valid-but-hand-stamped) anchor from the new enforcement leg by choosing a directory name that `git diff` quotes; the base leg exits 0, the job passes, and the anchor lands on main unvalidated — the exact bypass FAFF-1261 exists to close.",
+      "spec_anchor": "`action-changes`",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "major",
+          "claim": "The evidence-schema-base step derives the anchor dirs to validate from `git diff --name-only` piped through the trusted `--derive-anchor-dirs`. The spec gates only on derive exiting non-zero (\"derive exits non-zero → integrity_fail … never an empty, vacuous pass\") and never on derive *dropping or failing to resolve* a path. The shipped `deriveAnchorDirs` silently `continue`s on any changed path whose directory does not `statSync` (no `dropped` entry), and `git diff --name-only` emits non-ASCII/control-character paths quoted (`core.quotePath`), so a PR that commits an anchor under a directory name like `run-Ünïcode` produces a quoted diff line whose prefixed path never stats — the anchor is skipped by *both* the head discovery and the trusted re-derivation, with no dropped-path record and no non-zero exit. A non-conforming or hand-forged anchor at such a path then merges with the base leg reporting pass on the anchors it did see.",
+          "spec_anchor": "`action-changes`"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The spec asserts \"the content rule still stops `rm -r` reaching an arbitrary directory\". It does not: `checkDest` accepts a `--dest` that is *absent or a plain directory holding only anchor-manifest paths*, and an empty directory satisfies that trivially. `commitMint` then `rm -r`s it and fills it with anchor files. `--dest` is agent-supplied input with no containment anchor, so a mistyped or prompted `--dest` pointing at any empty directory (a fresh clone worktree, an empty config dir) destroys it. The spec rejected a fixed anchors-root containment rule to keep temp-dir mints working, but \"empty existing directory\" and \"fresh temp dir\" are distinguishable only by location — which is the check the spec removed.",
+      "evidence": "Mint refusal section, \"**Chosen:** `--dest` is guarded by content rather than location… the content rule still stops `rm -r` reaching an arbitrary directory\"; procedure step 7/8a (`checkDest` read-only, then `IF dest exists: rm -r dest`).",
+      "predicted_consequence": "An empty, non-anchor directory outside `.faff/anchors` is deleted and replaced with anchor bytes by a single mistyped `faff events anchor --dest` invocation; the spec's stated safety property is false as written.",
+      "spec_anchor": "`mint-refusal`",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "The spec asserts \"the content rule still stops `rm -r` reaching an arbitrary directory\". It does not: `checkDest` accepts a `--dest` that is *absent or a plain directory holding only anchor-manifest paths*, and an empty directory satisfies that trivially. `commitMint` then `rm -r`s it and fills it with anchor files. `--dest` is agent-supplied input with no containment anchor, so a mistyped or prompted `--dest` pointing at any empty directory (a fresh clone worktree, an empty config dir) destroys it. The spec rejected a fixed anchors-root containment rule to keep temp-dir mints working, but \"empty existing directory\" and \"fresh temp dir\" are distinguishable only by location — which is the check the spec removed.",
+          "spec_anchor": "`mint-refusal`"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The DONE item asserting the Action-level fail-closed behaviour (\"the fail-closed `verdict` expression gives Action `verdict=fail` when the base step crashes before writing its output\") cannot be decided by the harness the spec describes. The harness extracts and runs **step bodies** (bash), but the fail-closed behaviour lives in the composite Action's `verdict` **output expression** — `${{ }}` syntax evaluated by the GitHub runner, not by any step body. The spec never states how the harness evaluates that expression locally (an expression evaluator, a hand-translation pinned by a structural test, or extending the spike to include the crash case — the spike as written only covers a failing head verb, not a crashed base step).",
+      "evidence": "DONE item \"The fail-closed `verdict` expression gives Action `verdict=fail` when the base step crashes before writing its output, and the report-mode and crash Scenarios pass through the harness\"; Scenario \"Given a base step whose trusted CLI is stubbed to crash…\"; build step 1 (spike).",
+      "predicted_consequence": "A builder can satisfy every other DONE item while the `verdict` expression is wrong (e.g. falling back to the head verb's result on a missing output), and no named test fails — the exact silent-fallback the spec's \"Chosen: fail closed unless the base leg is positively clean\" exists to prevent.",
+      "spec_anchor": "what-the-base-commit-cannot-cover",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 5,
+      "last_round": 5,
+      "occurrences": [
+        {
+          "round": 5,
+          "severity": "minor",
+          "claim": "The DONE item asserting the Action-level fail-closed behaviour (\"the fail-closed `verdict` expression gives Action `verdict=fail` when the base step crashes before writing its output\") cannot be decided by the harness the spec describes. The harness extracts and runs **step bodies** (bash), but the fail-closed behaviour lives in the composite Action's `verdict` **output expression** — `${{ }}` syntax evaluated by the GitHub runner, not by any step body. The spec never states how the harness evaluates that expression locally (an expression evaluator, a hand-translation pinned by a structural test, or extending the spike to include the crash case — the spike as written only covers a failing head verb, not a crashed base step).",
+          "spec_anchor": "what-the-base-commit-cannot-cover"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The `evidence-schema-base` step runs `run_trusted evidence validate \"$d\" --require-evidence-schema --json` as a shell command in the composite Action. Unless the step captures stdout, that command's full JSON report — including violation text — lands in the CI log, which every PR reader (and fork/dependabot contexts) can see. The spec's own refusal-output rule exists precisely because the JSONL line validators echo field values (`eventViolations` prints `type '<value>'` and `(got <value>)`), and the DONE item's carve-out — \"`--check --json` and `faff evidence validate` may\" contain the sentinel — was written for the local operator case, but the base leg is exactly `faff evidence validate` running on the runner. Unlike `--check --json`, no `redactKnownSecrets` pass is applied on this path, and the spec never states the output is captured rather than echoed. The spec elsewhere treats evidence-content-in-CI-log as a first-class defect (FAFF-1263's stated rationale: no violation text \"ever leaves this function, so a later change to a message cannot leak evidence content into a CI log\"); this step reintroduces that channel by construction.",
+      "evidence": "\"Action changes\" step 3: `run_trusted evidence validate \"$d\" --require-evidence-schema --json [--candidate-schemas \"$CANDIDATE\"]`; the step \"reads the JSON report's status, files[].path, files[].status and candidate_rejected[].path only\" — parsing, not suppressing, the stream. DONE item: \"no … base-leg summary row contains it (`--check --json` and `faff evidence validate` may)\". Contrast with the mint table's rule that refusal lines carry \"paths and counts, never violation text\".",
+      "predicted_consequence": "an evidence file carrying a secret value (a token in an event payload, a credential pasted into a criterion's `observed` field) has that value echoed verbatim into the public CI log via a validator violation message, on every PR whose anchor fails the base leg.",
+      "spec_anchor": "action-changes",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 6,
+      "last_round": 6,
+      "occurrences": [
+        {
+          "round": 6,
+          "severity": "major",
+          "claim": "The `evidence-schema-base` step runs `run_trusted evidence validate \"$d\" --require-evidence-schema --json` as a shell command in the composite Action. Unless the step captures stdout, that command's full JSON report — including violation text — lands in the CI log, which every PR reader (and fork/dependabot contexts) can see. The spec's own refusal-output rule exists precisely because the JSONL line validators echo field values (`eventViolations` prints `type '<value>'` and `(got <value>)`), and the DONE item's carve-out — \"`--check --json` and `faff evidence validate` may\" contain the sentinel — was written for the local operator case, but the base leg is exactly `faff evidence validate` running on the runner. Unlike `--check --json`, no `redactKnownSecrets` pass is applied on this path, and the spec never states the output is captured rather than echoed. The spec elsewhere treats evidence-content-in-CI-log as a first-class defect (FAFF-1263's stated rationale: no violation text \"ever leaves this function, so a later change to a message cannot leak evidence content into a CI log\"); this step reintroduces that channel by construction.",
+          "spec_anchor": "action-changes"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "Step 2b fails only on diff records \"with status other than A\". A file *added* inside an anchor directory that already exists at the merge base is status A and passes. The step's stated premise is \"every anchor in a PR diff is new\"; an append to an existing anchor dir breaks that premise and the check as specified does not catch it. The grafted file is schema-validated (so it must conform), but the anchor's evidence *set* — what the merge-floor and holdout legs read from that dir — is extended by PR-authored bytes with no `anchor-immutable` signal. The spec's provenance out-of-scope note covers hand-stamped field values, not which files constitute a committed record.",
+      "evidence": "\"Immutability: … FOR each record of `git diff -z --name-status --no-renames \\\"$MB\\\" \\\"$HEAD_SHA\\\" -- \\\"$ANCHORS_PATH\\\"` with status other than A: integrity_fail\" — additions inside an existing anchor dir are exempt; the premise line \"the CI leg's premise is that every anchor in a PR diff is new\".",
+      "predicted_consequence": "a PR appends schema-conforming `holdout.json` + `build-progress.json` (or any evidence file) to a base-branch anchor; the head merge-floor leg then evaluates the anchor against the grafted files and no integrity finding fires — the committed record's file set is mutated without the immutability control noticing.",
+      "spec_anchor": "action-changes",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 6,
+      "last_round": 6,
+      "occurrences": [
+        {
+          "round": 6,
+          "severity": "minor",
+          "claim": "Step 2b fails only on diff records \"with status other than A\". A file *added* inside an anchor directory that already exists at the merge base is status A and passes. The step's stated premise is \"every anchor in a PR diff is new\"; an append to an existing anchor dir breaks that premise and the check as specified does not catch it. The grafted file is schema-validated (so it must conform), but the anchor's evidence *set* — what the merge-floor and holdout legs read from that dir — is extended by PR-authored bytes with no `anchor-immutable` signal. The spec's provenance out-of-scope note covers hand-stamped field values, not which files constitute a committed record.",
+          "spec_anchor": "action-changes"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec's v0.3-freeze section explicitly keeps \"the parent's 'add a field and its schema in one PR' path\", and its failure-modes section says anchors are minted by the installed CLI (\"the `~/.claude/skills/faff` copy or the repo's linked checkout), not the feature branch's code\". If the install matches `main` (the normal case), a PR that adds an optional JSON field, its schema and its writer mints an anchor carrying the new field — which the installed CLI's bundled schema (without the field, `additionalProperties: false`) rejects. The mint refuses with `schema-mismatch` even though the base+candidate CI leg would accept the very same anchor as `candidate: accepted`. The failure-modes section covers only the mirror case (install *newer* than base and head, remedy \"re-run the build with an install that matches main\"); the older-install case — the one that kills the documented one-PR path — has no stated remedy.",
+      "evidence": "\"This keeps the parent's 'add a field and its schema in one PR' path\" (v0.3 freezes) vs \"Anchors are minted by the installed CLI … not the feature branch's code\" (Failure modes) and the mint procedure's `checkAnchorDir(staging)` step (Staged mint).",
+      "predicted_consequence": "the first PR that exercises the additive path end-to-end (field + schema + writer in one PR, per the README rule this spec writes) is refused at Step 9b with `schema-mismatch` on the new field; the builder must either discover the unstated remedy (refresh the installed CLI to the branch before minting) or split into two PRs, contradicting the rule the spec just wrote into the README.",
+      "spec_anchor": "v0-3-freezes",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 7,
+      "last_round": 7,
+      "occurrences": [
+        {
+          "round": 7,
+          "severity": "minor",
+          "claim": "The spec's v0.3-freeze section explicitly keeps \"the parent's 'add a field and its schema in one PR' path\", and its failure-modes section says anchors are minted by the installed CLI (\"the `~/.claude/skills/faff` copy or the repo's linked checkout), not the feature branch's code\". If the install matches `main` (the normal case), a PR that adds an optional JSON field, its schema and its writer mints an anchor carrying the new field — which the installed CLI's bundled schema (without the field, `additionalProperties: false`) rejects. The mint refuses with `schema-mismatch` even though the base+candidate CI leg would accept the very same anchor as `candidate: accepted`. The failure-modes section covers only the mirror case (install *newer* than base and head, remedy \"re-run the build with an install that matches main\"); the older-install case — the one that kills the documented one-PR path — has no stated remedy.",
+          "spec_anchor": "v0-3-freezes"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The spec asserts `anchor-run` and `bundle.js` re-mints are \"unchanged\" (out of scope, because their source run dirs may not carry `schema_version`, so they mint legacy-shaped anchors). But the Action's `anchors-path` default `.faff/anchors` is the same root that holds run-level per-issue anchors (the FAFF-796 layout: `<anchorsPath>/<run>/<issue>/`), and the new base leg runs `evidence validate --require-evidence-schema` — under which `legacy` fails. The spec's edge cases cover per-PR anchors, deleted dirs and base-gained anchors, but never state whether a run-close anchor can reach `main` via a PR. If it can, the \"anchor-run unchanged\" claim is false in effect: the CI change this slice ships fails exactly the output the out-of-scope clause promises to leave alone.",
+      "evidence": "Out of scope (\"`anchor-run` … so it is unchanged\"; \"Extension point: … enabled once every source run dir carries `schema_version`\") vs the `evidence-schema` input (\"`require` passes `--require-evidence-schema` and fails on the base-commit leg\") and the base leg's step 3 (any non-zero exit, including legacy, fails).",
+      "predicted_consequence": "either a run-close PR fails CI with a legacy-anchor refusal the graft runbook has no routing for, or — if run-close is direct-to-main — the spec ships without ever having stated that assumption, and the first workflow that carries a run-level anchor through a PR rediscovers the gap as a production failure.",
+      "spec_anchor": "out-of-scope",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 7,
+      "last_round": 7,
+      "occurrences": [
+        {
+          "round": 7,
+          "severity": "minor",
+          "claim": "The spec asserts `anchor-run` and `bundle.js` re-mints are \"unchanged\" (out of scope, because their source run dirs may not carry `schema_version`, so they mint legacy-shaped anchors). But the Action's `anchors-path` default `.faff/anchors` is the same root that holds run-level per-issue anchors (the FAFF-796 layout: `<anchorsPath>/<run>/<issue>/`), and the new base leg runs `evidence validate --require-evidence-schema` — under which `legacy` fails. The spec's edge cases cover per-PR anchors, deleted dirs and base-gained anchors, but never state whether a run-close anchor can reach `main` via a PR. If it can, the \"anchor-run unchanged\" claim is false in effect: the CI change this slice ships fails exactly the output the out-of-scope clause promises to leave alone.",
+          "spec_anchor": "out-of-scope"
+        }
+      ]
+    },
+    {
+      "lens": "infosec",
+      "severity": "minor",
+      "claim": "The base step emits `::error::` annotations \"per failing dir under require\" and summary rows per dir, where the dir paths come from `DIRS` — derived from the PR's changed paths under `anchors-path`. A PR controls directory names under `.faff/anchors/`, and a name carrying `::` (legal in a git path segment; `deriveAnchorDirs` only rejects `..`/`.`/empty) inside a `::error::` line can open a second same-line workflow command — the exact annotation-injection vector this repo already treats as real (`escapeWorkflowData`, FAFF-913, in `governance-check.js`). The spec's sanitisation mandate (\"sanitising each path as `sanitiseDisplay` does before printing\") is scoped to the report-file contents (`files[].path`, `candidate_rejected[].path`), not to the DIRS-derived dir names printed in annotations and the step summary; and the sanitiser is being reimplemented in bash, where `sanitiseDisplay`'s control-char and `::` rules can silently drift. A `|` in a dir name also breaks the markdown summary table (the head verb's renderer escapes `|`; the base step's mandate doesn't).",
+      "evidence": "\"Action changes\" step pseudocode, steps 4–5: \"::error:: per failing dir under require\", \"one row per dir with status, failing file paths and statuses\"; the sanitisation sentence covers only \"status, files[].path, files[].status and candidate_rejected[].path … sanitising each path as `sanitiseDisplay` does\". Contrast `governance-check.js` `escapeWorkflowData` (FAFF-913) and `renderGovernanceCheckSummaryMd`'s `replaceAll(\"|\", \"\\\\|\")`.",
+      "predicted_consequence": "a PR committing an anchor dir whose name contains `::` gets a second attacker-chosen workflow command (annotation) rendered in the Checks tab when the base leg fails that dir under `require`.",
+      "spec_anchor": "action-changes",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 7,
+      "last_round": 7,
+      "occurrences": [
+        {
+          "round": 7,
+          "severity": "minor",
+          "claim": "The base step emits `::error::` annotations \"per failing dir under require\" and summary rows per dir, where the dir paths come from `DIRS` — derived from the PR's changed paths under `anchors-path`. A PR controls directory names under `.faff/anchors/`, and a name carrying `::` (legal in a git path segment; `deriveAnchorDirs` only rejects `..`/`.`/empty) inside a `::error::` line can open a second same-line workflow command — the exact annotation-injection vector this repo already treats as real (`escapeWorkflowData`, FAFF-913, in `governance-check.js`). The spec's sanitisation mandate (\"sanitising each path as `sanitiseDisplay` does before printing\") is scoped to the report-file contents (`files[].path`, `candidate_rejected[].path`), not to the DIRS-derived dir names printed in annotations and the step summary; and the sanitiser is being reimplemented in bash, where `sanitiseDisplay`'s control-char and `::` rules can silently drift. A `|` in a dir name also breaks the markdown summary table (the head verb's renderer escapes `|`; the base step's mandate doesn't).",
+          "spec_anchor": "action-changes"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "Step 2a fails (`anchor-path-unvalidated`) every changed anchors-path file that does not sit under a derived `<run>/<issue>` dir — but this repo's own FAFF-796 git-only run-close flow commits `.faff/anchors/<run>/summary.md`, a depth-2 file that `deriveAnchorDirs` drops as \"too shallow\" and 2a then flags. The spec's edge cases reconcile base-branch-gained anchors and deleted dirs, but never reconcile the run-level `summary.md` its sibling feature produces; no harness case covers it either.",
+      "evidence": "`evidence-schema-base` step 2a; edge cases list (\"Base branch gained anchors after the PR forked\"); DONE harness case for `anchor-path-unvalidated`.",
+      "predicted_consequence": "every legitimate run-close anchor PR (and FAFF-796's e2e flow) fails CI with `anchor-path-unvalidated .faff/anchors/<run>/summary.md` under both `require` and `report`, and the builder has no spec line telling them whether that is intended or a bug — the first such PR is a judgement call, not a specified behaviour.",
+      "spec_anchor": "what-the-base-commit-cannot-cover",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 7,
+      "last_round": 7,
+      "occurrences": [
+        {
+          "round": 7,
+          "severity": "minor",
+          "claim": "Step 2a fails (`anchor-path-unvalidated`) every changed anchors-path file that does not sit under a derived `<run>/<issue>` dir — but this repo's own FAFF-796 git-only run-close flow commits `.faff/anchors/<run>/summary.md`, a depth-2 file that `deriveAnchorDirs` drops as \"too shallow\" and 2a then flags. The spec's edge cases reconcile base-branch-gained anchors and deleted dirs, but never reconcile the run-level `summary.md` its sibling feature produces; no harness case covers it either.",
+          "spec_anchor": "what-the-base-commit-cannot-cover"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": null,
+      "evidence": null,
+      "predicted_consequence": null,
+      "spec_anchor": null,
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Product owner confirmed the reviewed additive in-place rule on 2026-10-17; ac-24 now rewrites the Pre-1.0 and immutability sentences so the README states one rule.",
+      "first_round": 8,
+      "last_round": 8,
+      "occurrences": [
+        {
+          "round": 8,
+          "severity": "major",
+          "claim": null,
+          "spec_anchor": null
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": null,
+      "evidence": null,
+      "predicted_consequence": null,
+      "spec_anchor": null,
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 8,
+      "last_round": 8,
+      "occurrences": [
+        {
+          "round": 8,
+          "severity": "minor",
+          "claim": null,
+          "spec_anchor": null
+        }
+      ]
+    },
+    {
+      "lens": "methodology",
+      "severity": "minor",
+      "claim": null,
+      "evidence": null,
+      "predicted_consequence": null,
+      "spec_anchor": null,
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 8,
+      "last_round": 8,
+      "occurrences": [
+        {
+          "round": 8,
+          "severity": "minor",
+          "claim": null,
+          "spec_anchor": null
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "The README rewrite's scope over v0.1/v0.2 and prose fixes is unstated.",
+      "evidence": "spec 164, 365, ac-24 (line 404); verification/evidence/README.md:34-44; verification/evidence/v0.3/README.md:10",
+      "predicted_consequence": "A literal 'one rule' rewrite either makes v0.1/v0.2 editable in place or forbids typo fixes on v0.3.",
+      "spec_anchor": "v0-3-freezes",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 9,
+      "last_round": 9,
+      "occurrences": [
+        {
+          "round": 9,
+          "severity": "minor",
+          "claim": "The README rewrite's scope over v0.1/v0.2 and prose fixes is unstated.",
+          "spec_anchor": "v0-3-freezes"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "One internal contradiction and two doc sentences left stale by the DONE list.",
+      "evidence": "spec 150 vs 248; ac-23, ac-26; verification/evidence/v0.3/evidence-documents.md:65; docs/guide/cli.md:196",
+      "predicted_consequence": "Either the builder drops the mixed-ids message on the write path, or the v0.3 doc and cli.md contradict the shipped writer and capability output.",
+      "spec_anchor": "ac-id-writer-rule",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 9,
+      "last_round": 9,
+      "occurrences": [
+        {
+          "round": 9,
+          "severity": "minor",
+          "claim": "One internal contradiction and two doc sentences left stale by the DONE list.",
+          "spec_anchor": "ac-id-writer-rule"
+        }
+      ]
+    }
+  ]
+}

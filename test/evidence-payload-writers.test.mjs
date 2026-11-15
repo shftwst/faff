@@ -9,6 +9,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, 
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { seedFloor } from "./helpers/evidence-anchor-fixtures.mjs";
 
 const require = createRequire(import.meta.url);
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -204,9 +205,7 @@ test("events append: with run-event.schema.json missing the write degrades, mark
     assert.deepEqual(JSON.parse(readFileSync(join(ctx.runDir, MARKER), "utf8")), marker, "the marker is written once");
     const notAType = append(ctx, { phase: "run", type: "no-such-type" }, { bin: copy.bin });
     assert.equal(notAType.code, 1, "eventViolations still runs");
-    mkdirSync(join(ctx.runDir, "FAFF-1"), { recursive: true });
-    writeFileSync(join(ctx.runDir, "FAFF-1", "ac-checklist.json"), JSON.stringify({ all_verified: true }));
-    writeFileSync(join(ctx.runDir, "FAFF-1", "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
+    seedFloor(ctx.runDir, "FAFF-1");
     const dest = join(ctx.root, "anchor");
     assert.equal(faff(["events", "anchor", "--run-dir", ctx.runDir, "--issue", "FAFF-1", "--dest", dest]).code, 0);
     assert.ok(!readdirSync(dest, { recursive: true }).some((f) => String(f).includes(MARKER)));

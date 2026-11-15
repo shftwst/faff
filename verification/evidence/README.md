@@ -82,6 +82,9 @@ cross-link rather than merge.
 
 ## Changelog
 
+- **v0.3 — 2026-11-15 (FAFF-1478, current).** `evidence_persisted` items in `run-ledger.json` gain the
+  optional `human_only_acs_sha256`, the leaf sha256 of the run-dir `human-only-acs.json` that the
+  dispatcher verified. Additive: every committed anchor that validated still gives the same result.
 - **v0.3 — 2026-11-15 (FAFF-1476, current).** Adds `human-only-acs.json` as a thirteenth
   manifest entry (`versioned_by: "field"`) with its closed `human-only-acs` schema, and the
   `human-only-acs-stamp` event type (28 event types), whose `data.sha256` is the digest of the

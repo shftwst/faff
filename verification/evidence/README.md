@@ -82,7 +82,7 @@ cross-link rather than merge.
 
 ## Changelog
 
-- **v0.3 — 2026-11-15 (FAFF-1478, current).** `evidence_persisted` items in `run-ledger.json` gain the
+- **v0.3, 2026-11-15 (FAFF-1478, current).** `evidence_persisted` items in `run-ledger.json` gain the
   optional `human_only_acs_sha256`, the leaf sha256 of the run-dir `human-only-acs.json` that the
   dispatcher verified. Additive: every committed anchor that validated still gives the same result.
 - **v0.3 — 2026-11-15 (FAFF-1476, current).** Adds `human-only-acs.json` as a thirteenth

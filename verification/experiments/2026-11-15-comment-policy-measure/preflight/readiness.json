@@ -1,0 +1,63 @@
+{
+  "schema": 2,
+  "status": "ready_for_baseline_calibration",
+  "reasons": [],
+  "manifest_sha256": "ce3c43498850913c1e5e999124d7ccece1f725630e12e67d731f0597611ba5e7",
+  "checked_at": "2026-11-15T06:28:03.449Z",
+  "claude": {
+    "available": true,
+    "binary": "claude",
+    "version": "2.1.311",
+    "reasons": [],
+    "effort_supported": true,
+    "model_status": "unverified",
+    "max_turns_flag": false,
+    "help_sha256": "fc9af56f65f8a84a9e7e98cd538ccac13f57d1cc0e22099666508198ba88d64d"
+  },
+  "bindings": {
+    "source": {
+      "root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/source-f767bdd1",
+      "commit": "f767bdd1c0a78f6259c335742c1567a074f512a0",
+      "pinned_commit": "f767bdd1c0a78f6259c335742c1567a074f512a0",
+      "plugin_tree": "0542f44dfb06c24a45e1c46f048efaebfc16e696",
+      "pinned_plugin_tree": "0542f44dfb06c24a45e1c46f048efaebfc16e696",
+      "policy_path": "plugin/skills/faff/references/review.md",
+      "policy_sha256": "4d9d01e702294453cf16233feefe265e18ab5e376bf7d0f1eec40cb3f534edb6"
+    },
+    "tools": {
+      "root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/controlled-skill-runs",
+      "commit": "ad6f0c4e3179764947e544c700b6c09f61965007",
+      "files": {
+        "eval/control-parity/schema.mjs": "0164ccec86e98253e013dea2db3a00db35ef2ee9707de0a7360146b489715234",
+        "eval/control-parity/tracker.mjs": "341e1af1b22a97c7792074c0c6a5fae9f01495dd21ff31b5cdf352a838c12d52",
+        "eval/control-parity/proxy.mjs": "81a97ab918a4abb8b6d19e83e746057ad06c3d917b04e0bb53f0cb1fd21a4974",
+        "eval/control-parity/tool-server.mjs": "c076c2fba741489161c80846b62fd37d7d4866be70ea1b12c3e14df2bcfec8b5",
+        "eval/control-parity/claude-driver.mjs": "70bdf8e51382c3609df16779187cc3cfb50d3c8e74268b29484a572009d428ae",
+        "eval/control-parity/run.mjs": "8824e192f43772c24062a08ac00691ad1c6649d9ea636314546b741e3ef1c437",
+        "eval/control-parity/registry.json": "a858ac57efa8266fd236a30b365c69e8ac0743a162c32731490aabd0de214f92",
+        "eval/control-parity/expected-outcomes.json": "c228c28a154144833ef8b6333a84785d294c28b6c880374f598874d447bce97e",
+        "eval/control-parity/blocked-coverage.json": "fccfc2a3eef7ee93e7d71d40cbd1d2737133cbe8936bc6d0fb7b2db3d62f7f84",
+        "eval/control-parity/policy-decisions.json": "8c559fa4064d0bab8111cb88f66f263ae711a64a1ec887b723a35ba4f9e5cf5d",
+        "eval/control-parity/fixtures/review-comments.json": "61e6c3d478504df18aa14c9f95cdb8b7b5be6ffdc9eda2b196cff6f37df0799b"
+      }
+    },
+    "registry_sha256": "a858ac57efa8266fd236a30b365c69e8ac0743a162c32731490aabd0de214f92",
+    "fixtures_sha256": "61e6c3d478504df18aa14c9f95cdb8b7b5be6ffdc9eda2b196cff6f37df0799b",
+    "expected_sha256": "c228c28a154144833ef8b6333a84785d294c28b6c880374f598874d447bce97e",
+    "blocked_sha256": "fccfc2a3eef7ee93e7d71d40cbd1d2737133cbe8936bc6d0fb7b2db3d62f7f84",
+    "dirty": []
+  },
+  "fixture_transport": "capture-refuse-verified",
+  "live_transport": "not-observed",
+  "observed_runtime_sha256": "ebf236a39262c33298443e771e6cc858d69aaf249de5eff055ba583793fb90ea",
+  "harness_overhead": {
+    "system_sha256": "a384d31c8d4852e389630b9654c6913cc1a9430feed531e96975cb2a2ef4112a",
+    "injected_messages_sha256": "dd6449b4f42d5671aaa4a5e4c4818cacdca79edfb4134aa550d2be70aa6ce39c",
+    "tool_definitions_sha256": "55667ff47b721d53234b5e167774dfa9bae691725a18bb7c008eaeeeb21d74e8",
+    "thinking": {
+      "type": "adaptive",
+      "display": "updates"
+    }
+  },
+  "note": "Zero-cost checks only. The first calibration attempt is the live transport probe."
+}

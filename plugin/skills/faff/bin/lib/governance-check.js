@@ -671,7 +671,7 @@ function renderGovernanceCheckSummaryMd(verdict) {
     lines.push(`| completeness | ${r.legs.completeness.pass ? "pass" : "**FAIL**"} | ${r.legs.completeness.detail} |`);
     lines.push(`| budget | ${r.legs.budget.pass ? "pass" : "**FAIL**"} | ${r.legs.budget.detail} |`);
     const floorDetail = r.legs.merge_floor.issues.length
-      ? r.legs.merge_floor.issues.map((f) => `${f.issue}: ${f.pass ? "pass" : f.reasons.join("; ")}${calledOutNote(f)}`).join("<br>")
+      ? r.legs.merge_floor.issues.map((f) => `${f.issue}: ${f.pass ? "pass" : f.reasons.join("; ")}${calledOutNote(f).replaceAll("|", "\\|")}`).join("<br>")
       : "(no target issues)";
     lines.push(`| merge_floor | ${r.legs.merge_floor.pass ? "pass" : "**FAIL**"} | ${floorDetail} |`);
     lines.push(`| coherence _(report-only)_ | ${r.legs.coherence.clean ? "clean" : "findings"} | ${r.legs.coherence.clean ? "—" : "see \`faff audit ${r.run_id}\`"} |`);

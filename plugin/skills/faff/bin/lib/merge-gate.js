@@ -189,7 +189,8 @@ function cmdMergeGate(args) {
   const mfDigestVerify = buildMergeFloorDigestVerify(runDir, issue, get("--custody-verdict"), get("--custody-verdict-sha256"));
   const cfg = require("./config").loadConfig(cwd)[0]; // FAFF-1072: for branch-6's unattended fact — the repo being merged, lazy require (file convention)
   const integrity = resolveIntegrity(runDir, issue, level, mfDigestVerify, cfg);
-  const humanOnly = readAnchoredHumanOnly(cwd, repo, runDir, issue, headSha, ledgerLevel); // FAFF-1475: head-pinned, null means no skip
+  const anchorHeadSha = headSha;
+  const humanOnly = readAnchoredHumanOnly(cwd, repo, runDir, issue, anchorHeadSha, ledgerLevel); // FAFF-1475: head-pinned, null means no skip
 
   // Idempotent: a PR a peer already merged is a no-op, never a double-merge (gateway → status
   // monotonicity). FAFF-690 (F3): but success evidence is now conditional on the RETROSPECTIVE floor
@@ -224,7 +225,8 @@ function cmdMergeGate(args) {
     : [mergeLeg];
   const decisionGrant = andGrants(...legChecks.map((c) => c.state));
   const grantReport = legReport(legChecks);
-  const acFloor = readAcFloor(runDir, issue, humanOnly);
+  // FAFF-1475: a stacked-dependency rebase can advance the head, so the skip evidence is read again at the head being merged.
+  const acFloor = readAcFloor(runDir, issue, headSha === anchorHeadSha ? humanOnly : readAnchoredHumanOnly(cwd, repo, runDir, issue, headSha, ledgerLevel));
   const floor = {
     ac_complete: acFloor.complete,
     review_verdict: readReviewVerdict(runDir, issue),

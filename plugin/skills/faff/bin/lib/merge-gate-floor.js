@@ -366,6 +366,7 @@ function readAcFloor(runDir, issue, humanOnly) {
   if (!Array.isArray(doc.criteria) || doc.criteria.length === 0) return blocked;
   const listed = new Set(humanOnly.ids.map((id) => id.toLowerCase()));
   const pending = doc.criteria.filter((c) => !c || c.passed !== true);
+  if (pending.length === 0) return blocked; // nothing to call out: an all-passed list under all_verified:false stays inconsistent
   const skippable = (c) => c && typeof c.ac_id === "string" && listed.has(c.ac_id.toLowerCase())
     && Array.isArray(c.verifications) && c.verifications.length > 0
     && c.verifications.every((v) => v && v.kind === "human");

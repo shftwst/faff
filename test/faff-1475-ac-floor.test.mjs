@@ -137,6 +137,11 @@ describe("readAcFloor", () => {
     for (const row of [test_, mixed, empty, absent]) assert.equal(run(checklist([passedRow(AC1), row]), humanOnly()).complete, false);
   });
 
+  test("an all_verified:false checklist whose every row passed has nothing to call out and stays blocked", () => {
+    const doc = { ...checklist([passedRow(AC1), passedRow(AC2)]), all_verified: false };
+    assert.deepEqual(run(doc, humanOnly()), { complete: false, called_out: [] });
+  });
+
   test("a checklist with no passed criterion keeps the blocker", () => {
     assert.equal(run(checklist([humanRow(AC2)]), humanOnly()).complete, false);
   });
@@ -333,6 +338,7 @@ case "$1" in
     case "$2" in
       view)   printf '{"headRefOid":"%s","headRefName":"feature","state":"OPEN","url":"https://example.test/pr/1","baseRefName":"main"}' "$STUB_SHA"; exit 0 ;;
       checks) printf '[]'; exit 0 ;;
+      merge)  printf '%s' "$*" > "$STUB_MERGE_SENTINEL"; exit 0 ;;
     esac ;;
   api)
     case "$*" in
@@ -364,6 +370,22 @@ describe("merge-gate on a PR", () => {
     const out = JSON.parse(prRun(setup()).stdout);
     assert.ok(!out.blockers.some((b) => /ACs not all verified/.test(b)), JSON.stringify(out.blockers));
     assert.deepEqual(out.ac_called_out, [AC2]);
+  });
+
+  test("an unattended skip merges through the PR path and records the call-out", () => {
+    const s = setup();
+    const stubDir = mkTmp("faff-1475-gh-merge-");
+    writeFileSync(join(stubDir, "gh"), STUB_GH);
+    chmodSync(join(stubDir, "gh"), 0o755);
+    const sentinel = join(stubDir, "merged");
+    const env = { PATH: `${stubDir}:${process.env.PATH}`, STUB_SHA: s.head, STUB_MERGE_SENTINEL: sentinel };
+    const r = runCli(["merge-gate", "--pr", "1", "--issue", ISSUE, "--run-dir", s.runDir, "--level", "L3", "--json", "--execute", "--merge-args", "--squash"], { cwd: s.repo, env });
+    const out = JSON.parse(r.stdout);
+    assert.equal(r.code, 0, r.stdout + r.stderr);
+    assert.equal(out.verdict, "merge-ok");
+    assert.deepEqual(out.ac_called_out, [AC2]);
+    assert.ok(existsSync(sentinel), "the merge command ran");
+    assert.deepEqual(JSON.parse(readFileSync(join(s.runDir, ISSUE, "merge-record.json"), "utf8")).ac_called_out, [AC2]);
   });
 
   test("an attended file at the PR head blocks with the AC blocker", () => {

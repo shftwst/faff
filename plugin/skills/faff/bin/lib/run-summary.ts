@@ -517,8 +517,20 @@ function renderRunSummary(input: RenderInput, deps: Deps): string {
   }
   const shipped = idsWith("shipped");
   const flagged = shipped.filter((id) => pmFailures.has(id) || pmUnverified.ids.includes(id));
-  const skippedShipped = shipped.filter((id) => !flagged.includes(id) && skipped.ids.includes(id));
-  const autoMerged = shipped.filter((id) => !flagged.includes(id) && !skippedShipped.includes(id));
+  // FAFF-1475: the human-only criteria an unattended merge skipped, from the merge record the gate wrote.
+  const calledOut = new Map<string, string[]>();
+  for (const id of shipped) {
+    const raw = field(readJson(path.join(runDir, id, "merge-record.json")), "ac_called_out");
+    const ids = Array.isArray(raw) ? raw.filter((x): x is string => typeof x === "string" && x !== "") : [];
+    if (ids.length > 0) calledOut.set(id, ids);
+  }
+  const calledOutShipped = shipped.filter((id) => !flagged.includes(id) && calledOut.has(id));
+  const skippedShipped = shipped.filter((id) => !flagged.includes(id) && !calledOutShipped.includes(id) && skipped.ids.includes(id));
+  const autoMerged = shipped.filter((id) => !flagged.includes(id) && !calledOutShipped.includes(id) && !skippedShipped.includes(id));
+  const calledOutNote = (id: string): string => {
+    const ids = calledOut.get(id);
+    return ids === undefined ? "" : `; also merged unattended with human-only ACs called out: ${ids.map((x) => factText(x)).join(", ")}`;
+  };
   const issueLine = (id: string, tail: string, extraReported = false): string => {
     const t = titleOf(id);
     return label(`- ${factText(id)}${t.text}${prSuffix(id)}${tail}`, t.reported || extraReported);
@@ -526,11 +538,16 @@ function renderRunSummary(input: RenderInput, deps: Deps): string {
   L.push("");
   L.push(`## Shipped (auto-merged): ${autoMerged.length}`);
   for (const id of autoMerged) L.push(issueLine(id, ""));
+  if (calledOutShipped.length > 0) {
+    L.push("");
+    L.push(`## Shipped (human-only ACs called out): ${calledOutShipped.length}`);
+    for (const id of calledOutShipped) L.push(issueLine(id, ` — merged unattended; a person must confirm these criteria: ${(calledOut.get(id) ?? []).map((x) => factText(x)).join(", ")} (merge-record.json: ac_called_out)`));
+  }
   if (skipped.bad !== null) L.push(skipped.bad);
   if (skippedShipped.length > 0) {
     L.push("");
     L.push(`## Shipped (adversarial review skipped — chain outage): ${skippedShipped.length}`);
-    for (const id of skippedShipped) L.push(issueLine(id, " — every adversarial backend was unreachable; merged on Phase-1 + AC + CI, WITHOUT a second-opinion pass (ledger: review_adversarial_skipped)"));
+    for (const id of skippedShipped) L.push(issueLine(id, ` — every adversarial backend was unreachable; merged on Phase-1 + AC + CI, WITHOUT a second-opinion pass (ledger: review_adversarial_skipped)${calledOutNote(id)}`));
   }
   if (pmFailures.size > 0 || pmUnverified.ids.length > 0 || pmFailuresBad !== null || pmUnverified.bad !== null) {
     L.push("");
@@ -539,9 +556,9 @@ function renderRunSummary(input: RenderInput, deps: Deps): string {
       const f = pmFailures.get(id);
       if (f !== undefined) {
         const sha = str(field(f, "merge_sha"));
-        L.push(issueLine(id, ` — merged main HEAD failed its own declared test command on re-run: \`${factText(str(field(f, "command")) ?? "?")}\`${sha === undefined ? "" : ` (sha \`${factText(sha.slice(0, 7))}\`)`}; tracker comment + discovered-scope entry filed, NOT reverted, NOT reopened (ledger: post_merge_verification_failures)`));
+        L.push(issueLine(id, ` — merged main HEAD failed its own declared test command on re-run: \`${factText(str(field(f, "command")) ?? "?")}\`${sha === undefined ? "" : ` (sha \`${factText(sha.slice(0, 7))}\`)`}; tracker comment + discovered-scope entry filed, NOT reverted, NOT reopened (ledger: post_merge_verification_failures)${calledOutNote(id)}`));
       } else {
-        L.push(issueLine(id, " — no declared UNIT rung, or a worktree/execution error; verdict unobtainable, not a defect (ledger: post_merge_verification_unverified)"));
+        L.push(issueLine(id, ` — no declared UNIT rung, or a worktree/execution error; verdict unobtainable, not a defect (ledger: post_merge_verification_unverified)${calledOutNote(id)}`));
       }
     }
     if (pmFailuresBad !== null) L.push(pmFailuresBad);

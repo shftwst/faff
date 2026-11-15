@@ -1,0 +1,82 @@
+{
+  "schema": 2,
+  "kind": "baseline-calibration",
+  "status": "incomplete",
+  "live_transport": "observed",
+  "stopped_by": "preserve-human-text: unmetered-request",
+  "counts": {
+    "planned": 5,
+    "run": 1,
+    "pass": 0,
+    "fail": 0,
+    "incomplete": 1,
+    "not_run": 4
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "arm": "baseline",
+      "scenario": "preserve-human-text",
+      "attempt": 1,
+      "stop": {
+        "reason": "unmetered-request"
+      },
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 3
+      },
+      "elapsed_ms": 11021,
+      "cost_nanos": 45231000,
+      "tokens": {
+        "input": 6,
+        "cache_read": 6575,
+        "cache_write": 3849,
+        "output": 655
+      },
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "a0b7b019ef0f03b516471a52399cb117cbc84da6aca5cf26d21a9f701c5c936f",
+      "cli_reported_cost_usd": "0.045231",
+      "status": "incomplete",
+      "failures": [],
+      "incomplete": [
+        "stopped:unmetered-request"
+      ],
+      "runtime_matches_readiness": true
+    },
+    {
+      "n": 2,
+      "arm": "baseline",
+      "scenario": "legacy-open-only",
+      "attempt": 1,
+      "status": "not-run"
+    },
+    {
+      "n": 3,
+      "arm": "baseline",
+      "scenario": "create-when-absent",
+      "attempt": 1,
+      "status": "not-run"
+    },
+    {
+      "n": 4,
+      "arm": "baseline",
+      "scenario": "duplicate-reconcile",
+      "attempt": 1,
+      "status": "not-run"
+    },
+    {
+      "n": 5,
+      "arm": "baseline",
+      "scenario": "quoted-imitation",
+      "attempt": 1,
+      "status": "not-run"
+    }
+  ],
+  "spend_nanos": 45231000,
+  "held_reservations": 0,
+  "elapsed_ms": 11024,
+  "note": "Calibration completion does not approve migration. Cache strata are observed, not controlled; no cold-cache claim is made."
+}

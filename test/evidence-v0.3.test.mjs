@@ -48,12 +48,13 @@ const committed = (file) => anchors.filter((a) => existsSync(join(a.dir, file)))
 
 // --- manifest and file layout ------------------------------------------------
 
-test("v0.3: anchor-manifest.json validates against its schema and has exactly the twelve entries", () => {
+test("v0.3: anchor-manifest.json validates against its schema and has exactly the thirteen entries", () => {
   const manifest = readJson(join(SRC, "anchor-manifest.json"));
   assert.deepEqual(validateAgainstSchema(manifest, schema("anchor-manifest")), []);
+  assert.equal(Object.keys(manifest.files).length, 13);
   assert.deepEqual(Object.keys(manifest.files).sort(), [
     "ac-checklist.json", "build-progress.json", "chain-head.json", "commissaire/producer/pk.json", "declared-effects.jsonl",
-    "effects-chain-head.json", "events.jsonl", "holdout.json", "landing-progress.json", "review-verdict.json",
+    "effects-chain-head.json", "events.jsonl", "holdout.json", "human-only-acs.json", "landing-progress.json", "review-verdict.json",
     "run-ledger.json", "spec-review-verdict.json",
   ]);
   for (const entry of Object.values(manifest.files)) assert.ok(existsSync(join(SRC, entry.schema)), entry.schema);

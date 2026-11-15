@@ -121,6 +121,7 @@ export function seedOptionalFloor(runDir, issue = "FAFF-1") {
   writeFileSync(path.join(runDir, issue, "spec-review-verdict.json"), example("spec-review-verdict-anchored"));
   writeFileSync(path.join(runDir, issue, "build-progress.json"), example("build-progress"));
   writeFileSync(path.join(runDir, issue, "landing-progress.json"), example("landing-progress"));
+  writeFileSync(path.join(runDir, issue, "human-only-acs.json"), example("human-only-acs"));
 }
 
 export { cpSync };

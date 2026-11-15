@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "faff/evidence/v0.3/human-only-acs",
+  "title": "<anchor-dir>/human-only-acs.json",
+  "description": "Written by `faff evidence write human-only-acs` (FAFF-1476), called by `faff pr open`. Freezes the acceptance criteria tagged `needs-human:` in the captured spec and whether the run was unattended. The writer, not this schema, enforces that L1 and L2 are never unattended, that L4 always is, that ids are unique and that every id names `issue`.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "issue",
+    "level",
+    "unattended",
+    "human_only"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [
+        1
+      ],
+      "description": "evidence document version; stamped by the writer"
+    },
+    "faff_version": {
+      "type": "string",
+      "description": "faff plugin release version that wrote this document; \"unknown\" when unresolved"
+    },
+    "issue": {
+      "type": "string"
+    },
+    "level": {
+      "type": "string",
+      "enum": [
+        "L1",
+        "L2",
+        "L3",
+        "L4"
+      ]
+    },
+    "unattended": {
+      "type": "boolean"
+    },
+    "human_only": {
+      "type": "array",
+      "description": "qualified ac_ids of the human-only items; may be empty",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9]{1,15}-[1-9][0-9]*#(ac-[1-9][0-9]*|done:[1-9][0-9]*)$"
+      }
+    }
+  }
+}

@@ -60,6 +60,11 @@
       "schema": "schema/holdout-anchored.schema.json",
       "format": "json",
       "versioned_by": "field"
+    },
+    "human-only-acs.json": {
+      "schema": "schema/human-only-acs.schema.json",
+      "format": "json",
+      "versioned_by": "field"
     }
   }
 }

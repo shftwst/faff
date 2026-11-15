@@ -48,7 +48,7 @@ test("payload coverage: one schema file per event type, effect kind and Commissa
   assert.deepEqual(names("events"), [...DELIVERY_PROFILE.event_types].sort());
   assert.deepEqual(names("effects"), [...EFFECT_KINDS].sort());
   assert.deepEqual(names("commissaire"), [...Object.keys(KIND_AUTHOR), LEGACY_CONCLUSION_KIND].sort());
-  assert.equal(names("events").length, 27);
+  assert.equal(names("events").length, 28);
   assert.equal(names("effects").length, 16);
   assert.equal(names("commissaire").length, 8);
 });
@@ -69,6 +69,18 @@ test("payload coverage: evidence-terminal-only is an issue-scoped event type who
   const rec = { schema: 2, run_id: "r", seq: 1, ts: "t", prev: "a".repeat(64), phase: "build", type: "evidence-terminal-only", issue: "FAFF-1", data: { issue: "FAFF-1", writer: "faff evidence write review-verdict --terminal-only" } };
   assert.deepEqual(validateAgainstSchema(rec, runEvent()), []);
   assert.ok(validateAgainstSchema({ ...rec, data: { ...rec.data, issue: "" } }, runEvent()).length > 0, "an empty issue fails");
+});
+
+test("payload coverage: human-only-acs-stamp is an issue-scoped event type whose data requires issue and a 64-hex sha256", () => {
+  assert.ok(DELIVERY_PROFILE.event_types.includes("human-only-acs-stamp"));
+  assert.ok(DELIVERY_PROFILE.issue_scoped_types.includes("human-only-acs-stamp"));
+  const s = readJson(join(SCHEMA, "events", "human-only-acs-stamp.schema.json"));
+  assert.ok(s.required.includes("data") && s.required.includes("issue"));
+  assert.deepEqual(s.properties.data.required, ["issue", "sha256"]);
+  const rec = { schema: 2, run_id: "r", seq: 1, ts: "t", prev: "a".repeat(64), phase: "build", type: "human-only-acs-stamp", issue: "FAFF-1", data: { issue: "FAFF-1", sha256: "b".repeat(64) } };
+  assert.deepEqual(validateAgainstSchema(rec, runEvent()), []);
+  assert.ok(validateAgainstSchema({ ...rec, data: { ...rec.data, issue: "" } }, runEvent()).length > 0, "an empty issue fails");
+  assert.ok(validateAgainstSchema({ ...rec, data: { ...rec.data, sha256: "b".repeat(63) } }, runEvent()).length > 0, "a short digest fails");
 });
 
 test("payload coverage: agent-dispatch and runner-identity data hold exactly the events.js allow-lists", () => {

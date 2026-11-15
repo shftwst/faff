@@ -330,6 +330,9 @@ function prFixture(t, { level = "L4", captured = spec(TAGGED) } = {}) {
   const wt = join(root, "wt");
   mkdirSync(main);
   sh(main, "init", "-q", "-b", "main");
+  sh(main, "config", "user.name", "t");
+  sh(main, "config", "user.email", "t@example.com");
+  sh(main, "config", "commit.gpgsign", "false");
   writeFileSync(join(main, "README"), "seed\n");
   writeFileSync(join(main, ".gitignore"), ".faff/runs/\n.faff/graft/\n");
   sh(main, "add", ".");

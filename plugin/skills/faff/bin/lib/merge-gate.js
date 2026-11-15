@@ -43,7 +43,7 @@ const MERGE_GATE_SPEC = { flags: {
 const { FLOOR_LEVELS, decideFloor, resolveGateLevel } = require("./contract-defs");
 const { MERGE_FLAG_ALLOW, parseMergeArgs, MERGE_METHOD_FLAGS, resolveMergeFlags, fenceHumanFlags, nonGraftFloorSignature, narrowReviewUnavailableExcusable, NON_GRAFT_REMEDY_STRING, classifyHeadShaChecks, classifyCiObservation, classifyMergeFailure, classifyPostMerge, extractRequiredChecks, classifyBranchProtection, classifyGithubAuth } = require("./merge-gate-classify");
 const { readRunnerGhConfig, resolveRunnerGhEnv, runGh, githubActorMatches, resolveRunnerIdentity, recordRunnerIdentity, ghJson, ghRepoSlug, cmdBranchProtectionCheck, cmdGithubAuthCheck, githubAuthSelftest, branchProtectionSelftest } = require("./merge-gate-gh");
-const { gitRun, resolveAnchorLevel, anchorRefusal, alreadyMergedReconcile, observeCi, mergeRecordPath, writeMergeRecord, resolveIntegrity, buildMergeFloorDigestVerify, readAcComplete, readReviewVerdict, holdoutIsFresh, laneBoundaryPromisesCage, laneBoundaryDispatchState, evaluateCustody, readHoldout, readCanRun, readCaged, readLedgerSutEnvStood, resolveCanRun, resolveHoldoutLeg } = require("./merge-gate-floor");
+const { gitRun, resolveAnchorLevel, anchorRefusal, alreadyMergedReconcile, observeCi, mergeRecordPath, writeMergeRecord, resolveIntegrity, buildMergeFloorDigestVerify, readAcComplete, readAcFloor, readAnchoredHumanOnly, readReviewVerdict, holdoutIsFresh, laneBoundaryPromisesCage, laneBoundaryDispatchState, evaluateCustody, readHoldout, readCanRun, readCaged, readLedgerSutEnvStood, resolveCanRun, resolveHoldoutLeg } = require("./merge-gate-floor");
 const { mergeEffectsFor, warnUncoveredMergeObserves, observeMergeEffects, governanceRequiredSentinelPresent, repoSlugFromPrUrl, hasPullRequestRule, makeTrustContext, checkLeg, resolveCommissaireDecisionGrantDetail, resolvePrCreateGrantDetail, resolveBranchDeleteGrantDetail, resolveCommissaireDecisionGrant, resolvePrCreateGrant, resolveBranchDeleteGrant, legReport, runIsGoverned, andGrants, legCovered, mergeCoveredBySchema3Grant, prCreateCoveredBySchema3Grant } = require("./merge-gate-effects");
 const { baseCheckedOutWorktree, gitRemoteEmpty, resolveLocalBase, gatesSignalToCiState, landBaseFfOnly, cmdMergeGateLocal } = require("./merge-gate-local");
 const { readStackAnchor, classifyDependencyGate, boundedRebaseOntoMain, dependencyInterlock } = require("./merge-gate-stack");
@@ -189,13 +189,14 @@ function cmdMergeGate(args) {
   const mfDigestVerify = buildMergeFloorDigestVerify(runDir, issue, get("--custody-verdict"), get("--custody-verdict-sha256"));
   const cfg = require("./config").loadConfig(cwd)[0]; // FAFF-1072: for branch-6's unattended fact — the repo being merged, lazy require (file convention)
   const integrity = resolveIntegrity(runDir, issue, level, mfDigestVerify, cfg);
+  const humanOnly = readAnchoredHumanOnly(cwd, repo, runDir, issue, headSha, ledgerLevel); // FAFF-1475: head-pinned, null means no skip
 
   // Idempotent: a PR a peer already merged is a no-op, never a double-merge (gateway → status
   // monotonicity). FAFF-690 (F3): but success evidence is now conditional on the RETROSPECTIVE floor
   // — an already-merged PR whose AC/review/(at-L4)holdout/integrity cannot be re-proven refuses (exit
   // 1) and writes no merge-record.json. Never spawns `gh pr merge` either way.
   if (hv.data.state === "MERGED") {
-    return alreadyMergedReconcile(emit, runDir, issue, pr, headSha, level, integrity);
+    return alreadyMergedReconcile(emit, runDir, issue, pr, headSha, level, integrity, humanOnly);
   }
 
   // FAFF-1077: the stacked-dependency merge-order interlock. ADDITIVE — it can only push the
@@ -223,8 +224,9 @@ function cmdMergeGate(args) {
     : [mergeLeg];
   const decisionGrant = andGrants(...legChecks.map((c) => c.state));
   const grantReport = legReport(legChecks);
+  const acFloor = readAcFloor(runDir, issue, humanOnly);
   const floor = {
-    ac_complete: readAcComplete(runDir, issue),
+    ac_complete: acFloor.complete,
     review_verdict: readReviewVerdict(runDir, issue),
     ci_state: ci.ci_state,
     head_sha_matches: ci.head_sha_matches,
@@ -240,7 +242,7 @@ function cmdMergeGate(args) {
   };
   const { verdict, blockers: floorBlockers } = decideFloor(floor);
   const blockers = [...floorBlockers, ...grantReport.blockers];
-  const result = { verdict, blockers, merged: false, ci_state: ci.ci_state, head_sha: headSha, ci_detail: ci.detail, integrity: integrity.display, holdout_posture: holdoutLeg.holdout_posture, holdout_missing: holdoutLeg.holdout_missing, holdout_fault: holdoutLeg.holdout_fault, ...(grantReport.details.length ? { commissaire_grants: grantReport.details } : {}) };
+  const result = { verdict, blockers, merged: false, ci_state: ci.ci_state, head_sha: headSha, ci_detail: ci.detail, integrity: integrity.display, ac_called_out: acFloor.called_out, holdout_posture: holdoutLeg.holdout_posture, holdout_missing: holdoutLeg.holdout_missing, holdout_fault: holdoutLeg.holdout_fault, ...(grantReport.details.length ? { commissaire_grants: grantReport.details } : {}) };
   // FAFF-1077: surface the interlock's owner-park intent (never enacted here) and any transient
   // note so the owning layer can escalate a "leave pr-open" refuse to a park at the merge locus.
   if (interlock.park) { result.dependency_park = interlock.park; result.remedy = `park the dependent: ${interlock.park.cause}`; }
@@ -311,7 +313,7 @@ function cmdMergeGate(args) {
       result.merged = true;
       result.verdict = "merge-ok";
       result.warnings = [...(result.warnings || []), pm.warning];
-      writeMergeRecord(runDir, issue, pr, headSha, integrity.display); // FAFF-397
+      writeMergeRecord(runDir, issue, pr, headSha, integrity.display, undefined, undefined, undefined, acFloor.called_out); // FAFF-397
       // FAFF-383: path (b) — the post-merge step's own success is unconfirmed (that's WHY gh
       // exited non-zero here), so observe the merge only, never branch-delete.
       // FAFF-1034: suppress the schema:2 auto-declare/observe for a merge covered by a schema:3 grant
@@ -328,7 +330,7 @@ function cmdMergeGate(args) {
   }
   result.merged = true;
   result.verdict = "merge-ok";
-  writeMergeRecord(runDir, issue, pr, headSha, integrity.display); // FAFF-397
+  writeMergeRecord(runDir, issue, pr, headSha, integrity.display, undefined, undefined, undefined, acFloor.called_out); // FAFF-397
   // FAFF-383: path (a) — the clean-success tail; branch-delete observes iff this invocation's own
   // merge-args carried --delete-branch (resolved.flags, not the raw --merge-args string).
   // FAFF-1034: suppressed for a merge covered by a schema:3 grant (single schema:3 lineage).
@@ -336,4 +338,4 @@ function cmdMergeGate(args) {
   return emit(result, 0);
 }
 
-module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, boundedRebaseOntoMain, branchProtectionSelftest, classifyDependencyGate, dependencyInterlock, readStackAnchor, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, cmdPrCreate, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, landBaseFfOnly, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, narrowReviewUnavailableExcusable, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readHoldout, readCanRun, readLedgerSutEnvStood, resolveCanRun, readCaged, resolveHoldoutLeg, readReviewVerdict, resolveAnchorLevel, resolveCommissaireDecisionGrant, resolvePrCreateGrant, resolveBranchDeleteGrant, resolveCommissaireDecisionGrantDetail, resolvePrCreateGrantDetail, resolveBranchDeleteGrantDetail, checkLeg, makeTrustContext, hasPullRequestRule, repoSlugFromPrUrl, legCovered, andGrants, governanceRequiredSentinelPresent, mergeCoveredBySchema3Grant, prCreateCoveredBySchema3Grant, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord, readRunnerGhConfig, resolveRunnerGhEnv, runGh, resolveRunnerIdentity, githubActorMatches, recordRunnerIdentity };
+module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, boundedRebaseOntoMain, branchProtectionSelftest, classifyDependencyGate, dependencyInterlock, readStackAnchor, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, cmdPrCreate, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, landBaseFfOnly, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, narrowReviewUnavailableExcusable, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readAcFloor, readHoldout, readCanRun, readLedgerSutEnvStood, resolveCanRun, readCaged, resolveHoldoutLeg, readReviewVerdict, resolveAnchorLevel, resolveCommissaireDecisionGrant, resolvePrCreateGrant, resolveBranchDeleteGrant, resolveCommissaireDecisionGrantDetail, resolvePrCreateGrantDetail, resolveBranchDeleteGrantDetail, checkLeg, makeTrustContext, hasPullRequestRule, repoSlugFromPrUrl, legCovered, andGrants, governanceRequiredSentinelPresent, mergeCoveredBySchema3Grant, prCreateCoveredBySchema3Grant, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord, readRunnerGhConfig, resolveRunnerGhEnv, runGh, resolveRunnerIdentity, githubActorMatches, recordRunnerIdentity };

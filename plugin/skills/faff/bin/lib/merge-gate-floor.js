@@ -130,9 +130,10 @@ function anchorRefusal(runDir, issue, headSha, status) {
 // `ci_state:"not-observed-already-merged"` (NEVER fed to decideFloor). Success evidence
 // (merge-record.json) is written ONLY when the retrospective floor passes; a failing floor returns
 // refuse (exit 1) with the failing legs and writes NOTHING. It never spawns `gh pr merge`.
-function alreadyMergedReconcile(emit, runDir, issue, pr, headSha, level, integrity) {
+function alreadyMergedReconcile(emit, runDir, issue, pr, headSha, level, integrity, humanOnly = null) {
   const reasons = [];
-  if (!readAcComplete(runDir, issue)) reasons.push("ACs not all verified");
+  const acFloor = readAcFloor(runDir, issue, humanOnly);
+  if (!acFloor.complete) reasons.push("ACs not all verified");
   const rv = readReviewVerdict(runDir, issue);
   if (rv !== "pass") reasons.push(`review verdict is ${rv}`);
   // FAFF-1040: the retrospective floor re-derives the SAME posture-based holdout leg as the live floor
@@ -143,10 +144,10 @@ function alreadyMergedReconcile(emit, runDir, issue, pr, headSha, level, integri
   if (integrity.state === "violated") reasons.push("corrective-artifact integrity violated");
   if (integrity.state === "unasserted-refuse") reasons.push(`corrective-artifact integrity unasserted at ${level}`);
   if (reasons.length === 0) {
-    writeMergeRecord(runDir, issue, pr, headSha, integrity.display);
-    return emit({ verdict: "merge-ok", merged: true, blockers: [], ci_state: "not-observed-already-merged", head_sha: headSha, integrity: integrity.display, note: "already merged" }, 0);
+    writeMergeRecord(runDir, issue, pr, headSha, integrity.display, undefined, undefined, undefined, acFloor.called_out);
+    return emit({ verdict: "merge-ok", merged: true, blockers: [], ci_state: "not-observed-already-merged", head_sha: headSha, integrity: integrity.display, ac_called_out: acFloor.called_out, note: "already merged" }, 0);
   }
-  return emit({ verdict: "refuse", merged: true, blockers: reasons, ci_state: "not-observed-already-merged", head_sha: headSha, integrity: integrity.display, note: "already merged but merge-floor not satisfied — no success evidence written" }, 1);
+  return emit({ verdict: "refuse", merged: true, blockers: reasons, ci_state: "not-observed-already-merged", head_sha: headSha, integrity: integrity.display, ac_called_out: [], note: "already merged but merge-floor not satisfied — no success evidence written" }, 1);
 }
 
 // Observe CI for the head sha authoritatively (head-sha check-runs + legacy status). A zero head-sha
@@ -202,7 +203,7 @@ function mergeRecordPath(runDir, issue) {
 // FAFF-1395: also stamps `faff_version` (the plugin release) beside harness/model. `faffVersion` is
 // injectable (tests only); the real call path resolves it via the single faff-version resolver, and an
 // unresolved version is written as "unknown", never omitted.
-function writeMergeRecord(runDir, issue, pr, headSha, integrity, identity, githubActor, faffVersion) {
+function writeMergeRecord(runDir, issue, pr, headSha, integrity, identity, githubActor, faffVersion, acCalledOut) {
   try {
     const dir = path.join(runDir, issue);
     fs.mkdirSync(dir, { recursive: true });
@@ -213,6 +214,8 @@ function writeMergeRecord(runDir, issue, pr, headSha, integrity, identity, githu
     }
     if (id && id.harness) { record.harness = id.harness; record.model = id.model; }
     record.faff_version = faffVersion === undefined ? resolveFaffVersion().version : faffVersion;
+    // FAFF-1475: the human-only criteria an unattended merge skipped; written only when there are some.
+    if (Array.isArray(acCalledOut) && acCalledOut.length > 0) record.ac_called_out = acCalledOut;
     // FAFF-1213: record the acting GitHub identity as a NON-authoritative convenience copy
     // — login + credential_source only, NEVER the token. Resolved internally (lazy, like the
     // harness identity above) unless injected (tests). A resolution fault omits the field.
@@ -344,6 +347,42 @@ function readAcComplete(runDir, issue) {
   if (!Array.isArray(j.criteria)) return false;                          // malformed → fail-closed
   const everyPassed = j.criteria.length > 0 && j.criteria.every((c) => c && c.passed === true);
   return aggregate && everyPassed;                                       // cross-check
+}
+
+// FAFF-1475: the AC leg with the unattended human-only skip. `humanOnly` is the reader's output
+// ({ unattended, ids }) or null; absent, or an attended file, leaves today's rule untouched. A pending
+// criterion is skipped only when every one of these holds: the run is unattended, the checklist says
+// all_verified:false with a non-empty criteria list, each pending criterion carries an ac_id the file
+// lists and only human verifications, and at least one criterion passed. The skipped ids come back so
+// every caller can list them; this never edits the checklist, so a skipped row stays passed:false.
+function readAcFloor(runDir, issue, humanOnly) {
+  if (readAcComplete(runDir, issue)) return { complete: true, called_out: [] };
+  const blocked = { complete: false, called_out: [] };
+  if (!humanOnly || humanOnly.unattended !== true) return blocked;
+  let doc;
+  try { doc = JSON.parse(fs.readFileSync(path.join(runDir, issue, "ac-checklist.json"), "utf8")); }
+  catch { return blocked; }
+  if (!doc || typeof doc !== "object" || doc.all_verified !== false) return blocked;
+  if (!Array.isArray(doc.criteria) || doc.criteria.length === 0) return blocked;
+  const listed = new Set(humanOnly.ids.map((id) => id.toLowerCase()));
+  const pending = doc.criteria.filter((c) => !c || c.passed !== true);
+  const skippable = (c) => c && typeof c.ac_id === "string" && listed.has(c.ac_id.toLowerCase())
+    && Array.isArray(c.verifications) && c.verifications.length > 0
+    && c.verifications.every((v) => v && v.kind === "human");
+  if (!pending.every(skippable)) return blocked;
+  if (!doc.criteria.some((c) => c && c.passed === true)) return blocked;
+  return { complete: true, called_out: pending.map((c) => c.ac_id) };
+}
+
+// FAFF-1475: the human-only set for an anchored issue, read as exact bytes at the head the gate enforces.
+// Any unreadable blob or failed reader check is null, which means no skip.
+function readAnchoredHumanOnly(cwd, repo, runDir, issue, headSha, anchoredLevel) {
+  const base = `.faff/anchors/${path.basename(runDir)}/${issue}`;
+  const file = readAnchoredBytes(cwd, repo, `${base}/human-only-acs.json`, headSha);
+  if (file === null) return null;
+  const events = readAnchoredBytes(cwd, repo, `${base}/events.jsonl`, headSha);
+  if (events === null) return null;
+  return require("./human-only-acs").readHumanOnlyAcs(file, events, issue, anchoredLevel);
 }
 
 // Read + RE-VALIDATE the review-verdict block graft persists at <run-dir>/<ISSUE>/review-verdict.json
@@ -583,4 +622,4 @@ function resolveHoldoutLeg(runDir, issue) {
   return { holdout, holdout_posture: posture, holdout_missing: missing, holdout_fault: fault };
 }
 
-module.exports = { gitRun, anchorHttpStatus, resolveAnchorLevel, readAnchoredBytes, anchorRefusal, alreadyMergedReconcile, observeCi, mergeRecordPath, writeMergeRecord, resolveIntegrity, resolveUnattended, buildMergeFloorDigestVerify, readAcComplete, readReviewVerdict, holdoutIsFresh, laneBoundaryPromisesCage, laneBoundaryDispatchState, evaluateCustody, readHoldout, readCanRun, readCaged, readLedgerSutEnvStood, resolveCanRun, resolveHoldoutLeg };
+module.exports = { gitRun, anchorHttpStatus, resolveAnchorLevel, readAnchoredBytes, anchorRefusal, alreadyMergedReconcile, observeCi, mergeRecordPath, writeMergeRecord, resolveIntegrity, resolveUnattended, readAcFloor, readAnchoredHumanOnly, buildMergeFloorDigestVerify, readAcComplete, readReviewVerdict, holdoutIsFresh, laneBoundaryPromisesCage, laneBoundaryDispatchState, evaluateCustody, readHoldout, readCanRun, readCaged, readLedgerSutEnvStood, resolveCanRun, resolveHoldoutLeg };

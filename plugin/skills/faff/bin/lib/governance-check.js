@@ -35,7 +35,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { auditLedger, TERMINAL_STATES } = require("./runcheck");
-const { readAcComplete, readReviewVerdict, resolveHoldoutLeg } = require("./merge-gate");
+const { readAcFloor, readReviewVerdict, resolveHoldoutLeg } = require("./merge-gate");
 const { buildReconstruction, readEvents } = require("./audit");
 const { FLOOR_LEVELS } = require("./contract-defs");
 const { verifyAuthLeg, hasGovernanceContext, expectedRunIdForDir } = require("./commissaire");
@@ -135,15 +135,18 @@ function evaluateLivenessLeg(ledger, nowMs) {
 // miss a caged unattended-L3 run's failing verdict the live floor now blocks).
 // ---------------------------------------------------------------------------
 
-function evaluateMergeFloorLeg(runDir, issue, level) { // `level` retained for signature parity; the holdout leg is level-agnostic
-  const acComplete = readAcComplete(runDir, issue);
+// FAFF-1475: `humanOnly` is the anchored human-only set ({ unattended, ids }) or null. Only the anchor
+// leg passes one; the live-run-dir leg passes none and so blocks on a pending human criterion as before.
+function evaluateMergeFloorLeg(runDir, issue, level, humanOnly = null) { // `level` retained for signature parity; the holdout leg is level-agnostic
+  const acFloor = readAcFloor(runDir, issue, humanOnly);
+  const acComplete = acFloor.complete;
   const reviewVerdict = readReviewVerdict(runDir, issue);
   const reasons = [];
   if (!acComplete) reasons.push("ac-checklist.json missing/incomplete");
   if (reviewVerdict !== "pass") reasons.push(`review-verdict ${reviewVerdict}`);
   const holdoutLeg = resolveHoldoutLeg(runDir, issue);
   if (holdoutLeg.holdout_posture === "strict" && holdoutLeg.holdout !== "meets-spec") reasons.push(`holdout ${holdoutLeg.holdout}`);
-  return { issue, pass: reasons.length === 0, ac_complete: acComplete, review_verdict: reviewVerdict, holdout: holdoutLeg.holdout, reasons };
+  return { issue, pass: reasons.length === 0, ac_complete: acComplete, review_verdict: reviewVerdict, holdout: holdoutLeg.holdout, reasons, ac_called_out: acFloor.called_out };
 }
 
 // ---------------------------------------------------------------------------
@@ -261,6 +264,18 @@ function evaluateIntegrityLeg(dir, legacyPolicy = "pass", opts = {}) {
 // `evaluateRunDir` so the renderers/reasons are unchanged; completeness/budget/liveness stay n/a.
 // `pass = integrity.pass && merge_floor.pass`, plus `evidence_schema.pass` under
 // `requireEvidenceSchema` (FAFF-1278).
+// FAFF-1475: the human-only set from an anchor directory, read as raw bytes. The unattended fact comes
+// from the anchored file alone, and the level it must agree with from the anchor's own run-ledger.json.
+function readAnchorDirHumanOnly(dir, issue, anchorLedger) {
+  try {
+    const level = anchorLedger && typeof anchorLedger.level === "string" ? anchorLedger.level : null;
+    if (level === null) return null;
+    const file = fs.readFileSync(path.join(dir, "human-only-acs.json"));
+    const events = fs.readFileSync(path.join(dir, "events.jsonl"));
+    return require("./human-only-acs").readHumanOnlyAcs(file, events, issue, level);
+  } catch { return null; }
+}
+
 function evaluateAnchorDir(dir, legacyPolicy = "pass", level = "L3", { requireEvidenceSchema = false } = {}) {
   const integrity = evaluateIntegrityLeg(dir, legacyPolicy, { requireWitness: true });
   let label = path.basename(dir);
@@ -299,7 +314,7 @@ function evaluateAnchorDir(dir, legacyPolicy = "pass", level = "L3", { requireEv
   // per-issue evaluateMergeFloorLeg result (no `issues` array) must never be assigned directly.
   const floorResult = isNonShipped
     ? { issue, pass: true, ac_complete: null, review_verdict: null, holdout: null, reasons: [] }
-    : { ...evaluateMergeFloorLeg(dir, ".", level), issue };
+    : { ...evaluateMergeFloorLeg(dir, ".", level, readAnchorDirHumanOnly(dir, issue, anchorLedger)), issue };
   const merge_floor = isNonShipped
     ? { pass: true, issues: [floorResult], detail: `n/a — non-shipped run-level issue (outcome: ${JSON.stringify(outcome)})` }
     : { pass: floorResult.pass, issues: [floorResult] };
@@ -622,13 +637,18 @@ function buildReasons(runResult) {
   return reasons;
 }
 
+// FAFF-1475: one note naming the human-only criteria an unattended pass skipped, empty otherwise.
+function calledOutNote(f) {
+  return Array.isArray(f.ac_called_out) && f.ac_called_out.length > 0 ? ` (human-only ACs called out: ${f.ac_called_out.join(", ")})` : "";
+}
+
 function renderGovernanceCheckText(verdict) {
   for (const r of verdict.runs) {
     console.log(`run ${r.run_id}  (${r.run_dir})`);
     console.log(`  completeness: ${r.legs.completeness.pass ? "pass" : "FAIL"} — ${r.legs.completeness.detail}`);
     console.log(`  budget:       ${r.legs.budget.pass ? "pass" : "FAIL"} — ${r.legs.budget.detail}`);
     const floorDetail = r.legs.merge_floor.issues.length
-      ? r.legs.merge_floor.issues.map((f) => `${f.issue}:${f.pass ? "pass" : f.reasons.join(",")}`).join("; ")
+      ? r.legs.merge_floor.issues.map((f) => `${f.issue}:${f.pass ? "pass" : f.reasons.join(",")}${calledOutNote(f)}`).join("; ")
       : "(no target issues)";
     console.log(`  merge_floor:  ${r.legs.merge_floor.pass ? "pass" : "FAIL"} — ${floorDetail}`);
     console.log(`  coherence:    ${r.legs.coherence.clean ? "clean" : "findings"} (report-only)`);
@@ -651,7 +671,7 @@ function renderGovernanceCheckSummaryMd(verdict) {
     lines.push(`| completeness | ${r.legs.completeness.pass ? "pass" : "**FAIL**"} | ${r.legs.completeness.detail} |`);
     lines.push(`| budget | ${r.legs.budget.pass ? "pass" : "**FAIL**"} | ${r.legs.budget.detail} |`);
     const floorDetail = r.legs.merge_floor.issues.length
-      ? r.legs.merge_floor.issues.map((f) => `${f.issue}: ${f.pass ? "pass" : f.reasons.join("; ")}`).join("<br>")
+      ? r.legs.merge_floor.issues.map((f) => `${f.issue}: ${f.pass ? "pass" : f.reasons.join("; ")}${calledOutNote(f)}`).join("<br>")
       : "(no target issues)";
     lines.push(`| merge_floor | ${r.legs.merge_floor.pass ? "pass" : "**FAIL**"} | ${floorDetail} |`);
     lines.push(`| coherence _(report-only)_ | ${r.legs.coherence.clean ? "clean" : "findings"} | ${r.legs.coherence.clean ? "—" : "see \`faff audit ${r.run_id}\`"} |`);

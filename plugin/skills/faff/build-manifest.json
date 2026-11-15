@@ -28,7 +28,7 @@
     "bin/lib/land.ts": "769e4ecda17fc45b6e4c78fb692a2aba9f90b2ee89a66769aca01281596530f8",
     "bin/lib/merge-authorize.ts": "159bd25af72d30d005a887cda7d8980f7d5030398022c0d9f8371a066c13bd61",
     "bin/lib/peer-cred.ts": "cae4373dd609abe1198786cbb4099792e128d9e1cded88b69d0ebfbee534ab95",
-    "bin/lib/pr-open.ts": "7daa46b8fca8974cb09df162de359d57114505d678e521c3fdb8910401a36c16",
+    "bin/lib/pr-open.ts": "2d2bea32ae12bccafd7d17575ad5ea5f2444e9f407f7877453e018fd9b4a97c6",
     "bin/lib/prep-attach.ts": "6e20c0f14e9065a91e72fd417d42da5c0bc1863e0bf9fc3d1dff950ed329bef0",
     "bin/lib/producer-auth.ts": "fcaed615b47929a0db1d307553291ac8d15aca206003cdedd5e6807fc3914272",
     "bin/lib/prose-size.ts": "a359145a4d7d807f8b97cfe4e0f84eb03f6091baeaf2fbe658016832b671e9aa",
@@ -61,7 +61,7 @@
     "bin/lib/land.js": "1fab5c6e0bbe5207144860f7945e7d04f07140d2d6b56be13c37977a5801ffff",
     "bin/lib/merge-authorize.js": "9b08489832b8d35e025e52f17fe94476bfb400210065048b29facd04d3db582f",
     "bin/lib/peer-cred.js": "ff6a21e82bfa839e2aa234687e37b7267fa164d49a58ff41ea6986b50ea536de",
-    "bin/lib/pr-open.js": "1ac93f1ccf14a24f9ce0589a28ab8e7cdc7c4da8c48cbe5abc407dea6dc4c98f",
+    "bin/lib/pr-open.js": "a8613b32ef23683d063ddd9e57e99718c4a8ca24ecba9bf6a4db50a63d42feb1",
     "bin/lib/prep-attach.js": "9d297fe069b19c8084ed9049a788daee75cbf33d1a383242d762e507586a9120",
     "bin/lib/producer-auth.js": "6ef8d8a93c885992b0f58c3156f1e2df96518cbedd4df95cd7e2b72fa9009baf",
     "bin/lib/prose-size.js": "df29582b5c00b007ad6dd3f135859edae851c540c2f254b5e7cf869981d5c5a7",
@@ -78,5 +78,5 @@
     "bin/lib/spec-review-round.js": "b02ecc242ee01d37719f7660252f2ba273abc334b79a6d64d2c40e66cb5bc678",
     "bin/lib/worktree-ensure.js": "a4d7154206e6d3dd6511248e3d0bcbadbc90079907146bc81430cf157433e44a"
   },
-  "output_digest": "8a00a4ad8408722f202726ec07dbcc47d79983fa92b6eeb697162a353dcb0434"
+  "output_digest": "869809151fa56ce729d2f1b9a05f71d0ac636f8e3bf88353f223ef1391b9136c"
 }

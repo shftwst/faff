@@ -287,3 +287,395 @@ describe("anchor copy", () => {
     assert.ok(!existsSync(join(dest, "human-only-acs.json")));
   });
 });
+
+// --- seam C: faff pr open mints the file --------------------------------------------------------
+
+const { runPrOpen, defaultDeps } = require("../plugin/skills/faff/bin/lib/pr-open.js");
+const { resolveUnattended, resolveIntegrity } = require("../plugin/skills/faff/bin/lib/merge-gate-floor.js");
+const { chmodSync } = await import("node:fs");
+const { basename, delimiter } = await import("node:path");
+
+const sh = (cwd, ...args) => {
+  const r = spawnSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd, encoding: "utf8" });
+  assert.equal(r.status, 0, `git ${args.join(" ")}: ${r.stderr}`);
+  return r.stdout.trim();
+};
+const cleanEnv = (extra = {}) => {
+  const e = { ...process.env };
+  delete e.FAFF_RUN_DIR;
+  delete e.FAFF_SESSION_ID;
+  return { ...e, ...extra };
+};
+
+const GH_STUB = `#!/usr/bin/env node
+const fs = require("node:fs");
+const cfg = JSON.parse(fs.readFileSync(process.env.STUB_GH_CONFIG, "utf8"));
+const args = process.argv.slice(2);
+if (args[0] === "pr" && args[1] === "list") { process.stdout.write(JSON.stringify(cfg.prList)); process.exit(0); }
+if (args[0] === "pr" && args[1] === "create") { process.stdout.write(cfg.prCreateUrl + "\\n"); process.exit(0); }
+process.stderr.write("stub gh: unhandled " + args.join(" ") + "\\n");
+process.exit(3);
+`;
+
+const TAGGED = "- [ ] [ac-1] returns 200 for GET /x\n- [ ] [ac-2] needs-human: Prices match the published pricing page\n- [ ] [ac-3] returns 404 for GET /y";
+const TAGGED_OTHER = "- [ ] [ac-1] needs-human: returns 200 for GET /x\n- [ ] [ac-2] Prices match the published pricing page\n- [ ] [ac-3] returns 404 for GET /y";
+
+// A main checkout with a linked build worktree on branch b, a local bare origin, a minted run dir, a gh stub
+// and a main-checkout captured spec. `open()` runs the real `faff pr open` from the worktree.
+function prFixture(t, { level = "L4", captured = spec(TAGGED) } = {}) {
+  const root = mkdtempSync(join(tmpdir(), "faff-1476-pr-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const main = join(root, "main");
+  const bare = join(root, "origin.git");
+  const wt = join(root, "wt");
+  mkdirSync(main);
+  sh(main, "init", "-q", "-b", "main");
+  writeFileSync(join(main, "README"), "seed\n");
+  writeFileSync(join(main, ".gitignore"), ".faff/runs/\n.faff/graft/\n");
+  sh(main, "add", ".");
+  sh(main, "commit", "-q", "-m", "seed");
+  sh(root, "init", "-q", "--bare", bare);
+  sh(main, "remote", "add", "origin", bare);
+  sh(main, "push", "-q", "origin", "main");
+  sh(main, "worktree", "add", "-q", "-b", "b", wt);
+  writeFileSync(join(wt, "work.txt"), "work\n");
+  sh(wt, "add", "work.txt");
+  sh(wt, "commit", "-q", "-m", "work");
+  sh(wt, "push", "-q", "origin", "b");
+  const minted = runCli(["run-ledger", "init-interactive", "--issue", ISSUE], { cwd: main, env: cleanEnv() });
+  assert.equal(minted.code, 0, minted.stderr);
+  const runDir = minted.stdout.trim();
+  const ledgerFile = join(runDir, "run-ledger.json");
+  const setLevel = (l) => {
+    writeFileSync(ledgerFile, JSON.stringify({ ...readJson(ledgerFile), level: l }));
+    const bound = runCli(["events", "append", "--run", basename(runDir)], { cwd: main, env: cleanEnv(), input: JSON.stringify({ phase: "run", type: "ledger-write", data: { ledger_sha256: sha256(readFileSync(ledgerFile)) } }) });
+    assert.equal(bound.code, 0, bound.stderr);
+  };
+  setLevel(level);
+  const issueDir = join(runDir, ISSUE);
+  mkdirSync(issueDir, { recursive: true });
+  cpSync(join(SCHEMAS, "examples", "ac-checklist.example.json"), join(issueDir, "ac-checklist.json"));
+  cpSync(join(SCHEMAS, "examples", "review-verdict-anchored.example.json"), join(issueDir, "review-verdict.json"));
+  const capturedFile = join(main, ".faff", "graft", ISSUE, "captured-spec.md");
+  mkdirSync(dirname(capturedFile), { recursive: true });
+  writeFileSync(capturedFile, captured);
+  const draft = join(root, "draft.md");
+  writeFileSync(draft, `Summary.\n\nImplements ${ISSUE}.\n`);
+  const ghDir = join(root, "gh-bin");
+  mkdirSync(ghDir);
+  writeFileSync(join(ghDir, "gh"), GH_STUB);
+  chmodSync(join(ghDir, "gh"), 0o755);
+  const cfgFile = join(root, "gh.json");
+  const setPrList = (prList) => writeFileSync(cfgFile, JSON.stringify({ prList, prCreateUrl: "https://example.invalid/pr/7" }));
+  setPrList([]);
+  const env = cleanEnv({ PATH: `${ghDir}${delimiter}${process.env.PATH}`, STUB_GH_CONFIG: cfgFile });
+  const open = () => runCli(["pr", "open", "--run-dir", runDir, "--issue", ISSUE, "--base", "main", "--title", "T", "--body-file", draft, "--json"], { cwd: wt, env });
+  const anchorRel = `.faff/anchors/${basename(runDir)}/${ISSUE}`;
+  const anchorFile = (name) => join(wt, anchorRel, name);
+  const headBlob = (name) => spawnSync("git", ["show", `HEAD:${anchorRel}/${name}`], { cwd: wt, encoding: "buffer" });
+  const runFile = join(issueDir, "human-only-acs.json");
+  const destFile = anchorFile("human-only-acs.json");
+  return { root, main, wt, runDir, setLevel, capturedFile, setPrList, env, open, anchorRel, anchorFile, headBlob, runFile, destFile,
+    sh: (...a) => sh(wt, ...a) };
+}
+
+const stampsIn = (file) => readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)).filter((e) => e.type === "human-only-acs-stamp" && e.issue === ISSUE);
+
+describe("faff pr open mint (real git)", () => {
+  test("scenario 2: mints from the main-checkout captured spec although the worktree spec and spec-commit.json were rewritten", (t) => {
+    const f = prFixture(t);
+    const wtSpec = join(f.wt, "docs", "spec.md");
+    mkdirSync(dirname(wtSpec), { recursive: true });
+    writeFileSync(wtSpec, spec(TAGGED_OTHER));
+    writeFileSync(join(f.runDir, ISSUE, "spec-commit.json"), JSON.stringify({ spec_path: wtSpec, sha256: sha256(Buffer.from(spec(TAGGED_OTHER))) }));
+    f.sh("add", "-A");
+    f.sh("commit", "-q", "-m", "rewrite spec");
+    f.sh("push", "-q", "origin", "b");
+    const r = f.open();
+    assert.equal(r.code, 0, r.stderr + r.stdout);
+    const out = JSON.parse(r.stdout);
+    assert.equal(out.token, "opened");
+    assert.deepEqual(out.warnings, []);
+    const doc = JSON.parse(f.headBlob("human-only-acs.json").stdout.toString("utf8"));
+    assert.equal(doc.issue, ISSUE);
+    assert.equal(doc.level, "L4");
+    assert.equal(doc.unattended, true);
+    assert.deepEqual(doc.human_only, ["faff-9#ac-2"]);
+    const anchoredFile = readFileSync(f.destFile);
+    assert.ok(f.headBlob("human-only-acs.json").stdout.equals(anchoredFile));
+    const stamps = stampsIn(f.anchorFile("events.jsonl"));
+    assert.equal(stamps.at(-1).data.sha256, sha256(anchoredFile));
+  });
+
+  test("scenario 3: an unreadable captured spec still opens the PR, warns, and leaves no file in the anchor", (t) => {
+    const f = prFixture(t);
+    rmSync(f.capturedFile);
+    const r = f.open();
+    assert.equal(r.code, 0, r.stderr + r.stdout);
+    const out = JSON.parse(r.stdout);
+    assert.equal(out.token, "opened");
+    assert.ok(out.warnings.some((w) => /human-only-acs\.json not minted: captured spec unreadable/.test(w)), out.warnings.join("|"));
+    assert.ok(!existsSync(f.destFile));
+    assert.ok(!existsSync(f.runFile));
+    assert.notEqual(f.headBlob("run-ledger.json").status, null);
+    assert.notEqual(f.headBlob("human-only-acs.json").status, 0);
+  });
+
+  test("scenario 4: a later fault after a committed mint deletes the file from the new anchor commit", (t) => {
+    const f = prFixture(t);
+    assert.equal(f.open().code, 0);
+    assert.equal(f.headBlob("human-only-acs.json").status, 0);
+    const firstHead = f.sh("rev-parse", "HEAD");
+    f.setPrList([{ number: 7, url: "https://example.invalid/pr/7", baseRefName: "main", headRefOid: "0".repeat(40) }]);
+    rmSync(f.capturedFile);
+    writeFileSync(join(f.wt, "more.txt"), "more\n");
+    f.sh("add", "more.txt");
+    f.sh("commit", "-q", "-m", "more");
+    const r = f.open();
+    assert.equal(r.code, 0, r.stderr + r.stdout);
+    const out = JSON.parse(r.stdout);
+    assert.equal(out.token, "already-open");
+    assert.ok(out.warnings.some((w) => /not minted: captured spec unreadable/.test(w)));
+    assert.notEqual(f.sh("rev-parse", "HEAD"), firstHead);
+    assert.notEqual(f.headBlob("human-only-acs.json").status, 0, "the new anchor commit no longer carries the file");
+    assert.ok(!existsSync(f.destFile));
+    assert.ok(!existsSync(f.runFile));
+    assert.match(f.sh("show", "--name-status", "--format=", "HEAD"), new RegExp(`^D\\s+${f.anchorRel.replace(/[.]/g, "\\.")}/human-only-acs\\.json`, "m"));
+  });
+
+  test("scenario 5: older untracked copies are replaced, and the committed file is the newly written one", (t) => {
+    const f = prFixture(t);
+    mkdirSync(dirname(f.destFile), { recursive: true });
+    writeFileSync(f.destFile, "stale destination\n");
+    writeFileSync(f.runFile, "stale run dir\n");
+    const r = f.open();
+    assert.equal(r.code, 0, r.stderr + r.stdout);
+    const out = JSON.parse(r.stdout);
+    assert.deepEqual(out.warnings, []);
+    const written = readFileSync(f.runFile);
+    assert.ok(!written.toString("utf8").includes("stale"));
+    assert.ok(f.headBlob("human-only-acs.json").stdout.equals(written));
+    assert.ok(readFileSync(f.destFile).equals(written));
+  });
+
+  test("an unchanged head with a tracked anchor returns already-open and runs no removal, mint or stamp", (t) => {
+    const f = prFixture(t);
+    assert.equal(f.open().code, 0);
+    const head = f.sh("rev-parse", "HEAD");
+    const eventsBefore = readFileSync(join(f.runDir, "events.jsonl"));
+    const runBefore = readFileSync(f.runFile);
+    f.setPrList([{ number: 7, url: "https://example.invalid/pr/7", baseRefName: "main", headRefOid: head }]);
+    rmSync(f.capturedFile);
+    const r = f.open();
+    assert.equal(r.code, 0, r.stderr + r.stdout);
+    const out = JSON.parse(r.stdout);
+    assert.equal(out.token, "already-open");
+    assert.deepEqual(out.warnings, []);
+    assert.equal(f.sh("rev-parse", "HEAD"), head);
+    assert.equal(f.headBlob("human-only-acs.json").status, 0, "the tracked file survives");
+    assert.ok(existsSync(f.destFile));
+    assert.ok(readFileSync(f.runFile).equals(runBefore));
+    assert.ok(readFileSync(join(f.runDir, "events.jsonl")).equals(eventsBefore));
+  });
+
+  test("an empty human-only set still writes the file; L3 is unattended only when the main checkout config declares it", (t) => {
+    const undeclared = prFixture(t, { level: "L3", captured: spec("- [ ] [ac-1] returns 200") });
+    assert.equal(undeclared.open().code, 0);
+    const none = readJson(undeclared.runFile);
+    assert.deepEqual(none.human_only, []);
+    assert.equal(none.level, "L3");
+    assert.equal(none.unattended, false);
+
+    const declared = prFixture(t, { level: "L3", captured: spec("- [ ] [ac-1] returns 200") });
+    writeFileSync(join(declared.main, ".faffrc.yaml"), "autonomous:\n  unattended: true\n");
+    assert.ok(!existsSync(join(declared.wt, ".faffrc.yaml")), "the worktree carries no config of its own");
+    assert.equal(declared.open().code, 0);
+    assert.equal(readJson(declared.runFile).unattended, true);
+  });
+
+  test("a level outside L1..L4 warns and mints nothing", (t) => {
+    const f = prFixture(t, { level: "L9" });
+    const r = f.open();
+    const out = JSON.parse(r.stdout);
+    assert.ok(out.warnings.some((w) => /not minted: run-ledger level unreadable/.test(w)), r.stdout + r.stderr);
+    assert.ok(!existsSync(f.runFile));
+    assert.ok(!existsSync(f.destFile));
+  });
+});
+
+// --- seam C with fake dependencies: every fault path and the call order ----------------------------
+
+const sp = (status = 0, stdout = "", stderr = "") => ({ status, stdout, stderr, timedOut: false });
+const MAIN = "/main";
+const CAPTURED = `${MAIN}/.faff/graft/FAFF-9/captured-spec.md`;
+const RUN = "/runs/run-1";
+const CLASSIFY_OUT = JSON.stringify({ criteria: [
+  { source: "scenario", ac_id: "faff-9#scenario:1", human_only: false },
+  { source: "done", ac_id: "faff-9#ac-1", human_only: false },
+  { source: "done", ac_id: "faff-9#ac-2", human_only: true },
+  { source: "done", ac_id: "faff-9#done:3", human_only: true },
+  { source: "scenario", ac_id: "faff-9#scenario:2", human_only: true },
+] });
+
+function fakePrDeps(o = {}) {
+  const calls = [];
+  const inputs = {};
+  const stale = [];
+  const files = { "draft.md": "Body.\n", [CAPTURED]: "spec", [`${RUN}/run-ledger.json`]: JSON.stringify({ level: "L4" }), ...(o.files || {}) };
+  const faffResp = { classify: sp(0, CLASSIFY_OUT), write: sp(0), ...(o.faff || {}) };
+  const deps = {
+    git: (args) => {
+      const name = args[0] === "rev-parse" ? (args.includes("--abbrev-ref") ? "branch" : "head") : args[0] === "diff" ? "diff-cached" : args[0];
+      calls.push(name);
+      const defaults = { remote: sp(0, "origin\n"), branch: sp(0, "feat\n"), head: sp(0, "abc\n"), "ls-tree": sp(0, ""), rm: sp(0), add: sp(0), "diff-cached": sp(1), commit: sp(0), push: sp(0) };
+      const r = o.git && o.git[name] !== undefined ? o.git[name] : defaults[name];
+      return typeof r === "function" ? r(args) : r;
+    },
+    gh: () => { calls.push("pr-list"); return o.prList ?? sp(0, "[]"); },
+    faff: (args, input) => {
+      const name = args[0] === "dod" ? "classify" : args[0] === "evidence" ? "write" : args[0] === "commissaire" ? "status" : args[0] === "events" ? "anchor" : args[0];
+      calls.push(name);
+      if (input !== null) inputs[name] = input;
+      if (name === "status") return sp(0, '{"governed":false}');
+      if (name === "anchor") return sp(0);
+      if (name === "pr-create") return sp(0, '{"verdict":"opened","pr_url":"https://github.com/o/r/pull/7"}');
+      if (name === "bundle") return sp(0);
+      const r = faffResp[name];
+      return typeof r === "function" ? r(args, input) : r;
+    },
+    readReviewVerdict: () => "pass",
+    sanitize: (d) => d,
+    check: () => ({ ok: true, violations: [] }),
+    validateAnchorGenesis: () => ({ valid: true }),
+    prCreateGrantState: () => "valid-grant",
+    deriveInputs: () => ({ level: "L4", attended: false, holdout: "missing" }),
+    readFile: (f) => files[f] ?? null,
+    writeTemp: (content) => { files["/tmp/safe.md"] = content; return "/tmp/safe.md"; },
+    removeFile: () => {},
+    removeStale: (f) => { calls.push("remove-stale"); stale.push(f); },
+    mainCheckout: () => { calls.push("main-checkout"); return o.main === undefined ? MAIN : o.main; },
+    unattendedFor: (level, root) => { calls.push("unattended-for"); assert.equal(root, MAIN); return level === "L4"; },
+  };
+  return { deps, calls, inputs, stale };
+}
+const PR_OPTS = { runDir: RUN, issue: ISSUE, base: "main", title: "t", bodyFile: "draft.md", specReviewEvidence: null };
+const runMint = (o) => { const f = fakePrDeps(o); return { ...f, r: runPrOpen(PR_OPTS, f.deps) }; };
+const DEST_FILE = ".faff/anchors/run-1/FAFF-9/human-only-acs.json";
+const RUN_FILE = `${RUN}/FAFF-9/human-only-acs.json`;
+const notMinted = (r, re) => assert.ok(r.warnings.some((w) => re.test(w)), r.warnings.join("|"));
+
+describe("faff pr open mint (fake dependencies)", () => {
+  test("the happy path removes first, mints once between pr-list and anchor, and pipes the derived document", () => {
+    const { r, calls, inputs, stale } = runMint();
+    assert.equal(r.token, "opened");
+    assert.deepEqual(r.warnings, []);
+    const order = ["pr-list", "rm", "main-checkout", "classify", "unattended-for", "write", "anchor", "add", "commit", "push"];
+    assert.deepEqual(calls.filter((c) => order.includes(c)), order);
+    assert.deepEqual(stale, [DEST_FILE, RUN_FILE]);
+    assert.deepEqual(JSON.parse(inputs.write), { issue: ISSUE, level: "L4", unattended: true, human_only: ["faff-9#ac-2", "faff-9#done:3"] });
+  });
+
+  test("git rm runs with -f --ignore-unmatch --quiet on the destination copy", () => {
+    const seen = [];
+    runMint({ git: { rm: (args) => { seen.push(args); return sp(0); } } });
+    assert.deepEqual(seen, [["rm", "-f", "--ignore-unmatch", "--quiet", "--", DEST_FILE]]);
+  });
+
+  test("an empty human-only set is still written", () => {
+    const { r, inputs } = runMint({ faff: { classify: sp(0, JSON.stringify({ criteria: [{ source: "done", ac_id: "faff-9#ac-1", human_only: false }] })) } });
+    assert.deepEqual(r.warnings, []);
+    assert.deepEqual(JSON.parse(inputs.write).human_only, []);
+  });
+
+  test("an unchanged head with a tracked anchor returns already-open before any removal, mint or stamp", () => {
+    const { r, calls } = runMint({
+      git: { head: sp(0, "abc\n"), "ls-tree": sp(0, "100644 blob x\tfile\n") },
+      prList: sp(0, JSON.stringify([{ number: 7, url: "https://github.com/o/r/pull/7", baseRefName: "main", headRefOid: "abc" }])),
+    });
+    assert.equal(r.token, "already-open");
+    assert.deepEqual(r.warnings, []);
+    for (const never of ["rm", "remove-stale", "main-checkout", "classify", "write", "anchor", "commit", "push"]) assert.ok(!calls.includes(never), never);
+  });
+
+  const faults = [
+    ["a null main checkout", { main: null }, /not minted: main checkout not resolved/, ["classify", "write"]],
+    ["an unreadable captured spec", { files: { [CAPTURED]: undefined } }, /not minted: captured spec unreadable/, ["classify", "write"]],
+    ["a classify non-zero exit", { faff: { classify: sp(2, "", "boom\n") } }, /not minted: faff dod classify exited 2: boom/, ["write"]],
+    ["unparseable classify output", { faff: { classify: sp(0, "not json") } }, /not minted: faff dod classify printed unparseable output/, ["write"]],
+    ["classify output with no criteria", { faff: { classify: sp(0, "{}") } }, /not minted: faff dod classify printed no criteria/, ["write"]],
+    ["an unreadable run ledger", { files: { [`${RUN}/run-ledger.json`]: undefined } }, /not minted: run-ledger level unreadable/, ["write"]],
+    ["an unparseable run ledger", { files: { [`${RUN}/run-ledger.json`]: "{" } }, /not minted: run-ledger level unreadable/, ["write"]],
+    ["a run ledger level outside L1..L4", { files: { [`${RUN}/run-ledger.json`]: JSON.stringify({ level: "L5" }) } }, /not minted: run-ledger level unreadable/, ["write"]],
+    ["a failed git rm", { git: { rm: sp(128, "", "fatal\n") } }, /not minted: git rm exited 128/, ["main-checkout", "classify", "write"]],
+  ];
+  for (const [label, o, re, skipped] of faults) {
+    test(`${label} warns, mints nothing, and the PR still opens`, () => {
+      const { r, calls, stale } = runMint(o);
+      assert.equal(r.token, "opened");
+      notMinted(r, re);
+      for (const name of skipped) assert.ok(!calls.includes(name), name);
+      assert.deepEqual(stale.slice(0, 2), [DEST_FILE, RUN_FILE]);
+      for (const outward of ["anchor", "commit", "push", "pr-create"]) assert.ok(calls.includes(outward), outward);
+    });
+  }
+
+  test("a writer failure warns and removes the run-dir copy again", () => {
+    const { r, stale } = runMint({ faff: { write: sp(2, "", "cannot append\n") } });
+    assert.equal(r.token, "opened");
+    notMinted(r, /not minted: faff evidence write human-only-acs exited 2: cannot append/);
+    assert.deepEqual(stale, [DEST_FILE, RUN_FILE, RUN_FILE]);
+  });
+
+  test("a dependency that throws is a warning that clears both copies", () => {
+    const f = fakePrDeps();
+    f.deps.mainCheckout = () => { throw new Error("probe exploded"); };
+    const r = runPrOpen(PR_OPTS, f.deps);
+    assert.equal(r.token, "opened");
+    notMinted(r, /not minted: probe exploded/);
+    assert.deepEqual(f.stale.slice(-2), [RUN_FILE, DEST_FILE]);
+  });
+
+  test("a caller that supplies no mint dependencies skips the step entirely", () => {
+    const f = fakePrDeps();
+    delete f.deps.removeStale;
+    delete f.deps.mainCheckout;
+    const r = runPrOpen(PR_OPTS, f.deps);
+    assert.equal(r.token, "opened");
+    assert.deepEqual(r.warnings, []);
+    assert.ok(!f.calls.includes("rm") && !f.calls.includes("classify"));
+  });
+
+  test("defaultDeps supplies the mint dependencies, and removeStale deletes a file", (t) => {
+    const dir = mkdtempSync(join(tmpdir(), "faff-1476-stale-"));
+    t.after(() => rmSync(dir, { recursive: true, force: true }));
+    const deps = defaultDeps(dir);
+    writeFileSync(join(dir, "x.json"), "{}");
+    deps.removeStale("x.json");
+    assert.ok(!existsSync(join(dir, "x.json")));
+    assert.doesNotThrow(() => deps.removeStale("never-existed.json"));
+    assert.equal(typeof deps.mainCheckout, "function");
+  });
+});
+
+describe("resolveUnattended", () => {
+  const declared = { autonomous: { unattended: true } };
+  test("L4 is unattended with or without config", () => {
+    assert.equal(resolveUnattended("L4", undefined), true);
+    assert.equal(resolveUnattended("L4", {}), true);
+  });
+  test("L3 is unattended only when the config declares it", () => {
+    assert.equal(resolveUnattended("L3", declared), true);
+    assert.equal(resolveUnattended("L3", {}), false);
+    assert.equal(resolveUnattended("L3", undefined), false);
+  });
+  test("L1 and L2 are never unattended, even in a repo that declares it", () => {
+    for (const level of ["L1", "L2"]) assert.equal(resolveUnattended(level, declared), false);
+  });
+  test("resolveIntegrity keeps its branch-6 outcome through the shared fact", (t) => {
+    const dir = mkdtempSync(join(tmpdir(), "faff-1476-integrity-"));
+    t.after(() => rmSync(dir, { recursive: true, force: true }));
+    const same = (level, cfg) => JSON.stringify(resolveIntegrity(dir, ISSUE, level, undefined, cfg));
+    assert.equal(same("L3", declared), same("L4", undefined), "an L3 run in a repo that declares unattended resolves like L4");
+    assert.equal(same("L3", {}), same("L2", declared), "an undeclared L3 run resolves like an attended one");
+  });
+});

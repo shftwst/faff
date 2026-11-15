@@ -8,8 +8,10 @@ import {
   resolveGateDriver, classifyDiffSurface, preflightLocal, gate, SMOKE_KINDS, SMOKE_REPS,
 } from "../eval/run-evals.mjs";
 
+process.env.FAFF_EVAL_LOCAL_API_KEY = "sk-test"; // the local lane refuses to configure without a key
+
 const BASELINE = fileURLToPath(new URL("../eval/baselines/frontier.json", import.meta.url));
-const LOCAL_ARGS = ["--driver", "local", "--base-url", "http://probe.test:11434", "--model", "m"];
+const LOCAL_ARGS = ["--driver", "local", "--base-url", "http://probe.test:8000", "--model", "m"];
 
 // presets whose drivers THROW — proves the soft-skip path never spawns a build, and smart never falls back.
 const throwingPresets = {
@@ -22,7 +24,7 @@ test("resolveGateDriver defaults to smart; accepts local/frontier; rejects junk"
   assert.equal(resolveGateDriver(["--driver", "smart"]), "smart");
   assert.equal(resolveGateDriver(["--driver", "local"]), "local");
   assert.equal(resolveGateDriver(["--driver", "frontier"]), "frontier");
-  assert.throws(() => resolveGateDriver(["--driver", "ollama-direct"]), /smart\|local\|frontier/);
+  assert.throws(() => resolveGateDriver(["--driver", "frobnicate"]), /smart\|local\|frontier/);
 });
 
 test("classifyDiffSurface: prose-only is `prose`, any code/contract/CLI/grader is `substantive`", () => {
@@ -55,7 +57,7 @@ test("preflightLocal: unconfigured → ok:false and the probe is NEVER called", 
 test("preflightLocal: configured + reachable → ok:true, single probe", async () => {
   let probes = 0;
   const r = await preflightLocal(LOCAL_ARGS, { probe: () => { probes++; return true; } });
-  assert.deepEqual({ ok: r.ok, baseUrl: r.baseUrl, model: r.model }, { ok: true, baseUrl: "http://probe.test:11434", model: "m" });
+  assert.deepEqual({ ok: r.ok, baseUrl: r.baseUrl, model: r.model }, { ok: true, baseUrl: "http://probe.test:8000", model: "m" });
   assert.equal(probes, 1);
 });
 
@@ -76,7 +78,7 @@ test("gate --driver local, model unavailable → exit 0, single probe, NO driver
 
 test("gate --driver smart (substantive diff), local unavailable → exit 0, single probe, NO frontier fallback", async () => {
   let probes = 0;
-  const SMART_ARGS = ["--base-url", "http://probe.test:11434", "--model", "m"]; // no --driver ⇒ smart
+  const SMART_ARGS = ["--base-url", "http://probe.test:8000", "--model", "m"]; // no --driver ⇒ smart
   const code = await gate(
     SMART_ARGS, throwingPresets, BASELINE,
     { probe: () => { probes++; return false; }, changedFiles: ["eval/run-evals.mjs"] }, // substantive

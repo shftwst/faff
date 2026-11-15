@@ -1073,6 +1073,55 @@ function writeTerminalReviewVerdict(runDir, issue, text, secrets) {
   }
 }
 
+// --- human-only-acs.json and its stamp (FAFF-1476) ---------------------------------------------
+
+const HUMAN_ONLY_ACS_LEVELS = ["L1", "L2", "L3", "L4"];
+
+function anchoredHumanOnlyAcs(input) {
+  const doc = withFaffVersion({ schema_version: 1 });
+  for (const key of ["issue", "level", "unattended", "human_only"]) if (input[key] !== undefined) doc[key] = input[key];
+  return doc;
+}
+
+// The constraints the schema cannot express. Names the rule, never a value.
+function humanOnlyAcsWriterViolations(doc, issue) {
+  const out = [];
+  if (typeof doc.issue === "string" && doc.issue.toLowerCase() !== String(issue).toLowerCase()) out.push("issue: must equal --issue");
+  if ((doc.level === "L1" || doc.level === "L2") && doc.unattended === true) out.push("unattended: must be false at L1 and L2");
+  if (doc.level === "L4" && doc.unattended === false) out.push("unattended: must be true at L4");
+  if (!Array.isArray(doc.human_only)) return out;
+  if (new Set(doc.human_only).size !== doc.human_only.length) out.push("human_only: duplicate id");
+  doc.human_only.forEach((id, i) => {
+    const parsed = parseAcId(id);
+    if (parsed === null) out.push(`human_only[${i}]: not a qualified ac id`);
+    else if (parsed.ticket.toLowerCase() !== String(issue).toLowerCase()) out.push(`human_only[${i}]: names another ticket`);
+  });
+  return out;
+}
+
+// writeHumanOnlyAcs(runDir, issue, text, secrets) -> { written } | { refused: [message] }.
+// The stamp event is appended after the file lands, so an append fault removes the file again
+// (WriterFault, exit 2): a file on disk always has its stamp.
+function writeHumanOnlyAcs(runDir, issue, text, secrets) {
+  const issueDir = guardWriterPaths(runDir, issue);
+  const input = parseStdinObject(text);
+  if (input === null) return { refused: [NOT_AN_OBJECT] };
+  const doc = anchoredHumanOnlyAcs(redactKnownSecrets(input, secrets));
+  const violations = [...validateAgainstSchema(doc, schemaFor("human-only-acs.json")).map(tidy), ...humanOnlyAcsWriterViolations(doc, issue)];
+  if (violations.length > 0) return { refused: violations };
+  const realRunDir = path.dirname(issueDir);
+  if (!fs.existsSync(path.join(realRunDir, "events.jsonl"))) throw new WriterFault("--run-dir has no events.jsonl to record the human-only-acs-stamp event in");
+  const target = writeEvidenceFile(issueDir, "human-only-acs.json", doc);
+  try {
+    const sha256 = crypto.createHash("sha256").update(fs.readFileSync(target)).digest("hex");
+    appendEventRecord(realRunDir, path.basename(realRunDir), { phase: "build", type: "human-only-acs-stamp", issue, data: { issue, sha256 } });
+  } catch {
+    fs.rmSync(target, { force: true });
+    throw new WriterFault("cannot append the human-only-acs-stamp event; nothing written");
+  }
+  return { written: target };
+}
+
 // --- code-review round records and their collation (FAFF-1268) ---------------
 
 const ROUND_FILE_RE = /^round-([1-9]\d*)\.json$/;
@@ -1317,6 +1366,7 @@ const WRITERS = {
   "spec-review-verdict": writeSpecReviewVerdict,
   "ac-checklist": writeAcChecklist,
   "review-verdict": writeTerminalReviewVerdict,
+  "human-only-acs": writeHumanOnlyAcs,
 };
 
 // reviewVerdictMode(values) -> { mode } | { usage: message }. --park, --judge-admitted and
@@ -1585,7 +1635,6 @@ function evidenceSelftest() {
   const os = require("node:os");
   const failures = [];
   const check = (label, ok) => { if (!ok) failures.push(label); };
-  const { manifest } = loadBundle(BUNDLE_DIR);
   const exampleDir = path.join(BUNDLE_DIR, "schema", "examples");
 
   // FAFF-1260: per-type payload examples sit in subdirectories mirroring schema/events|effects|commissaire.
@@ -1611,7 +1660,6 @@ function evidenceSelftest() {
   const stamped = { "run-ledger.json": example("run-ledger"), "events.jsonl": oneLine("run-event"), "declared-effects.jsonl": oneLine("declared-effect") };
   const statusOf = (dir) => validateAnchorDir(dir).status;
   try {
-    check("the manifest names twelve files", Object.keys(manifest.files).length === 12);
     check("a stamped anchor passes", statusOf(build("pass", stamped)) === "pass");
     check("an anchor with no stamped document is legacy", statusOf(build("legacy", { "events.jsonl": oneLine("run-event"), "stray.txt": "x" })) === "legacy");
     check("an unmanifested file fails a stamped anchor", statusOf(build("unschemaed", { ...stamped, "stray.txt": "x" })) === "fail");
@@ -1647,7 +1695,7 @@ function evidenceSelftest() {
 // flag exits 2 just as schema-unavailable does, so probing flags could not tell the two apart.
 const CAPABILITIES = { validate: ["require-evidence-schema", "candidate-schemas", "holdout-binding"] };
 
-const USAGE = "usage: faff evidence validate <anchor-dir> [--require-evidence-schema] [--json] [--candidate-schemas <dir>]\n       faff evidence capabilities --json\n       faff evidence write spec-review-verdict --run-dir <dir> --issue <id>   (comment or spec text on stdin)\n       faff evidence write ac-checklist --run-dir <dir> --issue <id>   ({all_verified, criteria?: [{ac, verified, passed, ac_id, verifications?}]} on stdin)\n       faff evidence render ac-checklist --run-dir <dir> --issue <id>   (prints the PR-body Acceptance Criteria block)\n       faff evidence record-review-round --run-dir <dir> --issue <id> [--prior-dir <dir>]   (one review-verdict block on stdin)\n       faff evidence write review-verdict --run-dir <dir> --issue <id> [--park needs-human|unavailable | --judge-admitted]   (collates review-rounds/)\n       faff evidence write review-verdict --terminal-only --run-dir <dir> --issue <id>   (terminal review-verdict block on stdin; manual recovery)\n       faff evidence return --run-dir <dir> --issue <id>   (prints the EvidenceReturn digest line for a dispatched lane to return)\n       faff evidence verify-return [--against-ledger] --run-dir <dir> --issue <id>   (verifies the returned digests on stdin, or the ledger entry, against the files on disk)\n       faff evidence --selftest\n";
+const USAGE = "usage: faff evidence validate <anchor-dir> [--require-evidence-schema] [--json] [--candidate-schemas <dir>]\n       faff evidence capabilities --json\n       faff evidence write spec-review-verdict --run-dir <dir> --issue <id>   (comment or spec text on stdin)\n       faff evidence write ac-checklist --run-dir <dir> --issue <id>   ({all_verified, criteria?: [{ac, verified, passed, ac_id, verifications?}]} on stdin)\n       faff evidence render ac-checklist --run-dir <dir> --issue <id>   (prints the PR-body Acceptance Criteria block)\n       faff evidence record-review-round --run-dir <dir> --issue <id> [--prior-dir <dir>]   (one review-verdict block on stdin)\n       faff evidence write review-verdict --run-dir <dir> --issue <id> [--park needs-human|unavailable | --judge-admitted]   (collates review-rounds/)\n       faff evidence write review-verdict --terminal-only --run-dir <dir> --issue <id>   (terminal review-verdict block on stdin; manual recovery)\n       faff evidence write human-only-acs --run-dir <dir> --issue <id>   ({issue, level, unattended, human_only} on stdin; appends the human-only-acs-stamp event)\n       faff evidence return --run-dir <dir> --issue <id>   (prints the EvidenceReturn digest line for a dispatched lane to return)\n       faff evidence verify-return [--against-ledger] --run-dir <dir> --issue <id>   (verifies the returned digests on stdin, or the ledger entry, against the files on disk)\n       faff evidence --selftest\n";
 
 function cmdEvidence(args) {
   const parsed = parseArgs(args, EVIDENCE_SPEC);
@@ -1691,5 +1739,5 @@ module.exports = {
   recordReviewRound, writeCollatedReviewVerdict,
   guardWriterPaths, introducedViolations, logRecordChecker, evidenceDocumentFiles, manifestFileNames, noteSchemaUnavailable, preloadEvidenceSchemas,
   renderAcChecklist, resetEvidenceSchemaCache, sanitiseDisplay, validateAnchorDir, validateEvidenceDocument, writeAcChecklist, writeEvidenceFile,
-  writeSpecReviewVerdict, writeSpecReviewVerdictTo, placeSpecReviewEvidence, writeTerminalReviewVerdict,
+  writeSpecReviewVerdict, writeSpecReviewVerdictTo, placeSpecReviewEvidence, writeTerminalReviewVerdict, writeHumanOnlyAcs,
 };

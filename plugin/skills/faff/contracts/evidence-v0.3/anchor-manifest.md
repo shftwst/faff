@@ -24,8 +24,9 @@ a file whose version is set by this manifest (the two logs, the chain heads and 
 | `review-verdict.json` | `schema/review-verdict-anchored.schema.json` | json | field |
 | `spec-review-verdict.json` | `schema/spec-review-verdict-anchored.schema.json` | json | field |
 | `holdout.json` | `schema/holdout-anchored.schema.json` | json | field |
+| `human-only-acs.json` | `schema/human-only-acs.schema.json` | json | field |
 
-These are the twelve files the per-PR mint can place in an anchor today. `review-round.schema.json`
+These are the thirteen files the per-PR mint can place in an anchor today. `review-round.schema.json`
 is published but has no entry: round records are never anchored.
 
 ## Legacy rule

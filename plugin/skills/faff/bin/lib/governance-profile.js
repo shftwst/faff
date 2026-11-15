@@ -136,6 +136,9 @@ const DELIVERY_PROFILE = {
     // review-verdict.json whose earlier rounds were not recorded, so a file edit alone cannot hide
     // the missing history. Issue-scoped (data.{issue,writer}).
     "evidence-terminal-only",
+    // FAFF-1476: appended by `faff evidence write human-only-acs` after it writes human-only-acs.json,
+    // carrying the SHA-256 of the exact bytes written. Issue-scoped (data.{issue,sha256}).
+    "human-only-acs-stamp",
   ],
   issue_scoped_types: [
     "issue-admitted", "prep-start", "prep-done", "build-start", "issue-outcome", "park",
@@ -146,6 +149,7 @@ const DELIVERY_PROFILE = {
     // run-level marker supplies the `__run__` sentinel so `issue` is always present.
     "decision-capture-action",
     "evidence-terminal-only",
+    "human-only-acs-stamp",
   ],
   outcome_required_types: ["issue-outcome"],
   ledger_outcomes: ["shipped", "pr-open", "parked", "errored", "routed-out", "unreached-budget", "claimed-by-peer", "superseded", "parked-window"],

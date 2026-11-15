@@ -3,7 +3,7 @@
 An evidence document is an anchor file whose manifest entry has `versioned_by: "field"`. Each
 requires `schema_version` with the value `1`. The three run-state documents are stamped from
 FAFF-1258, and graft's three review documents from FAFF-1267 and FAFF-1277; `holdout.json` from
-FAFF-1259.
+FAFF-1259; `human-only-acs.json` from FAFF-1476.
 
 | File | Schema | Writer today | Starts stamping |
 |---|---|---|---|
@@ -14,6 +14,7 @@ FAFF-1259.
 | `review-verdict.json` | `review-verdict-anchored` | `faff evidence write review-verdict`, collating the rounds `faff evidence record-review-round` records, called by graft Step 9 | FAFF-1277 |
 | `spec-review-verdict.json` | `spec-review-verdict-anchored` | `faff evidence write spec-review-verdict`, called by graft Step 9b | FAFF-1267 |
 | `holdout.json` | `holdout-anchored` | `holdout_step` | FAFF-1259 |
+| `human-only-acs.json` | `human-only-acs` | `faff evidence write human-only-acs`, called by `faff pr open` | FAFF-1476 |
 
 ## The `faff_version` field
 
@@ -153,3 +154,24 @@ Only moving the checklist write out of the build lane narrows the trust shift.
 A `holdout.json` record's `issue` is the id of the call that wrote it: the issue id for the per-issue
 graft gate, and the run id for the per-run phase that is keyed by the run. The `--issue` of
 `faff holdout record` (or the `--key` of the caged spawner) is that id.
+
+## `human-only-acs.json`
+
+`human-only-acs.json` freezes two facts for one issue: the qualified ids of the done-items the spec
+author tagged `needs-human:` (`human_only`, which may be empty), and whether the run was unattended
+(`unattended`), alongside the run-ledger `level` read at the same moment. The writer appends one
+`human-only-acs-stamp` event to `events.jsonl` after the file lands, carrying the SHA-256 of the
+exact bytes written. The latest stamp for an issue is the one that counts. If the append fails, or
+the run dir has no `events.jsonl`, the writer deletes the file and exits 2.
+
+Constraints the validator subset cannot express are enforced by the writer, not the schema:
+`issue` equals `--issue` (case-insensitive), an L1 or L2 document is never `unattended`, an L4
+document always is, ids are unique, and every id parses as a qualified id naming the same issue.
+
+Trust note. The content is meant to be derived by faff code from the captured spec, but it is
+written inside the build lane, and `faff evidence write human-only-acs` can be called directly by
+the lane with any well-formed document. That is the same authorship as `ac-checklist.json`, and
+weaker on the tamper-after-write axis, because the file is not yet on the dispatcher's evidence
+roster (`EvidenceReturn` digests and `correctiveIntegrityDirs`). A lane that also appends its own
+newer stamp is not stopped by the stamp. FAFF-1478 adds the file to the roster. The stamp catches
+a careless or injected edit of the file alone; it is not a lane-proof seal.

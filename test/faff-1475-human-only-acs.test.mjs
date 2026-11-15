@@ -353,6 +353,12 @@ describe("readHumanOnlyAcs", () => {
     assert.equal(read(mkDoc(), "L3", Buffer.from('{"type":"human-only-acs-stamp","issue":"FAFF-9"}\n')), null, "stamp without data");
   });
 
+  test("a stamp whose data.issue disagrees with its issue is a mismatch", () => {
+    const bytes = asBytes(mkDoc());
+    const forged = JSON.stringify({ type: "human-only-acs-stamp", issue: "FAFF-9", data: { issue: "FAFF-8", sha256: sha256Of(bytes) } }) + "\n";
+    assert.equal(readHumanOnlyAcs(bytes, Buffer.from(forged), "FAFF-9", "L3"), null);
+  });
+
   test("a stamp for another issue is ignored, even when newer", () => {
     const bytes = asBytes(mkDoc());
     const events = Buffer.concat([eventsFor(bytes), Buffer.from(stampLine("FAFF-8", "0".repeat(64)))]);

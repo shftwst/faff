@@ -48,7 +48,9 @@ function lastStampSha(eventsText, issue) {
         const eventIssue = event["issue"];
         if (typeof eventIssue !== "string" || eventIssue.toLowerCase() !== issue.toLowerCase())
             continue;
-        sha = isRecord(data) && typeof data["sha256"] === "string" ? data["sha256"] : "";
+        const dataIssue = isRecord(data) ? data["issue"] : undefined;
+        const agrees = typeof dataIssue === "string" && dataIssue.toLowerCase() === issue.toLowerCase();
+        sha = agrees && isRecord(data) && typeof data["sha256"] === "string" ? data["sha256"] : "";
     }
     return sha;
 }

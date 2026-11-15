@@ -1075,8 +1075,6 @@ function writeTerminalReviewVerdict(runDir, issue, text, secrets) {
 
 // --- human-only-acs.json and its stamp (FAFF-1476) ---------------------------------------------
 
-const HUMAN_ONLY_ACS_LEVELS = ["L1", "L2", "L3", "L4"];
-
 function anchoredHumanOnlyAcs(input) {
   const doc = withFaffVersion({ schema_version: 1 });
   for (const key of ["issue", "level", "unattended", "human_only"]) if (input[key] !== undefined) doc[key] = input[key];

@@ -95,6 +95,19 @@ function resolveAnchorLevel(cwd, repo, runDir, issue, headSha) {
   return { level: parsed.level, status: "ok", source };
 }
 
+// FAFF-1476: the EXACT committed bytes of an anchored file, for a digest comparison. Unlike gitRun
+// (trimmed, 1 MiB) and resolveAnchorLevel (parsed), nothing here trims or re-encodes. Returns a Buffer
+// or null. Primary: `git show` as a buffer. Fallback (repo non-null): the Contents API inline `content`,
+// which GitHub omits above 1 MB, so a larger blob yields null on the pure-remote path.
+function readAnchoredBytes(cwd, repo, anchorPath, headSha) {
+  const r = spawnSync("git", ["show", `${headSha}:${anchorPath}`], { cwd, encoding: "buffer", timeout: 15000, maxBuffer: 64 * 1024 * 1024 });
+  if (!r.error && r.status === 0 && Buffer.isBuffer(r.stdout)) return r.stdout;
+  if (!repo) return null;
+  const api = ghJson(["api", `repos/${repo}/contents/${anchorPath}?ref=${headSha}`]);
+  const b64 = api.ok && api.data && typeof api.data.content === "string" && api.data.content !== "" ? api.data.content : null;
+  return b64 === null ? null : Buffer.from(b64.replace(/\n/g, ""), "base64");
+}
+
 // FAFF-690 (F1): the fail-closed refusal message when no trusted committed anchor level resolves.
 // The remedy differs by status: anchor-unreadable is a token-scope problem on the pure-remote path;
 // everything else is a re-anchor (re-run graft Step 9b) or a merge-at-the-forge remedy. NEVER a
@@ -565,4 +578,4 @@ function resolveHoldoutLeg(runDir, issue) {
   return { holdout, holdout_posture: posture, holdout_missing: missing, holdout_fault: fault };
 }
 
-module.exports = { gitRun, anchorHttpStatus, resolveAnchorLevel, anchorRefusal, alreadyMergedReconcile, observeCi, mergeRecordPath, writeMergeRecord, resolveIntegrity, buildMergeFloorDigestVerify, readAcComplete, readReviewVerdict, holdoutIsFresh, laneBoundaryPromisesCage, laneBoundaryDispatchState, evaluateCustody, readHoldout, readCanRun, readCaged, readLedgerSutEnvStood, resolveCanRun, resolveHoldoutLeg };
+module.exports = { gitRun, anchorHttpStatus, resolveAnchorLevel, readAnchoredBytes, anchorRefusal, alreadyMergedReconcile, observeCi, mergeRecordPath, writeMergeRecord, resolveIntegrity, buildMergeFloorDigestVerify, readAcComplete, readReviewVerdict, holdoutIsFresh, laneBoundaryPromisesCage, laneBoundaryDispatchState, evaluateCustody, readHoldout, readCanRun, readCaged, readLedgerSutEnvStood, resolveCanRun, resolveHoldoutLeg };

@@ -287,3 +287,223 @@ describe("anchor copy", () => {
     assert.ok(!existsSync(join(dest, "human-only-acs.json")));
   });
 });
+
+// --- seam D: the reader and the byte-exact helper (uncalled by the floors until slice 2) -----------
+const { readHumanOnlyAcs } = require("../plugin/skills/faff/bin/lib/human-only-acs.js");
+const { readAnchoredBytes, gitRun } = require("../plugin/skills/faff/bin/lib/merge-gate-floor.js");
+
+const sha256Of = (bytes) => createHash("sha256").update(bytes).digest("hex");
+const LIB = join(HERE, "..", "plugin", "skills", "faff", "bin", "lib");
+
+const mkDoc = (over = {}) => ({ schema_version: 1, issue: "FAFF-9", level: "L3", unattended: false, human_only: ["faff-9#ac-1", "faff-9#ac-2"], ...over });
+const asBytes = (doc) => Buffer.from(JSON.stringify(doc, null, 2) + "\n");
+const stampLine = (issue, sha) => JSON.stringify({ type: "human-only-acs-stamp", issue, data: { issue, sha256: sha } }) + "\n";
+const eventsFor = (fileBytes, issue = "FAFF-9") => Buffer.from(stampLine(issue, sha256Of(fileBytes)));
+const read = (doc, level = "L3", events) => {
+  const bytes = Buffer.isBuffer(doc) ? doc : asBytes(doc);
+  return readHumanOnlyAcs(bytes, events === undefined ? eventsFor(bytes) : events, "FAFF-9", level);
+};
+
+describe("readHumanOnlyAcs", () => {
+  test("a valid file with its stamp reads back unattended and ids", () => {
+    assert.deepEqual(read(mkDoc()), { unattended: false, ids: ["faff-9#ac-1", "faff-9#ac-2"] });
+    assert.deepEqual(read(mkDoc({ level: "L4", unattended: true, human_only: [] }), "L4"), { unattended: true, ids: [] });
+    assert.deepEqual(read(mkDoc({ unattended: true })), { unattended: true, ids: ["faff-9#ac-1", "faff-9#ac-2"] });
+  });
+
+  test("issue matching is case-insensitive", () => {
+    const bytes = asBytes(mkDoc({ issue: "faff-9" }));
+    assert.notEqual(readHumanOnlyAcs(bytes, eventsFor(bytes, "faff-9"), "FAFF-9", "L3"), null);
+  });
+
+  test("returns null for each structural fault", () => {
+    const bad = {
+      "unparseable JSON": Buffer.from("{nope"),
+      "an array": Buffer.from("[]"),
+      "null JSON": Buffer.from("null"),
+      "invalid UTF-8": Buffer.from([0x7b, 0xff, 0x7d]),
+      "wrong schema_version": asBytes(mkDoc({ schema_version: 2 })),
+      "issue mismatch": asBytes(mkDoc({ issue: "FAFF-8", human_only: [] })),
+      "level mismatch": asBytes(mkDoc({ level: "L2" })),
+      "L1 unattended": asBytes(mkDoc({ level: "L1", unattended: true })),
+      "non-boolean unattended": asBytes(mkDoc({ unattended: "false" })),
+      "missing human_only": asBytes(mkDoc({ human_only: undefined })),
+      "a malformed id": asBytes(mkDoc({ human_only: ["FAFF-9#ac-1"] })),
+      "a non-string id": asBytes(mkDoc({ human_only: [1] })),
+      "a duplicate id": asBytes(mkDoc({ human_only: ["faff-9#ac-1", "faff-9#ac-1"] })),
+      "a foreign id": asBytes(mkDoc({ human_only: ["faff-8#ac-1"] })),
+    };
+    for (const [name, bytes] of Object.entries(bad)) {
+      assert.equal(readHumanOnlyAcs(bytes, eventsFor(bytes), "FAFF-9", "L3"), null, name);
+    }
+  });
+
+  test("the level constraints hold for L1, L2 and L4", () => {
+    for (const level of ["L1", "L2"]) {
+      assert.equal(read(mkDoc({ level, unattended: true }), level), null, `${level} unattended`);
+      assert.notEqual(read(mkDoc({ level, unattended: false }), level), null, `${level} attended`);
+    }
+    assert.equal(read(mkDoc({ level: "L4", unattended: false }), "L4"), null);
+  });
+
+  test("a missing or mismatched stamp returns null", () => {
+    assert.equal(read(mkDoc(), "L3", Buffer.alloc(0)), null, "no events");
+    assert.equal(read(mkDoc(), "L3", Buffer.from('{"type":"other","issue":"FAFF-9"}\n')), null, "no stamp");
+    assert.equal(read(mkDoc(), "L3", Buffer.from(stampLine("FAFF-9", "0".repeat(64)))), null, "wrong digest");
+    assert.equal(read(mkDoc(), "L3", Buffer.from('{"type":"human-only-acs-stamp","issue":"FAFF-9"}\n')), null, "stamp without data");
+  });
+
+  test("a stamp for another issue is ignored, even when newer", () => {
+    const bytes = asBytes(mkDoc());
+    const events = Buffer.concat([eventsFor(bytes), Buffer.from(stampLine("FAFF-8", "0".repeat(64)))]);
+    assert.notEqual(readHumanOnlyAcs(bytes, events, "FAFF-9", "L3"), null);
+  });
+
+  test("the last stamp for the issue wins", () => {
+    const bytes = asBytes(mkDoc());
+    const staleLast = Buffer.concat([eventsFor(bytes), Buffer.from(stampLine("FAFF-9", "0".repeat(64)))]);
+    assert.equal(readHumanOnlyAcs(bytes, staleLast, "FAFF-9", "L3"), null);
+    const freshLast = Buffer.concat([Buffer.from(stampLine("FAFF-9", "0".repeat(64))), eventsFor(bytes)]);
+    assert.notEqual(readHumanOnlyAcs(bytes, freshLast, "FAFF-9", "L3"), null);
+  });
+
+  test("the digest covers the exact bytes, so a trimmed or re-encoded file fails", () => {
+    const bytes = asBytes(mkDoc());
+    const events = eventsFor(bytes);
+    assert.equal(readHumanOnlyAcs(Buffer.from(bytes.toString("utf8").trim()), events, "FAFF-9", "L3"), null);
+    assert.equal(readHumanOnlyAcs(Buffer.concat([Buffer.from("﻿"), bytes]), events, "FAFF-9", "L3"), null);
+  });
+
+  test("blank lines and a torn final line are tolerated; a mid-file bad line is not", () => {
+    const bytes = asBytes(mkDoc());
+    const stamp = eventsFor(bytes);
+    const tolerated = Buffer.concat([stamp, Buffer.from("\n"), Buffer.from('{"type":"x","iss')]);
+    assert.notEqual(readHumanOnlyAcs(bytes, tolerated, "FAFF-9", "L3"), null);
+    const midFile = Buffer.concat([Buffer.from("not json\n"), stamp]);
+    assert.equal(readHumanOnlyAcs(bytes, midFile, "FAFF-9", "L3"), null);
+  });
+
+  test("it is total: odd inputs return null and never throw", () => {
+    for (const args of [[null, null, "FAFF-9", "L3"], [undefined, Buffer.alloc(0), "FAFF-9", "L3"], [asBytes(mkDoc()), null, "FAFF-9", "L3"], [asBytes(mkDoc()), Buffer.alloc(0), undefined, undefined]]) {
+      assert.doesNotThrow(() => assert.equal(readHumanOnlyAcs(...args), null));
+    }
+  });
+});
+
+describe("readAnchoredBytes", () => {
+  const ANCHOR_DIR = ".faff/anchors/run-1/FAFF-9";
+  const git = (cwd, ...args) => {
+    const r = spawnSync("git", args, { cwd, encoding: "utf8" });
+    assert.equal(r.status, 0, r.stderr);
+    return r.stdout.trim();
+  };
+
+  function commitAnchor(t, fileBytes, eventsBytes) {
+    const repo = mkdtempSync(join(tmpdir(), "faff-1476-bytes-"));
+    t.after(() => rmSync(repo, { recursive: true, force: true }));
+    git(repo, "init", "-q");
+    git(repo, "config", "user.email", "t@example.com");
+    git(repo, "config", "user.name", "t");
+    git(repo, "config", "commit.gpgsign", "false");
+    mkdirSync(join(repo, ANCHOR_DIR), { recursive: true });
+    writeFileSync(join(repo, ANCHOR_DIR, "human-only-acs.json"), fileBytes);
+    writeFileSync(join(repo, ANCHOR_DIR, "events.jsonl"), eventsBytes);
+    git(repo, "add", "-A");
+    git(repo, "commit", "-q", "-m", "anchor");
+    return { repo, head: git(repo, "rev-parse", "HEAD") };
+  }
+
+  const bigEvents = (fileBytes) => {
+    const filler = JSON.stringify({ type: "filler", issue: "FAFF-9", data: { pad: "x".repeat(900) } }) + "\n";
+    return Buffer.concat([Buffer.from(filler.repeat(1300)), eventsFor(fileBytes)]);
+  };
+
+  test("scenario 7: exact committed bytes for a newline-ended file and an events.jsonl over 1 MiB", (t) => {
+    const fileBytes = asBytes(mkDoc());
+    const events = bigEvents(fileBytes);
+    assert.ok(events.length > 1024 * 1024);
+    assert.ok(fileBytes.at(-1) === 0x0a && events.at(-1) === 0x0a);
+    const { repo, head } = commitAnchor(t, fileBytes, events);
+    const gotFile = readAnchoredBytes(repo, null, `${ANCHOR_DIR}/human-only-acs.json`, head);
+    const gotEvents = readAnchoredBytes(repo, null, `${ANCHOR_DIR}/events.jsonl`, head);
+    assert.ok(Buffer.isBuffer(gotFile) && Buffer.isBuffer(gotEvents));
+    assert.ok(gotFile.equals(fileBytes), "file bytes exact");
+    assert.ok(gotEvents.equals(events), "events bytes exact");
+    const stampEvent = JSON.parse(gotEvents.toString("utf8").trim().split("\n").at(-1));
+    assert.equal(sha256Of(gotFile), stampEvent.data.sha256);
+    assert.deepEqual(readHumanOnlyAcs(gotFile, gotEvents, "FAFF-9", "L3"), { unattended: false, ids: ["faff-9#ac-1", "faff-9#ac-2"] });
+  });
+
+  test("regression: gitRun trims the newline and caps the buffer, so it would break the digest", (t) => {
+    const fileBytes = asBytes(mkDoc());
+    const events = bigEvents(fileBytes);
+    const { repo, head } = commitAnchor(t, fileBytes, events);
+    const viaGitRun = gitRun(repo, ["show", `${head}:${ANCHOR_DIR}/human-only-acs.json`]);
+    assert.equal(viaGitRun.ok, true);
+    assert.notEqual(sha256Of(Buffer.from(viaGitRun.stdout)), sha256Of(fileBytes), "the trimmed read hashes differently");
+    assert.equal(gitRun(repo, ["show", `${head}:${ANCHOR_DIR}/events.jsonl`]).ok, false, "a blob over 1 MiB overflows gitRun's buffer");
+    assert.ok(readAnchoredBytes(repo, null, `${ANCHOR_DIR}/events.jsonl`, head).equals(events));
+  });
+
+  test("a missing object returns null with or without a repo slug when gh is absent", (t) => {
+    const { repo, head } = commitAnchor(t, asBytes(mkDoc()), Buffer.from("x\n"));
+    assert.equal(readAnchoredBytes(repo, null, `${ANCHOR_DIR}/nope.json`, head), null);
+    assert.equal(readAnchoredBytes(repo, null, `${ANCHOR_DIR}/human-only-acs.json`, "0".repeat(40)), null);
+  });
+
+  describe("Contents API fallback", () => {
+    const withGh = (t, body) => {
+      const bin = mkdtempSync(join(tmpdir(), "faff-1476-gh-"));
+      t.after(() => rmSync(bin, { recursive: true, force: true }));
+      const gh = join(bin, "gh");
+      writeFileSync(gh, `#!/bin/sh\ncat <<'JSON'\n${JSON.stringify(body)}\nJSON\n`, { mode: 0o755 });
+      const saved = process.env.PATH;
+      process.env.PATH = `${bin}:${saved}`;
+      t.after(() => { process.env.PATH = saved; });
+    };
+    const empty = (t) => {
+      const dir = mkdtempSync(join(tmpdir(), "faff-1476-nogit-"));
+      t.after(() => rmSync(dir, { recursive: true, force: true }));
+      return dir;
+    };
+
+    test("decodes the base64 content without trimming", (t) => {
+      const fileBytes = asBytes(mkDoc());
+      const wrapped = fileBytes.toString("base64").replace(/(.{60})/g, "$1\n");
+      withGh(t, { encoding: "base64", content: wrapped });
+      const got = readAnchoredBytes(empty(t), "o/r", `${ANCHOR_DIR}/human-only-acs.json`, "a".repeat(40));
+      assert.ok(Buffer.isBuffer(got) && got.equals(fileBytes));
+      assert.equal(sha256Of(got), sha256Of(fileBytes));
+    });
+
+    test("returns null when the API gives no inline content", (t) => {
+      withGh(t, { encoding: "none", content: "" });
+      assert.equal(readAnchoredBytes(empty(t), "o/r", `${ANCHOR_DIR}/events.jsonl`, "a".repeat(40)), null);
+    });
+
+    test("returns null for a directory listing", (t) => {
+      withGh(t, [{ name: "x" }]);
+      assert.equal(readAnchoredBytes(empty(t), "o/r", ANCHOR_DIR, "a".repeat(40)), null);
+    });
+
+    test("does not call the API when repo is null", (t) => {
+      withGh(t, { content: Buffer.from("hi").toString("base64") });
+      assert.equal(readAnchoredBytes(empty(t), null, "x", "a".repeat(40)), null);
+    });
+  });
+});
+
+describe("the reader and helper stay out of the floors until slice 2", () => {
+  for (const file of ["merge-gate.js", "merge-gate-local.js", "governance-check.js"]) {
+    test(`${file} does not require or call them`, () => {
+      const src = readFileSync(join(LIB, file), "utf8");
+      assert.doesNotMatch(src, /human-only-acs["'\/]/);
+      assert.doesNotMatch(src, /readHumanOnlyAcs|readAnchoredBytes/);
+    });
+  }
+  test("the reader is a governance module that requires no factory module", () => {
+    const src = readFileSync(join(LIB, "human-only-acs.ts"), "utf8");
+    assert.match(src, /region:governance — human-only-acs/);
+    assert.deepEqual([...src.matchAll(/require\("(\.[^"]+)"\)/g)].map((m) => m[1]), ["./ac-id"]);
+  });
+});

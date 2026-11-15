@@ -6,7 +6,7 @@
     "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
   },
   "config": {
-    "tsconfig.json": "ea97fac0be78e0e67b96ff67d4e495441877104c992c438e3f18ffbdfacdc4cb"
+    "tsconfig.json": "086ed495d1d5ac2e1447e6f6ec1abd1eab29ccc8eab33135477671d3d8b54614"
   },
   "lock": {
     "package-lock.json": "b64bb7ba6298d47694b5700301c5fbec5aec2d5ce8351937d1cda8873fc5697a",
@@ -23,6 +23,7 @@
     "bin/lib/governor-install.ts": "964bcf08fbe828afbe96da644db691aebfaa8c31c9b2d4ccde36ecce1be7e7d7",
     "bin/lib/governor.ts": "bb31286dd65cd94f7a0d551f570edffe90c102b83418fe7012cfc5a0800cc153",
     "bin/lib/graft-admit.ts": "14766391a87241be17915b8e378407365da0e7d5432ee96335913594af780f19",
+    "bin/lib/human-only-acs.ts": "2f32cb7ff4fcb7e6d7ef906e957f08fdcae8a8999eb14ef321ca873aa990afeb",
     "bin/lib/ids.ts": "720d6b6aec20128bf7e7433407fd399610e64663f81418d418cc7f705de196d6",
     "bin/lib/judge-dispositions.ts": "e693efecbdd54dd88f0e5a08f106579474ae8b1131442b9a76d20d1d1ba5ab13",
     "bin/lib/land.ts": "769e4ecda17fc45b6e4c78fb692a2aba9f90b2ee89a66769aca01281596530f8",
@@ -56,6 +57,7 @@
     "bin/lib/governor-install.js": "3798f447ba92c5660b89a7e90c2cfff0043257159b2a5023bb5b002328a8a12c",
     "bin/lib/governor.js": "d542bac2eda6dc17ec66d586a96b6e7a957d93d5a1f53f4b3e1bcd171599d78c",
     "bin/lib/graft-admit.js": "fb9f9020d238075046b89fd9c5b725582268506d2f6c67211c77c3270a046215",
+    "bin/lib/human-only-acs.js": "7ce1d511ec26a46806ede418669233ee059d7b0895cffe16196a3bc84f0323de",
     "bin/lib/ids.js": "ab49dd55a6a4aba4d2cfed5a9d5fa1a58da7c6da88ed4bced94085b92931fe40",
     "bin/lib/judge-dispositions.js": "5dae168f0fb7e18d23a0092d045ff9927dca79556f1ffb0008b91ab0ac917316",
     "bin/lib/land.js": "1fab5c6e0bbe5207144860f7945e7d04f07140d2d6b56be13c37977a5801ffff",
@@ -78,5 +80,5 @@
     "bin/lib/spec-review-round.js": "b02ecc242ee01d37719f7660252f2ba273abc334b79a6d64d2c40e66cb5bc678",
     "bin/lib/worktree-ensure.js": "a4d7154206e6d3dd6511248e3d0bcbadbc90079907146bc81430cf157433e44a"
   },
-  "output_digest": "8a00a4ad8408722f202726ec07dbcc47d79983fa92b6eeb697162a353dcb0434"
+  "output_digest": "a4d0d1ce05744de9b0bbd396e5a41398474f94af6541df33704e6124cddacf85"
 }

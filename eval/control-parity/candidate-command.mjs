@@ -86,7 +86,8 @@ export function invokeCandidateCommand(binding, input, { timeoutMs = 5000, maxOu
       writeFileSync(destination, bytes);
     }
     const argv = [
-      '--experimental-permission', `--allow-fs-read=${join(directory, 'plugin')}`,
+      process.allowedNodeEnvironmentFlags.has('--permission') ? '--permission' : '--experimental-permission',
+      `--allow-fs-read=${join(directory, 'plugin')}`,
       join(directory, ENTRY), ...ARGS,
     ];
     const spawnStarted = process.hrtime.bigint();

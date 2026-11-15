@@ -10,6 +10,7 @@ recorded historical observation was changed. No fresh model batch was run.
 | Adapter commit `ba93d04b` | 151 focused tests passed locally and independently in Claude Code |
 | Paired harness and final stream-failure fix | 171 focused tests passed locally and independently in Claude Code |
 | Node 20.20.2 container, final changes after merging the updated prerequisite branch | 171 focused tests passed |
+| Permission-flag compatibility fix, Node 20.20.2 / 22.23.5 / 24.22.3 | 171 focused tests passed on each runtime |
 | Region, CLI coverage and adapter checks | Passed; 152 registered commands and 21 slot skills |
 | Independent review | No outstanding must-fix harness findings |
 
@@ -20,6 +21,13 @@ and added later-turn runtime checks and per-arm accounting. A separate failing
 test reproduced lost partial SSE usage; the proxy now retains the bytes and
 usage while holding the reservation. The final minor review advice was applied
 by recording transport errors before the HTTP-status branch.
+
+The first PR CI run passed the Node 20 unit suite but exposed 17 related failures
+on Node 24: the removed `--experimental-permission` flag made every candidate
+command exit before running. A minimal Node 24 invocation reproduced exit 9 and
+`bad option`. The launcher now detects support for `--permission`, falling back
+to the experimental spelling on Node 20. The existing file/process restriction
+tests pass with the fix on all three runtimes.
 
 Every planned execution remains in the report, including failures and attempts
 not started after a stop. Complete cost/token totals stay unknown when evidence

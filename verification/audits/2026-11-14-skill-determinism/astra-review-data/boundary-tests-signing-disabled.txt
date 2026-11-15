@@ -1,0 +1,388 @@
+TAP version 13
+# Subtest: the corpus holds 40 next and 23 eligible base records and 52 next/eligible markers
+ok 1 - the corpus holds 40 next and 23 eligible base records and 52 next/eligible markers
+  ---
+  duration_ms: 0.410291
+  type: 'test'
+  ...
+# Subtest: the replayed records are well-formed: unique keys, every next input present, a timestamp on each
+ok 2 - the replayed records are well-formed: unique keys, every next input present, a timestamp on each
+  ---
+  duration_ms: 0.727458
+  type: 'test'
+  ...
+# Subtest: kernel replay: every next and eligible base record reproduces its recorded verdict
+ok 3 - kernel replay: every next and eligible base record reproduces its recorded verdict
+  ---
+  duration_ms: 0.244917
+  type: 'test'
+  ...
+# Subtest: disposition replay: 19 records give the mapped verdict, 21 give the sidecar's intended divergence
+ok 4 - disposition replay: 19 records give the mapped verdict, 21 give the sidecar's intended divergence
+  ---
+  duration_ms: 2110.297892
+  type: 'test'
+  ...
+# Subtest: disposition replay: FAFF-1318's refusal names the missing born-verifiable scenarios
+ok 5 - disposition replay: FAFF-1318's refusal names the missing born-verifiable scenarios
+  ---
+  duration_ms: 0.190792
+  type: 'test'
+  ...
+# Subtest: action-marker replay: 31 markers match and the other 21 are classified exactly as the sidecar lists
+ok 6 - action-marker replay: 31 markers match and the other 21 are classified exactly as the sidecar lists
+  ---
+  duration_ms: 0.535791
+  type: 'test'
+  ...
+# Subtest: stage: ready-to-post, marker open with spec_sha256 and body_path, stamp and one tier line
+ok 7 - stage: ready-to-post, marker open with spec_sha256 and body_path, stamp and one tier line
+  ---
+  duration_ms: 92.234837
+  type: 'test'
+  ...
+# Subtest: stage: owner carries FAFF_SESSION_ID and FAFF_RUN_DIR when set
+ok 8 - stage: owner carries FAFF_SESSION_ID and FAFF_RUN_DIR when set
+  ---
+  duration_ms: 59.098018
+  type: 'test'
+  ...
+# Subtest: stage then confirm: attached with comment_id and attached_at; prepcheck reads attached
+ok 9 - stage then confirm: attached with comment_id and attached_at; prepcheck reads attached
+  ---
+  duration_ms: 121.676492
+  type: 'test'
+  ...
+# Subtest: stage twice: still one stamp and one build-tier line, marker reopened
+ok 10 - stage twice: still one stamp and one build-tier line, marker reopened
+  ---
+  duration_ms: 146.522857
+  type: 'test'
+  ...
+# Subtest: stage: a fenced > Spec: example is never touched
+ok 11 - stage: a fenced > Spec: example is never touched
+  ---
+  duration_ms: 52.369021
+  type: 'test'
+  ...
+# Subtest: stage: build-tier equals faff tier on the written file, across the spec_lines boundary
+ok 12 - stage: build-tier equals faff tier on the written file, across the spec_lines boundary
+  ---
+  duration_ms: 617.957874
+  type: 'test'
+  ...
+# Subtest: stage: --gate-history feeds the tier exactly as faff tier --gate-history does
+ok 13 - stage: --gate-history feeds the tier exactly as faff tier --gate-history does
+  ---
+  duration_ms: 71.344096
+  type: 'test'
+  ...
+# Subtest: stage: no H1 is invalid no-h1 and still leaves an open marker
+ok 14 - stage: no H1 is invalid no-h1 and still leaves an open marker
+  ---
+  duration_ms: 71.890346
+  type: 'test'
+  ...
+# Subtest: stage: an unreadable spec is errored and writes no marker
+ok 15 - stage: an unreadable spec is errored and writes no marker
+  ---
+  duration_ms: 43.817232
+  type: 'test'
+  ...
+# Subtest: stage: no readiness block is needs-judgement no-readiness-block; --extraction re-enters
+ok 16 - stage: no readiness block is needs-judgement no-readiness-block; --extraction re-enters
+  ---
+  duration_ms: 154.58952
+  type: 'test'
+  ...
+# Subtest: stage: readiness violations are invalid; two blocks or an unparseable block are errored
+ok 17 - stage: readiness violations are invalid; two blocks or an unparseable block are errored
+  ---
+  duration_ms: 201.900626
+  type: 'test'
+  ...
+# Subtest: stage: a missing or non-closed-set confidence line stamps unknown and is invalid
+ok 18 - stage: a missing or non-closed-set confidence line stamps unknown and is invalid
+  ---
+  duration_ms: 115.05562
+  type: 'test'
+  ...
+# Subtest: confirm: errored with no staged marker; exit 2 without --comment-id
+ok 19 - confirm: errored with no staged marker; exit 2 without --comment-id
+  ---
+  duration_ms: 91.607046
+  type: 'test'
+  ...
+# Subtest: confirm: an edit after stage is errored spec-changed-since-stage and leaves the marker open
+ok 20 - confirm: an edit after stage is errored spec-changed-since-stage and leaves the marker open
+  ---
+  duration_ms: 92.525338
+  type: 'test'
+  ...
+# Subtest: park: sets disposition parked, keeps a park sub-object, prepcheck reads parked
+ok 21 - park: sets disposition parked, keeps a park sub-object, prepcheck reads parked
+  ---
+  duration_ms: 114.216996
+  type: 'test'
+  ...
+# Subtest: park: no marker is errored no-staged-spec and writes no marker
+ok 22 - park: no marker is errored no-staged-spec and writes no marker
+  ---
+  duration_ms: 40.58415
+  type: 'test'
+  ...
+# Subtest: git-only: stage writes the store with the stamped bytes, no tracker tail, and closes the marker
+ok 23 - git-only: stage writes the store with the stamped bytes, no tracker tail, and closes the marker
+  ---
+  duration_ms: 47.807188
+  type: 'test'
+  ...
+# Subtest: git-only: a parked marker is needs-judgement git-only-marker-parked and left byte-identical
+ok 24 - git-only: a parked marker is needs-judgement git-only-marker-parked and left byte-identical
+  ---
+  duration_ms: 40.111734
+  type: 'test'
+  ...
+# Subtest: tracker mode: a parked marker is replaced, since the label is the park record there
+ok 25 - tracker mode: a parked marker is replaced, since the label is the park record there
+  ---
+  duration_ms: 48.873688
+  type: 'test'
+  ...
+# Subtest: usage: unknown flag, missing value, two modes, mode-only flags, bad --issue all exit 2 and write nothing
+ok 26 - usage: unknown flag, missing value, two modes, mode-only flags, bad --issue all exit 2 and write nothing
+  ---
+  duration_ms: 554.656191
+  type: 'test'
+  ...
+# Subtest: marker writes go through a temp file renamed into the marker's directory
+ok 27 - marker writes go through a temp file renamed into the marker's directory
+  ---
+  duration_ms: 7.31233
+  type: 'test'
+  ...
+# Subtest: smoke: stage, confirm, prepcheck, then faff spec commit records source_check match
+ok 28 - smoke: stage, confirm, prepcheck, then faff spec commit records source_check match
+  ---
+  duration_ms: 167.314141
+  type: 'test'
+  ...
+# Subtest: FAFF-1443 scenario 1: three bold bullets are refused, three prose ids, one refused line
+ok 29 - FAFF-1443 scenario 1: three bold bullets are refused, three prose ids, one refused line
+  ---
+  duration_ms: 47.845314
+  type: 'test'
+  ...
+# Subtest: FAFF-1443 scenario 2: one fenced plain Given/When/Then block is admissible
+ok 30 - FAFF-1443 scenario 2: one fenced plain Given/When/Then block is admissible
+  ---
+  duration_ms: 50.310896
+  type: 'test'
+  ...
+# Subtest: FAFF-1443 scenario 3: a re-stage keeps exactly one line and the marker records the same object
+ok 31 - FAFF-1443 scenario 3: a re-stage keeps exactly one line and the marker records the same object
+  ---
+  duration_ms: 97.326877
+  type: 'test'
+  ...
+# Subtest: FAFF-1443 scenario 4: a plain block plus a bold bullet is admissible and names the prose unit
+ok 32 - FAFF-1443 scenario 4: a plain block plus a bold bullet is admissible and names the prose unit
+  ---
+  duration_ms: 47.297939
+  type: 'test'
+  ...
+# Subtest: FAFF-1443 scenario 5: a vague DONE item adds R2b to the line by id, never its text
+ok 33 - FAFF-1443 scenario 5: a vague DONE item adds R2b to the line by id, never its text
+  ---
+  duration_ms: 46.221648
+  type: 'test'
+  ...
+# Subtest: FAFF-1443 scenario 6: git-only autonomous attached carries the field and the store carries the line
+ok 34 - FAFF-1443 scenario 6: git-only autonomous attached carries the field and the store carries the line
+  ---
+  duration_ms: 48.193647
+  type: 'test'
+  ...
+# Subtest: FAFF-1443 scenario 7: invalid and needs-judgement results carry no admissibility key
+ok 35 - FAFF-1443 scenario 7: invalid and needs-judgement results carry no admissibility key
+  ---
+  duration_ms: 94.562753
+  type: 'test'
+  ...
+# Subtest: FAFF-1443: no Scenarios section reads (no Scenarios units); the line sits directly after build-tier
+ok 36 - FAFF-1443: no Scenarios section reads (no Scenarios units); the line sits directly after build-tier
+  ---
+  duration_ms: 46.853731
+  type: 'test'
+  ...
+# Subtest: FAFF-1443: spec_sha256 hashes the file bytes including the line; text mode prints its value
+ok 37 - FAFF-1443: spec_sha256 hashes the file bytes including the line; text mode prints its value
+  ---
+  duration_ms: 94.897462
+  type: 'test'
+  ...
+# Subtest: FAFF-1443: an admissibility line inside a fence is content and stays; a stale one outside is replaced
+ok 38 - FAFF-1443: an admissibility line inside a fence is content and stays; a stale one outside is replaced
+  ---
+  duration_ms: 47.060731
+  type: 'test'
+  ...
+# Subtest: FAFF-1443: a fault while classifying is admissible:false with the unknown line, and the token is unchanged
+ok 39 - FAFF-1443: a fault while classifying is admissible:false with the unknown line, and the token is unchanged
+  ---
+  duration_ms: 3.286041
+  type: 'test'
+  ...
+# Subtest: FAFF-1443: the key set and types hold on the success, refused and fault paths
+ok 40 - FAFF-1443: the key set and types hold on the success, refused and fault paths
+  ---
+  duration_ms: 0.764208
+  type: 'test'
+  ...
+# Subtest: FAFF-1443: the line is capped at 300 characters
+ok 41 - FAFF-1443: the line is capped at 300 characters
+  ---
+  duration_ms: 1.580999
+  type: 'test'
+  ...
+# Subtest: FAFF-1443: FAFF-1431's committed spec stages refused with eight prose Scenarios units
+ok 42 - FAFF-1443: FAFF-1431's committed spec stages refused with eight prose Scenarios units
+  ---
+  duration_ms: 53.989853
+  type: 'test'
+  ...
+# Subtest: FAFF-1443: away from a tier boundary, faff admissible and faff tier give the same result with and without the line
+ok 43 - FAFF-1443: away from a tier boundary, faff admissible and faff tier give the same result with and without the line
+  ---
+  duration_ms: 178.79522
+  type: 'test'
+  ...
+# Subtest: scenario 5: a turn-budget hold increments the counter, writes the cause and adds the label
+ok 44 - scenario 5: a turn-budget hold increments the counter, writes the cause and adds the label
+  ---
+  duration_ms: 49.689271
+  type: 'test'
+  ...
+# Subtest: scenario 6: a corrupt counter parks and renames the store aside with its original bytes
+ok 45 - scenario 6: a corrupt counter parks and renames the store aside with its original bytes
+  ---
+  duration_ms: 47.321481
+  type: 'test'
+  ...
+# Subtest: outage hold: past the in-turn ceiling an outage hold writes the store, label and notice
+ok 46 - outage hold: past the in-turn ceiling an outage hold writes the store, label and notice
+  ---
+  duration_ms: 50.771105
+  type: 'test'
+  ...
+# Subtest: outage precondition: an outage hold before the in-turn ceiling, or without --dir, exits 2
+ok 47 - outage precondition: an outage hold before the in-turn ceiling, or without --dir, exits 2
+  ---
+  duration_ms: 120.867909
+  type: 'test'
+  ...
+# Subtest: outage exhausted: at the hold limit the store file alone is deleted and the issue parks
+ok 48 - outage exhausted: at the hold limit the store file alone is deleted and the issue parks
+  ---
+  duration_ms: 39.124609
+  type: 'test'
+  ...
+# Subtest: hold has no parked op: no hold result ever carries a faff-parked label op
+ok 49 - hold has no parked op: no hold result ever carries a faff-parked label op
+  ---
+  duration_ms: 127.00174
+  type: 'test'
+  ...
+# Subtest: interactive turn budget: interactive never auto-holds, it surfaces and writes nothing
+ok 50 - interactive turn budget: interactive never auto-holds, it surfaces and writes nothing
+  ---
+  duration_ms: 78.804718
+  type: 'test'
+  ...
+# Subtest: turn budget exhausted: at the hold limit the turn-budget hold parks with its cause
+ok 51 - turn budget exhausted: at the hold limit the turn-budget hold parks with its cause
+  ---
+  duration_ms: 40.6264
+  type: 'test'
+  ...
+# Subtest: counters independent: each hold preserves the other counter and unknown keys
+ok 52 - counters independent: each hold preserves the other counter and unknown keys
+  ---
+  duration_ms: 79.998385
+  type: 'test'
+  ...
+# Subtest: hold writes no round: a hold never writes a round record or a verdict
+ok 53 - hold writes no round: a hold never writes a round record or a verdict
+  ---
+  duration_ms: 80.963134
+  type: 'test'
+  ...
+# Subtest: turn budget survives a damaged scratch dir: an unreadable round record never blocks the hand-back
+ok 54 - turn budget survives a damaged scratch dir: an unreadable round record never blocks the hand-back
+  ---
+  duration_ms: 79.489634
+  type: 'test'
+  ...
+# Subtest: lenses validated: --lenses outside the lens vocabulary exits 2
+ok 55 - lenses validated: --lenses outside the lens vocabulary exits 2
+  ---
+  duration_ms: 37.637276
+  type: 'test'
+  ...
+# Subtest: limit flags under a run: --hold-limit and --retry-limit may lower the configured ceilings but never raise them
+ok 56 - limit flags under a run: --hold-limit and --retry-limit may lower the configured ceilings but never raise them
+  ---
+  duration_ms: 207.795082
+  type: 'test'
+  ...
+# Subtest: read states: --read reports absent, valid and corrupt stores
+ok 57 - read states: --read reports absent, valid and corrupt stores
+  ---
+  duration_ms: 165.237516
+  type: 'test'
+  ...
+# Subtest: legacy store: a store without a cause reads as an outage hold
+ok 58 - legacy store: a store without a cause reads as an outage hold
+  ---
+  duration_ms: 37.228568
+  type: 'test'
+  ...
+# Subtest: reconsider store: the lights-out reconsider-input-changed store with no counters is valid
+ok 59 - reconsider store: the lights-out reconsider-input-changed store with no counters is valid
+  ---
+  duration_ms: 37.080235
+  type: 'test'
+  ...
+# Subtest: clear keeps hold.json: --clear deletes only spec-review-hold.json, idempotently
+ok 60 - clear keeps hold.json: --clear deletes only spec-review-hold.json, idempotently
+  ---
+  duration_ms: 73.552012
+  type: 'test'
+  ...
+# Subtest: lock busy: a held resume-store lock exits 4
+ok 61 - lock busy: a held resume-store lock exits 4
+  ---
+  duration_ms: 38.700568
+  type: 'test'
+  ...
+# Subtest: usage exits: a bad issue id or a missing cause exits 2
+ok 62 - usage exits: a bad issue id or a missing cause exits 2
+  ---
+  duration_ms: 73.85672
+  type: 'test'
+  ...
+# Subtest: decideHold: absent counts from zero, corrupt and exhausted never write
+ok 63 - decideHold: absent counts from zero, corrupt and exhausted never write
+  ---
+  duration_ms: 0.196833
+  type: 'test'
+  ...
+1..63
+# tests 63
+# suites 0
+# pass 63
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3894.616293

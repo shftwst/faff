@@ -1,0 +1,37 @@
+{
+  "unsafe_integer_collision": {
+    "baseline_lexeme": "9007199254740992",
+    "candidate_lexeme": "9007199254740993",
+    "result": {
+      "schema": 1,
+      "pass": true,
+      "scenarios": 1,
+      "differences": [],
+      "scope": "Equality of supplied normalised traces only. Does not execute a skill, establish capture completeness, validate oracle correctness, or prove live model parity."
+    }
+  },
+  "empty_result_and_terminal": {
+    "schema": 1,
+    "pass": true,
+    "scenarios": 1,
+    "differences": [],
+    "scope": "Equality of supplied normalised traces only. Does not execute a skill, establish capture completeness, validate oracle correctness, or prove live model parity."
+  },
+  "both_missing_scenarios": {
+    "external_required_scenarios": [
+      "test",
+      "required-second"
+    ],
+    "observed_scenarios": [
+      "test"
+    ],
+    "result": {
+      "schema": 1,
+      "pass": true,
+      "scenarios": 1,
+      "differences": [],
+      "scope": "Equality of supplied normalised traces only. Does not execute a skill, establish capture completeness, validate oracle correctness, or prove live model parity."
+    }
+  },
+  "limitation": "Second probe has no external expected scenario registry. Comparator accepts matching subsets. These are contract gaps, not evidence that a candidate passed."
+}

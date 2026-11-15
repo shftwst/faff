@@ -1,0 +1,64 @@
+{
+  "environment": "FAFF_* and CLAUDE_* removed; git fixture signing disabled only for these child processes",
+  "checks": [
+    {
+      "name": "validate-adapters",
+      "command": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "validate-adapters"
+      ],
+      "cwd": "/Users/shftwst/.codex/worktrees/a713/faff",
+      "exit_code": 0,
+      "wall_seconds": 0.7290883071254939,
+      "finished_at": "2026-11-14T23:23:26.205749+00:00"
+    },
+    {
+      "name": "regions-check",
+      "command": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "regions",
+        "check"
+      ],
+      "cwd": "/Users/shftwst/.codex/worktrees/a713/faff",
+      "exit_code": 0,
+      "wall_seconds": 0.10234697698615491,
+      "finished_at": "2026-11-14T23:23:26.308321+00:00"
+    },
+    {
+      "name": "lint-cli-coverage",
+      "command": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "lint-cli-coverage"
+      ],
+      "cwd": "/Users/shftwst/.codex/worktrees/a713/faff",
+      "exit_code": 0,
+      "wall_seconds": 0.023757508024573326,
+      "finished_at": "2026-11-14T23:23:26.332127+00:00"
+    },
+    {
+      "name": "replay",
+      "command": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "shadow-fidelity",
+        "run",
+        "--corpus",
+        "verification/reports/FAFF-974-post-fix-fidelity/decision-corpus.jsonl",
+        "--manifest",
+        "verification/reports/FAFF-974-post-fix-fidelity/manifest.json",
+        "--out",
+        "/Users/shftwst/workspace/shftwst/faff/verification/baselines/skill-determinism/pre-release-f767bdd1/replay",
+        "--root",
+        "/Users/shftwst/.codex/worktrees/a713/faff",
+        "--json"
+      ],
+      "cwd": "/Users/shftwst/.codex/worktrees/a713/faff",
+      "exit_code": 0,
+      "wall_seconds": 0.06122131901793182,
+      "finished_at": "2026-11-14T23:23:26.393403+00:00"
+    }
+  ]
+}

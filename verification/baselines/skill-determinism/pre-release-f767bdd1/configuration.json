@@ -1,0 +1,103 @@
+{
+  "builtin_slots": {
+    "intake": "faffter-noon-intake",
+    "spec": "faffter-noon-spec",
+    "spec_review": "faffter-noon-spec-review",
+    "adr": "faffter-noon-adr",
+    "architecture": "faffter-noon-architecture",
+    "env": "faffter-noon-env-compose",
+    "env-code-interface": "faffter-noon-env-code-interface",
+    "evaluator": "faffter-noon-evaluate",
+    "review": "faffter-noon-review",
+    "ship": "faffter-noon-ship",
+    "concurrency": "faffter-noon-concurrency-sequential",
+    "methodology": "faffter-noon-methodology-thematic",
+    "routing_adaptor": "faffidavit-routing",
+    "rendering_adaptor": "faffidavit-rendering",
+    "prd": "faffter-noon-prd",
+    "transport": "faffter-noon-transport-private-network"
+  },
+  "configurations": [
+    {
+      "root": "/Users/shftwst/.codex/worktrees/a713/faff",
+      "files": [
+        {
+          "path": "/Users/shftwst/.codex/worktrees/a713/faff/.faff/config.yaml",
+          "sha256": "0e684d5e869eb6154e188b0d098fa0c6ca1e73427f8cb99c9b288fd790c4056a"
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.faffrc.local.yaml",
+          "sha256": "b6fa5bdf20bf16e25cc1c87ee3e3dcbdc2801bd8f2add33dd190d94d9596e699"
+        }
+      ],
+      "explicit_slots": {
+        "methodology": "faffter-dark-methodology-agile-delivery",
+        "spec": "faffter-dark-nlspec",
+        "spec_review": "faffter-dark-spec-review",
+        "architecture": "faffter-noon-architecture",
+        "concurrency": "faffter-dark-concurrency-parallel",
+        "env": "faffter-noon-env-compose",
+        "review": "faffter-dark-adversarial-review"
+      },
+      "resolved_slots": {
+        "intake": "faffter-noon-intake",
+        "spec": "faffter-dark-nlspec",
+        "spec_review": "faffter-dark-spec-review",
+        "adr": "faffter-noon-adr",
+        "architecture": "faffter-noon-architecture",
+        "env": "faffter-noon-env-compose",
+        "env-code-interface": "faffter-noon-env-code-interface",
+        "evaluator": "faffter-noon-evaluate",
+        "review": "faffter-dark-adversarial-review",
+        "ship": "faffter-noon-ship",
+        "concurrency": "faffter-dark-concurrency-parallel",
+        "methodology": "faffter-dark-methodology-agile-delivery",
+        "routing_adaptor": "faffidavit-routing",
+        "rendering_adaptor": "faffidavit-rendering",
+        "prd": "faffter-noon-prd",
+        "transport": "faffter-noon-transport-private-network"
+      }
+    },
+    {
+      "root": "/Users/shftwst/workspace/shftwst/faff",
+      "files": [
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.faff/config.yaml",
+          "sha256": "0e684d5e869eb6154e188b0d098fa0c6ca1e73427f8cb99c9b288fd790c4056a"
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.faffrc.local.yaml",
+          "sha256": "b6fa5bdf20bf16e25cc1c87ee3e3dcbdc2801bd8f2add33dd190d94d9596e699"
+        }
+      ],
+      "explicit_slots": {
+        "methodology": "faffter-dark-methodology-agile-delivery",
+        "spec": "faffter-dark-nlspec",
+        "spec_review": "faffter-dark-spec-review",
+        "architecture": "faffter-noon-architecture",
+        "concurrency": "faffter-dark-concurrency-parallel",
+        "env": "faffter-noon-env-compose",
+        "review": "faffter-dark-adversarial-review"
+      },
+      "resolved_slots": {
+        "intake": "faffter-noon-intake",
+        "spec": "faffter-dark-nlspec",
+        "spec_review": "faffter-dark-spec-review",
+        "adr": "faffter-noon-adr",
+        "architecture": "faffter-noon-architecture",
+        "env": "faffter-noon-env-compose",
+        "env-code-interface": "faffter-noon-env-code-interface",
+        "evaluator": "faffter-noon-evaluate",
+        "review": "faffter-dark-adversarial-review",
+        "ship": "faffter-noon-ship",
+        "concurrency": "faffter-dark-concurrency-parallel",
+        "methodology": "faffter-dark-methodology-agile-delivery",
+        "routing_adaptor": "faffidavit-routing",
+        "rendering_adaptor": "faffidavit-rendering",
+        "prd": "faffter-noon-prd",
+        "transport": "faffter-noon-transport-private-network"
+      }
+    }
+  ],
+  "scope": "Slot values only. Config files are hashed, not copied. A linked worktree can inherit operator config; builtin_slots is the clean-adoption reference."
+}

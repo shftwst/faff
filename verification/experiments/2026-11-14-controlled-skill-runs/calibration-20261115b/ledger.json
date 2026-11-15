@@ -1,0 +1,114 @@
+{
+  "schema": 2,
+  "allowance_nanos": 10000000000,
+  "entries": [
+    {
+      "id": "r1",
+      "reserved_nanos": 250936000,
+      "actual_nanos": 18039600,
+      "state": "reconciled"
+    },
+    {
+      "id": "r2",
+      "reserved_nanos": 255640000,
+      "actual_nanos": 8293400,
+      "state": "reconciled"
+    },
+    {
+      "id": "r3",
+      "reserved_nanos": 271680000,
+      "actual_nanos": 5032200,
+      "state": "reconciled"
+    },
+    {
+      "id": "r4",
+      "reserved_nanos": 274928000,
+      "actual_nanos": 8802000,
+      "state": "reconciled"
+    },
+    {
+      "id": "r5",
+      "reserved_nanos": 250936000,
+      "actual_nanos": 18039600,
+      "state": "reconciled"
+    },
+    {
+      "id": "r6",
+      "reserved_nanos": 261248000,
+      "actual_nanos": 9717400,
+      "state": "reconciled"
+    },
+    {
+      "id": "r7",
+      "reserved_nanos": 274984000,
+      "actual_nanos": 4567800,
+      "state": "reconciled"
+    },
+    {
+      "id": "r8",
+      "reserved_nanos": 278232000,
+      "actual_nanos": 7728800,
+      "state": "reconciled"
+    },
+    {
+      "id": "r9",
+      "reserved_nanos": 250936000,
+      "actual_nanos": 1901400,
+      "state": "reconciled"
+    },
+    {
+      "id": "r10",
+      "reserved_nanos": 256544000,
+      "actual_nanos": 7729600,
+      "state": "reconciled"
+    },
+    {
+      "id": "r11",
+      "reserved_nanos": 273720000,
+      "actual_nanos": 10269600,
+      "state": "reconciled"
+    },
+    {
+      "id": "r12",
+      "reserved_nanos": 250936000,
+      "actual_nanos": 18039600,
+      "state": "reconciled"
+    },
+    {
+      "id": "r13",
+      "reserved_nanos": 257032000,
+      "actual_nanos": 8733400,
+      "state": "reconciled"
+    },
+    {
+      "id": "r14",
+      "reserved_nanos": 272864000,
+      "actual_nanos": 9205200,
+      "state": "reconciled"
+    },
+    {
+      "id": "r15",
+      "reserved_nanos": 250936000,
+      "actual_nanos": 18039600,
+      "state": "reconciled"
+    },
+    {
+      "id": "r16",
+      "reserved_nanos": 259064000,
+      "actual_nanos": 8677400,
+      "state": "reconciled"
+    },
+    {
+      "id": "r17",
+      "reserved_nanos": 272512000,
+      "actual_nanos": 4586800,
+      "state": "reconciled"
+    },
+    {
+      "id": "r18",
+      "reserved_nanos": 275784000,
+      "actual_nanos": 10407400,
+      "state": "reconciled"
+    }
+  ]
+}

@@ -1,0 +1,391 @@
+{
+  "evidence": [
+    {
+      "path": "evidence/cost-run-20260829-100405/transcripts/225c9b53-eae6-4597-8f76-11eacccfff0b.jsonl",
+      "sha256": "5212f1bbc5f4e092aaa8c5a0fd346e8a71a4a3044997dd2280a11da043228a0c",
+      "calls": 195
+    },
+    {
+      "path": "evidence/cost-run-20260829-100405/transcripts/50af9ca9-1751-4f59-b208-b15d41a9dfe0.jsonl",
+      "sha256": "48d65e99c06d917c8b7fe84af5bc0505670af2c44bab15eb617921c6faf3b22a",
+      "calls": 4
+    },
+    {
+      "path": "evidence/cost-run-20260829-100405/transcripts/711f8137-c100-4a15-a49d-9d7dd2de0b7c.jsonl",
+      "sha256": "af226886098609e8b1512e1eb113de274163e1ba4c70f90a87008a19cd203cbe",
+      "calls": 3
+    },
+    {
+      "path": "evidence/cost-run-20260829-100405/transcripts/ec4ad0fa-109d-4d22-8f40-78e1b54eb375.jsonl",
+      "sha256": "b43d0d11c544294ee39d4c2bec6c02380421be01c72ab5a25d84ae6db75d60b4",
+      "calls": 59
+    },
+    {
+      "path": "evidence/cost-run-20260829-100405/transcripts/subagents/agent-a16cf15432ee42509.jsonl",
+      "sha256": "71ecf7aea62f80278b6a7e6c96bec30084e1da9ce613596797224adc42e63352",
+      "calls": 67
+    },
+    {
+      "path": "evidence/cost-run-20260829-100405/transcripts/subagents/agent-a5fe8fa0810b8bb55.jsonl",
+      "sha256": "c8aab5759fc96f290eb7b968c48ef80706de327b0a2a0c61ad368c0652c7e9a0",
+      "calls": 17
+    },
+    {
+      "path": "evidence/cost-run-20260829-100405/transcripts/subagents/agent-a7254da73fa2b1628.jsonl",
+      "sha256": "0472cc06215a0224ef0cffa298bb84475c0d380829028c014f5bf5ed041250e2",
+      "calls": 19
+    },
+    {
+      "path": "evidence/cost-run-20260829-100405/transcripts/subagents/agent-a78f2c1e693822ed0.jsonl",
+      "sha256": "7da07999e9ea81ec962eaac2dc6ac371cd9066ba5ac633de155e08766d4bff0e",
+      "calls": 22
+    },
+    {
+      "path": "evidence/cost-run-20260829-100405/transcripts/subagents/agent-a7f3289e5c1546d4e.jsonl",
+      "sha256": "0ce622cde173c70eeb81b227e96557b720bf2133a3818b59a417d3760628b6d2",
+      "calls": 22
+    },
+    {
+      "path": "evidence/cost-run-20260829-100405/transcripts/subagents/agent-a8805936642de548f.jsonl",
+      "sha256": "3f7e8911a86476f776cd4975bbe0eb21753eebbb25dd361b24475ff0c938ba6c",
+      "calls": 17
+    },
+    {
+      "path": "evidence/cost-run-20260829-100405/transcripts/subagents/agent-a989c3771a7800e24.jsonl",
+      "sha256": "9eab3a61b23caa1538acd2d7b2df720aa8f99d9c0e6baffe4ff070d2fce55639",
+      "calls": 47
+    },
+    {
+      "path": "evidence/cost-run-20260829-100405/transcripts/subagents/agent-a9fbff138588f2754.jsonl",
+      "sha256": "3606e6b18e18cfbbc70cc5b3deca08629dc84033d53ee96906b09f3d353068e4",
+      "calls": 22
+    },
+    {
+      "path": "evidence/cost-run-20260829-100405/transcripts/subagents/agent-aac5a3b38b0a1e47a.jsonl",
+      "sha256": "1e3e600a8a09566dc1177386eada275afbe6711ca76a6a1e4a8afe59b920db9b",
+      "calls": 42
+    },
+    {
+      "path": "evidence/cost-run-20260829-100405/transcripts/subagents/agent-aaff39d48298b33af.jsonl",
+      "sha256": "cfb9b034e4bbbbb1271747321f0fab7534c00d836b9f0c3d661860071451c2d4",
+      "calls": 32
+    },
+    {
+      "path": "evidence/cost-run-20260829-100405/transcripts/subagents/agent-aba479dd1c67349b8.jsonl",
+      "sha256": "ebde35b2f0c404610167dc04ccfffa7a98d301423ec244c7cfd82d767365b8c2",
+      "calls": 17
+    },
+    {
+      "path": "evidence/cost-run-20260829-100405/transcripts/subagents/agent-ad0a97745e5807100.jsonl",
+      "sha256": "79cfa75e60494989d7e9a17914b69cd61ee7ae74a22559f32cc991e5be216509",
+      "calls": 70
+    },
+    {
+      "path": "evidence/cost-run-20260829-100405/transcripts/subagents/agent-ad89d19c1c931f174.jsonl",
+      "sha256": "70193b9947815c2f1eeccbc37123cf836b8245de05ae0a5c83e207987021c2ce",
+      "calls": 22
+    },
+    {
+      "path": "evidence/cost-run-20260829-100405/transcripts/subagents/agent-ae98acee50bfc9d4e.jsonl",
+      "sha256": "b6e0ec600450ab8623a50c6d2fe489f776bba17324d9874bf0f5e3f573399802",
+      "calls": 141
+    },
+    {
+      "path": "evidence/cost-run-20260829-100405/transcripts/subagents/agent-aed007fcd739aa8de.jsonl",
+      "sha256": "a5e44b97e6e5c25a95b46bacbb2eaed6655606e8498f1a5bd66c98b825000642",
+      "calls": 25
+    }
+  ],
+  "pricing": {
+    "status": "Historical repository model, not current prices or invoice reconciliation",
+    "rates": {
+      "claude-opus-4-8": {
+        "in": 5,
+        "out": 25
+      },
+      "claude-opus-5": {
+        "in": 5,
+        "out": 25
+      },
+      "claude-opus-4-7": {
+        "in": 5,
+        "out": 25
+      },
+      "claude-sonnet-5": {
+        "in": 3,
+        "out": 15
+      },
+      "claude-sonnet-4-6": {
+        "in": 3,
+        "out": 15
+      },
+      "claude-haiku-4-5": {
+        "in": 1,
+        "out": 5
+      }
+    },
+    "cache_multipliers": {
+      "read": 0.1,
+      "write_5m": 1.25,
+      "write_1h": 2
+    }
+  },
+  "raw_usage_rows": 2281,
+  "deduplication": "Max usage per request ID within each transcript, reusing tokenomics.mjs. Cross-file copies are not deduplicated.",
+  "census": {
+    "calls": 843,
+    "models": {
+      "claude-opus-4-8": 843
+    },
+    "cache_read": {
+      "n": 843,
+      "sum": 155078239,
+      "avg": 183959.951,
+      "median": 147220,
+      "max": 582874
+    },
+    "cache_write": {
+      "n": 843,
+      "sum": 4241578,
+      "avg": 5031.528,
+      "median": 1556,
+      "max": 206850
+    },
+    "input": {
+      "n": 843,
+      "sum": 1686,
+      "avg": 2,
+      "median": 2,
+      "max": 2
+    },
+    "output": {
+      "n": 843,
+      "sum": 995907,
+      "avg": 1181.384,
+      "median": 732,
+      "max": 21484
+    },
+    "read_write_ratio": 36.561,
+    "context_tokens": 159321503,
+    "output_tokens": 995907,
+    "context_share_pct": 99.379,
+    "output_suspect": false
+  },
+  "observed_timestamp_span_seconds": 24541.753,
+  "timing_limit": "Timestamp span includes idle gaps and parallel agents. It is not summed inference time or a before/after latency measurement.",
+  "scenarios": [
+    {
+      "fixed": 66153,
+      "lean": 8300,
+      "kind": "counterfactual fixed-workload, not measured treatment",
+      "bench": [
+        {
+          "name": "baseline",
+          "note": "the run as measured",
+          "cost": 132.913,
+          "delta": 0,
+          "pct": 0,
+          "byModel": {
+            "claude-opus-4-8": 132.909
+          },
+          "legs": {
+            "read": 77.539,
+            "write": 30.467,
+            "input": 0.008,
+            "output": 24.898
+          }
+        },
+        {
+          "name": "lean-gateway (66153->8300)",
+          "note": "shrink injected prefix to the lean target",
+          "cost": 107.804,
+          "delta": -25.109,
+          "pct": -18.891,
+          "byModel": {
+            "claude-opus-4-8": 107.793
+          },
+          "legs": {
+            "read": 57.059,
+            "write": 25.839,
+            "input": 0.008,
+            "output": 24.898
+          }
+        },
+        {
+          "name": "drop-injection",
+          "note": "remove the fixed prefix from cached context entirely (upper bound)",
+          "cost": 104.202,
+          "delta": -28.711,
+          "pct": -21.601,
+          "byModel": {
+            "claude-opus-4-8": 104.207
+          },
+          "legs": {
+            "read": 54.121,
+            "write": 25.175,
+            "input": 0.008,
+            "output": 24.898
+          }
+        },
+        {
+          "name": "writes-5m-ttl",
+          "note": "1h cache writes repriced as 5m (hit rate held; upper bound)",
+          "cost": 128.955,
+          "delta": -3.958,
+          "pct": -2.978,
+          "byModel": {
+            "claude-opus-4-8": 128.951
+          },
+          "legs": {
+            "read": 77.539,
+            "write": 26.51,
+            "input": 0.008,
+            "output": 24.898
+          }
+        }
+      ]
+    },
+    {
+      "fixed": 66153,
+      "lean": 30000,
+      "kind": "counterfactual fixed-workload, not measured treatment",
+      "bench": [
+        {
+          "name": "baseline",
+          "note": "the run as measured",
+          "cost": 132.913,
+          "delta": 0,
+          "pct": 0,
+          "byModel": {
+            "claude-opus-4-8": 132.909
+          },
+          "legs": {
+            "read": 77.539,
+            "write": 30.467,
+            "input": 0.008,
+            "output": 24.898
+          }
+        },
+        {
+          "name": "lean-gateway (66153->30000)",
+          "note": "shrink injected prefix to the lean target",
+          "cost": 117.222,
+          "delta": -15.691,
+          "pct": -11.805,
+          "byModel": {
+            "claude-opus-4-8": 117.226
+          },
+          "legs": {
+            "read": 64.741,
+            "write": 27.575,
+            "input": 0.008,
+            "output": 24.898
+          }
+        },
+        {
+          "name": "drop-injection",
+          "note": "remove the fixed prefix from cached context entirely (upper bound)",
+          "cost": 104.202,
+          "delta": -28.711,
+          "pct": -21.601,
+          "byModel": {
+            "claude-opus-4-8": 104.207
+          },
+          "legs": {
+            "read": 54.121,
+            "write": 25.175,
+            "input": 0.008,
+            "output": 24.898
+          }
+        },
+        {
+          "name": "writes-5m-ttl",
+          "note": "1h cache writes repriced as 5m (hit rate held; upper bound)",
+          "cost": 128.955,
+          "delta": -3.958,
+          "pct": -2.978,
+          "byModel": {
+            "claude-opus-4-8": 128.951
+          },
+          "legs": {
+            "read": 77.539,
+            "write": 26.51,
+            "input": 0.008,
+            "output": 24.898
+          }
+        }
+      ]
+    },
+    {
+      "fixed": 66153,
+      "lean": 15000,
+      "kind": "counterfactual fixed-workload, not measured treatment",
+      "bench": [
+        {
+          "name": "baseline",
+          "note": "the run as measured",
+          "cost": 132.913,
+          "delta": 0,
+          "pct": 0,
+          "byModel": {
+            "claude-opus-4-8": 132.909
+          },
+          "legs": {
+            "read": 77.539,
+            "write": 30.467,
+            "input": 0.008,
+            "output": 24.898
+          }
+        },
+        {
+          "name": "lean-gateway (66153->15000)",
+          "note": "shrink injected prefix to the lean target",
+          "cost": 110.712,
+          "delta": -22.201,
+          "pct": -16.703,
+          "byModel": {
+            "claude-opus-4-8": 110.707
+          },
+          "legs": {
+            "read": 59.431,
+            "write": 26.375,
+            "input": 0.008,
+            "output": 24.898
+          }
+        },
+        {
+          "name": "drop-injection",
+          "note": "remove the fixed prefix from cached context entirely (upper bound)",
+          "cost": 104.202,
+          "delta": -28.711,
+          "pct": -21.601,
+          "byModel": {
+            "claude-opus-4-8": 104.207
+          },
+          "legs": {
+            "read": 54.121,
+            "write": 25.175,
+            "input": 0.008,
+            "output": 24.898
+          }
+        },
+        {
+          "name": "writes-5m-ttl",
+          "note": "1h cache writes repriced as 5m (hit rate held; upper bound)",
+          "cost": 128.955,
+          "delta": -3.958,
+          "pct": -2.978,
+          "byModel": {
+            "claude-opus-4-8": 128.951
+          },
+          "legs": {
+            "read": 77.539,
+            "write": 26.51,
+            "input": 0.008,
+            "output": 24.898
+          }
+        }
+      ]
+    }
+  ]
+}

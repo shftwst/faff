@@ -1,0 +1,166 @@
+{
+  "schema": 2,
+  "kind": "baseline-calibration",
+  "status": "calibration_complete",
+  "live_transport": "observed",
+  "stopped_by": null,
+  "counts": {
+    "planned": 5,
+    "run": 5,
+    "pass": 5,
+    "fail": 0,
+    "incomplete": 0,
+    "not_run": 0
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "arm": "baseline",
+      "scenario": "legacy-open-only",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 4
+      },
+      "elapsed_ms": 14519,
+      "cost_nanos": 40167200,
+      "tokens": {
+        "input": 8,
+        "cache_read": 11336,
+        "cache_write": 2726,
+        "output": 803
+      },
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "a0b7b019ef0f03b516471a52399cb117cbc84da6aca5cf26d21a9f701c5c936f",
+      "cli_reported_cost_usd": "0.0401672",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "runtime_matches_readiness": true
+    },
+    {
+      "n": 2,
+      "arm": "baseline",
+      "scenario": "quoted-imitation",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 4
+      },
+      "elapsed_ms": 13377,
+      "cost_nanos": 40053600,
+      "tokens": {
+        "input": 8,
+        "cache_read": 11948,
+        "cache_write": 2999,
+        "output": 682
+      },
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "a0b7b019ef0f03b516471a52399cb117cbc84da6aca5cf26d21a9f701c5c936f",
+      "cli_reported_cost_usd": "0.0400536",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "runtime_matches_readiness": true
+    },
+    {
+      "n": 3,
+      "arm": "baseline",
+      "scenario": "preserve-human-text",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 3
+      },
+      "elapsed_ms": 11217,
+      "cost_nanos": 19900600,
+      "tokens": {
+        "input": 6,
+        "cache_read": 9983,
+        "cache_write": 470,
+        "output": 706
+      },
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "a0b7b019ef0f03b516471a52399cb117cbc84da6aca5cf26d21a9f701c5c936f",
+      "cli_reported_cost_usd": "0.0199006",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "runtime_matches_readiness": true
+    },
+    {
+      "n": 4,
+      "arm": "baseline",
+      "scenario": "create-when-absent",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 3
+      },
+      "elapsed_ms": 11698,
+      "cost_nanos": 35978200,
+      "tokens": {
+        "input": 6,
+        "cache_read": 7691,
+        "cache_write": 2747,
+        "output": 622
+      },
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "a0b7b019ef0f03b516471a52399cb117cbc84da6aca5cf26d21a9f701c5c936f",
+      "cli_reported_cost_usd": "0.0359782",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "runtime_matches_readiness": true
+    },
+    {
+      "n": 5,
+      "arm": "baseline",
+      "scenario": "duplicate-reconcile",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 4
+      },
+      "elapsed_ms": 13678,
+      "cost_nanos": 41711200,
+      "tokens": {
+        "input": 8,
+        "cache_read": 11696,
+        "cache_write": 2875,
+        "output": 817
+      },
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "a0b7b019ef0f03b516471a52399cb117cbc84da6aca5cf26d21a9f701c5c936f",
+      "cli_reported_cost_usd": "0.0417112",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "runtime_matches_readiness": true
+    }
+  ],
+  "spend_nanos": 177810800,
+  "held_reservations": 0,
+  "elapsed_ms": 64496,
+  "note": "Calibration completion does not approve migration. Cache strata are observed, not controlled; no cold-cache claim is made."
+}

@@ -1,0 +1,1762 @@
+{
+  "basis": "Inclusive level-two sections; disjoint within a file. JS UTF-16 chars/4 estimator. Not automatic deletion candidates.",
+  "sections": [
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "start": 36,
+      "end": 708,
+      "heading": "Process",
+      "est_tokens": 36890
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "start": 130,
+      "end": 380,
+      "heading": "Full pipeline (default)",
+      "est_tokens": 18528
+    },
+    {
+      "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+      "start": 134,
+      "end": 335,
+      "heading": "LLM provider integration",
+      "est_tokens": 10792
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "start": 88,
+      "end": 274,
+      "heading": "Spec-review gate (approach-critique consumer-fold)",
+      "est_tokens": 10530
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "start": 38,
+      "end": 219,
+      "heading": "Process",
+      "est_tokens": 9644
+    },
+    {
+      "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+      "start": 27,
+      "end": 270,
+      "heading": "Outputs",
+      "est_tokens": 7719
+    },
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "start": 185,
+      "end": 349,
+      "heading": "Shared Rules",
+      "est_tokens": 7191
+    },
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "start": 377,
+      "end": 464,
+      "heading": "Core contracts and adaptor slots",
+      "est_tokens": 7186
+    },
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "start": 31,
+      "end": 168,
+      "heading": "Configuration (shared across all sub-skills)",
+      "est_tokens": 6624
+    },
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "start": 709,
+      "end": 797,
+      "heading": "Autonomous Mode",
+      "est_tokens": 6612
+    },
+    {
+      "path": "plugin/skills/faffter-dark-spec-review/SKILL.md",
+      "start": 53,
+      "end": 214,
+      "heading": "Backend call \u2014 reuse the shared transport (do not fork it)",
+      "est_tokens": 6446
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "start": 252,
+      "end": 319,
+      "heading": "Autonomous Mode",
+      "est_tokens": 6110
+    },
+    {
+      "path": "plugin/skills/faff/references/methodology.md",
+      "start": 60,
+      "end": 147,
+      "heading": "The `methodology` slot",
+      "est_tokens": 6088
+    },
+    {
+      "path": "plugin/skills/faff/references/l4.md",
+      "start": 48,
+      "end": 72,
+      "heading": "Mechanism slot (`concurrency`)",
+      "est_tokens": 5565
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "start": 381,
+      "end": 452,
+      "heading": "Run ledger (mechanical completeness)",
+      "est_tokens": 5483
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "start": 505,
+      "end": 608,
+      "heading": "Autonomous Mode",
+      "est_tokens": 4592
+    },
+    {
+      "path": "plugin/skills/faff-onboard/SKILL.md",
+      "start": 37,
+      "end": 159,
+      "heading": "The flow",
+      "est_tokens": 4324
+    },
+    {
+      "path": "plugin/skills/faff-plot/SKILL.md",
+      "start": 186,
+      "end": 271,
+      "heading": "Autonomous mode (`--autonomous`) \u2014 the gate-answering harness",
+      "est_tokens": 4278
+    },
+    {
+      "path": "plugin/skills/faff-wtf/SKILL.md",
+      "start": 26,
+      "end": 146,
+      "heading": "What it does",
+      "est_tokens": 4265
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "start": 369,
+      "end": 478,
+      "heading": "Scenarios",
+      "est_tokens": 3880
+    },
+    {
+      "path": "plugin/skills/faffter-noon-concurrency-sequential/SKILL.md",
+      "start": 27,
+      "end": 54,
+      "heading": "How the default runs it",
+      "est_tokens": 3590
+    },
+    {
+      "path": "plugin/skills/faff-map/SKILL.md",
+      "start": 31,
+      "end": 154,
+      "heading": "What it does",
+      "est_tokens": 3469
+    },
+    {
+      "path": "plugin/skills/faff-plot/SKILL.md",
+      "start": 29,
+      "end": 102,
+      "heading": "What it does (the flow)",
+      "est_tokens": 3030
+    },
+    {
+      "path": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+      "start": 36,
+      "end": 223,
+      "heading": "Spec Format",
+      "est_tokens": 2977
+    },
+    {
+      "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
+      "start": 27,
+      "end": 57,
+      "heading": "Worktree isolation",
+      "est_tokens": 2837
+    },
+    {
+      "path": "plugin/skills/faff-jot/SKILL.md",
+      "start": 29,
+      "end": 89,
+      "heading": "What it does (the flow)",
+      "est_tokens": 2761
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "start": 59,
+      "end": 122,
+      "heading": "Budget flags",
+      "est_tokens": 2675
+    },
+    {
+      "path": "plugin/skills/faffter-noon-evaluate/SKILL.md",
+      "start": 32,
+      "end": 51,
+      "heading": "How it evaluates",
+      "est_tokens": 2564
+    },
+    {
+      "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+      "start": 154,
+      "end": 235,
+      "heading": "The seven principles",
+      "est_tokens": 2249
+    },
+    {
+      "path": "plugin/skills/faff-plot/SKILL.md",
+      "start": 103,
+      "end": 171,
+      "heading": "Rehoming pass (`/faff-plot rehome`)",
+      "est_tokens": 2006
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "start": 492,
+      "end": 549,
+      "heading": "Conflict analysis",
+      "est_tokens": 1978
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "start": 568,
+      "end": 621,
+      "heading": "Reporting",
+      "est_tokens": 1973
+    },
+    {
+      "path": "plugin/skills/faffter-noon-env-compose/SKILL.md",
+      "start": 25,
+      "end": 40,
+      "heading": "How it provisions",
+      "est_tokens": 1918
+    },
+    {
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "start": 142,
+      "end": 241,
+      "heading": "Synthesis \u2014 the issue-gloss contract",
+      "est_tokens": 1891
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "start": 642,
+      "end": 661,
+      "heading": "Guarantees",
+      "est_tokens": 1749
+    },
+    {
+      "path": "plugin/skills/faffter-noon-ship/SKILL.md",
+      "start": 27,
+      "end": 57,
+      "heading": "How the default runs it",
+      "est_tokens": 1743
+    },
+    {
+      "path": "plugin/skills/faff/SKILL.md",
+      "start": 8,
+      "end": 45,
+      "heading": "What faff is",
+      "est_tokens": 1723
+    },
+    {
+      "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+      "start": 19,
+      "end": 52,
+      "heading": "Outputs",
+      "est_tokens": 1708
+    },
+    {
+      "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+      "start": 53,
+      "end": 79,
+      "heading": "Re-homing gating chains into the stream they gate",
+      "est_tokens": 1479
+    },
+    {
+      "path": "plugin/skills/faff-wtf/SKILL.md",
+      "start": 166,
+      "end": 299,
+      "heading": "Output Format",
+      "est_tokens": 1476
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "start": 220,
+      "end": 251,
+      "heading": "Output and chaining",
+      "est_tokens": 1450
+    },
+    {
+      "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+      "start": 246,
+      "end": 290,
+      "heading": "Appetite integration",
+      "est_tokens": 1448
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+      "start": 84,
+      "end": 110,
+      "heading": "Self-review before returning (mandatory, all sizes)",
+      "est_tokens": 1408
+    },
+    {
+      "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+      "start": 108,
+      "end": 131,
+      "heading": "Converting a thematic project to outcome-led",
+      "est_tokens": 1322
+    },
+    {
+      "path": "plugin/skills/faffter-dark-spec-review/SKILL.md",
+      "start": 215,
+      "end": 249,
+      "heading": "Aggregation \u2014 the majority/severity gate (deterministic)",
+      "est_tokens": 1316
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+      "start": 35,
+      "end": 83,
+      "heading": "The lite nlspec arc",
+      "est_tokens": 1304
+    },
+    {
+      "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+      "start": 363,
+      "end": 389,
+      "heading": "Autonomous-run escalation",
+      "est_tokens": 1275
+    },
+    {
+      "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+      "start": 340,
+      "end": 362,
+      "heading": "Contract artifact",
+      "est_tokens": 1256
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "start": 55,
+      "end": 87,
+      "heading": "Spec contract",
+      "est_tokens": 1231
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "start": 453,
+      "end": 476,
+      "heading": "Run-event log (observability substrate)",
+      "est_tokens": 1174
+    },
+    {
+      "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+      "start": 46,
+      "end": 70,
+      "heading": "Output",
+      "est_tokens": 1128
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "start": 550,
+      "end": 557,
+      "heading": "Build-pass execution (the `concurrency` slot)",
+      "est_tokens": 1121
+    },
+    {
+      "path": "plugin/skills/faffter-noon-env-code-interface/SKILL.md",
+      "start": 28,
+      "end": 66,
+      "heading": "How it provisions",
+      "est_tokens": 1114
+    },
+    {
+      "path": "plugin/skills/faffter-dark-spec-review/SKILL.md",
+      "start": 34,
+      "end": 52,
+      "heading": "The lenses as independent refuters",
+      "est_tokens": 1113
+    },
+    {
+      "path": "plugin/skills/faffter-noon-review/SKILL.md",
+      "start": 123,
+      "end": 147,
+      "heading": "Contract artifact",
+      "est_tokens": 988
+    },
+    {
+      "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+      "start": 132,
+      "end": 153,
+      "heading": "Proposing outcome-led groupings for loose work",
+      "est_tokens": 959
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec-review/SKILL.md",
+      "start": 29,
+      "end": 49,
+      "heading": "The four lenses (single-pass checklist)",
+      "est_tokens": 910
+    },
+    {
+      "path": "plugin/skills/faff-map/SKILL.md",
+      "start": 15,
+      "end": 30,
+      "heading": "Configuration",
+      "est_tokens": 900
+    },
+    {
+      "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+      "start": 80,
+      "end": 99,
+      "heading": "Cutting non-spine scope out of an MVP (rehome, never delete)",
+      "est_tokens": 827
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "start": 16,
+      "end": 33,
+      "heading": "Configuration",
+      "est_tokens": 811
+    },
+    {
+      "path": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md",
+      "start": 43,
+      "end": 53,
+      "heading": "Conformance checklist (what Validate checks, what Author bakes in)",
+      "est_tokens": 806
+    },
+    {
+      "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
+      "start": 58,
+      "end": 72,
+      "heading": "Fleet member supervision",
+      "est_tokens": 799
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "start": 297,
+      "end": 321,
+      "heading": "Decisions-register capture step (shared subroutine)",
+      "est_tokens": 796
+    },
+    {
+      "path": "plugin/skills/faffidavit-routing/SKILL.md",
+      "start": 28,
+      "end": 44,
+      "heading": "The six verdicts (non-normative recap for assignment)",
+      "est_tokens": 767
+    },
+    {
+      "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
+      "start": 73,
+      "end": 84,
+      "heading": "Rebase-before-merge (the merge-race fix)",
+      "est_tokens": 754
+    },
+    {
+      "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+      "start": 394,
+      "end": 426,
+      "heading": "PRDR YAGNI Phase-2 challenge",
+      "est_tokens": 750
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "start": 123,
+      "end": 129,
+      "heading": "Phase selector (`--phases build | prep | all`)",
+      "est_tokens": 742
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "start": 287,
+      "end": 296,
+      "heading": "Architecture proposal step (shared subroutine \u2014 conditional)",
+      "est_tokens": 736
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "start": 622,
+      "end": 633,
+      "heading": "Stopping condition",
+      "est_tokens": 729
+    },
+    {
+      "path": "plugin/skills/faffter-noon-transport-private-network/SKILL.md",
+      "start": 27,
+      "end": 65,
+      "heading": "How it resolves",
+      "est_tokens": 708
+    },
+    {
+      "path": "plugin/skills/faffter-noon-review/SKILL.md",
+      "start": 54,
+      "end": 110,
+      "heading": "The five review passes",
+      "est_tokens": 699
+    },
+    {
+      "path": "plugin/skills/faff/SKILL.md",
+      "start": 62,
+      "end": 74,
+      "heading": "First run",
+      "est_tokens": 678
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "start": 322,
+      "end": 333,
+      "heading": "Decisions-register reconcile step (shared subroutine)",
+      "est_tokens": 647
+    },
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "start": 364,
+      "end": 376,
+      "heading": "Interactive next-step offer (the forward-lean, in prose)",
+      "est_tokens": 621
+    },
+    {
+      "path": "plugin/skills/faff-wtf/SKILL.md",
+      "start": 12,
+      "end": 21,
+      "heading": "Configuration",
+      "est_tokens": 616
+    },
+    {
+      "path": "plugin/skills/faffter-noon-intake/SKILL.md",
+      "start": 60,
+      "end": 108,
+      "heading": "Output \u2014 the discovery brief (the `intake` slot contract)",
+      "est_tokens": 614
+    },
+    {
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "start": 242,
+      "end": 280,
+      "heading": "Tabular data: markdown tables vs definition lists",
+      "est_tokens": 610
+    },
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "start": 350,
+      "end": 363,
+      "heading": "Chaining pattern",
+      "est_tokens": 606
+    },
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "start": 17,
+      "end": 30,
+      "heading": "Install health (doctor-at-entry)",
+      "est_tokens": 604
+    },
+    {
+      "path": "plugin/skills/faffidavit-routing/SKILL.md",
+      "start": 45,
+      "end": 85,
+      "heading": "Adaptor (this skill's dialect)",
+      "est_tokens": 604
+    },
+    {
+      "path": "plugin/skills/faffidavit-routing/SKILL.md",
+      "start": 86,
+      "end": 112,
+      "heading": "Validate \u2014 wired to the contract script",
+      "est_tokens": 591
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "start": 38,
+      "end": 54,
+      "heading": "What Prep Produces",
+      "est_tokens": 586
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "start": 275,
+      "end": 286,
+      "heading": "Spec quality bar (owned by the producer)",
+      "est_tokens": 583
+    },
+    {
+      "path": "plugin/skills/faff-map/SKILL.md",
+      "start": 195,
+      "end": 208,
+      "heading": "Chaining",
+      "est_tokens": 576
+    },
+    {
+      "path": "plugin/skills/faffter-noon-evaluate/SKILL.md",
+      "start": 52,
+      "end": 80,
+      "heading": "Output (the contract artifact)",
+      "est_tokens": 560
+    },
+    {
+      "path": "plugin/skills/faff-jot/SKILL.md",
+      "start": 90,
+      "end": 99,
+      "heading": "Idempotent create + link authoring (the MCP-write seam)",
+      "est_tokens": 558
+    },
+    {
+      "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+      "start": 100,
+      "end": 133,
+      "heading": "Review lens",
+      "est_tokens": 555
+    },
+    {
+      "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
+      "start": 85,
+      "end": 96,
+      "heading": "Integrity-digest custody chain (obligation 5 \u2014 placement here)",
+      "est_tokens": 531
+    },
+    {
+      "path": "plugin/skills/faffter-noon-env-code-interface/SKILL.md",
+      "start": 67,
+      "end": 86,
+      "heading": "Output",
+      "est_tokens": 529
+    },
+    {
+      "path": "plugin/skills/faff-onboard/SKILL.md",
+      "start": 160,
+      "end": 169,
+      "heading": "Rules",
+      "est_tokens": 526
+    },
+    {
+      "path": "plugin/skills/faffter-noon-ship/SKILL.md",
+      "start": 76,
+      "end": 83,
+      "heading": "Rules",
+      "est_tokens": 511
+    },
+    {
+      "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+      "start": 71,
+      "end": 84,
+      "heading": "How findings are handled",
+      "est_tokens": 497
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "start": 17,
+      "end": 33,
+      "heading": "Configuration",
+      "est_tokens": 496
+    },
+    {
+      "path": "plugin/skills/faff-wtf/SKILL.md",
+      "start": 312,
+      "end": 322,
+      "heading": "Notes",
+      "est_tokens": 492
+    },
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "start": 5,
+      "end": 16,
+      "heading": "Governing principles",
+      "est_tokens": 490
+    },
+    {
+      "path": "plugin/skills/faffter-noon-ship/SKILL.md",
+      "start": 58,
+      "end": 75,
+      "heading": "Contract artifact",
+      "est_tokens": 490
+    },
+    {
+      "path": "plugin/skills/faff-jot/SKILL.md",
+      "start": 100,
+      "end": 123,
+      "heading": "Existing-ticket interactor (`/faff-jot ISSUE-XX`)",
+      "est_tokens": 487
+    },
+    {
+      "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+      "start": 85,
+      "end": 99,
+      "heading": "Folding both passes into one `findings` array",
+      "est_tokens": 480
+    },
+    {
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "start": 36,
+      "end": 45,
+      "heading": "Voice",
+      "est_tokens": 478
+    },
+    {
+      "path": "plugin/skills/faffidavit-routing/SKILL.md",
+      "start": 17,
+      "end": 27,
+      "heading": "Internal contract (fixed \u2014 see gateway)",
+      "est_tokens": 476
+    },
+    {
+      "path": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md",
+      "start": 28,
+      "end": 42,
+      "heading": "The fixed contract each slot maps onto",
+      "est_tokens": 463
+    },
+    {
+      "path": "plugin/skills/faff-wtf/SKILL.md",
+      "start": 147,
+      "end": 165,
+      "heading": "Chaining",
+      "est_tokens": 452
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+      "start": 111,
+      "end": 122,
+      "heading": "Confidence self-rating",
+      "est_tokens": 450
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "start": 477,
+      "end": 491,
+      "heading": "Explicit-list mode",
+      "est_tokens": 443
+    },
+    {
+      "path": "plugin/skills/faffter-noon-intake/SKILL.md",
+      "start": 34,
+      "end": 59,
+      "heading": "How it runs \u2014 discovery, not interrogation",
+      "est_tokens": 439
+    },
+    {
+      "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+      "start": 35,
+      "end": 45,
+      "heading": "Input",
+      "est_tokens": 432
+    },
+    {
+      "path": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+      "start": 240,
+      "end": 249,
+      "heading": "Quality bar \u2014 self-review before returning",
+      "est_tokens": 427
+    },
+    {
+      "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+      "start": 100,
+      "end": 107,
+      "heading": "Default landing \u2014 new work to project-less Backlog",
+      "est_tokens": 425
+    },
+    {
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "start": 75,
+      "end": 125,
+      "heading": "Canonical visual forms",
+      "est_tokens": 423
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "start": 12,
+      "end": 22,
+      "heading": "Configuration",
+      "est_tokens": 418
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "start": 499,
+      "end": 504,
+      "heading": "Tracker-less (git-only) mode",
+      "est_tokens": 416
+    },
+    {
+      "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+      "start": 291,
+      "end": 298,
+      "heading": "Rules",
+      "est_tokens": 414
+    },
+    {
+      "path": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md",
+      "start": 76,
+      "end": 91,
+      "heading": "Validate face",
+      "est_tokens": 412
+    },
+    {
+      "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
+      "start": 105,
+      "end": 112,
+      "heading": "Rules",
+      "est_tokens": 412
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "start": 479,
+      "end": 488,
+      "heading": "Re-prepping",
+      "est_tokens": 408
+    },
+    {
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "start": 56,
+      "end": 68,
+      "heading": "Output token economy",
+      "est_tokens": 399
+    },
+    {
+      "path": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+      "start": 224,
+      "end": 239,
+      "heading": "Confidence self-rating",
+      "est_tokens": 395
+    },
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "start": 12,
+      "end": 21,
+      "heading": "Configuration",
+      "est_tokens": 394
+    },
+    {
+      "path": "plugin/skills/faff/SKILL.md",
+      "start": 46,
+      "end": 61,
+      "heading": "Routing",
+      "est_tokens": 389
+    },
+    {
+      "path": "plugin/skills/faffter-noon-concurrency-sequential/SKILL.md",
+      "start": 21,
+      "end": 26,
+      "heading": "The slot contract",
+      "est_tokens": 388
+    },
+    {
+      "path": "plugin/skills/faffter-noon-adr/SKILL.md",
+      "start": 30,
+      "end": 43,
+      "heading": "Output \u2014 the ADR body (the `adr`-slot contract)",
+      "est_tokens": 387
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "start": 36,
+      "end": 49,
+      "heading": "GitHub-auth preflight (run-start, before the build queue is minted)",
+      "est_tokens": 378
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "start": 558,
+      "end": 567,
+      "heading": "Park protocol and tracker tagging",
+      "est_tokens": 374
+    },
+    {
+      "path": "plugin/skills/faffter-noon-evaluate/SKILL.md",
+      "start": 14,
+      "end": 25,
+      "heading": "What it does",
+      "est_tokens": 367
+    },
+    {
+      "path": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+      "start": 250,
+      "end": 264,
+      "heading": "Contract artifact",
+      "est_tokens": 354
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+      "start": 123,
+      "end": 137,
+      "heading": "Contract artifact",
+      "est_tokens": 354
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+      "start": 138,
+      "end": 145,
+      "heading": "Rules",
+      "est_tokens": 353
+    },
+    {
+      "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+      "start": 390,
+      "end": 393,
+      "heading": "ADR drift challenge",
+      "est_tokens": 345
+    },
+    {
+      "path": "plugin/skills/faff-jot/SKILL.md",
+      "start": 150,
+      "end": 157,
+      "heading": "Rules",
+      "est_tokens": 344
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "start": 338,
+      "end": 368,
+      "heading": "Artifact Lifecycle",
+      "est_tokens": 344
+    },
+    {
+      "path": "plugin/skills/faffter-noon-env-compose/SKILL.md",
+      "start": 41,
+      "end": 61,
+      "heading": "Output (the contract artifact)",
+      "est_tokens": 342
+    },
+    {
+      "path": "plugin/skills/faffter-noon-concurrency-sequential/SKILL.md",
+      "start": 55,
+      "end": 60,
+      "heading": "Rules",
+      "est_tokens": 337
+    },
+    {
+      "path": "plugin/skills/faffter-noon-review/SKILL.md",
+      "start": 148,
+      "end": 158,
+      "heading": "Appetite integration",
+      "est_tokens": 333
+    },
+    {
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "start": 289,
+      "end": 296,
+      "heading": "Validation / normalise",
+      "est_tokens": 328
+    },
+    {
+      "path": "plugin/skills/faff-plot/SKILL.md",
+      "start": 13,
+      "end": 18,
+      "heading": "Configuration",
+      "est_tokens": 326
+    },
+    {
+      "path": "plugin/skills/faffter-noon-architecture/SKILL.md",
+      "start": 25,
+      "end": 33,
+      "heading": "How it proposes",
+      "est_tokens": 324
+    },
+    {
+      "path": "plugin/skills/faffter-noon-architecture/SKILL.md",
+      "start": 34,
+      "end": 48,
+      "heading": "Output (the contract artifact)",
+      "est_tokens": 321
+    },
+    {
+      "path": "plugin/skills/faffter-noon-ship/SKILL.md",
+      "start": 21,
+      "end": 26,
+      "heading": "The contract",
+      "est_tokens": 321
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec-review/SKILL.md",
+      "start": 50,
+      "end": 68,
+      "heading": "The verdict roll-up (severity \u2192 verdict)",
+      "est_tokens": 320
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "start": 34,
+      "end": 37,
+      "heading": "Always pull fresh",
+      "est_tokens": 318
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "start": 320,
+      "end": 330,
+      "heading": "Notes",
+      "est_tokens": 318
+    },
+    {
+      "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+      "start": 271,
+      "end": 284,
+      "heading": "Appetite integration",
+      "est_tokens": 307
+    },
+    {
+      "path": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md",
+      "start": 13,
+      "end": 22,
+      "heading": "Why this skill exists (the binding problem)",
+      "est_tokens": 306
+    },
+    {
+      "path": "plugin/skills/faffter-noon-transport-private-network/SKILL.md",
+      "start": 66,
+      "end": 77,
+      "heading": "Output",
+      "est_tokens": 304
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "start": 23,
+      "end": 35,
+      "heading": "Install-health preflight (doctor-at-entry surfacing)",
+      "est_tokens": 300
+    },
+    {
+      "path": "plugin/skills/faff-map/SKILL.md",
+      "start": 209,
+      "end": 220,
+      "heading": "Autonomous Mode",
+      "est_tokens": 294
+    },
+    {
+      "path": "plugin/skills/faff-onboard/SKILL.md",
+      "start": 12,
+      "end": 24,
+      "heading": "Configuration",
+      "est_tokens": 294
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec-review/SKILL.md",
+      "start": 69,
+      "end": 88,
+      "heading": "Output (the contract artifact)",
+      "est_tokens": 294
+    },
+    {
+      "path": "plugin/skills/faff-map/SKILL.md",
+      "start": 221,
+      "end": 227,
+      "heading": "Notes",
+      "est_tokens": 293
+    },
+    {
+      "path": "plugin/skills/faff-plot/SKILL.md",
+      "start": 286,
+      "end": 293,
+      "heading": "Rules",
+      "est_tokens": 292
+    },
+    {
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "start": 46,
+      "end": 55,
+      "heading": "Prose skimmability",
+      "est_tokens": 287
+    },
+    {
+      "path": "plugin/skills/faffter-noon-env-compose/SKILL.md",
+      "start": 20,
+      "end": 24,
+      "heading": "Inputs",
+      "est_tokens": 285
+    },
+    {
+      "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+      "start": 427,
+      "end": 430,
+      "heading": "PRDR YAGNI Phase-2 overturn criterion",
+      "est_tokens": 283
+    },
+    {
+      "path": "plugin/skills/faff/SKILL.md",
+      "start": 75,
+      "end": 79,
+      "heading": "Routing fallbacks",
+      "est_tokens": 281
+    },
+    {
+      "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
+      "start": 97,
+      "end": 100,
+      "heading": "Per-issue evidence verify (obligation 6 \u2014 placement here)",
+      "est_tokens": 275
+    },
+    {
+      "path": "plugin/skills/faffter-noon-review/SKILL.md",
+      "start": 21,
+      "end": 26,
+      "heading": "Why pre-PR",
+      "est_tokens": 268
+    },
+    {
+      "path": "plugin/skills/faff-wtf/SKILL.md",
+      "start": 300,
+      "end": 311,
+      "heading": "Autonomous Mode",
+      "est_tokens": 265
+    },
+    {
+      "path": "plugin/skills/faffter-dark-spec-review/SKILL.md",
+      "start": 264,
+      "end": 270,
+      "heading": "Rules",
+      "est_tokens": 259
+    },
+    {
+      "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
+      "start": 101,
+      "end": 104,
+      "heading": "Merge above the cut (obligation 7 \u2014 placement here)",
+      "est_tokens": 253
+    },
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "start": 169,
+      "end": 184,
+      "heading": "Agent Lanes",
+      "est_tokens": 250
+    },
+    {
+      "path": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md",
+      "start": 23,
+      "end": 27,
+      "heading": "Two faces",
+      "est_tokens": 247
+    },
+    {
+      "path": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md",
+      "start": 92,
+      "end": 96,
+      "heading": "Rules",
+      "est_tokens": 243
+    },
+    {
+      "path": "plugin/skills/faffter-noon-review/SKILL.md",
+      "start": 159,
+      "end": 167,
+      "heading": "Rules",
+      "est_tokens": 240
+    },
+    {
+      "path": "plugin/skills/faffter-noon-prd/SKILL.md",
+      "start": 23,
+      "end": 29,
+      "heading": "The rubric (the LLM applies this)",
+      "est_tokens": 238
+    },
+    {
+      "path": "plugin/skills/faff-jot/SKILL.md",
+      "start": 124,
+      "end": 129,
+      "heading": "Tracker-less (git-only) mode",
+      "est_tokens": 236
+    },
+    {
+      "path": "plugin/skills/faff-jot/SKILL.md",
+      "start": 130,
+      "end": 137,
+      "heading": "Autonomous mode",
+      "est_tokens": 236
+    },
+    {
+      "path": "plugin/skills/faff-map/SKILL.md",
+      "start": 155,
+      "end": 194,
+      "heading": "Output Format",
+      "est_tokens": 235
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec-review/SKILL.md",
+      "start": 14,
+      "end": 19,
+      "heading": "What it does",
+      "est_tokens": 230
+    },
+    {
+      "path": "plugin/skills/faffter-noon-env-code-interface/SKILL.md",
+      "start": 20,
+      "end": 27,
+      "heading": "Inputs",
+      "est_tokens": 229
+    },
+    {
+      "path": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md",
+      "start": 54,
+      "end": 75,
+      "heading": "Author face",
+      "est_tokens": 225
+    },
+    {
+      "path": "plugin/skills/faff-jot/SKILL.md",
+      "start": 138,
+      "end": 145,
+      "heading": "Appetite",
+      "est_tokens": 222
+    },
+    {
+      "path": "plugin/skills/faff-plot/SKILL.md",
+      "start": 180,
+      "end": 185,
+      "heading": "Tracker-less (git-only) mode",
+      "est_tokens": 220
+    },
+    {
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "start": 134,
+      "end": 141,
+      "heading": "Lead with the load-bearing model",
+      "est_tokens": 219
+    },
+    {
+      "path": "plugin/skills/faffter-noon-env-code-interface/SKILL.md",
+      "start": 14,
+      "end": 19,
+      "heading": "What it does",
+      "est_tokens": 213
+    },
+    {
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "start": 23,
+      "end": 26,
+      "heading": "Why an adaptor, not a producer",
+      "est_tokens": 212
+    },
+    {
+      "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+      "start": 25,
+      "end": 34,
+      "heading": "Two phases",
+      "est_tokens": 212
+    },
+    {
+      "path": "plugin/skills/faffter-noon-architecture/SKILL.md",
+      "start": 14,
+      "end": 19,
+      "heading": "What it does",
+      "est_tokens": 210
+    },
+    {
+      "path": "plugin/skills/faffter-noon-env-compose/SKILL.md",
+      "start": 14,
+      "end": 19,
+      "heading": "What it does",
+      "est_tokens": 210
+    },
+    {
+      "path": "plugin/skills/faffter-noon-prd/SKILL.md",
+      "start": 30,
+      "end": 46,
+      "heading": "Output (the contract artifact)",
+      "est_tokens": 209
+    },
+    {
+      "path": "plugin/skills/faffter-noon-transport-private-network/SKILL.md",
+      "start": 14,
+      "end": 19,
+      "heading": "What it does",
+      "est_tokens": 207
+    },
+    {
+      "path": "plugin/skills/faff-plot/SKILL.md",
+      "start": 280,
+      "end": 285,
+      "heading": "Logging",
+      "est_tokens": 205
+    },
+    {
+      "path": "plugin/skills/faff-plot/SKILL.md",
+      "start": 172,
+      "end": 179,
+      "heading": "Methodology influence",
+      "est_tokens": 204
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "start": 50,
+      "end": 58,
+      "heading": "Invocation",
+      "est_tokens": 196
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec-review/SKILL.md",
+      "start": 89,
+      "end": 97,
+      "heading": "Level gradient (the cost-stable boundary)",
+      "est_tokens": 191
+    },
+    {
+      "path": "plugin/skills/faffter-noon-adr/SKILL.md",
+      "start": 20,
+      "end": 29,
+      "heading": "Input",
+      "est_tokens": 190
+    },
+    {
+      "path": "plugin/skills/faffter-noon-review/SKILL.md",
+      "start": 111,
+      "end": 118,
+      "heading": "Verdict rules",
+      "est_tokens": 188
+    },
+    {
+      "path": "plugin/skills/faffter-dark-spec-review/SKILL.md",
+      "start": 250,
+      "end": 259,
+      "heading": "Output (the contract artifact)",
+      "est_tokens": 187
+    },
+    {
+      "path": "plugin/skills/faffter-noon-intake/SKILL.md",
+      "start": 113,
+      "end": 118,
+      "heading": "Rules",
+      "est_tokens": 185
+    },
+    {
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "start": 19,
+      "end": 22,
+      "heading": "No internal contract \u2014 a pure adaptor",
+      "est_tokens": 184
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "start": 662,
+      "end": 667,
+      "heading": "Notes",
+      "est_tokens": 177
+    },
+    {
+      "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
+      "start": 19,
+      "end": 22,
+      "heading": "When it runs",
+      "est_tokens": 174
+    },
+    {
+      "path": "plugin/skills/faffter-dark-spec-review/SKILL.md",
+      "start": 25,
+      "end": 33,
+      "heading": "Inputs",
+      "est_tokens": 174
+    },
+    {
+      "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+      "start": 285,
+      "end": 290,
+      "heading": "Rules",
+      "est_tokens": 171
+    },
+    {
+      "path": "plugin/skills/faff-plot/SKILL.md",
+      "start": 23,
+      "end": 28,
+      "heading": "Lane",
+      "est_tokens": 166
+    },
+    {
+      "path": "plugin/skills/faff-plot/SKILL.md",
+      "start": 272,
+      "end": 279,
+      "heading": "Appetite",
+      "est_tokens": 166
+    },
+    {
+      "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+      "start": 431,
+      "end": 436,
+      "heading": "Rules",
+      "est_tokens": 162
+    },
+    {
+      "path": "plugin/skills/faffter-noon-intake/SKILL.md",
+      "start": 25,
+      "end": 33,
+      "heading": "Input",
+      "est_tokens": 161
+    },
+    {
+      "path": "plugin/skills/faffter-noon-evaluate/SKILL.md",
+      "start": 26,
+      "end": 31,
+      "heading": "Inputs",
+      "est_tokens": 160
+    },
+    {
+      "path": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+      "start": 265,
+      "end": 270,
+      "heading": "Rules",
+      "est_tokens": 147
+    },
+    {
+      "path": "plugin/skills/faff-jot/SKILL.md",
+      "start": 21,
+      "end": 24,
+      "heading": "Rendering",
+      "est_tokens": 146
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "start": 489,
+      "end": 498,
+      "heading": "Where Artifacts Live",
+      "est_tokens": 145
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec-review/SKILL.md",
+      "start": 20,
+      "end": 28,
+      "heading": "Inputs",
+      "est_tokens": 139
+    },
+    {
+      "path": "plugin/skills/faff-jot/SKILL.md",
+      "start": 17,
+      "end": 20,
+      "heading": "Configuration",
+      "est_tokens": 138
+    },
+    {
+      "path": "plugin/skills/faff-onboard/SKILL.md",
+      "start": 25,
+      "end": 28,
+      "heading": "Rendering",
+      "est_tokens": 137
+    },
+    {
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "start": 32,
+      "end": 35,
+      "heading": "Scope \u2014 all human-facing faff output",
+      "est_tokens": 137
+    },
+    {
+      "path": "plugin/skills/faffidavit-routing/SKILL.md",
+      "start": 113,
+      "end": 116,
+      "heading": "Rules",
+      "est_tokens": 136
+    },
+    {
+      "path": "plugin/skills/faffter-noon-intake/SKILL.md",
+      "start": 19,
+      "end": 24,
+      "heading": "When it runs",
+      "est_tokens": 136
+    },
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "start": 22,
+      "end": 25,
+      "heading": "Rendering",
+      "est_tokens": 134
+    },
+    {
+      "path": "plugin/skills/faff-jot/SKILL.md",
+      "start": 146,
+      "end": 149,
+      "heading": "Logging",
+      "est_tokens": 134
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "start": 34,
+      "end": 37,
+      "heading": "Rendering",
+      "est_tokens": 133
+    },
+    {
+      "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+      "start": 236,
+      "end": 245,
+      "heading": "Tone discipline",
+      "est_tokens": 132
+    },
+    {
+      "path": "plugin/skills/faff-plot/SKILL.md",
+      "start": 19,
+      "end": 22,
+      "heading": "Rendering",
+      "est_tokens": 131
+    },
+    {
+      "path": "plugin/skills/faffter-noon-ship/SKILL.md",
+      "start": 17,
+      "end": 20,
+      "heading": "When it runs",
+      "est_tokens": 131
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "start": 634,
+      "end": 641,
+      "heading": "Autonomous-mode signal to sub-skills",
+      "est_tokens": 129
+    },
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "start": 798,
+      "end": 801,
+      "heading": "Notes",
+      "est_tokens": 128
+    },
+    {
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "start": 27,
+      "end": 31,
+      "heading": "Two faces",
+      "est_tokens": 128
+    },
+    {
+      "path": "plugin/skills/faffter-noon-prd/SKILL.md",
+      "start": 14,
+      "end": 17,
+      "heading": "What it does",
+      "est_tokens": 128
+    },
+    {
+      "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
+      "start": 23,
+      "end": 26,
+      "heading": "Concurrency cap",
+      "est_tokens": 126
+    },
+    {
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "start": 297,
+      "end": 302,
+      "heading": "Rules",
+      "est_tokens": 123
+    },
+    {
+      "path": "plugin/skills/faffter-noon-intake/SKILL.md",
+      "start": 109,
+      "end": 112,
+      "heading": "Appetite",
+      "est_tokens": 119
+    },
+    {
+      "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+      "start": 21,
+      "end": 26,
+      "heading": "Core ordering rule",
+      "est_tokens": 119
+    },
+    {
+      "path": "plugin/skills/faffter-noon-review/SKILL.md",
+      "start": 31,
+      "end": 40,
+      "heading": "Input",
+      "est_tokens": 118
+    },
+    {
+      "path": "plugin/skills/faffter-noon-prd/SKILL.md",
+      "start": 47,
+      "end": 51,
+      "heading": "Rules",
+      "est_tokens": 115
+    },
+    {
+      "path": "plugin/skills/faffter-dark-spec-review/SKILL.md",
+      "start": 16,
+      "end": 24,
+      "heading": "When it runs",
+      "est_tokens": 114
+    },
+    {
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "start": 281,
+      "end": 288,
+      "heading": "Density caps",
+      "est_tokens": 113
+    },
+    {
+      "path": "plugin/skills/faff-onboard/SKILL.md",
+      "start": 33,
+      "end": 36,
+      "heading": "Interactive-only",
+      "est_tokens": 112
+    },
+    {
+      "path": "plugin/skills/faffter-noon-adr/SKILL.md",
+      "start": 44,
+      "end": 48,
+      "heading": "Rules",
+      "est_tokens": 110
+    },
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "start": 26,
+      "end": 35,
+      "heading": "Input",
+      "est_tokens": 105
+    },
+    {
+      "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+      "start": 336,
+      "end": 339,
+      "heading": "Output to faff-graft",
+      "est_tokens": 105
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+      "start": 31,
+      "end": 34,
+      "heading": "Output",
+      "est_tokens": 102
+    },
+    {
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "start": 126,
+      "end": 133,
+      "heading": "When prose still wins",
+      "est_tokens": 101
+    },
+    {
+      "path": "plugin/skills/faffter-noon-prd/SKILL.md",
+      "start": 18,
+      "end": 22,
+      "heading": "Inputs",
+      "est_tokens": 100
+    },
+    {
+      "path": "plugin/skills/faffter-dark-spec-review/SKILL.md",
+      "start": 260,
+      "end": 263,
+      "heading": "Rendering",
+      "est_tokens": 99
+    },
+    {
+      "path": "plugin/skills/faff-jot/SKILL.md",
+      "start": 25,
+      "end": 28,
+      "heading": "Lane",
+      "est_tokens": 96
+    },
+    {
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "start": 69,
+      "end": 74,
+      "heading": "Visualisation over prose",
+      "est_tokens": 94
+    },
+    {
+      "path": "plugin/skills/faff-wtf/SKILL.md",
+      "start": 22,
+      "end": 25,
+      "heading": "Always pull fresh",
+      "est_tokens": 92
+    },
+    {
+      "path": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+      "start": 23,
+      "end": 31,
+      "heading": "Input",
+      "est_tokens": 91
+    },
+    {
+      "path": "plugin/skills/faffter-noon-architecture/SKILL.md",
+      "start": 20,
+      "end": 24,
+      "heading": "Inputs",
+      "est_tokens": 91
+    },
+    {
+      "path": "plugin/skills/faffter-noon-transport-private-network/SKILL.md",
+      "start": 20,
+      "end": 26,
+      "heading": "Inputs",
+      "est_tokens": 80
+    },
+    {
+      "path": "plugin/skills/faffter-noon-concurrency-sequential/SKILL.md",
+      "start": 17,
+      "end": 20,
+      "heading": "When it runs",
+      "est_tokens": 78
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+      "start": 23,
+      "end": 30,
+      "heading": "Input",
+      "est_tokens": 77
+    },
+    {
+      "path": "plugin/skills/faffter-noon-adr/SKILL.md",
+      "start": 16,
+      "end": 19,
+      "heading": "When it runs",
+      "est_tokens": 71
+    },
+    {
+      "path": "plugin/skills/faff-onboard/SKILL.md",
+      "start": 29,
+      "end": 32,
+      "heading": "Lane",
+      "est_tokens": 67
+    },
+    {
+      "path": "plugin/skills/faffter-noon-review/SKILL.md",
+      "start": 119,
+      "end": 122,
+      "heading": "Output",
+      "est_tokens": 67
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "start": 609,
+      "end": 611,
+      "heading": "Notes",
+      "est_tokens": 66
+    },
+    {
+      "path": "plugin/skills/faffter-noon-review/SKILL.md",
+      "start": 41,
+      "end": 53,
+      "heading": "Output",
+      "est_tokens": 65
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+      "start": 19,
+      "end": 22,
+      "heading": "When it runs",
+      "est_tokens": 59
+    },
+    {
+      "path": "plugin/skills/faffter-noon-review/SKILL.md",
+      "start": 27,
+      "end": 30,
+      "heading": "When it runs",
+      "est_tokens": 44
+    },
+    {
+      "path": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+      "start": 32,
+      "end": 35,
+      "heading": "Output",
+      "est_tokens": 40
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "start": 334,
+      "end": 337,
+      "heading": "Prep Gate",
+      "est_tokens": 35
+    },
+    {
+      "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+      "start": 21,
+      "end": 24,
+      "heading": "When it runs",
+      "est_tokens": 21
+    }
+  ]
+}

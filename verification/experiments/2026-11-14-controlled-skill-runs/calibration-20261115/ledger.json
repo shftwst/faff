@@ -1,0 +1,24 @@
+{
+  "schema": 2,
+  "allowance_nanos": 10000000000,
+  "entries": [
+    {
+      "id": "r1",
+      "reserved_nanos": 250936000,
+      "actual_nanos": 26604000,
+      "state": "reconciled"
+    },
+    {
+      "id": "r2",
+      "reserved_nanos": 256544000,
+      "actual_nanos": 9029400,
+      "state": "reconciled"
+    },
+    {
+      "id": "r3",
+      "reserved_nanos": 272936000,
+      "actual_nanos": 9597600,
+      "state": "reconciled"
+    }
+  ]
+}

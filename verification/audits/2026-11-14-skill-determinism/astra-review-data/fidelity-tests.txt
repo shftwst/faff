@@ -1,0 +1,97 @@
+TAP version 13
+# faff shadow-fidelity run: corpus digest mismatch — manifest deadbeef, computed 0741d84ee28c7a26a9e6ca255f54cb61663bdf38197ac03b563e12299aebebe2
+# faff shadow-fidelity reproduce: the pinned decision-kernel set does not match the pinned map
+# faff shadow-fidelity reproduce: corpus-derived outputs differ from the published result.json
+# Subtest: shadow-fidelity --selftest passes
+ok 1 - shadow-fidelity --selftest passes
+  ---
+  duration_ms: 38.9707
+  type: 'test'
+  ...
+# Subtest: run over a synthetic corpus: an agreement and a wrong divergence
+ok 2 - run over a synthetic corpus: an agreement and a wrong divergence
+  ---
+  duration_ms: 46.043127
+  type: 'test'
+  ...
+# Subtest: run --out then reproduce round-trips byte-identically
+ok 3 - run --out then reproduce round-trips byte-identically
+  ---
+  duration_ms: 80.482973
+  type: 'test'
+  ...
+# Subtest: empty corpus is a stated null result, exit 0
+ok 4 - empty corpus is a stated null result, exit 0
+  ---
+  duration_ms: 34.625804
+  type: 'test'
+  ...
+# Subtest: manifest digest mismatch is refused (exit 1)
+ok 5 - manifest digest mismatch is refused (exit 1)
+  ---
+  duration_ms: 34.135263
+  type: 'test'
+  ...
+# Subtest: cost snapshot reads a real run ledger without crashing (finding-1 regression)
+ok 6 - cost snapshot reads a real run ledger without crashing (finding-1 regression)
+  ---
+  duration_ms: 36.327963
+  type: 'test'
+  ...
+# Subtest: --non-default-policy-run is repeatable (finding-2 regression)
+ok 7 - --non-default-policy-run is repeatable (finding-2 regression)
+  ---
+  duration_ms: 34.390555
+  type: 'test'
+  ...
+# Subtest: the committed FAFF-826 report reproduces from a clean context, bare, against its pinned map
+ok 8 - the committed FAFF-826 report reproduces from a clean context, bare, against its pinned map
+  ---
+  duration_ms: 47.394829
+  type: 'test'
+  ...
+# Subtest: run --out pins the map in manifest.json
+ok 9 - run --out pins the map in manifest.json
+  ---
+  duration_ms: 56.095666
+  type: 'test'
+  ...
+# Subtest: reproduce still verifies a result after the map is revised, reading the pinned map from git
+ok 10 - reproduce still verifies a result after the map is revised, reading the pinned map from git
+  ---
+  duration_ms: 83.723917
+  type: 'test'
+  ...
+# Subtest: without git history, reproduce uses the recorded set and says it is unverified
+ok 11 - without git history, reproduce uses the recorded set and says it is unverified
+  ---
+  duration_ms: 73.195922
+  type: 'test'
+  ...
+# Subtest: a pinned set that disagrees with the pinned map is refused (exit 1)
+ok 12 - a pinned set that disagrees with the pinned map is refused (exit 1)
+  ---
+  duration_ms: 82.50513
+  type: 'test'
+  ...
+# Subtest: control: without a pin, the same revision breaks reproduce (the FAFF-1194 failure)
+ok 13 - control: without a pin, the same revision breaks reproduce (the FAFF-1194 failure)
+  ---
+  duration_ms: 75.895577
+  type: 'test'
+  ...
+# Subtest: the live state-authority map parses to the expected decision-kernel set
+ok 14 - the live state-authority map parses to the expected decision-kernel set
+  ---
+  duration_ms: 19.590496
+  type: 'test'
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 778.584386

@@ -1,0 +1,48 @@
+{
+  "recorded_at": "2026-11-15T00:00:42.032097+00:00",
+  "source_commit": "f767bdd1c0a78f6259c335742c1567a074f512a0",
+  "source_root": "/Users/shftwst/.codex/worktrees/a713/faff",
+  "model_setting": "claude-opus-5-5",
+  "effort_setting": "medium",
+  "claude_on_path": null,
+  "provider_model_availability": "unverified; configured identifier only",
+  "readiness": "preparation only; controlled effect recorder and bounded usage-aware runner not implemented",
+  "source_files": [
+    {
+      "path": "eval/run-evals.mjs",
+      "sha256": "62b1598df4d8f1272ac9ab86a1f4505401ba69a40041e0d04a7e2feee42c636b"
+    },
+    {
+      "path": "eval/cli-driver.mjs",
+      "sha256": "684ebd830be49a8a70063694bfa81500d83a74b7d742100e680715ccf5c03c3c"
+    },
+    {
+      "path": "eval/run-live-evals.mjs",
+      "sha256": "de20c2e3e6df3e2de3ade55fd9e6f45c803748ffa3424aa784daa7d66a9dbf5a"
+    },
+    {
+      "path": "test/helpers/skill-harness.mjs",
+      "sha256": "6477d23f31d79e343290d90fdbb95a533db36dc899917864f8680d9b3289faca"
+    },
+    {
+      "path": "plugin/skills/faff/references/review.md",
+      "sha256": "d3f94b49637831241e514839ea20fb124b65d18f2f78a00a2518a36d5b61673d"
+    }
+  ],
+  "existing_draft_tools": [
+    {
+      "path": "eval/control-parity.mjs",
+      "sha256": "b790f1a992477231d2ce11d0caf4afa1fc50e4d0fca54a596c1c342a37d81f81"
+    },
+    {
+      "path": "test/control-parity.test.mjs",
+      "sha256": "aee2abc50b5abf178c766d0cdb03175479eb3850b7d82c1b472c78732d6e69e2"
+    }
+  ],
+  "plan": {
+    "working_path": "docs/superpowers/plans/2026-11-15-controlled-skill-runs.md",
+    "snapshot_path": "verification/experiments/2026-11-14-controlled-skill-runs/plan-snapshot.md",
+    "sha256": "399fbc94dbd0506e6c2b05fc1fab7a918ed6f8e9dd0c7009371e67cbf7258835",
+    "snapshot_reason": "Repository ignores docs/superpowers; retain an identical reviewable copy with the experiment preparation."
+  }
+}

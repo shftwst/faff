@@ -1,0 +1,85 @@
+{
+  "sources": [
+    {
+      "path": ".faff/anchors/runner-pull-20260904/runs/run-20260903-203823-fly-l3/events.jsonl",
+      "sha256": "5d650b0aa974cc1f574d2ee790656acf48f554f22e1635545ae6e50d4d58ae60"
+    },
+    {
+      "path": ".faff/anchors/runner-pull-20260904/runs/run-20260903-213310-fly-l3/events.jsonl",
+      "sha256": "12276a47a552c2f635e86b852afad2379e33b0fb41a9af91cb5a453c08e6a9fc"
+    },
+    {
+      "path": ".faff/anchors/runner-pull-20260904/runs/run-20260904-001053-beepboop-list-c26c98/events.jsonl",
+      "sha256": "f3efbeac857ee853cde0da1df7cd4a2da1b78d1772ef587d674876c72f39c4ec"
+    }
+  ],
+  "source_read_only": true,
+  "record_count": 11,
+  "matrix": {
+    "claim-verdict": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "eligible": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "next": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "park-verdict": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "project-next": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "queue-state": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "run-done": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "run-outward": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "run-start": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    }
+  },
+  "action_uncaptured": 11,
+  "null_result": false
+}

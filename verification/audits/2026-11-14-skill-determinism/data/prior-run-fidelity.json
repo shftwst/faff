@@ -1,0 +1,214 @@
+{
+  "source_files": [
+    ".faff/anchors/runner-pull-20260904/runs/run-20260903-203823-fly-l3/events.jsonl",
+    ".faff/anchors/runner-pull-20260904/runs/run-20260903-213310-fly-l3/events.jsonl",
+    ".faff/anchors/runner-pull-20260904/runs/run-20260904-001053-beepboop-list-c26c98/events.jsonl"
+  ],
+  "source_status": "Existing untracked local runner pull; source files left untouched",
+  "record_count": 11,
+  "null_result": false,
+  "null_reason": null,
+  "in_scope_kernels": [
+    "claim-verdict",
+    "eligible",
+    "next",
+    "park-verdict",
+    "project-next",
+    "queue-state",
+    "run-done",
+    "run-outward",
+    "run-start"
+  ],
+  "coverage": {
+    "replayable": 11,
+    "uncovered": 0,
+    "missing_input": 0
+  },
+  "matrix": {
+    "claim-verdict": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "eligible": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "next": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "park-verdict": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "project-next": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "queue-state": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "run-done": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "run-outward": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "run-start": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    }
+  },
+  "divergences": [],
+  "exclusions": {
+    "version_skew": [],
+    "input_uncaptured": [],
+    "replay_error": [],
+    "verdict_skew": []
+  },
+  "missing_input_records": [],
+  "uncovered_records": [],
+  "out_of_scope_records": [],
+  "action_uncaptured": [
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260903-203823-fly-l3",
+      "seq": 4
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-203823-fly-l3",
+      "seq": 12
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260903-203823-fly-l3",
+      "seq": 13
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260903-203823-fly-l3",
+      "seq": 14
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-213310-fly-l3",
+      "seq": 3
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-213310-fly-l3",
+      "seq": 4
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-213310-fly-l3",
+      "seq": 5
+    },
+    {
+      "kernel": "next",
+      "correlation_id": "",
+      "run_id": "run-20260903-213310-fly-l3",
+      "seq": 6
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260903-213310-fly-l3",
+      "seq": 7
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260903-213310-fly-l3",
+      "seq": 12
+    },
+    {
+      "kernel": "eligible",
+      "correlation_id": "",
+      "run_id": "run-20260903-213310-fly-l3",
+      "seq": 13
+    }
+  ],
+  "set_aside": [
+    {
+      "command": "decision-capture",
+      "classification": "decision-kernel-not-replayable",
+      "reason": "the instrumentation itself, not a decision the shadow would replay",
+      "captured_count": 0
+    },
+    {
+      "command": "park-reconsider",
+      "classification": "decision-kernel-not-replayable",
+      "reason": "set aside per the state-authority map + registry derivation",
+      "captured_count": 0
+    },
+    {
+      "command": "regions",
+      "classification": "instrumented-non-decision-kernel",
+      "reason": "instrumented but classified harness-and-skill-orchestration by the state-authority map, not a coordinator-transition decision",
+      "captured_count": 0
+    },
+    {
+      "command": "run-ledger",
+      "classification": "decision-kernel-not-replayable",
+      "reason": "record-mint entry (a record writer), not a pure prescribe-an-action predicate",
+      "captured_count": 0
+    },
+    {
+      "command": "shadow-fidelity",
+      "classification": "decision-kernel-not-replayable",
+      "reason": "set aside per the state-authority map + registry derivation",
+      "captured_count": 0
+    },
+    {
+      "command": "state",
+      "classification": "decision-kernel-not-replayable",
+      "reason": "read-model producer, not a prescribe-an-action predicate — no verdict to compare against selected_action",
+      "captured_count": 0
+    },
+    {
+      "command": "tier",
+      "classification": "instrumented-non-decision-kernel",
+      "reason": "instrumented but classified software-delivery-policy by the state-authority map, not a coordinator-transition decision",
+      "captured_count": 0
+    }
+  ]
+}

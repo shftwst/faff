@@ -1,0 +1,956 @@
+{
+  "sha256": "1310d43e4cb7cb4ff0716896bbe4fc3cc7671a43c2aad2a84f5fb44587b8fbcd",
+  "records": 128,
+  "base_count": 75,
+  "marker_count": 53,
+  "actual_runs": 16,
+  "base_runs": 14,
+  "graded_runs": 10,
+  "divergence_runs": 4,
+  "base_duplicate_cids": {
+    "run-20261026-031227-fly-l3/FAFF-1385/next/1": 1,
+    "run-20261026-031227-fly-l3/FAFF-1374/next/1": 1,
+    "run-20261026-031227-fly-l3/FAFF-1364/next/1": 1,
+    "run-20261026-031227-fly-l3/FAFF-1363/next/1": 1,
+    "run-20261026-031227-fly-l3/FAFF-1361/next/1": 1,
+    "run-20261026-031227-fly-l3/FAFF-1349/next/1": 1,
+    "run-20261026-031227-fly-l3/FAFF-1309/next/1": 1,
+    "run-20261026-031227-fly-l3/FAFF-1271/next/1": 1,
+    "run-20261026-031227-fly-l3/FAFF-1145/next/1": 1,
+    "run-20261026-031227-fly-l3/FAFF-1037/next/1": 1,
+    "run-20261026-031227-fly-l3/FAFF-1016/next/1": 1,
+    "run-20261026-165441-beepboop-list-c8818e/FAFF-1351/eligible/1": 1,
+    "run-20261026-213652-beepboop-list-31f750/FAFF-1403/eligible/1": 1,
+    "run-20261026-213652-beepboop-list-31f750/FAFF-1403/next/1": 1,
+    "run-20261026-214540-beepboop-list-9d5e07/FAFF-1395/next/1": 1,
+    "run-20261026-214540-beepboop-list-9d5e07/FAFF-1395/eligible/1": 1,
+    "run-20261027-024440-beepboop-list-fa4ec4/FAFF-1306/eligible/2": 1,
+    "run-20261027-024440-beepboop-list-fa4ec4/FAFF-1306/next/2": 1,
+    "run-20261027-024440-beepboop-list-fa4ec4/FAFF-1403/eligible/2": 1,
+    "run-20261027-024440-beepboop-list-fa4ec4/FAFF-1403/next/2": 1,
+    "run-20261027-030828-beepboop-list-9fd3e4/FAFF-1306/eligible/2": 1,
+    "run-20261027-030828-beepboop-list-9fd3e4/FAFF-1306/next/2": 1,
+    "run-20261027-065425-beepboop-list-d4c19d/FAFF-1199/next/1": 1,
+    "run-20261027-162841-beepboop-list-36511a/FAFF-1404/next/1": 1,
+    "run-20261027-162841-beepboop-list-36511a/FAFF-1318/next/1": 1,
+    "run-20261027-162841-beepboop-list-36511a/FAFF-1293/next/1": 1,
+    "run-20261027-162841-beepboop-list-36511a/FAFF-1249/next/1": 1,
+    "run-20261027-162841-beepboop-list-36511a/FAFF-1404/eligible/2": 1,
+    "run-20261027-162841-beepboop-list-36511a/FAFF-1318/eligible/2": 1,
+    "run-20261027-162841-beepboop-list-36511a/FAFF-1293/eligible/2": 1,
+    "run-20261027-162841-beepboop-list-36511a/FAFF-1249/eligible/2": 1,
+    "run-20261027-162841-beepboop-list-36511a/FAFF-1292/next/1": 1,
+    "run-20261027-162841-beepboop-list-36511a/FAFF-1207/next/1": 1,
+    "run-20261027-162841-beepboop-list-36511a/FAFF-1205/next/1": 1,
+    "run-20261027-162841-beepboop-list-36511a/FAFF-1249/eligible/3": 1,
+    "run-20261027-162841-beepboop-list-36511a/FAFF-1249/next/3": 1,
+    "run-20261027-162841-beepboop-list-36511a/__run__/run-done/1": 1,
+    "run-20261027-185215-beepboop-list-1456d4/FAFF-1318/next/1": 1,
+    "run-20261027-185215-beepboop-list-1456d4/FAFF-1292/next/1": 1,
+    "run-20261027-185215-beepboop-list-1456d4/FAFF-1207/next/1": 1,
+    "run-20261027-185215-beepboop-list-1456d4/FAFF-1205/next/1": 1,
+    "run-20261027-185215-beepboop-list-1456d4/FAFF-1318/eligible/2": 1,
+    "run-20261027-185215-beepboop-list-1456d4/FAFF-1292/eligible/1": 1,
+    "run-20261027-185215-beepboop-list-1456d4/FAFF-1207/eligible/1": 1,
+    "run-20261027-185215-beepboop-list-1456d4/FAFF-1205/eligible/1": 1,
+    "run-20261027-185806-beepboop-list-620a46/FAFF-1318/next/1": 1,
+    "run-20261027-185806-beepboop-list-620a46/FAFF-1292/next/1": 1,
+    "run-20261027-185806-beepboop-list-620a46/FAFF-1207/next/1": 1,
+    "run-20261027-185806-beepboop-list-620a46/FAFF-1205/next/1": 1,
+    "run-20261027-185806-beepboop-list-620a46/FAFF-1318/eligible/2": 1,
+    "run-20261027-190707-beepboop-list-906233/FAFF-1318/next/1": 1,
+    "run-20261027-190707-beepboop-list-906233/FAFF-1318/eligible/2": 1,
+    "run-20261027-191213-beepboop-list-fe15ad/FAFF-1318/next/1": 1,
+    "run-20261027-191213-beepboop-list-fe15ad/FAFF-1318/eligible/2": 1,
+    "run-20261027-191711-beepboop-list-7a746f/FAFF-1318/next/1": 1,
+    "run-20261027-191711-beepboop-list-7a746f/FAFF-1318/eligible/1": 1,
+    "run-20261027-191711-beepboop-list-7a746f/FAFF-1292/next/1": 1,
+    "run-20261027-191711-beepboop-list-7a746f/FAFF-1292/eligible/1": 1,
+    "run-20261027-191711-beepboop-list-7a746f/FAFF-1207/next/1": 1,
+    "run-20261027-191711-beepboop-list-7a746f/FAFF-1207/eligible/1": 1,
+    "run-20261027-191711-beepboop-list-7a746f/FAFF-1205/next/1": 1,
+    "run-20261027-191711-beepboop-list-7a746f/FAFF-1205/eligible/1": 1,
+    "run-20261027-192721-beepboop-list-c7df54/FAFF-1318/eligible/1": 1,
+    "run-20261027-192721-beepboop-list-c7df54/FAFF-1318/next/1": 1
+  },
+  "marker_duplicate_cids": [
+    [
+      "run-20261027-065425-beepboop-list-d4c19d/FAFF-1199/next/1",
+      2
+    ],
+    [
+      "run-20261027-162841-beepboop-list-36511a/FAFF-1249/next/3",
+      2
+    ],
+    [
+      "run-20261027-191711-beepboop-list-7a746f/FAFF-1205/eligible/1",
+      5
+    ]
+  ],
+  "duplicate_marker_details": [
+    {
+      "cid": "run-20261027-065425-beepboop-list-d4c19d/FAFF-1199/next/1",
+      "count": 2,
+      "records": [
+        {
+          "line": 55,
+          "run_id": "run-20261027-065425-beepboop-list-d4c19d",
+          "seq": 72,
+          "issue": "FAFF-1199",
+          "type": "decision-capture",
+          "kernel": "next"
+        },
+        {
+          "line": 56,
+          "run_id": "run-20261027-065425-beepboop-list-d4c19d",
+          "seq": 73,
+          "issue": "FAFF-1199",
+          "type": "decision-capture-action",
+          "kernel": "next",
+          "action": "graft"
+        },
+        {
+          "line": 57,
+          "run_id": "run-20261027-065425-beepboop-list-d4c19d",
+          "seq": 74,
+          "issue": "FAFF-1199",
+          "type": "decision-capture-action",
+          "kernel": "eligible",
+          "action": "eligible"
+        }
+      ]
+    },
+    {
+      "cid": "run-20261027-162841-beepboop-list-36511a/FAFF-1249/next/3",
+      "count": 2,
+      "records": [
+        {
+          "line": 80,
+          "run_id": "run-20261027-162841-beepboop-list-36511a",
+          "seq": 58,
+          "issue": "FAFF-1249",
+          "type": "decision-capture",
+          "kernel": "next"
+        },
+        {
+          "line": 81,
+          "run_id": "run-20261027-162841-beepboop-list-36511a",
+          "seq": 59,
+          "issue": "FAFF-1249",
+          "type": "decision-capture-action",
+          "kernel": "next",
+          "action": "graft"
+        },
+        {
+          "line": 82,
+          "run_id": "run-20261027-162841-beepboop-list-36511a",
+          "seq": 60,
+          "issue": "FAFF-1249",
+          "type": "decision-capture-action",
+          "kernel": "eligible",
+          "action": "eligible"
+        }
+      ]
+    },
+    {
+      "cid": "run-20261027-191711-beepboop-list-7a746f/FAFF-1205/eligible/1",
+      "count": 5,
+      "records": [
+        {
+          "line": 120,
+          "run_id": "run-20261027-191711-beepboop-list-7a746f",
+          "seq": 12,
+          "issue": "FAFF-1205",
+          "type": "decision-capture",
+          "kernel": "eligible"
+        },
+        {
+          "line": 121,
+          "run_id": "run-20261027-191711-beepboop-list-7a746f",
+          "seq": 13,
+          "issue": "FAFF-1318",
+          "type": "decision-capture-action",
+          "kernel": "next",
+          "action": "graft"
+        },
+        {
+          "line": 122,
+          "run_id": "run-20261027-191711-beepboop-list-7a746f",
+          "seq": 14,
+          "issue": "FAFF-1318",
+          "type": "decision-capture-action",
+          "kernel": "eligible",
+          "action": "eligible"
+        },
+        {
+          "line": 123,
+          "run_id": "run-20261027-191711-beepboop-list-7a746f",
+          "seq": 15,
+          "issue": "FAFF-1292",
+          "type": "decision-capture-action",
+          "kernel": "next",
+          "action": "done"
+        },
+        {
+          "line": 124,
+          "run_id": "run-20261027-191711-beepboop-list-7a746f",
+          "seq": 16,
+          "issue": "FAFF-1207",
+          "type": "decision-capture-action",
+          "kernel": "next",
+          "action": "done"
+        },
+        {
+          "line": 125,
+          "run_id": "run-20261027-191711-beepboop-list-7a746f",
+          "seq": 17,
+          "issue": "FAFF-1205",
+          "type": "decision-capture-action",
+          "kernel": "next",
+          "action": "done"
+        }
+      ]
+    }
+  ],
+  "cross_run_or_issue_or_order": [],
+  "unmatched_markers": [
+    {
+      "run_id": "run-20261026-031227-fly-l3",
+      "seq": 53,
+      "issue": "FAFF-1016",
+      "cid": "run-20261026-031227-fly-l3/FAFF-1016/eligible/1"
+    },
+    {
+      "run_id": "run-20261027-025421-beepboop-list-1f19c0",
+      "seq": 5,
+      "issue": "FAFF-1306",
+      "cid": "run-20261027-025421-beepboop-list-1f19c0/FAFF-1306/next/1"
+    },
+    {
+      "run_id": "run-20261027-025421-beepboop-list-1f19c0",
+      "seq": 6,
+      "issue": "FAFF-1306",
+      "cid": "run-20261027-025421-beepboop-list-1f19c0/FAFF-1306/eligible/1"
+    },
+    {
+      "run_id": "run-20261027-032405-beepboop-list-88c035",
+      "seq": 5,
+      "issue": "FAFF-1306",
+      "cid": "run-20261027-032405-beepboop-list-88c035/FAFF-1306/next/1"
+    },
+    {
+      "run_id": "run-20261027-032405-beepboop-list-88c035",
+      "seq": 6,
+      "issue": "FAFF-1306",
+      "cid": "run-20261027-032405-beepboop-list-88c035/FAFF-1306/eligible/1"
+    }
+  ],
+  "matrix": {
+    "claim-verdict": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "eligible": {
+      "agreement": 7,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 7
+    },
+    "next": {
+      "agreement": 18,
+      "harmless": 0,
+      "wasteful": 14,
+      "wrong": 0,
+      "denominator": 32
+    },
+    "park-verdict": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "project-next": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "queue-state": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "run-done": {
+      "agreement": 1,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 1
+    },
+    "run-outward": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    },
+    "run-start": {
+      "agreement": 0,
+      "harmless": 0,
+      "wasteful": 0,
+      "wrong": 0,
+      "denominator": 0
+    }
+  },
+  "details": [
+    {
+      "kernel": "next",
+      "prescribed": "prep",
+      "actual": "graft",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-162841-beepboop-list-36511a",
+      "seq": 7,
+      "corpus_line": 60,
+      "marker_corpus_line": 71,
+      "issue": "FAFF-1293",
+      "inputs": {
+        "status": "backlog",
+        "spec": "none",
+        "eligible": true,
+        "parked": false,
+        "blocked": false,
+        "ifEligible": false,
+        "awaitingSpecReview": false
+      },
+      "base_ts": "2026-10-27T16:30:53.595Z",
+      "marker_seq": 31,
+      "marker_ts": "2026-10-27T17:15:01.753Z",
+      "marker_action": "graft",
+      "elapsed_seconds": 2648.158
+    },
+    {
+      "kernel": "next",
+      "prescribed": "prep",
+      "actual": "graft",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-162841-beepboop-list-36511a",
+      "seq": 8,
+      "corpus_line": 61,
+      "marker_corpus_line": 73,
+      "issue": "FAFF-1249",
+      "inputs": {
+        "status": "backlog",
+        "spec": "none",
+        "eligible": true,
+        "parked": false,
+        "blocked": false,
+        "ifEligible": false,
+        "awaitingSpecReview": false
+      },
+      "base_ts": "2026-10-27T16:30:53.897Z",
+      "marker_seq": 34,
+      "marker_ts": "2026-10-27T17:15:02.006Z",
+      "marker_action": "graft",
+      "elapsed_seconds": 2648.109
+    },
+    {
+      "kernel": "next",
+      "prescribed": "graft",
+      "actual": "none",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-162841-beepboop-list-36511a",
+      "seq": 13,
+      "corpus_line": 66,
+      "marker_corpus_line": 76,
+      "issue": "FAFF-1292",
+      "inputs": {
+        "status": "in-review",
+        "spec": "high",
+        "eligible": true,
+        "parked": false,
+        "blocked": false,
+        "ifEligible": false,
+        "awaitingSpecReview": false
+      },
+      "base_ts": "2026-10-27T16:31:00.702Z",
+      "marker_seq": 37,
+      "marker_ts": "2026-10-27T17:15:02.297Z",
+      "marker_action": "none",
+      "elapsed_seconds": 2641.595
+    },
+    {
+      "kernel": "next",
+      "prescribed": "graft",
+      "actual": "none",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-162841-beepboop-list-36511a",
+      "seq": 14,
+      "corpus_line": 67,
+      "marker_corpus_line": 77,
+      "issue": "FAFF-1207",
+      "inputs": {
+        "status": "in-review",
+        "spec": "high",
+        "eligible": true,
+        "parked": false,
+        "blocked": false,
+        "ifEligible": false,
+        "awaitingSpecReview": false
+      },
+      "base_ts": "2026-10-27T16:31:00.873Z",
+      "marker_seq": 38,
+      "marker_ts": "2026-10-27T17:15:02.387Z",
+      "marker_action": "none",
+      "elapsed_seconds": 2641.514
+    },
+    {
+      "kernel": "next",
+      "prescribed": "graft",
+      "actual": "none",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-162841-beepboop-list-36511a",
+      "seq": 15,
+      "corpus_line": 68,
+      "marker_corpus_line": 78,
+      "issue": "FAFF-1205",
+      "inputs": {
+        "status": "in-review",
+        "spec": "high",
+        "eligible": true,
+        "parked": false,
+        "blocked": false,
+        "ifEligible": false,
+        "awaitingSpecReview": false
+      },
+      "base_ts": "2026-10-27T16:31:01.044Z",
+      "marker_seq": 39,
+      "marker_ts": "2026-10-27T17:15:02.471Z",
+      "marker_action": "none",
+      "elapsed_seconds": 2641.427
+    },
+    {
+      "kernel": "next",
+      "prescribed": "graft",
+      "actual": "needs-human",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-185215-beepboop-list-1456d4",
+      "seq": 6,
+      "corpus_line": 86,
+      "marker_corpus_line": 94,
+      "issue": "FAFF-1318",
+      "inputs": {
+        "status": "todo",
+        "spec": "high",
+        "eligible": true,
+        "parked": false,
+        "blocked": false,
+        "ifEligible": false,
+        "awaitingSpecReview": false
+      },
+      "base_ts": "2026-10-27T18:53:43.500Z",
+      "marker_seq": 15,
+      "marker_ts": "2026-10-27T18:54:20.724Z",
+      "marker_action": "needs-human",
+      "elapsed_seconds": 37.224
+    },
+    {
+      "kernel": "next",
+      "prescribed": "graft",
+      "actual": "none",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-185215-beepboop-list-1456d4",
+      "seq": 7,
+      "corpus_line": 87,
+      "marker_corpus_line": 95,
+      "issue": "FAFF-1292",
+      "inputs": {
+        "status": "in-review",
+        "spec": "high",
+        "eligible": true,
+        "parked": false,
+        "blocked": false,
+        "ifEligible": false,
+        "awaitingSpecReview": false
+      },
+      "base_ts": "2026-10-27T18:53:43.675Z",
+      "marker_seq": 16,
+      "marker_ts": "2026-10-27T18:54:20.817Z",
+      "marker_action": "none",
+      "elapsed_seconds": 37.142
+    },
+    {
+      "kernel": "next",
+      "prescribed": "graft",
+      "actual": "none",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-185215-beepboop-list-1456d4",
+      "seq": 8,
+      "corpus_line": 88,
+      "marker_corpus_line": 96,
+      "issue": "FAFF-1207",
+      "inputs": {
+        "status": "in-review",
+        "spec": "high",
+        "eligible": true,
+        "parked": false,
+        "blocked": false,
+        "ifEligible": false,
+        "awaitingSpecReview": false
+      },
+      "base_ts": "2026-10-27T18:53:43.845Z",
+      "marker_seq": 17,
+      "marker_ts": "2026-10-27T18:54:20.923Z",
+      "marker_action": "none",
+      "elapsed_seconds": 37.078
+    },
+    {
+      "kernel": "next",
+      "prescribed": "graft",
+      "actual": "none",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-185215-beepboop-list-1456d4",
+      "seq": 9,
+      "corpus_line": 89,
+      "marker_corpus_line": 97,
+      "issue": "FAFF-1205",
+      "inputs": {
+        "status": "in-review",
+        "spec": "high",
+        "eligible": true,
+        "parked": false,
+        "blocked": false,
+        "ifEligible": false,
+        "awaitingSpecReview": false
+      },
+      "base_ts": "2026-10-27T18:53:44.019Z",
+      "marker_seq": 18,
+      "marker_ts": "2026-10-27T18:54:21.015Z",
+      "marker_action": "none",
+      "elapsed_seconds": 36.996
+    },
+    {
+      "kernel": "next",
+      "prescribed": "graft",
+      "actual": "none",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-185806-beepboop-list-620a46",
+      "seq": 5,
+      "corpus_line": 98,
+      "marker_corpus_line": 103,
+      "issue": "FAFF-1318",
+      "inputs": {
+        "status": "todo",
+        "spec": "high",
+        "eligible": true,
+        "parked": false,
+        "blocked": false,
+        "ifEligible": false,
+        "awaitingSpecReview": false
+      },
+      "base_ts": "2026-10-27T18:59:44.568Z",
+      "marker_seq": 11,
+      "marker_ts": "2026-10-27T19:00:58.177Z",
+      "marker_action": "none",
+      "elapsed_seconds": 73.609
+    },
+    {
+      "kernel": "next",
+      "prescribed": "graft",
+      "actual": "none",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-185806-beepboop-list-620a46",
+      "seq": 6,
+      "corpus_line": 99,
+      "marker_corpus_line": 104,
+      "issue": "FAFF-1292",
+      "inputs": {
+        "status": "in-review",
+        "spec": "high",
+        "eligible": true,
+        "parked": false,
+        "blocked": false,
+        "ifEligible": false,
+        "awaitingSpecReview": false
+      },
+      "base_ts": "2026-10-27T18:59:44.768Z",
+      "marker_seq": 12,
+      "marker_ts": "2026-10-27T19:00:58.268Z",
+      "marker_action": "none",
+      "elapsed_seconds": 73.5
+    },
+    {
+      "kernel": "next",
+      "prescribed": "graft",
+      "actual": "none",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-185806-beepboop-list-620a46",
+      "seq": 7,
+      "corpus_line": 100,
+      "marker_corpus_line": 105,
+      "issue": "FAFF-1207",
+      "inputs": {
+        "status": "in-review",
+        "spec": "high",
+        "eligible": true,
+        "parked": false,
+        "blocked": false,
+        "ifEligible": false,
+        "awaitingSpecReview": false
+      },
+      "base_ts": "2026-10-27T18:59:44.945Z",
+      "marker_seq": 13,
+      "marker_ts": "2026-10-27T19:00:58.371Z",
+      "marker_action": "none",
+      "elapsed_seconds": 73.426
+    },
+    {
+      "kernel": "next",
+      "prescribed": "graft",
+      "actual": "none",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-185806-beepboop-list-620a46",
+      "seq": 8,
+      "corpus_line": 101,
+      "marker_corpus_line": 106,
+      "issue": "FAFF-1205",
+      "inputs": {
+        "status": "in-review",
+        "spec": "high",
+        "eligible": true,
+        "parked": false,
+        "blocked": false,
+        "ifEligible": false,
+        "awaitingSpecReview": false
+      },
+      "base_ts": "2026-10-27T18:59:45.121Z",
+      "marker_seq": 14,
+      "marker_ts": "2026-10-27T19:00:58.473Z",
+      "marker_action": "none",
+      "elapsed_seconds": 73.352
+    },
+    {
+      "kernel": "next",
+      "prescribed": "graft",
+      "actual": "needs-human",
+      "consequence": "wasteful",
+      "run_id": "run-20261027-192721-beepboop-list-c7df54",
+      "seq": 6,
+      "corpus_line": 127,
+      "marker_corpus_line": 128,
+      "issue": "FAFF-1318",
+      "inputs": {
+        "status": "todo",
+        "spec": "high",
+        "eligible": true,
+        "parked": false,
+        "blocked": false,
+        "ifEligible": false,
+        "awaitingSpecReview": false
+      },
+      "base_ts": "2026-10-27T19:28:39.392Z",
+      "marker_seq": 7,
+      "marker_ts": "2026-10-27T19:29:09.532Z",
+      "marker_action": "needs-human",
+      "elapsed_seconds": 30.14
+    }
+  ],
+  "method_only_cross_run_probe": {
+    "record_count": 2,
+    "null_result": false,
+    "null_reason": null,
+    "in_scope_kernels": [
+      "claim-verdict",
+      "eligible",
+      "next",
+      "park-verdict",
+      "project-next",
+      "queue-state",
+      "run-done",
+      "run-outward",
+      "run-start"
+    ],
+    "coverage": {
+      "replayable": 1,
+      "uncovered": 0,
+      "missing_input": 0
+    },
+    "matrix": {
+      "claim-verdict": {
+        "agreement": 0,
+        "harmless": 0,
+        "wasteful": 0,
+        "wrong": 0,
+        "denominator": 0
+      },
+      "eligible": {
+        "agreement": 0,
+        "harmless": 0,
+        "wasteful": 0,
+        "wrong": 0,
+        "denominator": 0
+      },
+      "next": {
+        "agreement": 1,
+        "harmless": 0,
+        "wasteful": 0,
+        "wrong": 0,
+        "denominator": 1
+      },
+      "park-verdict": {
+        "agreement": 0,
+        "harmless": 0,
+        "wasteful": 0,
+        "wrong": 0,
+        "denominator": 0
+      },
+      "project-next": {
+        "agreement": 0,
+        "harmless": 0,
+        "wasteful": 0,
+        "wrong": 0,
+        "denominator": 0
+      },
+      "queue-state": {
+        "agreement": 0,
+        "harmless": 0,
+        "wasteful": 0,
+        "wrong": 0,
+        "denominator": 0
+      },
+      "run-done": {
+        "agreement": 0,
+        "harmless": 0,
+        "wasteful": 0,
+        "wrong": 0,
+        "denominator": 0
+      },
+      "run-outward": {
+        "agreement": 0,
+        "harmless": 0,
+        "wasteful": 0,
+        "wrong": 0,
+        "denominator": 0
+      },
+      "run-start": {
+        "agreement": 0,
+        "harmless": 0,
+        "wasteful": 0,
+        "wrong": 0,
+        "denominator": 0
+      }
+    },
+    "divergences": [],
+    "exclusions": {
+      "version_skew": [],
+      "input_uncaptured": [],
+      "replay_error": [],
+      "verdict_skew": []
+    },
+    "missing_input_records": [],
+    "uncovered_records": [],
+    "out_of_scope_records": [],
+    "action_uncaptured": [],
+    "set_aside": [
+      {
+        "command": "decision-capture",
+        "classification": "decision-kernel-not-replayable",
+        "reason": "the instrumentation itself, not a decision the shadow would replay",
+        "captured_count": 0
+      },
+      {
+        "command": "park-reconsider",
+        "classification": "decision-kernel-not-replayable",
+        "reason": "set aside per the state-authority map + registry derivation",
+        "captured_count": 0
+      },
+      {
+        "command": "regions",
+        "classification": "instrumented-non-decision-kernel",
+        "reason": "instrumented but classified harness-and-skill-orchestration by the state-authority map, not a coordinator-transition decision",
+        "captured_count": 0
+      },
+      {
+        "command": "run-ledger",
+        "classification": "decision-kernel-not-replayable",
+        "reason": "record-mint entry (a record writer), not a pure prescribe-an-action predicate",
+        "captured_count": 0
+      },
+      {
+        "command": "shadow-fidelity",
+        "classification": "decision-kernel-not-replayable",
+        "reason": "set aside per the state-authority map + registry derivation",
+        "captured_count": 0
+      },
+      {
+        "command": "state",
+        "classification": "decision-kernel-not-replayable",
+        "reason": "read-model producer, not a prescribe-an-action predicate — no verdict to compare against selected_action",
+        "captured_count": 0
+      },
+      {
+        "command": "tier",
+        "classification": "instrumented-non-decision-kernel",
+        "reason": "instrumented but classified software-delivery-policy by the state-authority map, not a coordinator-transition decision",
+        "captured_count": 0
+      }
+    ]
+  },
+  "method_only_missing_required_probe": {
+    "record_count": 2,
+    "null_result": false,
+    "null_reason": null,
+    "in_scope_kernels": [
+      "claim-verdict",
+      "eligible",
+      "next",
+      "park-verdict",
+      "project-next",
+      "queue-state",
+      "run-done",
+      "run-outward",
+      "run-start"
+    ],
+    "coverage": {
+      "replayable": 1,
+      "uncovered": 0,
+      "missing_input": 0
+    },
+    "matrix": {
+      "claim-verdict": {
+        "agreement": 0,
+        "harmless": 0,
+        "wasteful": 0,
+        "wrong": 0,
+        "denominator": 0
+      },
+      "eligible": {
+        "agreement": 0,
+        "harmless": 0,
+        "wasteful": 0,
+        "wrong": 0,
+        "denominator": 0
+      },
+      "next": {
+        "agreement": 0,
+        "harmless": 0,
+        "wasteful": 1,
+        "wrong": 0,
+        "denominator": 1
+      },
+      "park-verdict": {
+        "agreement": 0,
+        "harmless": 0,
+        "wasteful": 0,
+        "wrong": 0,
+        "denominator": 0
+      },
+      "project-next": {
+        "agreement": 0,
+        "harmless": 0,
+        "wasteful": 0,
+        "wrong": 0,
+        "denominator": 0
+      },
+      "queue-state": {
+        "agreement": 0,
+        "harmless": 0,
+        "wasteful": 0,
+        "wrong": 0,
+        "denominator": 0
+      },
+      "run-done": {
+        "agreement": 0,
+        "harmless": 0,
+        "wasteful": 0,
+        "wrong": 0,
+        "denominator": 0
+      },
+      "run-outward": {
+        "agreement": 0,
+        "harmless": 0,
+        "wasteful": 0,
+        "wrong": 0,
+        "denominator": 0
+      },
+      "run-start": {
+        "agreement": 0,
+        "harmless": 0,
+        "wasteful": 0,
+        "wrong": 0,
+        "denominator": 0
+      }
+    },
+    "divergences": [
+      {
+        "kernel": "next",
+        "prescribed": "error",
+        "actual": "graft",
+        "consequence": "wasteful",
+        "run_id": "run-20261026-031227-fly-l3",
+        "seq": 5
+      }
+    ],
+    "exclusions": {
+      "version_skew": [],
+      "input_uncaptured": [],
+      "replay_error": [],
+      "verdict_skew": []
+    },
+    "missing_input_records": [],
+    "uncovered_records": [],
+    "out_of_scope_records": [],
+    "action_uncaptured": [],
+    "set_aside": [
+      {
+        "command": "decision-capture",
+        "classification": "decision-kernel-not-replayable",
+        "reason": "the instrumentation itself, not a decision the shadow would replay",
+        "captured_count": 0
+      },
+      {
+        "command": "park-reconsider",
+        "classification": "decision-kernel-not-replayable",
+        "reason": "set aside per the state-authority map + registry derivation",
+        "captured_count": 0
+      },
+      {
+        "command": "regions",
+        "classification": "instrumented-non-decision-kernel",
+        "reason": "instrumented but classified harness-and-skill-orchestration by the state-authority map, not a coordinator-transition decision",
+        "captured_count": 0
+      },
+      {
+        "command": "run-ledger",
+        "classification": "decision-kernel-not-replayable",
+        "reason": "record-mint entry (a record writer), not a pure prescribe-an-action predicate",
+        "captured_count": 0
+      },
+      {
+        "command": "shadow-fidelity",
+        "classification": "decision-kernel-not-replayable",
+        "reason": "set aside per the state-authority map + registry derivation",
+        "captured_count": 0
+      },
+      {
+        "command": "state",
+        "classification": "decision-kernel-not-replayable",
+        "reason": "read-model producer, not a prescribe-an-action predicate — no verdict to compare against selected_action",
+        "captured_count": 0
+      },
+      {
+        "command": "tier",
+        "classification": "instrumented-non-decision-kernel",
+        "reason": "instrumented but classified software-delivery-policy by the state-authority map, not a coordinator-transition decision",
+        "captured_count": 0
+      }
+    ]
+  }
+}

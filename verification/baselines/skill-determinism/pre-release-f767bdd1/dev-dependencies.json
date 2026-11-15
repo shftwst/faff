@@ -1,0 +1,14 @@
+{
+  "command": [
+    "npm",
+    "ci",
+    "--ignore-scripts",
+    "--no-audit",
+    "--no-fund"
+  ],
+  "cwd": "/Users/shftwst/.codex/worktrees/a713/faff/plugin/skills/faff",
+  "exit_code": 0,
+  "wall_seconds": 0.6022062208503485,
+  "finished_at": "2026-11-14T23:26:02.420159+00:00",
+  "scope": "Pinned devDependencies in ignored node_modules of isolated worktree only; no build or generated source write."
+}

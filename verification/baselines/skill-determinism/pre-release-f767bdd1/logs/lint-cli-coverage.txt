@@ -1,0 +1,1 @@
+PASS  lint-cli-coverage: 152 subcommands, every one selftest- or exercised-test-file-covered

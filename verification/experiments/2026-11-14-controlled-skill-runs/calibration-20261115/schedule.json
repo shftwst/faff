@@ -1,0 +1,31 @@
+{
+  "seed": "48de30df62f4b4416d9415b17bd7a0b0",
+  "repetitions": 1,
+  "attempts": [
+    {
+      "n": 1,
+      "scenario": "preserve-human-text",
+      "attempt": 1
+    },
+    {
+      "n": 2,
+      "scenario": "legacy-open-only",
+      "attempt": 1
+    },
+    {
+      "n": 3,
+      "scenario": "create-when-absent",
+      "attempt": 1
+    },
+    {
+      "n": 4,
+      "scenario": "duplicate-reconcile",
+      "attempt": 1
+    },
+    {
+      "n": 5,
+      "scenario": "quoted-imitation",
+      "attempt": 1
+    }
+  ]
+}

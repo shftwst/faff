@@ -1,0 +1,91 @@
+{
+  "selection": "Five newest filenames under ~/.codex/sessions whose session_meta.cwd exactly equals repository path; exclude 2026-11-14 audit sessions. Payload-free derived readings. No causal attribution to skills.",
+  "accounting": "Use last reported total_token_usage once per session. cached_input is a subset of input; reasoning is a subset of output. Counter resets make totals incomplete. No current prices applied.",
+  "sessions": [
+    {
+      "file": "2026/08/27/rollout-2026-08-27T20-40-45-01a044f4-22a2-7800-9a1b-85ff9663d505.jsonl",
+      "sha256": "0ec9bc555db3092f2675fe9b92c17b6450ba3689c7ec143b09b149fedcf72a87",
+      "models": [
+        "gpt-5.6-sol"
+      ],
+      "token_events_not_requests": 105,
+      "counter_resets": 0,
+      "last_reported_totals": {
+        "input_tokens": 13008107,
+        "cached_input_tokens": 12381440,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 47839,
+        "reasoning_output_tokens": 24627,
+        "total_tokens": 13055946
+      }
+    },
+    {
+      "file": "2026/08/27/rollout-2026-08-27T20-22-53-01a044e3-c6dd-7b11-a92b-9502b57a4d3d.jsonl",
+      "sha256": "d1b5060f9861ef385f0c4aeb83ed4f422318bbe764ea2d56673653af72e6f281",
+      "models": [
+        "gpt-5.6-sol"
+      ],
+      "token_events_not_requests": 79,
+      "counter_resets": 1,
+      "last_reported_totals": {
+        "input_tokens": 208954,
+        "cached_input_tokens": 206336,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1243,
+        "reasoning_output_tokens": 1037,
+        "total_tokens": 210197
+      }
+    },
+    {
+      "file": "2026/08/27/rollout-2026-08-27T18-50-08-01a0448e-dbdb-7761-958e-897ceab84ef6.jsonl",
+      "sha256": "6b8bec8247639dc93387b49456cb294c5068f9ad8a7a13ff52013280cf9b2718",
+      "models": [
+        "gpt-5.6-sol"
+      ],
+      "token_events_not_requests": 483,
+      "counter_resets": 1,
+      "last_reported_totals": {
+        "input_tokens": 45338748,
+        "cached_input_tokens": 43152640,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 191794,
+        "reasoning_output_tokens": 95688,
+        "total_tokens": 45530542
+      }
+    },
+    {
+      "file": "2026/08/27/rollout-2026-08-27T18-19-53-01a04473-2ad0-7f10-85f1-0c4f98042ddb.jsonl",
+      "sha256": "8fdac40fd9de79df97fbca9303f3e19eeb3266705e48cbc0e1d39082ef40ef09",
+      "models": [
+        "gpt-5.6-sol"
+      ],
+      "token_events_not_requests": 68,
+      "counter_resets": 0,
+      "last_reported_totals": {
+        "input_tokens": 7827372,
+        "cached_input_tokens": 7481600,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 29261,
+        "reasoning_output_tokens": 18471,
+        "total_tokens": 7856633
+      }
+    },
+    {
+      "file": "2026/08/20/rollout-2026-08-20T12-08-20-01a01fee-35ed-7bd1-8275-17bb3149ebd0.jsonl",
+      "sha256": "c2fb6053e89d7d799f8daac1fab0748efe4d39e613321509be6959a3bc15d648",
+      "models": [
+        "gpt-5.6-sol"
+      ],
+      "token_events_not_requests": 14,
+      "counter_resets": 0,
+      "last_reported_totals": {
+        "input_tokens": 726989,
+        "cached_input_tokens": 659968,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 4673,
+        "reasoning_output_tokens": 1768,
+        "total_tokens": 731662
+      }
+    }
+  ]
+}

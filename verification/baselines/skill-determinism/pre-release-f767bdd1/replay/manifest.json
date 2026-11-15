@@ -1,0 +1,44 @@
+{
+  "version": "decision-corpus-1",
+  "record_count": 128,
+  "corpus_sha256": "1310d43e4cb7cb4ff0716896bbe4fc3cc7671a43c2aad2a84f5fb44587b8fbcd",
+  "run_ids": [
+    "run-20261026-031227-fly-l3",
+    "run-20261026-165441-beepboop-list-c8818e",
+    "run-20261026-213652-beepboop-list-31f750",
+    "run-20261026-214540-beepboop-list-9d5e07",
+    "run-20261027-024440-beepboop-list-fa4ec4",
+    "run-20261027-025421-beepboop-list-1f19c0",
+    "run-20261027-030828-beepboop-list-9fd3e4",
+    "run-20261027-032405-beepboop-list-88c035",
+    "run-20261027-065425-beepboop-list-d4c19d",
+    "run-20261027-162841-beepboop-list-36511a",
+    "run-20261027-185215-beepboop-list-1456d4",
+    "run-20261027-185806-beepboop-list-620a46",
+    "run-20261027-190707-beepboop-list-906233",
+    "run-20261027-191213-beepboop-list-fe15ad",
+    "run-20261027-191711-beepboop-list-7a746f",
+    "run-20261027-192721-beepboop-list-c7df54"
+  ],
+  "map": {
+    "path": "docs/rfc/rfc-superdomestique-runtime/v5/STATE-AUTHORITY-MAP-v5.md",
+    "sha256": "09d980a08b6714b99b82a32d32f265f4d4a3ffa50476a987bf6de452a5c993b2",
+    "commit": "f767bdd1c0a78f6259c335742c1567a074f512a0",
+    "decision_kernel_commands": [
+      "claim-verdict",
+      "decision-capture",
+      "eligible",
+      "next",
+      "park-reconsider",
+      "park-verdict",
+      "project-next",
+      "queue-state",
+      "run-done",
+      "run-ledger",
+      "run-outward",
+      "run-start",
+      "shadow-fidelity",
+      "state"
+    ]
+  }
+}

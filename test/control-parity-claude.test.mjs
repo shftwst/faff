@@ -465,3 +465,11 @@ test('the driver reports a runtime fingerprint of the first request without the 
   assert.notEqual(runtimeFingerprint(evidence, 'PROMPT-B'), a);
   assert.equal(runtimeFingerprint(tmp(), 'x'), null);
 });
+
+test('list_comments makes no ordering promise, because tie-breaks depend on listing order', async () => {
+  const tracker = createFixtureTracker({ directory: trackerDir() });
+  const list = await handleMessage(tracker, { jsonrpc: '2.0', id: 1, method: 'tools/list' });
+  const description = list.result.tools.find(t => t.name === 'list_comments').description;
+  assert.doesNotMatch(description, /oldest|newest|sorted/i);
+  assert.match(description, /order the tracker returns/);
+});

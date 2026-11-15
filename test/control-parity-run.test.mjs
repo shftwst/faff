@@ -7,11 +7,11 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { DEFAULT_LIMITS, ALLOWED_TOOLS, HARNESS_TOOLS, HARNESS_INSTRUCTION } from '../eval/control-parity/claude-driver.mjs';
-import { evaluateCapture, preflight, prepareExperiment, runBaseline, runPairs } from '../eval/control-parity/run.mjs';
+import { evaluateCapture, main, preflight, prepareExperiment, runBaseline, runPairs } from '../eval/control-parity/run.mjs';
 import { loadPolicyBytes } from '../eval/control-parity/tracker.mjs';
 
 const ROOT = new URL('..', import.meta.url).pathname;
-const FILES = ['plugin/skills/faff/references/review.md', 'eval/control-parity/schema.mjs', 'eval/control-parity/tracker.mjs', 'eval/control-parity/proxy.mjs', 'eval/control-parity/tool-server.mjs', 'eval/control-parity/claude-driver.mjs', 'eval/control-parity/run.mjs', 'eval/control-parity/registry.json', 'eval/control-parity/expected-outcomes.json', 'eval/control-parity/blocked-coverage.json', 'eval/control-parity/fixtures/review-comments.json'];
+const FILES = ['plugin/skills/faff/references/review.md', 'eval/control-parity/schema.mjs', 'eval/control-parity/tracker.mjs', 'eval/control-parity/proxy.mjs', 'eval/control-parity/tool-server.mjs', 'eval/control-parity/claude-driver.mjs', 'eval/control-parity/run.mjs', 'eval/control-parity/registry.json', 'eval/control-parity/expected-outcomes.json', 'eval/control-parity/blocked-coverage.json', 'eval/control-parity/policy-decisions.json', 'eval/control-parity/fixtures/review-comments.json'];
 const git = (cwd, ...args) => execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', '-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=/dev/null', ...args], { cwd, encoding: 'utf8' }).trim();
 const makeRepo = () => {
   const dir = mkdtempSync(join(tmpdir(), 'cp-run-repo-'));
@@ -25,6 +25,7 @@ const commitChange = (dir, file, mutate) => {
   writeFileSync(join(dir, file), mutate(readFileSync(join(dir, file), 'utf8')));
   git(dir, 'commit', '-q', '-am', 'change');
 };
+const LIMITS = { ...DEFAULT_LIMITS, attempts: 11 };
 const SETTINGS = { binary: 'claude', model: 'claude-opus-5-5', effort: 'medium', credential_env: 'CLAUDE_CODE_OAUTH_TOKEN' };
 const fakeProbe = () => ({ available: true, binary: 'claude', version: '2.1.311', reasons: [], effort_supported: true, model_status: 'unverified', max_turns_flag: false, help_sha256: 'a'.repeat(64) });
 const goodCapture = (repo) => ({
@@ -43,7 +44,7 @@ const env = { CLAUDE_CODE_OAUTH_TOKEN: 'present' };
 const prepared = () => {
   const repo = makeRepo();
   const out = tmpOut('prepare');
-  const manifest = prepareExperiment({ sourceRoot: repo.dir, toolsRoot: repo.dir, pinnedCommit: repo.pinned, settings: SETTINGS, limits: DEFAULT_LIMITS, out, seed: 'fixed-seed', probe: fakeProbe });
+  const manifest = prepareExperiment({ sourceRoot: repo.dir, toolsRoot: repo.dir, pinnedCommit: repo.pinned, settings: SETTINGS, limits: LIMITS, out, seed: 'fixed-seed', probe: fakeProbe });
   return { repo, manifest, manifestPath: join(out, 'manifest.json') };
 };
 const ready = async ({ manifest, repo }, extra = {}) => preflight(manifest, { out: tmpOut('preflight'), probe: fakeProbe, liveProbe: async () => goodCapture(repo.dir), env, ...extra });
@@ -57,9 +58,9 @@ test('prepare binds source, tools, fixtures, settings and a seeded schedule cove
   assert.match(manifest.runtime_sha256, /^[a-f0-9]{64}$/);
   assert.deepEqual(manifest.settings, SETTINGS);
   assert.equal(manifest.schedule.seed, 'fixed-seed');
-  assert.equal(manifest.schedule.attempts.length, 5);
-  assert.deepEqual(manifest.schedule.attempts.map(a => a.scenario).sort(), ['create-when-absent', 'duplicate-reconcile', 'legacy-open-only', 'preserve-human-text', 'quoted-imitation']);
-  const again = prepareExperiment({ sourceRoot: repo.dir, toolsRoot: repo.dir, pinnedCommit: repo.pinned, settings: SETTINGS, limits: DEFAULT_LIMITS, out: tmpOut('again'), seed: 'fixed-seed', probe: fakeProbe });
+  assert.equal(manifest.schedule.attempts.length, 11);
+  assert.deepEqual(manifest.schedule.attempts.map(a => a.scenario).sort(), ['author-not-preferred', 'create-when-absent', 'crlf-outside-region', 'duplicate-reconcile', 'fenced-example', 'indented-and-trailing-whitespace', 'legacy-open-only', 'preserve-human-text', 'quoted-imitation', 'repeated-pairs', 'timestamp-ties']);
+  const again = prepareExperiment({ sourceRoot: repo.dir, toolsRoot: repo.dir, pinnedCommit: repo.pinned, settings: SETTINGS, limits: LIMITS, out: tmpOut('again'), seed: 'fixed-seed', probe: fakeProbe });
   assert.deepEqual(again.schedule, manifest.schedule, 'the order is reproducible from the seed');
   assert.ok(!JSON.stringify(manifest).includes('present'), 'no credential value is stored');
 });
@@ -68,7 +69,7 @@ test('an existing output directory is never overwritten', async () => {
   const p = prepared();
   const out = tmpOut('exists');
   mkdirSync(out);
-  assert.throws(() => prepareExperiment({ sourceRoot: p.repo.dir, toolsRoot: p.repo.dir, pinnedCommit: p.repo.pinned, settings: SETTINGS, limits: DEFAULT_LIMITS, out, seed: 's', probe: fakeProbe }), /exists/);
+  assert.throws(() => prepareExperiment({ sourceRoot: p.repo.dir, toolsRoot: p.repo.dir, pinnedCommit: p.repo.pinned, settings: SETTINGS, limits: LIMITS, out, seed: 's', probe: fakeProbe }), /exists/);
   await assert.rejects(preflight(p.manifest, { out, probe: fakeProbe, liveProbe: async () => goodCapture(p.repo.dir), env }), /exists/);
   const readiness = await ready(p);
   await assert.rejects(runBaseline(p.manifest, readiness, { out, driverFactory: () => null }), /exists/);
@@ -84,6 +85,7 @@ test('an unchanged checkout is ready for calibration, with live transport not ye
 for (const [name, change, pattern] of [
   ['changed skill prose', p => commitChange(p.repo.dir, 'plugin/skills/faff/references/review.md', s => s.replace('Never delete', 'Do not delete')), /source/],
   ['a changed fixture', p => commitChange(p.repo.dir, 'eval/control-parity/fixtures/review-comments.json', s => s.replace('Looks good to me', 'Looks fine to me')), /fixtures/],
+  ['a changed policy decision', p => commitChange(p.repo.dir, 'eval/control-parity/policy-decisions.json', s => s.replace('Authorship is never used.', 'Authorship is preferred.')), /tools/],
   ['a changed harness module', p => commitChange(p.repo.dir, 'eval/control-parity/claude-driver.mjs', s => s + '\n// edit\n'), /tools/],
   ['an uncommitted change', p => writeFileSync(join(p.repo.dir, 'eval/control-parity/registry.json'), readFileSync(join(p.repo.dir, 'eval/control-parity/registry.json'), 'utf8') + ' '), /uncommitted/],
 ]) {
@@ -157,9 +159,9 @@ test('a clean scripted baseline completes and writes an arm the comparator accep
   const out = tmpOut('baseline');
   const report = await runBaseline(p.manifest, await ready(p), { out, driverFactory: scripted() });
   assert.equal(report.status, 'calibration_complete');
-  assert.deepEqual(report.counts, { planned: 5, run: 5, pass: 5, fail: 0, incomplete: 0, not_run: 0 });
+  assert.deepEqual(report.counts, { planned: 11, run: 11, pass: 11, fail: 0, incomplete: 0, not_run: 0 });
   const arm = JSON.parse(readFileSync(join(out, 'run.json'), 'utf8'));
-  assert.equal(arm.traces.length, 5);
+  assert.equal(arm.traces.length, 11);
   for (const f of ['manifest.json', 'readiness.json', 'schedule.json', 'report.json', 'ledger.json']) assert.ok(existsSync(join(out, f)), f);
 });
 
@@ -168,9 +170,9 @@ test('a failed obligation and an incomplete attempt stay in the denominator, and
   const order = p.manifest.schedule.attempts.map(a => a.scenario);
   const report = await runBaseline(p.manifest, await ready(p), { out: tmpOut('stops'), driverFactory: scripted({ wrongOn: order[1], stopOn: order[2] }) });
   assert.equal(report.status, 'incomplete');
-  assert.deepEqual(report.counts, { planned: 5, run: 3, pass: 1, fail: 1, incomplete: 1, not_run: 2 });
+  assert.deepEqual(report.counts, { planned: 11, run: 3, pass: 1, fail: 1, incomplete: 1, not_run: 8 });
   assert.equal(report.stopped_by, `${order[2]}: timeout`);
-  assert.deepEqual(report.attempts.map(a => a.status), ['pass', 'fail', 'incomplete', 'not-run', 'not-run']);
+  assert.deepEqual(report.attempts.map(a => a.status), ['pass', 'fail', 'incomplete', ...Array(8).fill('not-run')]);
 });
 
 test('the first attempt doubles as the transport probe and ends the batch if the served model is wrong', async () => {
@@ -178,7 +180,7 @@ test('the first attempt doubles as the transport probe and ends the batch if the
   const report = await runBaseline(p.manifest, await ready(p), { out: tmpOut('transport'), driverFactory: scripted({ served: 'claude-sonnet-5-5' }) });
   assert.equal(report.live_transport, 'failed');
   assert.equal(report.counts.run, 1);
-  assert.equal(report.counts.not_run, 4);
+  assert.equal(report.counts.not_run, 10);
   assert.equal(report.status, 'incomplete');
 });
 
@@ -196,7 +198,7 @@ test('an attempt that cannot finish inside the batch deadline is not started', a
   const factory = ctx => { const d = scripted()(ctx); return async arg => { const r = await d(arg); now += 1_800_000; return r; }; };
   const report = await runBaseline(p.manifest, await ready(p), { out: tmpOut('deadline'), driverFactory: factory, clock });
   assert.equal(report.counts.run, 2);
-  assert.equal(report.counts.not_run, 3);
+  assert.equal(report.counts.not_run, 9);
   assert.equal(report.stopped_by, 'batch-deadline');
 });
 
@@ -216,12 +218,12 @@ test('paired runs execute both arms fresh with identical settings and report by 
   const readiness = await ready(p);
   const both = await runPairs(p.manifest, p.repo.dir, p.repo.dir, readiness, { out: tmpOut('pairs'), driverFactory: scripted() });
   assert.equal(both.comparison.status, 'pass');
-  assert.equal(both.counts.pairs, 5);
+  assert.equal(both.counts.pairs, 11);
   const seen = [];
   const recording = ctx => { seen.push([ctx.arm, ctx.scenario, ctx.settings.model, ctx.settings.effort]); return (ctx.arm === 'candidate' && ctx.scenario === 'duplicate-reconcile' ? scripted({ wrongOn: 'duplicate-reconcile' }) : scripted())(ctx); };
   const differing = await runPairs(p.manifest, p.repo.dir, p.repo.dir, readiness, { out: tmpOut('pairs-diff'), driverFactory: recording });
   assert.equal(differing.comparison.status, 'fail');
-  assert.equal(seen.length, 10);
+  assert.equal(seen.length, 22);
   assert.ok(seen.every(s => s[2] === 'claude-opus-5-5' && s[3] === 'medium'));
   const stopped = await runPairs(p.manifest, p.repo.dir, p.repo.dir, readiness, { out: tmpOut('pairs-stop'), driverFactory: ctx => (ctx.arm === 'candidate' ? scripted({ stopOn: ctx.scenario }) : scripted())(ctx) });
   assert.equal(stopped.comparison.status, 'incomplete');
@@ -241,7 +243,7 @@ test('an attempt whose trace fails validation stays in the denominator and the r
   assert.equal(report.attempts[1].status, 'incomplete');
   assert.match(report.attempts[1].invalid, /accounting/i);
   assert.equal(report.stopped_by, `${second}: invalid-trace`);
-  assert.equal(report.counts.planned, 5);
+  assert.equal(report.counts.planned, 11);
   assert.ok(existsSync(join(out, 'report.json')));
   assert.equal(JSON.parse(readFileSync(join(out, 'run.json'), 'utf8')).traces.length, 1);
 });
@@ -261,5 +263,15 @@ test('paired arms in different cache strata are reported as separate strata', as
   const warm = [{ usage: { input_tokens: 1, output_tokens: 1, cache_read_input_tokens: 100, cache_creation_input_tokens: 0 }, cost_nanos: 1 }];
   const cold = [{ usage: { input_tokens: 1, output_tokens: 1, cache_read_input_tokens: 0, cache_creation_input_tokens: 100 }, cost_nanos: 1 }];
   const report = await runPairs(p.manifest, p.repo.dir, p.repo.dir, await ready(p), { out: tmpOut('strata'), driverFactory: ctx => withEvidence(ctx.arm === 'baseline' ? warm : cold)(ctx) });
-  assert.equal(report.strata_differ.length, 5);
+  assert.equal(report.strata_differ.length, 11);
+});
+
+test('the prepare command records a raised attempt limit in a new manifest', async () => {
+  const repo = makeRepo();
+  const out = tmpOut('cli-prepare');
+  const code = await main(['prepare', '--source-root', repo.dir, '--pinned-commit', repo.pinned, '--credential-env', 'CLAUDE_CODE_OAUTH_TOKEN', '--model', 'claude-opus-5-5', '--effort', 'medium', '--attempts', '11', '--out', out]);
+  assert.equal(code, 0);
+  const manifest = JSON.parse(readFileSync(join(out, 'manifest.json'), 'utf8'));
+  assert.equal(manifest.limits.attempts, 11);
+  assert.deepEqual({ ...manifest.limits, attempts: DEFAULT_LIMITS.attempts }, DEFAULT_LIMITS);
 });

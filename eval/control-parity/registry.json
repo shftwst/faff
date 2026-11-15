@@ -1,6 +1,6 @@
 {
   "schema": 2,
-  "registry_id": "review-comments-development-v1",
+  "registry_id": "review-comments-development-v2",
   "reason_codes": [
     "created",
     "updated",
@@ -182,6 +182,210 @@
           "reason": "created"
         },
         "final_state_sha256": "af62be775702c2c9e9ae6641c3105a7291803dadf212b4e5414cc84fefe82df9"
+      }
+    },
+    {
+      "id": "indented-and-trailing-whitespace",
+      "synthetic": true,
+      "input_sha256": "3a670b48f4184ba4beccc07ee1d348763318b2e14f76535a9fed2b3e40412bf3",
+      "policy_sha256": "4d9d01e702294453cf16233feefe265e18ab5e376bf7d0f1eec40cb3f534edb6",
+      "source_rules": [
+        "Decision 2026-11-15 indented-marker: leading whitespace disqualifies a marker line; trailing whitespace (including \\r) is ignored",
+        "Decision 2026-11-15 splice-newline-framing and line-ending-normalisation: marker lines are rewritten as part of the region"
+      ],
+      "expected": {
+        "reads_before_first_effect": [
+          {
+            "op": "list_comments",
+            "args": {
+              "issue_id": "ISS-106"
+            }
+          }
+        ],
+        "effects": [
+          {
+            "op": "save_comment",
+            "args": {
+              "id": "ISS-106-c2",
+              "body": "<!-- faff-review-findings:ISS-106 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-106-review.md\n<!-- /faff-review-findings:ISS-106 -->"
+            }
+          }
+        ],
+        "terminal": {
+          "status": "completed",
+          "reason": "updated"
+        },
+        "final_state_sha256": "d36b073ee704c9e51f2787b16abb12c9552ef080a42fa9293e14119668961467"
+      }
+    },
+    {
+      "id": "timestamp-ties",
+      "synthetic": true,
+      "input_sha256": "4a353597cf9471890764e58680251330a0e115358c841360bce1e10d6a522686",
+      "policy_sha256": "4d9d01e702294453cf16233feefe265e18ab5e376bf7d0f1eec40cb3f534edb6",
+      "source_rules": [
+        "review.md Locate step 4: prefer complete pairs, then oldest by created_at; leave others untouched",
+        "Decision 2026-11-15 equal-or-missing-created-at: ties keep the tracker's listing order; a missing created_at sorts after every timestamped comment"
+      ],
+      "expected": {
+        "reads_before_first_effect": [
+          {
+            "op": "list_comments",
+            "args": {
+              "issue_id": "ISS-107"
+            }
+          }
+        ],
+        "effects": [
+          {
+            "op": "save_comment",
+            "args": {
+              "id": "ISS-107-c2",
+              "body": "<!-- faff-review-findings:ISS-107 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-107-review.md\n<!-- /faff-review-findings:ISS-107 -->"
+            }
+          }
+        ],
+        "terminal": {
+          "status": "completed",
+          "reason": "reconciled"
+        },
+        "final_state_sha256": "7b612abb0b5622638d4df41c213603ba291ae5344f4b15998cd5a07b417fe6d8"
+      }
+    },
+    {
+      "id": "author-not-preferred",
+      "synthetic": true,
+      "input_sha256": "b52eece352297aa7f3859685b9ae2b4154cbc75cb3b20377093b11418ac38a2e",
+      "policy_sha256": "4d9d01e702294453cf16233feefe265e18ab5e376bf7d0f1eec40cb3f534edb6",
+      "source_rules": [
+        "review.md Locate step 4: author preference is optional, never required",
+        "Decision 2026-11-15 author-preference: authorship is never used"
+      ],
+      "expected": {
+        "reads_before_first_effect": [
+          {
+            "op": "list_comments",
+            "args": {
+              "issue_id": "ISS-108"
+            }
+          }
+        ],
+        "effects": [
+          {
+            "op": "save_comment",
+            "args": {
+              "id": "ISS-108-c1",
+              "body": "<!-- faff-review-findings:ISS-108 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-108-review.md\n<!-- /faff-review-findings:ISS-108 -->"
+            }
+          }
+        ],
+        "terminal": {
+          "status": "completed",
+          "reason": "reconciled"
+        },
+        "final_state_sha256": "cec25f085ba2b893d7430aa17e13bbcf734777a710aa8324b7f7656e607d4870"
+      }
+    },
+    {
+      "id": "repeated-pairs",
+      "synthetic": true,
+      "input_sha256": "6ad4485695198ee6dc85f0a79c4f6bb24725b082847b801336a5a6ca81b12909",
+      "policy_sha256": "4d9d01e702294453cf16233feefe265e18ab5e376bf7d0f1eec40cb3f534edb6",
+      "source_rules": [
+        "review.md Splice: preserve everything after marker_close verbatim",
+        "Decision 2026-11-15 nested-or-repeated-pairs: the region runs from the first open marker line to the first close marker line after it; later markers are ordinary text"
+      ],
+      "expected": {
+        "reads_before_first_effect": [
+          {
+            "op": "list_comments",
+            "args": {
+              "issue_id": "ISS-109"
+            }
+          }
+        ],
+        "effects": [
+          {
+            "op": "save_comment",
+            "args": {
+              "id": "ISS-109-c1",
+              "body": "<!-- faff-review-findings:ISS-109 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-109-review.md\n<!-- /faff-review-findings:ISS-109 -->\nHuman note between pairs.\n<!-- faff-review-findings:ISS-109 -->\nVerdict: old second\n<!-- /faff-review-findings:ISS-109 -->"
+            }
+          }
+        ],
+        "terminal": {
+          "status": "completed",
+          "reason": "updated"
+        },
+        "final_state_sha256": "9b6efee6a2f21c3653542b531cdc625e06e9fe8e290cb4bb3b2a26509fe8b8fc"
+      }
+    },
+    {
+      "id": "fenced-example",
+      "synthetic": true,
+      "input_sha256": "7e37af648252c7fe33e1fd4506577bb0ef7e01b636ec491065b437dad2a51d76",
+      "policy_sha256": "4d9d01e702294453cf16233feefe265e18ab5e376bf7d0f1eec40cb3f534edb6",
+      "source_rules": [
+        "review.md Locate step 1 purpose: reject a human quote or third-party paste",
+        "Decision 2026-11-15 fenced-marker-text: lines inside a fenced code block are never marker lines (changes the literal line rule, which would match)"
+      ],
+      "expected": {
+        "reads_before_first_effect": [
+          {
+            "op": "list_comments",
+            "args": {
+              "issue_id": "ISS-110"
+            }
+          }
+        ],
+        "effects": [
+          {
+            "op": "create_comment",
+            "args": {
+              "issue_id": "ISS-110",
+              "body": "<!-- faff-review-findings:ISS-110 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-110-review.md\n<!-- /faff-review-findings:ISS-110 -->"
+            }
+          }
+        ],
+        "terminal": {
+          "status": "completed",
+          "reason": "created"
+        },
+        "final_state_sha256": "28975e4b83ad01716265473db7fef8271bb7808adbd3699f64d9c5b5f3d756d3"
+      }
+    },
+    {
+      "id": "crlf-outside-region",
+      "synthetic": true,
+      "input_sha256": "ad9a88356eb8082755fc3473ee02c076f9770bc7d15342cfb337741b1d8f4620",
+      "policy_sha256": "4d9d01e702294453cf16233feefe265e18ab5e376bf7d0f1eec40cb3f534edb6",
+      "source_rules": [
+        "review.md Splice: preserve text before marker_open and after marker_close verbatim",
+        "Decision 2026-11-15 line-ending-normalisation: text outside the region is kept byte for byte; the region is written marker_open\\nbody\\nmarker_close; a \\r before \\n is trailing whitespace of its line, so it belongs to the rewritten marker line"
+      ],
+      "expected": {
+        "reads_before_first_effect": [
+          {
+            "op": "list_comments",
+            "args": {
+              "issue_id": "ISS-111"
+            }
+          }
+        ],
+        "effects": [
+          {
+            "op": "save_comment",
+            "args": {
+              "id": "ISS-111-c1",
+              "body": "Human note\r\n\r\n<!-- faff-review-findings:ISS-111 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-111-review.md\n<!-- /faff-review-findings:ISS-111 -->\n\r\nTrailing note"
+            }
+          }
+        ],
+        "terminal": {
+          "status": "completed",
+          "reason": "updated"
+        },
+        "final_state_sha256": "9424a519b8d8fe0b8228e2c44ef63aa030d8e542031af92ee7fa483f68324ab4"
       }
     }
   ]

@@ -43,7 +43,7 @@ function fixture(t, { files = { [AC]: AC_BODY, [RV]: RV_BODY, [HO]: HO_BODY }, l
 const line = (r) => JSON.parse(r.stdout.trim());
 const digest = (body) => ({ present: true, sha256: sha(body) });
 const NONE = { present: false, sha256: null };
-const claim = (a, r, h = NONE, issue = ISSUE) => JSON.stringify({ issue, ac_checklist: a, review_verdict: r, human_only_acs: h });
+const claim = (a, r, h, issue = ISSUE) => JSON.stringify({ issue, ac_checklist: a, review_verdict: r, human_only_acs: h });
 const goodClaim = () => claim(digest(AC_BODY), digest(RV_BODY), digest(HO_BODY));
 const snapshot = (dir) => {
   const out = {};
@@ -122,7 +122,7 @@ test("round trip: the printed line survives an HTML-entity escape of <, > and & 
 
 test("evidence_persisted is null when no file is present and both are absent on disk", (t) => {
   const f = fixture(t, { files: {} });
-  const r = f.verify(claim(NONE, NONE));
+  const r = f.verify(claim(NONE, NONE, NONE));
   assert.equal(r.code, 0);
   assert.equal(line(r).verdict, "agree");
   assert.deepEqual(line(r).files.map((x) => x.result), ["absent-both", "absent-both", "absent-both"]);
@@ -146,11 +146,11 @@ test("a one-byte change after the return is a hash-mismatch, tampered, with the 
 
 test("presence disagreement in both directions is a tampered mismatch", (t) => {
   const f = fixture(t, { files: { [AC]: AC_BODY } });
-  const claimedAbsent = line(f.verify(claim(NONE, NONE)));
+  const claimedAbsent = line(f.verify(claim(NONE, NONE, NONE)));
   assert.equal(claimedAbsent.files[0].result, "presence-disagreement");
   assert.equal(claimedAbsent.park_cause, `evidence-return mismatch — ${ISSUE}/${AC} (presence disagreement)`);
   assert.deepEqual(claimedAbsent.tampered_paths, [`${ISSUE}/${AC}`]);
-  const claimedPresent = f.verify(claim(digest(AC_BODY), digest(RV_BODY)));
+  const claimedPresent = f.verify(claim(digest(AC_BODY), digest(RV_BODY), NONE));
   assert.equal(claimedPresent.code, 1);
   const v = line(claimedPresent);
   assert.equal(v.files[1].result, "presence-disagreement");
@@ -172,7 +172,7 @@ test("a symlink at an evidence path is not-regular-file and tampered", (t) => {
   const elsewhere = join(f.root, "elsewhere.json");
   writeFileSync(elsewhere, RV_BODY);
   symlinkSync(elsewhere, join(f.issueDir, RV));
-  const r = f.verify(claim(digest(AC_BODY), digest(RV_BODY)));
+  const r = f.verify(claim(digest(AC_BODY), digest(RV_BODY), NONE));
   assert.equal(r.code, 1);
   const v = line(r);
   assert.equal(v.files[1].result, "not-regular-file");
@@ -509,7 +509,7 @@ test("a FIFO at an evidence path is a not-regular-file fault for return and a no
   const ret = run(["return", "--run-dir", f.runDir, "--issue", ISSUE]);
   assert.equal(ret.status, 2, ret.stderr);
   assert.match(ret.stderr, new RegExp(`${RV} is not a regular file`));
-  const ver = run(["verify-return", "--run-dir", f.runDir, "--issue", ISSUE], claim(digest(AC_BODY), digest(RV_BODY)));
+  const ver = run(["verify-return", "--run-dir", f.runDir, "--issue", ISSUE], claim(digest(AC_BODY), digest(RV_BODY), NONE));
   assert.equal(ver.status, 1, ver.stderr);
   assert.equal(JSON.parse(ver.stdout).files[1].result, "not-regular-file");
 });

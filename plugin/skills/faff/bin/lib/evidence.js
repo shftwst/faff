@@ -1474,13 +1474,6 @@ function readEvidenceLeaf(abs) {
   return { kind: leaf.kind, sha256: leaf.kind === "regular" ? crypto.createHash("sha256").update(leaf.bytes).digest("hex") : null };
 }
 
-// Leaf sha256 of a file that must be regular (the selftest fixtures).
-function hashRegularFile(abs) {
-  const leaf = readEvidenceLeaf(abs);
-  if (leaf.kind !== "regular") throw new WriterFault(`${path.basename(abs)} is not a regular file`);
-  return leaf.sha256;
-}
-
 function evidenceReturn(runDir, issue) {
   const issueDir = guardWriterPaths(runDir, issue);
   const out = { issue };

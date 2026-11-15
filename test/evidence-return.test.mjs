@@ -19,11 +19,13 @@ const PERSISTED_ITEM = LEDGER_SCHEMA.properties.evidence_persisted.items;
 const ISSUE = "ISSUE-1";
 const AC = "ac-checklist.json";
 const RV = "review-verdict.json";
+const HO = "human-only-acs.json";
 const sha = (text) => createHash("sha256").update(text).digest("hex");
 const AC_BODY = '{"note":"<unknown> -> &","all_verified":true}\n';
 const RV_BODY = '{"signal":"pass"}\n';
+const HO_BODY = '{"schema_version":1,"issue":"ISSUE-1","level":"L3","unattended":true,"human_only":["issue-1#ac-2"]}\n';
 
-function fixture(t, { files = { [AC]: AC_BODY, [RV]: RV_BODY }, ledger } = {}) {
+function fixture(t, { files = { [AC]: AC_BODY, [RV]: RV_BODY, [HO]: HO_BODY }, ledger } = {}) {
   const root = mkdtempSync(join(tmpdir(), "faff-evidence-return-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const runDir = join(root, ".faff", "runs", "run-20991231-000000-graft-ISSUE-1");
@@ -41,8 +43,8 @@ function fixture(t, { files = { [AC]: AC_BODY, [RV]: RV_BODY }, ledger } = {}) {
 const line = (r) => JSON.parse(r.stdout.trim());
 const digest = (body) => ({ present: true, sha256: sha(body) });
 const NONE = { present: false, sha256: null };
-const claim = (a, r, issue = ISSUE) => JSON.stringify({ issue, ac_checklist: a, review_verdict: r });
-const goodClaim = () => claim(digest(AC_BODY), digest(RV_BODY));
+const claim = (a, r, h = NONE, issue = ISSUE) => JSON.stringify({ issue, ac_checklist: a, review_verdict: r, human_only_acs: h });
+const goodClaim = () => claim(digest(AC_BODY), digest(RV_BODY), digest(HO_BODY));
 const snapshot = (dir) => {
   const out = {};
   const walk = (d) => {
@@ -60,7 +62,7 @@ test("return prints one EvidenceReturn line with lowercase hex digests and exits
   const r = f.ret();
   assert.equal(r.code, 0);
   assert.equal(r.stdout.split("\n").length, 2);
-  assert.deepEqual(line(r), { issue: ISSUE, ac_checklist: digest(AC_BODY), review_verdict: digest(RV_BODY) });
+  assert.deepEqual(line(r), { issue: ISSUE, ac_checklist: digest(AC_BODY), review_verdict: digest(RV_BODY), human_only_acs: digest(HO_BODY) });
   assert.match(line(r).ac_checklist.sha256, /^[0-9a-f]{64}$/);
 });
 
@@ -68,7 +70,7 @@ test("return reports an absent file as present:false with a null sha256", (t) =>
   const f = fixture(t, { files: { [AC]: AC_BODY } });
   const r = f.ret();
   assert.equal(r.code, 0);
-  assert.deepEqual(line(r), { issue: ISSUE, ac_checklist: digest(AC_BODY), review_verdict: NONE });
+  assert.deepEqual(line(r), { issue: ISSUE, ac_checklist: digest(AC_BODY), review_verdict: NONE, human_only_acs: NONE });
 });
 
 test("return exits 2 with nothing on stdout for a symlink, a bad run dir, a bad issue id and missing flags", (t) => {
@@ -98,9 +100,9 @@ test("verify-return agrees on an untouched return and the evidence_persisted ent
   const v = line(r);
   assert.equal(v.verdict, "agree");
   assert.equal(v.issue, ISSUE);
-  assert.deepEqual(v.files.map((x) => x.file), [AC, RV]);
-  assert.deepEqual(v.files.map((x) => x.result), ["match", "match"]);
-  assert.deepEqual(v.evidence_persisted, { issue: ISSUE, ac_sha256: sha(AC_BODY), review_verdict_sha256: sha(RV_BODY) });
+  assert.deepEqual(v.files.map((x) => x.file), [AC, RV, HO]);
+  assert.deepEqual(v.files.map((x) => x.result), ["match", "match", "match"]);
+  assert.deepEqual(v.evidence_persisted, { issue: ISSUE, ac_sha256: sha(AC_BODY), review_verdict_sha256: sha(RV_BODY), human_only_acs_sha256: sha(HO_BODY) });
   assert.deepEqual(validateAgainstSchema(v.evidence_persisted, PERSISTED_ITEM), []);
   assert.equal(v.park_cause, null);
   assert.deepEqual(v.paths, []);
@@ -123,7 +125,7 @@ test("evidence_persisted is null when no file is present and both are absent on 
   const r = f.verify(claim(NONE, NONE));
   assert.equal(r.code, 0);
   assert.equal(line(r).verdict, "agree");
-  assert.deepEqual(line(r).files.map((x) => x.result), ["absent-both", "absent-both"]);
+  assert.deepEqual(line(r).files.map((x) => x.result), ["absent-both", "absent-both", "absent-both"]);
   assert.equal(line(r).evidence_persisted, null);
 });
 
@@ -202,16 +204,16 @@ test("stdin null with a file on disk is no-claim: a missing cause, no tampered p
 test("a mixed no-claim and hash-mismatch run lists only the changed file as tampered", (t) => {
   const f = fixture(t, { ledger: {} });
   const v = line(f.against());
-  assert.deepEqual(v.files.map((x) => x.result), ["no-claim", "no-claim"]);
+  assert.deepEqual(v.files.map((x) => x.result), ["no-claim", "no-claim", "no-claim"]);
   const f2 = fixture(t, { ledger: { evidence_persisted: [{ issue: ISSUE, ac_sha256: sha(AC_BODY) }] } });
   const v2 = line(f2.against());
-  assert.deepEqual(v2.files.map((x) => x.result), ["match", "presence-disagreement"]);
-  assert.deepEqual(v2.tampered_paths, [`${ISSUE}/${RV}`]);
+  assert.deepEqual(v2.files.map((x) => x.result), ["match", "presence-disagreement", "presence-disagreement"]);
+  assert.deepEqual(v2.tampered_paths, [`${ISSUE}/${RV}`, `${ISSUE}/${HO}`]);
 });
 
 test("the malformed family: bad JSON, legacy body, uppercase or short hex, null sha with present, extra key, other issue", (t) => {
   const f = fixture(t);
-  const good = { issue: ISSUE, ac_checklist: digest(AC_BODY), review_verdict: digest(RV_BODY) };
+  const good = { issue: ISSUE, ac_checklist: digest(AC_BODY), review_verdict: digest(RV_BODY), human_only_acs: digest(HO_BODY) };
   const variants = {
     "bad json": '{"issue":',
     "empty stdin": "",
@@ -225,6 +227,8 @@ test("the malformed family: bad JSON, legacy body, uppercase or short hex, null 
     "non-boolean present": JSON.stringify({ ...good, review_verdict: { present: "yes", sha256: sha(RV_BODY) } }),
     "extra key": JSON.stringify({ ...good, extra: 1 }),
     "missing key": JSON.stringify({ issue: ISSUE, ac_checklist: good.ac_checklist }),
+    "old two-file shape": JSON.stringify({ issue: ISSUE, ac_checklist: good.ac_checklist, review_verdict: good.review_verdict }),
+    "human_only_acs with a body": JSON.stringify({ ...good, human_only_acs: { present: true, body: HO_BODY } }),
     "other issue": JSON.stringify({ ...good, issue: "ISSUE-2" }),
   };
   for (const [label, input] of Object.entries(variants)) {
@@ -258,17 +262,17 @@ test("--against-ledger agrees with the last evidence_persisted entry for the iss
   const ledger = { evidence_persisted: [
     { issue: ISSUE, ac_sha256: sha("stale") },
     { issue: "OTHER-9", ac_sha256: sha("other") },
-    { issue: ISSUE, ac_sha256: sha(AC_BODY), review_verdict_sha256: sha(RV_BODY) },
+    { issue: ISSUE, ac_sha256: sha(AC_BODY), review_verdict_sha256: sha(RV_BODY), human_only_acs_sha256: sha(HO_BODY) },
   ] };
   const f = fixture(t, { ledger });
   const r = f.against();
   assert.equal(r.code, 0);
   assert.equal(line(r).verdict, "agree");
-  assert.deepEqual(line(r).evidence_persisted, { issue: ISSUE, ac_sha256: sha(AC_BODY), review_verdict_sha256: sha(RV_BODY) });
+  assert.deepEqual(line(r).evidence_persisted, { issue: ISSUE, ac_sha256: sha(AC_BODY), review_verdict_sha256: sha(RV_BODY), human_only_acs_sha256: sha(HO_BODY) });
 });
 
 test("--against-ledger catches a change after the ledger entry as hash-mismatch", (t) => {
-  const f = fixture(t, { ledger: { evidence_persisted: [{ issue: ISSUE, ac_sha256: sha(AC_BODY), review_verdict_sha256: sha(RV_BODY) }] } });
+  const f = fixture(t, { ledger: { evidence_persisted: [{ issue: ISSUE, ac_sha256: sha(AC_BODY), review_verdict_sha256: sha(RV_BODY), human_only_acs_sha256: sha(HO_BODY) }] } });
   appendFileSync(join(f.issueDir, AC), "x");
   const r = f.against();
   assert.equal(r.code, 1);
@@ -297,12 +301,12 @@ test("--against-ledger exits 2 for a missing or unparseable ledger and does not 
   const b = broken.against();
   assert.equal(b.code, 2);
   assert.equal(b.stdout, "");
-  const ok = fixture(t, { ledger: { evidence_persisted: [{ issue: ISSUE, ac_sha256: sha(AC_BODY), review_verdict_sha256: sha(RV_BODY) }] } });
+  const ok = fixture(t, { ledger: { evidence_persisted: [{ issue: ISSUE, ac_sha256: sha(AC_BODY), review_verdict_sha256: sha(RV_BODY), human_only_acs_sha256: sha(HO_BODY) }] } });
   assert.equal(ok.verify("garbage that is not read", ["--against-ledger"]).code, 0);
 });
 
 test("neither verb creates, modifies or deletes any file", (t) => {
-  const f = fixture(t, { ledger: { evidence_persisted: [{ issue: ISSUE, ac_sha256: sha(AC_BODY), review_verdict_sha256: sha(RV_BODY) }] } });
+  const f = fixture(t, { ledger: { evidence_persisted: [{ issue: ISSUE, ac_sha256: sha(AC_BODY), review_verdict_sha256: sha(RV_BODY), human_only_acs_sha256: sha(HO_BODY) }] } });
   const before = snapshot(f.root);
   f.ret();
   f.verify(goodClaim());
@@ -337,6 +341,105 @@ test("return and verify-return refuse flags that belong to other evidence verbs"
     const v = f.verify(goodClaim(), flag);
     assert.equal(v.code, 2, `verify-return ${flag[0]}`);
     assert.equal(v.stdout, "");
+  }
+});
+
+// --- FAFF-1478: human-only-acs.json is the third member of the roster ---------------------------------
+
+test("a change to human-only-acs.json after the return is a hash-mismatch naming that file as tampered", (t) => {
+  const f = fixture(t);
+  appendFileSync(join(f.issueDir, HO), "x");
+  const r = f.verify(goodClaim());
+  assert.equal(r.code, 1);
+  const v = line(r);
+  assert.equal(v.verdict, "mismatch");
+  assert.deepEqual(v.files.map((x) => x.result), ["match", "match", "hash-mismatch"]);
+  assert.equal(v.park_cause, `evidence-return mismatch — ${ISSUE}/${HO} (returned copy ≠ on-disk copy)`);
+  assert.deepEqual(v.tampered_paths, [`${ISSUE}/${HO}`]);
+  assert.equal(v.evidence_persisted, null);
+});
+
+test("--against-ledger catches a rewrite of human-only-acs.json after the ledger entry", (t) => {
+  const f = fixture(t, { ledger: { evidence_persisted: [{ issue: ISSUE, ac_sha256: sha(AC_BODY), review_verdict_sha256: sha(RV_BODY), human_only_acs_sha256: sha(HO_BODY) }] } });
+  writeFileSync(join(f.issueDir, HO), '{"rewritten":true}\n');
+  const r = f.against();
+  assert.equal(r.code, 1);
+  assert.equal(line(r).files[2].result, "hash-mismatch");
+  assert.deepEqual(line(r).tampered_paths, [`${ISSUE}/${HO}`]);
+});
+
+test("a file created after an entry written without it is a presence disagreement", (t) => {
+  const f = fixture(t, { ledger: { evidence_persisted: [{ issue: ISSUE, ac_sha256: sha(AC_BODY), review_verdict_sha256: sha(RV_BODY) }] } });
+  const r = f.against();
+  assert.equal(r.code, 1);
+  const v = line(r);
+  assert.deepEqual(v.files.map((x) => x.result), ["match", "match", "presence-disagreement"]);
+  assert.equal(v.park_cause, `evidence-return mismatch — ${ISSUE}/${HO} (presence disagreement)`);
+  assert.deepEqual(v.tampered_paths, [`${ISSUE}/${HO}`]);
+});
+
+test("the old two-file return shape is malformed with no tampered path and no persisted entry", (t) => {
+  const f = fixture(t);
+  const r = f.verify(JSON.stringify({ issue: ISSUE, ac_checklist: digest(AC_BODY), review_verdict: digest(RV_BODY) }));
+  assert.equal(r.code, 1);
+  const v = line(r);
+  assert.equal(v.verdict, "malformed");
+  assert.equal(v.park_cause, `evidence-return malformed — ${ISSUE}/EvidenceReturn (malformed return)`);
+  assert.deepEqual(v.tampered_paths, []);
+  assert.equal(v.evidence_persisted, null);
+});
+
+test("stdin null with only human-only-acs.json on disk is a missing cause and no tampered path", (t) => {
+  const f = fixture(t, { files: { [HO]: HO_BODY } });
+  const r = f.verify("null");
+  assert.equal(r.code, 1);
+  const v = line(r);
+  assert.equal(v.park_cause, `evidence-return missing — ${ISSUE}/${HO} (no digest returned for a file on disk)`);
+  assert.deepEqual(v.tampered_paths, []);
+});
+
+test("a symlink at human-only-acs.json is exit 2 from return and a not-regular-file row from verify-return", (t) => {
+  const f = fixture(t, { files: { [AC]: AC_BODY, [RV]: RV_BODY } });
+  const elsewhere = join(f.root, "elsewhere.json");
+  writeFileSync(elsewhere, HO_BODY);
+  symlinkSync(elsewhere, join(f.issueDir, HO));
+  const ret = f.ret();
+  assert.equal(ret.code, 2);
+  assert.equal(ret.stdout, "");
+  assert.match(ret.stderr, new RegExp(`${HO} is not a regular file`));
+  const v = line(f.verify(claim(digest(AC_BODY), digest(RV_BODY), digest(HO_BODY))));
+  assert.equal(v.files[2].result, "not-regular-file");
+  assert.equal(v.files[2].disk_sha256, null);
+});
+
+test("evidence_persisted validates with or without human_only_acs_sha256", () => {
+  const two = { issue: ISSUE, ac_sha256: sha(AC_BODY), review_verdict_sha256: sha(RV_BODY) };
+  assert.deepEqual(validateAgainstSchema(two, PERSISTED_ITEM), []);
+  assert.deepEqual(validateAgainstSchema({ ...two, human_only_acs_sha256: sha(HO_BODY) }, PERSISTED_ITEM), []);
+});
+
+test("smoke: return, verify-return, a ledger entry, --against-ledger, then a one-byte change", (t) => {
+  const f = fixture(t, { ledger: {} });
+  const printed = f.ret();
+  assert.equal(printed.code, 0);
+  assert.deepEqual(Object.keys(line(printed)), ["issue", "ac_checklist", "review_verdict", "human_only_acs"]);
+  const verified = f.verify(printed.stdout);
+  assert.equal(verified.code, 0);
+  const entry = line(verified).evidence_persisted;
+  assert.equal(entry.human_only_acs_sha256, sha(HO_BODY));
+  writeFileSync(join(f.runDir, "run-ledger.json"), JSON.stringify({ evidence_persisted: [entry] }));
+  assert.equal(f.against().code, 0);
+  appendFileSync(join(f.issueDir, HO), "x");
+  const after = f.against();
+  assert.equal(after.code, 1);
+  assert.equal(line(after).files[2].result, "hash-mismatch");
+});
+
+test("the concurrency executors restate neither the new key nor the digest shape", () => {
+  for (const skill of ["faffter-noon-concurrency-sequential", "faffter-dark-concurrency-parallel"]) {
+    const text = readFileSync(join(import.meta.dirname, "..", "plugin", "skills", skill, "SKILL.md"), "utf8");
+    assert.ok(!text.includes("human_only_acs"), skill);
+    assert.ok(!text.includes("ac_checklist:{present"), skill);
   }
 });
 

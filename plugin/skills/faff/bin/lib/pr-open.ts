@@ -125,7 +125,7 @@ export type PrOpenDeps = {
   readFile: (file: string) => string | null;
   writeTemp: (content: string) => string;
   removeFile: (file: string) => void;
-  // FAFF-1476. The human-only-acs mint is skipped by a caller that supplies neither `removeStale` nor
+  // FAFF-1476. The human-only-acs mint runs only when a caller supplies both `removeStale` and
   // `mainCheckout`; `defaultDeps` supplies both. `removeStale` deletes any file (unlike `removeFile`).
   removeStale?: (file: string) => void;
   mainCheckout?: () => string | null;

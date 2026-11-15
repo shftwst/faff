@@ -29,7 +29,7 @@
     "bin/lib/land.ts": "769e4ecda17fc45b6e4c78fb692a2aba9f90b2ee89a66769aca01281596530f8",
     "bin/lib/merge-authorize.ts": "159bd25af72d30d005a887cda7d8980f7d5030398022c0d9f8371a066c13bd61",
     "bin/lib/peer-cred.ts": "cae4373dd609abe1198786cbb4099792e128d9e1cded88b69d0ebfbee534ab95",
-    "bin/lib/pr-open.ts": "2d2bea32ae12bccafd7d17575ad5ea5f2444e9f407f7877453e018fd9b4a97c6",
+    "bin/lib/pr-open.ts": "6ff01c874dabfa945febff26d629dd9b0af6b284e4d594f82bee71f2475baf76",
     "bin/lib/prep-attach.ts": "6e20c0f14e9065a91e72fd417d42da5c0bc1863e0bf9fc3d1dff950ed329bef0",
     "bin/lib/producer-auth.ts": "fcaed615b47929a0db1d307553291ac8d15aca206003cdedd5e6807fc3914272",
     "bin/lib/prose-size.ts": "a359145a4d7d807f8b97cfe4e0f84eb03f6091baeaf2fbe658016832b671e9aa",

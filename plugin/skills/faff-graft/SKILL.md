@@ -473,7 +473,7 @@ Reached **only** when Step 9 returned `pass`: the single PR-creation point, the 
   --body-file <draft> [--spec-review-evidence <evidence file>] --json
 ```
 
-It refuses unless the review verdict is `pass`, runs the governed-run check, writes `spec-review-verdict.json`, sanitizes and checks the body (Linear auto-transitions every tracker identifier a PR body carries, so only the target keeps one), then writes `human-only-acs.json` from the captured spec, mints, commits and pushes the anchor, publishes the recovery bundle, drives the governed pr-create grant and opens a regular PR through the `pr-create` chokepoint. The anchor precedes the PR, so a crash never strands a review-passed PR whose head lacks it, and CI fires first at PR open. Route on `token`:
+It refuses unless the review verdict is `pass`, runs the governed-run check, writes `spec-review-verdict.json`, sanitizes and checks the body (Linear auto-transitions every tracker identifier a PR body carries, so only the target keeps one), then mints, commits and pushes the anchor, publishes the recovery bundle, drives the governed pr-create grant and opens a regular PR through the `pr-create` chokepoint. The anchor precedes the PR, so a crash never strands a review-passed PR whose head lacks it, and CI fires first at PR open. Route on `token`: (the same call writes `human-only-acs.json` from the captured spec, the set an unattended merge may skip)
 
 | `token` | Action |
 |---|---|

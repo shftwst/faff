@@ -1359,7 +1359,7 @@ export function makeCliDriver(opts = {}) {
 // FAFF-315: `model` is threaded through so the frontier lane can be PINNED (never the account
 // default — the eval-bulk budget guard). buildInvocation already emits `--model` when set.
 export function frontierOpts({ bin = "claude", model = null, effort = null, bare = false, pluginDir = DEFAULT_PLUGIN_DIR, forwardCreds = true } = {}) {
-  return { bin, model, effort, bare, pluginDir, forwardCreds }; // FAFF-722 — effort is frontier-only (localOpts has none)
+  return { bin, model, effort, bare, pluginDir, forwardCreds }; // FAFF-722
 }
 export function frontierDriver(args = {}) {
   return makeCliDriver(frontierOpts(args));
@@ -1368,11 +1368,12 @@ export function frontierDriver(args = {}) {
 // Preset: local — the SAME `claude -p` path with ollama's Anthropic-API env redirect + --model.
 // `baseUrl` is REQUIRED — there is deliberately no localhost default (ollama is served over Tailscale).
 // `authToken` defaults to $LOCAL_API_KEY for gateways that reject ollama's placeholder token.
-export function localOpts({ baseUrl, model, bin = "claude", bare = true, pluginDir = DEFAULT_PLUGIN_DIR, authToken = process.env.LOCAL_API_KEY || "ollama" } = {}) {
+export function localOpts({ baseUrl, model, bin = "claude", bare = true, pluginDir = DEFAULT_PLUGIN_DIR, effort = null, authToken = process.env.LOCAL_API_KEY || "ollama" } = {}) {
   if (!baseUrl) throw new Error("localDriver requires a baseUrl (the ollama host); no localhost default");
   return {
     bin,
     model,
+    effort,
     baseUrl,
     bare,
     pluginDir,

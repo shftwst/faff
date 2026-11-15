@@ -181,7 +181,7 @@ may run it. Follow these six points exactly.
    matching that `meta` unless you deliberately want a different lineage, because nothing in the
    harness warns you when they diverge; re-baseline whenever you change either.
 
-   **Reasoning effort: `eval.effort` and `--effort <level>` (frontier lane only).** The effort resolves
+   **Reasoning effort: `eval.effort` and `--effort <level>` (frontier lane; the `local` lane takes the flag only).** The effort resolves
    `--effort` flag **>** `faff config get eval.effort` **>** no flag (ADR-0133). In this repo
    `eval.effort` is pinned to `medium`, so a plain run passes `--effort medium`; `inherit` (the default
    when unset) passes no flag and runs at `claude -p`'s built-in default, which has changed between model
@@ -192,8 +192,7 @@ may run it. Follow these six points exactly.
    resume at a different effort refuses to blend, exactly as a different `--model` does). Like
    `eval.model`, `eval.effort` is part of a baseline's lineage: change it only together with a
    re-baseline. Both live in their own `eval:` block because eval is not a dispatch lane; the
-   old `models.eval` / `effort.eval` keys fail loud. `--effort` is ignored (with a warning) on the `local`/`ollama-direct` lanes; reasoning
-   effort is a frontier `claude -p` knob.
+   old `models.eval` / `effort.eval` keys fail loud. On the `local` lane only an explicit `--effort` flag is forwarded to `claude -p`; the pinned `eval.effort` is not, because it belongs to the frontier baseline. The gateway decides whether the level changes anything. `--effort` is ignored (with a warning) on `ollama-direct`.
 
 3. **Never pass `--only` with `--update-baseline`.** The advice is unchanged; the reason below replaces
    an older one that FAFF-318 fixed. `--only` narrows the run to a subset of kinds, which does two things

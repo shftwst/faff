@@ -236,6 +236,12 @@ function writeMergeRecord(runDir, issue, pr, headSha, integrity, identity, githu
   }
 }
 
+// The one definition of "unattended" (FAFF-1476): an L4 run always, an L3 run iff the repo declares it.
+function resolveUnattended(level, cfg) {
+  const { declaredUnattendedFromConfig } = require("./sentry"); // lazy — matches the file convention, avoids a load-time cycle
+  return level === "L4" || (level === "L3" && declaredUnattendedFromConfig(cfg));
+}
+
 // FAFF-325: derive the corrective-integrity annotation for THIS merge decision.
 //   probe    := correctiveIntegrityProbe(process.env, realFsq(), correctiveIntegrityDirs(runDir, issue))
 //   gate     := integrityGate(probe, "merge-floor")  — trusted | refuse (violation) | unasserted
@@ -280,8 +286,7 @@ function resolveIntegrity(runDir, issue, level, digestVerify, cfg) {
     // L1/L2 merge is never unattended even in a repo that declares unattended. An indeterminate
     // dispatch-state is refused upstream by evaluateCustody, so requiresSelfConsistencyStamp's
     // `=== "absent"` is the only case reachable here that blocks.
-    const { declaredUnattendedFromConfig } = require("./sentry"); // lazy — matches the file convention, avoids a load-time cycle
-    const unattended = level === "L4" || (level === "L3" && declaredUnattendedFromConfig(cfg));
+    const unattended = resolveUnattended(level, cfg);
     const dispatchState = laneBoundaryDispatchState(runDir);
     state = requiresSelfConsistencyStamp(unattended, dispatchState) ? "unasserted-refuse" : "unasserted-ok";
   }
@@ -578,4 +583,4 @@ function resolveHoldoutLeg(runDir, issue) {
   return { holdout, holdout_posture: posture, holdout_missing: missing, holdout_fault: fault };
 }
 
-module.exports = { gitRun, anchorHttpStatus, resolveAnchorLevel, readAnchoredBytes, anchorRefusal, alreadyMergedReconcile, observeCi, mergeRecordPath, writeMergeRecord, resolveIntegrity, buildMergeFloorDigestVerify, readAcComplete, readReviewVerdict, holdoutIsFresh, laneBoundaryPromisesCage, laneBoundaryDispatchState, evaluateCustody, readHoldout, readCanRun, readCaged, readLedgerSutEnvStood, resolveCanRun, resolveHoldoutLeg };
+module.exports = { gitRun, anchorHttpStatus, resolveAnchorLevel, readAnchoredBytes, anchorRefusal, alreadyMergedReconcile, observeCi, mergeRecordPath, writeMergeRecord, resolveIntegrity, resolveUnattended, buildMergeFloorDigestVerify, readAcComplete, readReviewVerdict, holdoutIsFresh, laneBoundaryPromisesCage, laneBoundaryDispatchState, evaluateCustody, readHoldout, readCanRun, readCaged, readLedgerSutEnvStood, resolveCanRun, resolveHoldoutLeg };

@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/pr-open.ts::unattended fact read from a possibly unmerged config",
+      "title": "unattended fact read from a possibly unmerged config",
+      "location": "plugin/skills/faff/bin/lib/pr-open.ts",
+      "action": "Pin the overlay case in a test.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": null,
+      "disposition_rationale": "loadConfig returns the merged document at index 0; every caller in the repo destructures it the same way.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "unattended fact read from a possibly unmerged config",
+          "location": "plugin/skills/faff/bin/lib/pr-open.ts",
+          "severity": "minor",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/pr-open.ts::comment says the mint is skipped when neither dependency is supplied",
+      "title": "Comment says the mint is skipped when neither dependency is supplied",
+      "location": "plugin/skills/faff/bin/lib/pr-open.ts",
+      "action": "Correct the comment.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The comment now says both are required.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Comment says the mint is skipped when neither dependency is supplied",
+          "location": "plugin/skills/faff/bin/lib/pr-open.ts",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/pr-open.ts::level for the mint is read from the live run ledger",
+      "title": "Level for the mint is read from the live run ledger",
+      "location": "plugin/skills/faff/bin/lib/pr-open.ts",
+      "action": "Note why a live read is acceptable here.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The spec reads the level from the run ledger; the reader checks it against the anchored level at consume time, and the mint is self-attestation by design (see the trust note in evidence-documents.md).",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Level for the mint is read from the live run ledger",
+          "location": "plugin/skills/faff/bin/lib/pr-open.ts",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/pr-open.ts::a failed anchor step leaves the run-dir copy and stamp stranded",
+      "title": "A failed anchor step leaves the run-dir copy and stamp stranded",
+      "location": "plugin/skills/faff/bin/lib/pr-open.ts",
+      "action": "Clear the run-dir copy on an anchor refusal.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The next pr open clears both copies and re-mints, and the reader takes the last stamp; the file is only read from slice 2.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "A failed anchor step leaves the run-dir copy and stamp stranded",
+          "location": "plugin/skills/faff/bin/lib/pr-open.ts",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

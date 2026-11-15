@@ -447,10 +447,11 @@ test('a CLI request the proxy never saw stops the attempt as unmetered', async (
   assert.equal(metered.result.stop, null);
 });
 
-test('more CLI turns than admitted requests stops the attempt as unmetered', async () => {
-  const stdout = SUCCESS_STDOUT.replace('"num_turns":1', '"num_turns":3');
+test('the CLI turn count is not a request count: every id metered means no stop', async () => {
+  // Observed on Claude Code 2.1.311: three metered requests, num_turns 4.
+  const stdout = SUCCESS_STDOUT.replace('"num_turns":1', '"num_turns":4');
   const { result } = await runFake(fakeProcess({ stdout }));
-  assert.equal(result.stop.reason, 'unmetered-request');
+  assert.equal(result.stop, null);
 });
 
 test('the driver reports a runtime fingerprint of the first request without the treatment prompt', async () => {

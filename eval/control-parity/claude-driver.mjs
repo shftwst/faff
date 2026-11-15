@@ -244,7 +244,7 @@ export async function runClaudeScenario({
   const cli = parseStreamJson(readFileSync(stdoutPath, 'utf8'));
   const proxyStop = summary.stop;
   const metered = new Set(summary.requests.map(r => r.id));
-  const unmetered = mode === 'forward' && (cli.requests.some(r => r.model !== '<synthetic>' && !metered.has(r.id)) || (cli.result?.num_turns ?? 0) > summary.requests.length);
+  const unmetered = mode === 'forward' && cli.requests.some(r => r.model !== '<synthetic>' && !metered.has(r.id));
   const reason = proxyStop ?? (unmetered ? 'unmetered-request' : null) ?? (record.timed_out ? 'timeout' : null)
     ?? (record.exit?.error ? 'spawn-error' : null)
     ?? (record.exit?.signal ? 'signal' : null)

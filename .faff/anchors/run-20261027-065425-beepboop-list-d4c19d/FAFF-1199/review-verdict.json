@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/budget.js,::external pricing figures require a human spot-check against anthropic's published pricing at merge",
+      "title": "External pricing figures require a human spot-check against Anthropic's published pricing at merge",
+      "location": "plugin/skills/faff/bin/lib/budget.js, eval/tokenomics.mjs, scripts/token-breakdown.mjs (the three per-MTok rate tables)",
+      "action": "Human reviewer: spot-check the three new rows (claude-opus-5-5, claude-sonnet-5-5, claude-fable-5-1) and the 0.05x/0.025x cache-read multipliers against platform.claude.com/docs/en/about-claude/pricing before merging.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": null,
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The diff faithfully implements the spec's confirmed-rates table (reviewed line-by-line across all three files) and is additive + fully revertible, so by the revert test this is not a human-judgement blocker and the code review passes. The correctness of the rates against Anthropic's live published pricing cannot be verified code-blind; the spec's decision (decides: product) reserves that spot-check to a human at merge. Tracked as needs-human on AC items done:1-4, which keep all_verified=false and hold auto-merge, leaving the PR open for the human.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "External pricing figures require a human spot-check against Anthropic's published pricing at merge",
+          "location": "plugin/skills/faff/bin/lib/budget.js, eval/tokenomics.mjs, scripts/token-breakdown.mjs (the three per-MTok rate tables)",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/budget.js::governor fail-safe and existing-model pricing preserved",
+      "title": "Governor fail-safe and existing-model pricing preserved",
+      "location": "plugin/skills/faff/bin/lib/budget.js (conservativePriceRow), eval/tokenomics.mjs (billCalls read_mult default)",
+      "action": "None — informational; verified green (no change required).",
+      "location_present": true,
+      "action_present": true,
+      "severity": "observation",
+      "source": "standard",
+      "model": null,
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "conservativePriceRow per-class maxima unchanged (fable-5 still carries the column maxima); the read_mult hook defaults to the flat CACHE_MULT.read so every pre-existing model is byte-identical (opus-4-8 cache-read leg verified $0.50); no new unlisted-model warning added. budget --selftest (110 checks) and 206 targeted unit tests pass.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Governor fail-safe and existing-model pricing preserved",
+          "location": "plugin/skills/faff/bin/lib/budget.js (conservativePriceRow), eval/tokenomics.mjs (billCalls read_mult default)",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

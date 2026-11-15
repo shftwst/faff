@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.43.0",
+  "issue": "FAFF-1199",
+  "build": {
+    "status": "complete",
+    "diff_hash": "74bc7c0c1f1bbeed45e8f01d00656e7c8e5df1c17aa9d86050e1fdaa3bb64c77",
+    "branch": "faff-1199-cost-tables-price-current-claude-models",
+    "pushed_at": "2026-10-27T08:59:39.154Z"
+  },
+  "updated_at": "2026-10-27T08:59:39.154Z"
+}

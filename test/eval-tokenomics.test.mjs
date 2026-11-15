@@ -159,3 +159,8 @@ test("parseAnchors reads timing from result events", () => {
   assert.equal(a.ttft_s, 2.5);
   assert.equal(a.realized_output_tps, 50); // 1000 tok / 20 s
 });
+
+test("FAFF-1199: claude-fable-5-2 and claude-haiku-5-5 have rates with their own cache-read multiplier", () => {
+  assert.deepEqual(RATES["claude-fable-5-2"], { in: 8, out: 40, read_mult: 0.025 });
+  assert.deepEqual(RATES["claude-haiku-5-5"], { in: 0.1, out: 0.5, read_mult: 0.1 });
+});

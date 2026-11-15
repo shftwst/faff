@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { createHash } from "node:crypto";
-import { readGovernanceConfig, computeBudgetState, envelopeFrom } from "../plugin/skills/faff/bin/lib/budget.js";
+import { readGovernanceConfig, computeBudgetState, envelopeFrom, economicsPriceForModel, PRICE_PER_MTOK } from "../plugin/skills/faff/bin/lib/budget.js";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
 
@@ -2098,4 +2098,9 @@ test("FAFF-1444: a budget-checkpoint event relaying a BudgetState with spent.unt
       assert.equal(r.status, 0, r.stderr);
     }
   } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("FAFF-1199: claude-fable-5-2 and claude-haiku-5-5 price at the published rates", () => {
+  assert.deepEqual(economicsPriceForModel("claude-fable-5-2", PRICE_PER_MTOK), { input: 8, output: 40, cache_write_5m: 10, cache_write_1h: 16, cache_read: 0.2 });
+  assert.deepEqual(economicsPriceForModel("claude-haiku-5-5", PRICE_PER_MTOK), { input: 0.1, output: 0.5, cache_write_5m: 0.125, cache_write_1h: 0.2, cache_read: 0.01 });
 });

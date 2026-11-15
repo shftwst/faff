@@ -105,7 +105,7 @@ test("schema coverage: every .faff/config.example.yaml top-level key is a writab
 
 test("holdout: refuses a block-sequence carve-out key, file byte-unchanged", () => {
   const dir = tmpDir();
-  const before = "adversarial:\n  refs:\n    - nvidia-glm\n    - studio-ollama\n";
+  const before = "adversarial:\n  refs:\n    - nvidia-glm\n    - studio-vllm\n";
   writeFileSync(join(dir, ".faffrc.yaml"), before);
   const r = run(dir, "config", "set", "adversarial.refs", "foo");
   assert.equal(r.code, 2);
@@ -115,7 +115,7 @@ test("holdout: refuses a block-sequence carve-out key, file byte-unchanged", () 
 
 test("holdout: refuses the documented JSON-string fallbacks form, even with --force, file byte-unchanged", () => {
   const dir = tmpDir();
-  const before = 'adversarial:\n  fallbacks: \'[{"provider":"ollama","model":"qwen3-next:80b","host":"http://studio:11434"}]\'\n';
+  const before = 'adversarial:\n  fallbacks: \'[{"provider":"vllm","model":"qwen3-next:80b","host":"http://studio:8000"}]\'\n';
   writeFileSync(join(dir, ".faffrc.yaml"), before);
   const r = run(dir, "config", "set", "adversarial.fallbacks", "foo", "--force");
   assert.equal(r.code, 2);
@@ -194,7 +194,7 @@ test("max_tokens guard: a non-positive-integer value normalises to 2000, a posit
 
 test("holdout: refuses the inline-flow refs form, even with --force, file byte-unchanged", () => {
   const dir = tmpDir();
-  const before = "adversarial:\n  refs: [nvidia-glm, studio-ollama]\n";
+  const before = "adversarial:\n  refs: [nvidia-glm, studio-vllm]\n";
   writeFileSync(join(dir, ".faffrc.yaml"), before);
   const r = run(dir, "config", "set", "adversarial.refs", "foo", "--force");
   assert.equal(r.code, 2);

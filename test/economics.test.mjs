@@ -985,7 +985,7 @@ test("FAFF-604: --by model rows carry a source label and reconcile across both s
 });
 
 test("FAFF-604: an unmetered engine is named in economics and never counted as free", () => {
-  const rc = "backends:\n  lan:\n    provider: ollama\n    model: q\n    host: http://localhost:11434\ndispatch:\n  intake:\n    model: engine:lan\n";
+  const rc = "backends:\n  lan:\n    provider: vllm\n    model: q\n    host: http://localhost:8000\ndispatch:\n  intake:\n    model: engine:lan\n";
   const f = fixture({ rc, ledger: baseLedger() });
   try {
     const cfg = withTranscripts(f.root, f.root, "sess-1", { "sess-1.jsonl": { usage: [{ input_tokens: 100 }] } });

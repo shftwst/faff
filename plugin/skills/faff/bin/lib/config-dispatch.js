@@ -128,14 +128,13 @@ const EFFORT_LEVELS_WITH_INHERIT = ["inherit", "low", "medium", "high", "xhigh",
 // in a top-level name-keyed `engines:` map so one definition serves many lanes; the lane value
 // stays a scalar (`engine:<name>`) so the closed-vocab machinery extends rather than forks.
 const ENGINE_CALL_LANES = ["methodology", "intake"];
-// Provider families reuse review-call.mjs's whitelist semantics: ollama has its own wire
-// format; most of the rest ride the openai-compatible /v1 shape. `codex` is the first SPAWN
+// Provider families reuse review-call.mjs's whitelist semantics: the providers ride the
+// openai-compatible /v1 shape. `codex` is the first SPAWN
 // family (FAFF-593): its transport is a `codex exec --json` child process, not an HTTP POST.
 // `anthropic` is refused at resolution (Anthropic engines are what the Agent-token vocabulary
 // is for — two spellings of the same dispatch with different transports would be a trap),
 // and an unknown provider fails loud.
 const ENGINE_PROVIDER_FAMILY = {
-  ollama: "ollama",
   openai: "openai", vllm: "openai", openrouter: "openai", nvidia: "openai",
   deepseek: "openai", "openai-compatible": "openai", gemini: "openai",
   codex: "codex",
@@ -143,8 +142,8 @@ const ENGINE_PROVIDER_FAMILY = {
 
 // FAFF-705: which transport FAMILIES carry a graded reasoning-effort control on the
 // wire — the openai-compatible `reasoning_effort` request field and codex exec's
-// `-c model_reasoning_effort`. `ollama` is NOT one (its transport carries only the
-// on/off `think:false`, no graded dial). Capability is a property of the family, not
+// `-c model_reasoning_effort`. A future family may carry only an on/off switch (reasoning_off),
+// no graded dial. Capability is a property of the family, not
 // a hand-set per-backend flag: it is DERIVED from the family string ENGINE_PROVIDER_FAMILY
 // already assigns, so a lane's effort-tunability can never drift out of sync with its
 // transport. This is the single source the `resolveEngineForLane` effort lift keys off.
@@ -223,7 +222,7 @@ function validateEngineRef(cfg, value) {
 // effort×engine resolution (FAFF-705). Effort is no longer blanket-refused on engine lanes:
 // a graded `dispatch.<lane>.effort` on a GRADED-effort family (openai | codex — EFFORT_GRADED_FAMILIES)
 // is carried on the record and mapped onto the transport at dispatch; a graded effort on a
-// non-graded family (ollama, no graded transport) OR a graded effort contradicting
+// non-graded family (one with no graded transport) OR a graded effort contradicting
 // `reasoning_off: true` is refused with a capability-specific message (never silently dropped).
 // Returns { name, provider, family, model, host, binPath, apiKeyEnv, auth, seatTokenEnv,
 // reasoningOff, timeoutMs, effort } or { error }. `effort` is the resolved faff level
@@ -263,7 +262,7 @@ function resolveEngineForLane(cfg, lane) {
   const reasoningOff = entry.reasoning_off === true;
   // FAFF-705: resolve the requested effort against the family's capability (replaces the
   // FAFF-422 blanket refusal). `inherit`/unset → effort:null, byte-for-byte the pre-existing
-  // dispatch (no transport arg). A graded level on a non-graded family (ollama) or a graded
+  // dispatch (no transport arg). A graded level on a non-graded family or a graded
   // level contradicting reasoning_off is refused with a capability-specific message; a graded
   // level on a graded-effort family is carried on the record (mapped onto the transport at the
   // encode sites). validateEngineRef already refuses reasoning_off on codex, so the reasoning_off

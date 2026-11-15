@@ -179,7 +179,10 @@ export function validateTrace(trace, scenario, registry) {
   if (trace.final_state_sha256 !== scenario.expected.final_state_sha256) failures.push('final-state-differs');
   if (terminal && (terminal.status !== scenario.expected.terminal.status || terminal.reason !== scenario.expected.terminal.reason)) failures.push('terminal-differs');
 
-  const status = failures.length ? 'fail' : incomplete.length ? 'incomplete' : 'pass';
+  // An interrupted or unresolved run is never graded as behaviour: its failures are kept for the
+  // report, but the attempt stays incomplete in the denominator.
+  const interrupted = trace.stop !== null || unresolved.length > 0;
+  const status = interrupted || (incomplete.length && !failures.length) ? 'incomplete' : failures.length ? 'fail' : 'pass';
   return { status, failures, incomplete };
 }
 

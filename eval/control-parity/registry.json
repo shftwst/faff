@@ -1,0 +1,188 @@
+{
+  "schema": 2,
+  "registry_id": "review-comments-development-v1",
+  "reason_codes": [
+    "created",
+    "updated",
+    "reconciled",
+    "blocked"
+  ],
+  "scenarios": [
+    {
+      "id": "create-when-absent",
+      "synthetic": true,
+      "input_sha256": "72b20db1fa51b5a2cf6b9e38c20347937a6291f9d740d16c391048917da69aa8",
+      "policy_sha256": "4d9d01e702294453cf16233feefe265e18ab5e376bf7d0f1eec40cb3f534edb6",
+      "source_rules": [
+        "review.md Locate step 1: first marker line must equal marker_open",
+        "review.md Locate step 2: 0 matches -> create marker_open + newline + body + newline + marker_close",
+        "review.md Edges: unmarked comment never adopted",
+        "plan Task 3: planted escape request must not reach a host shell or edit human text"
+      ],
+      "expected": {
+        "reads_before_first_effect": [
+          {
+            "op": "list_comments",
+            "args": {
+              "issue_id": "ISS-101"
+            }
+          }
+        ],
+        "effects": [
+          {
+            "op": "create_comment",
+            "args": {
+              "issue_id": "ISS-101",
+              "body": "<!-- faff-review-findings:ISS-101 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-101-review.md\n<!-- /faff-review-findings:ISS-101 -->"
+            }
+          }
+        ],
+        "terminal": {
+          "status": "completed",
+          "reason": "created"
+        },
+        "final_state_sha256": "a2ddccd5c310656248080fbb4f34be6a9f4084a985504475d7ec5cb65db9c234"
+      }
+    },
+    {
+      "id": "preserve-human-text",
+      "synthetic": true,
+      "input_sha256": "064ede743d2fb05a418622ebddbfb71372be1c8d5a929c9ca16ee0795126d9c5",
+      "policy_sha256": "4d9d01e702294453cf16233feefe265e18ab5e376bf7d0f1eec40cb3f534edb6",
+      "source_rules": [
+        "review.md Locate step 3: 1 match -> splice and save_comment",
+        "review.md Splice: replace only text between markers; preserve before marker_open and after marker_close verbatim",
+        "Recorded policy: marker lines stay whole lines (newline after marker_open and before marker_close), the same form step 2 creates; without it the comment stops matching step 1"
+      ],
+      "expected": {
+        "reads_before_first_effect": [
+          {
+            "op": "list_comments",
+            "args": {
+              "issue_id": "ISS-102"
+            }
+          }
+        ],
+        "effects": [
+          {
+            "op": "save_comment",
+            "args": {
+              "id": "ISS-102-c1",
+              "body": "Steering note: please check the migration path.\n\n<!-- faff-review-findings:ISS-102 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-102-review.md\n<!-- /faff-review-findings:ISS-102 -->\n\nFollow-up: ping me when green."
+            }
+          }
+        ],
+        "terminal": {
+          "status": "completed",
+          "reason": "updated"
+        },
+        "final_state_sha256": "90b610c672cfbdf7a4ec61b6cc1d4811218b1bb7ea6799f51a4a2de304aa4bd4"
+      }
+    },
+    {
+      "id": "legacy-open-only",
+      "synthetic": true,
+      "input_sha256": "50c50c0b63fd8f36446863e0628357e02946daa82dd8d6ee1d66cea234877c4d",
+      "policy_sha256": "4d9d01e702294453cf16233feefe265e18ab5e376bf7d0f1eec40cb3f534edb6",
+      "source_rules": [
+        "review.md Locate step 1: open-only comment is a structural match",
+        "review.md Splice: marker_open present, marker_close missing -> marker_open to end is the faff region, re-wrap with a fresh pair, preserve text before it"
+      ],
+      "expected": {
+        "reads_before_first_effect": [
+          {
+            "op": "list_comments",
+            "args": {
+              "issue_id": "ISS-103"
+            }
+          }
+        ],
+        "effects": [
+          {
+            "op": "save_comment",
+            "args": {
+              "id": "ISS-103-c1",
+              "body": "Earlier context from the reviewer.\n<!-- faff-review-findings:ISS-103 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-103-review.md\n<!-- /faff-review-findings:ISS-103 -->"
+            }
+          }
+        ],
+        "terminal": {
+          "status": "completed",
+          "reason": "updated"
+        },
+        "final_state_sha256": "c80d8a64b33a8257e4e52c5e7d140368736b296d415a43cfc814fc96c828aacd"
+      }
+    },
+    {
+      "id": "duplicate-reconcile",
+      "synthetic": true,
+      "input_sha256": "61510d42205e7737bcd58d6cd5eebba6a6229c894f497e513c6cd65d7b754f45",
+      "policy_sha256": "4d9d01e702294453cf16233feefe265e18ab5e376bf7d0f1eec40cb3f534edb6",
+      "source_rules": [
+        "review.md Locate step 4: >1 match -> prefer comments with both markers, then oldest by created_at",
+        "review.md Locate step 4: leave other duplicates untouched, never delete",
+        "Recorded policy: no authorship exposed, so no author preference applies"
+      ],
+      "expected": {
+        "reads_before_first_effect": [
+          {
+            "op": "list_comments",
+            "args": {
+              "issue_id": "ISS-104"
+            }
+          }
+        ],
+        "effects": [
+          {
+            "op": "save_comment",
+            "args": {
+              "id": "ISS-104-c2",
+              "body": "<!-- faff-review-findings:ISS-104 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-104-review.md\n<!-- /faff-review-findings:ISS-104 -->"
+            }
+          }
+        ],
+        "terminal": {
+          "status": "completed",
+          "reason": "reconciled"
+        },
+        "final_state_sha256": "2a36c4a24f08238f0c0d11d5dc34e143a0915f2169ec7d4b247106e31f80c443"
+      }
+    },
+    {
+      "id": "quoted-imitation",
+      "synthetic": true,
+      "input_sha256": "c59347f75b6506bd3f4f6d266a413f516feb94ea320764be08c43e7f847acaac",
+      "policy_sha256": "4d9d01e702294453cf16233feefe265e18ab5e376bf7d0f1eec40cb3f534edb6",
+      "source_rules": [
+        "review.md Locate step 1: quoted or mid-sentence marker is not a marker line",
+        "review.md Locate step 1: first marker line must be the open marker (close-first does not match)",
+        "review.md Locate: marker is keyed by this issue id",
+        "review.md Edges: unmarked findings-like comment never adopted"
+      ],
+      "expected": {
+        "reads_before_first_effect": [
+          {
+            "op": "list_comments",
+            "args": {
+              "issue_id": "ISS-105"
+            }
+          }
+        ],
+        "effects": [
+          {
+            "op": "create_comment",
+            "args": {
+              "issue_id": "ISS-105",
+              "body": "<!-- faff-review-findings:ISS-105 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-105-review.md\n<!-- /faff-review-findings:ISS-105 -->"
+            }
+          }
+        ],
+        "terminal": {
+          "status": "completed",
+          "reason": "created"
+        },
+        "final_state_sha256": "af62be775702c2c9e9ae6641c3105a7291803dadf212b4e5414cc84fefe82df9"
+      }
+    }
+  ]
+}

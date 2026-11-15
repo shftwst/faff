@@ -66,6 +66,7 @@ Each event type accepts every phase. Keys marked * are required. The telemetry t
 | `decision-capture-action` | required | `kernel`*, `correlation_id`*, `selected_action`*, `causation`* | yes |
 | `runner-identity` | required | `github_login`*, `github_login_source`*, `credential_source`*, `credential_unresolved`*, `verified`* | none |
 | `evidence-terminal-only` | required | `issue`*, `writer`* | yes |
+| `human-only-acs-stamp` | required | `issue`*, `sha256`* | none |
 
 Nested objects are closed too. `sentry-checkpoint.data.verdicts[]` and `sentry-trip.data.verdicts[]`
 discriminate on `signal`, with one closed `evidence` shape per sentry signal.

@@ -282,3 +282,21 @@ test("evidence write review-verdict --terminal-only: a core refusal exits 2, wri
   assert.ok(!existsSync(join(runDir, "ISSUE-1", "review-verdict.json")));
   assert.ok(bytes(events).equals(before));
 });
+
+test("evidence write human-only-acs: a core refusal exits 2, leaves no file and events.jsonl untouched", (t) => {
+  const root = mkdtempSync(join(tmpdir(), "faff-1353-human-only-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const runDir = join(root, ".faff", "runs", "run-20991231-000000-graft-ISSUE-1");
+  mkdirSync(runDir, { recursive: true });
+  emitGenesisRunStart(runDir);
+  const events = join(runDir, "events.jsonl");
+  const before = bytes(events);
+  const copy = pluginCopy(requireProbeKey("human-only-acs-stamp"));
+  t.after(() => rmSync(copy.dir, { recursive: true, force: true }));
+  const r = run(copy.bin, ["evidence", "write", "human-only-acs", "--run-dir", runDir, "--issue", "ISSUE-1"],
+    { input: JSON.stringify({ issue: "ISSUE-1", level: "L4", unattended: true, human_only: ["issue-1#ac-1"] }), cwd: root });
+  assert.equal(r.code, 2, r.err);
+  assert.match(r.err, /cannot append the human-only-acs-stamp event; nothing written/);
+  assert.ok(!existsSync(join(runDir, "ISSUE-1", "human-only-acs.json")));
+  assert.ok(bytes(events).equals(before));
+});

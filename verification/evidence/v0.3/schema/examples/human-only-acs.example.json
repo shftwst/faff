@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "issue": "FAFF-1",
+  "level": "L4",
+  "unattended": true,
+  "human_only": [
+    "faff-1#ac-2"
+  ]
+}

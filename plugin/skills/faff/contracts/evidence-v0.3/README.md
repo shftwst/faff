@@ -1,18 +1,18 @@
-# Agent Delivery Evidence spec, v0.3 (draft)
+# Agent Delivery Evidence spec, v0.3 (current)
 
 v0.3 describes the files a per-PR anchor can hold and gives each one a closed JSON
 Schema, so the bytes can be checked without reading faff's source. It covers the shapes
 the writers produce today, plus the version stamp (`schema_version`) that later slices of
 FAFF-1255 start writing.
 
-**Status: draft.** Slices 2 to 5 of FAFF-1255 add per-type payload schemas and narrow the
-run-state keys in place. FAFF-1287 extended `ac-checklist` in place with the optional `ac_id`
-and `verifications` keys. v0.3 freezes when FAFF-1261 (enforcement) lands. Nothing refuses
-on v0.3 until then.
+**Status: current.** The per-PR mint refuses, and CI fails, an anchor that does not conform to
+these schemas. FAFF-1287 extended `ac-checklist` in place with the optional `ac_id` and
+`verifications` keys. Changes to v0.3 follow the versioning rule in
+[`verification/evidence/README.md`](../README.md).
 
-Nothing in this version changes a gate. `faff evidence validate <anchor-dir>` reads an
-anchor and reports `pass`, `fail` or `legacy`. It does not refuse a mint, fail a
-governance-check leg or change merge-gate routing.
+`faff evidence validate <anchor-dir>` reads an anchor and reports `pass`, `fail` or `legacy`;
+`faff events anchor` runs the same check on the anchor it is about to commit. Neither changes
+merge-gate routing.
 
 ## Contents
 

@@ -40,7 +40,7 @@ function fixture(t) {
   return { root, runDir, write, ac, review, out, read, events };
 }
 
-const CRITERIA = [{ ac: "a", verified: "Verified: t", passed: true }, { ac: "b", verified: "Verified: u", passed: true }];
+const CRITERIA = [{ ac: "a", verified: "Verified: t", passed: true, ac_id: "issue-1#ac-1" }, { ac: "b", verified: "Verified: u", passed: true, ac_id: "issue-1#ac-2" }];
 const FINDING = { title: "Missing null check", location: "src/a.js:10", action: "Guard it", location_present: true, action_present: true, severity: "minor", source: "standard", disposition: "fixed" };
 
 test("ac-checklist: stamps schema_version, keeps criteria in order and drops unknown keys", (t) => {
@@ -48,7 +48,7 @@ test("ac-checklist: stamps schema_version, keeps criteria in order and drops unk
   const w = f.ac({ ac_complete: true, criteria: CRITERIA.map((c) => ({ ...c, extra: 1 })), all_verified: true, note: "x" });
   assert.equal(w.code, 0, w.stderr);
   assert.equal(w.stdout.trim(), f.out("ac-checklist.json"));
-  assert.equal(readFileSync(f.out("ac-checklist.json"), "utf8"), JSON.stringify({ schema_version: 1, faff_version: FAFF_VERSION, all_verified: true, criteria: CRITERIA.map((c) => ({ ...c, ac_id: null, verifications: null })) }, null, 2) + "\n");
+  assert.equal(readFileSync(f.out("ac-checklist.json"), "utf8"), JSON.stringify({ schema_version: 1, faff_version: FAFF_VERSION, all_verified: true, criteria: CRITERIA.map((c) => ({ ...c, verifications: null })) }, null, 2) + "\n");
   assert.deepEqual(validateAgainstSchema(f.read("ac-checklist.json"), schema("ac-checklist")), []);
   assert.equal(readAcComplete(f.runDir, ISSUE), true);
 });
@@ -62,7 +62,7 @@ test("ac-checklist: a zero-AC input omits criteria and reads as complete", (t) =
 
 test("ac-checklist: an unverified criterion is written as not verified", (t) => {
   const f = fixture(t);
-  const criteria = [CRITERIA[0], { ac: "c", verified: "Needs human verification: visual", passed: false }];
+  const criteria = [CRITERIA[0], { ac: "c", verified: "Needs human verification: visual", passed: false, ac_id: "issue-1#ac-3" }];
   assert.equal(f.ac({ all_verified: false, criteria }).code, 0);
   assert.equal(readAcComplete(f.runDir, ISSUE), false);
 });
@@ -197,7 +197,7 @@ test("both writers exit 2 and write nothing for a bad issue id or a run dir outs
 test("a known secret in a criterion or a finding rationale is written as [REDACTED]", (t) => {
   const f = fixture(t);
   writeFileSync(join(f.root, ".faffrc.yaml"), `andon:\n  token: ${SECRET}\n`);
-  assert.equal(f.ac({ all_verified: true, criteria: [{ ac: "a", verified: `Verified: ${SECRET}`, passed: true }] }).code, 0);
+  assert.equal(f.ac({ all_verified: true, criteria: [{ ac: "a", verified: `Verified: ${SECRET}`, passed: true, ac_id: "issue-1#ac-1" }] }).code, 0);
   assert.equal(f.review({ signal: "pass", findings: [{ ...FINDING, disposition_rationale: `because ${SECRET}` }] }).code, 0);
   for (const name of ["ac-checklist.json", "review-verdict.json"]) {
     const text = readFileSync(f.out(name), "utf8");
@@ -230,7 +230,7 @@ test("smoke: a graft run through the writers mints an anchor that validates as p
   assert.equal(mint.code, 0, mint.stderr);
   const runDir = JSON.parse(mint.stdout).run_dir;
   assert.equal(cli(["build-progress", "write", runDir, "FAFF-1", "--build-complete", "--diff-hash", "a".repeat(64), "--branch", "b"]).code, 0);
-  assert.equal(cli(["evidence", "write", "ac-checklist", "--run-dir", runDir, "--issue", "FAFF-1"], JSON.stringify({ all_verified: true, criteria: [CRITERIA[0]] })).code, 0);
+  assert.equal(cli(["evidence", "write", "ac-checklist", "--run-dir", runDir, "--issue", "FAFF-1"], JSON.stringify({ all_verified: true, criteria: [{ ...CRITERIA[0], ac_id: "faff-1#ac-1" }] })).code, 0);
   assert.equal(cli(["evidence", "write", "review-verdict", "--terminal-only", "--run-dir", runDir, "--issue", "FAFF-1"], JSON.stringify({ signal: "pass", findings: [FINDING] })).code, 0);
   const scratch = join(root, "rounds");
   mkdirSync(scratch);

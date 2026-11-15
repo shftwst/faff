@@ -1,5 +1,7 @@
-// FAFF-1263: shared fixtures for the warn-only evidence-schema tests. Builds run dirs that mint through
+// FAFF-1263: shared fixtures for the evidence-schema tests. Builds run dirs that mint through
 // `faff events anchor`, with evidence documents copied from the shipped v0.3 valid examples.
+// FAFF-1261: the per-PR mint refuses a non-conforming anchor, so every test that mints writes its
+// floor files through here.
 
 import { createRequire } from "node:module";
 import { mkdirSync, writeFileSync, readFileSync, cpSync } from "node:fs";
@@ -97,6 +99,28 @@ export function writeEvidence(runDir, shape, issue = "FAFF-1") {
   writeFileSync(path.join(runDir, "run-ledger.json"), example("run-ledger"));
   writeFileSync(path.join(runDir, issue, "ac-checklist.json"), example("ac-checklist"));
   writeFileSync(path.join(runDir, issue, "review-verdict.json"), example("review-verdict-anchored"));
+}
+
+// The two floor files a per-PR mint requires, in the smallest v0.3-valid shape (a zero-AC checklist
+// that is verified, and a passing terminal review with no findings).
+export const floorAcChecklist = () => JSON.stringify({ schema_version: 1, all_verified: true });
+export const floorReviewVerdict = () => JSON.stringify({ schema_version: 1, signal: "pass", rounds_total: 1, round_history: "terminal-only", findings: [] });
+
+export function seedFloor(runDir, issue = "FAFF-1") {
+  mkdirSync(path.join(runDir, issue), { recursive: true });
+  writeFileSync(path.join(runDir, issue, "ac-checklist.json"), floorAcChecklist());
+  writeFileSync(path.join(runDir, issue, "review-verdict.json"), floorReviewVerdict());
+}
+
+// The optional per-issue files a mint copies, from the shipped valid examples (holdout.json is bound
+// to the anchor's issue, so it is stamped with `issue`).
+export function seedOptionalFloor(runDir, issue = "FAFF-1") {
+  mkdirSync(path.join(runDir, issue), { recursive: true });
+  const holdout = { ...exampleObject("holdout-anchored"), issue };
+  writeFileSync(path.join(runDir, issue, "holdout.json"), JSON.stringify(holdout, null, 2) + "\n");
+  writeFileSync(path.join(runDir, issue, "spec-review-verdict.json"), example("spec-review-verdict-anchored"));
+  writeFileSync(path.join(runDir, issue, "build-progress.json"), example("build-progress"));
+  writeFileSync(path.join(runDir, issue, "landing-progress.json"), example("landing-progress"));
 }
 
 export { cpSync };

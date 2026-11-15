@@ -314,7 +314,7 @@ The PR description's `## Acceptance Criteria` block is printed by `faff evidence
 
 **Persist the AC result as a floor artifact, then render it.** Build `{ "all_verified": <bool>, "criteria": [ { "ac": <the criterion's `text`>, "verified": <the note>, "passed": <`true` only when auto-verified>, "ac_id": <its `ac_id`>, "verifications": [ … ] } ] }`, with `ac` and `verified` on one line and `all_verified` = every criterion `passed`. For a **zero-AC issue** omit the `criteria` key (never `[]`).
 
-1. Pipe it to `faff evidence write ac-checklist --run-dir "$run_dir" --issue <ISSUE>`, the sole writer of `<run-dir>/<ISSUE>/ac-checklist.json`. It stamps `schema_version`, fixes the key order and refuses (exit 1, nothing written) a disagreeing `all_verified`, a malformed or mismatched `ac_id`, or a rule-breaking method. A non-zero exit is logged and leaves no file; never hand-write a fallback.
+1. Pipe it to `faff evidence write ac-checklist --run-dir "$run_dir" --issue <ISSUE>`, the sole writer of `<run-dir>/<ISSUE>/ac-checklist.json`. It stamps `schema_version`, fixes the key order and refuses (exit 1, nothing written) a disagreeing `all_verified`, a missing, malformed or mismatched `ac_id`, or a rule-breaking method. A non-zero exit leaves no file; never hand-write a fallback.
 2. Run `faff evidence render ac-checklist --run-dir "$run_dir" --issue <ISSUE>` and place its output in the PR body unchanged.
 3. If the writer refused, the PR body's `## Acceptance Criteria` section is one line saying the checklist was refused and why. Write no list.
 

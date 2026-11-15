@@ -102,7 +102,7 @@ test("the schema rejects a malformed id, an empty list, an unknown kind and an e
 });
 
 // verifies: faff-1287#ac-9
-test("the writer keeps ac_id and verifications and emits both on every criterion, null when omitted", (t) => {
+test("the writer keeps ac_id and verifications and emits both on every criterion, refusing an omitted ac_id", (t) => {
   const f = fixture(t);
   const plain = { ac: "b", verified: "v", passed: true };
   const w = f.write(doc(criterion(1, { verifications: [TEST_METHOD, COMMAND_METHOD, { kind: "human" }] }), plain));
@@ -111,8 +111,11 @@ test("the writer keeps ac_id and verifications and emits both on every criterion
   const written = readJson(f.file);
   assert.deepEqual(written.criteria[0].verifications, [TEST_METHOD, COMMAND_METHOD, { kind: "human" }]);
   assert.deepEqual(Object.keys(written.criteria[0]), ["ac", "verified", "passed", "ac_id", "verifications"]);
-  assert.equal(f.write({ all_verified: true, criteria: [plain] }).code, 0);
-  assert.deepEqual(readJson(f.file).criteria, [{ ...plain, ac_id: null, verifications: null }]);
+  rmSync(f.file);
+  const refused = f.write({ all_verified: true, criteria: [plain] });
+  assert.equal(refused.code, 1, "an omitted ac_id is refused (FAFF-1261)");
+  assert.match(refused.stderr, /criteria\[0\]\.ac_id: required/);
+  assert.ok(!existsSync(f.file));
 });
 
 // verifies: faff-1287#ac-10
@@ -122,6 +125,8 @@ test("the writer refuses each rule break with exit 1, writes nothing and never e
   const withMethod = (m) => doc(criterion(1, { verifications: [m] }));
   const cases = {
     "some ac_id strings and others null": doc(criterion(1), criterion(2, { ac_id: null })),
+    "a criterion with no ac_id": doc({ ac: "b", verified: "v", passed: true }),
+    "every ac_id null": doc(criterion(1, { ac_id: null }), criterion(2, { ac_id: null })),
     "a duplicate ac_id": doc(criterion(1), criterion(2, { ac_id: "faff-1287#ac-1" })),
     "an ac_id for another ticket": doc(criterion(1, { ac_id: "faff-1288#ac-1" })),
     "a test locator with no ::": withMethod({ kind: "test", locator: `${LEAK}.test.mjs` }),

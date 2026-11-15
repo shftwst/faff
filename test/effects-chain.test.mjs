@@ -18,6 +18,7 @@ import { fileURLToPath } from "node:url";
 import { appendEffectEntries } from "../plugin/skills/faff/bin/lib/effects.js";
 import { verifyEffectsChain } from "../plugin/skills/faff/bin/lib/events.js";
 import { evaluateIntegrityLeg } from "../plugin/skills/faff/bin/lib/governance-check.js";
+import { seedFloor } from "./helpers/evidence-anchor-fixtures.mjs";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "plugin", "skills", "faff", "bin", "faff");
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
@@ -146,11 +147,6 @@ test("legacy schema-1 effects ledger classifies legacy-unverifiable; a mixed log
 // FAFF-1155: a per-PR `events anchor` over a valid genesis requires ac-checklist.json +
 // review-verdict.json under <runDir>/<issue>/. Seed both so an exit-0 anchor exercises the real
 // Step-9b shape.
-function seedFloor(runDir, issue = "FAFF-1") {
-  mkdirSync(join(runDir, issue), { recursive: true });
-  writeFileSync(join(runDir, issue, "ac-checklist.json"), JSON.stringify({ all_verified: true }));
-  writeFileSync(join(runDir, issue, "review-verdict.json"), JSON.stringify({ signal: "pass", findings: [] }));
-}
 
 // --- Scenario: anchor byte-copies the ledger + writes the witness; witness-absent gates ---
 test("faff events anchor: an anchored run carrying declared-effects.jsonl gets a byte-identical copy + effects-chain-head.json; deleting the witness fails closed as an anchor", () => {

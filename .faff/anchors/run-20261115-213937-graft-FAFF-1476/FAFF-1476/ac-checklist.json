@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "`faff pr open` mints the file from the main-checkout captured spec after step 9 and before the anchor step, through a new `mainCheckout` dependency wrapping `mainWorktreeRoot`; it takes no spec-path flag and reads config from the main checkout; a re-run with an unchanged head and a tracked anchor returns `already-open` and runs none of the removal, mint or stamp, while a re-run after a new commit re-mints",
+      "verified": "pr open mints from the main-checkout captured spec through mainCheckout; an unchanged head returns already-open and runs none of it",
+      "passed": true,
+      "ac_id": "faff-1476#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::scenario 2: mints from the main-checkout captured spec although the worktree spec and spec-commit.json were rewritten"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::an unchanged head with a tracked anchor returns already-open and runs no removal, mint or stamp"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::defaultDeps supplies the mint dependencies, and removeStale deletes a file"
+        }
+      ]
+    },
+    {
+      "ac": "Before every mint, `faff pr open` runs `git rm -f --ignore-unmatch` on `<dest>human-only-acs.json` and deletes the run-dir copy and any untracked destination copy through a new `removeStale` dependency (not the existing `removeFile`, which removes only the safe-body temp directory)",
+      "verified": "each mint runs git rm -f --ignore-unmatch first and removes the run-dir and untracked destination copies through removeStale",
+      "passed": true,
+      "ac_id": "faff-1476#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::git rm runs with -f --ignore-unmatch --quiet on the destination copy"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::scenario 4: a later fault after a committed mint deletes the file from the new anchor commit"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::scenario 5: older untracked copies are replaced, and the committed file is the newly written one"
+        }
+      ]
+    },
+    {
+      "ac": "On any mint fault, including a null main checkout, an unreadable captured spec, a classify failure, an unreadable level and a writer failure, `faff pr open` warns, leaves neither copy in place, and still proceeds",
+      "verified": "every listed mint fault warns, leaves neither copy and still proceeds",
+      "passed": true,
+      "ac_id": "faff-1476#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::scenario 3: an unreadable captured spec still opens the PR, warns, and leaves no file in the anchor"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::a dependency that throws is a warning that clears both copies"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::a writer failure warns and removes the run-dir copy again"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::a level outside L1..L4 warns and mints nothing"
+        }
+      ]
+    },
+    {
+      "ac": "`resolveIntegrity` and the mint both call `resolveUnattended`",
+      "verified": "resolveIntegrity and the mint both call resolveUnattended and branch-6 behaviour is unchanged",
+      "passed": true,
+      "ac_id": "faff-1476#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::resolveIntegrity keeps its branch-6 outcome through the shared fact"
+        },
+        {
+          "kind": "test",
+          "locator": "test/faff-1475-human-only-acs.test.mjs::L3 is unattended only when the config declares it"
+        }
+      ]
+    },
+    {
+      "ac": "New tests in `test/` (not `--selftest`) cover every slice 1 scenario and run under `node --test`, in `test/faff-1475-human-only-acs.test.mjs`",
+      "verified": "the slice 1 scenarios are covered under node --test in the named file (79 tests)",
+      "passed": true,
+      "ac_id": "faff-1476#done:17",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/faff-1475-human-only-acs.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "Each new or edited TypeScript module (`human-only-acs.ts`, `pr-open.ts`) has its committed `.js` emit and `build-manifest.json` regenerated, and `faff regions check` and `lint-cli-coverage` pass",
+      "verified": "the emit and build-manifest.json are regenerated and regions check and lint-cli-coverage pass",
+      "passed": true,
+      "ac_id": "faff-1476#done:20",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff gates run --json --resume"
+        }
+      ]
+    }
+  ]
+}

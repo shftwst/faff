@@ -10,16 +10,16 @@ import { mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync, rmSyn
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
-// --- buildInvocation: local preset wires --model + the ollama Anthropic-API env redirect ---
-test("local invocation appends --model and injects the ollama redirect env", () => {
-  const baseUrl = "http://studio.x.ts.net:11434";
+// --- buildInvocation: local preset wires --model + the Anthropic-API env redirect ---
+test("local invocation appends --model and injects the redirect env", () => {
+  const baseUrl = "http://studio.x.ts.net:8000";
   const inv = buildInvocation(
     { bin: "claude", model: "qwen3.6:27b-mlx", baseUrl,
-      env: { ANTHROPIC_BASE_URL: baseUrl, ANTHROPIC_AUTH_TOKEN: "ollama", ANTHROPIC_API_KEY: "" } },
+      env: { ANTHROPIC_BASE_URL: baseUrl, ANTHROPIC_AUTH_TOKEN: "sk-local", ANTHROPIC_API_KEY: "" } },
     "PROMPT", "/tmp/cfg");
   assert.deepEqual(inv.args, ["-p", "PROMPT", "--model", "qwen3.6:27b-mlx"]);
   assert.equal(inv.env.ANTHROPIC_BASE_URL, baseUrl);
-  assert.equal(inv.env.ANTHROPIC_AUTH_TOKEN, "ollama");
+  assert.equal(inv.env.ANTHROPIC_AUTH_TOKEN, "sk-local");
   assert.equal(inv.env.ANTHROPIC_API_KEY, "");
   assert.equal(inv.env.CLAUDE_CONFIG_DIR, "/tmp/cfg");
 });
@@ -40,9 +40,9 @@ test("localDriver throws without a base URL", () => {
 });
 
 // --- FAFF-138: credential forwarding — frontier copies, local must NOT (security), best-effort on missing ---
-test("frontierOpts forwards creds; localOpts does not (never leak Anthropic creds to ollama)", () => {
+test("frontierOpts forwards creds; localOpts does not (never leak Anthropic creds to the local gateway)", () => {
   assert.equal(frontierOpts().forwardCreds, true);
-  assert.equal(localOpts({ baseUrl: "http://h:11434", model: "m" }).forwardCreds, false);
+  assert.equal(localOpts({ baseUrl: "http://h:8000", model: "m", apiKey: "k" }).forwardCreds, false);
 });
 
 test("forwardCredentials copies .credentials.json into cfgDir for frontier, locked to 0600", () => {
@@ -58,7 +58,7 @@ test("forwardCredentials copies .credentials.json into cfgDir for frontier, lock
 
 test("forwardCredentials is a no-op for the local preset (forwardCreds:false)", () => {
   let called = false;
-  const dst = forwardCredentials("/cfg", localOpts({ baseUrl: "http://h:11434", model: "m" }), { copyFile: () => { called = true; }, env: {} });
+  const dst = forwardCredentials("/cfg", localOpts({ baseUrl: "http://h:8000", model: "m", apiKey: "k" }), { copyFile: () => { called = true; }, env: {} });
   assert.equal(called, false);
   assert.equal(dst, null);
 });
@@ -122,21 +122,22 @@ test("resolveDriver threads --effort into the frontier preset; omits it for inhe
 });
 
 test("resolveDriver(--driver local) forwards an explicit --effort and nothing else", () => {
+  process.env.FAFF_EVAL_LOCAL_API_KEY = "sk-test";
   let capturedLocal = null;
   const cap = { frontierDriver, localDriver: (opts) => { capturedLocal = opts; return () => {}; } };
   const warns = [];
   const orig = console.warn; console.warn = (m) => warns.push(String(m));
   try {
-    resolveDriver(["--driver", "local", "--base-url", "http://x:11434", "--model", "m", "--effort", "low"], cap);
+    resolveDriver(["--driver", "local", "--base-url", "http://x:8000", "--model", "m", "--effort", "low"], cap);
     assert.equal(capturedLocal.effort, "low", "an explicit --effort reaches the local preset");
-    resolveDriver(["--driver", "local", "--base-url", "http://x:11434", "--model", "m"], cap);
+    resolveDriver(["--driver", "local", "--base-url", "http://x:8000", "--model", "m"], cap);
     assert.equal(capturedLocal.effort, null, "no flag ⇒ no effort, whatever eval.effort is pinned to");
   } finally { console.warn = orig; }
   assert.ok(!warns.some((w) => /--effort is ignored for --driver local/.test(w)), "no ignored-effort warning on the local lane");
 });
 
 test("localOpts carries effort into the claude -p argv; absent leaves argv unchanged", () => {
-  const base = { baseUrl: "http://h:11434", model: "m" };
+  const base = { baseUrl: "http://h:8000", model: "m", apiKey: "k" };
   assert.equal(localOpts(base).effort, null);
   assert.ok(!buildInvocation(localOpts(base), "P", "/tmp/cfg").args.includes("--effort"));
   const args = buildInvocation(localOpts({ ...base, effort: "low" }), "P", "/tmp/cfg").args;
@@ -144,11 +145,22 @@ test("localOpts carries effort into the claude -p argv; absent leaves argv uncha
 });
 
 // --- resolveLocalParams: flag beats env; both missing is fatal ---
-test("resolveLocalParams resolves --base-url and --model from flags", () => {
-  const { baseUrl, model } = resolveLocalParams(
-    ["--base-url", "http://studio.x.ts.net:11434", "--model", "qwen3.6:27b-mlx"]);
-  assert.equal(baseUrl, "http://studio.x.ts.net:11434");
-  assert.equal(model, "qwen3.6:27b-mlx");
+test("resolveLocalParams resolves --base-url and --model from flags, and the key from the environment", () => {
+  const saved = { a: process.env.FAFF_EVAL_LOCAL_API_KEY, b: process.env.LOCAL_API_KEY };
+  const argv = ["--base-url", "http://studio.x.ts.net:8000", "--model", "qwen3.6:27b-mlx"];
+  try {
+    delete process.env.FAFF_EVAL_LOCAL_API_KEY; delete process.env.LOCAL_API_KEY;
+    assert.throws(() => resolveLocalParams(argv), /FAFF_EVAL_LOCAL_API_KEY/, "no key is a fail-loud config error");
+    process.env.LOCAL_API_KEY = "sk-fallback";
+    assert.equal(resolveLocalParams(argv).apiKey, "sk-fallback");
+    process.env.FAFF_EVAL_LOCAL_API_KEY = "sk-eval";
+    const { baseUrl, model, apiKey } = resolveLocalParams(argv);
+    assert.equal(baseUrl, "http://studio.x.ts.net:8000");
+    assert.equal(model, "qwen3.6:27b-mlx");
+    assert.equal(apiKey, "sk-eval", "the faff-prefixed variable wins over LOCAL_API_KEY");
+  } finally {
+    for (const [k, v] of [["FAFF_EVAL_LOCAL_API_KEY", saved.a], ["LOCAL_API_KEY", saved.b]]) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+  }
 });
 
 // ====================== FAFF-133 — repo-plugin loading into the isolated run ======================
@@ -159,24 +171,16 @@ test("frontierOpts: repo plugin, NO --bare (OAuth auth), forwardCreds true", () 
   assert.ok(DEFAULT_PLUGIN_DIR.endsWith("/plugin"), "DEFAULT_PLUGIN_DIR points at the repo plugin");
 });
 
-test("localOpts defaults to the repo plugin + --bare alongside the ollama redirect", () => {
-  const o = localOpts({ baseUrl: "http://h:11434", model: "m" });
+test("localOpts defaults to the repo plugin + --bare alongside the gateway redirect", () => {
+  const o = localOpts({ baseUrl: "http://h:8000", model: "m", apiKey: "k" });
   assert.equal(o.bare, true); // local: env-token auth works under --bare
   assert.equal(o.pluginDir, DEFAULT_PLUGIN_DIR);
-  assert.equal(o.env.ANTHROPIC_BASE_URL, "http://h:11434");
+  assert.equal(o.env.ANTHROPIC_BASE_URL, "http://h:8000");
 });
 
-test("localOpts sends $LOCAL_API_KEY as the auth token, falling back to the ollama placeholder", () => {
-  const saved = process.env.LOCAL_API_KEY;
-  try {
-    delete process.env.LOCAL_API_KEY;
-    assert.equal(localOpts({ baseUrl: "http://h:11434", model: "m" }).env.ANTHROPIC_AUTH_TOKEN, "ollama");
-    process.env.LOCAL_API_KEY = "sk-local";
-    assert.equal(localOpts({ baseUrl: "http://h:11434", model: "m" }).env.ANTHROPIC_AUTH_TOKEN, "sk-local");
-    assert.equal(localOpts({ baseUrl: "http://h:11434", model: "m", authToken: "explicit" }).env.ANTHROPIC_AUTH_TOKEN, "explicit");
-  } finally {
-    if (saved === undefined) delete process.env.LOCAL_API_KEY; else process.env.LOCAL_API_KEY = saved;
-  }
+test("localOpts sends its apiKey as the auth token and refuses to build without one", () => {
+  assert.equal(localOpts({ baseUrl: "http://h:8000", model: "m", apiKey: "sk-local" }).env.ANTHROPIC_AUTH_TOKEN, "sk-local");
+  assert.throws(() => localOpts({ baseUrl: "http://h:8000", model: "m" }), /apiKey/);
 });
 
 // --- frontier args: --plugin-dir, NO --bare (FAFF-138) ---
@@ -186,7 +190,7 @@ test("buildInvocation emits --plugin-dir (no --bare) for the frontier preset", (
 });
 
 test("buildInvocation orders args: --model then --bare then --plugin-dir (local keeps --bare)", () => {
-  const inv = buildInvocation(localOpts({ baseUrl: "http://h:11434", model: "m" }), "PROMPT", "/tmp/cfg");
+  const inv = buildInvocation(localOpts({ baseUrl: "http://h:8000", model: "m", apiKey: "k" }), "PROMPT", "/tmp/cfg");
   assert.deepEqual(inv.args, ["-p", "PROMPT", "--model", "m", "--bare", "--plugin-dir", DEFAULT_PLUGIN_DIR]);
 });
 

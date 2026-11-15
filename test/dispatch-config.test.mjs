@@ -22,7 +22,7 @@ function withConfig(body, fn) {
 }
 const cli = (dir, ...args) => runCli(args, { cwd: dir });
 const NOT_APPLIED_NOTE = " (effort recorded, not applied: Agent tool)";
-const ENGINE_OLLAMA = "engines:\n  local:\n    provider: ollama\n    model: m1\n    host: http://h.test:11434\n";
+const ENGINE_VLLM = "engines:\n  local:\n    provider: vllm\n    model: m1\n    host: http://h.test:8000\n";
 
 test("no dispatch.* key is registered in DEFAULTS; an unset dispatch key reads as absent (exit 3)", () => {
   assert.deepEqual(Object.keys(DEFAULTS).filter((k) => k.startsWith("dispatch.")), []);
@@ -70,7 +70,7 @@ test("config get refuses invalid dispatch values already in the file", () => {
     ["dispatch.build.by_confidence.medium.effort", "dispatch:\n  build:\n    by_confidence:\n      medium:\n        effort: high\n", /ADR-0108/],
     ["dispatch.spec", "dispatch:\n  spec: { effort: low }\n", /use block form/],
     ["dispatch.spec.colour", "dispatch:\n  spec:\n    colour: red\n", /unknown dispatch field colour/],
-    ["dispatch.methodology.model", `${ENGINE_OLLAMA}dispatch:\n  methodology:\n    model: engine:nope\n`, /unknown engine "nope"/],
+    ["dispatch.methodology.model", `${ENGINE_VLLM}dispatch:\n  methodology:\n    model: engine:nope\n`, /unknown engine "nope"/],
   ];
   for (const [key, body, message] of cases) {
     withConfig(body, (dir) => {
@@ -90,7 +90,7 @@ test("config get dispatch.build (a node) validates leaves only and reads as befo
 });
 
 test("config get dispatch.methodology.model accepts a resolvable engine value", () => {
-  withConfig(`${ENGINE_OLLAMA}dispatch:\n  methodology:\n    model: engine:local\n`, (dir) => {
+  withConfig(`${ENGINE_VLLM}dispatch:\n  methodology:\n    model: engine:local\n`, (dir) => {
     const r = cli(dir, "config", "get", "dispatch.methodology.model");
     assert.equal(r.code, 0, r.stderr);
     assert.equal(r.stdout.trim(), "engine:local");
@@ -154,16 +154,16 @@ test("dispatch resolve build honours dispatch.build.* at every position", () => 
 });
 
 test("engine call honours dispatch.<lane>.model / .effort and names the dispatch key in the refusal", () => {
-  withConfig(`${ENGINE_OLLAMA}dispatch:\n  methodology:\n    model: engine:local\n    effort: high\n`, (dir) => {
+  withConfig(`${ENGINE_VLLM}    reasoning_off: true\ndispatch:\n  methodology:\n    model: engine:local\n    effort: high\n`, (dir) => {
     const r = cli(dir, "engine", "call", "--lane", "methodology", "--system", "/dev/null", "--user", "/dev/null");
     assert.equal(r.code, 2);
     assert.match(r.stderr, /dispatch\.methodology\.effort/);
-    assert.match(r.stderr, /no graded reasoning-effort transport/);
+    assert.match(r.stderr, /contradictory/);
   });
 });
 
 test("every resolver validates the whole dispatch tree: a typo'd lane elsewhere exits 2", () => {
-  const body = `${ENGINE_OLLAMA}dispatch:\n  methodology:\n    model: engine:local\n  biuld:\n    model: opus\n`;
+  const body = `${ENGINE_VLLM}dispatch:\n  methodology:\n    model: engine:local\n  biuld:\n    model: opus\n`;
   withConfig(body, (dir) => {
     for (const args of [["dispatch", "resolve", "spec"], ["dispatch", "resolve", "build"], ["engine", "call", "--lane", "methodology", "--system", "/dev/null", "--user", "/dev/null"]]) {
       const r = cli(dir, ...args);
@@ -201,7 +201,7 @@ test("config resolved prints dispatch lines only for set values, annotating unap
     "    by_confidence:", "      medium:", "        model: haiku", "      low:", "        model: haiku",
     "  methodology:", "    effort: high", "",
   ].join("\n");
-  withConfig(`${ENGINE_OLLAMA}${body}  intake:\n    model: engine:local\n    effort: low\n`, (dir) => {
+  withConfig(`${ENGINE_VLLM}${body}  intake:\n    model: engine:local\n    effort: low\n`, (dir) => {
     const lines = cli(dir, "config", "resolved").stdout.split("\n").filter((l) => l.startsWith("dispatch "));
     const note = NOT_APPLIED_NOTE;
     assert.deepEqual(lines, [
@@ -290,7 +290,7 @@ test("legacyTreeError names the file, each leaf with its replacement and the exa
 });
 
 test("a legacy tree in the base makes every resolver exit 2, and the named command clears it", () => {
-  withConfig(`${ENGINE_OLLAMA}models:\n  prep_explore: sonnet\n  adr: sonnet\n`, (dir) => {
+  withConfig(`${ENGINE_VLLM}models:\n  prep_explore: sonnet\n  adr: sonnet\n`, (dir) => {
     for (const args of [["dispatch", "resolve", "prep_explore"], ["engine", "call", "--lane", "methodology", "--system", "/dev/null", "--user", "/dev/null"]]) {
       const r = cli(dir, ...args);
       assert.equal(r.code, 2, args.join(" "));
@@ -341,7 +341,7 @@ test("the resolvers also refuse a merged legacy tree, naming both unset commands
 });
 
 test("config resolved annotates every Agent-dispatched effort and no engine lane's", () => {
-  withConfig(`${ENGINE_OLLAMA}dispatch:\n  methodology:\n    model: engine:local\n    effort: high\n  spec:\n    effort: low\n  prep_explore:\n    effort: inherit\n`, (dir) => {
+  withConfig(`${ENGINE_VLLM}dispatch:\n  methodology:\n    model: engine:local\n    effort: high\n  spec:\n    effort: low\n  prep_explore:\n    effort: inherit\n`, (dir) => {
     const lines = cli(dir, "config", "resolved").stdout.split("\n").filter((l) => l.startsWith("dispatch "));
     assert.deepEqual(lines, [
       "dispatch prep_explore: effort=inherit",

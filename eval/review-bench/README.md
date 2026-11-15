@@ -6,7 +6,7 @@ real ~40 KB product spec with its code context (~15.8 K-token prompts). Copy thi
 machine with **node** (no npm install, zero dependencies) and point it at an endpoint.
 
 It answers the questions that actually decide whether a local model can serve as an L4 reviewer:
-- Does it **serve** and respond over the transport (ollama `/api/chat` or OpenAI `/v1/chat/completions`)?
+- Does it **serve** and respond over the transport (OpenAI `/v1/chat/completions`)?
 - How fast — prompt-eval tok/s, generation tok/s, total, and (streaming) time-to-first-byte?
 - Does it return **parseable, findings-shaped** output (`### <severity>: …`) the aggregator can score,
   or empty / malformed?
@@ -34,7 +34,7 @@ Two review types, matching faff's two review slots:
   run at graft time. Point the runner at it with `--requests-dir code-review/requests`.
 
 Each `requests/*.json` is a ready-to-send payload: `system` (the lens brief) + `user` (context files
-fenced, then the spec or diff). The runner wraps it in the ollama or OpenAI body shape at call time, so
+fenced, then the spec or diff). The runner wraps it in the OpenAI body shape at call time, so
 the **same request set benchmarks both transports**.
 
 **No tool calls.** Faff reviews are single-shot chat completions — system + user -> findings text; no
@@ -44,12 +44,7 @@ faff runs `node --check` on syntax claims itself.) This kit sends plain completi
 ## Usage
 
 ```
-node run-bench.mjs --provider <ollama|openai> --host <URL> --model <NAME> [options]
-```
-
-**ollama** (native `/api/chat`, keyless; `think:false` disables reasoning):
-```
-node run-bench.mjs --provider ollama --host http://HOST:11434 --model qwen3.8:27b-mlx
+node run-bench.mjs --provider openai --host <URL> --model <NAME> [options]
 ```
 
 **OpenAI-compatible** server (needs `/v1` in the host, a bearer key, the exact served id):
@@ -67,28 +62,28 @@ node run-bench.mjs --provider openai --host http://HOST:8001/v1 --model North-Mi
 
 **Compare reasoning on vs off, one lens, streaming (measures TTFB):**
 ```
-node run-bench.mjs --provider ollama --host http://HOST:11434 --model qwen3.8:27b-mlx --lens qa --reasoning on --stream
-node run-bench.mjs --provider ollama --host http://HOST:11434 --model qwen3.8:27b-mlx --lens qa --reasoning off --stream
+node run-bench.mjs --provider openai --host http://HOST:8001/v1 --model Qwen3.8-27B-4bit --key-env OMLX_API_KEY --lens qa --reasoning on --stream
+node run-bench.mjs --provider openai --host http://HOST:8001/v1 --model Qwen3.8-27B-4bit --key-env OMLX_API_KEY --lens qa --reasoning off --stream
 ```
 
 ### Modes: single · fan-out · repeat (cache test)
 
 ```
 # SINGLE lens (fast iteration on one prompt)
-node run-bench.mjs --provider ollama --host http://HOST:11434 --model qwen3.8:27b-mlx --lens qa
+node run-bench.mjs --provider openai --host http://HOST:8001/v1 --model Qwen3.8-27B-4bit --key-env OMLX_API_KEY --lens qa
 
 # FAN-OUT: all 4 lenses at once, like faff's fan-out.mjs. Reveals GPU serialization —
 # on a single-GPU server the per-lens totals include queue wait and the panel ~= sum;
 # on a truly parallel backend the panel ~= the slowest single lens.
-node run-bench.mjs --provider ollama --host http://HOST:11434 --model qwen3.8:27b-mlx --concurrent
+node run-bench.mjs --provider openai --host http://HOST:8001/v1 --model Qwen3.8-27B-4bit --key-env OMLX_API_KEY --concurrent
 
 # CACHE TEST: same request re-sent 3x. Iterations 2+ should hit the server's prompt cache,
 # so prompt-eval collapses and total_s drops. The summary prints the per-iteration series
 # and the warm speedup. Use one lens to isolate it:
-node run-bench.mjs --provider ollama --host http://HOST:11434 --model qwen3.8:27b-mlx --lens qa --repeat 3
+node run-bench.mjs --provider openai --host http://HOST:8001/v1 --model Qwen3.8-27B-4bit --key-env OMLX_API_KEY --lens qa --repeat 3
 
 # combine: fan-out, twice (e.g. cold panel then warm panel)
-node run-bench.mjs --provider ollama --host http://HOST:11434 --model qwen3.8:27b-mlx --concurrent --repeat 2
+node run-bench.mjs --provider openai --host http://HOST:8001/v1 --model Qwen3.8-27B-4bit --key-env OMLX_API_KEY --concurrent --repeat 2
 ```
 
 Notes: `--concurrent` and `--repeat` compose. Verdict bodies are saved from the **first** iteration only
@@ -99,14 +94,14 @@ Notes: `--concurrent` and `--repeat` compose. Verdict bodies are saved from the 
 
 | flag | default | meaning |
 |---|---|---|
-| `--provider` | (req) | `ollama` or `openai` |
-| `--host` | (req) | ollama: `http://h:11434` · openai: `http://h:8001/v1` (include `/v1`) |
+| `--provider` | (req) | `openai` |
+| `--host` | (req) | `http://h:8001/v1` (include `/v1`) |
 | `--model` | (req) | served model id (openai id must match `/v1/models` **exactly**) |
 | `--key-env VAR` | — | openai: env var holding the bearer token |
 | `--lens` | `all` | `all` or one of `architectural`/`infosec`/`methodology`/`qa` |
 | `--concurrent` | off | fan-out: fire the selected lenses concurrently (alias `--fanout`); default is sequential |
 | `--repeat N` | `1` | run the selected set N times (for the prompt-cache warming test) |
-| `--reasoning` | `off` | `off`\|`on`\|`low`\|`medium`\|`high` — disable, enable, or set effort. A level sets openai `reasoning_effort` and (with `--cohere`) the Cohere `token_budget`. ollama has no levels (on/level all map to `think:true`). |
+| `--reasoning` | `off` | `off`\|`on`\|`low`\|`medium`\|`high` — disable, enable, or set effort. A level sets openai `reasoning_effort` and (with `--cohere`) the Cohere `token_budget`. |
 | `--token-budget N` | — | Cohere: explicit thinking `token_budget` (overrides the level default: low 1024 / medium 8192 / high 31000) |
 | `--cohere` | off | openai: use Cohere's native switch — `thinking:{type:"disabled"}` when off, `{type:"enabled", token_budget}` when on/level |
 | `--thinking-token-budget N` | — | top-level vLLM reasoning-token cap (`thinking_token_budget`); the lever qwen3 AND cohere_command4 honour. Pair with `--reasoning on` to bench without the empty-out — this is what production sends (FAFF-918). |
@@ -120,8 +115,8 @@ Notes: `--concurrent` and `--repeat` compose. Verdict bodies are saved from the 
 ### Reasoning: off / on / level
 
 ```
-node run-bench.mjs --provider ollama --host http://HOST:11434 --model qwen3.8:27b-mlx --lens qa --reasoning off
-node run-bench.mjs --provider ollama --host http://HOST:11434 --model qwen3.8:27b-mlx --lens qa --reasoning on
+node run-bench.mjs --provider openai --host http://HOST:8001/v1 --model Qwen3.8-27B-4bit --key-env OMLX_API_KEY --lens qa --reasoning off
+node run-bench.mjs --provider openai --host http://HOST:8001/v1 --model Qwen3.8-27B-4bit --key-env OMLX_API_KEY --lens qa --reasoning on
 # graded effort (openai reasoning_effort; Cohere token_budget with --cohere):
 node run-bench.mjs --provider openai --host http://HOST:8001/v1 --model Qwen3.8-27B-4bit --key-env OMLX_API_KEY --lens qa --reasoning high
 ```
@@ -136,7 +131,7 @@ The same runner, pointed at the graft/code-review request (one 5-category advers
 real ~39 KB git diff + the files it touches):
 
 ```
-node run-bench.mjs --provider ollama --host http://HOST:11434 --model qwen3.8:27b-mlx \
+node run-bench.mjs --provider openai --host http://HOST:8001/v1 --model Qwen3.8-27B-4bit --key-env OMLX_API_KEY \
     --requests-dir code-review/requests --lens code-review
 ```
 
@@ -153,11 +148,11 @@ fan-out serialization ratio? cache speedup? TTFB?). Configure the endpoint once,
 
 ```
 # spec-review battery
-node full-bench.mjs --provider ollama --host http://HOST:11434 --model qwen3.8:27b-mlx
+node full-bench.mjs --provider openai --host http://HOST:8001/v1 --model Qwen3.8-27B-4bit --key-env OMLX_API_KEY
 OMLX_API_KEY=... node full-bench.mjs --provider openai --host http://HOST:8001/v1 --model Qwen3.8-27B-4bit --key-env OMLX_API_KEY
 
 # code-review (graft) battery — point it at that suite
-node full-bench.mjs --provider ollama --host http://HOST:11434 --model qwen3.8:27b-mlx --requests-dir code-review/requests --single code-review
+node full-bench.mjs --provider openai --host http://HOST:8001/v1 --model Qwen3.8-27B-4bit --key-env OMLX_API_KEY --requests-dir code-review/requests --single code-review
 
 # quick pass (fan-out + cache only), Cohere model
 OMLX_API_KEY=... node full-bench.mjs --provider openai --host http://HOST:8001/v1 --model North-Mini-Code-1.0-6bit --key-env OMLX_API_KEY --cohere --quick
@@ -171,11 +166,10 @@ Options: `--single LENS` (lens for the single-lens tests, default `qa`), `--repe
 
 Per lens the runner prints (and saves to `results/<run>/summary.md` + `.json`):
 
-- **total / ttfb** — wall time; TTFB only with `--stream`. On a cold ollama qwen, first byte ≈ prompt-eval
-  time (~230 s on this prompt) because ollama emits nothing until prompt-eval finishes.
+- **total / ttfb** — wall time; TTFB only with `--stream`. On a cold local model, first byte ≈ prompt-eval
+  time (~230 s on this prompt) because the server emits nothing until prompt-eval finishes.
 - **in / out tok**, **pe tps** (prompt-eval tok/s), **gen tps** (generation tok/s), **cached** (prompt
   tokens served from cache, openai only).
-  - **ollama** reports exact per-phase durations, so pe/gen tps are precise on any run.
   - **OpenAI-compatible servers (OMLX / vLLM / …) only report token counts**, not a prompt-eval vs
     generation time split. To get pe/gen tps from them, **add `--stream`**: time-to-first-token ≈
     prompt-eval time, the remainder is generation, so the runner derives `pe = in / ttfb` and
@@ -201,7 +195,7 @@ Raw verdicts are saved as `results/<run>/<lens>.content.md`; any reasoning trace
 
 ## What we found (reference, on the studio host)
 
-- **Qwen3.8-27B** (ollama `qwen3.8:27b-mlx` @ :11434 and openai `Qwen3.8-27B-4bit` @ :8001/v1): serves,
+- **Qwen3.8-27B** (openai `Qwen3.8-27B-4bit` @ :8001/v1): serves,
   parseable, calibrated (major/minor/observation spread). `--reasoning off` genuinely disables thinking.
   A cold 4-lens panel is ~18-20 min on one GPU (lenses serialise).
 - **North-Mini-Code** (Cohere "North"): originally recorded as **unusable at :8001** — it ignores

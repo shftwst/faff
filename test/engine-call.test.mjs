@@ -29,7 +29,7 @@ function fixtureDir(faffrcBody) {
   return dir;
 }
 
-const ENGINES_BLOCK = "engines:\n  studio:\n    provider: ollama\n    model: qwen3-next:80b\n    host: http://studio.test:11434\n";
+const ENGINES_BLOCK = "engines:\n  studio:\n    provider: vllm\n    model: qwen3-next:80b\n    host: http://studio.test:8000\n";
 
 // --- read-time validation (config get) ---
 
@@ -84,7 +84,7 @@ test("unknown engine name fails at read, listing the configured engine names", (
 });
 
 test("missing required engine field fails at read, naming the field", () => {
-  const dir = fixtureDir("engines:\n  s:\n    provider: ollama\n    model: m\ndispatch:\n  intake:\n    model: engine:s\n");
+  const dir = fixtureDir("engines:\n  s:\n    provider: vllm\n    model: m\ndispatch:\n  intake:\n    model: engine:s\n");
   try {
     const r = runCli(["config", "get", "dispatch.intake.model"], { cwd: dir });
     assert.equal(r.code, 2);
@@ -140,21 +140,6 @@ test("engine call: an Anthropic-token lane is refused (engine call serves only e
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-// FAFF-705: a graded effort on a NON-graded family (ollama) is still refused, now with a
-// capability-specific message naming the missing transport and the remedy (reasoning_off /
-// a graded-effort engine) — the reworded refusal replacing the FAFF-422 blanket "engines
-// can't carry effort" prose.
-test("engine call: graded effort on an ollama (non-graded) engine lane is refused, capability-named", () => {
-  const dir = fixtureDir(ENGINES_BLOCK + "dispatch:\n  methodology:\n    model: engine:studio\n    effort: high\n");
-  try {
-    const r = runCli(["engine", "call", "--lane", "methodology", "--system", "/dev/null", "--user", "/dev/null"], { cwd: dir });
-    assert.equal(r.code, 2);
-    assert.match(r.stderr, /dispatch\.methodology\.effort/);
-    assert.match(r.stderr, /no graded reasoning-effort transport/);
-    assert.match(r.stderr, /reasoning_off/);
-  } finally { rmSync(dir, { recursive: true, force: true }); }
-});
-
 // FAFF-705: a graded effort on a GRADED-effort family (openai) is NO LONGER refused at config
 // (the FAFF-422 lift) — it resolves and dispatches, failing only at the (fake) network host
 // with engine-unreachable, never the old effort×engine config refusal (exit 2).
@@ -200,7 +185,7 @@ test("v1 allowlist is exactly the pure-data-in producers", () => {
 test("validateEngineRef: unknown provider fails naming the legal set", () => {
   const err = validateEngineRef({ engines: { s: { provider: "llamacpp", model: "m", host: "h" } } }, "engine:s");
   assert.match(err, /unknown provider/);
-  assert.match(err, /ollama/);
+  assert.match(err, /vllm/);
 });
 
 test("resolveEngineForLane: happy path resolves family, options, defaults", () => {
@@ -218,16 +203,16 @@ test("resolveEngineForLane: happy path resolves family, options, defaults", () =
 // --- one-shot transport (injected — zero real network calls) ---
 
 test("runEngineCall: happy path is exactly ONE non-streaming completion", async () => {
-  const eng = { name: "s", provider: "ollama", family: "ollama", model: "m1", host: "http://h:1", reasoningOff: false, timeoutMs: 1000 };
+  const eng = { name: "s", provider: "vllm", family: "openai", model: "m1", host: "http://h:1", reasoningOff: false, timeoutMs: 1000 };
   let posts = 0;
   let sawStreamFalse = false;
   const r = await runEngineCall({
     engine: eng, system: "SYS", user: "USR",
-    getFn: async () => JSON.stringify({ models: [{ name: "m1" }] }),
+    getFn: async () => JSON.stringify({ data: [{ id: "m1" }] }),
     postFn: async (req) => {
       posts++;
       sawStreamFalse = JSON.parse(req.body).stream === false;
-      return JSON.stringify({ message: { content: "answer" } });
+      return JSON.stringify({ choices: [{ message: { content: "answer" } }] });
     },
   });
   assert.equal(r.status, "ok");
@@ -237,7 +222,7 @@ test("runEngineCall: happy path is exactly ONE non-streaming completion", async 
 });
 
 test("runEngineCall: unreachable probe → engine-unreachable; completion never attempted", async () => {
-  const eng = { name: "s", provider: "ollama", family: "ollama", model: "m1", host: "http://h:1", reasoningOff: false, timeoutMs: 1000 };
+  const eng = { name: "s", provider: "vllm", family: "openai", model: "m1", host: "http://h:1", reasoningOff: false, timeoutMs: 1000 };
   let posts = 0;
   const r = await runEngineCall({
     engine: eng, system: "S", user: "U",
@@ -260,11 +245,11 @@ test("runEngineCall: model absent from the probe → model-not-served with the s
 });
 
 test("runEngineCall: missing content field → malformed-response (fail-loud parse, no retry)", async () => {
-  const eng = { name: "s", provider: "ollama", family: "ollama", model: "m1", host: "http://h:1", reasoningOff: false, timeoutMs: 1000 };
+  const eng = { name: "s", provider: "vllm", family: "openai", model: "m1", host: "http://h:1", reasoningOff: false, timeoutMs: 1000 };
   let posts = 0;
   const r = await runEngineCall({
     engine: eng, system: "S", user: "U",
-    getFn: async () => JSON.stringify({ models: [{ name: "m1" }] }),
+    getFn: async () => JSON.stringify({ data: [{ id: "m1" }] }),
     postFn: async () => { posts++; return JSON.stringify({ done: true }); },
   });
   assert.equal(r.status, "malformed-response");
@@ -279,8 +264,8 @@ test("buildEngineRequest: openai join preserves /v1; Bearer only with a key", ()
   assert.equal("authorization" in noKey.headers, false);
 });
 
-test("parseEngineResponse: fail-loud on both families' unknown shapes", () => {
-  assert.throws(() => parseEngineResponse("ollama", JSON.stringify({})), /message\.content/);
+test("parseEngineResponse: fail-loud on unknown shapes", () => {
+  assert.throws(() => parseEngineResponse("openai", JSON.stringify({})), /choices\[0\]\.message\.content/);
   assert.throws(() => parseEngineResponse("openai", "no json"), /not JSON/);
 });
 

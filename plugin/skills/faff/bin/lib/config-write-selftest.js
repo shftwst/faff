@@ -157,7 +157,7 @@ function configSetSelftest() {
 
   // Carve-out representation 1: block-sequence — refused, file byte-unchanged.
   {
-    const orig = "adversarial:\n  refs:\n    - nvidia-glm\n    - studio-ollama\n";
+    const orig = "adversarial:\n  refs:\n    - nvidia-glm\n    - studio-vllm\n";
     const r = mergeConfigPath(orig, ["adversarial", "refs"], "foo", true);
     check("carve-out/block-sequence: value-shape belt refuses", r.typeError !== null && r.text === orig);
   }
@@ -169,7 +169,7 @@ function configSetSelftest() {
   // (cmdConfigSet step 2b, asserted below) closes it — same corruption risk class as
   // representation 3.
   {
-    const orig = "adversarial:\n  refs: [nvidia-glm, studio-ollama]\n";
+    const orig = "adversarial:\n  refs: [nvidia-glm, studio-vllm]\n";
     const r = mergeConfigPath(orig, ["adversarial", "refs"], "foo", true);
     check("carve-out/inline-flow-bare: mergeConfigPath alone would NOT catch this (documents the risk)",
       r.typeError === null && r.changed === true);
@@ -179,7 +179,7 @@ function configSetSelftest() {
   // the value-shape belt catches this representation even without the denylist. Documents the
   // one shape the belt alone protects.
   {
-    const orig = 'adversarial:\n  refs: ["nvidia-glm", "studio-ollama"]\n';
+    const orig = 'adversarial:\n  refs: ["nvidia-glm", "studio-vllm"]\n';
     const r = mergeConfigPath(orig, ["adversarial", "refs"], "foo", true);
     check("carve-out/inline-flow-quoted: value-shape belt refuses", r.typeError !== null && r.text === orig);
   }
@@ -189,7 +189,7 @@ function configSetSelftest() {
   // no JSON parse). Only the key-identity denylist (cmdConfigSet step 2b, exercised via
   // SEQUENCE_VALUED_KEYS membership here) closes it — asserted at the set() level below.
   {
-    const orig = 'adversarial:\n  fallbacks: \'[{"provider":"ollama","model":"qwen3-next:80b"}]\'\n';
+    const orig = 'adversarial:\n  fallbacks: \'[{"provider":"vllm","model":"qwen3-next:80b"}]\'\n';
     const r = mergeConfigPath(orig, ["adversarial", "fallbacks"], "foo", true);
     check("carve-out/json-string: mergeConfigPath alone would NOT catch this (documents the risk)",
       r.typeError === null && r.changed === true);
@@ -453,11 +453,11 @@ function configInitSelftest() {
 
   // FAFF-262: block-sequence parsing (arrays of maps + arrays of scalars).
   {
-    const text = "adversarial:\n  backends:\n    - provider: nvidia\n      model: nemotron\n    - provider: ollama\n      model: qwen3\n";
+    const text = "adversarial:\n  backends:\n    - provider: nvidia\n      model: nemotron\n    - provider: vllm\n      model: qwen3\n";
     const arr = dig(parseYamlSubset(text), "adversarial.backends");
     check("seq: array of maps is an Array of length 2", Array.isArray(arr) && arr.length === 2);
     check("seq: map item 1 multi-key intact", arr && arr[0] && arr[0].provider === "nvidia" && arr[0].model === "nemotron");
-    check("seq: map item 2 multi-key intact", arr && arr[1] && arr[1].provider === "ollama" && arr[1].model === "qwen3");
+    check("seq: map item 2 multi-key intact", arr && arr[1] && arr[1].provider === "vllm" && arr[1].model === "qwen3");
   }
   {
     const arr = dig(parseYamlSubset("hosts:\n  - alpha\n  - beta\n"), "hosts");

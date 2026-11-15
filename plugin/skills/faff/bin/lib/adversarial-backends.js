@@ -203,13 +203,13 @@ function adversarialBackendsSelftest() {
     const cfg = { adversarial: {
       provider: "nvidia", model: "nvidia/nemotron-3-super-120b-a12b",
       host: "https://integrate.api.nvidia.com/v1", api_key_env: "NVIDIA_API_KEY", timeout: 480,
-      fallbacks: JSON.stringify([{ provider: "ollama", model: "qwen3-next:80b", host: "http://studio:11434" }]),
+      fallbacks: JSON.stringify([{ provider: "vllm", model: "qwen3-next:80b", host: "http://studio:8000" }]),
     }  };
     const res = assembleAdversarialBackends(cfg);
     ok("legacy+fallbacks: two-element primary-first chain", !!res.chain && res.chain.length === 2);
     ok("legacy+fallbacks: primary nvidia/ prefix intact", res.chain[0].model === "nvidia/nemotron-3-super-120b-a12b");
     ok("legacy+fallbacks: fallback provider/model/host self-contained",
-      res.chain[1].provider === "ollama" && res.chain[1].model === "qwen3-next:80b" && res.chain[1].host === "http://studio:11434");
+      res.chain[1].provider === "vllm" && res.chain[1].model === "qwen3-next:80b" && res.chain[1].host === "http://studio:8000");
     ok("legacy+fallbacks: fallback inherits omitted api_key_env from primary", res.chain[1].api_key_env === "NVIDIA_API_KEY");
     ok("legacy+fallbacks: fallback inherits omitted timeout from primary", res.chain[1].timeout === 480);
   }
@@ -244,7 +244,7 @@ function adversarialBackendsSelftest() {
   {
     const cfg = { adversarial: { backends: [
       { provider: "nvidia", model: "nvidia/m1", host: "https://a/v1", api_key_env: "K1" },
-      { provider: "ollama", model: "m2", host: "http://b:11434" },
+      { provider: "vllm", model: "m2", host: "http://b:8000" },
     ] }  };
     const res = assembleAdversarialBackends(cfg);
     ok("native backends: two-element chain, primary-first order preserved",
@@ -328,7 +328,7 @@ function adversarialBackendsSelftest() {
   {
     const cfg = { adversarial: {
       provider: "nvidia", model: "m1", host: "https://a/v1", api_key_env: "K", reasoning_effort: "xhigh",
-      fallbacks: JSON.stringify([{ provider: "ollama", model: "m2", host: "http://b:11434" }]),
+      fallbacks: JSON.stringify([{ provider: "vllm", model: "m2", host: "http://b:8000" }]),
     }  };
     const res = assembleAdversarialBackends(cfg);
     ok("reasoning_effort: emitted on the primary when set", res.chain[0].reasoning_effort === "xhigh");
@@ -358,10 +358,10 @@ function adversarialBackendsSelftest() {
     const cfg = {
       backends: {
         A: { provider: "nvidia", model: "mA", host: "https://a/v1", api_key_env: "KA" },
-        B: { provider: "ollama", model: "mB", host: "http://b:11434" },
+        B: { provider: "vllm", model: "mB", host: "http://b:8000" },
       },
       adversarial: {
-        host: "http://base:11434", model: "base", provider: "ollama",
+        host: "http://base:8000", model: "base", provider: "vllm",
         spec_review: { refs: ["B", "A"] },
       },
     };
@@ -403,7 +403,7 @@ function adversarialBackendsSelftest() {
     const cfg = {
       backends: { A: { provider: "nvidia", model: "mA", host: "https://a/v1", api_key_env: "KA" } },
       adversarial: {
-        host: "http://base:11434", model: "base", provider: "ollama",
+        host: "http://base:8000", model: "base", provider: "vllm",
         spec_review: { refs: ["A"] }, code_review: { refs: ["A"] },
       },
     };

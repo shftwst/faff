@@ -5,15 +5,13 @@
 // FULL-SUMMARY.md with the headline numbers. Zero dependencies (spawns run-bench.mjs in this dir).
 //
 // USAGE
-//   node full-bench.mjs --provider <ollama|openai> --host <URL> --model <NAME> [options]
+//   node full-bench.mjs --provider openai --host <URL> --model <NAME> [options]
 //
-//   # ollama
-//   node full-bench.mjs --provider ollama --host http://HOST:11434 --model qwen3.8:27b-mlx
 //   # openai-compatible (with key), Cohere native reasoning switch
 //   OMLX_API_KEY=... node full-bench.mjs --provider openai --host http://HOST:8001/v1 \
 //       --model North-Mini-Code-1.0-6bit --key-env OMLX_API_KEY --cohere
 //   # quick pass (fan-out + cache only)
-//   node full-bench.mjs --provider ollama --host http://HOST:11434 --model qwen3.8:27b-mlx --quick
+//   OMLX_API_KEY=... node full-bench.mjs --provider openai --host http://HOST:8001/v1 --model Qwen3.8-27B-4bit --key-env OMLX_API_KEY --quick
 //
 // OPTIONS (endpoint flags are passed straight through to run-bench.mjs)
 //   --provider --host --model --key-env --cohere --max-tokens   (see run-bench.mjs)
@@ -53,7 +51,7 @@ function parseArgs(argv) {
 }
 const A = parseArgs(process.argv.slice(2));
 if (A.help || !A.provider || !A.host || !A.model) {
-  console.error("usage: node full-bench.mjs --provider <ollama|openai> --host <URL> --model <NAME> [options]\nsee the header of this file.");
+  console.error("usage: node full-bench.mjs --provider openai --host <URL> --model <NAME> [options]\nsee the header of this file.");
   process.exit(A.help ? 0 : 2);
 }
 

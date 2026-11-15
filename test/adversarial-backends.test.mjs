@@ -45,13 +45,13 @@ test("legacy primary + fallbacks: primary-first order, nvidia/ prefix intact, om
   const cfg = { adversarial: {
     provider: "nvidia", model: "nvidia/nemotron-3-super-120b-a12b",
     host: "https://integrate.api.nvidia.com/v1", api_key_env: "NVIDIA_API_KEY", timeout: 480,
-    fallbacks: JSON.stringify([{ provider: "ollama", model: "qwen3-next:80b", host: "http://studio:11434" }]),
+    fallbacks: JSON.stringify([{ provider: "vllm", model: "qwen3-next:80b", host: "http://studio:8000" }]),
   }  };
   const res = assembleAdversarialBackends(cfg);
   assert.equal(res.chain.length, 2, "primary + one fallback");
   assert.equal(res.chain[0].model, "nvidia/nemotron-3-super-120b-a12b", "the FAFF-246 retyping hazard — the nvidia/ prefix must survive intact");
   assert.deepEqual(res.chain[1], {
-    provider: "ollama", model: "qwen3-next:80b", host: "http://studio:11434",
+    provider: "vllm", model: "qwen3-next:80b", host: "http://studio:8000",
     api_key_env: "NVIDIA_API_KEY", timeout: 480, // inherited from the primary — never hand-typed
   });
 });
@@ -86,12 +86,12 @@ test("legacy, fallbacks authored as a NATIVE YAML array (not JSON-string) is use
 test("native backends: array is emitted as-is, primary-first order preserved, no cross-element inheritance", () => {
   const cfg = { adversarial: { backends: [
     { provider: "nvidia", model: "nvidia/m1", host: "https://a/v1", api_key_env: "K1" },
-    { provider: "ollama", model: "m2", host: "http://b:11434" },
+    { provider: "vllm", model: "m2", host: "http://b:8000" },
   ] }  };
   const res = assembleAdversarialBackends(cfg);
   assert.deepEqual(res.chain, [
     { provider: "nvidia", model: "nvidia/m1", host: "https://a/v1", api_key_env: "K1" },
-    { provider: "ollama", model: "m2", host: "http://b:11434" },
+    { provider: "vllm", model: "m2", host: "http://b:8000" },
   ], "no primary-key inheritance applied inside the native form");
 });
 
@@ -270,7 +270,7 @@ test("FAFF-914: a fallback's OWN reasoning_extra is never overwritten by inherit
   assert.deepEqual(out.reasoning_extra, { thinking: { type: "disabled" } }, "the fallback keeps its own shape (north's thinking, not the primary's reasoning)");
 });
 
-// The spec's own integration smoke test: a real .faffrc (nvidia primary + ollama fallback),
+// The spec's own integration smoke test: a real .faffrc (nvidia primary + vllm fallback),
 // `faff adversarial-backends` piped to a temp file, fed to review-call.mjs's `--backends-json`
 // (getFn/streamFn stubbed via runReviewFn) — assert the 2-element chain, the primary's
 // `nvidia/`-prefix survives end-to-end, and each backend's fields land correctly on the far side.
@@ -284,7 +284,7 @@ test("integration smoke: faff adversarial-backends output feeds review-call.mjs 
     "  reasoning_off: true\n" +
     "  reasoning_effort: xhigh\n" +
     "  timeout: 30\n" +
-    '  fallbacks: \'[{"provider":"ollama","model":"qwen3-next:80b","host":"http://studio:11434"}]\'\n',
+    '  fallbacks: \'[{"provider":"vllm","model":"qwen3-next:80b","host":"http://studio:8000"}]\'\n',
   );
   // review-call.mjs resolves each backend's api_key_env against the AMBIENT process.env
   // (never injectable) — force it deterministically set here (some dev machines legitimately
@@ -320,9 +320,9 @@ test("integration smoke: faff adversarial-backends output feeds review-call.mjs 
     assert.equal(captured[0].reasoningOff, true, "reasoning_off (snake_case, config) correctly read as reasoningOff (camelCase, transport)");
     assert.equal(captured[0].reasoningEffort, "xhigh", "reasoning_effort (snake_case, config) correctly read as reasoningEffort (camelCase, transport)");
     assert.equal(captured[0].timeoutMs, 30000, "timeout (seconds, config) correctly converted to timeoutMs (ms, transport)");
-    assert.equal(captured[1].provider, "ollama");
+    assert.equal(captured[1].provider, "vllm");
     assert.equal(captured[1].model, "qwen3-next:80b");
-    assert.equal(captured[1].host, "http://studio:11434");
+    assert.equal(captured[1].host, "http://studio:8000");
     assert.equal(captured[1].reasoningEffort, "xhigh", "the fallback inherited the primary's reasoning_effort, matching reasoning_off inheritance");
     assert.equal(captured[1].timeoutMs, 30000, "the fallback inherited the primary's timeout, and the transport read it correctly");
   } finally {
@@ -340,7 +340,7 @@ test("integration smoke: faff adversarial-backends output feeds review-call.mjs 
 test("refs: a backends: entry's first_byte_timeout survives normalizeBackend and reaches the emitted chain", () => {
   const cfg = {
     backends: {
-      "slow-local": { provider: "ollama", model: "q", host: "http://studio.x.ts.net:11434", first_byte_timeout: 300 },
+      "slow-local": { provider: "vllm", model: "q", host: "http://studio.x.ts.net:8000", first_byte_timeout: 300 },
     },
     adversarial: { refs: ["slow-local"] },
   };
@@ -357,9 +357,9 @@ test("per-consumer refs: a named consumer resolves its OWN refs chain from the s
   const cfg = {
     backends: {
       A: { provider: "nvidia", model: "mA", host: "https://a/v1", api_key_env: "KA" },
-      B: { provider: "ollama", model: "mB", host: "http://b:11434" },
+      B: { provider: "vllm", model: "mB", host: "http://b:8000" },
     },
-    adversarial: { host: "http://base:11434", model: "base", provider: "ollama", spec_review: { refs: ["B", "A"] } },
+    adversarial: { host: "http://base:8000", model: "base", provider: "vllm", spec_review: { refs: ["B", "A"] } },
   };
   const res = assembleAdversarialBackends(cfg, "spec_review");
   assert.equal(res.chain.length, 2);
@@ -376,7 +376,7 @@ test("FAFF-941: the spec_judge consumer chain carries each GLM backend's OpenRou
       "glm-5-2": { provider: "openai", model: "z-ai/glm-5.2:free", host: "https://openrouter.ai/api/v1", api_key_env: "OPENROUTER_API_KEY", reasoning_extra: { reasoning: { max_tokens: 2000 } } },
       "glm-5-3-flash": { provider: "openai", model: "z-ai/glm-5.3-flash", host: "https://openrouter.ai/api/v1", api_key_env: "OPENROUTER_API_KEY", reasoning_extra: { reasoning: { max_tokens: 2000 } } },
     },
-    adversarial: { host: "http://base:11434", model: "base", provider: "ollama", spec_judge: { refs: ["glm-5-2", "glm-5-3-flash"] } },
+    adversarial: { host: "http://base:8000", model: "base", provider: "vllm", spec_judge: { refs: ["glm-5-2", "glm-5-3-flash"] } },
   };
   const res = assembleAdversarialBackends(cfg, "spec_judge");
   assert.equal(res.chain.length, 2);
@@ -388,7 +388,7 @@ test("FAFF-941: the spec_judge consumer chain carries each GLM backend's OpenRou
 test("per-consumer: an unconfigured consumer is BYTE-IDENTICAL to the no-consumer shared chain (the zero-change guarantee)", () => {
   const cfg = {
     backends: { A: { provider: "nvidia", model: "mA", host: "https://a/v1", api_key_env: "KA" } },
-    adversarial: { host: "http://base:11434", model: "base", provider: "ollama", spec_review: { refs: ["A"] } },
+    adversarial: { host: "http://base:8000", model: "base", provider: "vllm", spec_review: { refs: ["A"] } },
   };
   const shared = assembleAdversarialBackends(cfg);
   const codeReview = assembleAdversarialBackends(cfg, "code_review"); // no code_review sub-block
@@ -400,7 +400,7 @@ test("per-consumer: an unconfigured consumer is BYTE-IDENTICAL to the no-consume
 test("per-consumer: omitting the consumer arg entirely ignores every sub-block (byte-for-byte today)", () => {
   const cfg = {
     backends: { A: { provider: "nvidia", model: "mA", host: "https://a/v1", api_key_env: "KA" } },
-    adversarial: { host: "http://base:11434", model: "base", provider: "ollama", spec_review: { refs: ["A"] }, code_review: { refs: ["A"] } },
+    adversarial: { host: "http://base:8000", model: "base", provider: "vllm", spec_review: { refs: ["A"] }, code_review: { refs: ["A"] } },
   };
   assert.deepEqual(assembleAdversarialBackends(cfg), assembleAdversarialBackends(cfg, undefined));
   assert.equal(assembleAdversarialBackends(cfg).chain[0].model, "base");
@@ -437,9 +437,9 @@ test("CLI: --consumer selects the per-consumer chain when its sub-block is set; 
   const dir = fixtureDir(
     "backends:\n" +
     "  A:\n    provider: nvidia\n    model: mA\n    host: https://a/v1\n    api_key_env: KA\n" +
-    "  B:\n    provider: ollama\n    model: mB\n    host: http://b:11434\n" +
+    "  B:\n    provider: vllm\n    model: mB\n    host: http://b:8000\n" +
     "adversarial:\n" +
-    "  provider: ollama\n  model: base\n  host: http://base:11434\n" +
+    "  provider: vllm\n  model: base\n  host: http://base:8000\n" +
     "  spec_review:\n    refs:\n      - B\n      - A\n",
   );
   try {

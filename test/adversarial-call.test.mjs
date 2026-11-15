@@ -28,28 +28,14 @@ import {
   DEFAULT_TRIM_HEAD_LINES, DEFAULT_MAX_ANCHOR_LINES, DEFAULT_RETAINED_CEILING,
   EXIT_BACKSTOP_GRACE_MS, armExitBackstop, runCli,
 } from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
-import * as ReviewCallModule from "../plugin/skills/faffter-dark-adversarial-review/review-call.mjs";
 import { BULLET_RE } from "../plugin/skills/faffter-dark-spec-review/parse-refutation.mjs";
 import { isCleanRefutation } from "../eval/review-bench/clean-refutation.mjs";
-
-test("FAFF-872: the native ollama transport family's exports are gone (buildChatPayload / modelServed / accumulateNdjson / the /api/tags preflight)", () => {
-  assert.equal(typeof ReviewCallModule.runReviewOllama, "undefined", "runReviewOllama is not exported — deleted, never existed");
-  assert.equal(typeof ReviewCallModule.buildChatPayload, "undefined");
-  assert.equal(typeof ReviewCallModule.modelServed, "undefined");
-  assert.equal(typeof ReviewCallModule.accumulateNdjson, "undefined");
-  assert.equal(typeof ReviewCallModule.preflight, "undefined", "the native /api/tags preflight export is gone (preflightOpenAi survives)");
-});
 
 test("assembleUserMessage fences context files ahead of the diff (the no-hallucination fix)", () => {
   const u = assembleUserMessage({ contextFiles: [{ path: "plugin/skills/faff/SKILL.md", text: "GATEWAY" }], diff: "DIFF" });
   assert.match(u, /<file path="plugin\/skills\/faff\/SKILL\.md">\nGATEWAY\n<\/file>/);
   assert.ok(u.indexOf("GATEWAY") < u.indexOf("DIFF UNDER REVIEW"), "context precedes the diff");
 });
-
-// FAFF-872: the native ollama transport family (buildChatPayload / modelServed / accumulateNdjson /
-// the /api/tags preflight) is deleted — its coverage moves onto the OpenAI-path pure functions below
-// (buildOpenAiPayload / modelServedOpenAi / accumulateSse) and the no-provider-⇒-openai-default
-// dispatch tests, since an unset/ollama provider now resolves to that same family (D-default/D-fold).
 
 test("runReview (no provider ⇒ openai default, FAFF-872): model-not-served → status model-not-served (skill maps to needs-human, never pass)", async () => {
   const r = await runReview({
@@ -117,14 +103,14 @@ test("EXIT codes: not-served, unreachable, default-host-unreachable, auth are di
 
 // --- OpenAI-compatible (/v1) path: NVIDIA NIM, OpenAI, vLLM, OpenRouter, DeepSeek ---
 
-test("providerFamily maps the OpenAI-compatible set (incl. gemini AND ollama, FAFF-872) to openai, anthropic to its own family, else passthrough", () => {
-  for (const p of ["openai", "vllm", "openrouter", "nvidia", "deepseek", "openai-compatible", "gemini", "ollama"]) {
+test("providerFamily maps the OpenAI-compatible set (incl. gemini) to openai, anthropic to its own family, else passthrough", () => {
+  for (const p of ["openai", "vllm", "openrouter", "nvidia", "deepseek", "openai-compatible", "gemini"]) {
     assert.equal(providerFamily(p), "openai", p);
   }
   assert.equal(providerFamily("gemini"), "openai", "FAFF-210: gemini rides Google's OpenAI-compat base URL");
-  assert.equal(providerFamily("OLLAMA"), "openai", "FAFF-872: ollama is now an OpenAI-compatible alias (case-insensitive), never a native family");
+  assert.equal(providerFamily("VLLM"), "openai", "provider match is case-insensitive");
   assert.equal(providerFamily("anthropic"), "anthropic", "FAFF-210: anthropic is a native family");
-  assert.equal(providerFamily(undefined), "openai", "FAFF-872: the unset-provider default is openai — there is no longer a native ollama family");
+  assert.equal(providerFamily(undefined), "openai", "the unset-provider default is openai");
   assert.equal(providerFamily("cohere"), "cohere", "a genuinely unknown provider still passes through → unsupported");
 });
 
@@ -537,7 +523,7 @@ test("runReviewAnthropic: a 401/403 → auth-failed (exit 7, needs-human)", asyn
   assert.equal(mapResultExit(r), EXIT.AUTH);
 });
 
-test("runReview with no provider now routes to openai (FAFF-872 — the native ollama family is gone; original signature unchanged)", async () => {
+test("runReview with no provider routes to openai (original signature unchanged)", async () => {
   const r = await runReview({
     host: "http://h:1/v1", model: "m", system: "S", user: "U",
     getFn: async () => JSON.stringify({ data: [{ id: "m" }] }),
@@ -838,7 +824,7 @@ test("main(): persistent transport-failed with --host-source config → EXIT.UNR
 test("main(): persistent transport-failed with --host-source default → EXIT.DEFAULT_HOST_UNREACHABLE (6), never OTHER (1)", async () => {
   const { sys, diff } = writeMainFixtures();
   const code = await main(
-    ["--host", "http://localhost:11434", "--model", "m", "--system", sys, "--diff", diff, "--host-source", "default"],
+    ["--host", "http://localhost:8000", "--model", "m", "--system", sys, "--diff", diff, "--host-source", "default"],
     { runReviewFn: async () => ({ status: "transport-failed", note: "HTTP 504" }) },
   );
   assert.equal(code, EXIT.DEFAULT_HOST_UNREACHABLE);
@@ -861,7 +847,7 @@ test("main(): persistent HTTP 429 with --host-source config → EXIT.RATE_LIMITE
 test("main(): persistent HTTP 429 with --host-source default → EXIT.RATE_LIMITED (12) (host-provenance-independent) (FAFF-942)", async () => {
   const { sys, diff } = writeMainFixtures();
   const code = await main(
-    ["--host", "http://localhost:11434", "--model", "m", "--system", sys, "--diff", diff, "--host-source", "default"],
+    ["--host", "http://localhost:8000", "--model", "m", "--system", sys, "--diff", diff, "--host-source", "default"],
     { runReviewFn: async () => ({ status: "rate-limited", note: "HTTP 429: rate limited" }) },
   );
   assert.equal(code, EXIT.RATE_LIMITED);
@@ -928,20 +914,20 @@ function scriptedRunReview(byHost) {
 test("FAFF-232 runReviewChain: advances past a failed primary to a healthy fallback → OK + winner", async () => {
   const chain = [
     { provider: "nvidia", model: "nemotron", host: "https://nv/v1", hostSource: "config" },
-    { provider: "ollama", model: "qwen", host: "http://ollama:11434", hostSource: "config" },
+    { provider: "vllm", model: "qwen", host: "http://vllm:8000", hostSource: "config" },
   ];
   const trace = [];
   const res = await runReviewChain(chain, {
     system: "S", user: "U", log: (m) => trace.push(m),
     runReviewFn: scriptedRunReview({
       "https://nv/v1": { status: "transport-failed", note: "HTTP 429: rate limited" },
-      "http://ollama:11434": { status: "ok", content: "## Adversarial findings — ollama/qwen\n\n### observation: no findings\n..." },
+      "http://vllm:8000": { status: "ok", content: "## Adversarial findings — vllm/qwen\n\n### observation: no findings\n..." },
     }),
   });
   assert.equal(res.exit, EXIT.OK);
-  assert.equal(res.winner.provider, "ollama");
+  assert.equal(res.winner.provider, "vllm");
   assert.equal(res.winnerIndex, 1, "FAFF-361: 0-based chain position of the winner");
-  assert.match(res.content, /ollama\/qwen/);
+  assert.match(res.content, /vllm\/qwen/);
   assert.ok(trace.some((l) => /\[chain\] nvidia\/nemotron transport-failed/.test(l) && /→ advancing/.test(l)),
     "FAFF-361: primary failure logged via the reshaped [chain] ... → advancing note");
 });
@@ -966,13 +952,13 @@ test("FAFF-232 runReviewChain: advance-on-unreachable then success", async () =>
 test("FAFF-232 runReviewChain: all-exhausted availability-only → 5 (pass+skip)", async () => {
   const chain = [
     { provider: "nvidia", model: "m1", host: "https://a/v1", hostSource: "config" },
-    { provider: "ollama", model: "m2", host: "http://b:11434", hostSource: "config" },
+    { provider: "vllm", model: "m2", host: "http://b:8000", hostSource: "config" },
   ];
   const res = await runReviewChain(chain, {
     system: "S", user: "U",
     runReviewFn: scriptedRunReview({
       "https://a/v1": { status: "transport-failed", note: "HTTP 504" },
-      "http://b:11434": { status: "unreachable", note: "down" },
+      "http://b:8000": { status: "unreachable", note: "down" },
     }),
   });
   assert.equal(res.exit, EXIT.UNREACHABLE);
@@ -996,7 +982,7 @@ test("FAFF-232 runReviewChain: a config fault anywhere in a fully-failed chain �
 test("FAFF-232 runReviewChain: a backend with an unset api-key env advances (class 7), then a fallback wins", async () => {
   const chain = [
     { provider: "openai", model: "m1", host: "https://a/v1", hostSource: "config", apiKeyEnv: "MISSING_KEY", apiKeyMissing: true },
-    { provider: "ollama", model: "m2", host: "http://b:11434", hostSource: "config" },
+    { provider: "vllm", model: "m2", host: "http://b:8000", hostSource: "config" },
   ];
   const calls = [];
   const trace = [];
@@ -1005,7 +991,7 @@ test("FAFF-232 runReviewChain: a backend with an unset api-key env advances (cla
     runReviewFn: async (opts) => { calls.push(opts.host); return { status: "ok", content: "### observation: no findings" }; },
   });
   assert.equal(res.exit, EXIT.OK);
-  assert.deepEqual(calls, ["http://b:11434"], "the unset-key backend was NOT called; the chain advanced");
+  assert.deepEqual(calls, ["http://b:8000"], "the unset-key backend was NOT called; the chain advanced");
   assert.ok(trace.some((l) => /\[chain\] openai\/m1 unset-key \(env 'MISSING_KEY'\) → advancing \(exit 7\)/.test(l)),
     "FAFF-361: the unset-key skip is logged via the reshaped [chain] ... → advancing note");
 });
@@ -1013,12 +999,12 @@ test("FAFF-232 runReviewChain: a backend with an unset api-key env advances (cla
 test("FAFF-232 runReviewChain: a malformed backend (missing host) advances, not a whole-chain abort", async () => {
   const chain = [
     { provider: "openai", model: "m1" },
-    { provider: "ollama", model: "m2", host: "http://b:11434", hostSource: "config" },
+    { provider: "vllm", model: "m2", host: "http://b:8000", hostSource: "config" },
   ];
   const trace = [];
   const res = await runReviewChain(chain, {
     system: "S", user: "U", log: (m) => trace.push(m),
-    runReviewFn: scriptedRunReview({ "http://b:11434": { status: "ok", content: "### observation: no findings" } }),
+    runReviewFn: scriptedRunReview({ "http://b:8000": { status: "ok", content: "### observation: no findings" } }),
   });
   assert.equal(res.exit, EXIT.OK);
   assert.ok(trace.some((l) => /\[chain\] openai\/m1 invalid \(missing model\/host\) → advancing \(exit 2\)/.test(l)),
@@ -1031,13 +1017,13 @@ test("FAFF-942 main(): --backends-json advances past a rate-limited (429) primar
   const bf = join(dir, "backends.json");
   writeFileSync(bf, JSON.stringify([
     { provider: "nvidia", model: "nemotron", host: "https://nv/v1", host_source: "config" },
-    { provider: "ollama", model: "qwen", host: "http://ollama:11434", host_source: "config" },
+    { provider: "vllm", model: "qwen", host: "http://vllm:8000", host_source: "config" },
   ]));
   const code = await main(
     ["--backends-json", bf, "--system", sys, "--diff", diff],
     { runReviewFn: scriptedRunReview({
       "https://nv/v1": { status: "rate-limited", note: "HTTP 429: rate limited" },
-      "http://ollama:11434": { status: "ok", content: "### observation: no findings" },
+      "http://vllm:8000": { status: "ok", content: "### observation: no findings" },
     }) },
   );
   assert.equal(code, EXIT.OK, "a 429 primary advances the chain rather than being retried on the same endpoint");
@@ -1049,17 +1035,17 @@ test("FAFF-361 main(): --backends-json header names the FALLBACK's provider/mode
   const bf = join(dir, "backends.json");
   writeFileSync(bf, JSON.stringify([
     { provider: "nvidia", model: "nemotron", host: "https://nv/v1", host_source: "config" },
-    { provider: "ollama", model: "qwen", host: "http://ollama:11434", host_source: "config" },
+    { provider: "vllm", model: "qwen", host: "http://vllm:8000", host_source: "config" },
   ]));
   const { result: code, stdout } = await captureStdout(() => main(
     ["--backends-json", bf, "--system", sys, "--diff", diff],
     { runReviewFn: scriptedRunReview({
       "https://nv/v1": { status: "rate-limited", note: "HTTP 429" },
-      "http://ollama:11434": { status: "ok", content: "### observation: no findings" },
+      "http://vllm:8000": { status: "ok", content: "### observation: no findings" },
     }) },
   ));
   assert.equal(code, EXIT.OK);
-  assert.match(stdout, /^## Adversarial findings — ollama\/qwen \(chain\[1\], host: config\)\n/,
+  assert.match(stdout, /^## Adversarial findings — vllm\/qwen \(chain\[1\], host: config\)\n/,
     "the header names the FALLBACK that actually served, at its real chain position — not the primary");
 });
 
@@ -1069,13 +1055,13 @@ test("FAFF-232 main(): --backends-json all-exhausted availability → exit 5 (pa
   const bf = join(dir, "backends.json");
   writeFileSync(bf, JSON.stringify([
     { provider: "nvidia", model: "m1", host: "https://a/v1", host_source: "config" },
-    { provider: "ollama", model: "m2", host: "http://b:11434", host_source: "config" },
+    { provider: "vllm", model: "m2", host: "http://b:8000", host_source: "config" },
   ]));
   const code = await main(
     ["--backends-json", bf, "--system", sys, "--diff", diff],
     { runReviewFn: scriptedRunReview({
       "https://a/v1": { status: "unreachable", note: "down" },
-      "http://b:11434": { status: "transport-failed", note: "HTTP 504" },
+      "http://b:8000": { status: "transport-failed", note: "HTTP 504" },
     }) },
   );
   assert.equal(code, EXIT.UNREACHABLE);
@@ -1087,13 +1073,13 @@ test("FAFF-232 main(): --backends-json with a config fault in a fully-failed cha
   const bf = join(dir, "backends.json");
   writeFileSync(bf, JSON.stringify([
     { provider: "openai", model: "m1", host: "https://a/v1", host_source: "config" },
-    { provider: "ollama", model: "m2", host: "http://b:11434", host_source: "config" },
+    { provider: "vllm", model: "m2", host: "http://b:8000", host_source: "config" },
   ]));
   const code = await main(
     ["--backends-json", bf, "--system", sys, "--diff", diff],
     { runReviewFn: scriptedRunReview({
       "https://a/v1": { status: "auth-failed", note: "HTTP 403" },
-      "http://b:11434": { status: "unreachable", note: "down" },
+      "http://b:8000": { status: "unreachable", note: "down" },
     }) },
   );
   assert.equal(code, EXIT.AUTH);
@@ -1113,7 +1099,7 @@ test("FAFF-232 parseArgs: --backends-json is collected", () => {
 
 // ===========================================================================
 // FAFF-414 — a non-transient throw (HTTP 400/413) advances the fallback chain
-// instead of aborting to EXIT.OTHER. runReviewOllama/OpenAi/Anthropic are byte-
+// instead of aborting to EXIT.OTHER. runReviewOpenAi/Anthropic are byte-
 // unchanged (still throw); the catch lives ONLY at the runReviewChain boundary
 // (safeCall), so a throw is exactly as informative as a returned status.
 // ===========================================================================
@@ -1133,10 +1119,10 @@ test("FAFF-414 mapResultExit: request-failed → EXIT.USAGE (reused; no new exit
   assert.equal(mapResultExit({ status: "auth-failed" }), EXIT.AUTH, "auth-failed unchanged");
 });
 
-test("FAFF-414 runReviewChain: ollama (FAFF-872 — an OpenAI-compatible alias) — a non-transient streamFn throw (400) advances to a healthy fallback (exit 0)", async () => {
+test("FAFF-414 runReviewChain: vllm — a non-transient streamFn throw (400) advances to a healthy fallback (exit 0)", async () => {
   const chain = [
-    { provider: "ollama", model: "m1", host: "http://a:1/v1", hostSource: "config" },
-    { provider: "ollama", model: "m2", host: "http://b:1/v1", hostSource: "config" },
+    { provider: "vllm", model: "m1", host: "http://a:1/v1", hostSource: "config" },
+    { provider: "vllm", model: "m2", host: "http://b:1/v1", hostSource: "config" },
   ];
   const trace = [];
   const res = await runReviewChain(chain, {
@@ -1153,7 +1139,7 @@ test("FAFF-414 runReviewChain: ollama (FAFF-872 — an OpenAI-compatible alias) 
   assert.equal(res.exit, EXIT.OK);
   assert.equal(res.winner.host, "http://b:1/v1");
   assert.deepEqual(res.failureClasses, [EXIT.USAGE]);
-  assert.ok(trace.some((l) => /\[chain\] ollama\/m1 request-failed/.test(l) && /→ advancing/.test(l)),
+  assert.ok(trace.some((l) => /\[chain\] vllm\/m1 request-failed/.test(l) && /→ advancing/.test(l)),
     "the throwing primary's fault is logged, not silently swallowed");
 });
 
@@ -1206,7 +1192,7 @@ test("FAFF-414 runReviewChain: anthropic — a non-transient streamFn throw (400
 test("FAFF-414 runReviewChain: a fully-failed chain whose only faults are non-transient throws terminates at USAGE (needs-human), never OTHER or pass+skip", async () => {
   const chain = [
     { provider: "openai", model: "m1", host: "https://a/v1", hostSource: "config" },
-    { provider: "ollama", model: "m2", host: "http://b:1", hostSource: "config" },
+    { provider: "vllm", model: "m2", host: "http://b:1", hostSource: "config" },
   ];
   const res = await runReviewChain(chain, {
     system: "S", user: "U", log: () => {},
@@ -1251,7 +1237,7 @@ test("FAFF-414 runReviewChain: a throw (USAGE) recorded alongside an unreachable
 test("FAFF-414 runReviewChain: an escaped auth-shaped throw (401) maps to AUTH via mapThrowStatus (defense-in-depth), dominating an otherwise pass+skip chain", async () => {
   const chain = [
     { provider: "openai", model: "m1", host: "https://a/v1", hostSource: "config" },
-    { provider: "ollama", model: "m2", host: "http://b:1", hostSource: "config" },
+    { provider: "vllm", model: "m2", host: "http://b:1", hostSource: "config" },
   ];
   let call = 0;
   const res = await runReviewChain(chain, {
@@ -1269,7 +1255,7 @@ test("FAFF-414 runReviewChain: an escaped auth-shaped throw (401) maps to AUTH v
 test("FAFF-414 runReviewChain: the thrown error's message reaches the per-backend log line's detail, not just the status/exit", async () => {
   const chain = [
     { provider: "openai", model: "m1", host: "https://a/v1", hostSource: "config" },
-    { provider: "ollama", model: "m2", host: "http://b:1", hostSource: "config" },
+    { provider: "vllm", model: "m2", host: "http://b:1", hostSource: "config" },
   ];
   const trace = [];
   await runReviewChain(chain, {
@@ -1316,14 +1302,14 @@ test("FAFF-414 main(): --backends-json integration smoke — throwing primary(41
   const bf = join(dir, "backends.json");
   writeFileSync(bf, JSON.stringify([
     { provider: "nvidia", model: "nemotron", host: "https://nv/v1", host_source: "config" },
-    { provider: "ollama", model: "qwen", host: "http://ollama:11434", host_source: "config" },
+    { provider: "vllm", model: "qwen", host: "http://vllm:8000", host_source: "config" },
   ]));
 
   const codeHealthy = await main(
     ["--backends-json", bf, "--system", sys, "--diff", diff],
     { runReviewFn: scriptedThrowThenReview({
       "https://nv/v1": () => { throw new Error("HTTP 413 Payload Too Large"); },
-      "http://ollama:11434": () => ({ status: "ok", content: "### observation: no findings" }),
+      "http://vllm:8000": () => ({ status: "ok", content: "### observation: no findings" }),
     }) },
   );
   assert.equal(codeHealthy, EXIT.OK);
@@ -1332,7 +1318,7 @@ test("FAFF-414 main(): --backends-json integration smoke — throwing primary(41
     ["--backends-json", bf, "--system", sys, "--diff", diff],
     { runReviewFn: scriptedThrowThenReview({
       "https://nv/v1": () => { throw new Error("HTTP 413 Payload Too Large"); },
-      "http://ollama:11434": () => { throw new Error("HTTP 400 Bad Request"); },
+      "http://vllm:8000": () => { throw new Error("HTTP 400 Bad Request"); },
     }) },
   );
   assert.equal(codeBothThrow, EXIT.USAGE, "a fully-exhausted throw-only chain → 2, never OTHER (1)");
@@ -1674,9 +1660,9 @@ async function captureStdout(fn) {
 // ── splitFindings ──
 
 test("FAFF-194 splitFindings: preamble captured, one section per ### heading, severity + title parsed", () => {
-  const content = "## Adversarial findings — ollama/m\n\n### critical: bad thing\nbody line 1\nbody line 2\n\n### minor: small thing\nanother body";
+  const content = "## Adversarial findings — vllm/m\n\n### critical: bad thing\nbody line 1\nbody line 2\n\n### minor: small thing\nanother body";
   const { preamble, sections } = splitFindings(content);
-  assert.equal(preamble, "## Adversarial findings — ollama/m\n");
+  assert.equal(preamble, "## Adversarial findings — vllm/m\n");
   assert.equal(sections.length, 2);
   assert.equal(sections[0].severity, "critical");
   assert.equal(sections[0].title, "bad thing");
@@ -1721,7 +1707,7 @@ test("FAFF-194 validateFindingsShape: empty/whitespace-only content is malformed
 });
 
 test("FAFF-194 validateFindingsShape: substantive prose with no ### section is malformed, kind:garbled (a rambling/headerless essay)", () => {
-  const r = validateFindingsShape("## Adversarial findings — ollama/m\n\nI have thoughts but no structured findings.");
+  const r = validateFindingsShape("## Adversarial findings — vllm/m\n\nI have thoughts but no structured findings.");
   assert.equal(r.ok, false);
   assert.equal(r.kind, "garbled");
   assert.match(r.reason, /no recognised finding section/);
@@ -1729,7 +1715,7 @@ test("FAFF-194 validateFindingsShape: substantive prose with no ### section is m
 
 test("FAFF-465 validateFindingsShape: >=1 recognised severity section is findings-shaped, incl. the no-findings marker", () => {
   assert.equal(validateFindingsShape("### observation: no findings").ok, true);
-  assert.equal(validateFindingsShape("## Adversarial findings — ollama/m\n\n### critical: x\nbody").ok, true);
+  assert.equal(validateFindingsShape("## Adversarial findings — vllm/m\n\n### critical: x\nbody").ok, true);
 });
 
 test("FAFF-465 validateFindingsShape: a closed-grammar provider refusal is malformed, kind:refusal (not garbled)", () => {
@@ -1764,7 +1750,7 @@ test("FAFF-465 isProviderRefusal: a table of closed-grammar refusal openers all 
 
 test("FAFF-465 isProviderRefusal: substantive non-findings prose is NOT a refusal (falls through to garbled)", () => {
   assert.equal(isProviderRefusal("I have thoughts but no structured findings."), false);
-  assert.equal(isProviderRefusal("## Adversarial findings — ollama/m\n\njust some rambling prose"), false);
+  assert.equal(isProviderRefusal("## Adversarial findings — vllm/m\n\njust some rambling prose"), false);
 });
 
 test("FAFF-465 isProviderRefusal: length-guarded — a long essay merely MENTIONING \"I cannot\" partway through is NOT a refusal", () => {
@@ -1839,7 +1825,7 @@ test("FAFF-746 normaliseCleanRefutation: clean-like ambiguity remains byte-ident
 });
 
 test("FAFF-746 normaliseCleanRefutation: existing severity-shaped output is byte-identical", () => {
-  const content = "## Adversarial findings — ollama/m\r\n\r\n### major: real issue\r\nbody\r\n";
+  const content = "## Adversarial findings — vllm/m\r\n\r\n### major: real issue\r\nbody\r\n";
   const result = normaliseCleanRefutation(content);
   assert.equal(result.content, content);
   assert.equal(result.normalised, false);
@@ -2016,13 +2002,13 @@ test("FAFF-927 runReviewChain: a decorative header over a non-affirmation body i
   const res = await runReviewChain(
     [
       { provider: "gemini", model: "primary", host: "https://primary/v1", hostSource: "config" },
-      { provider: "ollama", model: "fallback", host: "http://fallback:11434", hostSource: "config" },
+      { provider: "vllm", model: "fallback", host: "http://fallback:8000", hostSource: "config" },
     ],
     {
       system: "S", user: "U", log: (message) => trace.push(message),
       runReviewFn: scriptedRunReview({
         "https://primary/v1": { status: "ok", content: "## Notes\nThe diff removes the null check in parseDiff." },
-        "http://fallback:11434": { status: "ok", content: CANONICAL_NO_FINDINGS },
+        "http://fallback:8000": { status: "ok", content: CANONICAL_NO_FINDINGS },
       }),
     },
   );
@@ -2037,13 +2023,13 @@ test("FAFF-927 runReviewChain: a real finding stated in a non-canonical severity
   const res = await runReviewChain(
     [
       { provider: "gemini", model: "primary", host: "https://primary/v1", hostSource: "config" },
-      { provider: "ollama", model: "fallback", host: "http://fallback:11434", hostSource: "config" },
+      { provider: "vllm", model: "fallback", host: "http://fallback:8000", hostSource: "config" },
     ],
     {
       system: "S", user: "U", log: (message) => trace.push(message),
       runReviewFn: scriptedRunReview({
         "https://primary/v1": { status: "ok", content: "## Critical: null check removed in parseDiff\nNo QA objection." },
-        "http://fallback:11434": { status: "ok", content: CANONICAL_NO_FINDINGS },
+        "http://fallback:8000": { status: "ok", content: CANONICAL_NO_FINDINGS },
       }),
     },
   );
@@ -2057,13 +2043,13 @@ test("FAFF-927 runReviewChain: a decorative header over a clean sentence termina
   const res = await runReviewChain(
     [
       { provider: "nvidia", model: "primary", host: "https://primary/v1", hostSource: "config" },
-      { provider: "ollama", model: "fallback", host: "http://fallback:11434", hostSource: "config" },
+      { provider: "vllm", model: "fallback", host: "http://fallback:8000", hostSource: "config" },
     ],
     {
       system: "S", user: "U",
       runReviewFn: scriptedRunReview({
         "https://primary/v1": { status: "unreachable", note: "ECONNREFUSED" },
-        "http://fallback:11434": { status: "ok", content: "## Review\nNo infosec objection." },
+        "http://fallback:8000": { status: "ok", content: "## Review\nNo infosec objection." },
       }),
     },
   );
@@ -2303,8 +2289,8 @@ test("FAFF-882 code-review command contract: --context is the touched files, nev
 
 test("FAFF-361 attributionHeader: exact provenance format, incl. chain index and host source", () => {
   assert.equal(
-    attributionHeader({ provider: "ollama", model: "llama3.1:70b", hostSource: "config" }, 0),
-    "## Adversarial findings — ollama/llama3.1:70b (chain[0], host: config)",
+    attributionHeader({ provider: "vllm", model: "llama3.1:70b", hostSource: "config" }, 0),
+    "## Adversarial findings — vllm/llama3.1:70b (chain[0], host: config)",
   );
 });
 
@@ -2337,22 +2323,22 @@ test("FAFF-361 attributionHeader: a slash-bearing model id is emitted verbatim, 
 });
 
 test("FAFF-194/361 ensureHeader: prepends when no header line is present", () => {
-  const out = ensureHeader("### observation: no findings", { provider: "ollama", model: "m", hostSource: "config" }, 0);
-  assert.match(out, /^## Adversarial findings — ollama\/m \(chain\[0\], host: config\)\n\n### observation: no findings$/);
+  const out = ensureHeader("### observation: no findings", { provider: "vllm", model: "m", hostSource: "config" }, 0);
+  assert.match(out, /^## Adversarial findings — vllm\/m \(chain\[0\], host: config\)\n\n### observation: no findings$/);
 });
 
 test("FAFF-194/361 ensureHeader: REPLACES an existing (possibly model-echoed/wrong) header with the canonical one", () => {
   const out = ensureHeader(
     "## Adversarial Findings (some model's own guess)\n\n### critical: x",
-    { provider: "ollama", model: "real-model", hostSource: "config" }, 0,
+    { provider: "vllm", model: "real-model", hostSource: "config" }, 0,
   );
-  assert.match(out, /^## Adversarial findings — ollama\/real-model \(chain\[0\], host: config\)\n/);
+  assert.match(out, /^## Adversarial findings — vllm\/real-model \(chain\[0\], host: config\)\n/);
   assert.ok(!out.includes("some model's own guess"));
 });
 
 test("FAFF-194/361 ensureHeader: a no-op (byte-identical) when the existing header already matches canonical", () => {
-  const content = "## Adversarial findings — ollama/m (chain[0], host: config)\n\n### critical: x\nbody";
-  assert.equal(ensureHeader(content, { provider: "ollama", model: "m", hostSource: "config" }, 0), content);
+  const content = "## Adversarial findings — vllm/m (chain[0], host: config)\n\n### critical: x\nbody";
+  assert.equal(ensureHeader(content, { provider: "vllm", model: "m", hostSource: "config" }, 0), content);
 });
 
 // ── findSyntaxClaims ──
@@ -2597,18 +2583,18 @@ test("FAFF-465 mandatoryRemap: NO_FINDINGS_CONTENT(11) passes through UNCHANGED 
 test("FAFF-465 runReviewChain: an EMPTY OK result records failure class 11 (NO_FINDINGS_CONTENT) and advances to a healthy fallback", async () => {
   const chain = [
     { provider: "nvidia", model: "m1", host: "https://a/v1", hostSource: "config" },
-    { provider: "ollama", model: "m2", host: "http://b:11434", hostSource: "config" },
+    { provider: "vllm", model: "m2", host: "http://b:8000", hostSource: "config" },
   ];
   const trace = [];
   const res = await runReviewChain(chain, {
     system: "S", user: "U", log: (m) => trace.push(m),
     runReviewFn: scriptedRunReview({
       "https://a/v1": { status: "ok", content: "" },   // empty — NO_FINDINGS_CONTENT, not MALFORMED
-      "http://b:11434": { status: "ok", content: "### observation: no findings" },
+      "http://b:8000": { status: "ok", content: "### observation: no findings" },
     }),
   });
   assert.equal(res.exit, EXIT.OK);
-  assert.equal(res.winner.host, "http://b:11434");
+  assert.equal(res.winner.host, "http://b:8000");
   assert.equal(res.winnerIndex, 1, "FAFF-361: winner served from chain position 1 (element 0 was empty)");
   assert.deepEqual(res.failureClasses, [EXIT.NO_FINDINGS_CONTENT]);
   assert.ok(trace.some((l) => /\[chain\] nvidia\/m1 empty/.test(l) && /exit 11/.test(l) && /→ advancing/.test(l)),
@@ -2618,14 +2604,14 @@ test("FAFF-465 runReviewChain: an EMPTY OK result records failure class 11 (NO_F
 test("FAFF-465 runReviewChain: a GARBLED (substantive, non-refusal) OK result records failure class 10 (MALFORMED) and advances", async () => {
   const chain = [
     { provider: "nvidia", model: "m1", host: "https://a/v1", hostSource: "config" },
-    { provider: "ollama", model: "m2", host: "http://b:11434", hostSource: "config" },
+    { provider: "vllm", model: "m2", host: "http://b:8000", hostSource: "config" },
   ];
   const trace = [];
   const res = await runReviewChain(chain, {
     system: "S", user: "U", log: (m) => trace.push(m),
     runReviewFn: scriptedRunReview({
       "https://a/v1": { status: "ok", content: "no structured findings here" },   // garbled, not empty/refusal
-      "http://b:11434": { status: "ok", content: "### observation: no findings" },
+      "http://b:8000": { status: "ok", content: "### observation: no findings" },
     }),
   });
   assert.equal(res.exit, EXIT.OK);
@@ -2636,8 +2622,8 @@ test("FAFF-465 runReviewChain: a GARBLED (substantive, non-refusal) OK result re
 
 test("FAFF-465 runReviewChain: a REFUSAL OK result records failure class 11 (NO_FINDINGS_CONTENT), not 10", async () => {
   const chain = [
-    { provider: "ollama", model: "m1", host: "https://a/v1", hostSource: "config" },
-    { provider: "ollama", model: "m2", host: "https://b/v1", hostSource: "config" },
+    { provider: "vllm", model: "m1", host: "https://a/v1", hostSource: "config" },
+    { provider: "vllm", model: "m2", host: "https://b/v1", hostSource: "config" },
   ];
   const trace = [];
   const res = await runReviewChain(chain, {
@@ -2648,12 +2634,12 @@ test("FAFF-465 runReviewChain: a REFUSAL OK result records failure class 11 (NO_
     }),
   });
   assert.equal(res.exit, EXIT.NO_FINDINGS_CONTENT);
-  assert.ok(trace.some((l) => /\[chain\] ollama\/m1 refusal/.test(l) && /exit 11/.test(l) && /→ advancing/.test(l)),
+  assert.ok(trace.some((l) => /\[chain\] vllm\/m1 refusal/.test(l) && /exit 11/.test(l) && /→ advancing/.test(l)),
     "the first (advancing) backend logs via the reshaped [chain] ... → advancing note, kind:refusal");
 });
 
 test("FAFF-465 runReviewChain: a fully-exhausted chain containing ONLY a garbled OK result → terminal exit 5 (UNREACHABLE, pass+skip), never 10", async () => {
-  const chain = [{ provider: "ollama", model: "m", host: "http://a:1", hostSource: "config" }];
+  const chain = [{ provider: "vllm", model: "m", host: "http://a:1", hostSource: "config" }];
   const res = await runReviewChain(chain, {
     system: "S", user: "U", log: () => {},
     runReviewFn: async () => ({ status: "ok", content: "no structured findings here" }),
@@ -2662,7 +2648,7 @@ test("FAFF-465 runReviewChain: a fully-exhausted chain containing ONLY a garbled
 });
 
 test("FAFF-465 runReviewChain: a fully-exhausted chain containing ONLY an empty OK result → terminal exit 11 (NO_FINDINGS_CONTENT), never 5", async () => {
-  const chain = [{ provider: "ollama", model: "m", host: "http://a:1", hostSource: "config" }];
+  const chain = [{ provider: "vllm", model: "m", host: "http://a:1", hostSource: "config" }];
   const res = await runReviewChain(chain, {
     system: "S", user: "U", log: () => {},
     runReviewFn: async () => ({ status: "ok", content: "" }),
@@ -2701,7 +2687,7 @@ test("FAFF-746 runReviewChain: an exact clean primary wins with canonical conten
   const res = await runReviewChain(
     [
       { provider: "gemini", model: "gemini-2.5-pro", host: "https://gemini.example/v1", hostSource: "config" },
-      { provider: "ollama", model: "fallback", host: "http://fallback:11434", hostSource: "config" },
+      { provider: "vllm", model: "fallback", host: "http://fallback:8000", hostSource: "config" },
     ],
     {
       system: "S", user: "U", log: (message) => trace.push(message),
@@ -2727,13 +2713,13 @@ test("FAFF-746 runReviewChain: a mismatched clean-like primary records MALFORMED
   const res = await runReviewChain(
     [
       { provider: "gemini", model: "primary", host: "https://primary/v1", hostSource: "config" },
-      { provider: "ollama", model: "fallback", host: "http://fallback:11434", hostSource: "config" },
+      { provider: "vllm", model: "fallback", host: "http://fallback:8000", hostSource: "config" },
     ],
     {
       system: "S", user: "U", log: (message) => trace.push(message),
       runReviewFn: scriptedRunReview({
         "https://primary/v1": { status: "ok", content: "## Refutation — architectural\nNo QA objection." },
-        "http://fallback:11434": { status: "ok", content: CANONICAL_NO_FINDINGS },
+        "http://fallback:8000": { status: "ok", content: CANONICAL_NO_FINDINGS },
       }),
     },
   );
@@ -2777,8 +2763,8 @@ test("FAFF-806 runReviewChain: the kind discriminator's classification is a pure
     const shape = validateFindingsShape(c.content);
     assert.equal(shape.ok, false, `${c.label}: raw bytes are not findings-shaped`);
     const chain = [
-      { provider: "ollama", model: "m1", host: "http://a:1", hostSource: "config" },
-      { provider: "ollama", model: "m2", host: "http://b:2", hostSource: "config" },
+      { provider: "vllm", model: "m1", host: "http://a:1", hostSource: "config" },
+      { provider: "vllm", model: "m2", host: "http://b:2", hostSource: "config" },
     ];
     const res = await runReviewChain(chain, {
       system: "S", user: "U", log: () => {},
@@ -2828,7 +2814,7 @@ test("FAFF-465 main(): header-only / no-recognised-section (substantive, non-ref
   const { sys, diff } = writeMainFixtures();
   const code = await main(
     ["--host", "http://h:1", "--model", "m", "--system", sys, "--diff", diff],
-    { runReviewFn: async () => ({ status: "ok", content: "## Adversarial findings — ollama/m\n\njust some rambling prose" }) },
+    { runReviewFn: async () => ({ status: "ok", content: "## Adversarial findings — vllm/m\n\njust some rambling prose" }) },
   );
   assert.equal(code, EXIT.UNREACHABLE);
   assert.notEqual(code, EXIT.OK);
@@ -2844,13 +2830,13 @@ test("FAFF-194 main(): a winning result missing the header gets it prepended, no
   let stdout;
   try {
     ({ stdout } = await captureStdout(() => main(
-      ["--host", "http://h:1", "--model", "m", "--system", sys, "--diff", diff, "--provider", "ollama"],
+      ["--host", "http://h:1", "--model", "m", "--system", sys, "--diff", diff, "--provider", "vllm"],
       { runReviewFn: async () => ({ status: "ok", content: "### observation: no findings" }) },
     )));
   } finally {
     process.stderr.write = origErr;
   }
-  assert.match(stdout, /^## Adversarial findings — ollama\/m \(chain\[0\], host: config\)\n/);
+  assert.match(stdout, /^## Adversarial findings — vllm\/m \(chain\[0\], host: config\)\n/);
   assert.match(errOut, /normalized: findings header missing/);
 });
 
@@ -2895,7 +2881,7 @@ test("FAFF-746 main(): whitespace-only system or diff returns USAGE before backe
 test("FAFF-361 main(): single-backend legacy path, provider omitted, --host-source default → header renders openai/<model> (chain[0], host: default) (FAFF-872)", async () => {
   const { sys, diff } = writeMainFixtures();
   const { result: code, stdout } = await captureStdout(() => main(
-    ["--host", "http://localhost:11434", "--model", "m", "--system", sys, "--diff", diff, "--host-source", "default"],
+    ["--host", "http://localhost:8000", "--model", "m", "--system", sys, "--diff", diff, "--host-source", "default"],
     { runReviewFn: async () => ({ status: "ok", content: "### observation: no findings" }) },
   ));
   assert.equal(code, EXIT.OK);
@@ -2936,7 +2922,7 @@ test("FAFF-194 main(): a refutable syntax critical in the winning content is dow
   const sys = join(dir, "system.txt"); writeFileSync(sys, "SYS");
   const diff = join(dir, "diff.txt"); writeFileSync(diff, "DIFF");
   const jsFile = join(dir, "names.mjs"); writeFileSync(jsFile, "export const names = [1, 2, 3];\n");
-  const content = `## Adversarial findings — ollama/m\n\n### critical: \`${jsFile}\` is invalid JavaScript syntax\nsome explanation`;
+  const content = `## Adversarial findings — vllm/m\n\n### critical: \`${jsFile}\` is invalid JavaScript syntax\nsome explanation`;
   const origErr = process.stderr.write.bind(process.stderr);
   let errOut = "";
   process.stderr.write = (c) => { errOut += c; return true; };
@@ -2964,11 +2950,11 @@ test("FAFF-194 integration smoke test: a confidently-wrong syntax critical on a 
   const cleanFile = join(dir, "clean-real.mjs"); writeFileSync(cleanFile, "export const names = [\"a\", \"b\"];\n");
   const content = `### critical: \`${cleanFile}\` is invalid JavaScript syntax\nthe file won't parse`;
   const { result: code, stdout } = await captureStdout(() => main(
-    ["--host", "http://h:1", "--model", "qwen3-next:80b", "--provider", "ollama", "--system", sys, "--diff", diff, "--context", cleanFile],
+    ["--host", "http://h:1", "--model", "qwen3-next:80b", "--provider", "vllm", "--system", sys, "--diff", diff, "--context", cleanFile],
     { runReviewFn: async () => ({ status: "ok", content }) },   // checkFn omitted — uses the REAL realCheck
   ));
   assert.equal(code, EXIT.OK);
-  assert.match(stdout, /^## Adversarial findings — ollama\/qwen3-next:80b \(chain\[0\], host: config\)\n/);
+  assert.match(stdout, /^## Adversarial findings — vllm\/qwen3-next:80b \(chain\[0\], host: config\)\n/);
   assert.match(stdout, /### observation: \[auto-refuted\]/);
   assert.match(stdout, /auto-refuted: node --check passed/);
 });
@@ -2983,7 +2969,7 @@ test("FAFF-194 integration smoke test: a confidently-wrong syntax critical on a 
 // accepted as valid-but-non-blocking and are not code changes here.
 
 test("FAFF-194 refuteFindings: preserves the ORIGINAL blank-line separator before the next section (was: collapsed)", () => {
-  const content = "## Adversarial findings — ollama/m\n\n### critical: this wont parse and has a syntax error\nsome body text\n\n### minor: unrelated\nanother body";
+  const content = "## Adversarial findings — vllm/m\n\n### critical: this wont parse and has a syntax error\nsome body text\n\n### minor: unrelated\nanother body";
   const checkFn = () => ({ ok: true, output: "" });
   const { content: out } = refuteFindings(content, ["x.mjs"], { checkFn });
   // the untouched sibling section's heading must still be preceded by a blank line, exactly as in the input
@@ -3012,22 +2998,22 @@ test("FAFF-194 refuteFindings: a THIRD untouched section further down the docume
 });
 
 test("FAFF-194/361 ensureHeader: does NOT rewrite a header-LIKE line quoted inside a finding BODY (only the preamble is in scope)", () => {
-  const content = "## Adversarial findings — ollama/m (chain[0], host: config)\n\n### observation: comparing against a prior pass\nthe previous run said:\n## Adversarial findings — old-provider/old-model\nand missed X";
-  const out = ensureHeader(content, { provider: "ollama", model: "m", hostSource: "config" }, 0);
+  const content = "## Adversarial findings — vllm/m (chain[0], host: config)\n\n### observation: comparing against a prior pass\nthe previous run said:\n## Adversarial findings — old-provider/old-model\nand missed X";
+  const out = ensureHeader(content, { provider: "vllm", model: "m", hostSource: "config" }, 0);
   assert.equal(out, content, "the document's own preamble header was already canonical — untouched; the quoted line in the body must survive verbatim");
   assert.ok(out.includes("## Adversarial findings — old-provider/old-model"), "the quoted body line was not rewritten");
 });
 
 test("FAFF-194/361 ensureHeader: still finds + replaces the REAL preamble header even when a finding body quotes a header-like line afterward", () => {
   const content = "## Adversarial Findings (model's own wrong guess)\n\n### observation: x\nquoting: ## Adversarial findings — other/model";
-  const out = ensureHeader(content, { provider: "ollama", model: "real-model", hostSource: "config" }, 0);
+  const out = ensureHeader(content, { provider: "vllm", model: "real-model", hostSource: "config" }, 0);
   const lines = out.split("\n");
-  assert.equal(lines[0], "## Adversarial findings — ollama/real-model (chain[0], host: config)", "the preamble header was replaced");
+  assert.equal(lines[0], "## Adversarial findings — vllm/real-model (chain[0], host: config)", "the preamble header was replaced");
   assert.ok(out.includes("quoting: ## Adversarial findings — other/model"), "the body's quoted line is untouched");
 });
 
 test("FAFF-194 hasHeader: true only for a preamble header, never a body-quoted one", () => {
-  assert.equal(hasHeader("## Adversarial findings — ollama/m\n\n### observation: no findings"), true);
+  assert.equal(hasHeader("## Adversarial findings — vllm/m\n\n### observation: no findings"), true);
   assert.equal(hasHeader("### observation: x\nsome text mentioning ## Adversarial findings — old/one"), false);
   assert.equal(hasHeader(""), false);
 });
@@ -3060,8 +3046,8 @@ test("FAFF-194 splitFindings: a level-4 (####) sub-heading inside a finding body
 
 test("FAFF-194/361 ensureHeader: a #### line before the first real finding never fools the preamble-scope boundary", () => {
   // (defensive — #### is not a valid finding heading, so the preamble-scope search must not stop there)
-  const content = "## Adversarial findings — ollama/m (chain[0], host: config)\n#### not a real finding\n\n### observation: no findings";
-  const out = ensureHeader(content, { provider: "ollama", model: "m", hostSource: "config" }, 0);
+  const content = "## Adversarial findings — vllm/m (chain[0], host: config)\n#### not a real finding\n\n### observation: no findings";
+  const out = ensureHeader(content, { provider: "vllm", model: "m", hostSource: "config" }, 0);
   assert.equal(out, content, "already-canonical header, found correctly despite the #### line, untouched");
 });
 
@@ -3158,7 +3144,7 @@ test("FAFF-445 main(): the oversized block fires identically for a --backends-js
   writeFileSync(sys, "REVIEW LENS"); writeFileSync(diff, "DIFF");
   writeFileSync(bf, JSON.stringify([
     { provider: "nvidia", model: "m1", host: "https://nv/v1" },
-    { provider: "ollama", model: "m2", host: "http://ollama:11434" },
+    { provider: "vllm", model: "m2", host: "http://vllm:8000" },
   ]));
   let calls = 0;
   const code = await main(
@@ -3210,7 +3196,7 @@ test("FAFF-617 runReviewChain: a HUNG primary is abandoned at its slice; a healt
   const chain = [
     { provider: "nvidia", model: "glm", host: "https://nv/v1", hostSource: "config" },
     { provider: "gemini", model: "g", host: "https://gm/v1", hostSource: "config" },
-    { provider: "ollama", model: "q", host: "http://ol:11434", hostSource: "config" },
+    { provider: "vllm", model: "q", host: "http://ol:8000", hostSource: "config" },
   ];
   const runReviewFn = async (opts) => {
     if (opts.host === "https://nv/v1") return new Promise((res) => setTimeout(() => res({ status: "ok", content: "late" }), 500));   // primary hangs past its slice
@@ -3315,7 +3301,7 @@ test("FAFF-617 budgetWarnings: the shipped bad combo (timeout 480 / deadline 480
   const bad = [
     { provider: "nvidia", model: "glm", timeoutMs: 480000 },
     { provider: "gemini", model: "g", timeoutMs: 480000 },
-    { provider: "ollama", model: "q", timeoutMs: 480000 },
+    { provider: "vllm", model: "q", timeoutMs: 480000 },
   ];
   const warnBad = budgetWarnings(bad, 480000);
   assert.equal(warnBad.length, 3, "every backend's 480s×6 ≥ 160s per-backend budget");
@@ -3324,7 +3310,7 @@ test("FAFF-617 budgetWarnings: the shipped bad combo (timeout 480 / deadline 480
   const good = [
     { provider: "nvidia", model: "glm", timeoutMs: 20000 },
     { provider: "gemini", model: "g", timeoutMs: 20000 },
-    { provider: "ollama", model: "q", timeoutMs: 20000 },
+    { provider: "vllm", model: "q", timeoutMs: 20000 },
   ];
   assert.deepEqual(budgetWarnings(good, 480000), [], "20s×6=120s < 160s per-backend budget ⇒ no warning");
 });
@@ -3485,10 +3471,10 @@ test("FAFF-885 family-agnostic: an openai-family buffering backend also fast-fai
   assert.equal(calls, 1);
 });
 
-test("FAFF-885 runReviewChain: ollama (FAFF-872 — an OpenAI-compatible alias) — a buffering primary fast-fails and a healthy fallback wins (exit 0, winnerIndex 1)", async () => {
+test("FAFF-885 runReviewChain: vllm — a buffering primary fast-fails and a healthy fallback wins (exit 0, winnerIndex 1)", async () => {
   const chain = [
-    { provider: "ollama", model: "m1", host: "http://buf:1/v1", hostSource: "config", firstByteMs: 20 },
-    { provider: "ollama", model: "m2", host: "http://good:1/v1", hostSource: "config", firstByteMs: 20 },
+    { provider: "vllm", model: "m1", host: "http://buf:1/v1", hostSource: "config", firstByteMs: 20 },
+    { provider: "vllm", model: "m2", host: "http://good:1/v1", hostSource: "config", firstByteMs: 20 },
   ];
   const res = await runReviewChain(chain, {
     system: "S", user: "U", log: () => {},
@@ -3507,10 +3493,10 @@ test("FAFF-885 runReviewChain: ollama (FAFF-872 — an OpenAI-compatible alias) 
   assert.equal(res.winner.host, "http://good:1/v1");
 });
 
-test("FAFF-885 runReviewChain: ollama (FAFF-872) — an ALL-buffering chain terminates at EXIT.UNREACHABLE (5), not a needs-human exit", async () => {
+test("FAFF-885 runReviewChain: vllm — an ALL-buffering chain terminates at EXIT.UNREACHABLE (5), not a needs-human exit", async () => {
   const chain = [
-    { provider: "ollama", model: "m1", host: "http://buf1:1/v1", hostSource: "config", firstByteMs: 20 },
-    { provider: "ollama", model: "m2", host: "http://buf2:1/v1", hostSource: "config", firstByteMs: 20 },
+    { provider: "vllm", model: "m1", host: "http://buf1:1/v1", hostSource: "config", firstByteMs: 20 },
+    { provider: "vllm", model: "m2", host: "http://buf2:1/v1", hostSource: "config", firstByteMs: 20 },
   ];
   const res = await runReviewChain(chain, {
     system: "S", user: "U", log: () => {},

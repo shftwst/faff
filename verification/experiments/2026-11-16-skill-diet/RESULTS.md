@@ -337,3 +337,28 @@ That sample fails the context protocol and the V2 cut is not qualified.
 V3 explicitly preloads both global and repository guidance in every sample and
 repeats both arms with the same policies, fixture and runtime. V2 remains separate;
 no failed sample is replaced inside that treatment. Source savings remain pending.
+
+## Catalogue V2 qualified
+
+V2 shortens 26 discovery descriptions and preserves every other byte in those
+skills. Both arms pass 175/175 selection decisions, with all ten native audits
+passing. This is discovery evidence only; it does not execute the selected body.
+V1 chose prep instead of jot for an overlapping existing-ticket request. That
+failure remains; v2 restores both original descriptions and retains the other
+26 cuts. No v1 candidate is pooled with v2.
+
+The description cut saves 4,324 bytes and 1,067 estimated tokens. Accepted totals
+are now 77,465 bytes and 19,103 tokens: three body cuts plus 26 descriptions.
+The 41-file committed set is 1,291,970 bytes and 320,176 estimated tokens. All
+368 deleted blocks are covered: 18 moved and 350 inventory rows. Kernel and
+thematic working candidates remain excluded. Source and load measurements are
+bound to commit 92e66bd4, before any pending body is committed.
+
+## Kernel V3 strict command protocol failure
+
+All 45 execution cases and 120 decisions pass per arm. Native auditing fails
+one baseline and two candidate samples, including shell-variable abbreviations
+of bridge commands. V3 is not qualified; all original evidence remains. V4
+explicitly forbids variables and command-prefix abbreviations in both arms,
+with the same policies, fixture, initial guidance and real CLI. No samples are
+pooled across treatments.

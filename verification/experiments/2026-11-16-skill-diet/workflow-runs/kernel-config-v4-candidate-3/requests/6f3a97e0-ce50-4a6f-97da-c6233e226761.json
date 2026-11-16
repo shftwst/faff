@@ -1,0 +1,1 @@
+{"name":"submit_result","args":{"case_id":"legacy-name","status":"blocked","values":{},"reason":"config get exited 2: .faffrc.yml is an invalid legacy config name that fails loudly, never substituting defaults; no rename or migration is authorised"}}

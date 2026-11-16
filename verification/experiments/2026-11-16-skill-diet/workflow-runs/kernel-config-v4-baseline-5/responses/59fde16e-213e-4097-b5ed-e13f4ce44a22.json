@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "value": {
+    "exit_code": 0,
+    "stdout": "/tmp/faff-kernel-config-QUG4ic/layered/.faff/config.yaml\n/tmp/faff-kernel-config-QUG4ic/layered/.faff/config.local.yaml\n",
+    "stderr": ""
+  }
+}

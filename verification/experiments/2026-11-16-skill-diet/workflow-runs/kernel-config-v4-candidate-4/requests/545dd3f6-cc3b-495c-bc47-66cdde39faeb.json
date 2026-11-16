@@ -1,0 +1,1 @@
+{"name":"submit_result","args":{"case_id":"legacy-name","status":"blocked","values":{},"reason":"config get slots.spec exited 2: invalid legacy config filename .faffrc.yml. Invalid legacy names fail loudly and never substitute defaults; no migration is authorised, so the spec producer was not invoked."}}

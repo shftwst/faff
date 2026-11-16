@@ -1,0 +1,17 @@
+{
+  "status": "pass",
+  "candidate_sha256": "edb4d21e3b7382f519be945fa8b8a465e8c6d83f27ba1beb5c0d3798300b5331",
+  "baseline_sha256": "c96e4bfabbab1312565011ef3bad69bb918fbaa00e619c1bca0b1e00f1ce7086",
+  "changed_section": "Configuration (shared across all sub-skills)",
+  "preserved_prefix_sha256": "d6924493867ec42746c7c2197c58c4ef183d1c88255724bf3ba71c4c2023ed94",
+  "preserved_suffix_sha256": "1472184617174e5c77cefeebc8ddb21314daa9d4707c96ea670a704dd84bb38b",
+  "qualification": "kernel-config-v4-qualification.json",
+  "qualification_sha256": "9c5ba08e4c732f89bacecff0ac49c805074401cb0bb185de7977da7c73102292",
+  "deterministic_checks": "deterministic-checks/kernel-config-nosign.txt",
+  "tests_passed": 228,
+  "limits": [
+    "Real configuration and dispatch commands with controlled downstream stubs; no complete selected producer workflow.",
+    "Nine execution cases and twenty-four separate decisions per sample; five samples per arm, not statistical equivalence.",
+    "Earlier V1/V2/V3 failures remain separate; no samples replaced or pooled."
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "doctor": {
+    "exit": 0,
+    "resultLine": "RESULT: fixture install is clean."
+  },
+  "economics": {
+    "tokens_total": 1200,
+    "tokens_source": "estimate",
+    "cost_total": 3,
+    "zero_ship": false,
+    "cost_per_shipped": {
+      "tokens_each": 240.0,
+      "cost_each": 0.6
+    },
+    "cost_per_attempt": {
+      "denom": 6,
+      "tokens_each": 200.0,
+      "cost_each": null
+    },
+    "buckets": [
+      {
+        "bucket": "shipped",
+        "count": 5
+      },
+      {
+        "bucket": "superseded",
+        "count": 1
+      }
+    ],
+    "per_issue": [],
+    "warnings": []
+  },
+  "budget": {
+    "breached": [],
+    "tokens_source": "estimate"
+  },
+  "methodology": null,
+  "forge": {
+    "[\"pr\",\"view\",\"101\",\"--json\",\"state,headRefOid\"]": {
+      "ok": true,
+      "data": {
+        "state": "MERGED",
+        "headRefOid": "abc123"
+      },
+      "stderr": ""
+    },
+    "[\"pr\",\"view\",\"102\",\"--json\",\"state,headRefOid\"]": {
+      "ok": true,
+      "data": {
+        "state": "MERGED",
+        "headRefOid": "abc123"
+      },
+      "stderr": ""
+    },
+    "[\"pr\",\"view\",\"103\",\"--json\",\"state,headRefOid\"]": {
+      "ok": true,
+      "data": {
+        "state": "MERGED",
+        "headRefOid": "abc123"
+      },
+      "stderr": ""
+    },
+    "[\"pr\",\"view\",\"104\",\"--json\",\"state,headRefOid\"]": {
+      "ok": true,
+      "data": {
+        "state": "MERGED",
+        "headRefOid": "abc123"
+      },
+      "stderr": ""
+    },
+    "[\"pr\",\"view\",\"105\",\"--json\",\"state,headRefOid\"]": {
+      "ok": true,
+      "data": {
+        "state": "MERGED",
+        "headRefOid": "abc123"
+      },
+      "stderr": ""
+    }
+  }
+}

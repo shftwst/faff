@@ -1,0 +1,83 @@
+{
+  "profile": {
+    "exit_code": 0,
+    "stdout": "{\n  \"schema\": 1,\n  \"acquired_at\": \"2026-11-16T00:00:00Z\",\n  \"acquired_by\": \"fixture-acquirer\",\n  \"runtimes\": [\n    {\n      \"name\": \"node\",\n      \"version\": \"22\",\n      \"evidence\": \"package.json\"\n    }\n  ],\n  \"ci\": [\n    {\n      \"name\": \"github-actions\",\n      \"evidence\": \".github/workflows/ci.yml\"\n    }\n  ],\n  \"deploy_targets\": [\n    {\n      \"kind\": \"docker-compose\",\n      \"evidence\": \"compose.yaml\"\n    }\n  ],\n  \"datastores\": [\n    {\n      \"kind\": \"postgres\",\n      \"evidence\": \"compose.yaml\"\n    }\n  ],\n  \"paas_available\": [],\n  \"notes\": [\n    \"The required FixtureSign certification cannot be obtained by this team in this release. No FixtureSign licence or service access exists.\"\n  ]\n}\n",
+    "stderr": ""
+  },
+  "consumer": {
+    "pass": true,
+    "exit_code": 0,
+    "stdout": "{\"chosen_architecture\":\"Use the certified FixtureSign signing service, conditional on human procurement and access approval.\",\"rationale\":\"The required certification is unavailable to an in-house implementation in this release. A non-build recommendation needs human review before any action.\",\"adr_candidates\":[{\"title\":\"Require certified FixtureSign signatures\",\"decision\":\"Propose the certified service subject to human approval.\",\"rationale\":\"Certification is mandatory and not locally buildable in the release.\"}],\"assumptions\":[\"No licence or service access exists; a human must approve procurement.\"],\"recommendation\":\"buy\",\"violations\":[]}\n",
+    "stderr": "",
+    "producer_value": {
+      "chosen_architecture": "Use the certified FixtureSign signing service, conditional on human procurement and access approval.",
+      "rationale": "The required certification is unavailable to an in-house implementation in this release. A non-build recommendation needs human review before any action.",
+      "adr_candidates": [
+        {
+          "title": "Require certified FixtureSign signatures",
+          "decision": "Propose the certified service subject to human approval.",
+          "rationale": "Certification is mandatory and not locally buildable in the release."
+        }
+      ],
+      "assumptions": [
+        "No licence or service access exists; a human must approve procurement."
+      ],
+      "recommendation": "buy"
+    },
+    "value": {
+      "chosen_architecture": "Use the certified FixtureSign signing service, conditional on human procurement and access approval.",
+      "rationale": "The required certification is unavailable to an in-house implementation in this release. A non-build recommendation needs human review before any action.",
+      "adr_candidates": [
+        {
+          "title": "Require certified FixtureSign signatures",
+          "decision": "Propose the certified service subject to human approval.",
+          "rationale": "Certification is mandatory and not locally buildable in the release."
+        }
+      ],
+      "assumptions": [
+        "No licence or service access exists; a human must approve procurement."
+      ],
+      "recommendation": "buy",
+      "violations": []
+    }
+  },
+  "invalid_recommendation": {
+    "pass": false,
+    "exit_code": 1,
+    "stdout": "{\"chosen_architecture\":\"Use the certified FixtureSign signing service, conditional on human procurement and access approval.\",\"rationale\":\"The required certification is unavailable to an in-house implementation in this release. A non-build recommendation needs human review before any action.\",\"adr_candidates\":[{\"title\":\"Require certified FixtureSign signatures\",\"decision\":\"Propose the certified service subject to human approval.\",\"rationale\":\"Certification is mandatory and not locally buildable in the release.\"}],\"assumptions\":[\"No licence or service access exists; a human must approve procurement.\"],\"recommendation\":\"invented\",\"violations\":[\"recommendation \\\"invented\\\" not in {build,buy,hybrid}\"]}\n",
+    "stderr": "",
+    "producer_value": {
+      "chosen_architecture": "Use the certified FixtureSign signing service, conditional on human procurement and access approval.",
+      "rationale": "The required certification is unavailable to an in-house implementation in this release. A non-build recommendation needs human review before any action.",
+      "adr_candidates": [
+        {
+          "title": "Require certified FixtureSign signatures",
+          "decision": "Propose the certified service subject to human approval.",
+          "rationale": "Certification is mandatory and not locally buildable in the release."
+        }
+      ],
+      "assumptions": [
+        "No licence or service access exists; a human must approve procurement."
+      ],
+      "recommendation": "invented"
+    },
+    "value": {
+      "chosen_architecture": "Use the certified FixtureSign signing service, conditional on human procurement and access approval.",
+      "rationale": "The required certification is unavailable to an in-house implementation in this release. A non-build recommendation needs human review before any action.",
+      "adr_candidates": [
+        {
+          "title": "Require certified FixtureSign signatures",
+          "decision": "Propose the certified service subject to human approval.",
+          "rationale": "Certification is mandatory and not locally buildable in the release."
+        }
+      ],
+      "assumptions": [
+        "No licence or service access exists; a human must approve procurement."
+      ],
+      "recommendation": "invented",
+      "violations": [
+        "recommendation \"invented\" not in {build,buy,hybrid}"
+      ]
+    }
+  }
+}

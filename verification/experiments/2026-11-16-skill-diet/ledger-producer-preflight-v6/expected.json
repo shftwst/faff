@@ -1,0 +1,1262 @@
+[
+  {
+    "id": "mixed-ledger",
+    "root": "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/mixed-ledger",
+    "run_dir": "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/mixed-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc100",
+    "session_id": "ledger-measurement-session",
+    "before": {
+      "schema_version": 1,
+      "run_id": "run-20260101-000000-beepboop-list-abc100",
+      "level": "L3",
+      "admitted": [],
+      "outcomes": {},
+      "base_sha": null,
+      "base_sha_required": true,
+      "owner": {
+        "status": "running",
+        "session_id": "run-20260101-000000-beepboop-list-abc100",
+        "pid": 1237383,
+        "started_at": "2026-11-16T23:40:35.110Z",
+        "utc_offset_min": 0,
+        "last_heartbeat": "2026-11-16T23:40:35.110Z",
+        "faff_version": "0.45.0"
+      }
+    },
+    "before_bytes": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20260101-000000-beepboop-list-abc100\",\n  \"level\": \"L3\",\n  \"admitted\": [],\n  \"outcomes\": {},\n  \"base_sha\": null,\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"running\",\n    \"session_id\": \"run-20260101-000000-beepboop-list-abc100\",\n    \"pid\": 1237383,\n    \"started_at\": \"2026-11-16T23:40:35.110Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-16T23:40:35.110Z\",\n    \"faff_version\": \"0.45.0\"\n  }\n}\n",
+    "initial_events": [
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc100",
+        "seq": 0,
+        "ts": "2026-11-16T23:40:35.144Z",
+        "prev": "55485a6a62c1cc3d28de29b7fef98422fccec83ff5f2b7b6da967ac8b49ec608",
+        "phase": "run",
+        "type": "ledger-write",
+        "data": {
+          "ledger_sha256": "764198184f026212b331e6b90a9ae3e19ff1089f64e44595aa25d8e7dfe855a9"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc100",
+        "seq": 1,
+        "ts": "2026-11-16T23:40:35.144Z",
+        "prev": "561c415450b4bf4187dfa3a43a6e57e12b161f9ae5c3da7e0a28e9c9f24bd2c4",
+        "phase": "run",
+        "type": "run-start",
+        "data": {
+          "level": "L3",
+          "faff_version": "0.45.0"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc100",
+        "seq": 2,
+        "ts": "2026-11-16T23:40:35.145Z",
+        "prev": "0bd471e7a7b5c77be3f30960a529693c7dc660a05ceeadc4d09ec1a9e5d7c246",
+        "phase": "run",
+        "type": "runner-identity",
+        "data": {
+          "github_login": null,
+          "github_login_source": "unresolved",
+          "credential_source": "ambient",
+          "credential_unresolved": false,
+          "verified": false
+        }
+      }
+    ],
+    "ledger": {
+      "schema_version": 1,
+      "run_id": "run-20260101-000000-beepboop-list-abc100",
+      "level": "L3",
+      "admitted": [
+        "SKIP-1",
+        "HOLD-1",
+        "LAND-1",
+        "HUMAN-1",
+        "POST-1",
+        "UNKNOWN-1",
+        "RESOLVE-1",
+        "SUPER-1"
+      ],
+      "outcomes": {
+        "SKIP-1": "shipped",
+        "HOLD-1": "parked",
+        "LAND-1": "pr-open",
+        "HUMAN-1": "pr-open",
+        "POST-1": "shipped",
+        "UNKNOWN-1": "shipped",
+        "RESOLVE-1": "parked",
+        "SUPER-1": "superseded"
+      },
+      "base_sha": null,
+      "base_sha_required": true,
+      "owner": {
+        "status": "running",
+        "session_id": "run-20260101-000000-beepboop-list-abc100",
+        "pid": 1237383,
+        "started_at": "2026-11-16T23:40:35.110Z",
+        "utc_offset_min": 0,
+        "last_heartbeat": "2026-11-16T23:40:35.110Z",
+        "faff_version": "0.45.0"
+      },
+      "discovered_scope_filed": 2,
+      "review_adversarial_skipped": [
+        "SKIP-1"
+      ],
+      "review_outage_pending": [
+        "HOLD-1"
+      ],
+      "spec_review_outage_pending": [
+        "PREP-OUT"
+      ],
+      "spec_review_turn_budget_pending": [
+        "PREP-SLOW"
+      ],
+      "landing_resumable": [
+        "LAND-1"
+      ],
+      "post_merge_verification_failures": [
+        {
+          "issue": "POST-1",
+          "pr": 501,
+          "merge_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "command": "npm test"
+        }
+      ],
+      "post_merge_verification_unverified": [
+        "UNKNOWN-1"
+      ],
+      "outcome_details": {
+        "SKIP-1": {
+          "merged_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "tests": [
+            "npm test"
+          ]
+        }
+      }
+    },
+    "ledger_bytes": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20260101-000000-beepboop-list-abc100\",\n  \"level\": \"L3\",\n  \"admitted\": [\n    \"SKIP-1\",\n    \"HOLD-1\",\n    \"LAND-1\",\n    \"HUMAN-1\",\n    \"POST-1\",\n    \"UNKNOWN-1\",\n    \"RESOLVE-1\",\n    \"SUPER-1\"\n  ],\n  \"outcomes\": {\n    \"SKIP-1\": \"shipped\",\n    \"HOLD-1\": \"parked\",\n    \"LAND-1\": \"pr-open\",\n    \"HUMAN-1\": \"pr-open\",\n    \"POST-1\": \"shipped\",\n    \"UNKNOWN-1\": \"shipped\",\n    \"RESOLVE-1\": \"parked\",\n    \"SUPER-1\": \"superseded\"\n  },\n  \"base_sha\": null,\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"running\",\n    \"session_id\": \"run-20260101-000000-beepboop-list-abc100\",\n    \"pid\": 1237383,\n    \"started_at\": \"2026-11-16T23:40:35.110Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-16T23:40:35.110Z\",\n    \"faff_version\": \"0.45.0\"\n  },\n  \"discovered_scope_filed\": 2,\n  \"review_adversarial_skipped\": [\n    \"SKIP-1\"\n  ],\n  \"review_outage_pending\": [\n    \"HOLD-1\"\n  ],\n  \"spec_review_outage_pending\": [\n    \"PREP-OUT\"\n  ],\n  \"spec_review_turn_budget_pending\": [\n    \"PREP-SLOW\"\n  ],\n  \"landing_resumable\": [\n    \"LAND-1\"\n  ],\n  \"post_merge_verification_failures\": [\n    {\n      \"issue\": \"POST-1\",\n      \"pr\": 501,\n      \"merge_sha\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n      \"command\": \"npm test\"\n    }\n  ],\n  \"post_merge_verification_unverified\": [\n    \"UNKNOWN-1\"\n  ],\n  \"outcome_details\": {\n    \"SKIP-1\": {\n      \"merged_head\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\n      \"tests\": [\n        \"npm test\"\n      ]\n    }\n  }\n}\n",
+    "heartbeat": null,
+    "events": [
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc100",
+        "seq": 0,
+        "ts": "2026-11-16T23:40:35.144Z",
+        "prev": "55485a6a62c1cc3d28de29b7fef98422fccec83ff5f2b7b6da967ac8b49ec608",
+        "phase": "run",
+        "type": "ledger-write",
+        "data": {
+          "ledger_sha256": "764198184f026212b331e6b90a9ae3e19ff1089f64e44595aa25d8e7dfe855a9"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc100",
+        "seq": 1,
+        "ts": "2026-11-16T23:40:35.144Z",
+        "prev": "561c415450b4bf4187dfa3a43a6e57e12b161f9ae5c3da7e0a28e9c9f24bd2c4",
+        "phase": "run",
+        "type": "run-start",
+        "data": {
+          "level": "L3",
+          "faff_version": "0.45.0"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc100",
+        "seq": 2,
+        "ts": "2026-11-16T23:40:35.145Z",
+        "prev": "0bd471e7a7b5c77be3f30960a529693c7dc660a05ceeadc4d09ec1a9e5d7c246",
+        "phase": "run",
+        "type": "runner-identity",
+        "data": {
+          "github_login": null,
+          "github_login_source": "unresolved",
+          "credential_source": "ambient",
+          "credential_unresolved": false,
+          "verified": false
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc100",
+        "seq": 3,
+        "ts": "2026-11-16T23:40:35.176Z",
+        "prev": "135dfb4c7964ebd6dff26f94636be54e4f9b3696f7979e9b63c816b44248fa12",
+        "phase": "run",
+        "type": "ledger-write",
+        "data": {
+          "ledger_sha256": "72b1659ffb3decf3dea45b0b28941f11af44461082e20357cdd82f4d3b9e1f40"
+        }
+      }
+    ],
+    "commands": [
+      {
+        "args": [
+          "run-ledger",
+          "init-self-drain",
+          "--mode",
+          "list",
+          "--id",
+          "run-20260101-000000-beepboop-list-abc100",
+          "--root",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/mixed-ledger"
+        ],
+        "input": "",
+        "exit_code": 0,
+        "stdout": "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/mixed-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc100\n",
+        "stderr": "",
+        "error": null
+      },
+      {
+        "args": [
+          "events",
+          "append",
+          "--run",
+          "run-20260101-000000-beepboop-list-abc100",
+          "--root",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/mixed-ledger"
+        ],
+        "input": "{\"phase\":\"run\",\"type\":\"ledger-write\"}",
+        "exit_code": 0,
+        "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc100\",\"seq\":3,\"ts\":\"2026-11-16T23:40:35.176Z\",\"prev\":\"135dfb4c7964ebd6dff26f94636be54e4f9b3696f7979e9b63c816b44248fa12\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"72b1659ffb3decf3dea45b0b28941f11af44461082e20357cdd82f4d3b9e1f40\"}}\n",
+        "stderr": "",
+        "error": null
+      }
+    ],
+    "consumer": {
+      "runcheck": {
+        "args": [
+          "runcheck",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/mixed-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc100",
+          "--json"
+        ],
+        "input": "",
+        "exit_code": 0,
+        "stdout": "{\n  \"run_id\": \"run-20260101-000000-beepboop-list-abc100\",\n  \"admitted\": [\n    \"SKIP-1\",\n    \"HOLD-1\",\n    \"LAND-1\",\n    \"HUMAN-1\",\n    \"POST-1\",\n    \"UNKNOWN-1\",\n    \"RESOLVE-1\",\n    \"SUPER-1\"\n  ],\n  \"undispatched\": [],\n  \"invalid_outcomes\": [],\n  \"clean\": true,\n  \"run_dir\": \"/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/mixed-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc100\"\n}\n",
+        "stderr": "",
+        "error": null
+      },
+      "validate": {
+        "args": [
+          "events",
+          "validate",
+          "--file",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/mixed-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc100/events.jsonl"
+        ],
+        "input": "",
+        "exit_code": 0,
+        "stdout": "OK — run-event log valid.\n",
+        "stderr": "",
+        "error": null
+      },
+      "verify": {
+        "args": [
+          "events",
+          "verify",
+          "--run-dir",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/mixed-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc100",
+          "--json"
+        ],
+        "input": "",
+        "exit_code": 0,
+        "stdout": "{\"schema_floor\":2,\"line_count\":4,\"head_sha256\":\"f2fe3c798758025c405c8c378551847ef0d1a01aef90f6f8172ebd1cce969f34\",\"first_break\":null,\"ledger_fold\":\"match\",\"torn_tail\":false,\"witness\":\"absent\",\"status\":\"verified\",\"detail\":\"chain verified from genesis\"}\n",
+        "stderr": "",
+        "error": null
+      },
+      "event_read": {
+        "args": [
+          "events",
+          "read",
+          "--run",
+          "run-20260101-000000-beepboop-list-abc100",
+          "--root",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/mixed-ledger",
+          "--json"
+        ],
+        "input": "",
+        "exit_code": 0,
+        "stdout": "[{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc100\",\"seq\":0,\"ts\":\"2026-11-16T23:40:35.144Z\",\"prev\":\"55485a6a62c1cc3d28de29b7fef98422fccec83ff5f2b7b6da967ac8b49ec608\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"764198184f026212b331e6b90a9ae3e19ff1089f64e44595aa25d8e7dfe855a9\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc100\",\"seq\":1,\"ts\":\"2026-11-16T23:40:35.144Z\",\"prev\":\"561c415450b4bf4187dfa3a43a6e57e12b161f9ae5c3da7e0a28e9c9f24bd2c4\",\"phase\":\"run\",\"type\":\"run-start\",\"data\":{\"level\":\"L3\",\"faff_version\":\"0.45.0\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc100\",\"seq\":2,\"ts\":\"2026-11-16T23:40:35.145Z\",\"prev\":\"0bd471e7a7b5c77be3f30960a529693c7dc660a05ceeadc4d09ec1a9e5d7c246\",\"phase\":\"run\",\"type\":\"runner-identity\",\"data\":{\"github_login\":null,\"github_login_source\":\"unresolved\",\"credential_source\":\"ambient\",\"credential_unresolved\":false,\"verified\":false}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc100\",\"seq\":3,\"ts\":\"2026-11-16T23:40:35.176Z\",\"prev\":\"135dfb4c7964ebd6dff26f94636be54e4f9b3696f7979e9b63c816b44248fa12\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"72b1659ffb3decf3dea45b0b28941f11af44461082e20357cdd82f4d3b9e1f40\"}}]\n",
+        "stderr": "",
+        "error": null
+      },
+      "summary": {
+        "exit_code": 0,
+        "stdout": "# Beep-Boop Run — 2026-11-16 23:40:35\nMode: explicit-list · Duration: 0h 0m\nSentry: 0 checkpoints · max intervention: none · Waves: 1 _(reported)_\nStop reason: (not recorded)\n\n## Unit economics\nRun spend 1.2K (estimate) · $3.00 · per shipped 400 · $1.00 · per attempt 150 (8) · per bucket shipped 3·pr-open 2·parked 2·superseded 1\n\n## Build queue verdicts at admission\n- fire-and-forget: ? _(reported)_\n- likely-fire: ? _(reported)_\n(admitted: 8 total)\n\n## Shipped (auto-merged): 0\n\n## Shipped (adversarial review skipped — chain outage): 1\n- SKIP-1 (PR #500) — every adversarial backend was unreachable; merged on Phase-1 + AC + CI, WITHOUT a second-opinion pass (ledger: review_adversarial_skipped)\n\n## Shipped (post-merge verification flagged): 2\n- POST-1 (PR #501) — merged main HEAD failed its own declared test command on re-run: `npm test` (sha `aaaaaaa`); tracker comment + discovered-scope entry filed, NOT reverted, NOT reopened (ledger: post_merge_verification_failures)\n- UNKNOWN-1 (PR #502) — no declared UNIT rung, or a worktree/execution error; verdict unobtainable, not a defect (ledger: post_merge_verification_unverified)\n\n## Superseded (delivered by prior tickets): 1\n- SUPER-1 — deliverables already on `main` via PRIOR-7 (supersession: `.faff/runs/run-20260101-000000-beepboop-list-abc100/SUPER-1/supersession.json`)\n\n## PR open for human review: 1\n- HUMAN-1 (PR #504)\n\n## Awaiting landing (resumable): 1\n- LAND-1 (PR #503) — landing-time budget elapsed mid-CI-wait; PR open, non-draft; a later drain resumes the landing loop via the recovery-claim (ledger: landing_resumable)\n\n## Parked: 1 _(reported)_\n- RESOLVE-1 — reason: root cause needs-decision-first _(reported)_\n```faff-parks\n[{\"issue_id\":\"RESOLVE-1\",\"root_cause_class\":\"needs-decision-first\",\"timestamp\":\"2026-01-01T00:00:00Z\"}]\n```\n\n## Awaiting review (adversarial outage): 1\n- HOLD-1 — review provider unavailable; build held (branch pushed, checkpoint intact); auto-resumes at review next drain (ledger: review_outage_pending)\n\n## Awaiting spec-review (adversarial outage): 1\n- PREP-OUT — spec-review provider unavailable; spec attached and held; auto-resumes at review next prep drain (ledger: spec_review_outage_pending)\n\n## Awaiting spec-review (slow fan-out): 1\n- PREP-SLOW — spec-review did not finish this turn; spec attached and held; auto-resumes at review next prep drain (ledger: spec_review_turn_budget_pending)\n\n## Errored: 0\n\n## Discovered scope (execution-reported): 2 filed\n",
+        "stderr": "",
+        "error": null,
+        "persisted": "# Beep-Boop Run — 2026-11-16 23:40:35\nMode: explicit-list · Duration: 0h 0m\nSentry: 0 checkpoints · max intervention: none · Waves: 1 _(reported)_\nStop reason: (not recorded)\n\n## Unit economics\nRun spend 1.2K (estimate) · $3.00 · per shipped 400 · $1.00 · per attempt 150 (8) · per bucket shipped 3·pr-open 2·parked 2·superseded 1\n\n## Build queue verdicts at admission\n- fire-and-forget: ? _(reported)_\n- likely-fire: ? _(reported)_\n(admitted: 8 total)\n\n## Shipped (auto-merged): 0\n\n## Shipped (adversarial review skipped — chain outage): 1\n- SKIP-1 (PR #500) — every adversarial backend was unreachable; merged on Phase-1 + AC + CI, WITHOUT a second-opinion pass (ledger: review_adversarial_skipped)\n\n## Shipped (post-merge verification flagged): 2\n- POST-1 (PR #501) — merged main HEAD failed its own declared test command on re-run: `npm test` (sha `aaaaaaa`); tracker comment + discovered-scope entry filed, NOT reverted, NOT reopened (ledger: post_merge_verification_failures)\n- UNKNOWN-1 (PR #502) — no declared UNIT rung, or a worktree/execution error; verdict unobtainable, not a defect (ledger: post_merge_verification_unverified)\n\n## Superseded (delivered by prior tickets): 1\n- SUPER-1 — deliverables already on `main` via PRIOR-7 (supersession: `.faff/runs/run-20260101-000000-beepboop-list-abc100/SUPER-1/supersession.json`)\n\n## PR open for human review: 1\n- HUMAN-1 (PR #504)\n\n## Awaiting landing (resumable): 1\n- LAND-1 (PR #503) — landing-time budget elapsed mid-CI-wait; PR open, non-draft; a later drain resumes the landing loop via the recovery-claim (ledger: landing_resumable)\n\n## Parked: 1 _(reported)_\n- RESOLVE-1 — reason: root cause needs-decision-first _(reported)_\n```faff-parks\n[{\"issue_id\":\"RESOLVE-1\",\"root_cause_class\":\"needs-decision-first\",\"timestamp\":\"2026-01-01T00:00:00Z\"}]\n```\n\n## Awaiting review (adversarial outage): 1\n- HOLD-1 — review provider unavailable; build held (branch pushed, checkpoint intact); auto-resumes at review next drain (ledger: review_outage_pending)\n\n## Awaiting spec-review (adversarial outage): 1\n- PREP-OUT — spec-review provider unavailable; spec attached and held; auto-resumes at review next prep drain (ledger: spec_review_outage_pending)\n\n## Awaiting spec-review (slow fan-out): 1\n- PREP-SLOW — spec-review did not finish this turn; spec attached and held; auto-resumes at review next prep drain (ledger: spec_review_turn_budget_pending)\n\n## Errored: 0\n\n## Discovered scope (execution-reported): 2 filed\n"
+      }
+    }
+  },
+  {
+    "id": "incomplete-ledger",
+    "root": "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/incomplete-ledger",
+    "run_dir": "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/incomplete-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc101",
+    "session_id": "ledger-measurement-session",
+    "before": {
+      "schema_version": 1,
+      "run_id": "run-20260101-000000-beepboop-list-abc101",
+      "level": "L3",
+      "admitted": [],
+      "outcomes": {},
+      "base_sha": null,
+      "base_sha_required": true,
+      "owner": {
+        "status": "running",
+        "session_id": "run-20260101-000000-beepboop-list-abc101",
+        "pid": 1237448,
+        "started_at": "2026-11-16T23:40:35.400Z",
+        "utc_offset_min": 0,
+        "last_heartbeat": "2026-11-16T23:40:35.400Z",
+        "faff_version": "0.45.0"
+      }
+    },
+    "before_bytes": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20260101-000000-beepboop-list-abc101\",\n  \"level\": \"L3\",\n  \"admitted\": [],\n  \"outcomes\": {},\n  \"base_sha\": null,\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"running\",\n    \"session_id\": \"run-20260101-000000-beepboop-list-abc101\",\n    \"pid\": 1237448,\n    \"started_at\": \"2026-11-16T23:40:35.400Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-16T23:40:35.400Z\",\n    \"faff_version\": \"0.45.0\"\n  }\n}\n",
+    "initial_events": [
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc101",
+        "seq": 0,
+        "ts": "2026-11-16T23:40:35.432Z",
+        "prev": "44f11e6822ac814800c49f57b0013ef035a32fb972f02971bc5c432127d30f32",
+        "phase": "run",
+        "type": "ledger-write",
+        "data": {
+          "ledger_sha256": "f93e1d0b345dfb0e297cb427dd5c39affbcee63a80394c9e4f1dd2e33ba8a99a"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc101",
+        "seq": 1,
+        "ts": "2026-11-16T23:40:35.432Z",
+        "prev": "9e6ff328b40eabcb687b71e8ab65856524eb064cac11f15ce53a8bed1ae38599",
+        "phase": "run",
+        "type": "run-start",
+        "data": {
+          "level": "L3",
+          "faff_version": "0.45.0"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc101",
+        "seq": 2,
+        "ts": "2026-11-16T23:40:35.433Z",
+        "prev": "38d14d8c7e6491a1b41deb67b3f30ba2bfd151993de01e79c89647057d2eaa62",
+        "phase": "run",
+        "type": "runner-identity",
+        "data": {
+          "github_login": null,
+          "github_login_source": "unresolved",
+          "credential_source": "ambient",
+          "credential_unresolved": false,
+          "verified": false
+        }
+      }
+    ],
+    "ledger": {
+      "schema_version": 1,
+      "run_id": "run-20260101-000000-beepboop-list-abc101",
+      "level": "L3",
+      "admitted": [
+        "SKIP-1",
+        "HOLD-1",
+        "LAND-1",
+        "HUMAN-1",
+        "POST-1",
+        "UNKNOWN-1",
+        "RESOLVE-1",
+        "SUPER-1",
+        "OPEN-1"
+      ],
+      "outcomes": {
+        "SKIP-1": "shipped",
+        "HOLD-1": "parked",
+        "LAND-1": "pr-open",
+        "HUMAN-1": "pr-open",
+        "POST-1": "shipped",
+        "UNKNOWN-1": "shipped",
+        "RESOLVE-1": "parked",
+        "SUPER-1": "superseded"
+      },
+      "base_sha": null,
+      "base_sha_required": true,
+      "owner": {
+        "status": "running",
+        "session_id": "run-20260101-000000-beepboop-list-abc101",
+        "pid": 1237448,
+        "started_at": "2026-11-16T23:40:35.400Z",
+        "utc_offset_min": 0,
+        "last_heartbeat": "2026-11-16T23:40:35.400Z",
+        "faff_version": "0.45.0"
+      },
+      "discovered_scope_filed": 2,
+      "review_adversarial_skipped": [
+        "SKIP-1"
+      ],
+      "review_outage_pending": [
+        "HOLD-1"
+      ],
+      "spec_review_outage_pending": [
+        "PREP-OUT"
+      ],
+      "spec_review_turn_budget_pending": [
+        "PREP-SLOW"
+      ],
+      "landing_resumable": [
+        "LAND-1"
+      ],
+      "post_merge_verification_failures": [
+        {
+          "issue": "POST-1",
+          "pr": 501,
+          "merge_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "command": "npm test"
+        }
+      ],
+      "post_merge_verification_unverified": [
+        "UNKNOWN-1"
+      ],
+      "outcome_details": {
+        "SKIP-1": {
+          "merged_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "tests": [
+            "npm test"
+          ]
+        }
+      }
+    },
+    "ledger_bytes": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20260101-000000-beepboop-list-abc101\",\n  \"level\": \"L3\",\n  \"admitted\": [\n    \"SKIP-1\",\n    \"HOLD-1\",\n    \"LAND-1\",\n    \"HUMAN-1\",\n    \"POST-1\",\n    \"UNKNOWN-1\",\n    \"RESOLVE-1\",\n    \"SUPER-1\",\n    \"OPEN-1\"\n  ],\n  \"outcomes\": {\n    \"SKIP-1\": \"shipped\",\n    \"HOLD-1\": \"parked\",\n    \"LAND-1\": \"pr-open\",\n    \"HUMAN-1\": \"pr-open\",\n    \"POST-1\": \"shipped\",\n    \"UNKNOWN-1\": \"shipped\",\n    \"RESOLVE-1\": \"parked\",\n    \"SUPER-1\": \"superseded\"\n  },\n  \"base_sha\": null,\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"running\",\n    \"session_id\": \"run-20260101-000000-beepboop-list-abc101\",\n    \"pid\": 1237448,\n    \"started_at\": \"2026-11-16T23:40:35.400Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-16T23:40:35.400Z\",\n    \"faff_version\": \"0.45.0\"\n  },\n  \"discovered_scope_filed\": 2,\n  \"review_adversarial_skipped\": [\n    \"SKIP-1\"\n  ],\n  \"review_outage_pending\": [\n    \"HOLD-1\"\n  ],\n  \"spec_review_outage_pending\": [\n    \"PREP-OUT\"\n  ],\n  \"spec_review_turn_budget_pending\": [\n    \"PREP-SLOW\"\n  ],\n  \"landing_resumable\": [\n    \"LAND-1\"\n  ],\n  \"post_merge_verification_failures\": [\n    {\n      \"issue\": \"POST-1\",\n      \"pr\": 501,\n      \"merge_sha\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n      \"command\": \"npm test\"\n    }\n  ],\n  \"post_merge_verification_unverified\": [\n    \"UNKNOWN-1\"\n  ],\n  \"outcome_details\": {\n    \"SKIP-1\": {\n      \"merged_head\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\n      \"tests\": [\n        \"npm test\"\n      ]\n    }\n  }\n}\n",
+    "heartbeat": null,
+    "events": [
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc101",
+        "seq": 0,
+        "ts": "2026-11-16T23:40:35.432Z",
+        "prev": "44f11e6822ac814800c49f57b0013ef035a32fb972f02971bc5c432127d30f32",
+        "phase": "run",
+        "type": "ledger-write",
+        "data": {
+          "ledger_sha256": "f93e1d0b345dfb0e297cb427dd5c39affbcee63a80394c9e4f1dd2e33ba8a99a"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc101",
+        "seq": 1,
+        "ts": "2026-11-16T23:40:35.432Z",
+        "prev": "9e6ff328b40eabcb687b71e8ab65856524eb064cac11f15ce53a8bed1ae38599",
+        "phase": "run",
+        "type": "run-start",
+        "data": {
+          "level": "L3",
+          "faff_version": "0.45.0"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc101",
+        "seq": 2,
+        "ts": "2026-11-16T23:40:35.433Z",
+        "prev": "38d14d8c7e6491a1b41deb67b3f30ba2bfd151993de01e79c89647057d2eaa62",
+        "phase": "run",
+        "type": "runner-identity",
+        "data": {
+          "github_login": null,
+          "github_login_source": "unresolved",
+          "credential_source": "ambient",
+          "credential_unresolved": false,
+          "verified": false
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc101",
+        "seq": 3,
+        "ts": "2026-11-16T23:40:35.463Z",
+        "prev": "ca0edd2dd28fc8eed1b9638a40b7c1d2e3db8f576034b9557752cd61b1d58ef5",
+        "phase": "run",
+        "type": "ledger-write",
+        "data": {
+          "ledger_sha256": "abbff7337b64a83ca8aa8fa980ae06efbc2defef9122b29c3aa7b17ec3e8c5fe"
+        }
+      }
+    ],
+    "commands": [
+      {
+        "args": [
+          "run-ledger",
+          "init-self-drain",
+          "--mode",
+          "list",
+          "--id",
+          "run-20260101-000000-beepboop-list-abc101",
+          "--root",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/incomplete-ledger"
+        ],
+        "input": "",
+        "exit_code": 0,
+        "stdout": "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/incomplete-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc101\n",
+        "stderr": "",
+        "error": null
+      },
+      {
+        "args": [
+          "events",
+          "append",
+          "--run",
+          "run-20260101-000000-beepboop-list-abc101",
+          "--root",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/incomplete-ledger"
+        ],
+        "input": "{\"phase\":\"run\",\"type\":\"ledger-write\"}",
+        "exit_code": 0,
+        "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc101\",\"seq\":3,\"ts\":\"2026-11-16T23:40:35.463Z\",\"prev\":\"ca0edd2dd28fc8eed1b9638a40b7c1d2e3db8f576034b9557752cd61b1d58ef5\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"abbff7337b64a83ca8aa8fa980ae06efbc2defef9122b29c3aa7b17ec3e8c5fe\"}}\n",
+        "stderr": "",
+        "error": null
+      }
+    ],
+    "consumer": {
+      "runcheck": {
+        "args": [
+          "runcheck",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/incomplete-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc101",
+          "--json"
+        ],
+        "input": "",
+        "exit_code": 3,
+        "stdout": "{\n  \"run_id\": \"run-20260101-000000-beepboop-list-abc101\",\n  \"admitted\": [\n    \"SKIP-1\",\n    \"HOLD-1\",\n    \"LAND-1\",\n    \"HUMAN-1\",\n    \"POST-1\",\n    \"UNKNOWN-1\",\n    \"RESOLVE-1\",\n    \"SUPER-1\",\n    \"OPEN-1\"\n  ],\n  \"undispatched\": [\n    \"OPEN-1\"\n  ],\n  \"invalid_outcomes\": [],\n  \"clean\": false,\n  \"run_dir\": \"/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/incomplete-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc101\"\n}\n",
+        "stderr": "",
+        "error": null
+      },
+      "validate": {
+        "args": [
+          "events",
+          "validate",
+          "--file",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/incomplete-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc101/events.jsonl"
+        ],
+        "input": "",
+        "exit_code": 0,
+        "stdout": "OK — run-event log valid.\n",
+        "stderr": "",
+        "error": null
+      },
+      "verify": {
+        "args": [
+          "events",
+          "verify",
+          "--run-dir",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/incomplete-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc101",
+          "--json"
+        ],
+        "input": "",
+        "exit_code": 0,
+        "stdout": "{\"schema_floor\":2,\"line_count\":4,\"head_sha256\":\"a5b02b35d08d80ff2dcadd33aa113ef4eafdac0d0a891ccf8d6bc99ec1c5883b\",\"first_break\":null,\"ledger_fold\":\"match\",\"torn_tail\":false,\"witness\":\"absent\",\"status\":\"verified\",\"detail\":\"chain verified from genesis\"}\n",
+        "stderr": "",
+        "error": null
+      },
+      "event_read": {
+        "args": [
+          "events",
+          "read",
+          "--run",
+          "run-20260101-000000-beepboop-list-abc101",
+          "--root",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/incomplete-ledger",
+          "--json"
+        ],
+        "input": "",
+        "exit_code": 0,
+        "stdout": "[{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc101\",\"seq\":0,\"ts\":\"2026-11-16T23:40:35.432Z\",\"prev\":\"44f11e6822ac814800c49f57b0013ef035a32fb972f02971bc5c432127d30f32\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"f93e1d0b345dfb0e297cb427dd5c39affbcee63a80394c9e4f1dd2e33ba8a99a\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc101\",\"seq\":1,\"ts\":\"2026-11-16T23:40:35.432Z\",\"prev\":\"9e6ff328b40eabcb687b71e8ab65856524eb064cac11f15ce53a8bed1ae38599\",\"phase\":\"run\",\"type\":\"run-start\",\"data\":{\"level\":\"L3\",\"faff_version\":\"0.45.0\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc101\",\"seq\":2,\"ts\":\"2026-11-16T23:40:35.433Z\",\"prev\":\"38d14d8c7e6491a1b41deb67b3f30ba2bfd151993de01e79c89647057d2eaa62\",\"phase\":\"run\",\"type\":\"runner-identity\",\"data\":{\"github_login\":null,\"github_login_source\":\"unresolved\",\"credential_source\":\"ambient\",\"credential_unresolved\":false,\"verified\":false}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc101\",\"seq\":3,\"ts\":\"2026-11-16T23:40:35.463Z\",\"prev\":\"ca0edd2dd28fc8eed1b9638a40b7c1d2e3db8f576034b9557752cd61b1d58ef5\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"abbff7337b64a83ca8aa8fa980ae06efbc2defef9122b29c3aa7b17ec3e8c5fe\"}}]\n",
+        "stderr": "",
+        "error": null
+      },
+      "summary": null
+    }
+  },
+  {
+    "id": "phase-events",
+    "root": "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/phase-events",
+    "run_dir": "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/phase-events/.faff/runs/run-20260101-000000-beepboop-list-abc102",
+    "session_id": "ledger-measurement-session",
+    "before": {
+      "schema_version": 1,
+      "run_id": "run-20260101-000000-beepboop-list-abc102",
+      "level": "L3",
+      "admitted": [],
+      "outcomes": {},
+      "base_sha": null,
+      "base_sha_required": true,
+      "owner": {
+        "status": "running",
+        "session_id": "run-20260101-000000-beepboop-list-abc102",
+        "pid": 1237505,
+        "started_at": "2026-11-16T23:40:35.631Z",
+        "utc_offset_min": 0,
+        "last_heartbeat": "2026-11-16T23:40:35.631Z",
+        "faff_version": "0.45.0"
+      }
+    },
+    "before_bytes": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20260101-000000-beepboop-list-abc102\",\n  \"level\": \"L3\",\n  \"admitted\": [],\n  \"outcomes\": {},\n  \"base_sha\": null,\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"running\",\n    \"session_id\": \"run-20260101-000000-beepboop-list-abc102\",\n    \"pid\": 1237505,\n    \"started_at\": \"2026-11-16T23:40:35.631Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-16T23:40:35.631Z\",\n    \"faff_version\": \"0.45.0\"\n  }\n}\n",
+    "initial_events": [
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 0,
+        "ts": "2026-11-16T23:40:35.663Z",
+        "prev": "07fc1c502ce1ce69b38c509f9bf820858630d1a083ed585f21445212fe34f4ec",
+        "phase": "run",
+        "type": "ledger-write",
+        "data": {
+          "ledger_sha256": "fdd64009a1a8d390ffa6f67ec3bffcb33f6f737719287713af77c0f125dbf28f"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 1,
+        "ts": "2026-11-16T23:40:35.664Z",
+        "prev": "bc2b20dcddcc4e32a0dda370d899d003e3aa4b2c94420ae7e06f45a7ba0e283c",
+        "phase": "run",
+        "type": "run-start",
+        "data": {
+          "level": "L3",
+          "faff_version": "0.45.0"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 2,
+        "ts": "2026-11-16T23:40:35.665Z",
+        "prev": "2044e48cf24372faad5cbc51871a8e48d9b48de862510ccafd42f6f4e9352713",
+        "phase": "run",
+        "type": "runner-identity",
+        "data": {
+          "github_login": null,
+          "github_login_source": "unresolved",
+          "credential_source": "ambient",
+          "credential_unresolved": false,
+          "verified": false
+        }
+      }
+    ],
+    "ledger": {
+      "schema_version": 1,
+      "run_id": "run-20260101-000000-beepboop-list-abc102",
+      "level": "L3",
+      "admitted": [],
+      "outcomes": {},
+      "base_sha": null,
+      "base_sha_required": true,
+      "owner": {
+        "status": "running",
+        "session_id": "run-20260101-000000-beepboop-list-abc102",
+        "pid": 1237505,
+        "started_at": "2026-11-16T23:40:35.631Z",
+        "utc_offset_min": 0,
+        "last_heartbeat": "2026-11-16T23:40:35.631Z",
+        "faff_version": "0.45.0"
+      },
+      "budget": {
+        "tokens_at_last_event": {
+          "input": 1266,
+          "output": 186,
+          "cache_write_5m": 24,
+          "cache_write_1h": 12,
+          "cache_read": 48
+        }
+      }
+    },
+    "ledger_bytes": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20260101-000000-beepboop-list-abc102\",\n  \"level\": \"L3\",\n  \"admitted\": [],\n  \"outcomes\": {},\n  \"base_sha\": null,\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"running\",\n    \"session_id\": \"run-20260101-000000-beepboop-list-abc102\",\n    \"pid\": 1237505,\n    \"started_at\": \"2026-11-16T23:40:35.631Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-16T23:40:35.631Z\",\n    \"faff_version\": \"0.45.0\"\n  },\n  \"budget\": {\n    \"tokens_at_last_event\": {\n      \"input\": 1266,\n      \"output\": 186,\n      \"cache_write_5m\": 24,\n      \"cache_write_1h\": 12,\n      \"cache_read\": 48\n    }\n  }\n}\n",
+    "heartbeat": null,
+    "events": [
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 0,
+        "ts": "2026-11-16T23:40:35.663Z",
+        "prev": "07fc1c502ce1ce69b38c509f9bf820858630d1a083ed585f21445212fe34f4ec",
+        "phase": "run",
+        "type": "ledger-write",
+        "data": {
+          "ledger_sha256": "fdd64009a1a8d390ffa6f67ec3bffcb33f6f737719287713af77c0f125dbf28f"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 1,
+        "ts": "2026-11-16T23:40:35.664Z",
+        "prev": "bc2b20dcddcc4e32a0dda370d899d003e3aa4b2c94420ae7e06f45a7ba0e283c",
+        "phase": "run",
+        "type": "run-start",
+        "data": {
+          "level": "L3",
+          "faff_version": "0.45.0"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 2,
+        "ts": "2026-11-16T23:40:35.665Z",
+        "prev": "2044e48cf24372faad5cbc51871a8e48d9b48de862510ccafd42f6f4e9352713",
+        "phase": "run",
+        "type": "runner-identity",
+        "data": {
+          "github_login": null,
+          "github_login_source": "unresolved",
+          "credential_source": "ambient",
+          "credential_unresolved": false,
+          "verified": false
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 3,
+        "ts": "2026-11-16T23:40:35.697Z",
+        "prev": "f06b109d32857f1b8b9d64bbe3aad6ebc9b81b2873f0c459d6a305040aff52a5",
+        "phase": "run",
+        "type": "ledger-write",
+        "data": {
+          "ledger_sha256": "3b1b368ff887268ee3df35e3ae2bff5f2b87c46f773b939cd31f98fef94fe98e"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 4,
+        "ts": "2026-11-16T23:40:35.697Z",
+        "prev": "94985fa9b2d342523957e3f306a9769a968e89456b2a45ba18ca62a00b107768",
+        "phase": "tidy",
+        "type": "tidy-done",
+        "data": {
+          "tokens": {
+            "input": 201,
+            "output": 21,
+            "cache_write_5m": 4,
+            "cache_write_1h": 2,
+            "cache_read": 8
+          },
+          "tokens_source": "transcript",
+          "ledger_sha256_before": "fdd64009a1a8d390ffa6f67ec3bffcb33f6f737719287713af77c0f125dbf28f",
+          "ledger_sha256_after": "3b1b368ff887268ee3df35e3ae2bff5f2b87c46f773b939cd31f98fef94fe98e"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 5,
+        "ts": "2026-11-16T23:40:35.724Z",
+        "prev": "cb0a4324cf132162caeec983d37056d6829aef0319d6b5e81e147c400dad94cd",
+        "phase": "prep",
+        "type": "prep-start",
+        "issue": "PREP-1"
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 6,
+        "ts": "2026-11-16T23:40:35.753Z",
+        "prev": "456cff3e04bdcdbbb654b0ace727253377feb5141375eb40cf50f02e3488f167",
+        "phase": "run",
+        "type": "ledger-write",
+        "data": {
+          "ledger_sha256": "7feaf5564ba9c82a4d2ea29b54fd2c5b79ea4011eefc8ee403aee21d2423e247"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 7,
+        "ts": "2026-11-16T23:40:35.753Z",
+        "prev": "29a76d58e34152b6b95b27c8ff8151e47cbc14d80e10ba330980c63244bc37bb",
+        "phase": "prep",
+        "type": "prep-done",
+        "issue": "PREP-1",
+        "data": {
+          "tokens": {
+            "input": 205,
+            "output": 25,
+            "cache_write_5m": 4,
+            "cache_write_1h": 2,
+            "cache_read": 8
+          },
+          "tokens_source": "transcript",
+          "ledger_sha256_before": "3b1b368ff887268ee3df35e3ae2bff5f2b87c46f773b939cd31f98fef94fe98e",
+          "ledger_sha256_after": "7feaf5564ba9c82a4d2ea29b54fd2c5b79ea4011eefc8ee403aee21d2423e247"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 8,
+        "ts": "2026-11-16T23:40:35.782Z",
+        "prev": "1c0170e485232e91671f8aa77f2bfcec7920c25c31c5ef4fdf2d1206918c20ce",
+        "phase": "build",
+        "type": "build-start",
+        "issue": "BUILD-1"
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 9,
+        "ts": "2026-11-16T23:40:35.814Z",
+        "prev": "eadddbba4c7e5a9abfdf39b81c53f84c356e009a03b4262e012d405e43477b3b",
+        "phase": "run",
+        "type": "ledger-write",
+        "data": {
+          "ledger_sha256": "dcb30792ed28fde5c4369b90b93ac9fdc3863ff0722de230a18a18422a42cf88"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 10,
+        "ts": "2026-11-16T23:40:35.814Z",
+        "prev": "ed39051c839d4bb99edf5fd5f34b95597c800f8e38ea1953349a9ef0c0d2d2b4",
+        "phase": "build",
+        "type": "issue-outcome",
+        "issue": "BUILD-1",
+        "data": {
+          "outcome": "parked",
+          "gate": "adversarial",
+          "rework_turns": 2,
+          "tokens": {
+            "input": 315,
+            "output": 45,
+            "cache_write_5m": 6,
+            "cache_write_1h": 3,
+            "cache_read": 12
+          },
+          "tokens_source": "transcript",
+          "ledger_sha256_before": "7feaf5564ba9c82a4d2ea29b54fd2c5b79ea4011eefc8ee403aee21d2423e247",
+          "ledger_sha256_after": "dcb30792ed28fde5c4369b90b93ac9fdc3863ff0722de230a18a18422a42cf88"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 11,
+        "ts": "2026-11-16T23:40:35.844Z",
+        "prev": "fab930593c56dbbc7f9b8eafcc82982a98921b1ae5ed91718fb777192ad71b8c",
+        "phase": "run",
+        "type": "ledger-write",
+        "data": {
+          "ledger_sha256": "f0a9a3624d8094e04e02fbb249063b041f30060b4fbf38b0060a1a21e6c3862c"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 12,
+        "ts": "2026-11-16T23:40:35.844Z",
+        "prev": "3c327a701dcc6088a3a1d6e7004bffda02161c4cc38dce1e642511401a68ee66",
+        "phase": "build",
+        "type": "issue-outcome",
+        "issue": "BUILD-2",
+        "data": {
+          "outcome": "shipped",
+          "rework_turns": 0,
+          "tokens": {
+            "input": 107,
+            "output": 17,
+            "cache_write_5m": 2,
+            "cache_write_1h": 1,
+            "cache_read": 4
+          },
+          "tokens_source": "transcript",
+          "ledger_sha256_before": "dcb30792ed28fde5c4369b90b93ac9fdc3863ff0722de230a18a18422a42cf88",
+          "ledger_sha256_after": "f0a9a3624d8094e04e02fbb249063b041f30060b4fbf38b0060a1a21e6c3862c"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 13,
+        "ts": "2026-11-16T23:40:35.873Z",
+        "prev": "62b2915017f012f351a62b378e0a7246c4e9d1a88951ca129d70bd035526a5e1",
+        "phase": "run",
+        "type": "ledger-write",
+        "data": {
+          "ledger_sha256": "91899ab3bf6404933f3b34e51aa19ebe7b139a7e5ba5052d663f36255022b9fd"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 14,
+        "ts": "2026-11-16T23:40:35.873Z",
+        "prev": "744c8d72d9e33818835ac3da26529a0468d6a59ffffc54c3dbf50a77bb6bf17e",
+        "phase": "build",
+        "type": "issue-outcome",
+        "issue": "BUILD-3",
+        "data": {
+          "outcome": "parked",
+          "rework_turns": 0,
+          "tokens": {
+            "input": 108,
+            "output": 18,
+            "cache_write_5m": 2,
+            "cache_write_1h": 1,
+            "cache_read": 4
+          },
+          "tokens_source": "transcript",
+          "ledger_sha256_before": "f0a9a3624d8094e04e02fbb249063b041f30060b4fbf38b0060a1a21e6c3862c",
+          "ledger_sha256_after": "91899ab3bf6404933f3b34e51aa19ebe7b139a7e5ba5052d663f36255022b9fd"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 15,
+        "ts": "2026-11-16T23:40:35.902Z",
+        "prev": "adb718bfe448c135da1bf7c347f77c161f9934ab532d6be554c019f367cc1756",
+        "phase": "build",
+        "type": "park",
+        "issue": "PARK-1",
+        "data": {
+          "tokens": null,
+          "tokens_source": "estimate"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 16,
+        "ts": "2026-11-16T23:40:35.930Z",
+        "prev": "e5451cc97aa36c443a69bbc49cd0daedd81fa94ffbb550c10d788229c095497a",
+        "phase": "run",
+        "type": "discovered-scope-filed"
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 17,
+        "ts": "2026-11-16T23:40:35.960Z",
+        "prev": "47097631c514bf0e972254bfdcc2220c7b0207eb6fbcece6e02799df72a5fd01",
+        "phase": "run",
+        "type": "ledger-write",
+        "data": {
+          "ledger_sha256": "b692baaa829e0bb8cd5d6c228d718954f77d570a50eeb372790c7757f1039c6f"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 18,
+        "ts": "2026-11-16T23:40:35.961Z",
+        "prev": "ba78638fd7402d2ff1f7daadc09a572b8fadcbe69292acbdf170e378406a082f",
+        "phase": "run",
+        "type": "budget-checkpoint",
+        "data": {
+          "spent": {
+            "elapsed_ms": 1000,
+            "attempts": 1,
+            "tokens": 120,
+            "cost": 0.25
+          },
+          "tokens_source": "transcript",
+          "breached": [],
+          "outcome": "continue",
+          "warnings": [],
+          "tokens": {
+            "input": 330,
+            "output": 60,
+            "cache_write_5m": 6,
+            "cache_write_1h": 3,
+            "cache_read": 12
+          },
+          "ledger_sha256_before": "91899ab3bf6404933f3b34e51aa19ebe7b139a7e5ba5052d663f36255022b9fd",
+          "ledger_sha256_after": "b692baaa829e0bb8cd5d6c228d718954f77d570a50eeb372790c7757f1039c6f"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 19,
+        "ts": "2026-11-16T23:40:35.990Z",
+        "prev": "39ef9a847d2ee51be68f2bc19dab57faf45aec99c19d46af6e463a6d51456aff",
+        "phase": "run",
+        "type": "sentry-checkpoint",
+        "data": {
+          "run_dir": null,
+          "verdicts": []
+        }
+      }
+    ],
+    "commands": [
+      {
+        "args": [
+          "run-ledger",
+          "init-self-drain",
+          "--mode",
+          "list",
+          "--id",
+          "run-20260101-000000-beepboop-list-abc102",
+          "--root",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/phase-events"
+        ],
+        "input": "",
+        "exit_code": 0,
+        "stdout": "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/phase-events/.faff/runs/run-20260101-000000-beepboop-list-abc102\n",
+        "stderr": "",
+        "error": null
+      },
+      {
+        "args": [
+          "events",
+          "append",
+          "--run",
+          "run-20260101-000000-beepboop-list-abc102",
+          "--root",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/phase-events",
+          "--tokens",
+          "--session-id",
+          "ledger-measurement-session"
+        ],
+        "input": "{\"phase\":\"tidy\",\"type\":\"tidy-done\"}",
+        "exit_code": 0,
+        "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":4,\"ts\":\"2026-11-16T23:40:35.697Z\",\"prev\":\"94985fa9b2d342523957e3f306a9769a968e89456b2a45ba18ca62a00b107768\",\"phase\":\"tidy\",\"type\":\"tidy-done\",\"data\":{\"tokens\":{\"input\":201,\"output\":21,\"cache_write_5m\":4,\"cache_write_1h\":2,\"cache_read\":8},\"tokens_source\":\"transcript\",\"ledger_sha256_before\":\"fdd64009a1a8d390ffa6f67ec3bffcb33f6f737719287713af77c0f125dbf28f\",\"ledger_sha256_after\":\"3b1b368ff887268ee3df35e3ae2bff5f2b87c46f773b939cd31f98fef94fe98e\"}}\n",
+        "stderr": "",
+        "error": null
+      },
+      {
+        "args": [
+          "events",
+          "append",
+          "--run",
+          "run-20260101-000000-beepboop-list-abc102",
+          "--root",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/phase-events"
+        ],
+        "input": "{\"phase\":\"prep\",\"type\":\"prep-start\",\"issue\":\"PREP-1\"}",
+        "exit_code": 0,
+        "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":5,\"ts\":\"2026-11-16T23:40:35.724Z\",\"prev\":\"cb0a4324cf132162caeec983d37056d6829aef0319d6b5e81e147c400dad94cd\",\"phase\":\"prep\",\"type\":\"prep-start\",\"issue\":\"PREP-1\"}\n",
+        "stderr": "",
+        "error": null
+      },
+      {
+        "args": [
+          "events",
+          "append",
+          "--run",
+          "run-20260101-000000-beepboop-list-abc102",
+          "--root",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/phase-events",
+          "--tokens",
+          "--session-id",
+          "ledger-measurement-session"
+        ],
+        "input": "{\"phase\":\"prep\",\"type\":\"prep-done\",\"issue\":\"PREP-1\"}",
+        "exit_code": 0,
+        "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":7,\"ts\":\"2026-11-16T23:40:35.753Z\",\"prev\":\"29a76d58e34152b6b95b27c8ff8151e47cbc14d80e10ba330980c63244bc37bb\",\"phase\":\"prep\",\"type\":\"prep-done\",\"issue\":\"PREP-1\",\"data\":{\"tokens\":{\"input\":205,\"output\":25,\"cache_write_5m\":4,\"cache_write_1h\":2,\"cache_read\":8},\"tokens_source\":\"transcript\",\"ledger_sha256_before\":\"3b1b368ff887268ee3df35e3ae2bff5f2b87c46f773b939cd31f98fef94fe98e\",\"ledger_sha256_after\":\"7feaf5564ba9c82a4d2ea29b54fd2c5b79ea4011eefc8ee403aee21d2423e247\"}}\n",
+        "stderr": "",
+        "error": null
+      },
+      {
+        "args": [
+          "events",
+          "append",
+          "--run",
+          "run-20260101-000000-beepboop-list-abc102",
+          "--root",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/phase-events"
+        ],
+        "input": "{\"phase\":\"build\",\"type\":\"build-start\",\"issue\":\"BUILD-1\"}",
+        "exit_code": 0,
+        "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":8,\"ts\":\"2026-11-16T23:40:35.782Z\",\"prev\":\"1c0170e485232e91671f8aa77f2bfcec7920c25c31c5ef4fdf2d1206918c20ce\",\"phase\":\"build\",\"type\":\"build-start\",\"issue\":\"BUILD-1\"}\n",
+        "stderr": "",
+        "error": null
+      },
+      {
+        "args": [
+          "events",
+          "append",
+          "--run",
+          "run-20260101-000000-beepboop-list-abc102",
+          "--root",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/phase-events",
+          "--tokens",
+          "--session-id",
+          "ledger-measurement-session"
+        ],
+        "input": "{\"phase\":\"build\",\"type\":\"issue-outcome\",\"issue\":\"BUILD-1\",\"data\":{\"outcome\":\"parked\",\"gate\":\"adversarial\",\"rework_turns\":2}}",
+        "exit_code": 0,
+        "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":10,\"ts\":\"2026-11-16T23:40:35.814Z\",\"prev\":\"ed39051c839d4bb99edf5fd5f34b95597c800f8e38ea1953349a9ef0c0d2d2b4\",\"phase\":\"build\",\"type\":\"issue-outcome\",\"issue\":\"BUILD-1\",\"data\":{\"outcome\":\"parked\",\"gate\":\"adversarial\",\"rework_turns\":2,\"tokens\":{\"input\":315,\"output\":45,\"cache_write_5m\":6,\"cache_write_1h\":3,\"cache_read\":12},\"tokens_source\":\"transcript\",\"ledger_sha256_before\":\"7feaf5564ba9c82a4d2ea29b54fd2c5b79ea4011eefc8ee403aee21d2423e247\",\"ledger_sha256_after\":\"dcb30792ed28fde5c4369b90b93ac9fdc3863ff0722de230a18a18422a42cf88\"}}\n",
+        "stderr": "",
+        "error": null
+      },
+      {
+        "args": [
+          "events",
+          "append",
+          "--run",
+          "run-20260101-000000-beepboop-list-abc102",
+          "--root",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/phase-events",
+          "--tokens",
+          "--session-id",
+          "ledger-measurement-session"
+        ],
+        "input": "{\"phase\":\"build\",\"type\":\"issue-outcome\",\"issue\":\"BUILD-2\",\"data\":{\"outcome\":\"shipped\",\"rework_turns\":0}}",
+        "exit_code": 0,
+        "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":12,\"ts\":\"2026-11-16T23:40:35.844Z\",\"prev\":\"3c327a701dcc6088a3a1d6e7004bffda02161c4cc38dce1e642511401a68ee66\",\"phase\":\"build\",\"type\":\"issue-outcome\",\"issue\":\"BUILD-2\",\"data\":{\"outcome\":\"shipped\",\"rework_turns\":0,\"tokens\":{\"input\":107,\"output\":17,\"cache_write_5m\":2,\"cache_write_1h\":1,\"cache_read\":4},\"tokens_source\":\"transcript\",\"ledger_sha256_before\":\"dcb30792ed28fde5c4369b90b93ac9fdc3863ff0722de230a18a18422a42cf88\",\"ledger_sha256_after\":\"f0a9a3624d8094e04e02fbb249063b041f30060b4fbf38b0060a1a21e6c3862c\"}}\n",
+        "stderr": "",
+        "error": null
+      },
+      {
+        "args": [
+          "events",
+          "append",
+          "--run",
+          "run-20260101-000000-beepboop-list-abc102",
+          "--root",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/phase-events",
+          "--tokens",
+          "--session-id",
+          "ledger-measurement-session"
+        ],
+        "input": "{\"phase\":\"build\",\"type\":\"issue-outcome\",\"issue\":\"BUILD-3\",\"data\":{\"outcome\":\"parked\",\"rework_turns\":0}}",
+        "exit_code": 0,
+        "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":14,\"ts\":\"2026-11-16T23:40:35.873Z\",\"prev\":\"744c8d72d9e33818835ac3da26529a0468d6a59ffffc54c3dbf50a77bb6bf17e\",\"phase\":\"build\",\"type\":\"issue-outcome\",\"issue\":\"BUILD-3\",\"data\":{\"outcome\":\"parked\",\"rework_turns\":0,\"tokens\":{\"input\":108,\"output\":18,\"cache_write_5m\":2,\"cache_write_1h\":1,\"cache_read\":4},\"tokens_source\":\"transcript\",\"ledger_sha256_before\":\"f0a9a3624d8094e04e02fbb249063b041f30060b4fbf38b0060a1a21e6c3862c\",\"ledger_sha256_after\":\"91899ab3bf6404933f3b34e51aa19ebe7b139a7e5ba5052d663f36255022b9fd\"}}\n",
+        "stderr": "",
+        "error": null
+      },
+      {
+        "args": [
+          "events",
+          "append",
+          "--run",
+          "run-20260101-000000-beepboop-list-abc102",
+          "--root",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/phase-events",
+          "--tokens",
+          "--session-id",
+          "ledger-measurement-session"
+        ],
+        "input": "{\"phase\":\"build\",\"type\":\"park\",\"issue\":\"PARK-1\"}",
+        "exit_code": 0,
+        "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":15,\"ts\":\"2026-11-16T23:40:35.902Z\",\"prev\":\"adb718bfe448c135da1bf7c347f77c161f9934ab532d6be554c019f367cc1756\",\"phase\":\"build\",\"type\":\"park\",\"issue\":\"PARK-1\",\"data\":{\"tokens\":null,\"tokens_source\":\"estimate\"}}\n",
+        "stderr": "",
+        "error": null
+      },
+      {
+        "args": [
+          "events",
+          "append",
+          "--run",
+          "run-20260101-000000-beepboop-list-abc102",
+          "--root",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/phase-events"
+        ],
+        "input": "{\"phase\":\"run\",\"type\":\"discovered-scope-filed\"}",
+        "exit_code": 0,
+        "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":16,\"ts\":\"2026-11-16T23:40:35.930Z\",\"prev\":\"e5451cc97aa36c443a69bbc49cd0daedd81fa94ffbb550c10d788229c095497a\",\"phase\":\"run\",\"type\":\"discovered-scope-filed\"}\n",
+        "stderr": "",
+        "error": null
+      },
+      {
+        "args": [
+          "events",
+          "append",
+          "--run",
+          "run-20260101-000000-beepboop-list-abc102",
+          "--root",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/phase-events",
+          "--tokens",
+          "--session-id",
+          "ledger-measurement-session"
+        ],
+        "input": "{\"phase\":\"run\",\"type\":\"budget-checkpoint\",\"data\":{\"spent\":{\"elapsed_ms\":1000,\"attempts\":1,\"tokens\":120,\"cost\":0.25},\"tokens_source\":\"transcript\",\"breached\":[],\"outcome\":\"continue\",\"warnings\":[]}}",
+        "exit_code": 0,
+        "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":18,\"ts\":\"2026-11-16T23:40:35.961Z\",\"prev\":\"ba78638fd7402d2ff1f7daadc09a572b8fadcbe69292acbdf170e378406a082f\",\"phase\":\"run\",\"type\":\"budget-checkpoint\",\"data\":{\"spent\":{\"elapsed_ms\":1000,\"attempts\":1,\"tokens\":120,\"cost\":0.25},\"tokens_source\":\"transcript\",\"breached\":[],\"outcome\":\"continue\",\"warnings\":[],\"tokens\":{\"input\":330,\"output\":60,\"cache_write_5m\":6,\"cache_write_1h\":3,\"cache_read\":12},\"ledger_sha256_before\":\"91899ab3bf6404933f3b34e51aa19ebe7b139a7e5ba5052d663f36255022b9fd\",\"ledger_sha256_after\":\"b692baaa829e0bb8cd5d6c228d718954f77d570a50eeb372790c7757f1039c6f\"}}\n",
+        "stderr": "",
+        "error": null
+      },
+      {
+        "args": [
+          "events",
+          "append",
+          "--run",
+          "run-20260101-000000-beepboop-list-abc102",
+          "--root",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/phase-events"
+        ],
+        "input": "{\"phase\":\"run\",\"type\":\"sentry-checkpoint\",\"data\":{\"run_dir\":null,\"verdicts\":[]}}",
+        "exit_code": 0,
+        "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":19,\"ts\":\"2026-11-16T23:40:35.990Z\",\"prev\":\"39ef9a847d2ee51be68f2bc19dab57faf45aec99c19d46af6e463a6d51456aff\",\"phase\":\"run\",\"type\":\"sentry-checkpoint\",\"data\":{\"run_dir\":null,\"verdicts\":[]}}\n",
+        "stderr": "",
+        "error": null
+      }
+    ],
+    "consumer": {
+      "runcheck": {
+        "args": [
+          "runcheck",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/phase-events/.faff/runs/run-20260101-000000-beepboop-list-abc102",
+          "--json"
+        ],
+        "input": "",
+        "exit_code": 0,
+        "stdout": "{\n  \"run_id\": \"run-20260101-000000-beepboop-list-abc102\",\n  \"admitted\": [],\n  \"undispatched\": [],\n  \"invalid_outcomes\": [],\n  \"clean\": true,\n  \"run_dir\": \"/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/phase-events/.faff/runs/run-20260101-000000-beepboop-list-abc102\"\n}\n",
+        "stderr": "",
+        "error": null
+      },
+      "validate": {
+        "args": [
+          "events",
+          "validate",
+          "--file",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/phase-events/.faff/runs/run-20260101-000000-beepboop-list-abc102/events.jsonl"
+        ],
+        "input": "",
+        "exit_code": 0,
+        "stdout": "OK — run-event log valid.\n",
+        "stderr": "",
+        "error": null
+      },
+      "verify": {
+        "args": [
+          "events",
+          "verify",
+          "--run-dir",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/phase-events/.faff/runs/run-20260101-000000-beepboop-list-abc102",
+          "--json"
+        ],
+        "input": "",
+        "exit_code": 0,
+        "stdout": "{\"schema_floor\":2,\"line_count\":20,\"head_sha256\":\"226cc6c599e979a8816adea118dbb699906b7a2a3a5590da8528566359a75caa\",\"first_break\":null,\"ledger_fold\":\"match\",\"torn_tail\":false,\"witness\":\"absent\",\"status\":\"verified\",\"detail\":\"chain verified from genesis\"}\n",
+        "stderr": "",
+        "error": null
+      },
+      "event_read": {
+        "args": [
+          "events",
+          "read",
+          "--run",
+          "run-20260101-000000-beepboop-list-abc102",
+          "--root",
+          "/var/tmp/faff-ledger-preflight-9H9Qb8/oracle/phase-events",
+          "--json"
+        ],
+        "input": "",
+        "exit_code": 0,
+        "stdout": "[{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":0,\"ts\":\"2026-11-16T23:40:35.663Z\",\"prev\":\"07fc1c502ce1ce69b38c509f9bf820858630d1a083ed585f21445212fe34f4ec\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"fdd64009a1a8d390ffa6f67ec3bffcb33f6f737719287713af77c0f125dbf28f\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":1,\"ts\":\"2026-11-16T23:40:35.664Z\",\"prev\":\"bc2b20dcddcc4e32a0dda370d899d003e3aa4b2c94420ae7e06f45a7ba0e283c\",\"phase\":\"run\",\"type\":\"run-start\",\"data\":{\"level\":\"L3\",\"faff_version\":\"0.45.0\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":2,\"ts\":\"2026-11-16T23:40:35.665Z\",\"prev\":\"2044e48cf24372faad5cbc51871a8e48d9b48de862510ccafd42f6f4e9352713\",\"phase\":\"run\",\"type\":\"runner-identity\",\"data\":{\"github_login\":null,\"github_login_source\":\"unresolved\",\"credential_source\":\"ambient\",\"credential_unresolved\":false,\"verified\":false}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":3,\"ts\":\"2026-11-16T23:40:35.697Z\",\"prev\":\"f06b109d32857f1b8b9d64bbe3aad6ebc9b81b2873f0c459d6a305040aff52a5\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"3b1b368ff887268ee3df35e3ae2bff5f2b87c46f773b939cd31f98fef94fe98e\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":4,\"ts\":\"2026-11-16T23:40:35.697Z\",\"prev\":\"94985fa9b2d342523957e3f306a9769a968e89456b2a45ba18ca62a00b107768\",\"phase\":\"tidy\",\"type\":\"tidy-done\",\"data\":{\"tokens\":{\"input\":201,\"output\":21,\"cache_write_5m\":4,\"cache_write_1h\":2,\"cache_read\":8},\"tokens_source\":\"transcript\",\"ledger_sha256_before\":\"fdd64009a1a8d390ffa6f67ec3bffcb33f6f737719287713af77c0f125dbf28f\",\"ledger_sha256_after\":\"3b1b368ff887268ee3df35e3ae2bff5f2b87c46f773b939cd31f98fef94fe98e\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":5,\"ts\":\"2026-11-16T23:40:35.724Z\",\"prev\":\"cb0a4324cf132162caeec983d37056d6829aef0319d6b5e81e147c400dad94cd\",\"phase\":\"prep\",\"type\":\"prep-start\",\"issue\":\"PREP-1\"},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":6,\"ts\":\"2026-11-16T23:40:35.753Z\",\"prev\":\"456cff3e04bdcdbbb654b0ace727253377feb5141375eb40cf50f02e3488f167\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"7feaf5564ba9c82a4d2ea29b54fd2c5b79ea4011eefc8ee403aee21d2423e247\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":7,\"ts\":\"2026-11-16T23:40:35.753Z\",\"prev\":\"29a76d58e34152b6b95b27c8ff8151e47cbc14d80e10ba330980c63244bc37bb\",\"phase\":\"prep\",\"type\":\"prep-done\",\"issue\":\"PREP-1\",\"data\":{\"tokens\":{\"input\":205,\"output\":25,\"cache_write_5m\":4,\"cache_write_1h\":2,\"cache_read\":8},\"tokens_source\":\"transcript\",\"ledger_sha256_before\":\"3b1b368ff887268ee3df35e3ae2bff5f2b87c46f773b939cd31f98fef94fe98e\",\"ledger_sha256_after\":\"7feaf5564ba9c82a4d2ea29b54fd2c5b79ea4011eefc8ee403aee21d2423e247\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":8,\"ts\":\"2026-11-16T23:40:35.782Z\",\"prev\":\"1c0170e485232e91671f8aa77f2bfcec7920c25c31c5ef4fdf2d1206918c20ce\",\"phase\":\"build\",\"type\":\"build-start\",\"issue\":\"BUILD-1\"},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":9,\"ts\":\"2026-11-16T23:40:35.814Z\",\"prev\":\"eadddbba4c7e5a9abfdf39b81c53f84c356e009a03b4262e012d405e43477b3b\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"dcb30792ed28fde5c4369b90b93ac9fdc3863ff0722de230a18a18422a42cf88\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":10,\"ts\":\"2026-11-16T23:40:35.814Z\",\"prev\":\"ed39051c839d4bb99edf5fd5f34b95597c800f8e38ea1953349a9ef0c0d2d2b4\",\"phase\":\"build\",\"type\":\"issue-outcome\",\"issue\":\"BUILD-1\",\"data\":{\"outcome\":\"parked\",\"gate\":\"adversarial\",\"rework_turns\":2,\"tokens\":{\"input\":315,\"output\":45,\"cache_write_5m\":6,\"cache_write_1h\":3,\"cache_read\":12},\"tokens_source\":\"transcript\",\"ledger_sha256_before\":\"7feaf5564ba9c82a4d2ea29b54fd2c5b79ea4011eefc8ee403aee21d2423e247\",\"ledger_sha256_after\":\"dcb30792ed28fde5c4369b90b93ac9fdc3863ff0722de230a18a18422a42cf88\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":11,\"ts\":\"2026-11-16T23:40:35.844Z\",\"prev\":\"fab930593c56dbbc7f9b8eafcc82982a98921b1ae5ed91718fb777192ad71b8c\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"f0a9a3624d8094e04e02fbb249063b041f30060b4fbf38b0060a1a21e6c3862c\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":12,\"ts\":\"2026-11-16T23:40:35.844Z\",\"prev\":\"3c327a701dcc6088a3a1d6e7004bffda02161c4cc38dce1e642511401a68ee66\",\"phase\":\"build\",\"type\":\"issue-outcome\",\"issue\":\"BUILD-2\",\"data\":{\"outcome\":\"shipped\",\"rework_turns\":0,\"tokens\":{\"input\":107,\"output\":17,\"cache_write_5m\":2,\"cache_write_1h\":1,\"cache_read\":4},\"tokens_source\":\"transcript\",\"ledger_sha256_before\":\"dcb30792ed28fde5c4369b90b93ac9fdc3863ff0722de230a18a18422a42cf88\",\"ledger_sha256_after\":\"f0a9a3624d8094e04e02fbb249063b041f30060b4fbf38b0060a1a21e6c3862c\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":13,\"ts\":\"2026-11-16T23:40:35.873Z\",\"prev\":\"62b2915017f012f351a62b378e0a7246c4e9d1a88951ca129d70bd035526a5e1\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"91899ab3bf6404933f3b34e51aa19ebe7b139a7e5ba5052d663f36255022b9fd\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":14,\"ts\":\"2026-11-16T23:40:35.873Z\",\"prev\":\"744c8d72d9e33818835ac3da26529a0468d6a59ffffc54c3dbf50a77bb6bf17e\",\"phase\":\"build\",\"type\":\"issue-outcome\",\"issue\":\"BUILD-3\",\"data\":{\"outcome\":\"parked\",\"rework_turns\":0,\"tokens\":{\"input\":108,\"output\":18,\"cache_write_5m\":2,\"cache_write_1h\":1,\"cache_read\":4},\"tokens_source\":\"transcript\",\"ledger_sha256_before\":\"f0a9a3624d8094e04e02fbb249063b041f30060b4fbf38b0060a1a21e6c3862c\",\"ledger_sha256_after\":\"91899ab3bf6404933f3b34e51aa19ebe7b139a7e5ba5052d663f36255022b9fd\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":15,\"ts\":\"2026-11-16T23:40:35.902Z\",\"prev\":\"adb718bfe448c135da1bf7c347f77c161f9934ab532d6be554c019f367cc1756\",\"phase\":\"build\",\"type\":\"park\",\"issue\":\"PARK-1\",\"data\":{\"tokens\":null,\"tokens_source\":\"estimate\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":16,\"ts\":\"2026-11-16T23:40:35.930Z\",\"prev\":\"e5451cc97aa36c443a69bbc49cd0daedd81fa94ffbb550c10d788229c095497a\",\"phase\":\"run\",\"type\":\"discovered-scope-filed\"},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":17,\"ts\":\"2026-11-16T23:40:35.960Z\",\"prev\":\"47097631c514bf0e972254bfdcc2220c7b0207eb6fbcece6e02799df72a5fd01\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"b692baaa829e0bb8cd5d6c228d718954f77d570a50eeb372790c7757f1039c6f\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":18,\"ts\":\"2026-11-16T23:40:35.961Z\",\"prev\":\"ba78638fd7402d2ff1f7daadc09a572b8fadcbe69292acbdf170e378406a082f\",\"phase\":\"run\",\"type\":\"budget-checkpoint\",\"data\":{\"spent\":{\"elapsed_ms\":1000,\"attempts\":1,\"tokens\":120,\"cost\":0.25},\"tokens_source\":\"transcript\",\"breached\":[],\"outcome\":\"continue\",\"warnings\":[],\"tokens\":{\"input\":330,\"output\":60,\"cache_write_5m\":6,\"cache_write_1h\":3,\"cache_read\":12},\"ledger_sha256_before\":\"91899ab3bf6404933f3b34e51aa19ebe7b139a7e5ba5052d663f36255022b9fd\",\"ledger_sha256_after\":\"b692baaa829e0bb8cd5d6c228d718954f77d570a50eeb372790c7757f1039c6f\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":19,\"ts\":\"2026-11-16T23:40:35.990Z\",\"prev\":\"39ef9a847d2ee51be68f2bc19dab57faf45aec99c19d46af6e463a6d51456aff\",\"phase\":\"run\",\"type\":\"sentry-checkpoint\",\"data\":{\"run_dir\":null,\"verdicts\":[]}}]\n",
+        "stderr": "",
+        "error": null
+      },
+      "summary": null
+    }
+  }
+]

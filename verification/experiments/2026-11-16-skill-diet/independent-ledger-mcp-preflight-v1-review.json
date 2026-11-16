@@ -1,0 +1,116 @@
+{
+  "schema": 1,
+  "reviewer": {
+    "role": "Independent read-only supplementary verifier",
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "status": "pass-for-zero-model-controlled-bridge-preflight",
+  "bindings": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/preflight-ledger-mcp-v1.mjs",
+      "sha256": "5384da5f829f8891376bcb796092477cf34ca8029058e275e54e99173595b73f"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v1/preflight.json",
+      "sha256": "cbd935d0e6224e79f068ca14a051dc3f3af66f69c463721c01169309bc4431e5"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v1/manifest.json",
+      "sha256": "9a0d30105642250e0276e0363ff12adddadd3fd1b9b876ffdeedd93de5dc9ba3"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v1/task.json",
+      "sha256": "2fdb071a177949e2359222c6916213a739815a7ca84aa402aab104b7e844dae3"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v1/mcp-server-manifest.json",
+      "sha256": "6dfaffd9c11150c1c986c79edbb4cd1d0d190e7457dabf94156575ec5e82edf0"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v1/mcp-trace.jsonl",
+      "sha256": "8561d20a2cf58912ab3e6688da35c252e71555d1d0365d04a4b5575385c31a27"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v1/capture.json",
+      "sha256": "b7821d1250e4ba76247d713decb07e1e184186350904c562f4eb2929f230c631"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v1/expected.json",
+      "sha256": "7e6828c8fd707953511cf8256956f93ea6dc9bfed0032e659f7e8002d54cf992"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v1/report.json",
+      "sha256": "f1a6499d58360f1d0a3e40dcad9cfaf4dce8060656fe91b0f48dca1feb7c4378"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-v2-draft.json",
+      "sha256": "964c256e19405eb5d676ce290a9335d5d7e2253de4963bdfb53b52b32da417d4"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-summary-dependencies-v2.json",
+      "sha256": "86ac286239e0ca1df92722b8256459b21f675241e58f0fe925e50a005ecb9ba5"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/baseline/beep-reporting-with-context.md",
+      "sha256": "a86f63c7119cfea82d9fd78e9c832c269e517b3107b0496dccf134f303cad254"
+    },
+    {
+      "path": "eval/control-parity/ledger-execution.mjs",
+      "sha256": "91c5674d197cf7a79f037300ab2eb5523f49c2af3a990a8bef2da44a1126ac31"
+    },
+    {
+      "path": "eval/control-parity/mailbox-mcp.mjs",
+      "sha256": "f660be0c380c4be28eab6a19837dfda8a4dae84138bd0754e7d05b38eb9ef64a"
+    },
+    {
+      "path": "eval/control-parity/interactive-handoff.mjs",
+      "sha256": "340573bb016b4fc19dc3859cba2e3bd808c8c95c22306e83bcecf1abf57eb5d0"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-beep-ledger-v7-preflight-review.json",
+      "sha256": "e2c870ea8fce59ad8213998077fa958d9fa4100b125ebb576cc123f8beb93dca"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/ledger-producer-main-v2.txt",
+      "sha256": "2e2c7c51e43b817521fabd8e9f2fda250d10be6d5d3c4f4d603fb2f37d20ab12"
+    }
+  ],
+  "independent_verification": {
+    "assertions_passed": 429,
+    "trace_rows": 71,
+    "policy_reads": 40,
+    "workflow_effect_calls": 31,
+    "request_response_files_each": 71,
+    "exact_policy_bytes": 241756,
+    "policy_utf16_characters": 239726,
+    "policy_sha256": "a86f63c7119cfea82d9fd78e9c832c269e517b3107b0496dccf134f303cad254",
+    "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+    "bound_runtime_artifacts_checked": 578,
+    "artifact_mismatches": 0,
+    "real_execution_cases": 3,
+    "decisions": 11,
+    "omission_mutations_independently_rejected": 14,
+    "grade_replay_matches": true,
+    "grade": "pass"
+  },
+  "findings": [
+    "Client, preflight-record file hashes, task, fixture, dependencies, policy and harness hashes match exact current bytes. Server manifest task/tools/server/mailbox hashes independently match.",
+    "All71 rows have sequential identities, unique mailbox IDs, verified raw request/response hashes and structured argument/value/result hashes. Directory inventories contain exactly the traced request/response files, with no orphan files.",
+    "Independent policy-reader reconstruction verifies every returned text chunk and next offset. All40 reads precede effect calls and complete exactly the baseline policy; reconstructed policy capture equals recorded report.",
+    "All31 non-policy calls/results correspond in order to capture.events; no captured effect is omitted from bridge accounting.",
+    "Mixed ledger bare terminal outcomes and annotations match corrected observations; runcheck, event validate/read/verify and summary exit0. Summary persisted bytes equal stdout and contain matched PRs/supersession and consistent economics, without missing-fact/forge/reconciliation warnings.",
+    "Incomplete ledger leaves OPEN-1 admitted without outcome; real runcheck exits3 with only OPEN-1 undispatched; summary remains null.",
+    "Event case preserves non-budget authority; only the permitted CLI token checkpoint advances. Real event validation/read/verify exits0, schema2 and zero-based sequence remain intact.",
+    "Observed tidy delta: input201/output21/cache_write_5m4/cache_write_1h2/cache_read8. Prep delta: input205/output25 with same cache deltas. Park has tokens_source estimate and tokens null. These are actual controlled transcript-consumer outputs, not billed model usage.",
+    "Independently regraded original capture and all14 single-case/single-decision omissions; original grade matches and every omission fails.",
+    "Portable current-main test log is complete:43 passed,0 failed. This is recorded-log verification, separate from earlier independently executed43 pinned-runtime tests."
+  ],
+  "scope_limits": [
+    "Deterministic client uses createMcpMailbox.call directly. It proves the structured mailbox bridge and real workflow consumers, not JSON-RPC stdio handshake, Codex model invocation or native provider-session auditing. Those remain separate tests and sample gates.",
+    "Client deliberately sends private reference answers for zero-model preflight. Public task projection excludes those oracle/expected fields; this preflight is not evidence of model judgement.",
+    "Minting and external summary inputs are controlled preconditions; no run-open/close/owner lifecycle, actual review/landing/filing, hosted publication, provider usage or cost qualification.",
+    "Full policy is delivered through read_policy, but delivery is not evidence of a model reading or following it in this zero-model run.",
+    "No source acceptance or savings claim. Previous V7 independent record remains unchanged; earlier development failures remain retained."
+  ]
+}

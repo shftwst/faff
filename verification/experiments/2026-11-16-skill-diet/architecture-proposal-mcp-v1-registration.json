@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "status": "registered-before-model-launch",
+  "scope": "Fresh structured-MCP transport cohort with unchanged full architecture policies, profile snapshots, source fixture and semantic contract. All previous Astra/Sol shell-transport failures remain held and unpooled. No replacement of any sample.",
+  "plans": [
+    {
+      "path": "architecture-proposal-mcp-v1-baseline-plan.json",
+      "sha256": "1f395fa4edee39569ab444de43104c22258b733fd6e3aac77feeef182e6cec7d"
+    },
+    {
+      "path": "architecture-proposal-mcp-v1-candidate-plan.json",
+      "sha256": "4f3d6bf7db23e10386eedf3edae0a582cb71250e8d362c973e09dcd80d790312"
+    }
+  ],
+  "manual_criteria": [
+    "All stated needs covered without invented profile facts.",
+    "One design, no alternative recommendation list.",
+    "No-profile case uses an explicit honest assumption.",
+    "ADR candidates agree exactly with expressed architecture intent.",
+    "Non-build recommendations remain human-only and perform no procurement.",
+    "Every produced artifact is read; all hashes and native metadata bind the same frozen cohort."
+  ],
+  "candidate_launch_requires": "Recorded passing five-baseline source/native/semantic/manual and real-consumer gate. The generic runner does not enforce this external prerequisite.",
+  "source_installation_requires": "Five baseline samples must pass native replay, all four artifacts and ten decisions, actual contract/profile consumption and independent manual review before any candidate launch. Then require the same five candidate samples. Freeze all inputs, preserve every failure and stop on a failed sample. Final replay consumes all forty actual artifacts with the real CLI and rejects invalid recommendations. Integration and main lint/inventory precede acceptance. No full graft, profile acquisition, architectural quality, procurement or ADR creation claim.",
+  "preserved_holds": [
+    "architecture-proposal-astra-v1-hold.json",
+    "architecture-proposal-sol-v1-hold.json"
+  ],
+  "model_calls_launched": 0
+}

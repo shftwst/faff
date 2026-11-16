@@ -1,0 +1,480 @@
+{
+  "instructions": "Read the complete policy, then handle all independent producer checkpoints and questions. Read each existing ledger before work. Runs are already minted by the real CLI. Reconcile ledger observations and emit the required ledger mutation events. Handle event observations in supplied order, emitting or explicitly skipping each. Include all supplied gate/rework metadata as requested by this workload. Controlled transcripts advance between observations; their counts are measured by the CLI, never supplied by you. The harness runs real runcheck, event validation/read and a completed-ledger summary consumer after finish. No tracker, review, build, run-open/close, publication or lifecycle operations are requested. Finish after every case and question.",
+  "policy": {
+    "bytes": 241756,
+    "utf16_characters": 239726,
+    "sha256": "a86f63c7119cfea82d9fd78e9c832c269e517b3107b0496dccf134f303cad254",
+    "chunk_limit": 6000
+  },
+  "resolved_executable": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+  "tools": [
+    {
+      "name": "read_policy",
+      "description": "Read the unchanged policy in bounded chunks. Start at offset 0, then use each returned next_offset until it is null. Complete policy delivery is required before workflow operations. No scratch file is needed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "offset"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "read_ledger",
+      "description": "Read the existing command-created ledger for an independent case.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "write_ledger",
+      "description": "Merge a producer-field patch into the actual ledger. Command-owned and unknown fields are refused and recorded as errors.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "patch": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "case_id",
+          "patch"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "append_event",
+      "description": "Execute the real pinned events append CLI with the supplied JSON payload on stdin. Every invocation includes --run and --root for this case; token-tagged invocations also include --tokens and --session-id. Flag order is free; no other flags. For ledger edits use transition_id ledger-edit; for phase observations use their supplied id.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "transition_id": {
+            "type": "string"
+          },
+          "executable": {
+            "type": "string"
+          },
+          "args": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "payload": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "case_id",
+          "transition_id",
+          "executable",
+          "args",
+          "payload"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "skip_transition",
+      "description": "Record an observation that does not warrant an event, with a brief reason.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "transition_id": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_id",
+          "transition_id",
+          "reason"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "answer_rule",
+      "description": "Record the requested structured answer to one independent policy question.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "value": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "value"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "finish",
+      "description": "Finish after all cases and questions. The harness then runs real runcheck, event validation/read and the completed-ledger summary consumer.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "mixed-ledger",
+      "kind": "ledger",
+      "task": "Reconcile the supplied observations into the existing run ledger through the controlled augmentation port. Preserve command-owned state. Record the required ledger event after the direct edit. Earlier tracker changes, review, landing and filing are completed preconditions, not tasks to repeat.",
+      "source": {
+        "mode": "autonomous",
+        "admitted_build_ids": [
+          "SKIP-1",
+          "HOLD-1",
+          "LAND-1",
+          "HUMAN-1",
+          "POST-1",
+          "UNKNOWN-1",
+          "RESOLVE-1",
+          "SUPER-1"
+        ],
+        "build_observations": [
+          {
+            "issue": "SKIP-1",
+            "observation": "Merged this run after a full second-opinion backend outage; review returned pass.",
+            "review_verdict": {
+              "signal": "pass",
+              "adversarial_outcome": "chain-outage-skipped"
+            }
+          },
+          {
+            "issue": "HOLD-1",
+            "observation": "Graft returned retry-later because mandatory review was unavailable; resumable build-progress checkpoint exists."
+          },
+          {
+            "issue": "LAND-1",
+            "observation": "Graft returned the resumable-hold token after its 25-minute landing budget; PR still open waiting for CI."
+          },
+          {
+            "issue": "HUMAN-1",
+            "observation": "Graft returned pr-open-for-human after three landing cycles."
+          },
+          {
+            "issue": "POST-1",
+            "observation": "Merged this run. Step 10 already filed a tracker comment and source: post-merge discovered-scope ticket.",
+            "post_merge_artifact": {
+              "verdict": "verified-fail",
+              "issue": "POST-1",
+              "pr": 501,
+              "merge_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "command": "npm test"
+            }
+          },
+          {
+            "issue": "UNKNOWN-1",
+            "observation": "Merged this run; no UNIT rung declared and no additional ticket filed.",
+            "post_merge_artifact": {
+              "verdict": "unverified"
+            }
+          },
+          {
+            "issue": "RESOLVE-1",
+            "observation": "The needs-decision-first resolve-attempt failed; the shared Park protocol completed."
+          },
+          {
+            "issue": "SUPER-1",
+            "observation": "Moved to Done because PRIOR-7 already merged all deliverables. This run built nothing and opened no PR."
+          }
+        ],
+        "prep_observations": [
+          {
+            "issue": "PREP-OUT",
+            "return_token": "spec-review-held",
+            "observation": "Adversarial provider outage; never admitted to build."
+          },
+          {
+            "issue": "PREP-SLOW",
+            "return_token": "spec-review-pending",
+            "observation": "Healthy fan-out exceeded prep.spec_review_turn_budget_secs; never admitted to build."
+          }
+        ],
+        "discovered_ticket_acknowledgements": [
+          {
+            "id": "NEW-1",
+            "filed_at": "step 8.0",
+            "admitted": false
+          },
+          {
+            "id": "NEW-2",
+            "filed_at": "step 10",
+            "admitted": false,
+            "for_issue": "POST-1",
+            "source": "post-merge"
+          }
+        ],
+        "issue_detail": {
+          "SKIP-1": {
+            "merged_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "tests": [
+              "npm test"
+            ]
+          }
+        },
+        "discovered_ticket_acknowledgements_exhaustive": true,
+        "artifact_scope": "Review/post-merge objects are relevant-field extracts from already completed per-issue artifacts, not complete persisted records."
+      },
+      "root": "/var/tmp/faff-ledger-measure-cWQ9fN/actual/mixed-ledger",
+      "run_id": "run-20260101-000000-beepboop-list-abc100",
+      "run_dir": "/var/tmp/faff-ledger-measure-cWQ9fN/actual/mixed-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc100",
+      "session_id": "ledger-measurement-session"
+    },
+    {
+      "id": "incomplete-ledger",
+      "kind": "ledger",
+      "task": "Reconcile only observed outcomes. OPEN-1 is admitted and still in flight with no terminal result; preserve that incompleteness. Do not invent an outcome, dispatch work, park it, close the run or publish a final summary in this checkpoint.",
+      "source": {
+        "mode": "autonomous",
+        "admitted_build_ids": [
+          "SKIP-1",
+          "HOLD-1",
+          "LAND-1",
+          "HUMAN-1",
+          "POST-1",
+          "UNKNOWN-1",
+          "RESOLVE-1",
+          "SUPER-1",
+          "OPEN-1"
+        ],
+        "build_observations": [
+          {
+            "issue": "SKIP-1",
+            "observation": "Merged this run after a full second-opinion backend outage; review returned pass.",
+            "review_verdict": {
+              "signal": "pass",
+              "adversarial_outcome": "chain-outage-skipped"
+            }
+          },
+          {
+            "issue": "HOLD-1",
+            "observation": "Graft returned retry-later because mandatory review was unavailable; resumable build-progress checkpoint exists."
+          },
+          {
+            "issue": "LAND-1",
+            "observation": "Graft returned the resumable-hold token after its 25-minute landing budget; PR still open waiting for CI."
+          },
+          {
+            "issue": "HUMAN-1",
+            "observation": "Graft returned pr-open-for-human after three landing cycles."
+          },
+          {
+            "issue": "POST-1",
+            "observation": "Merged this run. Step 10 already filed a tracker comment and source: post-merge discovered-scope ticket.",
+            "post_merge_artifact": {
+              "verdict": "verified-fail",
+              "issue": "POST-1",
+              "pr": 501,
+              "merge_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "command": "npm test"
+            }
+          },
+          {
+            "issue": "UNKNOWN-1",
+            "observation": "Merged this run; no UNIT rung declared and no additional ticket filed.",
+            "post_merge_artifact": {
+              "verdict": "unverified"
+            }
+          },
+          {
+            "issue": "RESOLVE-1",
+            "observation": "The needs-decision-first resolve-attempt failed; the shared Park protocol completed."
+          },
+          {
+            "issue": "SUPER-1",
+            "observation": "Moved to Done because PRIOR-7 already merged all deliverables. This run built nothing and opened no PR."
+          },
+          {
+            "issue": "OPEN-1",
+            "observation": "Still in flight, no terminal result."
+          }
+        ],
+        "prep_observations": [
+          {
+            "issue": "PREP-OUT",
+            "return_token": "spec-review-held",
+            "observation": "Adversarial provider outage; never admitted to build."
+          },
+          {
+            "issue": "PREP-SLOW",
+            "return_token": "spec-review-pending",
+            "observation": "Healthy fan-out exceeded prep.spec_review_turn_budget_secs; never admitted to build."
+          }
+        ],
+        "discovered_ticket_acknowledgements": [
+          {
+            "id": "NEW-1",
+            "filed_at": "step 8.0",
+            "admitted": false
+          },
+          {
+            "id": "NEW-2",
+            "filed_at": "step 10",
+            "admitted": false,
+            "for_issue": "POST-1",
+            "source": "post-merge"
+          }
+        ],
+        "issue_detail": {
+          "SKIP-1": {
+            "merged_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "tests": [
+              "npm test"
+            ]
+          }
+        },
+        "discovered_ticket_acknowledgements_exhaustive": true,
+        "artifact_scope": "Review/post-merge objects are relevant-field extracts from already completed per-issue artifacts, not complete persisted records."
+      },
+      "root": "/var/tmp/faff-ledger-measure-cWQ9fN/actual/incomplete-ledger",
+      "run_id": "run-20260101-000000-beepboop-list-abc101",
+      "run_dir": "/var/tmp/faff-ledger-measure-cWQ9fN/actual/incomplete-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc101",
+      "session_id": "ledger-measurement-session"
+    },
+    {
+      "id": "phase-events",
+      "kind": "events",
+      "task": "Emit appropriate events for these observed transitions in order, including available quality metadata. The fixture already owns genesis and final close; do not duplicate those events. Skip micro-actions. Use the supplied pinned measurement root and session on token-tagged calls. Transcript availability and increments are controlled fixture inputs. For this workload, include every supplied gate/rework value. This is an explicit task request for otherwise optional metadata; never add a gate to a clean ship or non-gate park.",
+      "source": {
+        "transitions": [
+          {
+            "id": "tidy",
+            "observation": "Tidy pass returned."
+          },
+          {
+            "id": "prep-start",
+            "observation": "Prep starts for PREP-1."
+          },
+          {
+            "id": "prep-done",
+            "observation": "Prep completed for PREP-1."
+          },
+          {
+            "id": "build-start",
+            "observation": "Graft subagent dispatched for BUILD-1."
+          },
+          {
+            "id": "micro",
+            "observation": "One file was read while the build ran."
+          },
+          {
+            "id": "build-return",
+            "observation": "BUILD-1 returned parked after the adversarial gate caught it. Two gate-driven fix-and-re-run loops completed."
+          },
+          {
+            "id": "clean-return",
+            "observation": "BUILD-2 returned shipped on the first clean pass, zero rework loops."
+          },
+          {
+            "id": "nongate-return",
+            "observation": "BUILD-3 returned parked for missing operator access, not a quality gate. Zero rework loops."
+          },
+          {
+            "id": "park",
+            "observation": "Build issue PARK-1 is parked."
+          },
+          {
+            "id": "filed",
+            "observation": "A discovered-scope ticket was filed."
+          },
+          {
+            "id": "budget",
+            "observation": "A budget checkpoint completed with this supplied BudgetState: {\"spent\":{\"elapsed_ms\":1000,\"attempts\":1,\"tokens\":120,\"cost\":0.25},\"tokens_source\":\"transcript\",\"breached\":[],\"outcome\":\"continue\",\"warnings\":[]}"
+          },
+          {
+            "id": "sentry",
+            "observation": "A sentry checkpoint completed with this supplied payload: {\"run_dir\":null,\"verdicts\":[]}"
+          }
+        ]
+      },
+      "root": "/var/tmp/faff-ledger-measure-cWQ9fN/actual/phase-events",
+      "run_id": "run-20260101-000000-beepboop-list-abc102",
+      "run_dir": "/var/tmp/faff-ledger-measure-cWQ9fN/actual/phase-events/.faff/runs/run-20260101-000000-beepboop-list-abc102",
+      "session_id": "ledger-measurement-session"
+    }
+  ],
+  "questions": [
+    {
+      "id": "failed-resolution",
+      "question": "A needs-decision-first resolve-attempt fails. Return {\"outcome\":string}."
+    },
+    {
+      "id": "superseded",
+      "question": "Other tickets already merged all deliverables; this run built nothing. Return {\"outcome\":string,\"post_merge_rollup\":boolean}."
+    },
+    {
+      "id": "review-hold",
+      "question": "Graft returned retry-later for mandatory-review unavailable. Return {\"outcome\":string,\"annotation\":string,\"human_action_required\":boolean}."
+    },
+    {
+      "id": "slow-prep",
+      "question": "Prep returned spec-review-pending for healthy slow fan-out. Return {\"annotation\":string,\"admitted\":boolean,\"outcome\":null,\"provider_outage\":boolean}."
+    },
+    {
+      "id": "outage-prep",
+      "question": "Prep returned spec-review-held for adversarial outage. Return {\"annotation\":string,\"admitted\":boolean,\"outcome\":null}."
+    },
+    {
+      "id": "landing-human",
+      "question": "Graft returned hard-park pr-open-for-human after three cycles. Return {\"outcome\":string,\"landing_resumable\":boolean}."
+    },
+    {
+      "id": "post-merge-writer",
+      "question": "Who populates the run-level post-merge arrays? Return {\"writer\":\"orchestrator\"|\"build-subagent\",\"reinvoke_check\":boolean,\"terminal_outcome\":string}."
+    },
+    {
+      "id": "new-ticket",
+      "question": "A new discovered ticket was filed but not admitted. Return {\"affects_completeness\":boolean}."
+    },
+    {
+      "id": "rich-detail",
+      "question": "Rich merged-head/review/test detail needs storage. Return {\"field\":string,\"outcome_value_type\":string,\"satisfies_missing_outcome\":boolean}."
+    },
+    {
+      "id": "event-ownership",
+      "question": "Return {\"caller_fields\":string[],\"order_by\":string,\"caller_supplies_ledger_hash\":boolean}."
+    },
+    {
+      "id": "stop-reason-ownership",
+      "question": "For the run-level stop_reason return {\"normal_writer\":\"run close\"|\"build-subagent\",\"checkpoint_fail_closed_token\":string,\"affects_completeness\":boolean,\"legacy_absence_allowed\":boolean}."
+    }
+  ]
+}

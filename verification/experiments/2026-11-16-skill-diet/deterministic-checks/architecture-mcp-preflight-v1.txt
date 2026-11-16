@@ -1,0 +1,1 @@
+{"status":"pass","calls":32,"artifacts":4,"decisions":10}

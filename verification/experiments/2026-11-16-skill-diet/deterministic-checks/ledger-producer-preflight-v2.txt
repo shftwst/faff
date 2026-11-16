@@ -1,0 +1,289 @@
+TAP version 13
+# Subtest: real ledger/event producer fixture and ten decisions pass
+not ok 1 - real ledger/event producer fixture and ten decisions pass
+  ---
+  duration_ms: 590.895223
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-ledger.test.mjs:44:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+    + [
+    +   {
+    +     id: 'phase-events',
+    +     kind: 'execution',
+    +     pass: false,
+    +     problems: [
+    +       'persisted-event-data'
+    +     ]
+    +   }
+    + ]
+    - []
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+    0:
+      id: 'phase-events'
+      kind: 'execution'
+      pass: false
+      problems:
+        0: 'persisted-event-data'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-ledger.test.mjs:45:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: public task cases do not expose oracle or fixture-private fields
+ok 2 - public task cases do not expose oracle or fixture-private fields
+  ---
+  duration_ms: 0.186916
+  type: 'test'
+  ...
+# Subtest: reject changed command-owned level
+ok 3 - reject changed command-owned level
+  ---
+  duration_ms: 1.007
+  type: 'test'
+  ...
+# Subtest: reject changed command-owned owner
+ok 4 - reject changed command-owned owner
+  ---
+  duration_ms: 0.641042
+  type: 'test'
+  ...
+# Subtest: reject changed command-owned budget
+ok 5 - reject changed command-owned budget
+  ---
+  duration_ms: 0.705458
+  type: 'test'
+  ...
+# Subtest: reject changed command-owned schema_version
+ok 6 - reject changed command-owned schema_version
+  ---
+  duration_ms: 1.140208
+  type: 'test'
+  ...
+# Subtest: reject missing ledger-write
+ok 7 - reject missing ledger-write
+  ---
+  duration_ms: 0.594458
+  type: 'test'
+  ...
+# Subtest: reject ledger-write before edit
+ok 8 - reject ledger-write before edit
+  ---
+  duration_ms: 0.618375
+  type: 'test'
+  ...
+# Subtest: reject caller-supplied ledger hash
+ok 9 - reject caller-supplied ledger hash
+  ---
+  duration_ms: 0.658874
+  type: 'test'
+  ...
+# Subtest: reject object outcome
+ok 10 - reject object outcome
+  ---
+  duration_ms: 0.686749
+  type: 'test'
+  ...
+# Subtest: reject unknown outcome
+ok 11 - reject unknown outcome
+  ---
+  duration_ms: 0.510791
+  type: 'test'
+  ...
+# Subtest: reject invented incomplete outcome
+ok 12 - reject invented incomplete outcome
+  ---
+  duration_ms: 0.476875
+  type: 'test'
+  ...
+# Subtest: reject removed incomplete admission
+ok 13 - reject removed incomplete admission
+  ---
+  duration_ms: 0.429416
+  type: 'test'
+  ...
+# Subtest: reject admitted prep hold
+ok 14 - reject admitted prep hold
+  ---
+  duration_ms: 0.42925
+  type: 'test'
+  ...
+# Subtest: reject swapped prep distinction
+ok 15 - reject swapped prep distinction
+  ---
+  duration_ms: 0.468208
+  type: 'test'
+  ...
+# Subtest: reject human landing made resumable
+ok 16 - reject human landing made resumable
+  ---
+  duration_ms: 0.431708
+  type: 'test'
+  ...
+# Subtest: reject changed post-merge details
+ok 17 - reject changed post-merge details
+  ---
+  duration_ms: 0.697
+  type: 'test'
+  ...
+# Subtest: reject wrong filing count
+ok 18 - reject wrong filing count
+  ---
+  duration_ms: 0.463333
+  type: 'test'
+  ...
+# Subtest: reject duplicate admission
+ok 19 - reject duplicate admission
+  ---
+  duration_ms: 0.45025
+  type: 'test'
+  ...
+# Subtest: reject missing event
+ok 20 - reject missing event
+  ---
+  duration_ms: 0.501541
+  type: 'test'
+  ...
+# Subtest: reject duplicate event
+ok 21 - reject duplicate event
+  ---
+  duration_ms: 0.492166
+  type: 'test'
+  ...
+# Subtest: reject micro-action event
+ok 22 - reject micro-action event
+  ---
+  duration_ms: 0.462708
+  type: 'test'
+  ...
+# Subtest: reject extra genesis
+ok 23 - reject extra genesis
+  ---
+  duration_ms: 0.442708
+  type: 'test'
+  ...
+# Subtest: reject wrong event phase
+ok 24 - reject wrong event phase
+  ---
+  duration_ms: 0.522292
+  type: 'test'
+  ...
+# Subtest: reject missing closing tokens flag
+ok 25 - reject missing closing tokens flag
+  ---
+  duration_ms: 0.434
+  type: 'test'
+  ...
+# Subtest: reject opening tokens flag
+ok 26 - reject opening tokens flag
+  ---
+  duration_ms: 0.470625
+  type: 'test'
+  ...
+# Subtest: reject missing gate metadata
+ok 27 - reject missing gate metadata
+  ---
+  duration_ms: 0.407
+  type: 'test'
+  ...
+# Subtest: reject gate on clean ship
+ok 28 - reject gate on clean ship
+  ---
+  duration_ms: 0.412625
+  type: 'test'
+  ...
+# Subtest: reject changed supplied budget
+ok 29 - reject changed supplied budget
+  ---
+  duration_ms: 0.641708
+  type: 'test'
+  ...
+# Subtest: reject unknown caller field even when output is unchanged
+ok 30 - reject unknown caller field even when output is unchanged
+  ---
+  duration_ms: 0.478375
+  type: 'test'
+  ...
+# Subtest: reject missing case
+ok 31 - reject missing case
+  ---
+  duration_ms: 0.334916
+  type: 'test'
+  ...
+# Subtest: reject missing decision
+ok 32 - reject missing decision
+  ---
+  duration_ms: 0.412041
+  type: 'test'
+  ...
+# Subtest: reject unknown operation
+ok 33 - reject unknown operation
+  ---
+  duration_ms: 0.394208
+  type: 'test'
+  ...
+# Subtest: reject early finish
+ok 34 - reject early finish
+  ---
+  duration_ms: 0.429791
+  type: 'test'
+  ...
+# Subtest: reordered unique ledger collections remain equivalent
+not ok 35 - reordered unique ledger collections remain equivalent
+  ---
+  duration_ms: 0.608458
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-ledger.test.mjs:89:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    'fail' !== 'pass'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'pass'
+  actual: 'fail'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-ledger.test.mjs:91:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: real token accounting advances and retains missing-transcript estimate
+ok 36 - real token accounting advances and retains missing-transcript estimate
+  ---
+  duration_ms: 0.078083
+  type: 'test'
+  ...
+# Subtest: real incomplete ledger consumer leaves only OPEN-1 undispatched
+ok 37 - real incomplete ledger consumer leaves only OPEN-1 undispatched
+  ---
+  duration_ms: 0.043084
+  type: 'test'
+  ...
+# Subtest: ports reject command-owned writes and wrong root/session
+ok 38 - ports reject command-owned writes and wrong root/session
+  ---
+  duration_ms: 2.627582
+  type: 'test'
+  ...
+1..38
+# tests 38
+# suites 0
+# pass 36
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1783.519619

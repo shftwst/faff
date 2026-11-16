@@ -1,0 +1,137 @@
+{
+  "dependencies": {
+    "doctor": {
+      "exit": 0,
+      "resultLine": "RESULT: fixture install is clean."
+    },
+    "economics": {
+      "tokens_total": 1200,
+      "tokens_source": "estimate",
+      "cost_total": 3,
+      "zero_ship": false,
+      "cost_per_shipped": {
+        "tokens_each": 400,
+        "cost_each": 1
+      },
+      "cost_per_attempt": {
+        "denom": 8,
+        "tokens_each": 150,
+        "cost_each": 0.375
+      },
+      "buckets": [
+        {
+          "bucket": "shipped",
+          "count": 3
+        },
+        {
+          "bucket": "pr-open",
+          "count": 2
+        },
+        {
+          "bucket": "parked",
+          "count": 2
+        },
+        {
+          "bucket": "superseded",
+          "count": 1
+        }
+      ],
+      "per_issue": [],
+      "warnings": []
+    },
+    "budget": {
+      "breached": [],
+      "tokens_source": "estimate"
+    },
+    "methodology": null,
+    "forge": {
+      "[\"pr\",\"view\",\"500\",\"--json\",\"state,headRefOid\"]": {
+        "ok": true,
+        "data": {
+          "state": "MERGED",
+          "headRefOid": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "stderr": ""
+      },
+      "[\"pr\",\"view\",\"501\",\"--json\",\"state,headRefOid\"]": {
+        "ok": true,
+        "data": {
+          "state": "MERGED",
+          "headRefOid": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "stderr": ""
+      },
+      "[\"pr\",\"view\",\"502\",\"--json\",\"state,headRefOid\"]": {
+        "ok": true,
+        "data": {
+          "state": "MERGED",
+          "headRefOid": "cccccccccccccccccccccccccccccccccccccccc"
+        },
+        "stderr": ""
+      },
+      "[\"pr\",\"view\",\"503\",\"--json\",\"state,headRefOid\"]": {
+        "ok": true,
+        "data": {
+          "state": "OPEN",
+          "headRefOid": "dddddddddddddddddddddddddddddddddddddddd"
+        },
+        "stderr": ""
+      },
+      "[\"pr\",\"view\",\"504\",\"--json\",\"state,headRefOid\"]": {
+        "ok": true,
+        "data": {
+          "state": "OPEN",
+          "headRefOid": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        "stderr": ""
+      }
+    }
+  },
+  "facts": {
+    "format": 2,
+    "tracker": {
+      "sibling_end_states": {},
+      "superseded_delivered": {
+        "SUPER-1": true
+      }
+    },
+    "run": {
+      "waves": 1,
+      "park_records": [
+        {
+          "issue_id": "RESOLVE-1",
+          "root_cause_class": "needs-decision-first",
+          "timestamp": "2026-01-01T00:00:00Z"
+        }
+      ]
+    }
+  },
+  "records": {
+    "sibling-baseline.json": [],
+    "SUPER-1/supersession.json": {
+      "issue": "SUPER-1",
+      "superseded_by": [
+        "PRIOR-7"
+      ]
+    },
+    "SKIP-1/merge-record.json": {
+      "pr": 500,
+      "head_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "POST-1/merge-record.json": {
+      "pr": 501,
+      "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "UNKNOWN-1/merge-record.json": {
+      "pr": 502,
+      "head_sha": "cccccccccccccccccccccccccccccccccccccccc"
+    },
+    "LAND-1/landing-loop.json": {
+      "pr": 503
+    },
+    "HUMAN-1/landing-loop.json": {
+      "pr": 504
+    }
+  },
+  "scope": "Controlled summary consumer inputs consistent with supplied completed observations. Real external reviews, merges, tracker and provider metering are not exercised."
+}

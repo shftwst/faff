@@ -1,0 +1,39 @@
+{
+  "status": "pending-measurements",
+  "before_bytes": 35118,
+  "after_bytes": 29418,
+  "preserved_sections": [
+    {
+      "heading": "### `backlog-diagnostics`",
+      "bytes": 9492,
+      "sha256": "80ccb9029e184de6ed660431d721340ea294fb8ca64573414b91fc7dfc9a9ef6"
+    },
+    {
+      "heading": "### `standup-digest`",
+      "bytes": 776,
+      "sha256": "817db10a475c6c7e567a694f623daa523950345b175fd30c324a444a34e9e864"
+    },
+    {
+      "heading": "### `build-queue`",
+      "bytes": 1205,
+      "sha256": "1bfcb9ed5120925d1bfd2eca799d0877f36fd579770faa635e549193ea74293a"
+    },
+    {
+      "heading": "### `crank-up-set`",
+      "bytes": 2249,
+      "sha256": "19436a2e4faef38e4951dfd43ee4d9ece34c453e32874193b32eaa22e42735c6"
+    },
+    {
+      "heading": "### `prdr-author`",
+      "bytes": 2898,
+      "sha256": "4941d1d74ba1f417d331425571cadc9c396af7f1794d6e141a47ee7ea265a39d"
+    },
+    {
+      "heading": "### `yagni-judge`",
+      "bytes": 1736,
+      "sha256": "7a50b628ebb07b838183c8f8367a760a908257ea39170fcb95aa44ebcc0e335b"
+    }
+  ],
+  "preserved_appetite_table_and_topology_authority": true,
+  "shared_prefix_sha256": "8f19504be64eabc3fb0a4917f5b4d4ca44fc51318b3cde5e4de6da2a9e5e9443"
+}

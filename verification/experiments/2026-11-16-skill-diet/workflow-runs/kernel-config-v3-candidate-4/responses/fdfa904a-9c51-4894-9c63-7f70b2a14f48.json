@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "value": {
+    "exit_code": 0,
+    "stdout": "config set: wrote appetite=medium to .faff/config.yaml.\n",
+    "stderr": ""
+  }
+}

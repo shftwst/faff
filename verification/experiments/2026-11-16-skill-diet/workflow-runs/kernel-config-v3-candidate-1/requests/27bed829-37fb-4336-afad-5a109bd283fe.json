@@ -1,0 +1,1 @@
+{"name":"submit_result","args":{"case_id":"legacy-name","status":"blocked","values":{},"reason":"Only config file is .faffrc.yml, an invalid legacy name; config get exited 2. Invalid legacy names fail loudly and never fall back to defaults, and no migration is authorised, so the spec producer was not invoked."}}

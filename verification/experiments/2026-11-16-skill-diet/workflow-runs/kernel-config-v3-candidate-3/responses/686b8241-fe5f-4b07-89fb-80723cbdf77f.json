@@ -1,0 +1,7 @@
+{
+  "ok": true,
+  "value": {
+    "completed": true,
+    "downstream": "fixture-stub"
+  }
+}

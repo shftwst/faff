@@ -1,0 +1,43 @@
+{
+  "harness": "eval/control-parity/kernel-config-execution.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/kernel-config.json",
+  "timeout_seconds": 660,
+  "worker": "claude-challenges",
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md"
+  ],
+  "json_stdin": true,
+  "bridge": "eval/control-parity/mailbox-call.mjs",
+  "treatment": "V4 keeps V3 policies, fixture, real CLI and both initial context files. It uses run-literal-workflow-samples.py, which explicitly prohibits shell variables, command-prefix abbreviations, functions and command separators. V3 strict native failures remain separate. No V3 sample is reused.",
+  "acceptance": "All five candidate samples must pass every intended case and native protocol audit. Preserve baseline failures in before scores. Correct only demonstrably overspecified oracle requirements with separate hash-bound assessments; do not reroll failures or pool models. Execution and decision counts stay separate.",
+  "samples": [
+    {
+      "name": "kernel-config-v4-candidate-1",
+      "arm": "candidate",
+      "policy": "candidates/kernel-v1.md"
+    },
+    {
+      "name": "kernel-config-v4-candidate-2",
+      "arm": "candidate",
+      "policy": "candidates/kernel-v1.md"
+    },
+    {
+      "name": "kernel-config-v4-candidate-3",
+      "arm": "candidate",
+      "policy": "candidates/kernel-v1.md"
+    },
+    {
+      "name": "kernel-config-v4-candidate-4",
+      "arm": "candidate",
+      "policy": "candidates/kernel-v1.md"
+    },
+    {
+      "name": "kernel-config-v4-candidate-5",
+      "arm": "candidate",
+      "policy": "candidates/kernel-v1.md"
+    }
+  ]
+}

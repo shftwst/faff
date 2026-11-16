@@ -7,7 +7,7 @@
     {
       "skill": "faff",
       "path": "plugin/skills/faff/SKILL.md",
-      "status": "verified-decision-smoke",
+      "status": "draft-smoke-passed-workflow-proof-pending",
       "before": {
         "path": "plugin/skills/faff/SKILL.md",
         "bytes": 12984,
@@ -53,12 +53,13 @@
       "tests": {
         "passed": 64,
         "failed": 0
-      }
+      },
+      "qualification_pending": "Compare original and reduced prompt execution on affected disposable workflow fixtures before accepting this slice."
     },
     {
       "skill": "faffter-dark-adversarial-review",
       "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
-      "status": "verified-decision-and-artifact-smoke",
+      "status": "draft-smoke-passed-workflow-proof-pending",
       "before": {
         "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
         "bytes": 74897,
@@ -117,7 +118,8 @@
       "mechanical_baseline_tests": {
         "passed": 551,
         "failed": 0
-      }
+      },
+      "qualification_pending": "Compare original and reduced prompt execution on affected disposable workflow fixtures before accepting this slice."
     }
   ],
   "source_total": {

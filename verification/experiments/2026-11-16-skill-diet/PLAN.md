@@ -10,6 +10,14 @@ paired fidelity claim. No merge or release is inferred.
 
 ## Order
 
+Operator clarification at 05:07 UTC: complete workflow proof for the gateway and
+adversarial-review candidates before further compression. The completed decision
+and artifact probes are screening evidence, not the final acceptance gate.
+Compare original/reduced prompts on identical disposable fixtures, including
+attempted operations, ordering, actual state changes and gate outcomes. Finish
+the review-comment write diagnostic as well. Fix and retest failures, or revert
+the unsupported reduction; do not carry an accepted-but-unverified slice forward.
+
 1. Close CI on the stored review-comment connector; preserve its pending dedicated
    Claude diagnostic separately from the broader skill measurements.
 2. Establish immutable source-size and fidelity fixtures. Start with gateway
@@ -29,6 +37,8 @@ paired fidelity claim. No merge or release is inferred.
   before editing. Record the baseline before the candidate.
 - Decision probes measure decisions, not actual effects. A simulated answer must
   never be presented as full workflow execution or a provider-metered cost saving.
+- A slice is complete only after affected effectful paths have execution evidence.
+  Record the exact workflow boundary exercised and any remaining untested scope.
 - Use real tool/state traces for extracted mechanical effects. Preserve failures,
   zero denominators and unavailable measurements; never rewrite them into passes.
 - Any new unsafe approval/effect or missing required obligation blocks that slice.

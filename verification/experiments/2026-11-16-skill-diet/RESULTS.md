@@ -1,5 +1,10 @@
 # Skill diet measurements
 
+Both reductions are draft candidates. Bounded decision and artifact probes have
+passed; workflow execution qualification is in progress and is required before
+these slices count as finished. The operator explicitly requested this proof
+within the current run, before further compression.
+
 Baseline: `a8509086ad28fa0e55cf3d1d818f2055294e663b`, at the start of the
 12-hour run. The machine-readable tally is `ledger.json`. All sizes include the
 whole file. Estimated tokens are `ceil(UTF-16 characters / 4)` per file, summed;

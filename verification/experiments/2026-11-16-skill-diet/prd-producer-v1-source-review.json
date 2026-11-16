@@ -1,0 +1,11 @@
+{
+  "status": "pending-paired-measurement",
+  "baseline_bytes": 4214,
+  "candidate_bytes": 2465,
+  "baseline_estimated_tokens": 1047,
+  "candidate_estimated_tokens": 617,
+  "baseline_sha256": "0308c148cea49b238d743714f68c947a66306d88830541750cb695283f43ee73",
+  "candidate_sha256": "c0296bbf7b29ec22a8da958a64788b81d21f730bd9183c4e18d521ba7a256aeb",
+  "preserved_frontmatter_sha256": "a60b0c16dc8fddf0f9863ac76e7d65c078cd8e32d7948e34a1bcffb4e94815d0",
+  "proof_required": "Five baseline and candidate samples with actual PRD reads, persisted artifacts, real CLI consumption, complete native audits and manual artifact review. No full run-start workflow claim."
+}

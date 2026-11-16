@@ -1,0 +1,255 @@
+{
+  "status": "revision-required",
+  "reviewer": "root",
+  "scope": "Read all thirty actual briefs against fixture facts and source obligations. No changes to raw reports or assessed rubrics.",
+  "observations": [
+    "Milestone date/progress, unlock chain, both outage states, park cause/log/route, ADR ratification question, punt owners, human WIP filtering and advisory calibration facts remain faithful in all reports.",
+    "Candidate 1 omits promotion to Todo; candidate 5 omits the manual-park follow-up offer. V1 is held despite its automatic rubric and native audit passing.",
+    "Baseline 3 and 5 also omit promotion. Record this baseline shortfall; do not claim complete offer fidelity.",
+    "Clean status checkmarks and some repetitive glosses occur in both arms. No unrestricted house-style compliance claim."
+  ],
+  "offer_scores": {
+    "baseline": {
+      "promotion": {
+        "passed": 3,
+        "total": 5
+      },
+      "manual_park": {
+        "passed": 5,
+        "total": 5
+      }
+    },
+    "candidate": {
+      "promotion": {
+        "passed": 4,
+        "total": 5
+      },
+      "manual_park": {
+        "passed": 4,
+        "total": 5
+      }
+    }
+  },
+  "artifacts": [
+    {
+      "run": "wtf-format-v1-baseline-1",
+      "artifact": "empty.md",
+      "sha256": "81d685ca23a4699bee942ec67928640bce30b666dd9a3c9cb7c780e51d68b0ac",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": []
+    },
+    {
+      "run": "wtf-format-v1-baseline-1",
+      "artifact": "operations.md",
+      "sha256": "c9a9f861f544b50281014aaa429e283c9060993cd135eafdf041ff251b7e9532",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": []
+    },
+    {
+      "run": "wtf-format-v1-baseline-1",
+      "artifact": "wip-cap.md",
+      "sha256": "40207233603c8e674172e0254dd67a0226eef83f73dfa6ced3b8b1a714d34e5d",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": []
+    },
+    {
+      "run": "wtf-format-v1-baseline-2",
+      "artifact": "empty.md",
+      "sha256": "41d935a1d705188a09a1b8459eea1449346d629f5fd2ed9aa975b73f12f523a2",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": []
+    },
+    {
+      "run": "wtf-format-v1-baseline-2",
+      "artifact": "operations.md",
+      "sha256": "aec7711e0c11ad4c42c949ca0098cbff81d36911ee0af9e5a7ea648ec97856a9",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": []
+    },
+    {
+      "run": "wtf-format-v1-baseline-2",
+      "artifact": "wip-cap.md",
+      "sha256": "907aae755c62543b0077b590263afbbdc06db9ddc3779dda8936819a9f7cdb73",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": []
+    },
+    {
+      "run": "wtf-format-v1-baseline-3",
+      "artifact": "empty.md",
+      "sha256": "3007da31cf70a68d2d89b957b3e0c823728cd72a5000c28d76420d40f52c4f80",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": []
+    },
+    {
+      "run": "wtf-format-v1-baseline-3",
+      "artifact": "operations.md",
+      "sha256": "33c3cc56e05c37a58192cbb91b357dfebb5f7f53a8e19d25a502d1fe4e5d7e0a",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": [
+        "ready-candidate-promotion-offer-omitted"
+      ]
+    },
+    {
+      "run": "wtf-format-v1-baseline-3",
+      "artifact": "wip-cap.md",
+      "sha256": "18062febb8add05782f7fc83b7e5b9c58d07c0de92471059ab20f84ce224c1a8",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": []
+    },
+    {
+      "run": "wtf-format-v1-baseline-4",
+      "artifact": "empty.md",
+      "sha256": "d9b16f33e2d162dc01d53e2c938be702a3ce336b1d86c8763f526aa073c2db76",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": []
+    },
+    {
+      "run": "wtf-format-v1-baseline-4",
+      "artifact": "operations.md",
+      "sha256": "45ab8c42f04ecc67fe4f787e8301d268c60e31863c1629cd9efba02fa3156067",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": []
+    },
+    {
+      "run": "wtf-format-v1-baseline-4",
+      "artifact": "wip-cap.md",
+      "sha256": "7ea3e06d0744a70749c9b6a36b24f4319e22bd717726c5d8c5e369566b514b26",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": []
+    },
+    {
+      "run": "wtf-format-v1-baseline-5",
+      "artifact": "empty.md",
+      "sha256": "4c2ab78b31d4789c1455921f2f2698388ba9e1c3be7ac24985078db7e9c9b40e",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": []
+    },
+    {
+      "run": "wtf-format-v1-baseline-5",
+      "artifact": "operations.md",
+      "sha256": "7c0f4c192c8bd59e683f8dcf0f7ce82fab2104f09b77732c135fd56323e78b5d",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": [
+        "ready-candidate-promotion-offer-omitted"
+      ]
+    },
+    {
+      "run": "wtf-format-v1-baseline-5",
+      "artifact": "wip-cap.md",
+      "sha256": "64e1e95ed791a7250d07cef4d4ffa6bc30b7528ab6ca18fcbeb1a7cc5fb93f26",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": []
+    },
+    {
+      "run": "wtf-format-v1-candidate-1",
+      "artifact": "empty.md",
+      "sha256": "77855d77a4451250d5fc45368a447f047e5c6630a001d73c6b0d124845891243",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": []
+    },
+    {
+      "run": "wtf-format-v1-candidate-1",
+      "artifact": "operations.md",
+      "sha256": "12f75acafb84bf831b4cd32f8e5af6919eeed678468151b047ff64f474155c07",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": [
+        "ready-candidate-promotion-offer-omitted"
+      ]
+    },
+    {
+      "run": "wtf-format-v1-candidate-1",
+      "artifact": "wip-cap.md",
+      "sha256": "7a75ce8d55868b10db54febfc6253bc81b16ff52715d28bbde12d78b6f4f4ea2",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": []
+    },
+    {
+      "run": "wtf-format-v1-candidate-2",
+      "artifact": "empty.md",
+      "sha256": "e0caeaf65e2c6737cc441c6a45d5979d34f4d93208ce47c614c3c83a2641c235",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": []
+    },
+    {
+      "run": "wtf-format-v1-candidate-2",
+      "artifact": "operations.md",
+      "sha256": "1da6b705f86bd5d752d137362a9779912a2fa5680f9a6b5a642421f6453bc171",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": []
+    },
+    {
+      "run": "wtf-format-v1-candidate-2",
+      "artifact": "wip-cap.md",
+      "sha256": "50e7924d4a8ceea79e0e4c4047da7796ff9e3d72f90b4e10f07b804d308c8355",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": []
+    },
+    {
+      "run": "wtf-format-v1-candidate-3",
+      "artifact": "empty.md",
+      "sha256": "c9aa683600f879a65af8de5892840089e467cbf4b45195fc12ed3b3dba0b8fcb",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": []
+    },
+    {
+      "run": "wtf-format-v1-candidate-3",
+      "artifact": "operations.md",
+      "sha256": "251c1af048a9afe3cb31b862187d4aec8161039ffcca071f03fb1247af474017",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": []
+    },
+    {
+      "run": "wtf-format-v1-candidate-3",
+      "artifact": "wip-cap.md",
+      "sha256": "25b62c1021c3e6df774b7a3a219955c6958106aa4dc063c67d2e8316033bce86",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": []
+    },
+    {
+      "run": "wtf-format-v1-candidate-4",
+      "artifact": "empty.md",
+      "sha256": "3c3a249f6812f4bdbc82950a697884826e4f64236f62d9d814fbcb444b073105",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": []
+    },
+    {
+      "run": "wtf-format-v1-candidate-4",
+      "artifact": "operations.md",
+      "sha256": "34a6ca8c24944590d53ac71d5b70c6f363790c98efc712cbc4bf50f51723a4ab",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": []
+    },
+    {
+      "run": "wtf-format-v1-candidate-4",
+      "artifact": "wip-cap.md",
+      "sha256": "470b961933ae1f8fd2539aa31551b0e235a2ea711b5cac82d1b35d2434131417",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": []
+    },
+    {
+      "run": "wtf-format-v1-candidate-5",
+      "artifact": "empty.md",
+      "sha256": "a331d490b763ee85afa43707429226c5758ed619e73bb7e1ea8fad76a145973d",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": []
+    },
+    {
+      "run": "wtf-format-v1-candidate-5",
+      "artifact": "operations.md",
+      "sha256": "80682ba640cda1ce7dea197a87b35c13d1ab38982090fa53d09d6e8f5e5756f7",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": [
+        "manual-park-follow-up-offer-omitted"
+      ]
+    },
+    {
+      "run": "wtf-format-v1-candidate-5",
+      "artifact": "wip-cap.md",
+      "sha256": "8062c1b1a04e549cec3e59f915f90588d544d6072aa1f46bef24259f1080c1b9",
+      "source_facts_order_wip_and_no_action_claims": "pass",
+      "offer_omissions": []
+    }
+  ],
+  "protocol_qualification": "wtf-format-v1-protocol-qualification.json",
+  "protocol_qualification_sha256": "8505df81b95795610267305a12876b7771f82f08c68d38b26388ae58955722c3"
+}

@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { execFileSync, spawn } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { createInterface } from 'node:readline';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { bindCandidateCommand } from '../eval/control-parity/candidate-command.mjs';
@@ -42,4 +43,44 @@ test('bound eval executes shipped connector and catches an escaping mutation ind
   write.args.body = JSON.stringify(write.args.body).slice(1, -1);
   assert.equal(gradeHandoff({ calls, events: tampered, fixture }).status, 'effect-mismatch');
   assert.ok(loadPolicyBytes(root).includes('apply_review_comment'));
+});
+
+test('actual eval stdio entry works with its cleared credential environment', { timeout: 10000 }, async t => {
+  const root = resolve('.');
+  const commit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+  const binding = bindCandidateCommand(root, commit);
+  const fixture = loadInputs(root).fixtures.get('crlf-outside-region');
+  const directory = mkdtempSync(join(tmpdir(), 'faff-handoff-stdio-'));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const tracker = createFixtureTracker({ directory, issueId: fixture.issue_id, initialState: fixture.tracker });
+  const bindingPath = join(directory, 'binding.json');
+  writeFileSync(bindingPath, JSON.stringify(binding));
+  const child = spawn(process.execPath, [resolve('eval/control-parity/handoff-tools.mjs'), directory, bindingPath]);
+  t.after(() => child.kill());
+  let errors = '', id = 0;
+  const pending = new Map();
+  child.stderr.on('data', data => { errors += data; });
+  child.once('exit', () => { for (const entry of pending.values()) entry.reject(new Error(errors || 'eval server exited')); });
+  createInterface({ input: child.stdout }).on('line', line => {
+    const response = JSON.parse(line);
+    pending.get(response.id)?.resolve(response);
+    pending.delete(response.id);
+  });
+  const request = (method, params = {}) => new Promise((resolve, reject) => {
+    pending.set(++id, { resolve, reject });
+    child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id, method, params }) + '\n');
+  });
+  const call = async (name, args) => {
+    const response = await request('tools/call', { name, arguments: args });
+    assert.equal(response.result.isError, false, JSON.stringify(response));
+    return JSON.parse(response.result.content[0].text);
+  };
+  await request('initialize', { protocolVersion: '2025-06-18' });
+  const tools = (await request('tools/list')).result.tools;
+  assert.deepEqual(tools.map(t => `mcp__tracker__${t.name}`), HANDOFF_ALLOWED_TOOLS);
+  const prepared = await call('prepare_review_comment', { issue_id: fixture.issue_id, faff_body: fixture.faff_body });
+  const applied = await call('apply_review_comment', { plan_ref: prepared.plan_ref });
+  await call('finish', { status: 'completed', reason: applied.reason });
+  assert.equal(gradeHandoff({ calls: readHandoffEvents(directory), events: tracker.readEvents(), fixture }).status, 'followed');
+  child.stdin.end();
 });

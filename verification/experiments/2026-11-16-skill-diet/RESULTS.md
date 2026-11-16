@@ -1,8 +1,8 @@
 # Skill diet measurements
 
 Both reductions remain on a draft PR. The gateway passed its paired execution
-boundary checks. Adversarial-review execution qualification and corrected-prompt
-remeasurement are in progress. Further compression waits for these checks.
+boundary checks. The corrected adversarial prompt passed its repeated decision/artifact probes;
+its execution qualification is in progress. Further compression waits for these checks.
 
 Baseline: `a8509086ad28fa0e55cf3d1d818f2055294e663b`, at the start of the
 12-hour run. The machine-readable tally is `ledger.json`. All sizes include the
@@ -132,5 +132,7 @@ lens labels, the ADR independence sentence, and finding identity/carry example
 wording. Candidate v3 restores these source interfaces without weakening tests.
 The affected tests and adapter checks pass 158/158 locally. The original failing
 run remains recorded; it is not a green result. V2 model evidence remains bound to
-v2. V3 decision and artifact measurements run separately against the unchanged
-fixtures and recorded baseline samples before acceptance.
+v2. V3 separately passed 185/185 decisions and 40/40 artifact decisions in five fresh
+samples for each suite. These compare with the unchanged original policy and
+fixtures in the five recorded baseline samples. V2 evidence remains historical.
+Execution qualification is still pending.

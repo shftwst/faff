@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "scope": "Adversarial review control flow: real backend resolution, wrapped helper transport to a controlled local provider, checkpoint files, contract validation and persisted merge-floor consumption. Phase 1 is a fixture delegate; provider responses are fixed. No live GitHub/tracker mutation or second-model judgement claim.",
+  "cases": [
+    {"id":"case-a","level":"L2","autonomous":false,"phase1":"pass","provider":"critical","expected":{"signal":"pass","helper_exit":0,"checkpoint":[]}},
+    {"id":"case-b","level":"L3","autonomous":true,"phase1":"pass","provider":"critical","expected":{"signal":"needs-human","helper_exit":0,"checkpoint":["phase1-pass","in_flight","complete"]}},
+    {"id":"case-c","level":"L3","autonomous":true,"phase1":"pass","provider":"outage","expected":{"signal":"pass","helper_exit":5,"checkpoint":["phase1-pass","in_flight","skipped_unreachable"],"outcome":"chain-outage-skipped"}},
+    {"id":"case-d","level":"L4","autonomous":true,"phase1":"pass","provider":"outage","expected":{"signal":"unavailable","helper_exit":9,"checkpoint":["phase1-pass","in_flight"],"outcome":"mandatory-chain-outage"}},
+    {"id":"case-e","level":"L4","autonomous":true,"phase1":"pass","provider":"auth","expected":{"signal":"needs-human","helper_exit":7,"checkpoint":["phase1-pass","in_flight"]}},
+    {"id":"case-f","level":"L4","autonomous":true,"phase1":"pass","provider":"empty","expected":{"signal":"needs-human","helper_exit":11,"checkpoint":["phase1-pass","in_flight"]}},
+    {"id":"case-g","level":"L3","autonomous":true,"phase1":"pass","provider":"deadline","expected":{"signal":"pass","helper_exit":8,"checkpoint":["phase1-pass","in_flight","skipped_deadline"]}},
+    {"id":"case-h","level":"L3","autonomous":true,"phase1":"fail","provider":"critical","expected":{"signal":"fail","helper_exit":null,"checkpoint":[]}},
+    {"id":"case-i","level":"L3","autonomous":true,"phase1":"pass","provider":"malformed","expected":{"signal":"needs-human","helper_exit":null,"checkpoint":["phase1-pass"]}},
+    {"id":"case-j","level":"L4","autonomous":true,"phase1":"pass","provider":"rate-limit","expected":{"signal":"unavailable","helper_exit":9,"checkpoint":["phase1-pass","in_flight"],"outcome":"mandatory-chain-outage"}}
+  ],
+  "normalisations": ["Independent case interleaving, private workspace paths, local provider ports and timestamps.", "Read-only config/describe/context calls are recorded separately from ordered checkpoint and helper effects.", "Finding wording may differ; severity, actionable location, carry identity, attribution, verdict, annotations and merge-floor result must match the fixed evidence."]
+}

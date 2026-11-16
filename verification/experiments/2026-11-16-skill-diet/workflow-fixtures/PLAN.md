@@ -52,3 +52,34 @@ responses and outages. Compare original/reduced prompt actions and gate outcomes
 Freeze that fixture and oracle before model runs. The existing eight artifact
 cases cover review judgement separately; fixed provider responses will test
 workflow handling rather than pretending to measure a second model's judgement.
+
+## Adversarial fixture frozen before model execution
+
+Ten cases cover interactive critical advice, unattended critical escalation with
+a carried finding, L3 outage, L4 outage despite a false forwarded lights-out
+boolean, L4 authentication failure, L4 empty output, advisory deadline, Phase-1
+failure, malformed configuration and L4 rate limiting. The local server sends
+fixed findings or faults; it never calls a billed provider. Claude runs the caller.
+
+The tool ports execute the pinned CLI and review-spawn/review-call subprocesses.
+The agent chooses arguments, writes its system text, forwards the resolved
+backend bytes, records checkpoints and submits the final review. The harness
+extracts its single JSON fence, invokes the production contract validator,
+persists the raw block and calls the production merge-floor evaluation with
+other floor legs held neutral. This tests the review leg, not live PR creation,
+landing or full Phase-1 review.
+
+Require exact configured budgets and forwarded run directory, wrapper use,
+resolved backend bytes, fixture prefixes, checkpoint order/final state,
+critical severity and carry identity, provider attribution, verdict, outage
+annotation and real merge-floor result. Protected input/config/ledger files
+must remain unchanged. Read-only calls and independent case interleaving may
+vary and are reported separately. No tool rejection or failed sample is waived.
+Five fresh samples per arm alternate ordering by pair.
+
+The programmatic preflight initially exposed an incorrect fixture-prefix
+allowlist in the harness, before any model run. The corrected preflight exercises
+all ten cases successfully; v3 adds byte-preservation checks. Raw preflight
+evidence and failure notes are retained. Tests include deliberately dropping an
+L4 run directory, writing completion before the helper, downgrading a critical,
+changing the final signal, attempting to write the ledger and arbitrary execution.

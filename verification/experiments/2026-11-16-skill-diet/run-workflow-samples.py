@@ -43,7 +43,7 @@ for sample in plan['samples']:
         write(out / 'worker-clear.json', worker(['ask', name, '/clear', '--timeout', '1000']))
         write(out / 'worker-after-clear.json', worker(['read', name, '--lines', '25']))
         write(out / 'worker-submission.json', worker(['ask', name, prompt, '--timeout', '1000']))
-        while time.time() - started < 510:
+        while time.time() - started < plan.get('timeout_seconds', 510):
             state = worker(['poll', name])
             parsed = json.loads(state['stdout'])
             status = parsed.get('status', {}).get('agent', {}).get('agent_status')

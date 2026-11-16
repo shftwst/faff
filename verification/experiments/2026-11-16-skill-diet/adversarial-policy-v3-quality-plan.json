@@ -1,0 +1,34 @@
+{
+  "skill": "faffter-dark-adversarial-review",
+  "fixture": "fixtures/adversarial-quality-input.json",
+  "oracle": "fixtures/adversarial-quality-oracle.json",
+  "samples": [
+    {
+      "name": "adversarial-policy-v3-quality-candidate-1",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v3.md"
+    },
+    {
+      "name": "adversarial-policy-v3-quality-candidate-2",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v3.md"
+    },
+    {
+      "name": "adversarial-policy-v3-quality-candidate-3",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v3.md"
+    },
+    {
+      "name": "adversarial-policy-v3-quality-candidate-4",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v3.md"
+    },
+    {
+      "name": "adversarial-policy-v3-quality-candidate-5",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v3.md"
+    }
+  ],
+  "baseline_comparison": "adversarial-quality-plan.json",
+  "reason": "Candidate v3 restores CI-required canonical names, JSON-example formatting and independence wording. Baseline and fixtures are unchanged; compare against their existing five samples."
+}

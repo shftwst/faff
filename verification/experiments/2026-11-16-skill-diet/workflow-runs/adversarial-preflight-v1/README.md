@@ -1,0 +1,1 @@
+Programmatic preflight only, before any model execution. The tool guard incorrectly allowed repository-specific fixture prefixes rather than the disposable repository defaults. The guard was corrected to the actual default prefixes; v2 repeats the preflight. No model result is excluded.

@@ -145,7 +145,7 @@
     {
       "skill": "faffter-dark-adversarial-review",
       "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
-      "status": "draft-ci-corrected-remeasurement-and-workflow-proof-pending",
+      "status": "draft-smoke-passed-workflow-proof-pending",
       "before": {
         "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
         "bytes": 74897,
@@ -198,7 +198,22 @@
           "preliminary controls and formatting failures retained separately",
           "provider usage and cost unmetered"
         ],
-        "candidate_policy": "candidates/adversarial-v2.md (historical); v3 remeasurement in progress"
+        "candidate_policy": "candidates/adversarial-v3.md",
+        "candidate_remeasurement": {
+          "decisions": {
+            "runs": 5,
+            "passed": 185,
+            "total": 185,
+            "plan": "adversarial-policy-v3-decisions-plan.json"
+          },
+          "review_judgement": {
+            "runs": 5,
+            "passed": 40,
+            "total": 40,
+            "plan": "adversarial-policy-v3-quality-plan.json"
+          },
+          "baseline": "Unchanged original policy and fixtures; compare to the previously recorded five baseline samples. Candidate-v2 evidence remains historical."
+        }
       },
       "mandatory_dependencies_added": [],
       "operator_reference": "docs/reference/adversarial-backends.md",
@@ -206,7 +221,13 @@
         "passed": 551,
         "failed": 0
       },
-      "qualification_pending": "Compare original and reduced prompt execution on affected disposable workflow fixtures before accepting this slice."
+      "qualification_pending": "Compare original and reduced prompt execution on affected disposable workflow fixtures before accepting this slice.",
+      "tests": {
+        "ci_correction_and_adapters": {
+          "passed": 158,
+          "failed": 0
+        }
+      }
     }
   ],
   "source_total": {

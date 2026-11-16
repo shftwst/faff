@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1477",
+  "build": {
+    "status": "complete",
+    "diff_hash": "ea5a3ab1ed4a6a8e7e87cbcf068d66463f72e9358d66cd753b2560fdfdf38055",
+    "branch": "FAFF-1477-refuse-untagged-human-judgement-done-items",
+    "pushed_at": "2026-11-16T00:50:41.882Z"
+  },
+  "updated_at": "2026-11-16T00:50:41.882Z"
+}

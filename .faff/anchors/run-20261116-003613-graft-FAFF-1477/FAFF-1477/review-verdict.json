@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 3,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "test/admissible.test.mjs::corpus pin test does not assert r2c is the only failing check",
+      "title": "corpus pin test does not assert R2c is the only failing check",
+      "location": "test/admissible.test.mjs",
+      "action": "assert each refused spec's failing ids deep-equal [R2c.human-judgement-untagged] instead of only excluding R2d and R2e",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "faff-review",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "corpus pin test does not assert R2c is the only failing check",
+          "location": "test/admissible.test.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/admissibility.js::fail-safe contract does not cover the new checks",
+      "title": "fail-safe contract does not cover the new checks",
+      "location": "plugin/skills/faff/bin/lib/admissibility.js",
+      "action": "move the new parsing inside the existing try",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "The id and marker parsing now sits inside the try that returns inadmissible on a throw.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "fail-safe contract does not cover the new checks",
+          "location": "plugin/skills/faff/bin/lib/admissibility.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "records/specs/2026-11-16-FAFF-1477-design.md::the shipped spec record states admissibility: admissible but fails r2c",
+      "title": "the shipped spec record states admissibility: admissible but fails R2c",
+      "location": "records/specs/2026-11-16-FAFF-1477-design.md",
+      "action": "tag the item or note that the line predates the gate",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The stamp was computed against the base before this gate existed. The corpus pin names the file and the PR body discloses it.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "the shipped spec record states admissibility: admissible but fails R2c",
+          "location": "records/specs/2026-11-16-FAFF-1477-design.md",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/admissibility.js::code-span exemption fails open on unbalanced backticks",
+      "title": "code-span exemption fails open on unbalanced backticks",
+      "location": "plugin/skills/faff/bin/lib/admissibility.js",
+      "action": "strip a lone trailing backtick run or document the failure mode",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "A stray backtick makes R2c refuse, which is the safe direction, and the reason text names the item.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "code-span exemption fails open on unbalanced backticks",
+          "location": "plugin/skills/faff/bin/lib/admissibility.js",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/admissible.test.mjs::corpus test scales with the spec corpus",
+      "title": "corpus test scales with the spec corpus",
+      "location": "test/admissible.test.mjs",
+      "action": "cache per-file verdicts",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The scan takes under two seconds for 952 specs and the spec chose a full-corpus pin.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "title": "corpus test scales with the spec corpus",
+          "location": "test/admissible.test.mjs",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

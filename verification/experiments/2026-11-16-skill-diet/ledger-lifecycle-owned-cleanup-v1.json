@@ -1,0 +1,11 @@
+{
+  "status": "pass",
+  "prior_run_directories": [
+    "/var/tmp/faff-ledger-lifecycle-2PphPK/.faff/runs/run-20261116-225802-beepboop-full-eec53f",
+    "/var/tmp/faff-ledger-lifecycle-Hewdrp/.faff/runs/run-20261116-225706-beepboop-full-b48f60",
+    "/var/tmp/faff-ledger-lifecycle-VJvXgu/.faff/runs/run-20261116-225621-beepboop-full-3510b9",
+    "/var/tmp/faff-ledger-lifecycle-okTupY/.faff/runs/run-20261116-225913-beepboop-full-1bbd32"
+  ],
+  "found_owned_pollers": [],
+  "note": "Earlier stop commands signalled asynchronously; their temporary directories were removed before process exit was verified. This record corrects the earlier cleanup claim. No candidate model fidelity run occurred."
+}

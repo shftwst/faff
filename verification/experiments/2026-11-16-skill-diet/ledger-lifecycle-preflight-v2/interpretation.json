@@ -1,0 +1,6 @@
+{
+  "status": "failed-preflight",
+  "cause": "The exploratory check incorrectly required run-start to be the first event. The real mint writes a ledger-write event before run-start; the skill requires atomic genesis and exactly one run-start, not row-one ordering.",
+  "next": "V3 retains exactly one run-start, contiguous event sequence, real closed owner/stop token, and all other lifecycle checks. It also saves final raw artifacts even on failure before temporary cleanup.",
+  "scope": "No model calls or candidate fidelity measurement occurred."
+}

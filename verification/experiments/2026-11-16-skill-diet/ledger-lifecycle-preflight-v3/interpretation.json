@@ -1,0 +1,6 @@
+{
+  "status": "failed-preflight",
+  "cause": "The exploratory sequence assertion incorrectly started at 1. The production event chain starts at seq 0 and increments contiguously. The skill requires seq ordering, not a different starting value.",
+  "next": "V4 checks the actual zero-based sequence. All prior sources, captures and failures are retained; no model samples have run.",
+  "scope": "Deterministic lifecycle feasibility only."
+}

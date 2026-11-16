@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "status": "held-original-raw-gate",
+  "completed_baselines": 2,
+  "candidate_launched": false,
+  "failed_sample": "beep-reporting-mcp-v1-baseline-2",
+  "raw": "5/6 execution cases; review-holds fails publication-count and publication-order:conversation",
+  "native": "pass, 70 MCP calls",
+  "cause": "A conversation draft contains Sentry: nn0 checkpoints, then a second normalisation corrects it before the sole publication. Published and persisted content is canonical. The original grader requires exactly one normalisation per channel.",
+  "evidence": {
+    "workflow-runs/beep-reporting-mcp-v1-baseline-2/capture.json": "1918b76ddb96b9fd05bd961b3e1dbcb450e301db0181e8f01ee38f21c0301bb4",
+    "workflow-runs/beep-reporting-mcp-v1-baseline-2/report.json": "cb9701a060f899614bbbc766297142ceef59b639f3d050d34cface64a9b80b38",
+    "workflow-runs/beep-reporting-mcp-v1-baseline-2/native-audit.json": "06742504daec6f7c2d71ae3b09c0608e963e16b080bb199ba642b1759efafba5",
+    "workflow-runs/beep-reporting-mcp-v1-baseline-2/workflow-replay.json": "5660f318fc2faf7b72050d15d5464ae121e919a27bb65cb1394e1a525430ab0b",
+    "workflow-runs/beep-reporting-mcp-v1-baseline-2/runner-failure.json": "cf1c513e384a181e1af7d366c17e4912644eae2e9b97d587b6cb120d5239e4f0",
+    "manual-artifact-reviews/beep-reporting-mcp-v1-baseline-independent.json": "113a0c1aeffaf1414f380ccff1f1cf84448be99b6630ba99d4764403c8e110c3"
+  },
+  "next": "Independent source reviews identify an extra grader restriction. A separately frozen, general pre-publication draft assessment is being tested; it must be reviewed and registered before continuing any baseline or candidate. No raw failure is overwritten or sample replaced."
+}

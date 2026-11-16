@@ -1,0 +1,27 @@
+{
+  "status": "draft-unmeasured",
+  "source": "plugin/skills/faff-beep-boop/SKILL.md",
+  "source_sha256": "f1efefcfc1d1eccdfa0c32a0a06cb989ffc35753766289646eb439525c875d28",
+  "candidate": "candidates/beep-ledger-v1.md",
+  "candidate_sha256": "8bcedb9ac1a76c397011d367992a272547c1653c7664d0eecd57c6625d0d7d95",
+  "potential_savings": {
+    "bytes": 6622,
+    "estimated_tokens": 1625
+  },
+  "unchanged": [
+    "All sections outside Run ledger and Run-event log",
+    "Owner stamp & heartbeat",
+    "Stop hook",
+    "Budget paragraph and owner-field definitions",
+    "Event transition/token-tagging table"
+  ],
+  "known_existing_mismatch": "Event schema-1 wording remains unchanged in meaning; actual CLI emits schema 2. This diet draft does not silently correct it. Measure and disclose inherited behaviour separately.",
+  "required_before_acceptance": [
+    "Independent source equivalence review",
+    "Frozen full-policy before/after measurements",
+    "Real controlled ledger lifecycle and refusal cases",
+    "Annotation and token/quality-tagging decisions",
+    "Actual output reading, native checks, integration and rule inventory"
+  ],
+  "excluded_from_accepted_totals": true
+}

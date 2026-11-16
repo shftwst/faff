@@ -1,0 +1,74 @@
+{
+  "cases": [],
+  "commands": [
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-VJvXgu",
+      "args": [
+        "run",
+        "open",
+        "--mode",
+        "full",
+        "--root",
+        "/var/tmp/faff-ledger-lifecycle-VJvXgu",
+        "--session-id",
+        "ledger-preflight-complete",
+        "--json"
+      ],
+      "input": "",
+      "exit_code": 0,
+      "stdout": "{\"run_dir\":\"/var/tmp/faff-ledger-lifecycle-VJvXgu/.faff/runs/run-20261116-225621-beepboop-full-3510b9\",\"governance\":\"admitted\",\"fail_closed_cause\":null,\"budget_envelope\":{\"ceilings\":{\"until\":null,\"max_attempts\":null,\"tokens\":null,\"cost\":null},\"until_invalid\":null,\"price_per_mtok_removed\":null,\"at_ceiling\":\"stop\",\"price_per_mtok\":0,\"pricing\":\"map\",\"window\":null,\"allow_unmetered\":[]},\"steps\":{\"mint\":\"ok\",\"enrich\":\"ok\",\"envelope\":\"ok\",\"baseline\":\"ok\",\"governance\":\"ok\",\"poller\":\"ok\",\"hooks\":\"ok\"},\"hooks_report\":\"added runcheck, prepcheck, inflightcheck, resumecheck, sentrycheck, turncheck, Bash::merge-fence, Bash::background-fence, Monitor::background-fence → /var/tmp/faff-ledger-lifecycle-VJvXgu/.claude/settings.json\",\"faults\":[]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-VJvXgu",
+      "args": [
+        "events",
+        "append",
+        "--run",
+        "run-20261116-225621-beepboop-full-3510b9",
+        "--root",
+        "/var/tmp/faff-ledger-lifecycle-VJvXgu"
+      ],
+      "input": "{\"phase\":\"run\",\"type\":\"ledger-write\"}",
+      "exit_code": 0,
+      "stdout": "{\"schema\":2,\"run_id\":\"run-20261116-225621-beepboop-full-3510b9\",\"seq\":8,\"ts\":\"2026-11-16T22:56:22.366Z\",\"prev\":\"4f433bc47fabc4788738c06035d6868dae672baa1f63bda4db6f7ac67e94e960\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"9384d41d7e6f34e80ecd0ba4c5e4434a9f9a90d2733a210856614be1adb4b16a\"}}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-VJvXgu",
+      "args": [
+        "run-ledger",
+        "init-self-drain",
+        "--mode",
+        "full",
+        "--root",
+        "/var/tmp/faff-ledger-lifecycle-VJvXgu"
+      ],
+      "input": "",
+      "exit_code": 3,
+      "stdout": "",
+      "stderr": "faff run-ledger init-self-drain: refusing — a live L3 run (run-20261116-225621-beepboop-full-3510b9) is already resolved; an L3 self-drain mint must not start alongside or downgrade a live higher-level run\n",
+      "error": null
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-VJvXgu",
+      "args": [
+        "sentry-poller",
+        "stop",
+        "--run-dir",
+        "/var/tmp/faff-ledger-lifecycle-VJvXgu/.faff/runs/run-20261116-225621-beepboop-full-3510b9"
+      ],
+      "input": "",
+      "exit_code": 0,
+      "stdout": "faff sentry-poller: stop sentinel written (pid 1217397, alive)\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "failure": {
+    "message": "faff run-ledger init-self-drain: refusing — a live L3 run (run-20261116-225621-beepboop-full-3510b9) is already resolved; an L3 self-drain mint must not start alongside or downgrade a live higher-level run\n\n\n3 !== 0\n",
+    "stack": "AssertionError [ERR_ASSERTION]: faff run-ledger init-self-drain: refusing — a live L3 run (run-20261116-225621-beepboop-full-3510b9) is already resolved; an L3 self-drain mint must not start alongside or downgrade a live higher-level run\n\n\n3 !== 0\n\n    at file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/preflight-ledger-lifecycle-v1.mjs:59:10\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)"
+  }
+}

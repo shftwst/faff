@@ -1,0 +1,172 @@
+TAP version 13
+# Subtest: draft assessment preserves all six canonical execution cases and raw grade
+ok 1 - draft assessment preserves all six canonical execution cases and raw grade
+  ---
+  duration_ms: 4.568745
+  type: 'test'
+  ...
+# Subtest: unpublished corrected draft is allowed on tracker, retaining its raw failure and overhead
+ok 2 - unpublished corrected draft is allowed on tracker, retaining its raw failure and overhead
+  ---
+  duration_ms: 1.582374
+  type: 'test'
+  ...
+# Subtest: unpublished corrected draft is allowed on conversation, retaining its raw failure and overhead
+ok 3 - unpublished corrected draft is allowed on conversation, retaining its raw failure and overhead
+  ---
+  duration_ms: 1.255374
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects unknown operation
+ok 4 - draft assessment rejects unknown operation
+  ---
+  duration_ms: 1.230499
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects publish typo draft
+ok 5 - draft assessment rejects publish typo draft
+  ---
+  duration_ms: 0.883291
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects publish both bad and corrected drafts
+ok 6 - draft assessment rejects publish both bad and corrected drafts
+  ---
+  duration_ms: 0.765791
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects cross-channel normalisation reference
+ok 7 - draft assessment rejects cross-channel normalisation reference
+  ---
+  duration_ms: 0.758082
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects cross-case normalisation reference
+ok 8 - draft assessment rejects cross-case normalisation reference
+  ---
+  duration_ms: 1.073582
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects nonexistent normalisation reference
+ok 9 - draft assessment rejects nonexistent normalisation reference
+  ---
+  duration_ms: 1.040874
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects publication before normalisation
+ok 10 - draft assessment rejects publication before normalisation
+  ---
+  duration_ms: 0.956332
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects altered publication bytes
+ok 11 - draft assessment rejects altered publication bytes
+  ---
+  duration_ms: 0.756791
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects post-publication correction
+ok 12 - draft assessment rejects post-publication correction
+  ---
+  duration_ms: 0.773666
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects summary file changed
+ok 13 - draft assessment rejects summary file changed
+  ---
+  duration_ms: 0.794499
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects authority changed
+ok 14 - draft assessment rejects authority changed
+  ---
+  duration_ms: 0.777124
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects missing case
+ok 15 - draft assessment rejects missing case
+  ---
+  duration_ms: 0.7265
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects tool error
+ok 16 - draft assessment rejects tool error
+  ---
+  duration_ms: 0.772458
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects duplicate normalisation id
+ok 17 - draft assessment rejects duplicate normalisation id
+  ---
+  duration_ms: 1.129749
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects normalisation result differs from input
+ok 18 - draft assessment rejects normalisation result differs from input
+  ---
+  duration_ms: 0.736416
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects publication not acknowledged
+ok 19 - draft assessment rejects publication not acknowledged
+  ---
+  duration_ms: 0.683874
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects publication result channel differs
+ok 20 - draft assessment rejects publication result channel differs
+  ---
+  duration_ms: 0.680416
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects publication target differs
+ok 21 - draft assessment rejects publication target differs
+  ---
+  duration_ms: 0.723124
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects duplicate summary command
+ok 22 - draft assessment rejects duplicate summary command
+  ---
+  duration_ms: 0.788082
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects missing tracker economics
+ok 23 - draft assessment rejects missing tracker economics
+  ---
+  duration_ms: 0.814916
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects normalisation before canonical command
+ok 24 - draft assessment rejects normalisation before canonical command
+  ---
+  duration_ms: 0.852707
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects normalisation on continuation
+ok 25 - draft assessment rejects normalisation on continuation
+  ---
+  duration_ms: 1.131999
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects normalisation on unreadable ledger
+ok 26 - draft assessment rejects normalisation on unreadable ledger
+  ---
+  duration_ms: 0.726375
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects unknown normalisation channel
+ok 27 - draft assessment rejects unknown normalisation channel
+  ---
+  duration_ms: 0.712458
+  type: 'test'
+  ...
+1..27
+# tests 27
+# suites 0
+# pass 27
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 83.021133

@@ -1,0 +1,76 @@
+{
+  "provider": "codex-cli",
+  "model": "gpt-6.1-sol",
+  "effort": "medium",
+  "purpose": "skill-diet-qualification",
+  "harness": "eval/control-parity/reporting-execution.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/beep-reporting-v1.json",
+  "timeout_seconds": 1200,
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md"
+  ],
+  "bridge": "eval/control-parity/mailbox-mcp.mjs",
+  "treatment": "Bounded Reporting with full unchanged beep-boop policy and fixed current shared kernel. Five baseline samples before any candidate deployment; source changes confined to duplicated command-owned reporting explanation. Real pinned run-summary handler and ledger writers, controlled external dependencies, rendering/publication/build continuation.",
+  "acceptance": "Five original baseline samples and five original candidate samples, without replacement. Strict native audit, reproduced raw execution grade and all six assessed execution cases must pass. A separately frozen post-hoc assessor permits only unused successful drafts before the sole canonical publication on each channel; all other raw failures remain blocking. Retain every raw score, intermediate typo and call overhead. All five assessed baselines also need independent actual-output review before any candidate. Source integration and main lint/inventory remain required.",
+  "samples": [
+    {
+      "name": "beep-reporting-mcp-v1-candidate-1",
+      "arm": "candidate",
+      "policy": "candidates/beep-reporting-v1-with-context.md"
+    },
+    {
+      "name": "beep-reporting-mcp-v1-candidate-2",
+      "arm": "candidate",
+      "policy": "candidates/beep-reporting-v1-with-context.md"
+    },
+    {
+      "name": "beep-reporting-mcp-v1-candidate-3",
+      "arm": "candidate",
+      "policy": "candidates/beep-reporting-v1-with-context.md"
+    },
+    {
+      "name": "beep-reporting-mcp-v1-candidate-4",
+      "arm": "candidate",
+      "policy": "candidates/beep-reporting-v1-with-context.md"
+    },
+    {
+      "name": "beep-reporting-mcp-v1-candidate-5",
+      "arm": "candidate",
+      "policy": "candidates/beep-reporting-v1-with-context.md"
+    }
+  ],
+  "runner": "run-mcp-workflow-samples-v2.py",
+  "frozen_hashes": {
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/mailbox-mcp.mjs": "f660be0c380c4be28eab6a19837dfda8a4dae84138bd0754e7d05b38eb9ef64a",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-mcp-native-audit.mjs": "f33617ae48ad5bcbdeb993a7c1533b39ca43fdc2890160c8f458a81a3dfdb5f0",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-mcp-startup-context.json": "01d2e7e23dd2555aee16496dbc8313609de76ca80407438d1f46cdb7dbb85a8f",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-native-audit.mjs": "c46dd016be2aa62cb31803e15afb3cc4a57acf79f248500dd59d3d04a2ec10ac",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/interactive-handoff.mjs": "340573bb016b4fc19dc3859cba2e3bd808c8c95c22306e83bcecf1abf57eb5d0",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/policy-reader.mjs": "2055d85ac37834bd83483602249d29c5b4d0f21664f59c12c01f22e34d23ae1a",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/rendering-artifact.mjs": "88b5bbff037cd5d9daff8d1094df3b885c01a34ce7902af47cc1354283cddc36",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/schema.mjs": "0164ccec86e98253e013dea2db3a00db35ef2ee9707de0a7360146b489715234",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-mcp-bridge.test.mjs": "0dc2f38e6004d9d39b4c0f2b86f11749e893b9604d9109d4320da069b9632fb0",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-mcp-native.test.mjs": "b6e274520c648fa06f6c4c13fdf0e87f75ec47efdcae8b7944ee8322d92640f5",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/run-mcp-workflow-samples-v1.py": "6a621e5b735676d1dae51c786dd6eeca6be183951857b0afbaef6b3898cec4ec",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/transport-pilots/mcp-v2/policy.md": "2cfe6dc0746cfaa3d493d8c656ab0501c03e72b1331c1ca8e7ff76b0fd116e66",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/transport-pilots/mcp-v2/fixture.json": "91377b4c5f5685ce702ec1a5fc9e92916e7f4f01c6c26d2b6244c285f71120dc",
+    "/Users/shftwst/.agents/AGENTS.md": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-mcp-tool-declaration.json": "62f1512b6a3813318cfd88dbd35b74fea6a07212eea397725efbd66031713645",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/reporting-execution.mjs": "baedd016cfd7502a237c9255b1dfba8f7e150357f04cc8e2b29c2865773fce58",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-reporting.test.mjs": "c4b71125969e5eec0039bf8fddfe52a8025b943ce94c317324667676802cac84",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-reporting-v1.json": "d2d8624e1587eae1384feb5aa09cabcdc3880023c088924604d20a83e2494fc3",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/baseline/beep-reporting-with-context.md": "a86f63c7119cfea82d9fd78e9c832c269e517b3107b0496dccf134f303cad254",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/candidates/beep-reporting-v1-with-context.md": "99a8191396272aab59cf54f2f9f69412e7b396e096d1f26a9246e9ecf65a0ebd",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/candidates/beep-reporting-v1.md": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/run-mcp-workflow-samples-v2.py": "d76ccc5b2e1ee81785945af3a800a01070e0c6055f7c86123c09fe8ca473a9f9",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/assess-reporting-drafts-v1.mjs": "f1dc98f052da42022faf2aa72ff0f926c725e44d5513d7f33bc1f20fd374afd1",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-reporting-drafts.test.mjs": "1c27ef269afd9a53fa24a1130997e6e5f3aaae2ce7b16d46a67e304946c9ad46",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/independent-reporting-draft-assessment-v1-review.json": "09a88e33545ebed9df324358fe9c10ef97b4062e3aa9daa25a83dcdfa0e6eb08"
+  },
+  "transport_revision": "Fresh task-local stdio MCP treatment. Full policies, fixture, runtime and semantic gates unchanged. All shell-transport failures remain held; no old samples are replaced or pooled. V4 transport pilot and six-case real reporting preflight must qualify before launch.",
+  "assessment": "assess-reporting-drafts-v1.mjs"
+}

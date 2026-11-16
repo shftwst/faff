@@ -1,0 +1,51 @@
+{
+  "ok": true,
+  "value": {
+    "challenge": {
+      "case_id": "adr-2",
+      "outcome": "overturned",
+      "ground": null,
+      "reason": "The old decision is a security invariant: secrets come only from environment variables and are never written to `.faff/`. The new decision writes resolved API keys in plaintext to `.faff/cache/credentials.json`, which breaks that invariant directly, and the why does not engage with the reason the rule exists. Being gitignored only prevents a commit; it does not stop the file being read by other local processes, copied into backups, synced, attached to bug reports, or swept up by tooling that archives `.faff/` (logs, anchors, calibration). The claimed benefit is also weak: reading `process.env` is an in-memory lookup, so per-call cost is negligible next to an LLM network call, and an in-process memo would get the same saving with no disk write. The 'no behaviour change a user would notice' framing is exactly why the change is dangerous: the exposure is invisible. The supersession argument does not hold."
+    },
+    "calls": [
+      {
+        "args": [
+          "adr",
+          "admit",
+          "fixture",
+          "--actor",
+          "loop",
+          "--supersedes-provenance",
+          "loop",
+          "--challenge",
+          "overturned"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"disposition\":\"reject\",\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"challenge\":{\"ran\":true,\"outcome\":\"overturned\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"drift challenge overturned — the adversarial reviewer found the supersession argument unsound\"],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      }
+    ],
+    "upper": null,
+    "admission": {
+      "disposition": "reject",
+      "authority": {
+        "actor": "loop",
+        "supersedes_provenance": "loop",
+        "by_level": "ok"
+      },
+      "challenge": {
+        "ran": true,
+        "outcome": "overturned"
+      },
+      "ratchet": {
+        "lineage_supersessions": 0,
+        "breached": false
+      },
+      "reasons": [
+        "drift challenge overturned — the adversarial reviewer found the supersession argument unsound"
+      ],
+      "conformant": true,
+      "violations": []
+    }
+  }
+}

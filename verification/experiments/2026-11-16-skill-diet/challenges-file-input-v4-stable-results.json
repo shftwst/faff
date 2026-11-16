@@ -1,0 +1,256 @@
+{
+  "schema": 1,
+  "qualification_status": "requires-separate-native-protocol-review",
+  "status": "pass",
+  "plans": [
+    "verification/experiments/2026-11-16-skill-diet/challenges-file-input-v4-stable-plan.json"
+  ],
+  "arms": {
+    "baseline": {
+      "runs": 5,
+      "passed": 40,
+      "total": 40,
+      "recorded_data_bytes": 672970,
+      "estimated_recorded_data_tokens": 167368
+    },
+    "candidate": {
+      "runs": 5,
+      "passed": 40,
+      "total": 40,
+      "recorded_data_bytes": 411200,
+      "estimated_recorded_data_tokens": 102672
+    }
+  },
+  "missing": [],
+  "problems": [],
+  "normalised_effect_state_gate_projections_equal": true,
+  "runs": [
+    {
+      "name": "challenges-file-input-v4-stable-baseline-1",
+      "arm": "baseline",
+      "kind": "challenge-judgement-and-consumption",
+      "report_sha256": "59914d122c442886d73a67ea33170b68ae771e8be26900c82c4ba1b83d181b90",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 8,
+      "diagnostics": [],
+      "policy_sha256": "4be6a2c38923d00b7dca1dc00d6d5923a00f0b9329141de0a2bbe2a14c4a1193",
+      "projection_sha256": "a62957df539e5c2f61efcd42ced5b43e9549bddd755ace870b378b42fcde8a66",
+      "policy_chunks": 13,
+      "cases_passed": 8,
+      "cases_total": 8,
+      "config_path_reads": null,
+      "event_counts": {
+        "describe_contract": 2,
+        "submit_challenge": 8
+      },
+      "recorded_data_bytes": 134398,
+      "estimated_recorded_data_tokens": 33424
+    },
+    {
+      "name": "challenges-file-input-v4-stable-candidate-1",
+      "arm": "candidate",
+      "kind": "challenge-judgement-and-consumption",
+      "report_sha256": "70c9019cc59feddb2b80686d7bb7e1c71cfe3a82f1360238ad461b6289a76e19",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 8,
+      "diagnostics": [],
+      "policy_sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba",
+      "projection_sha256": "a62957df539e5c2f61efcd42ced5b43e9549bddd755ace870b378b42fcde8a66",
+      "policy_chunks": 4,
+      "cases_passed": 8,
+      "cases_total": 8,
+      "config_path_reads": null,
+      "event_counts": {
+        "describe_contract": 2,
+        "submit_challenge": 8
+      },
+      "recorded_data_bytes": 79935,
+      "estimated_recorded_data_tokens": 19957
+    },
+    {
+      "name": "challenges-file-input-v4-stable-candidate-2",
+      "arm": "candidate",
+      "kind": "challenge-judgement-and-consumption",
+      "report_sha256": "70c9019cc59feddb2b80686d7bb7e1c71cfe3a82f1360238ad461b6289a76e19",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 8,
+      "diagnostics": [],
+      "policy_sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba",
+      "projection_sha256": "a62957df539e5c2f61efcd42ced5b43e9549bddd755ace870b378b42fcde8a66",
+      "policy_chunks": 4,
+      "cases_passed": 8,
+      "cases_total": 8,
+      "config_path_reads": null,
+      "event_counts": {
+        "describe_contract": 2,
+        "submit_challenge": 8
+      },
+      "recorded_data_bytes": 84156,
+      "estimated_recorded_data_tokens": 21012
+    },
+    {
+      "name": "challenges-file-input-v4-stable-baseline-2",
+      "arm": "baseline",
+      "kind": "challenge-judgement-and-consumption",
+      "report_sha256": "59914d122c442886d73a67ea33170b68ae771e8be26900c82c4ba1b83d181b90",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 8,
+      "diagnostics": [],
+      "policy_sha256": "4be6a2c38923d00b7dca1dc00d6d5923a00f0b9329141de0a2bbe2a14c4a1193",
+      "projection_sha256": "a62957df539e5c2f61efcd42ced5b43e9549bddd755ace870b378b42fcde8a66",
+      "policy_chunks": 13,
+      "cases_passed": 8,
+      "cases_total": 8,
+      "config_path_reads": null,
+      "event_counts": {
+        "describe_contract": 2,
+        "submit_challenge": 8
+      },
+      "recorded_data_bytes": 134647,
+      "estimated_recorded_data_tokens": 33488
+    },
+    {
+      "name": "challenges-file-input-v4-stable-baseline-3",
+      "arm": "baseline",
+      "kind": "challenge-judgement-and-consumption",
+      "report_sha256": "59914d122c442886d73a67ea33170b68ae771e8be26900c82c4ba1b83d181b90",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 8,
+      "diagnostics": [],
+      "policy_sha256": "4be6a2c38923d00b7dca1dc00d6d5923a00f0b9329141de0a2bbe2a14c4a1193",
+      "projection_sha256": "a62957df539e5c2f61efcd42ced5b43e9549bddd755ace870b378b42fcde8a66",
+      "policy_chunks": 13,
+      "cases_passed": 8,
+      "cases_total": 8,
+      "config_path_reads": null,
+      "event_counts": {
+        "describe_contract": 2,
+        "submit_challenge": 8
+      },
+      "recorded_data_bytes": 132560,
+      "estimated_recorded_data_tokens": 32965
+    },
+    {
+      "name": "challenges-file-input-v4-stable-candidate-3",
+      "arm": "candidate",
+      "kind": "challenge-judgement-and-consumption",
+      "report_sha256": "70c9019cc59feddb2b80686d7bb7e1c71cfe3a82f1360238ad461b6289a76e19",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 8,
+      "diagnostics": [],
+      "policy_sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba",
+      "projection_sha256": "a62957df539e5c2f61efcd42ced5b43e9549bddd755ace870b378b42fcde8a66",
+      "policy_chunks": 4,
+      "cases_passed": 8,
+      "cases_total": 8,
+      "config_path_reads": null,
+      "event_counts": {
+        "describe_contract": 2,
+        "submit_challenge": 8
+      },
+      "recorded_data_bytes": 91267,
+      "estimated_recorded_data_tokens": 22790
+    },
+    {
+      "name": "challenges-file-input-v4-stable-candidate-4",
+      "arm": "candidate",
+      "kind": "challenge-judgement-and-consumption",
+      "report_sha256": "c41f5e96bf02e8c41b87eb82b35710e08e549cc74d8eea053e6ea6c4efc2b873",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 8,
+      "diagnostics": [],
+      "policy_sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba",
+      "projection_sha256": "a62957df539e5c2f61efcd42ced5b43e9549bddd755ace870b378b42fcde8a66",
+      "policy_chunks": 4,
+      "cases_passed": 8,
+      "cases_total": 8,
+      "config_path_reads": null,
+      "event_counts": {
+        "describe_contract": 1,
+        "submit_challenge": 8
+      },
+      "recorded_data_bytes": 75945,
+      "estimated_recorded_data_tokens": 18965
+    },
+    {
+      "name": "challenges-file-input-v4-stable-baseline-4",
+      "arm": "baseline",
+      "kind": "challenge-judgement-and-consumption",
+      "report_sha256": "59914d122c442886d73a67ea33170b68ae771e8be26900c82c4ba1b83d181b90",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 8,
+      "diagnostics": [],
+      "policy_sha256": "4be6a2c38923d00b7dca1dc00d6d5923a00f0b9329141de0a2bbe2a14c4a1193",
+      "projection_sha256": "a62957df539e5c2f61efcd42ced5b43e9549bddd755ace870b378b42fcde8a66",
+      "policy_chunks": 13,
+      "cases_passed": 8,
+      "cases_total": 8,
+      "config_path_reads": null,
+      "event_counts": {
+        "describe_contract": 2,
+        "submit_challenge": 8
+      },
+      "recorded_data_bytes": 133282,
+      "estimated_recorded_data_tokens": 33145
+    },
+    {
+      "name": "challenges-file-input-v4-stable-baseline-5",
+      "arm": "baseline",
+      "kind": "challenge-judgement-and-consumption",
+      "report_sha256": "59914d122c442886d73a67ea33170b68ae771e8be26900c82c4ba1b83d181b90",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 8,
+      "diagnostics": [],
+      "policy_sha256": "4be6a2c38923d00b7dca1dc00d6d5923a00f0b9329141de0a2bbe2a14c4a1193",
+      "projection_sha256": "a62957df539e5c2f61efcd42ced5b43e9549bddd755ace870b378b42fcde8a66",
+      "policy_chunks": 13,
+      "cases_passed": 8,
+      "cases_total": 8,
+      "config_path_reads": null,
+      "event_counts": {
+        "describe_contract": 2,
+        "submit_challenge": 8
+      },
+      "recorded_data_bytes": 138083,
+      "estimated_recorded_data_tokens": 34346
+    },
+    {
+      "name": "challenges-file-input-v4-stable-candidate-5",
+      "arm": "candidate",
+      "kind": "challenge-judgement-and-consumption",
+      "report_sha256": "70c9019cc59feddb2b80686d7bb7e1c71cfe3a82f1360238ad461b6289a76e19",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 8,
+      "diagnostics": [],
+      "policy_sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba",
+      "projection_sha256": "a62957df539e5c2f61efcd42ced5b43e9549bddd755ace870b378b42fcde8a66",
+      "policy_chunks": 4,
+      "cases_passed": 8,
+      "cases_total": 8,
+      "config_path_reads": null,
+      "event_counts": {
+        "describe_contract": 2,
+        "submit_challenge": 8
+      },
+      "recorded_data_bytes": 79897,
+      "estimated_recorded_data_tokens": 19948
+    }
+  ],
+  "limits": [
+    "Payload proxy counts task JSON plus compact successful bridge-response values, including policy chunks, each counted once. It excludes native tool framing, system/catalog/history, model output and cached reprocessing; it is not provider usage or billed cost.",
+    "Token estimate is ceil(UTF-16 characters/4) per payload, summed.",
+    "Effect and state comparison uses only the predeclared path/time/read normalisations. Finding prose varies and is graded separately by the fixture.",
+    "Native screens are retained separately and require protocol review; this numerical summary does not certify absence of out-of-bridge activity.",
+    "Small correlated samples do not establish statistical equivalence."
+  ]
+}

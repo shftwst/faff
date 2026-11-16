@@ -234,3 +234,35 @@ The temporary third worker disappeared when its startup handshake timed out.
 Its completed file-input baseline and interrupted candidate are retained as a
 separate, incomplete attempt. A fresh five-pair set uses the established worker;
 no sample from the interrupted attempt is pooled into that set.
+
+## Challenge qualification and complete native logs
+
+The fresh file-input-v4-stable set passed all eight cases in five samples per
+arm: 40/40 before and 40/40 after. Normalised real CLI admission results match.
+All ten complete native tool logs pass: allowed initial reads, full policy
+transport, authorised argument-file writes, fixed bridge calls and no native
+rejections. The earlier interrupted third-worker pair is not pooled. The earlier
+context-v3 challenge set has seven merge-fence rejections in its full logs and
+remains unqualified even though final effects passed.
+
+`challenges-file-input-v4-stable-results.json` records the consumption comparison;
+`challenges-file-input-v4-native-log-review.json` binds the native audit. Provider
+model IDs are claude-opus-5-5 and CLI version is 2.1.325. No hosted record writes
+were exercised. Recorded task/bridge payloads across five samples are 672,970
+bytes / 167,368 estimated tokens before and 411,200 bytes / 102,672 after. This
+proxy excludes native framing, operator guidance, model output, cached history
+and billing. Source savings remain unchanged.
+
+The same export supplies full native logs for all ten gateway context-v3 samples;
+all pass, strengthening the earlier screen-based protocol review. Actual task
+Read payloads match the exact task bytes. Actual operator-guidance Read payloads
+are 21,125 bytes with the same hash in all 31 exported sessions. The earlier
+22,605-byte hash records the orchestrator container's file view at the requested
+path; it was not the delivered worker payload hash. Both measurements remain
+explicit. See `gateway-context-v3-native-log-review.json`.
+
+The candidate-2 adversarial native error matches exactly the permitted unwritten
+output probe in its corrected assessment, including canonical argument hash.
+`native-audits/adversarial-candidate-2-native-assessment.json` preserves the raw
+native failure label and records this diagnostic separately. No guard rejection
+is covered by that correction. The full adversarial paired set is still running.

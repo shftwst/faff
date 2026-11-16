@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "status": "pass-with-recorded-diagnostic",
+  "original_native_status": "fail",
+  "audit_sha256": "cb3fa730892cd524831f2e37030c7bc11a7a8d8be7aec41aae292a2e89928e70",
+  "capture_sha256": "4e4864cad65866fd8a234a82f1dffa98aa2b36d8c7fd67fc7c8a6aefbdb2da47",
+  "assessment_sha256": "bc664e10c560bd23d9c1fe9eeb4700abb938430d107d111fd593cd2f24cd2461",
+  "basis": "Same explicit permitted output-existence probe correction as the workflow assessment. Raw native error remains; no guard rejection or other native violation is waived.",
+  "diagnostics": [
+    {
+      "diagnostic": {
+        "seq": 3,
+        "case_id": "case-a",
+        "kind": "unwritten-output-read",
+        "path": "/tmp/faff-adversarial-workflow-djSf7i/case-a/review-system.txt",
+        "error": "ENOENT: no such file or directory, open '/tmp/faff-adversarial-workflow-djSf7i/case-a/review-system.txt'"
+      },
+      "tool_id": "toolu_01Tqh8uoYEeq1p3BaQgTxdd3",
+      "arguments_sha256": "ba4fb458acd7e9050ea10011e0143bf05a257f8c14ed1d0ed953a2358832396e"
+    }
+  ]
+}

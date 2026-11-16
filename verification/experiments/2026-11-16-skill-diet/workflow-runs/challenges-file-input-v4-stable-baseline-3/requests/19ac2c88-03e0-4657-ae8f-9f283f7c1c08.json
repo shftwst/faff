@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"adr-unavailable","outcome":null,"ground":null,"reason":"opinion_available=false: the provider attempt was exhausted and no independent opinion exists. No outcome is supplied, so the caller omits --challenge and the absent outcome applies."}}

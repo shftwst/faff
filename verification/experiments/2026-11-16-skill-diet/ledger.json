@@ -166,11 +166,12 @@
           "candidate": 23
         },
         "limits": [
-          "Screens are partial terminal viewports, not complete native tool logs. No security-isolation claim.",
           "Full downstream workflows are not exercised.",
           "Small correlated samples do not establish statistical equivalence.",
-          "Recorded task/bridge payload proxy excludes native guidance-file reads and other native framing. It is not provider usage or cost."
-        ]
+          "Recorded task/bridge payload proxy excludes native guidance-file reads and other native framing. It is not provider usage or cost.",
+          "Complete selected native tool logs now supplement the earlier screen review; actual common guidance payload hashes match across arms."
+        ],
+        "native_log_review": "gateway-context-v3-native-log-review.json"
       }
     },
     {
@@ -252,12 +253,32 @@
         "passed": 551,
         "failed": 0
       },
-      "qualification_pending": "Complete context-v3 execution and native-screen review. Delivery-v2 effects and protocol failures remain separate, with no acceptance pooling.",
+      "qualification_pending": "Finish remaining predeclared adversarial helper/checkpoint samples and native log audit. Challenge judgement/CLI consumption is qualified in the separate file-input-v4-stable treatment. Earlier failed treatments remain separate.",
       "tests": {
         "ci_correction_and_adapters": {
           "passed": 158,
           "failed": 0
         }
+      },
+      "challenge_execution": {
+        "status": "qualified-bounded-challenge-consumption",
+        "baseline": {
+          "runs": 5,
+          "passed": 40,
+          "total": 40
+        },
+        "candidate": {
+          "runs": 5,
+          "passed": 40,
+          "total": 40
+        },
+        "results": "challenges-file-input-v4-stable-results.json",
+        "native_protocol": "challenges-file-input-v4-native-log-review.json",
+        "normalised_consumption_equal": true,
+        "limits": [
+          "Real CLI admission consumption with controlled cases; no hosted record publication.",
+          "Small correlated samples, not statistical equivalence or provider usage."
+        ]
       }
     }
   ],

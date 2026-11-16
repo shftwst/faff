@@ -10,7 +10,7 @@ const hash = path => sha256(readFileSync(path));
 const summaryPath = resolve(summaryArg), summary = read(summaryPath);
 if (summary.status !== 'pass' || summary.runs.length !== 10 || summary.arms.baseline.runs !== 5 || summary.arms.candidate.runs !== 5) throw new Error('paired comparison incomplete or failed');
 const kinds = [...new Set(summary.runs.map(r => r.kind))];
-if (kinds.length !== 1 || !['kernel-config-execution', 'rendering-artifact-workflow', 'methodology-output-consumption', 'skill-catalog-selection', 'prd-producer-consumption', 'review-producer-consumption'].includes(kinds[0])) throw new Error('unsupported comparison kind');
+if (kinds.length !== 1 || !['kernel-config-execution', 'rendering-artifact-workflow', 'methodology-output-consumption', 'skill-catalog-selection', 'prd-producer-consumption', 'review-producer-consumption', 'routing-assignment-consumption'].includes(kinds[0])) throw new Error('unsupported comparison kind');
 const audits = auditArgs.map(path => ({ path: resolve(path), data: read(resolve(path)), sha256: hash(resolve(path)) }));
 const auditorHash = hash(resolve(root, '../../../eval/control-parity/native-tool-audit.mjs'));
 if (audits.some(a => a.data.auditor_sha256 !== auditorHash)) throw new Error('native auditor changed');
@@ -31,7 +31,7 @@ if (guidance.length !== 1 || runs.some(r => r.initial_reads.filter(i => i.path.e
 const commonContexts = runs.map(r => r.initial_reads.filter(i => !i.path.endsWith('/task.json')).map(i => ({ path: i.path, sha256: i.content_sha256, bytes: i.content_bytes })).sort((a, b) => a.path.localeCompare(b.path)));
 if (new Set(commonContexts.map(c => JSON.stringify(c))).size !== 1) throw new Error('delivered initial context differs across samples');
 const result = {
-  schema: 1, status: { 'kernel-config-execution': 'qualified-bounded-config-workflow', 'rendering-artifact-workflow': 'qualified-rendering-rubrics-requires-artifact-review', 'methodology-output-consumption': 'qualified-bounded-methodology-outputs-requires-artifact-review', 'skill-catalog-selection': 'qualified-bounded-catalog-selection', 'prd-producer-consumption': 'qualified-bounded-prd-production-requires-artifact-review', 'review-producer-consumption': 'qualified-bounded-review-production-requires-artifact-review' }[kinds[0]],
+  schema: 1, status: { 'kernel-config-execution': 'qualified-bounded-config-workflow', 'routing-assignment-consumption': 'qualified-bounded-routing-assignment', 'rendering-artifact-workflow': 'qualified-rendering-rubrics-requires-artifact-review', 'methodology-output-consumption': 'qualified-bounded-methodology-outputs-requires-artifact-review', 'skill-catalog-selection': 'qualified-bounded-catalog-selection', 'prd-producer-consumption': 'qualified-bounded-prd-production-requires-artifact-review', 'review-producer-consumption': 'qualified-bounded-review-production-requires-artifact-review' }[kinds[0]],
   summary: summaryPath, summary_sha256: hash(summaryPath), arms: summary.arms, runs,
   delivered_guidance_sha256: guidance[0], common_context: commonContexts[0],
   normalised_effect_state_gate_projections_equal: summary.normalised_effect_state_gate_projections_equal,

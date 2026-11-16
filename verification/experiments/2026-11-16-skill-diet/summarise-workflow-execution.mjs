@@ -74,6 +74,10 @@ for (const sample of samples) {
     });
   } else if (manifest.kind === 'rendering-artifact-workflow') {
     projection = report.grade.cases.map(c => ({ id: c.id, kind: c.kind, pass: c.pass, ...(c.kind === 'decision' ? { value: c.value } : { rubric: c.rubric?.vector ?? null }) }));
+  } else if (manifest.kind === 'routing-assignment-consumption') {
+    const plan = plans.find(plan => plan.samples.some(row => row.name === sample.name));
+    if (sha256(readFileSync(join(root, plan.fixture))) !== manifest.fixture_sha256) throw new Error(`routing fixture changed: ${sample.name}`);
+    projection = report.grade.cases.map(c => ({ id: c.id, kind: c.kind, pass: c.pass, ...(c.kind === 'decision' ? { value: c.value } : c.kind === 'validation' ? { exit_code: c.exit_code } : { extraction: c.extraction, consumer_results: c.consumer_results }) }));
   } else if (manifest.kind === 'review-producer-consumption') {
     const plan = plans.find(plan => plan.samples.some(row => row.name === sample.name));
     const fixturePath = join(root, plan.fixture);

@@ -1,0 +1,11 @@
+{
+  "status": "pass",
+  "actual_assignments": 10,
+  "actual_validation_refusals": 2,
+  "decisions": 13,
+  "mutation_rejections": 7,
+  "forbidden_operation_checks": 2,
+  "test_log": "deterministic-checks/routing-assignment-preflight-tests.txt",
+  "fixture_sha256": "8859a5c0a395850c5d6c24a6be27bb678dbc067e5a3e51eeb08c53654f0581f9",
+  "harness_sha256": "13445fa5de9d0a68fb4e6f8e3483d2fa5af3e930fac3ed4599133f43919206f4"
+}

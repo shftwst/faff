@@ -1,0 +1,394 @@
+{
+  "schema": 1,
+  "scope": "Actual assignment from complete caller snapshots, real Punt scanning and real routing-contract consumption; display and tracker/build/park workflows are outside the changed boundary.",
+  "cases": [
+    {
+      "id": "independent",
+      "request": "Assign the configured automation-routing verdict and validate its extraction. No tracker action is authorised.",
+      "input": {
+        "issue": {
+          "id": "ROUTE-1",
+          "title": "Export account records",
+          "status": "Todo"
+        },
+        "confidence": "high",
+        "spec": "# Account export\n\nconfidence: high\n\n**Chosen:** export the authenticated account records as JSON.\n",
+        "diagnostics": {
+          "in_cycle": false,
+          "ghost_project_or_missing_dep": null
+        },
+        "conflict": {
+          "independent": true,
+          "collision_group": [],
+          "in_queue_blockers": []
+        },
+        "park_history": []
+      },
+      "expected": {
+        "verdict": "fire-and-forget",
+        "root_cause": null
+      }
+    },
+    {
+      "id": "collision",
+      "request": "Assign the configured automation-routing verdict and validate its extraction. No tracker action is authorised.",
+      "input": {
+        "issue": {
+          "id": "ROUTE-1",
+          "title": "Export account records",
+          "status": "Todo"
+        },
+        "confidence": "high",
+        "spec": "# Account export\n\nconfidence: high\n\n**Chosen:** export the authenticated account records as JSON.\n",
+        "diagnostics": {
+          "in_cycle": false,
+          "ghost_project_or_missing_dep": null
+        },
+        "conflict": {
+          "independent": false,
+          "collision_group": [
+            "ROUTE-1",
+            "ROUTE-2"
+          ],
+          "in_queue_blockers": [],
+          "reason": "Both changes touch src/export.mjs; serialise this group."
+        },
+        "park_history": []
+      },
+      "expected": {
+        "verdict": "likely-fire",
+        "root_cause": null
+      }
+    },
+    {
+      "id": "blocking-punt",
+      "request": "Assign the configured automation-routing verdict and validate its extraction. No tracker action is authorised.",
+      "input": {
+        "issue": {
+          "id": "ROUTE-1",
+          "title": "Export account records",
+          "status": "Todo"
+        },
+        "confidence": "high",
+        "spec": "# Account export\n\nconfidence: high\n\n**Chosen:** export the authenticated account records as JSON.\n\n**Punt:** cron vs queue-driven send (decides: architecture)\n",
+        "diagnostics": {
+          "in_cycle": false,
+          "ghost_project_or_missing_dep": null
+        },
+        "conflict": {
+          "independent": true,
+          "collision_group": [],
+          "in_queue_blockers": []
+        },
+        "park_history": []
+      },
+      "expected": {
+        "verdict": "needs-decision-first",
+        "root_cause": "punt-not-closed"
+      },
+      "expected_blocking_punts": 1
+    },
+    {
+      "id": "eligible-punt",
+      "request": "Assign the configured automation-routing verdict and validate its extraction. No tracker action is authorised.",
+      "input": {
+        "issue": {
+          "id": "ROUTE-1",
+          "title": "Export account records",
+          "status": "Todo"
+        },
+        "confidence": "high",
+        "spec": "# Account export\n\nconfidence: high\n\n**Chosen:** export the authenticated account records as JSON.\n\n## OUT OF SCOPE\n\n- **Scheduled exports** - deferred to another ticket.\n\n**Punt:** scheduled exports (non-blocking)\n",
+        "diagnostics": {
+          "in_cycle": false,
+          "ghost_project_or_missing_dep": null
+        },
+        "conflict": {
+          "independent": true,
+          "collision_group": [],
+          "in_queue_blockers": []
+        },
+        "park_history": []
+      },
+      "expected": {
+        "verdict": "fire-and-forget",
+        "root_cause": null
+      },
+      "expected_blocking_punts": 0
+    },
+    {
+      "id": "tag-without-crossref",
+      "request": "Assign the configured automation-routing verdict and validate its extraction. No tracker action is authorised.",
+      "input": {
+        "issue": {
+          "id": "ROUTE-1",
+          "title": "Export account records",
+          "status": "Todo"
+        },
+        "confidence": "high",
+        "spec": "# Account export\n\nconfidence: high\n\n**Chosen:** export the authenticated account records as JSON.\n\n**Punt:** cron vs queue (non-blocking)\n",
+        "diagnostics": {
+          "in_cycle": false,
+          "ghost_project_or_missing_dep": null
+        },
+        "conflict": {
+          "independent": true,
+          "collision_group": [],
+          "in_queue_blockers": []
+        },
+        "park_history": []
+      },
+      "expected": {
+        "verdict": "needs-decision-first",
+        "root_cause": "punt-not-closed"
+      },
+      "expected_blocking_punts": 1
+    },
+    {
+      "id": "non-punt-marker",
+      "request": "Assign the configured automation-routing verdict and validate its extraction. No tracker action is authorised.",
+      "input": {
+        "issue": {
+          "id": "ROUTE-1",
+          "title": "Export account records",
+          "status": "Todo"
+        },
+        "confidence": "high",
+        "spec": "# Account export\n\nconfidence: high\n\n**Chosen:** export the authenticated account records as JSON.\n\nDelivery schedule: TBD (decides: product).\n",
+        "diagnostics": {
+          "in_cycle": false,
+          "ghost_project_or_missing_dep": null
+        },
+        "conflict": {
+          "independent": true,
+          "collision_group": [],
+          "in_queue_blockers": []
+        },
+        "park_history": []
+      },
+      "expected": {
+        "verdict": "needs-decision-first",
+        "root_cause": "punt-not-closed"
+      },
+      "expected_blocking_punts": 0
+    },
+    {
+      "id": "medium-confidence",
+      "request": "Assign the configured automation-routing verdict and validate its extraction. No tracker action is authorised.",
+      "input": {
+        "issue": {
+          "id": "ROUTE-1",
+          "title": "Export account records",
+          "status": "Todo"
+        },
+        "confidence": "medium",
+        "spec": "# Account export\n\nconfidence: medium\n\n**Chosen:** export the authenticated account records as JSON.\n\nConfidence rationale: product must confirm whether a downloadable link is acceptable.\n",
+        "diagnostics": {
+          "in_cycle": false,
+          "ghost_project_or_missing_dep": null
+        },
+        "conflict": {
+          "independent": true,
+          "collision_group": [],
+          "in_queue_blockers": []
+        },
+        "park_history": []
+      },
+      "expected": {
+        "verdict": "needs-decision-first"
+      }
+    },
+    {
+      "id": "named-gap",
+      "request": "Assign the configured automation-routing verdict and validate its extraction. No tracker action is authorised.",
+      "input": {
+        "issue": {
+          "id": "ROUTE-1",
+          "title": "Export account records",
+          "status": "Todo"
+        },
+        "confidence": "high",
+        "spec": "# Account export\n\nconfidence: high\n\n**Chosen:** export the authenticated account records as JSON.\n",
+        "diagnostics": {
+          "in_cycle": false,
+          "ghost_project_or_missing_dep": {
+            "name": "Export archive",
+            "reason": "The spec assumes this project exists; fresh tracker lookup found none."
+          }
+        },
+        "conflict": {
+          "independent": true,
+          "collision_group": [],
+          "in_queue_blockers": []
+        },
+        "park_history": []
+      },
+      "expected": {
+        "verdict": "gap-blocked",
+        "root_cause": "gap"
+      }
+    },
+    {
+      "id": "cycle",
+      "request": "Assign the configured automation-routing verdict and validate its extraction. No tracker action is authorised.",
+      "input": {
+        "issue": {
+          "id": "ROUTE-1",
+          "title": "Export account records",
+          "status": "Todo"
+        },
+        "confidence": "high",
+        "spec": "# Account export\n\nconfidence: high\n\n**Chosen:** export the authenticated account records as JSON.\n",
+        "diagnostics": {
+          "in_cycle": true,
+          "cycle": [
+            "ROUTE-1",
+            "ROUTE-2",
+            "ROUTE-1"
+          ],
+          "ghost_project_or_missing_dep": null
+        },
+        "conflict": {
+          "independent": true,
+          "collision_group": [],
+          "in_queue_blockers": []
+        },
+        "park_history": []
+      },
+      "expected": {
+        "verdict": "circular-blocked",
+        "root_cause": "cycle"
+      }
+    },
+    {
+      "id": "repeat-park",
+      "request": "Assign the configured automation-routing verdict and validate its extraction. No tracker action is authorised.",
+      "input": {
+        "issue": {
+          "id": "ROUTE-1",
+          "title": "Export account records",
+          "status": "Todo"
+        },
+        "confidence": "medium",
+        "spec": "# Account export\n\nconfidence: medium\n\n**Chosen:** export the authenticated account records as JSON.\n\n**Punt:** export schedule (decides: product)\n",
+        "diagnostics": {
+          "in_cycle": false,
+          "ghost_project_or_missing_dep": null
+        },
+        "conflict": {
+          "independent": true,
+          "collision_group": [],
+          "in_queue_blockers": []
+        },
+        "park_history": [
+          {
+            "root_cause": "punt-not-closed",
+            "autonomous": true
+          },
+          {
+            "root_cause": "punt-not-closed",
+            "autonomous": true
+          },
+          {
+            "root_cause": "punt-not-closed",
+            "autonomous": true
+          }
+        ]
+      },
+      "expected": {
+        "verdict": "repeat-parked",
+        "root_cause": "punt-not-closed"
+      },
+      "expected_blocking_punts": 1
+    }
+  ],
+  "validation_cases": [
+    {
+      "id": "bad-root",
+      "input": {
+        "verdict": "fire-and-forget",
+        "root_cause": "invented-class"
+      },
+      "expected_exit": 1,
+      "expected_root_cause": null
+    },
+    {
+      "id": "bad-verdict",
+      "input": {
+        "verdict": "maybe-ready",
+        "root_cause": null
+      },
+      "expected_exit": 2
+    }
+  ],
+  "rule_cases": [
+    {
+      "id": "admission",
+      "question": "Return the two admitted verdicts as an alphabetical JSON array.",
+      "expected": [
+        "fire-and-forget",
+        "likely-fire"
+      ]
+    },
+    {
+      "id": "repeat-attempt",
+      "question": "Does repeat-parked receive a resolve-attempt? Return a boolean.",
+      "expected": false
+    },
+    {
+      "id": "fresh-pass",
+      "question": "May another faff pass reuse the previous pass's cached verdicts? Return a boolean.",
+      "expected": false
+    },
+    {
+      "id": "same-pass",
+      "question": "May wtf read tidy's verdict file from the same pass without recomputing? Return a boolean.",
+      "expected": true
+    },
+    {
+      "id": "standalone-wtf",
+      "question": "Does standalone wtf with no tidy in this pass compute verdicts inline using this adaptor? Return a boolean.",
+      "expected": true
+    },
+    {
+      "id": "pipeline-path",
+      "question": "Return the full-pipeline verdict-file template as a JSON string.",
+      "expected": ".faff/runs/<run-id>/automation-verdicts.md"
+    },
+    {
+      "id": "standalone-path",
+      "question": "Return standalone tidy's verdict-file template as a JSON string.",
+      "expected": ".faff/logs/YYYY-MM-DD/HHMMSS-tidy-verdicts.md"
+    },
+    {
+      "id": "eligibility-owner",
+      "question": "May the adaptor infer Punt eligibility just by seeing a non-blocking tag, instead of using punt-scan? Return a boolean.",
+      "expected": false
+    },
+    {
+      "id": "root-normalisation",
+      "question": "Return the validator exit code for a valid verdict with an unknown root-cause class as an integer.",
+      "expected": 1
+    },
+    {
+      "id": "verdict-fail-loud",
+      "question": "Return the validator exit code for an unknown verdict as an integer.",
+      "expected": 2
+    },
+    {
+      "id": "shape-owner",
+      "question": "May the adaptor itself construct conformant and violations instead of returning validator stdout? Return a boolean.",
+      "expected": false
+    },
+    {
+      "id": "detection-owner",
+      "question": "Return the slot that detects cycles and ghost projects as a JSON string.",
+      "expected": "methodology"
+    },
+    {
+      "id": "no-queue-policy-in-validator",
+      "question": "Does the routing contract script itself admit issues to the build queue? Return a boolean.",
+      "expected": false
+    }
+  ]
+}

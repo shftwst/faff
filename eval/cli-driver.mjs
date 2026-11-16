@@ -101,7 +101,7 @@ export function loadTidyJudgementProse(pluginDir = DEFAULT_PLUGIN_DIR) {
 // rendering adaptor). FAFF-134 injected only the classification section, so a `gloss` case had no
 // criteria and the model improvised a health-summary instead of a one-line synthesis. Anchored on
 // stable section headers in faffidavit-rendering/SKILL.md; fail-loud if either moves.
-const SYNTH_GLOSS_START = "\n## Synthesis — the issue-gloss contract\n";
+const SYNTH_GLOSS_START = "\n## Synthesis: the issue-gloss contract\n";
 const SYNTH_GLOSS_END = "## Tabular data: markdown tables vs definition lists";
 export function loadSynthesisGlossProse(pluginDir = DEFAULT_PLUGIN_DIR) {
   const skillPath = join(pluginDir, "skills", "faffidavit-rendering", "SKILL.md");
@@ -405,13 +405,13 @@ export function loadDecompositionProse(pluginDir = DEFAULT_PLUGIN_DIR) {
 }
 
 // FAFF-203 — the Edit A rendering rule, verbatim from the shipped faffidavit-rendering SKILL.md
-// "## Lead with the load-bearing model" THROUGH "## Synthesis — the issue-gloss contract" (lead with
+// "## Lead with the load-bearing model" THROUGH "## Synthesis: the issue-gloss contract" (lead with
 // the governing model first, then mechanism → method → so-what — the ordering an explanatory-order
 // case is graded against). This is the criteria the `explanatory-order` eval measures. Anchored on
 // stable headers; fail-loud if either moves (the loadModeDetectProse contract — a rendering-adaptor
 // refactor must consciously re-point this eval, never silently de-couple it).
 const LEAD_WITH_MODEL_START = "\n## Lead with the load-bearing model\n";
-const LEAD_WITH_MODEL_END = "## Synthesis — the issue-gloss contract";
+const LEAD_WITH_MODEL_END = "## Synthesis: the issue-gloss contract";
 export function loadLeadWithModelProse(pluginDir = DEFAULT_PLUGIN_DIR) {
   const skillPath = join(pluginDir, "skills", "faffidavit-rendering", "SKILL.md");
   return extractSection(skillPath, LEAD_WITH_MODEL_START, LEAD_WITH_MODEL_END, "loadLeadWithModelProse");

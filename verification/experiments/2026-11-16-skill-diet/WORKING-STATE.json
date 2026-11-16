@@ -1,0 +1,17 @@
+{
+  "updated_utc": "2026-11-16T10:56:25.426587+00:00",
+  "deadline_utc": "2026-11-16 16:13:53 UTC",
+  "accepted_saved_bytes": 94511,
+  "accepted_saved_estimated_tokens": 23289,
+  "accepted_total_bytes": 1274924,
+  "accepted_total_estimated_tokens": 315990,
+  "accepted": "Gateway, adversarial, rendering V2, thematic, kernel V4 and 26 discovery descriptions.",
+  "pending": "PRD V1 and review V2 paired measurements running; WTF V2 offer correction queued; agile and map baselines queued. All unaccepted skill texts live only in frozen candidates, not production paths.",
+  "controllers": {
+    "primary": "/tmp/faff-prd-pair.log then /tmp/faff-wtf-v2.log then /tmp/faff-map-baseline.log",
+    "secondary": "/tmp/faff-review-pair-then-agile.log"
+  },
+  "integration": "Rendering eval anchor fix: 524/524 local eval tests. Pending producer candidates require PRD anchor and review wording-test updates before source acceptance.",
+  "claude_usage": "99% weekly last observed; still measuring",
+  "fallback": "Astra low prepared but unused. Fresh separate baseline/candidate pairs required if Claude allowance exhausts."
+}

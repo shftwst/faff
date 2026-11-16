@@ -215,7 +215,7 @@ test("loadTidyJudgementProse fails loud on a missing skill file", () => {
 // --- FAFF-140: the synthesis-gloss contract is extracted verbatim from faffidavit-rendering ---
 test("loadSynthesisGlossProse extracts the synthesis-gloss section from the shipped rendering skill", () => {
   const prose = loadSynthesisGlossProse(DEFAULT_PLUGIN_DIR);
-  assert.ok(prose.startsWith("## Synthesis — the issue-gloss contract"), "starts at the START anchor");
+  assert.ok(prose.startsWith("## Synthesis: the issue-gloss contract"), "starts at the START anchor");
   assert.ok(/[Hh]umanisation/.test(prose), "carries the humanisation rule");
   assert.ok(!prose.includes("## Tabular data"), "stops before the END anchor");
 });

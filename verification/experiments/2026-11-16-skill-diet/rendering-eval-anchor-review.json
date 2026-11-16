@@ -1,0 +1,13 @@
+{
+  "status": "fixed-local-verification-pass",
+  "ci_run": 43850190015,
+  "cause": "The shortened rendering skill uses a colon in its synthesis heading; two eval-loader anchors still used the former heading.",
+  "change": "Repoint both anchors and the existing extraction assertion to the exact qualified source heading. Skill text and qualified source hash are unchanged.",
+  "verification": {
+    "command": "node --test test/eval-*.test.mjs",
+    "tests": 524,
+    "passed": 524,
+    "log": "deterministic-checks/rendering-eval-anchor-tests.txt"
+  },
+  "pending_candidates": "A separate run with unaccepted PRD/review source exposed seven integration failures: PRD section anchors and review wording assertions. Those candidate texts remain frozen under candidates/ and must have matching integration changes before source acceptance. Production files have been restored to accepted HEAD meanwhile."
+}

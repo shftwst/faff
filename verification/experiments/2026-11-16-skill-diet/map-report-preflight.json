@@ -1,0 +1,102 @@
+{
+  "status": "fail",
+  "fixture_sha256": "e60792ec9269184568f88100b947f9ccc769bd89899d929e0be068a283c8a331",
+  "cases": [
+    {
+      "id": "coherent",
+      "pass": true,
+      "problems": [],
+      "rubric": {
+        "score": 1,
+        "checks": 1,
+        "passed": 1,
+        "vector": [
+          true
+        ]
+      }
+    },
+    {
+      "id": "cycle-on-chain",
+      "pass": true,
+      "problems": [],
+      "rubric": {
+        "score": 1,
+        "checks": 1,
+        "passed": 1,
+        "vector": [
+          true
+        ]
+      }
+    },
+    {
+      "id": "cycle-off-chain",
+      "pass": true,
+      "problems": [],
+      "rubric": {
+        "score": 1,
+        "checks": 1,
+        "passed": 1,
+        "vector": [
+          true
+        ]
+      }
+    },
+    {
+      "id": "ghost-next",
+      "pass": true,
+      "problems": [],
+      "rubric": {
+        "score": 1,
+        "checks": 1,
+        "passed": 1,
+        "vector": [
+          true
+        ]
+      }
+    },
+    {
+      "id": "stalled-and-parallel",
+      "pass": true,
+      "problems": [],
+      "rubric": {
+        "score": 1,
+        "checks": 1,
+        "passed": 1,
+        "vector": [
+          true
+        ]
+      }
+    },
+    {
+      "id": "cross-initiative-and-park",
+      "pass": true,
+      "problems": [],
+      "rubric": {
+        "score": 1,
+        "checks": 1,
+        "passed": 1,
+        "vector": [
+          true
+        ]
+      }
+    }
+  ],
+  "mutations": [
+    {
+      "id": "cycle-on-chain",
+      "rejected": true
+    },
+    {
+      "id": "ghost-next",
+      "rejected": true
+    },
+    {
+      "id": "stalled-and-parallel",
+      "rejected": true
+    },
+    {
+      "id": "coherent",
+      "rejected": false
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "status": "pass",
+  "fixture_sha256": "eb0cf02d6e14426a696f4374adde6367fead38048881e56af7a466913acf9777",
+  "note": "Before model measurement, the ordering recogniser was bounded to the Critical path section after a reversed-order mutation matched a later risk mention. Original preflight remains.",
+  "cases": [
+    {
+      "id": "coherent",
+      "pass": true,
+      "problems": [],
+      "rubric": {
+        "score": 1,
+        "checks": 1,
+        "passed": 1,
+        "vector": [
+          true
+        ]
+      }
+    },
+    {
+      "id": "cycle-on-chain",
+      "pass": true,
+      "problems": [],
+      "rubric": {
+        "score": 1,
+        "checks": 1,
+        "passed": 1,
+        "vector": [
+          true
+        ]
+      }
+    },
+    {
+      "id": "cycle-off-chain",
+      "pass": true,
+      "problems": [],
+      "rubric": {
+        "score": 1,
+        "checks": 1,
+        "passed": 1,
+        "vector": [
+          true
+        ]
+      }
+    },
+    {
+      "id": "ghost-next",
+      "pass": true,
+      "problems": [],
+      "rubric": {
+        "score": 1,
+        "checks": 1,
+        "passed": 1,
+        "vector": [
+          true
+        ]
+      }
+    },
+    {
+      "id": "stalled-and-parallel",
+      "pass": true,
+      "problems": [],
+      "rubric": {
+        "score": 1,
+        "checks": 1,
+        "passed": 1,
+        "vector": [
+          true
+        ]
+      }
+    },
+    {
+      "id": "cross-initiative-and-park",
+      "pass": true,
+      "problems": [],
+      "rubric": {
+        "score": 1,
+        "checks": 1,
+        "passed": 1,
+        "vector": [
+          true
+        ]
+      }
+    }
+  ],
+  "mutations": [
+    {
+      "id": "cycle-on-chain",
+      "rejected": true
+    },
+    {
+      "id": "ghost-next",
+      "rejected": true
+    },
+    {
+      "id": "stalled-and-parallel",
+      "rejected": true
+    },
+    {
+      "id": "coherent",
+      "rejected": true
+    }
+  ]
+}

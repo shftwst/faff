@@ -151,26 +151,28 @@ test("correctiveIntegrityDirs(runDir): 2 base entries, all under runDir", () => 
   assert.ok(dirs.includes(path.join(runDir, "corrective")), "missing the corrective-artifact dir");
 });
 
-test("correctiveIntegrityDirs(runDir, issue): 7 entries — 2 base + 3 merge-floor + 2 merge-tail (FAFF-751)", () => {
+test("correctiveIntegrityDirs(runDir, issue): 8 entries — 2 base + 4 merge-floor + 2 merge-tail (FAFF-751, FAFF-1478)", () => {
   const dirs = correctiveIntegrityDirs(runDir, "FAFF-1");
-  assert.equal(dirs.length, 7);
+  assert.equal(dirs.length, 8);
   assert.ok(dirs.includes(path.join(runDir, "FAFF-1", "ac-checklist.json")));
   assert.ok(dirs.includes(path.join(runDir, "FAFF-1", "review-verdict.json")));
   assert.ok(dirs.includes(path.join(runDir, "FAFF-1", "holdout.json")));
+  assert.ok(dirs.includes(path.join(runDir, "FAFF-1", "human-only-acs.json")));
+  assert.deepEqual(dirs.slice(4, 7).map((d) => path.basename(d)), ["holdout.json", "human-only-acs.json", "merge-record.json"]);
   assert.ok(dirs.includes(path.join(runDir, "FAFF-1", "merge-record.json")));
   assert.ok(dirs.includes(path.join(runDir, "FAFF-1", "post-merge-verification.json")));
 });
 
 // FAFF-466: the additive opts.events extension — detection-consumer-only, never
-// changing the corrective/merge-floor 2-/7-entry shape above.
-test("correctiveIntegrityDirs(runDir, issue, {events:true}): additive events.jsonl, existing 2-/7-entry shapes stay byte-identical", () => {
+// changing the corrective/merge-floor 2-/8-entry shape above.
+test("correctiveIntegrityDirs(runDir, issue, {events:true}): additive events.jsonl, existing 2-/8-entry shapes stay byte-identical", () => {
   assert.equal(correctiveIntegrityDirs(runDir).length, 2, "no-opts base shape unchanged");
-  assert.equal(correctiveIntegrityDirs(runDir, "FAFF-1").length, 7, "no-opts with-issue shape unchanged");
+  assert.equal(correctiveIntegrityDirs(runDir, "FAFF-1").length, 8, "no-opts with-issue shape unchanged");
   const withEvents = correctiveIntegrityDirs(runDir, null, { events: true });
   assert.equal(withEvents.length, 3);
   assert.ok(withEvents.includes(path.join(runDir, "events.jsonl")));
   const withIssueAndEvents = correctiveIntegrityDirs(runDir, "FAFF-1", { events: true });
-  assert.equal(withIssueAndEvents.length, 8);
+  assert.equal(withIssueAndEvents.length, 9);
   assert.ok(withIssueAndEvents.includes(path.join(runDir, "events.jsonl")));
 });
 

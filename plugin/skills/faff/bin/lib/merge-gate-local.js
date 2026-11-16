@@ -9,7 +9,7 @@ const { decideFloor, resolveGateLevel } = require("./contract-defs");
 const { runLadder } = require("./gates");
 const { parseWorktreeEntries } = require("./worktree-prune");
 const { parseMergeArgs, fenceHumanFlags, nonGraftFloorSignature, narrowReviewUnavailableExcusable, NON_GRAFT_REMEDY_STRING } = require("./merge-gate-classify");
-const { gitRun, resolveAnchorLevel, anchorRefusal, writeMergeRecord, resolveIntegrity, buildMergeFloorDigestVerify, readAcComplete, readReviewVerdict, evaluateCustody, resolveHoldoutLeg } = require("./merge-gate-floor");
+const { gitRun, resolveAnchorLevel, anchorRefusal, writeMergeRecord, resolveIntegrity, buildMergeFloorDigestVerify, readAcFloor, readAnchoredHumanOnly, readReviewVerdict, evaluateCustody, resolveHoldoutLeg } = require("./merge-gate-floor");
 const { makeTrustContext, resolveCommissaireDecisionGrantDetail, legReport } = require("./merge-gate-effects");
 
 // ===========================================================================
@@ -239,8 +239,9 @@ async function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLeve
   // FAFF-1212: the git-only path has no remote, so the trust file is read from the local base ref (never evidence).
   const mergeLeg = resolveCommissaireDecisionGrantDetail(runDir, issue, base, makeTrustContext({ transport: "local", repo_dir: cwd, base_ref: base }));
   const grantReport = legReport([mergeLeg]);
+  const acFloor = readAcFloor(runDir, issue, readAnchoredHumanOnly(cwd, null, runDir, issue, headShaBefore, ledgerLevel)); // FAFF-1475: head-pinned, null means no skip
   const floor = {
-    ac_complete: readAcComplete(runDir, issue),
+    ac_complete: acFloor.complete,
     review_verdict: readReviewVerdict(runDir, issue),
     ci_state,
     head_sha_matches: true, // the gates just ran against this EXACT branch tip — no drift leg to model
@@ -255,7 +256,7 @@ async function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLeve
   };
   const { verdict, blockers: floorBlockers } = decideFloor(floor); // UNCHANGED pure core
   const blockers = [...floorBlockers, ...grantReport.blockers];
-  const result = { verdict, blockers, merged: false, ci_state, head_sha: headShaBefore, integrity: integrity.display, warnings: [], holdout_posture: holdoutLeg.holdout_posture, holdout_missing: holdoutLeg.holdout_missing, holdout_fault: holdoutLeg.holdout_fault, ...(grantReport.details.length ? { commissaire_grants: grantReport.details } : {}) };
+  const result = { verdict, blockers, merged: false, ci_state, head_sha: headShaBefore, integrity: integrity.display, ac_called_out: acFloor.called_out, warnings: [], holdout_posture: holdoutLeg.holdout_posture, holdout_missing: holdoutLeg.holdout_missing, holdout_fault: holdoutLeg.holdout_fault, ...(grantReport.details.length ? { commissaire_grants: grantReport.details } : {}) };
 
   if (verdict === "refuse") {
     if (interactive && acceptReviewUnavailable) {
@@ -322,7 +323,7 @@ async function cmdMergeGateLocal({ issue, runDir, branchFlag, baseFlag, flagLeve
   }
   result.merged = true;
   result.verdict = "merge-ok";
-  writeMergeRecord(runDir, issue, null, headShaNow, integrity.display); // FAFF-397: pr:0 (null coerced by Number())
+  writeMergeRecord(runDir, issue, null, headShaNow, integrity.display, undefined, undefined, undefined, acFloor.called_out); // FAFF-397: pr:0 (null coerced by Number())
   return emit(result, 0);
 }
 

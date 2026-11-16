@@ -61,6 +61,23 @@ test("an edited member → verify exit 1 naming the path", () => {
   } finally { rmSync(rd, { recursive: true, force: true }); }
 });
 
+test("FAFF-1478: an edited human-only-acs.json → verify exit 1 naming the path; absent at snapshot and verify stays clean", () => {
+  const rd = evidenceDir();
+  try {
+    const cleanMan = snap(rd).stdout;
+    assert.equal(JSON.parse(cleanMan).members["FAFF-9/human-only-acs.json"].present, false);
+    assert.equal(verify(rd, cleanMan).code, 0, "a file absent on both sides does not false-flag");
+    writeFileSync(path.join(rd, "FAFF-9", "human-only-acs.json"), '{"human_only":[]}\n');
+    const man = snap(rd).stdout;
+    assert.equal(verify(rd, man).code, 0);
+    writeFileSync(path.join(rd, "FAFF-9", "human-only-acs.json"), '{"human_only":["x"]}\n');
+    const v = verify(rd, man);
+    assert.equal(v.code, 1);
+    assert.match(v.stdout, /tampered/);
+    assert.match(v.stdout, /FAFF-9[/\\]human-only-acs\.json/);
+  } finally { rmSync(rd, { recursive: true, force: true }); }
+});
+
 test("an edited sub-file inside corrective/ → verify names the sub-path", () => {
   const rd = evidenceDir();
   try {
@@ -685,6 +702,7 @@ test("a stable tree's snapshot is unchanged by the leaf read: plain, events, sym
       "FAFF-9/ac-checklist.json": { present: true, sha256: h('{"all_verified":true}') },
       "FAFF-9/review-verdict.json": { present: false },
       "FAFF-9/holdout.json": { present: false },
+      "FAFF-9/human-only-acs.json": { present: false },
       "FAFF-9/merge-record.json": { present: false },
       "FAFF-9/post-merge-verification.json": { present: false },
       "events.jsonl": { present: true, events: { length: 10, prefix_sha256: h('{"seq":0}\n') } },

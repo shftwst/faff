@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1475",
+  "build": {
+    "status": "complete",
+    "diff_hash": "55449287dcc6f67de3b3625ee2be0f1b1580c0e3a2a19978f733ed0c20b95f1b",
+    "branch": "FAFF-1475-unattended-run-human-ac-skip",
+    "pushed_at": "2026-11-15T23:10:40.742Z"
+  },
+  "updated_at": "2026-11-15T23:10:40.742Z"
+}

@@ -1458,6 +1458,7 @@ function cmdEvidenceRender(values, name) {
 const EVIDENCE_FILES = [
   { key: "ac_checklist", name: "ac-checklist.json", shaKey: "ac_sha256" },
   { key: "review_verdict", name: "review-verdict.json", shaKey: "review_verdict_sha256" },
+  { key: "human_only_acs", name: "human-only-acs.json", shaKey: "human_only_acs_sha256" },
 ];
 const HEX64_RE = /^[0-9a-f]{64}$/;
 const NO_DIGEST = { present: false, sha256: null };
@@ -1471,13 +1472,6 @@ function readEvidenceLeaf(abs) {
   let leaf;
   try { leaf = readLeafNoFollow(abs); } catch (e) { throw new WriterFault(`cannot hash ${path.basename(abs)}: ${e.code || e.message}`); }
   return { kind: leaf.kind, sha256: leaf.kind === "regular" ? crypto.createHash("sha256").update(leaf.bytes).digest("hex") : null };
-}
-
-// Leaf sha256 of a file that must be regular (the selftest fixtures).
-function hashRegularFile(abs) {
-  const leaf = readEvidenceLeaf(abs);
-  if (leaf.kind !== "regular") throw new WriterFault(`${path.basename(abs)} is not a regular file`);
-  return leaf.sha256;
 }
 
 function evidenceReturn(runDir, issue) {
@@ -1495,12 +1489,17 @@ function evidenceReturn(runDir, issue) {
 const hasExactKeys = (o, keys) => isObject(o) && Object.keys(o).length === keys.length && keys.every((k) => Object.hasOwn(o, k));
 
 function wellFormedReturn(p, issue) {
-  if (!hasExactKeys(p, ["issue", "ac_checklist", "review_verdict"]) || p.issue !== issue) return false;
+  if (!hasExactKeys(p, ["issue", ...EVIDENCE_FILES.map((f) => f.key)]) || p.issue !== issue) return false;
   return EVIDENCE_FILES.every(({ key }) => {
     const d = p[key];
     if (!hasExactKeys(d, ["present", "sha256"]) || typeof d.present !== "boolean") return false;
     return d.present ? typeof d.sha256 === "string" && HEX64_RE.test(d.sha256) : d.sha256 === null;
   });
+}
+
+// One absent digest per roster member: the claim made by an issue with no ledger entry, or by a literal `null` return.
+function noClaimDigests() {
+  return Object.fromEntries(EVIDENCE_FILES.map(({ key }) => [key, { ...NO_DIGEST }]));
 }
 
 // The claim to verify against: { noClaim, returned } where returned maps each key to an EvidenceDigest.
@@ -1512,7 +1511,7 @@ function claimFromLedger(issueDir, issue) {
   }
   if (!isObject(ledger) || (ledger.evidence_persisted !== undefined && !Array.isArray(ledger.evidence_persisted))) throw new WriterFault("run-ledger.json is not a ledger object");
   const entry = [...(ledger.evidence_persisted || [])].reverse().find((e) => isObject(e) && e.issue === issue);
-  if (!entry) return { noClaim: true, returned: { ac_checklist: { ...NO_DIGEST }, review_verdict: { ...NO_DIGEST } } };
+  if (!entry) return { noClaim: true, returned: noClaimDigests() };
   const returned = {};
   for (const { key, shaKey } of EVIDENCE_FILES) {
     if (entry[shaKey] === undefined) { returned[key] = { ...NO_DIGEST }; continue; }
@@ -1525,7 +1524,7 @@ function claimFromLedger(issueDir, issue) {
 function claimFromStdin(text, issue) {
   let parsed;
   try { parsed = JSON.parse(text); } catch { return { malformed: true }; }
-  if (parsed === null) return { noClaim: true, returned: { ac_checklist: { ...NO_DIGEST }, review_verdict: { ...NO_DIGEST } } };
+  if (parsed === null) return { noClaim: true, returned: noClaimDigests() };
   if (!wellFormedReturn(parsed, issue)) return { malformed: true };
   return { noClaim: false, returned: parsed };
 }
@@ -1670,14 +1669,6 @@ function evidenceSelftest() {
     check("the ac-checklist writer refuses an empty criteria list", acChecklistWriterViolations(anchoredAcChecklist({ all_verified: true, criteria: [] }), "FAFF-1").length === 1);
     const review = anchoredTerminalReview({ signal: "pass", adversarial_outcome: "chain-outage-skipped", findings: [{ title: "x", location: "a.js:1", severity: "minor" }] });
     check("the terminal-only review writer's document passes its schema", validateAgainstSchema(review, schemaFor("review-verdict.json")).length === 0);
-    // FAFF-1397: return-by-digest agrees on untouched files and reports a hash mismatch after a change.
-    const issueDir = build("return", { "ac-checklist.json": "<unknown> -> &\n", "review-verdict.json": "{}\n" });
-    const digests = { issue: "ISSUE-1" };
-    for (const { key, name } of EVIDENCE_FILES) digests[key] = { present: true, sha256: hashRegularFile(path.join(issueDir, name)) };
-    check("return-by-digest agrees on untouched files", verifyReturn(issueDir, "ISSUE-1", claimFromStdin(JSON.stringify(digests), "ISSUE-1")).verdict === "agree");
-    fs.appendFileSync(path.join(issueDir, "ac-checklist.json"), "x");
-    const changed = verifyReturn(issueDir, "ISSUE-1", claimFromStdin(JSON.stringify(digests), "ISSUE-1"));
-    check("return-by-digest reports a hash mismatch after a change", changed.verdict === "mismatch" && changed.files[0].result === "hash-mismatch" && changed.tampered_paths.length === 1);
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }

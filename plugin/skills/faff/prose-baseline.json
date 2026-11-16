@@ -1,9 +1,9 @@
 {
   "schema": 1,
   "files": {
-    "faff-beep-boop/SKILL.md": 157460,
+    "faff-beep-boop/SKILL.md": 157720,
 
-    "faff-graft/SKILL.md": 179130,
+    "faff-graft/SKILL.md": 179464,
 
     "faff-jot/SKILL.md": 23456,
 
@@ -27,9 +27,9 @@
 
     "faff/references/create.md": 9145,
 
-    "faff/references/kernel.md": 95393,
+    "faff/references/kernel.md": 95418,
 
-    "faff/references/l4.md": 26070,
+    "faff/references/l4.md": 26377,
 
     "faff/references/methodology.md": 35453,
 
@@ -79,7 +79,7 @@
 
     "faffter-noon-spec-review/SKILL.md": 9605,
 
-    "faffter-noon-spec/SKILL.md": 17658,
+    "faffter-noon-spec/SKILL.md": 17919,
 
     "faffter-noon-transport-private-network/SKILL.md": 6442
   }

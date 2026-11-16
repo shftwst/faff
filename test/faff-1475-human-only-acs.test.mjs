@@ -894,14 +894,19 @@ describe("readAnchoredBytes", () => {
   });
 });
 
-describe("the reader and helper stay out of the floors until slice 2", () => {
-  for (const file of ["merge-gate.js", "merge-gate-local.js", "governance-check.js"]) {
-    test(`${file} does not require or call them`, () => {
+describe("only the shared floor entry points reach the reader and helper", () => {
+  for (const file of ["merge-gate.js", "merge-gate-local.js"]) {
+    test(`${file} goes through readAnchoredHumanOnly, never the reader or helper directly`, () => {
       const src = readFileSync(join(LIB, file), "utf8");
       assert.doesNotMatch(src, /human-only-acs["'\/]/);
       assert.doesNotMatch(src, /readHumanOnlyAcs|readAnchoredBytes/);
     });
   }
+  test("merge-gate-floor.js and governance-check.js are the two files that require the reader", () => {
+    const using = ["merge-gate.js", "merge-gate-local.js", "merge-gate-floor.js", "governance-check.js", "run-summary.ts", "pr-open.ts", "evidence.js"]
+      .filter((file) => /require\("\.\/human-only-acs"\)/.test(readFileSync(join(LIB, file), "utf8")));
+    assert.deepEqual(using.sort(), ["governance-check.js", "merge-gate-floor.js"]);
+  });
   test("the reader is a governance module that requires no factory module", () => {
     const src = readFileSync(join(LIB, "human-only-acs.ts"), "utf8");
     assert.match(src, /region:governance — human-only-acs/);

@@ -1,0 +1,479 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "After the change, `faff evidence return` prints a `human_only_acs` digest and `faff evidence verify-return` exits 1 on a changed `human-only-acs.json`, with the cause text in the third scenario.",
+      "verified": "evidence return prints the human_only_acs digest and a changed file exits 1 with the named cause",
+      "passed": true,
+      "ac_id": "faff-1478#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::return prints one EvidenceReturn line with lowercase hex digests and exits 0"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::a change to human-only-acs.json after the return is a hash-mismatch naming that file as tampered"
+        }
+      ]
+    },
+    {
+      "ac": "Both rosters name `human-only-acs.json`: the digest roster (`EVIDENCE_FILES`) and the custody roster (`faff integrity-boundary --run-dir R --issue ISSUE-1 --events` prints nine paths including it).",
+      "verified": "both rosters name the file: three digests in the return and nine boundary paths with it between holdout.json and merge-record.json",
+      "passed": true,
+      "ac_id": "faff-1478#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::smoke: return, verify-return, a ledger entry, --against-ledger, then a one-byte change"
+        },
+        {
+          "kind": "test",
+          "locator": "test/integrity-boundary.test.mjs::--run-dir --issue --events prints v1: + the exact correctiveIntegrityDirs join (9 paths)"
+        }
+      ]
+    },
+    {
+      "ac": "`EvidenceReturn` carries exactly the keys `issue`, `ac_checklist`, `review_verdict` and `human_only_acs`; any other key set, including the old two-file shape, exits 1 with verdict `malformed`.",
+      "verified": "a return with any other key set, including the old two-file shape, is malformed",
+      "passed": true,
+      "ac_id": "faff-1478#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::the old two-file return shape is malformed with no tampered path and no persisted entry"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::the malformed family: bad JSON, legacy body, uppercase or short hex, null sha with present, extra key, other issue"
+        }
+      ]
+    },
+    {
+      "ac": "`verify-return` prints three `files` rows, in the order `ac-checklist.json`, `review-verdict.json`, `human-only-acs.json`.",
+      "verified": "verify-return prints three rows in roster order",
+      "passed": true,
+      "ac_id": "faff-1478#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::verify-return agrees on an untouched return and the evidence_persisted entry validates"
+        }
+      ]
+    },
+    {
+      "ac": "`evidence_persisted` carries `human_only_acs_sha256` (equal to `faff integrity-digest hash` of the file) iff the file matched, and the ledger schema accepts it as optional in both copies of `run-ledger.schema.json`; `node scripts/evidence-v0.3-compose.mjs --check` exits 0.",
+      "verified": "evidence_persisted carries human_only_acs_sha256 when the file matched, the schema accepts it, and the compose check exits 0",
+      "passed": true,
+      "ac_id": "faff-1478#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::verify-return agrees on an untouched return and the evidence_persisted entry validates"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::evidence_persisted validates with or without human_only_acs_sha256"
+        },
+        {
+          "kind": "command",
+          "locator": "node scripts/evidence-v0.3-compose.mjs --check"
+        }
+      ]
+    },
+    {
+      "ac": "`correctiveIntegrityDirs` returns 2 entries with no issue, 3 with `{events:true}` and no issue, 8 with an issue, 9 with an issue and `{events:true}`, and `human-only-acs.json` sits between `holdout.json` and `merge-record.json`.",
+      "verified": "correctiveIntegrityDirs returns 2, 3, 8 and 9 entries with the new member between holdout.json and merge-record.json",
+      "passed": true,
+      "ac_id": "faff-1478#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/corrective-integrity.test.mjs::correctiveIntegrityDirs(runDir, issue): 8 entries — 2 base + 4 merge-floor + 2 merge-tail (FAFF-751, FAFF-1478)"
+        },
+        {
+          "kind": "test",
+          "locator": "test/corrective-integrity.test.mjs::correctiveIntegrityDirs(runDir, issue, {events:true}): additive events.jsonl, existing 2-/8-entry shapes stay byte-identical"
+        }
+      ]
+    },
+    {
+      "ac": "No literal two-key `{ac_checklist, review_verdict}` object or hand-written three-file list remains in `evidence.js` outside `EVIDENCE_FILES`.",
+      "verified": "no literal two-key object or hand-written file list remains in evidence.js outside EVIDENCE_FILES",
+      "passed": true,
+      "ac_id": "faff-1478#done:7",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "! grep -n \"ac_checklist: { ...NO_DIGEST }\" plugin/skills/faff/bin/lib/evidence.js"
+        }
+      ]
+    },
+    {
+      "ac": "An absent `human-only-acs.json` agrees on both sides (`absent-both`), persists no `human_only_acs_sha256`, and parks nothing.",
+      "verified": "an absent file agrees on both sides, persists no digest and parks nothing",
+      "passed": true,
+      "ac_id": "faff-1478#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::evidence_persisted is null when no file is present and both are absent on disk"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::return reports an absent file as present:false with a null sha256"
+        }
+      ]
+    },
+    {
+      "ac": "A change to the file after return gives a `hash-mismatch` park naming `ISSUE-1/human-only-acs.json` and adds that path to `tampered_paths`.",
+      "verified": "a change after return is a hash-mismatch park naming the file and adds it to tampered_paths",
+      "passed": true,
+      "ac_id": "faff-1478#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::a change to human-only-acs.json after the return is a hash-mismatch naming that file as tampered"
+        }
+      ]
+    },
+    {
+      "ac": "`--against-ledger` catches a rewrite after the ledger entry as `hash-mismatch`, and a file created after an absent-claim entry as `presence-disagreement`.",
+      "verified": "--against-ledger catches a rewrite as hash-mismatch and a file created after an absent entry as presence-disagreement",
+      "passed": true,
+      "ac_id": "faff-1478#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::--against-ledger catches a rewrite of human-only-acs.json after the ledger entry"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::a file created after an entry written without it is a presence disagreement"
+        }
+      ]
+    },
+    {
+      "ac": "A skewed (old-shape) return is `malformed`, with no `integrity_tampered` path and the exact `park_cause` in the scenarios.",
+      "verified": "a skewed old-shape return is malformed with no tampered path and the exact park cause",
+      "passed": true,
+      "ac_id": "faff-1478#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::the old two-file return shape is malformed with no tampered path and no persisted entry"
+        }
+      ]
+    },
+    {
+      "ac": "`faff integrity-digest verify` exits 1 naming `ISSUE-1/human-only-acs.json` after the file changes between snapshot and verify, and exits 0 when the file is absent at both.",
+      "verified": "integrity-digest verify names the file after a change between snapshot and verify and stays clean when it is absent at both",
+      "passed": true,
+      "ac_id": "faff-1478#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/integrity-digest.test.mjs::FAFF-1478: an edited human-only-acs.json → verify exit 1 naming the path; absent at snapshot and verify stays clean"
+        }
+      ]
+    },
+    {
+      "ac": "Neither `evidence return` nor `evidence verify-return` writes any file (snapshot the run dir before and after).",
+      "verified": "neither verb writes any file",
+      "passed": true,
+      "ac_id": "faff-1478#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::neither verb creates, modifies or deletes any file"
+        }
+      ]
+    },
+    {
+      "ac": "A symlink at `human-only-acs.json` is `not-regular-file` in `verify-return` and exit 2 from `return`.",
+      "verified": "a symlink is not-regular-file in verify-return and exit 2 from return",
+      "passed": true,
+      "ac_id": "faff-1478#done:14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::a symlink at human-only-acs.json is exit 2 from return and a not-regular-file row from verify-return"
+        }
+      ]
+    },
+    {
+      "ac": "A ledger entry with no `human_only_acs_sha256` read with the file present on disk is `presence-disagreement`.",
+      "verified": "a ledger entry with no digest read with the file present is a presence disagreement",
+      "passed": true,
+      "ac_id": "faff-1478#done:15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::a file created after an entry written without it is a presence disagreement"
+        },
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::--against-ledger exits 2 on a malformed digest in the ledger entry, but an omitted digest is an absence claim"
+        }
+      ]
+    },
+    {
+      "ac": "Ledger items with only the two older digests still validate against the schema.",
+      "verified": "ledger items with only the two older digests still validate",
+      "passed": true,
+      "ac_id": "faff-1478#done:16",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::evidence_persisted validates with or without human_only_acs_sha256"
+        }
+      ]
+    },
+    {
+      "ac": "`l4.md` obligation 6 states the three-key shape, lists `human-only-acs.json` among the re-hashed files, and carries the one-sentence honest-scope note.",
+      "verified": "l4.md obligation 6 states the three-key shape, lists the file among the re-hashed files and carries the honest-scope sentence",
+      "passed": true,
+      "ac_id": "faff-1478#done:17",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c \"human_only_acs:{present,sha256}\" plugin/skills/faff/references/l4.md"
+        },
+        {
+          "kind": "command",
+          "locator": "grep -c \"tamper witness over the mint\" plugin/skills/faff/references/l4.md"
+        }
+      ]
+    },
+    {
+      "ac": "`faff-graft/SKILL.md` line 795 states the three-key shape and line 555 says \"eight-entry\"; the file's line count is not greater than before the edit and `faff validate-adapters` reports no new FAIL.",
+      "verified": "graft states the three-key shape and says eight-entry, its line count did not grow, and validate-adapters passes",
+      "passed": true,
+      "ac_id": "faff-1478#done:18",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c \"human_only_acs:{present,sha256}\" plugin/skills/faff-graft/SKILL.md"
+        },
+        {
+          "kind": "command",
+          "locator": "grep -c \"eight-entry\" plugin/skills/faff-graft/SKILL.md"
+        },
+        {
+          "kind": "command",
+          "locator": "test \"$(git show origin/main:plugin/skills/faff-graft/SKILL.md | wc -l)\" -ge \"$(wc -l < plugin/skills/faff-graft/SKILL.md)\""
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "`references/kernel.md` line 287 lists `<issue>/human-only-acs.json` in the `correctiveIntegrityDirs()` roster.",
+      "verified": "kernel.md lists the file in the correctiveIntegrityDirs roster",
+      "passed": true,
+      "ac_id": "faff-1478#done:19",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c \"holdout.json` · `human-only-acs.json`\" plugin/skills/faff/references/kernel.md"
+        }
+      ]
+    },
+    {
+      "ac": "`faffter-noon-concurrency-sequential/SKILL.md` and `faffter-dark-concurrency-parallel/SKILL.md` are unchanged and contain neither `human_only_acs` nor the `ac_checklist:{present` shape.",
+      "verified": "the two executors are unchanged and free of the new key and the shape",
+      "passed": true,
+      "ac_id": "faff-1478#done:20",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/evidence-return.test.mjs::the concurrency executors restate neither the new key nor the digest shape"
+        },
+        {
+          "kind": "command",
+          "locator": "git diff --exit-code origin/main -- plugin/skills/faffter-noon-concurrency-sequential plugin/skills/faffter-dark-concurrency-parallel"
+        }
+      ]
+    },
+    {
+      "ac": "`docs/guide/cli.md` rows for `evidence return` and `evidence verify-return` name the third key and file, and `faff lint-cli-doc` passes.",
+      "verified": "the CLI rows name the third key and file and lint-cli-doc passes",
+      "passed": true,
+      "ac_id": "faff-1478#done:21",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c \"human_only_acs\" docs/guide/cli.md"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-doc"
+        }
+      ]
+    },
+    {
+      "ac": "The `human-only-acs.json` trust note in `verification/evidence/v0.3/evidence-documents.md` and its bundled copy no longer says the file is off the roster, names FAFF-1478 as delivered, and states the three residuals (content authorship FAFF-748, anchored copy not digested, isolation FAFF-517).",
+      "verified": "the trust note in both copies no longer says the file is off the roster and states the residuals",
+      "passed": true,
+      "ac_id": "faff-1478#done:22",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c \"FAFF-1483\" verification/evidence/v0.3/evidence-documents.md plugin/skills/faff/contracts/evidence-v0.3/evidence-documents.md"
+        },
+        {
+          "kind": "command",
+          "locator": "! grep -n \"not yet on the dispatcher\" verification/evidence/v0.3/evidence-documents.md plugin/skills/faff/contracts/evidence-v0.3/evidence-documents.md"
+        }
+      ]
+    },
+    {
+      "ac": "`verification/evidence/README.md` has a dated FAFF-1478 changelog entry; ADR-0077 has the FAFF-1478 Consequences bullet and an unchanged Decision text.",
+      "verified": "the README has a dated FAFF-1478 entry and ADR-0077 has the amendment bullet",
+      "passed": true,
+      "ac_id": "faff-1478#done:23",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c \"FAFF-1478\" verification/evidence/README.md records/adr/0077-two-class-write-authority-for-run-artifacts-evidence-writes-cross-to-the-trusted.md"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff adr validate"
+        }
+      ]
+    },
+    {
+      "ac": "New prose uses Canadian spelling and no em dashes outside quoted park-cause strings.",
+      "verified": "the added prose has no em dash",
+      "passed": true,
+      "ac_id": "faff-1478#done:24",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --word-diff=porcelain -U0 origin/main -- plugin/skills/faff/references plugin/skills/faff-graft docs/guide/cli.md verification/evidence/README.md verification/evidence/v0.3/evidence-documents.md records/adr | grep '^+' | grep -v '^+++' | grep -vc '—'"
+        }
+      ]
+    },
+    {
+      "ac": "`test/evidence-return.test.mjs` is updated: the fixture's default files include `human-only-acs.json`, the `claim` helper takes three digests, every deep-equal on the printed line and on `evidence_persisted` includes the new key, and new cases cover the tamper-after-return, rewrite-after-ledger, file-created-after-absent-entry, old-shape return and `null`-with-file-on-disk scenarios.",
+      "verified": "evidence-return tests cover the three-file fixture and every named scenario",
+      "passed": true,
+      "ac_id": "faff-1478#done:25",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/evidence-return.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`test/corrective-integrity.test.mjs` pins 8 and 9 entries and the new member; `test/integrity-boundary.test.mjs` line 46 pins nine paths; `test/integrity-digest.test.mjs` gains a snapshot, tamper, verify case for the new member.",
+      "verified": "corrective-integrity, integrity-boundary and integrity-digest tests pin 8 and 9 entries, nine paths and the new snapshot member",
+      "passed": true,
+      "ac_id": "faff-1478#done:26",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/corrective-integrity.test.mjs test/integrity-boundary.test.mjs test/integrity-digest.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "The five selftest cases named in section 6 are removed from `evidence.js` and `corrective-integrity.js`; `faff evidence --selftest` and `faff corrective-integrity --selftest` still pass.",
+      "verified": "the five selftest cases are removed and both selftests pass",
+      "passed": true,
+      "ac_id": "faff-1478#done:27",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff evidence --selftest"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff corrective-integrity --selftest"
+        }
+      ]
+    },
+    {
+      "ac": "`node --test` over the four test files above, `test/evidence-v0.3.test.mjs`, `test/faff-893-custody-stamp.test.mjs`, `test/faff-895-pr-custody-basis.test.mjs` and `test/faff-1475-ac-floor.test.mjs`, `test/faff-1475-human-only-acs.test.mjs` and `test/faff-1475-surfacing.test.mjs` passes, and `faff regions check` and `faff lint-cli-coverage` pass with no module added.",
+      "verified": "the ten named test files pass and regions check and lint-cli-coverage pass",
+      "passed": true,
+      "ac_id": "faff-1478#done:28",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/evidence-return.test.mjs test/corrective-integrity.test.mjs test/integrity-boundary.test.mjs test/integrity-digest.test.mjs test/evidence-v0.3.test.mjs test/faff-893-custody-stamp.test.mjs test/faff-895-pr-custody-basis.test.mjs test/faff-1475-ac-floor.test.mjs test/faff-1475-human-only-acs.test.mjs test/faff-1475-surfacing.test.mjs"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-coverage"
+        }
+      ]
+    },
+    {
+      "ac": "The PR description records the result of `grep -rn \"integrity-boundary\" plugin scripts docs .faff` for callers that emit a run-dir-grain declaration: each caller is listed with whether it keeps working, or the result is \"none\".",
+      "verified": "the PR description records the integrity-boundary caller audit result",
+      "passed": true,
+      "ac_id": "faff-1478#done:29",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c \"integrity-boundary\" /tmp/claude-501/-Users-shftwst-workspace-shftwst-faff/ab7dd737-749e-4371-aff9-b5ae5c2eeaf1/scratchpad/pr-body-1478.md"
+        }
+      ]
+    },
+    {
+      "ac": "The PR description carries two release-note lines. First: do not upgrade the plugin during an in-flight dispatched run; a skewed return parks as `malformed` and clears on re-dispatch, and a ledger entry written before the upgrade can park as a presence disagreement for the same reason. Second: the chain ships a tamper witness over the run-dir copy of `human-only-acs.json`, not custody of the anchored copy the merge floor reads.",
+      "verified": "the PR description carries both release-note lines",
+      "passed": true,
+      "ac_id": "faff-1478#done:30",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c \"Do not upgrade the plugin during an in-flight dispatched run\" /tmp/claude-501/-Users-shftwst-workspace-shftwst-faff/ab7dd737-749e-4371-aff9-b5ae5c2eeaf1/scratchpad/pr-body-1478.md"
+        },
+        {
+          "kind": "command",
+          "locator": "grep -c \"tamper witness over the run-dir copy of\" /tmp/claude-501/-Users-shftwst-workspace-shftwst-faff/ab7dd737-749e-4371-aff9-b5ae5c2eeaf1/scratchpad/pr-body-1478.md"
+        }
+      ]
+    },
+    {
+      "ac": "The PR description names FAFF-1483 as the follow-up that binds the anchored copy, so a reader of the release note can find the open gap.",
+      "verified": "the PR description names FAFF-1483",
+      "passed": true,
+      "ac_id": "faff-1478#done:31",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c \"FAFF-1483\" /tmp/claude-501/-Users-shftwst-workspace-shftwst-faff/ab7dd737-749e-4371-aff9-b5ae5c2eeaf1/scratchpad/pr-body-1478.md"
+        }
+      ]
+    },
+    {
+      "ac": "`grep -rn \"integrity-digest snapshot\" plugin scripts docs` lists no per-issue snapshot taken before Step 9b, and its output is pasted into the PR description.",
+      "verified": "no per-issue integrity-digest snapshot is taken before Step 9b, and the output is described in the PR",
+      "passed": true,
+      "ac_id": "faff-1478#done:32",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -rn \"integrity-digest snapshot\" plugin scripts docs"
+        },
+        {
+          "kind": "command",
+          "locator": "grep -c \"integrity-digest snapshot\" /tmp/claude-501/-Users-shftwst-workspace-shftwst-faff/ab7dd737-749e-4371-aff9-b5ae5c2eeaf1/scratchpad/pr-body-1478.md"
+        }
+      ]
+    }
+  ]
+}

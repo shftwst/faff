@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "verdict": "reject-approach",
+  "final_verdict": "approve",
+  "rounds_total": 4,
+  "objections": [
+    {
+      "lens": "infosec",
+      "severity": "major",
+      "claim": "The design makes an unverified string in the spec text (`needs-human: <reason>`) into an authority token: a tagged item is exempt from R2c, excluded from both advisories, tiered `delegated`, and — per the merged FAFF-1475/1476 machinery this spec builds on — skipped by the unattended merge floor. In the lights-out flow the spec's author *is* the unattended producer agent, i.e. the exact actor the gate exists to constrain. The spec grants the skip on the strength of that input without establishing that a human wrote or ratified it, so an agent under pressure to pass admission can tag every substantive criterion `needs-human:`, keep one trivially machine-checkable item to satisfy R2d, and ship a run whose real verification coverage was silently skipped. This is the same self-attestation threat class the codebase already ratchets against elsewhere (the FAFF-384 spawner-attestation gate on holdout records), applied here with no equivalent control.",
+      "evidence": "Section 3 (\"human-only item: a marker with a non-empty reason\"); the R2c pass condition (\"no untagged item matches HUMAN_JUDGEMENT\" — a marked item is exempt regardless of honesty); R2d (\"at least one DONE item that is not human-only\"); section 2 OUT OF SCOPE defers \"judging whether a `needs-human:` tag is honest\" to \"the spec-review QA lens\" without establishing that lens runs, or is capable of deciding honesty, in the unattended path being gated.",
+      "predicted_consequence": "An unattended run is admitted with all load-bearing criteria tagged by the authoring agent itself; the merge floor skips them as human-only; the feature ships with those criteria verified by nobody. The park-at-merge-floor failure this spec exists to prevent is replaced by a quieter one: verification is skipped by design and nothing records the skip as suspicious.",
+      "spec_anchor": "2-out-of-scope",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Revised in the posted spec and cleared by a later round.",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "severity": "major",
+          "claim": "The design makes an unverified string in the spec text (`needs-human: <reason>`) into an authority token: a tagged item is exempt from R2c, excluded from both advisories, tiered `delegated`, and — per the merged FAFF-1475/1476 machinery this spec builds on — skipped by the unattended merge floor. In the lights-out flow the spec's author *is* the unattended producer agent, i.e. the exact actor the gate exists to constrain. The spec grants the skip on the strength of that input without establishing that a human wrote or ratified it, so an agent under pressure to pass admission can tag every substantive criterion `needs-human:`, keep one trivially machine-checkable item to satisfy R2d, and ship a run whose real verification coverage was silently skipped. This is the same self-attestation threat class the codebase already ratchets against elsewhere (the FAFF-384 spawner-attestation gate on holdout records), applied here with no equivalent control.",
+          "spec_anchor": "2-out-of-scope"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "major",
+      "claim": "`R2d.machine-checkable-present` passes when at least one DONE item is \"not human-only\", i.e. simply untagged. But an untagged prose item (\"the copy reads naturally\") is not machine-checkable by the spec's own model: the prose-DONE advisory exists precisely because such items are not verifiable by the AC checklist or holdout, and the merge floor skips only `human_only` items — an untagged prose item stays pending and parks the run exactly as an untagged human-judgement item does. So the check's stated purpose (\"nothing machine-checkable gates the merge\") is not achieved by its defined predicate: a spec with one untagged prose item and every real check tagged `needs-human:` passes R2d, yet nothing machine-checkable gates the merge. The design had the right instrument in hand — `dodClassify`'s `class`/`verification_tier` (an assertion/scenario item, or a non-`delegated` tier) — and chose the weaker \"not tagged\" proxy instead. The check as specified is gating on the wrong predicate.",
+      "evidence": "section 3 check table (`R2d … Passes when: the spec has at least one DONE item that is not human-only`); section 1 problem statement (\"a spec tags every item `needs-human:` and leaves nothing machine-checkable to gate the merge\"); the spec's own advisory machinery (`proseDoneAdvisory`, `oracleLessAdvisory`) which treats untagged prose items as not machine-verifiable.",
+      "predicted_consequence": "a spec that tags all its genuinely checkable items and leaves one untagged prose item passes R2d, is admitted lights-out, builds, and parks at the merge floor on that prose item — the exact failure R2d was added to prevent, now with a green check that says \"machine-checkable present\".",
+      "spec_anchor": "3-what-vocabulary-types-and-interfaces",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Revised in the posted spec and cleared by a later round.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "major",
+          "claim": "`R2d.machine-checkable-present` passes when at least one DONE item is \"not human-only\", i.e. simply untagged. But an untagged prose item (\"the copy reads naturally\") is not machine-checkable by the spec's own model: the prose-DONE advisory exists precisely because such items are not verifiable by the AC checklist or holdout, and the merge floor skips only `human_only` items — an untagged prose item stays pending and parks the run exactly as an untagged human-judgement item does. So the check's stated purpose (\"nothing machine-checkable gates the merge\") is not achieved by its defined predicate: a spec with one untagged prose item and every real check tagged `needs-human:` passes R2d, yet nothing machine-checkable gates the merge. The design had the right instrument in hand — `dodClassify`'s `class`/`verification_tier` (an assertion/scenario item, or a non-`delegated` tier) — and chose the weaker \"not tagged\" proxy instead. The check as specified is gating on the wrong predicate.",
+          "spec_anchor": "3-what-vocabulary-types-and-interfaces"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "the spec states \"Without `--lights-out` the verdict is the unchanged one-check `scope` pass\" and pins that in DONE (\"the verdict is unchanged: one `scope` check, exit 0\"), but the `human_only` filter on `proseDoneAdvisory`/`oracleLessAdvisory` is described as an unconditional edit to those functions, not scoped to the lights-out branch. `dodClassify` sets `human_only` regardless of mode, so a spec with a tagged item piped without `--lights-out` would emit a different advisory count than today — contradicting \"unchanged\" unless the advisories are lights-out-only, which the spec never states.",
+      "evidence": "section 4 behaviour summary (\"Without `--lights-out` the verdict is the unchanged one-check `scope` pass\"); section 3 \"Advisory counts\" paragraph (unconditional filter); DONE item \"Without `--lights-out` the verdict is unchanged\".",
+      "predicted_consequence": "either the builder scopes the filter to lights-out (contradicting section 3's unconditional wording) or leaves it global and the \"unchanged\" DONE item fails on any spec carrying a tagged item; the corpus/behaviour tests disagree with the prose.",
+      "spec_anchor": "8-done-definition-of-done",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Revised in the posted spec and cleared by a later round.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "the spec states \"Without `--lights-out` the verdict is the unchanged one-check `scope` pass\" and pins that in DONE (\"the verdict is unchanged: one `scope` check, exit 0\"), but the `human_only` filter on `proseDoneAdvisory`/`oracleLessAdvisory` is described as an unconditional edit to those functions, not scoped to the lights-out branch. `dodClassify` sets `human_only` regardless of mode, so a spec with a tagged item piped without `--lights-out` would emit a different advisory count than today — contradicting \"unchanged\" unless the advisories are lights-out-only, which the spec never states.",
+          "spec_anchor": "8-done-definition-of-done"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The DONE item asserting that \"manual confirmation of the layout\" fails R2c while \"the confirmation dialog closes\" and \"the inspection log lists the failing check\" pass has no corresponding Scenarios unit, so the over-match guard for the noun forms is asserted in DONE but never exercised by a scenario.",
+      "evidence": "DONE item \"Items reading 'the confirmation dialog closes' and 'the inspection log lists the failing check' pass R2c, and 'manual confirmation of the layout' fails it (bare nouns do not match)\" under `## 8. DONE: definition of done`; the closest scenario (sixth) covers only the two passing items.",
+      "predicted_consequence": "A build that implements the third pattern as `/\\bmanual\\s+(?:verification|confirmation|inspection)\\b/i` but also adds a stray bare-noun alternative (e.g. matching \"confirmation\" alone) satisfies every scenario and every other DONE item while violating this one — the failure is caught only if the tester independently invents the negative fixture the spec names but never scenarios.",
+      "spec_anchor": "8-done-definition-of-done",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Revised in the posted spec and cleared by a later round.",
+      "first_round": 2,
+      "last_round": 2,
+      "occurrences": [
+        {
+          "round": 2,
+          "severity": "minor",
+          "claim": "The DONE item asserting that \"manual confirmation of the layout\" fails R2c while \"the confirmation dialog closes\" and \"the inspection log lists the failing check\" pass has no corresponding Scenarios unit, so the over-match guard for the noun forms is asserted in DONE but never exercised by a scenario.",
+          "spec_anchor": "8-done-definition-of-done"
+        }
+      ]
+    },
+    {
+      "lens": "architectural",
+      "severity": "minor",
+      "claim": "`proseDoneAdvisory` is changed to filter `human_only` criteria out of `proseDone`, `doneTotal` and `allProseDone`, but the spec simultaneously mandates \"Advisory wording is unchanged.\" The FAFF-1291 warning line reads \"every DONE item is loose prose and nothing is judged\" — after the filter, that line can fire on a spec where some DONE items are tagged `needs-human:` (they exist, they are DONE items, and they are not loose prose judged by nobody — they are human-verified). The quantifier (\"every DONE item\") no longer matches the set the warning is computed over.",
+      "evidence": "§3 \"Advisory counts\" — \"the prose list, `count`, … `doneTotal` and `allProseDone` are computed over the remaining criteria. Advisory wording is unchanged.\"; the FAFF-1291 warning text in `admissibleVerdict` (\"every DONE item is loose prose and nothing is judged…\").",
+      "predicted_consequence": "a lights-out run over a partially-tagged spec emits an advisory asserting every DONE item is loose prose when the spec visibly carries tagged items — the author reads a false statement in the reason channel of the very check this ticket adds, eroding trust in the advisory the way FAFF-812's false positives erode the oracle lint.",
+      "spec_anchor": "3-what-vocabulary-types-and-interfaces",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Revised in the posted spec and cleared by a later round.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "`proseDoneAdvisory` is changed to filter `human_only` criteria out of `proseDone`, `doneTotal` and `allProseDone`, but the spec simultaneously mandates \"Advisory wording is unchanged.\" The FAFF-1291 warning line reads \"every DONE item is loose prose and nothing is judged\" — after the filter, that line can fire on a spec where some DONE items are tagged `needs-human:` (they exist, they are DONE items, and they are not loose prose judged by nobody — they are human-verified). The quantifier (\"every DONE item\") no longer matches the set the warning is computed over.",
+          "spec_anchor": "3-what-vocabulary-types-and-interfaces"
+        }
+      ]
+    },
+    {
+      "lens": "QA",
+      "severity": "minor",
+      "claim": "The DONE item states the corpus assertion \"over all specs under `records/specs` whether admissible or not (951 at the base, 236 of them already inadmissible)\". Section 6 explicitly says \"Pinning a total spec count is avoided, since the corpus grows.\" The parenthetical sits inside the assertion's scope, so a builder cannot tell whether the test asserts `specs.length === 951` and `inadmissible === 236` (which breaks on the next landed spec and contradicts section 6) or merely narrates the base. Two builds both plausibly satisfy the item and disagree.",
+      "evidence": "DONE item \"A corpus test over `records/specs` asserts that, over all specs under `records/specs` whether admissible or not (951 at the base, 236 of them already inadmissible), the specs failing R2c are exactly the four named…\"",
+      "predicted_consequence": "the corpus test is built with a total-count assertion, fails on the first spec landed after merge, and the author must choose between weakening the test and re-pinning — the exact churn section 6's rationale says the design avoids; done-ness of this item is not decidable as written.",
+      "spec_anchor": "8-done-definition-of-done",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": "Revised in the posted spec and cleared by a later round.",
+      "first_round": 3,
+      "last_round": 3,
+      "occurrences": [
+        {
+          "round": 3,
+          "severity": "minor",
+          "claim": "The DONE item states the corpus assertion \"over all specs under `records/specs` whether admissible or not (951 at the base, 236 of them already inadmissible)\". Section 6 explicitly says \"Pinning a total spec count is avoided, since the corpus grows.\" The parenthetical sits inside the assertion's scope, so a builder cannot tell whether the test asserts `specs.length === 951` and `inadmissible === 236` (which breaks on the next landed spec and contradicts section 6) or merely narrates the base. Two builds both plausibly satisfy the item and disagree.",
+          "spec_anchor": "8-done-definition-of-done"
+        }
+      ]
+    }
+  ]
+}

@@ -171,7 +171,9 @@ document always is, ids are unique, and every id parses as a qualified id naming
 Trust note. The content is meant to be derived by faff code from the captured spec, but it is
 written inside the build lane, and `faff evidence write human-only-acs` can be called directly by
 the lane with any well-formed document. That is the same authorship as `ac-checklist.json`, and
-weaker on the tamper-after-write axis, because the file is not yet on the dispatcher's evidence
-roster (`EvidenceReturn` digests and `correctiveIntegrityDirs`). A lane that also appends its own
-newer stamp is not stopped by the stamp. FAFF-1478 adds the file to the roster. The stamp catches
-a careless or injected edit of the file alone; it is not a lane-proof seal.
+weaker on the tamper-after-write axis. Since FAFF-1478 the file is on both rosters (the
+`EvidenceReturn` digests and `correctiveIntegrityDirs`), so a change to the run-dir copy after the
+lane returned, including a rewrite paired with a newer stamp, parks the unit or fails the custody
+snapshot. The residuals are content authorship (FAFF-748), the committed anchored copy, which the
+roster does not digest and the merge floor reads (FAFF-1483), and lane isolation (FAFF-517). The
+stamp catches a careless or injected edit of the file alone; it is not a lane-proof seal.

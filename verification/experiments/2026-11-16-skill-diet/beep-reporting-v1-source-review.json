@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "status": "pending-independent-review-and-model-pair",
+  "source": "plugin/skills/faff-beep-boop/SKILL.md",
+  "candidate": "candidates/beep-reporting-v1.md",
+  "before": {
+    "bytes": 157561,
+    "estimated_tokens": 39044,
+    "sha256": "f1efefcfc1d1eccdfa0c32a0a06cb989ffc35753766289646eb439525c875d28"
+  },
+  "after": {
+    "bytes": 156107,
+    "estimated_tokens": 38688,
+    "sha256": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16"
+  },
+  "changed_scope": "Reporting only: Human follow-ups, outcome bucket explanation and capacity-bucket ban explanation. Command, facts schema, rendering pass, run close, peer handling, continuation guard, tracker/conversation publication and Stopping condition unchanged.",
+  "unchanged_prefix_sha256": "1fc3aec28d5daaa784ada15923155ec8397202b33f19bfd0e56fbba4355d1ad1",
+  "unchanged_suffix_sha256": "42c1732c45255e2080cb5006f6bcf4c887e7207167f4f64cede4879a17c2c67c",
+  "new_mandatory_reads": [],
+  "savings_counted": false,
+  "baseline_bytes": 157561,
+  "candidate_bytes": 156107,
+  "baseline_estimated_tokens": 39044,
+  "candidate_estimated_tokens": 38688,
+  "baseline_sha256": "f1efefcfc1d1eccdfa0c32a0a06cb989ffc35753766289646eb439525c875d28",
+  "candidate_sha256": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16",
+  "independent_review": {
+    "path": "independent-beep-reporting-candidate-source-review.json",
+    "sha256": "af4e5ba72f64c98ddf83459221414086dc23b5b9cd81141443d5a30b47a37714"
+  }
+}

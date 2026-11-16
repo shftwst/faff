@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "status": "candidate-frozen-before-measurement",
+  "condition": "Launch only after all five original V2 baselines pass automatic/native/manual checks. Same harness, runtime, cases and strict gates.",
+  "inputs": [
+    {
+      "path": "beep-reporting-sol-v2-candidate-plan.json",
+      "sha256": "010daf3d66cb099c90e12bd5ba196d292357ed06dbdf3d6101f08832b9230945"
+    },
+    {
+      "path": "candidates/beep-reporting-v1.md",
+      "sha256": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16"
+    },
+    {
+      "path": "candidates/beep-reporting-v1-with-context.md",
+      "sha256": "99a8191396272aab59cf54f2f9f69412e7b396e096d1f26a9246e9ecf65a0ebd"
+    },
+    {
+      "path": "beep-reporting-v1-source-review.json",
+      "sha256": "70b08d471647fc9623d9491ef931dfd9f26779adeb995b430f526d0c2bc26d4e"
+    },
+    {
+      "path": "independent-beep-reporting-candidate-source-review.json",
+      "sha256": "af4e5ba72f64c98ddf83459221414086dc23b5b9cd81141443d5a30b47a37714"
+    },
+    {
+      "path": "pending-designs/beep-reporting-design.md",
+      "sha256": "cce46c1fdbf1b6c506bf266478b6256072bf7c7b36cfebc9a8ec9057e63b8859"
+    }
+  ]
+}

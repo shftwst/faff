@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "kind": "deterministic-full-transport-preflight-not-model-sample",
+  "execution_cases": 6,
+  "omitted_case_traces_rejected": 6,
+  "policy_delivery_complete": true,
+  "task_file_sha256_matches_manifest": true,
+  "manifest_sha256": "491e62b988721cc3577b1b869f99f393b034565502b85316e79c928309f426cd",
+  "report_sha256": "266fd96422640b2b78f5925b3155cdecaee7a042c7342bb4efe9995f039dfeb2",
+  "capture_sha256": "495325d4db55b3e41c568835a4b03c8b63bf708a517b0faad66ecac1193169d3",
+  "client_sha256": "8aa3fced5ef6f57d63e7995dd0f4d3e0afd08bdc5ec77b61aeb1427d0aafd8d4"
+}

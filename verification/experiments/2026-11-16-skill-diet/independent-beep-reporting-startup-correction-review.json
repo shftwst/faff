@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "status": "pass-bounded-startup-correction-and-full-transport-preflight",
+  "updated_utc": "2026-11-16T21:37:38.529679+00:00",
+  "reviewer": {
+    "role": "independent startup correction verifier",
+    "requested_model": "gpt-6.1-sol",
+    "requested_reasoning_effort": "medium"
+  },
+  "bindings": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-reporting-v1-startup-failure.json",
+      "sha256": "fe452888a36c2bb34bd876ee1b9b31654e18716a7b431b57b9c90078c5cc2ada"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-reporting-sol-v2-registration.json",
+      "sha256": "dccc8d30ab46ea6fa88a73a15b597068371905d6a09635c507eeb5b1e70ffff9"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/harness-revisions/reporting-execution-v1.mjs",
+      "sha256": "2e22292151e515bbc79b8dd9df6af93a301802e64607d3439b88d37933577741"
+    },
+    {
+      "path": "eval/control-parity/reporting-execution.mjs",
+      "sha256": "baedd016cfd7502a237c9255b1dfba8f7e150357f04cc8e2b29c2865773fce58"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-reporting-full-preflight-v2/preflight.json",
+      "sha256": "ea939ddf23cfc27461fc53ec9d74a420c264a564d97bb837e3581eb514173786"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-reporting-full-preflight-v2/manifest.json",
+      "sha256": "491e62b988721cc3577b1b869f99f393b034565502b85316e79c928309f426cd"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-reporting-full-preflight-v2/task.json",
+      "sha256": "01d49ad4f8e918a30f78778fc72464f7ccc45fd143fdc4395f08031cdcbbf6cf"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-reporting-full-preflight-v2/capture.json",
+      "sha256": "495325d4db55b3e41c568835a4b03c8b63bf708a517b0faad66ecac1193169d3"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-reporting-full-preflight-v2/expected.json",
+      "sha256": "8731b77c56c6554b4fd1af77699513b89ac7e597a01347d91101c482d34e51ea"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-reporting-full-preflight-v2/report.json",
+      "sha256": "266fd96422640b2b78f5925b3155cdecaee7a042c7342bb4efe9995f039dfeb2"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/preflight-reporting-execution.mjs",
+      "sha256": "8aa3fced5ef6f57d63e7995dd0f4d3e0afd08bdc5ec77b61aeb1427d0aafd8d4"
+    }
+  ],
+  "checks": {
+    "old_archive": "Byte-identical to679f4d62c6b63b74d957e561f3846e071ade4e85 and failure record hash.",
+    "exact_source_diff": "Only canonicalHash import removed and task object hashing replaced with SHA256 of precisely serialised task.json bytes. No environment, consumer, grader, fixture tool or model-visible task logic changed.",
+    "startup_failure": "canonicalHash validates safe integers only; fractional fixture monetary metadata reaches task before manifest hashing. Old output directory contains only task.json; no ready/worker/capture/report. Zero model calls is consistent with source control flow and artefact evidence.",
+    "task_preservation": "Instructions, tools, policy metadata and source cases identical; only independently generated disposable paths differ.",
+    "registration": "All7registration path/hash bindings verified. Harness, fixture, source policy, client and recorded preflight hashes match. Runtime root/commit preserved between registrations.",
+    "full_policy_delivery": {
+      "complete": true,
+      "bytes": 241756,
+      "utf16_characters": 239726,
+      "chunks_verified": 40,
+      "contiguous_offsets": true,
+      "every_chunk_hash_and_size_verified": true
+    },
+    "task_hash": "Exact task.json file SHA256 equals manifest task_sha256.",
+    "real_consumer_results": "All6execution cases pass recorded full transport; independent re-grade passes.",
+    "negative_recheck": "Independently removed each of6case event traces; all6altered captures rejected.",
+    "previous_review": "Original independent-beep-reporting-preflight-review.json left unchanged."
+  },
+  "scope": "Corrects measurement startup metadata hashing only; full deterministic transport proof is not a model sample or candidate acceptance.",
+  "limits": [
+    "No skill prompt candidate exists in this reviewed correction. No claimed savings or source installation.",
+    "Zero model calls supported by startup flow and absence of worker artefacts; no external billing/provider query performed.",
+    "Preflight retains fixed dependency injection, identity rendering/publication and controlled continuation; no external acquisition, run-close/andon, actual build or full production workflow claim."
+  ]
+}

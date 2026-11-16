@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-16T21:35:15.739934+00:00",
+  "status": "setup-failure-before-worker-launch",
+  "model_calls": 0,
+  "case": "beep-reporting-sol-v1-baseline-1",
+  "reason": "Generic canonicalHash accepts safe integers only; task metadata includes fractional monetary cost. Task file was written, then manifest hashing failed before ready.json or any worker creation.",
+  "old_source_commit": "679f4d62c6b63b74d957e561f3846e071ade4e85",
+  "old_source_archive": "harness-revisions/reporting-execution-v1.mjs",
+  "old_source_sha256": "2e22292151e515bbc79b8dd9df6af93a301802e64607d3439b88d37933577741",
+  "correction": "Use SHA256 of the exact task.json bytes, as rendering-artifact already does. No policy, fixture, oracle, native rule, consumer or task changes. Full transport preflight required before new registration.",
+  "old_registration": "beep-reporting-sol-v1-registration.json",
+  "source_installed": false,
+  "savings_counted": false
+}

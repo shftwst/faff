@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-16T21:36:09.131986+00:00",
+  "status": "registered-after-full-transport-preflight-before-worker-launch",
+  "supersedes_unstarted_plan": "beep-reporting-sol-v1-baseline-plan.json",
+  "prior_startup_diagnosis": "beep-reporting-v1-startup-failure.json",
+  "prior_preflight_review": "independent-beep-reporting-preflight-review.json",
+  "only_harness_change": "Canonical task object hashing replaced by SHA256 of exact task.json bytes to support fractional money. All command behaviour, grader, fixture and model-facing task remain unchanged.",
+  "bindings": [
+    {
+      "path": "beep-reporting-sol-v2-baseline-plan.json",
+      "sha256": "d4ba45e248b81c7a92f98a1a61fa16ecf2b3897c9157d5e43ff8566b3b66a36e"
+    },
+    {
+      "path": "baseline/beep-reporting-with-context.md",
+      "sha256": "a86f63c7119cfea82d9fd78e9c832c269e517b3107b0496dccf134f303cad254"
+    },
+    {
+      "path": "workflow-fixtures/beep-reporting-v1.json",
+      "sha256": "d2d8624e1587eae1384feb5aa09cabcdc3880023c088924604d20a83e2494fc3"
+    },
+    {
+      "path": "beep-reporting-full-preflight-v2/preflight.json",
+      "sha256": "ea939ddf23cfc27461fc53ec9d74a420c264a564d97bb837e3581eb514173786"
+    },
+    {
+      "path": "preflight-reporting-execution.mjs",
+      "sha256": "8aa3fced5ef6f57d63e7995dd0f4d3e0afd08bdc5ec77b61aeb1427d0aafd8d4"
+    },
+    {
+      "path": "beep-reporting-v1-startup-failure.json",
+      "sha256": "fe452888a36c2bb34bd876ee1b9b31654e18716a7b431b57b9c90078c5cc2ada"
+    },
+    {
+      "path": "harness-revisions/reporting-execution-v1.mjs",
+      "sha256": "2e22292151e515bbc79b8dd9df6af93a301802e64607d3439b88d37933577741"
+    }
+  ],
+  "harness_sha256": "baedd016cfd7502a237c9255b1dfba8f7e150357f04cc8e2b29c2865773fce58",
+  "acceptance": "All six execution cases per sample, complete strict native audits, all actual facts/summary/tracker/conversation outputs independently reviewed. Five fresh samples per arm, exact authoritative file preservation and source-fact/economics checks; no failed sample replacement. Pre-write normalisation and peer handling unchanged and excluded. No full build loop, run-close/andon or hosted publication claim.",
+  "initial_model_samples": 0
+}

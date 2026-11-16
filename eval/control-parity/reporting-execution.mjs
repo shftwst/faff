@@ -6,7 +6,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
 import { bindCandidateCommand, assertCandidateCommandUnchanged } from './candidate-command.mjs';
-import { canonicalHash, sha256 } from './schema.mjs';
+import { sha256 } from './schema.mjs';
 import { createPolicyReader, POLICY_TOOL } from './policy-reader.mjs';
 import { serveMailbox } from './interactive-handoff.mjs';
 
@@ -231,7 +231,7 @@ export async function runReportingExecution({ root, commit, policyPath, fixtureP
   const env = createReportingEnvironment({ root: work, runtimeRoot: root, cli, fixture }), reader = createPolicyReader(policyBytes);
   const task = { instructions: 'Read the complete policy. Handle each independent reporting checkpoint from its supplied observations. Earlier workflow acquisition, run closure when appropriate and adaptor resolution are fixture preconditions. Use run summary with the exact supplied run-dir and facts paths and --root to scope the disposable project. For successful reports, this workload requests the full canonical summary in both publication channels, with the required condensed economics line appended to the tracker post. Use the controlled rendering and publication ports. If the queue must continue, dispatch it instead of finalising. No live tracker or forge operations, actual builds, profile acquisition, or reconstruction of previous phases. The command handler uses real file persistence and fixed external dependencies; the rendering port is an identity stub, not a test of rendering quality or pre-write normalisation inside the command. Finish after all cases.', policy: reader.metadata, resolved_executable: cli, tools: [POLICY_TOOL, ...REPORTING_TOOLS], cases: env.publicCases };
   write(join(output, 'task.json'), task);
-  write(join(output, 'manifest.json'), { schema: 1, kind: 'reporting-command-handler-execution', binding, invoked_command: ['run', 'summary'], fixture_sha256: sha256(fixtureBytes), policy_sha256: sha256(policyBytes), task_sha256: canonicalHash(task), harness_sha256: sha256(readFileSync(SELF)), policy_reader_sha256: sha256(readFileSync(new URL('./policy-reader.mjs', import.meta.url))), scope: fixture.scope, accounting: 'unmetered' });
+  write(join(output, 'manifest.json'), { schema: 1, kind: 'reporting-command-handler-execution', binding, invoked_command: ['run', 'summary'], fixture_sha256: sha256(fixtureBytes), policy_sha256: sha256(policyBytes), task_sha256: sha256(JSON.stringify(task, null, 2) + '\n'), harness_sha256: sha256(readFileSync(SELF)), policy_reader_sha256: sha256(readFileSync(new URL('./policy-reader.mjs', import.meta.url))), scope: fixture.scope, accounting: 'unmetered' });
   write(join(output, 'ready.json'), { ready: true });
   try {
     const bridge = await serveMailbox(output, reader.guard(env.call), { allowedTools: new Set(['read_policy', ...REPORTING_TOOLS.map(value => value.name)]), maxRequests: 160, timeoutMs: 900000 });

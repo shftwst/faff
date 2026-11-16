@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "accepted": true,
+  "status": "qualified-bounded-prd-production-and-run-start-consumption",
+  "model": "gpt-6-astra",
+  "effort": "low",
+  "source_sha256": "c0296bbf7b29ec22a8da958a64788b81d21f730bd9183c4e18d521ba7a256aeb",
+  "source_review": "prd-producer-v1-source-review.json",
+  "source_review_sha256": "422f2af1b39edaac38d6c4d4ff55c9137d6e231e8f530ea270ab0f44e3fc49b3",
+  "fixed_context_sha256": "d39dad2994a9b1c17f8b2d514e229217d7643b5786418ee68b24f956c07d2773",
+  "native_qualification": "prd-producer-astra-v2-native-qualification.json",
+  "native_qualification_sha256": "b5ee16e3d2aa981b947d4318881e48e6ca2332eeb7c56d2e025f77e2c032f626",
+  "manual_artifact_review": "manual-artifact-reviews/prd-astra-v2.json",
+  "manual_artifact_review_sha256": "69c3b573f7607a685f9488ea04e21241d6787ec3b32c2000946dad09b9629856",
+  "before": {
+    "artifacts_passed": 30,
+    "artifacts_total": 30,
+    "decisions_passed": 40,
+    "decisions_total": 40,
+    "native_samples_passed": 5
+  },
+  "after": {
+    "artifacts_passed": 30,
+    "artifacts_total": 30,
+    "decisions_passed": 40,
+    "decisions_total": 40,
+    "native_samples_passed": 5
+  },
+  "downstream_replay": {
+    "report": "prd-run-start-replay-v1/report.json",
+    "report_sha256": "90c1bc4dd473383a6b49361c264538bd6d753e2934afcac77a2ec892a55ab4bb",
+    "manifest_sha256": "94bc0b488d4490a7f995bb8f0dab1c64e94ba92066d48d35a53b0f89f57bceeb",
+    "artifacts": 60,
+    "run_start_cases_passed": 240,
+    "run_start_cases_total": 240,
+    "forged_decisions_rejected": 240
+  },
+  "integration": {
+    "tests_passed": 539,
+    "tests_failed": 0,
+    "adapter_lint": "pass",
+    "checks": [
+      {
+        "path": "deterministic-checks/prd-astra-v2-integration-tests.txt",
+        "sha256": "10bfc50262b602883543c968545a1a63f9e7ba1aff9b61ad8245ed7a29ece222"
+      },
+      {
+        "path": "deterministic-checks/prd-astra-v2-adapter-lint.txt",
+        "sha256": "f204352e316707ec6cf88e9f80c07cf447b9ac577a125bd25656f1a556f5821d"
+      }
+    ]
+  },
+  "mandatory_dependencies_added": [],
+  "limits": [
+    "Fresh five-versus-five Astra-low comparison; Claude partial samples and the earlier Astra protocol failure are excluded.",
+    "The model reads supplied PRDs and emits persisted artifacts consumed by the real prd-readiness CLI. The root separately read all sixty outputs.",
+    "Additional downstream replay uses the actual artifacts, real coverage/run-start/run-trigger commands and controlled target/coverage inputs. It is deterministic caller wiring, not another model sample.",
+    "No actual run mint, live tracker acquisition, full beep-boop workflow, statistical equivalence or provider token/cost saving is claimed."
+  ]
+}

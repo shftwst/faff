@@ -1144,8 +1144,8 @@ export function loadParkReconsiderProse(pluginDir = DEFAULT_PLUGIN_DIR) {
 }
 // FAFF-1095 — the prd-readiness rubric lives in faffter-noon-prd's own SKILL.md ("## The rubric" section).
 // Anchors verified unique at wiring time.
-const PRD_READINESS_PROSE_START = "\n## The rubric (the LLM applies this)\n";
-const PRD_READINESS_PROSE_END = "\n## Output (the contract artifact)\n";
+const PRD_READINESS_PROSE_START = "\n## Rubric\n";
+const PRD_READINESS_PROSE_END = "\n## Output\n";
 export function loadPrdReadinessProse(pluginDir = DEFAULT_PLUGIN_DIR) {
   const p = join(pluginDir, "skills", "faffter-noon-prd", "SKILL.md");
   return extractSection(p, PRD_READINESS_PROSE_START, PRD_READINESS_PROSE_END, "loadPrdReadinessProse");

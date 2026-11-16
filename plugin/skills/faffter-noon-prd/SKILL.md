@@ -7,29 +7,26 @@ judgement_seam: prd-readiness
 
 # faffter-noon-prd
 
-The default occupant of the **`prd`** slot — the LLM half of the PRD-admissibility gate. Given a container's PRD document — and **nothing else** — it answers one question the L4 run-start gate needs before a lights-out run may mint: does this PRD state a machine-verifiable done-signal, so an unattended run is terminable and auditable rather than free to loop forever against vague prose goals? It emits one `faff-contract:prd-readiness` verdict; the deterministic `faff contract prd-readiness` check validates that verdict's shape and makes the admit/refuse call.
+Default `prd` slot: judge a container PRD's machine-verifiable stop conditions and creative licence before an L4 run can mint. Emit a `faff-contract:prd-readiness` verdict; `faff contract prd-readiness` alone validates and admits/refuses it. Missing or malformed output never admits.
 
-> When standalone, Read the sibling `faff/references/kernel.md` (the shared kernel) first — it holds the shared rules and the fixed contracts. This recap is non-normative; the gateway kernel wins.
+When standalone, first Read `faff/references/kernel.md` for shared rules and fixed contracts; the kernel wins over this recap.
 
-## What it does
+## Input
 
-One pass turns a PRD document into one verdict block. The verdict is a **contract**, not an implementation — the caller branches on the block, never on how the PRD was read, so any validator conforms by emitting the same block. The trust boundary is fixed: the LLM judges the two rubric questions below; `faff contract prd-readiness` validates the block's shape and is the sole gate. The gate is fail-safe toward **refusal** — a malformed or missing block never coerces toward `admissible`.
+Read the PRD document at the supplied absolute path, resolved upstream by `faff prd path <container>`. It is the only task input. Never read the codebase, tracker, run context or specs to judge readiness; this verdict describes the PRD, not implementation quality.
 
-## Inputs
+## Rubric
 
-- **The PRD document** — given as an absolute file path (resolved upstream by `faff prd path <container>`), which this skill reads. That one PRD file is the *only* thing it reads.
-- **Never** the codebase, the tracker, the run context, or any spec. Code-blind by construction: the verdict describes the PRD, not an implementation, so it cannot be talked into a pass by plausible code.
+| Question | Judgement |
+|---|---|
+| Verifiable stop conditions? | At least one concrete machine-checkable Given/When/Then scenario or single MUST/comparator assertion makes `stop_conditions_verifiable` true. If all criteria are absent or vague, it is false. "Stable system" or "satisfied users" is insufficient. |
+| Creative licence? | `tight` when technology, API shapes or data models are prescribed; `broad` when goals/behaviours leave wide implementation space. Carry this downstream for scope strictness; it never decides this gate. |
 
-## The rubric (the LLM applies this)
+At least one verifiable stop condition gives `admissible`; none gives `not-ready`. Judge only what is written. Never invent criteria or soften a vague PRD to unblock a run. When uncertain, choose `not-ready`.
 
-1. **Stop-conditions verifiable?** — Are the PRD's done-criteria concrete and machine-checkable? Each must be either a Given/When/Then scenario or a single MUST/comparator assertion. Loose prose ("the system should be stable", "users will be satisfied") is **not** verifiable. `stop_conditions_verifiable: true` requires at least one verifiable stop-condition; `false` when all criteria are vague or absent.
-2. **Creative-licence envelope** (`broad` | `tight`) — How much latitude does the implementation team have? `tight` = the PRD prescribes specific implementation choices (technology, API shapes, data models). `broad` = the PRD states goals/behaviours with wide implementation space. Forward-carried to calibrate downstream scope strictness; it is **never** gate-decisive here.
+## Output
 
-**Verdict:** `admissible` when at least one stop-condition is verifiable; `not-ready` when all criteria are vague or absent.
-
-## Output (the contract artifact)
-
-Emit exactly one fenced block **last** in output — the caller locates it, `JSON.parse`s it, and pipes it to `faff contract prd-readiness` (the sole source of contract data):
+Emit exactly one valid JSON block, last in the output:
 
 ```faff-contract:prd-readiness
 { "verdict": "admissible",
@@ -38,14 +35,6 @@ Emit exactly one fenced block **last** in output — the caller locates it, `JSO
   "creative_licence": "broad" }
 ```
 
-Shape rules the contract enforces — emit a conformant block, do not re-validate here:
+`admissible` requires true and an empty reason. For `not-ready`, use false and the non-empty closed reason for missing done-criteria, present but uncheckable criteria, or another reason. Canonical values and semantics: `faff contract prd-readiness --describe`.
 
-- `verdict` and `creative_licence` are each one of a closed pair (canonical semantics: `faff contract prd-readiness --describe`).
-- `admissible` requires `stop_conditions_verifiable: true` and an **empty** `reason`.
-- `not-ready` carries a non-empty `reason` from the closed reason set — no done-criteria at all, criteria present but none machine-checkable, or a reason outside that pair.
-
-## Rules
-
-- Judge the PRD as written — never infer stop-conditions the PRD does not state, and never soften a vague PRD toward `admissible` to unblock a run. When in doubt, `not-ready` is the safe verdict.
-- Produce the block; the admit/refuse decision belongs to the caller piping it to `faff contract prd-readiness`. This skill emits a verdict, it does not gate.
-- A swapped-in validator (a different rubric or model) conforms by emitting the same block.
+The caller parses the block and pipes it to the contract CLI, the sole source of contract data and gate authority. Emit conformant data; do not re-validate or make the caller's admission decision. A replacement rubric or model conforms through the same block.

@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All six cases finished and their verdicts were persisted. All eight policy questions were answered. The bridge confirmed successful finish.\n\nNo departures from the restrictions.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e434-961d-76d0-8c55-7b19ab99fe87"
+    ],
+    "elapsed_seconds": 247.5,
+    "stdout_sha256": "4adcf61e67a0d00920caccc530794ac6fa7fd0d538ba521d365f973fca75115e",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

@@ -1,0 +1,411 @@
+{
+  "schema": 1,
+  "qualification_status": "requires-separate-native-protocol-review",
+  "status": "pass",
+  "plans": [
+    "verification/experiments/2026-11-16-skill-diet/prd-producer-astra-v2-baseline-plan.json",
+    "verification/experiments/2026-11-16-skill-diet/prd-producer-astra-v2-candidate-plan.json"
+  ],
+  "arms": {
+    "baseline": {
+      "case_kinds": {
+        "producer-artifact": {
+          "passed": 30,
+          "total": 30
+        },
+        "decision": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "runs": 5,
+      "passed": 70,
+      "total": 70,
+      "recorded_data_bytes": 575680,
+      "estimated_recorded_data_tokens": 142920
+    },
+    "candidate": {
+      "case_kinds": {
+        "producer-artifact": {
+          "passed": 30,
+          "total": 30
+        },
+        "decision": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "runs": 5,
+      "passed": 70,
+      "total": 70,
+      "recorded_data_bytes": 566940,
+      "estimated_recorded_data_tokens": 140765
+    }
+  },
+  "missing": [],
+  "problems": [],
+  "normalised_effect_state_gate_projections_equal": null,
+  "bounded_output_projections_equal": true,
+  "artifact_rubric_projections_equal": null,
+  "runs": [
+    {
+      "case_kinds": {
+        "producer-artifact": {
+          "passed": 6,
+          "total": 6
+        },
+        "decision": {
+          "passed": 8,
+          "total": 8
+        }
+      },
+      "name": "prd-producer-astra-v2-baseline-1",
+      "arm": "baseline",
+      "kind": "prd-producer-consumption",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 14,
+      "diagnostics": [],
+      "policy_sha256": "2968e7a588cf5a75e6abfa0a33c71cd410d7553f4dd741880759fef9b34189ef",
+      "projection_sha256": "6a87be07a57351625c575d0f8faae6582c1570cba59fe52f3cc70cf9e4f255a9",
+      "policy_chunks": 17,
+      "cases_passed": 14,
+      "cases_total": 14,
+      "config_path_reads": null,
+      "event_counts": {
+        "describe_contract": 1,
+        "read_prd": 6,
+        "submit_verdict": 6,
+        "answer_rule": 8,
+        "finish": 1
+      },
+      "recorded_data_bytes": 115136,
+      "estimated_recorded_data_tokens": 28584
+    },
+    {
+      "case_kinds": {
+        "producer-artifact": {
+          "passed": 6,
+          "total": 6
+        },
+        "decision": {
+          "passed": 8,
+          "total": 8
+        }
+      },
+      "name": "prd-producer-astra-v2-baseline-2",
+      "arm": "baseline",
+      "kind": "prd-producer-consumption",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 14,
+      "diagnostics": [],
+      "policy_sha256": "2968e7a588cf5a75e6abfa0a33c71cd410d7553f4dd741880759fef9b34189ef",
+      "projection_sha256": "6a87be07a57351625c575d0f8faae6582c1570cba59fe52f3cc70cf9e4f255a9",
+      "policy_chunks": 17,
+      "cases_passed": 14,
+      "cases_total": 14,
+      "config_path_reads": null,
+      "event_counts": {
+        "describe_contract": 1,
+        "read_prd": 6,
+        "submit_verdict": 6,
+        "answer_rule": 8,
+        "finish": 1
+      },
+      "recorded_data_bytes": 115136,
+      "estimated_recorded_data_tokens": 28584
+    },
+    {
+      "case_kinds": {
+        "producer-artifact": {
+          "passed": 6,
+          "total": 6
+        },
+        "decision": {
+          "passed": 8,
+          "total": 8
+        }
+      },
+      "name": "prd-producer-astra-v2-baseline-3",
+      "arm": "baseline",
+      "kind": "prd-producer-consumption",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 14,
+      "diagnostics": [],
+      "policy_sha256": "2968e7a588cf5a75e6abfa0a33c71cd410d7553f4dd741880759fef9b34189ef",
+      "projection_sha256": "6a87be07a57351625c575d0f8faae6582c1570cba59fe52f3cc70cf9e4f255a9",
+      "policy_chunks": 17,
+      "cases_passed": 14,
+      "cases_total": 14,
+      "config_path_reads": null,
+      "event_counts": {
+        "describe_contract": 1,
+        "read_prd": 6,
+        "submit_verdict": 6,
+        "answer_rule": 8,
+        "finish": 1
+      },
+      "recorded_data_bytes": 115136,
+      "estimated_recorded_data_tokens": 28584
+    },
+    {
+      "case_kinds": {
+        "producer-artifact": {
+          "passed": 6,
+          "total": 6
+        },
+        "decision": {
+          "passed": 8,
+          "total": 8
+        }
+      },
+      "name": "prd-producer-astra-v2-baseline-4",
+      "arm": "baseline",
+      "kind": "prd-producer-consumption",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 14,
+      "diagnostics": [],
+      "policy_sha256": "2968e7a588cf5a75e6abfa0a33c71cd410d7553f4dd741880759fef9b34189ef",
+      "projection_sha256": "6a87be07a57351625c575d0f8faae6582c1570cba59fe52f3cc70cf9e4f255a9",
+      "policy_chunks": 17,
+      "cases_passed": 14,
+      "cases_total": 14,
+      "config_path_reads": null,
+      "event_counts": {
+        "describe_contract": 1,
+        "read_prd": 6,
+        "submit_verdict": 6,
+        "answer_rule": 8,
+        "finish": 1
+      },
+      "recorded_data_bytes": 115136,
+      "estimated_recorded_data_tokens": 28584
+    },
+    {
+      "case_kinds": {
+        "producer-artifact": {
+          "passed": 6,
+          "total": 6
+        },
+        "decision": {
+          "passed": 8,
+          "total": 8
+        }
+      },
+      "name": "prd-producer-astra-v2-baseline-5",
+      "arm": "baseline",
+      "kind": "prd-producer-consumption",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 14,
+      "diagnostics": [],
+      "policy_sha256": "2968e7a588cf5a75e6abfa0a33c71cd410d7553f4dd741880759fef9b34189ef",
+      "projection_sha256": "6a87be07a57351625c575d0f8faae6582c1570cba59fe52f3cc70cf9e4f255a9",
+      "policy_chunks": 17,
+      "cases_passed": 14,
+      "cases_total": 14,
+      "config_path_reads": null,
+      "event_counts": {
+        "describe_contract": 1,
+        "read_prd": 6,
+        "submit_verdict": 6,
+        "answer_rule": 8,
+        "finish": 1
+      },
+      "recorded_data_bytes": 115136,
+      "estimated_recorded_data_tokens": 28584
+    },
+    {
+      "case_kinds": {
+        "producer-artifact": {
+          "passed": 6,
+          "total": 6
+        },
+        "decision": {
+          "passed": 8,
+          "total": 8
+        }
+      },
+      "name": "prd-producer-astra-v2-candidate-1",
+      "arm": "candidate",
+      "kind": "prd-producer-consumption",
+      "report_sha256": "477af5d4faf6bc9253e612fa3e1cceab021d6224949f41a3f5aa431d99fe4d96",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 14,
+      "diagnostics": [],
+      "policy_sha256": "4221f145fb4306a0140eb780d1aa80140f30f0fdae6a6330b6e63d1634fa6879",
+      "projection_sha256": "6a87be07a57351625c575d0f8faae6582c1570cba59fe52f3cc70cf9e4f255a9",
+      "policy_chunks": 17,
+      "cases_passed": 14,
+      "cases_total": 14,
+      "config_path_reads": null,
+      "event_counts": {
+        "describe_contract": 1,
+        "read_prd": 6,
+        "submit_verdict": 6,
+        "answer_rule": 8,
+        "finish": 1
+      },
+      "recorded_data_bytes": 113388,
+      "estimated_recorded_data_tokens": 28153
+    },
+    {
+      "case_kinds": {
+        "producer-artifact": {
+          "passed": 6,
+          "total": 6
+        },
+        "decision": {
+          "passed": 8,
+          "total": 8
+        }
+      },
+      "name": "prd-producer-astra-v2-candidate-2",
+      "arm": "candidate",
+      "kind": "prd-producer-consumption",
+      "report_sha256": "477af5d4faf6bc9253e612fa3e1cceab021d6224949f41a3f5aa431d99fe4d96",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 14,
+      "diagnostics": [],
+      "policy_sha256": "4221f145fb4306a0140eb780d1aa80140f30f0fdae6a6330b6e63d1634fa6879",
+      "projection_sha256": "6a87be07a57351625c575d0f8faae6582c1570cba59fe52f3cc70cf9e4f255a9",
+      "policy_chunks": 17,
+      "cases_passed": 14,
+      "cases_total": 14,
+      "config_path_reads": null,
+      "event_counts": {
+        "describe_contract": 1,
+        "read_prd": 6,
+        "submit_verdict": 6,
+        "answer_rule": 8,
+        "finish": 1
+      },
+      "recorded_data_bytes": 113388,
+      "estimated_recorded_data_tokens": 28153
+    },
+    {
+      "case_kinds": {
+        "producer-artifact": {
+          "passed": 6,
+          "total": 6
+        },
+        "decision": {
+          "passed": 8,
+          "total": 8
+        }
+      },
+      "name": "prd-producer-astra-v2-candidate-3",
+      "arm": "candidate",
+      "kind": "prd-producer-consumption",
+      "report_sha256": "477af5d4faf6bc9253e612fa3e1cceab021d6224949f41a3f5aa431d99fe4d96",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 14,
+      "diagnostics": [],
+      "policy_sha256": "4221f145fb4306a0140eb780d1aa80140f30f0fdae6a6330b6e63d1634fa6879",
+      "projection_sha256": "6a87be07a57351625c575d0f8faae6582c1570cba59fe52f3cc70cf9e4f255a9",
+      "policy_chunks": 17,
+      "cases_passed": 14,
+      "cases_total": 14,
+      "config_path_reads": null,
+      "event_counts": {
+        "describe_contract": 1,
+        "read_prd": 6,
+        "submit_verdict": 6,
+        "answer_rule": 8,
+        "finish": 1
+      },
+      "recorded_data_bytes": 113388,
+      "estimated_recorded_data_tokens": 28153
+    },
+    {
+      "case_kinds": {
+        "producer-artifact": {
+          "passed": 6,
+          "total": 6
+        },
+        "decision": {
+          "passed": 8,
+          "total": 8
+        }
+      },
+      "name": "prd-producer-astra-v2-candidate-4",
+      "arm": "candidate",
+      "kind": "prd-producer-consumption",
+      "report_sha256": "477af5d4faf6bc9253e612fa3e1cceab021d6224949f41a3f5aa431d99fe4d96",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 14,
+      "diagnostics": [],
+      "policy_sha256": "4221f145fb4306a0140eb780d1aa80140f30f0fdae6a6330b6e63d1634fa6879",
+      "projection_sha256": "6a87be07a57351625c575d0f8faae6582c1570cba59fe52f3cc70cf9e4f255a9",
+      "policy_chunks": 17,
+      "cases_passed": 14,
+      "cases_total": 14,
+      "config_path_reads": null,
+      "event_counts": {
+        "describe_contract": 1,
+        "read_prd": 6,
+        "submit_verdict": 6,
+        "answer_rule": 8,
+        "finish": 1
+      },
+      "recorded_data_bytes": 113388,
+      "estimated_recorded_data_tokens": 28153
+    },
+    {
+      "case_kinds": {
+        "producer-artifact": {
+          "passed": 6,
+          "total": 6
+        },
+        "decision": {
+          "passed": 8,
+          "total": 8
+        }
+      },
+      "name": "prd-producer-astra-v2-candidate-5",
+      "arm": "candidate",
+      "kind": "prd-producer-consumption",
+      "report_sha256": "477af5d4faf6bc9253e612fa3e1cceab021d6224949f41a3f5aa431d99fe4d96",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 14,
+      "diagnostics": [],
+      "policy_sha256": "4221f145fb4306a0140eb780d1aa80140f30f0fdae6a6330b6e63d1634fa6879",
+      "projection_sha256": "6a87be07a57351625c575d0f8faae6582c1570cba59fe52f3cc70cf9e4f255a9",
+      "policy_chunks": 17,
+      "cases_passed": 14,
+      "cases_total": 14,
+      "config_path_reads": null,
+      "event_counts": {
+        "describe_contract": 1,
+        "read_prd": 6,
+        "submit_verdict": 6,
+        "answer_rule": 8,
+        "finish": 1
+      },
+      "recorded_data_bytes": 113388,
+      "estimated_recorded_data_tokens": 28153
+    }
+  ],
+  "limits": [
+    "Payload proxy counts task JSON plus compact successful bridge-response values, including policy chunks, each counted once. It excludes native tool framing, system/catalog/history, model output and cached reprocessing; it is not provider usage or billed cost.",
+    "Token estimate is ceil(UTF-16 characters/4) per payload, summed.",
+    "Effect and state comparison uses only the predeclared path/time/read normalisations. Finding prose varies and is graded separately by the fixture.",
+    "Native screens are retained separately and require protocol review; this numerical summary does not certify absence of out-of-bridge activity.",
+    "Rendering compares persisted artifact integrity and fact/form rubric outcomes, not byte-identical prose or subjective quality. Artifact, execution and decision counts are reported separately.",
+    "Named-output comparisons project only the requested fields and consumer outcomes; free-form artifact descriptions require a separate reading. Catalogue choices do not execute workflows.",
+    "Small correlated samples do not establish statistical equivalence."
+  ]
+}

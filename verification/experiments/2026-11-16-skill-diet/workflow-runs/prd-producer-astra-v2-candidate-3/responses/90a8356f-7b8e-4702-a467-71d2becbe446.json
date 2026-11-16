@@ -1,0 +1,7 @@
+{
+  "ok": true,
+  "value": {
+    "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-astra-v2-candidate-3/prds/comparator-tight.md",
+    "text": "# Product goal\nProvide a health endpoint.\n\n## Implementation constraints\nUse Node 22, PostgreSQL and GET /health.\n\n## Done\nGET /health MUST return HTTP 200 in under 100 ms for each of 100 consecutive local requests.\n"
+  }
+}

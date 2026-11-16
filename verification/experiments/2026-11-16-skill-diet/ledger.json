@@ -407,7 +407,7 @@
   },
   "load_manifest": "load-manifest.json",
   "baseline_loads": "baseline/loads.json",
-  "latest_loads": "adversarial-v3-after-loads.json",
+  "latest_loads": "rendering-v2-after-loads.json",
   "pending_slices": [
     {
       "path": "plugin/skills/faff/references/kernel.md",

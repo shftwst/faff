@@ -1,0 +1,13 @@
+{
+  "at_utc": "2026-11-16T06:28:50.390160+00:00",
+  "scheduler_pids": [
+    791686,
+    791008
+  ],
+  "active_samples": [
+    "adversarial-delivery-v2-candidate-1",
+    "challenges-delivery-v2-candidate-2"
+  ],
+  "action": "Pause scheduler processes only; allow already submitted samples and harnesses to finish. Save final screens and reports, then terminate paused schedulers.",
+  "reason": "Native screen audit found mandatory global guidance read outside the fixture-only instruction in gateway baseline-2 and candidates 2 and 3. Fix the conflicting common-context setup before further qualification. All recorded grades and protocol failures remain unchanged."
+}

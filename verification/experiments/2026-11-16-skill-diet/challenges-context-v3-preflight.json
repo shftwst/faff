@@ -1,0 +1,1479 @@
+{
+  "grade": {
+    "status": "pass",
+    "cases": [
+      {
+        "id": "adr-1",
+        "pass": true,
+        "problems": [],
+        "outcome": "survived",
+        "ground": null,
+        "disposition": "admit",
+        "upper_admit": null
+      },
+      {
+        "id": "adr-2",
+        "pass": true,
+        "problems": [],
+        "outcome": "overturned",
+        "ground": null,
+        "disposition": "reject",
+        "upper_admit": null
+      },
+      {
+        "id": "adr-unavailable",
+        "pass": true,
+        "problems": [],
+        "outcome": null,
+        "ground": null,
+        "disposition": "reject",
+        "upper_admit": null
+      },
+      {
+        "id": "prdr-1",
+        "pass": true,
+        "problems": [],
+        "outcome": "survived",
+        "ground": null,
+        "disposition": "admit",
+        "upper_admit": true
+      },
+      {
+        "id": "prdr-2",
+        "pass": true,
+        "problems": [],
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "disposition": "reject",
+        "upper_admit": false
+      },
+      {
+        "id": "prdr-under-citation",
+        "pass": true,
+        "problems": [],
+        "outcome": "survived",
+        "ground": null,
+        "disposition": "admit",
+        "upper_admit": true
+      },
+      {
+        "id": "prdr-unserved",
+        "pass": true,
+        "problems": [],
+        "outcome": "overturned",
+        "ground": "unserved",
+        "disposition": "reject",
+        "upper_admit": false
+      },
+      {
+        "id": "prdr-unavailable",
+        "pass": true,
+        "problems": [],
+        "outcome": null,
+        "ground": null,
+        "disposition": "reject",
+        "upper_admit": false
+      }
+    ],
+    "errors": []
+  },
+  "capture": {
+    "events": [
+      {
+        "seq": 1,
+        "name": "submit_challenge",
+        "args": {
+          "case_id": "adr-1",
+          "outcome": "survived",
+          "ground": null,
+          "reason": "Programmatic recorder preflight uses the frozen oracle."
+        },
+        "case_id": "adr-1",
+        "result": {
+          "challenge": {
+            "case_id": "adr-1",
+            "outcome": "survived",
+            "ground": null,
+            "reason": "Programmatic recorder preflight uses the frozen oracle."
+          },
+          "calls": [
+            {
+              "args": [
+                "adr",
+                "admit",
+                "fixture",
+                "--actor",
+                "loop",
+                "--supersedes-provenance",
+                "loop",
+                "--challenge",
+                "survived"
+              ],
+              "exit_code": 0,
+              "stdout": "{\"disposition\":\"admit\",\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"challenge\":{\"ran\":true,\"outcome\":\"survived\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[],\"conformant\":true,\"violations\":[]}\n",
+              "stderr": ""
+            }
+          ],
+          "upper": null,
+          "admission": {
+            "disposition": "admit",
+            "authority": {
+              "actor": "loop",
+              "supersedes_provenance": "loop",
+              "by_level": "ok"
+            },
+            "challenge": {
+              "ran": true,
+              "outcome": "survived"
+            },
+            "ratchet": {
+              "lineage_supersessions": 0,
+              "breached": false
+            },
+            "reasons": [],
+            "conformant": true,
+            "violations": []
+          }
+        }
+      },
+      {
+        "seq": 2,
+        "name": "submit_challenge",
+        "args": {
+          "case_id": "adr-2",
+          "outcome": "overturned",
+          "ground": null,
+          "reason": "Programmatic recorder preflight uses the frozen oracle."
+        },
+        "case_id": "adr-2",
+        "result": {
+          "challenge": {
+            "case_id": "adr-2",
+            "outcome": "overturned",
+            "ground": null,
+            "reason": "Programmatic recorder preflight uses the frozen oracle."
+          },
+          "calls": [
+            {
+              "args": [
+                "adr",
+                "admit",
+                "fixture",
+                "--actor",
+                "loop",
+                "--supersedes-provenance",
+                "loop",
+                "--challenge",
+                "overturned"
+              ],
+              "exit_code": 0,
+              "stdout": "{\"disposition\":\"reject\",\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"challenge\":{\"ran\":true,\"outcome\":\"overturned\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"drift challenge overturned — the adversarial reviewer found the supersession argument unsound\"],\"conformant\":true,\"violations\":[]}\n",
+              "stderr": ""
+            }
+          ],
+          "upper": null,
+          "admission": {
+            "disposition": "reject",
+            "authority": {
+              "actor": "loop",
+              "supersedes_provenance": "loop",
+              "by_level": "ok"
+            },
+            "challenge": {
+              "ran": true,
+              "outcome": "overturned"
+            },
+            "ratchet": {
+              "lineage_supersessions": 0,
+              "breached": false
+            },
+            "reasons": [
+              "drift challenge overturned — the adversarial reviewer found the supersession argument unsound"
+            ],
+            "conformant": true,
+            "violations": []
+          }
+        }
+      },
+      {
+        "seq": 3,
+        "name": "submit_challenge",
+        "args": {
+          "case_id": "adr-unavailable",
+          "outcome": null,
+          "ground": null,
+          "reason": "Programmatic recorder preflight uses the frozen oracle."
+        },
+        "case_id": "adr-unavailable",
+        "result": {
+          "challenge": {
+            "case_id": "adr-unavailable",
+            "outcome": null,
+            "ground": null,
+            "reason": "Programmatic recorder preflight uses the frozen oracle."
+          },
+          "calls": [
+            {
+              "args": [
+                "adr",
+                "admit",
+                "fixture",
+                "--actor",
+                "loop",
+                "--supersedes-provenance",
+                "loop"
+              ],
+              "exit_code": 0,
+              "stdout": "{\"disposition\":\"reject\",\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"challenge\":{\"ran\":false,\"outcome\":\"absent\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"drift challenge absent — no adversarial review ran, or it was unreachable after its fallback chain; a missing skeptic is a reject, never a pass\"],\"conformant\":true,\"violations\":[]}\n",
+              "stderr": ""
+            }
+          ],
+          "upper": null,
+          "admission": {
+            "disposition": "reject",
+            "authority": {
+              "actor": "loop",
+              "supersedes_provenance": "loop",
+              "by_level": "ok"
+            },
+            "challenge": {
+              "ran": false,
+              "outcome": "absent"
+            },
+            "ratchet": {
+              "lineage_supersessions": 0,
+              "breached": false
+            },
+            "reasons": [
+              "drift challenge absent — no adversarial review ran, or it was unreachable after its fallback chain; a missing skeptic is a reject, never a pass"
+            ],
+            "conformant": true,
+            "violations": []
+          }
+        }
+      },
+      {
+        "seq": 4,
+        "name": "submit_challenge",
+        "args": {
+          "case_id": "prdr-1",
+          "outcome": "survived",
+          "ground": null,
+          "reason": "Programmatic recorder preflight uses the frozen oracle."
+        },
+        "case_id": "prdr-1",
+        "result": {
+          "challenge": {
+            "case_id": "prdr-1",
+            "outcome": "survived",
+            "ground": null,
+            "reason": "Programmatic recorder preflight uses the frozen oracle."
+          },
+          "calls": [
+            {
+              "args": [
+                "prdr",
+                "yagni",
+                "--prd-goal",
+                "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.",
+                "--prd-goals",
+                "[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\",\"The merge-floor logic (AC + CI + review) stays the single source of truth for merge eligibility\"]",
+                "--proposal",
+                "admit",
+                "--proposal-reason",
+                "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).",
+                "--serves-goal",
+                "--within-scope",
+                "--challenge",
+                "survived",
+                "--challenge-reason",
+                "Programmatic recorder preflight uses the frozen oracle."
+              ],
+              "exit_code": 0,
+              "stdout": "{\"admit\":true,\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\",\"trace_to_goal\":true,\"cited_goals\":[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\"],\"dod_covers\":[],\"over_scope\":false,\"proposal\":{\"serves_goal\":true,\"within_scope\":true,\"verdict\":\"admit\",\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\"},\"challenge\":{\"ran\":true,\"overturns\":false,\"reason\":\"Programmatic recorder preflight uses the frozen oracle.\",\"ground\":\"other\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+              "stderr": ""
+            },
+            {
+              "args": [
+                "prdr",
+                "admit",
+                "fixture",
+                "--actor",
+                "loop",
+                "--supersedes-provenance",
+                "loop",
+                "--upper",
+                "{\"admit\":true,\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\"}"
+              ],
+              "exit_code": 0,
+              "stdout": "{\"disposition\":\"admit\",\"upper\":{\"admit\":true,\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[],\"conformant\":true,\"violations\":[]}\n",
+              "stderr": ""
+            }
+          ],
+          "upper": {
+            "admit": true,
+            "reason": "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).",
+            "trace_to_goal": true,
+            "cited_goals": [
+              "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD."
+            ],
+            "dod_covers": [],
+            "over_scope": false,
+            "proposal": {
+              "serves_goal": true,
+              "within_scope": true,
+              "verdict": "admit",
+              "reason": "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference)."
+            },
+            "challenge": {
+              "ran": true,
+              "overturns": false,
+              "reason": "Programmatic recorder preflight uses the frozen oracle.",
+              "ground": "other"
+            },
+            "grounding_present": false,
+            "conformant": true,
+            "violations": []
+          },
+          "admission": {
+            "disposition": "admit",
+            "upper": {
+              "admit": true,
+              "reason": "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference)."
+            },
+            "lower": {
+              "covered": true,
+              "uncovered_goals": []
+            },
+            "authority": {
+              "actor": "loop",
+              "supersedes_provenance": "loop",
+              "by_level": "ok"
+            },
+            "ratchet": {
+              "lineage_supersessions": 0,
+              "breached": false
+            },
+            "reasons": [],
+            "conformant": true,
+            "violations": []
+          }
+        }
+      },
+      {
+        "seq": 5,
+        "name": "submit_challenge",
+        "args": {
+          "case_id": "prdr-2",
+          "outcome": "overturned",
+          "ground": "over-scope",
+          "reason": "Programmatic recorder preflight uses the frozen oracle."
+        },
+        "case_id": "prdr-2",
+        "result": {
+          "challenge": {
+            "case_id": "prdr-2",
+            "outcome": "overturned",
+            "ground": "over-scope",
+            "reason": "Programmatic recorder preflight uses the frozen oracle."
+          },
+          "calls": [
+            {
+              "args": [
+                "prdr",
+                "yagni",
+                "--prd-goal",
+                "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.",
+                "--prd-goals",
+                "[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\",\"The merge-floor logic (AC + CI + review) stays the single source of truth for merge eligibility\"]",
+                "--proposal",
+                "admit",
+                "--proposal-reason",
+                "The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'.",
+                "--serves-goal",
+                "--within-scope",
+                "--challenge",
+                "overturned",
+                "--challenge-ground",
+                "over-scope",
+                "--challenge-reason",
+                "Programmatic recorder preflight uses the frozen oracle."
+              ],
+              "exit_code": 0,
+              "stdout": "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Programmatic recorder preflight uses the frozen oracle.\",\"trace_to_goal\":true,\"cited_goals\":[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\"],\"dod_covers\":[],\"over_scope\":false,\"proposal\":{\"serves_goal\":true,\"within_scope\":true,\"verdict\":\"admit\",\"reason\":\"The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'.\"},\"challenge\":{\"ran\":true,\"overturns\":true,\"reason\":\"Programmatic recorder preflight uses the frozen oracle.\",\"ground\":\"over-scope\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+              "stderr": ""
+            },
+            {
+              "args": [
+                "prdr",
+                "admit",
+                "fixture",
+                "--actor",
+                "loop",
+                "--supersedes-provenance",
+                "loop",
+                "--upper",
+                "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Programmatic recorder preflight uses the frozen oracle.\"}"
+              ],
+              "exit_code": 0,
+              "stdout": "{\"disposition\":\"reject\",\"upper\":{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Programmatic recorder preflight uses the frozen oracle.\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Programmatic recorder preflight uses the frozen oracle.\"],\"conformant\":true,\"violations\":[]}\n",
+              "stderr": ""
+            }
+          ],
+          "upper": {
+            "admit": false,
+            "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Programmatic recorder preflight uses the frozen oracle.",
+            "trace_to_goal": true,
+            "cited_goals": [
+              "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD."
+            ],
+            "dod_covers": [],
+            "over_scope": false,
+            "proposal": {
+              "serves_goal": true,
+              "within_scope": true,
+              "verdict": "admit",
+              "reason": "The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'."
+            },
+            "challenge": {
+              "ran": true,
+              "overturns": true,
+              "reason": "Programmatic recorder preflight uses the frozen oracle.",
+              "ground": "over-scope"
+            },
+            "grounding_present": false,
+            "conformant": true,
+            "violations": []
+          },
+          "admission": {
+            "disposition": "reject",
+            "upper": {
+              "admit": false,
+              "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Programmatic recorder preflight uses the frozen oracle."
+            },
+            "lower": {
+              "covered": true,
+              "uncovered_goals": []
+            },
+            "authority": {
+              "actor": "loop",
+              "supersedes_provenance": "loop",
+              "by_level": "ok"
+            },
+            "ratchet": {
+              "lineage_supersessions": 0,
+              "breached": false
+            },
+            "reasons": [
+              "upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Programmatic recorder preflight uses the frozen oracle."
+            ],
+            "conformant": true,
+            "violations": []
+          }
+        }
+      },
+      {
+        "seq": 6,
+        "name": "submit_challenge",
+        "args": {
+          "case_id": "prdr-under-citation",
+          "outcome": "survived",
+          "ground": null,
+          "reason": "Programmatic recorder preflight uses the frozen oracle."
+        },
+        "case_id": "prdr-under-citation",
+        "result": {
+          "challenge": {
+            "case_id": "prdr-under-citation",
+            "outcome": "survived",
+            "ground": null,
+            "reason": "Programmatic recorder preflight uses the frozen oracle."
+          },
+          "calls": [
+            {
+              "args": [
+                "prdr",
+                "yagni",
+                "--prd-goal",
+                "Export transactions as CSV",
+                "--prd-goals",
+                "[\"Export transactions as CSV\",\"Filter transaction exports by date\",\"Import validated transactions\",\"Show account totals\",\"Archive old accounts\"]",
+                "--proposal",
+                "admit",
+                "--proposal-reason",
+                "The export and filter both serve declared PRD goals.",
+                "--challenge",
+                "survived",
+                "--challenge-reason",
+                "Programmatic recorder preflight uses the frozen oracle.",
+                "--dod-covers",
+                "[\"Export transactions as CSV\",\"Filter transaction exports by date\"]"
+              ],
+              "exit_code": 0,
+              "stdout": "{\"admit\":true,\"reason\":\"The export and filter both serve declared PRD goals.\",\"trace_to_goal\":true,\"cited_goals\":[\"Export transactions as CSV\"],\"dod_covers\":[\"Export transactions as CSV\",\"Filter transaction exports by date\"],\"over_scope\":false,\"proposal\":{\"serves_goal\":false,\"within_scope\":false,\"verdict\":\"admit\",\"reason\":\"The export and filter both serve declared PRD goals.\"},\"challenge\":{\"ran\":true,\"overturns\":false,\"reason\":\"Programmatic recorder preflight uses the frozen oracle.\",\"ground\":\"other\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+              "stderr": ""
+            },
+            {
+              "args": [
+                "prdr",
+                "admit",
+                "fixture",
+                "--actor",
+                "loop",
+                "--supersedes-provenance",
+                "loop",
+                "--upper",
+                "{\"admit\":true,\"reason\":\"The export and filter both serve declared PRD goals.\"}"
+              ],
+              "exit_code": 0,
+              "stdout": "{\"disposition\":\"admit\",\"upper\":{\"admit\":true,\"reason\":\"The export and filter both serve declared PRD goals.\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[],\"conformant\":true,\"violations\":[]}\n",
+              "stderr": ""
+            }
+          ],
+          "upper": {
+            "admit": true,
+            "reason": "The export and filter both serve declared PRD goals.",
+            "trace_to_goal": true,
+            "cited_goals": [
+              "Export transactions as CSV"
+            ],
+            "dod_covers": [
+              "Export transactions as CSV",
+              "Filter transaction exports by date"
+            ],
+            "over_scope": false,
+            "proposal": {
+              "serves_goal": false,
+              "within_scope": false,
+              "verdict": "admit",
+              "reason": "The export and filter both serve declared PRD goals."
+            },
+            "challenge": {
+              "ran": true,
+              "overturns": false,
+              "reason": "Programmatic recorder preflight uses the frozen oracle.",
+              "ground": "other"
+            },
+            "grounding_present": false,
+            "conformant": true,
+            "violations": []
+          },
+          "admission": {
+            "disposition": "admit",
+            "upper": {
+              "admit": true,
+              "reason": "The export and filter both serve declared PRD goals."
+            },
+            "lower": {
+              "covered": true,
+              "uncovered_goals": []
+            },
+            "authority": {
+              "actor": "loop",
+              "supersedes_provenance": "loop",
+              "by_level": "ok"
+            },
+            "ratchet": {
+              "lineage_supersessions": 0,
+              "breached": false
+            },
+            "reasons": [],
+            "conformant": true,
+            "violations": []
+          }
+        }
+      },
+      {
+        "seq": 7,
+        "name": "submit_challenge",
+        "args": {
+          "case_id": "prdr-unserved",
+          "outcome": "overturned",
+          "ground": "unserved",
+          "reason": "Programmatic recorder preflight uses the frozen oracle."
+        },
+        "case_id": "prdr-unserved",
+        "result": {
+          "challenge": {
+            "case_id": "prdr-unserved",
+            "outcome": "overturned",
+            "ground": "unserved",
+            "reason": "Programmatic recorder preflight uses the frozen oracle."
+          },
+          "calls": [
+            {
+              "args": [
+                "prdr",
+                "yagni",
+                "--prd-goal",
+                "Export transactions as CSV,Filter transaction exports by date",
+                "--prd-goals",
+                "[\"Export transactions as CSV\",\"Filter transaction exports by date\",\"Import validated transactions\",\"Show account totals\",\"Archive old accounts\"]",
+                "--proposal",
+                "admit",
+                "--proposal-reason",
+                "Export serves both cited goals.",
+                "--challenge",
+                "overturned",
+                "--challenge-ground",
+                "unserved",
+                "--challenge-reason",
+                "Programmatic recorder preflight uses the frozen oracle.",
+                "--dod-covers",
+                "[\"Export transactions as CSV\"]"
+              ],
+              "exit_code": 0,
+              "stdout": "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): Programmatic recorder preflight uses the frozen oracle.\",\"trace_to_goal\":true,\"cited_goals\":[\"Export transactions as CSV\",\"Filter transaction exports by date\"],\"dod_covers\":[\"Export transactions as CSV\"],\"over_scope\":false,\"proposal\":{\"serves_goal\":false,\"within_scope\":false,\"verdict\":\"admit\",\"reason\":\"Export serves both cited goals.\"},\"challenge\":{\"ran\":true,\"overturns\":true,\"reason\":\"Programmatic recorder preflight uses the frozen oracle.\",\"ground\":\"unserved\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+              "stderr": ""
+            },
+            {
+              "args": [
+                "prdr",
+                "admit",
+                "fixture",
+                "--actor",
+                "loop",
+                "--supersedes-provenance",
+                "loop",
+                "--upper",
+                "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): Programmatic recorder preflight uses the frozen oracle.\"}"
+              ],
+              "exit_code": 0,
+              "stdout": "{\"disposition\":\"reject\",\"upper\":{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): Programmatic recorder preflight uses the frozen oracle.\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): Programmatic recorder preflight uses the frozen oracle.\"],\"conformant\":true,\"violations\":[]}\n",
+              "stderr": ""
+            }
+          ],
+          "upper": {
+            "admit": false,
+            "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): Programmatic recorder preflight uses the frozen oracle.",
+            "trace_to_goal": true,
+            "cited_goals": [
+              "Export transactions as CSV",
+              "Filter transaction exports by date"
+            ],
+            "dod_covers": [
+              "Export transactions as CSV"
+            ],
+            "over_scope": false,
+            "proposal": {
+              "serves_goal": false,
+              "within_scope": false,
+              "verdict": "admit",
+              "reason": "Export serves both cited goals."
+            },
+            "challenge": {
+              "ran": true,
+              "overturns": true,
+              "reason": "Programmatic recorder preflight uses the frozen oracle.",
+              "ground": "unserved"
+            },
+            "grounding_present": false,
+            "conformant": true,
+            "violations": []
+          },
+          "admission": {
+            "disposition": "reject",
+            "upper": {
+              "admit": false,
+              "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): Programmatic recorder preflight uses the frozen oracle."
+            },
+            "lower": {
+              "covered": true,
+              "uncovered_goals": []
+            },
+            "authority": {
+              "actor": "loop",
+              "supersedes_provenance": "loop",
+              "by_level": "ok"
+            },
+            "ratchet": {
+              "lineage_supersessions": 0,
+              "breached": false
+            },
+            "reasons": [
+              "upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): Programmatic recorder preflight uses the frozen oracle."
+            ],
+            "conformant": true,
+            "violations": []
+          }
+        }
+      },
+      {
+        "seq": 8,
+        "name": "submit_challenge",
+        "args": {
+          "case_id": "prdr-unavailable",
+          "outcome": null,
+          "ground": null,
+          "reason": "Programmatic recorder preflight uses the frozen oracle."
+        },
+        "case_id": "prdr-unavailable",
+        "result": {
+          "challenge": {
+            "case_id": "prdr-unavailable",
+            "outcome": null,
+            "ground": null,
+            "reason": "Programmatic recorder preflight uses the frozen oracle."
+          },
+          "calls": [
+            {
+              "args": [
+                "prdr",
+                "yagni",
+                "--prd-goal",
+                "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.",
+                "--prd-goals",
+                "[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\",\"The merge-floor logic (AC + CI + review) stays the single source of truth for merge eligibility\"]",
+                "--proposal",
+                "admit",
+                "--proposal-reason",
+                "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).",
+                "--serves-goal",
+                "--within-scope",
+                "--challenge-reason",
+                "Programmatic recorder preflight uses the frozen oracle."
+              ],
+              "exit_code": 0,
+              "stdout": "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade\",\"trace_to_goal\":true,\"cited_goals\":[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\"],\"dod_covers\":[],\"over_scope\":false,\"proposal\":{\"serves_goal\":true,\"within_scope\":true,\"verdict\":\"admit\",\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\"},\"challenge\":{\"ran\":false,\"overturns\":false,\"reason\":\"Programmatic recorder preflight uses the frozen oracle.\",\"ground\":\"other\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+              "stderr": ""
+            },
+            {
+              "args": [
+                "prdr",
+                "admit",
+                "fixture",
+                "--actor",
+                "loop",
+                "--supersedes-provenance",
+                "loop",
+                "--upper",
+                "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade\"}"
+              ],
+              "exit_code": 0,
+              "stdout": "{\"disposition\":\"reject\",\"upper\":{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade\"],\"conformant\":true,\"violations\":[]}\n",
+              "stderr": ""
+            }
+          ],
+          "upper": {
+            "admit": false,
+            "reason": "conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade",
+            "trace_to_goal": true,
+            "cited_goals": [
+              "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD."
+            ],
+            "dod_covers": [],
+            "over_scope": false,
+            "proposal": {
+              "serves_goal": true,
+              "within_scope": true,
+              "verdict": "admit",
+              "reason": "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference)."
+            },
+            "challenge": {
+              "ran": false,
+              "overturns": false,
+              "reason": "Programmatic recorder preflight uses the frozen oracle.",
+              "ground": "other"
+            },
+            "grounding_present": false,
+            "conformant": true,
+            "violations": []
+          },
+          "admission": {
+            "disposition": "reject",
+            "upper": {
+              "admit": false,
+              "reason": "conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade"
+            },
+            "lower": {
+              "covered": true,
+              "uncovered_goals": []
+            },
+            "authority": {
+              "actor": "loop",
+              "supersedes_provenance": "loop",
+              "by_level": "ok"
+            },
+            "ratchet": {
+              "lineage_supersessions": 0,
+              "breached": false
+            },
+            "reasons": [
+              "upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade"
+            ],
+            "conformant": true,
+            "violations": []
+          }
+        }
+      }
+    ],
+    "errors": [],
+    "cases": [
+      {
+        "id": "adr-1",
+        "result": {
+          "challenge": {
+            "case_id": "adr-1",
+            "outcome": "survived",
+            "ground": null,
+            "reason": "Programmatic recorder preflight uses the frozen oracle."
+          },
+          "calls": [
+            {
+              "args": [
+                "adr",
+                "admit",
+                "fixture",
+                "--actor",
+                "loop",
+                "--supersedes-provenance",
+                "loop",
+                "--challenge",
+                "survived"
+              ],
+              "exit_code": 0,
+              "stdout": "{\"disposition\":\"admit\",\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"challenge\":{\"ran\":true,\"outcome\":\"survived\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[],\"conformant\":true,\"violations\":[]}\n",
+              "stderr": ""
+            }
+          ],
+          "upper": null,
+          "admission": {
+            "disposition": "admit",
+            "authority": {
+              "actor": "loop",
+              "supersedes_provenance": "loop",
+              "by_level": "ok"
+            },
+            "challenge": {
+              "ran": true,
+              "outcome": "survived"
+            },
+            "ratchet": {
+              "lineage_supersessions": 0,
+              "breached": false
+            },
+            "reasons": [],
+            "conformant": true,
+            "violations": []
+          }
+        }
+      },
+      {
+        "id": "adr-2",
+        "result": {
+          "challenge": {
+            "case_id": "adr-2",
+            "outcome": "overturned",
+            "ground": null,
+            "reason": "Programmatic recorder preflight uses the frozen oracle."
+          },
+          "calls": [
+            {
+              "args": [
+                "adr",
+                "admit",
+                "fixture",
+                "--actor",
+                "loop",
+                "--supersedes-provenance",
+                "loop",
+                "--challenge",
+                "overturned"
+              ],
+              "exit_code": 0,
+              "stdout": "{\"disposition\":\"reject\",\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"challenge\":{\"ran\":true,\"outcome\":\"overturned\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"drift challenge overturned — the adversarial reviewer found the supersession argument unsound\"],\"conformant\":true,\"violations\":[]}\n",
+              "stderr": ""
+            }
+          ],
+          "upper": null,
+          "admission": {
+            "disposition": "reject",
+            "authority": {
+              "actor": "loop",
+              "supersedes_provenance": "loop",
+              "by_level": "ok"
+            },
+            "challenge": {
+              "ran": true,
+              "outcome": "overturned"
+            },
+            "ratchet": {
+              "lineage_supersessions": 0,
+              "breached": false
+            },
+            "reasons": [
+              "drift challenge overturned — the adversarial reviewer found the supersession argument unsound"
+            ],
+            "conformant": true,
+            "violations": []
+          }
+        }
+      },
+      {
+        "id": "adr-unavailable",
+        "result": {
+          "challenge": {
+            "case_id": "adr-unavailable",
+            "outcome": null,
+            "ground": null,
+            "reason": "Programmatic recorder preflight uses the frozen oracle."
+          },
+          "calls": [
+            {
+              "args": [
+                "adr",
+                "admit",
+                "fixture",
+                "--actor",
+                "loop",
+                "--supersedes-provenance",
+                "loop"
+              ],
+              "exit_code": 0,
+              "stdout": "{\"disposition\":\"reject\",\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"challenge\":{\"ran\":false,\"outcome\":\"absent\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"drift challenge absent — no adversarial review ran, or it was unreachable after its fallback chain; a missing skeptic is a reject, never a pass\"],\"conformant\":true,\"violations\":[]}\n",
+              "stderr": ""
+            }
+          ],
+          "upper": null,
+          "admission": {
+            "disposition": "reject",
+            "authority": {
+              "actor": "loop",
+              "supersedes_provenance": "loop",
+              "by_level": "ok"
+            },
+            "challenge": {
+              "ran": false,
+              "outcome": "absent"
+            },
+            "ratchet": {
+              "lineage_supersessions": 0,
+              "breached": false
+            },
+            "reasons": [
+              "drift challenge absent — no adversarial review ran, or it was unreachable after its fallback chain; a missing skeptic is a reject, never a pass"
+            ],
+            "conformant": true,
+            "violations": []
+          }
+        }
+      },
+      {
+        "id": "prdr-1",
+        "result": {
+          "challenge": {
+            "case_id": "prdr-1",
+            "outcome": "survived",
+            "ground": null,
+            "reason": "Programmatic recorder preflight uses the frozen oracle."
+          },
+          "calls": [
+            {
+              "args": [
+                "prdr",
+                "yagni",
+                "--prd-goal",
+                "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.",
+                "--prd-goals",
+                "[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\",\"The merge-floor logic (AC + CI + review) stays the single source of truth for merge eligibility\"]",
+                "--proposal",
+                "admit",
+                "--proposal-reason",
+                "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).",
+                "--serves-goal",
+                "--within-scope",
+                "--challenge",
+                "survived",
+                "--challenge-reason",
+                "Programmatic recorder preflight uses the frozen oracle."
+              ],
+              "exit_code": 0,
+              "stdout": "{\"admit\":true,\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\",\"trace_to_goal\":true,\"cited_goals\":[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\"],\"dod_covers\":[],\"over_scope\":false,\"proposal\":{\"serves_goal\":true,\"within_scope\":true,\"verdict\":\"admit\",\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\"},\"challenge\":{\"ran\":true,\"overturns\":false,\"reason\":\"Programmatic recorder preflight uses the frozen oracle.\",\"ground\":\"other\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+              "stderr": ""
+            },
+            {
+              "args": [
+                "prdr",
+                "admit",
+                "fixture",
+                "--actor",
+                "loop",
+                "--supersedes-provenance",
+                "loop",
+                "--upper",
+                "{\"admit\":true,\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\"}"
+              ],
+              "exit_code": 0,
+              "stdout": "{\"disposition\":\"admit\",\"upper\":{\"admit\":true,\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[],\"conformant\":true,\"violations\":[]}\n",
+              "stderr": ""
+            }
+          ],
+          "upper": {
+            "admit": true,
+            "reason": "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).",
+            "trace_to_goal": true,
+            "cited_goals": [
+              "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD."
+            ],
+            "dod_covers": [],
+            "over_scope": false,
+            "proposal": {
+              "serves_goal": true,
+              "within_scope": true,
+              "verdict": "admit",
+              "reason": "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference)."
+            },
+            "challenge": {
+              "ran": true,
+              "overturns": false,
+              "reason": "Programmatic recorder preflight uses the frozen oracle.",
+              "ground": "other"
+            },
+            "grounding_present": false,
+            "conformant": true,
+            "violations": []
+          },
+          "admission": {
+            "disposition": "admit",
+            "upper": {
+              "admit": true,
+              "reason": "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference)."
+            },
+            "lower": {
+              "covered": true,
+              "uncovered_goals": []
+            },
+            "authority": {
+              "actor": "loop",
+              "supersedes_provenance": "loop",
+              "by_level": "ok"
+            },
+            "ratchet": {
+              "lineage_supersessions": 0,
+              "breached": false
+            },
+            "reasons": [],
+            "conformant": true,
+            "violations": []
+          }
+        }
+      },
+      {
+        "id": "prdr-2",
+        "result": {
+          "challenge": {
+            "case_id": "prdr-2",
+            "outcome": "overturned",
+            "ground": "over-scope",
+            "reason": "Programmatic recorder preflight uses the frozen oracle."
+          },
+          "calls": [
+            {
+              "args": [
+                "prdr",
+                "yagni",
+                "--prd-goal",
+                "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.",
+                "--prd-goals",
+                "[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\",\"The merge-floor logic (AC + CI + review) stays the single source of truth for merge eligibility\"]",
+                "--proposal",
+                "admit",
+                "--proposal-reason",
+                "The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'.",
+                "--serves-goal",
+                "--within-scope",
+                "--challenge",
+                "overturned",
+                "--challenge-ground",
+                "over-scope",
+                "--challenge-reason",
+                "Programmatic recorder preflight uses the frozen oracle."
+              ],
+              "exit_code": 0,
+              "stdout": "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Programmatic recorder preflight uses the frozen oracle.\",\"trace_to_goal\":true,\"cited_goals\":[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\"],\"dod_covers\":[],\"over_scope\":false,\"proposal\":{\"serves_goal\":true,\"within_scope\":true,\"verdict\":\"admit\",\"reason\":\"The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'.\"},\"challenge\":{\"ran\":true,\"overturns\":true,\"reason\":\"Programmatic recorder preflight uses the frozen oracle.\",\"ground\":\"over-scope\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+              "stderr": ""
+            },
+            {
+              "args": [
+                "prdr",
+                "admit",
+                "fixture",
+                "--actor",
+                "loop",
+                "--supersedes-provenance",
+                "loop",
+                "--upper",
+                "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Programmatic recorder preflight uses the frozen oracle.\"}"
+              ],
+              "exit_code": 0,
+              "stdout": "{\"disposition\":\"reject\",\"upper\":{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Programmatic recorder preflight uses the frozen oracle.\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Programmatic recorder preflight uses the frozen oracle.\"],\"conformant\":true,\"violations\":[]}\n",
+              "stderr": ""
+            }
+          ],
+          "upper": {
+            "admit": false,
+            "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Programmatic recorder preflight uses the frozen oracle.",
+            "trace_to_goal": true,
+            "cited_goals": [
+              "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD."
+            ],
+            "dod_covers": [],
+            "over_scope": false,
+            "proposal": {
+              "serves_goal": true,
+              "within_scope": true,
+              "verdict": "admit",
+              "reason": "The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'."
+            },
+            "challenge": {
+              "ran": true,
+              "overturns": true,
+              "reason": "Programmatic recorder preflight uses the frozen oracle.",
+              "ground": "over-scope"
+            },
+            "grounding_present": false,
+            "conformant": true,
+            "violations": []
+          },
+          "admission": {
+            "disposition": "reject",
+            "upper": {
+              "admit": false,
+              "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Programmatic recorder preflight uses the frozen oracle."
+            },
+            "lower": {
+              "covered": true,
+              "uncovered_goals": []
+            },
+            "authority": {
+              "actor": "loop",
+              "supersedes_provenance": "loop",
+              "by_level": "ok"
+            },
+            "ratchet": {
+              "lineage_supersessions": 0,
+              "breached": false
+            },
+            "reasons": [
+              "upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Programmatic recorder preflight uses the frozen oracle."
+            ],
+            "conformant": true,
+            "violations": []
+          }
+        }
+      },
+      {
+        "id": "prdr-under-citation",
+        "result": {
+          "challenge": {
+            "case_id": "prdr-under-citation",
+            "outcome": "survived",
+            "ground": null,
+            "reason": "Programmatic recorder preflight uses the frozen oracle."
+          },
+          "calls": [
+            {
+              "args": [
+                "prdr",
+                "yagni",
+                "--prd-goal",
+                "Export transactions as CSV",
+                "--prd-goals",
+                "[\"Export transactions as CSV\",\"Filter transaction exports by date\",\"Import validated transactions\",\"Show account totals\",\"Archive old accounts\"]",
+                "--proposal",
+                "admit",
+                "--proposal-reason",
+                "The export and filter both serve declared PRD goals.",
+                "--challenge",
+                "survived",
+                "--challenge-reason",
+                "Programmatic recorder preflight uses the frozen oracle.",
+                "--dod-covers",
+                "[\"Export transactions as CSV\",\"Filter transaction exports by date\"]"
+              ],
+              "exit_code": 0,
+              "stdout": "{\"admit\":true,\"reason\":\"The export and filter both serve declared PRD goals.\",\"trace_to_goal\":true,\"cited_goals\":[\"Export transactions as CSV\"],\"dod_covers\":[\"Export transactions as CSV\",\"Filter transaction exports by date\"],\"over_scope\":false,\"proposal\":{\"serves_goal\":false,\"within_scope\":false,\"verdict\":\"admit\",\"reason\":\"The export and filter both serve declared PRD goals.\"},\"challenge\":{\"ran\":true,\"overturns\":false,\"reason\":\"Programmatic recorder preflight uses the frozen oracle.\",\"ground\":\"other\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+              "stderr": ""
+            },
+            {
+              "args": [
+                "prdr",
+                "admit",
+                "fixture",
+                "--actor",
+                "loop",
+                "--supersedes-provenance",
+                "loop",
+                "--upper",
+                "{\"admit\":true,\"reason\":\"The export and filter both serve declared PRD goals.\"}"
+              ],
+              "exit_code": 0,
+              "stdout": "{\"disposition\":\"admit\",\"upper\":{\"admit\":true,\"reason\":\"The export and filter both serve declared PRD goals.\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[],\"conformant\":true,\"violations\":[]}\n",
+              "stderr": ""
+            }
+          ],
+          "upper": {
+            "admit": true,
+            "reason": "The export and filter both serve declared PRD goals.",
+            "trace_to_goal": true,
+            "cited_goals": [
+              "Export transactions as CSV"
+            ],
+            "dod_covers": [
+              "Export transactions as CSV",
+              "Filter transaction exports by date"
+            ],
+            "over_scope": false,
+            "proposal": {
+              "serves_goal": false,
+              "within_scope": false,
+              "verdict": "admit",
+              "reason": "The export and filter both serve declared PRD goals."
+            },
+            "challenge": {
+              "ran": true,
+              "overturns": false,
+              "reason": "Programmatic recorder preflight uses the frozen oracle.",
+              "ground": "other"
+            },
+            "grounding_present": false,
+            "conformant": true,
+            "violations": []
+          },
+          "admission": {
+            "disposition": "admit",
+            "upper": {
+              "admit": true,
+              "reason": "The export and filter both serve declared PRD goals."
+            },
+            "lower": {
+              "covered": true,
+              "uncovered_goals": []
+            },
+            "authority": {
+              "actor": "loop",
+              "supersedes_provenance": "loop",
+              "by_level": "ok"
+            },
+            "ratchet": {
+              "lineage_supersessions": 0,
+              "breached": false
+            },
+            "reasons": [],
+            "conformant": true,
+            "violations": []
+          }
+        }
+      },
+      {
+        "id": "prdr-unserved",
+        "result": {
+          "challenge": {
+            "case_id": "prdr-unserved",
+            "outcome": "overturned",
+            "ground": "unserved",
+            "reason": "Programmatic recorder preflight uses the frozen oracle."
+          },
+          "calls": [
+            {
+              "args": [
+                "prdr",
+                "yagni",
+                "--prd-goal",
+                "Export transactions as CSV,Filter transaction exports by date",
+                "--prd-goals",
+                "[\"Export transactions as CSV\",\"Filter transaction exports by date\",\"Import validated transactions\",\"Show account totals\",\"Archive old accounts\"]",
+                "--proposal",
+                "admit",
+                "--proposal-reason",
+                "Export serves both cited goals.",
+                "--challenge",
+                "overturned",
+                "--challenge-ground",
+                "unserved",
+                "--challenge-reason",
+                "Programmatic recorder preflight uses the frozen oracle.",
+                "--dod-covers",
+                "[\"Export transactions as CSV\"]"
+              ],
+              "exit_code": 0,
+              "stdout": "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): Programmatic recorder preflight uses the frozen oracle.\",\"trace_to_goal\":true,\"cited_goals\":[\"Export transactions as CSV\",\"Filter transaction exports by date\"],\"dod_covers\":[\"Export transactions as CSV\"],\"over_scope\":false,\"proposal\":{\"serves_goal\":false,\"within_scope\":false,\"verdict\":\"admit\",\"reason\":\"Export serves both cited goals.\"},\"challenge\":{\"ran\":true,\"overturns\":true,\"reason\":\"Programmatic recorder preflight uses the frozen oracle.\",\"ground\":\"unserved\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+              "stderr": ""
+            },
+            {
+              "args": [
+                "prdr",
+                "admit",
+                "fixture",
+                "--actor",
+                "loop",
+                "--supersedes-provenance",
+                "loop",
+                "--upper",
+                "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): Programmatic recorder preflight uses the frozen oracle.\"}"
+              ],
+              "exit_code": 0,
+              "stdout": "{\"disposition\":\"reject\",\"upper\":{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): Programmatic recorder preflight uses the frozen oracle.\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): Programmatic recorder preflight uses the frozen oracle.\"],\"conformant\":true,\"violations\":[]}\n",
+              "stderr": ""
+            }
+          ],
+          "upper": {
+            "admit": false,
+            "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): Programmatic recorder preflight uses the frozen oracle.",
+            "trace_to_goal": true,
+            "cited_goals": [
+              "Export transactions as CSV",
+              "Filter transaction exports by date"
+            ],
+            "dod_covers": [
+              "Export transactions as CSV"
+            ],
+            "over_scope": false,
+            "proposal": {
+              "serves_goal": false,
+              "within_scope": false,
+              "verdict": "admit",
+              "reason": "Export serves both cited goals."
+            },
+            "challenge": {
+              "ran": true,
+              "overturns": true,
+              "reason": "Programmatic recorder preflight uses the frozen oracle.",
+              "ground": "unserved"
+            },
+            "grounding_present": false,
+            "conformant": true,
+            "violations": []
+          },
+          "admission": {
+            "disposition": "reject",
+            "upper": {
+              "admit": false,
+              "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): Programmatic recorder preflight uses the frozen oracle."
+            },
+            "lower": {
+              "covered": true,
+              "uncovered_goals": []
+            },
+            "authority": {
+              "actor": "loop",
+              "supersedes_provenance": "loop",
+              "by_level": "ok"
+            },
+            "ratchet": {
+              "lineage_supersessions": 0,
+              "breached": false
+            },
+            "reasons": [
+              "upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): Programmatic recorder preflight uses the frozen oracle."
+            ],
+            "conformant": true,
+            "violations": []
+          }
+        }
+      },
+      {
+        "id": "prdr-unavailable",
+        "result": {
+          "challenge": {
+            "case_id": "prdr-unavailable",
+            "outcome": null,
+            "ground": null,
+            "reason": "Programmatic recorder preflight uses the frozen oracle."
+          },
+          "calls": [
+            {
+              "args": [
+                "prdr",
+                "yagni",
+                "--prd-goal",
+                "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.",
+                "--prd-goals",
+                "[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\",\"The merge-floor logic (AC + CI + review) stays the single source of truth for merge eligibility\"]",
+                "--proposal",
+                "admit",
+                "--proposal-reason",
+                "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).",
+                "--serves-goal",
+                "--within-scope",
+                "--challenge-reason",
+                "Programmatic recorder preflight uses the frozen oracle."
+              ],
+              "exit_code": 0,
+              "stdout": "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade\",\"trace_to_goal\":true,\"cited_goals\":[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\"],\"dod_covers\":[],\"over_scope\":false,\"proposal\":{\"serves_goal\":true,\"within_scope\":true,\"verdict\":\"admit\",\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\"},\"challenge\":{\"ran\":false,\"overturns\":false,\"reason\":\"Programmatic recorder preflight uses the frozen oracle.\",\"ground\":\"other\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+              "stderr": ""
+            },
+            {
+              "args": [
+                "prdr",
+                "admit",
+                "fixture",
+                "--actor",
+                "loop",
+                "--supersedes-provenance",
+                "loop",
+                "--upper",
+                "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade\"}"
+              ],
+              "exit_code": 0,
+              "stdout": "{\"disposition\":\"reject\",\"upper\":{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade\"],\"conformant\":true,\"violations\":[]}\n",
+              "stderr": ""
+            }
+          ],
+          "upper": {
+            "admit": false,
+            "reason": "conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade",
+            "trace_to_goal": true,
+            "cited_goals": [
+              "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD."
+            ],
+            "dod_covers": [],
+            "over_scope": false,
+            "proposal": {
+              "serves_goal": true,
+              "within_scope": true,
+              "verdict": "admit",
+              "reason": "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference)."
+            },
+            "challenge": {
+              "ran": false,
+              "overturns": false,
+              "reason": "Programmatic recorder preflight uses the frozen oracle.",
+              "ground": "other"
+            },
+            "grounding_present": false,
+            "conformant": true,
+            "violations": []
+          },
+          "admission": {
+            "disposition": "reject",
+            "upper": {
+              "admit": false,
+              "reason": "conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade"
+            },
+            "lower": {
+              "covered": true,
+              "uncovered_goals": []
+            },
+            "authority": {
+              "actor": "loop",
+              "supersedes_provenance": "loop",
+              "by_level": "ok"
+            },
+            "ratchet": {
+              "lineage_supersessions": 0,
+              "breached": false
+            },
+            "reasons": [
+              "upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade"
+            ],
+            "conformant": true,
+            "violations": []
+          }
+        }
+      }
+    ]
+  },
+  "harness_sha256": "8be468411350c7e29d4dbcaebc2043bb191919c1d44c175669c31f666dd098ce",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b"
+}

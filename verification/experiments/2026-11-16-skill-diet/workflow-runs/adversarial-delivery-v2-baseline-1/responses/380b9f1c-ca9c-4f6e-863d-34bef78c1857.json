@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "value": {
+    "contract": {
+      "exit_code": 0,
+      "signal": null,
+      "stdout": "{\"signal\":\"needs-human\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"disposition\":\"open\",\"source\":\"adversarial\",\"model\":\"openai/fixture-model\",\"title\":\"Empty adversarial review output from the review chain\",\"location\":\"adversarial.code_review backend chain: openai/fixture-model (chain[0])\",\"action\":\"Check the openai/fixture-model backend (model choice, reasoning settings, refusal behaviour), or configure a capable fallback, then re-run the review for FAFF-7001.\"}],\"conformant\":true,\"violations\":[]}\n",
+      "stderr": ""
+    },
+    "gate": {
+      "issue": "FAFF-7001",
+      "pass": false,
+      "ac_complete": true,
+      "review_verdict": "needs-human",
+      "holdout": "not-applicable",
+      "reasons": [
+        "review-verdict needs-human"
+      ],
+      "ac_called_out": []
+    }
+  }
+}

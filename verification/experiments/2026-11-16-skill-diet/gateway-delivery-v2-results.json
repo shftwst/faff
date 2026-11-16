@@ -1,0 +1,235 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "plans": [
+    "verification/experiments/2026-11-16-skill-diet/gateway-delivery-v2-plan.json"
+  ],
+  "arms": {
+    "baseline": {
+      "runs": 5,
+      "passed": 25,
+      "total": 25,
+      "recorded_data_bytes": 100015,
+      "estimated_recorded_data_tokens": 24915
+    },
+    "candidate": {
+      "runs": 5,
+      "passed": 25,
+      "total": 25,
+      "recorded_data_bytes": 62050,
+      "estimated_recorded_data_tokens": 15540
+    }
+  },
+  "missing": [],
+  "problems": [],
+  "normalised_effect_state_gate_projections_equal": true,
+  "runs": [
+    {
+      "name": "gateway-delivery-v2-baseline-1",
+      "arm": "baseline",
+      "kind": "gateway-entry-execution",
+      "report_sha256": "1de177eb5842d8ae3df1b4d14813dcf925cb33e1d404f68f86313ebdf7fb42d4",
+      "policy_sha256": "5d2d4afc4fe71f2b48d1007804d420bfd94f22a576bdbb554e578803de01744d",
+      "projection_sha256": "9e7bb6b3dabf7eaf5790f5632b8484232d1eb7e1ec809b91f9d8f5c34191224b",
+      "policy_chunks": 3,
+      "cases_passed": 5,
+      "cases_total": 5,
+      "config_path_reads": 5,
+      "event_counts": {
+        "run_faff": 11,
+        "offer_onboarding": 3,
+        "invoke_skill": 6,
+        "finish": 1
+      },
+      "recorded_data_bytes": 20003,
+      "estimated_recorded_data_tokens": 4983
+    },
+    {
+      "name": "gateway-delivery-v2-candidate-1",
+      "arm": "candidate",
+      "kind": "gateway-entry-execution",
+      "report_sha256": "c9eb50fe3d58a1ade6d8f718190dd424811ad85cb23df18901397fb096e1dc60",
+      "policy_sha256": "122858afa54cc46458ec6a2ad646b73a62a63791c95a71dba731905fbe6ee3d2",
+      "projection_sha256": "9e7bb6b3dabf7eaf5790f5632b8484232d1eb7e1ec809b91f9d8f5c34191224b",
+      "policy_chunks": 1,
+      "cases_passed": 5,
+      "cases_total": 5,
+      "config_path_reads": 4,
+      "event_counts": {
+        "run_faff": 10,
+        "offer_onboarding": 3,
+        "invoke_skill": 6,
+        "finish": 1
+      },
+      "recorded_data_bytes": 12410,
+      "estimated_recorded_data_tokens": 3108
+    },
+    {
+      "name": "gateway-delivery-v2-candidate-2",
+      "arm": "candidate",
+      "kind": "gateway-entry-execution",
+      "report_sha256": "c9eb50fe3d58a1ade6d8f718190dd424811ad85cb23df18901397fb096e1dc60",
+      "policy_sha256": "122858afa54cc46458ec6a2ad646b73a62a63791c95a71dba731905fbe6ee3d2",
+      "projection_sha256": "9e7bb6b3dabf7eaf5790f5632b8484232d1eb7e1ec809b91f9d8f5c34191224b",
+      "policy_chunks": 1,
+      "cases_passed": 5,
+      "cases_total": 5,
+      "config_path_reads": 4,
+      "event_counts": {
+        "run_faff": 10,
+        "offer_onboarding": 3,
+        "invoke_skill": 6,
+        "finish": 1
+      },
+      "recorded_data_bytes": 12410,
+      "estimated_recorded_data_tokens": 3108
+    },
+    {
+      "name": "gateway-delivery-v2-baseline-2",
+      "arm": "baseline",
+      "kind": "gateway-entry-execution",
+      "report_sha256": "f43f11142c55ec89efcc53c1ee8cc7223f06d866d3ed4c5d9db0ee9ed0a78fb3",
+      "policy_sha256": "5d2d4afc4fe71f2b48d1007804d420bfd94f22a576bdbb554e578803de01744d",
+      "projection_sha256": "9e7bb6b3dabf7eaf5790f5632b8484232d1eb7e1ec809b91f9d8f5c34191224b",
+      "policy_chunks": 3,
+      "cases_passed": 5,
+      "cases_total": 5,
+      "config_path_reads": 5,
+      "event_counts": {
+        "run_faff": 11,
+        "offer_onboarding": 3,
+        "invoke_skill": 6,
+        "finish": 1
+      },
+      "recorded_data_bytes": 20003,
+      "estimated_recorded_data_tokens": 4983
+    },
+    {
+      "name": "gateway-delivery-v2-baseline-3",
+      "arm": "baseline",
+      "kind": "gateway-entry-execution",
+      "report_sha256": "c6581fba541bc48c44d622620e829d3a3d83e45f5a9947e087a86acd631f0cd7",
+      "policy_sha256": "5d2d4afc4fe71f2b48d1007804d420bfd94f22a576bdbb554e578803de01744d",
+      "projection_sha256": "9e7bb6b3dabf7eaf5790f5632b8484232d1eb7e1ec809b91f9d8f5c34191224b",
+      "policy_chunks": 3,
+      "cases_passed": 5,
+      "cases_total": 5,
+      "config_path_reads": 5,
+      "event_counts": {
+        "run_faff": 11,
+        "offer_onboarding": 3,
+        "invoke_skill": 6,
+        "finish": 1
+      },
+      "recorded_data_bytes": 20003,
+      "estimated_recorded_data_tokens": 4983
+    },
+    {
+      "name": "gateway-delivery-v2-candidate-3",
+      "arm": "candidate",
+      "kind": "gateway-entry-execution",
+      "report_sha256": "c9eb50fe3d58a1ade6d8f718190dd424811ad85cb23df18901397fb096e1dc60",
+      "policy_sha256": "122858afa54cc46458ec6a2ad646b73a62a63791c95a71dba731905fbe6ee3d2",
+      "projection_sha256": "9e7bb6b3dabf7eaf5790f5632b8484232d1eb7e1ec809b91f9d8f5c34191224b",
+      "policy_chunks": 1,
+      "cases_passed": 5,
+      "cases_total": 5,
+      "config_path_reads": 4,
+      "event_counts": {
+        "run_faff": 10,
+        "offer_onboarding": 3,
+        "invoke_skill": 6,
+        "finish": 1
+      },
+      "recorded_data_bytes": 12410,
+      "estimated_recorded_data_tokens": 3108
+    },
+    {
+      "name": "gateway-delivery-v2-candidate-4",
+      "arm": "candidate",
+      "kind": "gateway-entry-execution",
+      "report_sha256": "14fa4062b48e20448639c36cefe23350025479c77c7d919c475eb403be5cd751",
+      "policy_sha256": "122858afa54cc46458ec6a2ad646b73a62a63791c95a71dba731905fbe6ee3d2",
+      "projection_sha256": "9e7bb6b3dabf7eaf5790f5632b8484232d1eb7e1ec809b91f9d8f5c34191224b",
+      "policy_chunks": 1,
+      "cases_passed": 5,
+      "cases_total": 5,
+      "config_path_reads": 4,
+      "event_counts": {
+        "run_faff": 10,
+        "offer_onboarding": 3,
+        "invoke_skill": 6,
+        "finish": 1
+      },
+      "recorded_data_bytes": 12410,
+      "estimated_recorded_data_tokens": 3108
+    },
+    {
+      "name": "gateway-delivery-v2-baseline-4",
+      "arm": "baseline",
+      "kind": "gateway-entry-execution",
+      "report_sha256": "1de177eb5842d8ae3df1b4d14813dcf925cb33e1d404f68f86313ebdf7fb42d4",
+      "policy_sha256": "5d2d4afc4fe71f2b48d1007804d420bfd94f22a576bdbb554e578803de01744d",
+      "projection_sha256": "9e7bb6b3dabf7eaf5790f5632b8484232d1eb7e1ec809b91f9d8f5c34191224b",
+      "policy_chunks": 3,
+      "cases_passed": 5,
+      "cases_total": 5,
+      "config_path_reads": 5,
+      "event_counts": {
+        "run_faff": 11,
+        "offer_onboarding": 3,
+        "invoke_skill": 6,
+        "finish": 1
+      },
+      "recorded_data_bytes": 20003,
+      "estimated_recorded_data_tokens": 4983
+    },
+    {
+      "name": "gateway-delivery-v2-baseline-5",
+      "arm": "baseline",
+      "kind": "gateway-entry-execution",
+      "report_sha256": "1de177eb5842d8ae3df1b4d14813dcf925cb33e1d404f68f86313ebdf7fb42d4",
+      "policy_sha256": "5d2d4afc4fe71f2b48d1007804d420bfd94f22a576bdbb554e578803de01744d",
+      "projection_sha256": "9e7bb6b3dabf7eaf5790f5632b8484232d1eb7e1ec809b91f9d8f5c34191224b",
+      "policy_chunks": 3,
+      "cases_passed": 5,
+      "cases_total": 5,
+      "config_path_reads": 5,
+      "event_counts": {
+        "run_faff": 11,
+        "offer_onboarding": 3,
+        "invoke_skill": 6,
+        "finish": 1
+      },
+      "recorded_data_bytes": 20003,
+      "estimated_recorded_data_tokens": 4983
+    },
+    {
+      "name": "gateway-delivery-v2-candidate-5",
+      "arm": "candidate",
+      "kind": "gateway-entry-execution",
+      "report_sha256": "c9eb50fe3d58a1ade6d8f718190dd424811ad85cb23df18901397fb096e1dc60",
+      "policy_sha256": "122858afa54cc46458ec6a2ad646b73a62a63791c95a71dba731905fbe6ee3d2",
+      "projection_sha256": "9e7bb6b3dabf7eaf5790f5632b8484232d1eb7e1ec809b91f9d8f5c34191224b",
+      "policy_chunks": 1,
+      "cases_passed": 5,
+      "cases_total": 5,
+      "config_path_reads": 4,
+      "event_counts": {
+        "run_faff": 10,
+        "offer_onboarding": 3,
+        "invoke_skill": 6,
+        "finish": 1
+      },
+      "recorded_data_bytes": 12410,
+      "estimated_recorded_data_tokens": 3108
+    }
+  ],
+  "limits": [
+    "Payload proxy counts task JSON plus compact successful bridge-response values, including policy chunks, each counted once. It excludes native tool framing, system/catalog/history, model output and cached reprocessing; it is not provider usage or billed cost.",
+    "Token estimate is ceil(UTF-16 characters/4) per payload, summed.",
+    "Effect and state comparison uses only the predeclared path/time/read normalisations. Finding prose varies and is graded separately by the fixture.",
+    "Native screens are retained separately and require protocol review; this numerical summary does not certify absence of out-of-bridge activity.",
+    "Small correlated samples do not establish statistical equivalence."
+  ]
+}

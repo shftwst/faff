@@ -7,7 +7,7 @@
     {
       "skill": "faff",
       "path": "plugin/skills/faff/SKILL.md",
-      "status": "draft-policy-delivery-requalification-pending",
+      "status": "draft-context-v3-workflow-qualification-pending",
       "before": {
         "path": "plugin/skills/faff/SKILL.md",
         "bytes": 12984,
@@ -142,12 +142,17 @@
         "provider_usage": "unmetered",
         "qualification": "effect comparison passed; policy-delivery qualification superseded by delivery-v2"
       },
-      "qualification_pending": "Repeat workflow qualification with complete policy exposure recorded through read_policy. Preserve earlier effect grades and protocol failures separately."
+      "qualification_pending": "Complete context-v3 execution and native-screen review. Delivery-v2 effects and protocol failures remain separate, with no acceptance pooling.",
+      "delivery_v2": {
+        "effect_summary": "gateway-delivery-v2-results.json",
+        "protocol_review": "gateway-delivery-v2-protocol-review.json",
+        "qualification": "fail: three reported global-guidance reads contradicted the fixture-only restriction"
+      }
     },
     {
       "skill": "faffter-dark-adversarial-review",
       "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
-      "status": "draft-policy-delivery-requalification-pending",
+      "status": "draft-context-v3-workflow-qualification-pending",
       "before": {
         "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
         "bytes": 74897,
@@ -223,7 +228,7 @@
         "passed": 551,
         "failed": 0
       },
-      "qualification_pending": "Repeat workflow qualification with complete policy exposure recorded through read_policy. Preserve earlier effect grades and protocol failures separately.",
+      "qualification_pending": "Complete context-v3 execution and native-screen review. Delivery-v2 effects and protocol failures remain separate, with no acceptance pooling.",
       "tests": {
         "ci_correction_and_adapters": {
           "passed": 158,

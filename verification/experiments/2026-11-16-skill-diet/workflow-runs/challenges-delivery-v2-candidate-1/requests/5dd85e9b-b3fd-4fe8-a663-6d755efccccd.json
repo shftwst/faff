@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"prdr-unavailable","outcome":null,"ground":null,"reason":"The provider chain was exhausted with no independent opinion. Per policy, no answer after fallbacks means --challenge is omitted; the caller rejects and parks phase2-inconclusive. A missing skeptic is never a pass."}}

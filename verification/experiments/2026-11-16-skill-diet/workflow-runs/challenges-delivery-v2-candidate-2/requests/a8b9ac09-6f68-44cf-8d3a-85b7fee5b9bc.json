@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"adr-unavailable","outcome":null,"ground":null,"reason":"The independent provider attempt was exhausted with no opinion. Per policy, an unreachable or unanswered drift challenge after fallbacks is the absent outcome, which rejects; it is not converted to a pass or a review outage annotation. The caller omits --challenge."}}

@@ -15,7 +15,12 @@ test('real challenge consumers admit a supported change and reject an absent ske
     assert.equal(a.admission.disposition, 'admit');
     const p = await env.call('submit_challenge', { case_id: 'prdr-unavailable', outcome: 'absent', ground: null, reason: 'No independent opinion was obtained.' });
     assert.notEqual(p.admission.disposition, 'admit');
+    assert.equal(p.upper.proposal.serves_goal, true);
+    assert.equal(p.upper.proposal.within_scope, true);
     assert.equal(gradeChallengeExecution(env.capture(), f).status, 'pass');
+    const altered = structuredClone(env.capture());
+    altered.cases.find(c => c.id === 'prdr-unavailable').result.upper.proposal.serves_goal = false;
+    assert.ok(gradeChallengeExecution(altered, f).cases.find(c => c.id === 'prdr-unavailable').problems.includes('phase1-proposal-forwarding'));
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

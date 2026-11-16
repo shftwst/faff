@@ -1,6 +1,6 @@
 # Skill diet measurements
 
-Both reductions remain draft and require delivery-v2 workflow requalification.
+Both reductions remain draft and require context-v3 workflow qualification.
 Raw trace review found that long policies embedded as one JSON string could be
 truncated by Claude's file display. The first adversarial baseline also reported
 a scratch-file read/write outside the fixture rules. Earlier effect comparisons
@@ -148,3 +148,23 @@ returns at most 6,000 UTF-16 characters per call, records every chunk hash, and
 refuses workflow calls until the full policy has been delivered in sequence.
 Old reports remain unchanged; their `pass` labels refer to the captured effect
 grade, not acceptance under the corrected delivery protocol.
+
+## Delivery-v2 effects and protocol findings
+
+Gateway effects passed 25/25 cases per arm, with matching normalised effects and
+final state. The original made 25 config-path reads and the candidate 20. Full
+policy delivery was recorded. However, three final screens report reading the
+mandatory global guidance despite the fixture's file restriction. Those runs
+fail the frozen protocol; the numerical result is not qualification. See
+`gateway-delivery-v2-protocol-review.json`.
+
+The adversarial baseline passed nine of ten cases and failed forwarding the
+one-second budget, using 12 seconds instead. The failed sample is retained.
+A candidate attempted an inline JSON builder that the fixture prohibited and
+Claude Code rejected. Its screen is retained independently of its later effects.
+
+`workflow-fixtures/CONTEXT-V3.md` records the corrected common-context treatment
+and literal JSON bridge. The challenge caller now forwards and checks its
+proposal flags. All 14 affected harness tests pass. The previous committed head
+passed every required CI check (run 43815075029). No production skill or effect
+oracle changed during these corrections.

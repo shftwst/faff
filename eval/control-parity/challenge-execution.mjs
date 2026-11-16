@@ -48,7 +48,9 @@ export function createChallengeEnvironment({ root, runtime, fixture }) {
             if (result.exit_code === 0) admission = JSON.parse(result.stdout);
           } else {
             const row = state.row;
-            const result = run(cli, state.directory, ['prdr', 'yagni', '--prd-goal', row.cited_goal, '--prd-goals', JSON.stringify(row.input.prd_goals), '--proposal', 'admit', '--proposal-reason', row.input.phase1_proposal.reason, ...challengeArgs, ...(args.ground === null ? [] : ['--challenge-ground', args.ground]), '--challenge-reason', args.reason, ...(row.dod_covers ? ['--dod-covers', JSON.stringify(row.dod_covers)] : [])]);
+            const proposal = row.input.phase1_proposal;
+            const proposalFlags = [...(proposal.serves_goal ? ['--serves-goal'] : []), ...(proposal.within_scope ? ['--within-scope'] : [])];
+            const result = run(cli, state.directory, ['prdr', 'yagni', '--prd-goal', row.cited_goal, '--prd-goals', JSON.stringify(row.input.prd_goals), '--proposal', proposal.verdict, '--proposal-reason', proposal.reason, ...proposalFlags, ...challengeArgs, ...(args.ground === null ? [] : ['--challenge-ground', args.ground]), '--challenge-reason', args.reason, ...(row.dod_covers ? ['--dod-covers', JSON.stringify(row.dod_covers)] : [])]);
             calls.push(result);
             if (result.exit_code === 0) {
               upper = JSON.parse(result.stdout);
@@ -80,6 +82,10 @@ export function gradeChallengeExecution(capture, fixture) {
     if (result?.challenge.ground !== row.expected.ground) problems.push('challenge-ground');
     if (!result?.calls.length || result.calls.some(c => c.exit_code !== 0)) problems.push('consumer-error');
     if ((result?.admission?.disposition === 'admit') !== row.expected.admit || !result?.admission) problems.push('admission');
+    if (row.seam !== 'adr-drift') {
+      const proposal = row.input.phase1_proposal, echoed = result?.upper?.proposal;
+      if (echoed?.serves_goal !== Boolean(proposal.serves_goal) || echoed?.within_scope !== Boolean(proposal.within_scope) || echoed?.verdict !== proposal.verdict || echoed?.reason !== proposal.reason) problems.push('phase1-proposal-forwarding');
+    }
     if (capture.events.filter(e => e.case_id === row.id && e.name === 'submit_challenge').length !== 1) problems.push('submission-count');
     return { id: row.id, pass: problems.length === 0, problems, outcome: result?.challenge.outcome === 'absent' ? null : result?.challenge.outcome ?? null, ground: result?.challenge.ground ?? null, disposition: result?.admission?.disposition ?? null, upper_admit: result?.upper?.admit ?? null };
   });

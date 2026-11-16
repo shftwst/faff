@@ -6,7 +6,7 @@
     "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
   },
   "config": {
-    "tsconfig.json": "37819100a4727be01394348704ebdd0ab4f8b09fe32ba4edbbb6f0e5fd17623f"
+    "tsconfig.json": "e718c7446b3fc4337404d1d3fbd55543f82331a2b2ce22ce46ecc6488070386d"
   },
   "lock": {
     "package-lock.json": "b64bb7ba6298d47694b5700301c5fbec5aec2d5ce8351937d1cda8873fc5697a",
@@ -34,6 +34,9 @@
     "bin/lib/producer-auth.ts": "fcaed615b47929a0db1d307553291ac8d15aca206003cdedd5e6807fc3914272",
     "bin/lib/prose-size.ts": "a359145a4d7d807f8b97cfe4e0f84eb03f6091baeaf2fbe658016832b671e9aa",
     "bin/lib/result.ts": "9faed77603fd2095150b6b405444d9fe4c6783a0da9339e8dc6121cb1921c4a3",
+    "bin/lib/review-comment-mcp.ts": "5e756731b90aab4b41611b6e21e5e0c20c436d0839445b3beb8e5b8374a7c014",
+    "bin/lib/review-comment-server.ts": "e291aa029472615ac83e758fd4c5ece31b1c8dad48c710738971e38d6d696e30",
+    "bin/lib/review-comment-session.ts": "b9ac13ad5920ee62f3bee81d74ad96aed2de75a2ea5c992fe4dfc2a3a6337e3b",
     "bin/lib/review-comment.ts": "3c0ce7ead29bb26b3e463ed858236e3f4c92b265de1af13f7d6b278e35c2dc3d",
     "bin/lib/rule-inventory.ts": "c4cb6d85b49519c4bca68d3b30b63a603eaf0590b8d31edbd7eaffe60dff4621",
     "bin/lib/run-checkpoint.ts": "9bee010306fced736b573cd2b7f377b08a1be140d1c9fa7ff3ca07405162ea98",
@@ -69,6 +72,9 @@
     "bin/lib/producer-auth.js": "6ef8d8a93c885992b0f58c3156f1e2df96518cbedd4df95cd7e2b72fa9009baf",
     "bin/lib/prose-size.js": "df29582b5c00b007ad6dd3f135859edae851c540c2f254b5e7cf869981d5c5a7",
     "bin/lib/result.js": "09f1ec919a2ff84a38e1fe1e8ac5ed983ddabb90f75bfa8647cfccce561ff03e",
+    "bin/lib/review-comment-mcp.js": "d3c122d0c3c15f50e58ba6393b89977fec6b16696a412f51fed82a35121e0161",
+    "bin/lib/review-comment-server.js": "7efe2e1ec3f5662049df7f5ef246d19716a3c3a4a2c6955d5d8069bf318d62c4",
+    "bin/lib/review-comment-session.js": "6cfad3f30c5543af805da09275d458412c4e80331b5a28ce84657aed5c5dda81",
     "bin/lib/review-comment.js": "bd6e002c683466364c5afb23b12f945abd982324d2fe9a0a496d23394a17ac5d",
     "bin/lib/rule-inventory.js": "e4cc399a8b003fb062065d612f5b28b578fb14cc371611568f68b47150b9e69d",
     "bin/lib/run-checkpoint.js": "55718b976a814ef789c62578a60c3aa44bd1e72de37f04aec242b4166700de35",
@@ -82,5 +88,5 @@
     "bin/lib/spec-review-round.js": "b02ecc242ee01d37719f7660252f2ba273abc334b79a6d64d2c40e66cb5bc678",
     "bin/lib/worktree-ensure.js": "a4d7154206e6d3dd6511248e3d0bcbadbc90079907146bc81430cf157433e44a"
   },
-  "output_digest": "14d73fafe3a42ab8c304db5a8ba168df84e18d5a179f30d4984536754eaabb9e"
+  "output_digest": "39faf017240664510fc48b4fc9a27dd5a37dab3d53909f7816838fbc7befc3e7"
 }

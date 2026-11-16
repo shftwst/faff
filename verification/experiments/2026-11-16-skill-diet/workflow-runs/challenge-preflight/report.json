@@ -1,0 +1,78 @@
+{
+  "status": "pass",
+  "cases": [
+    {
+      "id": "adr-1",
+      "pass": true,
+      "problems": [],
+      "outcome": "survived",
+      "ground": null,
+      "disposition": "admit",
+      "upper_admit": null
+    },
+    {
+      "id": "adr-2",
+      "pass": true,
+      "problems": [],
+      "outcome": "overturned",
+      "ground": null,
+      "disposition": "reject",
+      "upper_admit": null
+    },
+    {
+      "id": "adr-unavailable",
+      "pass": true,
+      "problems": [],
+      "outcome": null,
+      "ground": null,
+      "disposition": "reject",
+      "upper_admit": null
+    },
+    {
+      "id": "prdr-1",
+      "pass": true,
+      "problems": [],
+      "outcome": "survived",
+      "ground": null,
+      "disposition": "admit",
+      "upper_admit": true
+    },
+    {
+      "id": "prdr-2",
+      "pass": true,
+      "problems": [],
+      "outcome": "overturned",
+      "ground": "over-scope",
+      "disposition": "reject",
+      "upper_admit": false
+    },
+    {
+      "id": "prdr-under-citation",
+      "pass": true,
+      "problems": [],
+      "outcome": "survived",
+      "ground": null,
+      "disposition": "admit",
+      "upper_admit": true
+    },
+    {
+      "id": "prdr-unserved",
+      "pass": true,
+      "problems": [],
+      "outcome": "overturned",
+      "ground": "unserved",
+      "disposition": "reject",
+      "upper_admit": false
+    },
+    {
+      "id": "prdr-unavailable",
+      "pass": true,
+      "problems": [],
+      "outcome": null,
+      "ground": null,
+      "disposition": "reject",
+      "upper_admit": false
+    }
+  ],
+  "errors": []
+}

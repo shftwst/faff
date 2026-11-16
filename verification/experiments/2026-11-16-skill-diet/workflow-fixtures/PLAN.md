@@ -83,3 +83,26 @@ all ten cases successfully; v3 adds byte-preservation checks. Raw preflight
 evidence and failure notes are retained. Tests include deliberately dropping an
 L4 run directory, writing completion before the helper, downgrading a critical,
 changing the final signal, attempting to write the ledger and arbitrary execution.
+
+## ADR and PRDR challenge qualification
+
+The eight proposal-shaped cases in challenges.json cover supported and unsafe
+ADR supersession, supported and excessive PRDR scope, under-citation, an unserved
+cited goal and absent independent opinions. Four cases derive from the existing
+eval artifacts, with their source hashes recorded. The two existing PRDR examples
+now state the current-state-only goal explicitly before either arm is measured;
+this removes an ambiguity about whether historical query features are in scope.
+
+Claude occupies the independent reviewer role for a fixture primary from a
+different model family. It returns the challenge through the output tool. The
+fixture caller consumes that result through the real pinned adr admit or
+prdr yagni followed by prdr admit commands and persists the output. Both the
+judgement and the resulting admission must match the frozen oracle. This tests
+the output boundary and actual consumer behaviour, not provider transport or
+publishing decision records. Code-review transport is outside this interface.
+
+Five fresh samples per arm, alternating pair order, follow the same preservation
+and failure rules as the other workflow runs. Read-only contract-description
+calls are retained and may vary. The programmatic preflight passes all eight
+cases. A grader test proves a wrong overturn ground still fails when the CLI's
+admission remains the same; another exercises the real absent-opinion rejection.

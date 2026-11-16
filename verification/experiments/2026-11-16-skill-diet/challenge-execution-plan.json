@@ -1,0 +1,58 @@
+{
+  "harness": "eval/control-parity/challenge-execution.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/challenges.json",
+  "samples": [
+    {
+      "name": "challenges-baseline-1",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    },
+    {
+      "name": "challenges-candidate-1",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v3.md"
+    },
+    {
+      "name": "challenges-candidate-2",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v3.md"
+    },
+    {
+      "name": "challenges-baseline-2",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    },
+    {
+      "name": "challenges-baseline-3",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    },
+    {
+      "name": "challenges-candidate-3",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v3.md"
+    },
+    {
+      "name": "challenges-candidate-4",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v3.md"
+    },
+    {
+      "name": "challenges-baseline-4",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    },
+    {
+      "name": "challenges-baseline-5",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    },
+    {
+      "name": "challenges-candidate-5",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v3.md"
+    }
+  ]
+}

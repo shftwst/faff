@@ -58,3 +58,11 @@ observed behaviour or perfect parity. The configured budget is part of the
 oracle, and final gate equality cannot hide a wrong argument. Any candidate
 failure stops acceptance and requires investigation. No sample replacement or
 selective omission is permitted.
+
+The completed candidate delivery-v2 attempt also changed `fixture's kind` to
+`fixture kind` while copying shared guidance in seven cases. Exact-copy grading
+fails those cases; the missing apostrophe is not normalised away. All configured
+budgets and final gates passed. Its final screen reports combining two bridge
+calls once and using an inline JSON builder, so its protocol fails separately.
+The new literal-JSON setup was prepared before this result; the policy remains
+unchanged and all exact-copy assertions remain in force.

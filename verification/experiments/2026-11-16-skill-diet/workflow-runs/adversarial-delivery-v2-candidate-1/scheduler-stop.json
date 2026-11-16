@@ -1,0 +1,4 @@
+{
+  "reason": "Paused scheduler to correct common-context instructions; preserved completed attempt including rejected inline JSON builder.",
+  "at_utc": "2026-11-16T06:39:32.397304+00:00"
+}

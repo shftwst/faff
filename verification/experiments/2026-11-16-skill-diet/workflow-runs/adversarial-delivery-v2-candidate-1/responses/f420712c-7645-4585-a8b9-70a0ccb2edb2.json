@@ -1,0 +1,9 @@
+{
+  "ok": true,
+  "value": {
+    "exit_code": 7,
+    "signal": null,
+    "stdout": "",
+    "stderr": "budget: backend openai/fixture-model: timeout 10s × ~6 worst-case (~60s) >= per-backend budget 12s (deadline 12s / 1 backends) — retries/truncation may be cut short; lower this backend's timeout or raise --deadline\nexhausted: openai/fixture-model failed (auth-failed: HTTP 401: fixture authentication failure) (exit 7)\n[faff:primary-skipped]\n[note] FAFF-1039 primary reviewer openai/fixture-model was skipped — auth (HTTP 401: fixture authentication failure)\n"
+  }
+}

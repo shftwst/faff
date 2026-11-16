@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "value": {
+    "contract": {
+      "exit_code": 0,
+      "signal": null,
+      "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+      "stderr": ""
+    },
+    "gate": {
+      "issue": "FAFF-7001",
+      "pass": true,
+      "ac_complete": true,
+      "review_verdict": "pass",
+      "holdout": "not-applicable",
+      "reasons": [],
+      "ac_called_out": []
+    }
+  }
+}

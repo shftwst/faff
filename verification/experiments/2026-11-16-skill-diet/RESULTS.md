@@ -168,3 +168,9 @@ and literal JSON bridge. The challenge caller now forwards and checks its
 proposal flags. All 14 affected harness tests pass. The previous committed head
 passed every required CI check (run 43815075029). No production skill or effect
 oracle changed during these corrections.
+
+The completed delivery-v2 candidate passed 3/10 exact-copy cases: in seven system
+files it changed `fixture's kind` to `fixture kind`. Budget forwarding and gate
+outcomes passed, but those do not waive the copy failure or the reported inline
+program/combined-call protocol violations. The context-v3 literal JSON treatment
+retains the exact-copy oracle and unchanged policy.

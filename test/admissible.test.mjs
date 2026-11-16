@@ -440,7 +440,7 @@ test("FAFF-1477: over every committed spec the R2c refusals are exactly the pinn
     const failing = adm.admissibleVerdict(readFileSync(join(dir, f), "utf8"), true).checks.filter((c) => !c.pass).map((c) => c.id);
     if (failing.includes("R2c.human-judgement-untagged")) {
       refused.push(f);
-      assert.ok(failing.every((id) => !/^R2[de]/.test(id)), f);
+      assert.deepEqual(failing, ["R2c.human-judgement-untagged"], f);
     }
     if (failing.some((id) => /^R2[de]/.test(id))) otherRefusals.push(f);
   }

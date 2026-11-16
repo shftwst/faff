@@ -6,5 +6,6 @@
   },
   "live_kinds": ["reconciliation", "verdict-build", "finding-identity", "holdout-live"],
   "reference": "eval/baselines/frontier.json",
+  "reference_extra": [{ "kind": "finding-identity", "file": "eval/baselines/finding-identity-result.json", "accuracy": "rate" }],
   "reference_label": "claude-opus-5-5 (medium effort), eval/baselines/frontier.json"
 }

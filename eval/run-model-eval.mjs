@@ -59,10 +59,17 @@ export function buildResult({ meta, perKind, registry, roles, reference, format 
   return { schema: 1, meta, per_kind: perKind, rollup, format, skipped };
 }
 
+// The reference's per-kind numbers, plus any live kind whose committed result is a single pass rate
+// (plan.reference_extra: [{ kind, file, accuracy: <field> }]).
 function referenceInfo(plan, root) {
   const file = resolve(root, plan.reference);
   const baseline = readJson(file);
-  return { per_kind: baseline.per_kind, label: plan.reference_label, file: plan.reference, model: baseline.meta?.model ?? null, effort: baseline.meta?.effort ?? null, captured_at: baseline.meta?.captured_at ?? null };
+  const per_kind = { ...baseline.per_kind };
+  for (const x of plan.reference_extra ?? []) {
+    const r = readJson(resolve(root, x.file));
+    per_kind[x.kind] = { accuracy: r[x.accuracy], stability: null, format_adherence: null };
+  }
+  return { per_kind, label: plan.reference_label, file: plan.reference, model: baseline.meta?.model ?? null, effort: baseline.meta?.effort ?? null, captured_at: baseline.meta?.captured_at ?? null };
 }
 
 // Checkpoints: one JSON per finished kind under <workDir>/kinds, so --resume skips what is done.

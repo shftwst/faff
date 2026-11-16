@@ -309,10 +309,10 @@ function dodClassify(specText, opts) {
     let t = item;
     // FAFF-1476: a DONE item beginning `needs-human: <reason>` is human-only. The marker is stripped before
     // classification; an empty reason is no marker (text stays literal, advisory below).
-    const hm = /^needs-human:[ \t]*(.*)$/i.exec(t);
-    const humanOnly = hm !== null && hm[1].trim() !== "";
-    if (humanOnly) t = hm[1].trim();
-    else if (hm !== null) emptyHumanMarkers.push(t);
+    const hm = parseHumanMarker(t);
+    const humanOnly = hm.human_only;
+    if (humanOnly) t = hm.reason;
+    else if (hm.marked) emptyHumanMarkers.push(t);
     // FAFF-275: DONE mirrors the body 1:1 and is NEVER withheld (the closed-loop rule — a withheld
     // DONE item would silently break graft's AC checklist + the merge-gate floor). A `holdout:`-prefixed
     // DONE item is left LITERAL (no strip, holdout stays false) and draws an advisory, never a strip/removal.
@@ -476,6 +476,33 @@ const BANNED_VAGUE = [
 function matchesBannedVague(text) {
   const t = String(text == null ? "" : text).toLowerCase();
   return BANNED_VAGUE.some((p) => t.includes(p));
+}
+
+// FAFF-1477: the one place a DONE item's `needs-human:` marker is parsed, shared by `dodClassify` and the
+// lights-out admission checks so the gate and the merge floor cannot disagree about what a tag is. An empty
+// reason is a marker but not human-only.
+function parseHumanMarker(text) {
+  const m = /^needs-human:[ \t]*(.*)$/i.exec(String(text == null ? "" : text));
+  if (m === null) return { marked: false, reason: "", human_only: false };
+  const reason = m[1].trim();
+  return { marked: true, reason, human_only: reason !== "" };
+}
+
+// FAFF-1477: wording that names a person doing the checking. Narrow on purpose; each family was measured
+// against the committed specs and widening the list changes the corpus pin in test/admissible.test.mjs.
+const HUMAN_JUDGEMENT = [
+  /\bby\s+eye\b/i,
+  /\bmanually\s+(?:verif(?:y|ied|ies)|confirm(?:s|ed)?|inspect(?:s|ed)?)\b/i,
+  /\bmanual\s+(?:verification|confirmation|inspection)\b/i,
+  /\ba\s+(?:person|human)\s+(?:confirms|checks|verifies|inspects|signs\s+off)\b/i,
+  /\bvisually\s+(?:inspect|confirm|check|verif|review)\w*/i,
+  /\blooks\s+right\b/i,
+  /\bsubjective(?:ly)?\s+(?:judg(?:e)?ment|call|assessment|review)\b/i,
+];
+
+function matchesHumanJudgement(text) {
+  const bare = String(text == null ? "" : text).replace(/(`+)[\s\S]*?\1/g, " ");
+  return HUMAN_JUDGEMENT.some((re) => re.test(bare));
 }
 
 // The `## Scenarios` heading matcher, shared by parseScenarios (R1, `faff
@@ -682,7 +709,7 @@ function proseDoneContainment(doneText, bornText) {
 function proseDoneAdvisory(specText) {
   let classified;
   try { classified = dodClassify(specText); } catch (e) { return null; }
-  const proseDone = classified.criteria.filter((c) => c.source === "done" && c.class === "prose");
+  const proseDone = classified.criteria.filter((c) => c.source === "done" && c.class === "prose" && !c.human_only);   // FAFF-1477: a human-only item is verified by a person, so it is not predicted as a delegated prose punt
   if (proseDone.length === 0) return null;
   const bornVerifiable = classified.criteria.filter((c) => c.class === "scenario" || c.class === "assertion");
   const duplicates = proseDone.filter((p) => bornVerifiable.some((b) => proseDoneContainment(p.text, b.text) >= DUP_THRESHOLD));
@@ -802,6 +829,15 @@ function admissibleVerdict(specText, lightsOut) {
   checks.push({ id: "R2a.done-present", pass: doneItems.length >= 1, detail: `${doneItems.length} DONE checklist item(s) (need >=1)` });
   const vague = doneItems.filter((it) => matchesBannedVague(it));
   checks.push({ id: "R2b.done-concrete", pass: vague.length === 0, detail: `${vague.length} vague DONE item(s)${vague.length ? ": " + vague.map((v) => v.replace(/\s+/g, " ").slice(0, 50)).join(" | ") : ""}` });
+  const trunc50 = (s) => String(s).replace(/\s+/g, " ").trim().slice(0, 50);
+  const doneTexts = doneItems.map((it) => parseLocalAcId(it).text);   // pure: the id-assigning helper would repeat dodClassify's stderr advisories
+  const marks = doneTexts.map((t) => parseHumanMarker(t));
+  const untaggedHuman = doneTexts.filter((t, i) => !marks[i].marked && matchesHumanJudgement(t));
+  checks.push({ id: "R2c.human-judgement-untagged", pass: untaggedHuman.length === 0, detail: untaggedHuman.length === 0 ? "0 untagged human-judgement DONE item(s)" : `${untaggedHuman.length} untagged DONE item(s) name a human-judgement phrase; tag each needs-human: <reason> or make it machine-checkable: ${untaggedHuman.map(trunc50).join(" | ")}` });
+  const notHumanOnly = marks.filter((m) => !m.human_only).length;
+  checks.push({ id: "R2d.not-all-human-only", pass: doneTexts.length === 0 || notHumanOnly > 0, detail: notHumanOnly > 0 || doneTexts.length === 0 ? `${notHumanOnly} DONE item(s) not tagged human-only (need at least 1)` : "every DONE item is tagged needs-human: with a reason, so no DONE item is left for the merge floor to verify (need at least one item that is not tagged human-only)" });
+  const emptyMarkers = doneTexts.filter((t, i) => marks[i].marked && !marks[i].human_only);
+  checks.push({ id: "R2e.human-marker-reason", pass: emptyMarkers.length === 0, detail: emptyMarkers.length === 0 ? "0 DONE item(s) begin needs-human: with no reason" : `${emptyMarkers.length} DONE item(s) begin needs-human: with no reason; give each a reason or remove the marker: ${emptyMarkers.map(trunc50).join(" | ")}` });
   const warnings = detectRunnableCheck(specText) ? [] : ["R3 advisory: no runnable check command found (recommended for lights-out, not required)"];
   warnings.push(...doneScenariosLevelWarning(specText));   // FAFF-306: advisory only — never flips admissible
   const adv = proseDoneAdvisory(specText);                 // FAFF-304: predict the evaluator's prose-DONE punts
@@ -1864,4 +1900,4 @@ function cmdSpecReviewLenses(args) {
 }
 
 
-module.exports = { ADMISSIBLE_DUP_DONE, ADMISSIBLE_GOOD, ADMISSIBLE_GOOD_NUMBERED, ADMISSIBLE_PROSE_DONE, ADMISSIBLE_SPEC, BANNED_VAGUE, DOD_CLASSIFY_SPEC, DOD_SPLIT_SPEC, DOD_SURFACE, DUP_THRESHOLD, HOLDOUT_RECORD_SPEC, HOLDOUT_SURFACE, HOLDOUT_VERDICTS_SPEC, HOLDOUT_VERDICT_SPEC, INTEGRATION_TIER_MARKERS, INTERNAL_SUBJECT_MARKERS, OBSERVABLE_TOKENS, PROSE_DONE_STOPWORDS, SCENARIOS_HEADING_RE, SPEC_REVIEW_ALL_LENSES, SPEC_REVIEW_LENSES_SPEC, SPEC_REVIEW_SURFACE_FIRES, SPEC_REVIEW_SURFACE_TAGS, acceptanceSection, admissibleSelftest, admissibleVerdict, classifyAcceptanceCriteria, classifyCriterion, cmdAdmissible, codeSurfaceAdvisory, codeSurfaceSignal, cmdDod, cmdDodSplit, cmdHoldout, cmdHoldoutRecord, cmdHoldoutVerdict, cmdSpecReviewLenses, detectRunnableCheck, dodClassify, dodSelftest, dodSplit, doneScenariosLevelWarning, firstHeadingLevelMatching, hasObservableOracle, headingLevel, holdoutRemovalSpans, holdoutVerdictsSelftest, isConfidenceLine, isDoneHeading, isHoldoutFenceOpen, isIntegrationFenceOpen, matchesBannedVague, opensContractFence, oracleLessAdvisory, parseDoneChecklist, parseScenarios, prdHasComparator, proseDoneAdvisory, proseDoneContainment, proseDoneTokens, renderCodeSurfaceWarning, renderOracleLessWarning, renderProseDoneWarning, renderScenariosCodeSurfaceWarning, renderScenariosProseWarning, resolveVerificationTier, scenariosBoundaryStop, scenariosCodeSurfaceAdvisory, scenariosProseAdvisory, sectionBody, sectionBodyRange, selectLenses, specReviewLensesSelftest };
+module.exports = { ADMISSIBLE_DUP_DONE, ADMISSIBLE_GOOD, ADMISSIBLE_GOOD_NUMBERED, ADMISSIBLE_PROSE_DONE, ADMISSIBLE_SPEC, BANNED_VAGUE, DOD_CLASSIFY_SPEC, DOD_SPLIT_SPEC, DOD_SURFACE, DUP_THRESHOLD, HOLDOUT_RECORD_SPEC, HUMAN_JUDGEMENT, HOLDOUT_SURFACE, HOLDOUT_VERDICTS_SPEC, HOLDOUT_VERDICT_SPEC, INTEGRATION_TIER_MARKERS, INTERNAL_SUBJECT_MARKERS, OBSERVABLE_TOKENS, PROSE_DONE_STOPWORDS, SCENARIOS_HEADING_RE, SPEC_REVIEW_ALL_LENSES, SPEC_REVIEW_LENSES_SPEC, SPEC_REVIEW_SURFACE_FIRES, SPEC_REVIEW_SURFACE_TAGS, acceptanceSection, admissibleSelftest, admissibleVerdict, classifyAcceptanceCriteria, classifyCriterion, cmdAdmissible, codeSurfaceAdvisory, codeSurfaceSignal, cmdDod, cmdDodSplit, cmdHoldout, cmdHoldoutRecord, cmdHoldoutVerdict, cmdSpecReviewLenses, detectRunnableCheck, dodClassify, dodSelftest, dodSplit, doneScenariosLevelWarning, firstHeadingLevelMatching, hasObservableOracle, headingLevel, holdoutRemovalSpans, holdoutVerdictsSelftest, isConfidenceLine, isDoneHeading, isHoldoutFenceOpen, isIntegrationFenceOpen, matchesBannedVague, matchesHumanJudgement, opensContractFence, oracleLessAdvisory, parseDoneChecklist, parseHumanMarker, parseScenarios, prdHasComparator, proseDoneAdvisory, proseDoneContainment, proseDoneTokens, renderCodeSurfaceWarning, renderOracleLessWarning, renderProseDoneWarning, renderScenariosCodeSurfaceWarning, renderScenariosProseWarning, resolveVerificationTier, scenariosBoundaryStop, scenariosCodeSurfaceAdvisory, scenariosProseAdvisory, sectionBody, sectionBodyRange, selectLenses, specReviewLensesSelftest };

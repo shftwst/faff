@@ -9,6 +9,7 @@ and retain the operator DCO sign-off. Draft PR: https://github.com/shftwst/faff/
 |---|---|
 | Planner, harness and TypeScript boundary tests | 260 passed, none skipped, with the locked compiler installed locally |
 | Node 20 adopter runtime | 78 planner tests passed |
+| Initial CI at `3f1fad3d` | All checks passed; Node 24 source suite: 8,851 passed, zero failed, 14 skipped |
 | Full local suite at the final code revision | 8,623 passed, zero failed, six skipped; process-only Git signing override used for fixture commits |
 | Actual restricted command adapter | Eleven independent oracle cases passed; inputs, output bytes, digests, exit and timing retained in `production-command-calls.json` |
 | Deliberate code mutations | Seven caught by assertions; `check-planner-mutants.mjs` reproduces `planner-mutants.json` |
@@ -38,7 +39,12 @@ in its command shell. The Codex shell also lacks the Claude executable. No secre
 was read or copied. Preparation and capture must be rerun in an authenticated
 launcher against the final candidate before the $10, 22-attempt, no-retry batch.
 Model cost, cache behaviour, latency and model-level conformance remain unmeasured.
-The controlled MCP path does not measure shell command construction.
+The controlled MCP path does not measure shell command construction. A separate
+directed Claude Code exercise followed the file-tool/redirection instructions:
+exact planned bytes matched, zero of five sentinels were created, and ambiguous
+input returned no plan. An intentionally unsafe positive control created its
+sentinel, confirming the payload was executable. This was not a fresh blinded
+model trial. See `claude-shell-transport-exercise.md`.
 
 Implementation rulings and limits:
 

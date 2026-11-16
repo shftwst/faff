@@ -1,0 +1,64 @@
+{
+  "harness": "eval/control-parity/challenge-execution.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/challenges.json",
+  "samples": [
+    {
+      "name": "challenges-file-input-v4-baseline-1",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    },
+    {
+      "name": "challenges-file-input-v4-candidate-1",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v3.md"
+    },
+    {
+      "name": "challenges-file-input-v4-candidate-2",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v3.md"
+    },
+    {
+      "name": "challenges-file-input-v4-baseline-2",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    },
+    {
+      "name": "challenges-file-input-v4-baseline-3",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    },
+    {
+      "name": "challenges-file-input-v4-candidate-3",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v3.md"
+    },
+    {
+      "name": "challenges-file-input-v4-candidate-4",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v3.md"
+    },
+    {
+      "name": "challenges-file-input-v4-baseline-4",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    },
+    {
+      "name": "challenges-file-input-v4-baseline-5",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    },
+    {
+      "name": "challenges-file-input-v4-candidate-5",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v3.md"
+    }
+  ],
+  "worker": "claude-interfaces",
+  "treatment": "file-input-v4: same operator guidance and bounded policy delivery; native Write creates one authorised bridge-arguments.json, then fixed Bash command calls the port with no JSON data in its command text. All source policies, fixtures, production runtime and effect oracles unchanged.",
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md"
+  ],
+  "bridge": "eval/control-parity/mailbox-file-call.mjs"
+}

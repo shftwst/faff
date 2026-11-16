@@ -198,3 +198,14 @@ Across five runs, the recorded task/bridge payload proxy was 100,015 bytes and
 after. This counts each task and successful bridge result once. It excludes
 native guidance reads, system/catalog/history, model output and tool framing;
 it is separate from the source-size tally and is not provider usage.
+
+## Challenge native-hook interruption
+
+Context-v3 challenge effect grades passed, but retained screens for baseline-2,
+baseline-3 and candidate-2 report local merge-fence rejection of the literal
+merge command quoted inside JSON reasoning. Rewording later does not waive the
+rejected attempt. These samples do not qualify under the no-rejection protocol.
+`workflow-fixtures/FILE-INPUT-V4.md` freezes a fresh paired treatment: native Write
+passes JSON through one authorised input file, then a fixed bridge command reads
+it. The native guards remain enabled. Policies, fixtures and effect oracles are
+unchanged. Both file and stdin bridge tests preserve literal data.

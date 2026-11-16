@@ -1532,9 +1532,34 @@
   "latest_loads": "kernel-v4-after-loads.json",
   "pending_slices": [
     {
+      "path": "plugin/skills/faffter-noon-prd/SKILL.md",
+      "candidate": "candidates/prd-producer-v1.md",
+      "status": "Fresh Astra V2 pair; Claude allowance ended with four candidate samples; excluded from totals"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-review/SKILL.md",
+      "candidate": "candidates/review-producer-v2.md",
+      "status": "Fresh Astra V3 pair; explicit title-copy correction; excluded from totals"
+    },
+    {
+      "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+      "candidate": "candidates/agile-principles-v1.md",
+      "status": "Fresh Astra V3 pair with mechanical and mandatory semantic reviews separate; excluded from totals"
+    },
+    {
       "path": "plugin/skills/faff-wtf/SKILL.md",
-      "status": "paired presentation measurement running; excluded from totals",
-      "candidate": "candidates/wtf-format-v1.md"
+      "candidate": "candidates/wtf-format-v2.md",
+      "status": "Fresh Astra comparison queued; Claude V1 missed offers; excluded from totals"
+    },
+    {
+      "path": "plugin/skills/faff-map/SKILL.md",
+      "candidate": null,
+      "status": "Baseline queued; no candidate authored"
+    },
+    {
+      "path": "plugin/skills/faffidavit-routing/SKILL.md",
+      "candidate": null,
+      "status": "Baseline queued; no candidate authored"
     }
   ]
 }

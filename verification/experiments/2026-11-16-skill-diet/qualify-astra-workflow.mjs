@@ -14,6 +14,15 @@ if (kinds.length !== 1 || !['kernel-config-execution', 'rendering-artifact-workf
 const audits = auditArgs.map(path => ({ path: resolve(path), data: read(resolve(path)), sha256: hash(resolve(path)) }));
 const auditorHash = hash(resolve(root, '../../../eval/control-parity/codex-native-audit.mjs'));
 if (audits.some(a => a.data.auditor_sha256 !== auditorHash)) throw new Error('native auditor changed');
+const classifierHash = hash(resolve(root, '../../../eval/control-parity/native-tool-audit.mjs'));
+if (audits.some(a => a.data.classifier_sha256 !== classifierHash)) throw new Error('native command classifier changed');
+for (const audit of audits) for (const source of audit.data.sources ?? []) {
+  if (hash(source.path) !== source.sha256) throw new Error('native source audit changed');
+  const original = read(source.path);
+  if (original.source_sha256 !== source.source_sha256 || original.auditor_sha256 !== auditorHash || original.classifier_sha256 !== classifierHash) throw new Error('native source binding differs');
+  for (const row of original.runs) if (JSON.stringify(audit.data.runs.find(r => r.name === row.name)) !== JSON.stringify(row)) throw new Error('native aggregate row differs');
+}
+
 const runs = summary.runs.map(run => {
   const matches = audits.flatMap(audit => audit.data.runs.filter(row => row.name === run.name).map(row => ({ audit, row })));
   if (matches.length !== 1) throw new Error(`native session count: ${run.name}`);

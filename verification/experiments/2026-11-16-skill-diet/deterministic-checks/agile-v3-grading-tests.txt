@@ -1,0 +1,60 @@
+TAP version 13
+# Subtest: named-output oracle detects reordered priority, lost discovery questions and invented tickets
+ok 1 - named-output oracle detects reordered priority, lost discovery questions and invented tickets
+  ---
+  duration_ms: 0.901834
+  type: 'test'
+  ...
+# Subtest: real termination consumer respects the supplied order and keeps its fixed safety floor
+ok 2 - real termination consumer respects the supplied order and keeps its fixed safety floor
+  ---
+  duration_ms: 1313.007482
+  type: 'test'
+  ...
+# Subtest: producer outputs persist exactly and refuse tracker writes or duplicate submissions
+ok 3 - producer outputs persist exactly and refuse tracker writes or duplicate submissions
+  ---
+  duration_ms: 654.861552
+  type: 'test'
+  ...
+# Subtest: agile V2 accepts moving between named outcomes without admitting a missing re-grouping action
+ok 4 - agile V2 accepts moving between named outcomes without admitting a missing re-grouping action
+  ---
+  duration_ms: 2.91192
+  type: 'test'
+  ...
+# Subtest: agile V3 checks structure and identifiers while advice remains a mandatory manual rubric
+not ok 5 - agile V3 checks structure and identifiers while advice remains a mandatory manual rubric
+  ---
+  duration_ms: 3.244504
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/methodology-output.test.mjs:58:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The expression evaluated to a falsy value:
+    
+      assert.ok(c.manual_rubric.length > 80)
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/methodology-output.test.mjs:63:39)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 4
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2022.815757

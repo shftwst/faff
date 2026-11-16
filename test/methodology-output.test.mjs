@@ -54,3 +54,19 @@ test('agile V2 accepts moving between named outcomes without admitting a missing
   assert.equal(gradeMethodologyOutput(wrong, newCase.oracle).pass, false);
   for (const c of after.cases) assert.equal(gradeMethodologyOutput(c.reference, c.oracle).pass, true, c.id);
 });
+
+test('agile V3 checks structure and identifiers while advice remains a mandatory manual rubric', () => {
+  const base = new URL('../verification/experiments/2026-11-16-skill-diet/', import.meta.url);
+  const v3 = JSON.parse(readFileSync(new URL('workflow-fixtures/agile-principles-v3.json', base)));
+  for (const c of v3.cases) {
+    assert.equal(gradeMethodologyOutput(c.reference, c.oracle).pass, true, c.id);
+    if (c.kind === 'artifact') assert.ok(c.manual_rubric.length > 80);
+  }
+  const c = v3.cases.find(c => c.id === 'cohesion');
+  const observed = JSON.parse(readFileSync(new URL('workflow-runs/agile-principles-astra-v2-baseline-1/artifacts/cohesion.json', base)));
+  assert.equal(gradeMethodologyOutput(observed, c.oracle).pass, true);
+  const missing = structuredClone(observed); missing.findings[0].recommended_action = '';
+  assert.equal(gradeMethodologyOutput(missing, c.oracle).pass, false);
+  const wrongPrinciple = structuredClone(observed); wrongPrinciple.findings[0].principle = 1;
+  assert.equal(gradeMethodologyOutput(wrongPrinciple, c.oracle).pass, false);
+});

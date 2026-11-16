@@ -34,7 +34,7 @@ export async function callMailbox(directory, name, args, { timeoutMs = 45000, po
   return result.value;
 }
 
-export async function serveMailbox(directory, call, { timeoutMs = 180000, pollMs = 50 } = {}) {
+export async function serveMailbox(directory, call, { timeoutMs = 180000, pollMs = 50, allowedTools = ALLOWED, maxRequests = 16 } = {}) {
   mkdirSync(join(directory, 'requests'));
   mkdirSync(join(directory, 'responses'));
   const seen = new Set();
@@ -46,11 +46,11 @@ export async function serveMailbox(directory, call, { timeoutMs = 180000, pollMs
       seen.add(file);
       let result, finished = false;
       try {
-        if (seen.size > 16) throw new Error('interactive call limit');
+        if (seen.size > maxRequests) throw new Error('interactive call limit');
         const path = join(directory, 'requests', file);
         if (statSync(path).size > MAX_BYTES) throw new Error('oversized bridge request');
         const request = JSON.parse(readFileSync(path, 'utf8'));
-        if (!request || Object.keys(request).sort().join(',') !== 'args,name' || !ALLOWED.has(request.name)) throw new Error('unknown tool or malformed request');
+        if (!request || Object.keys(request).sort().join(',') !== 'args,name' || !allowedTools.has(request.name)) throw new Error('unknown tool or malformed request');
         const value = await call(request.name, request.args);
         result = { ok: true, value };
         finished = request.name === 'finish' && value?.finished === true;
@@ -62,7 +62,7 @@ export async function serveMailbox(directory, call, { timeoutMs = 180000, pollMs
       write(pending, result);
       renameSync(pending, join(directory, 'responses', file));
       if (finished) return { stop: null, requests: seen.size, rejected };
-      if (seen.size >= 16) return { stop: { reason: 'interactive-call-limit' }, requests: seen.size, rejected };
+      if (seen.size >= maxRequests) return { stop: { reason: 'interactive-call-limit' }, requests: seen.size, rejected };
     }
     await delay(pollMs);
   }

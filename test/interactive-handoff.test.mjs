@@ -22,7 +22,7 @@ test('interactive fixture bridge preserves values and records rejected calls bef
     assert.equal(result.rejected, 1);
     assert.deepEqual(calls.map(c => c.name), ['prepare_review_comment', 'finish']);
     assert.deepEqual(calls[0].args, args);
-  } finally { rmSync(directory, { recursive: true, force: true }); }
+  } finally { await service; rmSync(directory, { recursive: true, force: true }); }
 });
 
 test('interactive fixture bridge timeout remains incomplete', async () => {
@@ -31,4 +31,17 @@ test('interactive fixture bridge timeout remains incomplete', async () => {
     const result = await serveMailbox(directory, async () => assert.fail('no call expected'), { timeoutMs: 15, pollMs: 5 });
     assert.equal(result.stop.reason, 'interactive-timeout');
   } finally { rmSync(directory, { recursive: true, force: true }); }
+});
+
+test('workflow fixtures declare their own bounded tool set', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'faff-interactive-'));
+  const service = serveMailbox(directory, async (name, args) => name === 'finish' ? { finished: true } : { args }, {
+    timeoutMs: 2000, pollMs: 5, allowedTools: new Set(['run_faff', 'finish']), maxRequests: 3,
+  });
+  try {
+    assert.deepEqual(await callMailbox(directory, 'run_faff', { args: ['config', 'path'] }, { pollMs: 5 }), { args: { args: ['config', 'path'] } });
+    await assert.rejects(callMailbox(directory, 'prepare_review_comment', {}, { pollMs: 5 }), /unknown tool/);
+    await callMailbox(directory, 'finish', {}, { pollMs: 5 });
+    assert.equal((await service).rejected, 1);
+  } finally { await service; rmSync(directory, { recursive: true, force: true }); }
 });

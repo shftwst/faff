@@ -1,0 +1,471 @@
+{
+  "complete": true,
+  "checked_attempts": 22,
+  "checked_requests": 97,
+  "total_cost_nanos": 990254600,
+  "rows": [
+    {
+      "execution": 1,
+      "arm": "baseline",
+      "scenario": "author-not-preferred",
+      "status": "fail",
+      "failures": [
+        "effects-differ",
+        "final-state-differs"
+      ],
+      "incomplete": [],
+      "command": null,
+      "requests": 4,
+      "cost_nanos": 50474000,
+      "tokens": {
+        "input": 8,
+        "output": 857,
+        "cache_read": 10390,
+        "cache_write_5m": 0,
+        "cache_write_1h": 3903
+      }
+    },
+    {
+      "execution": 2,
+      "arm": "candidate",
+      "scenario": "author-not-preferred",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "command": {
+        "status": "followed",
+        "calls": 1,
+        "command_ms": 20.729273
+      },
+      "requests": 5,
+      "cost_nanos": 53987800,
+      "tokens": {
+        "input": 10,
+        "output": 1074,
+        "cache_read": 12499,
+        "cache_write_5m": 0,
+        "cache_write_1h": 3746
+      }
+    },
+    {
+      "execution": 3,
+      "arm": "candidate",
+      "scenario": "quoted-imitation",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "command": {
+        "status": "followed",
+        "calls": 1,
+        "command_ms": 18.885062
+      },
+      "requests": 5,
+      "cost_nanos": 49320200,
+      "tokens": {
+        "input": 10,
+        "output": 1217,
+        "cache_read": 14901,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2745
+      }
+    },
+    {
+      "execution": 4,
+      "arm": "baseline",
+      "scenario": "quoted-imitation",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "command": null,
+      "requests": 4,
+      "cost_nanos": 38801000,
+      "tokens": {
+        "input": 8,
+        "output": 656,
+        "cache_read": 11845,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2910
+      }
+    },
+    {
+      "execution": 5,
+      "arm": "baseline",
+      "scenario": "create-when-absent",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "command": null,
+      "requests": 3,
+      "cost_nanos": 36465000,
+      "tokens": {
+        "input": 8,
+        "output": 672,
+        "cache_read": 7645,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2683
+      }
+    },
+    {
+      "execution": 6,
+      "arm": "candidate",
+      "scenario": "create-when-absent",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "command": {
+        "status": "followed",
+        "calls": 1,
+        "command_ms": 23.177275
+      },
+      "requests": 5,
+      "cost_nanos": 41393600,
+      "tokens": {
+        "input": 12,
+        "output": 1033,
+        "cache_read": 13628,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2245
+      }
+    },
+    {
+      "execution": 7,
+      "arm": "candidate",
+      "scenario": "duplicate-reconcile",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "command": {
+        "status": "followed",
+        "calls": 1,
+        "command_ms": 21.091064
+      },
+      "requests": 5,
+      "cost_nanos": 47448800,
+      "tokens": {
+        "input": 10,
+        "output": 1210,
+        "cache_read": 14364,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2542
+      }
+    },
+    {
+      "execution": 8,
+      "arm": "baseline",
+      "scenario": "duplicate-reconcile",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "command": null,
+      "requests": 4,
+      "cost_nanos": 40144400,
+      "tokens": {
+        "input": 8,
+        "output": 788,
+        "cache_read": 11562,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2755
+      }
+    },
+    {
+      "execution": 9,
+      "arm": "baseline",
+      "scenario": "crlf-outside-region",
+      "status": "fail",
+      "failures": [
+        "effects-differ",
+        "final-state-differs"
+      ],
+      "incomplete": [],
+      "command": null,
+      "requests": 4,
+      "cost_nanos": 48970400,
+      "tokens": {
+        "input": 8,
+        "output": 1137,
+        "cache_read": 11512,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2987
+      }
+    },
+    {
+      "execution": 10,
+      "arm": "candidate",
+      "scenario": "crlf-outside-region",
+      "status": "fail",
+      "failures": [
+        "effects-differ",
+        "final-state-differs",
+        "terminal-differs"
+      ],
+      "incomplete": [],
+      "command": {
+        "status": "not-followed",
+        "calls": 1,
+        "command_ms": 20.604897
+      },
+      "requests": 6,
+      "cost_nanos": 62564200,
+      "tokens": {
+        "input": 12,
+        "output": 1759,
+        "cache_read": 17281,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2985
+      }
+    },
+    {
+      "execution": 11,
+      "arm": "candidate",
+      "scenario": "legacy-open-only",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "command": {
+        "status": "followed",
+        "calls": 1,
+        "command_ms": 26.539154
+      },
+      "requests": 5,
+      "cost_nanos": 38408000,
+      "tokens": {
+        "input": 10,
+        "output": 916,
+        "cache_read": 13400,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2171
+      }
+    },
+    {
+      "execution": 12,
+      "arm": "baseline",
+      "scenario": "legacy-open-only",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "command": null,
+      "requests": 4,
+      "cost_nanos": 38244800,
+      "tokens": {
+        "input": 8,
+        "output": 739,
+        "cache_read": 11244,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2648
+      }
+    },
+    {
+      "execution": 13,
+      "arm": "baseline",
+      "scenario": "repeated-pairs",
+      "status": "fail",
+      "failures": [
+        "effects-differ"
+      ],
+      "incomplete": [],
+      "command": null,
+      "requests": 4,
+      "cost_nanos": 54098600,
+      "tokens": {
+        "input": 8,
+        "output": 1290,
+        "cache_read": 11573,
+        "cache_write_5m": 0,
+        "cache_write_1h": 3244
+      }
+    },
+    {
+      "execution": 14,
+      "arm": "candidate",
+      "scenario": "repeated-pairs",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "command": {
+        "status": "followed",
+        "calls": 1,
+        "command_ms": 24.386777
+      },
+      "requests": 5,
+      "cost_nanos": 42290200,
+      "tokens": {
+        "input": 10,
+        "output": 1031,
+        "cache_read": 13791,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2359
+      }
+    },
+    {
+      "execution": 15,
+      "arm": "candidate",
+      "scenario": "timestamp-ties",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "command": {
+        "status": "followed",
+        "calls": 1,
+        "command_ms": 21.381471
+      },
+      "requests": 5,
+      "cost_nanos": 45947800,
+      "tokens": {
+        "input": 10,
+        "output": 1161,
+        "cache_read": 14199,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2481
+      }
+    },
+    {
+      "execution": 16,
+      "arm": "baseline",
+      "scenario": "timestamp-ties",
+      "status": "fail",
+      "failures": [
+        "effects-differ",
+        "final-state-differs",
+        "terminal-differs"
+      ],
+      "incomplete": [],
+      "command": null,
+      "requests": 3,
+      "cost_nanos": 39270000,
+      "tokens": {
+        "input": 6,
+        "output": 802,
+        "cache_read": 7750,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2707
+      }
+    },
+    {
+      "execution": 17,
+      "arm": "baseline",
+      "scenario": "fenced-example",
+      "status": "fail",
+      "failures": [
+        "effects-differ",
+        "final-state-differs",
+        "terminal-differs"
+      ],
+      "incomplete": [],
+      "command": null,
+      "requests": 3,
+      "cost_nanos": 56734800,
+      "tokens": {
+        "input": 6,
+        "output": 1534,
+        "cache_read": 7594,
+        "cache_write_5m": 0,
+        "cache_write_1h": 3064
+      }
+    },
+    {
+      "execution": 18,
+      "arm": "candidate",
+      "scenario": "fenced-example",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "command": {
+        "status": "followed",
+        "calls": 1,
+        "command_ms": 22.862192
+      },
+      "requests": 5,
+      "cost_nanos": 34931400,
+      "tokens": {
+        "input": 10,
+        "output": 778,
+        "cache_read": 13257,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2085
+      }
+    },
+    {
+      "execution": 19,
+      "arm": "candidate",
+      "scenario": "indented-and-trailing-whitespace",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "command": {
+        "status": "followed",
+        "calls": 1,
+        "command_ms": 22.342566
+      },
+      "requests": 5,
+      "cost_nanos": 41404000,
+      "tokens": {
+        "input": 10,
+        "output": 1008,
+        "cache_read": 13780,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2306
+      }
+    },
+    {
+      "execution": 20,
+      "arm": "baseline",
+      "scenario": "indented-and-trailing-whitespace",
+      "status": "fail",
+      "failures": [
+        "effects-differ",
+        "final-state-differs"
+      ],
+      "incomplete": [],
+      "command": null,
+      "requests": 4,
+      "cost_nanos": 53612400,
+      "tokens": {
+        "input": 8,
+        "output": 1301,
+        "cache_read": 11842,
+        "cache_write_5m": 0,
+        "cache_write_1h": 3149
+      }
+    },
+    {
+      "execution": 21,
+      "arm": "baseline",
+      "scenario": "preserve-human-text",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "command": null,
+      "requests": 4,
+      "cost_nanos": 35964200,
+      "tokens": {
+        "input": 8,
+        "output": 645,
+        "cache_read": 11241,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2598
+      }
+    },
+    {
+      "execution": 22,
+      "arm": "candidate",
+      "scenario": "preserve-human-text",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "command": {
+        "status": "followed",
+        "calls": 1,
+        "command_ms": 18.436535
+      },
+      "requests": 5,
+      "cost_nanos": 39779000,
+      "tokens": {
+        "input": 10,
+        "output": 946,
+        "cache_read": 13615,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2262
+      }
+    }
+  ]
+}

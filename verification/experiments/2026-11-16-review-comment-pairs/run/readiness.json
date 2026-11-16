@@ -1,0 +1,86 @@
+{
+  "schema": 2,
+  "status": "ready_for_command_pairs",
+  "manifest_sha256": "90c5bbcea2aac8172bc29184ac3e30e5a13a06cf8da1da11ad78e0fdddf8c687",
+  "reasons": [],
+  "baseline": {
+    "schema": 2,
+    "status": "ready_for_baseline_calibration",
+    "reasons": [],
+    "manifest_sha256": "90c5bbcea2aac8172bc29184ac3e30e5a13a06cf8da1da11ad78e0fdddf8c687",
+    "checked_at": "2026-11-16T02:34:45.972Z",
+    "claude": {
+      "available": true,
+      "binary": "claude",
+      "version": "2.1.325",
+      "reasons": [],
+      "effort_supported": true,
+      "model_status": "unverified",
+      "max_turns_flag": false,
+      "help_sha256": "1e734dc647e2d7c775d2e581b3aa68a8741ff4fdde7e864c4e5799d70777558c"
+    },
+    "bindings": {
+      "source": {
+        "root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-release-045",
+        "commit": "690546db64e3de7a68058a98a9945bfb731e68b3",
+        "pinned_commit": "690546db64e3de7a68058a98a9945bfb731e68b3",
+        "plugin_tree": "1da294c6569bd3e1780b93d1fbc1c62ca1dd38d5",
+        "pinned_plugin_tree": "1da294c6569bd3e1780b93d1fbc1c62ca1dd38d5",
+        "policy_path": "plugin/skills/faff/references/review.md",
+        "policy_sha256": "4d9d01e702294453cf16233feefe265e18ab5e376bf7d0f1eec40cb3f534edb6"
+      },
+      "tools": {
+        "root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-pairs-8ba8bd0c",
+        "commit": "8ba8bd0c0780fc43033a38c68dd8f9c9557c432c",
+        "files": {
+          "eval/control-parity/schema.mjs": "0164ccec86e98253e013dea2db3a00db35ef2ee9707de0a7360146b489715234",
+          "eval/control-parity/tracker.mjs": "84f94a671cbe78c82da20a405bac30f7f7ce5afbde6b389f5a3a948766461b04",
+          "eval/control-parity/proxy.mjs": "9ff58bf997a97998ea3d17883371874ce9c5bc918cd312329523145e6f5f90e7",
+          "eval/control-parity/tool-server.mjs": "2b030e728798ea7ae889ac69b5207945306470f3a2f832f6273689e92b422a27",
+          "eval/control-parity/candidate-command.mjs": "21aee374ee29d1ce293d175a902b935230b42d3233c94dae407be1dca6541a50",
+          "eval/control-parity/command-use.mjs": "13148a5154c13d99b0da924a8515650c6f7cb1cc652ac443e1109ddd12ab504b",
+          "eval/control-parity/claude-driver.mjs": "985ca344cba6e1b33a35b929fc19d74e57cce309e35f71a3c70c9b07ef0ccd6e",
+          "eval/control-parity/run.mjs": "cbdb7cbffad646141ca59a4825c8ed590eb8f15d1bb09c2b435aa4d3e16fc38e",
+          "eval/control-parity/registry.json": "a858ac57efa8266fd236a30b365c69e8ac0743a162c32731490aabd0de214f92",
+          "eval/control-parity/expected-outcomes.json": "c228c28a154144833ef8b6333a84785d294c28b6c880374f598874d447bce97e",
+          "eval/control-parity/blocked-coverage.json": "fccfc2a3eef7ee93e7d71d40cbd1d2737133cbe8936bc6d0fb7b2db3d62f7f84",
+          "eval/control-parity/policy-decisions.json": "8c559fa4064d0bab8111cb88f66f263ae711a64a1ec887b723a35ba4f9e5cf5d",
+          "eval/control-parity/fixtures/review-comments.json": "61e6c3d478504df18aa14c9f95cdb8b7b5be6ffdc9eda2b196cff6f37df0799b",
+          "eval/control-parity/paired.mjs": "3ab9b105be108ece6cc80caaa758139f0e54c67d96306709309a01e9fb46fd15",
+          "eval/control-parity/treatments.mjs": "961e4bd3de7b1d4b5228c9f84e0aed17703b20e6c55aac77fa841d5c680f57f6",
+          "eval/control-parity/intended-differences.json": "c75f1e7a48d6b9bfb14c1f422d82ee8d818a8121855451522368484cef6b4daa",
+          "verification/experiments/2026-11-15-comment-policy-measure/run/run.json": "d85df2de8e40277a00a4743068e8aeb29e847191954407f5ab01814aa41e6a55"
+        }
+      },
+      "registry_sha256": "a858ac57efa8266fd236a30b365c69e8ac0743a162c32731490aabd0de214f92",
+      "fixtures_sha256": "61e6c3d478504df18aa14c9f95cdb8b7b5be6ffdc9eda2b196cff6f37df0799b",
+      "expected_sha256": "c228c28a154144833ef8b6333a84785d294c28b6c880374f598874d447bce97e",
+      "blocked_sha256": "fccfc2a3eef7ee93e7d71d40cbd1d2737133cbe8936bc6d0fb7b2db3d62f7f84",
+      "dirty": []
+    },
+    "fixture_transport": "capture-refuse-verified",
+    "live_transport": "not-observed",
+    "observed_runtime_sha256": "c63f25fce93a11fccc6a487d06668b732487e55a891c4574f4099eb598906248",
+    "harness_overhead": {
+      "system_sha256": "2794080ce0ef1a082cfb76726802ac6b5d0994663dde183e74377cf6e7b5fa03",
+      "injected_messages_sha256": "6441b65d7363b99d5b2dac24f0c1765871a597db65554ea3b1b5881be4b40b30",
+      "tool_definitions_sha256": "55667ff47b721d53234b5e167774dfa9bae691725a18bb7c008eaeeeb21d74e8",
+      "thinking": {
+        "type": "adaptive",
+        "display": "updates"
+      }
+    },
+    "note": "Zero-cost checks only. The first calibration attempt is the live transport probe."
+  },
+  "arms": {
+    "baseline": {
+      "common_sha256": "2c8a319b2972db95b23c377df7339531bac6a7cdb5a730b06cfee4d1e56ee9ab",
+      "raw_sha256": "2c8a319b2972db95b23c377df7339531bac6a7cdb5a730b06cfee4d1e56ee9ab"
+    },
+    "candidate": {
+      "common_sha256": "2c8a319b2972db95b23c377df7339531bac6a7cdb5a730b06cfee4d1e56ee9ab",
+      "raw_sha256": "343cbf5a5e6d3950ff8b537058e76626200956fb5cf22dd72549147479da1dd8"
+    }
+  },
+  "checked_at": "2026-11-16T02:34:45.309Z"
+}

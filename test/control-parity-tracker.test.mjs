@@ -13,7 +13,7 @@ const load = p => parseStrictJson(readFileSync(join(ROOT, p), 'utf8'));
 const fixtures = load('eval/control-parity/fixtures/review-comments.json');
 const expected = load('eval/control-parity/expected-outcomes.json');
 const registry = load('eval/control-parity/registry.json');
-const policy = loadPolicyBytes(ROOT);
+const policy = loadPolicyBytes(new URL('./fixtures/control-parity/baseline/', import.meta.url).pathname);
 const H = c => c.repeat(64);
 const tmp = () => mkdtempSync(join(tmpdir(), 'cp-tracker-'));
 const fixture = id => fixtures.scenarios.find(s => s.id === id);
@@ -52,10 +52,18 @@ test('fixtures are synthetic, model-visible inputs carry no expected outcomes, a
   for (const x of Object.values(expected.scenarios)) for (const e of x.effects) assert.ok(!visible.includes(JSON.stringify(e.args.body)), 'expected body leaked into visible input');
 });
 
-test('blocked coverage is listed explicitly and none of it has an expected outcome', () => {
+test('every formerly blocked comment case is decided, covered by a scenario, and none remain blocked', () => {
   const blocked = load('eval/control-parity/blocked-coverage.json');
-  assert.deepEqual(blocked.cases.map(c => c.id).sort(), ['author-preference', 'equal-or-missing-created-at', 'fenced-marker-text', 'indented-marker', 'line-ending-normalisation', 'nested-or-repeated-pairs']);
-  for (const c of blocked.cases) assert.ok(!registry.scenarios.some(s => s.id === c.id));
+  const decisions = load('eval/control-parity/policy-decisions.json');
+  assert.deepEqual(blocked.cases, []);
+  assert.deepEqual(decisions.decisions.map(d => d.id).sort(), ['author-preference', 'equal-or-missing-created-at', 'fenced-marker-text', 'indented-marker', 'line-ending-normalisation', 'nested-or-repeated-pairs', 'splice-newline-framing']);
+  for (const d of decisions.decisions) {
+    assert.equal(d.decided_by, 'operator');
+    assert.equal(d.decided_on, '2026-11-15');
+    assert.equal(typeof d.changes_literal_prose, 'boolean');
+    assert.ok(d.covered_by.length > 0 && d.covered_by.every(id => registry.scenarios.some(s => s.id === id)), d.id);
+  }
+  assert.deepEqual(decisions.decisions.filter(d => d.changes_literal_prose).map(d => d.id), ['fenced-marker-text']);
 });
 
 test('the scripted control satisfies every independent obligation', async () => {
@@ -203,6 +211,42 @@ test('calls after finish are refused and do not reach the tracker', async () => 
   });
   assert.deepEqual(t.events.map(e => e.kind), ['terminal']);
 });
+
+test('swallowing a post-finish write error cannot make a completed operation pass', async () => {
+  const t = await capture('create-when-absent', async ctx => {
+    const result = await control('create-when-absent')(ctx);
+    await assert.rejects(ctx.ports.create_comment({ issue_id: ctx.input.issue_id, body: 'late write' }), /finished/);
+    return result;
+  });
+  assert.equal(validateTrace(t, entry('create-when-absent'), registry).status, 'incomplete');
+  assert.equal(t.stop.reason, 'post-finish-call');
+  assert.match(readFileSync(join(t.__directory, 'events.jsonl'), 'utf8'), /post-finish-call/);
+  assert.equal(createFixtureTracker({ directory: t.__directory }).readState().creates, 1);
+});
+
+test('a swallowed invalid finish is retained even when the driver later completes correctly', async () => {
+  const t = await capture('create-when-absent', async ctx => {
+    await assert.rejects(ctx.ports.finish({ status: 'done', reason: 'created' }), /status/);
+    return control('create-when-absent')(ctx);
+  });
+  assert.equal(validateTrace(t, entry('create-when-absent'), registry).status, 'incomplete');
+  assert.equal(t.stop.reason, 'invalid-finish');
+});
+
+for (const [name, call] of [
+  ['read', ctx => ctx.ports.list_comments({ issue_id: ctx.input.issue_id })],
+  ['second finish', ctx => ctx.ports.finish({ status: 'completed', reason: 'created' })],
+]) {
+  test(`a post-finish ${name} remains visible when the driver swallows the error`, async () => {
+    const t = await capture('create-when-absent', async ctx => {
+      const result = await control('create-when-absent')(ctx);
+      await assert.rejects(call(ctx), /finished/);
+      return result;
+    });
+    assert.equal(validateTrace(t, entry('create-when-absent'), registry).status, 'incomplete');
+    assert.equal(t.stop.reason, 'post-finish-call');
+  });
+}
 
 test('finish rejects a status or reason outside the visible vocabulary', async () => {
   await capture('create-when-absent', async ({ ports }) => {

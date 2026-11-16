@@ -1,0 +1,61 @@
+{
+  "schema": 2,
+  "scenario": "legacy-open-only",
+  "attempt": 1,
+  "input_sha256": "50c50c0b63fd8f36446863e0628357e02946daa82dd8d6ee1d66cea234877c4d",
+  "policy_sha256": "4d9d01e702294453cf16233feefe265e18ab5e376bf7d0f1eec40cb3f534edb6",
+  "prompt_sha256": "f29d8fbd2e359f7427473d9e6ac68b484fb4e8455e88cfb59b6ef7bb9b6de020",
+  "runtime_sha256": "eb3e568913e4d3001842be01e23be006ee3b7182e771f5cd01ea7dc2358bf448",
+  "events": [
+    {
+      "seq": 1,
+      "kind": "read",
+      "op": "list_comments",
+      "args": {
+        "issue_id": "ISS-103"
+      },
+      "result": {
+        "comments": [
+          {
+            "id": "ISS-103-c1",
+            "created_at": "2026-11-12T08:00:00Z",
+            "body": "Earlier context from the reviewer.\n<!-- faff-review-findings:ISS-103 -->\nVerdict: approve\nResolved 2 findings acr"
+          }
+        ]
+      }
+    },
+    {
+      "seq": 2,
+      "kind": "effect-attempt",
+      "id": "e1",
+      "op": "save_comment",
+      "args": {
+        "id": "ISS-103-c1",
+        "body": "Earlier context from the reviewer.\n<!-- faff-review-findings:ISS-103 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-103-review.md\n<!-- /faff-review-findings:ISS-103 -->"
+      }
+    },
+    {
+      "seq": 3,
+      "kind": "effect-result",
+      "attempt_id": "e1",
+      "outcome": "applied",
+      "acknowledged": true
+    },
+    {
+      "seq": 4,
+      "kind": "terminal",
+      "status": "completed",
+      "reason": "updated",
+      "final_state_sha256": "c80d8a64b33a8257e4e52c5e7d140368736b296d415a43cfc814fc96c828aacd"
+    }
+  ],
+  "final_state_sha256": "c80d8a64b33a8257e4e52c5e7d140368736b296d415a43cfc814fc96c828aacd",
+  "stop": null,
+  "accounting": {
+    "usage_complete": true,
+    "served_models": [
+      "claude-opus-5-5"
+    ],
+    "requests": 4
+  }
+}

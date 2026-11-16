@@ -1,0 +1,16 @@
+Prepared: 22 attempts, $10 allowance, one worker, no retries, Claude Code 2.1.325.
+{
+  "status": "ready_for_command_pairs",
+  "reasons": []
+}
+{
+  "status": "failed",
+  "counts": {
+    "planned": 22,
+    "run": 22,
+    "not_run": 0
+  },
+  "stopped_by": null,
+  "observed_cost_nanos": 990254600,
+  "held_reservation_nanos": 0
+}

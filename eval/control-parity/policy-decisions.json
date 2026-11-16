@@ -1,0 +1,86 @@
+{
+  "schema": 2,
+  "note": "Operator decisions on comment cases review.md left contradictory or unstated. Expected outcomes in expected-outcomes.json follow these. To be promoted to an ADR when the extraction is built.",
+  "decisions": [
+    {
+      "id": "indented-marker",
+      "decision": "Leading whitespace disqualifies a marker line; trailing whitespace, including \\r, is ignored.",
+      "decided_by": "operator",
+      "decided_on": "2026-11-15",
+      "changes_literal_prose": false,
+      "covered_by": [
+        "indented-and-trailing-whitespace"
+      ],
+      "note": "Follows the prose's explicit list (\"indented ... is not a marker line\") over its general \"trimmed of surrounding whitespace\"."
+    },
+    {
+      "id": "equal-or-missing-created-at",
+      "decision": "Sort by created_at; ties keep the tracker's listing order; a missing created_at sorts after every timestamped comment.",
+      "decided_by": "operator",
+      "decided_on": "2026-11-15",
+      "changes_literal_prose": false,
+      "covered_by": [
+        "timestamp-ties"
+      ],
+      "note": "The prose is silent on ties and missing values."
+    },
+    {
+      "id": "author-preference",
+      "decision": "Authorship is never used.",
+      "decided_by": "operator",
+      "decided_on": "2026-11-15",
+      "changes_literal_prose": false,
+      "covered_by": [
+        "author-not-preferred"
+      ],
+      "note": "The prose makes author preference optional. Faff usually posts as the operator, so authorship cannot tell them apart."
+    },
+    {
+      "id": "nested-or-repeated-pairs",
+      "decision": "The region runs from the first open marker line to the first close marker line after it; later markers are ordinary text and are preserved.",
+      "decided_by": "operator",
+      "decided_on": "2026-11-15",
+      "changes_literal_prose": false,
+      "covered_by": [
+        "repeated-pairs"
+      ],
+      "note": "The prose defines no pairing; this reading fits \"preserve everything after marker_close\"."
+    },
+    {
+      "id": "fenced-marker-text",
+      "decision": "Lines inside a fenced code block (``` or ~~~) are never marker lines.",
+      "decided_by": "operator",
+      "decided_on": "2026-11-15",
+      "changes_literal_prose": true,
+      "covered_by": [
+        "fenced-example"
+      ],
+      "note": "Changes the literal line rule, which would adopt a fenced paste; serves the prose's stated aim of rejecting third-party pastes."
+    },
+    {
+      "id": "line-ending-normalisation",
+      "decision": "Text outside the region is kept byte for byte, CRLF included; the region is always written marker_open\\nbody\\nmarker_close. A \\r before \\n is trailing whitespace of its line, so on a marker line it is rewritten with the region.",
+      "decided_by": "operator",
+      "decided_on": "2026-11-15",
+      "changes_literal_prose": false,
+      "covered_by": [
+        "crlf-outside-region",
+        "indented-and-trailing-whitespace"
+      ],
+      "note": "The last sentence is the consequence of decisions 1 and 6 together."
+    },
+    {
+      "id": "splice-newline-framing",
+      "decision": "Marker lines stay whole lines: the region runs from the start of the open marker line to the end of the close marker line and is written marker_open\\nbody\\nmarker_close.",
+      "decided_by": "operator",
+      "decided_on": "2026-11-15",
+      "changes_literal_prose": false,
+      "covered_by": [
+        "preserve-human-text",
+        "repeated-pairs",
+        "crlf-outside-region"
+      ],
+      "note": "The shape the create step writes; a literal between-markers splice would stop the comment matching on the next run."
+    }
+  ]
+}

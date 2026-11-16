@@ -1,0 +1,288 @@
+{
+  "schema": 2,
+  "parser_version": "control-parity-stream-2.0.0",
+  "started_at": "2026-11-16T02:37:48.763Z",
+  "settings": {
+    "binary": "claude",
+    "model": "claude-opus-5-5",
+    "effort": "medium",
+    "credential_env": "CLAUDE_CODE_OAUTH_TOKEN"
+  },
+  "limits": {
+    "attempts": 22,
+    "turns": 12,
+    "output_tokens": 8192,
+    "attempt_ms": 600000,
+    "batch_ms": 3600000,
+    "allowance_nanos": 10000000000,
+    "workers": 1,
+    "retries": 0
+  },
+  "mode": "forward",
+  "prompt": {
+    "hashes": {
+      "policy_sha256": "d51ee0cae1fdc2337e26a51e7ffd5c25348f5eac48a9702ff7e4464f4534a317",
+      "harness_sha256": "b4d82cf309eadf162ada9f8f69accefb5ab05671ac5cd242914d379d329141f6",
+      "prompt_sha256": "61ecb31443a17a9653f9eb4ed51ae4d0775dfdec8db9a24f613e5704c5999b12"
+    },
+    "load_closure": {
+      "loaded": [
+        "plugin/skills/faff/references/review.md#review-findings-comment-identity"
+      ],
+      "referenced_not_loaded": [
+        "gateway: Human curation is authoritative (assertion 3)",
+        "gateway: Issue claim & status monotonicity",
+        "gateway: appetite hard floor (autonomous delete forbidden)"
+      ]
+    }
+  },
+  "stop": null,
+  "exit": {
+    "code": 0,
+    "signal": null
+  },
+  "timed_out": false,
+  "invocation": {
+    "bin": "claude",
+    "args_sha256": "4cb63cab7a43075254a50b55045e2dce082e6ab68841cb1443458ee48e3b5341",
+    "flags": [
+      "-p",
+      "--model",
+      "claude-opus-5-5",
+      "--effort",
+      "medium",
+      "--tools",
+      "",
+      "--strict-mcp-config",
+      "--mcp-config",
+      "/tmp/faff-cp-private-qm87IE/mcp.json",
+      "--allowedTools",
+      "mcp__tracker__list_comments,mcp__tracker__create_comment,mcp__tracker__save_comment,mcp__tracker__finish,mcp__tracker__plan_review_comment",
+      "--permission-mode",
+      "dontAsk",
+      "--setting-sources",
+      "",
+      "--no-session-persistence",
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--system-prompt"
+    ],
+    "env_keys": [
+      "ANTHROPIC_BASE_URL",
+      "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC",
+      "CLAUDE_CODE_MAX_OUTPUT_TOKENS",
+      "CLAUDE_CODE_OAUTH_TOKEN",
+      "CLAUDE_CONFIG_DIR",
+      "DISABLE_AUTOUPDATER",
+      "DISABLE_TELEMETRY",
+      "HOME",
+      "PATH"
+    ],
+    "cwd": "/tmp/faff-control-parity-work"
+  },
+  "ended_at": "2026-11-16T02:38:02.595Z",
+  "proxy": {
+    "stop": null,
+    "requests": [
+      {
+        "n": 1,
+        "requested_model": "claude-opus-5-5",
+        "reservation_nanos": 236136000,
+        "status": 200,
+        "id": "msg_011Ch5q8FegRd1Ek62quuhNK",
+        "served_model": "claude-opus-5-5",
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 1200,
+          "cache_read_input_tokens": 1374,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 1200
+          },
+          "output_tokens": 63,
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard",
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          }
+        },
+        "cost_nanos": 11142800,
+        "transport_error": null
+      },
+      {
+        "n": 2,
+        "requested_model": "claude-opus-5-5",
+        "reservation_nanos": 240000000,
+        "status": 200,
+        "id": "msg_011Ch5q8QcS9wpoCMZLmy1VT",
+        "served_model": "claude-opus-5-5",
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 170,
+          "cache_read_input_tokens": 2574,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 170
+          },
+          "output_tokens": 305,
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard",
+          "output_tokens_details": {
+            "thinking_tokens": 32
+          }
+        },
+        "cost_nanos": 7982800,
+        "transport_error": null
+      },
+      {
+        "n": 3,
+        "requested_model": "claude-opus-5-5",
+        "reservation_nanos": 256352000,
+        "status": 200,
+        "id": "msg_011Ch5q8fBXWijRvLcYhZEJ3",
+        "served_model": "claude-opus-5-5",
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 509,
+          "cache_read_input_tokens": 2744,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 509
+          },
+          "output_tokens": 182,
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard",
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          }
+        },
+        "cost_nanos": 8268800,
+        "transport_error": null
+      },
+      {
+        "n": 4,
+        "requested_model": "claude-opus-5-5",
+        "reservation_nanos": 260576000,
+        "status": 200,
+        "id": "msg_011Ch5q8raNoT69mdXJMTajr",
+        "served_model": "claude-opus-5-5",
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 202,
+          "cache_read_input_tokens": 3253,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 202
+          },
+          "output_tokens": 78,
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard",
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          }
+        },
+        "cost_nanos": 3834600,
+        "transport_error": null
+      },
+      {
+        "n": 5,
+        "requested_model": "claude-opus-5-5",
+        "reservation_nanos": 263184000,
+        "status": 200,
+        "id": "msg_011Ch5q8zAHp5BucwYZcvkFX",
+        "served_model": "claude-opus-5-5",
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 90,
+          "cache_read_input_tokens": 3455,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 90
+          },
+          "output_tokens": 288,
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard",
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          }
+        },
+        "cost_nanos": 7179000,
+        "transport_error": null
+      }
+    ],
+    "usage_complete": true,
+    "served_models": [
+      "claude-opus-5-5"
+    ],
+    "captured": [],
+    "other_paths": []
+  },
+  "cli": {
+    "served_models": [
+      "claude-opus-5-5"
+    ],
+    "requests": [
+      {
+        "id": "msg_011Ch5q8FegRd1Ek62quuhNK",
+        "model": "claude-opus-5-5",
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 1200,
+          "cache_read_input_tokens": 1374,
+          "output_tokens": 24
+        }
+      },
+      {
+        "id": "msg_011Ch5q8QcS9wpoCMZLmy1VT",
+        "model": "claude-opus-5-5",
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 170,
+          "cache_read_input_tokens": 2574,
+          "output_tokens": 6
+        }
+      },
+      {
+        "id": "msg_011Ch5q8fBXWijRvLcYhZEJ3",
+        "model": "claude-opus-5-5",
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 509,
+          "cache_read_input_tokens": 2744,
+          "output_tokens": 24
+        }
+      },
+      {
+        "id": "msg_011Ch5q8raNoT69mdXJMTajr",
+        "model": "claude-opus-5-5",
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 202,
+          "cache_read_input_tokens": 3253,
+          "output_tokens": 24
+        }
+      },
+      {
+        "id": "msg_011Ch5q8zAHp5BucwYZcvkFX",
+        "model": "claude-opus-5-5",
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 90,
+          "cache_read_input_tokens": 3455,
+          "output_tokens": 288
+        }
+      }
+    ],
+    "malformed": [],
+    "result_subtype": "success",
+    "num_turns": 5,
+    "cli_reported_cost_usd": "0.038408",
+    "note": "CLI-reported cost is an estimate, not an invoice; provider usage from the proxy is the accounting source."
+  }
+}

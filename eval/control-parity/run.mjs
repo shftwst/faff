@@ -1,5 +1,5 @@
 // Preparation, readiness and scheduling for controlled skill runs.
-//   node eval/control-parity/run.mjs prepare --source-root DIR --pinned-commit SHA --credential-env NAME --out DIR [--seed S]
+//   node eval/control-parity/run.mjs prepare --source-root DIR --pinned-commit SHA --credential-env NAME --out DIR [--seed S] [--attempts N]
 //   node eval/control-parity/run.mjs preflight --manifest FILE --out DIR
 //   node eval/control-parity/run.mjs baseline --manifest FILE --readiness FILE --out DIR
 // Every output directory must not exist yet; nothing is overwritten.
@@ -13,8 +13,10 @@ import { REASON_CODES, captureScenario, createFixtureTracker, loadPolicyBytes } 
 import { OPUS_5_5_PRICING, createLedger } from './proxy.mjs';
 import { ALLOWED_TOOLS, DEFAULT_LIMITS, HARNESS_INSTRUCTION, HARNESS_TOOLS, PARSER_VERSION, buildPromptBundle, probeClaude, runClaudeScenario, runtimeFingerprint, runtimeFingerprintOfBody } from './claude-driver.mjs';
 import { TOOL_DEFINITIONS } from './tool-server.mjs';
+import { gradeCommandUse, readCommandEvents } from './command-use.mjs';
 
-const TOOL_FILES = ['schema.mjs', 'tracker.mjs', 'proxy.mjs', 'tool-server.mjs', 'claude-driver.mjs', 'run.mjs', 'registry.json', 'expected-outcomes.json', 'blocked-coverage.json', 'fixtures/review-comments.json'].map(f => `eval/control-parity/${f}`);
+const TOOL_FILES = ['schema.mjs', 'tracker.mjs', 'proxy.mjs', 'tool-server.mjs', 'candidate-command.mjs', 'command-use.mjs', 'claude-driver.mjs', 'run.mjs', 'registry.json', 'expected-outcomes.json', 'blocked-coverage.json', 'policy-decisions.json', 'fixtures/review-comments.json'].map(f => `eval/control-parity/${f}`);
+TOOL_FILES.push('eval/control-parity/paired.mjs', 'eval/control-parity/treatments.mjs', 'eval/control-parity/intended-differences.json', 'verification/experiments/2026-11-15-comment-policy-measure/run/run.json');
 const POLICY_PATH = 'plugin/skills/faff/references/review.md';
 const PRICING = { 'claude-opus-5-5': OPUS_5_5_PRICING };
 const READY = 'ready_for_baseline_calibration';
@@ -23,7 +25,7 @@ const git = (root, ...args) => execFileSync('git', args, { cwd: root, encoding: 
 const fileHash = (root, rel) => sha256(readFileSync(join(root, rel)));
 const readJson = path => parseStrictJson(readFileSync(path, 'utf8'));
 const writeNew = (path, value) => writeFileSync(path, JSON.stringify(value, null, 2) + '\n', { flag: 'wx' });
-function freshDirectory(out) {
+export function freshDirectory(out) {
   if (existsSync(out)) throw new Error(`Output directory ${out} already exists; choose a new one`);
   mkdirSync(dirname(out), { recursive: true });
   mkdirSync(out);
@@ -71,10 +73,32 @@ function bindingProblems(manifest, current) {
 
 const seededOrder = (seed, items) => [...items].sort((a, b) => sha256(`${seed}:${a.scenario}:${a.attempt}`).localeCompare(sha256(`${seed}:${b.scenario}:${b.attempt}`)));
 
-function loadInputs(toolsRoot) {
+export function loadInputs(toolsRoot) {
   const registry = validateRegistry(readJson(join(toolsRoot, 'eval/control-parity/registry.json')));
   const fixtures = readJson(join(toolsRoot, 'eval/control-parity/fixtures/review-comments.json'));
-  return { registry, fixtures: new Map(fixtures.scenarios.map(s => [s.id, s])) };
+  const expected = readJson(join(toolsRoot, 'eval/control-parity/expected-outcomes.json'));
+  return { registry, fixtures: new Map(fixtures.scenarios.map(s => [s.id, s])), fixtureEntries: fixtures.scenarios, expected };
+}
+
+function inputProblems(inputs, policyBytes) {
+  const { registry, fixtures, fixtureEntries, expected } = inputs;
+  const problems = [];
+  if (fixtures.size !== fixtureEntries.length) problems.push('duplicate fixture identity');
+  const known = new Set(registry.scenarios.map(s => s.id));
+  for (const id of fixtures.keys()) if (!known.has(id)) problems.push(`unexpected fixture ${id}`);
+  for (const id of Object.keys(expected.scenarios)) if (!known.has(id)) problems.push(`unexpected expectation ${id}`);
+  for (const s of registry.scenarios) {
+    const fixture = fixtures.get(s.id);
+    if (!fixture || canonicalHash(fixture) !== s.input_sha256) problems.push(`${s.id}: fixture input hash differs from registry`);
+    if (sha256(policyBytes) !== s.policy_sha256) problems.push(`${s.id}: policy hash differs from registry`);
+    const outcome = expected.scenarios[s.id];
+    if (!outcome || canonicalHash(outcome.effects) !== canonicalHash(s.expected.effects)
+      || canonicalHash(outcome.terminal) !== canonicalHash(s.expected.terminal)
+      || canonicalHash(outcome.final_comments) !== s.expected.final_state_sha256) {
+      problems.push(`${s.id}: expected outcomes differ from registry`);
+    }
+  }
+  return problems;
 }
 
 export function prepareExperiment({ sourceRoot, toolsRoot = sourceRoot, pinnedCommit, settings, limits = DEFAULT_LIMITS, out, seed = randomBytes(16).toString('hex'), repetitions = 1, probe = probeClaude }) {
@@ -116,7 +140,7 @@ export function prepareExperiment({ sourceRoot, toolsRoot = sourceRoot, pinnedCo
 
 const textOf = value => (typeof value === 'string' ? [value] : Array.isArray(value) ? value.flatMap(textOf) : value && typeof value === 'object' ? Object.values(value).flatMap(textOf) : []);
 
-export function evaluateCapture(capture, { model, effort, output_tokens, policy }) {
+export function evaluateCapture(capture, { model, effort, output_tokens, policy, allowedTools = ALLOWED_TOOLS, harness = HARNESS_INSTRUCTION }) {
   const problems = [];
   if (capture.captured?.length !== 1) return ['no-capture'];
   if (capture.stop?.reason !== 'probe-captured') problems.push('probe-stop');
@@ -125,11 +149,11 @@ export function evaluateCapture(capture, { model, effort, output_tokens, policy 
   if (body.max_tokens !== output_tokens) problems.push('output-ceiling');
   if (body.output_config?.effort !== effort) problems.push('effort');
   const tools = (body.tools ?? []).map(t => t.name).sort();
-  if (JSON.stringify(tools) !== JSON.stringify([...ALLOWED_TOOLS, ...HARNESS_TOOLS].sort())) problems.push('tools');
+  if (JSON.stringify(tools) !== JSON.stringify([...allowedTools, ...HARNESS_TOOLS].sort())) problems.push('tools');
   if (!credential_headers?.length) problems.push('credential');
   if (capture.other_paths?.length) problems.push('other-paths');
   if (capture.tracker_events !== 0) problems.push('tracker-touched');
-  if (!textOf(body.system).some(t => t.includes(HARNESS_INSTRUCTION))) problems.push('harness');
+  if (!textOf(body.system).some(t => t.includes(harness))) problems.push('harness');
   if (!textOf(body.messages).some(t => t.includes(policy))) problems.push('policy');
   return problems;
 }
@@ -139,14 +163,15 @@ function probeUserPrompt(manifest, registry, fixtures) {
   return buildPromptBundle({ policyBytes: loadPolicyBytes(manifest.source.root), input: { issue_id: s.issue_id, faff_body: s.faff_body, reason_codes: [...REASON_CODES] } }).user;
 }
 
-async function claudeCaptureProbe({ manifest, out, registry, fixtures }) {
+export async function claudeCaptureProbe({ manifest, out, registry, fixtures, arm = 'baseline' }) {
   const scenario = fixtures.get(registry.scenarios[0].id);
   const trackerDirectory = join(out, 'probe', 'tracker');
   createFixtureTracker({ directory: trackerDirectory, initialState: scenario.tracker, issueId: scenario.issue_id });
   const result = await runClaudeScenario({
     trackerDirectory,
     input: { issue_id: scenario.issue_id, faff_body: scenario.faff_body, reason_codes: [...REASON_CODES] },
-    policyBytes: loadPolicyBytes(manifest.source.root),
+    policyBytes: loadPolicyBytes(arm === 'candidate' ? manifest.candidate.binding.root : manifest.source.root),
+    commandBinding: arm === 'candidate' ? manifest.candidate : null,
     settings: manifest.settings,
     limits: manifest.limits,
     evidenceDirectory: join(out, 'probe', 'evidence'),
@@ -161,7 +186,9 @@ export async function preflight(manifest, { out, probe = probeClaude, liveProbe 
   const reasons = [];
   const current = bindings({ sourceRoot: manifest.source.root, toolsRoot: manifest.tools.root, pinnedCommit: manifest.source.pinned_commit });
   reasons.push(...bindingProblems(manifest, current));
-  const { registry, fixtures } = loadInputs(manifest.tools.root);
+  const inputs = loadInputs(manifest.tools.root);
+  const { registry, fixtures } = inputs;
+  reasons.push(...inputProblems(inputs, loadPolicyBytes(manifest.source.root)));
   const scheduled = manifest.schedule.attempts.map(a => a.scenario);
   for (const s of registry.scenarios) {
     if (!fixtures.has(s.id)) reasons.push(`fixture missing for ${s.id}`);
@@ -204,15 +231,17 @@ export async function preflight(manifest, { out, probe = probeClaude, liveProbe 
   return readiness;
 }
 
-const claudeDriverFactory = ctx => async ({ input }) => {
-  const r = await runClaudeScenario({ trackerDirectory: ctx.trackerDirectory, input, policyBytes: ctx.promptBytes, settings: ctx.settings, limits: ctx.limits, evidenceDirectory: ctx.evidenceDirectory, ledger: ctx.ledger });
+export const claudeDriverFactory = ctx => async ({ input }) => {
+  const r = await runClaudeScenario({ trackerDirectory: ctx.trackerDirectory, input, policyBytes: ctx.promptBytes, settings: ctx.settings, limits: ctx.limits, evidenceDirectory: ctx.evidenceDirectory, ledger: ctx.ledger, commandBinding: ctx.commandBinding });
   return { stop: r.stop, accounting: r.accounting, observed_runtime_sha256: r.observed_runtime_sha256 };
 };
 
-function assertLaunchable(manifest, readiness) {
+export function assertLaunchable(manifest, readiness) {
   if (readiness?.status !== READY || readiness.manifest_sha256 !== canonicalHash(manifest)) throw new Error('readiness does not match this manifest or is not ready');
   const problems = bindingProblems(manifest, bindings({ sourceRoot: manifest.source.root, toolsRoot: manifest.tools.root, pinnedCommit: manifest.source.pinned_commit }));
   if (problems.length) throw new Error(`bindings changed since readiness: ${problems.join('; ')}`);
+  const inputs = inputProblems(loadInputs(manifest.tools.root), loadPolicyBytes(manifest.source.root));
+  if (inputs.length) throw new Error(`invalid experiment inputs: ${inputs.join('; ')}`);
 }
 
 function attemptEvidence(dir, userPrompt) {
@@ -222,34 +251,59 @@ function attemptEvidence(dir, userPrompt) {
   const requests = record.proxy?.requests ?? [];
   const known = requests.length > 0 && requests.every(r => r.usage && Number.isSafeInteger(r.cost_nanos));
   const sum = key => requests.reduce((a, r) => a + (r.usage[key] ?? 0), 0);
+  const tokenFields = {
+    input: u => u?.input_tokens, output: u => u?.output_tokens,
+    cache_read: u => u?.cache_read_input_tokens, cache_write: u => u?.cache_creation_input_tokens,
+    cache_write_5m: u => u?.cache_creation?.ephemeral_5m_input_tokens ?? (u?.cache_creation_input_tokens === 0 ? 0 : null),
+    cache_write_1h: u => u?.cache_creation?.ephemeral_1h_input_tokens ?? (u?.cache_creation_input_tokens === 0 ? 0 : null),
+    cache_write_unknown_ttl: u => u?.cache_creation ? 0 : u?.cache_creation_input_tokens,
+  };
+  const contributions = Object.fromEntries(Object.entries(tokenFields).map(([field, get]) => [field, requests.map(r => get(r.usage)).filter(v => Number.isSafeInteger(v) && v >= 0)]));
   return {
     cost_nanos: known ? requests.reduce((a, r) => a + r.cost_nanos, 0) : null,
     tokens: known ? { input: sum('input_tokens'), cache_read: sum('cache_read_input_tokens'), cache_write: sum('cache_creation_input_tokens'), output: sum('output_tokens') } : null,
+    observed_tokens: Object.fromEntries(Object.entries(contributions).map(([field, values]) => [field, values.length ? values.reduce((a, v) => a + v, 0) : null])),
+    observed_token_request_counts: Object.fromEntries(Object.entries(contributions).map(([field, values]) => [field, values.length])),
+    observed_cost_nanos: requests.filter(r => Number.isSafeInteger(r.cost_nanos)).reduce((a, r) => a + r.cost_nanos, 0),
+    requests_with_unknown_cost: requests.filter(r => !Number.isSafeInteger(r.cost_nanos)).length,
     cache_stratum: !known ? 'unknown' : sum('cache_read_input_tokens') > 0 ? 'cache-read-observed' : 'no-cache-read',
     observed_runtime_sha256: runtimeFingerprint(join(dir, 'evidence'), userPrompt),
     cli_reported_cost_usd: record.cli?.cli_reported_cost_usd ?? null,
   };
 }
 
-async function executeAttempt({ manifest, registry, fixtures, ledger, out, arm, item, promptBytes, policyBytes, driverFactory, clock }) {
+export function ledgerAccounting(ledger) {
+  const entries = ledger.entries();
+  const observed_cost_nanos = entries.filter(e => e.state === 'reconciled').reduce((sum, e) => sum + e.actual_nanos, 0);
+  const held_reservation_nanos = entries.filter(e => e.state === 'held').reduce((sum, e) => sum + e.reserved_nanos, 0);
+  const open_reservation_nanos = entries.filter(e => e.state === 'open').reduce((sum, e) => sum + e.reserved_nanos, 0);
+  return { observed_cost_nanos, held_reservation_nanos, open_reservation_nanos, allowance_committed_nanos: observed_cost_nanos + held_reservation_nanos + open_reservation_nanos, remaining_allowance_nanos: ledger.remaining() };
+}
+
+export async function executeAttempt({ manifest, registry, fixtures, ledger, out, arm, item, promptBytes, policyBytes, driverFactory, clock, commandBinding = null }) {
   const entry = registry.scenarios.find(s => s.id === item.scenario);
   const fixture = fixtures.get(item.scenario);
   const dir = join(out, 'attempts', `${String(item.n).padStart(2, '0')}-${arm}-${item.scenario}-${item.attempt}`);
   mkdirSync(dir, { recursive: true });
   const input = { issue_id: fixture.issue_id, faff_body: fixture.faff_body, reason_codes: [...REASON_CODES] };
-  const bundle = buildPromptBundle({ policyBytes: promptBytes, input });
+  const bundle = buildPromptBundle({ policyBytes: promptBytes, input, candidate: Boolean(commandBinding) });
   const promptSha256 = bundle.hashes.prompt_sha256;
-  const driver = driverFactory({ arm, scenario: item.scenario, attempt: item.attempt, settings: manifest.settings, limits: manifest.limits, promptBytes, trackerDirectory: join(dir, 'tracker'), evidenceDirectory: join(dir, 'evidence'), ledger, manifest });
+  const driver = driverFactory({ arm, scenario: item.scenario, attempt: item.attempt, settings: manifest.settings, limits: manifest.limits, promptBytes, trackerDirectory: join(dir, 'tracker'), evidenceDirectory: join(dir, 'evidence'), ledger, manifest, commandBinding });
   const started = clock();
   const trace = await captureScenario({ driver, fixture, registryEntry: entry, directory: join(dir, 'tracker'), policyBytes, promptSha256, runtimeSha256: manifest.runtime_sha256, attempt: item.attempt });
   const elapsed_ms = clock() - started;
   writeNew(join(dir, 'trace.json'), trace);
-  const base = { n: item.n, arm, scenario: item.scenario, attempt: item.attempt, stop: trace.stop, accounting: trace.accounting, elapsed_ms, ...(attemptEvidence(dir, bundle.user) ?? {}) };
+  let command_use = { status: 'not-applicable', calls: 0, command_ms: 0 };
+  if (commandBinding) {
+    try { command_use = gradeCommandUse({ commands: readCommandEvents(join(dir, 'tracker')), events: createFixtureTracker({ directory: join(dir, 'tracker') }).readEvents(), fixture, stop: trace.stop }); }
+    catch (error) { command_use = { status: 'incomplete', invalid: error.message, calls: null, command_ms: null }; }
+  }
+  const base = { n: item.n, arm, scenario: item.scenario, attempt: item.attempt, stop: trace.stop, accounting: trace.accounting, elapsed_ms, command_use, ...(attemptEvidence(dir, bundle.user) ?? {}) };
   try {
     const v = validateTrace(trace, entry, registry);
-    return { trace, summary: { ...base, status: v.status, failures: v.failures, incomplete: v.incomplete } };
+    return { trace, directory: dir, bundle, summary: { ...base, status: v.status, failures: v.failures, incomplete: v.incomplete } };
   } catch (error) {
-    return { trace: null, summary: { ...base, status: 'incomplete', invalid: error.message } };
+    return { trace: null, directory: dir, bundle, summary: { ...base, status: 'incomplete', invalid: error.message } };
   }
 }
 
@@ -297,7 +351,8 @@ export async function runBaseline(manifest, readiness, { out, driverFactory = cl
   writeNew(join(out, 'run.json'), { schema: 2, run_id: `${manifest.experiment_id}-baseline`, traces });
   const report = {
     schema: 2, kind: 'baseline-calibration', status, live_transport, stopped_by, counts, attempts,
-    spend_nanos: manifest.limits.allowance_nanos - ledger.remaining(),
+    spend_nanos: ledgerAccounting(ledger).observed_cost_nanos,
+    ...ledgerAccounting(ledger),
     held_reservations: ledger.entries().filter(e => e.state === 'held').length,
     elapsed_ms: clock() - batchStart,
     note: 'Calibration completion does not approve migration. Cache strata are observed, not controlled; no cold-cache claim is made.',
@@ -308,6 +363,8 @@ export async function runBaseline(manifest, readiness, { out, driverFactory = cl
 
 export async function runPairs(manifest, baselineRoot, candidateRoot, readiness, { out, driverFactory = claudeDriverFactory, clock = Date.now, promptBytesFor = loadPolicyBytes } = {}) {
   assertLaunchable(manifest, readiness);
+  if (manifest.schedule.attempts.length * 2 > manifest.limits.attempts) throw new Error('paired schedule exceeds the total attempt limit');
+  if (resolve(baselineRoot) !== resolve(manifest.source.root) || resolve(candidateRoot) !== resolve(manifest.source.root)) throw new Error('distinct source arms require prepare-pairs and command-pairs readiness');
   freshDirectory(out);
   writeNew(join(out, 'manifest.json'), manifest);
   const { registry, fixtures } = loadInputs(manifest.tools.root);
@@ -346,7 +403,7 @@ export async function runPairs(manifest, baselineRoot, candidateRoot, readiness,
     const [b, c] = ['baseline', 'candidate'].map(arm => attempts.find(a => a.n === i.n && a.arm === arm)?.cache_stratum);
     return b && c && b !== c ? [{ n: i.n, scenario: i.scenario, baseline: b, candidate: c }] : [];
   });
-  const report = { schema: 2, kind: 'paired', comparison, stopped_by, counts, strata_differ, attempts, spend_nanos: manifest.limits.allowance_nanos - ledger.remaining(), elapsed_ms: clock() - batchStart };
+  const report = { schema: 2, kind: 'paired', comparison, stopped_by, counts, strata_differ, attempts, spend_nanos: ledgerAccounting(ledger).observed_cost_nanos, ...ledgerAccounting(ledger), elapsed_ms: clock() - batchStart };
   writeNew(join(out, 'report.json'), report);
   return report;
 }
@@ -366,10 +423,16 @@ export async function main(argv = process.argv.slice(2)) {
   const [command, ...rest] = argv;
   const f = flags(rest);
   const toolsRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-  if (command === 'prepare') {
+  if (command === 'prepare' || command === 'prepare-pairs') {
     const sourceRoot = resolve(f['source-root']);
     const settings = { binary: f.binary ?? 'claude', model: f.model ?? configValue(sourceRoot, 'eval.model'), effort: f.effort ?? configValue(sourceRoot, 'eval.effort'), credential_env: f['credential-env'] };
-    prepareExperiment({ sourceRoot, toolsRoot, pinnedCommit: f['pinned-commit'], settings, out: resolve(f.out), ...(f.seed ? { seed: f.seed } : {}) });
+    const limits = { ...DEFAULT_LIMITS, attempts: f.attempts ? Number(f.attempts) : command === 'prepare-pairs' ? 22 : DEFAULT_LIMITS.attempts };
+    if (!Number.isSafeInteger(limits.attempts) || limits.attempts < 1) throw new Error('--attempts must be a positive integer');
+    const options = { sourceRoot, toolsRoot, pinnedCommit: f['pinned-commit'], settings, limits, out: resolve(f.out), ...(f.seed ? { seed: f.seed } : {}) };
+    if (command === 'prepare-pairs') {
+      const { preparePairs } = await import('./paired.mjs');
+      preparePairs({ ...options, candidateRoot: resolve(f['candidate-root']), candidateCommit: f['candidate-commit'] });
+    } else prepareExperiment(options);
     return 0;
   }
   if (command === 'preflight') {
@@ -382,7 +445,19 @@ export async function main(argv = process.argv.slice(2)) {
     console.log(JSON.stringify({ status: report.status, counts: report.counts, stopped_by: report.stopped_by, spend_nanos: report.spend_nanos }, null, 2));
     return { calibration_complete: 0, failed: 1 }[report.status] ?? 2;
   }
-  throw new Error('usage: run.mjs prepare|preflight|baseline ...');
+  if (command === 'preflight-pairs') {
+    const { preflightPairs } = await import('./paired.mjs');
+    const report = await preflightPairs(readJson(resolve(f.manifest)), { out: resolve(f.out) });
+    console.log(JSON.stringify({ status: report.status, reasons: report.reasons }, null, 2));
+    return report.status === 'ready_for_command_pairs' ? 0 : 2;
+  }
+  if (command === 'pairs') {
+    const { runCommandPairs } = await import('./paired.mjs');
+    const report = await runCommandPairs(readJson(resolve(f.manifest)), readJson(resolve(f.readiness)), { out: resolve(f.out) });
+    console.log(JSON.stringify({ status: report.status, counts: report.counts, stopped_by: report.stopped_by, observed_cost_nanos: report.observed_cost_nanos, held_reservation_nanos: report.held_reservation_nanos }, null, 2));
+    return { complete: 0, failed: 1, incomplete: 2 }[report.status];
+  }
+  throw new Error('usage: run.mjs prepare|preflight|baseline|prepare-pairs|preflight-pairs|pairs ...');
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

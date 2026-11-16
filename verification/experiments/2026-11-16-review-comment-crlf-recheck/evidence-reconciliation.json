@@ -1,0 +1,12 @@
+{
+  "candidate_commit": "d0efdd4e37dc02288ed8f044c2eb74ee4d04e12d",
+  "requests_checked": 6,
+  "cost_nanos": 65141800,
+  "grade": "fail",
+  "command_use": "not-followed",
+  "plan_matches_oracle": true,
+  "write_is_double_escaped": true,
+  "planned_body_bytes": 194,
+  "written_body_bytes": 205,
+  "all_reservations_reconciled": true
+}

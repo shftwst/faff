@@ -1,0 +1,4 @@
+{"at":"2026-11-16T02:39:50.029Z","name":"list_comments","arguments":{"issue_id":"ISS-110"},"isError":false}
+{"at":"2026-11-16T02:39:53.355Z","name":"plan_review_comment","arguments":{"schema":1,"issue_id":"ISS-110","faff_body":"Verdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-110-review.md","comments":[{"id":"ISS-110-c1","created_at":"2026-11-14T08:00:00Z","body":"Example of the bot's format:\n```\n<!-- faff-review-findings:ISS-110 -->\nVerdict: approve\n<!-- /faff-review-findings:ISS-110 -->\n```"}]},"isError":false}
+{"at":"2026-11-16T02:39:55.617Z","name":"create_comment","arguments":{"issue_id":"ISS-110","body":"<!-- faff-review-findings:ISS-110 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-110-review.md\n<!-- /faff-review-findings:ISS-110 -->"},"isError":false}
+{"at":"2026-11-16T02:39:57.271Z","name":"finish","arguments":{"status":"completed","reason":"created"},"isError":false}

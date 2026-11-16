@@ -38,6 +38,18 @@ test('an SSE stream without its final delta is incomplete and has no cost', () =
   assert.equal(costNanos(null, OPUS_5_5_PRICING), null);
 });
 
+test('an in-stream provider error cannot be hidden by a later message stop', async () => {
+  const body = sse([START(), DELTA, { type: 'error', error: { type: 'overloaded_error', message: 'interrupted' } }, STOP]);
+  assert.equal(parseSse(body).complete, false);
+  const { proxy, ledger, stops } = await proxyWith({ upstream: fakeUpstream([{ status: 200, body }]) });
+  try {
+    await (await post(proxy.url, request())).text();
+    assert.equal(proxy.summary().usage_complete, false);
+    assert.equal(ledger.blocked(), true);
+    assert.deepEqual(stops, ['upstream-stream-error']);
+  } finally { await proxy.close(); }
+});
+
 test('unpriced usage dimensions make cost unknown rather than zero', () => {
   const base = parseSse(CAPTURED).usage;
   for (const extra of [{ speed: 'fast' }, { inference_geo: 'eu' }, { server_tool_use: { web_search_requests: 1 } }]) {
@@ -178,6 +190,16 @@ test('the prompt bundle binds exact skill bytes and declares its load closure', 
   assert.match(bundle.hashes.harness_sha256, /^[a-f0-9]{64}$/);
 });
 
+test('candidate invocation exposes exactly one extra planner tool and declares it in the harness', () => {
+  const input = { issue_id: 'ISS-1', faff_body: 'B', reason_codes: ['created'] };
+  const base = buildPromptBundle({ policyBytes: Buffer.from('R'), input });
+  const bundle = buildPromptBundle({ policyBytes: Buffer.from('R'), input, candidate: true });
+  assert.equal(bundle.user, base.user);
+  assert.ok(bundle.system.includes('plan_review_comment'));
+  const inv = buildClaudeInvocation({ settings: { model: 'm', effort: 'medium' }, promptBundle: bundle, paths: paths('/x'), proxyUrl: 'http://p', limits: DEFAULT_LIMITS, parentEnv: {} });
+  assert.deepEqual(inv.args[inv.args.indexOf('--allowedTools') + 1].split(','), [...TOOL_NAMES, 'plan_review_comment'].map(n => `mcp__tracker__${n}`));
+});
+
 // --- admission proxy ------------------------------------------------------------------------
 
 const fakeUpstream = (responses) => {
@@ -198,6 +220,39 @@ const proxyWith = async ({ upstream = fakeUpstream([]), mode = 'forward', allowa
   const proxy = await startProxy({ model: 'claude-opus-5-5', limits: { ...DEFAULT_LIMITS, turns }, pricing: OPUS_5_5_PRICING, ledger, allowedTools: ['mcp__tracker__list_comments'], evidenceDir: join(dir, 'requests'), mode, upstream, onStop: r => stops.push(r) });
   return { proxy, ledger, dir, upstream, stops };
 };
+
+test('runtime settings and tool definitions cannot change on a later provider turn', async () => {
+  for (const mutate of [b => { b.system = 'changed instructions'; }, b => { b.tools[0].input_schema = { type: 'object' }; }]) {
+    const upstream = fakeUpstream([]);
+    const { proxy, stops } = await proxyWith({ upstream });
+    try {
+      await (await post(proxy.url, request())).text();
+      const changed = request(); mutate(changed);
+      await (await post(proxy.url, changed)).text();
+      assert.equal(upstream.seen.length, 1);
+      assert.deepEqual(stops, ['runtime-changed']);
+    } finally { await proxy.close(); }
+  }
+});
+
+test('a failed response stream retains partial provider usage and holds its reservation', async () => {
+  const partial = sse([START(), DELTA]);
+  const upstream = async () => ({ status: 200, headers: { 'content-type': 'text/event-stream' }, body: (async function* () {
+    yield Buffer.from(partial);
+    throw Object.assign(new Error('connection closed'), { code: 'ECONNRESET' });
+  })() });
+  const { proxy, ledger, stops, dir } = await proxyWith({ upstream });
+  try {
+    await (await post(proxy.url, request())).text();
+    const summary = proxy.summary();
+    assert.equal(summary.requests[0].usage.input_tokens, 10);
+    assert.equal(summary.requests[0].usage.cache_creation.ephemeral_1h_input_tokens, 100);
+    assert.equal(summary.requests[0].cost_nanos, null);
+    assert.equal(ledger.entries()[0].state, 'held');
+    assert.deepEqual(stops, ['upstream-stream-error']);
+    assert.equal(readFileSync(join(dir, 'requests/001.response.txt'), 'utf8'), partial);
+  } finally { await proxy.close(); }
+});
 
 test('the proxy forwards, meters provider usage and reconciles the reservation', async () => {
   const { proxy, ledger, dir, upstream } = await proxyWith();
@@ -324,6 +379,13 @@ test('the tool server lists exactly the fixture ports', async () => {
   assert.equal(await handleMessage(tracker, { jsonrpc: '2.0', method: 'notifications/initialized' }), null);
 });
 
+test('an unknown tool attempt is preserved by the recorder', async () => {
+  const tracker = createFixtureTracker({ directory: trackerDir() });
+  const response = await handleMessage(tracker, { id: 1, method: 'tools/call', params: { name: 'run_shell', arguments: { command: 'ignored' } } });
+  assert.equal(response.result.isError, true);
+  assert.ok(tracker.readEvents().some(e => e.kind === 'protocol-violation' && e.reason === 'unknown-tool' && e.op === 'run_shell'));
+});
+
 test('tool calls reach the recorder and tracker errors return as tool errors', async () => {
   const dir = trackerDir();
   const tracker = createFixtureTracker({ directory: dir });
@@ -333,7 +395,7 @@ test('tool calls reach the recorder and tracker errors return as tool errors', a
   assert.equal(bad.result.isError, true);
   const unknown = await handleMessage(tracker, { jsonrpc: '2.0', id: 5, method: 'tools/call', params: { name: 'run_shell', arguments: {} } });
   assert.equal(unknown.result.isError, true);
-  assert.deepEqual(createFixtureTracker({ directory: dir }).readEvents().map(e => e.kind), ['effect-attempt', 'effect-result', 'effect-attempt', 'effect-result']);
+  assert.deepEqual(createFixtureTracker({ directory: dir }).readEvents().map(e => e.kind), ['effect-attempt', 'effect-result', 'effect-attempt', 'effect-result', 'protocol-violation']);
 });
 
 // --- process lifecycle ----------------------------------------------------------------------
@@ -381,6 +443,16 @@ test('a clean run returns provider accounting and records the attempt', async ()
   assert.equal(record.exit.code, 0);
   assert.equal(record.stop, null);
 });
+
+for (const [name, record, reason] of [
+  ['retry', { type: 'system', subtype: 'api_retry', attempt: 1, max_retries: 10, retry_delay_ms: 1000, error_status: 529 }, 'cli-retry'],
+  ['synthetic error', { type: 'assistant', error: 'unknown', message: { id: 'synthetic-error', model: '<synthetic>', role: 'assistant', content: [{ type: 'text', text: 'API Error: interrupted' }] } }, 'cli-stream-error'],
+]) {
+  test(`a CLI ${name} cannot be hidden by a later success result`, async () => {
+    const { result } = await runFake(fakeProcess({ stdout: JSON.stringify(record) + '\n' + SUCCESS_STDOUT }));
+    assert.equal(result.stop?.reason, reason);
+  });
+}
 
 for (const [name, proc, reason] of [
   ['a non-zero exit', fakeProcess({ stdout: SUCCESS_STDOUT, code: 1 }), 'process-exit'],
@@ -464,4 +536,12 @@ test('the driver reports a runtime fingerprint of the first request without the 
   write(1, 'PROMPT-B', 'SYS-CHANGED');
   assert.notEqual(runtimeFingerprint(evidence, 'PROMPT-B'), a);
   assert.equal(runtimeFingerprint(tmp(), 'x'), null);
+});
+
+test('list_comments makes no ordering promise, because tie-breaks depend on listing order', async () => {
+  const tracker = createFixtureTracker({ directory: trackerDir() });
+  const list = await handleMessage(tracker, { jsonrpc: '2.0', id: 1, method: 'tools/list' });
+  const description = list.result.tools.find(t => t.name === 'list_comments').description;
+  assert.doesNotMatch(description, /oldest|newest|sorted/i);
+  assert.match(description, /order the tracker returns/);
 });

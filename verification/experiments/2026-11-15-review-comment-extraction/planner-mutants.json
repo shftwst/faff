@@ -1,0 +1,48 @@
+{
+  "source": "plugin/skills/faff/bin/lib/review-comment.js",
+  "source_sha256": "bd6e002c683466364c5afb23b12f945abd982324d2fe9a0a496d23394a17ac5d",
+  "mutants": [
+    {
+      "name": "adopt-indented-marker",
+      "pattern": "independent oracle: indented-and-trailing-whitespace",
+      "exit": 1,
+      "failures": 1
+    },
+    {
+      "name": "ignore-complete-pair-preference",
+      "pattern": "complete pairs outrank",
+      "exit": 1,
+      "failures": 1
+    },
+    {
+      "name": "ignore-timestamp-order",
+      "pattern": "orders actual timestamp",
+      "exit": 1,
+      "failures": 1
+    },
+    {
+      "name": "lose-human-prefix",
+      "pattern": "preserves Unicode",
+      "exit": 1,
+      "failures": 1
+    },
+    {
+      "name": "lose-human-suffix",
+      "pattern": "preserves Unicode",
+      "exit": 1,
+      "failures": 1
+    },
+    {
+      "name": "accept-open-replacement-fence",
+      "pattern": "refuses unclosed replacement fence",
+      "exit": 1,
+      "failures": 1
+    },
+    {
+      "name": "recover-ambiguous-region",
+      "pattern": "refuses existing unclosed fence hiding a close",
+      "exit": 1,
+      "failures": 1
+    }
+  ]
+}

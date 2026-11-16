@@ -1,0 +1,30 @@
+{
+  "schema": 2,
+  "issues": {
+    "ISS-107": [
+      {
+        "id": "ISS-107-c1",
+        "body": "<!-- faff-review-findings:ISS-107 -->\nVerdict: old, no timestamp\n<!-- /faff-review-findings:ISS-107 -->"
+      },
+      {
+        "id": "ISS-107-c2",
+        "created_at": "2026-11-14T08:00:00Z",
+        "body": "<!-- faff-review-findings:ISS-107 -->\nVerdict: old, tied first\n<!-- /faff-review-findings:ISS-107 -->"
+      },
+      {
+        "id": "ISS-107-c3",
+        "created_at": "2026-11-14T08:00:00Z",
+        "body": "<!-- faff-review-findings:ISS-107 -->\nVerdict: old, tied second\n<!-- /faff-review-findings:ISS-107 -->"
+      }
+    ]
+  },
+  "next_comment_id": "ISS-107-c9",
+  "now": "2026-11-15T12:00:00Z",
+  "creates": 0,
+  "op_counts": {},
+  "faults": [],
+  "finished": {
+    "status": "blocked",
+    "reason": "blocked"
+  }
+}

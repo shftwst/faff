@@ -1,0 +1,127 @@
+{
+  "schema": 2,
+  "status": "fail",
+  "coverage": {
+    "baseline": {
+      "required": 11,
+      "traces": 11,
+      "missing": []
+    },
+    "candidate": {
+      "required": 11,
+      "traces": 11,
+      "missing": []
+    }
+  },
+  "differences": [
+    {
+      "arm": "baseline",
+      "trace": "author-not-preferred#1",
+      "reason": "obligation",
+      "failures": [
+        "effects-differ",
+        "final-state-differs"
+      ]
+    },
+    {
+      "arm": "baseline",
+      "trace": "crlf-outside-region#1",
+      "reason": "obligation",
+      "failures": [
+        "effects-differ",
+        "final-state-differs"
+      ]
+    },
+    {
+      "arm": "baseline",
+      "trace": "repeated-pairs#1",
+      "reason": "obligation",
+      "failures": [
+        "effects-differ"
+      ]
+    },
+    {
+      "arm": "baseline",
+      "trace": "timestamp-ties#1",
+      "reason": "obligation",
+      "failures": [
+        "effects-differ",
+        "final-state-differs",
+        "terminal-differs"
+      ]
+    },
+    {
+      "arm": "baseline",
+      "trace": "fenced-example#1",
+      "reason": "obligation",
+      "failures": [
+        "effects-differ",
+        "final-state-differs",
+        "terminal-differs"
+      ]
+    },
+    {
+      "arm": "baseline",
+      "trace": "indented-and-trailing-whitespace#1",
+      "reason": "obligation",
+      "failures": [
+        "effects-differ",
+        "final-state-differs"
+      ]
+    },
+    {
+      "arm": "candidate",
+      "trace": "crlf-outside-region#1",
+      "reason": "obligation",
+      "failures": [
+        "effects-differ",
+        "final-state-differs",
+        "terminal-differs"
+      ]
+    },
+    {
+      "trace": "author-not-preferred#1",
+      "reason": "unpaired-runtime"
+    },
+    {
+      "trace": "quoted-imitation#1",
+      "reason": "unpaired-runtime"
+    },
+    {
+      "trace": "create-when-absent#1",
+      "reason": "unpaired-runtime"
+    },
+    {
+      "trace": "duplicate-reconcile#1",
+      "reason": "unpaired-runtime"
+    },
+    {
+      "trace": "crlf-outside-region#1",
+      "reason": "unpaired-runtime"
+    },
+    {
+      "trace": "legacy-open-only#1",
+      "reason": "unpaired-runtime"
+    },
+    {
+      "trace": "repeated-pairs#1",
+      "reason": "unpaired-runtime"
+    },
+    {
+      "trace": "timestamp-ties#1",
+      "reason": "unpaired-runtime"
+    },
+    {
+      "trace": "fenced-example#1",
+      "reason": "unpaired-runtime"
+    },
+    {
+      "trace": "indented-and-trailing-whitespace#1",
+      "reason": "unpaired-runtime"
+    },
+    {
+      "trace": "preserve-human-text#1",
+      "reason": "unpaired-runtime"
+    }
+  ]
+}

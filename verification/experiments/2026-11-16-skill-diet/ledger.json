@@ -1519,23 +1519,46 @@
           "Source and recorded payload token estimates are not provider usage or billed cost."
         ]
       }
+    },
+    {
+      "skill": "faffter-noon-prd",
+      "path": "plugin/skills/faffter-noon-prd/SKILL.md",
+      "status": "qualified-bounded-prd-production-and-run-start-consumption",
+      "before": {
+        "path": "plugin/skills/faffter-noon-prd/SKILL.md",
+        "bytes": 4214,
+        "characters": 4188,
+        "estimated_tokens": 1047,
+        "sha256": "0308c148cea49b238d743714f68c947a66306d88830541750cb695283f43ee73"
+      },
+      "after": {
+        "path": "plugin/skills/faffter-noon-prd/SKILL.md",
+        "bytes": 2465,
+        "characters": 2465,
+        "estimated_tokens": 617,
+        "sha256": "c0296bbf7b29ec22a8da958a64788b81d21f730bd9183c4e18d521ba7a256aeb"
+      },
+      "bytes_saved": 1749,
+      "estimated_tokens_saved": 430,
+      "mandatory_dependencies_added": [],
+      "qualification": "prd-producer-astra-v2-final-qualification.json",
+      "source_review": "prd-producer-v1-source-review.json",
+      "model": "gpt-6-astra",
+      "effort": "low",
+      "source_commit": "ce02b49ac0428e03daae4c3ae8f77eee4dcd008c",
+      "before_commit": "0ce1f7fed1dfe12ba5bba875e46f2e03cbcf25b4"
     }
   ],
   "source_total": {
     "before_bytes": 1369435,
-    "after_bytes": 1274924,
+    "after_bytes": 1273175,
     "before_estimated_tokens": 339279,
-    "after_estimated_tokens": 315990
+    "after_estimated_tokens": 315560
   },
   "load_manifest": "load-manifest.json",
   "baseline_loads": "baseline/loads.json",
-  "latest_loads": "kernel-v4-after-loads.json",
+  "latest_loads": "prd-astra-v2-after-loads.json",
   "pending_slices": [
-    {
-      "path": "plugin/skills/faffter-noon-prd/SKILL.md",
-      "candidate": "candidates/prd-producer-v1.md",
-      "status": "Fresh Astra V2 pair; Claude allowance ended with four candidate samples; excluded from totals"
-    },
     {
       "path": "plugin/skills/faffter-noon-review/SKILL.md",
       "candidate": "candidates/review-producer-v2.md",
@@ -1558,8 +1581,9 @@
     },
     {
       "path": "plugin/skills/faffidavit-routing/SKILL.md",
-      "candidate": null,
-      "status": "Baseline queued; no candidate authored"
+      "candidate": "candidates/routing-assignment-v1.md",
+      "status": "Fresh Astra baseline running; candidate prepared with all verdict conditions, standalone reads and display preserved; excluded from totals"
     }
-  ]
+  ],
+  "latest_source": "prd-astra-v2-after-source.json"
 }

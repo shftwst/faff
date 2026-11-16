@@ -1,0 +1,45 @@
+{
+  "harness": "eval/control-parity/routing-assignment.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/routing-assignment.json",
+  "timeout_seconds": 1200,
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md"
+  ],
+  "json_stdin": true,
+  "bridge": "eval/control-parity/mailbox-call.mjs",
+  "treatment": "Actual routing assignments, real Punt scanner and routing contract, complete fixed original shared references and accepted rendering source. Literal native commands; no tracker writes. Fresh Astra-low arm after Claude allowance exhaustion; never pooled with Claude.",
+  "acceptance": "Five samples per arm; all ten assignments, two validation refusals and thirteen decisions; complete native audit. Source display section remains byte-identical. No full queue/park workflow claim.",
+  "samples": [
+    {
+      "name": "routing-assignment-astra-v1-candidate-1",
+      "arm": "candidate",
+      "policy": "candidates/routing-assignment-v1-with-context.md"
+    },
+    {
+      "name": "routing-assignment-astra-v1-candidate-2",
+      "arm": "candidate",
+      "policy": "candidates/routing-assignment-v1-with-context.md"
+    },
+    {
+      "name": "routing-assignment-astra-v1-candidate-3",
+      "arm": "candidate",
+      "policy": "candidates/routing-assignment-v1-with-context.md"
+    },
+    {
+      "name": "routing-assignment-astra-v1-candidate-4",
+      "arm": "candidate",
+      "policy": "candidates/routing-assignment-v1-with-context.md"
+    },
+    {
+      "name": "routing-assignment-astra-v1-candidate-5",
+      "arm": "candidate",
+      "policy": "candidates/routing-assignment-v1-with-context.md"
+    }
+  ],
+  "provider": "codex-cli",
+  "model": "gpt-6-astra",
+  "effort": "low"
+}

@@ -1,0 +1,10 @@
+{
+  "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+  "findings": [
+    {
+      "principle": 1,
+      "diagnosis": "W1, 'Q2 sprint 3', names a time period despite its stated outcome of reducing checkout abandonment. Its name hides the outcome served by A, keeping the checkout address on validation error, making outcome-based prioritisation harder.",
+      "recommended_action": "Rename W1 to 'Reduce checkout abandonment' so its existing outcome is visible."
+    }
+  ]
+}

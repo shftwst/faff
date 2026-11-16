@@ -377,3 +377,26 @@ The cut removes 5,700 bytes and 1,391 estimated tokens. Accepted totals are now
 The committed 41-file set is 1,286,270 bytes and 318,785 estimated tokens,
 bound to commit 3ff076df. All 421 deleted blocks are covered: 19 moved and
 402 mapped. Kernel and WTF working body candidates remain excluded.
+
+## PRD Astra V2 qualification and downstream replay
+
+The fresh Astra-low pair passes 30/30 actual PRD artifacts and 40/40 decisions per
+arm, with all ten native audits complete. All sixty artifacts were read and
+hash-bound. A deterministic replay feeds them through real PRD-readiness,
+coverage, run-start and run-trigger commands: 120/120 cases per arm pass and
+120/120 forged contrary decisions per arm are rejected. This does not mint a run
+or qualify full beep-boop orchestration. Claude partial samples and the earlier
+Astra path-protocol failure remain excluded.
+
+The source falls from 4,214 to 2,465 bytes and 1,047 to 617 estimated tokens. The
+eval loader follows the shorter Rubric/Output headings. All 539 targeted eval,
+producer and run-start tests and adapter lint pass. The first rule-inventory
+check rejected fixture paths in its executable-test column; that documentation
+format was corrected, preserving the failed report. The corrected check covers
+495 deleted blocks: 26 moved, 469 mapped, none uncovered.
+
+The agile candidate remains out. Manual review found an unsupported UI dependency
+qualifier in baseline-three's late-risk recommendation; the frozen all-artifact
+bar fails. All forty baseline outputs were read, with 39 passing that bar. This
+is a baseline failure, not a measured candidate regression. No candidate sample
+was substituted; the measurement lane now runs routing assignment.

@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All 26 cases were completed and persisted. `finish` returned `{\"finished\":true}`.\n\nNo departures from the restrictions.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e430-96c2-7b32-a499-6265b8312c85"
+    ],
+    "elapsed_seconds": 371.2,
+    "stdout_sha256": "451adad0f3c455092c9d79c39e367b3a2caf1a9a19fa8978f3514bbbc3557442",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

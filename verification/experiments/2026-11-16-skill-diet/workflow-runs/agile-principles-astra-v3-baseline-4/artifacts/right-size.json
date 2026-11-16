@@ -1,0 +1,10 @@
+{
+  "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+  "findings": [
+    {
+      "principle": 4,
+      "diagnosis": "BIG, 'Improve account access', combines a three-day session-token verifier with an independent three-day account-recovery UI. Its six-day scope exceeds the 1-3 day target and makes one shippable concern wait for the other.",
+      "recommended_action": "Split BIG into two independently shippable three-day tickets, one for the verifier and one for the recovery UI."
+    }
+  ]
+}

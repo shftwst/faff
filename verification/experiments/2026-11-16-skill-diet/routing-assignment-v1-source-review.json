@@ -1,0 +1,19 @@
+{
+  "status": "pending-paired-measurement",
+  "baseline_bytes": 11144,
+  "candidate_bytes": 8399,
+  "baseline_estimated_tokens": 2760,
+  "candidate_estimated_tokens": 2084,
+  "baseline_sha256": "d6e7f37d231ea6a42a336cdc268717fe2e788ac290dc17d5948a673d9d698735",
+  "candidate_sha256": "d8f81d1e06c6cec429c8fea99c2d2fb50d74fb092af8fa59417f293614b91200",
+  "preserved_frontmatter_sha256": "128e4fdc60a5ee9f3bb40e6330a01f8ca531613ec271d178e38a399093448386",
+  "preserved_standalone_reads_sha256": "2babfa949760be7aa7da7dbb4f1c88f1c6d1ee93c4a1f696745b63082a43ffb9",
+  "preserved_verdict_table_sha256": "d8a86e1a7d681cc01ee70922cfe69d4f1d1dacb7580873d39effe4e95f09dca6",
+  "preserved_display_section_sha256": "60efcf8ddfa077baf57cc33cbe3bef2179e794f07ea081a082ce824090f495f5",
+  "shared_context_sha256": "d9c570a4b9c6842e466adfdf86996644fe472c73c8f06b51790627cd5bb108da",
+  "proof_required": "Five baseline and candidate samples, all ten assignments through the real Punt scanner and contract CLI, two validation refusals, thirteen separate decisions, exact extraction/consumer projections, complete native audits. No display or full queue/park workflow claim.",
+  "preserved_eval_anchors": [
+    "## The six verdicts (non-normative recap for assignment)",
+    "## Validate \u2014 wired to the contract script"
+  ]
+}

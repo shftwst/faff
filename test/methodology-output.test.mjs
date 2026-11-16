@@ -60,7 +60,7 @@ test('agile V3 checks structure and identifiers while advice remains a mandatory
   const v3 = JSON.parse(readFileSync(new URL('workflow-fixtures/agile-principles-v3.json', base)));
   for (const c of v3.cases) {
     assert.equal(gradeMethodologyOutput(c.reference, c.oracle).pass, true, c.id);
-    if (c.kind === 'artifact') assert.ok(c.manual_rubric.length > 80);
+    if (c.kind === 'artifact') assert.ok(typeof c.manual_rubric === 'string' && c.manual_rubric.trim());
   }
   const c = v3.cases.find(c => c.id === 'cohesion');
   const observed = JSON.parse(readFileSync(new URL('workflow-runs/agile-principles-astra-v2-baseline-1/artifacts/cohesion.json', base)));

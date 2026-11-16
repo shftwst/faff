@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "issue": "FAFF-1478",
+  "build": {
+    "status": "complete",
+    "diff_hash": "8e6c1075a92e67ee89db819f8cf6f11e680a7fd094c7bdf77ffdd62caf1a6f5c",
+    "branch": "FAFF-1478-human-only-acs-evidence-roster",
+    "pushed_at": "2026-11-16T00:03:33.270Z"
+  },
+  "updated_at": "2026-11-16T00:03:33.270Z"
+}

@@ -484,6 +484,9 @@
           },
           "review_verdict_sha256": {
             "type": "string"
+          },
+          "human_only_acs_sha256": {
+            "type": "string"
           }
         }
       }

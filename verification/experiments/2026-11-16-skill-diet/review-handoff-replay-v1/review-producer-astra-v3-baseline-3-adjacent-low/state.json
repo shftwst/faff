@@ -1,0 +1,23 @@
+{
+  "schema": 2,
+  "issues": {
+    "ISS-111": [
+      {
+        "id": "ISS-111-c1",
+        "created_at": "2026-11-14T08:00:00Z",
+        "body": "Human note\r\n\r\n<!-- faff-review-findings:ISS-111 -->\nsignal: fail\n\n## Findings\n\n### Scope: Unrequested comment typo correction\nAt src/function.mjs:1, Calculte was changed to Calculate. Low appetite disallows even trivial adjacent cleanup, and documentation cleanup is outside the stated scope. Revert the comment-only change while retaining the correct multiplication and tests. The supplied tests passed.\n\n```faff-contract:review-verdict\n{\"signal\":\"fail\",\"findings\":[{\"title\":\"Unrequested comment typo correction\",\"location\":\"src/function.mjs:1\",\"action\":\"Revert the comment-only typo correction.\",\"location_present\":true,\"action_present\":true,\"severity\":\"minor\",\"source\":\"standard\"}]}\n```\n<!-- /faff-review-findings:ISS-111 -->\n\r\nTrailing note"
+      }
+    ]
+  },
+  "next_comment_id": "ISS-111-c9",
+  "now": "2026-11-15T12:00:00Z",
+  "creates": 0,
+  "op_counts": {
+    "save_comment": 1
+  },
+  "faults": [],
+  "finished": {
+    "status": "completed",
+    "reason": "updated"
+  }
+}

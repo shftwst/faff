@@ -1,0 +1,45 @@
+{
+  "harness": "eval/control-parity/rendering-artifact.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/adr-body.json",
+  "timeout_seconds": 900,
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md"
+  ],
+  "json_stdin": true,
+  "bridge": "eval/control-parity/mailbox-call.mjs",
+  "treatment": "Bounded ADR body production from settled decisions, completed implementation evidence and real CLI-resolved formats. All sixty outputs require manual source-fact review and downstream actual scaffold/validate replay. No model caller acquisition, ADR status mutation, Git commit or full graft proof.",
+  "acceptance": "Five fresh Astra-low samples per arm, all six body/form rubrics and ten separate decisions per sample, full native audit and manual reading of all sixty artifacts. Every candidate must preserve all source facts, resolved section order, related-decision glosses, actual shipped limits, self-review and advisory confidence. Require real downstream scaffold/validate replay and integration lint. Preserve failures; no provider pooling or statistical equivalence claim.",
+  "samples": [
+    {
+      "name": "adr-body-astra-v1-candidate-1",
+      "arm": "candidate",
+      "policy": "candidates/adr-body-v1-with-context.md"
+    },
+    {
+      "name": "adr-body-astra-v1-candidate-2",
+      "arm": "candidate",
+      "policy": "candidates/adr-body-v1-with-context.md"
+    },
+    {
+      "name": "adr-body-astra-v1-candidate-3",
+      "arm": "candidate",
+      "policy": "candidates/adr-body-v1-with-context.md"
+    },
+    {
+      "name": "adr-body-astra-v1-candidate-4",
+      "arm": "candidate",
+      "policy": "candidates/adr-body-v1-with-context.md"
+    },
+    {
+      "name": "adr-body-astra-v1-candidate-5",
+      "arm": "candidate",
+      "policy": "candidates/adr-body-v1-with-context.md"
+    }
+  ],
+  "provider": "codex-cli",
+  "model": "gpt-6-astra",
+  "effort": "low"
+}

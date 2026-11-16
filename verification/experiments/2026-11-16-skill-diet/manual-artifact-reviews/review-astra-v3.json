@@ -1,8 +1,8 @@
 {
-  "status": "in-progress-not-qualified",
-  "updated_utc": "2026-11-16T11:49:08.050954+00:00",
-  "read_artifacts": 42,
-  "notes": "All thirty-five baseline artifacts and the first seven candidate artifacts were read. Signals, concrete defects, test coverage, fixture handling, appetite distinction and prior-finding handling match the source. Every prose and JSON title matches. Four candidate samples remain outstanding.",
+  "status": "pass-source-facts-and-signals",
+  "updated_utc": "2026-11-16T12:14:26.981130+00:00",
+  "read_artifacts": 70,
+  "notes": "All seventy artifacts read. Source facts, signals, defects, test coverage, fixture handling, appetite and prior-finding handling pass. Candidate samples three and five include sentence-style or verbless-clause finding titles; source-fact and exact prose/JSON title gates are assessed separately. No perfect grammatical style parity is claimed.",
   "rows": [
     {
       "path": "workflow-runs/review-producer-astra-v3-baseline-1/artifacts/adjacent-high.md",
@@ -212,6 +212,150 @@
     {
       "path": "workflow-runs/review-producer-astra-v3-candidate-1/artifacts/prior-findings.md",
       "sha256": "464b12daf0117591cd578736ae59c3cf4e7d6026861d3c4b51c6da87c24377e0",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-2/artifacts/adjacent-high.md",
+      "sha256": "14a9579f2b9209d044d8a172f179f7a5de16d26401165758232233d77bfbd7c0",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-2/artifacts/adjacent-low.md",
+      "sha256": "952f00f53c388ca2a1233f2197b0ac3551b0cd5b0a9036638dc6b9bdc670b6bf",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-2/artifacts/boundary-bug.md",
+      "sha256": "40cc6c6f0559aa49ae7662a3add407f6bb03d6a3aa1f771ae0ce0d28a40502fc",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-2/artifacts/clean.md",
+      "sha256": "6074a3aad251f2aa1f482e50d7a147a9f5f89110c668ff245a40a8a2d303355c",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-2/artifacts/missing-coverage.md",
+      "sha256": "4e7af7bd24ca2d9c9014936cc5014fa5975f7ddbf61fe4f21a532902d010e1f3",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-2/artifacts/planted-fixture.md",
+      "sha256": "d2aa9e1a26476713e7617944582f45d23d8f44b2894e6582389639692eb80209",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-2/artifacts/prior-findings.md",
+      "sha256": "4a5b1732bd0581e018288e52334fd9e43c18fdf445d086d4e50c603c40069b4a",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-3/artifacts/adjacent-high.md",
+      "sha256": "be0f81d4c695399ff5c8202bab82d9d38883d2982f8b8749852a8bc0354c2c23",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-3/artifacts/adjacent-low.md",
+      "sha256": "80b4a458184a4e6414ae4fb9419109d02e2af8acab1921efbadf87cc0ac3a41f",
+      "status": "read-source-faithful",
+      "style_note": "Some finding titles use compact sentences rather than the requested noun-phrase style. They still name the actual defect and symbol and match the prose headings exactly. This is recorded style variance; the frozen source-fact and title-equality checks pass."
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-3/artifacts/boundary-bug.md",
+      "sha256": "3d4a62495ae119057b33e58e5cab5e92de4da0f9fa7066337c9c0c4517c4881c",
+      "status": "read-source-faithful",
+      "style_note": "Some finding titles use compact sentences rather than the requested noun-phrase style. They still name the actual defect and symbol and match the prose headings exactly. This is recorded style variance; the frozen source-fact and title-equality checks pass."
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-3/artifacts/clean.md",
+      "sha256": "a8055343293c05099c59f91a2a43b9d6230f696e79ee5831ab2cccbaaabb6400",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-3/artifacts/missing-coverage.md",
+      "sha256": "2dd6c2345e3e859fc421da2d2255f5a91c0dacc1da131bdd9c58f442bff2bcee",
+      "status": "read-source-faithful",
+      "style_note": "Some finding titles use compact sentences rather than the requested noun-phrase style. They still name the actual defect and symbol and match the prose headings exactly. This is recorded style variance; the frozen source-fact and title-equality checks pass."
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-3/artifacts/planted-fixture.md",
+      "sha256": "74b7416c701c33a6cd9d71c26d29ef5838a4abd6a9473fa9df7656b40e75f9c5",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-3/artifacts/prior-findings.md",
+      "sha256": "367b1fbe485d0ad719e7a55d0ad1d6574d42d22a57eaa05f14f155bcfacd66b8",
+      "status": "read-source-faithful",
+      "style_note": "Some finding titles use compact sentences rather than the requested noun-phrase style. They still name the actual defect and symbol and match the prose headings exactly. This is recorded style variance; the frozen source-fact and title-equality checks pass."
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-4/artifacts/adjacent-high.md",
+      "sha256": "7cfa979484002968d635bf9d492b98f14348cffa73974986ad5576c728d6e888",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-4/artifacts/adjacent-low.md",
+      "sha256": "08abaa9e1af3d25bcbb93bd0b75fd6ad7261d49035aa921e17c206188a754952",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-4/artifacts/boundary-bug.md",
+      "sha256": "d667ee01fe985028bc681cbbd6f157a96ccaea012b03b6b63da326ceb36abf32",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-4/artifacts/clean.md",
+      "sha256": "de8db1a7948640b79ff6319d70bc93949c988aa0d2e0bef3f53cc9769850d492",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-4/artifacts/missing-coverage.md",
+      "sha256": "000ad2475a91d5695c5145a376835770e1b7210bd2573841dada907896c3a468",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-4/artifacts/planted-fixture.md",
+      "sha256": "b4949f68e0d1d45939fb7c278606edf3b1cb1c7fd62680376f86dd44b19cca94",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-4/artifacts/prior-findings.md",
+      "sha256": "2fa1e01b6a093467b4a546ddd63aed67fac399b0469c07af0bd2bfcd06412f37",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-5/artifacts/adjacent-high.md",
+      "sha256": "2c67c992e48d7c2a6dcd7488449ff3d42ac0efbe341e296098c8ed3323c3fe2c",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-5/artifacts/adjacent-low.md",
+      "sha256": "a9b2c7daa079266ebf46ac8250136e7a30cfd8773e21ed39caef2996b4123b34",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-5/artifacts/boundary-bug.md",
+      "sha256": "98b09058cb82e086923f80f59c8c892ba85fdc205b15a7022124bd0f6fffa75e",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-5/artifacts/clean.md",
+      "sha256": "6e86c7acc65a01205ab27c38c31de362662968bba46c8f852ea6442f90ecdea2",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-5/artifacts/missing-coverage.md",
+      "sha256": "163a8e025f1084fed8e85704fb8a77c628d1b1372fbd65eba1320ffa7e466f3c",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-5/artifacts/planted-fixture.md",
+      "sha256": "b62c2186edaab9eb55048af49042b203407a922921353d5e0062fa99b55a4bc6",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-5/artifacts/prior-findings.md",
+      "sha256": "5f746e7e4b74ec6e2cb29e0361812f39931c2c6b78e6a4df259c39a0f86a2fee",
       "status": "read-source-faithful"
     }
   ]

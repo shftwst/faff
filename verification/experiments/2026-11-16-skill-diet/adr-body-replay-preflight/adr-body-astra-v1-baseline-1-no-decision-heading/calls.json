@@ -1,0 +1,65 @@
+[
+  {
+    "args": [
+      "adr",
+      "format",
+      "--json",
+      "--root",
+      "<case-root>"
+    ],
+    "exit_code": 0,
+    "stdout": "{\n  \"format\": \"template\",\n  \"sections\": [\n    {\n      \"name\": \"Summary\",\n      \"placeholder\": \"_TODO: ..._\"\n    },\n    {\n      \"name\": \"Rationale\",\n      \"placeholder\": \"_TODO: ..._\"\n    }\n  ],\n  \"decision_section\": null,\n  \"source\": \"template\",\n  \"template_path\": \".faff/templates/adr.md\",\n  \"degraded\": false,\n  \"notes\": \"faff adr format: .faff/templates/adr.md has no `## Decision` heading; L3 contradiction-detection disabled for this repo\"\n}\n",
+    "stderr": "faff adr format: .faff/templates/adr.md has no `## Decision` heading; L3 contradiction-detection disabled for this repo\n"
+  },
+  {
+    "args": [
+      "adr",
+      "new",
+      "--title",
+      "Keep exports on the existing worker",
+      "--date",
+      "2026-11-16",
+      "--issue",
+      "ADRWORK-1",
+      "--root",
+      "<case-root>"
+    ],
+    "exit_code": 0,
+    "stdout": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/adr-body-replay-preflight/adr-body-astra-v1-baseline-1-no-decision-heading/records/adr/0001-keep-exports-on-the-existing-worker.md\n",
+    "stderr": "faff adr format: .faff/templates/adr.md has no `## Decision` heading; L3 contradiction-detection disabled for this repo\n"
+  },
+  {
+    "args": [
+      "adr",
+      "validate",
+      "--root",
+      "<case-root>"
+    ],
+    "exit_code": 0,
+    "stdout": "OK — 1 ADR(s) in records/adr valid.\nNOTE  0001-keep-exports-on-the-existing-worker.md: proposed-uncommitted — a Proposed record not yet tracked (the legitimate authoring state)\n",
+    "stderr": ""
+  },
+  {
+    "args": [
+      "adr",
+      "list",
+      "--json",
+      "--root",
+      "<case-root>"
+    ],
+    "exit_code": 0,
+    "stdout": "[\n  {\n    \"number\": 1,\n    \"id\": \"0001\",\n    \"title\": \"Keep exports on the existing worker\",\n    \"status\": \"Proposed\",\n    \"date\": \"2026-11-16\",\n    \"provenance\": \"human\",\n    \"file\": \"0001-keep-exports-on-the-existing-worker.md\"\n  }\n]\n",
+    "stderr": ""
+  },
+  {
+    "args": [
+      "adr",
+      "validate",
+      "--root",
+      "<case-root>"
+    ],
+    "exit_code": 1,
+    "stdout": "FAIL  0001-keep-exports-on-the-existing-worker.md: Status \"Invented\" must start with one of Proposed|Accepted|Superseded|Deprecated|Rejected\n",
+    "stderr": ""
+  }
+]

@@ -1,0 +1,1 @@
+{"name":"submit_review","args":{"case_id":"adjacent-high","text":"signal: pass\n\n## Findings\n\nNone. multiply returns the specified product and the supplied passing tests exercise positive and negative operands. High appetite permits the adjacent comment typo correction in the touched file.\n\n```faff-contract:review-verdict\n{\"signal\":\"pass\",\"findings\":[]}\n```"}}

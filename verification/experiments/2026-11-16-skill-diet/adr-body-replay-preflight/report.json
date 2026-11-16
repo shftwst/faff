@@ -1,0 +1,143 @@
+{
+  "status": "pass",
+  "mode": "preflight-reference-bodies",
+  "artifacts": 6,
+  "results": [
+    {
+      "name": "adr-body-astra-v1-baseline-1",
+      "arm": "baseline",
+      "case_id": "nygard",
+      "path": null,
+      "sha256": "bbb0033a469debf8ae765363cccf0d077aaeb08499690a8d8f8714ddca0a9021",
+      "report_sha256": null,
+      "native_audit_sha256": null,
+      "status": "pass",
+      "format_sections": [
+        "Context",
+        "Decision",
+        "Consequences"
+      ],
+      "scaffold_sha256": "32fb0ce33d7f8bf818806c83d033440bbfac334a80636cafd2ded200415dfdaa",
+      "persisted_sha256": "69d478986d5ec591236710631d5e1701a99b0b5fb9bad885d3ef9e099c943dc6",
+      "body_sha256": "bbb0033a469debf8ae765363cccf0d077aaeb08499690a8d8f8714ddca0a9021",
+      "validation_exit": 0,
+      "invalid_status_rejected": true,
+      "final_status": "Proposed",
+      "calls_sha256": "4713eb82c90916faafb5c1e8f69402119f67be565e244582b5a280023a108762"
+    },
+    {
+      "name": "adr-body-astra-v1-baseline-1",
+      "arm": "baseline",
+      "case_id": "custom",
+      "path": null,
+      "sha256": "19be2329b0759595359d9f46742e1162e2b84128c79e05263c161f987c6d39fb",
+      "report_sha256": null,
+      "native_audit_sha256": null,
+      "status": "pass",
+      "format_sections": [
+        "Situation",
+        "Decision",
+        "Trade-offs",
+        "Follow-up"
+      ],
+      "scaffold_sha256": "167d9caed55195ceeae677df62658f555322d71dda9ea43437566cfca999db88",
+      "persisted_sha256": "a406ddffc37479dc4a96fbc6b3e6c469601880dcb377dc41ea591a224dfca89d",
+      "body_sha256": "19be2329b0759595359d9f46742e1162e2b84128c79e05263c161f987c6d39fb",
+      "validation_exit": 0,
+      "invalid_status_rejected": true,
+      "final_status": "Proposed",
+      "calls_sha256": "ca26040d2bc605dbcca724c3be689ff3ef43b3b480feb40221e7b50c17b1ccd6"
+    },
+    {
+      "name": "adr-body-astra-v1-baseline-1",
+      "arm": "baseline",
+      "case_id": "no-decision-heading",
+      "path": null,
+      "sha256": "b96b0dd5dc5645b7e093bc0c56fd41dcff0e08a15f8492454ac2ae8afeaa5d9b",
+      "report_sha256": null,
+      "native_audit_sha256": null,
+      "status": "pass",
+      "format_sections": [
+        "Summary",
+        "Rationale"
+      ],
+      "scaffold_sha256": "4bf2adff77a0535129a5cf2814623071ff041df53df9df3ccffc5bf762563cc8",
+      "persisted_sha256": "cc11dd8745b58100319e539e5620ae7344356eeb8bfe807f81a92ca5f1e6deaa",
+      "body_sha256": "b96b0dd5dc5645b7e093bc0c56fd41dcff0e08a15f8492454ac2ae8afeaa5d9b",
+      "validation_exit": 0,
+      "invalid_status_rejected": true,
+      "final_status": "Proposed",
+      "calls_sha256": "6cff4ccdb0b6718e325fbb683fdd5ebc9d8bcc41dd8b48e66eb6c20d797c89a2"
+    },
+    {
+      "name": "adr-body-astra-v1-baseline-1",
+      "arm": "baseline",
+      "case_id": "empty-template",
+      "path": null,
+      "sha256": "134679dafb7a3178a35d5a63d7148f56ea7a6fbaa700d57d483449e58bd60e1b",
+      "report_sha256": null,
+      "native_audit_sha256": null,
+      "status": "pass",
+      "format_sections": [
+        "Context",
+        "Decision",
+        "Consequences"
+      ],
+      "scaffold_sha256": "80afbfaa978fc678bfdd2b6a548c3dadbe8ff88385c835d34c141a0a92a84a76",
+      "persisted_sha256": "271800101b9e4ccd85c08789c6a0aeb6abf3e0daba26789d13074257bd00d60f",
+      "body_sha256": "134679dafb7a3178a35d5a63d7148f56ea7a6fbaa700d57d483449e58bd60e1b",
+      "validation_exit": 0,
+      "invalid_status_rejected": true,
+      "final_status": "Proposed",
+      "calls_sha256": "40eb0cbb5a8d06fec40d41f2cc00181ad13c175a393ffae6d574a628bca8e467"
+    },
+    {
+      "name": "adr-body-astra-v1-baseline-1",
+      "arm": "baseline",
+      "case_id": "related-decision",
+      "path": null,
+      "sha256": "5068ea70dbf39e8a00832b07bbafac51d6b119125f906147f5838690a7486710",
+      "report_sha256": null,
+      "native_audit_sha256": null,
+      "status": "pass",
+      "format_sections": [
+        "Context",
+        "Decision",
+        "Consequences"
+      ],
+      "scaffold_sha256": "df9daf0810d895662f785ea538066db97571ba065d7863dbc4458fce3fa60c2b",
+      "persisted_sha256": "5ef96fcb7e6e1e40ccd92972926aa175867be77c3ee9fd8fab9dbca4b3b5d6d7",
+      "body_sha256": "5068ea70dbf39e8a00832b07bbafac51d6b119125f906147f5838690a7486710",
+      "validation_exit": 0,
+      "invalid_status_rejected": true,
+      "final_status": "Proposed",
+      "calls_sha256": "c396165e1532825a59fa1cb908f46621e4002c0756d3a0a207502e688057b799"
+    },
+    {
+      "name": "adr-body-astra-v1-baseline-1",
+      "arm": "baseline",
+      "case_id": "limited-verification",
+      "path": null,
+      "sha256": "2bfcf96976a88aca17cf0d3351253e64b619fcbf65c9a791d648168c4d65a153",
+      "report_sha256": null,
+      "native_audit_sha256": null,
+      "status": "pass",
+      "format_sections": [
+        "Context",
+        "Decision",
+        "Consequences"
+      ],
+      "scaffold_sha256": "f81ed27f6284021be271e499c67638af9cab394520902b09f1d545ad5d2951f6",
+      "persisted_sha256": "bedc0e3ed92231612a75d69070b54e52b0a2cef3865389d20ea5003175d50fe8",
+      "body_sha256": "2bfcf96976a88aca17cf0d3351253e64b619fcbf65c9a791d648168c4d65a153",
+      "validation_exit": 0,
+      "invalid_status_rejected": true,
+      "final_status": "Proposed",
+      "calls_sha256": "cfc3df008463459f44308733574428bca41ba623d0b99202a8900cc852bbca57"
+    }
+  ],
+  "limits": [
+    "Actual measured bodies are installed unchanged after real ADR scaffold metadata in private fixture roots. Real format, scaffold, validate and list commands run; invalid-status mutations are rejected.",
+    "The caller is controlled and local. No model acquisition, actual Git commit, supersession/status mutation in a user project, full graft proof or semantic quality certification by the metadata validator is claimed. Manual source-fact review is separate."
+  ]
+}

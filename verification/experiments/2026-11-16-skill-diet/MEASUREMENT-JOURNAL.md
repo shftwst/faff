@@ -400,3 +400,7 @@ qualifier in baseline-three's late-risk recommendation; the frozen all-artifact
 bar fails. All forty baseline outputs were read, with 39 passing that bar. This
 is a baseline failure, not a measured candidate regression. No candidate sample
 was substituted; the measurement lane now runs routing assignment.
+
+## 2026-11-16 12:20 UTC: downstream proof and held cuts
+
+Review V3 passes 70/70 artifacts, 200/200 decisions, 70/70 exact prose/JSON title sets and 70/70 real stored-comment connector replays. Integration is held: the compressed verdict rules trigger existing enum lint. The dirty-tree connector guards account for the other two initial test failures. Production is restored. V4 measures five new presentation-corrected candidates against all five unchanged successful baselines; no V3 candidate is reused. Map baseline one omits the required TL;DR section in all six reports, so its cut is held; the separate removing/remove recogniser mismatch is recorded without relaxing the format bar. All PR checks pass at 4611efcd.

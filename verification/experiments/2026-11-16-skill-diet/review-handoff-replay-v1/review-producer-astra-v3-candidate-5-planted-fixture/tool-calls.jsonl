@@ -1,0 +1,3 @@
+{"at":"2026-11-16T12:11:04.942Z","name":"list_comments","arguments":{"issue_id":"ISS-111"},"isError":false}
+{"at":"2026-11-16T12:11:05.055Z","name":"list_comments","arguments":{"issue_id":"ISS-111"},"isError":false}
+{"at":"2026-11-16T12:11:05.058Z","name":"save_comment","arguments":{"id":"ISS-111-c1","body":"Human note\r\n\r\n<!-- faff-review-findings:ISS-111 -->\nsignal: pass\n\n## Findings\n\nNone. The unguarded access is deliberate scanner fixture data, never executed production code. It matches the spec, and the supplied scanner-test evidence verifies the expected diagnostic.\n\n```faff-contract:review-verdict\n{\"signal\":\"pass\",\"findings\":[]}\n```\n<!-- /faff-review-findings:ISS-111 -->\n\r\nTrailing note"},"isError":false}

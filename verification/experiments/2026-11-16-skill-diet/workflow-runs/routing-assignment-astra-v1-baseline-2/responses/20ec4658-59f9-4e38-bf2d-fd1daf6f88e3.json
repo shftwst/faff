@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "value": {
+    "args": [
+      "contract",
+      "automation-routing"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"verdict\":\"repeat-parked\",\"root_cause\":\"punt-not-closed\",\"conformant\":true,\"violations\":[]}\n",
+    "stderr": "",
+    "value": {
+      "verdict": "repeat-parked",
+      "root_cause": "punt-not-closed",
+      "conformant": true,
+      "violations": []
+    }
+  }
+}

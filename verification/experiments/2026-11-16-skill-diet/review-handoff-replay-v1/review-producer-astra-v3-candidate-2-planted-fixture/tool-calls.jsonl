@@ -1,0 +1,3 @@
+{"at":"2026-11-16T12:10:55.347Z","name":"list_comments","arguments":{"issue_id":"ISS-111"},"isError":false}
+{"at":"2026-11-16T12:10:55.457Z","name":"list_comments","arguments":{"issue_id":"ISS-111"},"isError":false}
+{"at":"2026-11-16T12:10:55.461Z","name":"save_comment","arguments":{"id":"ISS-111-c1","body":"Human note\r\n\r\n<!-- faff-review-findings:ISS-111 -->\nsignal: pass\n\n## Findings\n\nNone. The unguarded access is the specified negative fixture, read as text and never executed. The supplied scanner verification confirms the expected diagnostic. No production behaviour or unrelated scope changed.\n\n```faff-contract:review-verdict\n{\"signal\":\"pass\",\"findings\":[]}\n```\n<!-- /faff-review-findings:ISS-111 -->\n\r\nTrailing note"},"isError":false}

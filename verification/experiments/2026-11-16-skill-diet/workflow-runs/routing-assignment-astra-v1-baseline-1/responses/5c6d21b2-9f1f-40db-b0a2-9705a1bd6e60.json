@@ -1,0 +1,27 @@
+{
+  "ok": true,
+  "value": {
+    "issue": {
+      "id": "ROUTE-1",
+      "title": "Export account records",
+      "status": "Todo"
+    },
+    "confidence": "high",
+    "spec": "# Account export\n\nconfidence: high\n\n**Chosen:** export the authenticated account records as JSON.\n",
+    "diagnostics": {
+      "in_cycle": false,
+      "ghost_project_or_missing_dep": null
+    },
+    "conflict": {
+      "independent": false,
+      "collision_group": [
+        "ROUTE-1",
+        "ROUTE-2"
+      ],
+      "in_queue_blockers": [],
+      "reason": "Both changes touch src/export.mjs; serialise this group."
+    },
+    "park_history": [],
+    "spec_path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-1/specs/collision.md"
+  }
+}

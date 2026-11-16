@@ -1,0 +1,21 @@
+{
+  "status": "pending-astra-v1-pair",
+  "baseline_bytes": 24535,
+  "candidate_bytes": 20272,
+  "baseline_estimated_tokens": 5988,
+  "candidate_estimated_tokens": 4944,
+  "baseline_sha256": "55e5aa388261b226e011f45d16d3b88d6e61a9e9bba0f1831b2cfdf57ce308c6",
+  "candidate_sha256": "c86b9870aa0563821b86ef52198be8a343b68ccea832b72023408adf70aead34",
+  "preserved_prefix_sha256": "1026649979c283f9140adbe84e999df9bd355bd6903b6e571621e7ce9213ce1e",
+  "preserved_suffix_sha256": "416265692a6c0a79ebb3261edec24374d250e5857e4e9e2d255538c683954189",
+  "fixed_context_sha256": "fa7f2782a3bafd8fba4c7f5677e380ad8a1e6a940e09210718e8b20c38971e45",
+  "preserved_visuals": [
+    "workstream lane",
+    "dependency chain",
+    "trigger gate table"
+  ],
+  "preserved_joinup_paragraph": true,
+  "changed_scope": "Phases 2-8 and Output Format only; whole configuration/acquisition prefix and chaining/autonomous/notes suffix byte-identical. Remove repeated exposition, a duplicate critical-path example and output skeleton; retain graph rules and source ownership.",
+  "mandatory_dependencies_added": [],
+  "proof_required": "Five baseline and five candidate Astra-low samples; all sixty reports manually read, source facts, order, cycle/gate consistency, next-step offers and no invented actions; complete native audit and integration."
+}

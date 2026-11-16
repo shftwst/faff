@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "value": {
+    "args": [
+      "contract",
+      "automation-routing"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"verdict\":\"circular-blocked\",\"root_cause\":\"cycle\",\"conformant\":true,\"violations\":[]}\n",
+    "stderr": "",
+    "value": {
+      "verdict": "circular-blocked",
+      "root_cause": "cycle",
+      "conformant": true,
+      "violations": []
+    }
+  }
+}

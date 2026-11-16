@@ -1,0 +1,62 @@
+{
+  "status": "in-progress-not-qualified",
+  "updated_utc": "2026-11-16T12:19:38.359487+00:00",
+  "read_artifacts": 9,
+  "notes": "First three baseline samples read; source facts and applicable next-step offers pass. Provided WIP capacity, queue dependencies, owner groups, diagnostics and advisory-only calibration preserved.",
+  "rows": [
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-baseline-1/artifacts/empty.md",
+      "sha256": "af0d9a2c93d756ea0f7784fc19600700933e83399bb55dbda27d0e1e76af2e60",
+      "status": "read-source-faithful",
+      "offers": "All applicable manual/autonomous parked resume, ADR ratification, Ready promotion, build, automation and tidy offers present; empty case has no applicable offers."
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-baseline-1/artifacts/operations.md",
+      "sha256": "8105183c235acd2f6128275e2dd4d1146fcb26a263568cbbe605573a0eb366b5",
+      "status": "read-source-faithful",
+      "offers": "All applicable manual/autonomous parked resume, ADR ratification, Ready promotion, build, automation and tidy offers present; empty case has no applicable offers."
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-baseline-1/artifacts/wip-cap.md",
+      "sha256": "8932290777ee7160e859366c6bf8f1da92f42d8875b4035b26b79e2a7d03bb48",
+      "status": "read-source-faithful",
+      "offers": "All applicable manual/autonomous parked resume, ADR ratification, Ready promotion, build, automation and tidy offers present; empty case has no applicable offers."
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-baseline-2/artifacts/empty.md",
+      "sha256": "af0d9a2c93d756ea0f7784fc19600700933e83399bb55dbda27d0e1e76af2e60",
+      "status": "read-source-faithful",
+      "offers": "All applicable manual/autonomous parked resume, ADR ratification, Ready promotion, build, automation and tidy offers present; empty case has no applicable offers."
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-baseline-2/artifacts/operations.md",
+      "sha256": "0e669f4fe21906331583708a43722cabadb44fa5a250d471247d270e4cea8caa",
+      "status": "read-source-faithful",
+      "offers": "All applicable manual/autonomous parked resume, ADR ratification, Ready promotion, build, automation and tidy offers present; empty case has no applicable offers."
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-baseline-2/artifacts/wip-cap.md",
+      "sha256": "bf15c7a3bf4d369c564306e2e1b5c29991fb0ae61a754ad90c85509552ec2e99",
+      "status": "read-source-faithful",
+      "offers": "All applicable manual/autonomous parked resume, ADR ratification, Ready promotion, build, automation and tidy offers present; empty case has no applicable offers."
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-baseline-3/artifacts/empty.md",
+      "sha256": "af0d9a2c93d756ea0f7784fc19600700933e83399bb55dbda27d0e1e76af2e60",
+      "status": "read-source-faithful",
+      "offers": "All applicable offers present, including manual prep and autonomous graft resumes in the final gates."
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-baseline-3/artifacts/operations.md",
+      "sha256": "3fdaa08fbcd99fba3b0161facce4b459daee56d388e75865a40d9d959b0465bc",
+      "status": "read-source-faithful",
+      "offers": "All applicable offers present, including manual prep and autonomous graft resumes in the final gates."
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-baseline-3/artifacts/wip-cap.md",
+      "sha256": "c12c7e475f9ab28deff6c40ae8b2d3bde0c47b39f9ef1f1517c9f77055e26c93",
+      "status": "read-source-faithful",
+      "offers": "All applicable offers present, including manual prep and autonomous graft resumes in the final gates."
+    }
+  ]
+}

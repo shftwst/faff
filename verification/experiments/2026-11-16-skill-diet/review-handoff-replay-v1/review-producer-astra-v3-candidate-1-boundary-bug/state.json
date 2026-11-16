@@ -1,0 +1,23 @@
+{
+  "schema": 2,
+  "issues": {
+    "ISS-111": [
+      {
+        "id": "ISS-111-c1",
+        "created_at": "2026-11-14T08:00:00Z",
+        "body": "Human note\r\n\r\n<!-- faff-review-findings:ISS-111 -->\nsignal: fail\n\n## Findings\n\n### Spec fidelity: Equality accepted by belowLimit\n\nsrc/function.mjs:1 uses <=, so belowLimit(5,5) returns true despite the strict-limit requirement. Change the comparison to <.\n\n### AC coverage: Missing equality test for belowLimit\n\ntest/function.test.mjs:3 tests only values below and above the limit. Add an assertion that belowLimit(5,5) is false. The supplied passing tests do not verify the equality AC.\n\n```faff-contract:review-verdict\n{\"signal\":\"fail\",\"findings\":[{\"title\":\"Equality accepted by belowLimit\",\"location\":\"src/function.mjs:1\",\"action\":\"Change the comparison to <.\",\"location_present\":true,\"action_present\":true,\"source\":\"standard\"},{\"title\":\"Missing equality test for belowLimit\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Add an assertion that belowLimit(5,5) is false.\",\"location_present\":true,\"action_present\":true,\"source\":\"standard\"}]}\n```\n<!-- /faff-review-findings:ISS-111 -->\n\r\nTrailing note"
+      }
+    ]
+  },
+  "next_comment_id": "ISS-111-c9",
+  "now": "2026-11-15T12:00:00Z",
+  "creates": 0,
+  "op_counts": {
+    "save_comment": 1
+  },
+  "faults": [],
+  "finished": {
+    "status": "completed",
+    "reason": "updated"
+  }
+}

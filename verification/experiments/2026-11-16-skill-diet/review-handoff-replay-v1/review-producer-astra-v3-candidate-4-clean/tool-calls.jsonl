@@ -1,0 +1,3 @@
+{"at":"2026-11-16T12:11:00.400Z","name":"list_comments","arguments":{"issue_id":"ISS-111"},"isError":false}
+{"at":"2026-11-16T12:11:00.511Z","name":"list_comments","arguments":{"issue_id":"ISS-111"},"isError":false}
+{"at":"2026-11-16T12:11:00.515Z","name":"save_comment","arguments":{"id":"ISS-111-c1","body":"Human note\r\n\r\n<!-- faff-review-findings:ISS-111 -->\nsignal: pass\n\n## Findings\n\nNone. The pure function matches the chosen implementation; tests cover positive, zero and negative inputs. The supplied local tests passed and changes stay in scope.\n\n```faff-contract:review-verdict\n{\"signal\":\"pass\",\"findings\":[]}\n```\n<!-- /faff-review-findings:ISS-111 -->\n\r\nTrailing note"},"isError":false}

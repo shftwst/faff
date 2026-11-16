@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "value": {
+    "args": [
+      "punt-scan",
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-1/specs/eligible-punt.md"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"punts\":[{\"topic\":\"scheduled exports\",\"decides\":null,\"non_blocking\":true,\"out_of_scope_crossref\":true,\"eligible\":true}],\"eligible_count\":1,\"blocking_open_count\":0}\n",
+    "stderr": "",
+    "value": {
+      "punts": [
+        {
+          "topic": "scheduled exports",
+          "decides": null,
+          "non_blocking": true,
+          "out_of_scope_crossref": true,
+          "eligible": true
+        }
+      ],
+      "eligible_count": 1,
+      "blocking_open_count": 0
+    }
+  }
+}

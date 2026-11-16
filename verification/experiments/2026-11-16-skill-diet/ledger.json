@@ -1561,8 +1561,8 @@
   "pending_slices": [
     {
       "path": "plugin/skills/faffter-noon-review/SKILL.md",
-      "candidate": "candidates/review-producer-v2.md",
-      "status": "Fresh Astra V3 pair; explicit title-copy correction; excluded from totals"
+      "candidate": "candidates/review-producer-v3.md",
+      "status": "V3 functional/native/title/downstream checks passed, integration enum lint failed. V4 revised presentation measures five new candidates against unchanged successful V3 baseline; excluded until qualified."
     },
     {
       "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
@@ -1576,13 +1576,18 @@
     },
     {
       "path": "plugin/skills/faff-map/SKILL.md",
-      "candidate": null,
-      "status": "Baseline queued; no candidate authored"
+      "candidate": "candidates/map-report-v1.md",
+      "status": "Held: baseline-one reports omit the required TL;DR section. Candidate not measured or installed; excluded from savings."
     },
     {
       "path": "plugin/skills/faffidavit-routing/SKILL.md",
       "candidate": "candidates/routing-assignment-v1.md",
       "status": "Fresh Astra baseline running; candidate prepared with all verdict conditions, standalone reads and display preserved; excluded from totals"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-adr/SKILL.md",
+      "candidate": "candidates/adr-body-v1.md",
+      "status": "Fresh Astra V1 baseline running; real format/scaffold/validate reference preflight passes all six cases; excluded until paired qualification."
     }
   ],
   "latest_source": "prd-astra-v2-after-source.json"

@@ -1,0 +1,89 @@
+{
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "records": [
+    {
+      "case_id": "nygard",
+      "args": [
+        "adr",
+        "format",
+        "--json",
+        "--root",
+        "<fixture-root>"
+      ],
+      "template": null,
+      "exit_code": 0,
+      "stdout": "{\n  \"format\": \"nygard\",\n  \"sections\": [\n    {\n      \"name\": \"Context\",\n      \"placeholder\": \"_TODO: what forces this decision._\"\n    },\n    {\n      \"name\": \"Decision\",\n      \"placeholder\": \"_TODO: the decision, stated forward._\"\n    },\n    {\n      \"name\": \"Consequences\",\n      \"placeholder\": \"_TODO: what this constrains downstream._\"\n    }\n  ],\n  \"decision_section\": \"Decision\",\n  \"source\": \"default\",\n  \"template_path\": null,\n  \"degraded\": false,\n  \"notes\": null\n}\n",
+      "stderr": ""
+    },
+    {
+      "case_id": "custom",
+      "args": [
+        "adr",
+        "format",
+        "--json",
+        "--root",
+        "<fixture-root>"
+      ],
+      "template": "## Situation\nExplain forces.\n\n## Decision\nSettled choice.\n\n## Trade-offs\nCosts.\n\n## Follow-up\nRemaining work.\n",
+      "exit_code": 0,
+      "stdout": "{\n  \"format\": \"template\",\n  \"sections\": [\n    {\n      \"name\": \"Situation\",\n      \"placeholder\": \"_TODO: ..._\"\n    },\n    {\n      \"name\": \"Decision\",\n      \"placeholder\": \"_TODO: ..._\"\n    },\n    {\n      \"name\": \"Trade-offs\",\n      \"placeholder\": \"_TODO: ..._\"\n    },\n    {\n      \"name\": \"Follow-up\",\n      \"placeholder\": \"_TODO: ..._\"\n    }\n  ],\n  \"decision_section\": \"Decision\",\n  \"source\": \"template\",\n  \"template_path\": \".faff/templates/adr.md\",\n  \"degraded\": false,\n  \"notes\": null\n}\n",
+      "stderr": ""
+    },
+    {
+      "case_id": "no-decision-heading",
+      "args": [
+        "adr",
+        "format",
+        "--json",
+        "--root",
+        "<fixture-root>"
+      ],
+      "template": "## Summary\nDecision summary.\n\n## Rationale\nForces and effects.\n",
+      "exit_code": 0,
+      "stdout": "{\n  \"format\": \"template\",\n  \"sections\": [\n    {\n      \"name\": \"Summary\",\n      \"placeholder\": \"_TODO: ..._\"\n    },\n    {\n      \"name\": \"Rationale\",\n      \"placeholder\": \"_TODO: ..._\"\n    }\n  ],\n  \"decision_section\": null,\n  \"source\": \"template\",\n  \"template_path\": \".faff/templates/adr.md\",\n  \"degraded\": false,\n  \"notes\": \"faff adr format: .faff/templates/adr.md has no `## Decision` heading; L3 contradiction-detection disabled for this repo\"\n}\n",
+      "stderr": "faff adr format: .faff/templates/adr.md has no `## Decision` heading; L3 contradiction-detection disabled for this repo\n"
+    },
+    {
+      "case_id": "empty-template",
+      "args": [
+        "adr",
+        "format",
+        "--json",
+        "--root",
+        "<fixture-root>"
+      ],
+      "template": "",
+      "exit_code": 0,
+      "stdout": "{\n  \"format\": \"nygard\",\n  \"sections\": [\n    {\n      \"name\": \"Context\",\n      \"placeholder\": \"_TODO: what forces this decision._\"\n    },\n    {\n      \"name\": \"Decision\",\n      \"placeholder\": \"_TODO: the decision, stated forward._\"\n    },\n    {\n      \"name\": \"Consequences\",\n      \"placeholder\": \"_TODO: what this constrains downstream._\"\n    }\n  ],\n  \"decision_section\": \"Decision\",\n  \"source\": \"default\",\n  \"template_path\": null,\n  \"degraded\": true,\n  \"notes\": \"faff adr format: .faff/templates/adr.md is empty or has no level-2 headings; using the Nygard default\"\n}\n",
+      "stderr": "faff adr format: .faff/templates/adr.md is empty or has no level-2 headings; using the Nygard default\n"
+    },
+    {
+      "case_id": "related-decision",
+      "args": [
+        "adr",
+        "format",
+        "--json",
+        "--root",
+        "<fixture-root>"
+      ],
+      "template": null,
+      "exit_code": 0,
+      "stdout": "{\n  \"format\": \"nygard\",\n  \"sections\": [\n    {\n      \"name\": \"Context\",\n      \"placeholder\": \"_TODO: what forces this decision._\"\n    },\n    {\n      \"name\": \"Decision\",\n      \"placeholder\": \"_TODO: the decision, stated forward._\"\n    },\n    {\n      \"name\": \"Consequences\",\n      \"placeholder\": \"_TODO: what this constrains downstream._\"\n    }\n  ],\n  \"decision_section\": \"Decision\",\n  \"source\": \"default\",\n  \"template_path\": null,\n  \"degraded\": false,\n  \"notes\": null\n}\n",
+      "stderr": ""
+    },
+    {
+      "case_id": "limited-verification",
+      "args": [
+        "adr",
+        "format",
+        "--json",
+        "--root",
+        "<fixture-root>"
+      ],
+      "template": null,
+      "exit_code": 0,
+      "stdout": "{\n  \"format\": \"nygard\",\n  \"sections\": [\n    {\n      \"name\": \"Context\",\n      \"placeholder\": \"_TODO: what forces this decision._\"\n    },\n    {\n      \"name\": \"Decision\",\n      \"placeholder\": \"_TODO: the decision, stated forward._\"\n    },\n    {\n      \"name\": \"Consequences\",\n      \"placeholder\": \"_TODO: what this constrains downstream._\"\n    }\n  ],\n  \"decision_section\": \"Decision\",\n  \"source\": \"default\",\n  \"template_path\": null,\n  \"degraded\": false,\n  \"notes\": null\n}\n",
+      "stderr": ""
+    }
+  ]
+}

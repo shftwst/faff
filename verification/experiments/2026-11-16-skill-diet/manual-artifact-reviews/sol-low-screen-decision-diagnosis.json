@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "status": "three-required-decisions-incomplete-or-missing",
+  "updated_utc": "2026-11-16T19:38:21.628610+00:00",
+  "sample": "matrix-v1-sol-low-rendering-baseline-2",
+  "scope": "Separate decision diagnosis. Frozen rendering artifact reviews remain unchanged; source-fact/artifact fidelity is distinct from these rule-answer failures.",
+  "bindings": [
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-2/assessment.json",
+      "sha256": "ecd593dd99999bd34aee701e5731da39d3805e8aae8c5576ed0b9792c0b2dd03"
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-2/capture.json",
+      "sha256": "23227979b06c6fbba57940f79ab56151f1faacc95a3fd5b8b5f02833a9eab6d5"
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-2/report.json",
+      "sha256": "0ced84f2523edc13ed024179a68c71218c10d3defabda8711d0e090516966015"
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-2/native-audit.json",
+      "sha256": "09815d30918b96fe5273ade35a7180e5da2b568316581be119a860a130828a7f"
+    },
+    {
+      "path": "workflow-fixtures/rendering.json",
+      "sha256": "e46467fd275a9fcdc44e0a3a282bbd5e8de85541992bb570498b0a13e197f9a1"
+    }
+  ],
+  "decisions": [
+    {
+      "case_id": "ambiguous-gloss",
+      "actual": {
+        "state_ambiguity": true
+      },
+      "expected": {
+        "state_ambiguity": true,
+        "invent_resolution": false
+      },
+      "problem": "Missing required invent_resolution:false field."
+    },
+    {
+      "case_id": "gloss-cache",
+      "actual": null,
+      "expected": {
+        "reuse_within_invocation": true,
+        "reuse_across_invocations": false
+      },
+      "problem": "No rule answer submitted."
+    },
+    {
+      "case_id": "surface-concrete",
+      "actual": null,
+      "expected": false,
+      "problem": "No rule answer submitted."
+    }
+  ],
+  "distinct_native_failures": "Duplicate gloss-source and contract submissions are separately documented in matrix-native-compatibility-review.json. They do not replace or explain away these three missing/incomplete answers.",
+  "counts": {
+    "artifacts_passed": 9,
+    "decisions_passed": 17,
+    "decisions_total": 20
+  },
+  "conclusion": "The sample has required-behaviour omissions beyond the shared memoising explanation omission in its rendered artifact. Preserve the three decision failures and duplicate native operations in model recommendations. No frozen artifact review or score changed."
+}

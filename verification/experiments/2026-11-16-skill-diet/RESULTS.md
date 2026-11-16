@@ -1,8 +1,8 @@
 # Skill diet measurements
 
-Qualified source savings: **101,620 bytes and 25,038 estimated tokens**, from seven body/reference cuts and 26 shorter discovery descriptions. Pending candidates are excluded. Draft PR: https://github.com/shftwst/faff/pull/1202.
+Qualified source savings: **107,242 bytes and 26,409 estimated tokens**, from nine body/reference cuts and 26 shorter discovery descriptions. Pending candidates are excluded. Draft PR: https://github.com/shftwst/faff/pull/1202.
 
-Baseline: `a8509086ad28fa0e55cf3d1d818f2055294e663b`. Current measured source commit: `f6324f6112eeb54999aeda04c20245edac7187a9`. The 41-file set falls from 1,369,435 to 1,267,815 bytes, and from 339,279 to 314,241 estimated tokens. Estimates use ceil(UTF-16 characters/4) per file, summed; they are not provider usage or billing.
+Baseline: `a8509086ad28fa0e55cf3d1d818f2055294e663b`. Current measured source commit: `ea19ca083647fc7cdce91c847b39ba20b55aa8c1`. The 41-file set falls from 1,369,435 to 1,262,193 bytes, and from 339,279 to 312,870 estimated tokens. Estimates use ceil(UTF-16 characters/4) per file, summed; they are not provider usage or billing.
 
 ## Source reductions
 
@@ -15,13 +15,15 @@ Baseline: `a8509086ad28fa0e55cf3d1d818f2055294e663b`. Current measured source co
 | shared kernel configuration | 95,418 | 84,072 | 11,346 | 23,652 | 20,857 | 2,795 |
 | faffter-noon-prd | 4,214 | 2,465 | 1,749 | 1,047 | 617 | 430 |
 | faffter-noon-review | 13,405 | 8,045 | 5,360 | 3,327 | 2,008 | 1,319 |
+| faffter-noon-spec-review | 9,460 | 8,055 | 1,405 | 2,345 | 2,001 | 344 |
+| faff-wtf | 31,369 | 27,152 | 4,217 | 7,761 | 6,734 | 1,027 |
 | 26 discovery descriptions | 832,740 | 828,416 | 4,324 | 206,322 | 205,255 | 1,067 |
 
-The 26 description reductions exclude gateway, adversarial review, rendering and thematic, whose metadata changes are counted with their body cuts. The later PRD and review body cuts start after their accepted descriptions. `ledger.json` reconciles exactly to the committed source set, with no double counting or new mandatory reads.
+The 26 description reductions exclude gateway, adversarial review, rendering and thematic, whose metadata changes are counted with their body cuts. The later PRD, review and spec-review body cuts start after their accepted descriptions. `ledger.json` reconciles exactly to the committed source set, with no double counting or new mandatory reads.
 
 ## Fidelity before and after
 
-Every paired row has five samples per arm and complete native tool-log audits. Review V4 uses five new candidates with the unchanged five successful V3 baselines; earlier candidate samples are excluded. Gateway through kernel configuration use Claude Opus 5.5, medium effort, CLI 2.1.325. PRD uses a separate fresh Astra-low pair; review uses a separate Astra-low comparison, verified as gpt-6-astra / low / Codex CLI 0.169.0; no Claude samples are pooled into it.
+Every paired row has five samples per arm and complete native tool-log audits. Review V4 uses five new candidates with the unchanged five successful V3 baselines; earlier candidate samples are excluded. Gateway through kernel configuration use Claude Opus 5.5, medium effort, CLI 2.1.325. PRD uses a separate fresh Astra-low pair; review uses a separate Astra-low comparison, verified as gpt-6-astra / low / Codex CLI 0.169.0; no Claude samples are pooled into it. Default spec review uses a separate fresh Sol-medium pair, verified as gpt-6.1-sol / medium / Codex CLI 0.169.0.
 
 | Slice | Before | After | Executed boundary |
 |---|---|---|---|
@@ -33,6 +35,8 @@ Every paired row has five samples per arm and complete native tool-log audits. R
 | Kernel configuration | 45/45 execution; 120/120 decisions | Same | Real config reads/writes, refusal paths and slot resolution with downstream stubs |
 | PRD producer | 30/30 artifacts; 40/40 decisions; 120/120 downstream cases | Same | Real PRD reads and contract consumption; all 60 artifacts read; deterministic coverage/run-start/run-trigger replay rejects 120 forged decisions per arm |
 | Review producer | 35/35 artifacts; 100/100 decisions; 35/35 stored-comment handoffs | Same | Real review-verdict consumer and stored-comment connector; all 70 outputs read; exact prose/JSON titles and preserved comment bytes checked |
+| Default spec reviewer | 30/30 artifacts; 75/75 decisions; 30/30 contract/routing replays | Same | All 60 actual artifacts independently read; real contract and reject-approach consumers; 60 unfounded verdict mutations rejected |
+| Focus report | 15/15 artifact rubrics; 70/70 assessed decisions; 9/15 targeted manual checks | 15/15 rubrics; 70/70 decisions; 15/15 manual checks | All 30 actual reports read; source facts retained; missing offers, empty automation headers and queue partitions explicitly preserved |
 
 Rendering raw decision scores are 95/100 per arm; the separately recorded assessment accepts the correct heading with its Markdown marker. Adversarial assessments record three permitted output-existence probes. Original failures, captures and corrections remain preserved. Kernel V2/V3 native protocol failures are not pooled into qualified V4. The catalogue V1 selection regression was resolved by restoring the jot and prep descriptions.
 
@@ -40,11 +44,11 @@ Qualification files bind source, reports, native audits and manual artifact revi
 
 ## Limits and pending work
 
-These are bounded comparisons, not statistical equivalence or proof of complete graft/ship, live tracker mutation or hosted publication. Untested mutation sections of the thematic skill remain byte-identical. Source totals count all tracked prose, not one prompt; `load-manifest.json` and `review-astra-v4-after-loads.json` separately describe declared entry reads, counting each dependency once.
+These are bounded comparisons, not statistical equivalence or proof of complete graft/ship, live tracker mutation or hosted publication. Untested mutation sections of the thematic skill remain byte-identical. Source totals count all tracked prose, not one prompt; `load-manifest.json` and `wtf-sol-v3-after-loads.json` separately describe declared entry reads, counting each dependency once.
 
 Claude exhausted its weekly allowance during the PRD and default-review candidate sets. Those incomplete pairs are preserved and unqualified. The separate Astra PRD and review comparisons are qualified. Review V3 passed functional, native, title and downstream checks but failed integration enum lint. V4 separates the existing judgement conditions and passes all those checks plus 641 integration tests and adapter lint. Sentence-style finding titles occur in both arms; perfect noun-phrase style is not claimed.
 
-WTF Astra V2 passes automatic checks but is held because two candidate reports omit the full-groom offer. Later Sol sourceV4 restores the empty top-level header, but two candidate reports omit an empty queue partition. SourceV5 explicitly preserves both partitions and requires five new candidate samples. An independent review also found omitted empty automation subsections in both older Astra arms; the new manual gate includes that rule. Intake's earlier exact-string issue was corrected by clarifying canonical identifier spelling. Later Astra trials stopped on provider usage limits. Intake Sol candidate3 preserves brief facts but fails native literal-path and heredoc rules; its continuation stopped. The default spec-review Sol pair continues. No pending savings are counted.
+WTF Astra V2 passes automatic checks but is held because two candidate reports omit the full-groom offer. Later Sol sourceV4 restores the empty top-level header, but two candidate reports omit an empty queue partition. SourceV5 explicitly preserves both partitions and passes all five new candidate samples. Targeted manual report checks improve from 9/15 to 15/15, with 576 integration tests and all ten native audits passing. An independent review also found omitted empty automation subsections in both older Astra arms; the new manual gate includes that rule. Intake's earlier exact-string issue was corrected by clarifying canonical identifier spelling. Later Astra trials stopped on provider usage limits. Intake Sol candidate3 preserves brief facts but fails native literal-path and heredoc rules; its continuation stopped. The default spec-review Sol pair is qualified with all 60 artifacts reviewed and replayed, plus 599 integration tests. No pending savings are counted.
 
 The operator requested continuation after the original time window and calibration of Sol medium against preserved Opus gateway/rendering results. The same policy, fixture and runtime hashes are used, with provider, native-tool, guidance-content and timeout differences disclosed. The initial Sol model-expectation audit error is corrected by re-auditing original captures, retaining the first reports; samples are not replaced.
 
@@ -52,4 +56,8 @@ Other held cuts remain excluded: routing varies its baseline root-cause assignme
 
 The full PRD downstream replay passes all 240 cases and rejects 240 forged decisions. The accepted review V4 replay passes for all 70 actual artifacts, with one acknowledged stored-comment write each and exact preserved content/newlines. These are deterministic caller checks, not additional model samples or full caller workflows.
 
-The six-combination stand-in screen covers Sol low/medium/high, Astra low/medium and Terra medium. Results are in `GPT-OPUS-STANDIN-PROGRESS.md`; no finalist is selected yet. Native wrapper incompatibilities remain separate from functional and writing scores. The harder judgement task has a frozen same-provider-family amendment, since GPT cannot independently review an OpenAI primary under the original Opus eligibility claim. Original source, fixtures, outcomes and native failures remain retained.
+The six-combination stand-in screen covers Sol low/medium/high, Astra low/medium and Terra medium. Results are in `GPT-OPUS-STANDIN-PROGRESS.md`; Sol medium and Astra medium advance to five samples per arm and a distinct harder task; this is not a final recommendation. Native wrapper incompatibilities remain separate from functional and writing scores. The harder judgement task has a frozen same-provider-family amendment, since GPT cannot independently review an OpenAI primary under the original Opus eligibility claim. Original source, fixtures, outcomes and native failures remain retained.
+
+The default spec-review qualification binds the source, all ten native audits, 60 manual artifact reviews, real contract/routing replay and 599 integration tests. QA major/blocker severity varies while preserving the required revise outcome. Main adapter lint and cumulative rule inventory pass. The consumer replay does not exercise a full prep loop, human escalation or L4 refuter.
+
+Focus-report sourceV5 is accepted with 4,217 bytes and 1,027 estimated tokens saved. Shared calibration paragraph-plus-bullet formatting variance and existing prep-form ambiguities are disclosed; perfect style compliance is not claimed. Only Output Format and duplicated Notes change. Configuration, acquisition phases, chaining/action authority and Autonomous Mode are unchanged; no full WTF workflow execution is claimed.

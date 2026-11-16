@@ -1,0 +1,3 @@
+```faff-contract:spec-review-verdict
+{"verdict":"revise","objections":[{"lens":"QA","severity":"blocker","claim":"The Receipt date scenario has no observable Then, MUST or comparator. Add the expected visible result to this scenario.","evidence":"Scenarios, Receipt date ends with: Given a stored receipt, when its receipt is opened.","predicted_consequence":"The code-blind holdout has no expected observation for the Receipt date scenario and cannot judge that scenario as passing or failing.","spec_anchor":"receipt-date"}]}
+```

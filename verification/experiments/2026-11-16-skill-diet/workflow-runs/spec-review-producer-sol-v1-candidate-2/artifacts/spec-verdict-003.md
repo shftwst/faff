@@ -1,0 +1,3 @@
+```faff-contract:spec-review-verdict
+{"verdict":"needs-human","objections":[{"lens":"infosec","severity":"blocker","claim":"Fetching arbitrary user-supplied URLs server-side and returning their bodies permits server-side request forgery and data disclosure.","evidence":"HOW explicitly chooses fetch(userUrl), no allow-list, and streaming the body back to the caller.","predicted_consequence":"A caller can supply a loopback or private-network URL reachable by the backend and read an internal service's response through the preview API.","spec_anchor":"how"}]}
+```

@@ -1,0 +1,42 @@
+{
+  "consumer": {
+    "pass": true,
+    "producer_value": {
+      "verdict": "approve",
+      "objections": []
+    },
+    "contract": {
+      "exit_code": 0,
+      "stdout": "{\"verdict\":\"approve\",\"objections\":[],\"conformant\":true,\"violations\":[]}\n",
+      "stderr": "",
+      "value": {
+        "verdict": "approve",
+        "objections": [],
+        "conformant": true,
+        "violations": []
+      }
+    },
+    "route": null
+  },
+  "unfounded_mutation": {
+    "pass": false,
+    "producer_value": {
+      "verdict": "revise",
+      "objections": []
+    },
+    "contract": {
+      "exit_code": 1,
+      "stdout": "{\"verdict\":\"revise\",\"objections\":[],\"conformant\":false,\"violations\":[\"revise carries no objections\"]}\n",
+      "stderr": "",
+      "value": {
+        "verdict": "revise",
+        "objections": [],
+        "conformant": false,
+        "violations": [
+          "revise carries no objections"
+        ]
+      }
+    },
+    "route": null
+  }
+}

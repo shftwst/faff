@@ -1,0 +1,899 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-16T19:38:02.693987+00:00",
+  "reviewer": {
+    "role": "independent evidence-binding verifier",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium"
+  },
+  "status": "pass",
+  "scope": "Accepted default spec-review source, ledger, frozen manual review, native qualification, actual contract/routing replay and integration binding consistency.",
+  "accepted_source_commit": "34764e93cbde2c50bad402cec53fd65062d52eda",
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/spec-review-producer-sol-v1-final-qualification.json",
+      "sha256": "1283a923777d620b30e1346905d4cacfb4563543a2f0d979ea4e99d241c0cca4"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger.json",
+      "sha256": "e25ac811615c3eaab9ad0312107156444bce15338e36ae80dbfc94be84b9c673"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/spec-review-producer-sol-v1-native-qualification.json",
+      "sha256": "d46a07ebc981541db1d948b4e4108a6b8297231f9a558656243cbfcd49cee88c"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/spec-review-sol-independent.json",
+      "sha256": "aca00db341b932c3e886e76e74c589d5cd0e65c7c6c53854bc260e709547843c"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/spec-review-sol-replay-v1/report.json",
+      "sha256": "6dbcfbd5c0c6ab91a956d6c9f7aa9682471d67a88ef0021c34598689c15a5ad4"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/spec-review-sol-replay-v1/manifest.json",
+      "sha256": "01f33b0f9db92f2e7295369829e45914395a1723e42d76bd1a77f98d339eaec5"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/spec-review-sol-integration.json",
+      "sha256": "3bb10b8342e80908c339dd76458061939bc5e1422ae9b65669d115285eee8875"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/spec-review-sol-v1-main-rule-inventory.json",
+      "sha256": "59377a9c0a00b1771ef39609a3e92a2b140804ea8fe5c0a083f9615773949bdf"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/spec-review-sol-v1-main-adapter-lint.txt",
+      "sha256": "b82122223fa41b4f23724aeceea9ad508c288e7f9ad02ccb918f8575e0fd6ce0"
+    }
+  ],
+  "checks": [
+    {
+      "check": "accepted_source",
+      "pass": true,
+      "detail": "Current source, accepted commit, candidate, qualification and ledger after SHA256 agree."
+    },
+    {
+      "check": "ledger_source_and_totals",
+      "pass": true,
+      "detail": "Ledger is bound to accepted commit and bounded qualification; 1,405 bytes and 344 estimated tokens saved."
+    },
+    {
+      "check": "qualification_file_hash",
+      "pass": true,
+      "detail": "verification/experiments/2026-11-16-skill-diet/spec-review-producer-sol-v1-native-qualification.json"
+    },
+    {
+      "check": "qualification_file_hash",
+      "pass": true,
+      "detail": "verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/spec-review-sol-independent.json"
+    },
+    {
+      "check": "qualification_file_hash",
+      "pass": true,
+      "detail": "verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/spec-review-sol-root-spotcheck.json"
+    },
+    {
+      "check": "qualification_file_hash",
+      "pass": true,
+      "detail": "verification/experiments/2026-11-16-skill-diet/spec-review-sol-replay-v1/report.json"
+    },
+    {
+      "check": "qualification_file_hash",
+      "pass": true,
+      "detail": "verification/experiments/2026-11-16-skill-diet/spec-review-sol-replay-v1/manifest.json"
+    },
+    {
+      "check": "qualification_file_hash",
+      "pass": true,
+      "detail": "verification/experiments/2026-11-16-skill-diet/spec-review-sol-integration.json"
+    },
+    {
+      "check": "qualification_file_hash",
+      "pass": true,
+      "detail": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/spec-review-sol-integration-tests.txt"
+    },
+    {
+      "check": "qualification_file_hash",
+      "pass": true,
+      "detail": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/spec-review-sol-integration-adapter-lint.txt"
+    },
+    {
+      "check": "qualification_file_hash",
+      "pass": true,
+      "detail": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/spec-review-sol-integration-rule-inventory.txt"
+    },
+    {
+      "check": "source_review_hash",
+      "pass": true,
+      "detail": "Final qualification source review binding matches."
+    },
+    {
+      "check": "manual_frozen_hash",
+      "pass": true,
+      "detail": "Frozen manual review unchanged."
+    },
+    {
+      "check": "exact_60_artifact_set",
+      "pass": true,
+      "detail": "Five samples per arm, six case IDs each; no omitted or duplicated artifact in manual/replay sets."
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-1/spec-verdict-001"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-1/spec-verdict-001"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-1/spec-verdict-002"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-1/spec-verdict-002"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-1/spec-verdict-003"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-1/spec-verdict-003"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-1/qa-repo-file"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-1/qa-repo-file"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-1/qa-no-observation"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-1/qa-no-observation"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-1/methodology-blocker"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-1/methodology-blocker"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-2/spec-verdict-001"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-2/spec-verdict-001"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-2/spec-verdict-002"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-2/spec-verdict-002"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-2/spec-verdict-003"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-2/spec-verdict-003"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-2/qa-repo-file"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-2/qa-repo-file"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-2/qa-no-observation"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-2/qa-no-observation"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-2/methodology-blocker"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-2/methodology-blocker"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-3/spec-verdict-001"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-3/spec-verdict-001"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-3/spec-verdict-002"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-3/spec-verdict-002"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-3/spec-verdict-003"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-3/spec-verdict-003"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-3/qa-repo-file"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-3/qa-repo-file"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-3/qa-no-observation"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-3/qa-no-observation"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-3/methodology-blocker"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-3/methodology-blocker"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-4/spec-verdict-001"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-4/spec-verdict-001"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-4/spec-verdict-002"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-4/spec-verdict-002"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-4/spec-verdict-003"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-4/spec-verdict-003"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-4/qa-repo-file"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-4/qa-repo-file"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-4/qa-no-observation"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-4/qa-no-observation"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-4/methodology-blocker"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-4/methodology-blocker"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-5/spec-verdict-001"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-5/spec-verdict-001"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-5/spec-verdict-002"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-5/spec-verdict-002"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-5/spec-verdict-003"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-5/spec-verdict-003"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-5/qa-repo-file"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-5/qa-repo-file"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-5/qa-no-observation"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-5/qa-no-observation"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-5/methodology-blocker"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-5/methodology-blocker"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-1/spec-verdict-001"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-1/spec-verdict-001"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-1/spec-verdict-002"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-1/spec-verdict-002"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-1/spec-verdict-003"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-1/spec-verdict-003"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-1/qa-repo-file"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-1/qa-repo-file"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-1/qa-no-observation"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-1/qa-no-observation"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-1/methodology-blocker"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-1/methodology-blocker"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-2/spec-verdict-001"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-2/spec-verdict-001"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-2/spec-verdict-002"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-2/spec-verdict-002"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-2/spec-verdict-003"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-2/spec-verdict-003"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-2/qa-repo-file"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-2/qa-repo-file"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-2/qa-no-observation"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-2/qa-no-observation"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-2/methodology-blocker"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-2/methodology-blocker"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-3/spec-verdict-001"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-3/spec-verdict-001"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-3/spec-verdict-002"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-3/spec-verdict-002"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-3/spec-verdict-003"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-3/spec-verdict-003"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-3/qa-repo-file"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-3/qa-repo-file"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-3/qa-no-observation"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-3/qa-no-observation"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-3/methodology-blocker"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-3/methodology-blocker"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-4/spec-verdict-001"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-4/spec-verdict-001"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-4/spec-verdict-002"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-4/spec-verdict-002"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-4/spec-verdict-003"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-4/spec-verdict-003"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-4/qa-repo-file"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-4/qa-repo-file"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-4/qa-no-observation"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-4/qa-no-observation"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-4/methodology-blocker"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-4/methodology-blocker"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-5/spec-verdict-001"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-5/spec-verdict-001"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-5/spec-verdict-002"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-5/spec-verdict-002"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-5/spec-verdict-003"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-5/spec-verdict-003"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-5/qa-repo-file"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-5/qa-repo-file"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-5/qa-no-observation"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-5/qa-no-observation"
+    },
+    {
+      "check": "artifact_replay_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-5/methodology-blocker"
+    },
+    {
+      "check": "actual_contract_route_negative_control",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-5/methodology-blocker"
+    },
+    {
+      "check": "replay_manifest_set",
+      "pass": true,
+      "detail": "Replay manifest input set equals recorded results."
+    },
+    {
+      "check": "replay_code_and_fixture_hashes",
+      "pass": true,
+      "detail": "Actual consumer calls contract spec-review-verdict and spec-review route; script, consumer and fixture hashes agree."
+    },
+    {
+      "check": "plan_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/spec-review-producer-sol-v1-baseline-plan.json"
+    },
+    {
+      "check": "plan_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/spec-review-producer-sol-v1-candidate-plan.json"
+    },
+    {
+      "check": "native_summary_hash",
+      "pass": true,
+      "detail": "Native qualification has ten passing Sol-medium samples and matching summary hash."
+    },
+    {
+      "check": "native_audit_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-1"
+    },
+    {
+      "check": "native_audit_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-2"
+    },
+    {
+      "check": "native_audit_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-3"
+    },
+    {
+      "check": "native_audit_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-4"
+    },
+    {
+      "check": "native_audit_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-baseline-5"
+    },
+    {
+      "check": "native_audit_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-1"
+    },
+    {
+      "check": "native_audit_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-2"
+    },
+    {
+      "check": "native_audit_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-3"
+    },
+    {
+      "check": "native_audit_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-4"
+    },
+    {
+      "check": "native_audit_binding",
+      "pass": true,
+      "detail": "spec-review-producer-sol-v1-candidate-5"
+    },
+    {
+      "check": "integration_test_counts",
+      "pass": true,
+      "detail": "Isolated integration reports 599 passed, zero failed and three exit-zero checks."
+    },
+    {
+      "check": "main_rule_inventory",
+      "pass": true,
+      "detail": "Accepted main rule inventory reports pass."
+    },
+    {
+      "check": "main_source_snapshot",
+      "pass": true,
+      "detail": "Accepted source snapshot matches qualified source."
+    },
+    {
+      "check": "main_adapter_lint",
+      "pass": true,
+      "detail": "Accepted main adapter lint reports pass with advisory warnings retained."
+    },
+    {
+      "check": "final_qualification_rebind",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/spec-review-producer-sol-v1-native-qualification.json"
+    },
+    {
+      "check": "final_qualification_rebind",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/spec-review-sol-independent.json"
+    },
+    {
+      "check": "final_qualification_rebind",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/spec-review-sol-root-spotcheck.json"
+    },
+    {
+      "check": "final_qualification_rebind",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/spec-review-sol-replay-v1/report.json"
+    },
+    {
+      "check": "final_qualification_rebind",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/spec-review-sol-replay-v1/manifest.json"
+    },
+    {
+      "check": "final_qualification_rebind",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/spec-review-sol-integration.json"
+    },
+    {
+      "check": "final_qualification_rebind",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/deterministic-checks/spec-review-sol-integration-tests.txt"
+    },
+    {
+      "check": "final_qualification_rebind",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/deterministic-checks/spec-review-sol-integration-adapter-lint.txt"
+    },
+    {
+      "check": "final_qualification_rebind",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/deterministic-checks/spec-review-sol-integration-rule-inventory.txt"
+    },
+    {
+      "check": "final_qualification_rebind",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/deterministic-checks/spec-review-sol-v1-main-adapter-lint.txt"
+    },
+    {
+      "check": "final_qualification_rebind",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/spec-review-sol-v1-main-rule-inventory.json"
+    },
+    {
+      "check": "final_main_source_commit",
+      "pass": true,
+      "detail": "Final qualification now explicitly binds the accepted main commit."
+    }
+  ],
+  "findings": [
+    {
+      "kind": "metadata-only",
+      "finding": "Replay manifest binding.command retains review-comment plan --input - from the generic repository binding helper. The separately hashed consumer and all 60 consumption records explicitly show spec-review contract and route calls, so this stale command label does not change the replayed operations."
+    },
+    {
+      "kind": "already-disclosed",
+      "finding": "Plan acceptance prose retains Astra-low wording. Explicit model/effort fields, manifests and native qualification bind these ten samples to Sol-medium."
+    },
+    {
+      "kind": "scope",
+      "finding": "This audit checks persisted execution evidence without rerunning tests or models. It does not extend qualification to prep loops, tracker writes, human escalation, L4 refuters or statistical equivalence."
+    }
+  ],
+  "summary": {
+    "checks": 165,
+    "failed": 0,
+    "manual_artifacts_bound": 60,
+    "actual_contract_and_route_records_bound": 60,
+    "unfounded_verdict_rejections_bound": 60,
+    "source_or_frozen_review_modified": false
+  }
+}

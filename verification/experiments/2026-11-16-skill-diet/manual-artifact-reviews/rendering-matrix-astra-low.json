@@ -1,0 +1,688 @@
+{
+  "schema": 1,
+  "status": "independent-bounded-artifact-review-caught-up",
+  "updated_utc": "2026-11-16T19:34:38.644877+00:00",
+  "scope": "Only listed completed report/native-captured Astra-low samples read. Same bounded criteria as other matrix reviews; no finalist selection.",
+  "source_bindings": [
+    {
+      "path": "workflow-fixtures/rendering.json",
+      "sha256": "e46467fd275a9fcdc44e0a3a282bbd5e8de85541992bb570498b0a13e197f9a1"
+    },
+    {
+      "path": "baseline/rendering.md",
+      "sha256": "50256436d59e7fa4850fe4b59934631ee75c51a21c7b890f5cd2225d25e81fce"
+    },
+    {
+      "path": "candidates/rendering-v2.md",
+      "sha256": "74545fd22fc8451da92bf1ea2f0686940faaa1183453c2402c617131882176e4"
+    },
+    {
+      "path": "rendering-v2-artifact-review.json",
+      "sha256": "7e37df828d41f0cb4bf564f7d896827150f898231fccac5bc4be8f0fe1de5ff2"
+    }
+  ],
+  "criteria": {
+    "original_bounded": [
+      "source facts retained",
+      "no invented actions",
+      "no repeated gloss title and body",
+      "memoising explains result reuse",
+      "approximate prose density, with disclosed historical caveat"
+    ],
+    "extra_style": [
+      "bold-lead bullets",
+      "cycle direction legends, useful-legend exception applied equally",
+      "minor repetition/concision"
+    ],
+    "density_history": "Original rendering-v2-artifact-review.json explicitly records four baseline and two candidate four-sentence paragraphs and disclaims perfect style compliance. This record does not overturn that bounded qualification.",
+    "policy_clauses": [
+      {
+        "path": "baseline/rendering.md",
+        "line": 51,
+        "rule": "Bold-lead bullets for scannable items."
+      },
+      {
+        "path": "baseline/rendering.md",
+        "line": 52,
+        "rule": "A prose block stays within approximately three sentences or four lines."
+      },
+      {
+        "path": "baseline/rendering.md",
+        "line": 62,
+        "rule": "Do not narrate what the output already shows."
+      },
+      {
+        "path": "candidates/rendering-v2.md",
+        "line": 36,
+        "rule": "Use bold-lead bullets for scannable items."
+      },
+      {
+        "path": "candidates/rendering-v2.md",
+        "line": 37,
+        "rule": "Keep a prose block within roughly three sentences or four lines."
+      },
+      {
+        "path": "candidates/rendering-v2.md",
+        "line": 41,
+        "rule": "Remove explanations of what a list, visual or diff already shows."
+      }
+    ]
+  },
+  "opus_delivered_guidance": {
+    "metadata": "gateway-context-v3-native-log-review.json",
+    "sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+    "bytes": 21125
+  },
+  "limits": [
+    "Manual bounded judgement, not statistical equivalence or unrestricted writing quality.",
+    "Extra style observations do not become retrospective acceptance gates.",
+    "No product/source changes, model reruns or workflow reruns performed."
+  ],
+  "rows": [
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-baseline-1/artifacts/cycle.md",
+      "sha256": "cc2677c6363bbbe33fdc7d946c9c1b7e7cb2e95a82b5e9fbfc784cae74c9f29b",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "cycle_direction_legend",
+          "observation": "Useful arrow-direction legend; same allowance across models; no defect count.",
+          "excerpt": "Each arrow means depends on."
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-baseline-1/artifacts/enumeration.md",
+      "sha256": "269bbd508816a62ad3e271e3885086e0452b7ff6dc6f235d6a0263c97e471df1",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-baseline-1/artifacts/gloss-001.md",
+      "sha256": "23efcabfa7cb22f25ced929b61df5b7beb71e8ecb6a8f59346db948d2bc781aa",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "concision",
+          "observation": "Repeats rate-limiting concept; separate from source fidelity.",
+          "excerpt": "ISS-Z: Limit the rate of requests to the login endpoint with rate limiting."
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-baseline-1/artifacts/gloss-002.md",
+      "sha256": "9a097d6d0bc617916de90a3cc91332861435981ebf961b692c08270cc33233da",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "missing",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [
+        {
+          "criterion": "memoise_reuse_explanation",
+          "observation": "Memoising is named without explaining reuse of a computed result.",
+          "excerpt": "ISS-BB: Reduce cold-start time by memoising the config resolver's results."
+        }
+      ],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-baseline-1/artifacts/gloss-003.md",
+      "sha256": "f9918338143fdccd4a19c8c03ced0b6338d8403388949ab3af7449f001f4d6cf",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-baseline-1/artifacts/long-table.md",
+      "sha256": "e6042d19d4c9c808669e68f497953e872a0212bf3d15e21c3879d2a0b8a639a7",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-baseline-1/artifacts/missing-model.md",
+      "sha256": "e5ca9b5a50b63bf1ac45b7989b227f84f800bfba13855a541e71cd0354caafa8",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-baseline-1/artifacts/model-hoist.md",
+      "sha256": "6962d7dcb114e384844a88acae33f183b4202317383f4305fcd63a9d944b2318",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-baseline-1/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-candidate-1/artifacts/cycle.md",
+      "sha256": "76d8c0289ad9d4a3a1f3b7423248ca35a1d356c636d389d17cd9856efc23a445",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "cycle_direction_legend",
+          "observation": "Useful arrow-direction legend; same allowance across models; no defect count.",
+          "excerpt": "Each arrow means 'depends on'."
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-candidate-1/artifacts/enumeration.md",
+      "sha256": "b03e6258bbc3c9b265b0bf769850f4b8c29c5afa89c6c26f64f2ae30ad894f55",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-candidate-1/artifacts/gloss-001.md",
+      "sha256": "3bc3a5f8d1523aae9191e5aedab91d3f66d372d4977f346d4357ab1cee7cc2ba",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-candidate-1/artifacts/gloss-002.md",
+      "sha256": "5e647fd0c1b993fb40e8048b5deb6a86d0ab243d2c19420248543eefb0a8a6ee",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "present",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-candidate-1/artifacts/gloss-003.md",
+      "sha256": "c7a12d1471b87a6b98dfc30f65eef3dd1e59234750408ed1dedae0afd091b024",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-candidate-1/artifacts/long-table.md",
+      "sha256": "410b7f6c0718501e4e1cf21065ecc32087aa21463f276fa98455fc0556f68ef1",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-candidate-1/artifacts/missing-model.md",
+      "sha256": "0208b6ed2e32bd7bc26a57572087711551cddde8f1d36363c72e441c4122df4e",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-candidate-1/artifacts/model-hoist.md",
+      "sha256": "12d83ffc60abf5fb70fe167f6721af2908f8e52cdeaf1a0f5357a280dc918cdb",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-candidate-1/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-baseline-2/artifacts/cycle.md",
+      "sha256": "7b49a034c32c0ada15f3a95bf17649dee6b6099ada6ec486e484a61deb5eba17",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "cycle_direction_legend",
+          "observation": "Useful arrow-direction legend; same allowance across models; no defect count.",
+          "excerpt": "Dependency cycle (arrow means depends on)."
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-baseline-2/artifacts/enumeration.md",
+      "sha256": "269bbd508816a62ad3e271e3885086e0452b7ff6dc6f235d6a0263c97e471df1",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-baseline-2/artifacts/gloss-001.md",
+      "sha256": "d1785fd5da2831dbd21a467bd232e1ca26cdf3161adff9c988cea8377b34c4b0",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-baseline-2/artifacts/gloss-002.md",
+      "sha256": "a9e395b7578284dd6203830c2804d59630b8352dbd8d682321eba732c36b86f0",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "missing",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [
+        {
+          "criterion": "memoise_reuse_explanation",
+          "observation": "Memoising is named without explaining reuse of a computed result.",
+          "excerpt": "ISS-BB: Reduce cold-start time by memoising the config resolver."
+        }
+      ],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-baseline-2/artifacts/gloss-003.md",
+      "sha256": "2d77a2bc4fb5363c3afe0569dfdfb5f6c5e96c8f158f517ba0f25662fcbc211d",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-baseline-2/artifacts/long-table.md",
+      "sha256": "0d8d02ac552003a28251eccbb1c0b5ae81596682f91b7484a43d595e8c37f6ba",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-baseline-2/artifacts/missing-model.md",
+      "sha256": "a9222c1aebcbe9545fde7711caf9d6753a213259bed116379cbb8eb690338ae9",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-baseline-2/artifacts/model-hoist.md",
+      "sha256": "6962d7dcb114e384844a88acae33f183b4202317383f4305fcd63a9d944b2318",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-baseline-2/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-candidate-2/artifacts/cycle.md",
+      "sha256": "70b7c4fdc3334f6b3d28cec63296e7b59651122a42aaca37271629d8fee42cb0",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "cycle_direction_legend",
+          "observation": "Useful arrow-direction legend; same allowance across models; no defect count.",
+          "excerpt": "Each arrow means depends on."
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-candidate-2/artifacts/enumeration.md",
+      "sha256": "269bbd508816a62ad3e271e3885086e0452b7ff6dc6f235d6a0263c97e471df1",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-candidate-2/artifacts/gloss-001.md",
+      "sha256": "ca907a883a0f2a81b27d18630600d68b96ae2dd0496726fb96c6a5d29236982b",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-candidate-2/artifacts/gloss-002.md",
+      "sha256": "38e42c49b2101b5e81e2fb3aa8ef8034dc93318b9f44936cb737c0c26491a6d7",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "present",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-candidate-2/artifacts/gloss-003.md",
+      "sha256": "828dc198ad4b97d5ef77d7de0e7a3dc8578f4dfe328813a48d7b5f9331c8ee34",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-candidate-2/artifacts/long-table.md",
+      "sha256": "6c14eda78ebb342b86ba30e21c9d10389a87d995cbc64bc59ed478c0237c12fd",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-candidate-2/artifacts/missing-model.md",
+      "sha256": "54bdf719922c22178c1815b39cd42d420e7c03f37209e3f8091a66a14590c856",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-candidate-2/artifacts/model-hoist.md",
+      "sha256": "9f9c64aa796aad831a1dc9e67a004a2ea8f91c59485ab1525aada3852242f381",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-astra-low-rendering-candidate-2/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    }
+  ],
+  "samples": [
+    {
+      "name": "matrix-v1-astra-low-rendering-baseline-1",
+      "provider_group": "Astra low",
+      "report_present_at_review": true,
+      "native_audit_present_at_review": true,
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "native_audit_sha256": "f70800075410686ced1a0c016624ebb2a3963be57eecab1ee49349b617474e9b",
+      "read_artifacts": 9
+    },
+    {
+      "name": "matrix-v1-astra-low-rendering-candidate-1",
+      "provider_group": "Astra low",
+      "report_present_at_review": true,
+      "native_audit_present_at_review": true,
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "native_audit_sha256": "81787fdada3afc3218c4bc21372569eaf94a8921f4f63460a0264dc7fc8a8dcb",
+      "read_artifacts": 9
+    },
+    {
+      "name": "matrix-v1-astra-low-rendering-baseline-2",
+      "provider_group": "Astra low",
+      "report_present_at_review": true,
+      "native_audit_present_at_review": true,
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "native_audit_sha256": "a09f26f9e08b97cc06d5841fe4f29cf0f6160526cfcc265ac062e0c1a243c158",
+      "read_artifacts": 9
+    },
+    {
+      "name": "matrix-v1-astra-low-rendering-candidate-2",
+      "provider_group": "Astra low",
+      "report_present_at_review": true,
+      "native_audit_present_at_review": true,
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "native_audit_sha256": "856964bb092965092f909a9962c5b1f2cb5a52a4abef271637dfce1c575c71c8",
+      "read_artifacts": 9
+    }
+  ],
+  "read_artifacts": 36,
+  "summary": {
+    "source_fact_losses": 0,
+    "invented_actions": 0,
+    "memoise_reuse_explanation_missing": [
+      "workflow-runs/matrix-v1-astra-low-rendering-baseline-1/artifacts/gloss-002.md",
+      "workflow-runs/matrix-v1-astra-low-rendering-baseline-2/artifacts/gloss-002.md"
+    ]
+  }
+}

@@ -1,0 +1,3 @@
+```faff-contract:spec-review-verdict
+{"verdict":"reject-approach","objections":[{"lens":"methodology","severity":"blocker","claim":"The increment must be split before building, keeping token issuance as the first useful slice.","evidence":"The attached Methodology critique identifies four independently deliverable concerns and a mandatory limit of one useful recovery step; HOW bundles token issuance, email delivery, policy administration and record migration.","predicted_consequence":"Building the ticket as specified delivers four concerns in one increment and breaches the methodology's mandatory one-step limit.","spec_anchor":"how"}]}
+```

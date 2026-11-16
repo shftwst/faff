@@ -1,0 +1,128 @@
+[
+  {
+    "name": "faff",
+    "files": [
+      "plugin/skills/faff/SKILL.md"
+    ],
+    "bytes": 5832,
+    "estimated_tokens": 1458
+  },
+  {
+    "name": "faff-beep-boop",
+    "files": [
+      "plugin/skills/faff-beep-boop/SKILL.md",
+      "plugin/skills/faff/references/kernel.md",
+      "plugin/skills/faff/references/build.md",
+      "plugin/skills/faff/references/tracker.md",
+      "plugin/skills/faff/references/autonomous.md",
+      "plugin/skills/faff/references/methodology.md",
+      "plugin/skills/faff/references/l4.md",
+      "plugin/skills/faff/references/park.md"
+    ],
+    "bytes": 393580,
+    "estimated_tokens": 97560
+  },
+  {
+    "name": "faff-graft",
+    "files": [
+      "plugin/skills/faff-graft/SKILL.md",
+      "plugin/skills/faff/references/kernel.md",
+      "plugin/skills/faff/references/build.md",
+      "plugin/skills/faff/references/tracker.md",
+      "plugin/skills/faff/references/autonomous.md",
+      "plugin/skills/faff/references/review.md",
+      "plugin/skills/faff/references/methodology.md",
+      "plugin/skills/faff/references/l4.md",
+      "plugin/skills/faff/references/park.md"
+    ],
+    "bytes": 419552,
+    "estimated_tokens": 104031
+  },
+  {
+    "name": "faff-jot",
+    "files": [
+      "plugin/skills/faff-jot/SKILL.md",
+      "plugin/skills/faff/references/kernel.md",
+      "plugin/skills/faff/references/tracker.md",
+      "plugin/skills/faff/references/autonomous.md",
+      "plugin/skills/faff/references/methodology.md",
+      "plugin/skills/faff/references/create.md"
+    ],
+    "bytes": 215544,
+    "estimated_tokens": 53427
+  },
+  {
+    "name": "faff-map",
+    "files": [
+      "plugin/skills/faff-map/SKILL.md",
+      "plugin/skills/faff/references/kernel.md",
+      "plugin/skills/faff/references/tracker.md",
+      "plugin/skills/faff/references/methodology.md"
+    ],
+    "bytes": 168245,
+    "estimated_tokens": 41617
+  },
+  {
+    "name": "faff-onboard",
+    "files": [
+      "plugin/skills/faff-onboard/SKILL.md",
+      "plugin/skills/faff/references/kernel.md",
+      "plugin/skills/faff/references/tracker.md"
+    ],
+    "bytes": 131296,
+    "estimated_tokens": 32548
+  },
+  {
+    "name": "faff-plot",
+    "files": [
+      "plugin/skills/faff-plot/SKILL.md",
+      "plugin/skills/faff/references/kernel.md",
+      "plugin/skills/faff/references/tracker.md",
+      "plugin/skills/faff/references/autonomous.md",
+      "plugin/skills/faff/references/methodology.md",
+      "plugin/skills/faff/references/create.md",
+      "plugin/skills/faff/references/park.md"
+    ],
+    "bytes": 252287,
+    "estimated_tokens": 62512
+  },
+  {
+    "name": "faff-prep",
+    "files": [
+      "plugin/skills/faff-prep/SKILL.md",
+      "plugin/skills/faff/references/kernel.md",
+      "plugin/skills/faff/references/tracker.md",
+      "plugin/skills/faff/references/autonomous.md",
+      "plugin/skills/faff/references/methodology.md",
+      "plugin/skills/faff/references/review.md",
+      "plugin/skills/faff/references/park.md"
+    ],
+    "bytes": 306653,
+    "estimated_tokens": 76054
+  },
+  {
+    "name": "faff-tidy",
+    "files": [
+      "plugin/skills/faff-tidy/SKILL.md",
+      "plugin/skills/faff/references/kernel.md",
+      "plugin/skills/faff/references/build.md",
+      "plugin/skills/faff/references/tracker.md",
+      "plugin/skills/faff/references/autonomous.md",
+      "plugin/skills/faff/references/methodology.md",
+      "plugin/skills/faff/references/park.md"
+    ],
+    "bytes": 285670,
+    "estimated_tokens": 70806
+  },
+  {
+    "name": "faff-wtf",
+    "files": [
+      "plugin/skills/faff-wtf/SKILL.md",
+      "plugin/skills/faff/references/kernel.md",
+      "plugin/skills/faff/references/tracker.md",
+      "plugin/skills/faff/references/methodology.md"
+    ],
+    "bytes": 170862,
+    "estimated_tokens": 42363
+  }
+]

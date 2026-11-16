@@ -1,0 +1,3 @@
+```faff-contract:spec-review-verdict
+{"verdict":"needs-human","objections":[{"lens":"infosec","severity":"blocker","claim":"Unrestricted server-side fetching of user-supplied URLs permits server-side request forgery and returns the fetched data to the caller. A human must resolve the permitted destination boundary before build.","evidence":"HOW explicitly chooses fetch(userUrl), no allow-list, and streams the body back in the API response.","predicted_consequence":"A caller can submit an internal or loopback HTTP URL reachable by the backend and receive its response body, exposing services unavailable directly to the caller.","spec_anchor":"how"}]}
+```

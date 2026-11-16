@@ -1,0 +1,87 @@
+{
+  "consumer": {
+    "pass": true,
+    "producer_value": {
+      "verdict": "reject-approach",
+      "objections": [
+        {
+          "lens": "architectural",
+          "severity": "blocker",
+          "claim": "A module-level mutable roles holder cannot isolate concurrent requests.",
+          "evidence": "HOW sets currentRoles on request entry and has every downstream helper read the module global directly.",
+          "predicted_consequence": "When requests with different roles interleave, the later request overwrites currentRoles and a helper in the earlier request authorises work using the other caller's roles.",
+          "spec_anchor": "how"
+        }
+      ]
+    },
+    "contract": {
+      "exit_code": 0,
+      "stdout": "{\"verdict\":\"reject-approach\",\"objections\":[{\"lens\":\"architectural\",\"severity\":\"blocker\",\"claim\":\"A module-level mutable roles holder cannot isolate concurrent requests.\",\"evidence\":\"HOW sets currentRoles on request entry and has every downstream helper read the module global directly.\",\"predicted_consequence\":\"When requests with different roles interleave, the later request overwrites currentRoles and a helper in the earlier request authorises work using the other caller's roles.\",\"spec_anchor\":\"how\"}],\"conformant\":true,\"violations\":[]}\n",
+      "stderr": "",
+      "value": {
+        "verdict": "reject-approach",
+        "objections": [
+          {
+            "lens": "architectural",
+            "severity": "blocker",
+            "claim": "A module-level mutable roles holder cannot isolate concurrent requests.",
+            "evidence": "HOW sets currentRoles on request entry and has every downstream helper read the module global directly.",
+            "predicted_consequence": "When requests with different roles interleave, the later request overwrites currentRoles and a helper in the earlier request authorises work using the other caller's roles.",
+            "spec_anchor": "how"
+          }
+        ],
+        "conformant": true,
+        "violations": []
+      }
+    },
+    "route": {
+      "exit_code": 0,
+      "stdout": "{\"destination\":\"prep\",\"reason\":\"no-methodology-major\",\"carried_design_objections\":[]}\n",
+      "stderr": "",
+      "value": {
+        "destination": "prep",
+        "reason": "no-methodology-major",
+        "carried_design_objections": []
+      }
+    }
+  },
+  "unfounded_mutation": {
+    "pass": false,
+    "producer_value": {
+      "verdict": "approve",
+      "objections": [
+        {
+          "lens": "architectural",
+          "severity": "blocker",
+          "claim": "A module-level mutable roles holder cannot isolate concurrent requests.",
+          "evidence": "HOW sets currentRoles on request entry and has every downstream helper read the module global directly.",
+          "predicted_consequence": "When requests with different roles interleave, the later request overwrites currentRoles and a helper in the earlier request authorises work using the other caller's roles.",
+          "spec_anchor": "how"
+        }
+      ]
+    },
+    "contract": {
+      "exit_code": 1,
+      "stdout": "{\"verdict\":\"approve\",\"objections\":[{\"lens\":\"architectural\",\"severity\":\"blocker\",\"claim\":\"A module-level mutable roles holder cannot isolate concurrent requests.\",\"evidence\":\"HOW sets currentRoles on request entry and has every downstream helper read the module global directly.\",\"predicted_consequence\":\"When requests with different roles interleave, the later request overwrites currentRoles and a helper in the earlier request authorises work using the other caller's roles.\",\"spec_anchor\":\"how\"}],\"conformant\":false,\"violations\":[\"approve carries objections — approve must carry none\"]}\n",
+      "stderr": "",
+      "value": {
+        "verdict": "approve",
+        "objections": [
+          {
+            "lens": "architectural",
+            "severity": "blocker",
+            "claim": "A module-level mutable roles holder cannot isolate concurrent requests.",
+            "evidence": "HOW sets currentRoles on request entry and has every downstream helper read the module global directly.",
+            "predicted_consequence": "When requests with different roles interleave, the later request overwrites currentRoles and a helper in the earlier request authorises work using the other caller's roles.",
+            "spec_anchor": "how"
+          }
+        ],
+        "conformant": false,
+        "violations": [
+          "approve carries objections — approve must carry none"
+        ]
+      }
+    },
+    "route": null
+  }
+}

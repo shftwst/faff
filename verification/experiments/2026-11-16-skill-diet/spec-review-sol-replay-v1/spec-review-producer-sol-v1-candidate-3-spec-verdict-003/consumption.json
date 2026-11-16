@@ -1,0 +1,78 @@
+{
+  "consumer": {
+    "pass": true,
+    "producer_value": {
+      "verdict": "needs-human",
+      "objections": [
+        {
+          "lens": "infosec",
+          "severity": "blocker",
+          "claim": "Unrestricted server-side fetching of user-supplied URLs permits server-side request forgery and returns the fetched data to the caller. A human must resolve the permitted destination boundary before build.",
+          "evidence": "HOW explicitly chooses fetch(userUrl), no allow-list, and streams the body back in the API response.",
+          "predicted_consequence": "A caller can submit an internal or loopback HTTP URL reachable by the backend and receive its response body, exposing services unavailable directly to the caller.",
+          "spec_anchor": "how"
+        }
+      ]
+    },
+    "contract": {
+      "exit_code": 0,
+      "stdout": "{\"verdict\":\"needs-human\",\"objections\":[{\"lens\":\"infosec\",\"severity\":\"blocker\",\"claim\":\"Unrestricted server-side fetching of user-supplied URLs permits server-side request forgery and returns the fetched data to the caller. A human must resolve the permitted destination boundary before build.\",\"evidence\":\"HOW explicitly chooses fetch(userUrl), no allow-list, and streams the body back in the API response.\",\"predicted_consequence\":\"A caller can submit an internal or loopback HTTP URL reachable by the backend and receive its response body, exposing services unavailable directly to the caller.\",\"spec_anchor\":\"how\"}],\"conformant\":true,\"violations\":[]}\n",
+      "stderr": "",
+      "value": {
+        "verdict": "needs-human",
+        "objections": [
+          {
+            "lens": "infosec",
+            "severity": "blocker",
+            "claim": "Unrestricted server-side fetching of user-supplied URLs permits server-side request forgery and returns the fetched data to the caller. A human must resolve the permitted destination boundary before build.",
+            "evidence": "HOW explicitly chooses fetch(userUrl), no allow-list, and streams the body back in the API response.",
+            "predicted_consequence": "A caller can submit an internal or loopback HTTP URL reachable by the backend and receive its response body, exposing services unavailable directly to the caller.",
+            "spec_anchor": "how"
+          }
+        ],
+        "conformant": true,
+        "violations": []
+      }
+    },
+    "route": null
+  },
+  "unfounded_mutation": {
+    "pass": false,
+    "producer_value": {
+      "verdict": "approve",
+      "objections": [
+        {
+          "lens": "infosec",
+          "severity": "blocker",
+          "claim": "Unrestricted server-side fetching of user-supplied URLs permits server-side request forgery and returns the fetched data to the caller. A human must resolve the permitted destination boundary before build.",
+          "evidence": "HOW explicitly chooses fetch(userUrl), no allow-list, and streams the body back in the API response.",
+          "predicted_consequence": "A caller can submit an internal or loopback HTTP URL reachable by the backend and receive its response body, exposing services unavailable directly to the caller.",
+          "spec_anchor": "how"
+        }
+      ]
+    },
+    "contract": {
+      "exit_code": 1,
+      "stdout": "{\"verdict\":\"approve\",\"objections\":[{\"lens\":\"infosec\",\"severity\":\"blocker\",\"claim\":\"Unrestricted server-side fetching of user-supplied URLs permits server-side request forgery and returns the fetched data to the caller. A human must resolve the permitted destination boundary before build.\",\"evidence\":\"HOW explicitly chooses fetch(userUrl), no allow-list, and streams the body back in the API response.\",\"predicted_consequence\":\"A caller can submit an internal or loopback HTTP URL reachable by the backend and receive its response body, exposing services unavailable directly to the caller.\",\"spec_anchor\":\"how\"}],\"conformant\":false,\"violations\":[\"approve carries objections — approve must carry none\"]}\n",
+      "stderr": "",
+      "value": {
+        "verdict": "approve",
+        "objections": [
+          {
+            "lens": "infosec",
+            "severity": "blocker",
+            "claim": "Unrestricted server-side fetching of user-supplied URLs permits server-side request forgery and returns the fetched data to the caller. A human must resolve the permitted destination boundary before build.",
+            "evidence": "HOW explicitly chooses fetch(userUrl), no allow-list, and streams the body back in the API response.",
+            "predicted_consequence": "A caller can submit an internal or loopback HTTP URL reachable by the backend and receive its response body, exposing services unavailable directly to the caller.",
+            "spec_anchor": "how"
+          }
+        ],
+        "conformant": false,
+        "violations": [
+          "approve carries objections — approve must carry none"
+        ]
+      }
+    },
+    "route": null
+  }
+}

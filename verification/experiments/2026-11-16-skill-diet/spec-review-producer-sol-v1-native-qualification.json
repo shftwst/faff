@@ -1,0 +1,512 @@
+{
+  "schema": 1,
+  "provider": "codex-cli",
+  "model": "gpt-6.1-sol",
+  "effort": "medium",
+  "native_base_instruction_sha256": "d7f4e2a97f86048ae05e687ed20b0abed4a38442ac8aa2868b5a09bdb855e518",
+  "status": "qualified-rendering-rubrics-requires-artifact-review",
+  "summary": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/spec-review-producer-sol-v1-results.json",
+  "summary_sha256": "1c2a84150d2e4cbf4e076452128bb3c07008fbabcebd5c1b7493e1f16a134315",
+  "arms": {
+    "baseline": {
+      "case_kinds": {
+        "artifact": {
+          "passed": 30,
+          "total": 30
+        },
+        "decision": {
+          "passed": 75,
+          "total": 75
+        }
+      },
+      "runs": 5,
+      "passed": 105,
+      "total": 105,
+      "recorded_data_bytes": 997820,
+      "estimated_recorded_data_tokens": 247615
+    },
+    "candidate": {
+      "case_kinds": {
+        "artifact": {
+          "passed": 30,
+          "total": 30
+        },
+        "decision": {
+          "passed": 75,
+          "total": 75
+        }
+      },
+      "runs": 5,
+      "passed": 105,
+      "total": 105,
+      "recorded_data_bytes": 990675,
+      "estimated_recorded_data_tokens": 245865
+    }
+  },
+  "runs": [
+    {
+      "name": "spec-review-producer-sol-v1-baseline-1",
+      "arm": "baseline",
+      "original_status": "pass",
+      "original_cases_passed": 21,
+      "assessed_cases_passed": 21,
+      "cases_total": 21,
+      "status": "pass",
+      "model_ids": [
+        "gpt-6.1-sol"
+      ],
+      "efforts": [
+        "medium"
+      ],
+      "versions": [
+        "0.169.0"
+      ],
+      "base_instruction_hashes": [
+        "d7f4e2a97f86048ae05e687ed20b0abed4a38442ac8aa2868b5a09bdb855e518"
+      ],
+      "native_tool_calls": 55,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+          "content_bytes": 22605
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": true,
+          "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+          "content_bytes": 5591
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-1/task.json",
+          "complete": true,
+          "content_sha256": "13a12f0048ad1ed3ef138801ba9da4d91da80dc18fe6165b9a9b9d0bb17bb726",
+          "content_bytes": 14262
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/spec-review-producer-sol-v1-paired.json",
+      "audit_sha256": "24783740becca94f0cae0cfbf7db000b81350ea4159479248ac7a33e6f4a94f2"
+    },
+    {
+      "name": "spec-review-producer-sol-v1-baseline-2",
+      "arm": "baseline",
+      "original_status": "pass",
+      "original_cases_passed": 21,
+      "assessed_cases_passed": 21,
+      "cases_total": 21,
+      "status": "pass",
+      "model_ids": [
+        "gpt-6.1-sol"
+      ],
+      "efforts": [
+        "medium"
+      ],
+      "versions": [
+        "0.169.0"
+      ],
+      "base_instruction_hashes": [
+        "d7f4e2a97f86048ae05e687ed20b0abed4a38442ac8aa2868b5a09bdb855e518"
+      ],
+      "native_tool_calls": 55,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+          "content_bytes": 22605
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": true,
+          "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+          "content_bytes": 5591
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-2/task.json",
+          "complete": true,
+          "content_sha256": "13a12f0048ad1ed3ef138801ba9da4d91da80dc18fe6165b9a9b9d0bb17bb726",
+          "content_bytes": 14262
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/spec-review-producer-sol-v1-paired.json",
+      "audit_sha256": "24783740becca94f0cae0cfbf7db000b81350ea4159479248ac7a33e6f4a94f2"
+    },
+    {
+      "name": "spec-review-producer-sol-v1-baseline-3",
+      "arm": "baseline",
+      "original_status": "pass",
+      "original_cases_passed": 21,
+      "assessed_cases_passed": 21,
+      "cases_total": 21,
+      "status": "pass",
+      "model_ids": [
+        "gpt-6.1-sol"
+      ],
+      "efforts": [
+        "medium"
+      ],
+      "versions": [
+        "0.169.0"
+      ],
+      "base_instruction_hashes": [
+        "d7f4e2a97f86048ae05e687ed20b0abed4a38442ac8aa2868b5a09bdb855e518"
+      ],
+      "native_tool_calls": 55,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+          "content_bytes": 22605
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": true,
+          "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+          "content_bytes": 5591
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-3/task.json",
+          "complete": true,
+          "content_sha256": "13a12f0048ad1ed3ef138801ba9da4d91da80dc18fe6165b9a9b9d0bb17bb726",
+          "content_bytes": 14262
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/spec-review-producer-sol-v1-paired.json",
+      "audit_sha256": "24783740becca94f0cae0cfbf7db000b81350ea4159479248ac7a33e6f4a94f2"
+    },
+    {
+      "name": "spec-review-producer-sol-v1-baseline-4",
+      "arm": "baseline",
+      "original_status": "pass",
+      "original_cases_passed": 21,
+      "assessed_cases_passed": 21,
+      "cases_total": 21,
+      "status": "pass",
+      "model_ids": [
+        "gpt-6.1-sol"
+      ],
+      "efforts": [
+        "medium"
+      ],
+      "versions": [
+        "0.169.0"
+      ],
+      "base_instruction_hashes": [
+        "d7f4e2a97f86048ae05e687ed20b0abed4a38442ac8aa2868b5a09bdb855e518"
+      ],
+      "native_tool_calls": 55,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+          "content_bytes": 22605
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": true,
+          "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+          "content_bytes": 5591
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-4/task.json",
+          "complete": true,
+          "content_sha256": "13a12f0048ad1ed3ef138801ba9da4d91da80dc18fe6165b9a9b9d0bb17bb726",
+          "content_bytes": 14262
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/spec-review-producer-sol-v1-paired.json",
+      "audit_sha256": "24783740becca94f0cae0cfbf7db000b81350ea4159479248ac7a33e6f4a94f2"
+    },
+    {
+      "name": "spec-review-producer-sol-v1-baseline-5",
+      "arm": "baseline",
+      "original_status": "pass",
+      "original_cases_passed": 21,
+      "assessed_cases_passed": 21,
+      "cases_total": 21,
+      "status": "pass",
+      "model_ids": [
+        "gpt-6.1-sol"
+      ],
+      "efforts": [
+        "medium"
+      ],
+      "versions": [
+        "0.169.0"
+      ],
+      "base_instruction_hashes": [
+        "d7f4e2a97f86048ae05e687ed20b0abed4a38442ac8aa2868b5a09bdb855e518"
+      ],
+      "native_tool_calls": 55,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+          "content_bytes": 22605
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": true,
+          "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+          "content_bytes": 5591
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-5/task.json",
+          "complete": true,
+          "content_sha256": "13a12f0048ad1ed3ef138801ba9da4d91da80dc18fe6165b9a9b9d0bb17bb726",
+          "content_bytes": 14262
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/spec-review-producer-sol-v1-paired.json",
+      "audit_sha256": "24783740becca94f0cae0cfbf7db000b81350ea4159479248ac7a33e6f4a94f2"
+    },
+    {
+      "name": "spec-review-producer-sol-v1-candidate-1",
+      "arm": "candidate",
+      "original_status": "pass",
+      "original_cases_passed": 21,
+      "assessed_cases_passed": 21,
+      "cases_total": 21,
+      "status": "pass",
+      "model_ids": [
+        "gpt-6.1-sol"
+      ],
+      "efforts": [
+        "medium"
+      ],
+      "versions": [
+        "0.169.0"
+      ],
+      "base_instruction_hashes": [
+        "d7f4e2a97f86048ae05e687ed20b0abed4a38442ac8aa2868b5a09bdb855e518"
+      ],
+      "native_tool_calls": 55,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+          "content_bytes": 22605
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": true,
+          "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+          "content_bytes": 5591
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-candidate-1/task.json",
+          "complete": true,
+          "content_sha256": "5b620e87493508f2cde9910566508f97c5724084475a056f40343e8b2acd27ef",
+          "content_bytes": 14262
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/spec-review-producer-sol-v1-paired.json",
+      "audit_sha256": "24783740becca94f0cae0cfbf7db000b81350ea4159479248ac7a33e6f4a94f2"
+    },
+    {
+      "name": "spec-review-producer-sol-v1-candidate-2",
+      "arm": "candidate",
+      "original_status": "pass",
+      "original_cases_passed": 21,
+      "assessed_cases_passed": 21,
+      "cases_total": 21,
+      "status": "pass",
+      "model_ids": [
+        "gpt-6.1-sol"
+      ],
+      "efforts": [
+        "medium"
+      ],
+      "versions": [
+        "0.169.0"
+      ],
+      "base_instruction_hashes": [
+        "d7f4e2a97f86048ae05e687ed20b0abed4a38442ac8aa2868b5a09bdb855e518"
+      ],
+      "native_tool_calls": 55,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+          "content_bytes": 22605
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": true,
+          "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+          "content_bytes": 5591
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-candidate-2/task.json",
+          "complete": true,
+          "content_sha256": "5b620e87493508f2cde9910566508f97c5724084475a056f40343e8b2acd27ef",
+          "content_bytes": 14262
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/spec-review-producer-sol-v1-paired.json",
+      "audit_sha256": "24783740becca94f0cae0cfbf7db000b81350ea4159479248ac7a33e6f4a94f2"
+    },
+    {
+      "name": "spec-review-producer-sol-v1-candidate-3",
+      "arm": "candidate",
+      "original_status": "pass",
+      "original_cases_passed": 21,
+      "assessed_cases_passed": 21,
+      "cases_total": 21,
+      "status": "pass",
+      "model_ids": [
+        "gpt-6.1-sol"
+      ],
+      "efforts": [
+        "medium"
+      ],
+      "versions": [
+        "0.169.0"
+      ],
+      "base_instruction_hashes": [
+        "d7f4e2a97f86048ae05e687ed20b0abed4a38442ac8aa2868b5a09bdb855e518"
+      ],
+      "native_tool_calls": 55,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+          "content_bytes": 22605
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": true,
+          "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+          "content_bytes": 5591
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-candidate-3/task.json",
+          "complete": true,
+          "content_sha256": "5b620e87493508f2cde9910566508f97c5724084475a056f40343e8b2acd27ef",
+          "content_bytes": 14262
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/spec-review-producer-sol-v1-paired.json",
+      "audit_sha256": "24783740becca94f0cae0cfbf7db000b81350ea4159479248ac7a33e6f4a94f2"
+    },
+    {
+      "name": "spec-review-producer-sol-v1-candidate-4",
+      "arm": "candidate",
+      "original_status": "pass",
+      "original_cases_passed": 21,
+      "assessed_cases_passed": 21,
+      "cases_total": 21,
+      "status": "pass",
+      "model_ids": [
+        "gpt-6.1-sol"
+      ],
+      "efforts": [
+        "medium"
+      ],
+      "versions": [
+        "0.169.0"
+      ],
+      "base_instruction_hashes": [
+        "d7f4e2a97f86048ae05e687ed20b0abed4a38442ac8aa2868b5a09bdb855e518"
+      ],
+      "native_tool_calls": 55,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+          "content_bytes": 22605
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": true,
+          "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+          "content_bytes": 5591
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-candidate-4/task.json",
+          "complete": true,
+          "content_sha256": "5b620e87493508f2cde9910566508f97c5724084475a056f40343e8b2acd27ef",
+          "content_bytes": 14262
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/spec-review-producer-sol-v1-paired.json",
+      "audit_sha256": "24783740becca94f0cae0cfbf7db000b81350ea4159479248ac7a33e6f4a94f2"
+    },
+    {
+      "name": "spec-review-producer-sol-v1-candidate-5",
+      "arm": "candidate",
+      "original_status": "pass",
+      "original_cases_passed": 21,
+      "assessed_cases_passed": 21,
+      "cases_total": 21,
+      "status": "pass",
+      "model_ids": [
+        "gpt-6.1-sol"
+      ],
+      "efforts": [
+        "medium"
+      ],
+      "versions": [
+        "0.169.0"
+      ],
+      "base_instruction_hashes": [
+        "d7f4e2a97f86048ae05e687ed20b0abed4a38442ac8aa2868b5a09bdb855e518"
+      ],
+      "native_tool_calls": 55,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+          "content_bytes": 22605
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": true,
+          "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+          "content_bytes": 5591
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-candidate-5/task.json",
+          "complete": true,
+          "content_sha256": "5b620e87493508f2cde9910566508f97c5724084475a056f40343e8b2acd27ef",
+          "content_bytes": 14262
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/spec-review-producer-sol-v1-paired.json",
+      "audit_sha256": "24783740becca94f0cae0cfbf7db000b81350ea4159479248ac7a33e6f4a94f2"
+    }
+  ],
+  "delivered_guidance_sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+  "common_context": [
+    {
+      "path": "/Users/shftwst/.agents/AGENTS.md",
+      "sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+      "bytes": 22605
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+      "sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+      "bytes": 5591
+    }
+  ],
+  "normalised_effect_state_gate_projections_equal": null,
+  "artifact_rubric_projections_equal": true,
+  "bounded_output_projections_equal": null,
+  "limits": [
+    "Fresh Sol-medium pairs only; no Claude samples are pooled. Actual native tool metadata, medium effort and model identities are verified. Full caller workflows, hosted publication and statistical equivalence are not claimed.",
+    "Kernel cases use the real configuration/dispatch CLI and prevalidated downstream stubs. Separate policy decisions are not counted as executed workflows.",
+    "Rendering compares actual persisted artifacts and source-fact/form rubrics; a separate reading of the outputs is required before qualifying writing quality.",
+    "Delivered operator guidance is common across arms; the orchestrator file hash describes a different container view.",
+    "Methodology consumers exercise the real termination CLI; other outputs are separate decisions or persisted proposals. Catalogue selection does not execute the selected workflow.",
+    "Source and recorded payload token estimates are not provider usage or billed cost."
+  ]
+}

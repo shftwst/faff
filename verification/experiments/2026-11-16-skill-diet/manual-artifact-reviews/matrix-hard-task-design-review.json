@@ -6,7 +6,7 @@
     "requested_model": "gpt-6.1-sol",
     "requested_reasoning_effort": "medium"
   },
-  "status": "wrapper-static-review-passes; await-preflight-and-preregistered-runs",
+  "status": "wrapper-and-recorded-preflight-pass-with-negative-evidence-limit",
   "sources": [
     {
       "path": "eval/control-parity/challenge-execution.mjs",
@@ -118,10 +118,27 @@
       "persistence": "Exclusive wx writes prevent overwriting prior output artifacts."
     },
     "limits": [
-      "Static source review only; deterministic real-CLI/altered-outcome preflight results not yet inspected.",
+      "Static wrapper review plus completed deterministic eight-case CLI capture verified. Negative-test count is summary evidence, not an independently replayed run.",
       "Independent case means separate case; no remaining task claim that GPT is a different-family reviewer.",
       "Production independent-model policy is deliberately outside this narrowed calibration, not demonstrated by its pass.",
       "Original fixture hash preserves all case bytes; a case-only hash is useful optional audit metadata, not a gate condition."
     ]
+  },
+  "verified_preflight": {
+    "path": "challenge-calibration-preflight-v2",
+    "kind": "deterministic-preflight-not-model-sample",
+    "status": "pass",
+    "hashes": {
+      "preflight.json": "6841b3558957dcddba7f022219080438af7777fbee0e30565894eca94005eed9",
+      "report.json": "8c05655026650941c0b088bc2401b26b2dab00781aa08ba20972655b8fe79c3f",
+      "manifest.json": "ab3691edf628a75202544f5c460166cb41dffce909af6ca8de044e644dfa7b80",
+      "capture.json": "70d5c8fc693abc114a22d407c91a2c510a9773722c4115d4a9cf75135e013783"
+    },
+    "actual_cli_cases_read": 8,
+    "consumer_exits_all_zero": true,
+    "altered_outcomes_rejected": 8,
+    "original_opus_effect_projection_equal": true,
+    "task_case_policy_and_tool_schemas_unchanged": true,
+    "negative_test_evidence_limit": "Eight negative rejections are reported by preflight summary; no negative captures are stored here for independent replay. No model sample credit."
   }
 }

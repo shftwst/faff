@@ -1,0 +1,2 @@
+- **Explanation opening:** no load-bearing model to lead with → the producer must supply the governing statement; none is present to hoist.
+- **Steps one to three:** three enumerable items are inline → render the steps as a list.

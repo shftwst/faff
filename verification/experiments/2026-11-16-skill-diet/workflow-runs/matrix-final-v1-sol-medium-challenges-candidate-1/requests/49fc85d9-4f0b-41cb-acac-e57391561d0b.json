@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"prdr-unavailable","outcome":null,"ground":null,"reason":"The supplied exhausted provider attempt obtained no opinion. Preserve the missing challenge so the caller rejects as phase2-inconclusive; do not replace the absence with a favourable assessment."}}

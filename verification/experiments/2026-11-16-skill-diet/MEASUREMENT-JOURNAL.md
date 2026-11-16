@@ -432,3 +432,17 @@ Intake passes 629unchanged tests under a task-owned `/var/tmp` directory after b
 WTF sourceV4 candidate 2 retains facts, offers and top-level empty headers but drops the empty likely-fire partition. SourceV5 adds a 157-byte reminder within Output Format only and requires five new candidate samples against the unchanged Sol baseline. Prior samples remain diagnostic and excluded.
 
 The model/effort screen retains native failures. Sol-high has one equivalent full-result wrapper unsupported by the frozen parser; another Sol-high run and all Terra runs discard exit metadata. No such record is relabelled a native pass. The harder task now uses a separately frozen, truthful same-family judgement treatment, preserving original case data, rules and real CLI outcomes. Its deterministic preflight passes 8 cases and rejects 8 altered outcomes; this is not model evidence.
+
+## Default spec review qualified and GPT finalists selected
+
+Default spec review is accepted at `34764e93`: 1,405 bytes and 344 estimated tokens saved. The fresh Sol-medium pair passes 30/30 artifacts and 75/75 decisions per arm, all ten strict native audits and all 60 independent manual artifact reads. Actual contract/route replay passes for all 60 artifacts and rejects 60 unfounded mutations. The private integration passes 599 tests; main adapter lint and cumulative rule inventory pass. No full prep loop or L4 refuter is claimed.
+
+The equal-size model screen is complete. Sol medium, Astra low and Astra medium pass all eight run-level and native gates. Sol low has duplicate submissions, two missing answers and one incomplete answer; 133/136 cases and seven of eight runs pass. Sol high has two unsupported full-result wrappers and one output-only wrapper; Terra uses output-only wrappers throughout. Functional outputs and audit compatibility are kept distinct. All GPT baselines miss the memoising reuse explanation, while their shortened-prompt candidates include it.
+
+Sol medium and Astra medium advance using the frozen ranking and observed time for matching work. Astra low also passes; its small timing difference is not a general disadvantage claim. The finalists use additional repetitions plus the separately amended same-family challenge task. No screen sample is replaced or rerolled.
+
+## Focus report sourceV5 qualified
+
+Accepted at `ea19ca08`: 4,217 bytes and 1,027 estimated tokens saved. Five unchanged Sol baselines and five new V5 candidates each pass 15/15 artifact rubrics and 70/70 assessed decisions, with complete native audits. All 30 selected actual reports are read and hash-bound. Targeted manual requirements improve from 9/15 baseline to 15/15 candidate: facts 15/15 in both, offers 12/15 to 15/15, and empty automation headers/queue partitions 12/15 to 15/15. Shared calibration paragraph/bullet formatting variance remains disclosed.
+
+The accepted V5 source is one combined commit; the known failed V4 source is not installed as an intermediate main-branch commit. The private 576-test integration, main adapter lint and cumulative rule inventory pass. No acquisition, action handoff, tracker mutation or full WTF workflow is claimed. Total accepted savings now reconcile to 107,242 bytes and 26,409 estimated tokens across nine body/reference cuts and 26 descriptions.

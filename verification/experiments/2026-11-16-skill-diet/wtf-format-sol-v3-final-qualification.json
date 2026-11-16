@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-16T19:40:49.799190+00:00",
+  "accepted": true,
+  "status": "qualified-bounded-focus-report-production",
+  "model": "gpt-6.1-sol",
+  "effort": "medium",
+  "source_sha256": "8df715340ed14eabc072dc6c063bb6ef69682341c0e48f7e05cbf1f700df87bb",
+  "source_review": "wtf-format-v5-source-review.json",
+  "source_review_sha256": "c4946aaab8f52ba374ceb1cfc414cbc06d4064dc278927c746d48e1fdab4af8e",
+  "native_qualification": {
+    "path": "wtf-format-sol-v3-native-qualification.json",
+    "sha256": "2c0b0fffb203379ac14a2dcaabcd99ec9a7f822707ba47485a1637018185ec46"
+  },
+  "manual_artifact_review": {
+    "path": "manual-artifact-reviews/wtf-sol-independent.json",
+    "sha256": "c88f550a4276cb052a4a1b9aaea7c849c91eda0bb5ef33f4928770f140697f2d"
+  },
+  "before": {
+    "artifacts_rubric_passed": 15,
+    "artifacts_total": 15,
+    "decisions_passed": 70,
+    "decisions_total": 70,
+    "native_samples_passed": 5,
+    "manual_targeted_rule_passes": 9,
+    "facts_passed": 15,
+    "offers_passed": 12,
+    "automation_headers_and_partitions_passed": 12
+  },
+  "after": {
+    "artifacts_rubric_passed": 15,
+    "artifacts_total": 15,
+    "decisions_passed": 70,
+    "decisions_total": 70,
+    "native_samples_passed": 5,
+    "manual_targeted_rule_passes": 15,
+    "facts_passed": 15,
+    "offers_passed": 15,
+    "automation_headers_and_partitions_passed": 15
+  },
+  "integration": {
+    "record": {
+      "path": "wtf-sol-v3-integration.json",
+      "sha256": "2e3d926a11c56458f5cd01cb4a43949f087b42a19c83ba5423dc0619b0cc5af6"
+    },
+    "tests_passed": 576,
+    "tests_failed": 0,
+    "checks": [
+      {
+        "path": "deterministic-checks/wtf-sol-v3-integration-tests.txt",
+        "sha256": "32a51ce9d53c886bf1d75fee39565126193f8e7e4794c93e102dab2e7459c146"
+      },
+      {
+        "path": "deterministic-checks/wtf-sol-v3-integration-adapter-lint.txt",
+        "sha256": "bb4d1a24e82014e354b443a671613ccbfff3359e4e424d6bf8508de9c22e43ec"
+      },
+      {
+        "path": "deterministic-checks/wtf-sol-v3-integration-rule-inventory.txt",
+        "sha256": "609bbecd8e3c8466019e226ea0de93972925abaf81c5dff68752ac3472bce3e6"
+      }
+    ]
+  },
+  "mandatory_dependencies_added": [],
+  "unchanged_sections": [
+    "All pre-format numbered phases and configuration",
+    "Chaining/action authority and ratification rules",
+    "Autonomous Mode",
+    "Three unique Notes retained exactly in source review"
+  ],
+  "limits": [
+    "Five new sourceV5 candidates compared with the five unchanged SolV1 baselines. Older source versions and all failed samples remain separate; no cross-provider pooling or rerolls.",
+    "Every selected actual report was independently read; all 30 hashes rechecked. Baseline omissions remain visible and do not waive candidate checks.",
+    "Reports share calibration paragraph-plus-bullet formatting variance. Prep grid versus flat-list and empty individual verdict subgroup wording remain source ambiguities. Perfect style compliance is not claimed.",
+    "The frozen label-prefix assessor accepts Methodology: with or without its trailing space; original raw failures remain retained.",
+    "This executes report production at the completed-fetch/methodology-return boundary. Acquisition, command handoffs, ADR ratification, tracker changes and full WTF workflow execution are not measured; their source sections remain unchanged.",
+    "No general Opus parity, statistical equivalence or provider token-cost saving is claimed."
+  ],
+  "main_source_commit": "ea19ca083647fc7cdce91c847b39ba20b55aa8c1",
+  "main_integration": [
+    {
+      "path": "deterministic-checks/wtf-sol-v3-main-adapter-lint.txt",
+      "sha256": "bb4d1a24e82014e354b443a671613ccbfff3359e4e424d6bf8508de9c22e43ec",
+      "status": "pass"
+    },
+    {
+      "path": "wtf-sol-v3-main-rule-inventory.json",
+      "sha256": "116a4fd2c8d2130c520a18bd1d19d33da5fabc5f0217387ff2a7b6298c7feb98",
+      "status": "pass"
+    }
+  ]
+}

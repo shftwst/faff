@@ -1,0 +1,87 @@
+{
+  "consumer": {
+    "pass": true,
+    "producer_value": {
+      "verdict": "reject-approach",
+      "objections": [
+        {
+          "lens": "architectural",
+          "severity": "blocker",
+          "claim": "A module-level mutable holder cannot isolate per-request roles across overlapping requests.",
+          "evidence": "HOW chooses let currentRoles, overwritten on request entry and read directly by downstream helpers.",
+          "predicted_consequence": "If request B enters before request A finishes its helpers, A reads B's roles instead of its own.",
+          "spec_anchor": "how"
+        }
+      ]
+    },
+    "contract": {
+      "exit_code": 0,
+      "stdout": "{\"verdict\":\"reject-approach\",\"objections\":[{\"lens\":\"architectural\",\"severity\":\"blocker\",\"claim\":\"A module-level mutable holder cannot isolate per-request roles across overlapping requests.\",\"evidence\":\"HOW chooses let currentRoles, overwritten on request entry and read directly by downstream helpers.\",\"predicted_consequence\":\"If request B enters before request A finishes its helpers, A reads B's roles instead of its own.\",\"spec_anchor\":\"how\"}],\"conformant\":true,\"violations\":[]}\n",
+      "stderr": "",
+      "value": {
+        "verdict": "reject-approach",
+        "objections": [
+          {
+            "lens": "architectural",
+            "severity": "blocker",
+            "claim": "A module-level mutable holder cannot isolate per-request roles across overlapping requests.",
+            "evidence": "HOW chooses let currentRoles, overwritten on request entry and read directly by downstream helpers.",
+            "predicted_consequence": "If request B enters before request A finishes its helpers, A reads B's roles instead of its own.",
+            "spec_anchor": "how"
+          }
+        ],
+        "conformant": true,
+        "violations": []
+      }
+    },
+    "route": {
+      "exit_code": 0,
+      "stdout": "{\"destination\":\"prep\",\"reason\":\"no-methodology-major\",\"carried_design_objections\":[]}\n",
+      "stderr": "",
+      "value": {
+        "destination": "prep",
+        "reason": "no-methodology-major",
+        "carried_design_objections": []
+      }
+    }
+  },
+  "unfounded_mutation": {
+    "pass": false,
+    "producer_value": {
+      "verdict": "approve",
+      "objections": [
+        {
+          "lens": "architectural",
+          "severity": "blocker",
+          "claim": "A module-level mutable holder cannot isolate per-request roles across overlapping requests.",
+          "evidence": "HOW chooses let currentRoles, overwritten on request entry and read directly by downstream helpers.",
+          "predicted_consequence": "If request B enters before request A finishes its helpers, A reads B's roles instead of its own.",
+          "spec_anchor": "how"
+        }
+      ]
+    },
+    "contract": {
+      "exit_code": 1,
+      "stdout": "{\"verdict\":\"approve\",\"objections\":[{\"lens\":\"architectural\",\"severity\":\"blocker\",\"claim\":\"A module-level mutable holder cannot isolate per-request roles across overlapping requests.\",\"evidence\":\"HOW chooses let currentRoles, overwritten on request entry and read directly by downstream helpers.\",\"predicted_consequence\":\"If request B enters before request A finishes its helpers, A reads B's roles instead of its own.\",\"spec_anchor\":\"how\"}],\"conformant\":false,\"violations\":[\"approve carries objections — approve must carry none\"]}\n",
+      "stderr": "",
+      "value": {
+        "verdict": "approve",
+        "objections": [
+          {
+            "lens": "architectural",
+            "severity": "blocker",
+            "claim": "A module-level mutable holder cannot isolate per-request roles across overlapping requests.",
+            "evidence": "HOW chooses let currentRoles, overwritten on request entry and read directly by downstream helpers.",
+            "predicted_consequence": "If request B enters before request A finishes its helpers, A reads B's roles instead of its own.",
+            "spec_anchor": "how"
+          }
+        ],
+        "conformant": false,
+        "violations": [
+          "approve carries objections — approve must carry none"
+        ]
+      }
+    },
+    "route": null
+  }
+}

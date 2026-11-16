@@ -1,12 +1,12 @@
 {
-  "updated_utc": "2026-11-16T19:13:04.597231+00:00",
+  "updated_utc": "2026-11-16T19:41:52.477383+00:00",
   "deadline_utc": "2026-11-16 16:13:53 UTC",
-  "accepted_saved_bytes": 101620,
-  "accepted_saved_estimated_tokens": 25038,
-  "accepted_total_bytes": 1267815,
-  "accepted_total_estimated_tokens": 314241,
-  "accepted": "Gateway, adversarial, rendering V2, thematic, kernel V4, PRD Astra V2, review Astra V4 and 26 discovery descriptions.",
-  "pending": "WTF sourceV5 / SolV3 candidate after sourceV4 omitted an empty queue partition; default spec-review SolV1 candidate. Intake source unchanged: Sol candidate3 failed literal-path and heredoc protocol. Six-combination model/effort screen running; no finalist selected.",
+  "accepted_saved_bytes": 107242,
+  "accepted_saved_estimated_tokens": 26409,
+  "accepted_total_bytes": 1262193,
+  "accepted_total_estimated_tokens": 312870,
+  "accepted": "Gateway, adversarial, rendering V2, thematic, kernel V4, PRD Astra V2, review Astra V4 and 26 discovery descriptions. Default spec review Sol V1 accepted: 1405 bytes and 344 estimated tokens saved. Focus report sourceV5 / SolV3 accepted: 4217 bytes and 1027 estimated tokens saved.",
+  "pending": "Only model finalist calibration remains active. Intake and other failed cuts remain held and uninstalled; source savings exclude them.",
   "controllers": {
     "prd": "/tmp/faff-astra-prd-v2-baseline.log and /tmp/faff-astra-prd-v2-pair.log",
     "review": "/tmp/faff-astra-review-v4-pair.log",
@@ -21,18 +21,37 @@
     "sol_gateway": "/tmp/faff-sol-gateway-calibration.log",
     "sol_rendering": "/tmp/faff-sol-rendering-calibration.log",
     "sol_intake": "Stopped on candidate3 native protocol failure; no candidate4/5",
-    "sol_wtf": "/tmp/faff-sol-wtf-v3-pair.log; prior sourceV4 diagnostic set continues separately in /tmp/faff-sol-wtf-v2-pair.log",
+    "sol_wtf": "Complete; sourceV5 accepted and sourceV4 held. Finalist coordinator /tmp/faff-finalist-matrix.log continues four lanes.",
     "sol_native_correction": "/tmp/faff-sol-audit-corrections.log",
     "sol_spec_review": "/tmp/faff-sol-spec-review-baseline.log and /tmp/faff-sol-spec-review-pair.log",
-    "model_matrix": "/tmp/faff-model-matrix.log; three concurrent combinations"
+    "model_matrix": "/tmp/faff-finalist-matrix.log; four task/model lanes"
   },
   "integration": "Accepted source through19d36dab, all PR checks pass. Private intake629, WTF576 and spec-review599 deterministic tests pass; none substitutes for paired fidelity/native qualification.",
   "claude_usage": "Weekly allowance exhausted. All Claude queues stopped; no usage credits enabled.",
   "fallback": "User now requests gpt-6.1-sol / medium. Earlier Astra quota errors retained as incomplete; no model pooling.",
-  "downstream_proof": "PRD: 60 actual artifacts, 240 run-start cases and 240 forged-decision rejections. Review V4: all 70 actual artifacts pass real stored-comment replay with exact preserved bytes.",
+  "downstream_proof": "PRD: 60 actual artifacts, 240 run-start cases and 240 forged-decision rejections. Review V4: all 70 actual artifacts pass real stored-comment replay with exact preserved bytes. Spec review: all60 actual artifacts consumed by real contract and reject-approach route, with60 unfounded verdict rejections.",
   "continued_by_user_utc": "2026-11-16T18:36:39.190886+00:00",
   "original_deadline_elapsed": true,
   "latest_user_steering": "Broaden GPT model/effort comparison for an Opus stand-in.",
-  "model_matrix": "gpt-opus-standin-matrix-v1.json; Sol low/medium/high, Astra low/medium, Terra medium; two-per-arm screen and promote at most two.",
-  "harder_calibration": "gpt-opus-hard-task-amendment-v1.json: same-family judgement only, no independent-provider eligibility claim; deterministic8-case preflight plus8altered-outcome rejections pass."
+  "model_matrix": "Screen complete: six combinations, eight samples each, all36 rendering artifacts manually read per combination. Sol low fails one run/three decisions; Sol high and Terra have separately classified audit incompatibilities. Sol medium and Astra medium selected for additional/harder measurements.",
+  "harder_calibration": "gpt-opus-hard-task-amendment-v1.json: same-family judgement only, no independent-provider eligibility claim; deterministic8-case preflight plus8altered-outcome rejections pass.",
+  "current_head": "ea19ca083647fc7cdce91c847b39ba20b55aa8c1",
+  "isolated_pending_source_commits": {
+    "intake_held": "5031834e02dbafea2f2235b0975376030c7871fb",
+    "spec_review": "4b481889ce3bbb373b42b0b71d6244e9cb2f2a72",
+    "wtf_v4_then_v5": [
+      "16675291aad3f0b003cc709d1e5dc7626c617ac1",
+      "4b213238042b79b6373d662fae355f1bc872b9f4"
+    ]
+  },
+  "calibration_completed": "sol-opus-calibration-v1-review.json: all 20 native samples pass; 45/45 rendering rubrics and 100/100 assessed decisions per arm. Manual original-prompt memoising explanation misses: Sol 5/5 versus Opus 0/5; shortened-prompt Sol 0/5. Full model matrix pending.",
+  "current_sessions": {
+    "finalist_controller": 70198,
+    "native_correction_watcher": 33717
+  },
+  "qualification_files": [
+    "spec-review-producer-sol-v1-final-qualification.json",
+    "wtf-format-sol-v3-final-qualification.json"
+  ],
+  "finalist_scope": "32 planned new runs: Sol-medium challenges10; Astra-medium challenges10, gateway6, rendering6. Reuse registered screen2 plus additional3 perarm; Sol-medium gateway/rendering already has5 perarm. Same-family challenge scope amendment frozen; no production provider-independence claim."
 }

@@ -1,0 +1,34 @@
+{
+  "harness": "eval/control-parity/rendering-artifact.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/rendering.json",
+  "timeout_seconds": 900,
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md"
+  ],
+  "json_stdin": true,
+  "bridge": "eval/control-parity/mailbox-call.mjs",
+  "treatment": "Persisted rendering artifacts plus separate bounded rule questions; full policy via bounded reader and common operator guidance as preloaded voice context.",
+  "acceptance": "Retain every planned result, including failed functional/native samples. Together with the frozen two-per-arm screen, these three additional samples make five per arm. Manual rendering review remains required.",
+  "samples": [
+    {
+      "name": "matrix-final-v1-astra-medium-rendering-baseline-3",
+      "arm": "baseline",
+      "policy": "baseline/rendering.md"
+    }
+  ],
+  "provider": "codex-cli",
+  "model": "gpt-6-astra",
+  "effort": "medium",
+  "purpose": "cross-model-calibration",
+  "original_opus_plans": [
+    "rendering-baseline-plan.json",
+    "rendering-v2-candidate-plan.json"
+  ],
+  "assessment": "assess-rendering-artifacts.mjs",
+  "matrix": "gpt-opus-standin-matrix-v1.json",
+  "matrix_combination": "astra-medium",
+  "screening_only": false,
+  "finalist_selection": "gpt-opus-standin-finalist-selection-v1.json"
+}

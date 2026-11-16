@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"prdr-1","outcome":"survived","ground":null,"reason":"The dry-run DoD serves safe inspection of the current merge decision, reuses all existing floor reads and prevents the merge call. It adds no historical storage or query capability and keeps the floor as the single source of truth. Offline same-provider-family calibration only."}}

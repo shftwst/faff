@@ -1,0 +1,78 @@
+{
+  "consumer": {
+    "pass": true,
+    "producer_value": {
+      "verdict": "revise",
+      "objections": [
+        {
+          "lens": "QA",
+          "severity": "blocker",
+          "claim": "The Receipt date scenario uses a repository test passing as its observation and cannot be judged by the code-blind holdout.",
+          "evidence": "Scenarios / Receipt date says: then test/receipt.test.mjs passes. The supplied context forbids the holdout from reading or executing repository tests.",
+          "predicted_consequence": "The holdout cannot determine whether the Receipt date scenario passes. Restate the visible date and absent-date behaviour in the scenario and move the repository test check to its own DONE item.",
+          "spec_anchor": "receipt-date"
+        }
+      ]
+    },
+    "contract": {
+      "exit_code": 0,
+      "stdout": "{\"verdict\":\"revise\",\"objections\":[{\"lens\":\"QA\",\"severity\":\"blocker\",\"claim\":\"The Receipt date scenario uses a repository test passing as its observation and cannot be judged by the code-blind holdout.\",\"evidence\":\"Scenarios / Receipt date says: then test/receipt.test.mjs passes. The supplied context forbids the holdout from reading or executing repository tests.\",\"predicted_consequence\":\"The holdout cannot determine whether the Receipt date scenario passes. Restate the visible date and absent-date behaviour in the scenario and move the repository test check to its own DONE item.\",\"spec_anchor\":\"receipt-date\"}],\"conformant\":true,\"violations\":[]}\n",
+      "stderr": "",
+      "value": {
+        "verdict": "revise",
+        "objections": [
+          {
+            "lens": "QA",
+            "severity": "blocker",
+            "claim": "The Receipt date scenario uses a repository test passing as its observation and cannot be judged by the code-blind holdout.",
+            "evidence": "Scenarios / Receipt date says: then test/receipt.test.mjs passes. The supplied context forbids the holdout from reading or executing repository tests.",
+            "predicted_consequence": "The holdout cannot determine whether the Receipt date scenario passes. Restate the visible date and absent-date behaviour in the scenario and move the repository test check to its own DONE item.",
+            "spec_anchor": "receipt-date"
+          }
+        ],
+        "conformant": true,
+        "violations": []
+      }
+    },
+    "route": null
+  },
+  "unfounded_mutation": {
+    "pass": false,
+    "producer_value": {
+      "verdict": "approve",
+      "objections": [
+        {
+          "lens": "QA",
+          "severity": "blocker",
+          "claim": "The Receipt date scenario uses a repository test passing as its observation and cannot be judged by the code-blind holdout.",
+          "evidence": "Scenarios / Receipt date says: then test/receipt.test.mjs passes. The supplied context forbids the holdout from reading or executing repository tests.",
+          "predicted_consequence": "The holdout cannot determine whether the Receipt date scenario passes. Restate the visible date and absent-date behaviour in the scenario and move the repository test check to its own DONE item.",
+          "spec_anchor": "receipt-date"
+        }
+      ]
+    },
+    "contract": {
+      "exit_code": 1,
+      "stdout": "{\"verdict\":\"approve\",\"objections\":[{\"lens\":\"QA\",\"severity\":\"blocker\",\"claim\":\"The Receipt date scenario uses a repository test passing as its observation and cannot be judged by the code-blind holdout.\",\"evidence\":\"Scenarios / Receipt date says: then test/receipt.test.mjs passes. The supplied context forbids the holdout from reading or executing repository tests.\",\"predicted_consequence\":\"The holdout cannot determine whether the Receipt date scenario passes. Restate the visible date and absent-date behaviour in the scenario and move the repository test check to its own DONE item.\",\"spec_anchor\":\"receipt-date\"}],\"conformant\":false,\"violations\":[\"approve carries objections — approve must carry none\"]}\n",
+      "stderr": "",
+      "value": {
+        "verdict": "approve",
+        "objections": [
+          {
+            "lens": "QA",
+            "severity": "blocker",
+            "claim": "The Receipt date scenario uses a repository test passing as its observation and cannot be judged by the code-blind holdout.",
+            "evidence": "Scenarios / Receipt date says: then test/receipt.test.mjs passes. The supplied context forbids the holdout from reading or executing repository tests.",
+            "predicted_consequence": "The holdout cannot determine whether the Receipt date scenario passes. Restate the visible date and absent-date behaviour in the scenario and move the repository test check to its own DONE item.",
+            "spec_anchor": "receipt-date"
+          }
+        ],
+        "conformant": false,
+        "violations": [
+          "approve carries objections — approve must carry none"
+        ]
+      }
+    },
+    "route": null
+  }
+}

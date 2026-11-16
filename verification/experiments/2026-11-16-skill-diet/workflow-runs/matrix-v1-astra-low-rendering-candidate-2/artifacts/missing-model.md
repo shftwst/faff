@@ -1,0 +1,2 @@
+Draft explanation → no load-bearing model to lead with → ask the producer for the governing idea; none is supplied to hoist.
+Steps one to three → three enumerable items require a markdown list → render each step as a bold-lead bullet.

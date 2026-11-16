@@ -1,0 +1,3 @@
+```faff-contract:spec-review-verdict
+{"verdict":"reject-approach","objections":[{"lens":"architectural","severity":"blocker","claim":"A module-level mutable singleton cannot isolate per-request roles across overlapping requests.","evidence":"HOW sets currentRoles on request entry and requires every downstream helper to read that module global.","predicted_consequence":"If request B writes currentRoles before request A's next helper reads it, A's helper uses B's roles and may authorise A with B's permissions.","spec_anchor":"how"}]}
+```

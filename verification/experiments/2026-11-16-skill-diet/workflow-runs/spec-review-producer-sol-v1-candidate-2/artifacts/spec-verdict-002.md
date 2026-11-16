@@ -1,0 +1,3 @@
+```faff-contract:spec-review-verdict
+{"verdict":"reject-approach","objections":[{"lens":"architectural","severity":"blocker","claim":"A module-level mutable roles holder cannot isolate per-request auth state.","evidence":"HOW chooses let currentRoles written on request entry and read directly by every downstream helper.","predicted_consequence":"If request B enters while request A is still running, A's next helper reads B's roles and can authorise A using B's privileges.","spec_anchor":"how"}]}
+```

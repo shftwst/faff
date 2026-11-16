@@ -13,14 +13,14 @@
   ],
   "fixture": "workflow-fixtures/rendering.json",
   "bounded_reference": "rendering-v2-artifact-review.json",
-  "status": "bounded-artifact-facts-pass-with-retained-functional-and-native-failures",
+  "status": "bounded-artifact-facts-and-assessed-decisions-pass; native-certification-fails",
   "observations": [
     "All 36 artifact deterministic grades pass and all manually checked facts are retained; no invented delivery actions or cycle repair recommendations.",
     "Both baseline memoise glosses omit computed-result reuse explanation; both candidate glosses explain it.",
     "Baseline1 model-hoist uses four sentences in one paragraph; the other three split after three.",
     "No repeated separate title-and-body gloss presentation regression found. Long-table definition fields preserve requested source facts.",
-    "Both candidate runs fail the original voice-source rule answer: heading is # Writing style rather than expected Writing style. The source names # Writing style, so this is a literal-heading mismatch; original failures remain retained, not silently normalised.",
-    "All four native audits fail with complete false, including outside-authorised-native-tools entries for exec. Model/effort metadata are Terra/medium. Native incompatibility is separate from finished capture content and manual artifact facts."
+    "All four native audits fail with complete false, including outside-authorised-native-tools entries for exec. Model/effort metadata are Terra/medium. Native incompatibility is separate from finished capture content and manual artifact facts.",
+    "Both candidate raw reports fail only voice-source heading # Writing style. Existing preregistered RENDERING-ORACLE-CORRECTION.md accepts this exact spelling in both arms; assessment decision sets pass20/20. Raw failures retained; no unresolved decision/fidelity failure. Native certification remains separately failed."
   ],
   "runs": [
     {
@@ -234,6 +234,13 @@
           }
         ],
         "separate_from_manual_artifact_review": true
+      },
+      "frozen_assessment": {
+        "path": "workflow-runs/matrix-v1-terra-medium-rendering-baseline-1/assessment.json",
+        "sha256": "6a30bc85b8d5b9d181c29af4f9168c2beb30f75286c6620eed34552e9e56b231",
+        "status": "pass",
+        "decisions_passed": 20,
+        "normalisations": []
       }
     },
     {
@@ -447,6 +454,13 @@
           }
         ],
         "separate_from_manual_artifact_review": true
+      },
+      "frozen_assessment": {
+        "path": "workflow-runs/matrix-v1-terra-medium-rendering-baseline-2/assessment.json",
+        "sha256": "cff3115875136910ee88a9ee8d0fdc7d7f35b1cf6019df0b0677aabe49c0b24f",
+        "status": "pass",
+        "decisions_passed": 20,
+        "normalisations": []
       }
     },
     {
@@ -658,6 +672,22 @@
           }
         ],
         "separate_from_manual_artifact_review": true
+      },
+      "frozen_assessment": {
+        "path": "workflow-runs/matrix-v1-terra-medium-rendering-candidate-1/assessment.json",
+        "sha256": "eacec2c0fce09ca4b6f9f8cbaad4a88c9e0e0b068ba5aaa4ebf3a45fe8184492",
+        "status": "pass",
+        "decisions_passed": 20,
+        "normalisations": [
+          {
+            "case_id": "voice-source",
+            "original": {
+              "file": "AGENTS.md",
+              "heading": "# Writing style"
+            },
+            "rule": "Markdown heading marker is not part of the section name."
+          }
+        ]
       }
     },
     {
@@ -869,6 +899,22 @@
           }
         ],
         "separate_from_manual_artifact_review": true
+      },
+      "frozen_assessment": {
+        "path": "workflow-runs/matrix-v1-terra-medium-rendering-candidate-2/assessment.json",
+        "sha256": "30a07fa550213dbe7b1bab9f760e1c7251c040c1a4192a042775316bd122df2b",
+        "status": "pass",
+        "decisions_passed": 20,
+        "normalisations": [
+          {
+            "case_id": "voice-source",
+            "original": {
+              "file": "AGENTS.md",
+              "heading": "# Writing style"
+            },
+            "rule": "Markdown heading marker is not part of the section name."
+          }
+        ]
       }
     }
   ],

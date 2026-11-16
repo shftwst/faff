@@ -1,0 +1,172 @@
+{
+  "schema": 1,
+  "status": "in-progress-only-complete-read-samples-recorded",
+  "updated_utc": "2026-11-16T19:41:16.321569+00:00",
+  "reviewer": {
+    "role": "independent bounded manual artifact verifier",
+    "requested_model": "gpt-6.1-sol",
+    "requested_reasoning_effort": "medium"
+  },
+  "scope": "Only six new Astra-medium finalist rendering samples3\u20135 per arm. Existing screen files untouched; no model equivalence/statistical/full workflow claim.",
+  "criteria_reference": "rendering-v2-artifact-review.json",
+  "sources": [
+    "workflow-fixtures/rendering.json",
+    "baseline/rendering.md",
+    "candidates/rendering-v2.md",
+    "workflow-fixtures/RENDERING-ORACLE-CORRECTION.md"
+  ],
+  "criteria": [
+    "Preserve all supplied facts, exact concrete metric and meanings.",
+    "No invented delivery actions or unsupported repair recommendation.",
+    "One-sentence gloss besideID; no repeated standalone title/body gloss.",
+    "Explain memoise as reuse of computed result.",
+    "Retain long definitions and short numeric table,3question bullets, existing governing statement first and grounded complete cycle.",
+    "Record approximate prose-density variance separately.",
+    "Keep raw rule failures, frozen assessed outcomes and native certification distinct."
+  ],
+  "runs": [
+    {
+      "name": "matrix-final-v1-astra-medium-rendering-baseline-3",
+      "arm": "baseline",
+      "sample": 3,
+      "artifact_count": 9,
+      "hashes": {
+        "capture.json": "2f3253fcf7204fbb1c395640136191eeccf2652c9b61422b710b4ce4d2a5fd93",
+        "report.json": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+        "assessment.json": "b3f6d98e2840aaafe98b1f9da98615602d4098dd087f16079bc9d6440af59787",
+        "native-audit.json": "f35b793d06286b72aafc1e9fb6ac179228ef1040cb9fe7ab4d4323d7dd727ee2"
+      },
+      "raw_report_status": "fail",
+      "retained_raw_failures": [
+        {
+          "id": "voice-source",
+          "kind": "decision",
+          "pass": false,
+          "problems": [
+            "rule-answer"
+          ],
+          "value": {
+            "file": "AGENTS.md",
+            "heading": "# Writing style"
+          }
+        }
+      ],
+      "assessed_status": "pass",
+      "assessed_decisions_passed": 20,
+      "native_statuses": [
+        "pass"
+      ],
+      "bounded_manual_facts_pass": 9
+    }
+  ],
+  "rows": [
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-baseline-3/artifacts/gloss-001.md",
+      "sha256": "b999bbec9fcf7e9c1970384fecac3d25cacb1f83eb52c674e3ad045597e9264d",
+      "run": "matrix-final-v1-astra-medium-rendering-baseline-3",
+      "case": "gloss-001",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-baseline-3/artifacts/gloss-002.md",
+      "sha256": "a9e395b7578284dd6203830c2804d59630b8352dbd8d682321eba732c36b86f0",
+      "run": "matrix-final-v1-astra-medium-rendering-baseline-3",
+      "case": "gloss-002",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-facts-with-memoise-explanation-variance",
+      "notes": [
+        "Memoise and cold-start retained, but computed-result reuse is unexplained; bounded presentation variance."
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-baseline-3/artifacts/gloss-003.md",
+      "sha256": "16d05e7117c12cbd05f927ff068abdbcd02376c02d6c87ea35f4f598a8da8254",
+      "run": "matrix-final-v1-astra-medium-rendering-baseline-3",
+      "case": "gloss-003",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-baseline-3/artifacts/long-table.md",
+      "sha256": "410b7f6c0718501e4e1cf21065ecc32087aa21463f276fa98455fc0556f68ef1",
+      "run": "matrix-final-v1-astra-medium-rendering-baseline-3",
+      "case": "long-table",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-baseline-3/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "run": "matrix-final-v1-astra-medium-rendering-baseline-3",
+      "case": "short-table",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-baseline-3/artifacts/enumeration.md",
+      "sha256": "6ce8a04df2a47dcdb9e107e49bc4c4dcc7362e3c18b64a54a5cb32567e7c33db",
+      "run": "matrix-final-v1-astra-medium-rendering-baseline-3",
+      "case": "enumeration",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-baseline-3/artifacts/model-hoist.md",
+      "sha256": "72c00e2b22779ad92777f7c5bde4cefe2de679939e284990241d52fd93c18853",
+      "run": "matrix-final-v1-astra-medium-rendering-baseline-3",
+      "case": "model-hoist",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-baseline-3/artifacts/missing-model.md",
+      "sha256": "79b82da3a4b3b55ef5e90e54cdf5927e02372f35470e45fb970f1f4d7ce4339e",
+      "run": "matrix-final-v1-astra-medium-rendering-baseline-3",
+      "case": "missing-model",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-baseline-3/artifacts/cycle.md",
+      "sha256": "b6f4a8728e3234082f36796304223694467d1a66f6bde2228046fceb53aa7254",
+      "run": "matrix-final-v1-astra-medium-rendering-baseline-3",
+      "case": "cycle",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    }
+  ],
+  "not_reviewed": [
+    "candidate3",
+    "baseline4",
+    "candidate4",
+    "baseline5",
+    "candidate5"
+  ]
+}

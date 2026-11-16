@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All 8 cases finished and their actual results were persisted through the bridge. `finish` returned `true`.\n\nNo departures from the restrictions. This was same-provider offline calibration, with no claim of provider independence or production eligibility.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e5e0-21a6-7821-86cd-7c4e22b3ea33"
+    ],
+    "elapsed_seconds": 117.0,
+    "stdout_sha256": "80558f27e8bb2b60dc728e4381dcaae1cc9d1382e7007f645f6b7a32222ebe3e",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

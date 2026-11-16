@@ -1,0 +1,96 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-16T19:33:58.928456+00:00",
+  "accepted": true,
+  "status": "qualified-bounded-spec-review-production-and-contract-routing",
+  "model": "gpt-6.1-sol",
+  "effort": "medium",
+  "source_sha256": "a4d074a09df4b449bdcecb1d85a6028e995ad6e1cffa49e70fc22409d25f9571",
+  "source_review": "spec-review-producer-v1-source-review.json",
+  "source_review_sha256": "c9bf6c54e51f4848b4ea7031221311d8be9a640ca7e0cc2fe8626e9dbfff29ed",
+  "fixed_context_sha256": "f6368ad0849bc2873a3b26c3b168ba0c0cd061c8118e9ccf1116a773052ac9ae",
+  "native_qualification": {
+    "path": "spec-review-producer-sol-v1-native-qualification.json",
+    "sha256": "d46a07ebc981541db1d948b4e4108a6b8297231f9a558656243cbfcd49cee88c"
+  },
+  "manual_artifact_review": {
+    "path": "manual-artifact-reviews/spec-review-sol-independent.json",
+    "sha256": "aca00db341b932c3e886e76e74c589d5cd0e65c7c6c53854bc260e709547843c"
+  },
+  "root_spotcheck": {
+    "path": "manual-artifact-reviews/spec-review-sol-root-spotcheck.json",
+    "sha256": "e71c398076c839ec8f863255fa40e3cf43438e1e26b8dc4baf063c527592e658"
+  },
+  "before": {
+    "artifacts_passed": 30,
+    "artifacts_total": 30,
+    "decisions_passed": 75,
+    "decisions_total": 75,
+    "native_samples_passed": 5,
+    "manual_artifacts_passed": 30
+  },
+  "after": {
+    "artifacts_passed": 30,
+    "artifacts_total": 30,
+    "decisions_passed": 75,
+    "decisions_total": 75,
+    "native_samples_passed": 5,
+    "manual_artifacts_passed": 30
+  },
+  "downstream_replay": {
+    "report": {
+      "path": "spec-review-sol-replay-v1/report.json",
+      "sha256": "6dbcfbd5c0c6ab91a956d6c9f7aa9682471d67a88ef0021c34598689c15a5ad4"
+    },
+    "manifest": {
+      "path": "spec-review-sol-replay-v1/manifest.json",
+      "sha256": "01f33b0f9db92f2e7295369829e45914395a1723e42d76bd1a77f98d339eaec5"
+    },
+    "actual_artifacts": 60,
+    "contract_and_route_cases_passed": 60,
+    "unfounded_verdict_mutations_rejected": 60
+  },
+  "integration": {
+    "record": {
+      "path": "spec-review-sol-integration.json",
+      "sha256": "3bb10b8342e80908c339dd76458061939bc5e1422ae9b65669d115285eee8875"
+    },
+    "tests_passed": 599,
+    "tests_failed": 0,
+    "checks": [
+      {
+        "path": "deterministic-checks/spec-review-sol-integration-tests.txt",
+        "sha256": "e37dde409c50157b3ee8de1ec40ead5e99a9b15a1b3c4b3a6085197d18438662"
+      },
+      {
+        "path": "deterministic-checks/spec-review-sol-integration-adapter-lint.txt",
+        "sha256": "b82122223fa41b4f23724aeceea9ad508c288e7f9ad02ccb918f8575e0fd6ce0"
+      },
+      {
+        "path": "deterministic-checks/spec-review-sol-integration-rule-inventory.txt",
+        "sha256": "59377a9c0a00b1771ef39609a3e92a2b140804ea8fe5c0a083f9615773949bdf"
+      }
+    ]
+  },
+  "mandatory_dependencies_added": [],
+  "limits": [
+    "Fresh five-versus-five Sol-medium comparison; earlier Astra usage-limit partials are excluded. Explicit plan model/effort and native metadata are Sol-medium; inherited Astra wording in acceptance prose does not describe a separate model arm.",
+    "Independent verifier fully read all 60 actual artifacts; root additionally read one six-artifact candidate sample. Hashes and expected artifact set rechecked before acceptance.",
+    "QA major/blocker severity differs between some samples but both roll up to revise. This allowance follows the unchanged QA severity-to-verdict rule; no exact severity or byte-identical prose claim.",
+    "Real contract and reject-approach route consumers accept all 60 actual artifacts and reject 60 unfounded contrary verdicts. This is deterministic caller consumption, not a prep loop, tracker write, human escalation or L4 refuter.",
+    "No general Opus parity, statistical equivalence, provider independence or provider token-cost saving is claimed."
+  ],
+  "main_source_commit": "34764e93cbde2c50bad402cec53fd65062d52eda",
+  "main_integration": [
+    {
+      "path": "deterministic-checks/spec-review-sol-v1-main-adapter-lint.txt",
+      "sha256": "b82122223fa41b4f23724aeceea9ad508c288e7f9ad02ccb918f8575e0fd6ce0",
+      "status": "pass"
+    },
+    {
+      "path": "spec-review-sol-v1-main-rule-inventory.json",
+      "sha256": "59377a9c0a00b1771ef39609a3e92a2b140804ea8fe5c0a083f9615773949bdf",
+      "status": "pass"
+    }
+  ]
+}

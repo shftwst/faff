@@ -1,0 +1,78 @@
+{
+  "consumer": {
+    "pass": true,
+    "producer_value": {
+      "verdict": "revise",
+      "objections": [
+        {
+          "lens": "QA",
+          "severity": "blocker",
+          "claim": "The Receipt date scenario has no observable Then, MUST or comparator. State the expected visible result after opening the receipt.",
+          "evidence": "Scenarios, Receipt date ends with: Given a stored receipt, when its receipt is opened.",
+          "predicted_consequence": "The holdout has no expected result against which to judge the Receipt date scenario after opening the receipt.",
+          "spec_anchor": "receipt-date"
+        }
+      ]
+    },
+    "contract": {
+      "exit_code": 0,
+      "stdout": "{\"verdict\":\"revise\",\"objections\":[{\"lens\":\"QA\",\"severity\":\"blocker\",\"claim\":\"The Receipt date scenario has no observable Then, MUST or comparator. State the expected visible result after opening the receipt.\",\"evidence\":\"Scenarios, Receipt date ends with: Given a stored receipt, when its receipt is opened.\",\"predicted_consequence\":\"The holdout has no expected result against which to judge the Receipt date scenario after opening the receipt.\",\"spec_anchor\":\"receipt-date\"}],\"conformant\":true,\"violations\":[]}\n",
+      "stderr": "",
+      "value": {
+        "verdict": "revise",
+        "objections": [
+          {
+            "lens": "QA",
+            "severity": "blocker",
+            "claim": "The Receipt date scenario has no observable Then, MUST or comparator. State the expected visible result after opening the receipt.",
+            "evidence": "Scenarios, Receipt date ends with: Given a stored receipt, when its receipt is opened.",
+            "predicted_consequence": "The holdout has no expected result against which to judge the Receipt date scenario after opening the receipt.",
+            "spec_anchor": "receipt-date"
+          }
+        ],
+        "conformant": true,
+        "violations": []
+      }
+    },
+    "route": null
+  },
+  "unfounded_mutation": {
+    "pass": false,
+    "producer_value": {
+      "verdict": "approve",
+      "objections": [
+        {
+          "lens": "QA",
+          "severity": "blocker",
+          "claim": "The Receipt date scenario has no observable Then, MUST or comparator. State the expected visible result after opening the receipt.",
+          "evidence": "Scenarios, Receipt date ends with: Given a stored receipt, when its receipt is opened.",
+          "predicted_consequence": "The holdout has no expected result against which to judge the Receipt date scenario after opening the receipt.",
+          "spec_anchor": "receipt-date"
+        }
+      ]
+    },
+    "contract": {
+      "exit_code": 1,
+      "stdout": "{\"verdict\":\"approve\",\"objections\":[{\"lens\":\"QA\",\"severity\":\"blocker\",\"claim\":\"The Receipt date scenario has no observable Then, MUST or comparator. State the expected visible result after opening the receipt.\",\"evidence\":\"Scenarios, Receipt date ends with: Given a stored receipt, when its receipt is opened.\",\"predicted_consequence\":\"The holdout has no expected result against which to judge the Receipt date scenario after opening the receipt.\",\"spec_anchor\":\"receipt-date\"}],\"conformant\":false,\"violations\":[\"approve carries objections — approve must carry none\"]}\n",
+      "stderr": "",
+      "value": {
+        "verdict": "approve",
+        "objections": [
+          {
+            "lens": "QA",
+            "severity": "blocker",
+            "claim": "The Receipt date scenario has no observable Then, MUST or comparator. State the expected visible result after opening the receipt.",
+            "evidence": "Scenarios, Receipt date ends with: Given a stored receipt, when its receipt is opened.",
+            "predicted_consequence": "The holdout has no expected result against which to judge the Receipt date scenario after opening the receipt.",
+            "spec_anchor": "receipt-date"
+          }
+        ],
+        "conformant": false,
+        "violations": [
+          "approve carries objections — approve must carry none"
+        ]
+      }
+    },
+    "route": null
+  }
+}

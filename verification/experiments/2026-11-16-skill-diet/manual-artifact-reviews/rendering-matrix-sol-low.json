@@ -1,0 +1,692 @@
+{
+  "schema": 1,
+  "status": "independent-bounded-artifact-review-caught-up",
+  "updated_utc": "2026-11-16T19:28:22.715532+00:00",
+  "scope": "Only listed completed report/native-captured Sol-low samples have been read. Same bounded criteria as other matrix reviews; no finalist selection.",
+  "source_bindings": [
+    {
+      "path": "workflow-fixtures/rendering.json",
+      "sha256": "e46467fd275a9fcdc44e0a3a282bbd5e8de85541992bb570498b0a13e197f9a1"
+    },
+    {
+      "path": "baseline/rendering.md",
+      "sha256": "50256436d59e7fa4850fe4b59934631ee75c51a21c7b890f5cd2225d25e81fce"
+    },
+    {
+      "path": "candidates/rendering-v2.md",
+      "sha256": "74545fd22fc8451da92bf1ea2f0686940faaa1183453c2402c617131882176e4"
+    },
+    {
+      "path": "rendering-v2-artifact-review.json",
+      "sha256": "7e37df828d41f0cb4bf564f7d896827150f898231fccac5bc4be8f0fe1de5ff2"
+    }
+  ],
+  "criteria": {
+    "original_bounded": [
+      "source facts retained",
+      "no invented actions",
+      "no repeated gloss title and body",
+      "memoising explains result reuse",
+      "approximate prose density, with disclosed historical caveat"
+    ],
+    "extra_style": [
+      "bold-lead bullets",
+      "cycle direction legends, useful-legend exception applied equally",
+      "minor repetition/concision"
+    ],
+    "density_history": "Original rendering-v2-artifact-review.json explicitly records four baseline and two candidate four-sentence paragraphs and disclaims perfect style compliance. This record does not overturn that bounded qualification.",
+    "policy_clauses": [
+      {
+        "path": "baseline/rendering.md",
+        "line": 51,
+        "rule": "Bold-lead bullets for scannable items."
+      },
+      {
+        "path": "baseline/rendering.md",
+        "line": 52,
+        "rule": "A prose block stays within approximately three sentences or four lines."
+      },
+      {
+        "path": "baseline/rendering.md",
+        "line": 62,
+        "rule": "Do not narrate what the output already shows."
+      },
+      {
+        "path": "candidates/rendering-v2.md",
+        "line": 36,
+        "rule": "Use bold-lead bullets for scannable items."
+      },
+      {
+        "path": "candidates/rendering-v2.md",
+        "line": 37,
+        "rule": "Keep a prose block within roughly three sentences or four lines."
+      },
+      {
+        "path": "candidates/rendering-v2.md",
+        "line": 41,
+        "rule": "Remove explanations of what a list, visual or diff already shows."
+      }
+    ]
+  },
+  "opus_delivered_guidance": {
+    "metadata": "gateway-context-v3-native-log-review.json",
+    "sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+    "bytes": 21125
+  },
+  "limits": [
+    "Manual bounded judgement, not statistical equivalence or unrestricted writing quality.",
+    "Extra style observations do not become retrospective acceptance gates.",
+    "No product/source changes, model reruns or workflow reruns performed."
+  ],
+  "rows": [
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-1/artifacts/cycle.md",
+      "sha256": "3a03e709ae17600fec9c6d9004a3035d0b5579eae442eda9d9008e43d6e8cc38",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "cycle_direction_legend",
+          "observation": "Useful arrow-direction legend; same allowance across models; no defect count.",
+          "excerpt": "Arrows mean depends on."
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-1/artifacts/enumeration.md",
+      "sha256": "269bbd508816a62ad3e271e3885086e0452b7ff6dc6f235d6a0263c97e471df1",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-1/artifacts/gloss-001.md",
+      "sha256": "c1aeb71315a50de622df40ff51f895815f602affd726c4ed905820d171f2dd50",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-1/artifacts/gloss-002.md",
+      "sha256": "f69fc32a9fde5edf9a6efbd773bc0f6adb21af829c3d3e0a3098d2a5cbb706aa",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "missing",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [
+        {
+          "criterion": "memoise_reuse_explanation",
+          "observation": "Memoising is named without explaining reuse of a computed result.",
+          "excerpt": "ISS-BB: Memoise config resolution to reduce cold-start time."
+        }
+      ],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-1/artifacts/gloss-003.md",
+      "sha256": "e7d1b6cb3cd4841d2492e40165e47214a48339fa93f8e8cb1e5d8f033ca6d470",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-1/artifacts/long-table.md",
+      "sha256": "5f3e97b5d09373a56a5abd68df03f2f0bad1fc8d1a8435d5c01599e0c8bba762",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-1/artifacts/missing-model.md",
+      "sha256": "cda1c423a257b196a2852d0a40d784a968a96aeca5ecebe0cc81b36e4e33d0c9",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "bold_lead_bullets",
+          "observation": "List lacks bold lead labels; extra style observation, not an original bounded acceptance gate."
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-1/artifacts/model-hoist.md",
+      "sha256": "9f9c64aa796aad831a1dc9e67a004a2ea8f91c59485ab1525aada3852242f381",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-1/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-candidate-1/artifacts/cycle.md",
+      "sha256": "54e7aeb0c5e3dfc4b8ee62ceacbe46071264acdc0b251874cf6c482828b90c14",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "cycle_direction_legend",
+          "observation": "Useful arrow-direction legend; same allowance across models; no defect count.",
+          "excerpt": "Arrows mean depends on."
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-candidate-1/artifacts/enumeration.md",
+      "sha256": "84a8325e53e72f5fde83d2187be149c19455d1abbd0d11c1d4594420d24cf66f",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-candidate-1/artifacts/gloss-001.md",
+      "sha256": "3bc3a5f8d1523aae9191e5aedab91d3f66d372d4977f346d4357ab1cee7cc2ba",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-candidate-1/artifacts/gloss-002.md",
+      "sha256": "df9e7eebcbfc595ffc8a24a8abf7de9134e7493103f1d9517c0840c535fb1b03",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "present",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-candidate-1/artifacts/gloss-003.md",
+      "sha256": "828dc198ad4b97d5ef77d7de0e7a3dc8578f4dfe328813a48d7b5f9331c8ee34",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-candidate-1/artifacts/long-table.md",
+      "sha256": "987a442e47521baf9baaec03cdc5abc8e37bca4d8bb0dc9dd60b1877db95319d",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-candidate-1/artifacts/missing-model.md",
+      "sha256": "171f503780be92d32a2364fbb37ae894de057dbf4d0f22c5245039f2f1481c46",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-candidate-1/artifacts/model-hoist.md",
+      "sha256": "b149a098519ab2de279216e06d459aab33d231d01e6f4fbee108e4046131c718",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-candidate-1/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-2/artifacts/cycle.md",
+      "sha256": "45b76b53d0d9c0e9325888efe4309a62864db89f85d3eca2594b73312864c8be",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "cycle_direction_legend",
+          "observation": "Useful arrow-direction legend; same allowance across models; no defect count.",
+          "excerpt": "Arrows mean depends on:"
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-2/artifacts/enumeration.md",
+      "sha256": "6ce8a04df2a47dcdb9e107e49bc4c4dcc7362e3c18b64a54a5cb32567e7c33db",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-2/artifacts/gloss-001.md",
+      "sha256": "ede0bf184bb5213312bc09ba0dbb8b091fd770c5199c8c2b547922dc99c2c57b",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-2/artifacts/gloss-002.md",
+      "sha256": "a9e395b7578284dd6203830c2804d59630b8352dbd8d682321eba732c36b86f0",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "missing",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [
+        {
+          "criterion": "memoise_reuse_explanation",
+          "observation": "Memoising is named without explaining reuse of a computed result.",
+          "excerpt": "ISS-BB: Reduce cold-start time by memoising the config resolver."
+        }
+      ],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-2/artifacts/gloss-003.md",
+      "sha256": "cbe89eae16e7a7b5d27d7c2fe0cbf395101f20cc96260d50f63b66a3e886d82e",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-2/artifacts/long-table.md",
+      "sha256": "0a722c629c8b17e36be46a5e0a9075e9b1a9f3b2b0c5ef809eb96cfa5b67305e",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-2/artifacts/missing-model.md",
+      "sha256": "6f63044346eab5584acf734a848825f189f91fd8045dc4977b681a40aabc0cc6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "bold_lead_bullets",
+          "observation": "List lacks bold lead labels; extra style observation, not original bounded acceptance gate."
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-2/artifacts/model-hoist.md",
+      "sha256": "6962d7dcb114e384844a88acae33f183b4202317383f4305fcd63a9d944b2318",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-2/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-candidate-2/artifacts/cycle.md",
+      "sha256": "54143fbc6285d106622b05ebca528d547c66495f2baa66addb740b8e096df580",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "cycle_direction_legend",
+          "observation": "Useful arrow-direction legend; same allowance across models; no defect count.",
+          "excerpt": "Arrows mean depends on."
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-candidate-2/artifacts/enumeration.md",
+      "sha256": "269bbd508816a62ad3e271e3885086e0452b7ff6dc6f235d6a0263c97e471df1",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-candidate-2/artifacts/gloss-001.md",
+      "sha256": "1898548d3c4e237c68e0c92f20cbb4e819eba19f182396c849454ba47e7cb7c7",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-candidate-2/artifacts/gloss-002.md",
+      "sha256": "df9e7eebcbfc595ffc8a24a8abf7de9134e7493103f1d9517c0840c535fb1b03",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "present",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-candidate-2/artifacts/gloss-003.md",
+      "sha256": "828dc198ad4b97d5ef77d7de0e7a3dc8578f4dfe328813a48d7b5f9331c8ee34",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-candidate-2/artifacts/long-table.md",
+      "sha256": "0a722c629c8b17e36be46a5e0a9075e9b1a9f3b2b0c5ef809eb96cfa5b67305e",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-candidate-2/artifacts/missing-model.md",
+      "sha256": "53d5cc072c403a068165d01a9074be8580a8b82555b07ed9c514fb58f240c76e",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-candidate-2/artifacts/model-hoist.md",
+      "sha256": "9f9c64aa796aad831a1dc9e67a004a2ea8f91c59485ab1525aada3852242f381",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-low-rendering-candidate-2/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    }
+  ],
+  "samples": [
+    {
+      "name": "matrix-v1-sol-low-rendering-baseline-1",
+      "provider_group": "Sol low",
+      "report_present_at_review": true,
+      "native_audit_present_at_review": true,
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "native_audit_sha256": "f0e68b35ba9a6d8783590657b454b8be07b11cf969d20a606dff4bdc6bc786db",
+      "read_artifacts": 9
+    },
+    {
+      "name": "matrix-v1-sol-low-rendering-candidate-1",
+      "provider_group": "Sol low",
+      "report_present_at_review": true,
+      "native_audit_present_at_review": true,
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "native_audit_sha256": "26b718bc3cef8c00f30c72419b7c2e3b0d7d178980796b5b5c4fb1e32f22e9d8",
+      "read_artifacts": 9
+    },
+    {
+      "name": "matrix-v1-sol-low-rendering-baseline-2",
+      "provider_group": "Sol low",
+      "report_present_at_review": true,
+      "native_audit_present_at_review": true,
+      "report_sha256": "0ced84f2523edc13ed024179a68c71218c10d3defabda8711d0e090516966015",
+      "native_audit_sha256": "09815d30918b96fe5273ade35a7180e5da2b568316581be119a860a130828a7f",
+      "read_artifacts": 9
+    },
+    {
+      "name": "matrix-v1-sol-low-rendering-candidate-2",
+      "provider_group": "Sol low",
+      "report_present_at_review": true,
+      "native_audit_present_at_review": true,
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "native_audit_sha256": "ab5cd7fc771581aee7ed1a2984797b7559f9ca6fc23561db613493e99e2d3a09",
+      "read_artifacts": 9
+    }
+  ],
+  "read_artifacts": 36,
+  "summary": {
+    "source_fact_losses": 0,
+    "invented_actions": 0,
+    "memoise_reuse_explanation_missing": [
+      "workflow-runs/matrix-v1-sol-low-rendering-baseline-1/artifacts/gloss-002.md",
+      "workflow-runs/matrix-v1-sol-low-rendering-baseline-2/artifacts/gloss-002.md"
+    ]
+  }
+}

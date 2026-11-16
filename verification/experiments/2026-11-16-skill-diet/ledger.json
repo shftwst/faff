@@ -1575,27 +1575,78 @@
       "effort": "low",
       "source_commit": "f6324f6112eeb54999aeda04c20245edac7187a9",
       "before_commit": "bc66798c"
+    },
+    {
+      "skill": "Default spec reviewer",
+      "path": "plugin/skills/faffter-noon-spec-review/SKILL.md",
+      "status": "qualified-bounded-spec-review-production-and-contract-routing",
+      "before": {
+        "path": "plugin/skills/faffter-noon-spec-review/SKILL.md",
+        "bytes": 9460,
+        "characters": 9380,
+        "estimated_tokens": 2345,
+        "sha256": "cf2baaa0193e8f53a1a0ca792440ea471cdd0be5e49a6b320cca9d3b5fbaf58c"
+      },
+      "after": {
+        "path": "plugin/skills/faffter-noon-spec-review/SKILL.md",
+        "bytes": 8055,
+        "characters": 8001,
+        "estimated_tokens": 2001,
+        "sha256": "a4d074a09df4b449bdcecb1d85a6028e995ad6e1cffa49e70fc22409d25f9571"
+      },
+      "bytes_saved": 1405,
+      "estimated_tokens_saved": 344,
+      "mandatory_dependencies_added": [],
+      "qualification": "spec-review-producer-sol-v1-final-qualification.json",
+      "source_review": "spec-review-producer-v1-source-review.json",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "source_commit": "34764e93cbde2c50bad402cec53fd65062d52eda",
+      "before_commit": "b8521433d2b32bb9a7daea7bbfce337032f26aec"
+    },
+    {
+      "skill": "Focus report",
+      "path": "plugin/skills/faff-wtf/SKILL.md",
+      "status": "qualified-bounded-focus-report-production",
+      "before": {
+        "path": "plugin/skills/faff-wtf/SKILL.md",
+        "bytes": 31369,
+        "characters": 31044,
+        "estimated_tokens": 7761,
+        "sha256": "f33cbda1169044be17045ad448ebdb0ba9db04801d8f18d23a0f8779463ffa33"
+      },
+      "after": {
+        "path": "plugin/skills/faff-wtf/SKILL.md",
+        "bytes": 27152,
+        "characters": 26935,
+        "estimated_tokens": 6734,
+        "sha256": "8df715340ed14eabc072dc6c063bb6ef69682341c0e48f7e05cbf1f700df87bb"
+      },
+      "bytes_saved": 4217,
+      "estimated_tokens_saved": 1027,
+      "mandatory_dependencies_added": [],
+      "qualification": "wtf-format-sol-v3-final-qualification.json",
+      "source_review": "wtf-format-v5-source-review.json",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "source_commit": "ea19ca083647fc7cdce91c847b39ba20b55aa8c1",
+      "before_commit": "34764e93cbde2c50bad402cec53fd65062d52eda"
     }
   ],
   "source_total": {
     "before_bytes": 1369435,
-    "after_bytes": 1267815,
+    "after_bytes": 1262193,
     "before_estimated_tokens": 339279,
-    "after_estimated_tokens": 314241
+    "after_estimated_tokens": 312870
   },
   "load_manifest": "load-manifest.json",
   "baseline_loads": "baseline/loads.json",
-  "latest_loads": "review-astra-v4-after-loads.json",
+  "latest_loads": "wtf-sol-v3-after-loads.json",
   "pending_slices": [
     {
       "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
       "candidate": "candidates/agile-principles-v1.md",
       "status": "Held: Astra V3 baseline-three diagnosis adds an unsupported UI dependency qualifier. Frozen all-artifact semantic bar fails; candidate not measured or installed, savings excluded."
-    },
-    {
-      "path": "plugin/skills/faff-wtf/SKILL.md",
-      "candidate": "candidates/wtf-format-v2.md",
-      "status": "Fresh Astra comparison queued; Claude V1 missed offers; excluded from totals"
     },
     {
       "path": "plugin/skills/faff-map/SKILL.md",
@@ -1615,13 +1666,13 @@
     {
       "path": "plugin/skills/faffter-noon-intake/SKILL.md",
       "candidate": "candidates/intake-brief-v1.md",
-      "status": "Astra baseline running; full discovery procedure, template, inputs and appetite preserved byte-for-byte. Final-brief production only; excluded until qualified."
+      "status": "Held: Sol candidate3 preserves artifact facts but fails native literal-path and heredoc rules. Candidate4/5 not launched, source unchanged; 48 manually read outputs and passing deterministic integration do not waive native failure."
     },
     {
       "path": "plugin/skills/faffter-noon-architecture/SKILL.md",
       "candidate": "candidates/architecture-proposal-v1.md",
-      "status": "Astra V1 baseline running; four actual profile-show and contract-consumption reference preflights pass; strategy, inputs and example unchanged; excluded until qualified."
+      "status": "Held: Astra baseline passes functional checks but fails the literal native-path rule. Candidate unmeasured; source unchanged and savings excluded."
     }
   ],
-  "latest_source": "review-astra-v4-after-source.json"
+  "latest_source": "wtf-sol-v3-after-source.json"
 }

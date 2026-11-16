@@ -1,8 +1,8 @@
 {
   "schema": 1,
   "status": "diagnosed-strict-failures-retained",
-  "updated_utc": "2026-11-16T19:07:58.756339+00:00",
-  "scope": "Native tool-call inputs and result envelopes only from ten named sessions. No reasoning or raw complete captures exported.",
+  "updated_utc": "2026-11-16T19:26:57.595448+00:00",
+  "scope": "Native tool inputs and result envelopes from twelve named sessions; no reasoning or raw full capture exported.",
   "auditor_bindings": [
     {
       "path": "eval/control-parity/codex-native-audit.mjs",
@@ -3486,11 +3486,431 @@
           "recorded_exit_code": null
         }
       ]
+    },
+    {
+      "name": "matrix-v1-sol-high-rendering-candidate-2",
+      "bindings": [
+        {
+          "path": "workflow-runs/matrix-v1-sol-high-rendering-candidate-2/native-audit.json",
+          "sha256": "6063e913a3e44332bb9831e866b4379ad54b5c39c51b036df4e19057e3632d88"
+        },
+        {
+          "path": "workflow-runs/matrix-v1-sol-high-rendering-candidate-2/native-audit-sample.json",
+          "sha256": "2150fc26659ef310df629215f96572e057e6897a538700927da5ff7e97807d66"
+        },
+        {
+          "path": "workflow-runs/matrix-v1-sol-high-rendering-candidate-2/worker-final-state.json",
+          "sha256": "2841d19c5f10e29821abd3dd98d1c7b68fd4de6ec0431539f0e859f46188d9f2"
+        },
+        {
+          "path": "workflow-runs/matrix-v1-sol-high-rendering-candidate-2/worker-manifest.json",
+          "sha256": "89a490c8cd343b3749fb38c5a61696e9637773b1b0ff1416b5490a34dc46554f"
+        },
+        {
+          "path": "workflow-runs/matrix-v1-sol-high-rendering-candidate-2/report.json",
+          "sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6"
+        }
+      ],
+      "private_native_source_sha256": "e11bcc23df275a5211de5e5a88b252a0664dd9819e08f5fda7d0c19cf9b3c26a",
+      "private_native_source_matches_audit": true,
+      "strict_native_status": "fail",
+      "strict_initial_read_certification": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": false,
+          "content_sha256": null,
+          "content_bytes": null
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-v1-sol-high-rendering-candidate-2/task.json",
+          "complete": false,
+          "content_sha256": null,
+          "content_bytes": null
+        }
+      ],
+      "call_count": 34,
+      "command_classes": {
+        "initial-read": 2,
+        "bridge-prefix": 32
+      },
+      "return_styles": {
+        "full-result-variable": 2,
+        "full-result-direct": 32
+      },
+      "recorded_exit_codes": {
+        "0": 34
+      },
+      "observed_initial_read_payloads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "content_sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+          "expected_sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+          "bytes_match": true,
+          "exit_metadata_present": true
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-v1-sol-high-rendering-candidate-2/task.json",
+          "content_sha256": "8507d2b1f688dc342be872649d54c81abff7da354e3497fba0d27e68b2718efe",
+          "expected_sha256": "8507d2b1f688dc342be872649d54c81abff7da354e3497fba0d27e68b2718efe",
+          "bytes_match": true,
+          "exit_metadata_present": true
+        }
+      ],
+      "finding": "Only the two initial reads use unsupported variable-binding wrappers. The remaining 32 direct wrappers are authorised by the audit. All 34 result envelopes retain exit metadata with exit 0; both initial file hashes match.",
+      "extra_shell_work_observed": false,
+      "calls": [
+        {
+          "call_id": "call_924aa9ee119449538f8467c522c6ac80",
+          "native_name": "exec",
+          "input_sha256": "508258f678c2adafba18fc46a6f488adade4656f71a929cf14713ae9a39b768b",
+          "command_class": "initial-read",
+          "return_style": "full-result-variable",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_ebffa13fc3c944cd9720aa8811f9f879",
+          "native_name": "exec",
+          "input_sha256": "bfc62c94743b35d2e739732abdc4e4f11f3ea486e5f2368c7aa0e8fbe2e8b003",
+          "command_class": "initial-read",
+          "return_style": "full-result-variable",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_8717923880ab4eb382ef59770e57914a",
+          "native_name": "exec",
+          "input_sha256": "4b387f974497fc43f87942ee5e8941ebfdebd2cfb1dfb8ff6ebc57b9951018bf",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_fc2ad6e3b7194e8f8028d33ac79d3ca2",
+          "native_name": "exec",
+          "input_sha256": "8c0aecd69a3338818f33677947cd6ebefe148fe06ac08c92c91f44fd4d4b8d6f",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_2dd74ef3936d46019a3c069f0620c70e",
+          "native_name": "exec",
+          "input_sha256": "5ecd711591b285d97839d04b0b7884072ed8ec1c372a0114c0175a887105fcfa",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_15d7a31958634b749ab3d2f20655aa60",
+          "native_name": "exec",
+          "input_sha256": "34f0bc048ecb86092b2f5e055398bf249d191e3c3daaa4f35a62d39d462b3aea",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_a85ccd7832f14e39a79c0ee28bf40491",
+          "native_name": "exec",
+          "input_sha256": "acfc546ea893d1686696da2df1c02076c68f5eecc44562ec8b4c5e6252387c5d",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_8bf81657fcd24d79a936b5e6457e0032",
+          "native_name": "exec",
+          "input_sha256": "1fe58e7f4b228728bf7787295fa0a837384e837089ba3ba31292e0925b9b37a5",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_9857afc00b3d400d93da80a5663ef2a4",
+          "native_name": "exec",
+          "input_sha256": "d80569c5e7e09d5bcc30d3935ba7af84cdba2aee2025f8992a875b7c7548b4dd",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_bf1dbaab07404f5c90947f0052f048eb",
+          "native_name": "exec",
+          "input_sha256": "7a382ba47db019f10e4a0d8b76ab3f8b54ccedd0769d2cf3d81e0cf95b0310ff",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_49be702fe76a4c3fa97c2c20751da834",
+          "native_name": "exec",
+          "input_sha256": "5acc57246245fd878e03b003bb5358726c6594ca270b5596a7fa0c68c725b1eb",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_18f4cffa38164bfb86c6c525775d30ba",
+          "native_name": "exec",
+          "input_sha256": "e769c7276a92beaba611e6a573a30f6473220a4dd48868b452c9d09fd02d4b31",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_3a5bb1dfa4ed4aa6af3380c6fe22a277",
+          "native_name": "exec",
+          "input_sha256": "8d2ab82940dc972b75f176065b7ae1c33104d4d68cfd408cd1ff040ab58700a4",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_ae248e7ce760490b9550b5f9d6fedd2f",
+          "native_name": "exec",
+          "input_sha256": "132cdd47a378670db223565d6a2ed38341862c0d40fde03cfe12961ca1f8e896",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_4742d1df725b46c592beac5a071fdc6b",
+          "native_name": "exec",
+          "input_sha256": "4a3a251f09fb0f6105d8add95f7cba4414ffba6329b102547d9a5067f4071ded",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_6504a51952c24037bc8819ed9be2200e",
+          "native_name": "exec",
+          "input_sha256": "a4c67cf72c4731d14c1026cfb106d6c3be9b9e7ed5a08259c3863abcc596d2fa",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_08c00d1004364b51af355eb9cc6df198",
+          "native_name": "exec",
+          "input_sha256": "37f9673a45e68c2e2ed22448f6f74c783ffbf7e47eb77e39486aec167d560b15",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_f2a2bfcb62cb4faa9f18c138811a7016",
+          "native_name": "exec",
+          "input_sha256": "1988727e19fbaed68c8f56a6ae170ebd92756354eb485a55c2daad7872c4c2b8",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_07d71d36ea1245a297ed211f36c93507",
+          "native_name": "exec",
+          "input_sha256": "afb093b023cfe7dbd48db815cb8219889d3d1741bb27b19d6cbc24c8c4487e21",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_16a0171c7d914fbdba7d5e80b476c958",
+          "native_name": "exec",
+          "input_sha256": "aa6c758ca9f4e27c94bc6e02d5f0418f64191463e0745b62b241c6c2d9324e5c",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_334049d4082a4d51ab3a84b049d00c45",
+          "native_name": "exec",
+          "input_sha256": "b5954279c8ce0ab109ee5a6f7e56fdd1684237f57ac54b6132d791150b191931",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_94791a57717b4a38a303d4cdc89f9c95",
+          "native_name": "exec",
+          "input_sha256": "77ac642355b47be5b7c6043b7a17df36e0efb4ca0136cdda9a4f2d9ed4aced16",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_4e07674b04ba497288a0ce702e46d141",
+          "native_name": "exec",
+          "input_sha256": "cd1b58d9737c01b4e200ebef9b3347d5f0be18c80ad3c683de3d47d0ce45ac16",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_6580d4f969bd4d7c9c9a4f13bbab0993",
+          "native_name": "exec",
+          "input_sha256": "07f89a8854c4d10c00baf59eb2204af18f51b9ce29b1678c2cbdc22c9df73fa0",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_0241dde9818d4f7ebb0af9d69f8bb571",
+          "native_name": "exec",
+          "input_sha256": "14a4dd82e5286c6b4a881a8697e822153787656b7eebcd3c1dfb6a47976bb109",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_9922274f1e7a44f7abc2599f56fdd2e3",
+          "native_name": "exec",
+          "input_sha256": "10d6ef57431fe53ba31e4cb833ba4b1b07508bd04ec691727068c01fc8e6c182",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_db9249b4113a49e787540d849d4dfa44",
+          "native_name": "exec",
+          "input_sha256": "beb6cd0ad1112a43e11ced044eb50cf3a1de57808cad6ee3046b30c7d1fc4ea8",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_f157dcea2b374479ac342a6860b910c8",
+          "native_name": "exec",
+          "input_sha256": "bb7d503c2787de428a12d07b4e0c2478f19a3d84d852c483d0710a0ddb6064c8",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_389cb500ec2a4216aa48375150964b96",
+          "native_name": "exec",
+          "input_sha256": "c5a8daf19443ef018b1bbc338852738028a0d51bfd8c564168e7fa9d3d7fe065",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_daf0b7ea7290449e8cb83ee963dfa45a",
+          "native_name": "exec",
+          "input_sha256": "65a750f5ae91e7fb0a8960d364381daded187f87c4d231327a3390bc4615af60",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_6a86037fba8041389ea66ad6adeb7222",
+          "native_name": "exec",
+          "input_sha256": "84dda452d50a8f387844ced22368463925ae7a278e60055cb6758ebb33240e69",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_d3705b2ba5db437a85da79795747afbf",
+          "native_name": "exec",
+          "input_sha256": "7eee4a242151c2112f38163552bfc244497ec1eb210a0ecff0a592a090205ab6",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_5801d9d50a9e46f6bbb29f0b0094cd58",
+          "native_name": "exec",
+          "input_sha256": "f2847ec26ee788d77a3f31b8fe22b8916240308a781c324c5054d2ba9f77230e",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        },
+        {
+          "call_id": "call_7fe383fc5dcc43919ea3f854ae504682",
+          "native_name": "exec",
+          "input_sha256": "c7eda54bfc47687abeffd47e0214de1e70c6cf882c2ef56c508502176440989a",
+          "command_class": "bridge-prefix",
+          "return_style": "full-result-direct",
+          "recorded_exit_code": 0
+        }
+      ]
+    },
+    {
+      "name": "matrix-v1-sol-low-rendering-baseline-2",
+      "bindings": [
+        {
+          "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-2/native-audit.json",
+          "sha256": "09815d30918b96fe5273ade35a7180e5da2b568316581be119a860a130828a7f"
+        },
+        {
+          "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-2/native-audit-sample.json",
+          "sha256": "9c8ccee0c059020aa498abd54e8fa5624e61ccc002e4707a8959ac730cf69e1e"
+        },
+        {
+          "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-2/worker-final-state.json",
+          "sha256": "ac515442fabb8ab15e7060438dd40a744cc6b635a83a7063a3a4684bf7f95453"
+        },
+        {
+          "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-2/worker-manifest.json",
+          "sha256": "131e562977f749aedc6cddd7d211fc6379f3be5158727f9e966427a3e8fc6482"
+        },
+        {
+          "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-2/report.json",
+          "sha256": "0ced84f2523edc13ed024179a68c71218c10d3defabda8711d0e090516966015"
+        },
+        {
+          "path": "workflow-runs/matrix-v1-sol-low-rendering-baseline-2/capture.json",
+          "sha256": "23227979b06c6fbba57940f79ab56151f1faacc95a3fd5b8b5f02833a9eab6d5"
+        }
+      ],
+      "private_native_source_sha256": "c1218693320ea8c700d79b592f6e0d5c67587312eb95fb02ec11b5e67684a2dd",
+      "private_native_source_matches_audit": true,
+      "strict_native_status": "fail",
+      "strict_initial_read_certification": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+          "content_bytes": 22605
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-v1-sol-low-rendering-baseline-2/task.json",
+          "complete": true,
+          "content_sha256": "9a5db9f9cb6a4cac761f6fb125374da4b61edca28703f927ee5a34e86af054f8",
+          "content_bytes": 10195
+        }
+      ],
+      "call_count": 37,
+      "full_result_metadata_calls": 37,
+      "recorded_exit_codes": {
+        "0": 35,
+        "1": 2
+      },
+      "finding": "Actual duplicate rule submissions, not unsupported wrapper syntax or metadata loss. All wrappers are authorised; both second submissions are rejected with exit 1.",
+      "deviations": [
+        {
+          "case_id": "gloss-source",
+          "initial_capture_event": 18,
+          "duplicate_capture_event": 25,
+          "call_id": "call_f5d17284b54748abbc825ba48e217785",
+          "exit_code": 1,
+          "error": "invalid or duplicate rule answer"
+        },
+        {
+          "case_id": "contract",
+          "initial_capture_event": 11,
+          "duplicate_capture_event": 29,
+          "call_id": "call_c1cf1a391052468ab36287abe36f57ee",
+          "exit_code": 1,
+          "error": "invalid or duplicate rule answer"
+        }
+      ],
+      "extra_shell_work_observed": false
     }
   ],
   "interpretation": [
     "Sol-high gateway candidate-1 has an unsupported wrapper form but retains exit metadata and exact initial file payloads.",
     "Sol-high rendering baseline-1 and eight Terra-medium samples forward only output, losing exit metadata. Matching read bytes alone does not establish native command success.",
-    "Strict audit failures, original measurements and all reports are retained. No implementation edits, waivers or rerolls performed."
+    "Strict audit failures, original measurements and all reports are retained. No implementation edits, waivers or rerolls performed.",
+    "Sol-high rendering candidate-2 also has unsupported variable-binding initial-read wrappers; all its native exit metadata survives.",
+    "Sol-low rendering baseline-2 has actual duplicate rule operations with exit 1; this is a command failure distinct from wrapper incompatibility or lost exit metadata."
   ]
 }

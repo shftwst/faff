@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All cases finished; the bridge confirmed successful finish. Two rule submissions returned \u201cinvalid or duplicate rule answer\u201d.\n\nNo departures from the specified restrictions.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e5cd-c198-7531-8e3c-ed5160d0a6e3"
+    ],
+    "elapsed_seconds": 196.0,
+    "stdout_sha256": "14fe89f171f99ef4024d3d159b5c6be9436ccf8c627080157dc0eb76b30081d9",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

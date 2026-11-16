@@ -1,0 +1,508 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-16T19:38:02.712609+00:00",
+  "reviewer": {
+    "role": "independent finalist arithmetic and confounder verifier",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium"
+  },
+  "status": "pass",
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/gpt-opus-standin-finalist-selection-v1.json",
+      "sha256": "d228cfb3c079ff64dcb81990336a41a1401394a5847c9c6f329cec3709e0b5b9"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/gpt-opus-standin-screen-progress.json",
+      "sha256": "39cdb393831bef8ceb1b402eee2af71dbeaf527e79a021aff1518900d14b9cb2"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/gpt-opus-standin-matrix-v1.json",
+      "sha256": "95e800ed0a7d663c0076705eb7b0468b31946e31bf0308ec9d0186de7b3bae66"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/gpt-opus-hard-task-amendment-v1.json",
+      "sha256": "f3e51673e9cd9b61e46ae8462b32dee1ad0c19edf762f2a999ebf46249d93bfd"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/gpt-opus-finalist-run-queue-v1.json",
+      "sha256": "6997732c905cc31cd7d5d82bc70c5f932f6fcb7bb147702a9771e19920985ce0"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/matrix-final-v1-sol-medium-challenges-plan.json",
+      "sha256": "2ca5ff7b4bd91600b0663e18cc1c4dc7c18a5acb1b85824788167ed2bb667573"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/matrix-final-v1-astra-medium-gateway-plan.json",
+      "sha256": "a1c8d91f0aec9c9dd313f8eb59b73f6ea3ac0b047409268e463a64b0084d7967"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/matrix-final-v1-astra-medium-rendering-plan.json",
+      "sha256": "191dd863004e453bb30767f2eb61c1a4d9eaac9d9d6612b07270ab88b31e909b"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/matrix-final-v1-astra-medium-challenges-plan.json",
+      "sha256": "fc0d61afd7e745c233d6c3abf431508f9831b601371dca6d0d615a658c4fb2c8"
+    }
+  ],
+  "checks": [
+    {
+      "check": "selection_input_hash",
+      "pass": true,
+      "detail": "gpt-opus-standin-screen-progress.json"
+    },
+    {
+      "check": "selection_input_hash",
+      "pass": true,
+      "detail": "gpt-opus-standin-matrix-v1.json"
+    },
+    {
+      "check": "selection_input_hash",
+      "pass": true,
+      "detail": "gpt-opus-hard-task-amendment-v1.json"
+    },
+    {
+      "check": "combination_arithmetic",
+      "pass": true,
+      "detail": "sol-low"
+    },
+    {
+      "check": "run_status_separate_from_case_score",
+      "pass": true,
+      "detail": "sol-low"
+    },
+    {
+      "check": "manual_review_binding",
+      "pass": true,
+      "detail": "sol-low"
+    },
+    {
+      "check": "eligible_gate",
+      "pass": true,
+      "detail": "sol-low"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-sol-low-gateway-baseline-1"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-sol-low-gateway-baseline-2"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-sol-low-gateway-candidate-1"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-sol-low-gateway-candidate-2"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-sol-low-rendering-baseline-1"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-sol-low-rendering-baseline-2"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-sol-low-rendering-candidate-1"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-sol-low-rendering-candidate-2"
+    },
+    {
+      "check": "combination_arithmetic",
+      "pass": true,
+      "detail": "sol-medium"
+    },
+    {
+      "check": "run_status_separate_from_case_score",
+      "pass": true,
+      "detail": "sol-medium"
+    },
+    {
+      "check": "manual_review_binding",
+      "pass": true,
+      "detail": "sol-medium"
+    },
+    {
+      "check": "eligible_gate",
+      "pass": true,
+      "detail": "sol-medium"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "gateway-sol-calibration-v1-baseline-1"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "gateway-sol-calibration-v1-baseline-2"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "gateway-sol-calibration-v1-candidate-1"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "gateway-sol-calibration-v1-candidate-2"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "rendering-sol-calibration-v1-baseline-1"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "rendering-sol-calibration-v1-baseline-2"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "rendering-sol-calibration-v1-candidate-1"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "rendering-sol-calibration-v1-candidate-2"
+    },
+    {
+      "check": "combination_arithmetic",
+      "pass": true,
+      "detail": "sol-high"
+    },
+    {
+      "check": "run_status_separate_from_case_score",
+      "pass": true,
+      "detail": "sol-high"
+    },
+    {
+      "check": "manual_review_binding",
+      "pass": true,
+      "detail": "sol-high"
+    },
+    {
+      "check": "eligible_gate",
+      "pass": true,
+      "detail": "sol-high"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-sol-high-gateway-baseline-1"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-sol-high-gateway-baseline-2"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-sol-high-gateway-candidate-1"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-sol-high-gateway-candidate-2"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-sol-high-rendering-baseline-1"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-sol-high-rendering-baseline-2"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-sol-high-rendering-candidate-1"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-sol-high-rendering-candidate-2"
+    },
+    {
+      "check": "combination_arithmetic",
+      "pass": true,
+      "detail": "astra-low"
+    },
+    {
+      "check": "run_status_separate_from_case_score",
+      "pass": true,
+      "detail": "astra-low"
+    },
+    {
+      "check": "manual_review_binding",
+      "pass": true,
+      "detail": "astra-low"
+    },
+    {
+      "check": "eligible_gate",
+      "pass": true,
+      "detail": "astra-low"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-astra-low-gateway-baseline-1"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-astra-low-gateway-baseline-2"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-astra-low-gateway-candidate-1"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-astra-low-gateway-candidate-2"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-astra-low-rendering-baseline-1"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-astra-low-rendering-baseline-2"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-astra-low-rendering-candidate-1"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-astra-low-rendering-candidate-2"
+    },
+    {
+      "check": "combination_arithmetic",
+      "pass": true,
+      "detail": "astra-medium"
+    },
+    {
+      "check": "run_status_separate_from_case_score",
+      "pass": true,
+      "detail": "astra-medium"
+    },
+    {
+      "check": "manual_review_binding",
+      "pass": true,
+      "detail": "astra-medium"
+    },
+    {
+      "check": "eligible_gate",
+      "pass": true,
+      "detail": "astra-medium"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-astra-medium-gateway-baseline-1"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-astra-medium-gateway-baseline-2"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-astra-medium-gateway-candidate-1"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-astra-medium-gateway-candidate-2"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-astra-medium-rendering-baseline-1"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-astra-medium-rendering-baseline-2"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-astra-medium-rendering-candidate-1"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-astra-medium-rendering-candidate-2"
+    },
+    {
+      "check": "combination_arithmetic",
+      "pass": true,
+      "detail": "terra-medium"
+    },
+    {
+      "check": "run_status_separate_from_case_score",
+      "pass": true,
+      "detail": "terra-medium"
+    },
+    {
+      "check": "manual_review_binding",
+      "pass": true,
+      "detail": "terra-medium"
+    },
+    {
+      "check": "eligible_gate",
+      "pass": true,
+      "detail": "terra-medium"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-terra-medium-gateway-baseline-1"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-terra-medium-gateway-baseline-2"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-terra-medium-gateway-candidate-1"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-terra-medium-gateway-candidate-2"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-terra-medium-rendering-baseline-1"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-terra-medium-rendering-baseline-2"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-terra-medium-rendering-candidate-1"
+    },
+    {
+      "check": "screen_sample_report_hash",
+      "pass": true,
+      "detail": "matrix-v1-terra-medium-rendering-candidate-2"
+    },
+    {
+      "check": "selected_timing_order",
+      "pass": true,
+      "detail": "The two lowest observed times among three eligible combinations are Sol medium and Astra medium. This is a screen selection, not a speed inference."
+    },
+    {
+      "check": "finalist_plan_models",
+      "pass": true,
+      "detail": "matrix-final-v1-sol-medium-challenges-plan.json"
+    },
+    {
+      "check": "fresh_sample_names",
+      "pass": true,
+      "detail": "matrix-final-v1-sol-medium-challenges-plan.json"
+    },
+    {
+      "check": "finalist_plan_models",
+      "pass": true,
+      "detail": "matrix-final-v1-astra-medium-gateway-plan.json"
+    },
+    {
+      "check": "fresh_sample_names",
+      "pass": true,
+      "detail": "matrix-final-v1-astra-medium-gateway-plan.json"
+    },
+    {
+      "check": "finalist_plan_models",
+      "pass": true,
+      "detail": "matrix-final-v1-astra-medium-rendering-plan.json"
+    },
+    {
+      "check": "fresh_sample_names",
+      "pass": true,
+      "detail": "matrix-final-v1-astra-medium-rendering-plan.json"
+    },
+    {
+      "check": "finalist_plan_models",
+      "pass": true,
+      "detail": "matrix-final-v1-astra-medium-challenges-plan.json"
+    },
+    {
+      "check": "fresh_sample_names",
+      "pass": true,
+      "detail": "matrix-final-v1-astra-medium-challenges-plan.json"
+    },
+    {
+      "check": "main_saved_tally",
+      "pass": true,
+      "detail": "Source ledger totals are 103,025 bytes and 25,382 estimated tokens saved, including spec-review 1,405/344."
+    }
+  ],
+  "findings": [
+    {
+      "kind": "run-status distinction",
+      "finding": "Sol high and Terra medium score 136/136 assessed cases but only 5/8 and 0/8 strict native runs pass. They are correctly excluded. Sol low has 7/8 assessed runs and 133/136 assessed cases, so its functional failure is not hidden by full artifact scores."
+    },
+    {
+      "kind": "raw versus assessed",
+      "finding": "The screen preserves raw report statuses separately. Known decision answer normalisation raises assessed rendering scores; selection uses explicitly labelled assessed counts. Manual gloss checks still identify omitted memoising explanations even where the artifact rubric passes."
+    },
+    {
+      "kind": "source fidelity versus required explanation",
+      "finding": "All combinations preserve reviewed source facts, yet all have two baseline memoising explanations missing; shortened-prompt candidates explain reuse. This bounded limitation is common and disclosed, not a perfect-style claim."
+    },
+    {
+      "kind": "timing confounders",
+      "finding": "Only two samples per policy arm and task underpin selection. Concurrent lanes, shared queues and resource variance prevent a causal model speed claim. Astra low remains eligible; its small observed timing gap is not evidence of worse general speed or quality."
+    },
+    {
+      "kind": "Opus comparison",
+      "finding": "Opus and GPT differ in guidance and transport. Hard-task GPT wording removes provider-independence claims and uses a preregistered calibration wrapper. No pure model-only, provider independence or general Opus equivalence conclusion is supported."
+    },
+    {
+      "kind": "reuse",
+      "finding": "Existing Sol-medium samples 3-5 were completed before selection and are explicitly reused. The new queue adds Astra samples 3-5 and ten challenge samples per finalist rather than replacing screen failures."
+    }
+  ],
+  "summary": {
+    "checks": 85,
+    "failed": 0,
+    "selection": "Sol-medium and Astra-medium are consistent with the frozen screening rules as provisional finalists.",
+    "final_recommendation": false,
+    "frozen_records_modified": false
+  }
+}

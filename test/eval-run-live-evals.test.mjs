@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { loadFixture } from "./helpers/mock-tracker.mjs";
 import { seedRepo } from "./helpers/seed-repo.mjs";
 import { runSkill } from "./helpers/skill-harness.mjs";
-import { LIVE_KINDS, runLiveEvals, renderBaselineMarkdown } from "../eval/run-live-evals.mjs";
+import { LIVE_KINDS, runLiveEvals, renderBaselineMarkdown, resolveLiveModelOpts } from "../eval/run-live-evals.mjs";
 import { loadCases, loadLiveCases } from "../eval/run-evals.mjs";
 import { BASE_REPS, MAX_REPS } from "../eval/run-evals.mjs";
 
@@ -270,4 +270,40 @@ test("renderBaselineMarkdown emits the FAFF-156-format table with a per-comment 
 test("the runner reuses run-evals' BASE_REPS / MAX_REPS unchanged", () => {
   assert.equal(BASE_REPS, 20);
   assert.equal(MAX_REPS, 50);
+});
+
+test("resolveLiveModelOpts: --driver local builds the local preset from URL, model and key, and forwards an explicit --effort only", () => {
+  const saved = process.env.FAFF_EVAL_LOCAL_API_KEY;
+  process.env.FAFF_EVAL_LOCAL_API_KEY = "sk-test";
+  try {
+    const argv = ["--driver", "local", "--base-url", "http://gw.test:8000", "--model", "m1"];
+    const l = resolveLiveModelOpts(argv, { run: () => ({ status: 0, stdout: "medium\n" }) });
+    assert.equal(l.lane, "local");
+    assert.equal(l.model, "m1");
+    assert.equal(l.effort, null, "the pinned eval.effort is the frontier baseline's lineage, never forwarded to the local lane");
+    assert.equal(l.opts.forwardCreds, false);
+    assert.equal(l.opts.env.ANTHROPIC_BASE_URL, "http://gw.test:8000");
+    assert.equal(l.opts.env.ANTHROPIC_AUTH_TOKEN, "sk-test");
+    assert.equal(resolveLiveModelOpts([...argv, "--effort", "low"]).opts.effort, "low");
+  } finally {
+    if (saved === undefined) delete process.env.FAFF_EVAL_LOCAL_API_KEY; else process.env.FAFF_EVAL_LOCAL_API_KEY = saved;
+  }
+});
+
+test("resolveLiveModelOpts: without --driver local it is the frontier preset", () => {
+  const f = resolveLiveModelOpts(["--model", "claude-opus-5-5", "--effort", "medium"], { run: () => ({ status: 1, stdout: "" }) });
+  assert.equal(f.lane, "frontier");
+  assert.equal(f.model, "claude-opus-5-5");
+  assert.equal(f.opts.forwardCreds, true);
+});
+
+test("resolveLiveModelOpts: --driver local without a key fails loud", () => {
+  const saved = [process.env.FAFF_EVAL_LOCAL_API_KEY, process.env.LOCAL_API_KEY];
+  delete process.env.FAFF_EVAL_LOCAL_API_KEY; delete process.env.LOCAL_API_KEY;
+  try {
+    assert.throws(() => resolveLiveModelOpts(["--driver", "local", "--base-url", "http://gw.test", "--model", "m"]), /API_KEY/);
+  } finally {
+    if (saved[0] !== undefined) process.env.FAFF_EVAL_LOCAL_API_KEY = saved[0];
+    if (saved[1] !== undefined) process.env.LOCAL_API_KEY = saved[1];
+  }
 });

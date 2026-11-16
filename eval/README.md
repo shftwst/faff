@@ -59,6 +59,43 @@ node eval/run-evals.mjs --gate [--driver smart|local|frontier] [--against PATH]
   // rec.buckets.dupe / .vague / … are the model's judgement, captured at the harness seams.
   ```
 
+## Evaluating a new model (FAFF-1484)
+
+`run-model-eval.mjs` scores one model across three lanes, rolls the kinds up by skill and role, and stores a compact result under `eval/results/<model>/<date>/`.
+
+```sh
+# a local model: URL, model and key all come from configuration
+export FAFF_EVAL_LOCAL_BASE_URL=https://<your-gateway> FAFF_EVAL_LOCAL_MODEL=<model> FAFF_EVAL_LOCAL_API_KEY=<key>
+node eval/run-model-eval.mjs --driver local --tier quick
+
+# an Anthropic model (claude -p, OAuth); the format lane needs ANTHROPIC_API_KEY and is skipped without it
+node eval/run-model-eval.mjs --driver frontier --model claude-opus-5-5 --effort medium --tier full
+
+# a killed run resumes from its per-kind checkpoints
+node eval/run-model-eval.mjs --driver local --tier quick --resume
+```
+
+| lane | what it measures | how |
+|---|---|---|
+| `blackbox` | the judgement sweep over `eval/cases/` | `run-evals.mjs`'s driver, one kind at a time, at the tier's reps with no escalation |
+| `live` | `reconciliation`, `verdict-build`, `finding-identity`, `holdout-live` | `run-live-evals.mjs`'s adapters; the local lane builds its model from the same URL, model and key. `holdout-live` needs docker and is skipped, with the reason recorded, without it |
+| `format` | spec, architecture, routing and ADR producer output through faff's real parsers (`readinessBlocks`, `faff contract ...`, `faff adr extract-intent`) | `format-check.mjs`; one Messages API request per sample with a unique request id, because a gateway can answer an identical request from a cache |
+
+Select lanes with `--lanes blackbox,live,format` and kinds with `--kinds dupe,vague`. `--tier` picks the rep counts in `model-eval-plan.json`: `quick` is 5 reps per case (3 for `refutation-spec`, which runs several lens prompts per rep), `full` is 20 (5 for `refutation-spec`). The reference baseline was captured at 20 reps with escalation, so a quick result is a coarse signal; the result marks any skill with a kind under 10 reps per case.
+
+**Roll-up.** `skill-roles.json` labels each skill `producer` (the model authors the artefact), `reviewer` or `judge` (an independent pass that should normally run on a different model). The stored table compares only kinds the reference also measured, and lists registered kinds the run did not cover under "Not measured". `faff-graft` and `faff-beep-boop` have no judgement kind, so they have no row; scoring them needs an end-to-end task eval.
+
+**Rebuild from raw captures.** A sweep that was killed writes no summary. `--from-captures` rebuilds a result from the per-rep JSONL files:
+
+```sh
+node eval/run-model-eval.mjs --from-captures .faff/eval-runs/RUN_A .faff/eval-runs/RUN_B \
+  --model-id <model> --driver local --ignore-kinds refutation-spec --merge-result <other>/result.json
+```
+
+`--ignore-kinds` applies to the first capture, for a kind measured again in a later one.
+
+A stored result records the model id, driver, effort, tier, commit and rep counts. It never records the gateway URL or the key.
+
 ## Drivers — frontier vs local (FAFF-132)
 Two presets of the **same** `claude -p` invocation; the orchestrator/grader are driver-agnostic.
 

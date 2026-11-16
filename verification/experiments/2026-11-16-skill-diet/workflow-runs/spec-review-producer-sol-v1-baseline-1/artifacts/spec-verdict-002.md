@@ -1,0 +1,3 @@
+```faff-contract:spec-review-verdict
+{"verdict":"reject-approach","objections":[{"lens":"architectural","severity":"blocker","claim":"A module-level mutable roles holder cannot isolate concurrent requests.","evidence":"HOW sets currentRoles on request entry and has every downstream helper read the module global directly.","predicted_consequence":"When requests with different roles interleave, the later request overwrites currentRoles and a helper in the earlier request authorises work using the other caller's roles.","spec_anchor":"how"}]}
+```

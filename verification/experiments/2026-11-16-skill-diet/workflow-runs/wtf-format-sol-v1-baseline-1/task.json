@@ -1,0 +1,475 @@
+{
+  "instructions": "Read the complete rendering policy through read_policy. For each independent artifact case, transform the supplied draft or source into the requested output and persist it through write_output. These are isolated human-facing outputs; preserve their facts and use the supplied source material. Do not query a tracker or read additional files. Separately answer every bounded rule question. Global operator guidance applies. Finish after every case is recorded.",
+  "policy": {
+    "bytes": 198049,
+    "utf16_characters": 196175,
+    "sha256": "7b12d00669beaf9be309d5533471fd18007d2bce800a1accc4afa998f5cf60aa",
+    "chunk_limit": 6000
+  },
+  "tools": [
+    {
+      "name": "read_policy",
+      "description": "Read the unchanged policy in bounded chunks. Start at offset 0, then use each returned next_offset until it is null. Complete policy delivery is required before workflow operations. No scratch file is needed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "offset"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "write_output",
+      "description": "Persist the completed rendering for one artifact case. Write once per case; provide the actual normalised text or violation report requested.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_id",
+          "text"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "answer_rule",
+      "description": "Answer one separate bounded policy question in its stated value shape. Do not perform hypothetical actions.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "value": {}
+        },
+        "required": [
+          "case_id",
+          "value"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "finish",
+      "description": "Finish after all artifacts and rule answers are recorded.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "empty",
+      "task": "Render the complete interactive /faff-wtf brief from this completed live-fetch snapshot and already-returned methodology outputs. Collection and dispatch have finished outside this rendering boundary; do not fetch, dispatch, mutate or invoke skills. Preserve supplied order and facts, omit empty optional sections and use the policy output layout. Include applicable yes/no next-step offers as text only. Persist the actual Markdown brief.",
+      "source": {
+        "date": "2026-11-16",
+        "tracker": "connected",
+        "methodology_configured": false,
+        "milestones": [],
+        "shipped": [],
+        "in_progress": [],
+        "blocked": [],
+        "parked": [],
+        "awaiting_review": [],
+        "awaiting_spec_review": [],
+        "adr_proposals": [],
+        "methodology_outputs": {
+          "pick_ordering": [],
+          "structural_diagnostics": []
+        },
+        "build_queue": [],
+        "prep_queue": [],
+        "calibration_signals": [],
+        "risks": []
+      }
+    },
+    {
+      "id": "operations",
+      "task": "Render the complete interactive /faff-wtf brief from this completed live-fetch snapshot and already-returned methodology outputs. Collection and dispatch have finished outside this rendering boundary; do not fetch, dispatch, mutate or invoke skills. Preserve supplied order and facts, omit empty optional sections and use the policy output layout. Include applicable yes/no next-step offers as text only. Persist the actual Markdown brief.",
+      "source": {
+        "date": "2026-11-16",
+        "tracker": "connected",
+        "methodology_configured": "faffter-noon-methodology-thematic",
+        "milestones": [
+          {
+            "project": "Account recovery",
+            "id": "Recovery beta",
+            "target": "2026-11-23",
+            "progress": "50%"
+          }
+        ],
+        "shipped": [
+          {
+            "id": "BRF-10",
+            "title": "Record recovery attempts",
+            "unlocked": [
+              "BRF-11"
+            ]
+          }
+        ],
+        "in_progress": [
+          {
+            "id": "BRF-12",
+            "title": "Add recovery screen",
+            "status": "Building"
+          }
+        ],
+        "blocked": [
+          {
+            "id": "BRF-13",
+            "title": "Send recovery emails",
+            "reason": "waiting for BRF-11"
+          }
+        ],
+        "coming_up": [
+          {
+            "id": "BRF-11",
+            "title": "Issue recovery tokens",
+            "just_unlocked_by": "BRF-10",
+            "priority_source": "issue",
+            "chain": [
+              "BRF-13",
+              "BRF-14"
+            ]
+          },
+          {
+            "id": "BRF-14",
+            "title": "Audit recovery delivery",
+            "blocked_by": [
+              "BRF-13"
+            ]
+          }
+        ],
+        "parked": [
+          {
+            "id": "BRF-20",
+            "title": "Choose retention period",
+            "source": "interactive prep",
+            "cause": "product retention decision remains open",
+            "unpark": "/faff-prep BRF-20",
+            "log": null
+          },
+          {
+            "id": "BRF-21",
+            "title": "Repair importer",
+            "source": "autonomous graft",
+            "cause": "schema compatibility is unclear",
+            "unpark": "/faff-graft BRF-21",
+            "log": ".faff/runs/run-a/BRF-21/graft.md"
+          }
+        ],
+        "awaiting_review": [
+          {
+            "id": "BRF-22",
+            "title": "Deduplicate recovery emails",
+            "attempt": 1,
+            "limit": 3,
+            "durable": "branch pushed",
+            "next": "next build drain, without rebuilding"
+          }
+        ],
+        "awaiting_spec_review": [
+          {
+            "id": "BRF-23",
+            "title": "Scope expiry policy",
+            "attempt": 2,
+            "limit": 4,
+            "durable": "spec attached",
+            "next": "next prep drain, without re-spec"
+          }
+        ],
+        "adr_proposals": [
+          {
+            "new": "ADR-0042",
+            "new_title": "Use token ledger",
+            "old": "ADR-0031",
+            "old_title": "Use transient tokens",
+            "issue": "BRF-12",
+            "why": "Need a durable retry record",
+            "disposition": "propose-only"
+          }
+        ],
+        "methodology_outputs": {
+          "pick_ordering": [
+            "BRF-11",
+            "BRF-12"
+          ],
+          "standup_digest": {
+            "wip": 1,
+            "cap": 3,
+            "remaining_headroom": 2,
+            "structural_findings": []
+          },
+          "structural_diagnostics": []
+        },
+        "todays_focus": [
+          {
+            "id": "BRF-11",
+            "title": "Issue recovery tokens",
+            "priority_source": "issue",
+            "just_unlocked_by": "BRF-10"
+          },
+          {
+            "id": "BRF-12",
+            "title": "Add recovery screen",
+            "priority_source": "issue"
+          }
+        ],
+        "automation_preview": {
+          "value_chains": [
+            {
+              "head": "BRF-11",
+              "title": "Issue recovery tokens",
+              "dependents": [
+                "BRF-13",
+                "BRF-14"
+              ],
+              "blocked_only_by_head": 1,
+              "still_gated": [
+                "BRF-14"
+              ]
+            }
+          ],
+          "build_queue": {
+            "independents": [
+              {
+                "id": "BRF-11",
+                "title": "Issue recovery tokens",
+                "verdict": "fire-and-forget"
+              }
+            ],
+            "collision_groups": []
+          },
+          "needs_your_call": [
+            {
+              "id": "BRF-30",
+              "title": "Select rate limit store",
+              "verdict": "needs-decision-first",
+              "owner": "architecture",
+              "punt": "Redis or database?"
+            },
+            {
+              "id": "BRF-31",
+              "title": "Set recovery policy",
+              "verdict": "needs-decision-first",
+              "owner": "product",
+              "punt": "Who can reset an account?"
+            },
+            {
+              "id": "BRF-32",
+              "title": "Choose replay window",
+              "verdict": "needs-decision-first",
+              "owner": "unowned",
+              "confidence": "medium",
+              "thin_area": "retry timing"
+            }
+          ],
+          "prep_queue": [
+            {
+              "id": "BRF-33",
+              "title": "Record token revocation",
+              "reason": "no spec"
+            }
+          ]
+        },
+        "calibration_signals": [],
+        "risks": [],
+        "ready_to_pick_up": [
+          {
+            "id": "BRF-11",
+            "title": "Issue recovery tokens",
+            "reason": "spec ready; just unlocked by BRF-10"
+          }
+        ]
+      }
+    },
+    {
+      "id": "wip-cap",
+      "task": "Render the complete interactive /faff-wtf brief from this completed live-fetch snapshot and already-returned methodology outputs. Collection and dispatch have finished outside this rendering boundary; do not fetch, dispatch, mutate or invoke skills. Preserve supplied order and facts, omit empty optional sections and use the policy output layout. Include applicable yes/no next-step offers as text only. Persist the actual Markdown brief.",
+      "source": {
+        "date": "2026-11-16",
+        "tracker": "connected",
+        "methodology_configured": "faffter-dark-methodology-agile-delivery",
+        "milestones": [],
+        "shipped": [],
+        "in_progress": [
+          {
+            "id": "WIP-1",
+            "title": "Finish checkout",
+            "actor": "human"
+          },
+          {
+            "id": "WIP-2",
+            "title": "Finish refund screen",
+            "actor": "human"
+          },
+          {
+            "id": "WIP-3",
+            "title": "Build audit export",
+            "actor": "autonomous"
+          }
+        ],
+        "blocked": [],
+        "parked": [],
+        "awaiting_review": [],
+        "awaiting_spec_review": [],
+        "adr_proposals": [],
+        "methodology_outputs": {
+          "pick_ordering": [
+            "WIP-4",
+            "WIP-1",
+            "WIP-2"
+          ],
+          "standup_digest": {
+            "human_wip": 2,
+            "cap": 2,
+            "remaining_headroom": 0,
+            "structural_findings": [
+              {
+                "severity": 1,
+                "kind": "chain-gap",
+                "subtype": "upstream",
+                "issue": "WIP-1",
+                "detail": "Required tax mapping has no ticket."
+              },
+              {
+                "severity": 2,
+                "kind": "repeat-park",
+                "issue": "WIP-5",
+                "detail": "Repeated currency decision parks."
+              },
+              {
+                "severity": 3,
+                "kind": "ghost-project",
+                "issue": "WIP-6",
+                "detail": "Old payment project is missing."
+              }
+            ]
+          },
+          "structural_diagnostics": [
+            {
+              "kind": "chain-gap",
+              "subtype": "upstream",
+              "issue": "WIP-1",
+              "detail": "Required tax mapping has no ticket."
+            },
+            {
+              "kind": "repeat-park",
+              "issue": "WIP-5",
+              "detail": "Repeated currency decision parks."
+            },
+            {
+              "kind": "ghost-project",
+              "issue": "WIP-6",
+              "detail": "Old payment project is missing."
+            }
+          ]
+        },
+        "issue_glosses": {
+          "WIP-4": "Add receipts",
+          "WIP-5": "Set refund currency",
+          "WIP-6": "Link payment alerts"
+        },
+        "automation_preview": {
+          "value_chains": [],
+          "build_queue": {
+            "independents": [
+              {
+                "id": "WIP-4",
+                "title": "Add receipts",
+                "verdict": "fire-and-forget"
+              }
+            ],
+            "collision_groups": []
+          },
+          "needs_your_call": [],
+          "prep_queue": []
+        },
+        "calibration_signals": [
+          {
+            "root_cause": "currency decision",
+            "events": 4,
+            "period_days": 14,
+            "source": "advisory; suggest three possible actions without claiming they occurred"
+          }
+        ],
+        "risks": [],
+        "ready_to_pick_up": []
+      }
+    }
+  ],
+  "rule_questions": [
+    {
+      "id": "empty-preview",
+      "question": "When both automation queues are empty, should the preview retain both queue headers with (none)? Return a boolean."
+    },
+    {
+      "id": "methodology-line",
+      "question": "When a methodology skill is configured, return the exact first-line label prefix before its name as a JSON string."
+    },
+    {
+      "id": "milestone-columns",
+      "question": "Return the milestone table columns as a JSON array of strings."
+    },
+    {
+      "id": "diagnostics-clean",
+      "question": "With no structural findings, should the brief still render the clean diagnostics status? Return a boolean."
+    },
+    {
+      "id": "calibration-empty",
+      "question": "Should an empty calibration section be rendered? Return a boolean."
+    },
+    {
+      "id": "wip-cap",
+      "question": "The digest says human WIP is at cap. May Today's Focus recommend a new start? Return a boolean."
+    },
+    {
+      "id": "autonomous-wip",
+      "question": "Does a beep-boop build or open PR count against the human WIP cap? Return a boolean."
+    },
+    {
+      "id": "findings-cap",
+      "question": "Return the maximum structural findings displayed in Methodology findings as an integer."
+    },
+    {
+      "id": "ordering-owner",
+      "question": "Who orders focus and queue candidates? Return the exact named methodology output as a JSON string."
+    },
+    {
+      "id": "parked-manual",
+      "question": "Must an interactively parked labelled issue appear even without a run log? Return a boolean."
+    },
+    {
+      "id": "no-ratification",
+      "question": "An ADR supersession proposal has no human confirmation. Should rendering execute the supersession or delete the proposal? Return a boolean."
+    },
+    {
+      "id": "prep-no-spec",
+      "question": "A focus issue has no spec and the user confirms prep. Return the next skill name as a JSON string."
+    },
+    {
+      "id": "graft-spec",
+      "question": "A focus issue has a spec and the user confirms building. Return the next skill name as a JSON string."
+    },
+    {
+      "id": "medium-owner",
+      "question": "An issue has retained confidence: medium and no Punt owner. Return the owner group label as a JSON string."
+    }
+  ]
+}

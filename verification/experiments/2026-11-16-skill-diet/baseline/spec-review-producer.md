@@ -1,0 +1,97 @@
+---
+name: faffter-noon-spec-review
+description: "Default L1-L3 spec_review slot: one architectural, infosec, methodology and QA checklist pass over a freshly rated spec; emit a founded spec-review verdict."
+judgement_seam: spec-verdict
+user-invocable: false
+---
+
+# faffter-noon-spec-review
+
+The default occupant of the **`spec_review`** slot — the L1–L3 single-pass approach reviewer. It is the judgement layer of the spec stage: it challenges *the approach itself* (sound? safe? right-sized? verifiable?) while the work is still just a spec, before any code exists. faff-prep invokes it once after the spec is confidence-rated and before promote-to-Todo, then pipes its verdict through `faff contract spec-review-verdict` and routes on the result.
+
+> When standalone, Read the sibling `faff/references/kernel.md` (the shared kernel) first, then `faff/references/autonomous.md` and `faff/references/methodology.md` (the lanes it consumes) — together they hold the shared rules and the fixed contracts. This recap is non-normative; the gateway kernel wins.
+
+## What it does
+
+One LLM pass walks the **selected lenses** as a checklist over the spec, gathers `{lens, severity, claim, evidence, predicted_consequence}` objections, maps them to a single verdict, and emits one contract block. It is **not** an adversarial review — that costlier per-lens refuter form is a separate occupant. The consumer's lens-selection step (the change-surface cost-gate) chooses which of the four lenses fire; this pass runs exactly that set. **With no lens-set passed, all four fire** (the back-compatible default) — selection only ever *removes* a lens on a confidently-safe surface, and `infosec` + `QA` always fire at L1–L3.
+
+The contract (`faff contract spec-review-verdict`) validates the verdict's **shape** only. This producer owns the **reasoning** — the lenses and the severity→verdict roll-up below. Do not re-validate shape here; emit a conformant block and let the consumer pipe it.
+
+## Inputs
+
+The consumer passes:
+
+- The spec body (the freshly-produced, confidence-rated spec).
+- The **selected lens-set + mode** from the consumer's change-surface lens-selection step. Fire exactly the named lenses; absent a set, fire all four. `mode` is `single-pass` here (the `adversarial` mode routes to the L4 occupant).
+- The attached `## Methodology critique` block, when prep wrote one (the methodology slot's already-computed value/scope signal).
+- Repo architecture context, including the configured ADR directory for cross-slice decisions.
+
+## The four lenses (single-pass checklist)
+
+| Lens | Asks | Source it draws on |
+|---|---|---|
+| `architectural` | Is the design sound? Does it fit the system? Is there a simpler/cheaper design? Are cross-slice decisions ADR-worthy and consistent with existing ADRs? | The spec body + repo architecture + configured ADR directory. |
+| `infosec` | What is the threat surface? authz/authn, secrets handling, blast radius. | A **generic** security checklist — no learned per-repo threat prior. |
+| `methodology` | Right-sized? Right increment? Worth doing now? | **Consumes** the attached `## Methodology critique`. It never re-derives value/scope/risk. |
+| `QA` | Is it *verifiable*? Can we tell when it is done and right? A `## Scenarios` unit whose check is a repository test file passing is unverifiable by the code-blind holdout (it cannot read or run one) — raise it, routing the verdict to `revise` so the author restates it observably and moves the test-file check to its own DONE item. A `## Scenarios` unit with no observable `Then` (and no `MUST` or comparator) cannot be judged code-blind, and a holdout-marked one is also hidden from the builder, so it checks nothing — raise it, naming the unit, so the verdict routes to `revise`. | The spec's scenarios / DONE criteria. |
+
+Severities are `blocker` / `major` / `minor`. Emit at most one objection per lens (the lens's worst finding); a lens with no finding contributes none.
+
+**Object only to what must change before build.** Any objection turns `approve` into `revise`, so these are not objections: a choice the builder settles during the build without a new decision, a test any decent suite adds anyway, a threat that needs a careless implementation the spec never asks for, and another lens's point restated in yours. A spec with nothing else gets `approve`.
+
+**Each objection carries the enrichment triple** `{claim, evidence, predicted_consequence}` alongside `{lens, severity}` — `claim` (what is wrong), `evidence` (the spec clause / file it points to), `predicted_consequence` (the concrete, checkable thing that happens if the spec ships as-is). A lens that cannot name a concrete consequence sets `predicted_consequence: "not separately stated"` — the honest signal that the objection is taste-level. Each objection also carries the optional `spec_anchor`, stated as this exact bullet (the one rule home in code is faff `bin/lib/heading-slug.js`):
+
+- spec_anchor: the heading slug of the spec section this objection attacks. Derive it from the heading's raw markdown line (drop the leading hash marks and surrounding whitespace, strip nothing else): lowercase; replace every run of characters outside a-z0-9 with a single hyphen; trim leading and trailing hyphens. Omit the field entirely if you cannot name one section. Worked examples: `### Aggregation — carry the anchor` → `aggregation-carry-the-anchor`; `### Phase 2 — (revised)` → `phase-2-revised`; ``### The `spec_anchor` field`` → `the-spec-anchor-field`.
+
+The enrichment fields are additive: they never change the verdict roll-up below, and a legacy `{lens, severity}`-only objection still validates.
+
+**Methodology lens — consume, never recompute.** Read the attached critique and translate it into at most one `methodology` objection (e.g. a critique flagging a too-large slice → a `methodology` blocker on scope). It must issue **zero** value/scope re-derivation. **If no `## Methodology critique` block is present** (prep ran with no methodology slot), the lens degrades to "no signal available", emits no methodology objection, and notes the gap — it never falls back to recomputing value or scope.
+
+## The verdict roll-up (severity → verdict)
+
+After gathering objections, apply this deterministic map (a producer-local heuristic, not a contract rule):
+
+```
+PROCEDURE map_verdict(objections):
+  IF objections is empty:                          → approve
+  IF any objection is a blocker:
+     IF the blocking lens is architectural         → reject-approach   # design wrong, right scope → prep re-specs
+     IF the blocking lens is methodology (scope)   → reject-approach   # wrong increment → plot re-slices
+     IF the blocking lens is infosec               → needs-human       # threat calls need a human at L1–L3
+     IF the blocking lens is QA                     → revise            # unverifiable → add scenarios/DoD in place
+  ELSE (only major/minor objections, no blocker)   → revise            # fixable in place
+```
+
+The **founded-verdict invariant** (enforced by the contract): `approve` carries zero objections; every other verdict carries at least one. Keep the emitted objections consistent with the verdict — when a blocker drives the verdict, that blocker is in the array.
+
+Where a `reject-approach` routes (prep vs plot) is the **consumer's** concern, computed by `faff spec-review route` from lens and severity — this producer just emits the founded verdict.
+
+## Output (the contract artifact)
+
+Emit exactly one fenced block as the producer's output — the consumer (`faff-prep`) locates it, `JSON.parse`s it, and pipes it to `faff contract spec-review-verdict` (the sole source of contract data):
+
+```faff-contract:spec-review-verdict
+{ "verdict": "approve", "objections": [] }
+```
+
+Examples of a founded non-approve verdict:
+
+```faff-contract:spec-review-verdict
+{ "verdict": "reject-approach", "objections": [ { "lens": "architectural", "severity": "blocker", "claim": "the loop cannot terminate", "evidence": "How, step 3", "predicted_consequence": "hangs on empty --dir", "spec_anchor": "the-gate-verdict-seam" } ] }
+```
+
+```faff-contract:spec-review-verdict
+{ "verdict": "revise", "objections": [ { "lens": "QA", "severity": "major", "claim": "scenario X is unverifiable", "evidence": "DONE item 2", "predicted_consequence": "done cannot be decided for X" } ] }
+```
+
+The fixed verdict shape and its validation (canonical semantics: `faff contract spec-review-verdict --describe`) live in the gateway's contract-as-code surface. A swapped-in reviewer (e.g. an adversarial per-lens occupant) conforms by emitting the same block.
+
+## Level gradient (the cost-stable boundary)
+
+Review depth scales by level, all mapping onto the one `spec-review-verdict` contract:
+
+- **L1–L3** — this skill: one single-pass 4-lens checklist, one founded verdict.
+- **L4** — independent per-lens adversarial refuters, each prompted to refute the spec from its angle, gated on majority/severity (a separate occupant in the same slot).
+- Depth/cost scales with **level + appetite + change-surface**; selective per-lens firing by change-surface is the consumer's cost-gate (it passes the lens-set this pass fires). v1 is additive-only: only the low-risk lenses are skippable, `infosec` + `QA` always fire at L1–L3, and an uncertain surface fires all four.
+
+This skill ships the L1–L3 form and leaves the L4 hook.

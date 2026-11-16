@@ -1,0 +1,27 @@
+{
+  "status": "bounded-pass",
+  "model": "gpt-6.1-sol",
+  "effort": "medium",
+  "role": "independent read-only verifier",
+  "reported_hash_checks_passed": 282,
+  "review_artifacts_bound": 70,
+  "prd_artifacts_bound": 60,
+  "root_tally_reconciled": {
+    "bytes_saved": 101620,
+    "estimated_tokens_saved": 25038
+  },
+  "representative_artifacts_read": 4,
+  "tracker_pairs_read": 1,
+  "claims_checked": [
+    "Actual replay inputs equal manually reviewed artifact sets",
+    "Review: 70 handoffs, two reads and one acknowledged write each, exact body hashes",
+    "PRD: 240 run-start cases and 240 forged decisions rejected",
+    "Current source equals final qualifications",
+    "Limits exclude full workflows, hosted mutation, statistical and provider-cost claims"
+  ],
+  "limits": [
+    "Verifier read scripts and representative artifacts; all 130 artifact contents were not independently reread.",
+    "No fresh model workflow execution or mutation was performed by this verifier.",
+    "Historical source-review records retain pending status and are superseded by hash-bound final qualifications."
+  ]
+}

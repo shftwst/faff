@@ -1,0 +1,123 @@
+{
+  "schema": 1,
+  "scope": "Only metadata from the explicitly named measurement session is exported. No reasoning, messages, credentials or tool-result contents.",
+  "auditor_sha256": "c46dd016be2aa62cb31803e15afb3cc4a57acf79f248500dd59d3d04a2ec10ac",
+  "classifier_sha256": "3f40f2fe4bc5094e14bb6f5796b2f5e46d9c9730b7fcbf8c04dfca03cacf5027",
+  "source_sha256": "a184d7a64c8b2023763acce8421decc5a0cee3d088dd39658d7de2688d062ed2",
+  "runs": [
+    {
+      "name": "wtf-format-astra-v3-candidate-1",
+      "session_id": "01a1e470-37f6-7d92-8ba8-e132fc86ff5f",
+      "prompt_matches": 1,
+      "model_ids": [
+        "gpt-6-astra"
+      ],
+      "efforts": [
+        "low"
+      ],
+      "versions": [
+        "0.169.0"
+      ],
+      "base_instruction_hashes": [
+        "f4219f703a1cd39f9deed7b9030e97d7d8e263d3c01c6a291bec1849642995e8"
+      ],
+      "tools": [
+        {
+          "id": "call_b1e17c848ef2447cb63a2c940fd852e0",
+          "name": "exec",
+          "input_sha256": "ef5f7cbdc82cc35294e12a12ad3e17e3b72c90e72ebf313d29d4af2d0d2ed879",
+          "allowed": true,
+          "result_seen": true,
+          "transport": "one-literal-exec-command-through-exec",
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "command_sha256": "d81379ad83f075fbb2281a13fc276f04f933a3b5dbc831bf9574378e4a437b8e",
+          "result_sha256": "5a10e25d13043d24bd53071124ca8d94550af8888bb74dd011dbcb14c04c15f5",
+          "is_error": false,
+          "read_content_sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+          "read_content_bytes": 22605
+        },
+        {
+          "id": "call_0d48276d1d314e1ab05c9e8288cc1aca",
+          "name": "exec",
+          "input_sha256": "a2e257d4820df29239777d206cd49905d1b36b06640bf557ab9ee4a28aea9a86",
+          "allowed": true,
+          "result_seen": true,
+          "transport": "one-literal-exec-command-through-exec",
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "command_sha256": "7c9e2bb1053f30f8d41f2ddaaf69ad074be0d752c6d9d669539ee63bc5674a98",
+          "result_sha256": "0d5d08f3e62a02efbf7a0afef5ddb61f2c9cbe99f7b46804585e2182b95b4c1e",
+          "is_error": false,
+          "read_content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+          "read_content_bytes": 5591
+        },
+        {
+          "id": "call_477f8abc4b754404be1c37bfe2bb1cf7",
+          "name": "exec",
+          "input_sha256": "8e69d4468cbd724e447f1e53f64830877e18baac29db13af942c048dec6ba00e",
+          "allowed": true,
+          "result_seen": true,
+          "transport": "one-literal-exec-command-through-exec",
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/wtf-format-astra-v3-candidate-1/task.json",
+          "command_sha256": "7cb0a2ccf0deffdfd53d4970cc2bef33e7aa0f64d2d0a690f4863e786b2ae82f",
+          "result_sha256": "3dc782c82677fd64b4befa812f24625ffe3ce07cdb434f880583a740c118c1a5",
+          "is_error": false,
+          "read_content_sha256": "379181cb655902e083a452eeb5d7a651fdc3905100973f34ca971cb8d24c3232",
+          "read_content_bytes": 15459
+        },
+        {
+          "id": "call_4c5b636e935245fdbfaa39dd9289cd6d",
+          "name": "exec",
+          "input_sha256": "99dd29f1c7059d9b3d3bc47c0a50595c614910f3e957d77ef98722f4cb09aada",
+          "allowed": true,
+          "result_seen": true,
+          "transport": "one-literal-exec-command-through-exec",
+          "command_sha256": "435a40b72f89117975e6f86be782f62a73371acb8c9c66445b12473b42c85d21",
+          "command_bytes": 318,
+          "background": false,
+          "port": "read_policy",
+          "arguments_sha256": "f622adec83985156806fc5d8d5445d898c0c1e6a3873db7fd9b07e71bfdc39c5",
+          "result_sha256": "f7943a3c9d096fb83de8fed0f28925a999cf5d3c4c7c0881714e16e7ca4938c4",
+          "is_error": false
+        },
+        {
+          "id": "call_ca5db7f5e2734f8489bc6a3bac9a5ffb",
+          "name": "exec",
+          "input_sha256": "1ca7e6a80a2ed73228c65758da7ec245edbde5f7676c0c951de5a8fb0a0df0d7",
+          "allowed": true,
+          "result_seen": true,
+          "transport": "one-literal-exec-command-through-exec",
+          "command_sha256": "d8adfcc8d317fd177d5da93bfe4ac952a35afc48c615627e2d036c26026f6d90",
+          "command_bytes": 321,
+          "background": false,
+          "port": "read_policy",
+          "arguments_sha256": "6be423e5f1cd7577e7753cb8a2fe66515075848173380c593ab18c568512f226",
+          "result_sha256": "16562c467de7acc935a24336b0903311c9c001f5ea2431da2ea573e5c2dfaa77",
+          "is_error": false
+        }
+      ],
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+          "content_bytes": 22605
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": true,
+          "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+          "content_bytes": 5591
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/wtf-format-astra-v3-candidate-1/task.json",
+          "complete": true,
+          "content_sha256": "379181cb655902e083a452eeb5d7a651fdc3905100973f34ca971cb8d24c3232",
+          "content_bytes": 15459
+        }
+      ],
+      "complete": false,
+      "status": "incomplete",
+      "problems": []
+    }
+  ]
+}

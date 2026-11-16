@@ -1,0 +1,11 @@
+{
+  "accepted": false,
+  "status": "held-manual-offer-omissions",
+  "reason": "Candidate WIP-cap reports four and five omit the full-groom offer, present in all five baseline reports. Automatic rubrics and native audits pass but do not cover that missing offer.",
+  "manual_review": "manual-artifact-reviews/wtf-astra-v2.json",
+  "manual_review_sha256": "3c45342f6659db7335acbbe981900a8589130758ce0ef196b24376324e401499",
+  "source_sha256": "38bc688efbdce3881893bc8c05e1b4e0d03af3695bb5880502282b71fa5ecc30",
+  "savings_counted": false,
+  "candidate_four_annotation_corrected": true,
+  "native_status": "pass-ten-samples"
+}

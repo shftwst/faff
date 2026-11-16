@@ -1,0 +1,32 @@
+{
+  "status": "corrections-recorded-before-qualification",
+  "model": "gpt-6.1-sol",
+  "effort": "medium",
+  "role": "independent read-only verifier",
+  "matching": [
+    "Four policy hashes",
+    "Two fixture hashes",
+    "First corresponding runtime bindings",
+    "Harness hashes",
+    "Policy-reader hashes",
+    "Task hashes"
+  ],
+  "findings": [
+    {
+      "issue": "Astra model expectation incorrectly applied to Sol",
+      "resolution": "Separate Sol wrapper, original core unchanged; reassess existing native captures without new model calls; original audits preserved."
+    },
+    {
+      "issue": "Operator guidance differs across providers",
+      "resolution": "Disclose Opus 21125 bytes SHA 5b5607b9... versus Sol 22605 bytes SHA 471f175d...; no pure model-only attribution."
+    }
+  ],
+  "other_confounders": [
+    "Provider base instructions and native transports differ",
+    "Rendering timeout 540 to 900 seconds",
+    "Sol has a stronger literal-path reminder"
+  ],
+  "limits": [
+    "Useful bounded task comparison, not model interchangeability or statistical equivalence."
+  ]
+}

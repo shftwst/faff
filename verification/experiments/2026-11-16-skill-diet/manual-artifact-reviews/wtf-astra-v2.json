@@ -1,8 +1,8 @@
 {
-  "status": "in-progress-not-qualified",
-  "updated_utc": "2026-11-16T12:52:41.381757+00:00",
-  "read_artifacts": 27,
-  "notes": "All fifteen baseline artifacts and candidate-one three artifacts read. Source facts, WIP capacity, dependencies, owner groups, diagnostics and offers pass. Candidate one consolidates Coming up facts into focus/dependency sections: BRF-11 remains the first focus item and BRF-14 remains named with BRF-13 as blocker. The original Output Format example also has no Coming up heading. This is layout variance, not a missing source fact; no identical-heading claim. wtf-format-astra-v2-candidate-2 read; source facts and required behaviour pass.",
+  "status": "held-candidate-offer-omissions",
+  "updated_utc": "2026-11-16T12:58:27.890911+00:00",
+  "read_artifacts": 30,
+  "notes": "All thirty artifacts read. Source facts and other applicable gates pass, with disclosed section-placement variance. A final cross-sample offer audit corrected the earlier candidate-four pass annotation: its WIP-cap report and candidate-five omit the full-groom offer. The versioned earlier annotation remains in git history; this correction records the missed manual check explicitly.",
   "rows": [
     {
       "path": "workflow-runs/wtf-format-astra-v2-baseline-1/artifacts/empty.md",
@@ -158,7 +158,24 @@
     {
       "path": "workflow-runs/wtf-format-astra-v2-candidate-4/artifacts/wip-cap.md",
       "sha256": "ce47cb3df6cb63c60ac81871c25683d8064c0866ee4746f9fd639d3c3798e20b",
+      "status": "held-omitted-full-groom-offer",
+      "reason": "All five corresponding baseline reports include the full-groom offer; this candidate only links to tidy and offers beep-boop. The final manual offer audit does not accept that as equivalent."
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-candidate-5/artifacts/empty.md",
+      "sha256": "87215ce4c8d3b079e583f4614e9e2619684f7acd70a6b472d1fe29543b21ed86",
       "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-candidate-5/artifacts/operations.md",
+      "sha256": "f64cad36f0aff50157c8ed723eaa5b67019973d49ff1f7b072639eb335e4ecb7",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-candidate-5/artifacts/wip-cap.md",
+      "sha256": "4b1f5ab0c1a21a38a981de7f9181151468a9fca754be125b7a4a34bce4893fb8",
+      "status": "held-omitted-full-groom-offer",
+      "reason": "All five corresponding baseline reports include the full-groom offer; this candidate only links to tidy and offers beep-boop. The final manual offer audit does not accept that as equivalent."
     }
   ]
 }

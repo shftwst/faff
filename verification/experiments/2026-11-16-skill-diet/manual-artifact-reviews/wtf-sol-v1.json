@@ -1,0 +1,29 @@
+{
+  "status": "in-progress-with-baseline-failures",
+  "updated_utc": "2026-11-16T18:40:07.862966+00:00",
+  "read_artifacts": 3,
+  "notes": "Independent verifier read all three first-baseline artifacts. Two omit a required empty subsection. Facts and applicable offers otherwise pass; source ambiguity is recorded, not treated as candidate regression.",
+  "rows": [
+    {
+      "path": "workflow-runs/wtf-format-sol-v1-baseline-1/artifacts/empty.md",
+      "sha256": "b3e0b8f9e7c422895596d0ce9705c1b4c539223d7d8b9b8aaa21232d11de62b4",
+      "status": "held-missing-empty-subsection",
+      "reason": "Needs-your-call header and (none) absent",
+      "reviewer": "independent-sol-medium"
+    },
+    {
+      "path": "workflow-runs/wtf-format-sol-v1-baseline-1/artifacts/operations.md",
+      "sha256": "b0c4f6b19c7b5221475112a9569fcb29489fd068f4f8c56b2232fef1fb994efc",
+      "status": "read-source-faithful",
+      "reason": "Facts and applicable gates pass; empty verdict subdivisions and prep-grid wording remain source ambiguities",
+      "reviewer": "independent-sol-medium"
+    },
+    {
+      "path": "workflow-runs/wtf-format-sol-v1-baseline-1/artifacts/wip-cap.md",
+      "sha256": "666440fab9b7f37d77047e1f6e5155ff090275d6b5545f5a17b708dfa2a77d77",
+      "status": "held-missing-empty-subsection",
+      "reason": "Needs-your-call header and (none) absent",
+      "reviewer": "independent-sol-medium"
+    }
+  ]
+}

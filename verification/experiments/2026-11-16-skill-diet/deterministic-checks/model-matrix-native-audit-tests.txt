@@ -1,0 +1,58 @@
+TAP version 13
+# Subtest: Codex audit binds actual low-effort model, complete initial reads and literal bridge calls
+ok 1 - Codex audit binds actual low-effort model, complete initial reads and literal bridge calls
+  ---
+  duration_ms: 1.103622
+  type: 'test'
+  ...
+# Subtest: Codex audit rejects extra commands, wrong effort, truncated reads and absent results
+ok 2 - Codex audit rejects extra commands, wrong effort, truncated reads and absent results
+  ---
+  duration_ms: 0.876498
+  type: 'test'
+  ...
+# Subtest: Codex audit supports the CLI text envelope without accepting incomplete command sessions
+ok 3 - Codex audit supports the CLI text envelope without accepting incomplete command sessions
+  ---
+  duration_ms: 0.815665
+  type: 'test'
+  ...
+# Subtest: Codex audit accepts one literal command in the actual exec transport envelope
+ok 4 - Codex audit accepts one literal command in the actual exec transport envelope
+  ---
+  duration_ms: 1.12883
+  type: 'test'
+  ...
+# Subtest: exec transport parsing never evaluates scripts or accepts extra operations and forged output
+ok 5 - exec transport parsing never evaluates scripts or accepts extra operations and forged output
+  ---
+  duration_ms: 0.526956
+  type: 'test'
+  ...
+# Subtest: Sol audit requires the requested Sol medium identity, without accepting Astra or another effort
+ok 6 - Sol audit requires the requested Sol medium identity, without accepting Astra or another effort
+  ---
+  duration_ms: 1.622161
+  type: 'test'
+  ...
+# Subtest: Sol expectation correction retains every transport and delivery rejection
+ok 7 - Sol expectation correction retains every transport and delivery rejection
+  ---
+  duration_ms: 1.186496
+  type: 'test'
+  ...
+# Subtest: matrix native audit binds each declared model and effort without inferring missing expectations
+ok 8 - matrix native audit binds each declared model and effort without inferring missing expectations
+  ---
+  duration_ms: 0.654998
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 40.003206

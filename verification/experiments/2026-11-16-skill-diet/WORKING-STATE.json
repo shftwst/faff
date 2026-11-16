@@ -1,12 +1,12 @@
 {
-  "updated_utc": "2026-11-16T12:52:41.381757+00:00",
+  "updated_utc": "2026-11-16T18:47:45.014496+00:00",
   "deadline_utc": "2026-11-16 16:13:53 UTC",
   "accepted_saved_bytes": 101620,
   "accepted_saved_estimated_tokens": 25038,
   "accepted_total_bytes": 1267815,
   "accepted_total_estimated_tokens": 314241,
   "accepted": "Gateway, adversarial, rendering V2, thematic, kernel V4, PRD Astra V2, review Astra V4 and 26 discovery descriptions.",
-  "pending": "WTF V2 and intake V2 running. Agile, map, routing, ADR and architecture held.",
+  "pending": "Sol intake V1, WTF source V4 / candidate Sol V2, and spec-review V1. Sol-medium Opus calibration running; six-combination matrix frozen and five additional combinations queued/running.",
   "controllers": {
     "prd": "/tmp/faff-astra-prd-v2-baseline.log and /tmp/faff-astra-prd-v2-pair.log",
     "review": "/tmp/faff-astra-review-v4-pair.log",
@@ -17,10 +17,21 @@
     "adr": "Held on baseline; no continuation.",
     "intake": "/tmp/faff-astra-intake-v2-baseline.log and /tmp/faff-astra-intake-v2-pair.log",
     "architecture": "Held on native path failure; no candidates",
-    "review_replay": "/tmp/faff-review-v4-replay.log"
+    "review_replay": "/tmp/faff-review-v4-replay.log",
+    "sol_gateway": "/tmp/faff-sol-gateway-calibration.log",
+    "sol_rendering": "/tmp/faff-sol-rendering-calibration.log",
+    "sol_intake": "/tmp/faff-sol-intake-baseline-remaining.log and /tmp/faff-sol-intake-pair-corrected.log",
+    "sol_wtf": "/tmp/faff-sol-wtf-baseline-remaining.log and /tmp/faff-sol-wtf-v2-pair.log",
+    "sol_native_correction": "/tmp/faff-sol-audit-corrections.log",
+    "sol_spec_review": "/tmp/faff-sol-spec-review-baseline.log and /tmp/faff-sol-spec-review-pair.log",
+    "model_matrix": "/tmp/faff-model-matrix.log; three concurrent combinations"
   },
-  "integration": "Review V4 committed as f6324f61 after isolated 641-test, adapter-lint and rule-inventory passes. Previous bc66798c full CI green.",
+  "integration": "Accepted source committed/pushed through 530336c1. Review V4/PRD evidence independently audited with 282 hash checks. New source cuts remain pending.",
   "claude_usage": "Weekly allowance exhausted. All Claude queues stopped; no usage credits enabled.",
-  "fallback": "Actual Codex CLI model gpt-6-astra, low effort, version 0.169.0 verified. Native wrapper parsing tested. First PRD sample remains failed for wrong literal path; first review native audit passed. No cross-provider pooling.",
-  "downstream_proof": "PRD: 60 actual artifacts, 240 run-start cases and 240 forged-decision rejections. Review V4: all 70 actual artifacts pass real stored-comment replay with exact preserved bytes."
+  "fallback": "User now requests gpt-6.1-sol / medium. Earlier Astra quota errors retained as incomplete; no model pooling.",
+  "downstream_proof": "PRD: 60 actual artifacts, 240 run-start cases and 240 forged-decision rejections. Review V4: all 70 actual artifacts pass real stored-comment replay with exact preserved bytes.",
+  "continued_by_user_utc": "2026-11-16T18:36:39.190886+00:00",
+  "original_deadline_elapsed": true,
+  "latest_user_steering": "Broaden GPT model/effort comparison for an Opus stand-in.",
+  "model_matrix": "gpt-opus-standin-matrix-v1.json; Sol low/medium/high, Astra low/medium, Terra medium; two-per-arm screen and promote at most two."
 }

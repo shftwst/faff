@@ -1,0 +1,46 @@
+{
+  "harness": "eval/control-parity/gateway-execution.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/gateway.json",
+  "samples": [
+    {
+      "name": "matrix-v1-astra-medium-gateway-baseline-1",
+      "arm": "baseline",
+      "policy": "baseline/gateway.md"
+    },
+    {
+      "name": "matrix-v1-astra-medium-gateway-candidate-1",
+      "arm": "candidate",
+      "policy": "candidates/gateway-v2.md"
+    },
+    {
+      "name": "matrix-v1-astra-medium-gateway-candidate-2",
+      "arm": "candidate",
+      "policy": "candidates/gateway-v2.md"
+    },
+    {
+      "name": "matrix-v1-astra-medium-gateway-baseline-2",
+      "arm": "baseline",
+      "policy": "baseline/gateway.md"
+    }
+  ],
+  "treatment": "context-v3: explicit mandatory guidance read in both arms, full policy delivery, literal JSON stdin bridge. Challenge caller forwards all Phase-1 proposal fields. Original fixtures and prompt policies unchanged; failed earlier treatments remain separate.",
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md"
+  ],
+  "json_stdin": true,
+  "bridge": "eval/control-parity/mailbox-call.mjs",
+  "provider": "codex-cli",
+  "model": "gpt-6-astra",
+  "effort": "medium",
+  "timeout_seconds": 900,
+  "purpose": "cross-model-calibration",
+  "original_opus_plans": [
+    "gateway-context-v3-plan.json"
+  ],
+  "acceptance": "Run all five preregistered samples per arm and retain every functional/native failure. Compare separate execution/artifact/decision scores with Opus on the exact same policy and fixture bytes. Native tool transports and model providers differ; no model interchangeability or statistical equivalence claim. Never replace a failed sample.",
+  "matrix": "gpt-opus-standin-matrix-v1.json",
+  "matrix_combination": "astra-medium",
+  "screening_only": true
+}

@@ -1,0 +1,52 @@
+{
+  "arm": "baseline",
+  "requested_model": "gpt-6.1-sol",
+  "effort": "medium",
+  "codex_cli": "0.169.0",
+  "harness_command": [
+    "node",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/gateway-execution.mjs",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+    "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/baseline/gateway.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-fixtures/gateway.json",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/gateway-sol-calibration-v1-baseline-1"
+  ],
+  "runner_sha256": "1fd453acd0454ec3d187ba17fefa7748ac50211509b9ab10671fb9c9679711b4",
+  "bridge_sha256": "3feb07ca89eb0ddb815a064bac88d10848f05b662f89efbc684d5c51326df49d",
+  "prompt_sha256": "5babb89f295c2b905052aad9295bafe325cbb6af2abc1e4e8865958db6803bec",
+  "common_context": [
+    {
+      "path": "/Users/shftwst/.agents/AGENTS.md",
+      "sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+      "bytes": 22605
+    }
+  ],
+  "command": [
+    "codex",
+    "exec",
+    "--ignore-user-config",
+    "--skip-git-repo-check",
+    "--model",
+    "gpt-6.1-sol",
+    "-c",
+    "model_reasoning_effort=\"medium\"",
+    "-c",
+    "project_doc_max_bytes=0",
+    "-c",
+    "approval_policy=\"never\"",
+    "--sandbox",
+    "workspace-write",
+    "--cd",
+    "/tmp/faff-sol-measure-diw2fscq/cwd",
+    "--add-dir",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/gateway-sol-calibration-v1-baseline-1",
+    "--json",
+    "--output-last-message",
+    "/tmp/faff-sol-measure-diw2fscq/final.txt",
+    "-"
+  ],
+  "provider_usage": "unmetered",
+  "private_native_capture": "/tmp/faff-sol-measure-diw2fscq",
+  "context_reset_requested": true
+}

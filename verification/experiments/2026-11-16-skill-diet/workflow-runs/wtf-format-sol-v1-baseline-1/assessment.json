@@ -1,0 +1,171 @@
+{
+  "schema": 1,
+  "correction_kind": "wtf-label-prefix",
+  "name": "wtf-format-sol-v1-baseline-1",
+  "status": "pass",
+  "original_status": "fail",
+  "original_cases_passed": 16,
+  "report_sha256": "10e9b46eee874738809b9636ad2a5029305347873bd14bf54a9509974a85e7ba",
+  "capture_sha256": "13513f6cc957dd8a48e17982022e7b902347e679e9dfaa47804cacc002cf5f2d",
+  "grader_sha256": "88b5bbff037cd5d9daff8d1094df3b885c01a34ce7902af47cc1354283cddc36",
+  "assessor_sha256": "4d15ba9d6ca69fa3338e7d6410dbd9ee9c8890bad1562143dc042ae28575e945",
+  "fixture_sha256": "c253d413ce6dadae1db1e9bee52e05971b2dffa96599a968b65d53c5b4d90acd",
+  "correction_sha256": "cc827d0c1a715d63d62aba8e28c89c1a4de143a40746921369e3cf57b0e1f161",
+  "normalisations": [
+    {
+      "case_id": "methodology-line",
+      "original": "Methodology: ",
+      "rule": "The single trailing separator space is equivalent in this label-prefix question."
+    }
+  ],
+  "grade": {
+    "status": "pass",
+    "cases": [
+      {
+        "id": "empty",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 1,
+          "passed": 1,
+          "vector": [
+            true
+          ]
+        }
+      },
+      {
+        "id": "operations",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 1,
+          "passed": 1,
+          "vector": [
+            true
+          ]
+        }
+      },
+      {
+        "id": "wip-cap",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 1,
+          "passed": 1,
+          "vector": [
+            true
+          ]
+        }
+      },
+      {
+        "id": "empty-preview",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": true
+      },
+      {
+        "id": "methodology-line",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "Methodology:"
+      },
+      {
+        "id": "milestone-columns",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": [
+          "Milestone",
+          "Target",
+          "Progress"
+        ]
+      },
+      {
+        "id": "diagnostics-clean",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": true
+      },
+      {
+        "id": "calibration-empty",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "wip-cap",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "autonomous-wip",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "findings-cap",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": 2
+      },
+      {
+        "id": "ordering-owner",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "pick-ordering"
+      },
+      {
+        "id": "parked-manual",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": true
+      },
+      {
+        "id": "no-ratification",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "prep-no-spec",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faff-prep"
+      },
+      {
+        "id": "graft-spec",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faff-graft"
+      },
+      {
+        "id": "medium-owner",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "(unowned)"
+      }
+    ],
+    "errors": []
+  }
+}

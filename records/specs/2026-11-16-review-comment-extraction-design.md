@@ -73,3 +73,20 @@ committed JavaScript emit, factory registration and CLI coverage mapping.
 - Build emit, factory registration, CLI coverage and reference checks pass on supported Node versions.
 - Caller migration preserves verdict judgement, collapse-and-log, current reads, one write and uncertainty handling. Every removed prose obligation is mapped in the rule inventory before that migration.
 - A fresh paired Claude run uses the actual released baseline and committed candidate with 22 attempts, no retries and the existing $10 cap. Report source-byte changes separately from observed cost and latency.
+
+## Rule inventory
+
+| Prose rule | Command behaviour | Covering test | Disposition |
+|---|---|---|---|
+| `Locate it deterministically` | Graft loads the canonical read/plan/write instructions instead of restating marker mechanics. |  | changed: replace duplicated algorithm with the canonical reference |
+| `The single terminal review-findings comment` | Caller retains terminal verdict, summary, log pointer and one-comment density; command owns marker identity. | test/review-comment.test.mjs | changed: split caller responsibilities from deterministic marker planning |
+| `<!-- faff-review-findings:<ISSUE-ID> -->` | Command emits the same marker-pair shape around the exact replacement. | test/review-comment.test.mjs | kept |
+| `Identity lives in the body, not tracker metadata` | Caller retains body identity, no config or ID map and no additional write density; command bounds the replacement region. | test/review-comment.test.mjs | changed: retain behavioural obligations; drop the explanation of rendered marker visibility |
+| `Locate → create-or-update` | One live read, one pure plan, one returned write replaces the interpreted algorithm. | test/review-comment.test.mjs | changed: delegate computation to the command |
+| `List the issue's comments (live read)` | Caller retains complete current reads; command rejects leading whitespace, quotes, inline markers, close-first and fenced markers; trailing whitespace follows the recorded decision. | test/review-comment.test.mjs | changed: resolve the seven recorded policies and move recognition into code |
+| `0 matches → create: body = marker_open` | Creates the canonical marker/body/marker plan when no structural match exists. | test/review-comment.test.mjs | kept |
+| `1 match → update-in-place` | Returns the selected ID, exact spliced body and original-body digest. | test/review-comment.test.mjs | kept |
+| `>1 match (rare concurrent-create race` | Prefers a complete pair then the oldest instant, keeps listing-order ties, puts missing times last, ignores authorship, preserves other comments and never deletes. | test/review-comment.test.mjs | changed: deterministic selection implements the recorded ordering and authorship decisions |
+| `Splice (human-edit safety` | Preserves prefix/suffix exactly; first open through first following close; open-only recovery preserves prefix; canonical marker-line framing follows the recorded decisions. | test/review-comment.test.mjs | changed: move byte-preserving splice into code and resolve newline framing |
+| `Edges: a human's unmarked findings-like comment` | Unmarked text is never adopted. Caller retains marker-paste limitation and existing claim/status concurrency contract, with no lock/CAS claim. | test/review-comment.test.mjs | changed: remove optional authorship preference per recorded decision and retain the limits |
+| `4. Run Step 9 (review phase)` | Retains pre-PR review, tracker-only findings, both modes and four-valued routing; uses the canonical comment instructions. |  | changed: shorten the duplicated comment mechanics without changing orchestration |

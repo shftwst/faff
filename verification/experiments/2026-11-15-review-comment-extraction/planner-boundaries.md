@@ -1,12 +1,12 @@
 # Planner boundary contract
 
-Proposed boundary specification for `faff review-comment plan --input -`.
-Production implementation remains subject to the recorded release condition.
+Implementation boundary specification for `faff review-comment plan --input -`.
+Release 0.45.0 was verified at `690546db64e3de7a68058a98a9945bfb731e68b3` on 2026-11-16.
 The seven operator decisions in `eval/control-parity/policy-decisions.json` take
 precedence. These boundary rules make invalid or ambiguous input fail without a
-write plan; they add no tracker authority. The proposals for replacement marker
-rejection, unclosed fences, duplicate IDs and accepted timestamp formats remain
-open. They are not additional operator decisions in the seven-decision record.
+write plan; they add no tracker authority. The implementer adopts the boundary rules below for the read-only planner.
+These are implementation choices, not additional operator decisions in the
+seven-decision record. Rejection returns no plan and performs no write.
 
 | Input | Accepted shape |
 |---|---|
@@ -38,7 +38,7 @@ environment credential, repository or clock lookup is needed to compute a plan.
 | Duplicate comments | Return one target; leave all other comments untouched |
 | Splice | Preserve prefix through the open line's starting offset and suffix from immediately after the close line's content. Preserve the suffix LF and all later bytes. Replace marker-line trailing whitespace, including CR, with the canonical region |
 | Canonical region | Open marker, LF, exact replacement text, LF, close marker |
-| Replacement markers | Reject replacement text containing a structural marker for the current issue outside a fence. Such text would change the region on a later run. Quoted, inline and fenced examples remain data |
+| Replacement markers | Reject replacement text containing a structural marker for the current issue outside a fence. Such text would change the region on a later run. Quoted, inline and closed fenced examples remain data. Reject an unclosed replacement fence, which would hide the closing region marker on the next run |
 
 The plan fields are defined in `command-contract.md`. A create has reason
 `created`; an update has reason `updated` for one structural match and
@@ -55,5 +55,5 @@ create or loss of preserved text. These are development cases, not holdouts.
 
 The candidate must also pass all eleven independent recorded outcomes through
 the emitted CLI. Expected effects stay in the evaluation/test tree and are never
-imported into production code. The production implementation, build emit,
-factory registration and coverage mapping are still to be written.
+imported into production code. The production module is `plugin/skills/faff/bin/lib/review-comment.ts`, with
+committed JavaScript emit, factory registration and CLI coverage mapping.

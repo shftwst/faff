@@ -37,13 +37,13 @@ is retained. Focused verification is 122/122, including independent Claude revie
 
 ### Task 2: Implement the pure planner
 
-Requires resolution of the release condition. Inputs are the seven recorded
+Release 0.45.0 verified on 2026-11-16 at `690546db`; release condition satisfied. Inputs are the seven recorded
 decisions, supplied comment list and replacement body. Output is a versioned
 create/update plan with reason, comment ID, body and original-body SHA-256.
 
-- [ ] Freeze invalid-input and marker/fence boundary semantics in a spec.
-- [ ] Write independent tests, including the eleven expected outcomes.
-- [ ] Add TypeScript, emitted CLI registration, coverage and build manifest.
+- [x] Freeze invalid-input and marker/fence boundary semantics in a spec.
+- [x] Write independent tests, including the eleven expected outcomes.
+- [x] Add TypeScript, emitted CLI registration, coverage and build manifest.
 - [ ] Run planner tests, build, region and CLI coverage checks; commit.
 
 ### Task 3: Bind the real command and compare declared treatments

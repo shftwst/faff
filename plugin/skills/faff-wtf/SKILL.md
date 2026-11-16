@@ -1,6 +1,6 @@
 ---
 name: faff-wtf
-description: "Where to focus — what shipped, what's stuck, what to work on next, and what an overnight beep-boop run parked. Trigger for: 'wtf' / 'what should I work on' / 'catch me up' / 'what happened' / 'what's blocked' / 'what's next', 'Where to focus', 'what's happening', 'where are we', 'where we at', 'whats up', 'the 411', 'lowdown'."
+description: "Brief on what shipped, what is blocked, what to work on next and what an unattended run parked. Use for catch me up, current focus or what happened."
 ---
 
 # Faff — WTF (Where To Focus)

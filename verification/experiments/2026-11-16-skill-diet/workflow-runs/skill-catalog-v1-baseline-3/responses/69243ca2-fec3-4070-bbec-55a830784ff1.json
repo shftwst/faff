@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "value": {
+    "text": "\n  },\n  {\n    \"name\": \"faffter-noon-spec-review\",\n    \"description\": \"Default `spec_review` slot occupant \\u2014 the L1\\u2013L3 single-pass spec reviewer. Runs four lenses (architectural / infosec / methodology / QA) as one checklist pass over a freshly-rated spec and emits a founded `faff-contract:spec-review-verdict` block. Runs as a configured slot, not the user `/` menu.\",\n    \"user_invocable\": false\n  },\n  {\n    \"name\": \"faffter-noon-transport-private-network\",\n    \"description\": \"Default `transport` slot occupant \\u2014 the private-network reachability resolver. Given the provision context, resolves the base host the evaluator uses to reach the system under build over a private network where network-layer segmentation alone satisfies \\\"only the evaluator can reach it\\\". Runs as a configured slot, not the user `/` menu.\",\n    \"user_invocable\": false\n  }\n]\n",
+    "next_offset": null,
+    "policy_sha256": "468d1762102877a5d626d3c98f70797639aa7e43ab37e1e92c43bc250d091e81"
+  }
+}

@@ -1,6 +1,6 @@
 ---
 name: faffter-noon-prd
-description: "Default `prd` slot occupant — the code-blind PRD-admissibility producer. Given only a PRD document, it judges whether the PRD's stop-conditions are machine-verifiable and how wide the implementation's creative licence is, then produces one `faff-contract:prd-readiness` block. The L4 run-start gate pipes that block to `faff contract prd-readiness` (the deterministic validator) to admit or refuse the run. Runs as a configured slot, not the user `/` menu."
+description: "Default code-blind prd slot: judge machine-verifiable PRD stop conditions and creative licence; emit prd-readiness for the deterministic L4 run-start gate."
 user-invocable: false
 judgement_seam: prd-readiness
 ---

@@ -1,0 +1,716 @@
+{
+  "events": [
+    {
+      "seq": 1,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-01",
+        "value": "faff"
+      },
+      "case_id": "selection-01",
+      "result": {
+        "persisted": true,
+        "sha256": "523d5eba7897fa93fbbecccfebd1e18b6d752ff571a5ae615738b7dad9fe8b63",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 2,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-02",
+        "value": "faff-jot"
+      },
+      "case_id": "selection-02",
+      "result": {
+        "persisted": true,
+        "sha256": "62d09536daf781ee366a357176fe1f6514b8cb4c38d7c3a0d24ed7a64c3121f6",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 3,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-03",
+        "value": "faff-jot"
+      },
+      "case_id": "selection-03",
+      "result": {
+        "persisted": true,
+        "sha256": "62d09536daf781ee366a357176fe1f6514b8cb4c38d7c3a0d24ed7a64c3121f6",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 4,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-04",
+        "value": "faff-jot"
+      },
+      "case_id": "selection-04",
+      "result": {
+        "persisted": true,
+        "sha256": "62d09536daf781ee366a357176fe1f6514b8cb4c38d7c3a0d24ed7a64c3121f6",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 5,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-05",
+        "value": "faff-plot"
+      },
+      "case_id": "selection-05",
+      "result": {
+        "persisted": true,
+        "sha256": "ac2cbc8f0217ffa1a3ca42c25940147ef2e00d9a9e3f48790b3130ab8c77bab3",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 6,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-06",
+        "value": "faff-plot"
+      },
+      "case_id": "selection-06",
+      "result": {
+        "persisted": true,
+        "sha256": "ac2cbc8f0217ffa1a3ca42c25940147ef2e00d9a9e3f48790b3130ab8c77bab3",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 7,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-07",
+        "value": "faff-wtf"
+      },
+      "case_id": "selection-07",
+      "result": {
+        "persisted": true,
+        "sha256": "95027f295d0046e25993d063b1dea9381b82f4dcc53e316650b2ded64864bca9",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 8,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-08",
+        "value": "faff-map"
+      },
+      "case_id": "selection-08",
+      "result": {
+        "persisted": true,
+        "sha256": "3423a74bb38ac156d75194747641b9159c5704f1377e9866f4e4423f0cc79140",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 9,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-09",
+        "value": "faff-tidy"
+      },
+      "case_id": "selection-09",
+      "result": {
+        "persisted": true,
+        "sha256": "80b5b2dae6f39194c2c0ad5b774ada8d80e3873bdb9bd581291fbf4bee874f56",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 10,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-10",
+        "value": "faff-prep"
+      },
+      "case_id": "selection-10",
+      "result": {
+        "persisted": true,
+        "sha256": "6d7c7b463673016c975989e8f78f95da1a8df43a2e1ea81570f8c78781b2a777",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 11,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-11",
+        "value": "faff-graft"
+      },
+      "case_id": "selection-11",
+      "result": {
+        "persisted": true,
+        "sha256": "010b37bb2fb870bb262152d4daabe081c793d781a550dba389d3ccc634876d93",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 12,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-12",
+        "value": "faff-beep-boop"
+      },
+      "case_id": "selection-12",
+      "result": {
+        "persisted": true,
+        "sha256": "259e05881944907dfc4747f957ea179249b7001f1c00819b6aa959f433f5fa0f",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 13,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-13",
+        "value": "faff-onboard"
+      },
+      "case_id": "selection-13",
+      "result": {
+        "persisted": true,
+        "sha256": "4d5da62530e927c7f73e2139cc7fa76c2637d94b86501e44bf1a79a898cb5f09",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 14,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-14",
+        "value": "faffter-noon-intake"
+      },
+      "case_id": "selection-14",
+      "result": {
+        "persisted": true,
+        "sha256": "03a9b3c3e85ffe59ac620a97f59c5f8bb44a34803d9e4d00b8964fb5215da564",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 15,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-15",
+        "value": "faffter-noon-spec"
+      },
+      "case_id": "selection-15",
+      "result": {
+        "persisted": true,
+        "sha256": "c6d20b8b6f90bbdce0a6c653dfd328c89e4a60d3e4ce21ac4d991a835e9c793f",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 16,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-16",
+        "value": "faffter-dark-nlspec"
+      },
+      "case_id": "selection-16",
+      "result": {
+        "persisted": true,
+        "sha256": "791c2b3d3891db604a5c6a0e33a966fed493f6ae8cfc4b120eb69a4f7a4b46c7",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 17,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-17",
+        "value": "faffter-noon-spec-review"
+      },
+      "case_id": "selection-17",
+      "result": {
+        "persisted": true,
+        "sha256": "894a0b39551cd002d5b876b6fc3bc7f76988b6fca27db0191c63593c48d02dc2",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 18,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-18",
+        "value": "faffter-dark-spec-review"
+      },
+      "case_id": "selection-18",
+      "result": {
+        "persisted": true,
+        "sha256": "56916891a7c09564d20907ca6b18e8abb9abebe3f3a4edc1cd4d9cc7745cb5bd",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 19,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-19",
+        "value": "faffter-noon-review"
+      },
+      "case_id": "selection-19",
+      "result": {
+        "persisted": true,
+        "sha256": "5ed957c2845ddd5e442408fe9358a43adabaa2894a56065ff7af835860a2b3e4",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 20,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-20",
+        "value": "faffter-dark-adversarial-review"
+      },
+      "case_id": "selection-20",
+      "result": {
+        "persisted": true,
+        "sha256": "b1c5064276720de9ae61c7829c297a19dadc12a1a4c2024b21d6d157cfadf563",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 21,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-21",
+        "value": "faffter-noon-adr"
+      },
+      "case_id": "selection-21",
+      "result": {
+        "persisted": true,
+        "sha256": "e7630f7010b334891ef59b25d64820a0e0286f34c88f491645100064c296ea12",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 22,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-22",
+        "value": "faffter-noon-architecture"
+      },
+      "case_id": "selection-22",
+      "result": {
+        "persisted": true,
+        "sha256": "3ab12c4d5a9b77920dbb77767e4f0b6ea0be1b351cdb55eb84025b95815a13ff",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 23,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-23",
+        "value": "faffter-noon-env-compose"
+      },
+      "case_id": "selection-23",
+      "result": {
+        "persisted": true,
+        "sha256": "2499b5b3a36de382349ecd40728ab2b3d23fb95f1cbc900e457ab69d405712f9",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 24,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-24",
+        "value": "faffter-noon-env-code-interface"
+      },
+      "case_id": "selection-24",
+      "result": {
+        "persisted": true,
+        "sha256": "e7b540ed40fa29e3abe3d7ec49d04b6785742dcc5bc464b635af4eabe085a645",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 25,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-25",
+        "value": "faffter-noon-transport-private-network"
+      },
+      "case_id": "selection-25",
+      "result": {
+        "persisted": true,
+        "sha256": "3eff777f3ce57f2d723854423e341008005b574a1d4e44d39453281c4882408b",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 26,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-26",
+        "value": "faffter-noon-evaluate"
+      },
+      "case_id": "selection-26",
+      "result": {
+        "persisted": true,
+        "sha256": "3d8bbffa379baebf3a6f3c4c26dd8cb8509823b093e4cef41ad55afa5b9fb2bc",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 27,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-27",
+        "value": "faffter-noon-prd"
+      },
+      "case_id": "selection-27",
+      "result": {
+        "persisted": true,
+        "sha256": "0e6b5449f1a5151aeca8af968bd90eadd118780480aff745e4ad78263d8442ca",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 28,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-28",
+        "value": "faffter-noon-concurrency-sequential"
+      },
+      "case_id": "selection-28",
+      "result": {
+        "persisted": true,
+        "sha256": "dd6b948e550fa054543626e9287d61139c36796bc58f623b199fd86196e5a2db",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 29,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-29",
+        "value": "faffter-dark-concurrency-parallel"
+      },
+      "case_id": "selection-29",
+      "result": {
+        "persisted": true,
+        "sha256": "e04001e0c10c92f0de4d0796fcd7407ed73db7092d913689fe087f3a1496314d",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 30,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-30",
+        "value": "faffter-noon-methodology-thematic"
+      },
+      "case_id": "selection-30",
+      "result": {
+        "persisted": true,
+        "sha256": "16ebdeb2fd93adac97f63a71a189d8e13b003a5e1023a0650b7938ac318e5e32",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 31,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-31",
+        "value": "faffter-dark-methodology-agile-delivery"
+      },
+      "case_id": "selection-31",
+      "result": {
+        "persisted": true,
+        "sha256": "8089c15d8c3d39d9bef9ec47a9fcc353221678c2b3257b619812a27b45451195",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 32,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-32",
+        "value": "faffidavit-routing"
+      },
+      "case_id": "selection-32",
+      "result": {
+        "persisted": true,
+        "sha256": "7df8166691d22cfca19493f2191910d7f8d4327dbff3b2fddb176fbab7c2374f",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 33,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-33",
+        "value": "faffidavit-rendering"
+      },
+      "case_id": "selection-33",
+      "result": {
+        "persisted": true,
+        "sha256": "f703d8fb5a7e3561e627f9ff13cb7e8e93050a654e138359f33c0851acafb293",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 34,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-34",
+        "value": "faffter-noon-ship"
+      },
+      "case_id": "selection-34",
+      "result": {
+        "persisted": true,
+        "sha256": "32d57f458e65d305b0ebfa64703eb16c40b413a49efe6a4fa1571a1448ee5bcd",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 35,
+      "name": "submit_output",
+      "args": {
+        "case_id": "selection-35",
+        "value": "faffter-dark-authoring-adaptors"
+      },
+      "case_id": "selection-35",
+      "result": {
+        "persisted": true,
+        "sha256": "2541bd9c02631cfdab5af2e844d7f78b70dda3a673737113b30758139bb46d82",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 36,
+      "name": "finish",
+      "args": {},
+      "case_id": null,
+      "result": {
+        "finished": true
+      }
+    }
+  ],
+  "errors": [],
+  "outputs": [
+    {
+      "id": "selection-01",
+      "value": "faff",
+      "consumed": [],
+      "persisted_sha256": "523d5eba7897fa93fbbecccfebd1e18b6d752ff571a5ae615738b7dad9fe8b63"
+    },
+    {
+      "id": "selection-02",
+      "value": "faff-jot",
+      "consumed": [],
+      "persisted_sha256": "62d09536daf781ee366a357176fe1f6514b8cb4c38d7c3a0d24ed7a64c3121f6"
+    },
+    {
+      "id": "selection-03",
+      "value": "faff-jot",
+      "consumed": [],
+      "persisted_sha256": "62d09536daf781ee366a357176fe1f6514b8cb4c38d7c3a0d24ed7a64c3121f6"
+    },
+    {
+      "id": "selection-04",
+      "value": "faff-jot",
+      "consumed": [],
+      "persisted_sha256": "62d09536daf781ee366a357176fe1f6514b8cb4c38d7c3a0d24ed7a64c3121f6"
+    },
+    {
+      "id": "selection-05",
+      "value": "faff-plot",
+      "consumed": [],
+      "persisted_sha256": "ac2cbc8f0217ffa1a3ca42c25940147ef2e00d9a9e3f48790b3130ab8c77bab3"
+    },
+    {
+      "id": "selection-06",
+      "value": "faff-plot",
+      "consumed": [],
+      "persisted_sha256": "ac2cbc8f0217ffa1a3ca42c25940147ef2e00d9a9e3f48790b3130ab8c77bab3"
+    },
+    {
+      "id": "selection-07",
+      "value": "faff-wtf",
+      "consumed": [],
+      "persisted_sha256": "95027f295d0046e25993d063b1dea9381b82f4dcc53e316650b2ded64864bca9"
+    },
+    {
+      "id": "selection-08",
+      "value": "faff-map",
+      "consumed": [],
+      "persisted_sha256": "3423a74bb38ac156d75194747641b9159c5704f1377e9866f4e4423f0cc79140"
+    },
+    {
+      "id": "selection-09",
+      "value": "faff-tidy",
+      "consumed": [],
+      "persisted_sha256": "80b5b2dae6f39194c2c0ad5b774ada8d80e3873bdb9bd581291fbf4bee874f56"
+    },
+    {
+      "id": "selection-10",
+      "value": "faff-prep",
+      "consumed": [],
+      "persisted_sha256": "6d7c7b463673016c975989e8f78f95da1a8df43a2e1ea81570f8c78781b2a777"
+    },
+    {
+      "id": "selection-11",
+      "value": "faff-graft",
+      "consumed": [],
+      "persisted_sha256": "010b37bb2fb870bb262152d4daabe081c793d781a550dba389d3ccc634876d93"
+    },
+    {
+      "id": "selection-12",
+      "value": "faff-beep-boop",
+      "consumed": [],
+      "persisted_sha256": "259e05881944907dfc4747f957ea179249b7001f1c00819b6aa959f433f5fa0f"
+    },
+    {
+      "id": "selection-13",
+      "value": "faff-onboard",
+      "consumed": [],
+      "persisted_sha256": "4d5da62530e927c7f73e2139cc7fa76c2637d94b86501e44bf1a79a898cb5f09"
+    },
+    {
+      "id": "selection-14",
+      "value": "faffter-noon-intake",
+      "consumed": [],
+      "persisted_sha256": "03a9b3c3e85ffe59ac620a97f59c5f8bb44a34803d9e4d00b8964fb5215da564"
+    },
+    {
+      "id": "selection-15",
+      "value": "faffter-noon-spec",
+      "consumed": [],
+      "persisted_sha256": "c6d20b8b6f90bbdce0a6c653dfd328c89e4a60d3e4ce21ac4d991a835e9c793f"
+    },
+    {
+      "id": "selection-16",
+      "value": "faffter-dark-nlspec",
+      "consumed": [],
+      "persisted_sha256": "791c2b3d3891db604a5c6a0e33a966fed493f6ae8cfc4b120eb69a4f7a4b46c7"
+    },
+    {
+      "id": "selection-17",
+      "value": "faffter-noon-spec-review",
+      "consumed": [],
+      "persisted_sha256": "894a0b39551cd002d5b876b6fc3bc7f76988b6fca27db0191c63593c48d02dc2"
+    },
+    {
+      "id": "selection-18",
+      "value": "faffter-dark-spec-review",
+      "consumed": [],
+      "persisted_sha256": "56916891a7c09564d20907ca6b18e8abb9abebe3f3a4edc1cd4d9cc7745cb5bd"
+    },
+    {
+      "id": "selection-19",
+      "value": "faffter-noon-review",
+      "consumed": [],
+      "persisted_sha256": "5ed957c2845ddd5e442408fe9358a43adabaa2894a56065ff7af835860a2b3e4"
+    },
+    {
+      "id": "selection-20",
+      "value": "faffter-dark-adversarial-review",
+      "consumed": [],
+      "persisted_sha256": "b1c5064276720de9ae61c7829c297a19dadc12a1a4c2024b21d6d157cfadf563"
+    },
+    {
+      "id": "selection-21",
+      "value": "faffter-noon-adr",
+      "consumed": [],
+      "persisted_sha256": "e7630f7010b334891ef59b25d64820a0e0286f34c88f491645100064c296ea12"
+    },
+    {
+      "id": "selection-22",
+      "value": "faffter-noon-architecture",
+      "consumed": [],
+      "persisted_sha256": "3ab12c4d5a9b77920dbb77767e4f0b6ea0be1b351cdb55eb84025b95815a13ff"
+    },
+    {
+      "id": "selection-23",
+      "value": "faffter-noon-env-compose",
+      "consumed": [],
+      "persisted_sha256": "2499b5b3a36de382349ecd40728ab2b3d23fb95f1cbc900e457ab69d405712f9"
+    },
+    {
+      "id": "selection-24",
+      "value": "faffter-noon-env-code-interface",
+      "consumed": [],
+      "persisted_sha256": "e7b540ed40fa29e3abe3d7ec49d04b6785742dcc5bc464b635af4eabe085a645"
+    },
+    {
+      "id": "selection-25",
+      "value": "faffter-noon-transport-private-network",
+      "consumed": [],
+      "persisted_sha256": "3eff777f3ce57f2d723854423e341008005b574a1d4e44d39453281c4882408b"
+    },
+    {
+      "id": "selection-26",
+      "value": "faffter-noon-evaluate",
+      "consumed": [],
+      "persisted_sha256": "3d8bbffa379baebf3a6f3c4c26dd8cb8509823b093e4cef41ad55afa5b9fb2bc"
+    },
+    {
+      "id": "selection-27",
+      "value": "faffter-noon-prd",
+      "consumed": [],
+      "persisted_sha256": "0e6b5449f1a5151aeca8af968bd90eadd118780480aff745e4ad78263d8442ca"
+    },
+    {
+      "id": "selection-28",
+      "value": "faffter-noon-concurrency-sequential",
+      "consumed": [],
+      "persisted_sha256": "dd6b948e550fa054543626e9287d61139c36796bc58f623b199fd86196e5a2db"
+    },
+    {
+      "id": "selection-29",
+      "value": "faffter-dark-concurrency-parallel",
+      "consumed": [],
+      "persisted_sha256": "e04001e0c10c92f0de4d0796fcd7407ed73db7092d913689fe087f3a1496314d"
+    },
+    {
+      "id": "selection-30",
+      "value": "faffter-noon-methodology-thematic",
+      "consumed": [],
+      "persisted_sha256": "16ebdeb2fd93adac97f63a71a189d8e13b003a5e1023a0650b7938ac318e5e32"
+    },
+    {
+      "id": "selection-31",
+      "value": "faffter-dark-methodology-agile-delivery",
+      "consumed": [],
+      "persisted_sha256": "8089c15d8c3d39d9bef9ec47a9fcc353221678c2b3257b619812a27b45451195"
+    },
+    {
+      "id": "selection-32",
+      "value": "faffidavit-routing",
+      "consumed": [],
+      "persisted_sha256": "7df8166691d22cfca19493f2191910d7f8d4327dbff3b2fddb176fbab7c2374f"
+    },
+    {
+      "id": "selection-33",
+      "value": "faffidavit-rendering",
+      "consumed": [],
+      "persisted_sha256": "f703d8fb5a7e3561e627f9ff13cb7e8e93050a654e138359f33c0851acafb293"
+    },
+    {
+      "id": "selection-34",
+      "value": "faffter-noon-ship",
+      "consumed": [],
+      "persisted_sha256": "32d57f458e65d305b0ebfa64703eb16c40b413a49efe6a4fa1571a1448ee5bcd"
+    },
+    {
+      "id": "selection-35",
+      "value": "faffter-dark-authoring-adaptors",
+      "consumed": [],
+      "persisted_sha256": "2541bd9c02631cfdab5af2e844d7f78b70dda3a673737113b30758139bb46d82"
+    }
+  ]
+}

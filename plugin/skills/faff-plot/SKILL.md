@@ -1,6 +1,6 @@
 ---
 name: faff-plot
-description: "Turn an application-scale idea into a planned, dependency-linked roadmap. Recurses a discovery brief top-down into initiatives → projects → first-slice epics. Use for 'plan this out', 'decompose this app', 'break this big thing into a roadmap', 'map out the whole project', 'plot the build'. Or `/faff-plot rehome` to run the whole-backlog rehoming pass — group loose Backlog work into human-confirmed outcome-led projects ('sort out the loose backlog', 'rehome the backlog')."
+description: "Plan an application-scale idea as initiatives, projects and first-slice epics. Use rehome to group loose Backlog work into human-confirmed outcome projects."
 judgement_seam: decomposition
 ---
 

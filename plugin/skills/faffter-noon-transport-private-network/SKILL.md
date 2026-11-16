@@ -1,6 +1,6 @@
 ---
 name: faffter-noon-transport-private-network
-description: "Default `transport` slot occupant — the private-network reachability resolver. Given the provision context, resolves the base host the evaluator uses to reach the system under build over a private network where network-layer segmentation alone satisfies \"only the evaluator can reach it\". Runs as a configured slot, not the user `/` menu."
+description: "Default transport slot: resolve the evaluator host over a private network whose segmentation provides evaluator-only access to the system under build."
 user-invocable: false
 judgement_seam: none
 ---

@@ -1,6 +1,6 @@
 ---
 name: faffter-noon-ship
-description: "Default `ship` producer — merges a gate-cleared PR through the faff merge-gate interlock (never a raw gh merge), no-op deploy-readiness, emits a native delivery result + a faff-contract:delivery-outcome block faff-graft consumes. Swap for a deploy-capable producer. Runs as a configured slot, not the user `/` menu."
+description: "Default ship producer: merge a gate-cleared PR through the merge-gate interlock, with no-op deployment; return native delivery result and delivery-outcome."
 user-invocable: false
 judgement_seam: none
 ---

@@ -1,6 +1,6 @@
 ---
 name: faffter-noon-spec-review
-description: "Default `spec_review` slot occupant — the L1–L3 single-pass spec reviewer. Runs four lenses (architectural / infosec / methodology / QA) as one checklist pass over a freshly-rated spec and emits a founded `faff-contract:spec-review-verdict` block. Runs as a configured slot, not the user `/` menu."
+description: "Default L1-L3 spec_review slot: one architectural, infosec, methodology and QA checklist pass over a freshly rated spec; emit a founded spec-review verdict."
 judgement_seam: spec-verdict
 user-invocable: false
 ---

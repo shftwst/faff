@@ -1,23 +1,23 @@
 {
   "schema": 1,
   "files": {
-    "faff-beep-boop/SKILL.md": 157720,
+    "faff-beep-boop/SKILL.md": 157561,
 
-    "faff-graft/SKILL.md": 178859,
+    "faff-graft/SKILL.md": 178777,
 
     "faff-jot/SKILL.md": 23456,
 
-    "faff-map/SKILL.md": 24782,
+    "faff-map/SKILL.md": 24535,
 
-    "faff-onboard/SKILL.md": 23185,
+    "faff-onboard/SKILL.md": 23039,
 
-    "faff-plot/SKILL.md": 45906,
+    "faff-plot/SKILL.md": 45580,
 
     "faff-prep/SKILL.md": 104335,
 
-    "faff-tidy/SKILL.md": 76181,
+    "faff-tidy/SKILL.md": 76028,
 
-    "faff-wtf/SKILL.md": 31551,
+    "faff-wtf/SKILL.md": 31369,
 
     "faff/SKILL.md": 5832,
 
@@ -41,46 +41,46 @@
 
     "faffidavit-rendering/SKILL.md": 11288,
 
-    "faffidavit-routing/SKILL.md": 11236,
+    "faffidavit-routing/SKILL.md": 11144,
 
     "faffter-dark-adversarial-review/SKILL.md": 22259,
 
-    "faffter-dark-authoring-adaptors/SKILL.md": 12540,
+    "faffter-dark-authoring-adaptors/SKILL.md": 12321,
 
-    "faffter-dark-concurrency-parallel/SKILL.md": 25766,
+    "faffter-dark-concurrency-parallel/SKILL.md": 25665,
 
-    "faffter-dark-methodology-agile-delivery/SKILL.md": 45057,
+    "faffter-dark-methodology-agile-delivery/SKILL.md": 44947,
 
-    "faffter-dark-nlspec/SKILL.md": 18823,
+    "faffter-dark-nlspec/SKILL.md": 18819,
 
-    "faffter-dark-spec-review/SKILL.md": 40715,
+    "faffter-dark-spec-review/SKILL.md": 40496,
 
-    "faffter-noon-adr/SKILL.md": 4460,
+    "faffter-noon-adr/SKILL.md": 4238,
 
-    "faffter-noon-architecture/SKILL.md": 4967,
+    "faffter-noon-architecture/SKILL.md": 4787,
 
-    "faffter-noon-concurrency-sequential/SKILL.md": 18605,
+    "faffter-noon-concurrency-sequential/SKILL.md": 18512,
 
-    "faffter-noon-env-code-interface/SKILL.md": 9862,
+    "faffter-noon-env-code-interface/SKILL.md": 9602,
 
-    "faffter-noon-env-compose/SKILL.md": 12443,
+    "faffter-noon-env-compose/SKILL.md": 12232,
 
-    "faffter-noon-evaluate/SKILL.md": 16192,
+    "faffter-noon-evaluate/SKILL.md": 15939,
 
-    "faffter-noon-intake/SKILL.md": 7715,
+    "faffter-noon-intake/SKILL.md": 7622,
 
     "faffter-noon-methodology-thematic/SKILL.md": 35118,
 
-    "faffter-noon-prd/SKILL.md": 4517,
+    "faffter-noon-prd/SKILL.md": 4214,
 
-    "faffter-noon-review/SKILL.md": 13503,
+    "faffter-noon-review/SKILL.md": 13405,
 
-    "faffter-noon-ship/SKILL.md": 14189,
+    "faffter-noon-ship/SKILL.md": 14027,
 
-    "faffter-noon-spec-review/SKILL.md": 9605,
+    "faffter-noon-spec-review/SKILL.md": 9460,
 
-    "faffter-noon-spec/SKILL.md": 17919,
+    "faffter-noon-spec/SKILL.md": 17847,
 
-    "faffter-noon-transport-private-network/SKILL.md": 6442
+    "faffter-noon-transport-private-network/SKILL.md": 6250
   }
 }

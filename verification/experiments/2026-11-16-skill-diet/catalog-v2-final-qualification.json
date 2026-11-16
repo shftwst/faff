@@ -1,0 +1,45 @@
+{
+  "status": "qualified-bounded-catalogue-description-cut",
+  "qualification": "catalog-v2-qualification.json",
+  "qualification_sha256": "300fae7f3ae4ce360d1c5decc863b592ea9052afb3ad8a7ad5b757f09dbdbc7f",
+  "source_review": "catalog-v2-source-review.json",
+  "source_review_sha256": "e4c81b9af0ea76bde7099d0293bf0da0dabc3dccf224101c148c035d02941c97",
+  "changed_descriptions": 26,
+  "all_non_description_hashes_match": true,
+  "source_review_notes": "Compared each shortened description with its original role, trigger and slot distinction. The invocability flag is unchanged. Jot and prep overlapping entry descriptions remain verbatim after the first candidate regression. Only discovery wording changed; runtime contract detail stays in unchanged bodies.",
+  "arms": {
+    "baseline": {
+      "case_kinds": {
+        "decision": {
+          "passed": 175,
+          "total": 175
+        }
+      },
+      "runs": 5,
+      "passed": 175,
+      "total": 175,
+      "recorded_data_bytes": 135705,
+      "estimated_recorded_data_tokens": 34025
+    },
+    "candidate": {
+      "case_kinds": {
+        "decision": {
+          "passed": 175,
+          "total": 175
+        }
+      },
+      "runs": 5,
+      "passed": 175,
+      "total": 175,
+      "recorded_data_bytes": 112880,
+      "estimated_recorded_data_tokens": 28315
+    }
+  },
+  "saved_bytes": 4324,
+  "saved_estimated_tokens": 1067,
+  "limits": [
+    "Catalogue requests check discovery choice only; no selected body workflow is executed.",
+    "Five correlated samples per arm do not establish statistical equivalence.",
+    "No new mandatory reads. Token estimates are not provider usage."
+  ]
+}

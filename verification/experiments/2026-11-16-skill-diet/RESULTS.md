@@ -362,3 +362,18 @@ of bridge commands. V3 is not qualified; all original evidence remains. V4
 explicitly forbids variables and command-prefix abbreviations in both arms,
 with the same policies, fixture, initial guidance and real CLI. No samples are
 pooled across treatments.
+
+## Thematic read-only cut qualified
+
+Five samples per arm pass 60/60 decisions, 15/15 persisted ticket proposals and
+five termination-policy outputs. Those policies pass 45/45 real run-done scenario
+consumptions and 45/45 contract validations per arm. All ten native audits pass.
+Root read all 30 proposals: the rate-limit question, split concerns, dependency,
+Backlog status and empty thin branch remain faithful. Six untested/mutation
+sections, the appetite table and topology-write authority stay byte-identical.
+
+The cut removes 5,700 bytes and 1,391 estimated tokens. Accepted totals are now
+83,165 bytes and 20,494 tokens across four body cuts and 26 descriptions.
+The committed 41-file set is 1,286,270 bytes and 318,785 estimated tokens,
+bound to commit 3ff076df. All 421 deleted blocks are covered: 19 moved and
+402 mapped. Kernel and WTF working body candidates remain excluded.

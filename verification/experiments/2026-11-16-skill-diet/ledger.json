@@ -962,17 +962,102 @@
           "No new mandatory reads. Token estimates are not provider usage."
         ]
       }
+    },
+    {
+      "skill": "faffter-noon-methodology-thematic",
+      "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+      "status": "draft-qualified-bounded-thematic-readonly",
+      "before": {
+        "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+        "bytes": 35118,
+        "sha256": "5c5ccd71a7bce35a406be9381acd606f3ae8af51622ddedbe0a28a503ba0c797",
+        "characters": 34686,
+        "estimated_tokens": 8672
+      },
+      "after": {
+        "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+        "bytes": 29418,
+        "characters": 29122,
+        "estimated_tokens": 7281,
+        "sha256": "07dc585871f8f70c523e164be3bfa28855f303289a0488af7b00f7c734d58f3f"
+      },
+      "bytes_saved": 5700,
+      "estimated_tokens_saved": 1391,
+      "mandatory_dependencies_added": [],
+      "qualification": "thematic-v1-qualification.json",
+      "fidelity": {
+        "kind": "named-output-artifacts-decisions-and-cli-consumption",
+        "baseline": {
+          "case_kinds": {
+            "decision": {
+              "passed": 60,
+              "total": 60
+            },
+            "artifact": {
+              "passed": 15,
+              "total": 15
+            },
+            "consumer": {
+              "passed": 5,
+              "total": 5
+            }
+          },
+          "runs": 5,
+          "passed": 80,
+          "total": 80,
+          "recorded_data_bytes": 936540,
+          "estimated_recorded_data_tokens": 232245
+        },
+        "candidate": {
+          "case_kinds": {
+            "decision": {
+              "passed": 60,
+              "total": 60
+            },
+            "artifact": {
+              "passed": 15,
+              "total": 15
+            },
+            "consumer": {
+              "passed": 5,
+              "total": 5
+            }
+          },
+          "runs": 5,
+          "passed": 80,
+          "total": 80,
+          "recorded_data_bytes": 907315,
+          "estimated_recorded_data_tokens": 225115
+        },
+        "actual_cli_consumer_cases": {
+          "baseline": {
+            "passed": 45,
+            "total": 45
+          },
+          "candidate": {
+            "passed": 45,
+            "total": 45
+          }
+        },
+        "artifact_review": "thematic-v1-artifact-review.json",
+        "limits": [
+          "Controlled fresh snapshots; no live tracker acquisition or mutation.",
+          "No unrestricted ticket-shaping quality or full-caller equivalence claim.",
+          "Six mutation/untested sections, appetite table and topology authority are byte-identical.",
+          "Five samples per arm, not statistical equivalence. Source/payload token estimates are not provider billing."
+        ]
+      }
     }
   ],
   "source_total": {
     "before_bytes": 1369435,
-    "after_bytes": 1291970,
+    "after_bytes": 1286270,
     "before_estimated_tokens": 339279,
-    "after_estimated_tokens": 320176
+    "after_estimated_tokens": 318785
   },
   "load_manifest": "load-manifest.json",
   "baseline_loads": "baseline/loads.json",
-  "latest_loads": "catalog-v2-after-loads.json",
+  "latest_loads": "thematic-v1-after-loads.json",
   "pending_slices": [
     {
       "path": "plugin/skills/faff/references/kernel.md",
@@ -983,15 +1068,6 @@
       "before_estimated_tokens": 23652,
       "candidate_estimated_tokens": 20857,
       "prior_treatment": "kernel-config-v3-native-review.json"
-    },
-    {
-      "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
-      "status": "Paired named-output and CLI-consumption comparison running; not counted",
-      "candidate": "candidates/thematic-v1.md",
-      "before_bytes": 35118,
-      "candidate_bytes": 29418,
-      "before_estimated_tokens": 8672,
-      "candidate_estimated_tokens": 7281
     }
   ]
 }

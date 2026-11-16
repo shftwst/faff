@@ -8,13 +8,62 @@ they are not provider usage or a measured cost saving.
 | Skill | Bytes before | Bytes after | Saved | Estimated tokens before | After | Saved |
 |---|---:|---:|---:|---:|---:|---:|
 | Gateway (`faff`) | 12,984 | 5,832 | 7,152 (55.1%) | 3,222 | 1,458 | 1,764 (54.7%) |
+| Adversarial review | 74,897 | 22,269 | 52,628 (70.3%) | 18,574 | 5,568 | 13,006 (70.0%) |
+| Changed files combined | 87,881 | 28,101 | 59,780 (68.0%) | 21,796 | 7,026 | 14,770 (67.8%) |
 
 The complete tracked skill source set started at 1,369,435 bytes and 339,279
-estimated tokens. It is now 1,362,283 bytes and 337,515 estimated tokens. These
+estimated tokens. It is now 1,309,655 bytes and 324,509 estimated tokens. These
 totals describe all 41 source files, not one invocation's prompt. No mandatory
 dependency was added. The gateway saving applies to bare gateway loading and its
 discovery description; specific heavy entry skills already load the kernel
 directly and do not inherit this saving.
+
+`load-manifest.json` records the nine entry skills' declared cold reads plus the
+bare gateway. Each dependency is counted once and missing files fail the tally.
+Map and wtf explicitly exclude the autonomous reference. These entry sets exclude
+delegated skills, dynamic outputs, catalog, system prompts and history; review
+stage savings are reported separately rather than attributed to every entry.
+
+## Adversarial-review fidelity
+
+The original and final candidate each passed all 37 workflow decisions in five
+fresh Claude samples: 185/185 per arm. Cases cover Phase-1 short circuit,
+interactive versus unattended criticals, fixture caps, configuration and helper
+exits, L4 mandatory review, run-dir forwarding, checkpoints, carry handles,
+attribution, trim/default settings, ADR/PRDR contracts and rebuttals.
+
+Both versions also passed eight artifact-review cases in five fresh samples:
+40/40 per arm, including two clean cases. Six cases come from the existing
+refutation-code suite; two test lost concurrent updates and a no-op implementation
+with a vacuous test. An existing purportedly clean psql example was excluded
+before measurement because its shown invocation does not implement the binding
+its oracle assumes. The source hashes and reason are in
+`adversarial-quality-sources.json`. Both arms receive the same required 897-byte
+fixture guidance. These quality fixtures were frozen after candidate authoring,
+before any quality response; they are additional checks, not a preregistered
+holdout.
+
+The workflow fixture went through explicit answer-format corrections. All raw
+versions remain: the first draft used an invalid Phase-1 verdict name; later
+wording ambiguously requested a full command or command name. The flagged
+baseline/candidate answers named the right helper path but differed in whether
+they included flags or the CLI prefix. Final v5 requests executable and subcommand
+as separate array elements. The semantic requirements were unchanged. The latest
+preliminary no-policy control passed 11/37; its fixture differs in that formatting
+question, so it is not pooled into the final comparison.
+
+Static checks also caught two candidate-v1 issues: the fixture-cap set name must
+remain visible beside the escalation set, and ADR outcomes must use the canonical
+CLI describe surface rather than a copied enum. Candidate v2 fixes both. Original
+helper coverage passed 551 tests. After the final prompt and ratchet changes,
+99 targeted tests passed, including the affected cap/adapter checks, size tests
+and the exact-decision/load-set grader tests. The intermediate broad run passed
+591 tests and exposed those two static failures; it is not reported as green.
+
+The new operator configuration page is optional reference, not another mandatory
+review read. No helper behaviour, default or model choice changed. These small,
+correlated samples support the tested decisions and defect examples; they do not
+establish statistical non-inferiority or exercise the full two-model pipeline.
 
 ## Gateway fidelity
 
@@ -45,7 +94,7 @@ raw answer was retained and graded once, with no model retry.
 
 ## Deterministic checks
 
-64 targeted tests pass: decline-path housekeeping, adapter validation, prose-size
+64 gateway targeted tests pass: decline-path housekeeping, adapter validation, prose-size
 ratchets and malformed/missing/duplicate/unsafe-action grader cases. The gateway's
 byte and line baselines were lowered. Rule inventory is checked against the
 12-hour baseline before publishing the slice.

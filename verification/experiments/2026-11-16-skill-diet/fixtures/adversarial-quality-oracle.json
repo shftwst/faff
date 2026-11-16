@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "expected": {
+    "refutation-code-001": true,
+    "refutation-code-002": true,
+    "refutation-code-003": true,
+    "refutation-code-004": false,
+    "refutation-code-006": false,
+    "refutation-code-007": true,
+    "review-lens-concurrent-balance": true,
+    "review-lens-noop-report": true
+  }
+}

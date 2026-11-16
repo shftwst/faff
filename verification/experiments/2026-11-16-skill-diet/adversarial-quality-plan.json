@@ -1,0 +1,57 @@
+{
+  "skill": "faffter-dark-adversarial-review",
+  "fixture": "fixtures/adversarial-quality-input.json",
+  "oracle": "fixtures/adversarial-quality-oracle.json",
+  "samples": [
+    {
+      "name": "adversarial-quality-baseline-1",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    },
+    {
+      "name": "adversarial-quality-candidate-1",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v2.md"
+    },
+    {
+      "name": "adversarial-quality-candidate-2",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v2.md"
+    },
+    {
+      "name": "adversarial-quality-baseline-2",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    },
+    {
+      "name": "adversarial-quality-baseline-3",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    },
+    {
+      "name": "adversarial-quality-candidate-3",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v2.md"
+    },
+    {
+      "name": "adversarial-quality-candidate-4",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v2.md"
+    },
+    {
+      "name": "adversarial-quality-baseline-4",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    },
+    {
+      "name": "adversarial-quality-baseline-5",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    },
+    {
+      "name": "adversarial-quality-candidate-5",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v2.md"
+    }
+  ]
+}

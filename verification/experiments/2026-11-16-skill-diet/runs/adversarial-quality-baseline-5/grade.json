@@ -1,0 +1,41 @@
+{
+  "status": "pass",
+  "total": 8,
+  "passed": 8,
+  "failed": 0,
+  "errors": [],
+  "cases": [
+    {
+      "id": "refutation-code-001",
+      "pass": true
+    },
+    {
+      "id": "refutation-code-002",
+      "pass": true
+    },
+    {
+      "id": "refutation-code-003",
+      "pass": true
+    },
+    {
+      "id": "refutation-code-004",
+      "pass": true
+    },
+    {
+      "id": "refutation-code-006",
+      "pass": true
+    },
+    {
+      "id": "refutation-code-007",
+      "pass": true
+    },
+    {
+      "id": "review-lens-concurrent-balance",
+      "pass": true
+    },
+    {
+      "id": "review-lens-noop-report",
+      "pass": true
+    }
+  ]
+}

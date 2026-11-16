@@ -1,0 +1,28 @@
+{
+  "exit_code": 1,
+  "stdout": "{\n  \"ok\": false,\n  \"error\": \"worker did not return within timeout\"\n}\n",
+  "stderr": "",
+  "completion": {
+    "ok": true,
+    "status": {
+      "agent": {
+        "agent": "claude",
+        "agent_status": "idle",
+        "completion_seq": 203,
+        "cwd": "/Users/shftwst/workspace/shftwst/faff",
+        "focused": false,
+        "foreground_cwd": "/Users/shftwst/workspace/shftwst/faff",
+        "pane_id": "w657ad5a31a8d61:p6",
+        "revision": 82,
+        "state_change_seq": 203,
+        "tab_id": "w657ad5a31a8d61:t1",
+        "terminal_id": "term_6605714b8ac1a6",
+        "terminal_title": "\u2733 Skill-diet adversarial-review baseline 4",
+        "terminal_title_stripped": "Skill-diet adversarial-review baseline 4",
+        "workspace_id": "w657ad5a31a8d61"
+      },
+      "type": "agent_info"
+    }
+  },
+  "elapsed_seconds": 19.90593981742859
+}

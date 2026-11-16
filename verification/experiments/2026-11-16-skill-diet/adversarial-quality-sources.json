@@ -1,0 +1,36 @@
+{
+  "source_cases": [
+    {
+      "path": "eval/cases/refutation-code-001.json",
+      "sha256": "519c392e15e538ff5fba459586766b21ccdb8b3cc471f75f002e052b75d04482"
+    },
+    {
+      "path": "eval/cases/refutation-code-002.json",
+      "sha256": "65e3c4a4e4af0b50cf78c8fcf9f0e8e1dbdda02d97f9a99f9e69bbfc5e45cb73"
+    },
+    {
+      "path": "eval/cases/refutation-code-003.json",
+      "sha256": "09545184973f97b51fa18b1ea756309564f7b8640acbf9300ce3decccb209aa2"
+    },
+    {
+      "path": "eval/cases/refutation-code-004.json",
+      "sha256": "147a4da3dde0ad1304710c0dda89a50b169e0c4990323349b978b99110643c6a"
+    },
+    {
+      "path": "eval/cases/refutation-code-006.json",
+      "sha256": "0df48e13b7be74264d18761b81e12e9b9eb20c8361937075b937247a37827658"
+    },
+    {
+      "path": "eval/cases/refutation-code-007.json",
+      "sha256": "e0ac12d4d53c139e8f3cd9e73ea48bfb45ca8d706160ed8b75bb083ea7428f37"
+    }
+  ],
+  "new_cases": [
+    "review-lens-concurrent-balance",
+    "review-lens-noop-report"
+  ],
+  "excluded_before_any_measurement": {
+    "refutation-code-005": "The purported clean psql example uses question-mark placeholders and claims stdin binding that the shown psql call does not implement. Its clean oracle is not suitable evidence for this comparison."
+  },
+  "scope": "Eight artifact-judgement probes, including two clean cases; not a full two-model review execution. Frozen after candidate v2 authoring, before any quality response."
+}

@@ -1,0 +1,135 @@
+{
+  "schema": 1,
+  "baseline_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "interpretation": "Declared entry preamble files, loaded once each. Excludes catalog, system/developer prompts, delegated skills, dynamic outputs and history. Same-context nesting unions files; do not add entry totals. Sets verified against baseline and current preambles.",
+  "sets": [
+    {
+      "name": "faff",
+      "files": [
+        "plugin/skills/faff/SKILL.md"
+      ]
+    },
+    {
+      "name": "faff-beep-boop",
+      "files": [
+        "plugin/skills/faff-beep-boop/SKILL.md",
+        "plugin/skills/faff/references/kernel.md",
+        "plugin/skills/faff/references/build.md",
+        "plugin/skills/faff/references/tracker.md",
+        "plugin/skills/faff/references/autonomous.md",
+        "plugin/skills/faff/references/methodology.md",
+        "plugin/skills/faff/references/l4.md",
+        "plugin/skills/faff/references/park.md"
+      ],
+      "preamble_sha256": "c345ceb4e1ff54027e18f7b798b2d8eb794b968b489b4d8b2f51c7851fa4a987",
+      "explicitly_not_loaded": []
+    },
+    {
+      "name": "faff-graft",
+      "files": [
+        "plugin/skills/faff-graft/SKILL.md",
+        "plugin/skills/faff/references/kernel.md",
+        "plugin/skills/faff/references/build.md",
+        "plugin/skills/faff/references/tracker.md",
+        "plugin/skills/faff/references/autonomous.md",
+        "plugin/skills/faff/references/review.md",
+        "plugin/skills/faff/references/methodology.md",
+        "plugin/skills/faff/references/l4.md",
+        "plugin/skills/faff/references/park.md"
+      ],
+      "preamble_sha256": "7b35282fa81156c7683ceb11c708c2e8419ccad61f4f50b6eccad6516b2b07b7",
+      "explicitly_not_loaded": []
+    },
+    {
+      "name": "faff-jot",
+      "files": [
+        "plugin/skills/faff-jot/SKILL.md",
+        "plugin/skills/faff/references/kernel.md",
+        "plugin/skills/faff/references/tracker.md",
+        "plugin/skills/faff/references/autonomous.md",
+        "plugin/skills/faff/references/methodology.md",
+        "plugin/skills/faff/references/create.md"
+      ],
+      "preamble_sha256": "4e9a92b9c374f6284c21a7da28f7c1f46bbbd2a34f7f62454f862dddf5eabb4c",
+      "explicitly_not_loaded": []
+    },
+    {
+      "name": "faff-map",
+      "files": [
+        "plugin/skills/faff-map/SKILL.md",
+        "plugin/skills/faff/references/kernel.md",
+        "plugin/skills/faff/references/tracker.md",
+        "plugin/skills/faff/references/methodology.md"
+      ],
+      "preamble_sha256": "38c1b39db7e75b57d9235f8a8ed604b91805f3af862d48011fbe4edc0846f56b",
+      "explicitly_not_loaded": [
+        "plugin/skills/faff/references/autonomous.md"
+      ]
+    },
+    {
+      "name": "faff-onboard",
+      "files": [
+        "plugin/skills/faff-onboard/SKILL.md",
+        "plugin/skills/faff/references/kernel.md",
+        "plugin/skills/faff/references/tracker.md"
+      ],
+      "preamble_sha256": "4eb4626e81eccf0fc14863b2bc27f3b9167e68ef2488f8a6d164278897484556",
+      "explicitly_not_loaded": []
+    },
+    {
+      "name": "faff-plot",
+      "files": [
+        "plugin/skills/faff-plot/SKILL.md",
+        "plugin/skills/faff/references/kernel.md",
+        "plugin/skills/faff/references/tracker.md",
+        "plugin/skills/faff/references/autonomous.md",
+        "plugin/skills/faff/references/methodology.md",
+        "plugin/skills/faff/references/create.md",
+        "plugin/skills/faff/references/park.md"
+      ],
+      "preamble_sha256": "d344036380dc563798e78774596b929826dd95de4e43b314405a03663adcb9ac",
+      "explicitly_not_loaded": []
+    },
+    {
+      "name": "faff-prep",
+      "files": [
+        "plugin/skills/faff-prep/SKILL.md",
+        "plugin/skills/faff/references/kernel.md",
+        "plugin/skills/faff/references/tracker.md",
+        "plugin/skills/faff/references/autonomous.md",
+        "plugin/skills/faff/references/methodology.md",
+        "plugin/skills/faff/references/review.md",
+        "plugin/skills/faff/references/park.md"
+      ],
+      "preamble_sha256": "dd8e9935f0e3a4dcb3ae2a1e5862f3e7a3e99a8e4d6c1feb7ad19378e8a64c06",
+      "explicitly_not_loaded": []
+    },
+    {
+      "name": "faff-tidy",
+      "files": [
+        "plugin/skills/faff-tidy/SKILL.md",
+        "plugin/skills/faff/references/kernel.md",
+        "plugin/skills/faff/references/build.md",
+        "plugin/skills/faff/references/tracker.md",
+        "plugin/skills/faff/references/autonomous.md",
+        "plugin/skills/faff/references/methodology.md",
+        "plugin/skills/faff/references/park.md"
+      ],
+      "preamble_sha256": "1ec4f667f0880ab0b1b2ed53ac549b05d6bb6aa44d05a1c7bc57eac2105e9ca6",
+      "explicitly_not_loaded": []
+    },
+    {
+      "name": "faff-wtf",
+      "files": [
+        "plugin/skills/faff-wtf/SKILL.md",
+        "plugin/skills/faff/references/kernel.md",
+        "plugin/skills/faff/references/tracker.md",
+        "plugin/skills/faff/references/methodology.md"
+      ],
+      "preamble_sha256": "4abd4244840b02f10e821bc3e63d666b6731caf94c227ff6dd57ecc233e25293",
+      "explicitly_not_loaded": [
+        "plugin/skills/faff/references/autonomous.md"
+      ]
+    }
+  ]
+}

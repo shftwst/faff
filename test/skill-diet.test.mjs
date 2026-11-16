@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { gradeGateway } from '../eval/skill-diet.mjs';
+import { gradeDecisions, gradeGateway, measureLoadSets } from '../eval/skill-diet.mjs';
 
 const oracle = { schema: 1, expected: {
   decline: { config_actions: ['config init --set tracking.spec_docs_path=', 'gitignore-ensure', 'hooks-ensure'], resume_original: true },
@@ -30,4 +30,38 @@ test('unrequested mutation or prompt is a fidelity failure even when routing is 
     Object.assign(response.answers[1], extra);
     assert.equal(gradeGateway(response, oracle).status, 'fail');
   }
+});
+
+test('decision probes compare nested values exactly without relying on object key order', () => {
+  const expected = { schema: 1, expected: { outage: { signal: 'unavailable', actions: ['park', 'return'] } } };
+  const response = { answers: [{ id: 'outage', value: { actions: ['park', 'return'], signal: 'unavailable' } }] };
+  assert.equal(gradeDecisions(response, expected).status, 'pass');
+  response.answers[0].value.actions.reverse();
+  assert.equal(gradeDecisions(response, expected).status, 'fail');
+  response.answers[0].value = { signal: 'pass', actions: ['park', 'return'] };
+  assert.equal(gradeDecisions(response, expected).passed, 0);
+});
+
+test('decision probes reject missing, repeated and additional answers or effects', () => {
+  const expected = { schema: 1, expected: { review: { action: 'stop' } } };
+  const good = { id: 'review', value: { action: 'stop' } };
+  for (const response of [null, {}, { answers: [] }, { answers: [good, good] }, { answers: [good, { id: 'extra', value: null }] }, { answers: [{ ...good, note: 'ignore this' }] }, { answers: [{ id: 'review', value: { action: 'stop', merge: true } }] }]) {
+    assert.equal(gradeDecisions(response, expected).status, 'fail');
+  }
+  assert.throws(() => gradeDecisions({ answers: [] }, { schema: 1, expected: {} }), /empty/);
+});
+
+test('load-set totals count a shared file once and refuse missing dependencies', () => {
+  const source = { files: [
+    { path: 'skill.md', bytes: 12, estimated_tokens: 3 },
+    { path: 'shared.md', bytes: 8, estimated_tokens: 2 },
+  ] };
+  const manifest = { schema: 1, sets: [{ name: 'nested', files: ['skill.md', 'shared.md', 'shared.md'] }] };
+  const [result] = measureLoadSets(source, manifest);
+  assert.equal(result.bytes, 20);
+  assert.equal(result.estimated_tokens, 5);
+  assert.deepEqual(result.files, ['skill.md', 'shared.md']);
+  manifest.sets[0].files.push('missing.md');
+  assert.throws(() => measureLoadSets(source, manifest), /missing/);
+  assert.throws(() => measureLoadSets(source, { schema: 1, sets: [{ name: 'empty', files: [] }] }), /empty/);
 });

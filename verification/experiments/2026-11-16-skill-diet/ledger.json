@@ -54,12 +54,79 @@
         "passed": 64,
         "failed": 0
       }
+    },
+    {
+      "skill": "faffter-dark-adversarial-review",
+      "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+      "status": "verified-decision-and-artifact-smoke",
+      "before": {
+        "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+        "bytes": 74897,
+        "sha256": "4be6a2c38923d00b7dca1dc00d6d5923a00f0b9329141de0a2bbe2a14c4a1193",
+        "characters": 74294,
+        "estimated_tokens": 18574
+      },
+      "after": {
+        "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+        "bytes": 22269,
+        "characters": 22269,
+        "estimated_tokens": 5568,
+        "sha256": "b8614d96a1135dcff5bd4e2f72e5fbf73fbaa21c2c217d214e9ec77214c890ff"
+      },
+      "bytes_saved": 52628,
+      "estimated_tokens_saved": 13006,
+      "fidelity": {
+        "kind": "decision-and-artifact-smoke",
+        "model": "claude-opus-5-5",
+        "effort": "medium",
+        "workflow": {
+          "fixture": "adversarial-input-v5.json",
+          "baseline": {
+            "runs": 5,
+            "passed": 185,
+            "total": 185
+          },
+          "candidate": {
+            "runs": 5,
+            "passed": 185,
+            "total": 185
+          }
+        },
+        "review_judgement": {
+          "baseline": {
+            "runs": 5,
+            "passed": 40,
+            "total": 40
+          },
+          "candidate": {
+            "runs": 5,
+            "passed": 40,
+            "total": 40
+          }
+        },
+        "limits": [
+          "cases within each response are correlated",
+          "eight quality fixtures, not full independent-model pipeline execution",
+          "quality fixtures frozen after candidate authoring, before either arm responded",
+          "preliminary controls and formatting failures retained separately",
+          "provider usage and cost unmetered"
+        ]
+      },
+      "mandatory_dependencies_added": [],
+      "operator_reference": "docs/reference/adversarial-backends.md",
+      "mechanical_baseline_tests": {
+        "passed": 551,
+        "failed": 0
+      }
     }
   ],
   "source_total": {
     "before_bytes": 1369435,
-    "after_bytes": 1362283,
+    "after_bytes": 1309655,
     "before_estimated_tokens": 339279,
-    "after_estimated_tokens": 337515
-  }
+    "after_estimated_tokens": 324509
+  },
+  "load_manifest": "load-manifest.json",
+  "baseline_loads": "baseline/loads.json",
+  "latest_loads": "adversarial-after-loads.json"
 }

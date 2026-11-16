@@ -1,0 +1,171 @@
+{
+  "status": "fail",
+  "total": 37,
+  "passed": 36,
+  "failed": 1,
+  "errors": [],
+  "cases": [
+    {
+      "id": "phase1-reject",
+      "pass": true
+    },
+    {
+      "id": "interactive-critical",
+      "pass": true
+    },
+    {
+      "id": "unattended-critical",
+      "pass": true
+    },
+    {
+      "id": "unattended-major",
+      "pass": true
+    },
+    {
+      "id": "missing-mode",
+      "pass": true
+    },
+    {
+      "id": "fixture-capped",
+      "pass": true
+    },
+    {
+      "id": "auto-refuted",
+      "pass": true
+    },
+    {
+      "id": "fault-2",
+      "pass": true
+    },
+    {
+      "id": "fault-4",
+      "pass": true
+    },
+    {
+      "id": "fault-6",
+      "pass": true
+    },
+    {
+      "id": "fault-7",
+      "pass": true
+    },
+    {
+      "id": "fault-11",
+      "pass": true
+    },
+    {
+      "id": "l2-outage",
+      "pass": true
+    },
+    {
+      "id": "l3-outage",
+      "pass": true
+    },
+    {
+      "id": "l3-deadline",
+      "pass": true
+    },
+    {
+      "id": "l4-outage",
+      "pass": true
+    },
+    {
+      "id": "l3-throttle",
+      "pass": true
+    },
+    {
+      "id": "unconfigured-chain",
+      "pass": true
+    },
+    {
+      "id": "malformed-chain",
+      "pass": true
+    },
+    {
+      "id": "mandatory-path",
+      "pass": true
+    },
+    {
+      "id": "resume",
+      "pass": true
+    },
+    {
+      "id": "no-resume-hint",
+      "pass": true
+    },
+    {
+      "id": "fixture-resolution",
+      "pass": true
+    },
+    {
+      "id": "context-assembly",
+      "pass": true
+    },
+    {
+      "id": "backend-boundary",
+      "pass": false,
+      "expected": {
+        "helper_names": [
+          "review-spawn.mjs",
+          "review-call.mjs"
+        ],
+        "chain_source": "faff adversarial-backends"
+      },
+      "actual": {
+        "helper_names": [
+          "review-spawn.mjs",
+          "review-call.mjs"
+        ],
+        "chain_source": "adversarial-backends"
+      }
+    },
+    {
+      "id": "clean-review",
+      "pass": true
+    },
+    {
+      "id": "critical-carry",
+      "pass": true
+    },
+    {
+      "id": "attribution",
+      "pass": true
+    },
+    {
+      "id": "no-trim-global",
+      "pass": true
+    },
+    {
+      "id": "no-trim-consumer",
+      "pass": true
+    },
+    {
+      "id": "token-cap",
+      "pass": true
+    },
+    {
+      "id": "adr-outage",
+      "pass": true
+    },
+    {
+      "id": "prdr-shape",
+      "pass": true
+    },
+    {
+      "id": "prdr-under-citation",
+      "pass": true
+    },
+    {
+      "id": "prdr-gold-plating",
+      "pass": true
+    },
+    {
+      "id": "rebuttal",
+      "pass": true
+    },
+    {
+      "id": "settled-findings",
+      "pass": true
+    }
+  ]
+}

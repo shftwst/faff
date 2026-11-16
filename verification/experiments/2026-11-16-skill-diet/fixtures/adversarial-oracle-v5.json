@@ -1,0 +1,147 @@
+{
+  "schema": 1,
+  "expected": {
+    "phase1-reject": {
+      "run_phase2": false,
+      "signal": "fail"
+    },
+    "interactive-critical": {
+      "signal": "pass",
+      "emit_escalated_criticals": false,
+      "outage_annotation": false
+    },
+    "unattended-critical": {
+      "signal": "needs-human",
+      "emit_escalated_criticals": true,
+      "outage_annotation": false
+    },
+    "unattended-major": {
+      "signal": "pass",
+      "emit_escalated_criticals": false,
+      "outage_annotation": false
+    },
+    "missing-mode": {
+      "signal": "pass",
+      "emit_escalated_criticals": false,
+      "outage_annotation": false
+    },
+    "fixture-capped": {
+      "signal": "pass",
+      "emit_escalated_criticals": false,
+      "outage_annotation": false
+    },
+    "auto-refuted": {
+      "signal": "pass",
+      "emit_escalated_criticals": false,
+      "outage_annotation": false
+    },
+    "fault-2": "needs-human",
+    "fault-4": "needs-human",
+    "fault-6": "needs-human",
+    "fault-7": "needs-human",
+    "fault-11": "needs-human",
+    "l2-outage": {
+      "signal": "pass",
+      "adversarial_outcome": null,
+      "phase2_checkpoint": null
+    },
+    "l3-outage": {
+      "signal": "pass",
+      "adversarial_outcome": "chain-outage-skipped",
+      "phase2_checkpoint": "skipped_unreachable"
+    },
+    "l3-deadline": {
+      "signal": "pass",
+      "adversarial_outcome": null,
+      "phase2_checkpoint": "skipped_deadline"
+    },
+    "l4-outage": {
+      "signal": "unavailable",
+      "adversarial_outcome": "mandatory-chain-outage",
+      "phase2_checkpoint": null
+    },
+    "l3-throttle": {
+      "signal": "pass",
+      "adversarial_outcome": "chain-outage-skipped",
+      "phase2_checkpoint": "skipped_unreachable"
+    },
+    "unconfigured-chain": {
+      "signal": "needs-human",
+      "invoke_review_call": false,
+      "try_localhost": false
+    },
+    "malformed-chain": {
+      "signal": "needs-human",
+      "use_primary_only": false
+    },
+    "mandatory-path": {
+      "pass_run_dir": true,
+      "helper_owns_mandatory": true,
+      "manually_drop_to_advisory": false
+    },
+    "resume": {
+      "repeat_phase1": false,
+      "before_call_checkpoint": "in_flight"
+    },
+    "no-resume-hint": true,
+    "fixture-resolution": {
+      "stop_review": false,
+      "fixture_paths": [],
+      "report_unavailable": true,
+      "trust_worktree_list": false
+    },
+    "context-assembly": {
+      "context_files": [
+        "a.ts",
+        "b.ts"
+      ],
+      "system_parts": [
+        "review-lens",
+        "fixture-guidance",
+        "fixture-paths",
+        "prior-findings"
+      ]
+    },
+    "backend-boundary": {
+      "helper_names": [
+        "review-spawn.mjs",
+        "review-call.mjs"
+      ],
+      "chain_command": [
+        "faff",
+        "adversarial-backends"
+      ]
+    },
+    "clean-review": "### observation: no findings",
+    "critical-carry": "P7",
+    "attribution": "helper",
+    "no-trim-global": false,
+    "no-trim-consumer": true,
+    "token-cap": 2000,
+    "adr-outage": {
+      "consumer": null,
+      "contract": "adr-admission",
+      "absent_is_pass": false
+    },
+    "prdr-shape": {
+      "consumer": "prdr_review",
+      "input_shape": "proposal",
+      "contract": "prdr-yagni"
+    },
+    "prdr-under-citation": false,
+    "prdr-gold-plating": "over-scope",
+    "rebuttal": {
+      "withdraw": true,
+      "edit_or_apply_rebuttal": false
+    },
+    "settled-findings": {
+      "tracker_comment_count": 1,
+      "rerun_phase1_after_fix": true,
+      "settled_homes": [
+        "graft-log",
+        "terminal-review-comment",
+        "anchored-findings"
+      ]
+    }
+  }
+}

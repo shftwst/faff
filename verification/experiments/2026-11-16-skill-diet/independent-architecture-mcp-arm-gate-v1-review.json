@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "reviewer": {
+    "role": "Independent read-only gate-helper reviewer",
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "status": "clear-helper-pending-five-complete-samples-and-manual-review",
+  "gate_executed": false,
+  "model_calls": 0,
+  "actual_sample_artifacts_reviewed_by_this_record": 0,
+  "source_installed": false,
+  "bindings": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/verify-architecture-mcp-arm-v1.mjs",
+      "sha256": "2aff52f6495b90e3473fd4e33c57b7897c28d54baac4962065d799fa63231d7c"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-mcp-v1-registration.json",
+      "sha256": "7c16f09ccac313b28c9b6f128d3e61acf6f4d14a51b6b7c1e646b0e85bc35bad"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-mcp-v1-baseline-plan.json",
+      "sha256": "1f395fa4edee39569ab444de43104c22258b733fd6e3aac77feeef182e6cec7d"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-mcp-v1-candidate-plan.json",
+      "sha256": "4f3d6bf7db23e10386eedf3edae0a582cb71250e8d362c973e09dcd80d790312"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/architecture-proposal.json",
+      "sha256": "f1b3185a451858a9b6692207c9dd333b1b6e46364c55a6425a157706acca5025"
+    },
+    {
+      "path": "eval/control-parity/architecture-artifact.mjs",
+      "sha256": "db6d655637d5474f4f1e0d58c29d1b300ec3d0042d046c9ff035079f86d54dbb"
+    },
+    {
+      "path": "eval/control-parity/rendering-artifact.mjs",
+      "sha256": "88b5bbff037cd5d9daff8d1094df3b885c01a34ce7902af47cc1354283cddc36"
+    },
+    {
+      "path": "eval/control-parity/codex-mcp-native-audit.mjs",
+      "sha256": "f33617ae48ad5bcbdeb993a7c1533b39ca43fdc2890160c8f458a81a3dfdb5f0"
+    }
+  ],
+  "static_registered_input_check": {
+    "plan_and_frozen_input_hash_checks": 50,
+    "mismatches": 0
+  },
+  "resolved_findings": [
+    {
+      "id": "runtime-exit-guard",
+      "resolution": "Runtime checked during each sample and again after all real consumers. Frozen inputs plus initial plan/manual/registration hashes rechecked at exit."
+    },
+    {
+      "id": "evidence-exit-coverage",
+      "resolution": "Final guard includes base sample files, all native-audit evidence files, raw native session hashes, actual artifacts, generated consumption records and manual input bindings."
+    },
+    {
+      "id": "guard-timing",
+      "resolution": "Base evidence hashes captured at sample loop entry, before reads/consumers. Native-bound expected hashes come from the freshly replayed audit and must match any initial hash. sample.hashes records initial values, not post-consumer current values."
+    },
+    {
+      "id": "registration-provenance",
+      "resolution": "Output includes registration_sha256 alongside exact plan/manual/verifier hashes."
+    }
+  ],
+  "gate_obligations_reviewed": [
+    "Registered plan hash and all frozen paths must match. Plan requires exactly five Sol-medium samples and fixture requires four artifacts plus ten decisions.",
+    "Worker plan/runner/arm/model/effort/version, terminal exit and native session identity are checked; fresh native audit must exactly equal the saved audit.",
+    "Production runtime root/commit/tree artifacts, policy, fixture, task and harness bindings are checked; fresh grade must equal saved14-case grade and pass.",
+    "Manual record must cover exactly five sample names and20 case reviews; each actual persisted artifact must equal captured producer text and saved artifact hash and carry a passing manual review.",
+    "Each actual artifact is consumed through real pinned profile show and architecture-proposal contract validation. Profile result must match supplied snapshot and recommendation must be in fixture allowance. Invented recommendation mutation must fail at exit1.",
+    "Gate output is written only after all20 artifacts and50 decisions pass with fresh native/source/manual/consumer checks. No partial sample collection can produce a passing gate under the current frozen plan."
+  ],
+  "limits": [
+    "Static helper review only. No gate invocation or actual sample-artifact review is claimed here.",
+    "Baseline gate must wait for all five completed baseline samples and independent manual reviews; candidate launch remains subject to recorded passing baseline gate.",
+    "Real profile replay uses controlled stored-profile state. It is not profile acquisition, architecture-quality certification, procurement, ADR creation or full caller workflow execution.",
+    "Contract mutation checks invalid recommendation admission only; broader prose fidelity depends on the independent manual review and frozen fixture.",
+    "Current bounded evidence does not establish statistical equivalence or provider-wide model performance.",
+    "Prior Astra/Sol held samples remain separate and unpooled. No source acceptance or savings claim."
+  ]
+}

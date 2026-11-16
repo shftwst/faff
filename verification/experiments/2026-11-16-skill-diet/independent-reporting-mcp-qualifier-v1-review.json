@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "reviewer": {
+    "role": "Independent read-only qualification-helper reviewer",
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "status": "clear-helper-pending-complete-model-pair-and-manual-gates",
+  "accepted": false,
+  "qualification_helper_executed": false,
+  "model_calls": 0,
+  "bindings": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/qualify-reporting-mcp-v1.mjs",
+      "sha256": "7d36f7478a26a197bdab7cc80ae19b7ff5789af8a004f02624670651a05fb124"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/verify-reporting-mcp-arm-v1.mjs",
+      "sha256": "1c4497b4a511e1bcc9fbbdabb39db463ca5a163dee6c7a3014c834c436d1be02"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-reporting-v1-source-review.json",
+      "sha256": "70b08d471647fc9623d9491ef931dfd9f26779adeb995b430f526d0c2bc26d4e"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-beep-reporting-candidate-source-review.json",
+      "sha256": "af4e5ba72f64c98ddf83459221414086dc23b5b9cd81141443d5a30b47a37714"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-reporting-medium-integration.json",
+      "sha256": "40306da7b709857c372d8b6d92bb89da76f3c500fb3b6d9f78486918a8ac7ea4"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/beep-reporting-v1.md",
+      "sha256": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16"
+    }
+  ],
+  "candidate_source_sha256": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16",
+  "resolved_findings": [
+    {
+      "id": "private-check-coverage",
+      "evidence": "Private integration now requires exactly adapter-lint, rule-inventory and tests, as main integration already did; duplicates, missing checks and empty lists cannot qualify."
+    },
+    {
+      "id": "private-committed-source-binding",
+      "evidence": "Helper verifies private HEAD equals isolated_commit and git-show committed skill bytes hash equals candidate. Independent read-only git checks confirmed HEAD7ceb7af630c866baff0115c696f93516ec5f8260 and matching candidate bytes. All three private log hashes and exit0 records independently match."
+    }
+  ],
+  "gate_review": [
+    "Both arm gates must exactly equal fresh verifyReportingArm results; each requires five original samples and six assessed/native/manual cases per sample. Pending or missing sample/manual files prevent completion.",
+    "Arm verifier replays private native source/session identity, exact policy/fixture/harness/task/runtime bindings, raw workflow grades, frozen draft assessment, source hashes and manual capture/publication hashes. Raw baseline failure is preserved separately.",
+    "Candidate bare-source hash must match the recorded source review and controlled integration source.",
+    "With no main integration argument, output remains accepted:false and measurement-qualified-pending-source-integration.",
+    "Accepted:true additionally requires main HEAD, working skill bytes and git-show committed skill bytes to match the exact candidate; exact three named checks must record exit0 and matching retained log hashes.",
+    "Output creation uses exclusive write; no source installation, qualifier execution or acceptance was performed by this review."
+  ],
+  "limits": [
+    "This is static helper review with independent private commit/log binding checks, not a run of the qualifier.",
+    "Helper must not be run until all five candidate samples and their independent manual reviews pass. No incomplete pair is qualified here.",
+    "Passing controlled Reporting proof does not establish full build loop, owner/run-close/andon, hosted publication, rendering quality, provider usage or statistical equivalence.",
+    "Qualifier consumes recorded integration outcomes and log hashes; test execution provenance remains the separately recorded integration process.",
+    "Earlier raw/native holds remain retained and unpooled; review does not waive them."
+  ]
+}

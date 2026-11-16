@@ -1,0 +1,25 @@
+{
+  "baseline_commit": "690546db64e3de7a68058a98a9945bfb731e68b3",
+  "loaded_checkpoint": {
+    "before_bytes": 4337,
+    "after_bytes": 1862,
+    "reduction_bytes": 2475,
+    "reduction_percent": 57.06709707170855
+  },
+  "files": [
+    {
+      "file": "plugin/skills/faff/references/review.md",
+      "released_bytes": 7605,
+      "candidate_bytes": 5130,
+      "reduction_bytes": 2475
+    },
+    {
+      "file": "plugin/skills/faff-graft/SKILL.md",
+      "released_bytes": 179464,
+      "candidate_bytes": 178859,
+      "reduction_bytes": 605
+    }
+  ],
+  "total_prose_reduction_bytes": 3080,
+  "model_savings_measured": false
+}

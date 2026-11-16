@@ -1,0 +1,78 @@
+{
+  "schema": 2,
+  "scenario": "repeated-pairs",
+  "attempt": 1,
+  "input_sha256": "6ad4485695198ee6dc85f0a79c4f6bb24725b082847b801336a5a6ca81b12909",
+  "policy_sha256": "4d9d01e702294453cf16233feefe265e18ab5e376bf7d0f1eec40cb3f534edb6",
+  "prompt_sha256": "b31cb3271ff0bf03ec27323a7f3b5c448cdd4cc6a4afc1f66f656f114bfa4bf1",
+  "runtime_sha256": "eb3e568913e4d3001842be01e23be006ee3b7182e771f5cd01ea7dc2358bf448",
+  "events": [
+    {
+      "seq": 1,
+      "kind": "read",
+      "op": "list_comments",
+      "args": {
+        "issue_id": "ISS-109"
+      },
+      "result": {
+        "comments": [
+          {
+            "id": "ISS-109-c1",
+            "created_at": "2026-11-14T08:00:00Z",
+            "body": "<!-- faff-review-findings:ISS-109 -->\nVerdict: old first\n<!-- /faff-review-findings:ISS-109 -->\nHuman note between pairs.\n<!-- faff-review-findings:ISS-109 -->\nVerdict: old second\n<!-- /faff-review-findings:ISS-109 -->"
+          }
+        ]
+      }
+    },
+    {
+      "seq": 2,
+      "kind": "effect-attempt",
+      "id": "e1",
+      "op": "save_comment",
+      "args": {
+        "id": "ISS-109-c1",
+        "body": "<!-- faff-review-findings:ISS-109 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-109-review.md\n<!-- /faff-review-findings:ISS-109 -->\nHuman note between pairs.\n<!-- faff-review-findings:ISS-109 -->\nVerdict: old second\n<!-- /faff-review-findings:ISS-109 -->\""
+      }
+    },
+    {
+      "seq": 3,
+      "kind": "effect-result",
+      "attempt_id": "e1",
+      "outcome": "applied",
+      "acknowledged": true
+    },
+    {
+      "seq": 4,
+      "kind": "effect-attempt",
+      "id": "e2",
+      "op": "save_comment",
+      "args": {
+        "id": "ISS-109-c1",
+        "body": "<!-- faff-review-findings:ISS-109 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-109-review.md\n<!-- /faff-review-findings:ISS-109 -->\nHuman note between pairs.\n<!-- faff-review-findings:ISS-109 -->\nVerdict: old second\n<!-- /faff-review-findings:ISS-109 -->"
+      }
+    },
+    {
+      "seq": 5,
+      "kind": "effect-result",
+      "attempt_id": "e2",
+      "outcome": "applied",
+      "acknowledged": true
+    },
+    {
+      "seq": 6,
+      "kind": "terminal",
+      "status": "completed",
+      "reason": "updated",
+      "final_state_sha256": "9b6efee6a2f21c3653542b531cdc625e06e9fe8e290cb4bb3b2a26509fe8b8fc"
+    }
+  ],
+  "final_state_sha256": "9b6efee6a2f21c3653542b531cdc625e06e9fe8e290cb4bb3b2a26509fe8b8fc",
+  "stop": null,
+  "accounting": {
+    "usage_complete": true,
+    "served_models": [
+      "claude-opus-5-5"
+    ],
+    "requests": 4
+  }
+}

@@ -32,13 +32,19 @@ and the existing concurrency contract remain caller responsibilities.
 57.1% smaller. Graft removes another 605 bytes; total covered prose reduction is
 3,080 bytes. This is one checkpoint, not a whole-workflow reduction.
 
-No fresh model batch has run. The worker's zero-cost preparation bound 22
-executions, the released baseline, production candidate and actual CLI 2.1.325;
-preflight stopped solely because neither declared credential variable was present
-in its command shell. The Codex shell also lacks the Claude executable. No secret
-was read or copied. Preparation and capture must be rerun in an authenticated
-launcher against the final candidate before the $10, 22-attempt, no-retry batch.
-Model cost, cache behaviour, latency and model-level conformance remain unmeasured.
+The fresh 22-execution comparison completed at candidate `8ba8bd0c`. It failed:
+candidate 10/11, baseline 5/11, with one candidate failure and three unexpected
+baseline differences. The planner returned the correct CRLF body, but Claude
+wrote its escaped JSON representation. The caller now explicitly requires the
+decoded body; that correction is not yet model-verified. The checkpoint remains
+1,862 bytes. Full evidence is in
+`../2026-11-16-review-comment-pairs/RESULTS.md` and its accompanying raw traces.
+
+Recorded-rate usage totalled $0.9902546. Candidate cost was 0.95% higher and summed
+attempt time 15.08% higher in this development run, including failures. No model
+cost or latency saving was observed. Authentication worked when launched through
+host `docker exec`, which inherited the existing container OAuth environment;
+Claude's Bash tool deliberately removes that variable from its child commands.
 The controlled MCP path does not measure shell command construction. A separate
 directed Claude Code exercise followed the file-tool/redirection instructions:
 exact planned bytes matched, zero of five sentinels were created, and ambiguous
@@ -57,7 +63,8 @@ Implementation rulings and limits:
 - Keep stdin synchronous. A non-blocking stdin can fail closed with `EAGAIN`;
   file redirection and the adapter pipe are exercised. Async stdin is deferred.
 
-The original four historical differences remain narrow declarations. New
-unexpected differences, missing usage or runtime drift cannot be waived. The
-full paired comparison is still required before this draft can be considered
-ready to land. Pending prerequisite PRs #1187 and #1194 remain separate.
+The original four historical differences remain narrow declarations. The three
+new baseline differences require review; none was waived. The revised caller
+still needs fresh model verification before this draft can be considered ready
+to land. The original 22-execution allowance is exhausted; no retry or additional
+batch has started. Pending prerequisite PRs #1187 and #1194 remain separate.

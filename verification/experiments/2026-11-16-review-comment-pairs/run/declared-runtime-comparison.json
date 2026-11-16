@@ -1,0 +1,113 @@
+{
+  "schema": 2,
+  "status": "fail",
+  "coverage": {
+    "baseline": {
+      "required": 11,
+      "traces": 11,
+      "missing": []
+    },
+    "candidate": {
+      "required": 11,
+      "traces": 11,
+      "missing": []
+    }
+  },
+  "differences": [
+    {
+      "arm": "baseline",
+      "trace": "author-not-preferred#1",
+      "reason": "obligation",
+      "failures": [
+        "effects-differ",
+        "final-state-differs"
+      ]
+    },
+    {
+      "arm": "baseline",
+      "trace": "crlf-outside-region#1",
+      "reason": "obligation",
+      "failures": [
+        "effects-differ",
+        "final-state-differs"
+      ]
+    },
+    {
+      "arm": "baseline",
+      "trace": "repeated-pairs#1",
+      "reason": "obligation",
+      "failures": [
+        "effects-differ"
+      ]
+    },
+    {
+      "arm": "baseline",
+      "trace": "timestamp-ties#1",
+      "reason": "obligation",
+      "failures": [
+        "effects-differ",
+        "final-state-differs",
+        "terminal-differs"
+      ]
+    },
+    {
+      "arm": "baseline",
+      "trace": "fenced-example#1",
+      "reason": "obligation",
+      "failures": [
+        "effects-differ",
+        "final-state-differs",
+        "terminal-differs"
+      ]
+    },
+    {
+      "arm": "baseline",
+      "trace": "indented-and-trailing-whitespace#1",
+      "reason": "obligation",
+      "failures": [
+        "effects-differ",
+        "final-state-differs"
+      ]
+    },
+    {
+      "arm": "candidate",
+      "trace": "crlf-outside-region#1",
+      "reason": "obligation",
+      "failures": [
+        "effects-differ",
+        "final-state-differs",
+        "terminal-differs"
+      ]
+    },
+    {
+      "trace": "author-not-preferred#1",
+      "reason": "event-differs",
+      "index": 1
+    },
+    {
+      "trace": "crlf-outside-region#1",
+      "reason": "event-differs",
+      "index": 1
+    },
+    {
+      "trace": "repeated-pairs#1",
+      "reason": "event-differs",
+      "index": 1
+    },
+    {
+      "trace": "timestamp-ties#1",
+      "reason": "event-differs",
+      "index": 1
+    },
+    {
+      "trace": "fenced-example#1",
+      "reason": "event-differs",
+      "index": 1
+    },
+    {
+      "trace": "indented-and-trailing-whitespace#1",
+      "reason": "event-differs",
+      "index": 1
+    }
+  ]
+}

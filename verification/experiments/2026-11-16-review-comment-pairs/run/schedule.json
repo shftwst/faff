@@ -1,0 +1,217 @@
+{
+  "seed": "dc89f5f2a7468c5fde29ed072833fb16",
+  "repetitions": 1,
+  "attempts": [
+    {
+      "n": 1,
+      "scenario": "author-not-preferred",
+      "attempt": 1
+    },
+    {
+      "n": 2,
+      "scenario": "quoted-imitation",
+      "attempt": 1
+    },
+    {
+      "n": 3,
+      "scenario": "create-when-absent",
+      "attempt": 1
+    },
+    {
+      "n": 4,
+      "scenario": "duplicate-reconcile",
+      "attempt": 1
+    },
+    {
+      "n": 5,
+      "scenario": "crlf-outside-region",
+      "attempt": 1
+    },
+    {
+      "n": 6,
+      "scenario": "legacy-open-only",
+      "attempt": 1
+    },
+    {
+      "n": 7,
+      "scenario": "repeated-pairs",
+      "attempt": 1
+    },
+    {
+      "n": 8,
+      "scenario": "timestamp-ties",
+      "attempt": 1
+    },
+    {
+      "n": 9,
+      "scenario": "fenced-example",
+      "attempt": 1
+    },
+    {
+      "n": 10,
+      "scenario": "indented-and-trailing-whitespace",
+      "attempt": 1
+    },
+    {
+      "n": 11,
+      "scenario": "preserve-human-text",
+      "attempt": 1
+    }
+  ],
+  "executions": [
+    {
+      "execution": 1,
+      "arm": "baseline",
+      "n": 1,
+      "scenario": "author-not-preferred",
+      "attempt": 1
+    },
+    {
+      "execution": 2,
+      "arm": "candidate",
+      "n": 1,
+      "scenario": "author-not-preferred",
+      "attempt": 1
+    },
+    {
+      "execution": 3,
+      "arm": "candidate",
+      "n": 2,
+      "scenario": "quoted-imitation",
+      "attempt": 1
+    },
+    {
+      "execution": 4,
+      "arm": "baseline",
+      "n": 2,
+      "scenario": "quoted-imitation",
+      "attempt": 1
+    },
+    {
+      "execution": 5,
+      "arm": "baseline",
+      "n": 3,
+      "scenario": "create-when-absent",
+      "attempt": 1
+    },
+    {
+      "execution": 6,
+      "arm": "candidate",
+      "n": 3,
+      "scenario": "create-when-absent",
+      "attempt": 1
+    },
+    {
+      "execution": 7,
+      "arm": "candidate",
+      "n": 4,
+      "scenario": "duplicate-reconcile",
+      "attempt": 1
+    },
+    {
+      "execution": 8,
+      "arm": "baseline",
+      "n": 4,
+      "scenario": "duplicate-reconcile",
+      "attempt": 1
+    },
+    {
+      "execution": 9,
+      "arm": "baseline",
+      "n": 5,
+      "scenario": "crlf-outside-region",
+      "attempt": 1
+    },
+    {
+      "execution": 10,
+      "arm": "candidate",
+      "n": 5,
+      "scenario": "crlf-outside-region",
+      "attempt": 1
+    },
+    {
+      "execution": 11,
+      "arm": "candidate",
+      "n": 6,
+      "scenario": "legacy-open-only",
+      "attempt": 1
+    },
+    {
+      "execution": 12,
+      "arm": "baseline",
+      "n": 6,
+      "scenario": "legacy-open-only",
+      "attempt": 1
+    },
+    {
+      "execution": 13,
+      "arm": "baseline",
+      "n": 7,
+      "scenario": "repeated-pairs",
+      "attempt": 1
+    },
+    {
+      "execution": 14,
+      "arm": "candidate",
+      "n": 7,
+      "scenario": "repeated-pairs",
+      "attempt": 1
+    },
+    {
+      "execution": 15,
+      "arm": "candidate",
+      "n": 8,
+      "scenario": "timestamp-ties",
+      "attempt": 1
+    },
+    {
+      "execution": 16,
+      "arm": "baseline",
+      "n": 8,
+      "scenario": "timestamp-ties",
+      "attempt": 1
+    },
+    {
+      "execution": 17,
+      "arm": "baseline",
+      "n": 9,
+      "scenario": "fenced-example",
+      "attempt": 1
+    },
+    {
+      "execution": 18,
+      "arm": "candidate",
+      "n": 9,
+      "scenario": "fenced-example",
+      "attempt": 1
+    },
+    {
+      "execution": 19,
+      "arm": "candidate",
+      "n": 10,
+      "scenario": "indented-and-trailing-whitespace",
+      "attempt": 1
+    },
+    {
+      "execution": 20,
+      "arm": "baseline",
+      "n": 10,
+      "scenario": "indented-and-trailing-whitespace",
+      "attempt": 1
+    },
+    {
+      "execution": 21,
+      "arm": "baseline",
+      "n": 11,
+      "scenario": "preserve-human-text",
+      "attempt": 1
+    },
+    {
+      "execution": 22,
+      "arm": "candidate",
+      "n": 11,
+      "scenario": "preserve-human-text",
+      "attempt": 1
+    }
+  ]
+}

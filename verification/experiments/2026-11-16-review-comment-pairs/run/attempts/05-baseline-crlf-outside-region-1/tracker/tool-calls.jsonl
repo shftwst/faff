@@ -1,0 +1,3 @@
+{"at":"2026-11-16T02:37:06.520Z","name":"list_comments","arguments":{"issue_id":"ISS-111"},"isError":false}
+{"at":"2026-11-16T02:37:13.205Z","name":"save_comment","arguments":{"id":"ISS-111-c1","body":"Human note\n\n<!-- faff-review-findings:ISS-111 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-111-review.md\n<!-- /faff-review-findings:ISS-111 -->\n\nTrailing note"},"isError":false}
+{"at":"2026-11-16T02:37:16.774Z","name":"finish","arguments":{"status":"completed","reason":"updated"},"isError":false}

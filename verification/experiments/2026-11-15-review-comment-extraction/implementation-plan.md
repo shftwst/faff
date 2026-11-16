@@ -2,7 +2,9 @@
 
 Scope: the three drafts in the root checkout's
 `verification/experiments/2026-11-15-review-findings-extraction/ticket-drafts.md`.
-Codex implements; Claude Code independently reviews and runs the candidate.
+Codex implements, reviews and analyses results. Claude Code runs only the model
+evals and runtime exercises that require Claude Code, per the operator's current
+subscription constraint.
 Preserve the existing eleven-case oracle, decisions and recorded observations.
 Source branch starts at `576888cbd7a83b63583127d53584c3cf8a49cb00`.
 
@@ -18,7 +20,7 @@ Source branch starts at `576888cbd7a83b63583127d53584c3cf8a49cb00`.
 
 ## Review focus
 
-Claude must verify actual command use, preserved human text, forbidden attempts,
+Verification covers actual command use, preserved human text, forbidden attempts,
 source bindings, treatment differences and complete accounting. Source-size
 reduction and checkpoint model cost are separate results.
 
@@ -70,10 +72,18 @@ caller bytes are the experiment treatment, never a surrogate prompt.
 - [x] Map removed obligations in a spec rule inventory and retain caller-owned
   reads, writes, uncertainty, findings judgement and logging.
 - [x] Run validation, reference, rule-inventory and prose-size checks.
-- [ ] Give Claude the pinned candidate and ask it to run fresh old/new cases,
+- [x] Give Claude the pinned candidate and ask it to run fresh old/new cases,
   bounded to 22 executions, no retries, with the existing $10 experiment cap.
 - [ ] Resolve regressions, complete required tests and record measured size,
   conformance, usage and elapsed time without a whole-workflow savings claim.
 
 No model batch starts until readiness and its declared limits pass. Any remaining
 release restriction applies to production edits as directed by the operator.
+
+The 22-run comparison at `8ba8bd0c` finished with candidate 10/11 and baseline
+5/11. The candidate double-escaped a correct CRLF plan; its caller instruction
+has been clarified without increasing prompt bytes. The revised caller remains
+unverified in Claude. Three additional baseline differences remain unexpected;
+the recorded declarations are unchanged. Results and all raw evidence are in
+`../2026-11-16-review-comment-pairs/RESULTS.md`. No further Claude run is started
+under the exhausted 22-execution allowance.

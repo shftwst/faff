@@ -1,0 +1,1853 @@
+{
+  "schema": 2,
+  "kind": "command-pairs",
+  "status": "failed",
+  "stopped_by": null,
+  "counts": {
+    "planned": 22,
+    "run": 22,
+    "not_run": 0
+  },
+  "pairs": [
+    {
+      "n": 1,
+      "attempt": 1,
+      "cache_strata": {
+        "baseline": "cache-read-observed",
+        "candidate": "cache-read-observed"
+      },
+      "scenario": "author-not-preferred",
+      "classification": "declared-change",
+      "baseline": {
+        "status": "fail",
+        "failures": [
+          "effects-differ",
+          "final-state-differs"
+        ],
+        "incomplete": []
+      },
+      "candidate": {
+        "status": "pass",
+        "failures": [],
+        "incomplete": []
+      },
+      "event_differences": [
+        1,
+        3
+      ]
+    },
+    {
+      "n": 2,
+      "attempt": 1,
+      "cache_strata": {
+        "baseline": "cache-read-observed",
+        "candidate": "cache-read-observed"
+      },
+      "scenario": "quoted-imitation",
+      "classification": "preserved",
+      "baseline": {
+        "status": "pass",
+        "failures": [],
+        "incomplete": []
+      },
+      "candidate": {
+        "status": "pass",
+        "failures": [],
+        "incomplete": []
+      },
+      "event_differences": []
+    },
+    {
+      "n": 3,
+      "attempt": 1,
+      "cache_strata": {
+        "baseline": "cache-read-observed",
+        "candidate": "cache-read-observed"
+      },
+      "scenario": "create-when-absent",
+      "classification": "preserved",
+      "baseline": {
+        "status": "pass",
+        "failures": [],
+        "incomplete": []
+      },
+      "candidate": {
+        "status": "pass",
+        "failures": [],
+        "incomplete": []
+      },
+      "event_differences": []
+    },
+    {
+      "n": 4,
+      "attempt": 1,
+      "cache_strata": {
+        "baseline": "cache-read-observed",
+        "candidate": "cache-read-observed"
+      },
+      "scenario": "duplicate-reconcile",
+      "classification": "preserved",
+      "baseline": {
+        "status": "pass",
+        "failures": [],
+        "incomplete": []
+      },
+      "candidate": {
+        "status": "pass",
+        "failures": [],
+        "incomplete": []
+      },
+      "event_differences": []
+    },
+    {
+      "n": 5,
+      "attempt": 1,
+      "cache_strata": {
+        "baseline": "cache-read-observed",
+        "candidate": "cache-read-observed"
+      },
+      "scenario": "crlf-outside-region",
+      "classification": "candidate-failure",
+      "baseline": {
+        "status": "fail",
+        "failures": [
+          "effects-differ",
+          "final-state-differs"
+        ],
+        "incomplete": []
+      },
+      "candidate": {
+        "status": "fail",
+        "failures": [
+          "effects-differ",
+          "final-state-differs",
+          "terminal-differs"
+        ],
+        "incomplete": []
+      },
+      "event_differences": [
+        1,
+        3,
+        4
+      ]
+    },
+    {
+      "n": 6,
+      "attempt": 1,
+      "cache_strata": {
+        "baseline": "cache-read-observed",
+        "candidate": "cache-read-observed"
+      },
+      "scenario": "legacy-open-only",
+      "classification": "preserved",
+      "baseline": {
+        "status": "pass",
+        "failures": [],
+        "incomplete": []
+      },
+      "candidate": {
+        "status": "pass",
+        "failures": [],
+        "incomplete": []
+      },
+      "event_differences": []
+    },
+    {
+      "n": 7,
+      "attempt": 1,
+      "cache_strata": {
+        "baseline": "cache-read-observed",
+        "candidate": "cache-read-observed"
+      },
+      "scenario": "repeated-pairs",
+      "classification": "unexpected-difference",
+      "baseline": {
+        "status": "fail",
+        "failures": [
+          "effects-differ"
+        ],
+        "incomplete": []
+      },
+      "candidate": {
+        "status": "pass",
+        "failures": [],
+        "incomplete": []
+      },
+      "event_differences": [
+        1,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "n": 8,
+      "attempt": 1,
+      "cache_strata": {
+        "baseline": "cache-read-observed",
+        "candidate": "cache-read-observed"
+      },
+      "scenario": "timestamp-ties",
+      "classification": "declared-change",
+      "baseline": {
+        "status": "fail",
+        "failures": [
+          "effects-differ",
+          "final-state-differs",
+          "terminal-differs"
+        ],
+        "incomplete": []
+      },
+      "candidate": {
+        "status": "pass",
+        "failures": [],
+        "incomplete": []
+      },
+      "event_differences": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "n": 9,
+      "attempt": 1,
+      "cache_strata": {
+        "baseline": "cache-read-observed",
+        "candidate": "cache-read-observed"
+      },
+      "scenario": "fenced-example",
+      "classification": "unexpected-difference",
+      "baseline": {
+        "status": "fail",
+        "failures": [
+          "effects-differ",
+          "final-state-differs",
+          "terminal-differs"
+        ],
+        "incomplete": []
+      },
+      "candidate": {
+        "status": "pass",
+        "failures": [],
+        "incomplete": []
+      },
+      "event_differences": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "n": 10,
+      "attempt": 1,
+      "cache_strata": {
+        "baseline": "cache-read-observed",
+        "candidate": "cache-read-observed"
+      },
+      "scenario": "indented-and-trailing-whitespace",
+      "classification": "unexpected-difference",
+      "baseline": {
+        "status": "fail",
+        "failures": [
+          "effects-differ",
+          "final-state-differs"
+        ],
+        "incomplete": []
+      },
+      "candidate": {
+        "status": "pass",
+        "failures": [],
+        "incomplete": []
+      },
+      "event_differences": [
+        1,
+        3
+      ]
+    },
+    {
+      "n": 11,
+      "attempt": 1,
+      "cache_strata": {
+        "baseline": "cache-read-observed",
+        "candidate": "cache-read-observed"
+      },
+      "scenario": "preserve-human-text",
+      "classification": "preserved",
+      "baseline": {
+        "status": "pass",
+        "failures": [],
+        "incomplete": []
+      },
+      "candidate": {
+        "status": "pass",
+        "failures": [],
+        "incomplete": []
+      },
+      "event_differences": []
+    }
+  ],
+  "attempts": [
+    {
+      "n": 1,
+      "arm": "baseline",
+      "scenario": "author-not-preferred",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 4
+      },
+      "elapsed_ms": 15382,
+      "command_use": {
+        "status": "not-applicable",
+        "calls": 0,
+        "command_ms": 0
+      },
+      "cost_nanos": 50474000,
+      "tokens": {
+        "input": 8,
+        "cache_read": 10390,
+        "cache_write": 3903,
+        "output": 857
+      },
+      "observed_tokens": {
+        "input": 8,
+        "output": 857,
+        "cache_read": 10390,
+        "cache_write": 3903,
+        "cache_write_5m": 0,
+        "cache_write_1h": 3903,
+        "cache_write_unknown_ttl": 0
+      },
+      "observed_token_request_counts": {
+        "input": 4,
+        "output": 4,
+        "cache_read": 4,
+        "cache_write": 4,
+        "cache_write_5m": 4,
+        "cache_write_1h": 4,
+        "cache_write_unknown_ttl": 4
+      },
+      "observed_cost_nanos": 50474000,
+      "requests_with_unknown_cost": 0,
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "c63f25fce93a11fccc6a487d06668b732487e55a891c4574f4099eb598906248",
+      "cli_reported_cost_usd": "0.050474",
+      "status": "fail",
+      "failures": [
+        "effects-differ",
+        "final-state-differs"
+      ],
+      "incomplete": [],
+      "runtime_matches_readiness": true,
+      "runtime_problems": [],
+      "execution": 1
+    },
+    {
+      "n": 1,
+      "arm": "candidate",
+      "scenario": "author-not-preferred",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 5
+      },
+      "elapsed_ms": 17593,
+      "command_use": {
+        "status": "followed",
+        "calls": 1,
+        "command_ms": 20.729273
+      },
+      "cost_nanos": 53987800,
+      "tokens": {
+        "input": 10,
+        "cache_read": 12499,
+        "cache_write": 3746,
+        "output": 1074
+      },
+      "observed_tokens": {
+        "input": 10,
+        "output": 1074,
+        "cache_read": 12499,
+        "cache_write": 3746,
+        "cache_write_5m": 0,
+        "cache_write_1h": 3746,
+        "cache_write_unknown_ttl": 0
+      },
+      "observed_token_request_counts": {
+        "input": 5,
+        "output": 5,
+        "cache_read": 5,
+        "cache_write": 5,
+        "cache_write_5m": 5,
+        "cache_write_1h": 5,
+        "cache_write_unknown_ttl": 5
+      },
+      "observed_cost_nanos": 53987800,
+      "requests_with_unknown_cost": 0,
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "720f0522ede4fdefcdc1a95633ce358c55bc335652c3141ecd1c181980027350",
+      "cli_reported_cost_usd": "0.0539878",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "runtime_matches_readiness": true,
+      "runtime_problems": [],
+      "execution": 2
+    },
+    {
+      "n": 2,
+      "arm": "candidate",
+      "scenario": "quoted-imitation",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 5
+      },
+      "elapsed_ms": 20844,
+      "command_use": {
+        "status": "followed",
+        "calls": 1,
+        "command_ms": 18.885062
+      },
+      "cost_nanos": 49320200,
+      "tokens": {
+        "input": 10,
+        "cache_read": 14901,
+        "cache_write": 2745,
+        "output": 1217
+      },
+      "observed_tokens": {
+        "input": 10,
+        "output": 1217,
+        "cache_read": 14901,
+        "cache_write": 2745,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2745,
+        "cache_write_unknown_ttl": 0
+      },
+      "observed_token_request_counts": {
+        "input": 5,
+        "output": 5,
+        "cache_read": 5,
+        "cache_write": 5,
+        "cache_write_5m": 5,
+        "cache_write_1h": 5,
+        "cache_write_unknown_ttl": 5
+      },
+      "observed_cost_nanos": 49320200,
+      "requests_with_unknown_cost": 0,
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "720f0522ede4fdefcdc1a95633ce358c55bc335652c3141ecd1c181980027350",
+      "cli_reported_cost_usd": "0.0493202",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "runtime_matches_readiness": true,
+      "runtime_problems": [],
+      "execution": 3
+    },
+    {
+      "n": 2,
+      "arm": "baseline",
+      "scenario": "quoted-imitation",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 4
+      },
+      "elapsed_ms": 13038,
+      "command_use": {
+        "status": "not-applicable",
+        "calls": 0,
+        "command_ms": 0
+      },
+      "cost_nanos": 38801000,
+      "tokens": {
+        "input": 8,
+        "cache_read": 11845,
+        "cache_write": 2910,
+        "output": 656
+      },
+      "observed_tokens": {
+        "input": 8,
+        "output": 656,
+        "cache_read": 11845,
+        "cache_write": 2910,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2910,
+        "cache_write_unknown_ttl": 0
+      },
+      "observed_token_request_counts": {
+        "input": 4,
+        "output": 4,
+        "cache_read": 4,
+        "cache_write": 4,
+        "cache_write_5m": 4,
+        "cache_write_1h": 4,
+        "cache_write_unknown_ttl": 4
+      },
+      "observed_cost_nanos": 38801000,
+      "requests_with_unknown_cost": 0,
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "c63f25fce93a11fccc6a487d06668b732487e55a891c4574f4099eb598906248",
+      "cli_reported_cost_usd": "0.038801",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "runtime_matches_readiness": true,
+      "runtime_problems": [],
+      "execution": 4
+    },
+    {
+      "n": 3,
+      "arm": "baseline",
+      "scenario": "create-when-absent",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 3
+      },
+      "elapsed_ms": 12926,
+      "command_use": {
+        "status": "not-applicable",
+        "calls": 0,
+        "command_ms": 0
+      },
+      "cost_nanos": 36465000,
+      "tokens": {
+        "input": 8,
+        "cache_read": 7645,
+        "cache_write": 2683,
+        "output": 672
+      },
+      "observed_tokens": {
+        "input": 8,
+        "output": 672,
+        "cache_read": 7645,
+        "cache_write": 2683,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2683,
+        "cache_write_unknown_ttl": 0
+      },
+      "observed_token_request_counts": {
+        "input": 3,
+        "output": 3,
+        "cache_read": 3,
+        "cache_write": 3,
+        "cache_write_5m": 3,
+        "cache_write_1h": 3,
+        "cache_write_unknown_ttl": 3
+      },
+      "observed_cost_nanos": 36465000,
+      "requests_with_unknown_cost": 0,
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "c63f25fce93a11fccc6a487d06668b732487e55a891c4574f4099eb598906248",
+      "cli_reported_cost_usd": "0.036465",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "runtime_matches_readiness": true,
+      "runtime_problems": [],
+      "execution": 5
+    },
+    {
+      "n": 3,
+      "arm": "candidate",
+      "scenario": "create-when-absent",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 5
+      },
+      "elapsed_ms": 19399,
+      "command_use": {
+        "status": "followed",
+        "calls": 1,
+        "command_ms": 23.177275
+      },
+      "cost_nanos": 41393600,
+      "tokens": {
+        "input": 12,
+        "cache_read": 13628,
+        "cache_write": 2245,
+        "output": 1033
+      },
+      "observed_tokens": {
+        "input": 12,
+        "output": 1033,
+        "cache_read": 13628,
+        "cache_write": 2245,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2245,
+        "cache_write_unknown_ttl": 0
+      },
+      "observed_token_request_counts": {
+        "input": 5,
+        "output": 5,
+        "cache_read": 5,
+        "cache_write": 5,
+        "cache_write_5m": 5,
+        "cache_write_1h": 5,
+        "cache_write_unknown_ttl": 5
+      },
+      "observed_cost_nanos": 41393600,
+      "requests_with_unknown_cost": 0,
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "720f0522ede4fdefcdc1a95633ce358c55bc335652c3141ecd1c181980027350",
+      "cli_reported_cost_usd": "0.0413936",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "runtime_matches_readiness": true,
+      "runtime_problems": [],
+      "execution": 6
+    },
+    {
+      "n": 4,
+      "arm": "candidate",
+      "scenario": "duplicate-reconcile",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 5
+      },
+      "elapsed_ms": 21772,
+      "command_use": {
+        "status": "followed",
+        "calls": 1,
+        "command_ms": 21.091064
+      },
+      "cost_nanos": 47448800,
+      "tokens": {
+        "input": 10,
+        "cache_read": 14364,
+        "cache_write": 2542,
+        "output": 1210
+      },
+      "observed_tokens": {
+        "input": 10,
+        "output": 1210,
+        "cache_read": 14364,
+        "cache_write": 2542,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2542,
+        "cache_write_unknown_ttl": 0
+      },
+      "observed_token_request_counts": {
+        "input": 5,
+        "output": 5,
+        "cache_read": 5,
+        "cache_write": 5,
+        "cache_write_5m": 5,
+        "cache_write_1h": 5,
+        "cache_write_unknown_ttl": 5
+      },
+      "observed_cost_nanos": 47448800,
+      "requests_with_unknown_cost": 0,
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "720f0522ede4fdefcdc1a95633ce358c55bc335652c3141ecd1c181980027350",
+      "cli_reported_cost_usd": "0.0474488",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "runtime_matches_readiness": true,
+      "runtime_problems": [],
+      "execution": 7
+    },
+    {
+      "n": 4,
+      "arm": "baseline",
+      "scenario": "duplicate-reconcile",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 4
+      },
+      "elapsed_ms": 14006,
+      "command_use": {
+        "status": "not-applicable",
+        "calls": 0,
+        "command_ms": 0
+      },
+      "cost_nanos": 40144400,
+      "tokens": {
+        "input": 8,
+        "cache_read": 11562,
+        "cache_write": 2755,
+        "output": 788
+      },
+      "observed_tokens": {
+        "input": 8,
+        "output": 788,
+        "cache_read": 11562,
+        "cache_write": 2755,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2755,
+        "cache_write_unknown_ttl": 0
+      },
+      "observed_token_request_counts": {
+        "input": 4,
+        "output": 4,
+        "cache_read": 4,
+        "cache_write": 4,
+        "cache_write_5m": 4,
+        "cache_write_1h": 4,
+        "cache_write_unknown_ttl": 4
+      },
+      "observed_cost_nanos": 40144400,
+      "requests_with_unknown_cost": 0,
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "c63f25fce93a11fccc6a487d06668b732487e55a891c4574f4099eb598906248",
+      "cli_reported_cost_usd": "0.040144400000000004",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "runtime_matches_readiness": true,
+      "runtime_problems": [],
+      "execution": 8
+    },
+    {
+      "n": 5,
+      "arm": "baseline",
+      "scenario": "crlf-outside-region",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 4
+      },
+      "elapsed_ms": 18926,
+      "command_use": {
+        "status": "not-applicable",
+        "calls": 0,
+        "command_ms": 0
+      },
+      "cost_nanos": 48970400,
+      "tokens": {
+        "input": 8,
+        "cache_read": 11512,
+        "cache_write": 2987,
+        "output": 1137
+      },
+      "observed_tokens": {
+        "input": 8,
+        "output": 1137,
+        "cache_read": 11512,
+        "cache_write": 2987,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2987,
+        "cache_write_unknown_ttl": 0
+      },
+      "observed_token_request_counts": {
+        "input": 4,
+        "output": 4,
+        "cache_read": 4,
+        "cache_write": 4,
+        "cache_write_5m": 4,
+        "cache_write_1h": 4,
+        "cache_write_unknown_ttl": 4
+      },
+      "observed_cost_nanos": 48970400,
+      "requests_with_unknown_cost": 0,
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "c63f25fce93a11fccc6a487d06668b732487e55a891c4574f4099eb598906248",
+      "cli_reported_cost_usd": "0.0489704",
+      "status": "fail",
+      "failures": [
+        "effects-differ",
+        "final-state-differs"
+      ],
+      "incomplete": [],
+      "runtime_matches_readiness": true,
+      "runtime_problems": [],
+      "execution": 9
+    },
+    {
+      "n": 5,
+      "arm": "candidate",
+      "scenario": "crlf-outside-region",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 6
+      },
+      "elapsed_ms": 25856,
+      "command_use": {
+        "status": "not-followed",
+        "calls": 1,
+        "command_ms": 20.604897
+      },
+      "cost_nanos": 62564200,
+      "tokens": {
+        "input": 12,
+        "cache_read": 17281,
+        "cache_write": 2985,
+        "output": 1759
+      },
+      "observed_tokens": {
+        "input": 12,
+        "output": 1759,
+        "cache_read": 17281,
+        "cache_write": 2985,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2985,
+        "cache_write_unknown_ttl": 0
+      },
+      "observed_token_request_counts": {
+        "input": 6,
+        "output": 6,
+        "cache_read": 6,
+        "cache_write": 6,
+        "cache_write_5m": 6,
+        "cache_write_1h": 6,
+        "cache_write_unknown_ttl": 6
+      },
+      "observed_cost_nanos": 62564200,
+      "requests_with_unknown_cost": 0,
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "720f0522ede4fdefcdc1a95633ce358c55bc335652c3141ecd1c181980027350",
+      "cli_reported_cost_usd": "0.06256419999999999",
+      "status": "fail",
+      "failures": [
+        "effects-differ",
+        "final-state-differs",
+        "terminal-differs"
+      ],
+      "incomplete": [],
+      "runtime_matches_readiness": true,
+      "runtime_problems": [],
+      "execution": 10
+    },
+    {
+      "n": 6,
+      "arm": "candidate",
+      "scenario": "legacy-open-only",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 5
+      },
+      "elapsed_ms": 13835,
+      "command_use": {
+        "status": "followed",
+        "calls": 1,
+        "command_ms": 26.539154
+      },
+      "cost_nanos": 38408000,
+      "tokens": {
+        "input": 10,
+        "cache_read": 13400,
+        "cache_write": 2171,
+        "output": 916
+      },
+      "observed_tokens": {
+        "input": 10,
+        "output": 916,
+        "cache_read": 13400,
+        "cache_write": 2171,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2171,
+        "cache_write_unknown_ttl": 0
+      },
+      "observed_token_request_counts": {
+        "input": 5,
+        "output": 5,
+        "cache_read": 5,
+        "cache_write": 5,
+        "cache_write_5m": 5,
+        "cache_write_1h": 5,
+        "cache_write_unknown_ttl": 5
+      },
+      "observed_cost_nanos": 38408000,
+      "requests_with_unknown_cost": 0,
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "720f0522ede4fdefcdc1a95633ce358c55bc335652c3141ecd1c181980027350",
+      "cli_reported_cost_usd": "0.038408",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "runtime_matches_readiness": true,
+      "runtime_problems": [],
+      "execution": 11
+    },
+    {
+      "n": 6,
+      "arm": "baseline",
+      "scenario": "legacy-open-only",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 4
+      },
+      "elapsed_ms": 13364,
+      "command_use": {
+        "status": "not-applicable",
+        "calls": 0,
+        "command_ms": 0
+      },
+      "cost_nanos": 38244800,
+      "tokens": {
+        "input": 8,
+        "cache_read": 11244,
+        "cache_write": 2648,
+        "output": 739
+      },
+      "observed_tokens": {
+        "input": 8,
+        "output": 739,
+        "cache_read": 11244,
+        "cache_write": 2648,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2648,
+        "cache_write_unknown_ttl": 0
+      },
+      "observed_token_request_counts": {
+        "input": 4,
+        "output": 4,
+        "cache_read": 4,
+        "cache_write": 4,
+        "cache_write_5m": 4,
+        "cache_write_1h": 4,
+        "cache_write_unknown_ttl": 4
+      },
+      "observed_cost_nanos": 38244800,
+      "requests_with_unknown_cost": 0,
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "c63f25fce93a11fccc6a487d06668b732487e55a891c4574f4099eb598906248",
+      "cli_reported_cost_usd": "0.0382448",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "runtime_matches_readiness": true,
+      "runtime_problems": [],
+      "execution": 12
+    },
+    {
+      "n": 7,
+      "arm": "baseline",
+      "scenario": "repeated-pairs",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 4
+      },
+      "elapsed_ms": 18278,
+      "command_use": {
+        "status": "not-applicable",
+        "calls": 0,
+        "command_ms": 0
+      },
+      "cost_nanos": 54098600,
+      "tokens": {
+        "input": 8,
+        "cache_read": 11573,
+        "cache_write": 3244,
+        "output": 1290
+      },
+      "observed_tokens": {
+        "input": 8,
+        "output": 1290,
+        "cache_read": 11573,
+        "cache_write": 3244,
+        "cache_write_5m": 0,
+        "cache_write_1h": 3244,
+        "cache_write_unknown_ttl": 0
+      },
+      "observed_token_request_counts": {
+        "input": 4,
+        "output": 4,
+        "cache_read": 4,
+        "cache_write": 4,
+        "cache_write_5m": 4,
+        "cache_write_1h": 4,
+        "cache_write_unknown_ttl": 4
+      },
+      "observed_cost_nanos": 54098600,
+      "requests_with_unknown_cost": 0,
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "c63f25fce93a11fccc6a487d06668b732487e55a891c4574f4099eb598906248",
+      "cli_reported_cost_usd": "0.0540986",
+      "status": "fail",
+      "failures": [
+        "effects-differ"
+      ],
+      "incomplete": [],
+      "runtime_matches_readiness": true,
+      "runtime_problems": [],
+      "execution": 13
+    },
+    {
+      "n": 7,
+      "arm": "candidate",
+      "scenario": "repeated-pairs",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 5
+      },
+      "elapsed_ms": 19977,
+      "command_use": {
+        "status": "followed",
+        "calls": 1,
+        "command_ms": 24.386777
+      },
+      "cost_nanos": 42290200,
+      "tokens": {
+        "input": 10,
+        "cache_read": 13791,
+        "cache_write": 2359,
+        "output": 1031
+      },
+      "observed_tokens": {
+        "input": 10,
+        "output": 1031,
+        "cache_read": 13791,
+        "cache_write": 2359,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2359,
+        "cache_write_unknown_ttl": 0
+      },
+      "observed_token_request_counts": {
+        "input": 5,
+        "output": 5,
+        "cache_read": 5,
+        "cache_write": 5,
+        "cache_write_5m": 5,
+        "cache_write_1h": 5,
+        "cache_write_unknown_ttl": 5
+      },
+      "observed_cost_nanos": 42290200,
+      "requests_with_unknown_cost": 0,
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "720f0522ede4fdefcdc1a95633ce358c55bc335652c3141ecd1c181980027350",
+      "cli_reported_cost_usd": "0.0422902",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "runtime_matches_readiness": true,
+      "runtime_problems": [],
+      "execution": 14
+    },
+    {
+      "n": 8,
+      "arm": "candidate",
+      "scenario": "timestamp-ties",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 5
+      },
+      "elapsed_ms": 17115,
+      "command_use": {
+        "status": "followed",
+        "calls": 1,
+        "command_ms": 21.381471
+      },
+      "cost_nanos": 45947800,
+      "tokens": {
+        "input": 10,
+        "cache_read": 14199,
+        "cache_write": 2481,
+        "output": 1161
+      },
+      "observed_tokens": {
+        "input": 10,
+        "output": 1161,
+        "cache_read": 14199,
+        "cache_write": 2481,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2481,
+        "cache_write_unknown_ttl": 0
+      },
+      "observed_token_request_counts": {
+        "input": 5,
+        "output": 5,
+        "cache_read": 5,
+        "cache_write": 5,
+        "cache_write_5m": 5,
+        "cache_write_1h": 5,
+        "cache_write_unknown_ttl": 5
+      },
+      "observed_cost_nanos": 45947800,
+      "requests_with_unknown_cost": 0,
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "720f0522ede4fdefcdc1a95633ce358c55bc335652c3141ecd1c181980027350",
+      "cli_reported_cost_usd": "0.045947800000000004",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "runtime_matches_readiness": true,
+      "runtime_problems": [],
+      "execution": 15
+    },
+    {
+      "n": 8,
+      "arm": "baseline",
+      "scenario": "timestamp-ties",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 3
+      },
+      "elapsed_ms": 14003,
+      "command_use": {
+        "status": "not-applicable",
+        "calls": 0,
+        "command_ms": 0
+      },
+      "cost_nanos": 39270000,
+      "tokens": {
+        "input": 6,
+        "cache_read": 7750,
+        "cache_write": 2707,
+        "output": 802
+      },
+      "observed_tokens": {
+        "input": 6,
+        "output": 802,
+        "cache_read": 7750,
+        "cache_write": 2707,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2707,
+        "cache_write_unknown_ttl": 0
+      },
+      "observed_token_request_counts": {
+        "input": 3,
+        "output": 3,
+        "cache_read": 3,
+        "cache_write": 3,
+        "cache_write_5m": 3,
+        "cache_write_1h": 3,
+        "cache_write_unknown_ttl": 3
+      },
+      "observed_cost_nanos": 39270000,
+      "requests_with_unknown_cost": 0,
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "c63f25fce93a11fccc6a487d06668b732487e55a891c4574f4099eb598906248",
+      "cli_reported_cost_usd": "0.03927",
+      "status": "fail",
+      "failures": [
+        "effects-differ",
+        "final-state-differs",
+        "terminal-differs"
+      ],
+      "incomplete": [],
+      "runtime_matches_readiness": true,
+      "runtime_problems": [],
+      "execution": 16
+    },
+    {
+      "n": 9,
+      "arm": "baseline",
+      "scenario": "fenced-example",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 3
+      },
+      "elapsed_ms": 20851,
+      "command_use": {
+        "status": "not-applicable",
+        "calls": 0,
+        "command_ms": 0
+      },
+      "cost_nanos": 56734800,
+      "tokens": {
+        "input": 6,
+        "cache_read": 7594,
+        "cache_write": 3064,
+        "output": 1534
+      },
+      "observed_tokens": {
+        "input": 6,
+        "output": 1534,
+        "cache_read": 7594,
+        "cache_write": 3064,
+        "cache_write_5m": 0,
+        "cache_write_1h": 3064,
+        "cache_write_unknown_ttl": 0
+      },
+      "observed_token_request_counts": {
+        "input": 3,
+        "output": 3,
+        "cache_read": 3,
+        "cache_write": 3,
+        "cache_write_5m": 3,
+        "cache_write_1h": 3,
+        "cache_write_unknown_ttl": 3
+      },
+      "observed_cost_nanos": 56734800,
+      "requests_with_unknown_cost": 0,
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "c63f25fce93a11fccc6a487d06668b732487e55a891c4574f4099eb598906248",
+      "cli_reported_cost_usd": "0.056734799999999995",
+      "status": "fail",
+      "failures": [
+        "effects-differ",
+        "final-state-differs",
+        "terminal-differs"
+      ],
+      "incomplete": [],
+      "runtime_matches_readiness": true,
+      "runtime_problems": [],
+      "execution": 17
+    },
+    {
+      "n": 9,
+      "arm": "candidate",
+      "scenario": "fenced-example",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 5
+      },
+      "elapsed_ms": 12446,
+      "command_use": {
+        "status": "followed",
+        "calls": 1,
+        "command_ms": 22.862192
+      },
+      "cost_nanos": 34931400,
+      "tokens": {
+        "input": 10,
+        "cache_read": 13257,
+        "cache_write": 2085,
+        "output": 778
+      },
+      "observed_tokens": {
+        "input": 10,
+        "output": 778,
+        "cache_read": 13257,
+        "cache_write": 2085,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2085,
+        "cache_write_unknown_ttl": 0
+      },
+      "observed_token_request_counts": {
+        "input": 5,
+        "output": 5,
+        "cache_read": 5,
+        "cache_write": 5,
+        "cache_write_5m": 5,
+        "cache_write_1h": 5,
+        "cache_write_unknown_ttl": 5
+      },
+      "observed_cost_nanos": 34931400,
+      "requests_with_unknown_cost": 0,
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "720f0522ede4fdefcdc1a95633ce358c55bc335652c3141ecd1c181980027350",
+      "cli_reported_cost_usd": "0.0349314",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "runtime_matches_readiness": true,
+      "runtime_problems": [],
+      "execution": 18
+    },
+    {
+      "n": 10,
+      "arm": "candidate",
+      "scenario": "indented-and-trailing-whitespace",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 5
+      },
+      "elapsed_ms": 15139,
+      "command_use": {
+        "status": "followed",
+        "calls": 1,
+        "command_ms": 22.342566
+      },
+      "cost_nanos": 41404000,
+      "tokens": {
+        "input": 10,
+        "cache_read": 13780,
+        "cache_write": 2306,
+        "output": 1008
+      },
+      "observed_tokens": {
+        "input": 10,
+        "output": 1008,
+        "cache_read": 13780,
+        "cache_write": 2306,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2306,
+        "cache_write_unknown_ttl": 0
+      },
+      "observed_token_request_counts": {
+        "input": 5,
+        "output": 5,
+        "cache_read": 5,
+        "cache_write": 5,
+        "cache_write_5m": 5,
+        "cache_write_1h": 5,
+        "cache_write_unknown_ttl": 5
+      },
+      "observed_cost_nanos": 41404000,
+      "requests_with_unknown_cost": 0,
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "720f0522ede4fdefcdc1a95633ce358c55bc335652c3141ecd1c181980027350",
+      "cli_reported_cost_usd": "0.041403999999999996",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "runtime_matches_readiness": true,
+      "runtime_problems": [],
+      "execution": 19
+    },
+    {
+      "n": 10,
+      "arm": "baseline",
+      "scenario": "indented-and-trailing-whitespace",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 4
+      },
+      "elapsed_ms": 19694,
+      "command_use": {
+        "status": "not-applicable",
+        "calls": 0,
+        "command_ms": 0
+      },
+      "cost_nanos": 53612400,
+      "tokens": {
+        "input": 8,
+        "cache_read": 11842,
+        "cache_write": 3149,
+        "output": 1301
+      },
+      "observed_tokens": {
+        "input": 8,
+        "output": 1301,
+        "cache_read": 11842,
+        "cache_write": 3149,
+        "cache_write_5m": 0,
+        "cache_write_1h": 3149,
+        "cache_write_unknown_ttl": 0
+      },
+      "observed_token_request_counts": {
+        "input": 4,
+        "output": 4,
+        "cache_read": 4,
+        "cache_write": 4,
+        "cache_write_5m": 4,
+        "cache_write_1h": 4,
+        "cache_write_unknown_ttl": 4
+      },
+      "observed_cost_nanos": 53612400,
+      "requests_with_unknown_cost": 0,
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "c63f25fce93a11fccc6a487d06668b732487e55a891c4574f4099eb598906248",
+      "cli_reported_cost_usd": "0.0536124",
+      "status": "fail",
+      "failures": [
+        "effects-differ",
+        "final-state-differs"
+      ],
+      "incomplete": [],
+      "runtime_matches_readiness": true,
+      "runtime_problems": [],
+      "execution": 20
+    },
+    {
+      "n": 11,
+      "arm": "baseline",
+      "scenario": "preserve-human-text",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 4
+      },
+      "elapsed_ms": 15476,
+      "command_use": {
+        "status": "not-applicable",
+        "calls": 0,
+        "command_ms": 0
+      },
+      "cost_nanos": 35964200,
+      "tokens": {
+        "input": 8,
+        "cache_read": 11241,
+        "cache_write": 2598,
+        "output": 645
+      },
+      "observed_tokens": {
+        "input": 8,
+        "output": 645,
+        "cache_read": 11241,
+        "cache_write": 2598,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2598,
+        "cache_write_unknown_ttl": 0
+      },
+      "observed_token_request_counts": {
+        "input": 4,
+        "output": 4,
+        "cache_read": 4,
+        "cache_write": 4,
+        "cache_write_5m": 4,
+        "cache_write_1h": 4,
+        "cache_write_unknown_ttl": 4
+      },
+      "observed_cost_nanos": 35964200,
+      "requests_with_unknown_cost": 0,
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "c63f25fce93a11fccc6a487d06668b732487e55a891c4574f4099eb598906248",
+      "cli_reported_cost_usd": "0.0359642",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "runtime_matches_readiness": true,
+      "runtime_problems": [],
+      "execution": 21
+    },
+    {
+      "n": 11,
+      "arm": "candidate",
+      "scenario": "preserve-human-text",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 5
+      },
+      "elapsed_ms": 18495,
+      "command_use": {
+        "status": "followed",
+        "calls": 1,
+        "command_ms": 18.436535
+      },
+      "cost_nanos": 39779000,
+      "tokens": {
+        "input": 10,
+        "cache_read": 13615,
+        "cache_write": 2262,
+        "output": 946
+      },
+      "observed_tokens": {
+        "input": 10,
+        "output": 946,
+        "cache_read": 13615,
+        "cache_write": 2262,
+        "cache_write_5m": 0,
+        "cache_write_1h": 2262,
+        "cache_write_unknown_ttl": 0
+      },
+      "observed_token_request_counts": {
+        "input": 5,
+        "output": 5,
+        "cache_read": 5,
+        "cache_write": 5,
+        "cache_write_5m": 5,
+        "cache_write_1h": 5,
+        "cache_write_unknown_ttl": 5
+      },
+      "observed_cost_nanos": 39779000,
+      "requests_with_unknown_cost": 0,
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "720f0522ede4fdefcdc1a95633ce358c55bc335652c3141ecd1c181980027350",
+      "cli_reported_cost_usd": "0.039778999999999995",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "runtime_matches_readiness": true,
+      "runtime_problems": [],
+      "execution": 22
+    }
+  ],
+  "comparison": {
+    "schema": 2,
+    "status": "fail",
+    "coverage": {
+      "baseline": {
+        "required": 11,
+        "traces": 11,
+        "missing": []
+      },
+      "candidate": {
+        "required": 11,
+        "traces": 11,
+        "missing": []
+      }
+    },
+    "differences": [
+      {
+        "arm": "baseline",
+        "trace": "author-not-preferred#1",
+        "reason": "obligation",
+        "failures": [
+          "effects-differ",
+          "final-state-differs"
+        ]
+      },
+      {
+        "arm": "baseline",
+        "trace": "crlf-outside-region#1",
+        "reason": "obligation",
+        "failures": [
+          "effects-differ",
+          "final-state-differs"
+        ]
+      },
+      {
+        "arm": "baseline",
+        "trace": "repeated-pairs#1",
+        "reason": "obligation",
+        "failures": [
+          "effects-differ"
+        ]
+      },
+      {
+        "arm": "baseline",
+        "trace": "timestamp-ties#1",
+        "reason": "obligation",
+        "failures": [
+          "effects-differ",
+          "final-state-differs",
+          "terminal-differs"
+        ]
+      },
+      {
+        "arm": "baseline",
+        "trace": "fenced-example#1",
+        "reason": "obligation",
+        "failures": [
+          "effects-differ",
+          "final-state-differs",
+          "terminal-differs"
+        ]
+      },
+      {
+        "arm": "baseline",
+        "trace": "indented-and-trailing-whitespace#1",
+        "reason": "obligation",
+        "failures": [
+          "effects-differ",
+          "final-state-differs"
+        ]
+      },
+      {
+        "arm": "candidate",
+        "trace": "crlf-outside-region#1",
+        "reason": "obligation",
+        "failures": [
+          "effects-differ",
+          "final-state-differs",
+          "terminal-differs"
+        ]
+      },
+      {
+        "trace": "author-not-preferred#1",
+        "reason": "unpaired-runtime"
+      },
+      {
+        "trace": "quoted-imitation#1",
+        "reason": "unpaired-runtime"
+      },
+      {
+        "trace": "create-when-absent#1",
+        "reason": "unpaired-runtime"
+      },
+      {
+        "trace": "duplicate-reconcile#1",
+        "reason": "unpaired-runtime"
+      },
+      {
+        "trace": "crlf-outside-region#1",
+        "reason": "unpaired-runtime"
+      },
+      {
+        "trace": "legacy-open-only#1",
+        "reason": "unpaired-runtime"
+      },
+      {
+        "trace": "repeated-pairs#1",
+        "reason": "unpaired-runtime"
+      },
+      {
+        "trace": "timestamp-ties#1",
+        "reason": "unpaired-runtime"
+      },
+      {
+        "trace": "fenced-example#1",
+        "reason": "unpaired-runtime"
+      },
+      {
+        "trace": "indented-and-trailing-whitespace#1",
+        "reason": "unpaired-runtime"
+      },
+      {
+        "trace": "preserve-human-text#1",
+        "reason": "unpaired-runtime"
+      }
+    ]
+  },
+  "comparison_with_declared_runtime": {
+    "schema": 2,
+    "status": "fail",
+    "coverage": {
+      "baseline": {
+        "required": 11,
+        "traces": 11,
+        "missing": []
+      },
+      "candidate": {
+        "required": 11,
+        "traces": 11,
+        "missing": []
+      }
+    },
+    "differences": [
+      {
+        "arm": "baseline",
+        "trace": "author-not-preferred#1",
+        "reason": "obligation",
+        "failures": [
+          "effects-differ",
+          "final-state-differs"
+        ]
+      },
+      {
+        "arm": "baseline",
+        "trace": "crlf-outside-region#1",
+        "reason": "obligation",
+        "failures": [
+          "effects-differ",
+          "final-state-differs"
+        ]
+      },
+      {
+        "arm": "baseline",
+        "trace": "repeated-pairs#1",
+        "reason": "obligation",
+        "failures": [
+          "effects-differ"
+        ]
+      },
+      {
+        "arm": "baseline",
+        "trace": "timestamp-ties#1",
+        "reason": "obligation",
+        "failures": [
+          "effects-differ",
+          "final-state-differs",
+          "terminal-differs"
+        ]
+      },
+      {
+        "arm": "baseline",
+        "trace": "fenced-example#1",
+        "reason": "obligation",
+        "failures": [
+          "effects-differ",
+          "final-state-differs",
+          "terminal-differs"
+        ]
+      },
+      {
+        "arm": "baseline",
+        "trace": "indented-and-trailing-whitespace#1",
+        "reason": "obligation",
+        "failures": [
+          "effects-differ",
+          "final-state-differs"
+        ]
+      },
+      {
+        "arm": "candidate",
+        "trace": "crlf-outside-region#1",
+        "reason": "obligation",
+        "failures": [
+          "effects-differ",
+          "final-state-differs",
+          "terminal-differs"
+        ]
+      },
+      {
+        "trace": "author-not-preferred#1",
+        "reason": "event-differs",
+        "index": 1
+      },
+      {
+        "trace": "crlf-outside-region#1",
+        "reason": "event-differs",
+        "index": 1
+      },
+      {
+        "trace": "repeated-pairs#1",
+        "reason": "event-differs",
+        "index": 1
+      },
+      {
+        "trace": "timestamp-ties#1",
+        "reason": "event-differs",
+        "index": 1
+      },
+      {
+        "trace": "fenced-example#1",
+        "reason": "event-differs",
+        "index": 1
+      },
+      {
+        "trace": "indented-and-trailing-whitespace#1",
+        "reason": "event-differs",
+        "index": 1
+      }
+    ]
+  },
+  "comparison_note": "Raw strict comparison retains unpaired-runtime entries for the declared tool and harness treatment. The derived comparison substitutes the verified common runtime only when every execution matches readiness. It still fails on declared event differences or baseline obligation failures; acceptance uses the separate pair classifications. Saved traces are unchanged.",
+  "arm_totals": {
+    "baseline": {
+      "planned": 11,
+      "run": 11,
+      "elapsed_ms": 175944,
+      "command_ms": 0,
+      "observed_cost_nanos": 492779600,
+      "requests_with_unknown_cost": 0,
+      "cost_complete": true,
+      "observed_tokens": {
+        "input": 84,
+        "output": 10421,
+        "cache_read": 114198,
+        "cache_write": 32648,
+        "cache_write_5m": 0,
+        "cache_write_1h": 32648,
+        "cache_write_unknown_ttl": 0
+      },
+      "observed_token_request_counts": {
+        "input": 41,
+        "output": 41,
+        "cache_read": 41,
+        "cache_write": 41,
+        "cache_write_5m": 41,
+        "cache_write_1h": 41,
+        "cache_write_unknown_ttl": 41
+      }
+    },
+    "candidate": {
+      "planned": 11,
+      "run": 11,
+      "elapsed_ms": 202471,
+      "command_ms": 240.436266,
+      "observed_cost_nanos": 497475000,
+      "requests_with_unknown_cost": 0,
+      "cost_complete": true,
+      "observed_tokens": {
+        "input": 114,
+        "output": 12133,
+        "cache_read": 154715,
+        "cache_write": 27927,
+        "cache_write_5m": 0,
+        "cache_write_1h": 27927,
+        "cache_write_unknown_ttl": 0
+      },
+      "observed_token_request_counts": {
+        "input": 56,
+        "output": 56,
+        "cache_read": 56,
+        "cache_write": 56,
+        "cache_write_5m": 56,
+        "cache_write_1h": 56,
+        "cache_write_unknown_ttl": 56
+      }
+    }
+  },
+  "elapsed_ms": 383286,
+  "observed_cost_nanos": 990254600,
+  "held_reservation_nanos": 0,
+  "open_reservation_nanos": 0,
+  "allowance_committed_nanos": 990254600,
+  "remaining_allowance_nanos": 9009745400,
+  "command_ms": 240.436266,
+  "command_time_complete": true,
+  "strata_differ": []
+}

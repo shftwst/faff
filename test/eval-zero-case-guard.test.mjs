@@ -23,6 +23,8 @@ import { loadFixture } from "./helpers/mock-tracker.mjs";
 import { seedRepo } from "./helpers/seed-repo.mjs";
 import { runSkill } from "./helpers/skill-harness.mjs";
 
+process.env.FAFF_EVAL_LOCAL_API_KEY = "sk-test"; // the local lane refuses to configure without a key
+
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(HERE, "..");
 const CLI = join(REPO_ROOT, "eval", "run-evals.mjs");
@@ -173,7 +175,7 @@ test("the soft local gate warns and returns 0 on a zero-case smoke set — never
     // --driver local routes gate → softLocalGate. probe:true clears preflight; the localDriver factory
     // returns a rep driver that would throw if run — the guard warns and returns 0 before it is reached.
     code = await gate(
-      ["--driver", "local", "--base-url", "http://probe.test:11434", "--model", "m", "--only", "no-such-id"],
+      ["--driver", "local", "--base-url", "http://probe.test:8000", "--model", "m", "--only", "no-such-id"],
       { localDriver: () => async () => { throw new Error("soft smoke must not run a rep on a zero-case set"); } },
       COMMITTED_BASELINE,
       { probe: () => true },

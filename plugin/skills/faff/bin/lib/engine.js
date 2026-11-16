@@ -3,16 +3,15 @@
 // ===========================================================================
 // `faff engine call` — the direct-API one-shot transport for engine-valued lanes.
 // A dispatch.<lane>.model value of `engine:<name>` routes the producer request out of session
-// as ONE non-streaming completion against the configured engine (ollama /api/chat, or
-// an openai-compatible /v1/chat/completions; the codex SPAWN family forks to
-// engine-codex.js after resolution — FAFF-593). v1 allowlist: methodology | intake (the
+// as ONE non-streaming completion against the configured engine (an openai-compatible
+// /v1/chat/completions; the codex SPAWN family forks to engine-codex.js after resolution — FAFF-593). v1 allowlist: methodology | intake (the
 // pure-data-in producers) — enforced HERE at dispatch as well as at config read (the
 // capability-mismatch guard, enforced not documented).
 //
 // Deliberately NOT a generalisation of review-call.mjs: its exit taxonomy encodes
 // review-verdict routing (pass+skip semantics) this transport forbids. This module
 // borrows its idioms (providerFamily whitelist, family-conditional preflight,
-// api_key_env indirection) as patterns, on the eval/ollama-model.mjs one-shot shape:
+// api_key_env indirection) as patterns, on a one-shot shape:
 // pure request/parse fns, injectable transport (CI makes zero real network calls),
 // fail-loud parse, no localhost default. No retry, no fallback chain, no second
 // backend — every non-zero exit is terminal for the dispatch and the caller NEVER
@@ -25,7 +24,7 @@ const https = require("node:https");
 const { ENGINE_CALL_LANES, legacyTreeGuard, loadConfig, reasoningEffortForTransport, resolveEngineForLane } = require("./config");
 const { CANONICAL_CONFIG, findRoot, latestRunDir } = require("./shared-infra");
 // FAFF-877: the shared bounded-operation supervisor — the HTTP transport arm the
-// non-spawn engine families (ollama, openai-compatible) run their call under.
+// non-spawn engine family (openai-compatible) runs its call under.
 const { DEFAULT_OPERATION_DEADLINE_SECS, SUPERVISED_OUTCOME, makeLease, superviseOperation } = require("./supervisor");
 
 // engine-call's own small exit taxonomy (distinct named codes; NOT review-call's EXIT
@@ -40,8 +39,7 @@ function joinUrl(base, path_) {
   return String(base).replace(/\/+$/, "") + path_;
 }
 
-// PURE: the one-shot request spec. ollama: /api/chat with stream:false (the FAFF-136
-// precedent; reasoning_off → think:false per FAFF-137). openai-compatible:
+// PURE: the one-shot request spec. openai-compatible:
 // /v1/chat/completions with stream:false (reasoning_off → chat_template_kwargs:
 // {thinking:false, enable_thinking:false} — enable_thinking is the key Qwen3/vLLM/
 // SGLang/HF/MLX chat templates actually read to gate the think phase, FAFF-898;
@@ -54,12 +52,7 @@ function buildEngineRequest({ family, host, model, system, user, reasoningOff = 
   const messages = [{ role: "system", content: String(system ?? "") }, { role: "user", content: String(user ?? "") }];
   let url;
   const payload = { model, messages, stream: false };
-  if (family === "ollama") {
-    url = new URL("/api/chat", host).toString();
-    if (reasoningOff) payload.think = false;
-    // FAFF-705: ollama has no graded reasoning-effort transport (effort is refused at
-    // resolve for this family, so it never reaches here); ignore a stray effort, never throw.
-  } else if (family === "openai") {
+  if (family === "openai") {
     url = joinUrl(host, "/chat/completions");
     // FAFF-705: emit reasoning_effort only when a graded effort is present AND reasoning is not
     // being silenced (the two knobs are mutually exclusive — resolve refuses the pair). The faff
@@ -81,21 +74,14 @@ function parseEngineResponse(family, raw) {
   let obj;
   try { obj = typeof raw === "string" ? JSON.parse(raw) : raw; }
   catch { throw new Error(`engine response is not JSON: ${String(raw).slice(0, 200)}`); }
-  const content = family === "ollama" ? obj?.message?.content : obj?.choices?.[0]?.message?.content;
+  const content = obj?.choices?.[0]?.message?.content;
   if (typeof content !== "string") {
-    const field = family === "ollama" ? "message.content" : "choices[0].message.content";
-    throw new Error(`engine response missing ${field}: ${JSON.stringify(obj).slice(0, 200)}`);
+    throw new Error(`engine response missing choices[0].message.content: ${JSON.stringify(obj).slice(0, 200)}`);
   }
   return content;
 }
 
 // PURE: is the configured model in the engine's served list? (preflight body parsers)
-function modelServedOllama(body, model) {
-  try {
-    const names = (JSON.parse(body).models || []).map((m) => m && m.name).filter((n) => typeof n === "string");
-    return { served: names.some((n) => n === model || n === `${model}:latest`), names };
-  } catch { return { served: false, names: [] }; }
-}
 // A LiteLLM-style passthrough gateway advertises a namespace wildcard ("openrouter/*") in
 // /v1/models instead of concrete ids — its own assertion that it serves that whole namespace, so
 // honour it. Closed grammar: only a trailing "/*" entry, matching "<prefix>/<non-empty rest>"; no
@@ -151,13 +137,13 @@ function defaultPost(req, { timeoutMs = 120000 } = {}) {
   });
 }
 
-// Family-conditional preflight (the review-call precedent): both v1 families expose a
-// probe (ollama /api/tags, openai-compatible /v1/models), so engine-unreachable (infra)
+// Family-conditional preflight (the review-call precedent): the openai-compatible family
+// exposes a probe (/v1/models), so engine-unreachable (infra)
 // splits from model-not-served (config fault) into distinct named errors. A future
 // probe-less family fails classified at first call instead — the probe changes error
 // QUALITY, never outcome. openai auth (401/403 on the probe) is auth-failed, not unreachable.
 async function preflightEngine({ family, host, model, apiKey = null, getFn = defaultGet, timeoutMs = DEFAULT_PREFLIGHT_TIMEOUT_MS } = {}) {
-  const url = family === "ollama" ? new URL("/api/tags", host).toString() : joinUrl(host, "/models");
+  const url = joinUrl(host, "/models");
   const headers = family === "openai" && apiKey ? { authorization: `Bearer ${apiKey}` } : {};
   let body;
   try { body = await getFn(url, timeoutMs, headers); }
@@ -165,7 +151,7 @@ async function preflightEngine({ family, host, model, apiKey = null, getFn = def
     if (family === "openai" && isAuthError(e)) return { authFailed: true, error: e.message };
     return { unreachable: true, error: e.message };
   }
-  const { served, names } = family === "ollama" ? modelServedOllama(body, model) : modelServedOpenAi(body, model);
+  const { served, names } = modelServedOpenAi(body, model);
   return { served, names };
 }
 
@@ -392,17 +378,6 @@ async function engineSelftest() {
 
   ok("allowlist is exactly methodology|intake", ENGINE_CALL_LANES.length === 2 && ENGINE_CALL_LANES.includes("methodology") && ENGINE_CALL_LANES.includes("intake"));
 
-  // request builder — ollama
-  {
-    const r = buildEngineRequest({ family: "ollama", host: "http://studio:11434", model: "m1", system: "S", user: "U" });
-    const p = JSON.parse(r.body);
-    ok("ollama: /api/chat url", r.url === "http://studio:11434/api/chat");
-    ok("ollama: stream:false", p.stream === false);
-    ok("ollama: system+user messages", p.messages.length === 2 && p.messages[0].role === "system" && p.messages[0].content === "S" && p.messages[1].role === "user" && p.messages[1].content === "U");
-    ok("ollama: no think key by default", !("think" in p));
-    const r2 = buildEngineRequest({ family: "ollama", host: "http://h", model: "m", system: "", user: "", reasoningOff: true });
-    ok("ollama: reasoning_off → think:false", JSON.parse(r2.body).think === false);
-  }
   // request builder — openai-compatible (host already carries /v1; join must not drop it)
   {
     const r = buildEngineRequest({ family: "openai", host: "https://api.x.dev/v1", model: "m1", system: "S", user: "U", apiKey: "k" });
@@ -422,32 +397,28 @@ async function engineSelftest() {
     ok("openai: no effort → no reasoning_effort key (byte-identity)", !("reasoning_effort" in JSON.parse(r6.body)));
     const r7 = buildEngineRequest({ family: "openai", host: "https://api.x.dev/v1", model: "m1", system: "", user: "", reasoningOff: true, effort: "high" });
     ok("openai: reasoning_off wins over effort (mutually exclusive)", JSON.parse(r7.body).chat_template_kwargs.enable_thinking === false && JSON.parse(r7.body).chat_template_kwargs.thinking === false && !("reasoning_effort" in JSON.parse(r7.body)));
-    // FAFF-705: a stray effort on ollama is ignored, never thrown, never emitted.
-    const r8 = buildEngineRequest({ family: "ollama", host: "http://h", model: "m", system: "", user: "", effort: "high" });
-    ok("ollama: stray effort ignored, no reasoning_effort key", !("reasoning_effort" in JSON.parse(r8.body)));
   }
-  { let threw = false; try { buildEngineRequest({ family: "ollama", model: "m" }); } catch { threw = true; } ok("no host → throws (no localhost default)", threw); }
+  { let threw = false; try { buildEngineRequest({ family: "openai", model: "m" }); } catch { threw = true; } ok("no host → throws (no localhost default)", threw); }
   { let threw = false; try { buildEngineRequest({ family: "nope", host: "http://h", model: "m" }); } catch { threw = true; } ok("unknown family → throws", threw); }
 
   // response parser — fail-loud
-  ok("parse ollama content", parseEngineResponse("ollama", JSON.stringify({ message: { content: "hi" } })) === "hi");
   ok("parse openai content", parseEngineResponse("openai", JSON.stringify({ choices: [{ message: { content: "hi" } }] })) === "hi");
-  { let threw = false; try { parseEngineResponse("ollama", JSON.stringify({ done: true })); } catch (e) { threw = /message\.content/.test(e.message); } ok("ollama missing content → fail-loud named", threw); }
+  { let threw = false; try { parseEngineResponse("openai", JSON.stringify({ done: true })); } catch (e) { threw = /choices\[0\]\.message\.content/.test(e.message); } ok("openai missing content → fail-loud named", threw); }
   { let threw = false; try { parseEngineResponse("openai", "not json"); } catch (e) { threw = /not JSON/.test(e.message); } ok("non-JSON body → fail-loud", threw); }
 
   // preflight classification — injected transport, no network
-  const engine = { name: "e", provider: "ollama", family: "ollama", model: "m1", host: "http://h:1", reasoningOff: false, timeoutMs: 1000 };
+  const engine = { name: "e", provider: "vllm", family: "openai", model: "m1", host: "http://h:1/v1", reasoningOff: false, timeoutMs: 1000 };
   {
-    const pf = await preflightEngine({ family: "ollama", host: "http://h:1", model: "m1", getFn: async () => { throw new Error("ECONNREFUSED"); } });
-    ok("ollama probe down → unreachable", pf.unreachable === true);
+    const pf = await preflightEngine({ family: "openai", host: "http://h:1/v1", model: "m1", getFn: async () => { throw new Error("ECONNREFUSED"); } });
+    ok("openai probe down → unreachable", pf.unreachable === true);
   }
   {
-    const pf = await preflightEngine({ family: "ollama", host: "http://h:1", model: "m1", getFn: async () => JSON.stringify({ models: [{ name: "other:7b" }] }) });
-    ok("ollama model absent → not-served with names", pf.served === false && pf.names.includes("other:7b"));
+    const pf = await preflightEngine({ family: "openai", host: "http://h:1/v1", model: "m1", getFn: async () => JSON.stringify({ data: [{ id: "other-7b" }] }) });
+    ok("openai model absent → not-served with names", pf.served === false && pf.names.includes("other-7b"));
   }
   {
-    const pf = await preflightEngine({ family: "ollama", host: "http://h:1", model: "m1", getFn: async () => JSON.stringify({ models: [{ name: "m1" }] }) });
-    ok("ollama model present → served", pf.served === true);
+    const pf = await preflightEngine({ family: "openai", host: "http://h:1/v1", model: "m1", getFn: async () => JSON.stringify({ data: [{ id: "m1" }] }) });
+    ok("openai model present → served", pf.served === true);
   }
   {
     const pf = await preflightEngine({ family: "openai", host: "http://h/v1", model: "m1", apiKey: "k", getFn: async () => { throw httpError(401, "no"); } });
@@ -473,8 +444,8 @@ async function engineSelftest() {
     let posts = 0;
     const r = await runEngineCall({
       engine, system: "S", user: "U",
-      getFn: async () => JSON.stringify({ models: [{ name: "m1" }] }),
-      postFn: async () => { posts++; return JSON.stringify({ message: { content: "out" } }); },
+      getFn: async () => JSON.stringify({ data: [{ id: "m1" }] }),
+      postFn: async () => { posts++; return JSON.stringify({ choices: [{ message: { content: "out" } }] }); },
     });
     ok("happy path → ok + content", r.status === "ok" && r.content === "out");
     ok("exactly ONE completion call", posts === 1);
@@ -483,7 +454,7 @@ async function engineSelftest() {
     let posts = 0;
     const r = await runEngineCall({
       engine, system: "S", user: "U",
-      getFn: async () => JSON.stringify({ models: [{ name: "m1" }] }),
+      getFn: async () => JSON.stringify({ data: [{ id: "m1" }] }),
       postFn: async () => { posts++; return JSON.stringify({ done: true }); },
     });
     ok("bad body → malformed-response", r.status === "malformed-response");
@@ -496,7 +467,7 @@ async function engineSelftest() {
   {
     const r = await runEngineCall({
       engine, system: "S", user: "U",
-      getFn: async () => JSON.stringify({ models: [{ name: "m1" }] }),
+      getFn: async () => JSON.stringify({ data: [{ id: "m1" }] }),
       postFn: async () => { throw httpError(403, "denied"); },
     });
     ok("403 on completion → auth-failed", r.status === "auth-failed");
@@ -508,8 +479,8 @@ async function engineSelftest() {
     let posts = 0;
     const r = await runEngineCall({
       engine, system: "S", user: "U", runDir: null,
-      getFn: async () => JSON.stringify({ models: [{ name: "m1" }] }),
-      postFn: async () => { posts++; return JSON.stringify({ message: { content: "out" } }); },
+      getFn: async () => JSON.stringify({ data: [{ id: "m1" }] }),
+      postFn: async () => { posts++; return JSON.stringify({ choices: [{ message: { content: "out" } }] }); },
       superviseFn: async () => { throw new Error("must not be called without a runDir"); },
     });
     ok("no runDir: supervisor never invoked, byte-identical happy path", r.status === "ok" && r.content === "out" && posts === 1);
@@ -518,8 +489,8 @@ async function engineSelftest() {
     let seenLease = null;
     const r = await runEngineCall({
       engine: { ...engine, operationDeadlineSecs: 900 }, system: "S", user: "U", runDir: "/some/run/dir",
-      getFn: async () => JSON.stringify({ models: [{ name: "m1" }] }),
-      postFn: async () => JSON.stringify({ message: { content: "out" } }),
+      getFn: async () => JSON.stringify({ data: [{ id: "m1" }] }),
+      postFn: async () => JSON.stringify({ choices: [{ message: { content: "out" } }] }),
       superviseFn: async ({ lease, work }) => { seenLease = lease; const result = await work(); return { outcome: SUPERVISED_OUTCOME.COMPLETED, result }; },
     });
     ok("runDir present: builds a lease with the exact run_dir + resolved operation deadline",
@@ -548,10 +519,10 @@ async function engineSelftest() {
   }
 
   // dispatch-side resolution (the config.js seam) — fixture cfg objects, no disk
-  const cfgOk = { engines: { studio: { provider: "ollama", model: "m1", host: "http://h:1" } }, dispatch: { methodology: { model: "engine:studio" }, intake: { model: "sonnet" } } };
+  const cfgOk = { engines: { studio: { provider: "vllm", model: "m1", host: "http://h:1/v1" } }, dispatch: { methodology: { model: "engine:studio" }, intake: { model: "sonnet" } } };
   {
     const r = resolveEngineForLane(cfgOk, "methodology");
-    ok("resolve: happy path", !r.error && r.name === "studio" && r.family === "ollama" && r.model === "m1");
+    ok("resolve: happy path", !r.error && r.name === "studio" && r.family === "openai" && r.model === "m1");
     ok("resolve: default timeout 120s", r.timeoutMs === 120000);
     ok("resolve: absent api_key_env → null", r.apiKeyEnv === null);
     // FAFF-877: the shared supervisor's operation-deadline default (distinct from the
@@ -559,7 +530,7 @@ async function engineSelftest() {
     ok("resolve: default operationDeadlineSecs 3600 (FAFF-877 human decision, alec 2026-08-22)", r.operationDeadlineSecs === 3600);
   }
   {
-    const r = resolveEngineForLane({ engines: { studio: { provider: "ollama", model: "m1", host: "http://h:1", operation_deadline_secs: 900 } }, dispatch: { methodology: { model: "engine:studio" } } }, "methodology");
+    const r = resolveEngineForLane({ engines: { studio: { provider: "vllm", model: "m1", host: "http://h:1/v1", operation_deadline_secs: 900 } }, dispatch: { methodology: { model: "engine:studio" } } }, "methodology");
     ok("resolve: operation_deadline_secs overridable per consumer", !r.error && r.operationDeadlineSecs === 900);
   }
   ok("resolve: non-allowlisted lane refused", !!resolveEngineForLane(cfgOk, "build").error);
@@ -567,18 +538,11 @@ async function engineSelftest() {
   ok("resolve: unknown engine name refused, names listed",
     /unknown engine/.test(resolveEngineForLane({ engines: { studio: cfgOk.engines.studio }, dispatch: { intake: { model: "engine:nope" } } }, "intake").error || ""));
   ok("resolve: missing host refused, field named",
-    /"host"/.test(resolveEngineForLane({ engines: { s: { provider: "ollama", model: "m" } }, dispatch: { intake: { model: "engine:s" } } }, "intake").error || ""));
+    /"host"/.test(resolveEngineForLane({ engines: { s: { provider: "vllm", model: "m" } }, dispatch: { intake: { model: "engine:s" } } }, "intake").error || ""));
   ok("resolve: anthropic provider refused",
     /anthropic/.test(resolveEngineForLane({ engines: { s: { provider: "anthropic", model: "m", host: "http://h" } }, dispatch: { intake: { model: "engine:s" } } }, "intake").error || ""));
   ok("resolve: unknown provider refused",
     /provider/.test(resolveEngineForLane({ engines: { s: { provider: "llamacpp", model: "m", host: "http://h" } }, dispatch: { intake: { model: "engine:s" } } }, "intake").error || ""));
-  // FAFF-705: a graded effort on a NON-graded family (ollama) stays refused, now with a
-  // capability-specific message naming the missing transport + the remedy.
-  {
-    const r = resolveEngineForLane({ ...cfgOk, dispatch: { ...cfgOk.dispatch, methodology: { model: "engine:studio", effort: "high" } } }, "methodology");
-    ok("resolve: graded effort on ollama (non-graded family) refused, capability-named",
-      /dispatch\.methodology\.effort/.test(r.error || "") && /no graded reasoning-effort transport/.test(r.error || "") && /reasoning_off/.test(r.error || ""));
-  }
   // FAFF-705: a graded effort on a GRADED-effort family (openai) is carried on the record.
   {
     const r = resolveEngineForLane({ engines: { s: { provider: "nvidia", model: "m", host: "https://x/v1" } }, dispatch: { methodology: { model: "engine:s", effort: "high" } } }, "methodology");
@@ -729,4 +693,4 @@ async function engineSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { ENGINE_EXIT, SPAWN_FAMILY_CONFIG_DIR_BEARING, buildEngineRequest, cmdEngine, defaultGet, defaultPost, engineSelftest, isAuthError, joinUrl, modelServedOllama, modelServedOpenAi, parseEngineResponse, preflightEngine, resolveSpendSink, runEngineCall, spawnFamilyRunners };
+module.exports = { ENGINE_EXIT, SPAWN_FAMILY_CONFIG_DIR_BEARING, buildEngineRequest, cmdEngine, defaultGet, defaultPost, engineSelftest, isAuthError, joinUrl, modelServedOpenAi, parseEngineResponse, preflightEngine, resolveSpendSink, runEngineCall, spawnFamilyRunners };

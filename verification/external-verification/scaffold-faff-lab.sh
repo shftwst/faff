@@ -91,7 +91,7 @@ budget:
 # backends: namespace (FAFF-523/529) — named entries the adversarial `review`/`spec_review` slots'
 # refs below point at. api_key_env names resolve from .env.claude-box at call time (name only,
 # never the key itself — the box-env copy step below supplies the actual values, gitignored, never
-# committed). Copied verbatim from P2/P3 (the live shape); ollama-local is keyless.
+# committed). Copied verbatim from P2/P3 (the live shape).
 backends:
   nvidia-glm:
     provider: nvidia
@@ -109,7 +109,7 @@ backends:
     api_key_env: GEMINI_API_KEY
     egress: external
     timeout: 480
-  # ollama-local (operator-private tailnet ollama backend) relocated to the
+  # The local backend (operator-private host) is relocated to the
   # gitignored .faff/config.local.yaml overlay (FAFF-618, mirroring FAFF-587) so this
   # public repo carries no operator host. The overlay's adversarial refs list
   # restates all three entries (sequences replace wholesale); this base
@@ -123,29 +123,30 @@ adversarial:
     - gemini-gemma
 EOF
 
-# Local ollama overlay (FAFF-618): written from FAFF_EVAL_LOCAL_BASE_URL so the operator's
-# tailnet host never lands in this committed (and, for faff-lab, PUBLICLY COMMITTED) config.
+# Local backend overlay (FAFF-618): written from FAFF_EVAL_LOCAL_BASE_URL / FAFF_EVAL_LOCAL_MODEL so the operator's
+# private host never lands in this committed (and, for faff-lab, PUBLICLY COMMITTED) config.
 # The base heredoc above stays quoted; only this small overlay heredoc is unquoted, so
 # ${FAFF_EVAL_LOCAL_BASE_URL} interpolates and nothing else in the base risks expanding.
-if [ -n "${FAFF_EVAL_LOCAL_BASE_URL:-}" ]; then
+if [ -n "${FAFF_EVAL_LOCAL_BASE_URL:-}" ] && [ -n "${FAFF_EVAL_LOCAL_MODEL:-}" ]; then
   mkdir -p .faff
   cat > .faff/config.local.yaml <<EOF
 backends:
-  ollama-local:
-    provider: ollama
-    model: qwen3-next:80b-a3b-instruct-q4_K_M
-    host: ${FAFF_EVAL_LOCAL_BASE_URL}
-    auth: none
+  local-model:
+    provider: openai
+    model: ${FAFF_EVAL_LOCAL_MODEL}
+    host: ${FAFF_EVAL_LOCAL_BASE_URL%/}/v1
+    auth: api-key
+    api_key_env: LOCAL_API_KEY
     egress: local
 adversarial:
   refs:                      # sequence — replaces the base two-item list wholesale
     - nvidia-glm
     - gemini-gemma
-    - ollama-local
+    - local-model
 EOF
-  echo "wrote .faff/config.local.yaml (ollama-local backend, host from FAFF_EVAL_LOCAL_BASE_URL, gitignored)"
+  echo "wrote .faff/config.local.yaml (local-model backend, host and model from FAFF_EVAL_LOCAL_BASE_URL / FAFF_EVAL_LOCAL_MODEL, gitignored)"
 else
-  echo "WARNING: FAFF_EVAL_LOCAL_BASE_URL unset — the SUT runs with the two cloud backends only; export it and re-scaffold (or hand-write .faff/config.local.yaml) to add the local ollama backend" >&2
+  echo "WARNING: FAFF_EVAL_LOCAL_BASE_URL or FAFF_EVAL_LOCAL_MODEL unset — the SUT runs with the two cloud backends only; export it and re-scaffold (or hand-write .faff/config.local.yaml) to add the local-model backend" >&2
 fi
 
 # The PRD is COPIED VERBATIM from the committed faff-lab setpoint (never heredoc'd — that would
@@ -278,7 +279,7 @@ way; this only tunes how the deploy row above is scored and whether the run prov
 FIRST FAILURE RUNG = the binding constraint = the finding to take back to faff's backlog (via /faff-jot).
 EOF
 
-# Box env: copy the claude-box secret file (NVIDIA_API_KEY / GEMINI_API_KEY) so this SUT's
+# Box env: copy the claude-box secret file (NVIDIA_API_KEY / GEMINI_API_KEY / LOCAL_API_KEY) so this SUT's
 # adversarial-review backend can authenticate. FAFF_ROOT resolved at script-top (never hardcoded,
 # never re-derived here), copied AFTER .gitignore already covers it (written above) so no ordering
 # ever stages the secret. Missing source warns and continues — the file is gitignored, so a fresh

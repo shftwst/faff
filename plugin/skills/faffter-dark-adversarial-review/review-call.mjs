@@ -1,16 +1,14 @@
 #!/usr/bin/env node
-// FAFF-183 — robust adversarial-review backend call, originally for ollama.
+// FAFF-183 — robust adversarial-review backend call.
 //
 // Replaces the agent-hand-rolled API call (which broke five ways on a real backend: no model
 // preflight, empty content from reasoning models, dropped connections on long responses, no token
 // budget, and diff-only context that made the reviewer hallucinate "this heading doesn't exist").
 // Per deterministic-tools-over-prose, the robust call is a tool, not prose.
 //
-// FAFF-872: the native ollama transport family (a dedicated /api/tags + /api/chat NDJSON path) was
-// folded onto the OpenAI-compatible /v1 path below — ollama and oMLX both serve /v1/chat/completions,
-// so neither needs a wire format of its own. Two transport families remain: OpenAI-compatible (the
-// shape every non-anthropic backend uses, ollama included) and anthropic native (kept — Claude's
-// extended thinking cannot cross to a plain /v1/chat/completions).
+// Two transport families: OpenAI-compatible (the shape every non-anthropic backend uses, local
+// servers included) and anthropic native (kept — Claude's extended thinking cannot cross to a plain
+// /v1/chat/completions).
 //
 // The pure functions (buildOpenAiPayload / modelServedOpenAi / accumulateSse / assembleUserMessage)
 // carry no I/O and are unit-tested directly; the transport (getFn/streamFn) is injectable so CI makes
@@ -69,24 +67,21 @@ export function unreachableExit({ hostSource } = {}) {
   return hostSource === "default" ? EXIT.DEFAULT_HOST_UNREACHABLE : EXIT.UNREACHABLE;
 }
 
-// Transport families (FAFF-872: down from three to two). openai speaks the OpenAI-compatible
+// Transport families. openai speaks the OpenAI-compatible
 // /v1/models + /v1/chat/completions (SSE) shared by OpenAI, vLLM, OpenRouter, NVIDIA NIM
 // (integrate.api.nvidia.com/v1), DeepSeek, etc. gemini rides that same family via Google's documented
 // OpenAI-compatibility base URL (https://generativelanguage.googleapis.com/v1beta/openai), so it needs
-// no adaptor of its own — just the whitelist entry (FAFF-210). ollama is now an ALIAS into this same
-// family rather than a native transport: it also serves /v1/chat/completions, and /v1/models is an
-// equivalent model-served preflight to the deleted native /api/tags check (parity confirmed — both
-// fail loud, "model-not-served", on a mismatch). A bare (non-/v1) ollama host therefore now fails loud
-// at preflight instead of silently routing nowhere — the deliberate migration signal; there is no
-// auto-rewrite of a bare host to add /v1 (a config edit, not a runtime rewrite). The unset-provider
-// default is now "openai" too (there is no longer a native family to default to). anthropic has a
+// no adaptor of its own — just the whitelist entry (FAFF-210). A bare (non-/v1) host fails loud at
+// preflight ("model-not-served") instead of silently routing nowhere; there is no auto-rewrite of a
+// bare host to add /v1 (a config edit, not a runtime rewrite). The unset-provider
+// default is "openai" too. anthropic has a
 // native wire format (/v1/messages: top-level system, content blocks, x-api-key + anthropic-version
 // headers, max_tokens required) and keeps its own family — Claude's extended thinking cannot cross to
 // a plain /v1/chat/completions, so it is the one family kept native by design. An unknown provider
 // still returns "unsupported-provider".
 export function providerFamily(name) {
   const n = String(name || "openai").toLowerCase();
-  if (["openai", "vllm", "openrouter", "nvidia", "deepseek", "openai-compatible", "gemini", "ollama"].includes(n)) return "openai";
+  if (["openai", "vllm", "openrouter", "nvidia", "deepseek", "openai-compatible", "gemini"].includes(n)) return "openai";
   if (n === "anthropic") return "anthropic";
   return n; // unknown — runReview returns status "unsupported-provider"
 }
@@ -886,8 +881,8 @@ export function normaliseCleanRefutation(content) {
 // park on a missing one). Extended by FAFF-361 to also carry the winner's chain position and host
 // provenance (chain[<index>], host: <hostSource>) — the mechanical answer to "which configured
 // backend actually served this?", the exact provenance a same-day reconstruction incident needed.
-// provider defaults to "openai" (FAFF-872; mirrors the `tag` fallback in runReviewChain and the
-// providerFamily default — there is no longer a native ollama family to default to) and hostSource
+// provider defaults to "openai" (mirrors the `tag` fallback in runReviewChain and the
+// providerFamily default) and hostSource
 // defaults to "config" (back-compat for a caller that hasn't set it) when either is falsy.
 export function attributionHeader(winner, index) {
   const w = winner || {};
@@ -1332,8 +1327,7 @@ export function mergeReasoningExtra(body, extra) {
 // PURE: the /v1/chat/completions payload. reasoningOff adds
 // chat_template_kwargs:{thinking:false, enable_thinking:false} — disables a reasoning
 // model's hidden think phase (needed by reasoning models that else stream empty content;
-// FAFF-872: the sole reasoning-off lever now — the native ollama family's hardcoded
-// think:false is gone). `enable_thinking` is the key Qwen3/vLLM/SGLang/HF/MLX chat
+// the sole reasoning-off lever). `enable_thinking` is the key Qwen3/vLLM/SGLang/HF/MLX chat
 // templates actually read to gate the think phase (FAFF-898); `thinking` is retained
 // alongside it for compatibility with any server that reads the older key — unrecognised
 // kwargs are ignored, so sending both is free. It is OPT-IN: vanilla OpenAI rejects the
@@ -1830,7 +1824,7 @@ async function streamOnceOpenAi({ host, model, system, user, numPredict, reasoni
 }
 
 // OpenAI-compatible orchestration: preflight → stream → one 2× truncation retry, with Bearer auth and
-// an auth-failed branch (the same shape the deleted native ollama orchestration used, minus auth). The
+// an auth-failed branch. The
 // stream (+ truncation retry) is wrapped in the FAFF-227 bounded transport retry: a transient mid-stream
 // fault retries; an auth fault is terminal (isTransientTransport is FALSE for 401/403, so the wrapper
 // rethrows it into the auth catch); an exhausted transport fault surfaces status "transport-failed" → a
@@ -1918,9 +1912,7 @@ async function runReviewAnthropic({
   }
 }
 
-// Dispatcher: routes on the configured provider's transport family. Default (no provider) is now
-// "openai" (FAFF-872 — there is no longer a native ollama family to default to); ollama itself is an
-// OpenAI-compatible alias, so it also dispatches here, never to a native path.
+// Dispatcher: routes on the configured provider's transport family. Default (no provider) is "openai".
 export async function runReview(opts = {}) {
   const fam = providerFamily(opts.provider);
   if (fam === "openai") return runReviewOpenAi(opts);

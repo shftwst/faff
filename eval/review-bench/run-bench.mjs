@@ -4,12 +4,9 @@
 // reports timing, throughput, token counts, findings-shape (parseable?), and reasoning-content leakage.
 //
 // USAGE
-//   node run-bench.mjs --provider <ollama|openai> --host <URL> --model <NAME> [options]
+//   node run-bench.mjs --provider openai --host <URL> --model <NAME> [options]
 //
 // EXAMPLES
-//   # ollama (native /api/chat, keyless). think:false disables reasoning.
-//   node run-bench.mjs --provider ollama --host http://HOST:11434 --model qwen3.8:27b-mlx
-//
 //   # OpenAI-compatible server (/v1). Needs the /v1 in the host, a bearer key, and the served id.
 //   OMLX_API_KEY=... node run-bench.mjs --provider openai --host http://HOST:8001/v1 \
 //       --model Qwen3.8-27B-4bit --key-env OMLX_API_KEY
@@ -19,12 +16,12 @@
 //       --key-env OMLX_API_KEY --cohere
 //
 //   # Compare reasoning ON vs OFF, one lens, streaming (measures time-to-first-byte):
-//   node run-bench.mjs --provider ollama --host http://HOST:11434 --model qwen3.8:27b-mlx \
-//       --lens qa --reasoning on --stream
+//   node run-bench.mjs --provider openai --host http://HOST:8001/v1 --model Qwen3.8-27B-4bit \
+//       --key-env OMLX_API_KEY --lens qa --reasoning on --stream
 //
 // OPTIONS
-//   --provider ollama|openai     (required) transport family
-//   --host URL                   (required) ollama: http://h:11434  ·  openai: http://h:8001/v1
+//   --provider openai            (required) transport family
+//   --host URL                   (required) http://h:8001/v1 (include /v1)
 //   --model NAME                 (required) served model id (openai id must match /v1/models exactly)
 //   --key-env VAR                openai bearer token env var name (value read from process.env[VAR])
 //   --lens all|architectural|infosec|methodology|qa   (default all)
@@ -80,11 +77,11 @@ function parseArgs(argv) {
 }
 const A = parseArgs(process.argv.slice(2));
 if (A.help || !A.provider || !A.host || !A.model) {
-  console.error("usage: node run-bench.mjs --provider <ollama|openai> --host <URL> --model <NAME> [options]\n" +
+  console.error("usage: node run-bench.mjs --provider openai --host <URL> --model <NAME> [options]\n" +
                 "see the header of this file for all options and examples.");
   process.exit(A.help ? 0 : 2);
 }
-if (!["ollama", "openai"].includes(A.provider)) { console.error(`--provider must be ollama|openai`); process.exit(2); }
+if (A.provider !== "openai") { console.error(`--provider must be openai`); process.exit(2); }
 if (!["off", "on", "none", "low", "medium", "high", "xhigh"].includes(A.reasoning)) { console.error(`--reasoning must be off|on|none|low|medium|high|xhigh`); process.exit(2); }
 // --cache-bust: one nonce per RUN, prepended to every lens's system message, so the run starts cold vs
 // the server's existing cache but the 4 lenses in this run still share an identical prefix (preserving
@@ -121,14 +118,6 @@ function request(method, url, body, headers = {}, { stream = false } = {}) {
 // ---- body builders ----
 const COHERE_BUDGET = { low: 1024, medium: 8192, high: 31000 }; // Cohere token_budget per effort level
 
-function ollamaBody(system, user) {
-  const b = { model: A.model, stream: A.stream, messages: [{ role: "system", content: system }, { role: "user", content: user }],
-              options: { temperature: A.temperature, num_predict: A.maxTokens } };
-  // ollama's native switch is boolean (think true/false); it has no effort level, so on/low/medium/high
-  // all map to think:true (the level is a no-op here — use an openai endpoint for graded effort).
-  b.think = A.reasoning !== "off";
-  return b;
-}
 function openaiBody(system, user) {
   const b = { model: A.model, stream: A.stream, messages: [{ role: "system", content: system }, { role: "user", content: user }],
               temperature: A.temperature, max_tokens: A.maxTokens };
@@ -188,13 +177,7 @@ function severities(content) {
   return out;
 }
 
-// Non-streaming: ollama returns one JSON; openai returns one completion. Streaming folds NDJSON/SSE.
-function foldOllama(raw, streamed) {
-  if (!streamed) { const j = JSON.parse(raw); return { content: j.message?.content ?? "", meta: j, reasoning: "" }; }
-  let content = "", meta = {};
-  for (const line of raw.split("\n")) { const t = line.trim(); if (!t) continue; try { const j = JSON.parse(t); if (typeof j.message?.content === "string") content += j.message.content; if (j.done) meta = j; } catch {} }
-  return { content, meta, reasoning: "" };
-}
+// Non-streaming: one completion JSON. Streaming folds SSE.
 function foldOpenai(raw, streamed) {
   if (!streamed) {
     const j = JSON.parse(raw); const m = j.choices?.[0]?.message ?? {};
@@ -213,16 +196,10 @@ function foldOpenai(raw, streamed) {
 // ---- preflight (served-model check, best effort) ----
 async function preflight() {
   try {
-    if (A.provider === "ollama") {
-      const r = await request("GET", new URL("/api/tags", A.host).toString());
-      const names = (JSON.parse(r.body).models || []).map((m) => m.name);
-      return { ok: r.status === 200, served: names.includes(A.model), names, status: r.status };
-    } else {
-      const headers = A.keyEnv && process.env[A.keyEnv] ? { authorization: `Bearer ${process.env[A.keyEnv]}` } : {};
-      const r = await request("GET", joinV1("/models"), null, headers);
-      const ids = (JSON.parse(r.body).data || []).map((m) => m.id);
-      return { ok: r.status === 200, served: ids.includes(A.model), names: ids, status: r.status };
-    }
+    const headers = A.keyEnv && process.env[A.keyEnv] ? { authorization: `Bearer ${process.env[A.keyEnv]}` } : {};
+    const r = await request("GET", joinV1("/models"), null, headers);
+    const ids = (JSON.parse(r.body).data || []).map((m) => m.id);
+    return { ok: r.status === 200, served: ids.includes(A.model), names: ids, status: r.status };
   } catch (e) { return { ok: false, error: e.message }; }
 }
 const joinV1 = (path) => String(A.host).replace(/\/+$/, "") + path; // openai host already ends in /v1
@@ -231,37 +208,33 @@ const joinV1 = (path) => String(A.host).replace(/\/+$/, "") + path; // openai ho
 async function runLens(reqPath) {
   const req = JSON.parse(readFileSync(reqPath, "utf8"));
   const sys = NONCE + req.system; // NONCE is "" unless --cache-bust; kept identical across lenses in a run
-  const body = JSON.stringify(A.provider === "ollama" ? ollamaBody(sys, req.user) : openaiBody(sys, req.user));
-  const url = A.provider === "ollama" ? new URL("/api/chat", A.host).toString() : joinV1("/chat/completions");
+  const body = JSON.stringify(openaiBody(sys, req.user));
+  const url = joinV1("/chat/completions");
   const headers = {};
-  if (A.provider === "openai" && A.keyEnv && process.env[A.keyEnv]) headers.authorization = `Bearer ${process.env[A.keyEnv]}`;
+  if (A.keyEnv && process.env[A.keyEnv]) headers.authorization = `Bearer ${process.env[A.keyEnv]}`;
   let res;
   try { res = await request("POST", url, body, headers, { stream: A.stream }); }
   catch (e) { return { lens: req.lens, error: e.message }; }
   if (res.status < 200 || res.status >= 300) return { lens: req.lens, http: res.status, error: res.body.slice(0, 300), totalMs: res.totalMs };
   let folded;
-  try { folded = A.provider === "ollama" ? foldOllama(res.body, A.stream) : foldOpenai(res.body, A.stream); }
+  try { folded = foldOpenai(res.body, A.stream); }
   catch (e) { return { lens: req.lens, http: res.status, error: `parse: ${e.message} :: ${res.body.slice(0, 200)}`, totalMs: res.totalMs }; }
   const m = folded.meta || {};
   const usage = m.usage || {};
-  const peTok = m.prompt_eval_count ?? usage.prompt_tokens ?? req.meta.approx_prompt_tokens;
-  const outTok = m.eval_count ?? usage.completion_tokens ?? Math.round((folded.content.length) / 4);
-  const peDurS = m.prompt_eval_duration != null ? m.prompt_eval_duration / 1e9 : null; // ollama ns
-  const genDurS = m.eval_duration != null ? m.eval_duration / 1e9 : null;
+  const peTok = usage.prompt_tokens ?? req.meta.approx_prompt_tokens;
+  const outTok = usage.completion_tokens ?? Math.round((folded.content.length) / 4);
   // use time-to-first-CONTENT-token (ttft) when streaming — the real prompt-eval boundary — since some
   // servers (e.g. OMLX) flush an early role/keepalive frame, making raw first-byte (ttfb) misleadingly small.
   const ttfbS = (res.ttftMs ?? res.ttfbMs) != null ? (res.ttftMs ?? res.ttfbMs) / 1000 : null;
   const totalS = res.totalMs / 1000;
-  // prompt-eval / generation tok/s: prefer ollama's exact per-phase durations; otherwise derive from the
+  // prompt-eval / generation tok/s: derive from the
   // streaming TTFB — time-to-first-token ~= prompt-eval time, the remainder is generation. This is how you
   // get pe/gen tps from an OpenAI-compatible server (OMLX/vLLM/etc.) that only reports token counts: add
   // --stream. NOTE: on a warm prompt-cache hit prompt-eval is ~0, so ttfb-derived pe tps is meaningless
   // (look at cached_tok instead); it is meaningful on a COLD run.
   let peTps = null, genTps = null, tpsSource = null;
-  if (peDurS) { peTps = Math.round(peTok / peDurS); tpsSource = "server-duration"; }
-  else if (A.stream && ttfbS != null && ttfbS > 0) { peTps = Math.round(peTok / ttfbS); tpsSource = "ttft-derived"; }
-  if (genDurS) genTps = +(outTok / genDurS).toFixed(1);
-  else if (A.stream && ttfbS != null && totalS - ttfbS > 0.05) genTps = +(outTok / (totalS - ttfbS)).toFixed(1);
+  if (A.stream && ttfbS != null && ttfbS > 0) { peTps = Math.round(peTok / ttfbS); tpsSource = "ttft-derived"; }
+  if (A.stream && ttfbS != null && totalS - ttfbS > 0.05) genTps = +(outTok / (totalS - ttfbS)).toFixed(1);
   const rec = {
     lens: req.lens, http: res.status,
     total_s: +totalS.toFixed(1),

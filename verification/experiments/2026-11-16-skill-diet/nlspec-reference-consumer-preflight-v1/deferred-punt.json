@@ -1,0 +1,60 @@
+{
+  "root": "/var/tmp/faff-nlspec-reference-elg1525d",
+  "commands": [
+    {
+      "name": "admissible",
+      "args": [
+        "admissible",
+        "--spec",
+        "/var/tmp/faff-nlspec-reference-elg1525d/spec.md",
+        "--lights-out",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"admissible\":true,\"reasons\":[],\"checks\":[{\"id\":\"R1.scenarios\",\"pass\":true,\"detail\":\"2 born-verifiable scenario(s) (need >=1)\"},{\"id\":\"R2a.done-present\",\"pass\":true,\"detail\":\"3 DONE checklist item(s) (need >=1)\"},{\"id\":\"R2b.done-concrete\",\"pass\":true,\"detail\":\"0 vague DONE item(s)\"},{\"id\":\"R2c.human-judgement-untagged\",\"pass\":true,\"detail\":\"0 untagged human-judgement DONE item(s)\"},{\"id\":\"R2d.not-all-human-only\",\"pass\":true,\"detail\":\"3 DONE item(s) not tagged human-only (need at least 1)\"},{\"id\":\"R2e.human-marker-reason\",\"pass\":true,\"detail\":\"0 DONE item(s) begin needs-human: with no reason\"}],\"warnings\":[]}\n",
+      "stderr": ""
+    },
+    {
+      "name": "dod",
+      "args": [
+        "dod",
+        "classify",
+        "--spec",
+        "/var/tmp/faff-nlspec-reference-elg1525d/spec.md",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"criteria\":[{\"text\":\"Given an array of 1000 rows\\nWhen validation runs\\nThen it returns valid true without mutating rows\",\"class\":\"scenario\",\"source\":\"scenarios\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"scenarios:1\"},{\"text\":\"Given an array of 1001 rows\\nWhen validation runs\\nThen it returns valid false and error row-limit without importing rows\",\"class\":\"scenario\",\"source\":\"scenarios\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"scenarios:2\"},{\"text\":\"Arrays with at most 1000 rows MUST return valid true.\",\"class\":\"assertion\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"done:1\",\"local_ac_id\":\"done:1\"},{\"text\":\"Larger arrays MUST return valid false and error row-limit.\",\"class\":\"assertion\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"done:2\",\"local_ac_id\":\"done:2\"},{\"text\":\"Validation MUST preserve the return shape and MUST NOT mutate or import rows.\",\"class\":\"assertion\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"done:3\",\"local_ac_id\":\"done:3\"}],\"counts\":{\"scenario\":2,\"assertion\":3,\"prose\":0},\"holdout_counts\":{\"holdout\":0,\"visible\":5},\"oracle_less_count\":0,\"verification_tier_counts\":{\"running-stack\":5,\"integration\":0,\"delegated\":0},\"judged_count\":5,\"integration_count\":0,\"delegated_count\":0}\n",
+      "stderr": ""
+    },
+    {
+      "name": "punt",
+      "args": [
+        "punt-scan",
+        "/var/tmp/faff-nlspec-reference-elg1525d/spec.md"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"punts\":[{\"topic\":\"Latency dashboard  . Dashboard design is deferred under OUT OF SCOPE and does not affect row-limit enforcement.\",\"decides\":\"product\",\"non_blocking\":true,\"out_of_scope_crossref\":true,\"eligible\":true}],\"eligible_count\":1,\"blocking_open_count\":0}\n",
+      "stderr": ""
+    },
+    {
+      "name": "attach",
+      "args": [
+        "prep",
+        "attach",
+        "--issue",
+        "SPEC-4",
+        "--spec",
+        "/var/tmp/faff-nlspec-reference-elg1525d/spec.md",
+        "--mode",
+        "interactive",
+        "--root",
+        "/var/tmp/faff-nlspec-reference-elg1525d",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"issue\":\"SPEC-4\",\"token\":\"ready-to-post\",\"body_path\":\"/var/tmp/faff-nlspec-reference-elg1525d/spec.md\",\"spec_sha256\":\"dfc1020b4597020da91b3710bc8433c41e0389870d6c498bf17ca2961648728c\",\"confidence\":\"high\",\"build_tier\":\"standard\",\"admissibility\":{\"admissible\":true,\"reasons\":[],\"scenarios_prose\":[]}}\n",
+      "stderr": ""
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "status": "prepared-unmeasured",
+  "baseline_bytes": 18819,
+  "candidate_bytes": 16448,
+  "baseline_estimated_tokens": 4671,
+  "candidate_estimated_tokens": 4085,
+  "baseline_sha256": "af81549bd251bace400ebf5d976d65a15e9a9c258e83f318cbbc55fc034691af",
+  "candidate_sha256": "2b5b91c33b6e644d8e8e5720aa0aa6b6fb39d7f864fd2a8ee69a8b991a5975c9",
+  "changed_scope": "Spec Format preamble, WHY through basic HOW mechanics, decision rationale and DONE explanation/examples only. Failure modes, anti-pattern/rule inventory, temporal anchors, Scenarios, Open Questions/Assumptions, Confidence, inherited self-review, contract artifact and Rules remain byte-identical.",
+  "new_mandatory_reads": [],
+  "proof_required": "Fresh baseline/candidate actual final spec artifacts, independent source/requirements-to-DONE review, strict native audits, real admissible/dod classify/punt-scan/prep-attach consumption, and integration. Controlled completed review inputs; no full explore/self-review/prep lifecycle claim.",
+  "savings_counted": false,
+  "fixed_context_sha256": "ea53510c3c4b40d4927de1d1f70ca87117897c46e3b31551b751d6f08fac736b"
+}

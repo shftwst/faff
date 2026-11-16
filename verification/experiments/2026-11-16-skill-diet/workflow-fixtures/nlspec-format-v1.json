@@ -1,0 +1,461 @@
+{
+  "schema": 1,
+  "scope": "Final full-nlspec production from completed explore/self-review snapshots. Four persisted specs and ten decisions. Real downstream spec consumers are replayed separately. No live exploration, inherited self-review execution, tracker writes, full prep workflow or actual implementation claim.",
+  "cases": [
+    {
+      "id": "mechanical",
+      "task": "Produce the final full nlspec body from these completed issue/explore/review snapshots. Explore and inherited self-review already finished outside this boundary; their supplied results are authoritative inputs. Do not inspect a repository, dispatch reviewers, attach the spec or write tracker state. Preserve requirements and unresolved decisions without inventing choices. Include the required confidence and last contract block. This case measures final spec production, not the upstream review procedure. Persist the actual Markdown.",
+      "source": {
+        "issue": "SPEC-1",
+        "title": "Correct the help-page heading",
+        "explore": {
+          "files": {
+            "docs/help.md": "# CLI reference\n\nUse tool --help for options.\n"
+          },
+          "behaviour": "Only this heading changes; no command behaviour or API change."
+        },
+        "requirements": [
+          "Rename heading CLI reference to Command reference in docs/help.md.",
+          "Preserve the remaining page bytes.",
+          "This is a mechanical text edit; there is no non-trivial behavioural objective."
+        ],
+        "excluded": [
+          {
+            "name": "Command behaviour",
+            "why": "Only documentation naming changes",
+            "extension": "src/cli.ts"
+          }
+        ],
+        "decisions": [
+          {
+            "chosen": "Edit the existing heading in place",
+            "reason": "Avoid replacing the page or changing command behaviour"
+          }
+        ],
+        "checks": [
+          "A file-content assertion checks the heading and unchanged remainder."
+        ],
+        "review": {
+          "completed": true,
+          "blocker": 0,
+          "major": 0,
+          "minor": 0,
+          "result": "All supplied facts checked; no changes beyond the supplied snapshot are authorised.",
+          "returned_record_required": true
+        },
+        "completed_punt_scan": {
+          "punts": [],
+          "eligible_count": 0,
+          "blocking_open_count": 0
+        }
+      },
+      "oracle": {
+        "rubric": {
+          "must_include": [
+            "Command reference",
+            "CLI reference",
+            "docs/help.md"
+          ],
+          "must_avoid": []
+        },
+        "required_patterns": [
+          "^#{1,3} .*WHY",
+          "^#{1,3} .*OUT OF SCOPE",
+          "^#{1,3} .*WHAT",
+          "^#{1,3} .*HOW",
+          "^#{1,3} .*DONE",
+          "^confidence: high\\s*$",
+          "```faff-contract:spec-readiness\\s*\\n[\\s\\S]+?\\n```\\s*$",
+          "review(?: findings| record| summary)?",
+          "System[^\\n]*Language[^\\n]*Relevance"
+        ],
+        "forbidden_patterns": [
+          "(?:I|We) (?:attached|filed|merged|promoted)"
+        ],
+        "allowed_ids": [
+          "SPEC-1"
+        ]
+      },
+      "reference": "# SPEC-1: Correct the help-page heading\n\nThis spec addresses SPEC-1 for the build agent and human reviewers.\n\n## 1. WHY\nAn in-place heading edit preserves the rest of the help page. The current CLI reference label should be Command reference.\n\nReference context:\n\n| System | Language | Relevance |\n|---|---|---|\n| docs/help.md | Markdown | Existing help page updated in place |\n\n## 2. OUT OF SCOPE\n- Command behaviour: excluded because only naming changes; extend src/cli.ts in a separate issue.\n\n## 3. WHAT\ndocs/help.md contains the heading CLI reference and the unchanged help sentence. The heading becomes Command reference.\n\n## 4. HOW\nPROCEDURE update_help:\n  1. Replace the first heading only.\n  2. Preserve all remaining bytes.\n\n\n## 6. DESIGN DECISION RATIONALE\n**Heading edit or page rewrite?** In-place editing avoids unrelated changes; rewriting the page risks them. **Chosen:** edit the existing heading in place.\n\n## 7. OPEN QUESTIONS AND ASSUMPTIONS\nNo open questions or external assumptions.\n\n## 8. DONE\n### From WHY / WHAT / HOW\n- [ ] docs/help.md MUST begin with # Command reference.\n- [ ] The remaining page bytes MUST be unchanged.\n\nIntegration smoke test: compare the heading and remaining bytes with the supplied original.\n\n## Review record\nSupplied completed review: no blocker, major or minor findings. No resolution changes or dismissed findings.\n\nconfidence: high\n\n```faff-contract:spec-readiness\n{\"confidence\": \"high\", \"decisions\": [{\"marker\": \"chosen\"}]}\n```\n",
+      "consumer": {
+        "confidence": "high",
+        "admissible": false,
+        "blocking_punts": 0,
+        "eligible_punts": 0,
+        "holdouts": false,
+        "review_test_item": false
+      }
+    },
+    {
+      "id": "retry-and-privacy",
+      "task": "Produce the final full nlspec body from these completed issue/explore/review snapshots. Explore and inherited self-review already finished outside this boundary; their supplied results are authoritative inputs. Do not inspect a repository, dispatch reviewers, attach the spec or write tracker state. Preserve requirements and unresolved decisions without inventing choices. Include the required confidence and last contract block. This case measures final spec production, not the upstream review procedure. Persist the actual Markdown.",
+      "source": {
+        "issue": "SPEC-2",
+        "title": "Bound import retries",
+        "explore": {
+          "files": {
+            "src/import.ts": "export async function runImport(payload) { return importOnce(payload); }",
+            "src/errors.ts": "export class ImportError extends Error { transient: boolean; }",
+            "src/logger.ts": "export function log(event, fields) { /* existing logger */ }"
+          },
+          "integration": "Existing caller expects successful import value or original terminal error; existing job runner calls runImport."
+        },
+        "requirements": [
+          "Attempt importOnce at most 3 times, including the initial attempt.",
+          "Retry only ImportError with transient true, immediately, using the existing job runner; do not introduce backoff.",
+          "Success returns the original successful value; permanent errors or the third transient error return the original error.",
+          "Log retry attempts using attempt number only. Logs MUST NOT contain payloads.",
+          "Add a separate DONE item for the repository test file test/import-retry.test.ts passing.",
+          "Use three behavioural scenarios: immediate success, transient failure then success, three transient failures. Withhold the third as one holdout; retain the other two visible. Include the log privacy assertion as a non-functional criterion."
+        ],
+        "excluded": [
+          {
+            "name": "Backoff",
+            "why": "No timing policy requested",
+            "extension": "src/import.ts retry loop"
+          },
+          {
+            "name": "New job runner",
+            "why": "Existing runner is retained",
+            "extension": "src/runner.ts"
+          }
+        ],
+        "decisions": [
+          {
+            "chosen": "Bound retries in existing runImport",
+            "reason": "Preserve caller interface and runner ownership"
+          }
+        ],
+        "review": {
+          "completed": true,
+          "blocker": 0,
+          "major": 0,
+          "minor": 0,
+          "result": "All supplied facts checked; no changes beyond the supplied snapshot are authorised.",
+          "returned_record_required": true
+        },
+        "completed_punt_scan": {
+          "punts": [],
+          "eligible_count": 0,
+          "blocking_open_count": 0
+        }
+      },
+      "oracle": {
+        "rubric": {
+          "must_include": [
+            "ImportError",
+            "transient",
+            "attempt",
+            "3",
+            "payload"
+          ],
+          "must_avoid": []
+        },
+        "required_patterns": [
+          "^#{1,3} .*WHY",
+          "^#{1,3} .*OUT OF SCOPE",
+          "^#{1,3} .*WHAT",
+          "^#{1,3} .*HOW",
+          "^#{1,3} .*DONE",
+          "^confidence: high\\s*$",
+          "```faff-contract:spec-readiness\\s*\\n[\\s\\S]+?\\n```\\s*$",
+          "^## Scenarios",
+          "```holdout",
+          "^- .*MUST.*payload",
+          "test/import-retry.test.ts",
+          "RECORD|INTERFACE",
+          "review(?: findings| record| summary)?",
+          "System[^\\n]*Language[^\\n]*Relevance"
+        ],
+        "forbidden_patterns": [
+          "(?:I|We) (?:attached|filed|merged|promoted)"
+        ],
+        "allowed_ids": [
+          "SPEC-2"
+        ]
+      },
+      "reference": "# SPEC-2: Bound import retries\n\nThis spec addresses SPEC-2 for the build agent and human reviewers.\n\n## 1. WHY\nA three-attempt loop bounds transient retries while preserving the caller contract. A transient failure currently ends the import. Retry it without changing the successful value or terminal error.\n\nReference context:\n\n| System | Language | Relevance |\n|---|---|---|\n| src/import.ts | TypeScript | Existing interface or implementation used by this change |\n| src/errors.ts | TypeScript | Existing interface or implementation used by this change |\n| src/logger.ts | TypeScript | Existing interface or implementation used by this change |\n\n## 2. OUT OF SCOPE\n- Backoff: excluded because no timing policy was requested; extend src/import.ts retry loop.\n- New job runner: excluded because existing ownership is retained; extend src/runner.ts separately.\n\n## 3. WHAT\nRECORD ImportError:\n  transient: boolean, not modified by runImport. runImport(payload) returns the import value or original terminal error. The attempt counter is mutable, starts at 1 and cannot exceed 3.\n\n## 4. HOW\nPROCEDURE runImport(payload):\n  1. FOR attempt FROM 1 TO 3:\n     a. Call importOnce(payload); on success return its value.\n     b. On ImportError with transient true and attempt <3, log attempt number only and continue immediately.\n     c. Otherwise return the original error.\n  2. Never log payload. No backoff or new runner. The repository test file test/import-retry.test.ts must cover these retry paths.\n\n## Scenarios\n```\nGiven importOnce succeeds immediately\nWhen runImport executes\nThen it returns the original successful value after one attempt\n```\n```\nGiven importOnce fails transiently once then succeeds\nWhen runImport executes\nThen it returns the successful value after two attempts\n```\n```holdout\nGiven importOnce fails transiently three times\nWhen runImport executes\nThen it returns the third original error and makes no fourth attempt\n```\n- Logs MUST NOT contain payloads.\n\n## 6. DESIGN DECISION RATIONALE\n**Retry wrapper or new runner?** A wrapper preserves ownership; a new runner expands scope. **Chosen:** bound retries in existing runImport.\n\n## 7. OPEN QUESTIONS AND ASSUMPTIONS\nNo open questions or external assumptions.\n\n## 8. DONE\n### From WHY / WHAT / HOW\n- [ ] runImport MUST make at most 3 attempts including the first.\n- [ ] Success MUST return its original value.\n- [ ] Only transient ImportError MUST be retried; permanent errors and third transient errors MUST return the original error.\n- [ ] Retry logs MUST contain attempt number only, never payload.\n- [ ] Transient retries MUST run immediately without backoff.\n- [ ] The existing job runner MUST be retained.\n- [ ] test/import-retry.test.ts MUST pass.\n\nIntegration smoke test: run a transient failure followed by success and check two attempts and the original value.\n\n## Review record\nSupplied completed review: no blocker, major or minor findings. No resolution changes or dismissed findings.\n\nconfidence: high\n\n```faff-contract:spec-readiness\n{\"confidence\": \"high\", \"decisions\": [{\"marker\": \"chosen\"}]}\n```\n",
+      "consumer": {
+        "confidence": "high",
+        "admissible": true,
+        "blocking_punts": 0,
+        "eligible_punts": 0,
+        "holdouts": true,
+        "review_test_item": true,
+        "behavioural_scenarios": 3,
+        "visible_behavioural_scenarios": 2
+      }
+    },
+    {
+      "id": "blocking-punt",
+      "task": "Produce the final full nlspec body from these completed issue/explore/review snapshots. Explore and inherited self-review already finished outside this boundary; their supplied results are authoritative inputs. Do not inspect a repository, dispatch reviewers, attach the spec or write tracker state. Preserve requirements and unresolved decisions without inventing choices. Include the required confidence and last contract block. This case measures final spec production, not the upstream review procedure. Persist the actual Markdown.",
+      "source": {
+        "issue": "SPEC-3",
+        "title": "Persist recovery tokens",
+        "explore": {
+          "files": {
+            "src/token-store.ts": "export interface TokenStore { put(token): Promise<void>; get(id): Promise<Token | null>; }"
+          },
+          "state": "Interface exists, no persistence backend is implemented."
+        },
+        "requirements": [
+          "Persist accepted tokens across restart.",
+          "get(id) returns the stored token, or null when absent.",
+          "Keep TokenStore interface unchanged."
+        ],
+        "blocking_decision": "Choose SQLite or PostgreSQL before implementation; the architecture owner must decide. Do not choose or assume a backend.",
+        "excluded": [
+          {
+            "name": "Token expiry",
+            "why": "Retention behaviour is a separate feature",
+            "extension": "src/token-store.ts"
+          }
+        ],
+        "decisions": [
+          {
+            "chosen": "Keep the existing TokenStore interface",
+            "reason": "Callers already use it"
+          },
+          {
+            "punt": "SQLite or PostgreSQL",
+            "owner": "architecture",
+            "blocking": true
+          }
+        ],
+        "review": {
+          "completed": true,
+          "blocker": 0,
+          "major": 0,
+          "minor": 0,
+          "result": "All supplied facts checked; no changes beyond the supplied snapshot are authorised.",
+          "returned_record_required": true
+        },
+        "completed_punt_scan": {
+          "punts": [
+            {
+              "topic": "SQLite or PostgreSQL for durable token storage; the increment depends on this unresolved choice .",
+              "decides": "architecture",
+              "non_blocking": false,
+              "out_of_scope_crossref": false,
+              "eligible": false
+            }
+          ],
+          "eligible_count": 0,
+          "blocking_open_count": 1
+        }
+      },
+      "oracle": {
+        "rubric": {
+          "must_include": [
+            "SQLite",
+            "PostgreSQL",
+            "token",
+            "architecture"
+          ],
+          "must_avoid": []
+        },
+        "required_patterns": [
+          "^#{1,3} .*WHY",
+          "^#{1,3} .*OUT OF SCOPE",
+          "^#{1,3} .*WHAT",
+          "^#{1,3} .*HOW",
+          "^#{1,3} .*DONE",
+          "^confidence: medium\\s*$",
+          "```faff-contract:spec-readiness\\s*\\n[\\s\\S]+?\\n```\\s*$",
+          "\\*\\*Punt:\\*\\*",
+          "decides: architecture",
+          "review(?: findings| record| summary)?",
+          "System[^\\n]*Language[^\\n]*Relevance"
+        ],
+        "forbidden_patterns": [
+          "(?:I|We) (?:attached|filed|merged|promoted)"
+        ],
+        "allowed_ids": [
+          "SPEC-3"
+        ]
+      },
+      "reference": "# SPEC-3: Persist recovery tokens\n\nThis spec addresses SPEC-3 for the build agent and human reviewers.\n\n## 1. WHY\nDurable storage keeps accepted tokens available after restart. The interface exists but has no persistence backend. Implementation waits for an architecture decision.\n\nReference context:\n\n| System | Language | Relevance |\n|---|---|---|\n| src/token-store.ts | TypeScript | Existing interface or implementation used by this change |\n\n## 2. OUT OF SCOPE\n- Token expiry: excluded as a separate feature; extend src/token-store.ts.\n\n## 3. WHAT\nINTERFACE TokenStore:\n  put(token): Promise<void>\n  get(id): Promise<Token | null>\nThe existing interface is unchanged.\n\n## 4. HOW\nPROCEDURE put(token): persist token using the backend selected by architecture.\nPROCEDURE get(id): return stored token or null. Do not implement a backend before the decision.\n\n## Scenarios\n```\nGiven a token was accepted and the service restarted\nWhen get reads its id\nThen it returns the stored token\n```\n\n## 6. DESIGN DECISION RATIONALE\n**Change the caller interface?** Keeping it avoids caller changes; replacing it expands scope. **Chosen:** keep the existing TokenStore interface.\n\n## 7. OPEN QUESTIONS AND ASSUMPTIONS\n**Punt:** SQLite or PostgreSQL for durable token storage; the increment depends on this unresolved choice (decides: architecture).\n\n## 8. DONE\n### From WHY / WHAT / HOW\n- [ ] Accepted tokens MUST survive restart.\n- [ ] get MUST return the stored token or null when absent.\n- [ ] TokenStore interface MUST remain unchanged.\n\nIntegration smoke test: persist a token, restart the service and read that token.\n\n## Review record\nSupplied completed review: no blocker, major or minor findings. No resolution changes or dismissed findings.\n\nconfidence: medium\n\n```faff-contract:spec-readiness\n{\"confidence\": \"medium\", \"decisions\": [{\"marker\": \"chosen\"}, {\"marker\": \"punt\"}]}\n```\n",
+      "consumer": {
+        "confidence": "medium",
+        "admissible": true,
+        "blocking_punts": 1,
+        "eligible_punts": 0,
+        "holdouts": false,
+        "review_test_item": false
+      }
+    },
+    {
+      "id": "deferred-punt",
+      "task": "Produce the final full nlspec body from these completed issue/explore/review snapshots. Explore and inherited self-review already finished outside this boundary; their supplied results are authoritative inputs. Do not inspect a repository, dispatch reviewers, attach the spec or write tracker state. Preserve requirements and unresolved decisions without inventing choices. Include the required confidence and last contract block. This case measures final spec production, not the upstream review procedure. Persist the actual Markdown.",
+      "source": {
+        "issue": "SPEC-4",
+        "title": "Validate import row limits",
+        "explore": {
+          "files": {
+            "src/validate-import.ts": "export function validateImport(rows) { return { valid: true }; }"
+          },
+          "state": "Existing caller accepts {valid:boolean,error?:string}."
+        },
+        "requirements": [
+          "Accept arrays with at most 1000 rows.",
+          "Reject larger arrays with valid false and error row-limit.",
+          "Preserve the existing return shape and do not import or mutate rows during validation."
+        ],
+        "excluded": [
+          {
+            "name": "Latency dashboard",
+            "why": "Reporting is unrelated to enforcing the limit",
+            "extension": "src/metrics.ts"
+          }
+        ],
+        "decisions": [
+          {
+            "chosen": "Validate length before any import",
+            "reason": "Reject excessive work without side effects"
+          },
+          {
+            "punt": "Latency dashboard",
+            "blocking": false,
+            "owner": "product",
+            "note": "A dashboard design decision is deferred. Include the identical Latency dashboard label in OUT OF SCOPE and mark its Punt (non-blocking). This decision does not affect the row limit."
+          }
+        ],
+        "review": {
+          "completed": true,
+          "blocker": 0,
+          "major": 0,
+          "minor": 0,
+          "result": "All supplied facts checked; no changes beyond the supplied snapshot are authorised.",
+          "returned_record_required": true
+        },
+        "completed_punt_scan": {
+          "punts": [
+            {
+              "topic": "Latency dashboard  . Dashboard design is deferred under OUT OF SCOPE and does not affect row-limit enforcement.",
+              "decides": "product",
+              "non_blocking": true,
+              "out_of_scope_crossref": true,
+              "eligible": true
+            }
+          ],
+          "eligible_count": 1,
+          "blocking_open_count": 0
+        }
+      },
+      "oracle": {
+        "rubric": {
+          "must_include": [
+            "1000",
+            "row",
+            "Latency dashboard",
+            "non-blocking"
+          ],
+          "must_avoid": []
+        },
+        "required_patterns": [
+          "^#{1,3} .*WHY",
+          "^#{1,3} .*OUT OF SCOPE",
+          "^#{1,3} .*WHAT",
+          "^#{1,3} .*HOW",
+          "^#{1,3} .*DONE",
+          "^confidence: high\\s*$",
+          "```faff-contract:spec-readiness\\s*\\n[\\s\\S]+?\\n```\\s*$",
+          "\\*\\*Punt:\\*\\*.*non-blocking",
+          "decides: product",
+          "RECORD|INTERFACE",
+          "review(?: findings| record| summary)?",
+          "System[^\\n]*Language[^\\n]*Relevance"
+        ],
+        "forbidden_patterns": [
+          "(?:I|We) (?:attached|filed|merged|promoted)"
+        ],
+        "allowed_ids": [
+          "SPEC-4"
+        ]
+      },
+      "reference": "# SPEC-4: Validate import row limits\n\nThis spec addresses SPEC-4 for the build agent and human reviewers.\n\n## 1. WHY\nA length check rejects oversized imports before side effects. Validation currently accepts every array. Limit imports to 1000 rows while preserving the existing result shape.\n\nReference context:\n\n| System | Language | Relevance |\n|---|---|---|\n| src/validate-import.ts | TypeScript | Existing interface or implementation used by this change |\n\n## 2. OUT OF SCOPE\n- **Latency dashboard**: excluded because reporting does not affect enforcement; extend src/metrics.ts separately.\n\n## 3. WHAT\nRECORD ImportValidation:\n  valid: boolean, mutable result field.\n  error: optional string, mutable result field.\nvalidateImport(rows) returns ImportValidation. Limit:1000 rows.\n\n## 4. HOW\nPROCEDURE validateImport(rows):\n  1. IF length >1000: return {valid:false,error:\"row-limit\"}.\n  2. ELSE: return {valid:true}.\nDo not import or mutate rows.\n\n## Scenarios\n```\nGiven an array of 1000 rows\nWhen validation runs\nThen it returns valid true without mutating rows\n```\n```\nGiven an array of 1001 rows\nWhen validation runs\nThen it returns valid false and error row-limit without importing rows\n```\n\n## 6. DESIGN DECISION RATIONALE\n**Validate before or during import?** Before avoids side effects; during can partially import. **Chosen:** validate length before any import.\n\n## 7. OPEN QUESTIONS AND ASSUMPTIONS\n**Punt:** Latency dashboard (non-blocking) (decides: product). Dashboard design is deferred under OUT OF SCOPE and does not affect row-limit enforcement.\n\n## 8. DONE\n### From WHY / WHAT / HOW\n- [ ] Arrays with at most 1000 rows MUST return valid true.\n- [ ] Larger arrays MUST return valid false and error row-limit.\n- [ ] Validation MUST preserve the return shape and MUST NOT mutate or import rows.\n\nIntegration smoke test: validate 1000 and 1001 rows and compare results and unchanged inputs.\n\n## Review record\nSupplied completed review: no blocker, major or minor findings. No resolution changes or dismissed findings.\n\nconfidence: high\n\n```faff-contract:spec-readiness\n{\"confidence\": \"high\", \"decisions\": [{\"marker\": \"chosen\"}, {\"marker\": \"punt\"}]}\n```\n",
+      "consumer": {
+        "confidence": "high",
+        "admissible": true,
+        "blocking_punts": 0,
+        "eligible_punts": 1,
+        "holdouts": false,
+        "review_test_item": false
+      }
+    }
+  ],
+  "rule_cases": [
+    {
+      "id": "scenario-scope",
+      "question": "Does a mechanical text-only objective require a behavioural scenario? Return {\"required\": boolean}.",
+      "expected": {
+        "required": false
+      }
+    },
+    {
+      "id": "scenario-format",
+      "question": "For a non-trivial behavioural objective choose the canonical machine-readable scenario form. Return {\"fenced\":boolean,\"capitalised_step_starts\":boolean,\"bulleted_steps\":boolean}.",
+      "expected": {
+        "fenced": true,
+        "capitalised_step_starts": true,
+        "bulleted_steps": false
+      }
+    },
+    {
+      "id": "nonfunctional",
+      "question": "Does a non-functional log privacy objective require forced Given/When/Then? Return {\"forced_gwt\":boolean}.",
+      "expected": {
+        "forced_gwt": false
+      }
+    },
+    {
+      "id": "holdout",
+      "question": "Can a holdout introduce the only statement of a new requirement? Return {\"allowed\":boolean}.",
+      "expected": {
+        "allowed": false
+      }
+    },
+    {
+      "id": "done-coverage",
+      "question": "May DONE introduce a requirement absent from the body? Return {\"allowed\":boolean}.",
+      "expected": {
+        "allowed": false
+      }
+    },
+    {
+      "id": "repository-test",
+      "question": "Should a repository test-file check share a DONE item with HTTP behaviour? Return {\"separate_items\":boolean}.",
+      "expected": {
+        "separate_items": true
+      }
+    },
+    {
+      "id": "known-owner",
+      "question": "A Punt clearly belongs to architecture. Return {\"owner_suffix\":\"architecture\"|\"omit\"}.",
+      "expected": {
+        "owner_suffix": "architecture"
+      }
+    },
+    {
+      "id": "confidence",
+      "question": "Only an eligible non-blocking Punt remains and review has no findings. Return {\"confidence\":\"high\"|\"medium\"|\"low\"}.",
+      "expected": {
+        "confidence": "high"
+      }
+    },
+    {
+      "id": "review-cap",
+      "question": "Inherited review retains one blocker. Return {\"high_allowed\":boolean}.",
+      "expected": {
+        "high_allowed": false
+      }
+    },
+    {
+      "id": "contract",
+      "question": "Where does the spec-readiness contract block go? Return {\"position\":\"last\"|\"first\"}.",
+      "expected": {
+        "position": "last"
+      }
+    }
+  ]
+}

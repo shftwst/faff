@@ -1,0 +1,181 @@
+{
+  "schema": 1,
+  "status": "pass-final-v3-fixture-and-replay-ready-for-registration",
+  "updated_utc": "2026-11-16T22:07:56.326663+00:00",
+  "reviewer": {
+    "role": "independent nlspec fixture/consumer verifier",
+    "requested_model": "gpt-6.1-sol",
+    "requested_reasoning_effort": "medium"
+  },
+  "bindings": [
+    {
+      "path": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+      "sha256": "af81549bd251bace400ebf5d976d65a15e9a9c258e83f318cbbc55fc034691af"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/nlspec-format-v1.md",
+      "sha256": "2b5b91c33b6e644d8e8e5720aa0aa6b6fb39d7f864fd2a8ee69a8b991a5975c9"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/nlspec-format-v1.json",
+      "sha256": "168cdf2176d61f598747dd15581e7dfc1dc08340c9d57f6028976f25ad1cb73a"
+    },
+    {
+      "path": "eval/control-parity/nlspec-replay.mjs",
+      "sha256": "d737b0c93427d98a698c7127a92c787f7f7ae9f47ce6fed453ca5b5687e0c26b"
+    },
+    {
+      "path": "test/control-parity-nlspec.test.mjs",
+      "sha256": "04a7dc9e090c8d8b3cc672f6f851f47604fa42f00f77cd066893d969c8ac2cbf"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-nlspec-format-v1-source-review.json",
+      "sha256": "80ed90e01853005f5d9aea943951a10c4c255c3fb19009f8a8299a4c86f1352d"
+    }
+  ],
+  "fixture_cases": [
+    "mechanical",
+    "retry-and-privacy",
+    "blocking-punt",
+    "deferred-punt"
+  ],
+  "prior_findings": [
+    {
+      "finding": "Missing existing-system reference tables",
+      "resolution": "All4references include System/Language/Relevance tables and oracle presence pattern."
+    },
+    {
+      "finding": "Retry DONE omitted immediate/no-backoff and existing-runner constraints",
+      "resolution": "Explicit DONE items added."
+    },
+    {
+      "finding": "Reference imposed error/result immutability not in source",
+      "resolution": "ImportError not modified by runImport; ordinary mutable result fields replace readonly/frozen guarantee."
+    },
+    {
+      "finding": "Changed failure-mode activation not represented",
+      "resolution": "Source cut narrowed: failure-mode/anti-pattern/inventory block and temporal-anchor paragraph restored verbatim."
+    },
+    {
+      "finding": "Replay lacked runtime commit binding",
+      "resolution": "Replay CLI takes commit, binds runtime, asserts unchanged after allcases and records actual invoked commands separately."
+    },
+    {
+      "finding": "Missing visible scenario could pass count checks",
+      "resolution": "Retry fixture expects exactly3behavioural units and2visible; negative removes1required visible unit."
+    },
+    {
+      "finding": "Falsely nonblocking blocking Punt remained scanner-ineligible",
+      "resolution": "Explicit nonblocking-tag count matches eligible count; negative rejects false tag."
+    }
+  ],
+  "reference_validity": {
+    "mechanical": "In-place heading/remaining bytes, proper exclusion/table, no forced scenario, high confidence and expected R1refusal retained.",
+    "retry-and-privacy": "Three attempts including initial, transient-only/immediate/no-backoff, original value/error, attempt-only logs/no payload, existing runner,3behavioural scenarios with1holdout+2visible, privacy assertion and separate repository-test DONE retained.",
+    "blocking-punt": "Interface/required persistence/absent result retained; no backend selection invented; architecture-owned blocking Punt and medium rating retained.",
+    "deferred-punt": "1000/1001boundary, existing result shape, no row import/mutation, product-owned deferred dashboard cross-reference/tag, scanner eligibility and high rating retained."
+  },
+  "leakage_review": "Generic rendering task receives task/source only; oracle/reference/consumer expected fields stay outside model-visible source. Completed explore/review/scan snapshots are declared authoritative inputs. No reviewer-execution independence claim is made.",
+  "replay_assessment": [
+    "Actual contract/admissible/dod/punt/prep attach consumers execute against supplied runtimeRoot. CLI runtime binding/guard records provenance; direct function tests are local deterministic checks, not pinned model measurements.",
+    "Single valid final contract, expected prose/payload confidence, legal decision shapes and punt counts checked; semantic marker/prose correspondence remains manual.",
+    "Exact requested behavioural counts, observable scenarios, minor holdout selection, privacy assertion and repository-floor separation checked. Separation regex is partial, not a semantic proof.",
+    "Blocking/eligible Punt counts and tag kind checked through real scanner.",
+    "Attach stage output/source digest and open-not-published marker checked; no tracker post or confirm."
+  ],
+  "tests": {
+    "path": "/tmp/faff-nlspec-consumer-tests-v3.log",
+    "sha256": "ee6cd16cab1d60e45ac831ae8186c6140c6da3b23abf79e00eb38f09f3ddf036",
+    "passed": 13,
+    "failed": 0,
+    "detail": "One positive test covers4references plus12negative tests. Verifier read completed log; no model calls were launched."
+  },
+  "manual_gates": [
+    "Every source requirement and exclusion retained, with extension points; no invented choices, guarantees or source facts.",
+    "Source/code tables grounded; type shapes, mutability, constraints and interfaces correct.",
+    "HOW preserves branch/error/fallback precedence, meaningful pseudocode and procedure summary where complex.",
+    "All decisions/rationale/open questions/ownership represented; no hidden backend choice.",
+    "Body requirements and DONE correspond1:1; no missing or orphaned checks.",
+    "Scenarios cover each requested behaviour, holdout is not sole requirement statement, privacy is nonfunctional and repository test remains separate.",
+    "Final readiness declaration mirrors actual marker order/count/confidence; review record accurately reports supplied findings and resolutions.",
+    "Strict native audit plus all actual generated specs and replay traces reviewed before qualification."
+  ],
+  "preflight_treatment": "Initialv1historical only; v2preserved separately. Currentv3report binds helper-cleaned fixture and unchanged replay/runtime/reference bytes. Integration will rerun existing13tests against this final fixture; no model fidelity accepted.",
+  "limits": [
+    "No generated model specs or candidate acceptance from this review.",
+    "No actual exploration, inherited review execution, live repository acquisition, hosted tracker write, full prep workflow or implementation fidelity claim.",
+    "Ten policy decisions are separate from4persisted specs and actual consumer results.",
+    "Tests/consumer classification cannot replace manual semantic source/DONE/marker checks.",
+    "Ready for registration at the recorded hashes. Any later input changes require recheck; no model baseline/candidate acceptance yet."
+  ],
+  "final_pinned_preflight": {
+    "path": "nlspec-reference-consumer-preflight-v3/report.json",
+    "sha256": "bbb88da1e20efd4cdfef7228c914b95bd7d73a002ff8de204ae923e749536460",
+    "fixture_sha256": "168cdf2176d61f598747dd15581e7dfc1dc08340c9d57f6028976f25ad1cb73a",
+    "replay_sha256": "d737b0c93427d98a698c7127a92c787f7f7ae9f47ce6fed453ca5b5687e0c26b",
+    "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+    "same_runtime_binding_as_verified_v2": true,
+    "reference_source_hashes_equal_v2_and_current_fixture": 4,
+    "consumer_expectations_equal_v2": 4,
+    "artifact_grades_equal_v2": 4,
+    "attached_file_hashes_verified": 4,
+    "actual_consumer_commands": 20,
+    "all_case_results_pass": true,
+    "mechanical_admissible_exit1_is_expected": true
+  },
+  "fixed_context_checks": {
+    "baseline_policy_bytes": 120316,
+    "candidate_policy_bytes": 117945,
+    "same_context_except_source": true,
+    "current_full_kernel_and_rendering_present": true,
+    "exact_default_self_review_section_present": true,
+    "new_reads": [],
+    "bindings": [
+      {
+        "path": "baseline/nlspec-format.md",
+        "sha256": "af81549bd251bace400ebf5d976d65a15e9a9c258e83f318cbbc55fc034691af"
+      },
+      {
+        "path": "baseline/nlspec-format-with-context.md",
+        "sha256": "73ae4d3301da2e648c43b5ccc2693c4a8d9fd016ac82c53ba57397021588cb94"
+      },
+      {
+        "path": "candidates/nlspec-format-v1-with-context.md",
+        "sha256": "bce805641a06b7baba3bf0c0ace392324fbd68935954bcc78c56402aa027a1f1"
+      }
+    ]
+  },
+  "prior_final_preflight_v2": {
+    "path": "nlspec-reference-consumer-preflight-v2/report.json",
+    "sha256": "7b24abe0284f0ac4d6530e724344d922d68e1317004d26728f5c62318f08d1d3",
+    "fixture_sha256": "b2d1d71d03504f5fbfa71b8894d72728777e38ce8f520d1eb1b1bc24d3c89428",
+    "replay_sha256": "d737b0c93427d98a698c7127a92c787f7f7ae9f47ce6fed453ca5b5687e0c26b",
+    "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+    "runtime_binding_independently_matches_current_pinned_checkout": true,
+    "reference_source_hashes_verified": 4,
+    "attached_file_hashes_verified": 4,
+    "actual_consumer_commands": 20,
+    "mechanical_admissible_exit1_is_expected": true,
+    "all_case_results_pass": true
+  },
+  "source_helper_cleanup_addendum": {
+    "updated_utc": "2026-11-16T22:07:56.325058+00:00",
+    "change": "Removed unnecessary source.required_terms helper arrays from all4cases.",
+    "current_fixture_sha256": "168cdf2176d61f598747dd15581e7dfc1dc08340c9d57f6028976f25ad1cb73a",
+    "source_key_whitelist_checked": [
+      "blocking_decision",
+      "checks",
+      "completed_punt_scan",
+      "decisions",
+      "excluded",
+      "explore",
+      "issue",
+      "requirements",
+      "review",
+      "title"
+    ],
+    "private_oracle_helper_fields_remaining": false,
+    "completed_review_and_punt_scan": "Remain declared source observations and inputs, not evidence of actual review/scan execution in this model boundary.",
+    "source_facts": "Required names remain present in issue/explore/requirements and exclusions; output references and consumer expectations unchanged by hash comparison withv2."
+  }
+}

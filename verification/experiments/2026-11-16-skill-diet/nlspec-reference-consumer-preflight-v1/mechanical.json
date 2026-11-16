@@ -1,0 +1,60 @@
+{
+  "root": "/var/tmp/faff-nlspec-reference-m44w2nne",
+  "commands": [
+    {
+      "name": "admissible",
+      "args": [
+        "admissible",
+        "--spec",
+        "/var/tmp/faff-nlspec-reference-m44w2nne/spec.md",
+        "--lights-out",
+        "--json"
+      ],
+      "exit_code": 1,
+      "stdout": "{\"admissible\":false,\"reasons\":[\"0 born-verifiable scenario(s) (need >=1)\"],\"checks\":[{\"id\":\"R1.scenarios\",\"pass\":false,\"detail\":\"0 born-verifiable scenario(s) (need >=1)\"},{\"id\":\"R2a.done-present\",\"pass\":true,\"detail\":\"2 DONE checklist item(s) (need >=1)\"},{\"id\":\"R2b.done-concrete\",\"pass\":true,\"detail\":\"0 vague DONE item(s)\"},{\"id\":\"R2c.human-judgement-untagged\",\"pass\":true,\"detail\":\"0 untagged human-judgement DONE item(s)\"},{\"id\":\"R2d.not-all-human-only\",\"pass\":true,\"detail\":\"2 DONE item(s) not tagged human-only (need at least 1)\"},{\"id\":\"R2e.human-marker-reason\",\"pass\":true,\"detail\":\"0 DONE item(s) begin needs-human: with no reason\"}],\"warnings\":[]}\n",
+      "stderr": ""
+    },
+    {
+      "name": "dod",
+      "args": [
+        "dod",
+        "classify",
+        "--spec",
+        "/var/tmp/faff-nlspec-reference-m44w2nne/spec.md",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"criteria\":[{\"text\":\"docs/help.md MUST begin with # Command reference.\",\"class\":\"assertion\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"done:1\",\"local_ac_id\":\"done:1\"},{\"text\":\"The remaining page bytes MUST be unchanged.\",\"class\":\"assertion\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"done:2\",\"local_ac_id\":\"done:2\"}],\"counts\":{\"scenario\":0,\"assertion\":2,\"prose\":0},\"holdout_counts\":{\"holdout\":0,\"visible\":2},\"oracle_less_count\":0,\"verification_tier_counts\":{\"running-stack\":2,\"integration\":0,\"delegated\":0},\"judged_count\":2,\"integration_count\":0,\"delegated_count\":0}\n",
+      "stderr": ""
+    },
+    {
+      "name": "punt",
+      "args": [
+        "punt-scan",
+        "/var/tmp/faff-nlspec-reference-m44w2nne/spec.md"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"punts\":[],\"eligible_count\":0,\"blocking_open_count\":0}\n",
+      "stderr": ""
+    },
+    {
+      "name": "attach",
+      "args": [
+        "prep",
+        "attach",
+        "--issue",
+        "SPEC-1",
+        "--spec",
+        "/var/tmp/faff-nlspec-reference-m44w2nne/spec.md",
+        "--mode",
+        "interactive",
+        "--root",
+        "/var/tmp/faff-nlspec-reference-m44w2nne",
+        "--json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"issue\":\"SPEC-1\",\"token\":\"ready-to-post\",\"body_path\":\"/var/tmp/faff-nlspec-reference-m44w2nne/spec.md\",\"spec_sha256\":\"83b1d717bdc0b4ec03572e6dcee56b6ac37889d1ae3aad2504732c03c822d05a\",\"confidence\":\"high\",\"build_tier\":\"mechanical\",\"admissibility\":{\"admissible\":false,\"reasons\":[\"0 born-verifiable scenario(s) (need >=1)\"],\"scenarios_prose\":[]}}\n",
+      "stderr": ""
+    }
+  ]
+}

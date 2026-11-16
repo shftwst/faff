@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "value": {
+    "contract": {
+      "exit_code": 0,
+      "signal": null,
+      "stdout": "{\"signal\":\"unavailable\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"disposition\":\"open\",\"source\":\"adversarial\",\"disposition_rationale\":\"review-call.mjs exit 9: the only backend returned HTTP 503 and the run ledger made the review mandatory, so the chain failed closed.\",\"model\":\"openai/fixture-model\",\"title\":\"Mandatory adversarial review unavailable for the removeAccount change\",\"location\":\".faff/config.yaml\",\"action\":\"Restore a reachable adversarial backend in the adversarial chain and re-run Phase 2 before merging.\"}],\"conformant\":true,\"violations\":[]}\n",
+      "stderr": ""
+    },
+    "gate": {
+      "issue": "FAFF-7001",
+      "pass": false,
+      "ac_complete": true,
+      "review_verdict": "unavailable",
+      "holdout": "not-applicable",
+      "reasons": [
+        "review-verdict unavailable"
+      ],
+      "ac_called_out": []
+    }
+  }
+}

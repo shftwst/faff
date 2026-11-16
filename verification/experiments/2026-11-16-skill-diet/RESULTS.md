@@ -281,3 +281,26 @@ match its manifest hash. KERNEL-CONFIG-V2.md records the corrected public enum,
 accurate optional metadata handling and controlled prevalidated-stub boundary.
 No real adapter validation is claimed. A fresh v2 baseline uses unchanged kernel
 policy; the failed v1 trial is not pooled. No kernel reduction has been authored.
+
+## Adversarial workflow qualification completed
+
+The complete context-v3 paired set satisfies all ten intended workflow cases in
+five samples per arm: 50/50 before and 50/50 after. Signals, helper exits,
+checkpoint order/state and real persisted merge-floor results match under the
+declared normalisations. All native calls are accounted for. Candidate samples
+2, 4 and 5 each made one allowed read-only probe of an unwritten system output;
+these three diagnostics match native error-call argument hashes exactly. No
+native guard rejection or other error is waived. Original raw grades remain;
+all ten separate assessments bind report/capture/fixture/grader hashes.
+
+`adversarial-context-v3-qualification.json` binds the effect summary and complete
+native audit. Together with the separately qualified 40/40 challenge consumption
+cases per arm and the existing 185/185 decision / 40/40 artifact-review probes,
+this closes the declared gateway/adversarial proof gap. Further compression may
+resume. It does not establish full graft/ship or hosted publication parity.
+
+Recorded task/bridge payloads over five runs were 668,278 bytes / 166,518 estimated
+tokens before and 382,505 bytes / 95,824 after. These are limited payload proxies,
+not billing. Accepted source savings now cover both current cuts: 59,790 bytes
+and 14,773 estimated tokens. No further production prompt was edited while this
+qualification was pending.

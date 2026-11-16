@@ -177,7 +177,7 @@
     {
       "skill": "faffter-dark-adversarial-review",
       "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
-      "status": "draft-context-v3-workflow-qualification-pending",
+      "status": "draft-qualified-bounded-adversarial-workflow",
       "before": {
         "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
         "bytes": 74897,
@@ -253,7 +253,7 @@
         "passed": 551,
         "failed": 0
       },
-      "qualification_pending": "Finish remaining predeclared adversarial helper/checkpoint samples and native log audit. Challenge judgement/CLI consumption is qualified in the separate file-input-v4-stable treatment. Earlier failed treatments remain separate.",
+      "qualification_pending": null,
       "tests": {
         "ci_correction_and_adapters": {
           "passed": 158,
@@ -278,6 +278,46 @@
         "limits": [
           "Real CLI admission consumption with controlled cases; no hosted record publication.",
           "Small correlated samples, not statistical equivalence or provider usage."
+        ]
+      },
+      "workflow_execution": {
+        "status": "qualified-bounded-adversarial-workflow",
+        "qualification": "adversarial-context-v3-qualification.json",
+        "effect_summary": "adversarial-context-v3-assessed-results.json",
+        "baseline": {
+          "case_kinds": {
+            "execution": {
+              "passed": 50,
+              "total": 50
+            }
+          },
+          "runs": 5,
+          "passed": 50,
+          "total": 50,
+          "recorded_data_bytes": 668278,
+          "estimated_recorded_data_tokens": 166518
+        },
+        "candidate": {
+          "case_kinds": {
+            "execution": {
+              "passed": 50,
+              "total": 50
+            }
+          },
+          "runs": 5,
+          "passed": 50,
+          "total": 50,
+          "recorded_data_bytes": 382505,
+          "estimated_recorded_data_tokens": 95824
+        },
+        "normalised_signals_helper_exits_checkpoints_and_merge_gates_equal": true,
+        "recorded_diagnostics": 3,
+        "limits": [
+          "Controlled local provider responses and a stub primary reviewer exercise control flow, not independent model judgement. Existing separate artifact-review probes cover the bounded judgement cases.",
+          "Actual native tool metadata, bridge calls, files and merge-floor consumption are checked. Read counts, optional interactive findings files and prompt wording can differ within declared rules.",
+          "Original reports and native errors are retained. Two explicit oracle corrections are applied to both arms through hash-bound assessments; no guard rejection or other error is waived.",
+          "Actual delivered operator guidance is common across arms; the orchestrator-side file hash describes a separate container view.",
+          "No live GitHub/tracker publication, full graft/ship workflow, statistical equivalence or provider billing claim."
         ]
       }
     }

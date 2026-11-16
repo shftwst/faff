@@ -6,6 +6,7 @@ import { join, resolve } from 'node:path';
 import { consumeReviewArtifact, createReviewEnvironment, gradeReviewCapture, gradeReviewValue } from '../eval/control-parity/review-producer.mjs';
 const root = resolve(import.meta.dirname, '..');
 const fixture = JSON.parse(readFileSync(join(root, 'verification/experiments/2026-11-16-skill-diet/workflow-fixtures/review-producer.json')));
+const fixtureV2 = JSON.parse(readFileSync(join(root, 'verification/experiments/2026-11-16-skill-diet/workflow-fixtures/review-producer-v2.json')));
 const temporary = fn => async () => { const directory = mkdtempSync(join(tmpdir(), 'review-producer-test-')); try { await fn(directory); } finally { rmSync(directory, { recursive: true, force: true }); } };
 
 test('real review consumer accepts complete artifacts and rejects inconsistent or malformed envelopes', temporary(directory => {
@@ -28,6 +29,18 @@ test('review producer refuses publication, code mutation, extra inputs and prema
   assert.equal(env.capture().errors.length, 4);
   assert.equal(env.capture().outputs.length, 0);
 }));
+
+test('V2 accepts a concrete missing-coverage assertion while preserving V1 evidence and the failure bar', () => {
+  const old = fixture.cases.find(c => c.id === 'missing-coverage').oracle;
+  const current = fixtureV2.cases.find(c => c.id === 'missing-coverage').oracle;
+  const value = { signal: 'fail', findings: [{ location: 'test/function.test.mjs', location_present: true, action: "Add assert.equal(lower('AbC'), 'abc') to cover AC2.", action_present: true }] };
+  assert.equal(gradeReviewValue(value, old).pass, false);
+  assert.equal(gradeReviewValue(value, current).pass, true);
+  value.findings[0].action = 'Do nothing.';
+  assert.equal(gradeReviewValue(value, current).pass, false);
+  value.signal = 'pass';
+  assert.equal(gradeReviewValue(value, current).pass, false);
+});
 
 test('review grader detects lost prior identity, fabricated findings, tampering and repeated submissions', temporary(async directory => {
   const env = createReviewEnvironment({ directory, fixture, root });

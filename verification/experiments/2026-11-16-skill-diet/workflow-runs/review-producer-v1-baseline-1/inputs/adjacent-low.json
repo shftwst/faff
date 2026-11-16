@@ -1,0 +1,22 @@
+{
+  "appetite": "low",
+  "spec": "Change multiply(a,b) to return the product for finite numbers and add its test. The implementation and test are the task; no documentation cleanup was requested.",
+  "full_diff": "src/function.mjs: change comment // Calculte product. to // Calculate product. and change return a + b to return a * b. Add the supplied test.",
+  "complete_changed_files": {
+    "src/function.mjs": "// Calculate product.\nexport const multiply = (a,b) => a * b;\n",
+    "test/function.test.mjs": "import assert from 'node:assert/strict';\nimport {multiply} from '../src/function.mjs';\nassert.equal(multiply(2,3),6);\nassert.equal(multiply(-2,3),-6);\n"
+  },
+  "test_results": {
+    "status": "pass",
+    "command": "node --test",
+    "executed_by": "controlled caller, before this review"
+  },
+  "ac_checklist": [
+    {
+      "criterion": "Implement the stated behaviour",
+      "auto_verified": true,
+      "evidence": "test/function.test.mjs"
+    }
+  ],
+  "prior_findings": []
+}

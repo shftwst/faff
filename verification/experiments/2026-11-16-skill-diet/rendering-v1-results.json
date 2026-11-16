@@ -1,0 +1,389 @@
+{
+  "schema": 1,
+  "qualification_status": "requires-separate-native-protocol-review",
+  "status": "pass",
+  "plans": [
+    "verification/experiments/2026-11-16-skill-diet/rendering-baseline-plan.json",
+    "verification/experiments/2026-11-16-skill-diet/rendering-candidate-plan.json"
+  ],
+  "arms": {
+    "baseline": {
+      "case_kinds": {
+        "artifact": {
+          "passed": 45,
+          "total": 45
+        },
+        "decision": {
+          "passed": 100,
+          "total": 100
+        }
+      },
+      "runs": 5,
+      "passed": 145,
+      "total": 145,
+      "recorded_data_bytes": 185815,
+      "estimated_recorded_data_tokens": 45940
+    },
+    "candidate": {
+      "case_kinds": {
+        "artifact": {
+          "passed": 45,
+          "total": 45
+        },
+        "decision": {
+          "passed": 100,
+          "total": 100
+        }
+      },
+      "runs": 5,
+      "passed": 145,
+      "total": 145,
+      "recorded_data_bytes": 114755,
+      "estimated_recorded_data_tokens": 28545
+    }
+  },
+  "missing": [],
+  "problems": [],
+  "normalised_effect_state_gate_projections_equal": null,
+  "artifact_rubric_projections_equal": true,
+  "runs": [
+    {
+      "case_kinds": {
+        "artifact": {
+          "passed": 9,
+          "total": 9
+        },
+        "decision": {
+          "passed": 20,
+          "total": 20
+        }
+      },
+      "name": "rendering-artifact-v1-baseline-1",
+      "arm": "baseline",
+      "kind": "rendering-artifact-workflow",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "assessment_sha256": "0e3ecebc2abdba6e4b62dae21f33ceb8a7afd975013dae0b273ea11bd0d11d0b",
+      "original_status": "fail",
+      "original_cases_passed": 28,
+      "diagnostics": [],
+      "policy_sha256": "50256436d59e7fa4850fe4b59934631ee75c51a21c7b890f5cd2225d25e81fce",
+      "projection_sha256": "9a8ab86dfa809342b997ad3db44dc110dd5e73b3cb351a2193007092d0f4b1d5",
+      "policy_chunks": 5,
+      "cases_passed": 29,
+      "cases_total": 29,
+      "config_path_reads": null,
+      "event_counts": {
+        "write_output": 9,
+        "answer_rule": 20,
+        "finish": 1
+      },
+      "recorded_data_bytes": 37163,
+      "estimated_recorded_data_tokens": 9188
+    },
+    {
+      "case_kinds": {
+        "artifact": {
+          "passed": 9,
+          "total": 9
+        },
+        "decision": {
+          "passed": 20,
+          "total": 20
+        }
+      },
+      "name": "rendering-artifact-v1-baseline-2",
+      "arm": "baseline",
+      "kind": "rendering-artifact-workflow",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "assessment_sha256": "845b4af834cb5a0755a7fed8d01c856c3034a79c2cf63dc6649f763702f2160e",
+      "original_status": "fail",
+      "original_cases_passed": 28,
+      "diagnostics": [],
+      "policy_sha256": "50256436d59e7fa4850fe4b59934631ee75c51a21c7b890f5cd2225d25e81fce",
+      "projection_sha256": "9a8ab86dfa809342b997ad3db44dc110dd5e73b3cb351a2193007092d0f4b1d5",
+      "policy_chunks": 5,
+      "cases_passed": 29,
+      "cases_total": 29,
+      "config_path_reads": null,
+      "event_counts": {
+        "write_output": 9,
+        "answer_rule": 20,
+        "finish": 1
+      },
+      "recorded_data_bytes": 37162,
+      "estimated_recorded_data_tokens": 9187
+    },
+    {
+      "case_kinds": {
+        "artifact": {
+          "passed": 9,
+          "total": 9
+        },
+        "decision": {
+          "passed": 20,
+          "total": 20
+        }
+      },
+      "name": "rendering-artifact-v1-baseline-3",
+      "arm": "baseline",
+      "kind": "rendering-artifact-workflow",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "assessment_sha256": "72fc76470fc1a6e6dde88303a30e5edb4aa082a9609498779d5a56a6e2f4bde2",
+      "original_status": "fail",
+      "original_cases_passed": 28,
+      "diagnostics": [],
+      "policy_sha256": "50256436d59e7fa4850fe4b59934631ee75c51a21c7b890f5cd2225d25e81fce",
+      "projection_sha256": "9a8ab86dfa809342b997ad3db44dc110dd5e73b3cb351a2193007092d0f4b1d5",
+      "policy_chunks": 5,
+      "cases_passed": 29,
+      "cases_total": 29,
+      "config_path_reads": null,
+      "event_counts": {
+        "write_output": 9,
+        "answer_rule": 20,
+        "finish": 1
+      },
+      "recorded_data_bytes": 37164,
+      "estimated_recorded_data_tokens": 9189
+    },
+    {
+      "case_kinds": {
+        "artifact": {
+          "passed": 9,
+          "total": 9
+        },
+        "decision": {
+          "passed": 20,
+          "total": 20
+        }
+      },
+      "name": "rendering-artifact-v1-baseline-4",
+      "arm": "baseline",
+      "kind": "rendering-artifact-workflow",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "assessment_sha256": "1c3df3032b04a7051fea53b028bf44f07d80abe369c2187bdf3e6a3fc52cda03",
+      "original_status": "fail",
+      "original_cases_passed": 28,
+      "diagnostics": [],
+      "policy_sha256": "50256436d59e7fa4850fe4b59934631ee75c51a21c7b890f5cd2225d25e81fce",
+      "projection_sha256": "9a8ab86dfa809342b997ad3db44dc110dd5e73b3cb351a2193007092d0f4b1d5",
+      "policy_chunks": 5,
+      "cases_passed": 29,
+      "cases_total": 29,
+      "config_path_reads": null,
+      "event_counts": {
+        "write_output": 9,
+        "answer_rule": 20,
+        "finish": 1
+      },
+      "recorded_data_bytes": 37163,
+      "estimated_recorded_data_tokens": 9188
+    },
+    {
+      "case_kinds": {
+        "artifact": {
+          "passed": 9,
+          "total": 9
+        },
+        "decision": {
+          "passed": 20,
+          "total": 20
+        }
+      },
+      "name": "rendering-artifact-v1-baseline-5",
+      "arm": "baseline",
+      "kind": "rendering-artifact-workflow",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "assessment_sha256": "207a60605fcf6d6f9508cbc43634245c8faf1a2941270012a3595291322a447d",
+      "original_status": "fail",
+      "original_cases_passed": 28,
+      "diagnostics": [],
+      "policy_sha256": "50256436d59e7fa4850fe4b59934631ee75c51a21c7b890f5cd2225d25e81fce",
+      "projection_sha256": "9a8ab86dfa809342b997ad3db44dc110dd5e73b3cb351a2193007092d0f4b1d5",
+      "policy_chunks": 5,
+      "cases_passed": 29,
+      "cases_total": 29,
+      "config_path_reads": null,
+      "event_counts": {
+        "write_output": 9,
+        "answer_rule": 20,
+        "finish": 1
+      },
+      "recorded_data_bytes": 37163,
+      "estimated_recorded_data_tokens": 9188
+    },
+    {
+      "case_kinds": {
+        "artifact": {
+          "passed": 9,
+          "total": 9
+        },
+        "decision": {
+          "passed": 20,
+          "total": 20
+        }
+      },
+      "name": "rendering-artifact-v1-candidate-1",
+      "arm": "candidate",
+      "kind": "rendering-artifact-workflow",
+      "report_sha256": "7c017ccbb94db1f6973425c6fd802def7a5330273383fd0eb09b13df99f9d868",
+      "assessment_sha256": "53f6d0cf97d4409e145d6e3462419f17a23756ba231890b6f0c3be624e9f7149",
+      "original_status": "fail",
+      "original_cases_passed": 28,
+      "diagnostics": [],
+      "policy_sha256": "6b0612709b481bc67c6b503ed656fbc1591ba9b0881186db11ebaac430cbb017",
+      "projection_sha256": "9a8ab86dfa809342b997ad3db44dc110dd5e73b3cb351a2193007092d0f4b1d5",
+      "policy_chunks": 2,
+      "cases_passed": 29,
+      "cases_total": 29,
+      "config_path_reads": null,
+      "event_counts": {
+        "write_output": 9,
+        "answer_rule": 20,
+        "finish": 1
+      },
+      "recorded_data_bytes": 22953,
+      "estimated_recorded_data_tokens": 5711
+    },
+    {
+      "case_kinds": {
+        "artifact": {
+          "passed": 9,
+          "total": 9
+        },
+        "decision": {
+          "passed": 20,
+          "total": 20
+        }
+      },
+      "name": "rendering-artifact-v1-candidate-2",
+      "arm": "candidate",
+      "kind": "rendering-artifact-workflow",
+      "report_sha256": "7c017ccbb94db1f6973425c6fd802def7a5330273383fd0eb09b13df99f9d868",
+      "assessment_sha256": "92351f71f0ff86323034c4a495ff59370a7d138586f7849dd9d4b97d0714b614",
+      "original_status": "fail",
+      "original_cases_passed": 28,
+      "diagnostics": [],
+      "policy_sha256": "6b0612709b481bc67c6b503ed656fbc1591ba9b0881186db11ebaac430cbb017",
+      "projection_sha256": "9a8ab86dfa809342b997ad3db44dc110dd5e73b3cb351a2193007092d0f4b1d5",
+      "policy_chunks": 2,
+      "cases_passed": 29,
+      "cases_total": 29,
+      "config_path_reads": null,
+      "event_counts": {
+        "write_output": 9,
+        "answer_rule": 20,
+        "finish": 1
+      },
+      "recorded_data_bytes": 22950,
+      "estimated_recorded_data_tokens": 5708
+    },
+    {
+      "case_kinds": {
+        "artifact": {
+          "passed": 9,
+          "total": 9
+        },
+        "decision": {
+          "passed": 20,
+          "total": 20
+        }
+      },
+      "name": "rendering-artifact-v1-candidate-3",
+      "arm": "candidate",
+      "kind": "rendering-artifact-workflow",
+      "report_sha256": "7c017ccbb94db1f6973425c6fd802def7a5330273383fd0eb09b13df99f9d868",
+      "assessment_sha256": "0e57607a3f02a956c71f19a5a38241347b8a7ae3b779ababfbb251154475227c",
+      "original_status": "fail",
+      "original_cases_passed": 28,
+      "diagnostics": [],
+      "policy_sha256": "6b0612709b481bc67c6b503ed656fbc1591ba9b0881186db11ebaac430cbb017",
+      "projection_sha256": "9a8ab86dfa809342b997ad3db44dc110dd5e73b3cb351a2193007092d0f4b1d5",
+      "policy_chunks": 2,
+      "cases_passed": 29,
+      "cases_total": 29,
+      "config_path_reads": null,
+      "event_counts": {
+        "write_output": 9,
+        "answer_rule": 20,
+        "finish": 1
+      },
+      "recorded_data_bytes": 22950,
+      "estimated_recorded_data_tokens": 5708
+    },
+    {
+      "case_kinds": {
+        "artifact": {
+          "passed": 9,
+          "total": 9
+        },
+        "decision": {
+          "passed": 20,
+          "total": 20
+        }
+      },
+      "name": "rendering-artifact-v1-candidate-4",
+      "arm": "candidate",
+      "kind": "rendering-artifact-workflow",
+      "report_sha256": "7c017ccbb94db1f6973425c6fd802def7a5330273383fd0eb09b13df99f9d868",
+      "assessment_sha256": "3b630fc5eb75aa03c8a9998f3ee62fef4b4a5f0020d4522e6f18a41a9e28dbcc",
+      "original_status": "fail",
+      "original_cases_passed": 28,
+      "diagnostics": [],
+      "policy_sha256": "6b0612709b481bc67c6b503ed656fbc1591ba9b0881186db11ebaac430cbb017",
+      "projection_sha256": "9a8ab86dfa809342b997ad3db44dc110dd5e73b3cb351a2193007092d0f4b1d5",
+      "policy_chunks": 2,
+      "cases_passed": 29,
+      "cases_total": 29,
+      "config_path_reads": null,
+      "event_counts": {
+        "write_output": 9,
+        "answer_rule": 20,
+        "finish": 1
+      },
+      "recorded_data_bytes": 22950,
+      "estimated_recorded_data_tokens": 5708
+    },
+    {
+      "case_kinds": {
+        "artifact": {
+          "passed": 9,
+          "total": 9
+        },
+        "decision": {
+          "passed": 20,
+          "total": 20
+        }
+      },
+      "name": "rendering-artifact-v1-candidate-5",
+      "arm": "candidate",
+      "kind": "rendering-artifact-workflow",
+      "report_sha256": "7c017ccbb94db1f6973425c6fd802def7a5330273383fd0eb09b13df99f9d868",
+      "assessment_sha256": "232cd88cff7626bc53a56e99aa384605c66e1cf3625ad0eb964e46a4dea69474",
+      "original_status": "fail",
+      "original_cases_passed": 28,
+      "diagnostics": [],
+      "policy_sha256": "6b0612709b481bc67c6b503ed656fbc1591ba9b0881186db11ebaac430cbb017",
+      "projection_sha256": "9a8ab86dfa809342b997ad3db44dc110dd5e73b3cb351a2193007092d0f4b1d5",
+      "policy_chunks": 2,
+      "cases_passed": 29,
+      "cases_total": 29,
+      "config_path_reads": null,
+      "event_counts": {
+        "write_output": 9,
+        "answer_rule": 20,
+        "finish": 1
+      },
+      "recorded_data_bytes": 22952,
+      "estimated_recorded_data_tokens": 5710
+    }
+  ],
+  "limits": [
+    "Payload proxy counts task JSON plus compact successful bridge-response values, including policy chunks, each counted once. It excludes native tool framing, system/catalog/history, model output and cached reprocessing; it is not provider usage or billed cost.",
+    "Token estimate is ceil(UTF-16 characters/4) per payload, summed.",
+    "Effect and state comparison uses only the predeclared path/time/read normalisations. Finding prose varies and is graded separately by the fixture.",
+    "Native screens are retained separately and require protocol review; this numerical summary does not certify absence of out-of-bridge activity.",
+    "Rendering compares persisted artifact integrity and fact/form rubric outcomes, not byte-identical prose or subjective quality. Artifact, execution and decision counts are reported separately.",
+    "Small correlated samples do not establish statistical equivalence."
+  ]
+}

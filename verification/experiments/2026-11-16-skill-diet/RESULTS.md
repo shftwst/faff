@@ -304,3 +304,36 @@ tokens before and 382,505 bytes / 95,824 after. These are limited payload proxie
 not billing. Accepted source savings now cover both current cuts: 59,790 bytes
 and 14,773 estimated tokens. No further production prompt was edited while this
 qualification was pending.
+
+
+## Rendering transform qualified
+
+Rendering v2 reduces the skill from 24,639 to 11,288 bytes and from 6,040 to
+2,777 estimated tokens: 13,351 bytes and 3,263 tokens saved (about 54%). There are
+no new mandatory reads. Each arm passed 45/45 actual persisted artifacts and
+100/100 assessed rule decisions. Raw decision scores remain 95/100 per arm: all
+ten samples named the correct `# Writing style` heading with its Markdown marker.
+The documented heading normalisation is separate from the unchanged reports.
+All ten native sessions pass with the same delivered guidance and model version.
+
+Root read every artifact. V1 retained facts but repeated three glosses in one
+sample and left memoising unexplained in another; it was revised and retained
+separately. V2 corrects those observed issues. Four-sentence explanation paragraphs
+remain in two candidate samples and four baseline samples, so this does not claim
+perfect style compliance or unrestricted writing-quality equivalence.
+`rendering-v2-qualification.json` binds the rubric, native and artifact reviews.
+
+Accepted source savings are now 73,141 bytes and 18,036 estimated tokens across
+three files. The pending kernel cut is excluded from that total.
+
+## Kernel V2 functional success, native-context failure
+
+Both V2 arms pass 45/45 real configuration/dispatch cases and 120/120 decisions.
+The aggregate initially omitted the grader's already-declared graft stage-prefix
+normalisation; its original failed summary remains beside the corrected summary.
+Native audit then found an extra repository AGENTS.md read in candidate sample 5.
+That sample fails the context protocol and the V2 cut is not qualified.
+
+V3 explicitly preloads both global and repository guidance in every sample and
+repeats both arms with the same policies, fixture and runtime. V2 remains separate;
+no failed sample is replaced inside that treatment. Source savings remain pending.

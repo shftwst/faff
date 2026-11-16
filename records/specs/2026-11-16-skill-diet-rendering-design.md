@@ -2,7 +2,7 @@
 
 Compress the rendering adaptor while retaining its transform-only authority,
 source-grounding rules, canonical forms and thresholds. The baseline is
- a8509086ad28fa0e55cf3d1d818f2055294e663b. This changes human-facing presentation,
+a8509086ad28fa0e55cf3d1d818f2055294e663b. This changes human-facing presentation,
 not a gated producer contract, and introduces no mandatory reads.
 
 ## Scope and acceptance
@@ -27,10 +27,20 @@ not a gated producer contract, and introduces no mandatory reads.
   ceil(UTF-16 characters/4) per file separately from payload estimates and billing.
 
 Evidence: verification/experiments/2026-11-16-skill-diet/. Candidate source is
-candidates/rendering-v1.md; frozen cases and acceptance are in
+candidates/rendering-v2.md; frozen cases and acceptance are in
 workflow-fixtures/RENDERING-V1.md. The inventory below maps removed blocks to
 retained rules. It does not claim the unit test exercises every prose rule;
 paired artifacts, separate rule decisions and source review provide that evidence.
+
+## Qualified result
+
+The v2 candidate passed 45/45 persisted artifacts and 100/100 assessed rule
+decisions per arm, with complete native tool audit. Original decisions remain
+95/100 per arm because every sample spelled the correct heading with its
+Markdown marker. V1 retained facts but repeated glosses and once left a term
+unexplained; it was revised before acceptance. The v2 artifact review records
+remaining presentation variation rather than claiming perfect style compliance.
+See rendering-v2-qualification.json for hash-bound evidence and limits.
 
 ## Rule inventory
 

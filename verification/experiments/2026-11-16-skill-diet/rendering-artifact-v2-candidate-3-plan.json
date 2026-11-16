@@ -1,0 +1,22 @@
+{
+  "harness": "eval/control-parity/rendering-artifact.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/rendering.json",
+  "timeout_seconds": 540,
+  "worker": "claude-challenges",
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md"
+  ],
+  "json_stdin": true,
+  "bridge": "eval/control-parity/mailbox-call.mjs",
+  "treatment": "Persisted rendering artifacts plus separate bounded rule questions; full policy via bounded reader and common operator guidance as preloaded voice context. Candidate v2 clarifies the existing one-sentence and explained-work-term requirements after root artifact review found repetition and an unexplained term in v1. V1 evidence is retained and not pooled.",
+  "acceptance": "All five candidate samples must pass every intended case and native protocol audit. Preserve baseline failures in before scores. Correct only demonstrably overspecified oracle requirements with separate hash-bound assessments; do not reroll failures or pool models. Execution and decision counts stay separate.",
+  "samples": [
+    {
+      "name": "rendering-artifact-v2-candidate-3",
+      "arm": "candidate",
+      "policy": "candidates/rendering-v2.md"
+    }
+  ]
+}

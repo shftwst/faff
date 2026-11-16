@@ -28,10 +28,12 @@ const runs = summary.runs.map(run => {
 });
 const guidance = [...new Set(runs.flatMap(r => r.initial_reads.filter(i => i.path.endsWith('/.agents/AGENTS.md')).map(i => i.content_sha256)))];
 if (guidance.length !== 1 || runs.some(r => r.initial_reads.filter(i => i.path.endsWith('/.agents/AGENTS.md')).length !== 1)) throw new Error('common delivered guidance differs');
+const commonContexts = runs.map(r => r.initial_reads.filter(i => !i.path.endsWith('/task.json')).map(i => ({ path: i.path, sha256: i.content_sha256, bytes: i.content_bytes })).sort((a, b) => a.path.localeCompare(b.path)));
+if (new Set(commonContexts.map(c => JSON.stringify(c))).size !== 1) throw new Error('delivered initial context differs across samples');
 const result = {
   schema: 1, status: kinds[0] === 'kernel-config-execution' ? 'qualified-bounded-config-workflow' : 'qualified-rendering-rubrics-requires-artifact-review',
   summary: summaryPath, summary_sha256: hash(summaryPath), arms: summary.arms, runs,
-  delivered_guidance_sha256: guidance[0],
+  delivered_guidance_sha256: guidance[0], common_context: commonContexts[0],
   normalised_effect_state_gate_projections_equal: summary.normalised_effect_state_gate_projections_equal,
   artifact_rubric_projections_equal: summary.artifact_rubric_projections_equal,
   limits: [

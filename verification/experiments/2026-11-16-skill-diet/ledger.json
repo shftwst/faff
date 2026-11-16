@@ -320,15 +320,104 @@
           "No live GitHub/tracker publication, full graft/ship workflow, statistical equivalence or provider billing claim."
         ]
       }
+    },
+    {
+      "skill": "faffidavit-rendering",
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "status": "draft-qualified-bounded-rendering-transform",
+      "before": {
+        "bytes": 24639,
+        "characters": 24159,
+        "estimated_tokens": 6040,
+        "sha256": "50256436d59e7fa4850fe4b59934631ee75c51a21c7b890f5cd2225d25e81fce"
+      },
+      "after": {
+        "bytes": 11288,
+        "characters": 11108,
+        "estimated_tokens": 2777,
+        "sha256": "74545fd22fc8451da92bf1ea2f0686940faaa1183453c2402c617131882176e4"
+      },
+      "bytes_saved": 13351,
+      "estimated_tokens_saved": 3263,
+      "mandatory_dependencies_added": [],
+      "qualification": "rendering-v2-qualification.json",
+      "fidelity": {
+        "kind": "persisted-artifact-and-decision-comparison",
+        "baseline": {
+          "case_kinds": {
+            "artifact": {
+              "passed": 45,
+              "total": 45
+            },
+            "decision": {
+              "passed": 100,
+              "total": 100
+            }
+          },
+          "runs": 5,
+          "passed": 145,
+          "total": 145,
+          "recorded_data_bytes": 185815,
+          "estimated_recorded_data_tokens": 45940
+        },
+        "candidate": {
+          "case_kinds": {
+            "artifact": {
+              "passed": 45,
+              "total": 45
+            },
+            "decision": {
+              "passed": 100,
+              "total": 100
+            }
+          },
+          "runs": 5,
+          "passed": 145,
+          "total": 145,
+          "recorded_data_bytes": 116206,
+          "estimated_recorded_data_tokens": 28911
+        },
+        "raw_scores_each_arm": {
+          "artifacts": {
+            "passed": 45,
+            "total": 45
+          },
+          "decisions": {
+            "passed": 95,
+            "total": 100
+          }
+        },
+        "normalisation": "Only the documented Markdown heading-marker equivalence; original reports and captures remain unchanged.",
+        "artifact_review": "rendering-v2-artifact-review.json",
+        "limits": [
+          "Five correlated samples per arm; no statistical equivalence.",
+          "Actual text transforms and persisted artifacts, not full caller workflow or tracker publication.",
+          "Common operator voice guidance was preloaded; gateway voice injection is outside this boundary.",
+          "V1 was revised after manual artifact review and is not pooled with the accepted candidate.",
+          "Estimates are not provider token usage or billing."
+        ]
+      }
     }
   ],
   "source_total": {
     "before_bytes": 1369435,
-    "after_bytes": 1309645,
+    "after_bytes": 1296294,
     "before_estimated_tokens": 339279,
-    "after_estimated_tokens": 324506
+    "after_estimated_tokens": 321243
   },
   "load_manifest": "load-manifest.json",
   "baseline_loads": "baseline/loads.json",
-  "latest_loads": "adversarial-v3-after-loads.json"
+  "latest_loads": "adversarial-v3-after-loads.json",
+  "pending_slices": [
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "status": "V3 common-context measurement running; not counted in accepted savings",
+      "candidate": "candidates/kernel-v1.md",
+      "before_bytes": 95418,
+      "candidate_bytes": 84072,
+      "before_estimated_tokens": 23652,
+      "candidate_estimated_tokens": 20857,
+      "prior_treatment": "kernel-config-v2-native-review.json"
+    }
+  ]
 }

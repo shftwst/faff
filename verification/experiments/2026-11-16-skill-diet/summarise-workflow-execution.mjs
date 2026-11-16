@@ -65,7 +65,12 @@ for (const sample of samples) {
   } else if (manifest.kind === 'challenge-judgement-and-consumption') {
     projection = report.grade.cases.map(({ id, outcome, ground, disposition, upper_admit }) => ({ id, outcome, ground, disposition, upper_admit }));
   } else if (manifest.kind === 'kernel-config-execution') {
-    projection = report.grade.cases.map(c => c.kind === 'decision' ? { id: c.id, kind: c.kind, value: c.value } : { id: c.id, kind: c.kind, effects: c.effects, status: c.status, values: c.values, final_files: c.final_files });
+    projection = report.grade.cases.map(c => {
+      if (c.kind !== 'decision') return { id: c.id, kind: c.kind, effects: c.effects, status: c.status, values: c.values, final_files: c.final_files };
+      const value = structuredClone(c.value);
+      if (c.id === 'architecture-proposal' && typeof value?.materialising_stage === 'string') value.materialising_stage = value.materialising_stage.replace(/^faff-graft\b/, 'graft');
+      return { id: c.id, kind: c.kind, value };
+    });
   } else if (manifest.kind === 'rendering-artifact-workflow') {
     projection = report.grade.cases.map(c => ({ id: c.id, kind: c.kind, pass: c.pass, ...(c.kind === 'decision' ? { value: c.value } : { rubric: c.rubric?.vector ?? null }) }));
   } else throw new Error(`unknown run kind ${manifest.kind}`);

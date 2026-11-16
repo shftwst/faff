@@ -1,0 +1,1 @@
+ISS-CC: Make the eval harness record `cache_read_input_tokens` for every request it sends.

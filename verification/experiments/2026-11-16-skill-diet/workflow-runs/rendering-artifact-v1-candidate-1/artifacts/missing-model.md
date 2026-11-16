@@ -1,0 +1,2 @@
+- whole draft → Lead with the load-bearing model → no load-bearing model to lead with; flag for the producer to supply the governing idea (none invented here)
+- "Step one ... Step three" run-on → Prose skimmability: three or more enumerable items become a list → render the three steps as a numbered markdown list

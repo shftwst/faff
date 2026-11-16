@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "status": "qualified-bounded-rendering-transform",
+  "before": {
+    "bytes": 24639,
+    "characters": 24159,
+    "estimated_tokens": 6040,
+    "sha256": "50256436d59e7fa4850fe4b59934631ee75c51a21c7b890f5cd2225d25e81fce"
+  },
+  "after": {
+    "bytes": 11288,
+    "characters": 11108,
+    "estimated_tokens": 2777,
+    "sha256": "74545fd22fc8451da92bf1ea2f0686940faaa1183453c2402c617131882176e4"
+  },
+  "bytes_saved": 13351,
+  "estimated_tokens_saved": 3263,
+  "protocol_and_rubric_review": "rendering-v2-protocol-and-rubric-review.json",
+  "protocol_and_rubric_sha256": "a81df829e4fbae022dea418bd417be1f0797e6d8346e7d436dfa18671357ac56",
+  "artifact_review": "rendering-v2-artifact-review.json",
+  "artifact_review_sha256": "7e37df828d41f0cb4bf564f7d896827150f898231fccac5bc4be8f0fe1de5ff2",
+  "raw_scores_each_arm": {
+    "artifacts": {
+      "passed": 45,
+      "total": 45
+    },
+    "decisions": {
+      "passed": 95,
+      "total": 100
+    }
+  },
+  "assessed_scores_each_arm": {
+    "artifacts": {
+      "passed": 45,
+      "total": 45
+    },
+    "decisions": {
+      "passed": 100,
+      "total": 100
+    }
+  },
+  "normalisation": "Only the documented Markdown heading-marker equivalence; original reports and captures remain unchanged.",
+  "limits": [
+    "Five correlated samples per arm; no statistical equivalence.",
+    "Actual text transforms and persisted artifacts, not full caller workflow or tracker publication.",
+    "Common operator voice guidance was preloaded; gateway voice injection is outside this boundary.",
+    "V1 was revised after manual artifact review and is not pooled with the accepted candidate.",
+    "Estimates are not provider token usage or billing."
+  ]
+}

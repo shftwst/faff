@@ -1,0 +1,1 @@
+{"name":"write_output","args":{"case_id":"gloss-003","text":"ISS-CC: Make the eval harness record cache_read_input_tokens for each request, so cached-token use is logged per request."}}

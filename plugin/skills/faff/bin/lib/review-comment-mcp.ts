@@ -160,7 +160,10 @@ export async function connectReviewTracker(value: unknown, options: { timeoutMs?
         try {
           const args = plan.action === 'create' ? { [config.issueArgument]: issueId, body: plan.body } : { id: plan.comment_id ?? '', body: plan.body };
           const result = await call(plan.action === 'create' ? config.tools.create : config.tools.update, args);
-          if (isRecord(result) && typeof result.id === 'string' && result.id && (plan.action === 'create' || result.id === plan.comment_id) && (result.body === undefined || result.body === plan.body)) return { status: 'acknowledged', comment_id: result.id };
+          if (isRecord(result) && typeof result.id === 'string' && result.id
+            && (result.success === undefined || result.success === true) && (result.error === undefined || result.error === null)
+            && (plan.action === 'create' || result.id === plan.comment_id)
+            && (result.body === undefined || result.body === plan.body)) return { status: 'acknowledged', comment_id: result.id };
         } catch { /* A remote error can follow a committed write. */ }
         return { status: 'uncertain', diagnostic: 'tracker did not acknowledge the expected comment; inspect a new live read before any further write' };
       },

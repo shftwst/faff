@@ -83,6 +83,26 @@ test('missing write acknowledgement is uncertain', async t => {
   assert.equal((await upstream.ports.writeComment(issue, { action: 'update', comment_id: 'one', body: 'text' })).status, 'uncertain');
 });
 
+test('an explicit failure alongside an ID is not a write acknowledgement', async t => {
+  const config = fake(t, `{content:[{type:'text',text:JSON.stringify({id:'one',success:false,error:'save failed'})}]}`);
+  const upstream = await connectReviewTracker(config);
+  t.after(() => upstream.close());
+  assert.equal((await upstream.ports.writeComment(issue, { action: 'update', comment_id: 'one', body: 'text' })).status, 'uncertain');
+});
+
+test('lost acknowledgement after an actual upstream write consumes the reference', async t => {
+  const { dir, config } = tracker(t, [{ op: 'save_comment', nth: 1, mode: 'lose-ack' }]);
+  const upstream = await connectReviewTracker(config);
+  t.after(() => upstream.close());
+  const session = createReviewCommentSession(upstream.ports);
+  const prepared = await session.prepare({ issue_id: issue, faff_body: 'new' });
+  assert.equal((await session.apply({ plan_ref: prepared.plan_ref })).status, 'uncertain');
+  assert.equal((await session.apply({ plan_ref: prepared.plan_ref })).status, 'refused');
+  const events = createFixtureTracker({ directory: dir }).readEvents();
+  assert.equal(events.filter(e => e.kind === 'effect-attempt').length, 1);
+  assert.equal(events.find(e => e.kind === 'effect-result').outcome, 'applied');
+});
+
 test('upstream timeout closes the transport and does not retry', async t => {
   const upstream = await connectReviewTracker(fake(t, 'undefined'), { timeoutMs: 100 });
   t.after(() => upstream.close());

@@ -36,7 +36,8 @@ The fresh 22-execution comparison completed at candidate `8ba8bd0c`. It failed:
 candidate 10/11, baseline 5/11, with one candidate failure and three unexpected
 baseline differences. The planner returned the correct CRLF body, but Claude
 wrote its escaped JSON representation. The caller now explicitly requires the
-decoded body; that correction is not yet model-verified. The checkpoint remains
+decoded body; a separately authorised one-case diagnostic at `d0efdd4e` still
+failed with the same escaping error. The checkpoint remains
 1,862 bytes. Full evidence is in
 `../2026-11-16-review-comment-pairs/RESULTS.md` and its accompanying raw traces.
 
@@ -65,6 +66,9 @@ Implementation rulings and limits:
 
 The original four historical differences remain narrow declarations. The three
 new baseline differences require review; none was waived. The revised caller
-still needs fresh model verification before this draft can be considered ready
-to land. The original 22-execution allowance is exhausted; no retry or additional
-batch has started. Pending prerequisite PRs #1187 and #1194 remain separate.
+failed its focused diagnostic and is not ready to land. The diagnostic used
+$0.0651418 across six requests, with no retry. Its raw provider response confirms
+the model authored the incorrect write; Claude Code passed it through unchanged.
+Evidence and a proposed deterministic connector handoff are in
+`../2026-11-16-review-comment-crlf-recheck/`. No further model run is authorised.
+Pending prerequisite PRs #1187 and #1194 remain separate.

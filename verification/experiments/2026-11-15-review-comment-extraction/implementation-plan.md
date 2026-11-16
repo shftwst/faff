@@ -82,8 +82,9 @@ release restriction applies to production edits as directed by the operator.
 
 The 22-run comparison at `8ba8bd0c` finished with candidate 10/11 and baseline
 5/11. The candidate double-escaped a correct CRLF plan; its caller instruction
-has been clarified without increasing prompt bytes. The revised caller remains
-unverified in Claude. Three additional baseline differences remain unexpected;
+has been clarified without increasing prompt bytes. The revised caller failed
+a separately authorised one-case Claude diagnostic with the same escaping error.
+Three additional baseline differences remain unexpected;
 the recorded declarations are unchanged. Results and all raw evidence are in
 `../2026-11-16-review-comment-pairs/RESULTS.md`. No further Claude run is started
 under the exhausted 22-execution allowance.

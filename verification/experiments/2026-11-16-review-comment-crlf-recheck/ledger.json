@@ -1,0 +1,42 @@
+{
+  "schema": 2,
+  "allowance_nanos": 500000000,
+  "entries": [
+    {
+      "id": "r1",
+      "reserved_nanos": 236136000,
+      "actual_nanos": 11166800,
+      "state": "reconciled"
+    },
+    {
+      "id": "r2",
+      "reserved_nanos": 240216000,
+      "actual_nanos": 7995400,
+      "state": "reconciled"
+    },
+    {
+      "id": "r3",
+      "reserved_nanos": 248504000,
+      "actual_nanos": 8534200,
+      "state": "reconciled"
+    },
+    {
+      "id": "r4",
+      "reserved_nanos": 252824000,
+      "actual_nanos": 5224000,
+      "state": "reconciled"
+    },
+    {
+      "id": "r5",
+      "reserved_nanos": 267608000,
+      "actual_nanos": 14143000,
+      "state": "reconciled"
+    },
+    {
+      "id": "r6",
+      "reserved_nanos": 296200000,
+      "actual_nanos": 18078400,
+      "state": "reconciled"
+    }
+  ]
+}

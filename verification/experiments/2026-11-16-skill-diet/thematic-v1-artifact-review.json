@@ -1,0 +1,226 @@
+{
+  "status": "pass",
+  "artifacts_read": 30,
+  "observations": [
+    "All unitary proposals retain the unanswered rate-limit question.",
+    "All split proposals preserve both stated concerns and the validation-before-refresh dependency.",
+    "All thin branches emit no tickets or containers and request more discovery.",
+    "Candidate descriptions vary in wording but add no unstated technology, deadline, numeric limit or outcome."
+  ],
+  "artifacts": [
+    {
+      "run": "thematic-readonly-v1-baseline-1",
+      "id": "shape-unitary",
+      "sha256": "4f9393dd9e89361ecd7cf74d3021f0edc7b5af3d24f9759d2631a3bb98fc1103",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-baseline-1",
+      "id": "shape-split",
+      "sha256": "25ceac86e7c45305d589f69ed7d9cd8881c9fdc24b5084f1005b6dba4ffa6136",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-baseline-1",
+      "id": "shape-thin-branch",
+      "sha256": "e7ccbb808eeb87c52702cfb7204af84fd416b50558b5b7d17f6ecb70e8d99aa8",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-baseline-2",
+      "id": "shape-unitary",
+      "sha256": "4f9393dd9e89361ecd7cf74d3021f0edc7b5af3d24f9759d2631a3bb98fc1103",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-baseline-2",
+      "id": "shape-split",
+      "sha256": "4953c3423b5b5431ac6d3e0d4b3065c615204d6d9e7382e6193b1b2d1f139839",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-baseline-2",
+      "id": "shape-thin-branch",
+      "sha256": "e7ccbb808eeb87c52702cfb7204af84fd416b50558b5b7d17f6ecb70e8d99aa8",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-baseline-3",
+      "id": "shape-unitary",
+      "sha256": "4f9393dd9e89361ecd7cf74d3021f0edc7b5af3d24f9759d2631a3bb98fc1103",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-baseline-3",
+      "id": "shape-split",
+      "sha256": "d4c3e0fcd380094a2cc661741027999857d753efbb161e9f851bace71ffcc47a",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-baseline-3",
+      "id": "shape-thin-branch",
+      "sha256": "e7ccbb808eeb87c52702cfb7204af84fd416b50558b5b7d17f6ecb70e8d99aa8",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-baseline-4",
+      "id": "shape-unitary",
+      "sha256": "4f9393dd9e89361ecd7cf74d3021f0edc7b5af3d24f9759d2631a3bb98fc1103",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-baseline-4",
+      "id": "shape-split",
+      "sha256": "4953c3423b5b5431ac6d3e0d4b3065c615204d6d9e7382e6193b1b2d1f139839",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-baseline-4",
+      "id": "shape-thin-branch",
+      "sha256": "e7ccbb808eeb87c52702cfb7204af84fd416b50558b5b7d17f6ecb70e8d99aa8",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-baseline-5",
+      "id": "shape-unitary",
+      "sha256": "4f9393dd9e89361ecd7cf74d3021f0edc7b5af3d24f9759d2631a3bb98fc1103",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-baseline-5",
+      "id": "shape-split",
+      "sha256": "4953c3423b5b5431ac6d3e0d4b3065c615204d6d9e7382e6193b1b2d1f139839",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-baseline-5",
+      "id": "shape-thin-branch",
+      "sha256": "e7ccbb808eeb87c52702cfb7204af84fd416b50558b5b7d17f6ecb70e8d99aa8",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-candidate-1",
+      "id": "shape-unitary",
+      "sha256": "b8cdb532723b78d4b5b7f72739771e07e15d0e32a2fd494353c1359440033975",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-candidate-1",
+      "id": "shape-split",
+      "sha256": "49d879b119b603b75c4311ed45bb45e3097e26393f6b6482d8c2a0c941d35524",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-candidate-1",
+      "id": "shape-thin-branch",
+      "sha256": "e7ccbb808eeb87c52702cfb7204af84fd416b50558b5b7d17f6ecb70e8d99aa8",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-candidate-2",
+      "id": "shape-unitary",
+      "sha256": "7bb58359d85ce6006c3cc76f3852976172de8fb854c4ec7ddb3c8bc45fdad89b",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-candidate-2",
+      "id": "shape-split",
+      "sha256": "3c42cb24fea8bfcb07406d88fc404fc8c77ac7f2fd188419aeaafd6192ed8ba5",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-candidate-2",
+      "id": "shape-thin-branch",
+      "sha256": "e7ccbb808eeb87c52702cfb7204af84fd416b50558b5b7d17f6ecb70e8d99aa8",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-candidate-3",
+      "id": "shape-unitary",
+      "sha256": "079e06ca9ed05e1fcb54c250e9718eda1fe48e9bf7635b6054a93f4ad9ba8f79",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-candidate-3",
+      "id": "shape-split",
+      "sha256": "0a919d34549932976579608471038702ab0076b7b0e440d52954b8f8a70d3ed9",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-candidate-3",
+      "id": "shape-thin-branch",
+      "sha256": "e7ccbb808eeb87c52702cfb7204af84fd416b50558b5b7d17f6ecb70e8d99aa8",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-candidate-4",
+      "id": "shape-unitary",
+      "sha256": "7bb58359d85ce6006c3cc76f3852976172de8fb854c4ec7ddb3c8bc45fdad89b",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-candidate-4",
+      "id": "shape-split",
+      "sha256": "0f614905923ee7b60e49128bc4cd08fda212d1b07bbed32e380eaca5ce6635d8",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-candidate-4",
+      "id": "shape-thin-branch",
+      "sha256": "e7ccbb808eeb87c52702cfb7204af84fd416b50558b5b7d17f6ecb70e8d99aa8",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-candidate-5",
+      "id": "shape-unitary",
+      "sha256": "becad5674f2a3ac570729bb785f8e6708169248224343ed6870cac2e9e7b42b1",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-candidate-5",
+      "id": "shape-split",
+      "sha256": "3e6068128c4b9d96e72c6e03ea8dbcaeaa02fe1c46aeb720383cfb791c03e5e7",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    },
+    {
+      "run": "thematic-readonly-v1-candidate-5",
+      "id": "shape-thin-branch",
+      "sha256": "e7ccbb808eeb87c52702cfb7204af84fd416b50558b5b7d17f6ecb70e8d99aa8",
+      "review": "Source-derived titles, Backlog status, Authentication home and dependency retained; open rate-limit question preserved; thin branch emits no invented children.",
+      "status": "pass"
+    }
+  ],
+  "limits": [
+    "Controlled fresh snapshots; no live tracker acquisition or mutation.",
+    "No unrestricted ticket-shaping quality or full-caller equivalence claim."
+  ]
+}

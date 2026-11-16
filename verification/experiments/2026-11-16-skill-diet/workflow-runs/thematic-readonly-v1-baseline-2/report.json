@@ -1,0 +1,492 @@
+{
+  "status": "pass",
+  "bridge": {
+    "stop": null,
+    "requests": 45,
+    "rejected": 0
+  },
+  "policy_delivery": {
+    "bytes": 165993,
+    "utf16_characters": 164404,
+    "sha256": "7f26d5084b3536c7278d1c881656529f29bb2afb86fa493220ccbc66ef90ab96",
+    "chunk_limit": 6000,
+    "complete": true,
+    "reads": [
+      {
+        "offset": 0,
+        "end": 6000,
+        "characters": 6000,
+        "bytes": 6068,
+        "sha256": "2ca1cbb69ba8db05c455c29f742833e3316793dad85fc563c75f2d6b7f293f13"
+      },
+      {
+        "offset": 6000,
+        "end": 12000,
+        "characters": 6000,
+        "bytes": 6062,
+        "sha256": "ea42f65e89e268297db8f48061428470955d8ed8b2bcbe22da03abadb9da27ac"
+      },
+      {
+        "offset": 12000,
+        "end": 18000,
+        "characters": 6000,
+        "bytes": 6046,
+        "sha256": "e746a0ffab914f55e5a5f0e3892d3b72e2e06e467468e9038b4ffe29848097e0"
+      },
+      {
+        "offset": 18000,
+        "end": 24000,
+        "characters": 6000,
+        "bytes": 6030,
+        "sha256": "44632d82d20965ce1b3dfe42a4bf735863fa3a5275ca7c92002d8d3aec2cb8f1"
+      },
+      {
+        "offset": 24000,
+        "end": 30000,
+        "characters": 6000,
+        "bytes": 6050,
+        "sha256": "dd301f9c5d5ef20535e8a7d1cd1c0f1b6a41c98ba41f726c22e289c61269331b"
+      },
+      {
+        "offset": 30000,
+        "end": 36000,
+        "characters": 6000,
+        "bytes": 6044,
+        "sha256": "9c847f15523281f89876e59d0e594d07da6d6685f4f1d90cd795cedaa4aaf7a2"
+      },
+      {
+        "offset": 36000,
+        "end": 42000,
+        "characters": 6000,
+        "bytes": 6038,
+        "sha256": "94df97376e63b13fa60d8e14bc96bea80df453fb4ff54746acbcab9db2be6dd1"
+      },
+      {
+        "offset": 42000,
+        "end": 48000,
+        "characters": 6000,
+        "bytes": 6047,
+        "sha256": "4ccc863eeb573c27b25280b1e20ceffc3105e17dbcf5c21e6eec58bee449f998"
+      },
+      {
+        "offset": 48000,
+        "end": 54000,
+        "characters": 6000,
+        "bytes": 6048,
+        "sha256": "1e7c5f250d4b9183d7fd0f37fd2170d0e33c2d77257b61957d1f3caaaa8fe748"
+      },
+      {
+        "offset": 54000,
+        "end": 60000,
+        "characters": 6000,
+        "bytes": 6056,
+        "sha256": "f7a486ec6b5a5e04376c58b8d65d0d935fcddc132e5ebc9420054293bec48d1a"
+      },
+      {
+        "offset": 60000,
+        "end": 66000,
+        "characters": 6000,
+        "bytes": 6060,
+        "sha256": "56a359c2d2c6e76f9a3fc429ba23fc8e377291dd94647c472156fc6593136886"
+      },
+      {
+        "offset": 66000,
+        "end": 72000,
+        "characters": 6000,
+        "bytes": 6053,
+        "sha256": "5de5ff3c6a40cb6c633c3cbfb64e99afd93ba802029cf75fd1ca7d9a8733a7ec"
+      },
+      {
+        "offset": 72000,
+        "end": 78000,
+        "characters": 6000,
+        "bytes": 6044,
+        "sha256": "2ef1e84ca63122dd6a70a6ce2f0b9f0db30d8b0a78cb4387a8c1be51b8f1d74f"
+      },
+      {
+        "offset": 78000,
+        "end": 84000,
+        "characters": 6000,
+        "bytes": 6064,
+        "sha256": "976d235de70709d9beaf93ec958dead3f75a84f7996fe72f372fc4d40db791a2"
+      },
+      {
+        "offset": 84000,
+        "end": 90000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "2a9ab575f09cfdcd7e80b389699787ca2bfcf9cc31c72deda864f40275b71ad0"
+      },
+      {
+        "offset": 90000,
+        "end": 96000,
+        "characters": 6000,
+        "bytes": 6067,
+        "sha256": "6a45cf5abc0a49e632353a830e9d4966a89c3495991c997d67cbde04cd8505f3"
+      },
+      {
+        "offset": 96000,
+        "end": 102000,
+        "characters": 6000,
+        "bytes": 6050,
+        "sha256": "9531fc034f2bf63fecbacf818c377f8641ced5ddd3cabafd3742df9df50521bf"
+      },
+      {
+        "offset": 102000,
+        "end": 108000,
+        "characters": 6000,
+        "bytes": 6058,
+        "sha256": "5f2cc3b547464e03e051bf164cd9bc31dea3c329d014e30c6184821c8bd3cc03"
+      },
+      {
+        "offset": 108000,
+        "end": 114000,
+        "characters": 6000,
+        "bytes": 6070,
+        "sha256": "85657e90e9a306b4f88ee78fb1bc44a3f1737fc4b351cfaf64f2a60883a01347"
+      },
+      {
+        "offset": 114000,
+        "end": 120000,
+        "characters": 6000,
+        "bytes": 6076,
+        "sha256": "a3ce7ff79b94ca03141cc5ce07a0416a7e44e3b584507597ce37a21321424572"
+      },
+      {
+        "offset": 120000,
+        "end": 126000,
+        "characters": 6000,
+        "bytes": 6050,
+        "sha256": "fc694c3d8402bf1df0e9401eec44d1233b417669145aaf3989b871b064be08bf"
+      },
+      {
+        "offset": 126000,
+        "end": 132000,
+        "characters": 6000,
+        "bytes": 6048,
+        "sha256": "e9ca13b7fca75bc5261115539dd96815b01c9e5b28eab7e22cabd7d77739b852"
+      },
+      {
+        "offset": 132000,
+        "end": 138000,
+        "characters": 6000,
+        "bytes": 6070,
+        "sha256": "0f34afc89db2bd9fb2c0ffe427cee92904dca034ac3f215f3bd9cd3f6d6eadfc"
+      },
+      {
+        "offset": 138000,
+        "end": 144000,
+        "characters": 6000,
+        "bytes": 6064,
+        "sha256": "6cbd9cb9dddf20b6f21dfbc60b941b12d66b79c61c2f29c38e7a95fb2c3c406d"
+      },
+      {
+        "offset": 144000,
+        "end": 150000,
+        "characters": 6000,
+        "bytes": 6076,
+        "sha256": "b74c5f9930d2b8cb1d55b3ae497fafa07fbcd9505786f53ffd72f459308dfaec"
+      },
+      {
+        "offset": 150000,
+        "end": 156000,
+        "characters": 6000,
+        "bytes": 6096,
+        "sha256": "4cb90b60bbc17e3d26f83f6d313d5e8736eb264938ce9d4dfc5c45799c420b32"
+      },
+      {
+        "offset": 156000,
+        "end": 162000,
+        "characters": 6000,
+        "bytes": 6082,
+        "sha256": "910cbe29c8ccdc748078078eebbed1bf270e4b9027487aff34b686e3f0b7b1c6"
+      },
+      {
+        "offset": 162000,
+        "end": 164404,
+        "characters": 2404,
+        "bytes": 2422,
+        "sha256": "f598797987989364d97c8e1a3f27408d64e66e00b3a5d1bee8fe23a7f3df274e"
+      }
+    ],
+    "errors": []
+  },
+  "grade": {
+    "status": "pass",
+    "cases": [
+      {
+        "id": "core-order",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": [
+          "A",
+          "B",
+          "C",
+          "F",
+          "D",
+          "E"
+        ],
+        "consumer_results": []
+      },
+      {
+        "id": "no-distance",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": [
+          "H",
+          "B",
+          "N",
+          "C",
+          "T"
+        ],
+        "consumer_results": []
+      },
+      {
+        "id": "within-band-distance",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": [
+          "H",
+          "C",
+          "N",
+          "B",
+          "T"
+        ],
+        "consumer_results": []
+      },
+      {
+        "id": "promote-ready",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "promote",
+        "consumer_results": []
+      },
+      {
+        "id": "hold-description-only",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "hold",
+        "consumer_results": []
+      },
+      {
+        "id": "hold-punt",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "hold",
+        "consumer_results": []
+      },
+      {
+        "id": "hold-false-assumption",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "hold",
+        "consumer_results": []
+      },
+      {
+        "id": "demote-challenged",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "demote",
+        "consumer_results": []
+      },
+      {
+        "id": "demote-repeat-parked",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "demote",
+        "consumer_results": []
+      },
+      {
+        "id": "shape-unitary",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "containers": [],
+          "tickets": [
+            {
+              "title": "Add login rate limiting",
+              "description": "Cap how often login requests are accepted.\n\nOpen questions:\n- Which limit should apply?",
+              "container": "Authentication",
+              "status": "Backlog",
+              "blocked_by": []
+            }
+          ],
+          "needs_discovery": false
+        },
+        "consumer_results": []
+      },
+      {
+        "id": "shape-split",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "containers": [],
+          "tickets": [
+            {
+              "title": "Validate session tokens",
+              "description": "Validate session tokens. Part of keeping sessions valid: validate session tokens and refresh expired sessions.",
+              "container": "Authentication",
+              "status": "Backlog",
+              "blocked_by": []
+            },
+            {
+              "title": "Refresh expired sessions",
+              "description": "Refresh expired sessions. Part of keeping sessions valid: validate session tokens and refresh expired sessions. Depends on Validate session tokens.",
+              "container": "Authentication",
+              "status": "Backlog",
+              "blocked_by": [
+                "Validate session tokens"
+              ]
+            }
+          ],
+          "needs_discovery": false
+        },
+        "consumer_results": []
+      },
+      {
+        "id": "shape-thin-branch",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "containers": [],
+          "tickets": [],
+          "needs_discovery": true
+        },
+        "consumer_results": []
+      },
+      {
+        "id": "horizons",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "A": "Now",
+          "B": "Next",
+          "C": "Later"
+        },
+        "consumer_results": []
+      },
+      {
+        "id": "optional-critique",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "unanswered",
+        "consumer_results": []
+      },
+      {
+        "id": "empty-rehome",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": [],
+        "consumer_results": []
+      },
+      {
+        "id": "termination-policy",
+        "kind": "consumer",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "ladder": [
+            {
+              "test": "non-convergence",
+              "verdict": "escalate"
+            },
+            {
+              "test": "budget-narrow",
+              "verdict": "continue"
+            },
+            {
+              "test": "budget-stop",
+              "verdict": "run-complete"
+            },
+            {
+              "test": "value-inflection",
+              "verdict": "run-complete"
+            },
+            {
+              "test": "work-remaining",
+              "verdict": "continue"
+            },
+            {
+              "test": "clean-complete",
+              "verdict": "run-complete"
+            }
+          ]
+        },
+        "consumer_results": [
+          {
+            "id": "non-convergence",
+            "pass": true,
+            "verdict": "escalate",
+            "reason": "non-convergence"
+          },
+          {
+            "id": "narrow-before-inflection",
+            "pass": true,
+            "verdict": "continue",
+            "reason": "budget-narrow(tokens)"
+          },
+          {
+            "id": "budget-stop",
+            "pass": true,
+            "verdict": "run-complete",
+            "reason": "budget-hit(tokens)"
+          },
+          {
+            "id": "inflection",
+            "pass": true,
+            "verdict": "run-complete",
+            "reason": "value-inflection"
+          },
+          {
+            "id": "work-remaining",
+            "pass": true,
+            "verdict": "continue",
+            "reason": "work-remaining"
+          },
+          {
+            "id": "drained",
+            "pass": true,
+            "verdict": "run-complete",
+            "reason": "drained"
+          },
+          {
+            "id": "budget-floor",
+            "pass": true,
+            "verdict": "escalate",
+            "reason": "budget-escalated(tokens)"
+          },
+          {
+            "id": "ledger-floor",
+            "pass": true,
+            "verdict": "continue",
+            "reason": "undispatched-ledger"
+          },
+          {
+            "id": "product-floor",
+            "pass": true,
+            "verdict": "escalate",
+            "reason": "product-incomplete"
+          }
+        ]
+      }
+    ],
+    "errors": []
+  },
+  "scope": "Bounded named-output comparison for the thematic readonly slice. Persisted ticket proposals, separate decisions and actual run-done/contract consumption. No tracker mutation, PRDR authoring, full caller workflow or statistical equivalence claim.",
+  "accounting": "unmetered"
+}

@@ -55,22 +55,34 @@ function validateJsonValues(value) {
 }
 function timestamp(value) {
     if (value === undefined || value === null)
-        return Infinity;
+        return null;
     if (typeof value !== 'string')
         return invalid('created_at must be an RFC 3339 timestamp or null');
-    const match = /^(\d{4})-(\d{2})-(\d{2})[Tt](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?(?:[Zz]|([+-])(\d{2}):(\d{2}))$/.exec(value);
+    const match = /^(\d{4})-(\d{2})-(\d{2})[Tt](\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?(?:[Zz]|([+-])(\d{2}):?(\d{2}))$/.exec(value);
     if (!match)
-        return invalid('created_at must be RFC 3339 with at most three fractional digits');
+        return invalid('created_at must be an ISO timestamp with a timezone');
     const year = Number(match[1]), month = Number(match[2]), day = Number(match[3]);
     const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
     const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1];
     if (!days || day < 1 || day > days || Number(match[4]) > 23 || Number(match[5]) > 59 || Number(match[6]) > 59 || Number(match[9] ?? 0) > 23 || Number(match[10] ?? 0) > 59) {
         return invalid('created_at has an invalid calendar date, time or offset');
     }
-    const time = Date.parse(value);
+    const offset = match[8] ? `${match[8]}${match[9]}:${match[10]}` : 'Z';
+    const time = Date.parse(`${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}${offset}`);
     if (!Number.isFinite(time))
         return invalid('created_at cannot be represented');
-    return time;
+    return { seconds: time / 1000, fraction: (match[7] ?? '').replace(/0+$/, '') };
+}
+function compareTimes(a, b) {
+    if (a === null)
+        return b === null ? 0 : 1;
+    if (b === null)
+        return -1;
+    if (a.seconds !== b.seconds)
+        return a.seconds - b.seconds;
+    const length = Math.max(a.fraction.length, b.fraction.length);
+    const left = a.fraction.padEnd(length, '0'), right = b.fraction.padEnd(length, '0');
+    return left === right ? 0 : left < right ? -1 : 1;
 }
 function markers(body, open, close) {
     const found = [];
@@ -85,9 +97,9 @@ function markers(body, open, close) {
             if (fenceMatch && fenceMatch[1]?.[0] === fence.character && fenceMatch[1].length >= fence.length && /^[ \t]*$/.test(fenceMatch[2] ?? ''))
                 fence = null;
         }
-        else if (fenceMatch && !(fenceMatch[1]?.[0] === '`' && (fenceMatch[2] ?? '').includes('`'))) {
+        else if (fenceMatch?.[1] && !(fenceMatch[1][0] === '`' && (fenceMatch[2] ?? '').includes('`'))) {
             const run = fenceMatch[1];
-            fence = { character: run[0], length: run.length };
+            fence = { character: run.charAt(0), length: run.length };
         }
         else {
             const trimmed = line.trimEnd();
@@ -129,18 +141,24 @@ function planReviewComment(value) {
         invalid('faff_body contains an unclosed code fence');
     const region = `${open}\n${faff_body}\n${close}`;
     const matches = comments.flatMap((comment, index) => {
-        const found = markers(comment.body, open, close).markers;
+        const scan = markers(comment.body, open, close);
+        const found = scan.markers;
         const first = found[0];
         if (!first || first.kind !== 'open')
             return [];
-        return [{ comment, index, start: first.start, close: found.find(marker => marker.kind === 'close') }];
+        return [{ comment, index, start: first.start, close: found.find(marker => marker.kind === 'close'), unclosedFence: scan.unclosedFence }];
     });
     if (!matches.length)
         return { schema: 1, action: 'create', reason: 'created', comment_id: null, body: region, expectedDigest: null };
     const complete = matches.filter(match => match.close);
     const pool = complete.length ? complete : matches;
-    pool.sort((a, b) => a.comment.time === b.comment.time ? a.index - b.index : a.comment.time < b.comment.time ? -1 : 1);
+    pool.sort((a, b) => compareTimes(a.comment.time, b.comment.time) || a.index - b.index);
     const chosen = pool[0];
+    if (!chosen)
+        return invalid('no selectable comment');
+    if (!chosen.close && (chosen.unclosedFence || chosen.comment.body.slice(chosen.start).split('\n').some(line => line.trim() === close))) {
+        return invalid('ambiguous open-only region: repair its fence or closing marker before planning');
+    }
     return {
         schema: 1, action: 'update', reason: matches.length === 1 ? 'updated' : 'reconciled',
         comment_id: chosen.comment.id,
@@ -153,8 +171,7 @@ function parseInput(text) {
     // JSON.parse validates syntax; this second pass rejects keys it would silently overwrite.
     const tokens = text.match(/"(?:\\[\s\S]|[^"\\])*"|[{}\[\]:,]/g) ?? [];
     const objects = [];
-    for (let i = 0; i < tokens.length; i++) {
-        const token = tokens[i];
+    for (const [i, token] of tokens.entries()) {
         if (token === '{')
             objects.push(new Set());
         else if (token === '[')
@@ -163,6 +180,8 @@ function parseInput(text) {
             objects.pop();
         else if (token.startsWith('"') && tokens[i + 1] === ':') {
             const keys = objects[objects.length - 1];
+            if (!keys)
+                invalid('object key outside an object');
             const key = JSON.parse(token);
             if (keys.has(key))
                 invalid('duplicate JSON object key');

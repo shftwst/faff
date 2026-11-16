@@ -123,6 +123,26 @@ test('all missing timestamps keep listing order and authorship has no effect', (
   assert.equal(plan(input([{ id: 'first', body }, { id: 'second', body, author: 'faff' }])).comment_id, 'first');
 });
 
+test('accepts compact timezone offsets and orders sub-millisecond instants without rounding', () => {
+  const body = `${open}\nold\n${close}`;
+  const result = plan(input([
+    { id: 'later', body, created_at: '2026-11-16T01:34:23.1234567+0000' },
+    { id: 'earlier', body, created_at: '2026-11-16T02:34:23.1234566+0100' },
+    { id: 'tie-after', body, created_at: '2026-11-16T01:34:23.123456600Z' },
+  ]));
+  assert.equal(result.comment_id, 'earlier');
+});
+
+test('a complete safe match can be updated while an ambiguous open-only duplicate remains untouched', () => {
+  const result = plan(input([
+    { id: 'ambiguous', body: `${open}\n\x60\x60\x60\n${close}\nHuman steering` },
+    { id: 'safe', body: `${open}\nold\n${close}` },
+  ]));
+  assert.equal(result.comment_id, 'safe');
+  assert.equal(result.reason, 'reconciled');
+  assert.equal(result.body, region);
+});
+
 for (const replacement of ['', `\x60\x60\x60\n${open}\n${close}\n\x60\x60\x60`, `> ${open}\ntext ${close}`, '<!-- faff-review-findings:OTHER -->']) {
   test(`replacement data remains exact: ${JSON.stringify(replacement)}`, () => {
     const result = plan(input([], replacement));
@@ -142,6 +162,10 @@ const invalid = [
   ['surrogate body', input([], '\ud800')], ['surrogate metadata', input([{ id: 'one', body: '', author: '\udc00' }])],
   ['active open in replacement', input([], open)], ['active close in replacement', input([], close)],
   ['unclosed replacement fence', input([], '~~~\nexample')],
+  ['existing unclosed fence hiding a close', input([{ id: 'one', body: `${open}\n\x60\x60\x60js\nold\n${close}\nHuman steering` }])],
+  ['existing fence closed only in the human suffix', input([{ id: 'one', body: `${open}\n~~~\nold\n${close}\nHuman steering\n~~~` }])],
+  ['existing unclosed fence with no literal close', input([{ id: 'one', body: `${open}\n~~~\nold\nHuman steering` }])],
+  ['indented close with human suffix', input([{ id: 'one', body: `${open}\nold\n  ${close}\nHuman steering` }])],
   ['duplicate JSON keys', '{"schema":1,"schema":1,"issue_id":"ISS-1","faff_body":"new","comments":[]}'],
   ['escaped duplicate keys', '{"schema":1,"\\u0073chema":1,"issue_id":"ISS-1","faff_body":"new","comments":[]}'],
   ['nested duplicate keys', '{"schema":1,"issue_id":"ISS-1","faff_body":"new","comments":[{"id":"one","body":"","author":{"x":1,"x":2}}]}'],
@@ -149,7 +173,7 @@ const invalid = [
   ['multiple JSON values', '{} {}'], ['malformed JSON', '{'], ['invalid UTF8', Buffer.from([0xff])],
   ['oversized input', ' '.repeat(1024 * 1024 + 1)],
 ];
-for (const timestamp of ['', 'yesterday', 1, '2026-02-29T00:00:00Z', '2026-01-01', '2026-01-01T24:00:00Z', '2026-01-01T00:00:60Z', '2026-01-01T00:00:00.1234Z', '2026-01-01T00:00:00+24:00']) {
+for (const timestamp of ['', 'yesterday', 1, '2026-02-29T00:00:00Z', '2026-01-01', '2026-01-01T24:00:00Z', '2026-01-01T00:00:60Z', '2026-01-01T00:00:00.12xZ', '2026-01-01T00:00:00+24:00']) {
   invalid.push([`invalid timestamp ${JSON.stringify(timestamp)}`, input([{ id: 'one', body: '', created_at: timestamp }])]);
 }
 for (const [name, value] of invalid) {

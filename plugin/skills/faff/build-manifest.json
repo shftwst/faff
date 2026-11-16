@@ -34,7 +34,7 @@
     "bin/lib/producer-auth.ts": "fcaed615b47929a0db1d307553291ac8d15aca206003cdedd5e6807fc3914272",
     "bin/lib/prose-size.ts": "a359145a4d7d807f8b97cfe4e0f84eb03f6091baeaf2fbe658016832b671e9aa",
     "bin/lib/result.ts": "9faed77603fd2095150b6b405444d9fe4c6783a0da9339e8dc6121cb1921c4a3",
-    "bin/lib/review-comment.ts": "789dc2b80b35f57e4ab2823cb1c8e6f7acd14d6dda2b16d8f6826a0e6bb45421",
+    "bin/lib/review-comment.ts": "3c0ce7ead29bb26b3e463ed858236e3f4c92b265de1af13f7d6b278e35c2dc3d",
     "bin/lib/rule-inventory.ts": "c4cb6d85b49519c4bca68d3b30b63a603eaf0590b8d31edbd7eaffe60dff4621",
     "bin/lib/run-checkpoint.ts": "9bee010306fced736b573cd2b7f377b08a1be140d1c9fa7ff3ca07405162ea98",
     "bin/lib/run-close.ts": "4f6f57ee9305f04f076285af97953ba0a4c69a37c01288748fac5c38cce97fa4",
@@ -69,7 +69,7 @@
     "bin/lib/producer-auth.js": "6ef8d8a93c885992b0f58c3156f1e2df96518cbedd4df95cd7e2b72fa9009baf",
     "bin/lib/prose-size.js": "df29582b5c00b007ad6dd3f135859edae851c540c2f254b5e7cf869981d5c5a7",
     "bin/lib/result.js": "09f1ec919a2ff84a38e1fe1e8ac5ed983ddabb90f75bfa8647cfccce561ff03e",
-    "bin/lib/review-comment.js": "f891f8f1a51a4d4fecf291587b4113302edb29089627cb71fc73e988716cc126",
+    "bin/lib/review-comment.js": "bd6e002c683466364c5afb23b12f945abd982324d2fe9a0a496d23394a17ac5d",
     "bin/lib/rule-inventory.js": "e4cc399a8b003fb062065d612f5b28b578fb14cc371611568f68b47150b9e69d",
     "bin/lib/run-checkpoint.js": "55718b976a814ef789c62578a60c3aa44bd1e72de37f04aec242b4166700de35",
     "bin/lib/run-close.js": "ebfdac166fd6586f0fc75ee14967babe5c5e2db68bc8672aac6931760c289ea2",
@@ -82,5 +82,5 @@
     "bin/lib/spec-review-round.js": "b02ecc242ee01d37719f7660252f2ba273abc334b79a6d64d2c40e66cb5bc678",
     "bin/lib/worktree-ensure.js": "a4d7154206e6d3dd6511248e3d0bcbadbc90079907146bc81430cf157433e44a"
   },
-  "output_digest": "47d50d263d0edf1ff47dd7d882a2f2d2bd6c063ee4f917037cf39776094a6e5b"
+  "output_digest": "14d73fafe3a42ab8c304db5a8ba168df84e18d5a179f30d4984536754eaabb9e"
 }

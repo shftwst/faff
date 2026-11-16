@@ -15,7 +15,7 @@ seven-decision record. Rejection returns no plan and performs no write.
 | Replacement | String, including empty text, Unicode and original line endings |
 | Comments | Array of objects with non-empty string `id` and string `body`; IDs must be unique |
 | Comment metadata | Preserved as input data; authorship is ignored |
-| Timestamp | Absent or null means missing. Otherwise a valid RFC 3339 timestamp with a timezone and at most three fractional second digits. Invalid calendar dates, leap seconds and unsupported precision are rejected |
+| Timestamp | Absent or null means missing. Otherwise a valid ISO date/time with a timezone (`Z`, `±hh:mm` or `±hhmm`) and optional decimal fraction. Compare fractions exactly without rounding; reject invalid calendar dates or leap seconds |
 | JSON | One value, no trailing values, duplicate object keys, non-finite numbers or unpaired Unicode surrogates |
 
 The CLI rejects an input document larger than one MiB, before parsing. Successful
@@ -32,7 +32,7 @@ environment credential, repository or clock lookup is needed to compute a plan.
 | Pair | First open through the first structural close after it. Later marker text is preserved |
 | Fences | Backtick or tilde runs of at least three, preceded by at most three ASCII spaces. A closing fence uses the same character, at least the opening length, and only trailing spaces or tabs. A backtick opening info string cannot contain a backtick |
 | Unclosed fence | Everything after its opening is fenced text |
-| Open-only comment | Open marker through end of body is replaceable; preserve its prefix |
+| Open-only comment | Open marker through end of body is replaceable; preserve its prefix. Refuse the selected open-only target if it has an unclosed fence or a later line that becomes the close marker after trimming: recovery cannot safely distinguish that line from a damaged boundary |
 | Complete-pair preference | If any matching comment has a close after its open, restrict selection to those comments |
 | Timestamp order | Earlier instant first; equal instants keep listing order; missing timestamps follow all timestamped comments |
 | Duplicate comments | Return one target; leave all other comments untouched |

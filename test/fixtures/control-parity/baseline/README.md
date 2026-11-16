@@ -1,0 +1,1 @@
+Baseline prose copied byte for byte from release faff--v0.45.0 (690546db64e3de7a68058a98a9945bfb731e68b3). The extracted review-comment section hashes to 4d9d01e702294453cf16233feefe265e18ab5e376bf7d0f1eec40cb3f534edb6, as pinned by the eleven-case registry. Harness unit tests must keep using this baseline when production caller prose changes.

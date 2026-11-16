@@ -1,6 +1,6 @@
 # Review-comment command contract for the evaluation adapter
 
-The proposed production command is `faff review-comment plan --input -`.
+The production command is `faff review-comment plan --input -`.
 It reads one JSON object from stdin and emits one JSON plan to stdout. The
 adapter never selects a comment or splices text itself.
 
@@ -49,5 +49,5 @@ limits are candidate failures; source drift, interrupted evidence and calls afte
 finish are incomplete evidence. The grader uses raw event sequence numbers.
 
 Adapter tests use literal fixture executables to prove transport and limits.
-Those tests are not evidence that the production planner has been implemented
-or that any skill-size or model-cost saving has been achieved.
+Those fixture tests establish transport only. Production planner conformance,
+source-size reduction and fresh model measurements are recorded separately.

@@ -20,7 +20,7 @@ FILES.push('eval/control-parity/candidate-command.mjs', 'eval/control-parity/com
 FILES.push('eval/control-parity/paired.mjs', 'eval/control-parity/treatments.mjs', 'eval/control-parity/intended-differences.json', 'verification/experiments/2026-11-15-comment-policy-measure/run/run.json');
 const makeRepo = () => {
   const dir = mkdtempSync(join(tmpdir(), 'cp-run-repo-'));
-  for (const f of FILES) { mkdirSync(dirname(join(dir, f)), { recursive: true }); cpSync(join(ROOT, f), join(dir, f)); }
+  for (const f of FILES) { mkdirSync(dirname(join(dir, f)), { recursive: true }); cpSync(join(ROOT, f === 'plugin/skills/faff/references/review.md' ? `test/fixtures/control-parity/baseline/${f}` : f), join(dir, f)); }
   git(dir, 'init', '-q');
   git(dir, 'add', '.');
   git(dir, 'commit', '-q', '-m', 'pinned');

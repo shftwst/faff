@@ -13,7 +13,7 @@ const load = p => parseStrictJson(readFileSync(join(ROOT, p), 'utf8'));
 const fixtures = load('eval/control-parity/fixtures/review-comments.json');
 const expected = load('eval/control-parity/expected-outcomes.json');
 const registry = load('eval/control-parity/registry.json');
-const policy = loadPolicyBytes(ROOT);
+const policy = loadPolicyBytes(new URL('./fixtures/control-parity/baseline/', import.meta.url).pathname);
 const H = c => c.repeat(64);
 const tmp = () => mkdtempSync(join(tmpdir(), 'cp-tracker-'));
 const fixture = id => fixtures.scenarios.find(s => s.id === id);

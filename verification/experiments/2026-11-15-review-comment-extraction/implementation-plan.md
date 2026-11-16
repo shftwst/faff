@@ -9,8 +9,8 @@ Source branch starts at `576888cbd7a83b63583127d53584c3cf8a49cb00`.
 ## Boundaries
 
 - Preserve the user's existing worktrees and untracked audit evidence.
-- Until the operator resolves the recorded release condition, edit only the
-  evaluation harness, its tests and implementation records.
+- Release 0.45.0 is verified at `690546db`; production work is now authorised.
+  Preserve the released baseline independently from the candidate.
 - Keep model and effort at the existing recorded settings for paired evaluation.
 - Keep live tracker effects out of experiments. Prepare reviewable commits and
   PR updates as part of driving the work. Merge and release remain separate.
@@ -44,7 +44,7 @@ create/update plan with reason, comment ID, body and original-body SHA-256.
 - [x] Freeze invalid-input and marker/fence boundary semantics in a spec.
 - [x] Write independent tests, including the eleven expected outcomes.
 - [x] Add TypeScript, emitted CLI registration, coverage and build manifest.
-- [ ] Run planner tests, build, region and CLI coverage checks; commit.
+- [x] Run planner tests, build, region and CLI coverage checks; commit.
 
 ### Task 3: Bind the real command and compare declared treatments
 
@@ -56,20 +56,20 @@ a separate report classifies narrow declared differences and candidate conforman
 - [x] Bind source/artifact hashes, arm tool definitions and complete schedule.
 - [x] Add paired CLI entry, source-drift and deliberate mutant tests.
 - [x] Run deterministic harness checks and obtain Claude's independent review.
-- [ ] Bind the production candidate from Task 2 before model admission.
+- [x] Bind the production candidate from Task 2 before model admission.
 
-The reviewed harness has 171 passing deterministic tests. It can be committed
-independently of production changes. `planner-boundaries.md` records proposals
-for the unresolved input boundaries, not additional operator decisions.
+The reviewed harness has 171 passing deterministic tests. The production adapter passed all eleven oracle cases. `planner-boundaries.md`
+records implementation choices and the conservative refusal added after
+independent review; these are separate from the seven operator decisions.
 
 ### Task 4: Reduce caller prose and verify it in Claude Code
 
 Consumes the command, independent oracle and reviewed harness. The actual reduced
 caller bytes are the experiment treatment, never a surrogate prompt.
 
-- [ ] Map removed obligations in a spec rule inventory and retain caller-owned
+- [x] Map removed obligations in a spec rule inventory and retain caller-owned
   reads, writes, uncertainty, findings judgement and logging.
-- [ ] Run validation, reference, rule-inventory and prose-size checks.
+- [x] Run validation, reference, rule-inventory and prose-size checks.
 - [ ] Give Claude the pinned candidate and ask it to run fresh old/new cases,
   bounded to 22 executions, no retries, with the existing $10 experiment cap.
 - [ ] Resolve regressions, complete required tests and record measured size,

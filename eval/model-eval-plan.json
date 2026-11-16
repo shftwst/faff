@@ -1,0 +1,10 @@
+{
+  "_comment": "Rep tiers for `run-model-eval.mjs`. A tier gives every black-box kind `reps` per case with no escalation, except the kinds named in kind_reps, which are slow (several lens prompts per rep). The reference baseline was captured at 20 reps with escalation, so a quick-tier result is a coarse signal.",
+  "tiers": {
+    "quick": { "reps": 5, "kind_reps": { "refutation-spec": 3 }, "format_samples": 6 },
+    "full": { "reps": 20, "kind_reps": { "refutation-spec": 5 }, "format_samples": 12 }
+  },
+  "live_kinds": ["reconciliation", "verdict-build", "finding-identity", "holdout-live"],
+  "reference": "eval/baselines/frontier.json",
+  "reference_label": "claude-opus-5-5 (medium effort), eval/baselines/frontier.json"
+}

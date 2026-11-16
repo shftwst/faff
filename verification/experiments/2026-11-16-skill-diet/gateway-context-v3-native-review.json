@@ -1,0 +1,82 @@
+{
+  "status": "pass-for-declared-entry-boundary",
+  "reviewed_at_utc": "2026-11-16T06:49:32.504325+00:00",
+  "numerical_result": "gateway-context-v3-results.json",
+  "numerical_result_sha256": "cf58fa0a40bdd0f04a91a2dcb95f75918489e7abbe2b653ac2061bf84c1052ba",
+  "common_context": [
+    {
+      "path": "/Users/shftwst/.agents/AGENTS.md",
+      "sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+      "bytes": 22605
+    }
+  ],
+  "runs": [
+    {
+      "run": "gateway-context-v3-baseline-1",
+      "screen_sha256": "1580ba2ff3c98d63a54e3f6fe7cc77111337f998b96a3b2e1f3118f920b589ae",
+      "status": "no-reported-prohibited-action",
+      "notes": "Entire retained screen inspected. No prohibited operation reported. Some screens note skipping a separate worktree AGENTS read, whose rules were already in context; this is not an extra operation. Independent bridge calls each in their own Bash invocation are allowed. Additional config-path reads are separately counted by the effect summary."
+    },
+    {
+      "run": "gateway-context-v3-candidate-1",
+      "screen_sha256": "5efe8bced3c2ad4fbe46f2d4729b900932c897a6c2ccf3dabae062322bb1f6b9",
+      "status": "no-reported-prohibited-action",
+      "notes": "Entire retained screen inspected. No prohibited operation reported. Some screens note skipping a separate worktree AGENTS read, whose rules were already in context; this is not an extra operation. Independent bridge calls each in their own Bash invocation are allowed. Additional config-path reads are separately counted by the effect summary."
+    },
+    {
+      "run": "gateway-context-v3-candidate-2",
+      "screen_sha256": "011309c403f72260bf9b8a1f45b7c811fa1edcf8372fc52d47d4b9737c569b17",
+      "status": "no-reported-prohibited-action",
+      "notes": "Entire retained screen inspected. No prohibited operation reported. Some screens note skipping a separate worktree AGENTS read, whose rules were already in context; this is not an extra operation. Independent bridge calls each in their own Bash invocation are allowed. Additional config-path reads are separately counted by the effect summary."
+    },
+    {
+      "run": "gateway-context-v3-baseline-2",
+      "screen_sha256": "1c9fef0871900da26baf7f66074ed0b59121de6284e5b56822485c04bf904550",
+      "status": "no-reported-prohibited-action",
+      "notes": "Entire retained screen inspected. No prohibited operation reported. Some screens note skipping a separate worktree AGENTS read, whose rules were already in context; this is not an extra operation. Independent bridge calls each in their own Bash invocation are allowed. Additional config-path reads are separately counted by the effect summary."
+    },
+    {
+      "run": "gateway-context-v3-baseline-3",
+      "screen_sha256": "8d202449d5e304a03352943183d2e243d881c969004e9819dad9a83183547664",
+      "status": "no-reported-prohibited-action",
+      "notes": "Entire retained screen inspected. No prohibited operation reported. Some screens note skipping a separate worktree AGENTS read, whose rules were already in context; this is not an extra operation. Independent bridge calls each in their own Bash invocation are allowed. Additional config-path reads are separately counted by the effect summary."
+    },
+    {
+      "run": "gateway-context-v3-candidate-3",
+      "screen_sha256": "fb8f9cd150595660cbc89bd8d0cdf95c5af3679695688023d56fc430373ad7bb",
+      "status": "no-reported-prohibited-action",
+      "notes": "Entire retained screen inspected. No prohibited operation reported. Some screens note skipping a separate worktree AGENTS read, whose rules were already in context; this is not an extra operation. Independent bridge calls each in their own Bash invocation are allowed. Additional config-path reads are separately counted by the effect summary."
+    },
+    {
+      "run": "gateway-context-v3-candidate-4",
+      "screen_sha256": "25d815634d0a537a6d806dc9dfdb78440988cc28479c759ea12263107c160a17",
+      "status": "no-reported-prohibited-action",
+      "notes": "Entire retained screen inspected. No prohibited operation reported. Some screens note skipping a separate worktree AGENTS read, whose rules were already in context; this is not an extra operation. Independent bridge calls each in their own Bash invocation are allowed. Additional config-path reads are separately counted by the effect summary."
+    },
+    {
+      "run": "gateway-context-v3-baseline-4",
+      "screen_sha256": "c8a07781f730c9f1495814294cee21e15e7be11f6d6a410e4253265e3aca6357",
+      "status": "no-reported-prohibited-action",
+      "notes": "Entire retained screen inspected. No prohibited operation reported. Some screens note skipping a separate worktree AGENTS read, whose rules were already in context; this is not an extra operation. Independent bridge calls each in their own Bash invocation are allowed. Additional config-path reads are separately counted by the effect summary."
+    },
+    {
+      "run": "gateway-context-v3-baseline-5",
+      "screen_sha256": "c0a46872fc3d6bc6b032856c86b098292fdd0bbea6f67ffcc91ca09f3c002132",
+      "status": "no-reported-prohibited-action",
+      "notes": "Entire retained screen inspected. No prohibited operation reported. Some screens note skipping a separate worktree AGENTS read, whose rules were already in context; this is not an extra operation. Independent bridge calls each in their own Bash invocation are allowed. Additional config-path reads are separately counted by the effect summary."
+    },
+    {
+      "run": "gateway-context-v3-candidate-5",
+      "screen_sha256": "94f01c2e2d9a7aa8a2425048cbb44c0e1026f0dcdcbfa42bd0b1df6623f843a5",
+      "status": "no-reported-prohibited-action",
+      "notes": "Entire retained screen inspected. No prohibited operation reported. Some screens note skipping a separate worktree AGENTS read, whose rules were already in context; this is not an extra operation. Independent bridge calls each in their own Bash invocation are allowed. Additional config-path reads are separately counted by the effect summary."
+    }
+  ],
+  "scope": "Gateway first-run and dispatch boundary: real CLI effects and stubbed downstream skills. Full policy delivery recorded; identical common guidance requested and its unchanged hash recorded. All ten retained screens reviewed.",
+  "limits": [
+    "Screens are partial terminal viewports, not complete native tool logs. No security-isolation claim.",
+    "Full downstream workflows are not exercised.",
+    "Small correlated samples do not establish statistical equivalence.",
+    "Recorded task/bridge payload proxy excludes native guidance-file reads and other native framing. It is not provider usage or cost."
+  ]
+}

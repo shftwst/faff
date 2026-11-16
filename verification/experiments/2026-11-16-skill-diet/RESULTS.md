@@ -1,6 +1,7 @@
 # Skill diet measurements
 
-Both reductions remain draft and require context-v3 workflow qualification.
+Gateway entry-boundary qualification is complete. The adversarial reduction
+remains draft pending context-v3 workflow qualification.
 Raw trace review found that long policies embedded as one JSON string could be
 truncated by Claude's file display. The first adversarial baseline also reported
 a scratch-file read/write outside the fixture rules. Earlier effect comparisons
@@ -174,3 +175,26 @@ files it changed `fixture's kind` to `fixture kind`. Budget forwarding and gate
 outcomes passed, but those do not waive the copy failure or the reported inline
 program/combined-call protocol violations. The context-v3 literal JSON treatment
 retains the exact-copy oracle and unchanged policy.
+
+## Gateway qualification completed with context-v3
+
+Five fresh samples per arm passed all five cases: 25/25 each. The complete policy
+was supplied before operations. Normalised writes, prompts, skill dispatches and
+final files matched across all ten samples. Protected no-write state was
+unchanged. The original made 25 config-path reads and the candidate 23. All ten
+retained final screens were inspected in full; none reports a prohibited action.
+The same 22,605-byte operator-guidance source was requested in both arms and its
+hash remained unchanged.
+
+`gateway-context-v3-results.json` binds the numerical results;
+`gateway-context-v3-native-review.json` records protocol review and scope. This
+qualifies the changed gateway entry boundary, with real CLI mutations and stubbed
+downstream skills. Screens are partial viewports, not complete native tool logs.
+Full downstream workflows, statistical equivalence and provider cost are not
+claimed. Earlier treatments and failures remain separate.
+
+Across five runs, the recorded task/bridge payload proxy was 100,015 bytes and
+24,915 estimated tokens before, versus 62,170 bytes and 15,570 estimated tokens
+after. This counts each task and successful bridge result once. It excludes
+native guidance reads, system/catalog/history, model output and tool framing;
+it is separate from the source-size tally and is not provider usage.

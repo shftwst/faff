@@ -7,7 +7,7 @@
     {
       "skill": "faff",
       "path": "plugin/skills/faff/SKILL.md",
-      "status": "draft-context-v3-workflow-qualification-pending",
+      "status": "draft-qualified-gateway-entry-boundary",
       "before": {
         "path": "plugin/skills/faff/SKILL.md",
         "bytes": 12984,
@@ -142,11 +142,35 @@
         "provider_usage": "unmetered",
         "qualification": "effect comparison passed; policy-delivery qualification superseded by delivery-v2"
       },
-      "qualification_pending": "Complete context-v3 execution and native-screen review. Delivery-v2 effects and protocol failures remain separate, with no acceptance pooling.",
       "delivery_v2": {
         "effect_summary": "gateway-delivery-v2-results.json",
         "protocol_review": "gateway-delivery-v2-protocol-review.json",
         "qualification": "fail: three reported global-guidance reads contradicted the fixture-only restriction"
+      },
+      "context_v3": {
+        "qualification": "pass-for-declared-entry-boundary",
+        "effect_summary": "gateway-context-v3-results.json",
+        "native_review": "gateway-context-v3-native-review.json",
+        "samples_per_arm": 5,
+        "baseline": {
+          "passed": 25,
+          "total": 25
+        },
+        "candidate": {
+          "passed": 25,
+          "total": 25
+        },
+        "normalised_effects_and_final_states_equal": true,
+        "config_path_reads": {
+          "baseline": 25,
+          "candidate": 23
+        },
+        "limits": [
+          "Screens are partial terminal viewports, not complete native tool logs. No security-isolation claim.",
+          "Full downstream workflows are not exercised.",
+          "Small correlated samples do not establish statistical equivalence.",
+          "Recorded task/bridge payload proxy excludes native guidance-file reads and other native framing. It is not provider usage or cost."
+        ]
       }
     },
     {

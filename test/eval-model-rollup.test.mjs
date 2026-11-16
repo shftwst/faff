@@ -90,6 +90,9 @@ test("renderResultMarkdown carries the role table, skill table, thin-rep marker 
   assert.match(md, /## By role/);
   assert.match(md, /\| faff-tidy \| producer \|/);
   assert.match(md, /4\*/, "thin reps are starred");
+  assert.match(md, /## By role, per skill/);
+  assert.match(md, /### producer\n\n\| skill \| kinds \|/);
+  assert.match(md, /\| \*\*producer total\*\* \| 1 \| 1\.000 \| 1\.000 \| \+0\.000 \|/);
   assert.match(md, /## Not measured/);
   assert.match(md, /reconciliation/);
   const noted = renderResultMarkdown({ meta: { model_id: "m", date: "2026-01-02", driver: "local", effort: null, tier: "quick", commit: "abc", reference: { label: "ref" }, lanes: ["blackbox"], notes: "rebuilt from captures" }, rollup });

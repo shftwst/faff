@@ -20,7 +20,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadCases, mintCapturePath, mintRunId, resolveDriver, resolveEffort, resolveEvalModel, resolveLocalParams, runEvals } from "./run-evals.mjs";
-import { mergePerKind, perKindFromRecords, rollupBySkill, slugForModel, storeResult } from "./lib/model-rollup.mjs";
+import { mergePerKind, perKindFromRecords, renderRoleTables, rollupBySkill, slugForModel, storeResult } from "./lib/model-rollup.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "..");
@@ -174,14 +174,15 @@ async function cliMain(argv) {
     const ignore = flag(argv, "--ignore-kinds")?.split(",") ?? [];
     const mergeFile = flag(argv, "--merge-result");
     const merged = mergeFile ? readJson(mergeFile) : null;
-    const { dir } = resultFromCaptures({
+    const { dir, result } = resultFromCaptures({
       captureDirs: dirs, ignoreKindsByDir: Object.fromEntries(dirs.map((d, i) => [d, i === 0 ? ignore : []])),
       model: { id: modelId, driver: driverName, effort: flag(argv, "--effort") ?? null }, tier: flag(argv, "--tier") ?? "captured",
       notes: flag(argv, "--notes") ?? null, lanes: merged ? [...new Set(["blackbox", ...merged.meta.lanes])] : ["blackbox"],
       format: merged?.format ?? null, extraPerKind: merged?.per_kind ?? {}, skipped: merged?.skipped ?? [],
       ...(flag(argv, "--results-root") ? { resultsRoot: resolve(flag(argv, "--results-root")) } : {}),
     });
-    console.log(`stored ${dir}`);
+    console.log(renderRoleTables(result.rollup).join("\n"));
+    console.log(`\nstored ${dir}`);
     return 0;
   }
 
@@ -218,6 +219,7 @@ async function cliMain(argv) {
   }
 
   const { result, dir } = await runModelEval({ model, tier, lanes, kinds, resume, workDir, deps, ...(flag(argv, "--results-root") ? { resultsRoot: resolve(flag(argv, "--results-root")) } : {}) });
+  console.log(`\n${renderRoleTables(result.rollup).join("\n")}\n`);
   console.log(`[run-model-eval] stored ${dir}`);
   for (const s of result.skipped) console.log(`[run-model-eval] skipped ${s.lane}${s.kind ? ` ${s.kind}` : ""}: ${s.reason}`);
   return 0;

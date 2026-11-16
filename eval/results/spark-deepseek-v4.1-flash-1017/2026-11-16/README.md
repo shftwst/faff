@@ -3,7 +3,7 @@
 - Date: 2026-11-16
 - Driver: local
 - Tier: mixed (see notes)
-- Commit: 5e8231cf
+- Commit: adbfe5a2
 - Reference: claude-opus-5-5 (medium effort), eval/baselines/frontier.json
 - Lanes: blackbox, live, format
 - Notes: Black-box lane rebuilt from three raw captures: 20 kinds at 20 to 50 reps per case (a full sweep stopped part-way, 2026-11-15), 11 kinds at 5 reps per case, and refutation-spec at 3 reps per case. Live and format lanes come from one quick-tier run on 2026-11-16 (6 format samples per producer; finding-identity runs one pair per case). The confidence kind was measured with the rubric wording before FAFF-1482; with the reworded rubric it scores 0.99 over 120 reps.

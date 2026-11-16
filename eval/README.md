@@ -83,7 +83,7 @@ node eval/run-model-eval.mjs --driver local --tier quick --resume
 
 Select lanes with `--lanes blackbox,live,format` and kinds with `--kinds dupe,vague`. `--tier` picks the rep counts in `model-eval-plan.json`: `quick` is 5 reps per case (3 for `refutation-spec`, which runs several lens prompts per rep), `full` is 20 (5 for `refutation-spec`). The reference baseline was captured at 20 reps with escalation, so a quick result is a coarse signal; the result marks any skill with a kind under 10 reps per case.
 
-**Roll-up.** `skill-roles.json` labels each skill `producer` (the model authors the artefact), `reviewer` or `judge` (an independent pass that should normally run on a different model). The stored table compares only kinds the reference also measured, and lists registered kinds the run did not cover under "Not measured". `faff-graft` and `faff-beep-boop` have no judgement kind, so they have no row; scoring them needs an end-to-end task eval.
+**Roll-up.** `skill-roles.json` labels each skill `producer` (the model authors the artefact), `reviewer` or `judge` (an independent pass that should normally run on a different model). The stored `README.md` has the by-skill table, then the same table split by role with a total row for each role, so a clear hit or miss for one role is visible at a glance; the runner prints the per-role tables when it finishes. The tables compare only kinds the reference also measured, and list registered kinds the run did not cover under "Not measured". `faff-graft` and `faff-beep-boop` have no judgement kind, so they have no row; scoring them needs an end-to-end task eval.
 
 **Rebuild from raw captures.** A sweep that was killed writes no summary. `--from-captures` rebuilds a result from the per-rep JSONL files:
 

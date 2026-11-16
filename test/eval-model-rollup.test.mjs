@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { mergePerKind, perKindFromRecords, renderResultMarkdown, rollupBySkill, slugForModel, storeResult, writeResultsIndex } from "../eval/lib/model-rollup.mjs";
+import { mergePerKind, perKindFromRecords, renderResultMarkdown, renderRoleTables, rollupBySkill, slugForModel, storeResult, writeResultsIndex } from "../eval/lib/model-rollup.mjs";
 
 const rec = (kind, case_id, score, signature = "s", format = "compliant", graded = score === 1 ? "PASS" : "FAIL") =>
   ({ kind, case_id, score, signature, graded, envelope: { format } });
@@ -123,4 +123,21 @@ test("storeResult refreshes the results index with one row per stored result", (
     writeResultsIndex(root);
     assert.equal(readFileSync(join(root, "README.md"), "utf8"), index, "regenerating is idempotent");
   } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("renderRoleTables: one section per role, skills sorted by deficit, a total row each, and the stored README embeds the same text", () => {
+  const perKind = {
+    dupe: { accuracy: 0.9, format_adherence: 1, reps: 20, min_reps_per_case: 20 },
+    vague: { accuracy: 1, format_adherence: 1, reps: 20, min_reps_per_case: 20 },
+    "refutation-spec": { accuracy: 0.5, format_adherence: 1, reps: 3, min_reps_per_case: 3 },
+  };
+  const reference = { dupe: { accuracy: 1, format_adherence: 1 }, vague: { accuracy: 1, format_adherence: 1 }, "refutation-spec": { accuracy: 0.9, format_adherence: 1 } };
+  const rollup = rollupBySkill({ registry, perKind, reference, roles });
+  const text = renderRoleTables(rollup).join("\n");
+  assert.match(text, /### producer\n\n\| skill \| kinds \|/);
+  assert.match(text, /### reviewer/);
+  assert.match(text, /\| \*\*producer total\*\* \| 2 \| 0\.950 \| 1\.000 \| -0\.050 \|/);
+  assert.match(text, /\| \*\*reviewer total\*\* \| 1 \| 0\.500 \| 0\.900 \| -0\.400 \|/);
+  const md = renderResultMarkdown({ meta: { model_id: "m", date: "2026-01-02", driver: "local", effort: null, tier: "quick", commit: "abc", reference: { label: "ref" }, lanes: ["blackbox"] }, rollup });
+  assert.ok(md.includes(text), "the stored README embeds exactly what the runner prints");
 });

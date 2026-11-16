@@ -1,0 +1,155 @@
+{
+  "schema": 1,
+  "scope": "Independent deterministic tests, static bridge/auditor/runner review and bounded V3 native metadata diagnosis. No skill fidelity, source savings, paid-model rerun, full raw-capture manual review or production integration qualification.",
+  "status": "not-qualified",
+  "tests": {
+    "command": "node --test test/control-parity-mcp-bridge.test.mjs test/control-parity-mcp-native.test.mjs",
+    "exit_code": 0,
+    "tests": 54,
+    "passed": 54,
+    "failed": 0,
+    "log_path": "/tmp/faff-mcp-independent-verification-v3.log",
+    "log_sha256": "4d23703640670fa57ff23f5127a63cb1949c948c7a8450db24bbdfcc944b630d"
+  },
+  "pilot": {
+    "name": "mcp-transport-pilot-v3",
+    "functional_status": "pass",
+    "cases": 2,
+    "case_passes": 2,
+    "native_status": "fail",
+    "native_problems": [
+      {
+        "code": "unsupported-native-response-item",
+        "detail": "additional_tools"
+      }
+    ],
+    "native_calls": 8,
+    "mcp_calls": 5,
+    "initial_reads_complete": 3,
+    "policy_reads": 2,
+    "policy_complete": true,
+    "source_sha256": "cf443ebb661f556bbbc3e5c386653da47b5a4fe49640bc839c23ad16d51d9484",
+    "original_failure_preserved": true
+  },
+  "metadata_classification": {
+    "native_line": 3,
+    "type": "additional_tools",
+    "role": "developer",
+    "keys": [
+      "type",
+      "id",
+      "role",
+      "tools"
+    ],
+    "precedes_user_context_and_calls": true,
+    "prior_events": [
+      "session_meta",
+      "event_msg:task_started"
+    ],
+    "has_call_input_output_fields": false,
+    "classification": "Developer tool-definition advertisement, not a tool invocation. Original strict audit rejection is retained.",
+    "tools_canonical_sha256": "5b67d918ca863b9fc8dda5be6f9f54cc355f7c47e9a466db76ee5c530f321d9c"
+  },
+  "static_findings": {
+    "attribution": "No remaining normal-input success bypass found in ordered native/trace/raw-file/capture joins. Missing, duplicate, swapped and orphan evidence has explicit tests.",
+    "policy_delivery": "Exact initial read outputs and replayed policy chunks checked independently of workflow semantics.",
+    "followups": [
+      "Permit additional_tools only with registered definition content, role, shape and pre-task order; reject changed or late declarations and unknown invocation variants.",
+      "Require nonempty native call_id.",
+      "Freeze initial plan bytes/hash and check plan remains unchanged."
+    ],
+    "followup_qualification": "V3 is not qualified. A revised parser requires separately frozen source and a fresh pilot."
+  },
+  "artifacts": {
+    "verification/experiments/2026-11-16-skill-diet/transport-pilots/mcp-v3/plan.json": "b57aaeb164e5cf6a6125945dd5326cbf050c324b2b4f66770131baf055b97b3f",
+    "verification/experiments/2026-11-16-skill-diet/transport-pilots/mcp-v3/mailbox-mcp.mjs": "f660be0c380c4be28eab6a19837dfda8a4dae84138bd0754e7d05b38eb9ef64a",
+    "verification/experiments/2026-11-16-skill-diet/transport-pilots/mcp-v3/codex-mcp-native-audit.mjs": "272d923f9c7ff177522adcacbf552f06b10dc26b6fa40e57ebdfcb7a05a90e8a",
+    "verification/experiments/2026-11-16-skill-diet/transport-pilots/mcp-v3/run-mcp-workflow-samples-v1.py": "efb799e3695de86167f291277233976fa2b7ff2d129b2d9737f492b5f5fde91b",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-transport-pilot-v3/native-audit.json": "807e8fb1179fbbbb2adcf6f53783026d2bb81b63c7634ee5a7506acfe3316af1",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-transport-pilot-v3/report.json": "035236fbc40e277027bdd7ac8847fd281918dd67595a2e33936ecf6e758b43ce",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-transport-pilot-v3/capture.json": "815e42b5408d1ca8d6dd0f00af830e4fcf731017d21232f0cca060b0bef4b4ba",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-transport-pilot-v3/startup-binding.json": "643667cf148766671f7c783c464ae6465b65a4ebf46507f0fcdb508d4039b970",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-transport-pilot-v3/worker-manifest.json": "ef992e1956325c2fe54bc8bdeeed3aaf1b3e99d9db3011e362291837b63b08d9",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-transport-pilot-v3/worker-final-state.json": "44f9dde9804aec9f140de2b84e97c2b4a06f9c9d574fbb87bd3eef27174f9acd",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-transport-pilot-v3/mcp-trace.jsonl": "07d0cd4f6f79ed817946bf5e81540aaa681c753a1ef5c601ed4ac26820dd2b04",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-transport-pilot-v3/mcp-protocol-errors.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-transport-pilot-v3/runner-failure.json": "73fe8652ffbd94ea59643361ee7c40a60634b6cd1d83519512a802f742264b84"
+  },
+  "frozen_input_current_hashes": {
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/mailbox-mcp.mjs": {
+      "registered": "f660be0c380c4be28eab6a19837dfda8a4dae84138bd0754e7d05b38eb9ef64a",
+      "actual": "f660be0c380c4be28eab6a19837dfda8a4dae84138bd0754e7d05b38eb9ef64a",
+      "matches": true
+    },
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-mcp-native-audit.mjs": {
+      "registered": "272d923f9c7ff177522adcacbf552f06b10dc26b6fa40e57ebdfcb7a05a90e8a",
+      "actual": "272d923f9c7ff177522adcacbf552f06b10dc26b6fa40e57ebdfcb7a05a90e8a",
+      "matches": true
+    },
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-mcp-startup-context.json": {
+      "registered": "01d2e7e23dd2555aee16496dbc8313609de76ca80407438d1f46cdb7dbb85a8f",
+      "actual": "01d2e7e23dd2555aee16496dbc8313609de76ca80407438d1f46cdb7dbb85a8f",
+      "matches": true
+    },
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-native-audit.mjs": {
+      "registered": "c46dd016be2aa62cb31803e15afb3cc4a57acf79f248500dd59d3d04a2ec10ac",
+      "actual": "c46dd016be2aa62cb31803e15afb3cc4a57acf79f248500dd59d3d04a2ec10ac",
+      "matches": true
+    },
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/interactive-handoff.mjs": {
+      "registered": "340573bb016b4fc19dc3859cba2e3bd808c8c95c22306e83bcecf1abf57eb5d0",
+      "actual": "340573bb016b4fc19dc3859cba2e3bd808c8c95c22306e83bcecf1abf57eb5d0",
+      "matches": true
+    },
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/policy-reader.mjs": {
+      "registered": "2055d85ac37834bd83483602249d29c5b4d0f21664f59c12c01f22e34d23ae1a",
+      "actual": "2055d85ac37834bd83483602249d29c5b4d0f21664f59c12c01f22e34d23ae1a",
+      "matches": true
+    },
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/rendering-artifact.mjs": {
+      "registered": "88b5bbff037cd5d9daff8d1094df3b885c01a34ce7902af47cc1354283cddc36",
+      "actual": "88b5bbff037cd5d9daff8d1094df3b885c01a34ce7902af47cc1354283cddc36",
+      "matches": true
+    },
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/schema.mjs": {
+      "registered": "0164ccec86e98253e013dea2db3a00db35ef2ee9707de0a7360146b489715234",
+      "actual": "0164ccec86e98253e013dea2db3a00db35ef2ee9707de0a7360146b489715234",
+      "matches": true
+    },
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-mcp-bridge.test.mjs": {
+      "registered": "0dc2f38e6004d9d39b4c0f2b86f11749e893b9604d9109d4320da069b9632fb0",
+      "actual": "0dc2f38e6004d9d39b4c0f2b86f11749e893b9604d9109d4320da069b9632fb0",
+      "matches": true
+    },
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-mcp-native.test.mjs": {
+      "registered": "54d80a28678008964994dda9d10ce9989e53bf42a61dd7d000f66b7a85e73747",
+      "actual": "54d80a28678008964994dda9d10ce9989e53bf42a61dd7d000f66b7a85e73747",
+      "matches": true
+    },
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/run-mcp-workflow-samples-v1.py": {
+      "registered": "efb799e3695de86167f291277233976fa2b7ff2d129b2d9737f492b5f5fde91b",
+      "actual": "efb799e3695de86167f291277233976fa2b7ff2d129b2d9737f492b5f5fde91b",
+      "matches": true
+    },
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/transport-pilots/mcp-v2/policy.md": {
+      "registered": "2cfe6dc0746cfaa3d493d8c656ab0501c03e72b1331c1ca8e7ff76b0fd116e66",
+      "actual": "2cfe6dc0746cfaa3d493d8c656ab0501c03e72b1331c1ca8e7ff76b0fd116e66",
+      "matches": true
+    },
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/transport-pilots/mcp-v2/fixture.json": {
+      "registered": "91377b4c5f5685ce702ec1a5fc9e92916e7f4f01c6c26d2b6244c285f71120dc",
+      "actual": "91377b4c5f5685ce702ec1a5fc9e92916e7f4f01c6c26d2b6244c285f71120dc",
+      "matches": true
+    },
+    "/Users/shftwst/.agents/AGENTS.md": {
+      "registered": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+      "actual": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+      "matches": true
+    },
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md": {
+      "registered": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+      "actual": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+      "matches": true
+    }
+  }
+}

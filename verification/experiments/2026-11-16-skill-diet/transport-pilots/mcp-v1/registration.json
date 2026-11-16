@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "kind": "transport-pilot-not-fidelity",
+  "model": "gpt-6.1-sol",
+  "effort": "medium",
+  "source_hashes": {
+    "eval/control-parity/mailbox-mcp.mjs": "331fc859a1bd77ba1a97d6d7c19acfb319391d8b0ac451e0e72a207fb8420957",
+    "eval/control-parity/rendering-artifact.mjs": "88b5bbff037cd5d9daff8d1094df3b885c01a34ce7902af47cc1354283cddc36",
+    "verification/experiments/2026-11-16-skill-diet/transport-pilots/mcp-v1/fixture.json": "91377b4c5f5685ce702ec1a5fc9e92916e7f4f01c6c26d2b6244c285f71120dc",
+    "verification/experiments/2026-11-16-skill-diet/transport-pilots/mcp-v1/policy.md": "2cfe6dc0746cfaa3d493d8c656ab0501c03e72b1331c1ca8e7ff76b0fd116e66"
+  }
+}

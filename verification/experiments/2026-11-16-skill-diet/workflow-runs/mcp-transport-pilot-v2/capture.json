@@ -1,0 +1,57 @@
+{
+  "events": [
+    {
+      "seq": 1,
+      "name": "write_output",
+      "args": {
+        "case_id": "literal",
+        "text": "Line one: $1.25, \"quoted\", and apostrophe's.\nLine two."
+      },
+      "case_id": "literal",
+      "result": {
+        "written": true,
+        "bytes": 54,
+        "sha256": "36c0c9e7eb64e7ba96eaa86e43df4ce38b92edae3bca07d0348a7d055e213f97"
+      }
+    },
+    {
+      "seq": 2,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "cost",
+        "value": {
+          "cost": 1.25
+        }
+      },
+      "case_id": "cost",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 3,
+      "name": "finish",
+      "args": {},
+      "case_id": null,
+      "result": {
+        "finished": true
+      }
+    }
+  ],
+  "errors": [],
+  "outputs": [
+    {
+      "id": "literal",
+      "text": "Line one: $1.25, \"quoted\", and apostrophe's.\nLine two.",
+      "persisted_sha256": "36c0c9e7eb64e7ba96eaa86e43df4ce38b92edae3bca07d0348a7d055e213f97"
+    }
+  ],
+  "rule_answers": [
+    {
+      "id": "cost",
+      "value": {
+        "cost": 1.25
+      }
+    }
+  ]
+}

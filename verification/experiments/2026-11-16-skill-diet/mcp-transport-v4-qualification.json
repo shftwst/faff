@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "status": "qualified-for-fresh-measurements",
+  "scope": "Structured transport only. No skill fidelity, application workflow or source savings claim.",
+  "independent_review": {
+    "path": "independent-mcp-transport-v4-review.json",
+    "sha256": "529b6e4d966753bfbb86f58da6978e7e03293ebfcdaeaacd4c5e528455fc0eca"
+  },
+  "live_pilot_native": {
+    "path": "workflow-runs/mcp-transport-pilot-v4/native-audit.json",
+    "sha256": "57c4ea2b1bcf21412760b42b5f8ec70b4ecdd4751902da27bc0576d36a932cfd"
+  },
+  "reporting_preflight": {
+    "path": "beep-reporting-mcp-preflight-v1/preflight.json",
+    "sha256": "72dd4dfc00d99b323c70f6e96dd262761dd6e3a21c5aac4c524841d6f29cd499"
+  },
+  "regression": {
+    "tests": 87,
+    "passed": 87,
+    "path": "deterministic-checks/mcp-transport-v4-regression.txt",
+    "sha256": "bf57f8fca2104170da180ef0ee76fa38db913d1a1850d1744d64b2172b4a6e35"
+  },
+  "prior_failures_retained": [
+    "transport-pilots/mcp-v1/failure.json",
+    "transport-pilots/mcp-v3/failure.json"
+  ],
+  "next": "Run five fresh reporting baselines, then independently review all actual outputs. Only if all pass launch the registered five-candidate arm. No replacement or pooling."
+}

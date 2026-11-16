@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "scope": "Structured transport pilot only. No skill fidelity or source savings claim.",
+  "cases": [
+    {
+      "id": "literal",
+      "task": "Persist source.text exactly, including punctuation and newline.",
+      "source": {
+        "text": "Line one: $1.25, \"quoted\", and apostrophe's.\nLine two."
+      },
+      "oracle": {
+        "rubric": {
+          "must_include": [
+            "Line one: $1.25, \"quoted\", and apostrophe's.\nLine two."
+          ],
+          "must_avoid": []
+        }
+      },
+      "reference": "Line one: $1.25, \"quoted\", and apostrophe's.\nLine two."
+    }
+  ],
+  "rule_cases": [
+    {
+      "id": "cost",
+      "question": "Return {\"cost\":1.25}.",
+      "expected": {
+        "cost": 1.25
+      }
+    }
+  ]
+}

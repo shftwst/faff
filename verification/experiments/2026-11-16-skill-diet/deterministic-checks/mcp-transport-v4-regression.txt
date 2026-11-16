@@ -1,0 +1,533 @@
+TAP version 13
+# Subtest: baseline tools remain unchanged; only the candidate gets the planner tool
+ok 1 - baseline tools remain unchanged; only the candidate gets the planner tool
+  ---
+  duration_ms: 1.255418
+  type: 'test'
+  ...
+# Subtest: command inputs and results are durably recorded without becoming tracker effects
+ok 2 - command inputs and results are durably recorded without becoming tracker effects
+  ---
+  duration_ms: 17.056395
+  type: 'test'
+  ...
+# Subtest: a successful tracker operation without the command is not extraction evidence
+ok 3 - a successful tracker operation without the command is not extraction evidence
+  ---
+  duration_ms: 6.938966
+  type: 'test'
+  ...
+# Subtest: copying comments with CRLF normalised is an input mismatch
+ok 4 - copying comments with CRLF normalised is an input mismatch
+  ---
+  duration_ms: 7.423134
+  type: 'test'
+  ...
+# Subtest: a planner called without reading current comments cannot count as followed
+ok 5 - a planner called without reading current comments cannot count as followed
+  ---
+  duration_ms: 6.613258
+  type: 'test'
+  ...
+# Subtest: wrong body, wrong target, duplicate writes and wrong finish reason are not followed
+ok 6 - wrong body, wrong target, duplicate writes and wrong finish reason are not followed
+  ---
+  duration_ms: 41.555798
+  type: 'test'
+  ...
+# Subtest: a command failure returns an error and cannot be hidden by a later successful write
+ok 7 - a command failure returns an error and cannot be hidden by a later successful write
+  ---
+  duration_ms: 7.694009
+  type: 'test'
+  ...
+# Subtest: a refused invocation is retained and invalidates the attempt
+ok 8 - a refused invocation is retained and invalidates the attempt
+  ---
+  duration_ms: 5.330006
+  type: 'test'
+  ...
+# Subtest: model input errors are candidate failures, even if the model later completes a write
+ok 9 - model input errors are candidate failures, even if the model later completes a write
+  ---
+  duration_ms: 8.16001
+  type: 'test'
+  ...
+# Subtest: post-finish planner calls are refused and remain visible
+ok 10 - post-finish planner calls are refused and remain visible
+  ---
+  duration_ms: 12.33789
+  type: 'test'
+  ...
+# Subtest: an unfinished command or stopped trace is incomplete
+ok 11 - an unfinished command or stopped trace is incomplete
+  ---
+  duration_ms: 10.432262
+  type: 'test'
+  ...
+# Subtest: a command after the write does not establish use of the plan
+ok 12 - a command after the write does not establish use of the plan
+  ---
+  duration_ms: 10.40697
+  type: 'test'
+  ...
+# Subtest: the local command call cap refuses further work
+ok 13 - the local command call cap refuses further work
+  ---
+  duration_ms: 6.709299
+  type: 'test'
+  ...
+# Subtest: structured bridge joins repeated calls to distinct mailbox files and preserves domain exit2
+ok 14 - structured bridge joins repeated calls to distinct mailbox files and preserves domain exit2
+  ---
+  duration_ms: 158.553392
+  type: 'test'
+  ...
+# Subtest: structured bridge preserves rejected calls and rejects duplicate IDs and unknown tools
+ok 15 - structured bridge preserves rejected calls and rejects duplicate IDs and unknown tools
+  ---
+  duration_ms: 104.885289
+  type: 'test'
+  ...
+# Subtest: structured bridge records a real mailbox timeout and refuses restart over trace
+ok 16 - structured bridge records a real mailbox timeout and refuses restart over trace
+  ---
+  duration_ms: 53.20327
+  type: 'test'
+  ...
+# Subtest: MCP stdio framing exposes exactly the task ports and returns the mailbox result
+ok 17 - MCP stdio framing exposes exactly the task ports and returns the mailbox result
+  ---
+  duration_ms: 52.844769
+  type: 'test'
+  ...
+# Subtest: structured hashes retain fractional values and ignore only object key order
+ok 18 - structured hashes retain fractional values and ignore only object key order
+  ---
+  duration_ms: 0.229167
+  type: 'test'
+  ...
+# Subtest: concurrent bridge calls are serialized and retain their own mailbox attribution
+ok 19 - concurrent bridge calls are serialized and retain their own mailbox attribution
+  ---
+  duration_ms: 155.138305
+  type: 'test'
+  ...
+# Subtest: invalid RPC ids and arguments are recorded without creating mailbox requests
+ok 20 - invalid RPC ids and arguments are recorded without creating mailbox requests
+  ---
+  duration_ms: 1.013209
+  type: 'test'
+  ...
+# Subtest: request mutation during handling cannot be attributed as an unchanged call
+ok 21 - request mutation during handling cannot be attributed as an unchanged call
+  ---
+  duration_ms: 104.868788
+  type: 'test'
+  ...
+# Subtest: an injected additional mailbox request fails unique attribution
+ok 22 - an injected additional mailbox request fails unique attribution
+  ---
+  duration_ms: 105.931706
+  type: 'test'
+  ...
+# Subtest: protocol rejects malformed frames, pre-init calls, invalid ids and duplicate ids with evidence
+ok 23 - protocol rejects malformed frames, pre-init calls, invalid ids and duplicate ids with evidence
+  ---
+  duration_ms: 1.857044
+  type: 'test'
+  ...
+# Subtest: explicit null arguments are rejected while omitted finish arguments retain the empty object default
+ok 24 - explicit null arguments are rejected while omitted finish arguments retain the empty object default
+  ---
+  duration_ms: 52.367894
+  type: 'test'
+  ...
+# Subtest: mailbox directory loss is retained as a failed call and restart preserves original evidence
+ok 25 - mailbox directory loss is retained as a failed call and restart preserves original evidence
+  ---
+  duration_ms: 0.952751
+  type: 'test'
+  ...
+# Subtest: native MCP audit preserves repeated identical calls, exact Unicode policy and fractional domain failure
+ok 26 - native MCP audit preserves repeated identical calls, exact Unicode policy and fractional domain failure
+  ---
+  duration_ms: 6.228132
+  type: 'test'
+  ...
+# Subtest: MCP wrapper parser permits a single literal call and rejects added JavaScript or dynamic values
+ok 27 - MCP wrapper parser permits a single literal call and rejects added JavaScript or dynamic values
+  ---
+  duration_ms: 0.1915
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects changed tool declaration
+ok 28 - native MCP audit rejects changed tool declaration
+  ---
+  duration_ms: 1.302501
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects late tool declaration
+ok 29 - native MCP audit rejects late tool declaration
+  ---
+  duration_ms: 1.479419
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects missing tool declaration
+ok 30 - native MCP audit rejects missing tool declaration
+  ---
+  duration_ms: 2.077294
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects empty native call id
+ok 31 - native MCP audit rejects empty native call id
+  ---
+  duration_ms: 1.37346
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects startup instruction injection
+ok 32 - native MCP audit rejects startup instruction injection
+  ---
+  duration_ms: 1.137752
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects missing explicit capture errors
+ok 33 - native MCP audit rejects missing explicit capture errors
+  ---
+  duration_ms: 1.082834
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects extra task instructions
+ok 34 - native MCP audit rejects extra task instructions
+  ---
+  duration_ms: 2.339253
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects extra steering user message
+ok 35 - native MCP audit rejects extra steering user message
+  ---
+  duration_ms: 1.158001
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects premature worker completion
+ok 36 - native MCP audit rejects premature worker completion
+  ---
+  duration_ms: 0.909418
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects unrecognised native tool variant
+ok 37 - native MCP audit rejects unrecognised native tool variant
+  ---
+  duration_ms: 0.828001
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects missing model metadata
+ok 38 - native MCP audit rejects missing model metadata
+  ---
+  duration_ms: 0.823335
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects omitted native call
+ok 39 - native MCP audit rejects omitted native call
+  ---
+  duration_ms: 0.969251
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects duplicate native id
+ok 40 - native MCP audit rejects duplicate native id
+  ---
+  duration_ms: 1.407335
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects omitted native result
+ok 41 - native MCP audit rejects omitted native result
+  ---
+  duration_ms: 3.144003
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects duplicate native result
+ok 42 - native MCP audit rejects duplicate native result
+  ---
+  duration_ms: 1.492918
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects swapped native results
+ok 43 - native MCP audit rejects swapped native results
+  ---
+  duration_ms: 1.901169
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects collapsed identical calls
+ok 44 - native MCP audit rejects collapsed identical calls
+  ---
+  duration_ms: 0.837959
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects missing mailbox request
+ok 45 - native MCP audit rejects missing mailbox request
+  ---
+  duration_ms: 0.913126
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects missing mailbox response
+ok 46 - native MCP audit rejects missing mailbox response
+  ---
+  duration_ms: 1.445127
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects tampered request
+ok 47 - native MCP audit rejects tampered request
+  ---
+  duration_ms: 1.752669
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects tampered response
+ok 48 - native MCP audit rejects tampered response
+  ---
+  duration_ms: 1.21746
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects orphan mailbox file
+ok 49 - native MCP audit rejects orphan mailbox file
+  ---
+  duration_ms: 1.314835
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects trace result tamper
+ok 50 - native MCP audit rejects trace result tamper
+  ---
+  duration_ms: 1.140252
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects trace tool tamper
+ok 51 - native MCP audit rejects trace tool tamper
+  ---
+  duration_ms: 0.995418
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects duplicate mailbox id
+ok 52 - native MCP audit rejects duplicate mailbox id
+  ---
+  duration_ms: 1.447168
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects duplicate RPC id
+ok 53 - native MCP audit rejects duplicate RPC id
+  ---
+  duration_ms: 0.851835
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects trace failure
+ok 54 - native MCP audit rejects trace failure
+  ---
+  duration_ms: 1.13246
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects protocol error
+ok 55 - native MCP audit rejects protocol error
+  ---
+  duration_ms: 0.963626
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects extra shell call
+ok 56 - native MCP audit rejects extra shell call
+  ---
+  duration_ms: 0.92646
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects truncated initial read
+ok 57 - native MCP audit rejects truncated initial read
+  ---
+  duration_ms: 6.530549
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects changed model
+ok 58 - native MCP audit rejects changed model
+  ---
+  duration_ms: 1.026126
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects changed effort
+ok 59 - native MCP audit rejects changed effort
+  ---
+  duration_ms: 0.831584
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects changed CLI
+ok 60 - native MCP audit rejects changed CLI
+  ---
+  duration_ms: 0.738042
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects wrong worker session
+ok 61 - native MCP audit rejects wrong worker session
+  ---
+  duration_ms: 1.224626
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects worker failure
+ok 62 - native MCP audit rejects worker failure
+  ---
+  duration_ms: 0.775251
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects missing completion
+ok 63 - native MCP audit rejects missing completion
+  ---
+  duration_ms: 0.828793
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects changed policy bytes
+ok 64 - native MCP audit rejects changed policy bytes
+  ---
+  duration_ms: 0.807834
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects wrong policy cursor
+ok 65 - native MCP audit rejects wrong policy cursor
+  ---
+  duration_ms: 0.848501
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects forged delivery complete
+ok 66 - native MCP audit rejects forged delivery complete
+  ---
+  duration_ms: 0.934043
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects capture omission
+ok 67 - native MCP audit rejects capture omission
+  ---
+  duration_ms: 0.928751
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects capture value tamper
+ok 68 - native MCP audit rejects capture value tamper
+  ---
+  duration_ms: 1.173209
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects server code differs
+ok 69 - native MCP audit rejects server code differs
+  ---
+  duration_ms: 1.305251
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects task tools differ
+ok 70 - native MCP audit rejects task tools differ
+  ---
+  duration_ms: 1.443293
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects reported rejection
+ok 71 - native MCP audit rejects reported rejection
+  ---
+  duration_ms: 0.784168
+  type: 'test'
+  ...
+# Subtest: reporting boundary executes real persistence and rejects altered authority, publication and continuation
+    # Subtest: changed ledger state
+    ok 1 - changed ledger state
+      ---
+      duration_ms: 0.99746
+      type: 'test'
+      ...
+    # Subtest: fabricated facts economics
+    ok 2 - fabricated facts economics
+      ---
+      duration_ms: 0.313292
+      type: 'test'
+      ...
+    # Subtest: dropped follow-up
+    ok 3 - dropped follow-up
+      ---
+      duration_ms: 0.315917
+      type: 'test'
+      ...
+    # Subtest: rewritten persisted summary
+    ok 4 - rewritten persisted summary
+      ---
+      duration_ms: 0.309501
+      type: 'test'
+      ...
+    # Subtest: duplicate summary invocation
+    ok 5 - duplicate summary invocation
+      ---
+      duration_ms: 0.288334
+      type: 'test'
+      ...
+    # Subtest: wrong target
+    ok 6 - wrong target
+      ---
+      duration_ms: 0.262917
+      type: 'test'
+      ...
+    # Subtest: lost economics
+    ok 7 - lost economics
+      ---
+      duration_ms: 0.380959
+      type: 'test'
+      ...
+    # Subtest: lost health banner
+    ok 8 - lost health banner
+      ---
+      duration_ms: 0.690001
+      type: 'test'
+      ...
+    # Subtest: publish without normalisation
+    ok 9 - publish without normalisation
+      ---
+      duration_ms: 0.412876
+      type: 'test'
+      ...
+    # Subtest: capacity deferral
+    ok 10 - capacity deferral
+      ---
+      duration_ms: 0.364251
+      type: 'test'
+      ...
+    # Subtest: omitted ready issue
+    ok 11 - omitted ready issue
+      ---
+      duration_ms: 0.314833
+      type: 'test'
+      ...
+    # Subtest: publication after ledger fault
+    ok 12 - publication after ledger fault
+      ---
+      duration_ms: 0.260125
+      type: 'test'
+      ...
+    # Subtest: failed command missing result
+    ok 13 - failed command missing result
+      ---
+      duration_ms: 0.273
+      type: 'test'
+      ...
+    1..13
+ok 72 - reporting boundary executes real persistence and rejects altered authority, publication and continuation
+  ---
+  duration_ms: 2480.365587
+  type: 'test'
+  ...
+# Subtest: optional empty facts do not hide unknown or command-owned data
+ok 73 - optional empty facts do not hide unknown or command-owned data
+  ---
+  duration_ms: 0.137917
+  type: 'test'
+  ...
+# Subtest: economics accepts equivalent numbers and preserves cost, token provenance and denominators
+ok 74 - economics accepts equivalent numbers and preserves cost, token provenance and denominators
+  ---
+  duration_ms: 0.205667
+  type: 'test'
+  ...
+1..74
+# tests 87
+# suites 0
+# pass 87
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2552.467545

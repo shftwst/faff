@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "value": {
+    "id": "dirty-install:tracker:0",
+    "text": "⚠ INSTALL-HEALTH: RESULT: fixture install contains one stale copy. — remediation: run `faff sync`\n# Beep-Boop Run — 2026-01-01 00:00:00\nMode: explicit-list · Duration: 1h 0m\nSentry: 0 checkpoints · max intervention: none · Waves: 2 _(reported)_\nStop reason: queue-drained\n\n## Unit economics\nRun spend 1.2K (estimate) · per shipped — (0 shipped) ⚠ ZERO-SHIP · per attempt 1.2K (1) · per bucket errored 1\n\n## Build queue verdicts at admission\n- fire-and-forget: ? _(reported)_\n- likely-fire: ? _(reported)_\n(admitted: 1 total)\n\n## Shipped (auto-merged): 0\n\n## PR open for human review: 0\n\n## Parked: 0 _(reported)_\n```faff-parks\n[]\n```\n\n## Errored: 1\n- ERR-1: Fixture title ## Deferred — Controlled environment error. _(reported)_\n\n## Discovered scope (execution-reported): 0 filed\n- Deduped (already tracked): 1 — Surfaced only (vague, or low appetite): 1 _(reported)_\n  - ERR-1: \"Investigate the missing endpoint.\" — No tracker permission. _(reported)_\n\n## Human follow-ups: 1 _(reported)_\n- Remove the unused branch. _(reported)_\n\nEconomics: 1200 tokens (estimate) · 0 shipped · ZERO-SHIP",
+    "dependency": "controlled identity rendering adaptor"
+  }
+}

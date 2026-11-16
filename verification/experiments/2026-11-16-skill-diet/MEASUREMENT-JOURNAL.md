@@ -478,3 +478,14 @@ A new full-nlspec format candidate is being prepared. Independent static review 
 ## Intake qualified on Astra medium
 
 Sourcecommit `c650c72b` installs the exact measured candidate:7622→5689bytes and1890→1412estimatedtokens. All60actualbriefs were independentlyread; all120decisions and10strictnativeaudits pass. Both arms score29/30rawartifactchecks and30/30assessed: baseline2andcandidate3 carry the same frozen lexical correction. Fresh contractregrading and artifact/manual hashes are checked before acceptance. Private632-testintegration and main adapterlint/inventorypass. Tally now109175bytes/26887estimatedtokens saved. Opusrenewalqueuev2adds thiscut whilepreserving the queue bound by the completed model comparison.
+
+
+## Structured measurement transport, 2026-11-16 22:48 UTC
+
+Repeated real shell path/JSON failures remain failed measurements. A separate task-local stdio MCP bridge now exposes the unchanged mailbox ports with literal structured arguments. It binds each native call/result to one ordered trace row and unique request/response files, verifies complete policy delivery before operations, and rejects extra calls, missing/tampered evidence, changed startup/task instructions and post-finish actions. No previous native audit or accepted evidence was changed.
+
+Pilot V1 stopped before a port call because the isolated server required approval. V2 established a successful literal wrapper on earlier bridge bytes. V3 passed its functional fixture but its new auditor rejected the CLI's pre-task tool-definition advertisement; its failed audit remains. V4 freezes that declaration's content hash and shape before launch, retains rejection of unknown invocations, and passes its live native and two-case functional checks. Task-local approval applies only to the fixture ports; user configuration is not changed.
+
+Final regression passes 87 tests. A deterministic MCP bridge preflight executes all six real reporting cases, preserves the expected domain exit 2 as a successful transport result, and rejects omission of every case trace. These infrastructure results are not skill fidelity samples or source savings. Fresh reporting MCP plans register five samples per arm using unchanged policies, runtime, fixture and semantic gates, with no pooling of prior samples. Independent V4 review is required before launch; all five baselines must pass before any candidate measurement.
+
+Independent V4 review now qualifies the transport for fresh reporting measurements: 58 independent tests pass, live native audit reproduces exactly, all 69 preflight calls and 40 policy chunks match raw evidence, and all six omitted-case mutations fail. `mcp-transport-v4-qualification.json` binds that review and the 87-test regression.

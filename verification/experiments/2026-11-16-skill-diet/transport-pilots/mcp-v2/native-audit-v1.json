@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "scope": "Native structured transport and unchanged mailbox attribution. Semantic fidelity, case completion and production runtime binding require the separately recorded workflow grade and integration checks. No reasoning or tool content is exported.",
+  "auditor_sha256": "7ff3c2ae763da74c2a4abf14a2abfe550be2bf95fa4d714d72c3dd3798f6f539",
+  "source_sha256": "ec034b34626c6ad3bdcb25b7efaad3d0b6b46cbf1c8e99973f4efe8466f1ecda",
+  "evidence_hashes": {
+    "task.json": "07e944cc0d0f98a0aa74593e85f7fdbda0e4a14fa621aa6cea351d8c05319969",
+    "worker-manifest.json": "86724f5ee49bb1b3b9164e0b21592a63ff0448be189b48acf791de0272c720e0",
+    "worker-final-state.json": "eb38e382779eb40379931ada3846f00f52ebcfc0296054985c345e1265ae03e1",
+    "mcp-server-manifest.json": "f9df298a7872d7f069a7c42a9bbebff8da12d3e792708db1a69b688701ad7752",
+    "mcp-trace.jsonl": "9ec7a126ccda4ebce63d0a6d29c495faf85ffe922daf747df7d6091605b8bbf0",
+    "mcp-protocol-errors.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "capture.json": "815e42b5408d1ca8d6dd0f00af830e4fcf731017d21232f0cca060b0bef4b4ba",
+    "report.json": "035236fbc40e277027bdd7ac8847fd281918dd67595a2e33936ecf6e758b43ce"
+  },
+  "runs": [
+    {
+      "status": "pass",
+      "session_id": "01a1e67e-be20-7dc3-ab46-286f20a4258d",
+      "model_ids": [
+        "gpt-6.1-sol"
+      ],
+      "efforts": [
+        "medium"
+      ],
+      "versions": [
+        "0.169.0"
+      ],
+      "base_instruction_hashes": [
+        "d7f4e2a97f86048ae05e687ed20b0abed4a38442ac8aa2868b5a09bdb855e518"
+      ],
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0"
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": true,
+          "sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d"
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-transport-pilot-v2/task.json",
+          "complete": true,
+          "sha256": "07e944cc0d0f98a0aa74593e85f7fdbda0e4a14fa621aa6cea351d8c05319969"
+        }
+      ],
+      "native_calls": 8,
+      "mcp_calls": 5,
+      "policy_reads": 2,
+      "problems": []
+    }
+  ]
+}

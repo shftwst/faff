@@ -1,0 +1,28 @@
+{
+  "exit_code": 1,
+  "stdout": "{\n  \"ok\": false,\n  \"error\": \"worker did not return within timeout\"\n}\n",
+  "stderr": "",
+  "completion": {
+    "ok": true,
+    "status": {
+      "agent": {
+        "agent": "claude",
+        "agent_status": "done",
+        "completion_seq": 147,
+        "cwd": "/Users/shftwst/workspace/shftwst/faff",
+        "focused": false,
+        "foreground_cwd": "/Users/shftwst/workspace/shftwst/faff",
+        "pane_id": "w657ad5a31a8d61:p6",
+        "revision": 26,
+        "state_change_seq": 147,
+        "tab_id": "w657ad5a31a8d61:t1",
+        "terminal_id": "term_6605714b8ac1a6",
+        "terminal_title": "\u2733 Gateway-v2 skill-diet fidelity measurement",
+        "terminal_title_stripped": "Gateway-v2 skill-diet fidelity measurement",
+        "workspace_id": "w657ad5a31a8d61"
+      },
+      "type": "agent_info"
+    }
+  },
+  "elapsed_seconds": 24.130378007888794
+}

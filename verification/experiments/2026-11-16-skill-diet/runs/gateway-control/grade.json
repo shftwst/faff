@@ -1,0 +1,264 @@
+{
+  "status": "fail",
+  "total": 17,
+  "passed": 9,
+  "failed": 8,
+  "errors": [],
+  "cases": [
+    {
+      "id": "bare",
+      "pass": false,
+      "differences": [
+        "route",
+        "offer"
+      ],
+      "expected": {
+        "route": "faff-wtf",
+        "args": [],
+        "offer": false,
+        "config_actions": [],
+        "resume_original": false,
+        "level_command": null
+      },
+      "actual": {
+        "id": "bare",
+        "route": null,
+        "args": [],
+        "offer": true,
+        "config_actions": [],
+        "resume_original": false,
+        "level_command": null
+      }
+    },
+    {
+      "id": "focus",
+      "pass": true,
+      "differences": []
+    },
+    {
+      "id": "strategy",
+      "pass": false,
+      "differences": [
+        "route"
+      ],
+      "expected": {
+        "route": "faff-map",
+        "args": [],
+        "offer": false,
+        "config_actions": [],
+        "resume_original": false,
+        "level_command": null
+      },
+      "actual": {
+        "id": "strategy",
+        "route": "faff-roadmap",
+        "args": [],
+        "offer": false,
+        "config_actions": [],
+        "resume_original": false,
+        "level_command": null
+      }
+    },
+    {
+      "id": "application",
+      "pass": false,
+      "differences": [
+        "route"
+      ],
+      "expected": {
+        "route": "faff-plot",
+        "args": [],
+        "offer": false,
+        "config_actions": [],
+        "resume_original": false,
+        "level_command": null
+      },
+      "actual": {
+        "id": "application",
+        "route": "faff-plan",
+        "args": [],
+        "offer": false,
+        "config_actions": [],
+        "resume_original": false,
+        "level_command": null
+      }
+    },
+    {
+      "id": "feature",
+      "pass": true,
+      "differences": []
+    },
+    {
+      "id": "bug",
+      "pass": true,
+      "differences": []
+    },
+    {
+      "id": "existing-jot",
+      "pass": true,
+      "differences": []
+    },
+    {
+      "id": "prep",
+      "pass": true,
+      "differences": []
+    },
+    {
+      "id": "build",
+      "pass": false,
+      "differences": [
+        "route"
+      ],
+      "expected": {
+        "route": "faff-graft",
+        "args": [
+          "ISS-42"
+        ],
+        "offer": false,
+        "config_actions": [],
+        "resume_original": false,
+        "level_command": null
+      },
+      "actual": {
+        "id": "build",
+        "route": "faff-build",
+        "args": [
+          "ISS-42"
+        ],
+        "offer": false,
+        "config_actions": [],
+        "resume_original": false,
+        "level_command": null
+      }
+    },
+    {
+      "id": "tidy",
+      "pass": true,
+      "differences": []
+    },
+    {
+      "id": "unattended",
+      "pass": false,
+      "differences": [
+        "route"
+      ],
+      "expected": {
+        "route": "faff-beep-boop",
+        "args": [],
+        "offer": false,
+        "config_actions": [],
+        "resume_original": false,
+        "level_command": null
+      },
+      "actual": {
+        "id": "unattended",
+        "route": "beep-boop",
+        "args": [],
+        "offer": false,
+        "config_actions": [],
+        "resume_original": false,
+        "level_command": null
+      }
+    },
+    {
+      "id": "onboard",
+      "pass": true,
+      "differences": []
+    },
+    {
+      "id": "first-offer",
+      "pass": true,
+      "differences": []
+    },
+    {
+      "id": "decline",
+      "pass": false,
+      "differences": [
+        "config_actions"
+      ],
+      "expected": {
+        "route": null,
+        "args": [],
+        "offer": false,
+        "config_actions": [
+          "config init --set tracking.spec_docs_path=",
+          "gitignore-ensure",
+          "hooks-ensure"
+        ],
+        "resume_original": true,
+        "level_command": null
+      },
+      "actual": {
+        "id": "decline",
+        "route": null,
+        "args": [],
+        "offer": false,
+        "config_actions": [
+          "config init --stub"
+        ],
+        "resume_original": true,
+        "level_command": null
+      }
+    },
+    {
+      "id": "accept",
+      "pass": true,
+      "differences": []
+    },
+    {
+      "id": "autonomous-no-config",
+      "pass": false,
+      "differences": [
+        "config_actions"
+      ],
+      "expected": {
+        "route": null,
+        "args": [],
+        "offer": false,
+        "config_actions": [],
+        "resume_original": true,
+        "level_command": null
+      },
+      "actual": {
+        "id": "autonomous-no-config",
+        "route": null,
+        "args": [],
+        "offer": false,
+        "config_actions": [
+          "config init --stub"
+        ],
+        "resume_original": true,
+        "level_command": null
+      }
+    },
+    {
+      "id": "lights-out",
+      "pass": false,
+      "differences": [
+        "route",
+        "args",
+        "level_command"
+      ],
+      "expected": {
+        "route": null,
+        "args": [],
+        "offer": false,
+        "config_actions": [],
+        "resume_original": false,
+        "level_command": "faff lights-out"
+      },
+      "actual": {
+        "id": "lights-out",
+        "route": "beep-boop",
+        "args": [
+          "--level",
+          "4"
+        ],
+        "offer": false,
+        "config_actions": [],
+        "resume_original": false,
+        "level_command": "beep-boop --level 4"
+      }
+    }
+  ]
+}

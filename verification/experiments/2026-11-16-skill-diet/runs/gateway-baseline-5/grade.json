@@ -1,0 +1,94 @@
+{
+  "status": "pass",
+  "total": 17,
+  "passed": 17,
+  "failed": 0,
+  "errors": [],
+  "cases": [
+    {
+      "id": "bare",
+      "pass": true,
+      "differences": []
+    },
+    {
+      "id": "focus",
+      "pass": true,
+      "differences": []
+    },
+    {
+      "id": "strategy",
+      "pass": true,
+      "differences": []
+    },
+    {
+      "id": "application",
+      "pass": true,
+      "differences": []
+    },
+    {
+      "id": "feature",
+      "pass": true,
+      "differences": []
+    },
+    {
+      "id": "bug",
+      "pass": true,
+      "differences": []
+    },
+    {
+      "id": "existing-jot",
+      "pass": true,
+      "differences": []
+    },
+    {
+      "id": "prep",
+      "pass": true,
+      "differences": []
+    },
+    {
+      "id": "build",
+      "pass": true,
+      "differences": []
+    },
+    {
+      "id": "tidy",
+      "pass": true,
+      "differences": []
+    },
+    {
+      "id": "unattended",
+      "pass": true,
+      "differences": []
+    },
+    {
+      "id": "onboard",
+      "pass": true,
+      "differences": []
+    },
+    {
+      "id": "first-offer",
+      "pass": true,
+      "differences": []
+    },
+    {
+      "id": "decline",
+      "pass": true,
+      "differences": []
+    },
+    {
+      "id": "accept",
+      "pass": true,
+      "differences": []
+    },
+    {
+      "id": "autonomous-no-config",
+      "pass": true,
+      "differences": []
+    },
+    {
+      "id": "lights-out",
+      "pass": true,
+      "differences": []
+    }
+  ]
+}

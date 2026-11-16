@@ -1,0 +1,4 @@
+{
+  "status": "response-captured",
+  "monitor_note": "Worker reported done and wrote response, but broker ask wait remained blocked; stopped only the local waiting client. No model retry."
+}

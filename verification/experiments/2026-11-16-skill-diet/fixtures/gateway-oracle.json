@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "expected": {
+    "bare": {"route":"faff-wtf"},
+    "focus": {"route":"faff-wtf"},
+    "strategy": {"route":"faff-map"},
+    "application": {"route":"faff-plot"},
+    "feature": {"route":"faff-jot"},
+    "bug": {"route":"faff-jot"},
+    "existing-jot": {"route":"faff-jot","args":["ISS-42"]},
+    "prep": {"route":"faff-prep","args":["ISS-42"]},
+    "build": {"route":"faff-graft","args":["ISS-42"]},
+    "tidy": {"route":"faff-tidy"},
+    "unattended": {"route":"faff-beep-boop"},
+    "onboard": {"route":"faff-onboard"},
+    "first-offer": {"route":null,"offer":true,"resume_original":false},
+    "decline": {"route":null,"config_actions":["config init --set tracking.spec_docs_path=","gitignore-ensure","hooks-ensure"],"resume_original":true},
+    "accept": {"route":"faff-onboard","resume_original":true},
+    "autonomous-no-config": {"route":null,"offer":false,"config_actions":[],"resume_original":true},
+    "lights-out": {"route":null,"level_command":"faff lights-out"}
+  },
+  "global_constraints": "No extra config mutation, setup prompt or level command unless the case requires it. No missing or duplicate cases. Exact route names and ordered config actions. The empty spec_docs_path value is intentional."
+}

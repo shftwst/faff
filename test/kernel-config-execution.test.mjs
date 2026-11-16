@@ -28,6 +28,12 @@ test('kernel fixture executes real layered reads, surgical writes, refusals and 
     assert.equal(grade.status, 'pass', JSON.stringify(grade.cases));
     assert.equal(grade.cases.filter(c => c.kind === 'execution').length, 9);
     assert.equal(grade.cases.filter(c => c.kind === 'decision').length, 24);
+    const metadata = structuredClone(capture);
+    metadata.cases.find(c => c.id === 'defaults').submission.values.spec = 'faffter-noon-spec';
+    metadata.rule_answers.find(r => r.id === 'architecture-proposal').value.materialising_stage = 'faff-graft Step 4b';
+    assert.equal(gradeKernelConfigExecution(metadata, env.expected, env.expectedRules).status, 'pass');
+    metadata.cases.find(c => c.id === 'defaults').submission.values.spec = 'wrong-spec';
+    assert.equal(gradeKernelConfigExecution(metadata, env.expected, env.expectedRules).status, 'fail');
     const wrongRule = structuredClone(capture);
     wrongRule.rule_answers.find(r => r.id === 'lenient-l4').value.mint_allowed = true;
     assert.equal(gradeKernelConfigExecution(wrongRule, env.expected, env.expectedRules).status, 'fail');

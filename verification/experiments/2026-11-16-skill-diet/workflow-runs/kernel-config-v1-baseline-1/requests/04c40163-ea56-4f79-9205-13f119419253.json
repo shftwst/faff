@@ -1,0 +1,1 @@
+{"name":"submit_result","args":{"case_id":"absent-tier","status":"completed","values":{"model":"sonnet","effort":"medium","effort_applied":false},"reason":"faff dispatch resolve build --confidence high (no tier guessed) gave model sonnet, effort medium. Dispatched with model sonnet; effort recorded as not applied."}}

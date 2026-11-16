@@ -266,3 +266,18 @@ output probe in its corrected assessment, including canonical argument hash.
 `native-audits/adversarial-candidate-2-native-assessment.json` preserves the raw
 native failure label and records this diagnostic separately. No guard rejection
 is covered by that correction. The full adversarial paired set is still running.
+
+## Kernel baseline interface finding
+
+Before any kernel edit, the first v1 baseline failed the fixture protocol:
+completion status was exposed as an unrestricted string described as completed,
+but the server accepted complete; the fixture rejected adapter validation despite
+the full policy requiring it before unknown occupants. Accurate optional result
+metadata and the equivalent faff-graft stage prefix also failed an overspecified
+comparison. The raw report remains 4/9 execution cases and 23/24 decisions.
+
+The v1 fixture bytes are archived as workflow-fixtures/kernel-config-v1.json and
+match its manifest hash. KERNEL-CONFIG-V2.md records the corrected public enum,
+accurate optional metadata handling and controlled prevalidated-stub boundary.
+No real adapter validation is claimed. A fresh v2 baseline uses unchanged kernel
+policy; the failed v1 trial is not pooled. No kernel reduction has been authored.

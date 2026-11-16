@@ -1,0 +1,1 @@
+{"name":"submit_result","args":{"case_id":"scalar-write","status":"completed","values":{"appetite":"medium"},"reason":"Wrote appetite=medium with faff config set (surgical edit to .faff/config.yaml) and read it back with faff config get."}}

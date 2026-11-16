@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "value": {
+    "exit_code": 2,
+    "stdout": "",
+    "stderr": "faff: /tmp/faff-kernel-config-bd5Ilq/malformed-base/.faff/config.yaml is malformed (does not parse to a mapping (malformed YAML — the base config must be a key:value mapping)) — configured values (including budget/sentry ceilings) would silently fall back to built-in defaults. Fix the file (git diff / git checkout config.yaml), or set FAFF_CONFIG_BASE_LENIENT=1 to proceed on defaults loudly.\nfaff config: /tmp/faff-kernel-config-bd5Ilq/malformed-base/.faff/config.yaml failed to parse (does not parse to a mapping (malformed YAML — the base config must be a key:value mapping)) — a malformed base is never a silent default (FAFF-577).\n"
+  }
+}

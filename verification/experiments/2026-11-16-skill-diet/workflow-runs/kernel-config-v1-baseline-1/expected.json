@@ -1,0 +1,267 @@
+[
+  {
+    "id": "layered",
+    "status": "complete",
+    "reads": [
+      {
+        "args": [
+          "config",
+          "get",
+          "slots.spec"
+        ],
+        "exit": 0,
+        "before_effect": 0,
+        "value": "fixture-base-spec"
+      },
+      {
+        "args": [
+          "config",
+          "get",
+          "slots.review"
+        ],
+        "exit": 0,
+        "before_effect": 1,
+        "value": "fixture-overlay-review"
+      }
+    ],
+    "effects": [
+      {
+        "tool": "invoke_skill",
+        "name": "fixture-base-spec"
+      },
+      {
+        "tool": "invoke_skill",
+        "name": "fixture-overlay-review"
+      }
+    ],
+    "values": {},
+    "writes": [],
+    "files": {
+      ".faff/config.local.yaml": "slots:\n  review: fixture-overlay-review\n",
+      ".faff/config.yaml": "slots:\n  spec: fixture-base-spec\n  review: fixture-base-review\n",
+      "CLAUDE.md": "For context only: slots.spec = misleading-doc-spec.\n",
+      "keep.txt": "Preserve unrelated content.\n"
+    }
+  },
+  {
+    "id": "defaults",
+    "status": "complete",
+    "reads": [
+      {
+        "args": [
+          "config",
+          "get",
+          "slots.spec"
+        ],
+        "exit": 0,
+        "before_effect": 0,
+        "value": "faffter-noon-spec"
+      },
+      {
+        "args": [
+          "config",
+          "get",
+          "logging"
+        ],
+        "exit": 0,
+        "value": "full"
+      }
+    ],
+    "effects": [
+      {
+        "tool": "invoke_skill",
+        "name": "faffter-noon-spec"
+      }
+    ],
+    "values": {
+      "logging": "full"
+    },
+    "writes": [],
+    "files": {
+      ".faff/config.yaml": "# Comment-only config; preserve it.\n",
+      "keep.txt": "Preserve unrelated content.\n"
+    }
+  },
+  {
+    "id": "scalar-write",
+    "status": "complete",
+    "reads": [
+      {
+        "args": [
+          "config",
+          "get",
+          "appetite"
+        ],
+        "exit": 0,
+        "value": "medium"
+      }
+    ],
+    "effects": [],
+    "values": {
+      "appetite": "medium"
+    },
+    "writes": [
+      [
+        "config",
+        "set",
+        "appetite",
+        "medium"
+      ]
+    ],
+    "files": {
+      ".faff/config.yaml": "# Preserve this comment.\ntracking:\n  repo: fixture/project\n  spec_docs_path: records/specs\n\nappetite: medium\n",
+      "keep.txt": "Preserve unrelated content.\n"
+    }
+  },
+  {
+    "id": "malformed-base",
+    "status": "blocked",
+    "reads": [
+      {
+        "args": [
+          "config",
+          "get",
+          "slots.spec"
+        ],
+        "exit": 2
+      }
+    ],
+    "effects": [],
+    "values": {},
+    "writes": [],
+    "files": {
+      ".faff/config.yaml": "- not\n- a map\n",
+      "keep.txt": "Preserve unrelated content.\n"
+    }
+  },
+  {
+    "id": "malformed-overlay",
+    "status": "blocked",
+    "reads": [
+      {
+        "args": [
+          "config",
+          "get",
+          "slots.spec"
+        ],
+        "exit": 2
+      }
+    ],
+    "effects": [],
+    "values": {},
+    "writes": [],
+    "files": {
+      ".faff/config.local.yaml": "- invalid\n- overlay\n",
+      ".faff/config.yaml": "slots:\n  spec: fixture-base-spec\n",
+      "keep.txt": "Preserve unrelated content.\n"
+    }
+  },
+  {
+    "id": "legacy-name",
+    "status": "blocked",
+    "reads": [
+      {
+        "args": [
+          "config",
+          "get",
+          "slots.spec"
+        ],
+        "exit": 2
+      }
+    ],
+    "effects": [],
+    "values": {},
+    "writes": [],
+    "files": {
+      ".faffrc.yml": "slots:\n  spec: fixture-legacy-spec\n",
+      "keep.txt": "Preserve unrelated content.\n"
+    }
+  },
+  {
+    "id": "tier-precedence",
+    "status": "complete",
+    "reads": [
+      {
+        "args": [
+          "dispatch",
+          "resolve",
+          "build",
+          "--tier",
+          "mechanical",
+          "--confidence",
+          "high"
+        ],
+        "exit": 0,
+        "before_effect": 0
+      }
+    ],
+    "effects": [
+      {
+        "tool": "dispatch_build",
+        "model": "haiku",
+        "resolved_effort": "high"
+      }
+    ],
+    "values": {},
+    "writes": [],
+    "files": {
+      ".faff/config.yaml": "dispatch:\n  build:\n    model: opus\n    effort: low\n    by_tier:\n      default:\n        model: fable\n        effort: medium\n      mechanical:\n        model: haiku\n        effort: high\n    by_confidence:\n      high:\n        model: sonnet\n",
+      "keep.txt": "Preserve unrelated content.\n"
+    }
+  },
+  {
+    "id": "absent-tier",
+    "status": "complete",
+    "reads": [
+      {
+        "args": [
+          "dispatch",
+          "resolve",
+          "build",
+          "--confidence",
+          "high"
+        ],
+        "exit": 0,
+        "before_effect": 0
+      }
+    ],
+    "effects": [
+      {
+        "tool": "dispatch_build",
+        "model": "sonnet",
+        "resolved_effort": "medium"
+      }
+    ],
+    "values": {},
+    "writes": [],
+    "files": {
+      ".faff/config.yaml": "dispatch:\n  build:\n    model: opus\n    effort: low\n    by_tier:\n      default:\n        model: fable\n        effort: medium\n      mechanical:\n        model: haiku\n        effort: high\n    by_confidence:\n      high:\n        model: sonnet\n",
+      "keep.txt": "Preserve unrelated content.\n"
+    }
+  },
+  {
+    "id": "invalid-unused-leaf",
+    "status": "blocked",
+    "reads": [
+      {
+        "args": [
+          "dispatch",
+          "resolve",
+          "build",
+          "--tier",
+          "mechanical",
+          "--confidence",
+          "high"
+        ],
+        "exit": 2
+      }
+    ],
+    "effects": [],
+    "values": {},
+    "writes": [],
+    "files": {
+      ".faff/config.yaml": "dispatch:\n  build:\n    model: opus\n    effort: low\n    by_tier:\n      default:\n        model: fable\n        effort: medium\n      mechanical:\n        model: haiku\n        effort: high\n    by_confidence:\n      high:\n        model: sonnet\n      medium:\n        model: invalid-model\n",
+      "keep.txt": "Preserve unrelated content.\n"
+    }
+  }
+]

@@ -1,0 +1,4 @@
+{
+  "ok": false,
+  "error": "ENOENT: no such file or directory, open '/tmp/faff-adversarial-workflow-LNwA4w/case-a/review-system.txt'"
+}

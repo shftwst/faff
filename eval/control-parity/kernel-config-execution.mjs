@@ -128,7 +128,8 @@ export function gradeKernelConfigExecution(capture, expected, expectedRules = []
     const cli = events.filter(e => e.name === 'run_faff'), submission = state?.submission;
     if (events.some(e => ['read_file', 'write_file'].includes(e.name) && /^\.faff(?:\/config\.|rc)/.test(e.args.path))) problems.push('raw-config-access');
     if (events.some(e => e.error)) problems.push('tool-error');
-    if (!submission || submission.status !== row.status || !isDeepStrictEqual(submission.values, row.values)) problems.push('result');
+    const permittedValues = { ...row.values, ...(row.optional_values ?? {}) };
+    if (!submission || submission.status !== row.status || Object.entries(row.values).some(([key, value]) => !isDeepStrictEqual(submission.values[key], value)) || Object.entries(submission.values).some(([key, value]) => !Object.hasOwn(permittedValues, key) || !isDeepStrictEqual(permittedValues[key], value))) problems.push('result');
     if (row.status === 'blocked' && !submission?.reason.trim()) problems.push('missing-refusal-reason');
     const effectEvents = events.filter(e => ['invoke_skill', 'dispatch_build'].includes(e.name));
     const effects = effectEvents.map(e => ({ tool: e.name, ...Object.fromEntries(Object.entries(e.args).filter(([key]) => key !== 'case_id').map(([key, value]) => [key, key === 'name' ? value.replace(/^faff:/, '') : value])) }));
@@ -148,11 +149,13 @@ export function gradeKernelConfigExecution(capture, expected, expectedRules = []
     if (!isDeepStrictEqual(writes.map(e => e.args.args), row.writes ?? []) || writes.some(e => e.result.exit_code !== 0)) problems.push('config-mutation');
     if (!state || !isDeepStrictEqual(contents(state.after), row.files)) problems.push('final-files');
     if (!row.writes?.length && state && !isDeepStrictEqual(state.before, state.after)) problems.push('unexpected-write');
-    return { id: row.id, kind: 'execution', pass: !problems.length, problems, effects, status: submission?.status ?? null, values: submission?.values ?? null, final_files: state ? contents(state.after) : null };
+    return { id: row.id, kind: 'execution', pass: !problems.length, problems, effects, status: submission?.status ?? null, values: Object.fromEntries(Object.keys(row.values).map(key => [key, submission?.values[key] ?? null])), reported_values: submission?.values ?? null, final_files: state ? contents(state.after) : null };
   });
   for (const row of expectedRules) {
     const observed = capture.rule_answers?.filter(answer => answer.id === row.id) ?? [];
-    const pass = observed.length === 1 && isDeepStrictEqual(observed[0].value, row.expected);
+    const value = structuredClone(observed[0]?.value ?? null);
+    if (row.id === 'architecture-proposal' && typeof value?.materialising_stage === 'string') value.materialising_stage = value.materialising_stage.replace(/^faff-graft\b/, 'graft');
+    const pass = observed.length === 1 && isDeepStrictEqual(value, row.expected);
     cases.push({ id: row.id, kind: 'decision', pass, problems: pass ? [] : ['rule-answer'], value: observed[0]?.value ?? null });
   }
   return { status: !capture.errors.length && cases.length && cases.every(c => c.pass) ? 'pass' : 'fail', cases, errors: capture.errors };
@@ -166,7 +169,7 @@ export const KERNEL_CONFIG_TOOLS = [
   tool('write_file', 'Replace a listed fixture file.', { case_id: string, path: string, content: string }),
   tool('invoke_skill', 'Invoke a downstream skill stub; it records the selected occupant.', { case_id: string, name: string }),
   tool('dispatch_build', 'Dispatch a build-agent stub with its selected model. Record resolved effort separately; this Agent transport has no effort parameter.', { case_id: string, model: string, resolved_effort: string }),
-  tool('submit_result', 'Record a completed or blocked case, any requested scalar values and the reason for a refusal. Submit once per case.', { case_id: string, status: string, values: { type: 'object' }, reason: string }),
+  tool('submit_result', 'Record status complete or blocked, requested scalar values and a refusal reason (empty string when unnecessary). Values may also report resolved spec/review occupants or model/effort/effort_applied; these must match the actual result. Submit once per case.', { case_id: string, status: { type: 'string', enum: ['complete', 'blocked'] }, values: { type: 'object' }, reason: string }),
   tool('answer_rule', 'Answer one bounded policy question using its stated value shape. These questions are decision probes; do not execute their hypothetical actions.', { case_id: string, value: {} }),
   tool('finish', 'Finish after every case has a result.', {}),
 ];
@@ -177,7 +180,7 @@ export async function runKernelConfigExecution({ root, commit, policyPath, fixtu
   const work = mkdtempSync(join(tmpdir(), 'faff-kernel-config-'));
   mkdirSync(output);
   const env = createKernelConfigEnvironment({ root: work, cli, fixture }), reader = createPolicyReader(policyBytes);
-  const task = { instructions: 'Read the full policy through read_policy before acting. Execute each independent workflow case using the supplied ports, then submit its result. Files and configuration state are initially unknown. Use the resolved executable for CLI calls. Downstream skills and build agents are stubs; stop at their dispatch. Separately answer every rule_question through answer_rule using its stated value shape; do not execute hypothetical actions from those questions. Only this task and mandatory operator guidance may be read natively; all case operations use fixture ports.', policy: reader.metadata, resolved_executable: cli, tools: [POLICY_TOOL, ...KERNEL_CONFIG_TOOLS], cases: env.publicCases, rule_questions: (fixture.rule_cases ?? []).map(({ id, question }) => ({ id, question })) };
+  const task = { instructions: 'Read the full policy through read_policy before acting. Execute each independent workflow case using the supplied ports, then submit its result. Files and configuration state are initially unknown. Use the resolved executable for CLI calls. Downstream skills and build agents are stubs; treat supplied occupants as previously validated by the caller, a controlled fixture precondition represented by invoke_skill. Do not repeat adapter validation in this fixture; that boundary is outside this config/dispatch task. Stop at stub dispatch. Separately answer every rule_question through answer_rule using its stated value shape; do not execute hypothetical actions from those questions. Only this task and mandatory operator guidance may be read natively; all case operations use fixture ports.', policy: reader.metadata, resolved_executable: cli, tools: [POLICY_TOOL, ...KERNEL_CONFIG_TOOLS], cases: env.publicCases, rule_questions: (fixture.rule_cases ?? []).map(({ id, question }) => ({ id, question })) };
   writeJson(join(output, 'task.json'), task);
   writeJson(join(output, 'manifest.json'), { schema: 1, kind: 'kernel-config-execution', binding, fixture_sha256: sha256(fixtureBytes), policy_sha256: sha256(policyBytes), task_sha256: sha256(JSON.stringify(task, null, 2) + '\n'), harness_sha256: sha256(readFileSync(new URL(import.meta.url))), policy_reader_sha256: sha256(readFileSync(new URL('./policy-reader.mjs', import.meta.url))), scope: fixture.scope, accounting: 'unmetered' });
   writeJson(join(output, 'ready.json'), { ready: true });

@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"case_id":"profile-default","value":{"acquire_with":"faff profile mine","validate_with":"faff profile validate","write_after_validation":".faff/infra-profile.json","miner_network_allowed":false}}}

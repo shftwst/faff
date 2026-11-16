@@ -1,0 +1,254 @@
+{
+  "schema": 1,
+  "name": "adversarial-context-v3-candidate-5",
+  "status": "pass",
+  "original_status": "pass",
+  "original_cases_passed": 10,
+  "report_sha256": "6a0ca4e326f9f18f1e84a04cc6c09b5fdd99662a1b0cbef29d71332a17ff3ec3",
+  "capture_sha256": "edb67ea831799c800c9d5b4a0f725aa6cad8be19c2fee4b4868913935c8a297e",
+  "grader_sha256": "e43b74a4bcbbaf36475b4b1fb87b81bd3ca3af148a8fc64b4df468c46f7e2de2",
+  "fixture_sha256": "8c5a7eec69fe8ef23968d0816b597b4765b3375d27424d8e59a341bb2c89500c",
+  "correction_sha256": "7fd4925035c3b3b5a2639068e502cf1f8d37a10b547d6cefceea93f80f0b5c86",
+  "basis": "Explicit oracle correction; original report and capture remain unchanged. See workflow-fixtures/ORACLE-CORRECTION.md.",
+  "grade": {
+    "status": "pass",
+    "cases": [
+      {
+        "id": "case-a",
+        "pass": true,
+        "problems": [],
+        "signal": "pass",
+        "helper_exits": [
+          0
+        ],
+        "checkpoints": [],
+        "gate": {
+          "issue": "FAFF-7001",
+          "pass": true,
+          "ac_complete": true,
+          "review_verdict": "pass",
+          "holdout": "not-applicable",
+          "reasons": [],
+          "ac_called_out": []
+        }
+      },
+      {
+        "id": "case-b",
+        "pass": true,
+        "problems": [],
+        "signal": "needs-human",
+        "helper_exits": [
+          0
+        ],
+        "checkpoints": [
+          "phase1-pass",
+          "in_flight",
+          "complete"
+        ],
+        "gate": {
+          "issue": "FAFF-7001",
+          "pass": false,
+          "ac_complete": true,
+          "review_verdict": "needs-human",
+          "holdout": "not-applicable",
+          "reasons": [
+            "review-verdict needs-human"
+          ],
+          "ac_called_out": []
+        }
+      },
+      {
+        "id": "case-c",
+        "pass": true,
+        "problems": [],
+        "signal": "pass",
+        "helper_exits": [
+          5
+        ],
+        "checkpoints": [
+          "phase1-pass",
+          "in_flight",
+          "skipped_unreachable"
+        ],
+        "gate": {
+          "issue": "FAFF-7001",
+          "pass": true,
+          "ac_complete": true,
+          "review_verdict": "pass",
+          "holdout": "not-applicable",
+          "reasons": [],
+          "ac_called_out": []
+        }
+      },
+      {
+        "id": "case-d",
+        "pass": true,
+        "problems": [],
+        "signal": "unavailable",
+        "helper_exits": [
+          9
+        ],
+        "checkpoints": [
+          "phase1-pass",
+          "in_flight"
+        ],
+        "gate": {
+          "issue": "FAFF-7001",
+          "pass": false,
+          "ac_complete": true,
+          "review_verdict": "unavailable",
+          "holdout": "not-applicable",
+          "reasons": [
+            "review-verdict unavailable"
+          ],
+          "ac_called_out": []
+        }
+      },
+      {
+        "id": "case-e",
+        "pass": true,
+        "problems": [],
+        "signal": "needs-human",
+        "helper_exits": [
+          7
+        ],
+        "checkpoints": [
+          "phase1-pass",
+          "in_flight"
+        ],
+        "gate": {
+          "issue": "FAFF-7001",
+          "pass": false,
+          "ac_complete": true,
+          "review_verdict": "needs-human",
+          "holdout": "not-applicable",
+          "reasons": [
+            "review-verdict needs-human"
+          ],
+          "ac_called_out": []
+        }
+      },
+      {
+        "id": "case-f",
+        "pass": true,
+        "problems": [],
+        "signal": "needs-human",
+        "helper_exits": [
+          11
+        ],
+        "checkpoints": [
+          "phase1-pass",
+          "in_flight"
+        ],
+        "gate": {
+          "issue": "FAFF-7001",
+          "pass": false,
+          "ac_complete": true,
+          "review_verdict": "needs-human",
+          "holdout": "not-applicable",
+          "reasons": [
+            "review-verdict needs-human"
+          ],
+          "ac_called_out": []
+        }
+      },
+      {
+        "id": "case-g",
+        "pass": true,
+        "problems": [],
+        "signal": "pass",
+        "helper_exits": [
+          8
+        ],
+        "checkpoints": [
+          "phase1-pass",
+          "in_flight",
+          "skipped_deadline"
+        ],
+        "gate": {
+          "issue": "FAFF-7001",
+          "pass": true,
+          "ac_complete": true,
+          "review_verdict": "pass",
+          "holdout": "not-applicable",
+          "reasons": [],
+          "ac_called_out": []
+        }
+      },
+      {
+        "id": "case-h",
+        "pass": true,
+        "problems": [],
+        "signal": "fail",
+        "helper_exits": [],
+        "checkpoints": [],
+        "gate": {
+          "issue": "FAFF-7001",
+          "pass": false,
+          "ac_complete": true,
+          "review_verdict": "fail",
+          "holdout": "not-applicable",
+          "reasons": [
+            "review-verdict fail"
+          ],
+          "ac_called_out": []
+        }
+      },
+      {
+        "id": "case-i",
+        "pass": true,
+        "problems": [],
+        "signal": "needs-human",
+        "helper_exits": [],
+        "checkpoints": [
+          "phase1-pass"
+        ],
+        "gate": {
+          "issue": "FAFF-7001",
+          "pass": false,
+          "ac_complete": true,
+          "review_verdict": "needs-human",
+          "holdout": "not-applicable",
+          "reasons": [
+            "review-verdict needs-human"
+          ],
+          "ac_called_out": []
+        }
+      },
+      {
+        "id": "case-j",
+        "pass": true,
+        "problems": [],
+        "signal": "unavailable",
+        "helper_exits": [
+          9
+        ],
+        "checkpoints": [
+          "phase1-pass",
+          "in_flight"
+        ],
+        "gate": {
+          "issue": "FAFF-7001",
+          "pass": false,
+          "ac_complete": true,
+          "review_verdict": "unavailable",
+          "holdout": "not-applicable",
+          "reasons": [
+            "review-verdict unavailable"
+          ],
+          "ac_called_out": []
+        }
+      }
+    ],
+    "errors": [],
+    "diagnostics": [
+      {
+        "seq": 4,
+        "case_id": "case-a",
+        "kind": "unwritten-output-read",
+        "path": "/tmp/faff-adversarial-workflow-LNwA4w/case-a/review-system.txt",
+        "error": "ENOENT: no such file or directory, open '/tmp/faff-adversarial-workflow-LNwA4w/case-a/review-system.txt'"
+      }
+    ]
+  }
+}

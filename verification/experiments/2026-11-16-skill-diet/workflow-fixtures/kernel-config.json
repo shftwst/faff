@@ -6,7 +6,9 @@
     "Ignore ordering of dispatch flags; all names and values must match, including absence of tier.",
     "Canonicalise optional faff: prefix on skill names.",
     "Compare file bytes and preserve no-write mtimes; temporary root paths are excluded.",
-    "Config get of an ancestor or config resolved may supply the same explicit scalar. A config read refusing a malformed file may use any read entry point. Raw configuration-file access fails; reading CLAUDE.md for context is permitted."
+    "Config get of an ancestor or config resolved may supply the same explicit scalar. A config read refusing a malformed file may use any read entry point. Raw configuration-file access fails; reading CLAUDE.md for context is permitted.",
+    "Optional reported slot/model/effort values are accepted only when consistent with the observed correct result; requested values remain required.",
+    "Architecture stage names graft Step 4b and faff-graft Step 4b are equivalent."
   ],
   "cases": [
     {
@@ -52,7 +54,11 @@
           }
         ],
         "values": {},
-        "writes": []
+        "writes": [],
+        "optional_values": {
+          "spec": "fixture-base-spec",
+          "review": "fixture-overlay-review"
+        }
       }
     },
     {
@@ -93,7 +99,10 @@
         "values": {
           "logging": "full"
         },
-        "writes": []
+        "writes": [],
+        "optional_values": {
+          "spec": "faffter-noon-spec"
+        }
       }
     },
     {
@@ -126,7 +135,8 @@
             "appetite",
             "medium"
           ]
-        ]
+        ],
+        "optional_values": {}
       }
     },
     {
@@ -149,7 +159,8 @@
         ],
         "effects": [],
         "values": {},
-        "writes": []
+        "writes": [],
+        "optional_values": {}
       }
     },
     {
@@ -173,7 +184,8 @@
         ],
         "effects": [],
         "values": {},
-        "writes": []
+        "writes": [],
+        "optional_values": {}
       }
     },
     {
@@ -196,7 +208,8 @@
         ],
         "effects": [],
         "values": {},
-        "writes": []
+        "writes": [],
+        "optional_values": {}
       }
     },
     {
@@ -230,7 +243,12 @@
           }
         ],
         "values": {},
-        "writes": []
+        "writes": [],
+        "optional_values": {
+          "model": "haiku",
+          "effort": "high",
+          "effort_applied": false
+        }
       }
     },
     {
@@ -262,7 +280,12 @@
           }
         ],
         "values": {},
-        "writes": []
+        "writes": [],
+        "optional_values": {
+          "model": "sonnet",
+          "effort": "medium",
+          "effort_applied": false
+        }
       }
     },
     {
@@ -289,7 +312,8 @@
         ],
         "effects": [],
         "values": {},
-        "writes": []
+        "writes": [],
+        "optional_values": {}
       }
     }
   ],

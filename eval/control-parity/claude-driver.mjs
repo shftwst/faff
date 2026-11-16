@@ -14,9 +14,11 @@ export const PARSER_VERSION = 'control-parity-stream-2.0.0';
 export const DEFAULT_LIMITS = Object.freeze({ attempts: 5, turns: 12, output_tokens: 8192, attempt_ms: 600_000, batch_ms: 3_600_000, allowance_nanos: 10_000_000_000, workers: 1, retries: 0 });
 export const ALLOWED_TOOLS = Object.freeze(TOOL_NAMES.map(t => `mcp__tracker__${t}`));
 export const CANDIDATE_ALLOWED_TOOLS = Object.freeze([...ALLOWED_TOOLS, 'mcp__tracker__plan_review_comment']);
+export const HANDOFF_ALLOWED_TOOLS = Object.freeze(['prepare_review_comment', 'apply_review_comment', 'finish'].map(t => `mcp__tracker__${t}`));
 // Claude Code 2.1.311 always sends this no-op tool ("never call this tool", defer_loading, empty schema).
 export const HARNESS_TOOLS = Object.freeze(['DeferredToolPlaceholder']);
 const TOOL_SERVER = join(dirname(fileURLToPath(import.meta.url)), 'tool-server.mjs');
+const HANDOFF_TOOL_SERVER = join(dirname(fileURLToPath(import.meta.url)), 'handoff-tools.mjs');
 // Credentials reach the child only as one declared environment variable. A copied credential file
 // would be refreshed inside the isolated config and rotate the operator's stored refresh token.
 export const CREDENTIAL_ENVS = Object.freeze(['CLAUDE_CODE_OAUTH_TOKEN', 'ANTHROPIC_API_KEY']);
@@ -37,6 +39,10 @@ export const HARNESS_INSTRUCTION = [
 export const CANDIDATE_HARNESS_INSTRUCTION = HARNESS_INSTRUCTION.replace(
   'list_comments, create_comment, save_comment and finish on the tracker.',
   'list_comments, create_comment, save_comment and finish on the tracker, plus plan_review_comment for local computation.',
+);
+export const HANDOFF_HARNESS_INSTRUCTION = HARNESS_INSTRUCTION.replace(
+  'list_comments, create_comment, save_comment and finish on the tracker.',
+  'prepare_review_comment, apply_review_comment and finish on the tracker.',
 );
 
 const LOAD_CLOSURE = Object.freeze({
@@ -70,7 +76,8 @@ export function probeClaude({ binary = 'claude', model, effort, exec = (bin, arg
   return { available: reasons.length === 0, binary, version, reasons, effort_supported, model_status: 'unverified', max_turns_flag: help.includes('--max-turns'), help_sha256: sha256(help) };
 }
 
-export function buildPromptBundle({ policyBytes, input, candidate = false }) {
+export function buildPromptBundle({ policyBytes, input, candidate = false, handoff = false }) {
+  if (candidate && handoff) throw new Error('choose one candidate treatment');
   const user = [
     `Apply the operation rules below to issue ${input.issue_id}.`,
     '',
@@ -85,10 +92,10 @@ export function buildPromptBundle({ policyBytes, input, candidate = false }) {
     '',
     `Allowed finish reasons: ${input.reason_codes.join(', ')}.`,
   ].join('\n');
-  const system = candidate ? CANDIDATE_HARNESS_INSTRUCTION : HARNESS_INSTRUCTION;
+  const system = handoff ? HANDOFF_HARNESS_INSTRUCTION : candidate ? CANDIDATE_HARNESS_INSTRUCTION : HARNESS_INSTRUCTION;
   return {
     system,
-    allowed_tools: candidate ? CANDIDATE_ALLOWED_TOOLS : ALLOWED_TOOLS,
+    allowed_tools: handoff ? HANDOFF_ALLOWED_TOOLS : candidate ? CANDIDATE_ALLOWED_TOOLS : ALLOWED_TOOLS,
     user,
     load_closure: LOAD_CLOSURE,
     hashes: { policy_sha256: sha256(policyBytes), harness_sha256: sha256(system), prompt_sha256: sha256(user) },
@@ -199,8 +206,9 @@ export async function runClaudeScenario({
   trackerDirectory, input, policyBytes, settings, limits = DEFAULT_LIMITS, evidenceDirectory, ledger,
   spawnProcess: spawnFn = spawnProcess, startProxy = realStartProxy, pricing = OPUS_5_5_PRICING,
   workDirectory = join(tmpdir(), 'faff-control-parity-work'), mode = 'forward', parentEnv = process.env,
-  commandBinding = null,
+  commandBinding = null, handoffBinding = null,
 }) {
+  if (commandBinding && handoffBinding) throw new Error('choose one candidate treatment');
   mkdirSync(evidenceDirectory, { recursive: true });
   const privateDir = mkdtempSync(join(tmpdir(), 'faff-cp-private-'));
   chmodSync(privateDir, 0o700);
@@ -208,15 +216,15 @@ export async function runClaudeScenario({
   mkdirSync(workDirectory, { recursive: true });
   const paths = { configDir: join(privateDir, 'cfg'), home: join(privateDir, 'home'), cwd: workDirectory, mcpConfig: join(privateDir, 'mcp.json') };
   mkdirSync(paths.configDir); mkdirSync(paths.home);
-  const serverArgs = [TOOL_SERVER, trackerDirectory];
-  if (commandBinding) {
+  const serverArgs = [handoffBinding ? HANDOFF_TOOL_SERVER : TOOL_SERVER, trackerDirectory];
+  if (commandBinding || handoffBinding) {
     const bindingPath = join(privateDir, 'command-binding.json');
-    writeFileSync(bindingPath, JSON.stringify(commandBinding));
+    writeFileSync(bindingPath, JSON.stringify(handoffBinding ?? commandBinding));
     serverArgs.push(bindingPath);
   }
   writeFileSync(paths.mcpConfig, JSON.stringify({ mcpServers: { tracker: { type: 'stdio', command: process.execPath, args: serverArgs, env: {} } } }));
 
-  const bundle = buildPromptBundle({ policyBytes, input, candidate: Boolean(commandBinding) });
+  const bundle = buildPromptBundle({ policyBytes, input, candidate: Boolean(commandBinding), handoff: Boolean(handoffBinding) });
   const stdoutPath = join(evidenceDirectory, 'stdout.jsonl');
   const stderrPath = join(evidenceDirectory, 'stderr.txt');
   writeFileSync(stdoutPath, '');

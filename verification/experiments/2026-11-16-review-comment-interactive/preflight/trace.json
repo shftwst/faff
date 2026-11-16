@@ -1,0 +1,76 @@
+{
+  "schema": 2,
+  "scenario": "crlf-outside-region",
+  "attempt": 1,
+  "input_sha256": "ad9a88356eb8082755fc3473ee02c076f9770bc7d15342cfb337741b1d8f4620",
+  "policy_sha256": "4d9d01e702294453cf16233feefe265e18ab5e376bf7d0f1eec40cb3f534edb6",
+  "prompt_sha256": "e0437c96a8f89743aa21f4f2ecae7e77dc3f214a50d16ae5114f3ec80a71444b",
+  "runtime_sha256": "96e7f9dbca2f43440a6cd85076117d6f8d433051c22916b39e250b78558eef1d",
+  "events": [
+    {
+      "seq": 1,
+      "kind": "read",
+      "op": "list_comments",
+      "args": {
+        "issue_id": "ISS-111"
+      },
+      "result": {
+        "comments": [
+          {
+            "id": "ISS-111-c1",
+            "created_at": "2026-11-14T08:00:00Z",
+            "body": "Human note\r\n\r\n<!-- faff-review-findings:ISS-111 -->\r\nVerdict: old\r\n<!-- /faff-review-findings:ISS-111 -->\r\n\r\nTrailing note"
+          }
+        ]
+      }
+    },
+    {
+      "seq": 2,
+      "kind": "read",
+      "op": "list_comments",
+      "args": {
+        "issue_id": "ISS-111"
+      },
+      "result": {
+        "comments": [
+          {
+            "id": "ISS-111-c1",
+            "created_at": "2026-11-14T08:00:00Z",
+            "body": "Human note\r\n\r\n<!-- faff-review-findings:ISS-111 -->\r\nVerdict: old\r\n<!-- /faff-review-findings:ISS-111 -->\r\n\r\nTrailing note"
+          }
+        ]
+      }
+    },
+    {
+      "seq": 3,
+      "kind": "effect-attempt",
+      "id": "e1",
+      "op": "save_comment",
+      "args": {
+        "id": "ISS-111-c1",
+        "body": "Human note\r\n\r\n<!-- faff-review-findings:ISS-111 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-111-review.md\n<!-- /faff-review-findings:ISS-111 -->\n\r\nTrailing note"
+      }
+    },
+    {
+      "seq": 4,
+      "kind": "effect-result",
+      "attempt_id": "e1",
+      "outcome": "applied",
+      "acknowledged": true
+    },
+    {
+      "seq": 5,
+      "kind": "terminal",
+      "status": "completed",
+      "reason": "updated",
+      "final_state_sha256": "9424a519b8d8fe0b8228e2c44ef63aa030d8e542031af92ee7fa483f68324ab4"
+    }
+  ],
+  "final_state_sha256": "9424a519b8d8fe0b8228e2c44ef63aa030d8e542031af92ee7fa483f68324ab4",
+  "stop": null,
+  "accounting": {
+    "usage_complete": false,
+    "served_models": [],
+    "requests": 0
+  }
+}

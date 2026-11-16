@@ -1,0 +1,82 @@
+{
+  "ready": true,
+  "tools": [
+    {
+      "name": "prepare_review_comment",
+      "description": "Live-read all issue comments and prepare one review-findings update. Returns a preview and a session-local plan reference. Does not write.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "issue_id": {
+            "type": "string",
+            "description": "Issue identifier"
+          },
+          "faff_body": {
+            "type": "string",
+            "description": "Replacement review findings text"
+          }
+        },
+        "required": [
+          "issue_id",
+          "faff_body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "apply_review_comment",
+      "description": "Apply the exact stored review comment once. Accepts only the prepared reference. Refuses stale, expired or reused plans. An uncertain write must be checked before any further write.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "plan_ref": {
+            "type": "string",
+            "description": "Reference returned by prepare_review_comment in this session"
+          }
+        },
+        "required": [
+          "plan_ref"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false
+      }
+    },
+    {
+      "name": "finish",
+      "description": "Report the outcome once the operation is complete or cannot proceed. No further tool calls are accepted afterwards.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "completed",
+              "blocked"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "created",
+              "updated",
+              "reconciled",
+              "blocked"
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "reason"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ]
+}

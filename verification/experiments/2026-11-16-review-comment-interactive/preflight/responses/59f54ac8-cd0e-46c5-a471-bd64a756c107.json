@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "value": {
+    "plan_ref": "80c8ed14-b744-475d-85ac-1f4c537737dd",
+    "expires_at": "2026-11-16T05:13:15.464Z",
+    "plan": {
+      "schema": 1,
+      "action": "update",
+      "reason": "updated",
+      "comment_id": "ISS-111-c1",
+      "body": "Human note\r\n\r\n<!-- faff-review-findings:ISS-111 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-111-review.md\n<!-- /faff-review-findings:ISS-111 -->\n\r\nTrailing note",
+      "expectedDigest": "52d4e32f4fe6efabe080786c1ca3ecae381a61a497c1069dc5eb19bb4d76baa0"
+    }
+  }
+}

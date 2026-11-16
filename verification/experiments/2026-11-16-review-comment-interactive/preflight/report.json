@@ -1,0 +1,23 @@
+{
+  "treatment": "interactive-stored-handoff-v1",
+  "behaviour_status": "pass",
+  "original_trace_grade": {
+    "status": "incomplete",
+    "failures": [],
+    "incomplete": [
+      "usage-incomplete",
+      "served-model-missing"
+    ]
+  },
+  "handoff": {
+    "status": "followed",
+    "calls": 3
+  },
+  "bridge": {
+    "stop": null,
+    "requests": 3,
+    "rejected": 0
+  },
+  "accounting_status": "unavailable",
+  "scope": "Actual fixture reads, write attempts, acknowledgements and terminal state; not paired acceptance, hosted tracker qualification or metered usage."
+}

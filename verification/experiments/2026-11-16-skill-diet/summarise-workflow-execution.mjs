@@ -9,7 +9,8 @@ const args = process.argv.slice(2).filter(arg => arg !== '--assessments'), outIn
 const output = outIndex < 0 ? null : args[outIndex + 1];
 const planPaths = outIndex < 0 ? args : args.slice(0, outIndex);
 if (!planPaths.length || outIndex >= 0 && !output) throw new Error('usage: summarise-workflow-execution.mjs PLAN... [--out NEW_FILE]');
-const samples = planPaths.flatMap(path => read(resolve(path)).samples);
+const plans = planPaths.map(path => read(resolve(path)));
+const samples = plans.flatMap(plan => plan.samples);
 const names = samples.map(s => s.name);
 if (new Set(names).size !== names.length) throw new Error('duplicate planned sample');
 const runs = [], missing = [], problems = [];
@@ -73,6 +74,12 @@ for (const sample of samples) {
     });
   } else if (manifest.kind === 'rendering-artifact-workflow') {
     projection = report.grade.cases.map(c => ({ id: c.id, kind: c.kind, pass: c.pass, ...(c.kind === 'decision' ? { value: c.value } : { rubric: c.rubric?.vector ?? null }) }));
+  } else if (manifest.kind === 'methodology-output-consumption' || manifest.kind === 'skill-catalog-selection') {
+    const plan = plans.find(plan => plan.samples.some(row => row.name === sample.name));
+    const fixturePath = join(root, plan.fixture), fixture = read(fixturePath);
+    if (sha256(readFileSync(fixturePath)) !== manifest.fixture_sha256) throw new Error(`output fixture changed: ${sample.name}`);
+    const project = (actual, expected) => Array.isArray(expected) ? expected.map((v, i) => project(actual?.[i], v)) : expected && typeof expected === 'object' ? Object.fromEntries(Object.entries(expected).map(([k, v]) => [k, project(actual?.[k], v)])) : actual;
+    projection = report.grade.cases.map(c => ({ id: c.id, kind: c.kind, pass: c.pass, required_value: project(c.value, fixture.cases.find(row => row.id === c.id).oracle.required), consumer_results: c.consumer_results }));
   } else throw new Error(`unknown run kind ${manifest.kind}`);
   const taskBytes = readFileSync(join(directory, 'task.json'));
   const payloads = [taskBytes.toString('utf8')];
@@ -98,7 +105,7 @@ const arms = Object.fromEntries(['baseline', 'candidate'].map(arm => {
   return [arm, { case_kinds: caseKinds, runs: selected.length, passed: selected.reduce((n, r) => n + r.cases_passed, 0), total: selected.reduce((n, r) => n + r.cases_total, 0), recorded_data_bytes: selected.reduce((n, r) => n + r.recorded_data_bytes, 0), estimated_recorded_data_tokens: selected.reduce((n, r) => n + r.estimated_recorded_data_tokens, 0) }];
 }));
 if (!missing.length && (arms.baseline.runs !== 5 || arms.candidate.runs !== 5)) problems.push({ problems: ['expected-five-samples-per-arm'] });
-const result = { schema: 1, qualification_status: 'requires-separate-native-protocol-review', status: problems.length ? 'fail' : missing.length ? 'incomplete' : 'pass', plans: planPaths, arms, missing, problems, normalised_effect_state_gate_projections_equal: kinds.includes('rendering-artifact-workflow') ? null : projections.length === 1, artifact_rubric_projections_equal: kinds.includes('rendering-artifact-workflow') ? projections.length === 1 : null, runs, limits: ['Payload proxy counts task JSON plus compact successful bridge-response values, including policy chunks, each counted once. It excludes native tool framing, system/catalog/history, model output and cached reprocessing; it is not provider usage or billed cost.', 'Token estimate is ceil(UTF-16 characters/4) per payload, summed.', 'Effect and state comparison uses only the predeclared path/time/read normalisations. Finding prose varies and is graded separately by the fixture.', 'Native screens are retained separately and require protocol review; this numerical summary does not certify absence of out-of-bridge activity.', 'Rendering compares persisted artifact integrity and fact/form rubric outcomes, not byte-identical prose or subjective quality. Artifact, execution and decision counts are reported separately.', 'Small correlated samples do not establish statistical equivalence.'] };
+const result = { schema: 1, qualification_status: 'requires-separate-native-protocol-review', status: problems.length ? 'fail' : missing.length ? 'incomplete' : 'pass', plans: planPaths, arms, missing, problems, normalised_effect_state_gate_projections_equal: kinds.some(k => ['rendering-artifact-workflow', 'methodology-output-consumption', 'skill-catalog-selection'].includes(k)) ? null : projections.length === 1, bounded_output_projections_equal: kinds.some(k => ['methodology-output-consumption', 'skill-catalog-selection'].includes(k)) ? projections.length === 1 : null, artifact_rubric_projections_equal: kinds.includes('rendering-artifact-workflow') ? projections.length === 1 : null, runs, limits: ['Payload proxy counts task JSON plus compact successful bridge-response values, including policy chunks, each counted once. It excludes native tool framing, system/catalog/history, model output and cached reprocessing; it is not provider usage or billed cost.', 'Token estimate is ceil(UTF-16 characters/4) per payload, summed.', 'Effect and state comparison uses only the predeclared path/time/read normalisations. Finding prose varies and is graded separately by the fixture.', 'Native screens are retained separately and require protocol review; this numerical summary does not certify absence of out-of-bridge activity.', 'Rendering compares persisted artifact integrity and fact/form rubric outcomes, not byte-identical prose or subjective quality. Artifact, execution and decision counts are reported separately.', 'Named-output comparisons project only the requested fields and consumer outcomes; free-form artifact descriptions require a separate reading. Catalogue choices do not execute workflows.', 'Small correlated samples do not establish statistical equivalence.'] };
 const rendered = JSON.stringify(result, null, 2) + '\n';
 if (output) writeFileSync(resolve(output), rendered, { flag: 'wx' });
 else process.stdout.write(rendered);

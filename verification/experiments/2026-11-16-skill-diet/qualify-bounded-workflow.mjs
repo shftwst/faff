@@ -10,7 +10,7 @@ const hash = path => sha256(readFileSync(path));
 const summaryPath = resolve(summaryArg), summary = read(summaryPath);
 if (summary.status !== 'pass' || summary.runs.length !== 10 || summary.arms.baseline.runs !== 5 || summary.arms.candidate.runs !== 5) throw new Error('paired comparison incomplete or failed');
 const kinds = [...new Set(summary.runs.map(r => r.kind))];
-if (kinds.length !== 1 || !['kernel-config-execution', 'rendering-artifact-workflow'].includes(kinds[0])) throw new Error('unsupported comparison kind');
+if (kinds.length !== 1 || !['kernel-config-execution', 'rendering-artifact-workflow', 'methodology-output-consumption', 'skill-catalog-selection'].includes(kinds[0])) throw new Error('unsupported comparison kind');
 const audits = auditArgs.map(path => ({ path: resolve(path), data: read(resolve(path)), sha256: hash(resolve(path)) }));
 const auditorHash = hash(resolve(root, '../../../eval/control-parity/native-tool-audit.mjs'));
 if (audits.some(a => a.data.auditor_sha256 !== auditorHash)) throw new Error('native auditor changed');
@@ -31,16 +31,17 @@ if (guidance.length !== 1 || runs.some(r => r.initial_reads.filter(i => i.path.e
 const commonContexts = runs.map(r => r.initial_reads.filter(i => !i.path.endsWith('/task.json')).map(i => ({ path: i.path, sha256: i.content_sha256, bytes: i.content_bytes })).sort((a, b) => a.path.localeCompare(b.path)));
 if (new Set(commonContexts.map(c => JSON.stringify(c))).size !== 1) throw new Error('delivered initial context differs across samples');
 const result = {
-  schema: 1, status: kinds[0] === 'kernel-config-execution' ? 'qualified-bounded-config-workflow' : 'qualified-rendering-rubrics-requires-artifact-review',
+  schema: 1, status: { 'kernel-config-execution': 'qualified-bounded-config-workflow', 'rendering-artifact-workflow': 'qualified-rendering-rubrics-requires-artifact-review', 'methodology-output-consumption': 'qualified-bounded-methodology-outputs-requires-artifact-review', 'skill-catalog-selection': 'qualified-bounded-catalog-selection' }[kinds[0]],
   summary: summaryPath, summary_sha256: hash(summaryPath), arms: summary.arms, runs,
   delivered_guidance_sha256: guidance[0], common_context: commonContexts[0],
   normalised_effect_state_gate_projections_equal: summary.normalised_effect_state_gate_projections_equal,
-  artifact_rubric_projections_equal: summary.artifact_rubric_projections_equal,
+  artifact_rubric_projections_equal: summary.artifact_rubric_projections_equal, bounded_output_projections_equal: summary.bounded_output_projections_equal ?? null,
   limits: [
     'Actual native tool metadata and model identities are verified. Full caller workflows, hosted publication and statistical equivalence are not claimed.',
     'Kernel cases use the real configuration/dispatch CLI and prevalidated downstream stubs. Separate policy decisions are not counted as executed workflows.',
     'Rendering compares actual persisted artifacts and source-fact/form rubrics; a separate reading of the outputs is required before qualifying writing quality.',
     'Delivered operator guidance is common across arms; the orchestrator file hash describes a different container view.',
+    'Methodology consumers exercise the real termination CLI; other outputs are separate decisions or persisted proposals. Catalogue selection does not execute the selected workflow.',
     'Source and recorded payload token estimates are not provider usage or billed cost.',
   ],
 };

@@ -1,0 +1,202 @@
+{
+  "schema": 1,
+  "scope": "Only the 28 bound description lines are eligible. All other bytes must match, including names, invocability, seam declarations and bodies.",
+  "files": [
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "sha256": "7340b6f3cc1dc51887fcfdb710785e59e287406f6c3f89f45510abade3e0f69d",
+      "bytes": 157720,
+      "without_description_sha256": "293efbec71f569603ecd9026cea6daafce9e2c2a9e70160d297b18b84b6bc871",
+      "description_line": "description: \"Chew through ready work unattended \u2014 overnight or fire-and-forget. Default: full pipeline (tidy \u2192 prep queue drain \u2192 build queue drain). Parks anything ambiguous so /faff-wtf can surface it in the morning. Trigger for: 'beep boop' / 'overnight' / 'fire and forget' / 'run the backlog' / 'unattended build'.\""
+    },
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "sha256": "401252f1a2bce5d68e972b83eaaffc1d2f1ce1dc1d47dc53f15488eb12c591ca",
+      "bytes": 178859,
+      "without_description_sha256": "bc10156503cd94c64dedce6578a92161452d8e9330f373c017600605d8d54752",
+      "description_line": "description: \"Start building an issue \u2014 checks the spec exists, sets up a worktree, commits the spec to the feature branch, and gets out of your way. Trigger for: 'graft ISSUE-XX' / 'start ISSUE-XX' / 'pick up ISSUE-XX' / 'let me build'.\""
+    },
+    {
+      "path": "plugin/skills/faff-jot/SKILL.md",
+      "sha256": "3258c873a3ddae74a97d17f34812748a564655b34cbbae36a3753d52d329ce78",
+      "bytes": 23456,
+      "without_description_sha256": "4fe40909aec1fbb3c79bc579272f6aad4eeff0bbc30256e501a7c5fdc0e2b1cb",
+      "description_line": "description: \"Start something new. Kick off an empty project, or capture a new feature, bug, or idea \u2014 and turn it into a sensible set of tickets. Use for 'new project', 'I've got an idea', 'add a feature', 'file a bug', 'scope this', 'kick off'. Or point it at an existing ticket (`/faff-jot ISSUE-XX`) to load and inspect it \u2014 its shaping verbs are deferred, so it displays the ticket and mutates nothing.\""
+    },
+    {
+      "path": "plugin/skills/faff-map/SKILL.md",
+      "sha256": "ad434e473fefdebb9e38b4ec003269875e31471cda65d542d920478ecc4a588c",
+      "bytes": 24782,
+      "without_description_sha256": "bdd6220d04a15c81d72338757be6badd7c147d659a2da054798ffbf787856df4",
+      "description_line": "description: \"Roadmap synthesis \u2014 outcome initiatives, the workstreams under them, the dependency chains between them, and whether the trigger gates can actually fire. The strategic view above /faff-wtf. Trigger for: 'roadmap', 'where are we going', 'explain the backlog', 'do these join up', 'workstream view', 'strategy view', 'what are the chains', 'big picture', 'walk me through the plan', 'is the plan coherent'.\""
+    },
+    {
+      "path": "plugin/skills/faff-onboard/SKILL.md",
+      "sha256": "093c997b1c26f1d98f68e11e23e01cae9cd7f4cfa9616a1280303a30d835a810",
+      "bytes": 23185,
+      "without_description_sha256": "0cae78eb6b2c6dee8897ca7d74296ea1d1aa749a74664354075b493ef40b1089",
+      "description_line": "description: \"First-run setup. Bootstrap a working faff config for this repo \u2014 auto-detects your tracker, repo slug, and git host, asks only what it can't infer, and writes a valid `.faff/config.yaml`. Use for 'set up faff', 'onboard', 'first run', 'no faffrc', 'configure faff for this repo', 'get faff working here'.\""
+    },
+    {
+      "path": "plugin/skills/faff-plot/SKILL.md",
+      "sha256": "1739242fe22980f02a0697bb958f9845739117e85a6708664d68f1d761db578e",
+      "bytes": 45906,
+      "without_description_sha256": "408205a0e9976838af49e43dd01a8f700a63daac91b0db1bfe0c68fca2fff566",
+      "description_line": "description: \"Turn an application-scale idea into a planned, dependency-linked roadmap. Recurses a discovery brief top-down into initiatives \u2192 projects \u2192 first-slice epics. Use for 'plan this out', 'decompose this app', 'break this big thing into a roadmap', 'map out the whole project', 'plot the build'. Or `/faff-plot rehome` to run the whole-backlog rehoming pass \u2014 group loose Backlog work into human-confirmed outcome-led projects ('sort out the loose backlog', 'rehome the backlog').\""
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "sha256": "af41560116bca66bd79662e1ee7ed5d4bb14197cdb4236b850028e5be632155c",
+      "bytes": 104335,
+      "without_description_sha256": "9beb83eeb8833ebbe7dd3211003e5b39168354a1559807d798ec42c826c4a84a",
+      "description_line": "description: \"Turn a vague ticket into something you can actually build \u2014 explores the codebase, writes a spec, attaches it to the issue. Trigger for: 'prep ISSUE-XX' / 'prep this' / 'spec this out' / 'what does this ticket need?'.\""
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "sha256": "a8e8608fe6f9a43f36b9f523e54ae1b1c66dc5e6ba03dc3be255127fab2cf3a4",
+      "bytes": 76181,
+      "without_description_sha256": "1a08fc65764b8d329943101a3e35667e62a6083563e90624a220af172e8a838d",
+      "description_line": "description: \"Groom the backlog in both directions \u2014 find problems (dupes, vague tickets, stale blockers, dead weight), surface structural diagnostics (cycles, ghost-project pointers, repeat-parks, splittable specs), and promote ready issues to Todo. Trigger for: 'tidy' / 'clean up' / 'backlog' / 'groom' / 'mess'.\""
+    },
+    {
+      "path": "plugin/skills/faff-wtf/SKILL.md",
+      "sha256": "92583ba51c7ed42b9729c23b7c2e3367ab830ca023e68103845094e127478b54",
+      "bytes": 31551,
+      "without_description_sha256": "bf2638ba2024a86aa42e065cd0b424d7bb1944b263105364b7e372d2382972e5",
+      "description_line": "description: \"Where to focus \u2014 what shipped, what's stuck, what to work on next, and what an overnight beep-boop run parked. Trigger for: 'wtf' / 'what should I work on' / 'catch me up' / 'what happened' / 'what's blocked' / 'what's next', 'Where to focus', 'what's happening', 'where are we', 'where we at', 'whats up', 'the 411', 'lowdown'.\""
+    },
+    {
+      "path": "plugin/skills/faffidavit-routing/SKILL.md",
+      "sha256": "13ea361878b5986ee805af4f8bd95a6d9c916bb2218fa784c6d86c9e82729b4d",
+      "bytes": 11236,
+      "without_description_sha256": "61d15cfb0211d060dd7f820c4b9fbb1b7f45c820e34b3a416b9bc463dcbbe462",
+      "description_line": "description: \"Default `routing_adaptor` \u2014 assigns the automation-routing verdict to a spec-gated issue (from diagnostics + confidence + markers + park history), renders it, and validates assignments. Runs as a configured slot, not the user `/` menu.\""
+    },
+    {
+      "path": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md",
+      "sha256": "9a2e3fd87f6f7d2d00586adec5f7d9a4d0a8415fabd5966104addf6d480d1fb3",
+      "bytes": 12540,
+      "without_description_sha256": "19468c4a72aad818120cae96f6dcf47dd4143f5183a169739836b847a566364b",
+      "description_line": "description: \"Author or validate a faff slot skill. Scaffolds a new adaptor/producer/methodology so it carries the correct refer-back prose and maps onto the fixed gateway contract, and validates that an existing slot skill conforms. Use for 'write a new adaptor', 'author a spec/review/routing/rendering skill', 'check my adaptor conforms', 'validate this slot skill'.\""
+    },
+    {
+      "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
+      "sha256": "a292b72b94a582f65fb8f9fc9cfd5fa4a9be09a449f95b35ac19a007d962d423",
+      "bytes": 25766,
+      "without_description_sha256": "50260f5852d64c059a0b279d27c573c81b17a2e06590545609d84d9e3d12b686",
+      "description_line": "description: \"Concurrent build-pass executor for the `concurrency` slot \u2014 runs faff-beep-boop's builds in multiple worktrees at once, capped, with rebase-before-merge. The speed option vs the sequential default. Runs as a configured slot, not the user `/` menu.\""
+    },
+    {
+      "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+      "sha256": "371ad208c15856e0da8a58ac929f5894bf614b44331a031cb89a76012a490eb3",
+      "bytes": 45057,
+      "without_description_sha256": "e3939f72c98bb8e833413a0a4fd1b243b55bcbc4b77aeb1bf6c37da136cc5ccd",
+      "description_line": "description: \"Agile-delivery `methodology` lens \u2014 answers backlog/build named-outputs through seven delivery principles (right-sizing, value-by-risk sequencing, surfaced deps). Opinionated alternative to the thematic default. Runs as a configured slot, not the user `/` menu.\""
+    },
+    {
+      "path": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+      "sha256": "4cc4f0a6613802f34749f6cd367f4818dd9aef34641cb5fb812a39fe71a6c519",
+      "bytes": 18823,
+      "without_description_sha256": "98a89f136103e82d35349b3444ddc1ed50c3d5c3129fc0a2686d856c66d8b5c8",
+      "description_line": "description: \"Full nlspec-format spec producer for the `spec` slot \u2014 the heavy, formal counterpart to the lite default. Runs via faff-prep, not the user `/` menu.\""
+    },
+    {
+      "path": "plugin/skills/faffter-dark-spec-review/SKILL.md",
+      "sha256": "21cb7cdfebd5b73f59f5b6e0aeda877e96f75cbe5780535e1ca740e1996d9dee",
+      "bytes": 40715,
+      "without_description_sha256": "8af08435dc0333428e74c9b3244921180c567f5f4e369345e25dfc98f7218227",
+      "description_line": "description: \"L4 adversarial occupant of the `spec_review` slot \u2014 runs each enabled review lens (architectural / infosec / methodology / QA) as an INDEPENDENT refuter prompted to break the spec, then aggregates the refutations onto the fixed `faff-contract:spec-review-verdict` by majority/severity. Swap-in for the single-pass default; runs as a configured slot, not the user `/` menu.\""
+    },
+    {
+      "path": "plugin/skills/faffter-noon-adr/SKILL.md",
+      "sha256": "f58e9b3f16a23a3869d7a642d3547cd8baede891c3a1cfe7d3e2de27c97b7157",
+      "bytes": 4460,
+      "without_description_sha256": "1ccd0ed51c351c7652c042275aaf484b138e900c2c22bc7fbfd889cc8c4abdb1",
+      "description_line": "description: \"Default `adr` producer \u2014 authors the body of an architecture decision record at graft time (Nygard's Context/Decision/Consequences by default, or a repo's own committed `adr.md` template shape when one exists), from a settled decision plus the spec rationale and the configured ADR log. The single ADR-authoring producer. Runs as a configured slot, not the user `/` menu.\""
+    },
+    {
+      "path": "plugin/skills/faffter-noon-architecture/SKILL.md",
+      "sha256": "cdfaaca22d2f577cb3c1496b652c22020c6264dbcc98352512c5d7ae40a7e6ed",
+      "bytes": 4967,
+      "without_description_sha256": "edad5eb4159131c2b2e4be82c120a17d41624e265b6cd21abb93bf071780360c",
+      "description_line": "description: \"Default `architecture` slot occupant \u2014 the generative architecture/infra PROPOSER. Reads the team's infra profile + the brief/spec and proposes one best-fit, build-biased, production-grade architecture, emitting a founded `faff-contract:architecture-proposal` block + ADR promotion intent. Runs as a configured slot, not the user `/` menu.\""
+    },
+    {
+      "path": "plugin/skills/faffter-noon-concurrency-sequential/SKILL.md",
+      "sha256": "e3308c33e5cf68379704357f18cdabbbc3d02c40a80534aac4f8b293d2d1e28a",
+      "bytes": 18605,
+      "without_description_sha256": "347fd127481487b85d3a8a6bc5bfc3330f762fb6e4c794b2cef16f9f65d684d8",
+      "description_line": "description: \"Default `concurrency` executor \u2014 runs faff-beep-boop's build pass sequentially, one faff-graft at a time: no worktree contention, no merge races. The safe zero-config default. Runs as a configured slot, not the user `/` menu.\""
+    },
+    {
+      "path": "plugin/skills/faffter-noon-env-code-interface/SKILL.md",
+      "sha256": "0583fd07595fd1e09a407d30514fbbee372c46dfecddab3cbaba2d2b3360b398",
+      "bytes": 9862,
+      "without_description_sha256": "d51166c2df3526716701b57411eedb01c369f874e50bc36890111268363f3b84",
+      "description_line": "description: \"Default `env-code-interface` slot occupant \u2014 the code-interface reachability provisioner, composed under `env`. Given a code component and its Tier-1 binding manifest, it builds the component and stands up the Node reflection bridge (faff-bridge-node.mjs) as a health-checked compose service, returning the bridge socket the env occupant folds into its env-handle. Runs as a configured slot, not the user `/` menu.\""
+    },
+    {
+      "path": "plugin/skills/faffter-noon-env-compose/SKILL.md",
+      "sha256": "279c55c58c16cfee1b74e4ca54711dcd5b97b039dbce2db35e581576a3477046",
+      "bytes": 12443,
+      "without_description_sha256": "f6e9d5e39d6d43e59f2d2ebcfa06bbdc2333f8a084bad7eee42c1471ebb9782c",
+      "description_line": "description: \"Default `env` slot occupant \u2014 the environment PROVISIONER. Reads the architecture proposal + the team's infra profile and stands up a representative, health-checked local stand-in via docker-compose, seeds it with a synthetic dataset, and emits a `faff-contract:env-handle` block the evaluator points at and tears down. Runs as a configured slot, not the user `/` menu.\""
+    },
+    {
+      "path": "plugin/skills/faffter-noon-evaluate/SKILL.md",
+      "sha256": "b5309423190169dee6b3499b5891cad7565e1e0378f07590ec6831b929d6925f",
+      "bytes": 16192,
+      "without_description_sha256": "5a488fa73d421d8e501bac309a319c2f40233f7f1a486289ac8e6c4d75086752",
+      "description_line": "description: \"Default `evaluator` slot occupant \u2014 the code-blind holdout JUDGE. Given a spec + a running env (never the codebase), it classifies the spec's DoD, exercises the criteria `faff dod classify` routes to it against the running feature, records an unjudgeable prose scenario as needs-human, and emits a `faff-contract:holdout-verdict` block before tearing the env down. Runs as a configured slot, not the user `/` menu.\""
+    },
+    {
+      "path": "plugin/skills/faffter-noon-intake/SKILL.md",
+      "sha256": "7851000ca07fffdb5155f757526f2d5dc636537495be47e43ece8ae9359561ad",
+      "bytes": 7715,
+      "without_description_sha256": "2023af47c7e17841c57cb40255e011f978c40f4f51cb1a8ed584811ad4e224d9",
+      "description_line": "description: \"Default `intake` / discovery producer \u2014 turns a loose idea, bug, or empty repo into a structured discovery brief for faff-jot/faff-plot to shape into tickets. The light conversational default. Runs as a configured slot, not the user `/` menu.\""
+    },
+    {
+      "path": "plugin/skills/faffter-noon-prd/SKILL.md",
+      "sha256": "be742410026685601a5d762c42ff56a430920492314d8eacfdb12628bed12152",
+      "bytes": 4517,
+      "without_description_sha256": "679036c2da4e34a37b69001102c40b6ec01d9a30fd3015ed6c56a473462fb606",
+      "description_line": "description: \"Default `prd` slot occupant \u2014 the code-blind PRD-admissibility producer. Given only a PRD document, it judges whether the PRD's stop-conditions are machine-verifiable and how wide the implementation's creative licence is, then produces one `faff-contract:prd-readiness` block. The L4 run-start gate pipes that block to `faff contract prd-readiness` (the deterministic validator) to admit or refuse the run. Runs as a configured slot, not the user `/` menu.\""
+    },
+    {
+      "path": "plugin/skills/faffter-noon-review/SKILL.md",
+      "sha256": "7647654d4336064a5812b7e8fda1bca94fbebc5171f54c05f6f960253c56d98a",
+      "bytes": 13503,
+      "without_description_sha256": "0e3eb7d10c1a4503ccdc6cb158e35fb61039f30b804c41fbce00729e9609c62f",
+      "description_line": "description: \"Default code review for the `review` slot \u2014 a senior-engineer pass over the diff: AC coverage, bugs, scope, human-judgement flags. Returns a review verdict (faff contract review-verdict --describe). Runs via faff-graft, not the user `/` menu.\""
+    },
+    {
+      "path": "plugin/skills/faffter-noon-ship/SKILL.md",
+      "sha256": "0def991641eeffae8fc708e05a4c93a709c9a0dee36aee1280b81eecad2803e4",
+      "bytes": 14189,
+      "without_description_sha256": "ac943b62e657f2e4025615a34e1dc4b24d8d9e9874c45b170f0c6aa5f8e38a81",
+      "description_line": "description: \"Default `ship` producer \u2014 merges a gate-cleared PR through the faff merge-gate interlock (never a raw gh merge), no-op deploy-readiness, emits a native delivery result + a faff-contract:delivery-outcome block faff-graft consumes. Swap for a deploy-capable producer. Runs as a configured slot, not the user `/` menu.\""
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+      "sha256": "cb5488f22d8eaafbeb03d867b2b5ba7e55c7f3ac6e2d2cd32e5dd706c2af4494",
+      "bytes": 17919,
+      "without_description_sha256": "68513c22023df6ee2bb7ebab3345a2bb200b83946a2f531aa83f11c4d6f90e29",
+      "description_line": "description: \"Default `spec` producer \u2014 turns an issue plus explore findings into a buildable lite-nlspec spec (WHY-WHAT-HOW-DONE) with a confidence self-rating. The light default. Runs via faff-prep, not the user `/` menu.\""
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec-review/SKILL.md",
+      "sha256": "4704eea626c039b83490a8ccf87a52d289b97ae2128ac0d0d56adbf7f22895b7",
+      "bytes": 9605,
+      "without_description_sha256": "a161899bd7c03cdeeabbdbb6fc1d8dda57137a5126ecfefde01b956596764350",
+      "description_line": "description: \"Default `spec_review` slot occupant \u2014 the L1\u2013L3 single-pass spec reviewer. Runs four lenses (architectural / infosec / methodology / QA) as one checklist pass over a freshly-rated spec and emits a founded `faff-contract:spec-review-verdict` block. Runs as a configured slot, not the user `/` menu.\""
+    },
+    {
+      "path": "plugin/skills/faffter-noon-transport-private-network/SKILL.md",
+      "sha256": "a7cd58988d8ff5809f7f0348eb4fc617a9f8498e439535b153c9309c68a71779",
+      "bytes": 6442,
+      "without_description_sha256": "b743bd148bdabfbe9e6381877dd6daefa0fd9d35d6fd5e64592b92119e665fc6",
+      "description_line": "description: \"Default `transport` slot occupant \u2014 the private-network reachability resolver. Given the provision context, resolves the base host the evaluator uses to reach the system under build over a private network where network-layer segmentation alone satisfies \\\"only the evaluator can reach it\\\". Runs as a configured slot, not the user `/` menu.\""
+    }
+  ]
+}

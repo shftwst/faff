@@ -1,0 +1,127 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "arm": "baseline",
+  "source_installed": false,
+  "scope": "Five-sample controlled reporting arm, with strict native, unchanged runtime/source bindings, reproduced raw scores, frozen post-hoc draft assessment and independent actual-output reading. No provider-wide equivalence, rendering-quality, full-loop or hosted-publication claim.",
+  "verifier_sha256": "1c4497b4a511e1bcc9fbbdabb39db463ca5a163dee6c7a3014c834c436d1be02",
+  "registration_sha256": "b5e445f3e1d1a7ca2cf20bedce8360456762aee83ceb6e58276e63ea79c5f197",
+  "manual": {
+    "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/beep-reporting-mcp-v1-assessed-independent.json",
+    "sha256": "d92b9ad3e96a2e00a362493454d525e34fa6b0bc7e453e736b517a52193de46c"
+  },
+  "samples": [
+    {
+      "name": "beep-reporting-mcp-v1-baseline-1",
+      "raw_cases_passed": 6,
+      "assessed_cases_passed": 6,
+      "cases": 6,
+      "native": "pass",
+      "manual_cases": 6,
+      "normalisation_calls": 8,
+      "discarded_drafts": []
+    },
+    {
+      "name": "beep-reporting-mcp-v1-baseline-2",
+      "raw_cases_passed": 5,
+      "assessed_cases_passed": 6,
+      "cases": 6,
+      "native": "pass",
+      "manual_cases": 6,
+      "normalisation_calls": 9,
+      "discarded_drafts": [
+        {
+          "case_id": "review-holds",
+          "channel": "conversation",
+          "seq": 11,
+          "normalised_id": "review-holds:conversation:1",
+          "input_sha256": "62b7e34ce00daf6cd41be1145d4b9544b89d5230b02d5684991aa3b76a61a1af",
+          "selected_seq": 12,
+          "publication_seq": 13
+        }
+      ]
+    },
+    {
+      "name": "beep-reporting-mcp-v1-baseline-3",
+      "raw_cases_passed": 6,
+      "assessed_cases_passed": 6,
+      "cases": 6,
+      "native": "pass",
+      "manual_cases": 6,
+      "normalisation_calls": 8,
+      "discarded_drafts": []
+    },
+    {
+      "name": "beep-reporting-mcp-v1-baseline-4",
+      "raw_cases_passed": 6,
+      "assessed_cases_passed": 6,
+      "cases": 6,
+      "native": "pass",
+      "manual_cases": 6,
+      "normalisation_calls": 8,
+      "discarded_drafts": []
+    },
+    {
+      "name": "beep-reporting-mcp-v1-baseline-5",
+      "raw_cases_passed": 6,
+      "assessed_cases_passed": 6,
+      "cases": 6,
+      "native": "pass",
+      "manual_cases": 6,
+      "normalisation_calls": 8,
+      "discarded_drafts": []
+    }
+  ],
+  "evidence_hashes": {
+    "beep-reporting-mcp-v1-baseline-1": {
+      "capture.json": "365e3b0782b4e596304b923a517d16fe547366c085e0d2fb6cbada410820a0bb",
+      "expected.json": "b992be2971661798d337ce62901c4c8cec534f1fd6d89b5b33d40fca7fbacd94",
+      "report.json": "266fd96422640b2b78f5925b3155cdecaee7a042c7342bb4efe9995f039dfeb2",
+      "native-audit.json": "ea8fa7110a5c1a58693612c50ba7bd10fa5405212e535a3129c4f8adedb1fdd1",
+      "workflow-replay.json": "25fb74e86e6ecac2d80869a97255c22816c6beca9632121a4da512fa616aacc3",
+      "draft-assessment-v1.json": "6766c2d072bdc9778f42fc2ea053573bf30544c3cfe549643bfcb6116d55ebad",
+      "worker-final-state.json": "c3de092a2193ade7c1e917462c6848660a5d5d3dc7c59830c1f9349cce40bc09",
+      "manifest.json": "50578d6a9a616b20c3c6186f8b44797fea0dd48b40ec837ddd8c8961ae8f9e67"
+    },
+    "beep-reporting-mcp-v1-baseline-2": {
+      "capture.json": "1918b76ddb96b9fd05bd961b3e1dbcb450e301db0181e8f01ee38f21c0301bb4",
+      "expected.json": "df63682002dc9b2d82dedcd17070171600fcb2977a625a24d11e21823f3e7de0",
+      "report.json": "cb9701a060f899614bbbc766297142ceef59b639f3d050d34cface64a9b80b38",
+      "native-audit.json": "06742504daec6f7c2d71ae3b09c0608e963e16b080bb199ba642b1759efafba5",
+      "workflow-replay.json": "5660f318fc2faf7b72050d15d5464ae121e919a27bb65cb1394e1a525430ab0b",
+      "draft-assessment-v1.json": "c9ae0be9e357021c2d2e8e7d9838c7bea290d0c213a0780929728b5ea3fbea54",
+      "worker-final-state.json": "077ae4301bfecbb8dd95283bd2d95129046b79e0895b9dca9aa0b42c432e157d",
+      "manifest.json": "4def8ef11cc99505855238d33ca1a9cadcb35fdafafa2ec895bb502411d39bfd"
+    },
+    "beep-reporting-mcp-v1-baseline-3": {
+      "capture.json": "9dea888407be914f23074df662b496ab35083e847f4435a54aff87496b64ef22",
+      "expected.json": "a134b24c2d32963b966ed3cdd2e834e4c64448f37f2ac06a5c6940c113826e3a",
+      "report.json": "266fd96422640b2b78f5925b3155cdecaee7a042c7342bb4efe9995f039dfeb2",
+      "native-audit.json": "754d3bf0a9f93cbc5dd487fadcabab18e331a0e433dd25349b15fd6a6e8f6dc8",
+      "workflow-replay.json": "25fb74e86e6ecac2d80869a97255c22816c6beca9632121a4da512fa616aacc3",
+      "draft-assessment-v1.json": "60d23e932574f896afc0ef37a5662b6d6326362f1abe8f613b7fb9a0691bfe43",
+      "worker-final-state.json": "d3a4a16751c57324a9bf18e615f8d2bca0fc593f2ff50b814843f5d24e5ff914",
+      "manifest.json": "b62621cca511b981db3e9ed075f8bdca7aa2e5d6aab017155217c6f7d0b98bf4"
+    },
+    "beep-reporting-mcp-v1-baseline-4": {
+      "capture.json": "62232201938b4b0643db93387be81f29f338156f88dcead100f86341ccdc25ac",
+      "expected.json": "d97a6f6ed9fc87bcad85f4c06e758fe5094fb640e00c6090503beb737d4c8123",
+      "report.json": "266fd96422640b2b78f5925b3155cdecaee7a042c7342bb4efe9995f039dfeb2",
+      "native-audit.json": "d1c7419afedd7b5aa3cb02a6dfed078e835573e80bf4a5bc6cc86577dd1c4762",
+      "workflow-replay.json": "25fb74e86e6ecac2d80869a97255c22816c6beca9632121a4da512fa616aacc3",
+      "draft-assessment-v1.json": "9e3d8e4ce9b809dd073249c870bb4ef94e48d3f0c1347969dbb1ebd99089b5cc",
+      "worker-final-state.json": "9480d0711c276a1626f86729d4c8feea088bcc2b866127dcb765d96f1c206d69",
+      "manifest.json": "0ca03a47883897f18637bd241f01c15e75f4890746d0986e22a0f4686de4c40d"
+    },
+    "beep-reporting-mcp-v1-baseline-5": {
+      "capture.json": "1c8b3c743f1dae312c5741d5426df7eba51166ec06167bd254e94083bc2d5957",
+      "expected.json": "0f93c4b1bc20fb9f892adc766b42843901d70ad48835b976c8df5313cba678f7",
+      "report.json": "266fd96422640b2b78f5925b3155cdecaee7a042c7342bb4efe9995f039dfeb2",
+      "native-audit.json": "411230eaf7f6a4f1bd7d649545510b44be16ddeaffa5ff57b155860f87396910",
+      "workflow-replay.json": "25fb74e86e6ecac2d80869a97255c22816c6beca9632121a4da512fa616aacc3",
+      "draft-assessment-v1.json": "5023fc33b7ace7bbee6f0d1ff53a8b783256a59d149dfb104d75fa3880797353",
+      "worker-final-state.json": "f5aece0837caac12cebb68cef3ccf6791f0e25ed94c82bef768e202831547d46",
+      "manifest.json": "7162492d5ec39f3dfdb5e257f5439d2febe1217ba8db78efc57e480dcbde9ce6"
+    }
+  }
+}

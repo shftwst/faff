@@ -1,0 +1,9 @@
+{
+  "ok": true,
+  "value": {
+    "completed": true,
+    "downstream": "fixture-agent-stub",
+    "model": "haiku",
+    "effort_applied": false
+  }
+}

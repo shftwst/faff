@@ -1,0 +1,2 @@
+- first line of the explanation → Lead with the load-bearing model → no load-bearing model to lead with; the source states no governing idea, so flag it as a producer gap and do not write one
+- "Step one … Step three" run-on → Prose skimmability (3+ items become a list) → render the three steps as a numbered list: open the dashboard; copy the displayed number; close the tab

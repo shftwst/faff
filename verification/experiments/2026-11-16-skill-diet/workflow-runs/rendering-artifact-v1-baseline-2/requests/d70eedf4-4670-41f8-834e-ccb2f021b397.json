@@ -1,0 +1,1 @@
+{"name":"write_output","args":{"case_id":"cycle","text":"[ISS-201 → ISS-202 → ISS-203 → ISS-201]\n\n- ISS-201: build the login form\n- ISS-202: validate session tokens\n- ISS-203: refresh expired sessions"}}

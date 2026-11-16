@@ -21,14 +21,19 @@ for (const sample of samples) {
   let assessmentHash = null;
   if (useAssessments) {
     const path = join(directory, 'assessment.json'), assessment = read(path);
-    if (manifest.kind !== 'adversarial-review-execution' || assessment.name !== sample.name || assessment.report_sha256 !== sha256(readFileSync(reportPath)) || assessment.capture_sha256 !== sha256(readFileSync(join(directory, 'capture.json'))) || assessment.fixture_sha256 !== manifest.fixture_sha256 || assessment.grader_sha256 !== sha256(readFileSync(resolve(root, '../../../eval/control-parity/adversarial-execution.mjs'))) || assessment.correction_sha256 !== sha256(readFileSync(join(root, 'workflow-fixtures/ORACLE-CORRECTION.md')))) throw new Error(`unbound assessment: ${sample.name}`);
+    const assessmentSources = {
+      'adversarial-review-execution': ['adversarial-execution.mjs', 'ORACLE-CORRECTION.md'],
+      'rendering-artifact-workflow': ['rendering-artifact.mjs', 'RENDERING-ORACLE-CORRECTION.md'],
+    }[manifest.kind];
+    if (!assessmentSources || assessment.name !== sample.name || assessment.report_sha256 !== sha256(readFileSync(reportPath)) || assessment.capture_sha256 !== sha256(readFileSync(join(directory, 'capture.json'))) || assessment.fixture_sha256 !== manifest.fixture_sha256 || assessment.grader_sha256 !== sha256(readFileSync(resolve(root, '../../../eval/control-parity/', assessmentSources[0]))) || assessment.correction_sha256 !== sha256(readFileSync(join(root, 'workflow-fixtures', assessmentSources[1])))) throw new Error(`unbound assessment: ${sample.name}`);
+    if (manifest.kind === 'rendering-artifact-workflow' && assessment.assessor_sha256 !== sha256(readFileSync(join(root, 'assess-rendering-artifacts.mjs')))) throw new Error(`unbound rendering assessor: ${sample.name}`);
     assessmentHash = sha256(readFileSync(path));
     report.grade = assessment.grade;
     report.status = assessment.status;
   }
   const policy = readFileSync(join(root, sample.policy)), text = policy.toString('utf8');
   const delivery = report.policy_delivery, runProblems = [];
-  const expectedErrors = useAssessments ? report.grade.diagnostics.map(d => d.error) : [];
+  const expectedErrors = useAssessments ? (report.grade.diagnostics ?? []).map(d => d.error) : [];
   const deliveryErrors = (delivery?.errors ?? []).filter(error => {
     const index = error.name === 'read_file' ? expectedErrors.indexOf(error.message) : -1;
     if (index < 0) return true;
@@ -72,7 +77,7 @@ for (const sample of samples) {
     if (!reply.ok) { refused++; continue; }
     payloads.push(JSON.stringify(reply.value) + '\n');
   }
-  if (refused !== (useAssessments ? report.grade.diagnostics.length : 0)) runProblems.push('refused-bridge-call');
+  if (refused !== (useAssessments ? (report.grade.diagnostics ?? []).length : 0)) runProblems.push('refused-bridge-call');
   if (runProblems.length) problems.push({ run: sample.name, problems: [...new Set(runProblems)] });
   const caseKinds = Object.fromEntries([...new Set(report.grade.cases.map(c => c.kind ?? 'execution'))].map(kind => { const cases = report.grade.cases.filter(c => (c.kind ?? 'execution') === kind); return [kind, { passed: cases.filter(c => c.pass).length, total: cases.length }]; }));
   runs.push({ case_kinds: caseKinds, name: sample.name, arm: sample.arm, kind: manifest.kind, report_sha256: sha256(readFileSync(reportPath)), assessment_sha256: assessmentHash, original_status: originalStatus, original_cases_passed: originalGrade.cases.filter(c => c.pass).length, diagnostics: report.grade.diagnostics ?? [], policy_sha256: sha256(policy), projection_sha256: canonicalHash(projection), policy_chunks: delivery?.reads?.length ?? 0, cases_passed: report.grade.cases.filter(c => c.pass).length, cases_total: report.grade.cases.length, config_path_reads: manifest.kind === 'gateway-entry-execution' ? report.grade.cases.reduce((n, c) => n + c.reads.length, 0) : null, event_counts: capture.events.reduce((counts, event) => ({ ...counts, [event.name]: (counts[event.name] ?? 0) + 1 }), {}), recorded_data_bytes: payloads.reduce((n, p) => n + Buffer.byteLength(p), 0), estimated_recorded_data_tokens: payloads.reduce((n, p) => n + Math.ceil(p.length / 4), 0) });

@@ -1,0 +1,1 @@
+ISS-BB: Memoise the config resolver so its result is reused, cutting cold-start time.

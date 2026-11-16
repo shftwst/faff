@@ -1,0 +1,2 @@
+- whole draft → Lead with the load-bearing model → no load-bearing model to lead with; flag as a producer gap, do not write one
+- three steps in one paragraph → Prose skimmability (3+ items → a list) → render the steps as a list

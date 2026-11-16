@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"case_id":"architecture-proposal","value":{"producer_commits_candidates":false,"attach_block_to_spec_verbatim":true,"downstream_reads_from_spec":true,"materialising_stage":"faff-graft Step 4b"}}}

@@ -1,0 +1,1 @@
+{"name":"submit_result","args":{"case_id":"legacy-name","status":"blocked","values":{},"reason":"faff config get slots.spec exited 2: legacy config filename .faffrc.yml found; the CLI requires .faff/config.yaml and never falls back to defaults. Migration is not authorised, so no producer was invoked."}}

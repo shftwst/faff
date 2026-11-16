@@ -1,0 +1,22 @@
+TAP version 13
+# Subtest: rendering references pass; missing facts, inverted model order and bad table form fail
+ok 1 - rendering references pass; missing facts, inverted model order and bad table form fail
+  ---
+  duration_ms: 1.072875
+  type: 'test'
+  ...
+# Subtest: artifact workflow persists exact output and detects changed files or repeated submissions
+ok 2 - artifact workflow persists exact output and detects changed files or repeated submissions
+  ---
+  duration_ms: 2.707041
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 88.588175

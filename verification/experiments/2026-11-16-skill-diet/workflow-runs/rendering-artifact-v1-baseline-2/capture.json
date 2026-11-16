@@ -1,0 +1,563 @@
+{
+  "events": [
+    {
+      "seq": 1,
+      "name": "write_output",
+      "args": {
+        "case_id": "gloss-001",
+        "text": "ISS-Z: Add rate limiting to the login endpoint, capping how often it can be called."
+      },
+      "case_id": "gloss-001",
+      "result": {
+        "written": true,
+        "bytes": 83,
+        "sha256": "cded585d19775727b28fc324d740adf138be88bd7864cdf277c4562817384a51"
+      }
+    },
+    {
+      "seq": 2,
+      "name": "write_output",
+      "args": {
+        "case_id": "gloss-002",
+        "text": "ISS-BB: Memoise the config resolver so its result is reused, cutting cold-start time."
+      },
+      "case_id": "gloss-002",
+      "result": {
+        "written": true,
+        "bytes": 85,
+        "sha256": "63b49dc62331d050c06bee9a758c1313003619e20d757426d3c247b43ec8dfa6"
+      }
+    },
+    {
+      "seq": 3,
+      "name": "write_output",
+      "args": {
+        "case_id": "gloss-003",
+        "text": "ISS-CC: Record cache_read_input_tokens for every request the eval harness makes."
+      },
+      "case_id": "gloss-003",
+      "result": {
+        "written": true,
+        "bytes": 80,
+        "sha256": "bc6efd07692e0348d121028c9096467dc7692ac05246a6d8a40d80b636da7033"
+      }
+    },
+    {
+      "seq": 4,
+      "name": "write_output",
+      "args": {
+        "case_id": "long-table",
+        "text": "Ticket: ISS-101 (records the raw cached-token count in each eval request log)\nState: Done\nScope: Add cache_read_input_tokens to every eval request log. Retain the raw provider count.\n────────────────────────────────────────\nTicket: ISS-102 (publishes a cached-token comparison from request logs)\nState: Todo\nScope: Publish a cached-token comparison for maintainers. Read the raw provider count from request logs."
+      },
+      "case_id": "long-table",
+      "result": {
+        "written": true,
+        "bytes": 492,
+        "sha256": "f618fb59a562b3eb5a5f325af6679a7e9001a99b30133ab33ccb970512e639f5"
+      }
+    },
+    {
+      "seq": 5,
+      "name": "write_output",
+      "args": {
+        "case_id": "short-table",
+        "text": "| State | Count |\n|---|---:|\n| Done | 3 |\n| Todo | 2 |"
+      },
+      "case_id": "short-table",
+      "result": {
+        "written": true,
+        "bytes": 54,
+        "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6"
+      }
+    },
+    {
+      "seq": 6,
+      "name": "write_output",
+      "args": {
+        "case_id": "enumeration",
+        "text": "Open questions:\n\n- Which team owns the queue?\n- How long should leases last?\n- Which metric detects lost work?"
+      },
+      "case_id": "enumeration",
+      "result": {
+        "written": true,
+        "bytes": 110,
+        "sha256": "4aedef87def1a2b914f298d1fd2f3c6d2ce79a2286b00b8fd432ff7273dee720"
+      }
+    },
+    {
+      "seq": 7,
+      "name": "write_output",
+      "args": {
+        "case_id": "model-hoist",
+        "text": "Prompt caching depends on an identical leading token sequence.\n\nThe SDK checks the longest matching request prefix and recomputes its suffix. Measure hits using cache_read_input_tokens. Therefore put stable system text before the volatile user turn."
+      },
+      "case_id": "model-hoist",
+      "result": {
+        "written": true,
+        "bytes": 249,
+        "sha256": "6962d7dcb114e384844a88acae33f183b4202317383f4305fcd63a9d944b2318"
+      }
+    },
+    {
+      "seq": 8,
+      "name": "write_output",
+      "args": {
+        "case_id": "missing-model",
+        "text": "- first line of the explanation → Lead with the load-bearing model → no load-bearing model to lead with; the source states no governing idea, so flag it as a producer gap and do not write one\n- \"Step one … Step three\" run-on → Prose skimmability (3+ items become a list) → render the three steps as a numbered list: open the dashboard; copy the displayed number; close the tab"
+      },
+      "case_id": "missing-model",
+      "result": {
+        "written": true,
+        "bytes": 386,
+        "sha256": "0bc107a1058b562d236596a22c0dbd68181dc0f65ba1c6f6ed49ce22a39378c9"
+      }
+    },
+    {
+      "seq": 9,
+      "name": "write_output",
+      "args": {
+        "case_id": "cycle",
+        "text": "[ISS-201 → ISS-202 → ISS-203 → ISS-201]\n\n- ISS-201: build the login form\n- ISS-202: validate session tokens\n- ISS-203: refresh expired sessions"
+      },
+      "case_id": "cycle",
+      "result": {
+        "written": true,
+        "bytes": 149,
+        "sha256": "5347c6b70d5d9c26116e9447cc1e16014741a58354ea3f4b3e4560aff9b47138"
+      }
+    },
+    {
+      "seq": 10,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "scope",
+        "value": {
+          "terminal": true,
+          "tracker_description": true,
+          "tracker_comment": true,
+          "skill_source": false,
+          "internal_log": false
+        }
+      },
+      "case_id": "scope",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 11,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "contract",
+        "value": false
+      },
+      "case_id": "contract",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 12,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "normalise-authority",
+        "value": false
+      },
+      "case_id": "normalise-authority",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 13,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "two-item-dependency",
+        "value": "prose"
+      },
+      "case_id": "two-item-dependency",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 14,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "branching-cycle",
+        "value": "cycle-box"
+      },
+      "case_id": "branching-cycle",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 15,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "closed-catalogue",
+        "value": false
+      },
+      "case_id": "closed-catalogue",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 16,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "density",
+        "value": {
+          "cycle_visualisations": 3,
+          "queue_rows": 10,
+          "live_initiatives": 7
+        }
+      },
+      "case_id": "density",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 17,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "overflow",
+        "value": {
+          "visible_rows": 10,
+          "overflow_marker": "(+ 2 more)",
+          "full_list_location": "log"
+        }
+      },
+      "case_id": "overflow",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 18,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "gloss-source",
+        "value": "spec-summary"
+      },
+      "case_id": "gloss-source",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 19,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "gloss-grounding",
+        "value": true
+      },
+      "case_id": "gloss-grounding",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 20,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "later-humanisation",
+        "value": true
+      },
+      "case_id": "later-humanisation",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 21,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "unlock-one",
+        "value": false
+      },
+      "case_id": "unlock-one",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 22,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "unlock-chain",
+        "value": true
+      },
+      "case_id": "unlock-chain",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 23,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "unlock-count",
+        "value": "The alerting work can now use a real log schema"
+      },
+      "case_id": "unlock-count",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 24,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "ambiguous-gloss",
+        "value": {
+          "state_ambiguity": true,
+          "invent_resolution": false
+        }
+      },
+      "case_id": "ambiguous-gloss",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 25,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "gloss-cache",
+        "value": {
+          "reuse_within_invocation": true,
+          "reuse_across_invocations": false
+        }
+      },
+      "case_id": "gloss-cache",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 26,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "surface-concrete",
+        "value": false
+      },
+      "case_id": "surface-concrete",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 27,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "voice-source",
+        "value": {
+          "file": "AGENTS.md",
+          "heading": "# Writing style"
+        }
+      },
+      "case_id": "voice-source",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 28,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "voice-swap",
+        "value": false
+      },
+      "case_id": "voice-swap",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 29,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "prose-carveouts",
+        "value": {
+          "synthesis_gloss": true,
+          "diagnosis": true,
+          "TLDR": true
+        }
+      },
+      "case_id": "prose-carveouts",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 30,
+      "name": "finish",
+      "args": {},
+      "case_id": null,
+      "result": {
+        "finished": true
+      }
+    }
+  ],
+  "errors": [],
+  "outputs": [
+    {
+      "id": "gloss-001",
+      "text": "ISS-Z: Add rate limiting to the login endpoint, capping how often it can be called.",
+      "persisted_sha256": "cded585d19775727b28fc324d740adf138be88bd7864cdf277c4562817384a51"
+    },
+    {
+      "id": "gloss-002",
+      "text": "ISS-BB: Memoise the config resolver so its result is reused, cutting cold-start time.",
+      "persisted_sha256": "63b49dc62331d050c06bee9a758c1313003619e20d757426d3c247b43ec8dfa6"
+    },
+    {
+      "id": "gloss-003",
+      "text": "ISS-CC: Record cache_read_input_tokens for every request the eval harness makes.",
+      "persisted_sha256": "bc6efd07692e0348d121028c9096467dc7692ac05246a6d8a40d80b636da7033"
+    },
+    {
+      "id": "long-table",
+      "text": "Ticket: ISS-101 (records the raw cached-token count in each eval request log)\nState: Done\nScope: Add cache_read_input_tokens to every eval request log. Retain the raw provider count.\n────────────────────────────────────────\nTicket: ISS-102 (publishes a cached-token comparison from request logs)\nState: Todo\nScope: Publish a cached-token comparison for maintainers. Read the raw provider count from request logs.",
+      "persisted_sha256": "f618fb59a562b3eb5a5f325af6679a7e9001a99b30133ab33ccb970512e639f5"
+    },
+    {
+      "id": "short-table",
+      "text": "| State | Count |\n|---|---:|\n| Done | 3 |\n| Todo | 2 |",
+      "persisted_sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6"
+    },
+    {
+      "id": "enumeration",
+      "text": "Open questions:\n\n- Which team owns the queue?\n- How long should leases last?\n- Which metric detects lost work?",
+      "persisted_sha256": "4aedef87def1a2b914f298d1fd2f3c6d2ce79a2286b00b8fd432ff7273dee720"
+    },
+    {
+      "id": "model-hoist",
+      "text": "Prompt caching depends on an identical leading token sequence.\n\nThe SDK checks the longest matching request prefix and recomputes its suffix. Measure hits using cache_read_input_tokens. Therefore put stable system text before the volatile user turn.",
+      "persisted_sha256": "6962d7dcb114e384844a88acae33f183b4202317383f4305fcd63a9d944b2318"
+    },
+    {
+      "id": "missing-model",
+      "text": "- first line of the explanation → Lead with the load-bearing model → no load-bearing model to lead with; the source states no governing idea, so flag it as a producer gap and do not write one\n- \"Step one … Step three\" run-on → Prose skimmability (3+ items become a list) → render the three steps as a numbered list: open the dashboard; copy the displayed number; close the tab",
+      "persisted_sha256": "0bc107a1058b562d236596a22c0dbd68181dc0f65ba1c6f6ed49ce22a39378c9"
+    },
+    {
+      "id": "cycle",
+      "text": "[ISS-201 → ISS-202 → ISS-203 → ISS-201]\n\n- ISS-201: build the login form\n- ISS-202: validate session tokens\n- ISS-203: refresh expired sessions",
+      "persisted_sha256": "5347c6b70d5d9c26116e9447cc1e16014741a58354ea3f4b3e4560aff9b47138"
+    }
+  ],
+  "rule_answers": [
+    {
+      "id": "scope",
+      "value": {
+        "terminal": true,
+        "tracker_description": true,
+        "tracker_comment": true,
+        "skill_source": false,
+        "internal_log": false
+      }
+    },
+    {
+      "id": "contract",
+      "value": false
+    },
+    {
+      "id": "normalise-authority",
+      "value": false
+    },
+    {
+      "id": "two-item-dependency",
+      "value": "prose"
+    },
+    {
+      "id": "branching-cycle",
+      "value": "cycle-box"
+    },
+    {
+      "id": "closed-catalogue",
+      "value": false
+    },
+    {
+      "id": "density",
+      "value": {
+        "cycle_visualisations": 3,
+        "queue_rows": 10,
+        "live_initiatives": 7
+      }
+    },
+    {
+      "id": "overflow",
+      "value": {
+        "visible_rows": 10,
+        "overflow_marker": "(+ 2 more)",
+        "full_list_location": "log"
+      }
+    },
+    {
+      "id": "gloss-source",
+      "value": "spec-summary"
+    },
+    {
+      "id": "gloss-grounding",
+      "value": true
+    },
+    {
+      "id": "later-humanisation",
+      "value": true
+    },
+    {
+      "id": "unlock-one",
+      "value": false
+    },
+    {
+      "id": "unlock-chain",
+      "value": true
+    },
+    {
+      "id": "unlock-count",
+      "value": "The alerting work can now use a real log schema"
+    },
+    {
+      "id": "ambiguous-gloss",
+      "value": {
+        "state_ambiguity": true,
+        "invent_resolution": false
+      }
+    },
+    {
+      "id": "gloss-cache",
+      "value": {
+        "reuse_within_invocation": true,
+        "reuse_across_invocations": false
+      }
+    },
+    {
+      "id": "surface-concrete",
+      "value": false
+    },
+    {
+      "id": "voice-source",
+      "value": {
+        "file": "AGENTS.md",
+        "heading": "# Writing style"
+      }
+    },
+    {
+      "id": "voice-swap",
+      "value": false
+    },
+    {
+      "id": "prose-carveouts",
+      "value": {
+        "synthesis_gloss": true,
+        "diagnosis": true,
+        "TLDR": true
+      }
+    }
+  ]
+}

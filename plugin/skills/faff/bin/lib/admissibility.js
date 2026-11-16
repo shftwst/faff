@@ -817,10 +817,12 @@ function admissibleVerdict(specText, lightsOut) {
   if (!lightsOut) {
     return { admissible: true, reasons: [], checks: [{ id: "scope", pass: true, detail: "not lights-out — gate inactive" }], warnings: [] };
   }
-  let scenarios, doneItems;
+  let scenarios, doneItems, doneTexts, marks;
   try {
     scenarios = parseScenarios(specText);
     doneItems = parseDoneChecklist(specText);
+    doneTexts = doneItems.map((it) => parseLocalAcId(it).text);   // pure: the id-assigning helper would repeat dodClassify's stderr advisories
+    marks = doneTexts.map((t) => parseHumanMarker(t));
   } catch (e) {
     return { admissible: false, reasons: ["spec unparseable — fail-safe inadmissible"], checks: [], warnings: [] };
   }
@@ -830,8 +832,6 @@ function admissibleVerdict(specText, lightsOut) {
   const vague = doneItems.filter((it) => matchesBannedVague(it));
   checks.push({ id: "R2b.done-concrete", pass: vague.length === 0, detail: `${vague.length} vague DONE item(s)${vague.length ? ": " + vague.map((v) => v.replace(/\s+/g, " ").slice(0, 50)).join(" | ") : ""}` });
   const trunc50 = (s) => String(s).replace(/\s+/g, " ").trim().slice(0, 50);
-  const doneTexts = doneItems.map((it) => parseLocalAcId(it).text);   // pure: the id-assigning helper would repeat dodClassify's stderr advisories
-  const marks = doneTexts.map((t) => parseHumanMarker(t));
   const untaggedHuman = doneTexts.filter((t, i) => !marks[i].marked && matchesHumanJudgement(t));
   checks.push({ id: "R2c.human-judgement-untagged", pass: untaggedHuman.length === 0, detail: untaggedHuman.length === 0 ? "0 untagged human-judgement DONE item(s)" : `${untaggedHuman.length} untagged DONE item(s) name a human-judgement phrase; tag each needs-human: <reason> or make it machine-checkable: ${untaggedHuman.map(trunc50).join(" | ")}` });
   const notHumanOnly = marks.filter((m) => !m.human_only).length;

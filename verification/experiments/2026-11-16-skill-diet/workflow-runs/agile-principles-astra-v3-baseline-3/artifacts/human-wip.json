@@ -1,0 +1,10 @@
+{
+  "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+  "findings": [
+    {
+      "principle": 3,
+      "diagnosis": "Alex is actively building A, B, C and D: human WIP is 4 against a cap of 3. Pulling proposed item I would raise it to 5 and add context-switching before existing work ships. Autonomous items E, F and G and review item H do not count towards human in-flight WIP.",
+      "recommended_action": "Finish existing in-flight work before pulling I. Bring human WIP below 3 before starting another item."
+    }
+  ]
+}

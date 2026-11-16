@@ -1,0 +1,1 @@
+{"name":"submit_review","args":{"case_id":"clean","text":"signal: pass\n\n## Findings\n\nNone. The pure double function matches the spec; tests cover positive, zero and negative inputs. The caller reports passing tests. Changes stay within scope and introduce no persistent effects.\n\n```faff-contract:review-verdict\n{\"signal\":\"pass\",\"findings\":[]}\n```"}}

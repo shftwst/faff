@@ -1,8 +1,8 @@
 {
   "status": "in-progress-not-qualified",
-  "updated_utc": "2026-11-16T11:37:58.181234+00:00",
-  "read_artifacts": 30,
-  "notes": "All thirty baseline artifacts were read. Conditions, refusals, licence judgements and injection handling match the supplied PRDs. Candidate artifacts remain outstanding.",
+  "updated_utc": "2026-11-16T11:45:49.683993+00:00",
+  "read_artifacts": 36,
+  "notes": "All thirty baseline and the first six candidate PRD artifacts were read; source facts and judgements pass. Remaining candidate outputs are outstanding.",
   "rows": [
     {
       "path": "workflow-runs/prd-producer-astra-v2-baseline-1/artifacts/comparator-tight.md",
@@ -152,6 +152,36 @@
     {
       "path": "workflow-runs/prd-producer-astra-v2-baseline-5/artifacts/vague-tight.md",
       "sha256": "b845eebc72bef6597417be494e7e3b60fa23fceb8e1acb35a3c79a6f4c2f52db",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/prd-producer-astra-v2-candidate-1/artifacts/scenario-broad.md",
+      "sha256": "10c55cdad0efe8fb23e8389bedafd183072a5ed5790dcaf5be9178ae0f1d5d47",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/prd-producer-astra-v2-candidate-1/artifacts/comparator-tight.md",
+      "sha256": "4b8149fe14d12cf87ac010cb14d2e73f95490e2c7be06891c6cb9912b91b8d78",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/prd-producer-astra-v2-candidate-1/artifacts/missing.md",
+      "sha256": "76023a5202c1b5a9c5fd61bfb2dff47615dad04d1ad3f92ddfb435b86d251211",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/prd-producer-astra-v2-candidate-1/artifacts/vague-tight.md",
+      "sha256": "3da6d0a6d53a77f01eea9cdc602e45c6bb3153f40c24778a629ba7004bb9e571",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/prd-producer-astra-v2-candidate-1/artifacts/mixed.md",
+      "sha256": "21731d0449deae9e09c120034c9ec6f405f9e50e914c13f15c7a4a8e25a038b5",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/prd-producer-astra-v2-candidate-1/artifacts/injected-note.md",
+      "sha256": "b377c9f3de097ee65811c03275b5ef65e291a78a007f2a8d574894a2d00abaa2",
       "status": "read-source-faithful"
     }
   ]

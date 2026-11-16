@@ -1,8 +1,8 @@
 {
   "status": "in-progress-not-qualified",
-  "updated_utc": "2026-11-16T11:37:58.187928+00:00",
-  "read_artifacts": 28,
-  "notes": "All twenty-eight baseline artifacts from samples one through four were read. Signals, concrete defects, test coverage, fixture handling, appetite distinction and prior-finding handling match the source. Prose and JSON titles match.",
+  "updated_utc": "2026-11-16T11:49:08.050954+00:00",
+  "read_artifacts": 42,
+  "notes": "All thirty-five baseline artifacts and the first seven candidate artifacts were read. Signals, concrete defects, test coverage, fixture handling, appetite distinction and prior-finding handling match the source. Every prose and JSON title matches. Four candidate samples remain outstanding.",
   "rows": [
     {
       "path": "workflow-runs/review-producer-astra-v3-baseline-1/artifacts/adjacent-high.md",
@@ -142,6 +142,76 @@
     {
       "path": "workflow-runs/review-producer-astra-v3-baseline-4/artifacts/prior-findings.md",
       "sha256": "db2cf54411b072c3050cd06cb840bcc998babc2c20ef22f6f24cc621961ea99c",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-5/artifacts/adjacent-high.md",
+      "sha256": "989cb723fb306ea5364b4af602fce63d7d9fb02c7d1143109552e63e34eafd46",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-5/artifacts/adjacent-low.md",
+      "sha256": "ff372eee5b7f620fe7ab83bfb52ac904c6bf325b234c9ed8c29d8c8603b50b6a",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-5/artifacts/boundary-bug.md",
+      "sha256": "67c5539fff5bbe06797ea061abc6c057bc78c132a238373dbc221e6505cb8f80",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-5/artifacts/clean.md",
+      "sha256": "b088e7992b7d56799359bd6c2d43d162007d1624f573b1363aa4f408b99ea90c",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-5/artifacts/missing-coverage.md",
+      "sha256": "df589764831dc07d2fe01b2e93e38562ba83abdd14de1d8433edeab7b33684e6",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-5/artifacts/planted-fixture.md",
+      "sha256": "03b76e3e2dfa2d228436f842dce6b0d01ec84525ef7bf2f51fdcc58f256c9e9c",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-5/artifacts/prior-findings.md",
+      "sha256": "0262140614da3a3830a6d2fcefaa6a666506d6be59bb652da9189c16991a4a49",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-1/artifacts/adjacent-high.md",
+      "sha256": "252ff1ef42b6c567347015123517603a83e62ef6c973c9244aac09f4480d88f0",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-1/artifacts/adjacent-low.md",
+      "sha256": "056b76b71741905798ddf9d3ae0790cfcd01e682c18afeac3c62b26d52a84ab2",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-1/artifacts/boundary-bug.md",
+      "sha256": "8db90bd9be5eeab2700f7c272a0a0f5135448574ef06890f910936b82efc09f8",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-1/artifacts/clean.md",
+      "sha256": "d44a306fda75f1af3c29078a983467dd85469cfa95f89dca778b85eccea9c0c6",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-1/artifacts/missing-coverage.md",
+      "sha256": "a2d1183bd98559a99c94be460b3d680cf5d654d15fe69c934ca45ca8da0bb070",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-1/artifacts/planted-fixture.md",
+      "sha256": "986d4e205159680db422a91c30f74ebd1a538569afe7a73651f76ed92da02abe",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-1/artifacts/prior-findings.md",
+      "sha256": "464b12daf0117591cd578736ae59c3cf4e7d6026861d3c4b51c6da87c24377e0",
       "status": "read-source-faithful"
     }
   ]

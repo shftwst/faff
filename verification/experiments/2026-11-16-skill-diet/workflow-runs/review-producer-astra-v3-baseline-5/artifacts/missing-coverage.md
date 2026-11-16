@@ -1,0 +1,10 @@
+signal: fail
+
+## Findings
+
+### AC coverage: Mixed-case conversion lacks a test
+At test/function.test.mjs:3, the only assertion uses uppercase input. AC2 explicitly requires automated mixed-case coverage. Add assert.equal(lower('AbC'),'abc'). The implementation matches the string-only, non-null contract; no other bug, scope or human-decision finding was identified.
+
+```faff-contract:review-verdict
+{"signal":"fail","findings":[{"title":"Mixed-case conversion lacks a test","location":"test/function.test.mjs:3","action":"Add an assertion that lower('AbC') returns 'abc'.","location_present":true,"action_present":true,"severity":"major","source":"standard"}]}
+```

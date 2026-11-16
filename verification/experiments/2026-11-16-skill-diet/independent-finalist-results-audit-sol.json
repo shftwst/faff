@@ -1,0 +1,1764 @@
+{
+  "schema": 1,
+  "updated_utc": "2026-11-16T20:07:49.700800+00:00",
+  "reviewer": {
+    "role": "independent finalist scoring/results verifier",
+    "requested_model": "gpt-6.1-sol",
+    "requested_reasoning_effort": "medium"
+  },
+  "status": "complete-independent-count-and-binding-audit-pass",
+  "inputs": {
+    "scorer_sha256": "1f34720812a693388dc92a5bf3077ff040cace63bccdad90236294eedd1189aa",
+    "progress_sha256": "37f4ba84437b696daf50102934b37cfa73bf0b87b55e3ddc2a97587210b0c0df",
+    "selection_sha256": "d228cfb3c079ff64dcb81990336a41a1401394a5847c9c6f329cec3709e0b5b9",
+    "amendment_sha256": "f3e51673e9cd9b61e46ae8462b32dee1ad0c19edf762f2a999ebf46249d93bfd"
+  },
+  "planned": 90,
+  "completed_on_disk": 90,
+  "snapshot_completed": 90,
+  "pending_on_disk": [],
+  "snapshot_pending": [],
+  "independent_binding_failures": [],
+  "snapshot_differences": [],
+  "rows": [
+    {
+      "combination": "opus-reference",
+      "task": "gateway",
+      "arm": "baseline",
+      "planned": 5,
+      "completed": 5,
+      "raw_runs_passed": 5,
+      "assessed_runs_passed": 5,
+      "native_passed": 5,
+      "raw_cases": {
+        "execution": {
+          "passed": 25,
+          "total": 25
+        }
+      },
+      "assessed_cases": {
+        "execution": {
+          "passed": 25,
+          "total": 25
+        }
+      },
+      "median_seconds": null
+    },
+    {
+      "combination": "opus-reference",
+      "task": "gateway",
+      "arm": "candidate",
+      "planned": 5,
+      "completed": 5,
+      "raw_runs_passed": 5,
+      "assessed_runs_passed": 5,
+      "native_passed": 5,
+      "raw_cases": {
+        "execution": {
+          "passed": 25,
+          "total": 25
+        }
+      },
+      "assessed_cases": {
+        "execution": {
+          "passed": 25,
+          "total": 25
+        }
+      },
+      "median_seconds": null
+    },
+    {
+      "combination": "opus-reference",
+      "task": "rendering",
+      "arm": "baseline",
+      "planned": 5,
+      "completed": 5,
+      "raw_runs_passed": 0,
+      "assessed_runs_passed": 5,
+      "native_passed": 5,
+      "raw_cases": {
+        "artifact": {
+          "passed": 45,
+          "total": 45
+        },
+        "decision": {
+          "passed": 95,
+          "total": 100
+        }
+      },
+      "assessed_cases": {
+        "artifact": {
+          "passed": 45,
+          "total": 45
+        },
+        "decision": {
+          "passed": 100,
+          "total": 100
+        }
+      },
+      "median_seconds": null
+    },
+    {
+      "combination": "opus-reference",
+      "task": "rendering",
+      "arm": "candidate",
+      "planned": 5,
+      "completed": 5,
+      "raw_runs_passed": 0,
+      "assessed_runs_passed": 5,
+      "native_passed": 5,
+      "raw_cases": {
+        "artifact": {
+          "passed": 45,
+          "total": 45
+        },
+        "decision": {
+          "passed": 95,
+          "total": 100
+        }
+      },
+      "assessed_cases": {
+        "artifact": {
+          "passed": 45,
+          "total": 45
+        },
+        "decision": {
+          "passed": 100,
+          "total": 100
+        }
+      },
+      "median_seconds": null
+    },
+    {
+      "combination": "opus-reference",
+      "task": "challenges",
+      "arm": "baseline",
+      "planned": 5,
+      "completed": 5,
+      "raw_runs_passed": 5,
+      "assessed_runs_passed": 5,
+      "native_passed": 5,
+      "raw_cases": {
+        "judgement-and-consumption": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "assessed_cases": {
+        "judgement-and-consumption": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "median_seconds": null
+    },
+    {
+      "combination": "opus-reference",
+      "task": "challenges",
+      "arm": "candidate",
+      "planned": 5,
+      "completed": 5,
+      "raw_runs_passed": 5,
+      "assessed_runs_passed": 5,
+      "native_passed": 5,
+      "raw_cases": {
+        "judgement-and-consumption": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "assessed_cases": {
+        "judgement-and-consumption": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "median_seconds": null
+    },
+    {
+      "combination": "sol-medium",
+      "task": "gateway",
+      "arm": "baseline",
+      "planned": 5,
+      "completed": 5,
+      "raw_runs_passed": 5,
+      "assessed_runs_passed": 5,
+      "native_passed": 5,
+      "raw_cases": {
+        "execution": {
+          "passed": 25,
+          "total": 25
+        }
+      },
+      "assessed_cases": {
+        "execution": {
+          "passed": 25,
+          "total": 25
+        }
+      },
+      "median_seconds": 144.1
+    },
+    {
+      "combination": "sol-medium",
+      "task": "gateway",
+      "arm": "candidate",
+      "planned": 5,
+      "completed": 5,
+      "raw_runs_passed": 5,
+      "assessed_runs_passed": 5,
+      "native_passed": 5,
+      "raw_cases": {
+        "execution": {
+          "passed": 25,
+          "total": 25
+        }
+      },
+      "assessed_cases": {
+        "execution": {
+          "passed": 25,
+          "total": 25
+        }
+      },
+      "median_seconds": 134.5
+    },
+    {
+      "combination": "sol-medium",
+      "task": "rendering",
+      "arm": "baseline",
+      "planned": 5,
+      "completed": 5,
+      "raw_runs_passed": 0,
+      "assessed_runs_passed": 5,
+      "native_passed": 5,
+      "raw_cases": {
+        "artifact": {
+          "passed": 45,
+          "total": 45
+        },
+        "decision": {
+          "passed": 95,
+          "total": 100
+        }
+      },
+      "assessed_cases": {
+        "artifact": {
+          "passed": 45,
+          "total": 45
+        },
+        "decision": {
+          "passed": 100,
+          "total": 100
+        }
+      },
+      "median_seconds": 201.0
+    },
+    {
+      "combination": "sol-medium",
+      "task": "rendering",
+      "arm": "candidate",
+      "planned": 5,
+      "completed": 5,
+      "raw_runs_passed": 0,
+      "assessed_runs_passed": 5,
+      "native_passed": 5,
+      "raw_cases": {
+        "artifact": {
+          "passed": 45,
+          "total": 45
+        },
+        "decision": {
+          "passed": 95,
+          "total": 100
+        }
+      },
+      "assessed_cases": {
+        "artifact": {
+          "passed": 45,
+          "total": 45
+        },
+        "decision": {
+          "passed": 100,
+          "total": 100
+        }
+      },
+      "median_seconds": 190.2
+    },
+    {
+      "combination": "sol-medium",
+      "task": "challenges",
+      "arm": "baseline",
+      "planned": 5,
+      "completed": 5,
+      "raw_runs_passed": 5,
+      "assessed_runs_passed": 5,
+      "native_passed": 5,
+      "raw_cases": {
+        "judgement-and-consumption": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "assessed_cases": {
+        "judgement-and-consumption": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "median_seconds": 178.5
+    },
+    {
+      "combination": "sol-medium",
+      "task": "challenges",
+      "arm": "candidate",
+      "planned": 5,
+      "completed": 5,
+      "raw_runs_passed": 5,
+      "assessed_runs_passed": 5,
+      "native_passed": 5,
+      "raw_cases": {
+        "judgement-and-consumption": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "assessed_cases": {
+        "judgement-and-consumption": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "median_seconds": 132.0
+    },
+    {
+      "combination": "astra-medium",
+      "task": "gateway",
+      "arm": "baseline",
+      "planned": 5,
+      "completed": 5,
+      "raw_runs_passed": 5,
+      "assessed_runs_passed": 5,
+      "native_passed": 5,
+      "raw_cases": {
+        "execution": {
+          "passed": 25,
+          "total": 25
+        }
+      },
+      "assessed_cases": {
+        "execution": {
+          "passed": 25,
+          "total": 25
+        }
+      },
+      "median_seconds": 160.6
+    },
+    {
+      "combination": "astra-medium",
+      "task": "gateway",
+      "arm": "candidate",
+      "planned": 5,
+      "completed": 5,
+      "raw_runs_passed": 5,
+      "assessed_runs_passed": 5,
+      "native_passed": 5,
+      "raw_cases": {
+        "execution": {
+          "passed": 25,
+          "total": 25
+        }
+      },
+      "assessed_cases": {
+        "execution": {
+          "passed": 25,
+          "total": 25
+        }
+      },
+      "median_seconds": 146.1
+    },
+    {
+      "combination": "astra-medium",
+      "task": "rendering",
+      "arm": "baseline",
+      "planned": 5,
+      "completed": 5,
+      "raw_runs_passed": 0,
+      "assessed_runs_passed": 5,
+      "native_passed": 5,
+      "raw_cases": {
+        "artifact": {
+          "passed": 45,
+          "total": 45
+        },
+        "decision": {
+          "passed": 95,
+          "total": 100
+        }
+      },
+      "assessed_cases": {
+        "artifact": {
+          "passed": 45,
+          "total": 45
+        },
+        "decision": {
+          "passed": 100,
+          "total": 100
+        }
+      },
+      "median_seconds": 228.9
+    },
+    {
+      "combination": "astra-medium",
+      "task": "rendering",
+      "arm": "candidate",
+      "planned": 5,
+      "completed": 5,
+      "raw_runs_passed": 0,
+      "assessed_runs_passed": 5,
+      "native_passed": 5,
+      "raw_cases": {
+        "artifact": {
+          "passed": 45,
+          "total": 45
+        },
+        "decision": {
+          "passed": 95,
+          "total": 100
+        }
+      },
+      "assessed_cases": {
+        "artifact": {
+          "passed": 45,
+          "total": 45
+        },
+        "decision": {
+          "passed": 100,
+          "total": 100
+        }
+      },
+      "median_seconds": 218.2
+    },
+    {
+      "combination": "astra-medium",
+      "task": "challenges",
+      "arm": "baseline",
+      "planned": 5,
+      "completed": 5,
+      "raw_runs_passed": 5,
+      "assessed_runs_passed": 5,
+      "native_passed": 5,
+      "raw_cases": {
+        "judgement-and-consumption": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "assessed_cases": {
+        "judgement-and-consumption": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "median_seconds": 187.5
+    },
+    {
+      "combination": "astra-medium",
+      "task": "challenges",
+      "arm": "candidate",
+      "planned": 5,
+      "completed": 5,
+      "raw_runs_passed": 5,
+      "assessed_runs_passed": 5,
+      "native_passed": 5,
+      "raw_cases": {
+        "judgement-and-consumption": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "assessed_cases": {
+        "judgement-and-consumption": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "median_seconds": 143.4
+    }
+  ],
+  "samples": [
+    {
+      "name": "gateway-context-v3-baseline-1",
+      "combination": "opus-reference",
+      "task": "gateway",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "2873d67e39ec5e4f95d117eaa98a29594c5f091d59b580608e2d3d46837cfc1c",
+      "report_sha256": "1de177eb5842d8ae3df1b4d14813dcf925cb33e1d404f68f86313ebdf7fb42d4",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "gateway-context-v3-baseline-2",
+      "combination": "opus-reference",
+      "task": "gateway",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "053db45b5f49ea3f9edc2315ffbb8294374a0c1b0c20e77ca13d681dc7d80893",
+      "report_sha256": "1de177eb5842d8ae3df1b4d14813dcf925cb33e1d404f68f86313ebdf7fb42d4",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "gateway-context-v3-baseline-3",
+      "combination": "opus-reference",
+      "task": "gateway",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "2e4c925e71b85f07194c62ef57ec9a7f39a377eb5583fa5bf2c118289ba76365",
+      "report_sha256": "1de177eb5842d8ae3df1b4d14813dcf925cb33e1d404f68f86313ebdf7fb42d4",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "gateway-context-v3-baseline-4",
+      "combination": "opus-reference",
+      "task": "gateway",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "64ec35d0c071147557bcf39a8fc2239efea8355838002f461a83d4e14a863986",
+      "report_sha256": "1de177eb5842d8ae3df1b4d14813dcf925cb33e1d404f68f86313ebdf7fb42d4",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "gateway-context-v3-baseline-5",
+      "combination": "opus-reference",
+      "task": "gateway",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "9586ad300593b44c4aa4cb0c7b6abbea7e430da1aa9899f8fa2e74ff0317704d",
+      "report_sha256": "1de177eb5842d8ae3df1b4d14813dcf925cb33e1d404f68f86313ebdf7fb42d4",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "gateway-context-v3-candidate-1",
+      "combination": "opus-reference",
+      "task": "gateway",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "bbebacaee04f907e3ea4db04f3e1630ed81d238ae7b5e5a0b88c3d54d13e94bd",
+      "report_sha256": "c5f8a05c078c10720dfa978bfe4874518ecbb32a55e5ecbf3e2a7fe9393b7d49",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "gateway-context-v3-candidate-2",
+      "combination": "opus-reference",
+      "task": "gateway",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "2e2bc6ae0873764e4bd69c34460d99057e1cc2910b331d81722bf944669ab120",
+      "report_sha256": "c9eb50fe3d58a1ade6d8f718190dd424811ad85cb23df18901397fb096e1dc60",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "gateway-context-v3-candidate-3",
+      "combination": "opus-reference",
+      "task": "gateway",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "7774c70315feb141534328bbc470999e7c77a0b7bbc9fe172f1ba96ac80864fb",
+      "report_sha256": "c5f8a05c078c10720dfa978bfe4874518ecbb32a55e5ecbf3e2a7fe9393b7d49",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "gateway-context-v3-candidate-4",
+      "combination": "opus-reference",
+      "task": "gateway",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "086bb66eaf15481d8d966a14405842985c98138f0bc21f3b7d7cf029d489b514",
+      "report_sha256": "c9eb50fe3d58a1ade6d8f718190dd424811ad85cb23df18901397fb096e1dc60",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "gateway-context-v3-candidate-5",
+      "combination": "opus-reference",
+      "task": "gateway",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "d05f3cf1337a03ab5504637e4946d28f701508299b195f6e8d8a07e814d1dc55",
+      "report_sha256": "c5f8a05c078c10720dfa978bfe4874518ecbb32a55e5ecbf3e2a7fe9393b7d49",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "rendering-artifact-v1-baseline-1",
+      "combination": "opus-reference",
+      "task": "rendering",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "a9b9ffd58c63a8cbaec324c4bc74144a9e0548d3951c4b79fc90af0aeab9443c",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "rendering-artifact-v1-baseline-2",
+      "combination": "opus-reference",
+      "task": "rendering",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "907c8c20686f825382bd20d2c5b99b01ff4b6c913e5d436c37b8eee456deb763",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "rendering-artifact-v1-baseline-3",
+      "combination": "opus-reference",
+      "task": "rendering",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "52b838e52c99b068a9a57a4bf9c7716be5289f95b7b0dd71178384a1eb2f309e",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "rendering-artifact-v1-baseline-4",
+      "combination": "opus-reference",
+      "task": "rendering",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "fea8dff75ac48cb5c0cbb334ed7a519dcdf87d2b83733c23aa2777ab70acb231",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "rendering-artifact-v1-baseline-5",
+      "combination": "opus-reference",
+      "task": "rendering",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "9ad3aafd3b1e40ddd799f0b0aab3876c2876030a47d599f6935440e106d81d98",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "rendering-artifact-v2-candidate-1",
+      "combination": "opus-reference",
+      "task": "rendering",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "83cfebf67b574c4ff6271f7331ea5b41aaf42327ed922ede2211728f54153063",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "rendering-artifact-v2-candidate-2",
+      "combination": "opus-reference",
+      "task": "rendering",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "228ef1c459bdb59e6dca9e847bbeb23b420906400b2c08929d20b569ce2cb7df",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "rendering-artifact-v2-candidate-3",
+      "combination": "opus-reference",
+      "task": "rendering",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "9403b57af293bee749b0f0b56535b779a4aeaa6dee559849bf61787fe14dcca9",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "rendering-artifact-v2-candidate-4",
+      "combination": "opus-reference",
+      "task": "rendering",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "ac24ab6d76459c8086109d37f5fe246e3e24d8668c9f1feb0c29d2895c4e39c3",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "rendering-artifact-v2-candidate-5",
+      "combination": "opus-reference",
+      "task": "rendering",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "4c1e3f83741c5990bf4ba28148c50355373b6dad7e93ea4e23be70d76981dbe8",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "challenges-file-input-v4-stable-baseline-1",
+      "combination": "opus-reference",
+      "task": "challenges",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "8608bed76a38a76175adfc66dea3be1c5435d4cc10eb83a51ba6ad48cccf6e78",
+      "report_sha256": "59914d122c442886d73a67ea33170b68ae771e8be26900c82c4ba1b83d181b90",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "challenges-file-input-v4-stable-baseline-2",
+      "combination": "opus-reference",
+      "task": "challenges",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "420e600f45108f89166e6106044329060e2a2014cb90865b1ef93d74a97b6c97",
+      "report_sha256": "59914d122c442886d73a67ea33170b68ae771e8be26900c82c4ba1b83d181b90",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "challenges-file-input-v4-stable-baseline-3",
+      "combination": "opus-reference",
+      "task": "challenges",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "05ccba8d7eb31c3006b02976a3c55aa4c907fdf9573c9be28b571998b54932cc",
+      "report_sha256": "59914d122c442886d73a67ea33170b68ae771e8be26900c82c4ba1b83d181b90",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "challenges-file-input-v4-stable-baseline-4",
+      "combination": "opus-reference",
+      "task": "challenges",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "20b06e6a02da134cc7d116fda200a35aa479c83b725113c18a5374ea692b2e81",
+      "report_sha256": "59914d122c442886d73a67ea33170b68ae771e8be26900c82c4ba1b83d181b90",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "challenges-file-input-v4-stable-baseline-5",
+      "combination": "opus-reference",
+      "task": "challenges",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "8bb14354d7e45a9b3792964de12e92b35156a33e153afa758188c5728f36dd4d",
+      "report_sha256": "59914d122c442886d73a67ea33170b68ae771e8be26900c82c4ba1b83d181b90",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "challenges-file-input-v4-stable-candidate-1",
+      "combination": "opus-reference",
+      "task": "challenges",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "f2d388bd8df80b6cf8e3dd6639b5d48797265aba750e5eed6f6e27837b8a66b8",
+      "report_sha256": "70c9019cc59feddb2b80686d7bb7e1c71cfe3a82f1360238ad461b6289a76e19",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "challenges-file-input-v4-stable-candidate-2",
+      "combination": "opus-reference",
+      "task": "challenges",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "f61b38627fd50e1feda2458a252d9a58783aa1744cb4b28bd94de6e52dc63622",
+      "report_sha256": "70c9019cc59feddb2b80686d7bb7e1c71cfe3a82f1360238ad461b6289a76e19",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "challenges-file-input-v4-stable-candidate-3",
+      "combination": "opus-reference",
+      "task": "challenges",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "0011f8b2c961d9ed0121584d58d11cfed3f7f6c0ad1d24841115bb7287d3b585",
+      "report_sha256": "70c9019cc59feddb2b80686d7bb7e1c71cfe3a82f1360238ad461b6289a76e19",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "challenges-file-input-v4-stable-candidate-4",
+      "combination": "opus-reference",
+      "task": "challenges",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "13e816bf744a4ca9678601861664c44b03d61a1c1514669257b0e0cb9a80ccb2",
+      "report_sha256": "c41f5e96bf02e8c41b87eb82b35710e08e549cc74d8eea053e6ea6c4efc2b873",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "challenges-file-input-v4-stable-candidate-5",
+      "combination": "opus-reference",
+      "task": "challenges",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "98786ca2695ef7493771b041d7ded293fce22b8580ab05b4c83ff26aac567a21",
+      "report_sha256": "70c9019cc59feddb2b80686d7bb7e1c71cfe3a82f1360238ad461b6289a76e19",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass"
+    },
+    {
+      "name": "gateway-sol-calibration-v1-baseline-1",
+      "combination": "sol-medium",
+      "task": "gateway",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "7ba59ffac2e966e6e8ccb6e86e6c669f57fb83c2bd4149dae454c93b10d6a79c",
+      "report_sha256": "c6581fba541bc48c44d622620e829d3a3d83e45f5a9947e087a86acd631f0cd7",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "gateway-sol-calibration-v1-baseline-2",
+      "combination": "sol-medium",
+      "task": "gateway",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "0e20cb168dd3f23494d73d3013b04fd2a69180197b0d1e3f216acd899e123394",
+      "report_sha256": "c6581fba541bc48c44d622620e829d3a3d83e45f5a9947e087a86acd631f0cd7",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "gateway-sol-calibration-v1-baseline-3",
+      "combination": "sol-medium",
+      "task": "gateway",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "1b66f86c39126cdf924f179395921236190c6fc8710b97d0cf8e0f4e99dbedb1",
+      "report_sha256": "c6581fba541bc48c44d622620e829d3a3d83e45f5a9947e087a86acd631f0cd7",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "gateway-sol-calibration-v1-baseline-4",
+      "combination": "sol-medium",
+      "task": "gateway",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "14c3bf6d64f51828c404c2be26d78da0bc6e3ee332e192fa01b554cfc9bcc1ab",
+      "report_sha256": "c6581fba541bc48c44d622620e829d3a3d83e45f5a9947e087a86acd631f0cd7",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "gateway-sol-calibration-v1-baseline-5",
+      "combination": "sol-medium",
+      "task": "gateway",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "28861f6b4ad20c681f0c35130d561173ea2035bda5f36c6239a52bee156133b4",
+      "report_sha256": "0140f0fb89f61ce6ab011e95861d71599e9cbee3b80af8f17a3e385664c26bd8",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "gateway-sol-calibration-v1-candidate-1",
+      "combination": "sol-medium",
+      "task": "gateway",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "e1ee278c3460cd70febae9039197133a25b2a6ff17a09fdb1c888f3d63c8bdee",
+      "report_sha256": "06fec69039ec4e04b70c5bf739934c3cec48b8b973e083591c726bfcc2c3462e",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "gateway-sol-calibration-v1-candidate-2",
+      "combination": "sol-medium",
+      "task": "gateway",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "6a3a3c3258594364fe01d76750888a369560a9b7c49aebbefebe4e2c24782873",
+      "report_sha256": "06fec69039ec4e04b70c5bf739934c3cec48b8b973e083591c726bfcc2c3462e",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "gateway-sol-calibration-v1-candidate-3",
+      "combination": "sol-medium",
+      "task": "gateway",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "457c93e8c5b9f390ead315ec1cd8e2553d3fb1f18e6db2dfc577253407dcb398",
+      "report_sha256": "06fec69039ec4e04b70c5bf739934c3cec48b8b973e083591c726bfcc2c3462e",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "gateway-sol-calibration-v1-candidate-4",
+      "combination": "sol-medium",
+      "task": "gateway",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "853039a10d7e6ab8c78db6949a0d208dd7d8097d6733b319f4fcc3e8196e3371",
+      "report_sha256": "06fec69039ec4e04b70c5bf739934c3cec48b8b973e083591c726bfcc2c3462e",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "gateway-sol-calibration-v1-candidate-5",
+      "combination": "sol-medium",
+      "task": "gateway",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "50e354e49a19685760ab552fc4fa2660c81695c8bf56d4a17d4dc736facdebd4",
+      "report_sha256": "06fec69039ec4e04b70c5bf739934c3cec48b8b973e083591c726bfcc2c3462e",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "rendering-sol-calibration-v1-baseline-1",
+      "combination": "sol-medium",
+      "task": "rendering",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "58b02bcfe6206ac3ddecbc53f89c0e01014cc5ec603e4663cfc582a1dc3377da",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "rendering-sol-calibration-v1-baseline-2",
+      "combination": "sol-medium",
+      "task": "rendering",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "1c8bfa90079b1043bcd9edef9a4b2fa9610de850e942426e91bd1c249ce36d1c",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "rendering-sol-calibration-v1-baseline-3",
+      "combination": "sol-medium",
+      "task": "rendering",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "ab24823909a409fecc6cb8ac19cdb928145a5e268acea98c4c1415cfe6f526ea",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "rendering-sol-calibration-v1-baseline-4",
+      "combination": "sol-medium",
+      "task": "rendering",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "3c833aca42225e84a382234466cc22cda2a1c8285063be236be15978614b301f",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "rendering-sol-calibration-v1-baseline-5",
+      "combination": "sol-medium",
+      "task": "rendering",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "fc4bf0428a16c6426b8a0f8029c33883bd0e0dd10fcb0ab94e1866e62c97175e",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "rendering-sol-calibration-v1-candidate-1",
+      "combination": "sol-medium",
+      "task": "rendering",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "221dbf61fd67d093d07d2b75081516d4175a3164b05de9180da33f9c8988ef9d",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "rendering-sol-calibration-v1-candidate-2",
+      "combination": "sol-medium",
+      "task": "rendering",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "d5170836fb1d3a32c5a132ee5d05953c6bb3c74cd93b43405ce8acd074b0dc7a",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "rendering-sol-calibration-v1-candidate-3",
+      "combination": "sol-medium",
+      "task": "rendering",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "c70c5df6ae76fd5457f52d5b6675647d9f4c9e27367460b56a4aa4d57177b1f0",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "rendering-sol-calibration-v1-candidate-4",
+      "combination": "sol-medium",
+      "task": "rendering",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "aa6ccd0dd75ab359f6536de5f84a97d0ddd71f5b448961d2ccae242036a9676d",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "rendering-sol-calibration-v1-candidate-5",
+      "combination": "sol-medium",
+      "task": "rendering",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "8e3bb2f58ab10cc0875ea523db63907122239edeb97799f571db2fbf2b276068",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-sol-medium-challenges-baseline-1",
+      "combination": "sol-medium",
+      "task": "challenges",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "13b4662a7963beb859ca6aa0ee9f651688e689a511c346581dadbc1a24b5ae80",
+      "report_sha256": "8c05655026650941c0b088bc2401b26b2dab00781aa08ba20972655b8fe79c3f",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-sol-medium-challenges-baseline-2",
+      "combination": "sol-medium",
+      "task": "challenges",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "0552ac1a4bf710dcf021deb0acfc7960c7475947e5a2bc05a3d75ee4f9727865",
+      "report_sha256": "8c05655026650941c0b088bc2401b26b2dab00781aa08ba20972655b8fe79c3f",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-sol-medium-challenges-baseline-3",
+      "combination": "sol-medium",
+      "task": "challenges",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "b315c4de16802a1324f15d48074a749bd75daeed4be99260a1870c7b43e7eb52",
+      "report_sha256": "8c05655026650941c0b088bc2401b26b2dab00781aa08ba20972655b8fe79c3f",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-sol-medium-challenges-baseline-4",
+      "combination": "sol-medium",
+      "task": "challenges",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "7334d99e0a642ef00760962f2814a9092c7be4ac35552041a37f4d8b54fd88be",
+      "report_sha256": "8c05655026650941c0b088bc2401b26b2dab00781aa08ba20972655b8fe79c3f",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-sol-medium-challenges-baseline-5",
+      "combination": "sol-medium",
+      "task": "challenges",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "2be6f11c94d8526a36da42f4e5812231d5306d4216c41d135c646dc2ca1e7a35",
+      "report_sha256": "8c05655026650941c0b088bc2401b26b2dab00781aa08ba20972655b8fe79c3f",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-sol-medium-challenges-candidate-1",
+      "combination": "sol-medium",
+      "task": "challenges",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "96bef9adc1f0957ec66d98c5beff0605374b35548b88313628b3afe7140ec2b0",
+      "report_sha256": "571720a96f24e428ebc9789eabf7b2f2b5f8af8983239454140d29bea0f63f8f",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-sol-medium-challenges-candidate-2",
+      "combination": "sol-medium",
+      "task": "challenges",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "cf8161b9ee2e4e00339ac4f7bc36f8a4edf66d54b46b03955188628e9f0b9bf4",
+      "report_sha256": "571720a96f24e428ebc9789eabf7b2f2b5f8af8983239454140d29bea0f63f8f",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-sol-medium-challenges-candidate-3",
+      "combination": "sol-medium",
+      "task": "challenges",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "4d612ac7a324b5dd755d36ef4245b8054a1a7c350e2e8bdbba49602b5af5a7d4",
+      "report_sha256": "571720a96f24e428ebc9789eabf7b2f2b5f8af8983239454140d29bea0f63f8f",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-sol-medium-challenges-candidate-4",
+      "combination": "sol-medium",
+      "task": "challenges",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "b4701aa0bde539b14bac3059c0a7a0d4de46fe88cea9f267013db7c7b0d6e491",
+      "report_sha256": "571720a96f24e428ebc9789eabf7b2f2b5f8af8983239454140d29bea0f63f8f",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-sol-medium-challenges-candidate-5",
+      "combination": "sol-medium",
+      "task": "challenges",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "c633aa3bb9cb8a79dff01406504cab7db5bb5383a5b755bbacdffe404dc2f76d",
+      "report_sha256": "571720a96f24e428ebc9789eabf7b2f2b5f8af8983239454140d29bea0f63f8f",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-v1-astra-medium-gateway-baseline-1",
+      "combination": "astra-medium",
+      "task": "gateway",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "4132a7b6e204f04307b5d9b44a85438b15cc0cb165d4da6768d2326d5866f92a",
+      "report_sha256": "c6581fba541bc48c44d622620e829d3a3d83e45f5a9947e087a86acd631f0cd7",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-v1-astra-medium-gateway-baseline-2",
+      "combination": "astra-medium",
+      "task": "gateway",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "6a675795f2adad723fc257228a67337ebb479803d17b4e92cec9112287d7b563",
+      "report_sha256": "c6581fba541bc48c44d622620e829d3a3d83e45f5a9947e087a86acd631f0cd7",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-gateway-baseline-3",
+      "combination": "astra-medium",
+      "task": "gateway",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "e42c0da7bf2b59c37557d1d11bc209dc5013bb31ffce1f242f5ab8addf3de22b",
+      "report_sha256": "0140f0fb89f61ce6ab011e95861d71599e9cbee3b80af8f17a3e385664c26bd8",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-gateway-baseline-4",
+      "combination": "astra-medium",
+      "task": "gateway",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "86094d8addce30130edb04f9578d31024205f0714909d747b80d75424f1314ca",
+      "report_sha256": "c6581fba541bc48c44d622620e829d3a3d83e45f5a9947e087a86acd631f0cd7",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-gateway-baseline-5",
+      "combination": "astra-medium",
+      "task": "gateway",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "2b3e330820d505d7ebc284747f3fc7a556d5a41506e6eb44faa4ee9c1f79eade",
+      "report_sha256": "c6581fba541bc48c44d622620e829d3a3d83e45f5a9947e087a86acd631f0cd7",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-v1-astra-medium-gateway-candidate-1",
+      "combination": "astra-medium",
+      "task": "gateway",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "367524d4d76ce0b18005d728d4db64ee12a3c24443fef78362629ed6ee99ae55",
+      "report_sha256": "06fec69039ec4e04b70c5bf739934c3cec48b8b973e083591c726bfcc2c3462e",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-v1-astra-medium-gateway-candidate-2",
+      "combination": "astra-medium",
+      "task": "gateway",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "c2ce5087c4d597a5a2f6078d182a9994e45efa65db140420e809eec63e32cde3",
+      "report_sha256": "06fec69039ec4e04b70c5bf739934c3cec48b8b973e083591c726bfcc2c3462e",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-gateway-candidate-3",
+      "combination": "astra-medium",
+      "task": "gateway",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "bdd338642476b14dbac2a2e46b434b4e48d374f806d7a0115405c97352d6de08",
+      "report_sha256": "06fec69039ec4e04b70c5bf739934c3cec48b8b973e083591c726bfcc2c3462e",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-gateway-candidate-4",
+      "combination": "astra-medium",
+      "task": "gateway",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "0a1dcd76680d5a8bec5ff2166d1588f5448e3c36a2fa41bb8a139fa7d785f91f",
+      "report_sha256": "771890dde0e2c76fd9d753b5cf9126dabafc798185275b2ab0bb864712cf4f5c",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-gateway-candidate-5",
+      "combination": "astra-medium",
+      "task": "gateway",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "85b5c5de5c0ade0d6034459e55ae97fceab27ec0d83b6aa961da80c66c605244",
+      "report_sha256": "06fec69039ec4e04b70c5bf739934c3cec48b8b973e083591c726bfcc2c3462e",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-v1-astra-medium-rendering-baseline-1",
+      "combination": "astra-medium",
+      "task": "rendering",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "684fb50b56b4763cf13f46228b4ca63f78942c5391caea8ff696109a2a965809",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-v1-astra-medium-rendering-baseline-2",
+      "combination": "astra-medium",
+      "task": "rendering",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "8414f90d7b4b6bb1ff45e930b0c285964b58261fb78d089be54d0dff9ca28b5d",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-rendering-baseline-3",
+      "combination": "astra-medium",
+      "task": "rendering",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "2f3253fcf7204fbb1c395640136191eeccf2652c9b61422b710b4ce4d2a5fd93",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-rendering-baseline-4",
+      "combination": "astra-medium",
+      "task": "rendering",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "48c224b2bd12c4dbff88409e08a55eaf6bf9a7061281197daa62066fa9d3cada",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-rendering-baseline-5",
+      "combination": "astra-medium",
+      "task": "rendering",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "4b81b860748e7c5198ab402632b9c5fcea47e037c5c845ee5747e302dc339b35",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-v1-astra-medium-rendering-candidate-1",
+      "combination": "astra-medium",
+      "task": "rendering",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "ffdf52a10a1a6afdd36093e41a4cd9987327f49c32b6d0b2fad96e2cca8b0693",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-v1-astra-medium-rendering-candidate-2",
+      "combination": "astra-medium",
+      "task": "rendering",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "50bf4a6f85cc5612334f079c7a129664a593720a0503de7a264c0da777fc5ed6",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-rendering-candidate-3",
+      "combination": "astra-medium",
+      "task": "rendering",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "7f42b81baecca1a27117e7ed60d07b906c667422e0295e42fcb40830de71f7ed",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-rendering-candidate-4",
+      "combination": "astra-medium",
+      "task": "rendering",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "4785a1357f8d7675c87f27632482a813c9df65a70691e7c2f4a231ef4c887a64",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-rendering-candidate-5",
+      "combination": "astra-medium",
+      "task": "rendering",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "747bbd9e6e65a7a3bb39e9b0c127ae5ec9ff250e98557e1bbc290266048b02c9",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-baseline-1",
+      "combination": "astra-medium",
+      "task": "challenges",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "cabb511579fd49a0d6a52d6dccac452f5b5bdd8b4297de84f3ea3c5b391d2255",
+      "report_sha256": "8c05655026650941c0b088bc2401b26b2dab00781aa08ba20972655b8fe79c3f",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-baseline-2",
+      "combination": "astra-medium",
+      "task": "challenges",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "37ef8f069449f480aaaf5537e81fe34d0c9bbfbdafff25d78443de9b7b92fa3e",
+      "report_sha256": "8c05655026650941c0b088bc2401b26b2dab00781aa08ba20972655b8fe79c3f",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-baseline-3",
+      "combination": "astra-medium",
+      "task": "challenges",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "3f16a87597cf747517e3f71dccf574ca621c4add208910f804d9344ac0bcf00d",
+      "report_sha256": "8c05655026650941c0b088bc2401b26b2dab00781aa08ba20972655b8fe79c3f",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-baseline-4",
+      "combination": "astra-medium",
+      "task": "challenges",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "61d5be4aee3d792aaecd2288ad1fcfc70517f9b5eb6ec4aee9bb419c23e859d3",
+      "report_sha256": "8c05655026650941c0b088bc2401b26b2dab00781aa08ba20972655b8fe79c3f",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-baseline-5",
+      "combination": "astra-medium",
+      "task": "challenges",
+      "arm": "baseline",
+      "binding_problems": [],
+      "capture_sha256": "a846267e5c6732b1eb94f544c3db4ec10a6bd9c5ff38ce506945b39b4f1591c3",
+      "report_sha256": "8c05655026650941c0b088bc2401b26b2dab00781aa08ba20972655b8fe79c3f",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-candidate-1",
+      "combination": "astra-medium",
+      "task": "challenges",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "47432e564df693573d9f7a9a30e2d68486d10fbdd59a9d55b762e9201814fa1f",
+      "report_sha256": "ea31812d8b700e5dd29a86f0994e1bbd43cfc5a7794d67a10b7302283c293dbd",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-candidate-2",
+      "combination": "astra-medium",
+      "task": "challenges",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "adfa824f5830867560fd8273f57ccf709c0647f69729351adbc64bc5376865d4",
+      "report_sha256": "571720a96f24e428ebc9789eabf7b2f2b5f8af8983239454140d29bea0f63f8f",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-candidate-3",
+      "combination": "astra-medium",
+      "task": "challenges",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "36a353151e881298b352e39395db95823f3fa147eefb8b4cf83f74196ecda464",
+      "report_sha256": "ea31812d8b700e5dd29a86f0994e1bbd43cfc5a7794d67a10b7302283c293dbd",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-candidate-4",
+      "combination": "astra-medium",
+      "task": "challenges",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "f8e715923fd30ecf5889368b717868323923053513b9032f4092ea2b2f28279f",
+      "report_sha256": "571720a96f24e428ebc9789eabf7b2f2b5f8af8983239454140d29bea0f63f8f",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-candidate-5",
+      "combination": "astra-medium",
+      "task": "challenges",
+      "arm": "candidate",
+      "binding_problems": [],
+      "capture_sha256": "b7839b981c56b049a633cfe268eb96697a4c79a257be5883cfadc69da164f02b",
+      "report_sha256": "571720a96f24e428ebc9789eabf7b2f2b5f8af8983239454140d29bea0f63f8f",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "native_status": "pass",
+      "native_rollout_matches": 1,
+      "native_source_hash_matches": true
+    }
+  ],
+  "manual_reason_correspondence": [
+    {
+      "path": "manual-artifact-reviews/challenges-final-sol-medium.json",
+      "sha256": "5acb17cc357089f4df92b1fd15d8ec6033cc9871fbfb4338e9180c7abfe159a1",
+      "rows_checked": 80,
+      "path_hash_bindings_checked": 55,
+      "expected_when_complete": 80,
+      "problems": [],
+      "record_status": "all-80-actual-reasons-manually-reviewed"
+    },
+    {
+      "path": "manual-artifact-reviews/challenges-final-astra-medium.json",
+      "sha256": "a31c647903f2989ab8fd35d459880b75caf810e90d04ced314455d4d3980800b",
+      "rows_checked": 80,
+      "path_hash_bindings_checked": 55,
+      "expected_when_complete": 80,
+      "problems": [],
+      "record_status": "complete-bounded-review-with-ancillary-overclaim"
+    },
+    {
+      "path": "manual-artifact-reviews/challenges-opus-reference.json",
+      "sha256": "8cfac3ad23f2f088d1f68aa3d99b73bb2dc9e58dd902ab9ed775f464abd2167f",
+      "rows_checked": 80,
+      "path_hash_bindings_checked": 55,
+      "expected_when_complete": 80,
+      "problems": [],
+      "record_status": "complete-bounded-review-with-ancillary-overclaims"
+    }
+  ],
+  "scorer_static_findings": [
+    "Composition is90distinct samples:30Opus reference,30Sol-medium and30Astra-medium, with five per policy arm for all3tasks. Frozen screen samples and additional/reused samples remain named separately.",
+    "Raw runs/cases, frozen-assessed runs/cases and native certification are counted separately; no raw heading failure is erased.",
+    "Revised scorer now requires capture presence and binds native sample/session, generic expectation hash and delivered task bytes; these formerly reported validation gaps are closed.",
+    "Revised challenge scope equals preflight scope exactly; amended wrapper/task/tools bind to preregistration, original core/cases/policy/schemas/runtime remain unchanged.",
+    "Scorer does not itself hash private rollout source bytes or require worker exit0; this audit independently verified both on all60GPT samples with no mismatch.",
+    "Preserved Opus aggregate reviews bind to their underlying audit files and record Claude model identity. The grouping medium effort is not a separately exposed reference effort certification. No model-only or cross-provider effort-equivalence inference follows."
+  ],
+  "limits": [
+    "Read-only independent recomputation; scorer source inspected but not executed because it writes progress files. Only this audit JSON was written.",
+    "Native private rollout bytes were hashed without exporting their contents.",
+    "Reason correspondence verifies exact240reason texts/hashes and capture/result bindings; semantic fidelity findings remain owned by the three manual reason reviews, including ancillary source overclaims.",
+    "This is bounded fixture/consumer evidence; amended GPT scope does not certify provider independence, production challenge eligibility, statistical equivalence or general model interchangeability."
+  ],
+  "initial_snapshot_note": "Initial audit observed89snapshot samples while90captures existed. Scorer snapshot now refreshed to90and all aggregate counts independently match.",
+  "reference_audit_bindings": [
+    {
+      "path": "gateway-context-v3-native-log-review.json",
+      "sha256": "ea312a55a3cf0cd0ee9f3dc5ef25b5ced789eee9f45fbbf2f1ca66690b30d93f",
+      "underlying_audit_bindings_checked": 1
+    },
+    {
+      "path": "challenges-file-input-v4-native-log-review.json",
+      "sha256": "7a009b54e9672c55bdfd5493b07f81ec3a65a4d309a7405923afca9198ae6501",
+      "underlying_audit_bindings_checked": 1
+    },
+    {
+      "path": "rendering-v2-protocol-and-rubric-review.json",
+      "sha256": "a81df829e4fbae022dea418bd417be1f0797e6d8346e7d436dfa18671357ac56",
+      "underlying_audit_bindings_checked": 10
+    }
+  ],
+  "summary": {
+    "planned_samples": 90,
+    "completed_samples": 90,
+    "raw_runs_passed": 60,
+    "assessed_runs_passed": 90,
+    "native_passed": 90,
+    "raw_cases_passed": 1230,
+    "raw_cases_total": 1260,
+    "assessed_cases_passed": 1260,
+    "assessed_cases_total": 1260,
+    "manual_reason_hash_correspondences": 240,
+    "binding_failures": 0,
+    "snapshot_count_differences": 0
+  }
+}

@@ -1,0 +1,2 @@
+- **Explanation opening:** draft → no load-bearing model to lead with → ask the producer to supply the governing idea; none is present to hoist.
+- **Step enumeration:** steps one to three → three enumerable items must be a markdown list → put each supplied step in a separate bold-lead bullet.

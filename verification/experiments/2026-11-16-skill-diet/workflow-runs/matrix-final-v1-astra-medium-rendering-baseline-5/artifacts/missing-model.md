@@ -1,0 +1,2 @@
+- **Explanation opening** → no load-bearing model to lead with → flag the producer gap; the source supplies no governing statement to hoist.
+- **Three inline steps** → 3+ items must be a list → render the supplied steps as a numbered list.

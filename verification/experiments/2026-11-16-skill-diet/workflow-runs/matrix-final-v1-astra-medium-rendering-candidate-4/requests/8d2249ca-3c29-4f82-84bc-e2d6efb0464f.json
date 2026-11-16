@@ -1,0 +1,1 @@
+{"name":"write_output","args":{"case_id":"model-hoist","text":"Prompt caching depends on an identical leading token sequence.\n\n- **Mechanism:** The SDK checks the longest matching request prefix and recomputes its suffix.\n- **Measurement:** Measure hits using `cache_read_input_tokens`.\n- **Placement:** Put stable system text before the volatile user turn."}}

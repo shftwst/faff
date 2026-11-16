@@ -1,12 +1,12 @@
 {
   "schema": 1,
-  "created_utc": "2026-11-16T19:41:20.885168+00:00",
+  "created_utc": "2026-11-16T20:04:38.218524+00:00",
   "reviewer": {
     "role": "independent actual challenge-reason verifier",
     "model": "gpt-6.1-sol",
     "reasoning_effort": "medium"
   },
-  "scope": "Offline same-provider-family judgement reasons and recorded real CLI admission consumption. No provider independence or production challenge eligibility is certified.",
+  "scope": "Offline same-provider-family judgement reasons and recorded real CLI admission consumption. All 80 actual reasons across the ten planned Sol-medium samples are reviewed. No provider independence or production challenge eligibility is certified.",
   "inputs": [
     {
       "path": "verification/experiments/2026-11-16-skill-diet/matrix-final-v1-sol-medium-challenges-plan.json",
@@ -58,6 +58,267 @@
         "pass"
       ],
       "reasons_reviewed": 8
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-1",
+      "arm": "candidate",
+      "capture": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-candidate-1/capture.json",
+        "sha256": "96bef9adc1f0957ec66d98c5beff0605374b35548b88313628b3afe7140ec2b0"
+      },
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-candidate-1/report.json",
+        "sha256": "571720a96f24e428ebc9789eabf7b2f2b5f8af8983239454140d29bea0f63f8f"
+      },
+      "native_audit": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-candidate-1/native-audit.json",
+        "sha256": "a9dbf0c0e090e05ac692ca2e56f5f8cb868829eb1be863b0f3f6f95a84806d15"
+      },
+      "worker_final_state": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-candidate-1/worker-final-state.json",
+        "sha256": "1a2f87ba2a14676584b3a12a236482961058983df7a8ed097c9932007a9f5ab3"
+      },
+      "task": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-candidate-1/task.json",
+        "sha256": "90de798d598f4597aecae0ca57d6b238ed07be6cc64f8aa462ff64a92ba1c469"
+      },
+      "functional_status": "pass",
+      "native_status": [
+        "pass"
+      ],
+      "reasons_reviewed": 8
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-2",
+      "arm": "candidate",
+      "capture": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-candidate-2/capture.json",
+        "sha256": "cf8161b9ee2e4e00339ac4f7bc36f8a4edf66d54b46b03955188628e9f0b9bf4"
+      },
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-candidate-2/report.json",
+        "sha256": "571720a96f24e428ebc9789eabf7b2f2b5f8af8983239454140d29bea0f63f8f"
+      },
+      "native_audit": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-candidate-2/native-audit.json",
+        "sha256": "cd635c4e3d18576994fd394eca3f8912dc31faf853963d4137bcc3baa189d8fc"
+      },
+      "worker_final_state": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-candidate-2/worker-final-state.json",
+        "sha256": "20d12f82ac39b27837430872cc1afef39674a1c36b66a35bd3eac5261d837fe5"
+      },
+      "task": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-candidate-2/task.json",
+        "sha256": "90de798d598f4597aecae0ca57d6b238ed07be6cc64f8aa462ff64a92ba1c469"
+      },
+      "functional_status": "pass",
+      "native_status": [
+        "pass"
+      ],
+      "reasons_reviewed": 8
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-2",
+      "arm": "baseline",
+      "capture": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-baseline-2/capture.json",
+        "sha256": "0552ac1a4bf710dcf021deb0acfc7960c7475947e5a2bc05a3d75ee4f9727865"
+      },
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-baseline-2/report.json",
+        "sha256": "8c05655026650941c0b088bc2401b26b2dab00781aa08ba20972655b8fe79c3f"
+      },
+      "native_audit": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-baseline-2/native-audit.json",
+        "sha256": "003f805fbacb2d56031378cbd1830a932fed88857beb854184bffdf698b00b68"
+      },
+      "worker_final_state": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-baseline-2/worker-final-state.json",
+        "sha256": "23da09d622a6ed8942d7d8e54753ccfa8586fa48a03fd2bc19ee0191e1b7c36f"
+      },
+      "task": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-baseline-2/task.json",
+        "sha256": "9e33615a3c2c79f2204ae05694cc57bf8ff33e5c1f7916e5c852a8ae7d0c786c"
+      },
+      "functional_status": "pass",
+      "native_status": [
+        "pass"
+      ],
+      "reasons_reviewed": 8
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-3",
+      "arm": "baseline",
+      "capture": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-baseline-3/capture.json",
+        "sha256": "b315c4de16802a1324f15d48074a749bd75daeed4be99260a1870c7b43e7eb52"
+      },
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-baseline-3/report.json",
+        "sha256": "8c05655026650941c0b088bc2401b26b2dab00781aa08ba20972655b8fe79c3f"
+      },
+      "native_audit": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-baseline-3/native-audit.json",
+        "sha256": "d7e660a6dbfa27c954654760dbc9d4aa5ce4af9390bb7f4f56444f873db2e5ea"
+      },
+      "worker_final_state": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-baseline-3/worker-final-state.json",
+        "sha256": "117641fe23a6ed3d740ce98138a08fb75e5664edda63fdaa13aba7c4edd26ae1"
+      },
+      "task": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-baseline-3/task.json",
+        "sha256": "9e33615a3c2c79f2204ae05694cc57bf8ff33e5c1f7916e5c852a8ae7d0c786c"
+      },
+      "functional_status": "pass",
+      "native_status": [
+        "pass"
+      ],
+      "reasons_reviewed": 8
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-3",
+      "arm": "candidate",
+      "capture": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-candidate-3/capture.json",
+        "sha256": "4d612ac7a324b5dd755d36ef4245b8054a1a7c350e2e8bdbba49602b5af5a7d4"
+      },
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-candidate-3/report.json",
+        "sha256": "571720a96f24e428ebc9789eabf7b2f2b5f8af8983239454140d29bea0f63f8f"
+      },
+      "native_audit": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-candidate-3/native-audit.json",
+        "sha256": "e0315f5b91aaff9ff63c591f55dbd4192a4350169aac2040d76781521af99a30"
+      },
+      "worker_final_state": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-candidate-3/worker-final-state.json",
+        "sha256": "7a306042038393350af4e16c0e455f156ab2f20cae894b52583b202c5c4c24a1"
+      },
+      "task": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-candidate-3/task.json",
+        "sha256": "90de798d598f4597aecae0ca57d6b238ed07be6cc64f8aa462ff64a92ba1c469"
+      },
+      "functional_status": "pass",
+      "native_status": [
+        "pass"
+      ],
+      "reasons_reviewed": 8
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-4",
+      "arm": "candidate",
+      "capture": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-candidate-4/capture.json",
+        "sha256": "b4701aa0bde539b14bac3059c0a7a0d4de46fe88cea9f267013db7c7b0d6e491"
+      },
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-candidate-4/report.json",
+        "sha256": "571720a96f24e428ebc9789eabf7b2f2b5f8af8983239454140d29bea0f63f8f"
+      },
+      "native_audit": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-candidate-4/native-audit.json",
+        "sha256": "cb121e07fd4c72fb7217bb1f506fbc1ea71b4c05bb97eb4d6e548fcd4ac19930"
+      },
+      "worker_final_state": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-candidate-4/worker-final-state.json",
+        "sha256": "1d0508e4c3ecb7e66a4f08b1e5fea3a9b3e6072f069a138022de2e2a92202192"
+      },
+      "task": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-candidate-4/task.json",
+        "sha256": "90de798d598f4597aecae0ca57d6b238ed07be6cc64f8aa462ff64a92ba1c469"
+      },
+      "functional_status": "pass",
+      "native_status": [
+        "pass"
+      ],
+      "reasons_reviewed": 8
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-4",
+      "arm": "baseline",
+      "capture": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-baseline-4/capture.json",
+        "sha256": "7334d99e0a642ef00760962f2814a9092c7be4ac35552041a37f4d8b54fd88be"
+      },
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-baseline-4/report.json",
+        "sha256": "8c05655026650941c0b088bc2401b26b2dab00781aa08ba20972655b8fe79c3f"
+      },
+      "native_audit": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-baseline-4/native-audit.json",
+        "sha256": "b3a99bcbc80c2d8591b2f3de5e40d56143194bdb373e156618b8c6118b7c5ca4"
+      },
+      "worker_final_state": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-baseline-4/worker-final-state.json",
+        "sha256": "710cb66a46f1c50a43d312824f237a1d9f4bd8744f87fa99bbfa4070217cdb71"
+      },
+      "task": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-baseline-4/task.json",
+        "sha256": "9e33615a3c2c79f2204ae05694cc57bf8ff33e5c1f7916e5c852a8ae7d0c786c"
+      },
+      "functional_status": "pass",
+      "native_status": [
+        "pass"
+      ],
+      "reasons_reviewed": 8
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-5",
+      "arm": "baseline",
+      "capture": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-baseline-5/capture.json",
+        "sha256": "2be6f11c94d8526a36da42f4e5812231d5306d4216c41d135c646dc2ca1e7a35"
+      },
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-baseline-5/report.json",
+        "sha256": "8c05655026650941c0b088bc2401b26b2dab00781aa08ba20972655b8fe79c3f"
+      },
+      "native_audit": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-baseline-5/native-audit.json",
+        "sha256": "56d90555970e4ccdc95461b41eccaacc31886f3810c49064ca59282368137795"
+      },
+      "worker_final_state": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-baseline-5/worker-final-state.json",
+        "sha256": "57bbeb7448ee2e08e3b0bc6cc26b6027cc00aac2d88ca61716fc6c3510c4884c"
+      },
+      "task": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-baseline-5/task.json",
+        "sha256": "9e33615a3c2c79f2204ae05694cc57bf8ff33e5c1f7916e5c852a8ae7d0c786c"
+      },
+      "functional_status": "pass",
+      "native_status": [
+        "pass"
+      ],
+      "reasons_reviewed": 8
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-5",
+      "arm": "candidate",
+      "capture": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-candidate-5/capture.json",
+        "sha256": "c633aa3bb9cb8a79dff01406504cab7db5bb5383a5b755bbacdffe404dc2f76d"
+      },
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-candidate-5/report.json",
+        "sha256": "571720a96f24e428ebc9789eabf7b2f2b5f8af8983239454140d29bea0f63f8f"
+      },
+      "native_audit": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-candidate-5/native-audit.json",
+        "sha256": "4c5192eaf8b83a5d4f9fecf2da66e9d957874e5e673207b21d3a598a31301d65"
+      },
+      "worker_final_state": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-candidate-5/worker-final-state.json",
+        "sha256": "702ac1ef2b4206c2e1f93802c711ab1a49c8570c9ce3b675c199d96e8a0d1afa"
+      },
+      "task": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-final-v1-sol-medium-challenges-candidate-5/task.json",
+        "sha256": "90de798d598f4597aecae0ca57d6b238ed07be6cc64f8aa462ff64a92ba1c469"
+      },
+      "functional_status": "pass",
+      "native_status": [
+        "pass"
+      ],
+      "reasons_reviewed": 8
     }
   ],
   "reason_reviews": [
@@ -102,18 +363,28 @@
         "ground": null,
         "admit": false
       },
-      "manual_status": "pass",
+      "manual_status": "correct-core-outcome-with-overbroad-rule-paraphrase",
       "source_fidelity_findings": [
-        "Challenges writing resolved credentials to a gitignored file against the environment-only secret-handling decision. Disk/process/backup exposure is threat reasoning, not an assertion that a breach or backup exists; in-memory caching is a proposed safer alternative."
+        "Correctly identifies that gitignore does not protect persisted credentials and that the latency argument does not establish a changed security rationale.",
+        "The no-.faff-secret paraphrase is overbroad relative to the literal logs clause; record it separately from the correct rejection."
       ],
-      "unsupported_assertions": [],
+      "unsupported_assertions": [
+        {
+          "excerpt": "no-.faff-secret constraints",
+          "finding": "This paraphrase broadens the literal no-.faff/logs clause into a general prohibition of .faff secret files. The separate environment-only sourcing argument supports the core rejection."
+        }
+      ],
       "missing_decisive_constraints": [],
       "absent_opinion_preserved": "not applicable",
       "provider_independence_claim": false,
       "observed_consumer_disposition": "reject",
       "optional_style_observations": [
         "Repeated calibration scope notes are accurate and do not affect source fidelity."
-      ]
+      ],
+      "exact_rule_scope_assessment": {
+        "literal_source": "Secrets are read from environment variables only, never committed to the repo or written to .faff/ logs. The logs clause does not literally ban every file under .faff/.",
+        "core_outcome": "The persistence proposal is still reasonably rejected on the environment-only sourcing boundary and unsupported security trade; no outcome or ground grade change."
+      }
     },
     {
       "sample": "matrix-final-v1-sol-medium-challenges-baseline-1",
@@ -272,17 +543,1983 @@
       "provider_independence_claim": false,
       "observed_consumer_disposition": "reject",
       "optional_style_observations": []
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-1",
+      "arm": "candidate",
+      "case_id": "adr-1",
+      "capture_event_seq": 2,
+      "reason": "Offline same-provider calibration only. The supersession addresses changed assumptions: runs grew from fewer than 20 to over 200 issues and concurrent builds now write in parallel. Per-issue files remove the shared ledger write lock and limit corruption to one issue; the index retains discovery. These concrete needs justify the added file structure.",
+      "reason_sha256": "6e9b03657d30d4b2bdb85709675c2116f194ac5a959404fe3f6bfc135bce759f",
+      "outcome": "survived",
+      "ground": null,
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Retains the supplied growth from under 20 to 200+ issues and concurrent writes, then connects per-issue files to reduced contention and bounded corruption; the index preserves discovery."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "admit",
+      "optional_style_observations": [
+        "Repeated calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-1",
+      "arm": "candidate",
+      "case_id": "adr-2",
+      "capture_event_seq": 4,
+      "reason": "Offline same-provider calibration only. Gitignore prevents ordinary commits but does not prevent plaintext secret persistence, filesystem exposure or stale cached credentials. The proposal abandons the environment-only rule for a small latency claim without showing that the security rationale changed. An in-memory cache could avoid repeated reads without writing secrets to disk.",
+      "reason_sha256": "d800107cd1b1e003cfa369a9e6dac828143345864238f84465654ba56fe95f5b",
+      "outcome": "overturned",
+      "ground": null,
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Challenges persistent credentials against the environment-only decision; exposure and stale-cache consequences are threat reasoning, not claims of an observed breach. In-memory caching is a suggested alternative."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Repeated calibration scope notes are accurate and do not affect source fidelity."
+      ],
+      "exact_rule_scope_assessment": {
+        "literal_source": "Secrets are read from environment variables only, never committed to the repo or written to .faff/ logs. The logs clause does not literally ban every file under .faff/.",
+        "core_outcome": "The persistence proposal is still reasonably rejected on the environment-only sourcing boundary and unsupported security trade; no outcome or ground grade change.",
+        "paraphrase": "No categorical assertion that the old decision bans all files under .faff; persistence/exposure is described as a security trade against environment-only sourcing."
+      }
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-1",
+      "arm": "candidate",
+      "case_id": "adr-unavailable",
+      "capture_event_seq": 6,
+      "reason": "The supplied exhausted provider attempt obtained no opinion. Preserve the absent challenge without substituting a substantive assessment or a pass.",
+      "reason_sha256": "4c6203af47ffb0733b518a0d4e7f5c17974d8ba6275d8d240376ae51b6bc492a",
+      "outcome": null,
+      "ground": null,
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Preserves the explicitly exhausted provider attempt as absent, with no substantive drift judgement and no admission."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": true,
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": []
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-1",
+      "arm": "candidate",
+      "case_id": "prdr-1",
+      "capture_event_seq": 8,
+      "reason": "Offline same-provider calibration only. The flag exposes the current floor decision without merging, directly serving safe inspection. It reuses the existing floor logic and the DoD verifies both eligibility outcomes and absence of merge invocation. No capability exceeds the declared goals.",
+      "reason_sha256": "e62253ac7ad8b6c049ad407f035296ae8edefec943bcd994ca16cb8fde8b3979",
+      "outcome": "survived",
+      "ground": null,
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Retains current-state safe inspection, existing floor reads and no merge invocation; does not add historical storage or queries."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "admit",
+      "optional_style_observations": [
+        "Repeated calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-1",
+      "arm": "candidate",
+      "case_id": "prdr-2",
+      "capture_event_seq": 10,
+      "reason": "Offline same-provider calibration only. The PRD explicitly excludes historical storage and query features. Persisting every evaluation and adding a historical timeline, date filter and format controls exceed those declared goals. The current-decision dry-run capability does not justify the additional DoD capabilities.",
+      "reason_sha256": "6850ac84dbe23ebeeb69fbaaeea436a4d12ec2756072e5952d05ef7c85b1e7d2",
+      "outcome": "overturned",
+      "ground": "over-scope",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Identifies history persistence, timeline queries and filters/formats as outside the explicitly current-state-only PRD; dry-run does not justify that extra scope."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Repeated calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-1",
+      "arm": "candidate",
+      "case_id": "prdr-under-citation",
+      "capture_event_seq": 12,
+      "reason": "Offline same-provider calibration only. CSV rows serve the declared export goal and the date range serves the separately declared date-filter goal. The PRDR cites only export, so it under-cites its coverage, but every DoD capability remains within the full PRD goal set. Under-citation is not an over-scope ground; the CLI owns the deterministic coverage test.",
+      "reason_sha256": "66bb817139a8f909c2f47f759962d4ec4859392f21c3503d50d32ace4dd4d6d6",
+      "outcome": "survived",
+      "ground": null,
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Distinguishes incomplete goal citation from an undeclared capability: date filtering is an explicit PRD goal and covered by the supplied DoD."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "admit",
+      "optional_style_observations": [
+        "Repeated calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-1",
+      "arm": "candidate",
+      "case_id": "prdr-unserved",
+      "capture_event_seq": 14,
+      "reason": "Offline same-provider calibration only. The PRDR cites date filtering but its DoD explicitly excludes date input and filtering. CSV export serves the export goal alone, so the Phase-1 claim that both cited goals are served is false. This is an unserved cited goal, not excess scope.",
+      "reason_sha256": "b0a9ece1680c975fec1ed023bfdb817a478931e7ed2218defd97316c74b243be",
+      "outcome": "overturned",
+      "ground": "unserved",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Identifies that the PRDR cites date filtering while its DoD explicitly excludes it; the correct ground is unserved rather than over-scope or under-citation."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Repeated calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-1",
+      "arm": "candidate",
+      "case_id": "prdr-unavailable",
+      "capture_event_seq": 16,
+      "reason": "The supplied exhausted provider attempt obtained no opinion. Preserve the missing challenge so the caller rejects as phase2-inconclusive; do not replace the absence with a favourable assessment.",
+      "reason_sha256": "60f8bd1fe738b5a0dcbec0cd3405526027c12975018adeffcbe056d2718bd9af",
+      "outcome": null,
+      "ground": null,
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Preserves the exhausted provider attempt as absent and Phase 2 as inconclusive; no substantive opinion is substituted."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": true,
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": []
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-2",
+      "arm": "candidate",
+      "case_id": "adr-1",
+      "capture_event_seq": 2,
+      "reason": "Offline calibration judgement only, without provider independence or production eligibility: the old decision explicitly depended on runs below 20 issues. Runs now exceed 200 issues and concurrent builds contend on its single lock. Per-issue files directly reduce write contention and corruption impact while retaining run discovery through an index. The supersession argument is sound on the supplied evidence.",
+      "reason_sha256": "d7a2a4505e4becd864319085d2b4b16aea3d1c2054ad2c73e1d8be784df1c663",
+      "outcome": "survived",
+      "ground": null,
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Retains the supplied growth from under 20 to 200+ issues and concurrent writes, then connects per-issue files to reduced contention and bounded corruption; the index preserves discovery."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "admit",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-2",
+      "arm": "candidate",
+      "case_id": "adr-2",
+      "capture_event_seq": 4,
+      "reason": "Offline calibration judgement only, without provider independence or production eligibility: gitignore prevents ordinary tracking but does not protect plaintext credentials from local reads, backups or accidental disclosure. Persisting keys under .faff changes the environment-only security boundary. The supplied small latency claim does not justify this exposure; a session cache could remain in memory without writing secrets to disk.",
+      "reason_sha256": "65a84b9cc7bff03b2d8d9e90b1fd74a2eb188db923c0e5eb5d4bb985bad6e39e",
+      "outcome": "overturned",
+      "ground": null,
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Challenges credential persistence against the environment-only decision. Exposure consequences are threat reasoning, not evidence of an actual breach; in-memory caching is a suggested alternative."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ],
+      "exact_rule_scope_assessment": {
+        "literal_source": "Secrets are read from environment variables only, never committed to the repo or written to .faff/ logs. The logs clause does not literally ban every file under .faff/.",
+        "core_outcome": "The persistence proposal is still reasonably rejected on the environment-only sourcing boundary and unsupported security trade; no outcome or ground grade change.",
+        "paraphrase": "No categorical assertion that the old decision bans all files under .faff; persistence/exposure is described as a security trade against environment-only sourcing."
+      }
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-2",
+      "arm": "candidate",
+      "case_id": "adr-unavailable",
+      "capture_event_seq": 6,
+      "reason": "The supplied provider attempt is exhausted and opinion_available is false. Preserve the absent drift challenge without substituting a judgement; absence rejects. This is an offline calibration, with no claim of provider independence or production eligibility.",
+      "reason_sha256": "4743b20f229ec398723ed72a222dd690362878625ecc97588189bff0c246e3d2",
+      "outcome": null,
+      "ground": null,
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Preserves the explicitly exhausted provider attempt as absent, with no substantive drift judgement and no admission."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": true,
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-2",
+      "arm": "candidate",
+      "case_id": "prdr-1",
+      "capture_event_seq": 8,
+      "reason": "Offline calibration judgement only, without provider independence or production eligibility: the flag exposes the current floor decision without merging, directly serving safe inspection. Its DoD checks both eligibility outcomes and absence of the merge invocation. Reusing the existing floor keeps one source of truth and adds no capability beyond the declared goals.",
+      "reason_sha256": "c32fa3a17c4658c20f5e2a03667d0c10f65fd2e860915aa9033e567fef56d05b",
+      "outcome": "survived",
+      "ground": null,
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Retains current-state safe inspection, existing floor reads and no merge invocation; does not add historical storage or queries."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "admit",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-2",
+      "arm": "candidate",
+      "case_id": "prdr-2",
+      "capture_event_seq": 10,
+      "reason": "Offline calibration judgement only, without provider independence or production eligibility: the PRD explicitly excludes historical storage and query features. The history JSONL log, full timeline, date filter and output-format toggle add DoD capabilities beyond current safe eligibility inspection. The useful dry-run flag does not justify admitting the excluded machinery.",
+      "reason_sha256": "778dc90b86c33d5d6b97008746dcf413d20713df0a980621703959d6a6b176e5",
+      "outcome": "overturned",
+      "ground": "over-scope",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Identifies history persistence, timeline queries and filters/formats as outside the explicitly current-state-only PRD; dry-run does not justify that extra scope."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-2",
+      "arm": "candidate",
+      "case_id": "prdr-under-citation",
+      "capture_event_seq": 12,
+      "reason": "Offline calibration judgement only, without provider independence or production eligibility: CSV rows serve Export transactions as CSV, and the date-range DoD serves Filter transaction exports by date. Both capabilities are declared PRD goals. The omitted filter citation is under-citation, not over-scope; the CLI owns the deterministic dod-covers set test. No supplied DoD capability exceeds the PRD.",
+      "reason_sha256": "76837cff3f3665fbdb9b39f7c30d7930e74cd17a228e29a8f37b15728cda6e4e",
+      "outcome": "survived",
+      "ground": null,
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Distinguishes incomplete goal citation from an undeclared capability: date filtering is an explicit PRD goal and covered by the supplied DoD."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "admit",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-2",
+      "arm": "candidate",
+      "case_id": "prdr-unserved",
+      "capture_event_seq": 14,
+      "reason": "Offline calibration judgement only, without provider independence or production eligibility: the PRDR cites Filter transaction exports by date, but its DoD explicitly implements no date input or filtering. CSV export serves the export goal only. Phase 1 incorrectly claims both cited goals are served; the missing filter is an unserved cited goal, not excess scope or a requirement to implement every PRD goal in this increment.",
+      "reason_sha256": "5f92d38ec58271f2690027e2667a3f31a4d42bdd3ec0c25f6aa7bcf40af4c9e7",
+      "outcome": "overturned",
+      "ground": "unserved",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Identifies that the PRDR cites date filtering while its DoD explicitly excludes it; the correct ground is unserved rather than over-scope or under-citation."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-2",
+      "arm": "candidate",
+      "case_id": "prdr-unavailable",
+      "capture_event_seq": 16,
+      "reason": "The supplied provider attempt is exhausted and opinion_available is false. Preserve the absent Phase-2 opinion and omit the challenge; the caller must reject as phase2-inconclusive rather than infer survival from the proposal. This is an offline calibration, with no claim of provider independence or production eligibility.",
+      "reason_sha256": "91aaf1802dac73e3ae80d22b467c4e54560d315db55b49863fbda59088dd87d6",
+      "outcome": null,
+      "ground": null,
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Preserves the exhausted provider attempt as absent and Phase 2 as inconclusive; no substantive opinion is substituted."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": true,
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-2",
+      "arm": "baseline",
+      "case_id": "adr-1",
+      "capture_event_seq": 2,
+      "reason": "The supersession argument holds: the old decision explicitly relied on fewer than 20 issues per run, while current runs exceed 200 and concurrent builds now share writes. Per-issue files directly reduce lock contention and limit corruption to one issue; the small index preserves discovery. This is offline calibration judgement, without a claim of provider independence or production challenge eligibility.",
+      "reason_sha256": "b4b66fa127a9116c6cc73b2324cf2af398b118af1ba9f34f19b395d28e8f5699",
+      "outcome": "survived",
+      "ground": null,
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Retains the supplied growth from under 20 to 200+ issues and concurrent writes, then connects per-issue files to reduced contention and bounded corruption; the index preserves discovery."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "admit",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-2",
+      "arm": "baseline",
+      "case_id": "adr-2",
+      "capture_event_seq": 4,
+      "reason": "The argument is unsound: gitignore prevents ordinary commits but does not prevent persistent plaintext secret storage or local disclosure. Writing resolved keys under .faff abandons the old environment-only boundary for a small latency claim, without evidence that this security trade is warranted. Reading process.env does not require a disk credential cache; session memory could avoid repeated lookups. Offline calibration only, with no provider-independence or production-eligibility claim.",
+      "reason_sha256": "f1b4b2a5eda03b0fd9a23fa77ef80ab2af326357f95190c0db8703690afaa8ea",
+      "outcome": "overturned",
+      "ground": null,
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Challenges credential persistence against the environment-only decision. Exposure consequences are threat reasoning, not evidence of an actual breach; in-memory caching is a suggested alternative."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ],
+      "exact_rule_scope_assessment": {
+        "literal_source": "Secrets are read from environment variables only, never committed to the repo or written to .faff/ logs. The logs clause does not literally ban every file under .faff/.",
+        "core_outcome": "The persistence proposal is still reasonably rejected on the environment-only sourcing boundary and unsupported security trade; no outcome or ground grade change.",
+        "paraphrase": "No categorical assertion that the old decision bans all files under .faff; persistence/exposure is described as a security trade against environment-only sourcing."
+      }
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-2",
+      "arm": "baseline",
+      "case_id": "adr-unavailable",
+      "capture_event_seq": 6,
+      "reason": "The supplied provider attempt is exhausted and opinion_available is false. Preserve the absent opinion; no substantive challenge judgement is substituted.",
+      "reason_sha256": "985bf3920d265e729843e99e9c599b8b6d3c3c40c39c74a571a9f9b90f800b04",
+      "outcome": null,
+      "ground": null,
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Preserves the explicitly exhausted provider attempt as absent, with no substantive drift judgement and no admission."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": true,
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": []
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-2",
+      "arm": "baseline",
+      "case_id": "prdr-1",
+      "capture_event_seq": 8,
+      "reason": "The proposal provides safe inspection of the current eligibility decision, exactly as the PRD requests. Its DoD exercises the existing floor conditions and prohibits merging under dry-run. No historical storage or query capability is added, and the floor remains the single source of truth. Offline calibration judgement only; no provider-independence or production-eligibility claim.",
+      "reason_sha256": "0b4420e52a263fd2223298bcfe48fc6796a2310a3ef430820a14a0dd620ed0a6",
+      "outcome": "survived",
+      "ground": null,
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Retains current-state safe inspection, existing floor reads and no merge invocation; does not add historical storage or queries."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "admit",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-2",
+      "arm": "baseline",
+      "case_id": "prdr-2",
+      "capture_event_seq": 10,
+      "reason": "The PRD explicitly excludes historical storage and query features. The added persistent evaluation log, historical timeline, date filter and output formats exceed the declared goals. Calling them a natural extension does not justify that additional capability; the dry-run flag alone serves current inspection. Offline calibration only, with no provider-independence or production-eligibility claim.",
+      "reason_sha256": "33c92f404d642df0cc7e9711e300a3f429f8fd00f65f91f5704f2e1011437535",
+      "outcome": "overturned",
+      "ground": "over-scope",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Identifies history persistence, timeline queries and filters/formats as outside the explicitly current-state-only PRD; dry-run does not justify that extra scope."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-2",
+      "arm": "baseline",
+      "case_id": "prdr-under-citation",
+      "capture_event_seq": 12,
+      "reason": "CSV export and date filtering each serve an explicitly declared PRD goal. The DoD covers both, although the authored PRDR cites only export. That omission is under-citation, not capability beyond the PRD, and does not warrant overturning. The other declared goals need not all be implemented by this PRDR. Offline calibration only, without provider-independence or production-eligibility claims.",
+      "reason_sha256": "4f8205a673c4631c6931812b0cfba9ed6a6c26f952304a63ee66fc43a1cff90b",
+      "outcome": "survived",
+      "ground": null,
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Distinguishes incomplete goal citation from an undeclared capability: date filtering is an explicit PRD goal and covered by the supplied DoD."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "admit",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-2",
+      "arm": "baseline",
+      "case_id": "prdr-unserved",
+      "capture_event_seq": 14,
+      "reason": "The PRDR cites date-filtered exports but its DoD explicitly excludes date input and filtering. Export alone cannot serve that cited goal, so Phase 1 incorrectly claims both goals are served. This is an unserved cited goal, not over-scope or under-citation. Offline calibration judgement only, without provider-independence or production-eligibility claims.",
+      "reason_sha256": "88e342de0133f6f8a4da723c1226860ab8baf753bdc15e285534998afc2889d2",
+      "outcome": "overturned",
+      "ground": "unserved",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Identifies that the PRDR cites date filtering while its DoD explicitly excludes it; the correct ground is unserved rather than over-scope or under-citation."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-2",
+      "arm": "baseline",
+      "case_id": "prdr-unavailable",
+      "capture_event_seq": 16,
+      "reason": "opinion_available is false after an exhausted provider attempt. Preserve the absence of an opinion and omit the challenge; a plausible proposal cannot substitute for the missing Phase-2 judgement.",
+      "reason_sha256": "38800abe7ecdb81073d89cf9a1ebb2c926e79879e22a44674b4ae89f94b3a20b",
+      "outcome": null,
+      "ground": null,
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Preserves the exhausted provider attempt as absent and Phase 2 as inconclusive; no substantive opinion is substituted."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": true,
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": []
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-3",
+      "arm": "baseline",
+      "case_id": "adr-1",
+      "capture_event_seq": 2,
+      "reason": "For this offline same-provider calibration, the supersession argument is sound: 200+ issue runs and concurrent writers invalidate the old small-run rationale. Per-issue files reduce shared-file lock contention and confine a corrupt write to one issue, while the index preserves discovery. This assesses the supplied proposal only and does not claim provider independence or production eligibility.",
+      "reason_sha256": "6901d2f381b79554c9c387f393ef5db2c836baf2f8e5bd95ec3fbcddf185cb2a",
+      "outcome": "survived",
+      "ground": null,
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Retains the supplied growth from under 20 to 200+ issues and concurrent writes, then connects per-issue files to reduced contention and bounded corruption; the index preserves discovery."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "admit",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-3",
+      "arm": "baseline",
+      "case_id": "adr-2",
+      "capture_event_seq": 4,
+      "reason": "The latency argument does not justify persisting secrets to disk. Gitignore prevents routine tracking, but does not prevent local disclosure, backups or stale credential retention. The proposal breaks the environment-only boundary; an in-memory session cache could address repeated reads without a credentials file. Offline calibration only, with no claim of provider independence or production eligibility.",
+      "reason_sha256": "61fef941b73aa0e8e18f5330b0c5b4a6a293620d7e6a6c591c0f43958b82e8f0",
+      "outcome": "overturned",
+      "ground": null,
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Challenges credential persistence against the environment-only decision. Exposure consequences are threat reasoning, not evidence of an actual breach; in-memory caching is a suggested alternative."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ],
+      "exact_rule_scope_assessment": {
+        "literal_source": "Secrets are read from environment variables only, never committed to the repo or written to .faff/ logs. The logs clause does not literally ban every file under .faff/.",
+        "core_outcome": "The persistence proposal is still reasonably rejected on the environment-only sourcing boundary and unsupported security trade; no outcome or ground grade change.",
+        "paraphrase": "No categorical assertion that the old decision bans all files under .faff; persistence/exposure is assessed against environment-only sourcing."
+      }
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-3",
+      "arm": "baseline",
+      "case_id": "adr-unavailable",
+      "capture_event_seq": 6,
+      "reason": "opinion_available=false records an exhausted provider attempt. Preserve the absent challenge without substituting a judgement; the caller must omit --challenge and reject for the missing opinion.",
+      "reason_sha256": "89f82075c63eff7339383074d169cb590051dd68e597c93c7b9e4da82691ed45",
+      "outcome": null,
+      "ground": null,
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Preserves the explicitly exhausted provider attempt as absent, with no substantive drift judgement and no admission."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": true,
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": []
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-3",
+      "arm": "baseline",
+      "case_id": "prdr-1",
+      "capture_event_seq": 8,
+      "reason": "The dry-run flag directly serves safe inspection of the current decision. Its DoD checks both eligibility outcomes and the absence of a merge call, while reusing the existing floor logic. No historical capability exceeds the declared goals. Offline same-provider calibration only; no provider independence or production eligibility is claimed.",
+      "reason_sha256": "460ca94fc99a1063e4a9316fdbf779dff705da26970e4303f2a67c91f2db7a56",
+      "outcome": "survived",
+      "ground": null,
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Retains current-state safe inspection, existing floor reads and no merge invocation; does not add historical storage or queries."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "admit",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-3",
+      "arm": "baseline",
+      "case_id": "prdr-2",
+      "capture_event_seq": 10,
+      "reason": "The DoD requires persistent evaluation history, historical timeline queries, date filtering and output formats. The PRD explicitly excludes historical storage and query features, so those capabilities exceed its declared goals despite the warranted dry-run flag. Offline same-provider calibration only; no provider independence or production eligibility is claimed.",
+      "reason_sha256": "b8ea2067050fe337909127dbeac8100d679fd5ca564230d0179c93d3bb2cefde",
+      "outcome": "overturned",
+      "ground": "over-scope",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Identifies history persistence, timeline queries and filters/formats as outside the explicitly current-state-only PRD; dry-run does not justify that extra scope."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-3",
+      "arm": "baseline",
+      "case_id": "prdr-under-citation",
+      "capture_event_seq": 12,
+      "reason": "CSV rows and date filtering each serve an explicitly declared PRD goal. The missing filter-goal citation is under-citation, not capability beyond the PRD; this PRDR need not implement every other declared goal. Offline same-provider calibration only; no provider independence or production eligibility is claimed.",
+      "reason_sha256": "c4380dcb99973f85f7796513cce30e6ae0dd76051e289ce3a01697f9addab2de",
+      "outcome": "survived",
+      "ground": null,
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Distinguishes incomplete goal citation from an undeclared capability: date filtering is an explicit PRD goal and covered by the supplied DoD."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "admit",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-3",
+      "arm": "baseline",
+      "case_id": "prdr-unserved",
+      "capture_event_seq": 14,
+      "reason": "The PRDR cites date-filtered exports, but its DoD explicitly excludes date input and filtering. CSV export alone cannot serve that cited goal, so Phase 1 incorrectly claims both goals are served. This is an unserved cited goal, not over-scope. Offline same-provider calibration only; no provider independence or production eligibility is claimed.",
+      "reason_sha256": "bf4464d734f5b3bd7ee1c52326178e59af203e64156f9d17fe04e8a7a1c9e936",
+      "outcome": "overturned",
+      "ground": "unserved",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Identifies that the PRDR cites date filtering while its DoD explicitly excludes it; the correct ground is unserved rather than over-scope or under-citation."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-3",
+      "arm": "baseline",
+      "case_id": "prdr-unavailable",
+      "capture_event_seq": 16,
+      "reason": "opinion_available=false records an exhausted provider attempt. Preserve the absent challenge without supplying a replacement opinion; the caller must omit --challenge and retain phase2-inconclusive rejection.",
+      "reason_sha256": "251da56f11927074498285329a104f410fbf0b25d4a37660639e347227100e6a",
+      "outcome": null,
+      "ground": null,
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Preserves the exhausted provider attempt as absent and Phase 2 as inconclusive; no substantive opinion is substituted."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": true,
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": []
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-3",
+      "arm": "candidate",
+      "case_id": "adr-1",
+      "capture_event_seq": 2,
+      "reason": "The supersession argument survives calibration review: the original small-run assumption no longer holds at 200+ issues with concurrent writers. Per-issue files address the stated lock contention and corruption blast radius while retaining run discovery through an index. This is same-provider-family judgement only, not evidence of production challenge independence.",
+      "reason_sha256": "0b34260a8eacc6c7c5721469b68b324b98b0fbb69bed293dbe6b96871a305153",
+      "outcome": "survived",
+      "ground": null,
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Retains the supplied growth from under 20 to 200+ issues and concurrent writes, then connects per-issue files to reduced contention and bounded corruption; the index preserves discovery."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "admit",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-3",
+      "arm": "candidate",
+      "case_id": "adr-2",
+      "capture_event_seq": 4,
+      "reason": "The supersession argument is unsound. Writing resolved secrets to a gitignored credentials file violates the environment-only decision and creates a persistent plaintext secret copy; gitignore only prevents ordinary tracking. The claimed small latency saving does not justify this security boundary change, and session caching need not require disk storage. Same-provider-family calibration judgement only.",
+      "reason_sha256": "531c1de6d3abf1779efdf397a41eff2808d44b716df07c4a46df6066b2672453",
+      "outcome": "overturned",
+      "ground": null,
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Challenges credential persistence against the environment-only decision. Exposure consequences are threat reasoning, not evidence of an actual breach; in-memory caching is a suggested alternative."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ],
+      "exact_rule_scope_assessment": {
+        "literal_source": "Secrets are read from environment variables only, never committed to the repo or written to .faff/ logs. The logs clause does not literally ban every file under .faff/.",
+        "core_outcome": "The persistence proposal is still reasonably rejected on the environment-only sourcing boundary and unsupported security trade; no outcome or ground grade change.",
+        "paraphrase": "No categorical assertion that the old decision bans all files under .faff; persistence/exposure is assessed against environment-only sourcing."
+      }
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-3",
+      "arm": "candidate",
+      "case_id": "adr-unavailable",
+      "capture_event_seq": 6,
+      "reason": "opinion_available=false denotes an exhausted provider attempt with no opinion. Preserve the absent challenge and omit --challenge; the supplied argument cannot substitute for the missing opinion.",
+      "reason_sha256": "b36670410fee1ca0d0f7d44464c914eb24ab0825df0cb295abeb0284671cc9fd",
+      "outcome": null,
+      "ground": null,
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Preserves the explicitly exhausted provider attempt as absent, with no substantive drift judgement and no admission."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": true,
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": []
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-3",
+      "arm": "candidate",
+      "case_id": "prdr-1",
+      "capture_event_seq": 8,
+      "reason": "The proposed dry-run exposes the current merge-floor decision without merging and retains the existing eligibility logic. Each DoD item directly supports safe current inspection; no historical storage or query capability is added. Same-provider-family calibration judgement only.",
+      "reason_sha256": "95723c60341c3c92d9158777ea988ac52be4360632e7bf48341b7d374bb74e6e",
+      "outcome": "survived",
+      "ground": null,
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Retains current-state safe inspection, existing floor reads and no merge invocation; does not add historical storage or queries."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "admit",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-3",
+      "arm": "candidate",
+      "case_id": "prdr-2",
+      "capture_event_seq": 10,
+      "reason": "The PRD explicitly excludes historical storage and query features. The DoD requires persisted evaluation history and timeline queries with date and format options, capabilities beyond the declared goals. Safe current inspection warrants dry-run but does not warrant these additions. Same-provider-family calibration judgement only.",
+      "reason_sha256": "5aeba01265ed3d25de3317fceffc4f7db3add78119621ba354484eb9acffe15d",
+      "outcome": "overturned",
+      "ground": "over-scope",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Identifies history persistence, timeline queries and filters/formats as outside the explicitly current-state-only PRD; dry-run does not justify that extra scope."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-3",
+      "arm": "candidate",
+      "case_id": "prdr-under-citation",
+      "capture_event_seq": 12,
+      "reason": "CSV export and date filtering both serve expressly declared PRD goals. The DoD covers Export transactions as CSV and Filter transaction exports by date. Citing only the export goal is under-citation, not capability beyond the PRD; the CLI owns the deterministic dod-covers set test. This PRDR need not implement every other PRD goal. Same-provider-family calibration judgement only.",
+      "reason_sha256": "c5565f397df97d7e64eb10c2566948e181f3aed02f9fe423f644c1315b3321d8",
+      "outcome": "survived",
+      "ground": null,
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Distinguishes incomplete goal citation from an undeclared capability: date filtering is an explicit PRD goal and covered by the supplied DoD."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "admit",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-3",
+      "arm": "candidate",
+      "case_id": "prdr-unserved",
+      "capture_event_seq": 14,
+      "reason": "The PRDR cites Filter transaction exports by date, but its DoD explicitly implements neither date input nor filtering. CSV rows serve the export goal only; Phase 1 incorrectly claims that export serves both cited goals. The cited filtering goal is unserved, rather than over-scope. Same-provider-family calibration judgement only.",
+      "reason_sha256": "531c1db2242c36b362dbf5ea605abb9b24036d0de4e82de05ced3f423ed867c6",
+      "outcome": "overturned",
+      "ground": "unserved",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Identifies that the PRDR cites date filtering while its DoD explicitly excludes it; the correct ground is unserved rather than over-scope or under-citation."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-3",
+      "arm": "candidate",
+      "case_id": "prdr-unavailable",
+      "capture_event_seq": 16,
+      "reason": "opinion_available=false denotes an exhausted provider attempt with no opinion. Preserve absence by omitting --challenge; Phase 1 and the supplied proposal cannot replace the missing skeptic. The caller must reject and park phase2-inconclusive.",
+      "reason_sha256": "cbe582b6b489655429da43af2fb3137ab5ddb03822d050d3c52545c9f3163dcc",
+      "outcome": null,
+      "ground": null,
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Preserves the exhausted provider attempt as absent and Phase 2 as inconclusive; no substantive opinion is substituted."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": true,
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": []
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-4",
+      "arm": "candidate",
+      "case_id": "adr-1",
+      "capture_event_seq": 2,
+      "reason": "Offline same-provider calibration only; no provider independence or production eligibility is claimed. The old decision explicitly assumed fewer than 20 issues per run. Runs now exceed 200 issues and concurrent executors contend on the shared file. Per-issue files address write contention and limit corruption loss, while the index preserves discovery. The supplied change in operating conditions supports supersession.",
+      "reason_sha256": "a77f7f5da41e7a9960727b139ac6e4f6e41e7e29958c48791f401672d148e970",
+      "outcome": "survived",
+      "ground": null,
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Retains the supplied growth from under 20 to 200+ issues and concurrent writes, then connects per-issue files to reduced contention and bounded corruption; the index preserves discovery."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "admit",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-4",
+      "arm": "candidate",
+      "case_id": "adr-2",
+      "capture_event_seq": 4,
+      "reason": "Offline same-provider calibration only. Persisting resolved API keys to credentials.json breaks the environment-only secret boundary. Gitignore prevents ordinary commits but does not prevent disk exposure, backups or accidental inclusion. The latency claim does not justify persistent secret storage, and session-local memory caching could avoid repeated environment reads without writing credentials. The supersession argument is unsound.",
+      "reason_sha256": "d49ff93cecf8b45e3fb240ba09109f8e9b27faf09f2e608f300af2d4d5061235",
+      "outcome": "overturned",
+      "ground": null,
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Challenges credential persistence against the environment-only decision. Exposure consequences are threat reasoning, not evidence of an actual breach; in-memory caching is a suggested alternative."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ],
+      "exact_rule_scope_assessment": {
+        "literal_source": "Secrets are read from environment variables only, never committed to the repo or written to .faff/ logs. The logs clause does not literally ban every file under .faff/.",
+        "core_outcome": "The persistence proposal is still reasonably rejected on the environment-only sourcing boundary and unsupported security trade; no outcome or ground grade change.",
+        "paraphrase": "No categorical assertion that the old decision bans all files under .faff; persistence/exposure is assessed against environment-only sourcing."
+      }
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-4",
+      "arm": "candidate",
+      "case_id": "adr-unavailable",
+      "capture_event_seq": 6,
+      "reason": "The supplied provider attempt is exhausted with opinion_available=false. Preserve the absent drift challenge; no opinion is manufactured from the similar available case. The caller must omit --challenge and reject.",
+      "reason_sha256": "3d5bc37512a236a5c588d81d2df682874312bb0f3a3d66c055dfe13fa849f520",
+      "outcome": null,
+      "ground": null,
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Preserves the explicitly exhausted provider attempt as absent, with no substantive drift judgement and no admission."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": true,
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": []
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-4",
+      "arm": "candidate",
+      "case_id": "prdr-1",
+      "capture_event_seq": 8,
+      "reason": "Offline same-provider calibration only. The dry-run flag exposes the current eligibility decision without merging, directly serving safe inspection. Its DoD checks both allowed and blocked decisions and forbids gh pr merge. Reusing the existing floor logic preserves the single source of truth. No historical storage or unrelated capability is proposed.",
+      "reason_sha256": "007e0b67e4ae2ac28201fd9db25de7d54638a0de80996531505502faac7f2807",
+      "outcome": "survived",
+      "ground": null,
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Retains current-state safe inspection, existing floor reads and no merge invocation; does not add historical storage or queries."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "admit",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-4",
+      "arm": "candidate",
+      "case_id": "prdr-2",
+      "capture_event_seq": 10,
+      "reason": "Offline same-provider calibration only. The PRD explicitly excludes historical storage and query features. Persisting every evaluation to JSONL and adding a historical timeline with date and format controls implements those excluded capabilities. The useful dry-run portion does not bring the whole authored PRDR within scope. Its DoD exceeds the declared PRD goals.",
+      "reason_sha256": "36f27c3d7f905c684872b52864fbb19c19b38857ed742dc90c5cd1d54f8a9266",
+      "outcome": "overturned",
+      "ground": "over-scope",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Identifies history persistence, timeline queries and filters/formats as outside the explicitly current-state-only PRD; dry-run does not justify that extra scope."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-4",
+      "arm": "candidate",
+      "case_id": "prdr-under-citation",
+      "capture_event_seq": 12,
+      "reason": "Offline same-provider calibration only. The DoD covers Export transactions as CSV and Filter transaction exports by date, both declared PRD goals. Only the export goal is cited, so this is under-citation rather than over-scope. All proposed capabilities remain within the PRD. The CLI owns the deterministic dod-covers set test.",
+      "reason_sha256": "0fec5d0e46d9555a644693ea1750b9d03122f4ab2e94ea412e348b40f8599ca0",
+      "outcome": "survived",
+      "ground": null,
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Distinguishes incomplete goal citation from an undeclared capability: date filtering is an explicit PRD goal and covered by the supplied DoD."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "admit",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-4",
+      "arm": "candidate",
+      "case_id": "prdr-unserved",
+      "capture_event_seq": 14,
+      "reason": "Offline same-provider calibration only. The PRDR cites both CSV export and date filtering, but its DoD explicitly excludes date input and filtering. CSV rows serve the export goal but cannot serve filtering exports by date. This leaves a cited goal unserved, rather than adding capability beyond the PRD, so the overturn ground is unserved.",
+      "reason_sha256": "444856df85dfc0504416234e46544f3c4955077e1c257322396894d3fa2e4e5b",
+      "outcome": "overturned",
+      "ground": "unserved",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Identifies that the PRDR cites date filtering while its DoD explicitly excludes it; the correct ground is unserved rather than over-scope or under-citation."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-4",
+      "arm": "candidate",
+      "case_id": "prdr-unavailable",
+      "capture_event_seq": 16,
+      "reason": "The supplied provider attempt is exhausted with opinion_available=false. Preserve the absence of a Phase-2 opinion regardless of the proposal merits. The caller must omit --challenge and reject as phase2-inconclusive; the available dry-run case does not supply an opinion for this independent case.",
+      "reason_sha256": "2ea085f123a417bc8b12253cf4532fa7ae290167caa328035a6e28280ebafa48",
+      "outcome": null,
+      "ground": null,
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Preserves the exhausted provider attempt as absent and Phase 2 as inconclusive; no substantive opinion is substituted."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": true,
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": []
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-4",
+      "arm": "baseline",
+      "case_id": "adr-1",
+      "capture_event_seq": 2,
+      "reason": "Offline same-provider-family calibration only, without provider independence or production eligibility. The old decision explicitly depended on fewer than 20 issues and simple atomic writes. The supplied 200+ issue runs and shipped concurrent executor invalidate that premise. Per-issue files directly reduce shared-write contention and corruption blast radius, while the index preserves discovery. The supersession argument holds on the supplied facts.",
+      "reason_sha256": "27dfbd3658c7aeda15b812f870708501a05bfc8baf9f1c0e8b81406053e88856",
+      "outcome": "survived",
+      "ground": null,
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Retains the supplied growth from under 20 to 200+ issues and concurrent writes, then connects per-issue files to reduced contention and bounded corruption; the index preserves discovery."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "admit",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-4",
+      "arm": "baseline",
+      "case_id": "adr-2",
+      "capture_event_seq": 4,
+      "reason": "Offline same-provider-family calibration only, without provider independence or production eligibility. Gitignore prevents ordinary version-control inclusion but does not preserve the explicit environment-only secret boundary. Writing resolved keys into .faff/cache/credentials.json introduces durable secret storage and exposure through local files or backups. The claimed small environment lookup saving does not justify that boundary change; session memory caching would avoid repeated lookup without persisting credentials. The supersession argument is unsound.",
+      "reason_sha256": "c0b10185474306eaa20ba391c6f82f9f04ffb91d328057a7532dc54dfc2720a1",
+      "outcome": "overturned",
+      "ground": null,
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Challenges credential persistence against the environment-only decision. Exposure consequences are threat reasoning, not evidence of an actual breach; in-memory caching is a suggested alternative."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ],
+      "exact_rule_scope_assessment": {
+        "literal_source": "Secrets are read from environment variables only, never committed to the repo or written to .faff/ logs. The logs clause does not literally ban every file under .faff/.",
+        "core_outcome": "The persistence proposal is still reasonably rejected on the environment-only sourcing boundary and unsupported security trade; no outcome or ground grade change.",
+        "paraphrase": "No categorical assertion that the old decision bans all files under .faff; persistence/exposure is assessed against environment-only sourcing."
+      }
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-4",
+      "arm": "baseline",
+      "case_id": "adr-unavailable",
+      "capture_event_seq": 6,
+      "reason": "The supplied opinion_available=false records an exhausted provider attempt with no opinion. Preserve absence and omit the challenge rather than deriving an assessment from the duplicate proposal. This is offline calibration without a claim of provider independence or production eligibility.",
+      "reason_sha256": "ca96078cb4f949c4c24a1c4eaed0ccff91c80d7bb7cc2f59c3e0dfe70c901146",
+      "outcome": null,
+      "ground": null,
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Preserves the explicitly exhausted provider attempt as absent, with no substantive drift judgement and no admission."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": true,
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-4",
+      "arm": "baseline",
+      "case_id": "prdr-1",
+      "capture_event_seq": 8,
+      "reason": "Offline same-provider-family calibration only, without provider independence or production eligibility. The proposal delivers current eligibility inspection without merging, with DoD for eligible and blocked results and an explicit no-merge assertion. It reuses the existing floor decision, preserving the single source of truth. No historical storage or querying is added, so the proposal serves the declared goals within scope.",
+      "reason_sha256": "c347e7e9fcd0295f10526bd9bb9e33eeca56527053a17b60fa903b6ef62817e6",
+      "outcome": "survived",
+      "ground": null,
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Retains current-state safe inspection, existing floor reads and no merge invocation; does not add historical storage or queries."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "admit",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-4",
+      "arm": "baseline",
+      "case_id": "prdr-2",
+      "capture_event_seq": 10,
+      "reason": "Offline same-provider-family calibration only, without provider independence or production eligibility. The PRD expressly excludes historical storage and query features. The proposed history JSONL log, full timeline, --explain, --since and output formats implement precisely those excluded capabilities. A warranted dry-run flag does not warrant these added DoD obligations. Phase 1 incorrectly expands current inspection into historical querying; the proposal exceeds declared goals.",
+      "reason_sha256": "3b61400254f9933bcdb5380ef525bb9eaeb23570b2152027dd0c6cac99e9e82e",
+      "outcome": "overturned",
+      "ground": "over-scope",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Identifies history persistence, timeline queries and filters/formats as outside the explicitly current-state-only PRD; dry-run does not justify that extra scope."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-4",
+      "arm": "baseline",
+      "case_id": "prdr-under-citation",
+      "capture_event_seq": 12,
+      "reason": "Offline same-provider-family calibration only, without provider independence or production eligibility. CSV rows serve the declared CSV export goal and date-range selection serves the separately declared date-filtering goal. The DoD adds no capability beyond the PRD goals. Omitting the filter goal from cited_goals is under-citation, which the policy distinguishes from over-scope and does not justify an overturn. Phase 1 survives.",
+      "reason_sha256": "22a9dded5336ea28e67ec03200ac205b8edf318225e2c49317ede53022b9e2cf",
+      "outcome": "survived",
+      "ground": null,
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Distinguishes incomplete goal citation from an undeclared capability: date filtering is an explicit PRD goal and covered by the supplied DoD."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "admit",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-4",
+      "arm": "baseline",
+      "case_id": "prdr-unserved",
+      "capture_event_seq": 14,
+      "reason": "Offline same-provider-family calibration only, without provider independence or production eligibility. The PRDR cites date-filtered exports but explicitly states that no date input or filtering is implemented. CSV export serves the CSV goal alone; it cannot serve the separately cited filtering goal. Phase 1 incorrectly claims both are served. This is an unserved cited goal, not over-scope or under-citation.",
+      "reason_sha256": "e8914482738c74708945b01d7b16525ed1132b9dfac08ce890e121a4b2d72a36",
+      "outcome": "overturned",
+      "ground": "unserved",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Identifies that the PRDR cites date filtering while its DoD explicitly excludes it; the correct ground is unserved rather than over-scope or under-citation."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-4",
+      "arm": "baseline",
+      "case_id": "prdr-unavailable",
+      "capture_event_seq": 16,
+      "reason": "The supplied opinion_available=false records an exhausted provider attempt with no opinion. Preserve absence and omit the challenge rather than substituting the assessment of a duplicate proposal. This is offline calibration without a claim of provider independence or production eligibility; the absent opinion must remain inconclusive.",
+      "reason_sha256": "8c42ebe9075ecb7d6dc79b8217a02106e99c2da62fccff094d685a061ff44a22",
+      "outcome": null,
+      "ground": null,
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Preserves the exhausted provider attempt as absent and Phase 2 as inconclusive; no substantive opinion is substituted."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": true,
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-5",
+      "arm": "baseline",
+      "case_id": "adr-1",
+      "capture_event_seq": 2,
+      "reason": "The supersession argument holds: the old decision explicitly assumed fewer than 20 issues, while current runs exceed 200 and concurrent builds introduce shared-file lock contention. Per-issue files address both contention and corruption blast radius with a small discovery index. This is an offline same-provider-family judgement, without a claim of provider independence or production eligibility.",
+      "reason_sha256": "1a1475afa7f7e40146e13de3dafc2ca3d25adc3eb11a9b9dc395676f28d5af7f",
+      "outcome": "survived",
+      "ground": null,
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Retains the supplied growth from under 20 to 200+ issues and concurrent writes, then connects per-issue files to reduced contention and bounded corruption; the index preserves discovery."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "admit",
+      "optional_style_observations": []
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-5",
+      "arm": "baseline",
+      "case_id": "adr-2",
+      "capture_event_seq": 4,
+      "reason": "The latency argument does not justify replacing environment-only secret handling with plaintext credentials on disk. Gitignore prevents tracking, but does not prevent local disclosure or retention, and an in-memory session cache could avoid repeated reads without this change. The claim of no behaviour change ignores the new persistent secret copy. Offline same-provider-family judgement only; no provider independence or production eligibility is claimed.",
+      "reason_sha256": "82187b9fec166231a8f485b65da83b2add9b880c8a3a119a21691a377afcb9b7",
+      "outcome": "overturned",
+      "ground": null,
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Challenges credential persistence against the environment-only decision. Exposure consequences are threat reasoning, not evidence of an actual breach; in-memory caching is a suggested alternative."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [],
+      "exact_rule_scope_assessment": {
+        "literal_source": "Secrets are read from environment variables only, never committed to the repo or written to .faff/ logs. The logs clause does not literally ban every file under .faff/.",
+        "core_outcome": "The persistence proposal is still reasonably rejected on the environment-only sourcing boundary and unsupported security trade; no outcome or ground grade change.",
+        "paraphrase": "No categorical assertion that the old decision bans all files under .faff; persistence/exposure is assessed against environment-only sourcing."
+      }
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-5",
+      "arm": "baseline",
+      "case_id": "adr-unavailable",
+      "capture_event_seq": 6,
+      "reason": "opinion_available=false records an exhausted provider attempt. Preserve the absent challenge without substituting a judgement on the supersession argument.",
+      "reason_sha256": "a6f23f75bd20e642c2c977aec78339d9d06d1ffb3163cc2ec499a9e642e40934",
+      "outcome": null,
+      "ground": null,
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Preserves the explicitly exhausted provider attempt as absent, with no substantive drift judgement and no admission."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": true,
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": []
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-5",
+      "arm": "baseline",
+      "case_id": "prdr-1",
+      "capture_event_seq": 8,
+      "reason": "The dry-run flag and DoD directly provide safe inspection of the current floor decision. They reuse the existing eligibility logic and test that no merge occurs, adding no historical storage or query capability. Offline same-provider-family judgement only; no provider independence or production eligibility is claimed.",
+      "reason_sha256": "9683869519153ec16d72b5ccbcf4a84fe168e802413a440d12565d408c80715a",
+      "outcome": "survived",
+      "ground": null,
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Retains current-state safe inspection, existing floor reads and no merge invocation; does not add historical storage or queries."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "admit",
+      "optional_style_observations": []
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-5",
+      "arm": "baseline",
+      "case_id": "prdr-2",
+      "capture_event_seq": 10,
+      "reason": "The PRD explicitly excludes historical storage and query features. The required persistent evaluation history, historical timeline, date filter and format toggle add capabilities beyond the declared goals. Calling them a natural extension does not justify admitting the whole PRDR. Offline same-provider-family judgement only; no provider independence or production eligibility is claimed.",
+      "reason_sha256": "82e504570745b897cb1194e18d4fff23ee79c4f0040309ab24a2ccc5d6819c3c",
+      "outcome": "overturned",
+      "ground": "over-scope",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Identifies history persistence, timeline queries and filters/formats as outside the explicitly current-state-only PRD; dry-run does not justify that extra scope."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": []
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-5",
+      "arm": "baseline",
+      "case_id": "prdr-under-citation",
+      "capture_event_seq": 12,
+      "reason": "CSV export and date filtering each serve an explicitly declared PRD goal, and the cited CSV goal is served. Omitting the date-filter goal from the citations is under-citation, not capability beyond the PRD or an unserved cited goal. Offline same-provider-family judgement only; no provider independence or production eligibility is claimed.",
+      "reason_sha256": "c9a102fcb788970d72e2f9af0c7f409495875f152f8c39c587b20b4d2ad476f7",
+      "outcome": "survived",
+      "ground": null,
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Distinguishes incomplete goal citation from an undeclared capability: date filtering is an explicit PRD goal and covered by the supplied DoD."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "admit",
+      "optional_style_observations": []
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-5",
+      "arm": "baseline",
+      "case_id": "prdr-unserved",
+      "capture_event_seq": 14,
+      "reason": "The PRDR cites date-filtered exports, yet its DoD explicitly implements no date input or filtering. CSV export alone does not serve that cited goal, so the Phase-1 claim that both cited goals are served is unsound. Offline same-provider-family judgement only; no provider independence or production eligibility is claimed.",
+      "reason_sha256": "8846502b574c88fafdbc7d5d030bd431b0e1dd706557b77c98c89bbb880f6e05",
+      "outcome": "overturned",
+      "ground": "unserved",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Identifies that the PRDR cites date filtering while its DoD explicitly excludes it; the correct ground is unserved rather than over-scope or under-citation."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": []
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-baseline-5",
+      "arm": "baseline",
+      "case_id": "prdr-unavailable",
+      "capture_event_seq": 16,
+      "reason": "opinion_available=false records an exhausted provider attempt. Preserve the absent challenge and let the caller reject as phase2-inconclusive; do not substitute an opinion on the proposal.",
+      "reason_sha256": "b9271a43cc1770d8d2d72762c4b23133146b98e1531f2c63e122a2f2c5be94b0",
+      "outcome": null,
+      "ground": null,
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Preserves the exhausted provider attempt as absent and Phase 2 as inconclusive; no substantive opinion is substituted."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": true,
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": []
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-5",
+      "arm": "candidate",
+      "case_id": "adr-1",
+      "capture_event_seq": 2,
+      "reason": "Offline same-provider calibration judgement only. The old decision explicitly depended on fewer than 20 issues per run. Supplied evidence of 200+ issues and concurrent writers defeats that assumption. Per-issue files directly reduce shared-write contention and isolate corruption, while the index retains discovery. The supersession argument is sound on the supplied facts.",
+      "reason_sha256": "2be8ab81d079cccacd89f86846a5e2c08cd5893a3599e4702bee8aa3f5c41e86",
+      "outcome": "survived",
+      "ground": null,
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Retains the supplied growth from under 20 to 200+ issues and concurrent writes, then connects per-issue files to reduced contention and bounded corruption; the index preserves discovery."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "admit",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-5",
+      "arm": "candidate",
+      "case_id": "adr-2",
+      "capture_event_seq": 4,
+      "reason": "Offline same-provider calibration judgement only. Gitignore prevents ordinary commits but does not prevent plaintext secrets being written to disk, read by other processes, retained after a session, or included in backups. The old env-only decision forbids this persistence. Small process.env access savings do not justify removing that protection; in-memory caching would address repeated lookup without a credentials file. The claimed absence of behaviour change is false.",
+      "reason_sha256": "47acca8bf07b6710fe8d7ca9974f58d626f72a14ffc75b1bb45d6394c8f0da45",
+      "outcome": "overturned",
+      "ground": null,
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Correctly questions persistent credentials against environment-only sourcing and explains disk/process/retention/backup threats as possible consequences.",
+        "The statement that env-only forbids this persistence is an interpretive formulation concerning this credential cache; it differs from the baseline-1 categorical no-.faff-secret rule paraphrase."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ],
+      "exact_rule_scope_assessment": {
+        "literal_source": "Secrets are read from environment variables only, never committed to the repo or written to .faff/ logs. The logs clause does not literally ban every file under .faff/.",
+        "core_outcome": "The persistence proposal is still reasonably rejected on the environment-only sourcing boundary and unsupported security trade; no outcome or ground grade change.",
+        "paraphrase": "Interpretive uncertainty only: The old env-only decision forbids this persistence refers to the proposed disk credential cache and is a defensible reading of environment-only sourcing. It does not assert a categorical ban on every .faff file or misquote the logs clause."
+      },
+      "interpretive_uncertainty": {
+        "excerpt": "The old env-only decision forbids this persistence.",
+        "assessment": "The full reason challenges a durable credential cache as a changed sourcing/security boundary, notes gitignore limits, and suggests memory caching. It is a defensible env-only interpretation, not a confirmed unsupported fact or equal-weight fidelity failure."
+      }
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-5",
+      "arm": "candidate",
+      "case_id": "adr-unavailable",
+      "capture_event_seq": 6,
+      "reason": "opinion_available=false records an exhausted provider attempt with no opinion. Preserve the absence and omit the challenge argument; the supplied supersession argument cannot substitute for the missing opinion.",
+      "reason_sha256": "1999e02cbaf282dc9059b20ebf0b79a814192ee16601073802a70e80af42bada",
+      "outcome": null,
+      "ground": null,
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Preserves the explicitly exhausted provider attempt as absent, with no substantive drift judgement and no admission."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": true,
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": []
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-5",
+      "arm": "candidate",
+      "case_id": "prdr-1",
+      "capture_event_seq": 8,
+      "reason": "Offline same-provider calibration judgement only. The DoD provides safe inspection of the current decision and its blocked conditions, with a test double proving no merge invocation. Reusing all existing floor reads preserves the single source of truth. No historical storage or query capability is added, so the proposal serves the declared goals within scope.",
+      "reason_sha256": "9ce7ac51e441a5ee8f499d6e45f655a281b2586076965f31c584e598b40d4e70",
+      "outcome": "survived",
+      "ground": null,
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Retains current-state safe inspection, existing floor reads and no merge invocation; does not add historical storage or queries."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "admit",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-5",
+      "arm": "candidate",
+      "case_id": "prdr-2",
+      "capture_event_seq": 10,
+      "reason": "Offline same-provider calibration judgement only. The PRD explicitly excludes historical storage and query features. The DoD requires persisted evaluation history and timeline queries with date and output-format controls. Those capabilities exceed the declared goals, even though the dry-run subset serves safe current inspection. Calling them a natural extension does not remove the explicit scope exclusion.",
+      "reason_sha256": "8d8c3959abc26152d574f193d6cbb322b13cb6c4ccd8b0bcedbe6805ebdff14f",
+      "outcome": "overturned",
+      "ground": "over-scope",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Identifies history persistence, timeline queries and filters/formats as outside the explicitly current-state-only PRD; dry-run does not justify that extra scope."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-5",
+      "arm": "candidate",
+      "case_id": "prdr-under-citation",
+      "capture_event_seq": 12,
+      "reason": "Offline same-provider calibration judgement only. CSV rows serve Export transactions as CSV, and the date-range DoD serves Filter transaction exports by date, which is also a declared PRD goal. Both capabilities are within the full declared goal set. Omitting the filter goal from cited_goals is under-citation, not over-scope; deterministic coverage-set handling belongs to the CLI.",
+      "reason_sha256": "f251b6d4a56aa407ac4215a48ffad4d734c0ae82411b1ea7d5fdc3efb14724fc",
+      "outcome": "survived",
+      "ground": null,
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Distinguishes incomplete goal citation from an undeclared capability: date filtering is an explicit PRD goal and covered by the supplied DoD."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "admit",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-5",
+      "arm": "candidate",
+      "case_id": "prdr-unserved",
+      "capture_event_seq": 14,
+      "reason": "Offline same-provider calibration judgement only. The PRDR cites Filter transaction exports by date, but its DoD explicitly excludes date input and date filtering. CSV rows serve the export goal only. The Phase-1 assertion that export serves both cited goals is unsupported. This is an unserved cited goal, not capability beyond the PRD.",
+      "reason_sha256": "e91cabfe3715ad2b4778292fbf416cdfe449fb474beade3fad346d412b839fe8",
+      "outcome": "overturned",
+      "ground": "unserved",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Identifies that the PRDR cites date filtering while its DoD explicitly excludes it; the correct ground is unserved rather than over-scope or under-citation."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": "not applicable",
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": [
+        "Calibration scope notes are accurate and do not affect source fidelity."
+      ]
+    },
+    {
+      "sample": "matrix-final-v1-sol-medium-challenges-candidate-5",
+      "arm": "candidate",
+      "case_id": "prdr-unavailable",
+      "capture_event_seq": 16,
+      "reason": "opinion_available=false records an exhausted provider attempt with no opinion. Preserve the absence and omit the challenge argument. The Phase-1 admission proposal cannot replace a missing Phase-2 opinion; the caller must reject as phase2-inconclusive.",
+      "reason_sha256": "9274741976947d4ecc267ac2203379540af51e90fb5fe5bae09d43f50d3b69f1",
+      "outcome": null,
+      "ground": null,
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass",
+      "source_fidelity_findings": [
+        "Preserves the exhausted provider attempt as absent and Phase 2 as inconclusive; no substantive opinion is substituted."
+      ],
+      "unsupported_assertions": [],
+      "missing_decisive_constraints": [],
+      "absent_opinion_preserved": true,
+      "provider_independence_claim": false,
+      "observed_consumer_disposition": "reject",
+      "optional_style_observations": []
     }
   ],
   "summary": {
-    "samples_reviewed": 1,
-    "reasons_reviewed": 8,
-    "reason_fidelity_failures": 0,
-    "qualification": "Initial completed sample only; nine planned samples remain unreviewed. Functional and native results remain separate from manual reason fidelity."
+    "samples_reviewed": 10,
+    "baseline_samples": 5,
+    "candidate_samples": 5,
+    "reasons_reviewed": 80,
+    "core_outcomes_and_grounds_correct": 80,
+    "absent_opinion_cases_preserved": 20,
+    "confirmed_overbroad_literal_rule_paraphrases": 1,
+    "confirmed_overbroad_literal_rule_paraphrase_case": "matrix-final-v1-sol-medium-challenges-baseline-1 / adr-2",
+    "interpretive_uncertainties": 1,
+    "interpretive_uncertainty_case": "matrix-final-v1-sol-medium-challenges-candidate-5 / adr-2",
+    "functional_samples_passed": 10,
+    "native_samples_passed": 10,
+    "qualification": "All core outcomes, grounds and recorded consumer dispositions match supplied expectations. One baseline literal-rule paraphrase caveat and one distinct candidate interpretive uncertainty remain visible; neither changes deterministic grading. This is bounded judgement calibration, not production provider-independence certification."
   },
   "limits": [
     "All samples, including failures, are retained. No reruns or source changes.",
     "Threat consequences and suggested alternatives are distinguished from claims about actual deployed infrastructure.",
     "A missing opinion remains absent even where the underlying proposal has a plausible argument."
-  ]
+  ],
+  "status": "all-80-actual-reasons-manually-reviewed",
+  "review_method": "Read actual submitted reasons in capture events; compare against unchanged case inputs and expected outcome/ground/absent-opinion constraints. Bind exact reason bytes plus capture/report/native/task/final-state hashes. Functional/native scores are recorded separately.",
+  "uniform_scope_bar": "Apply the same rule to every provider: a categorical claim that the old ADR forbids every .faff secret file broadens its literal logs clause; an environment-only sourcing argument against this proposed disk cache is a defensible interpretation and is not treated as an equal-weight factual error. This record reviews Sol only and does not grade unseen Opus/Astra reasons."
 }

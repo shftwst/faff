@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"prdr-unavailable","outcome":null,"ground":null,"reason":"opinion_available=false records exhausted fallbacks without an opinion. Omit the challenge and retain the phase2-inconclusive rejection; the favourable Phase-1 proposal cannot replace the missing challenge."}}

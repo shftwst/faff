@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"adr-unavailable","outcome":null,"ground":null,"reason":"The supplied provider attempt is exhausted and opinion_available is false. Preserve the absent drift challenge without substituting a judgement; absence rejects. This is an offline calibration, with no claim of provider independence or production eligibility."}}

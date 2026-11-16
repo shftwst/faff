@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"prdr-unavailable","outcome":null,"ground":null,"reason":"The supplied opinion_available=false records an exhausted attempt with no opinion. Preserve the absence and omit --challenge. Phase 1 cannot replace the missing challenge; this case must remain phase2-inconclusive rather than receive a substantive pass."}}

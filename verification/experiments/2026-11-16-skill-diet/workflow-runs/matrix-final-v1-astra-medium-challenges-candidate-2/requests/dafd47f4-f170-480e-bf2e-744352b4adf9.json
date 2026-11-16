@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"adr-unavailable","outcome":null,"ground":null,"reason":"The supplied provider attempt is exhausted with opinion_available=false. Preserve the absent challenge and omit --challenge; no substantive judgement replaces the missing opinion."}}

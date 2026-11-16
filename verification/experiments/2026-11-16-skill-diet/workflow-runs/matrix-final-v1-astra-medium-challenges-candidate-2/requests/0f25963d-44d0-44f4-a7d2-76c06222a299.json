@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"prdr-unavailable","outcome":null,"ground":null,"reason":"The supplied provider attempt is exhausted with opinion_available=false. Preserve the missing opinion and omit --challenge so the caller rejects as phase2-inconclusive. The apparent merits of dry-run cannot substitute for the absent challenge."}}

@@ -1,0 +1,251 @@
+{
+  "schema": 1,
+  "status": "pass-independent-final-comparison-report-audit",
+  "created_utc": "2026-11-16T20:15:44.651204+00:00",
+  "scope": "Independent factual review of rewritten final comparison, draft PR description and frozen result JSON. No source edits, frozen-record changes, model reruns or workflow reruns.",
+  "document_bindings": [
+    {
+      "path": "GPT-OPUS-STANDIN-RESULTS.md",
+      "sha256": "42128a75c4808aa769ed486c3ef73e556ee8bf905f30e89c2e242189696de66c"
+    },
+    {
+      "path": "/tmp/faff-skill-diet-pr-body.md",
+      "sha256": "6f221c5bde2b7b9db41ec9b5e5ae8e7fe4dc4be50e32ba78b0a5d827efc0ecc3"
+    },
+    {
+      "path": "gpt-opus-finalist-results-v1.json",
+      "sha256": "c185504eb64c011040fc00613016fb7129247928d8103129c04bb1b373af51b9"
+    }
+  ],
+  "final_result_input_hashes": [
+    {
+      "path": "gpt-opus-standin-matrix-v1.json",
+      "sha256": "95e800ed0a7d663c0076705eb7b0468b31946e31bf0308ec9d0186de7b3bae66",
+      "actual_sha256": "95e800ed0a7d663c0076705eb7b0468b31946e31bf0308ec9d0186de7b3bae66",
+      "pass": true
+    },
+    {
+      "path": "gpt-opus-standin-screen-progress.json",
+      "sha256": "39cdb393831bef8ceb1b402eee2af71dbeaf527e79a021aff1518900d14b9cb2",
+      "actual_sha256": "39cdb393831bef8ceb1b402eee2af71dbeaf527e79a021aff1518900d14b9cb2",
+      "pass": true
+    },
+    {
+      "path": "gpt-opus-standin-finalist-selection-v1.json",
+      "sha256": "d228cfb3c079ff64dcb81990336a41a1401394a5847c9c6f329cec3709e0b5b9",
+      "actual_sha256": "d228cfb3c079ff64dcb81990336a41a1401394a5847c9c6f329cec3709e0b5b9",
+      "pass": true
+    },
+    {
+      "path": "gpt-opus-hard-task-amendment-v1.json",
+      "sha256": "f3e51673e9cd9b61e46ae8462b32dee1ad0c19edf762f2a999ebf46249d93bfd",
+      "actual_sha256": "f3e51673e9cd9b61e46ae8462b32dee1ad0c19edf762f2a999ebf46249d93bfd",
+      "pass": true
+    },
+    {
+      "path": "score-gpt-opus-finalists.mjs",
+      "sha256": "1f34720812a693388dc92a5bf3077ff040cace63bccdad90236294eedd1189aa",
+      "actual_sha256": "1f34720812a693388dc92a5bf3077ff040cace63bccdad90236294eedd1189aa",
+      "pass": true
+    },
+    {
+      "path": "gpt-opus-finalist-progress.json",
+      "sha256": "37f4ba84437b696daf50102934b37cfa73bf0b87b55e3ddc2a97587210b0c0df",
+      "actual_sha256": "37f4ba84437b696daf50102934b37cfa73bf0b87b55e3ddc2a97587210b0c0df",
+      "pass": true
+    },
+    {
+      "path": "gpt-opus-finalist-run-results-v1.json",
+      "sha256": "d7c0725f919d6fd48134176b248375ae3e44078671808c0597d9ffa785871c26",
+      "actual_sha256": "d7c0725f919d6fd48134176b248375ae3e44078671808c0597d9ffa785871c26",
+      "pass": true
+    },
+    {
+      "path": "independent-finalist-results-audit-sol.json",
+      "sha256": "84d1518d796b99ed9ec5b7e7a62c43187cc70c241b31624ac29487e62d24e764",
+      "actual_sha256": "84d1518d796b99ed9ec5b7e7a62c43187cc70c241b31624ac29487e62d24e764",
+      "pass": true
+    },
+    {
+      "path": "independent-matrix-finalist-selection-audit-sol.json",
+      "sha256": "2a63d828b825951a713dc15980b8684238dc4ffb5a1b7880a787ab85f3ab78ee",
+      "actual_sha256": "2a63d828b825951a713dc15980b8684238dc4ffb5a1b7880a787ab85f3ab78ee",
+      "pass": true
+    },
+    {
+      "path": "manual-artifact-reviews/matrix-native-compatibility-review.json",
+      "sha256": "d01d065095b70819706c2d6ea407b72cf44a48d16d6eddab6480942d48fce4d4",
+      "actual_sha256": "d01d065095b70819706c2d6ea407b72cf44a48d16d6eddab6480942d48fce4d4",
+      "pass": true
+    },
+    {
+      "path": "manual-artifact-reviews/sol-low-screen-decision-diagnosis.json",
+      "sha256": "23305af6d84b69fc95e0063293946c9d2c30551ac393e8d2519d73234eb1cc09",
+      "actual_sha256": "23305af6d84b69fc95e0063293946c9d2c30551ac393e8d2519d73234eb1cc09",
+      "pass": true
+    },
+    {
+      "path": "rendering-v2-artifact-review.json",
+      "sha256": "7e37df828d41f0cb4bf564f7d896827150f898231fccac5bc4be8f0fe1de5ff2",
+      "actual_sha256": "7e37df828d41f0cb4bf564f7d896827150f898231fccac5bc4be8f0fe1de5ff2",
+      "pass": true
+    },
+    {
+      "path": "manual-artifact-reviews/rendering-sol-calibration-independent.json",
+      "sha256": "d0b910e57f872941a97a6435fc9c00aba2f8831639f74aec4b1482684a114d07",
+      "actual_sha256": "d0b910e57f872941a97a6435fc9c00aba2f8831639f74aec4b1482684a114d07",
+      "pass": true
+    },
+    {
+      "path": "manual-artifact-reviews/rendering-matrix-astra-medium.json",
+      "sha256": "c46b248ffd00ddf9823733bbc6ebf0f1b34a6f585635bb514ebfc5b0ab9c8f00",
+      "actual_sha256": "c46b248ffd00ddf9823733bbc6ebf0f1b34a6f585635bb514ebfc5b0ab9c8f00",
+      "pass": true
+    },
+    {
+      "path": "manual-artifact-reviews/rendering-final-astra-medium.json",
+      "sha256": "7ca84b1c5b5931af7744c3162705380bb2e6c0b40c8f92f0d8ea8d23b40ebac5",
+      "actual_sha256": "7ca84b1c5b5931af7744c3162705380bb2e6c0b40c8f92f0d8ea8d23b40ebac5",
+      "pass": true
+    },
+    {
+      "path": "manual-artifact-reviews/challenges-final-sol-medium.json",
+      "sha256": "5acb17cc357089f4df92b1fd15d8ec6033cc9871fbfb4338e9180c7abfe159a1",
+      "actual_sha256": "5acb17cc357089f4df92b1fd15d8ec6033cc9871fbfb4338e9180c7abfe159a1",
+      "pass": true
+    },
+    {
+      "path": "manual-artifact-reviews/challenges-final-astra-medium.json",
+      "sha256": "a31c647903f2989ab8fd35d459880b75caf810e90d04ced314455d4d3980800b",
+      "actual_sha256": "a31c647903f2989ab8fd35d459880b75caf810e90d04ced314455d4d3980800b",
+      "pass": true
+    },
+    {
+      "path": "manual-artifact-reviews/challenges-opus-reference.json",
+      "sha256": "8cfac3ad23f2f088d1f68aa3d99b73bb2dc9e58dd902ab9ed775f464abd2167f",
+      "actual_sha256": "8cfac3ad23f2f088d1f68aa3d99b73bb2dc9e58dd902ab9ed775f464abd2167f",
+      "pass": true
+    },
+    {
+      "path": "matrix-final-astra-medium-gateway-results.json",
+      "sha256": "1bf6be3ee20aff6398974c566309148bb84e714a7ae583cf5780335c8c7040e8",
+      "actual_sha256": "1bf6be3ee20aff6398974c566309148bb84e714a7ae583cf5780335c8c7040e8",
+      "pass": true
+    },
+    {
+      "path": "matrix-final-astra-medium-rendering-results.json",
+      "sha256": "94d5ca4b17b328cae14ea2073c40ce790a085cc6c63da9628d7130325eaca3a3",
+      "actual_sha256": "94d5ca4b17b328cae14ea2073c40ce790a085cc6c63da9628d7130325eaca3a3",
+      "pass": true
+    },
+    {
+      "path": "matrix-final-astra-medium-challenges-results.json",
+      "sha256": "8cf2edcc0648d01ed23dbe710740449fc5b4e3dd86694f8699a5de92a7ae5820",
+      "actual_sha256": "8cf2edcc0648d01ed23dbe710740449fc5b4e3dd86694f8699a5de92a7ae5820",
+      "pass": true
+    },
+    {
+      "path": "matrix-final-sol-medium-challenges-results.json",
+      "sha256": "b52b2ecef937a6126e2137ee93390cf7e6353eb67f285a6452dedba623ee925f",
+      "actual_sha256": "b52b2ecef937a6126e2137ee93390cf7e6353eb67f285a6452dedba623ee925f",
+      "pass": true
+    },
+    {
+      "path": "opus-renewal-priority-queue.json",
+      "sha256": "096c7ca0a2874fb71f5822052c11f997dce8c5476f0c767474cf989d03e9654a",
+      "actual_sha256": "096c7ca0a2874fb71f5822052c11f997dce8c5476f0c767474cf989d03e9654a",
+      "pass": true
+    }
+  ],
+  "verification": {
+    "top_level_input_hashes_checked": 23,
+    "top_level_hash_mismatches": 0,
+    "samples_reconciled": 90,
+    "per_sample_file_hashes_checked": 300,
+    "per_sample_hash_mismatches": 0,
+    "recomputed_model_totals": {
+      "opus-reference": {
+        "runs": 30,
+        "raw_runs": 20,
+        "assessed_runs": 30,
+        "native": 30,
+        "raw_cases_passed": 410,
+        "raw_cases_total": 420,
+        "assessed_cases_passed": 420,
+        "assessed_cases_total": 420
+      },
+      "sol-medium": {
+        "runs": 30,
+        "raw_runs": 20,
+        "assessed_runs": 30,
+        "native": 30,
+        "raw_cases_passed": 410,
+        "raw_cases_total": 420,
+        "assessed_cases_passed": 420,
+        "assessed_cases_total": 420
+      },
+      "astra-medium": {
+        "runs": 30,
+        "raw_runs": 20,
+        "assessed_runs": 30,
+        "native": 30,
+        "raw_cases_passed": 410,
+        "raw_cases_total": 420,
+        "assessed_cases_passed": 420,
+        "assessed_cases_total": 420
+      }
+    },
+    "raw_failed_case_ids": {
+      "opus-reference:voice-source": 10,
+      "sol-medium:voice-source": 10,
+      "astra-medium:voice-source": 10
+    },
+    "elapsed_means_recomputed": {
+      "sol-medium": 164.0,
+      "astra-medium": 182.0
+    },
+    "screen_counts_match": true,
+    "manual_reason_counts_and_caveats_match": true,
+    "opus_rendering_counts_and_caveats_match": true,
+    "opus_followup_queue_matches": true
+  },
+  "claim_findings": [
+    {
+      "claim": "No clear finalist fidelity winner; Sol-medium default and Astra-medium second check.",
+      "status": "supported-as-bounded-practical-recommendation",
+      "evidence": "Both have 420/420 assessed cases, 30/30 native passes and one confirmed reason caveat of different kinds. Both retain five baseline memoising explanation omissions. Timing difference is observed and explicitly limited by queue/transport confounders."
+    },
+    {
+      "claim": "Raw versus assessed scores.",
+      "status": "supported",
+      "evidence": "All three models independently recompute to raw 410/420 and 20/30 runs, assessed 420/420 and 30/30 runs. The only raw failed case is voice-source, ten times per model."
+    },
+    {
+      "claim": "Native failure distinctions in screen.",
+      "status": "supported",
+      "evidence": "Sol-high has two unsupported full-result wrapper samples and one output-only metadata-loss sample. Terra loses exit metadata. Sol-low baseline-2 has actual duplicate rule submissions plus three missing/incomplete decisions."
+    },
+    {
+      "claim": "Manual reason caveats.",
+      "status": "supported",
+      "evidence": "Opus ten broad logs-clause paraphrases and five overlapping ancillary-overclaim reasons; Sol one broad paraphrase and zero confirmed ancillary claims; Astra zero broad paraphrases and one ancillary lifetime claim. All core judgement/ground/admission projections remain correct. Environment-only sourcing interpretation is allowed uniformly."
+    },
+    {
+      "claim": "Opus rendering review.",
+      "status": "supported-with-stated-provenance-and-density-limit",
+      "evidence": "Original root review attests 90 full outputs. Independently checked matching ten capture hashes, all ten memoising glosses and all ten density examples; eighteen original full outputs were reviewed in the common first-pair check. Memoising omissions 0/5 in both arms; density 4 baseline / 2 candidate retained."
+    },
+    {
+      "claim": "Focused Opus confirmation.",
+      "status": "supported",
+      "evidence": "Prepared-not-launched queue has four GPT-only cuts, five original and five shortened samples each, total 40. No general interchangeability or blanket rerun claim."
+    }
+  ],
+  "needed_factual_corrections": [],
+  "limits": [
+    "No independent reread of all 270 rendering artifacts in this final report audit; provenance and frozen manual records are explicit.",
+    "Reason reviews were independently completed earlier for 80 Astra and 80 Opus reasons; Sol reason review was checked as a bound independent record.",
+    "No cosmetic spacing findings included.",
+    "This audit assesses reported bounded evidence, not general model equivalence, provider costs or live production eligibility."
+  ]
+}

@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"prdr-unavailable","outcome":null,"ground":null,"reason":"opinion_available=false records an exhausted provider attempt with no opinion. Preserve the absent challenge and omit --challenge so the caller records the inconclusive Phase 2 rather than inventing an approval."}}

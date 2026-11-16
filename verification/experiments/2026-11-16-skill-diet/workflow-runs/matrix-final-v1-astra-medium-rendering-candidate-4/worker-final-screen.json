@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All nine artifact cases and 20 rule answers were recorded. Finish succeeded.\n\nNo departures from the restrictions.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e5e7-27ea-7332-a1a2-90f167b8c91c"
+    ],
+    "elapsed_seconds": 221.1,
+    "stdout_sha256": "a7a0484fb1b1ce55f679dff02db12fd69f77b782de1fd69c9778a3bbd58e79fb",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

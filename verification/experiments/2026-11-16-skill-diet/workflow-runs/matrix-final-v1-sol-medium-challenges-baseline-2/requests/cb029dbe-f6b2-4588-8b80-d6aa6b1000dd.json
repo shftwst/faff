@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"prdr-unavailable","outcome":null,"ground":null,"reason":"opinion_available is false after an exhausted provider attempt. Preserve the absence of an opinion and omit the challenge; a plausible proposal cannot substitute for the missing Phase-2 judgement."}}

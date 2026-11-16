@@ -1,0 +1,104 @@
+{
+  "ok": true,
+  "value": {
+    "challenge": {
+      "case_id": "prdr-2",
+      "outcome": "overturned",
+      "ground": "over-scope",
+      "reason": "Offline same-provider calibration only. The PRD explicitly excludes historical storage and query features. Persisting every evaluation to JSONL and adding a historical timeline with date and format controls implements those excluded capabilities. The useful dry-run portion does not bring the whole authored PRDR within scope. Its DoD exceeds the declared PRD goals."
+    },
+    "calls": [
+      {
+        "args": [
+          "prdr",
+          "yagni",
+          "--prd-goal",
+          "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.",
+          "--prd-goals",
+          "[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\",\"The merge-floor logic (AC + CI + review) stays the single source of truth for merge eligibility\"]",
+          "--proposal",
+          "admit",
+          "--proposal-reason",
+          "The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'.",
+          "--serves-goal",
+          "--within-scope",
+          "--challenge",
+          "overturned",
+          "--challenge-ground",
+          "over-scope",
+          "--challenge-reason",
+          "Offline same-provider calibration only. The PRD explicitly excludes historical storage and query features. Persisting every evaluation to JSONL and adding a historical timeline with date and format controls implements those excluded capabilities. The useful dry-run portion does not bring the whole authored PRDR within scope. Its DoD exceeds the declared PRD goals."
+        ],
+        "exit_code": 0,
+        "stdout": "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Offline same-provider calibration only. The PRD explicitly excludes historical storage and query features. Persisting every evaluation to JSONL and adding a historical timeline with date and format controls implements those excluded capabilities. The useful dry-run portion does not bring the whole authored PRDR within scope. Its DoD exceeds the declared PRD goals.\",\"trace_to_goal\":true,\"cited_goals\":[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\"],\"dod_covers\":[],\"over_scope\":false,\"proposal\":{\"serves_goal\":true,\"within_scope\":true,\"verdict\":\"admit\",\"reason\":\"The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'.\"},\"challenge\":{\"ran\":true,\"overturns\":true,\"reason\":\"Offline same-provider calibration only. The PRD explicitly excludes historical storage and query features. Persisting every evaluation to JSONL and adding a historical timeline with date and format controls implements those excluded capabilities. The useful dry-run portion does not bring the whole authored PRDR within scope. Its DoD exceeds the declared PRD goals.\",\"ground\":\"over-scope\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      },
+      {
+        "args": [
+          "prdr",
+          "admit",
+          "fixture",
+          "--actor",
+          "loop",
+          "--supersedes-provenance",
+          "loop",
+          "--upper",
+          "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Offline same-provider calibration only. The PRD explicitly excludes historical storage and query features. Persisting every evaluation to JSONL and adding a historical timeline with date and format controls implements those excluded capabilities. The useful dry-run portion does not bring the whole authored PRDR within scope. Its DoD exceeds the declared PRD goals.\"}"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"disposition\":\"reject\",\"upper\":{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Offline same-provider calibration only. The PRD explicitly excludes historical storage and query features. Persisting every evaluation to JSONL and adding a historical timeline with date and format controls implements those excluded capabilities. The useful dry-run portion does not bring the whole authored PRDR within scope. Its DoD exceeds the declared PRD goals.\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Offline same-provider calibration only. The PRD explicitly excludes historical storage and query features. Persisting every evaluation to JSONL and adding a historical timeline with date and format controls implements those excluded capabilities. The useful dry-run portion does not bring the whole authored PRDR within scope. Its DoD exceeds the declared PRD goals.\"],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      }
+    ],
+    "upper": {
+      "admit": false,
+      "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Offline same-provider calibration only. The PRD explicitly excludes historical storage and query features. Persisting every evaluation to JSONL and adding a historical timeline with date and format controls implements those excluded capabilities. The useful dry-run portion does not bring the whole authored PRDR within scope. Its DoD exceeds the declared PRD goals.",
+      "trace_to_goal": true,
+      "cited_goals": [
+        "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD."
+      ],
+      "dod_covers": [],
+      "over_scope": false,
+      "proposal": {
+        "serves_goal": true,
+        "within_scope": true,
+        "verdict": "admit",
+        "reason": "The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'."
+      },
+      "challenge": {
+        "ran": true,
+        "overturns": true,
+        "reason": "Offline same-provider calibration only. The PRD explicitly excludes historical storage and query features. Persisting every evaluation to JSONL and adding a historical timeline with date and format controls implements those excluded capabilities. The useful dry-run portion does not bring the whole authored PRDR within scope. Its DoD exceeds the declared PRD goals.",
+        "ground": "over-scope"
+      },
+      "grounding_present": false,
+      "conformant": true,
+      "violations": []
+    },
+    "admission": {
+      "disposition": "reject",
+      "upper": {
+        "admit": false,
+        "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Offline same-provider calibration only. The PRD explicitly excludes historical storage and query features. Persisting every evaluation to JSONL and adding a historical timeline with date and format controls implements those excluded capabilities. The useful dry-run portion does not bring the whole authored PRDR within scope. Its DoD exceeds the declared PRD goals."
+      },
+      "lower": {
+        "covered": true,
+        "uncovered_goals": []
+      },
+      "authority": {
+        "actor": "loop",
+        "supersedes_provenance": "loop",
+        "by_level": "ok"
+      },
+      "ratchet": {
+        "lineage_supersessions": 0,
+        "breached": false
+      },
+      "reasons": [
+        "upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Offline same-provider calibration only. The PRD explicitly excludes historical storage and query features. Persisting every evaluation to JSONL and adding a historical timeline with date and format controls implements those excluded capabilities. The useful dry-run portion does not bring the whole authored PRDR within scope. Its DoD exceeds the declared PRD goals."
+      ],
+      "conformant": true,
+      "violations": []
+    }
+  }
+}

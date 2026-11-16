@@ -1,0 +1,552 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-16T19:43:08.613702+00:00",
+  "reviewer": {
+    "role": "independent focus-report evidence-binding verifier",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium"
+  },
+  "status": "pass",
+  "scope": "Source, ledger, frozen manual artifact review, native evidence, integration and final main-check bindings; no independent re-review of report prose or model/test reruns.",
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/wtf-format-sol-v3-final-qualification.json",
+      "sha256": "f6414c7d97e6eb9c3de72d5d894d978f3ba1bbd6d3e991ea5eef9d693288b7ae"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/wtf-format-v5-source-review.json",
+      "sha256": "c4946aaab8f52ba374ceb1cfc414cbc06d4064dc278927c746d48e1fdab4af8e"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/wtf-sol-independent.json",
+      "sha256": "c88f550a4276cb052a4a1b9aaea7c849c91eda0bb5ef33f4928770f140697f2d"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/wtf-format-sol-v3-native-qualification.json",
+      "sha256": "2c0b0fffb203379ac14a2dcaabcd99ec9a7f822707ba47485a1637018185ec46"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/wtf-sol-v3-integration.json",
+      "sha256": "2e3d926a11c56458f5cd01cb4a43949f087b42a19c83ba5423dc0619b0cc5af6"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger.json",
+      "sha256": "fc7a661954d96a2cbfb58ae87dc76ca405d3721b276486e51e670356949cd679"
+    }
+  ],
+  "checks": [
+    {
+      "check": "source_bindings",
+      "pass": true,
+      "detail": "Accepted current source, commit, qualification, candidate, source review and ledger after hash agree."
+    },
+    {
+      "check": "ledger_scope_and_saving",
+      "pass": true,
+      "detail": "Focus-report cut is 4,217 bytes and 1,027 estimated tokens."
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/wtf-format-sol-v3-native-qualification.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/wtf-sol-independent.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/wtf-sol-v3-integration.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/deterministic-checks/wtf-sol-v3-integration-tests.txt"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/deterministic-checks/wtf-sol-v3-integration-adapter-lint.txt"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/deterministic-checks/wtf-sol-v3-integration-rule-inventory.txt"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/deterministic-checks/wtf-sol-v3-main-adapter-lint.txt"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/wtf-sol-v3-main-rule-inventory.json"
+    },
+    {
+      "check": "source_review_hash",
+      "pass": true,
+      "detail": "Source review hash matches final qualification."
+    },
+    {
+      "check": "selected_manual_artifact_set",
+      "pass": true,
+      "detail": "15 unchanged baselines and 15 sourceV5 candidates selected; V4 diagnostic rows remain excluded."
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v1-baseline-1/artifacts/empty.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v1-baseline-1/artifacts/operations.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v1-baseline-1/artifacts/wip-cap.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v1-baseline-2/artifacts/empty.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v1-baseline-2/artifacts/operations.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v1-baseline-2/artifacts/wip-cap.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v1-baseline-3/artifacts/empty.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v1-baseline-3/artifacts/operations.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v1-baseline-3/artifacts/wip-cap.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v1-baseline-4/artifacts/empty.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v1-baseline-4/artifacts/operations.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v1-baseline-4/artifacts/wip-cap.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v1-baseline-5/artifacts/empty.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v1-baseline-5/artifacts/operations.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v1-baseline-5/artifacts/wip-cap.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v3-candidate-1/artifacts/empty.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v3-candidate-1/artifacts/operations.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v3-candidate-1/artifacts/wip-cap.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v3-candidate-2/artifacts/empty.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v3-candidate-2/artifacts/operations.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v3-candidate-2/artifacts/wip-cap.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v3-candidate-3/artifacts/empty.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v3-candidate-3/artifacts/operations.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v3-candidate-3/artifacts/wip-cap.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v3-candidate-4/artifacts/empty.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v3-candidate-4/artifacts/operations.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v3-candidate-4/artifacts/wip-cap.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v3-candidate-5/artifacts/empty.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v3-candidate-5/artifacts/operations.md"
+    },
+    {
+      "check": "actual_artifact_hash",
+      "pass": true,
+      "detail": "workflow-runs/wtf-format-sol-v3-candidate-5/artifacts/wip-cap.md"
+    },
+    {
+      "check": "manual_targeted_counts",
+      "pass": true,
+      "detail": "baseline: (15, 9, 12, 12)"
+    },
+    {
+      "check": "manual_targeted_counts",
+      "pass": true,
+      "detail": "candidate: (15, 15, 15, 15)"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v1-baseline-1/report.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v1-baseline-1/capture.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v1-baseline-1/native-audit.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v1-baseline-1/assessment.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v1-baseline-2/report.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v1-baseline-2/capture.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v1-baseline-2/native-audit.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v1-baseline-2/assessment.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v1-baseline-3/report.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v1-baseline-3/capture.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v1-baseline-3/native-audit.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v1-baseline-3/assessment.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v1-baseline-4/report.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v1-baseline-4/capture.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v1-baseline-4/native-audit.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v1-baseline-4/assessment.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v1-baseline-5/report.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v1-baseline-5/capture.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v1-baseline-5/native-audit.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v1-baseline-5/assessment.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v3-candidate-1/report.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v3-candidate-1/capture.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v3-candidate-1/native-audit.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v3-candidate-1/assessment.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v3-candidate-2/report.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v3-candidate-2/capture.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v3-candidate-2/native-audit.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v3-candidate-2/assessment.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v3-candidate-3/report.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v3-candidate-3/capture.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v3-candidate-3/native-audit.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v3-candidate-3/assessment.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v3-candidate-4/report.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v3-candidate-4/capture.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v3-candidate-4/native-audit.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v3-candidate-4/assessment.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v3-candidate-5/report.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v3-candidate-5/capture.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v3-candidate-5/native-audit.json"
+    },
+    {
+      "check": "manual_sample_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v3-candidate-5/assessment.json"
+    },
+    {
+      "check": "native_qualification_summary",
+      "pass": true,
+      "detail": "Ten passing Sol-medium native samples; retained raw fails are distinct from assessed status."
+    },
+    {
+      "check": "native_audit_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v1-baseline-1"
+    },
+    {
+      "check": "native_audit_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v1-baseline-2"
+    },
+    {
+      "check": "native_audit_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v1-baseline-3"
+    },
+    {
+      "check": "native_audit_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v1-baseline-4"
+    },
+    {
+      "check": "native_audit_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v1-baseline-5"
+    },
+    {
+      "check": "native_audit_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v3-candidate-1"
+    },
+    {
+      "check": "native_audit_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v3-candidate-2"
+    },
+    {
+      "check": "native_audit_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v3-candidate-3"
+    },
+    {
+      "check": "native_audit_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v3-candidate-4"
+    },
+    {
+      "check": "native_audit_binding",
+      "pass": true,
+      "detail": "wtf-format-sol-v3-candidate-5"
+    },
+    {
+      "check": "integration_test_count",
+      "pass": true,
+      "detail": "576 integration tests passed, zero failed; adapter and inventory checks exit zero."
+    },
+    {
+      "check": "main_lint_inventory",
+      "pass": true,
+      "detail": "Accepted main lint and rule inventory pass."
+    },
+    {
+      "check": "overall_source_tally",
+      "pass": true,
+      "detail": "Ledger overall saving reconciles to 107,242 bytes and 26,409 estimated tokens."
+    }
+  ],
+  "findings": [
+    {
+      "kind": "targeted comparison",
+      "finding": "Manual target-rule counts are 9/15 baseline and 15/15 V5 candidate; supplied facts are 15/15 in both. All 30 selected artifact hashes agree. V4 diagnostic artifacts are not pooled."
+    },
+    {
+      "kind": "raw versus assessed",
+      "finding": "Raw decision failures for the Methodology label trailing space remain visible; the frozen assessor accepts both spellings. Assessed70/70 decisions and native five-per-arm status do not erase baseline manual omissions."
+    },
+    {
+      "kind": "metadata caveat",
+      "finding": "The manual record retains V4 source wording at its top, but final_comparison, source_version=V5 rows and final qualification explicitly select V5. This inherited top-level wording does not change the bound 30-artifact comparison."
+    },
+    {
+      "kind": "style and scope",
+      "finding": "Shared paragraph-plus-bullet calibration variance, prep grid/list ambiguity and empty verdict subgroup wording remain disclosed. No perfect-style, acquisition/handoff, tracker mutation, full workflow or Opus equivalence claim is supported."
+    }
+  ],
+  "summary": {
+    "checks": 98,
+    "failed": 0,
+    "frozen_records_or_source_modified": false
+  }
+}

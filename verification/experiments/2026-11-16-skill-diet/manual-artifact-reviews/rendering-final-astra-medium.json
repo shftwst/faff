@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "status": "in-progress-only-complete-read-samples-recorded",
-  "updated_utc": "2026-11-16T19:41:16.321569+00:00",
+  "status": "complete-pass-bounded-artifact-review-with-baseline-presentation-variance",
+  "updated_utc": "2026-11-16T20:01:33.133164+00:00",
   "reviewer": {
     "role": "independent bounded manual artifact verifier",
     "requested_model": "gpt-6.1-sol",
@@ -35,6 +35,171 @@
         "report.json": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
         "assessment.json": "b3f6d98e2840aaafe98b1f9da98615602d4098dd087f16079bc9d6440af59787",
         "native-audit.json": "f35b793d06286b72aafc1e9fb6ac179228ef1040cb9fe7ab4d4323d7dd727ee2"
+      },
+      "raw_report_status": "fail",
+      "retained_raw_failures": [
+        {
+          "id": "voice-source",
+          "kind": "decision",
+          "pass": false,
+          "problems": [
+            "rule-answer"
+          ],
+          "value": {
+            "file": "AGENTS.md",
+            "heading": "# Writing style"
+          }
+        }
+      ],
+      "assessed_status": "pass",
+      "assessed_decisions_passed": 20,
+      "native_statuses": [
+        "pass"
+      ],
+      "bounded_manual_facts_pass": 9
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-rendering-candidate-3",
+      "arm": "candidate",
+      "sample": 3,
+      "artifact_count": 9,
+      "hashes": {
+        "capture.json": "7f42b81baecca1a27117e7ed60d07b906c667422e0295e42fcb40830de71f7ed",
+        "report.json": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+        "assessment.json": "674ad47cdba1e3f65bf0b25f65d370e51b24770327533715c6b2da900d6189ef",
+        "native-audit.json": "00548b09b25f6ef49782bb617267520a1ad73868a2246707af684bd0936dce6b"
+      },
+      "raw_report_status": "fail",
+      "retained_raw_failures": [
+        {
+          "id": "voice-source",
+          "kind": "decision",
+          "pass": false,
+          "problems": [
+            "rule-answer"
+          ],
+          "value": {
+            "file": "AGENTS.md",
+            "heading": "# Writing style"
+          }
+        }
+      ],
+      "assessed_status": "pass",
+      "assessed_decisions_passed": 20,
+      "native_statuses": [
+        "pass"
+      ],
+      "bounded_manual_facts_pass": 9
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-rendering-baseline-4",
+      "arm": "baseline",
+      "sample": 4,
+      "artifact_count": 9,
+      "hashes": {
+        "capture.json": "48c224b2bd12c4dbff88409e08a55eaf6bf9a7061281197daa62066fa9d3cada",
+        "report.json": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+        "assessment.json": "2dce65eb1cef88d49b8cc1c1f6912696be6cd333e81a7cb5ceb4786f1647f54b",
+        "native-audit.json": "2f68ec5425ee47473a72dacf2a06b3bc8eadb9a23d30bcd01ab1405f74cc0c65"
+      },
+      "raw_report_status": "fail",
+      "retained_raw_failures": [
+        {
+          "id": "voice-source",
+          "kind": "decision",
+          "pass": false,
+          "problems": [
+            "rule-answer"
+          ],
+          "value": {
+            "file": "AGENTS.md",
+            "heading": "# Writing style"
+          }
+        }
+      ],
+      "assessed_status": "pass",
+      "assessed_decisions_passed": 20,
+      "native_statuses": [
+        "pass"
+      ],
+      "bounded_manual_facts_pass": 9
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-rendering-candidate-4",
+      "arm": "candidate",
+      "sample": 4,
+      "artifact_count": 9,
+      "hashes": {
+        "capture.json": "4785a1357f8d7675c87f27632482a813c9df65a70691e7c2f4a231ef4c887a64",
+        "report.json": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+        "assessment.json": "e462e5dded202d73d4a387a9569e6a2e15e50547eeb6385fbf13211bfbbde566",
+        "native-audit.json": "5908c97066e8eaf54c538bb93a4a5de230e29d21b37c0f86a63809546298c1da"
+      },
+      "raw_report_status": "fail",
+      "retained_raw_failures": [
+        {
+          "id": "voice-source",
+          "kind": "decision",
+          "pass": false,
+          "problems": [
+            "rule-answer"
+          ],
+          "value": {
+            "file": "AGENTS.md",
+            "heading": "# Writing style"
+          }
+        }
+      ],
+      "assessed_status": "pass",
+      "assessed_decisions_passed": 20,
+      "native_statuses": [
+        "pass"
+      ],
+      "bounded_manual_facts_pass": 9
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-rendering-baseline-5",
+      "arm": "baseline",
+      "sample": 5,
+      "artifact_count": 9,
+      "hashes": {
+        "capture.json": "4b81b860748e7c5198ab402632b9c5fcea47e037c5c845ee5747e302dc339b35",
+        "report.json": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+        "assessment.json": "5b487ee290749896bd1f4df5d5952377befd86b80bc2d54781716a82ce6de477",
+        "native-audit.json": "6cd937d32797f04836983ab10c77c90484d57011db2a42e34af5b45500e251d5"
+      },
+      "raw_report_status": "fail",
+      "retained_raw_failures": [
+        {
+          "id": "voice-source",
+          "kind": "decision",
+          "pass": false,
+          "problems": [
+            "rule-answer"
+          ],
+          "value": {
+            "file": "AGENTS.md",
+            "heading": "# Writing style"
+          }
+        }
+      ],
+      "assessed_status": "pass",
+      "assessed_decisions_passed": 20,
+      "native_statuses": [
+        "pass"
+      ],
+      "bounded_manual_facts_pass": 9
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-rendering-candidate-5",
+      "arm": "candidate",
+      "sample": 5,
+      "artifact_count": 9,
+      "hashes": {
+        "capture.json": "747bbd9e6e65a7a3bb39e9b0c127ae5ec9ff250e98557e1bbc290266048b02c9",
+        "report.json": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+        "assessment.json": "be62d1fb3ee51cf2abb3711aae28b1e4323d5ee17fc252e008caf4f9274643d9",
+        "native-audit.json": "1b8707cf4d0add636ff3bf9815b1ceadbd703dd33828dcada519b8a8bb5c2c9c"
       },
       "raw_report_status": "fail",
       "retained_raw_failures": [
@@ -160,13 +325,539 @@
       "invented_actions": false,
       "status": "pass-bounded-artifact-review",
       "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-candidate-3/artifacts/gloss-001.md",
+      "sha256": "b85967736f9f6b17cd4bf8180691131bf76b748b0b3e6faa78897d40660462db",
+      "run": "matrix-final-v1-astra-medium-rendering-candidate-3",
+      "case": "gloss-001",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-candidate-3/artifacts/gloss-002.md",
+      "sha256": "0a7a511797b4791f5c2cc81b8871d994a897804de519ecc18f725fd89480d798",
+      "run": "matrix-final-v1-astra-medium-rendering-candidate-3",
+      "case": "gloss-002",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": [
+        "Memoising explicitly explained as computed-result reuse."
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-candidate-3/artifacts/gloss-003.md",
+      "sha256": "ffdfca3023da3f06942dd5bd82d0582f2b1fc0bb35638a59bf22e75716f240cb",
+      "run": "matrix-final-v1-astra-medium-rendering-candidate-3",
+      "case": "gloss-003",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-candidate-3/artifacts/long-table.md",
+      "sha256": "8d45db483ce32eefd10b927b0b0eed55b51a70461cc6aa38bab1cf0a4b10376b",
+      "run": "matrix-final-v1-astra-medium-rendering-candidate-3",
+      "case": "long-table",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-candidate-3/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "run": "matrix-final-v1-astra-medium-rendering-candidate-3",
+      "case": "short-table",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-candidate-3/artifacts/enumeration.md",
+      "sha256": "96374fbda9c7602c2d81d165840fabd0c5fb9dc58ce6b5df8f75295ace87609a",
+      "run": "matrix-final-v1-astra-medium-rendering-candidate-3",
+      "case": "enumeration",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-candidate-3/artifacts/model-hoist.md",
+      "sha256": "12d83ffc60abf5fb70fe167f6721af2908f8e52cdeaf1a0f5357a280dc918cdb",
+      "run": "matrix-final-v1-astra-medium-rendering-candidate-3",
+      "case": "model-hoist",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-candidate-3/artifacts/missing-model.md",
+      "sha256": "766de827adc7981cda37e158e0edd75e934822d6919614810c954ecbfdd7a37d",
+      "run": "matrix-final-v1-astra-medium-rendering-candidate-3",
+      "case": "missing-model",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-candidate-3/artifacts/cycle.md",
+      "sha256": "557e772a24061a6546b066ecf58d0df44273bb76b2a3db930dbf1e8a38072884",
+      "run": "matrix-final-v1-astra-medium-rendering-candidate-3",
+      "case": "cycle",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-baseline-4/artifacts/gloss-001.md",
+      "sha256": "b999bbec9fcf7e9c1970384fecac3d25cacb1f83eb52c674e3ad045597e9264d",
+      "run": "matrix-final-v1-astra-medium-rendering-baseline-4",
+      "case": "gloss-001",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-baseline-4/artifacts/gloss-002.md",
+      "sha256": "a9e395b7578284dd6203830c2804d59630b8352dbd8d682321eba732c36b86f0",
+      "run": "matrix-final-v1-astra-medium-rendering-baseline-4",
+      "case": "gloss-002",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-facts-with-memoise-explanation-variance",
+      "notes": [
+        "Memoise and cold-start retained, but computed-result reuse unexplained; bounded presentation variance."
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-baseline-4/artifacts/gloss-003.md",
+      "sha256": "6ef321f2593f4a420cf42fcdb74aa11bbd925797d1a1059ec08e0b4d2b009a3b",
+      "run": "matrix-final-v1-astra-medium-rendering-baseline-4",
+      "case": "gloss-003",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-baseline-4/artifacts/long-table.md",
+      "sha256": "8d45db483ce32eefd10b927b0b0eed55b51a70461cc6aa38bab1cf0a4b10376b",
+      "run": "matrix-final-v1-astra-medium-rendering-baseline-4",
+      "case": "long-table",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-baseline-4/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "run": "matrix-final-v1-astra-medium-rendering-baseline-4",
+      "case": "short-table",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-baseline-4/artifacts/enumeration.md",
+      "sha256": "269bbd508816a62ad3e271e3885086e0452b7ff6dc6f235d6a0263c97e471df1",
+      "run": "matrix-final-v1-astra-medium-rendering-baseline-4",
+      "case": "enumeration",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-baseline-4/artifacts/model-hoist.md",
+      "sha256": "72c00e2b22779ad92777f7c5bde4cefe2de679939e284990241d52fd93c18853",
+      "run": "matrix-final-v1-astra-medium-rendering-baseline-4",
+      "case": "model-hoist",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-baseline-4/artifacts/missing-model.md",
+      "sha256": "ed5fd56c4197ea8303699e0508e06e0b81c5c2ee2cebf93a5a7214ef93c3cba2",
+      "run": "matrix-final-v1-astra-medium-rendering-baseline-4",
+      "case": "missing-model",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-baseline-4/artifacts/cycle.md",
+      "sha256": "1fda17e38a0e82af5d8813ceec0b63bb1bb447080bc0c29476209a92898834ea",
+      "run": "matrix-final-v1-astra-medium-rendering-baseline-4",
+      "case": "cycle",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-candidate-4/artifacts/gloss-001.md",
+      "sha256": "3bc3a5f8d1523aae9191e5aedab91d3f66d372d4977f346d4357ab1cee7cc2ba",
+      "run": "matrix-final-v1-astra-medium-rendering-candidate-4",
+      "case": "gloss-001",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-candidate-4/artifacts/gloss-002.md",
+      "sha256": "df9e7eebcbfc595ffc8a24a8abf7de9134e7493103f1d9517c0840c535fb1b03",
+      "run": "matrix-final-v1-astra-medium-rendering-candidate-4",
+      "case": "gloss-002",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": [
+        "Memoising explicitly explained as computed-result reuse."
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-candidate-4/artifacts/gloss-003.md",
+      "sha256": "ffdfca3023da3f06942dd5bd82d0582f2b1fc0bb35638a59bf22e75716f240cb",
+      "run": "matrix-final-v1-astra-medium-rendering-candidate-4",
+      "case": "gloss-003",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-candidate-4/artifacts/long-table.md",
+      "sha256": "c52772bae8ebc93aabf0127be5ab32eb3a0a1fa11406e3205b89566190e39a6e",
+      "run": "matrix-final-v1-astra-medium-rendering-candidate-4",
+      "case": "long-table",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": [
+        "Ticket field contains ID only; same definition block Scope grounds issue meaning. Both states, metric, raw counts, request-log source and maintainer audience preserved."
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-candidate-4/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "run": "matrix-final-v1-astra-medium-rendering-candidate-4",
+      "case": "short-table",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-candidate-4/artifacts/enumeration.md",
+      "sha256": "84a8325e53e72f5fde83d2187be149c19455d1abbd0d11c1d4594420d24cf66f",
+      "run": "matrix-final-v1-astra-medium-rendering-candidate-4",
+      "case": "enumeration",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-candidate-4/artifacts/model-hoist.md",
+      "sha256": "905e30c202497d1e09041cf82cfe0fc47be67b6474845f5ad8da415b9080d0f9",
+      "run": "matrix-final-v1-astra-medium-rendering-candidate-4",
+      "case": "model-hoist",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": [
+        "Governing statement leads; three subsequent bold-lead bullets retain mechanism, measurement and placement."
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-candidate-4/artifacts/missing-model.md",
+      "sha256": "bdb824fa3687d91983ec2c024a19b2dd588ecc1aa76c863ea324d7aff0bc3187",
+      "run": "matrix-final-v1-astra-medium-rendering-candidate-4",
+      "case": "missing-model",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-candidate-4/artifacts/cycle.md",
+      "sha256": "76d8c0289ad9d4a3a1f3b7423248ca35a1d356c636d389d17cd9856efc23a445",
+      "run": "matrix-final-v1-astra-medium-rendering-candidate-4",
+      "case": "cycle",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-baseline-5/artifacts/gloss-001.md",
+      "sha256": "54a3cc6cdb6811d149487c79b9732d2675a3d00d9f4daa3c2d927bb506316bf7",
+      "run": "matrix-final-v1-astra-medium-rendering-baseline-5",
+      "case": "gloss-001",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-baseline-5/artifacts/gloss-002.md",
+      "sha256": "a9e395b7578284dd6203830c2804d59630b8352dbd8d682321eba732c36b86f0",
+      "run": "matrix-final-v1-astra-medium-rendering-baseline-5",
+      "case": "gloss-002",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-facts-with-memoise-explanation-variance",
+      "notes": [
+        "Memoise and cold-start retained, but computed-result reuse unexplained; bounded presentation variance."
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-baseline-5/artifacts/gloss-003.md",
+      "sha256": "2c9c2d224825fecf4e7d02ffdaf62f1bc43618e79fc5ba7658aa129c99f6aeeb",
+      "run": "matrix-final-v1-astra-medium-rendering-baseline-5",
+      "case": "gloss-003",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-baseline-5/artifacts/long-table.md",
+      "sha256": "579a3c6933673cbc84ac3da1f7011a658a57bd07a643c337fc1ddbedc1332587",
+      "run": "matrix-final-v1-astra-medium-rendering-baseline-5",
+      "case": "long-table",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-baseline-5/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "run": "matrix-final-v1-astra-medium-rendering-baseline-5",
+      "case": "short-table",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-baseline-5/artifacts/enumeration.md",
+      "sha256": "6ce8a04df2a47dcdb9e107e49bc4c4dcc7362e3c18b64a54a5cb32567e7c33db",
+      "run": "matrix-final-v1-astra-medium-rendering-baseline-5",
+      "case": "enumeration",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-baseline-5/artifacts/model-hoist.md",
+      "sha256": "72c00e2b22779ad92777f7c5bde4cefe2de679939e284990241d52fd93c18853",
+      "run": "matrix-final-v1-astra-medium-rendering-baseline-5",
+      "case": "model-hoist",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-baseline-5/artifacts/missing-model.md",
+      "sha256": "eea15e8b90f2215fa541d32f7f8696b924fc461823b500aeef4afc85a8dd28be",
+      "run": "matrix-final-v1-astra-medium-rendering-baseline-5",
+      "case": "missing-model",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-baseline-5/artifacts/cycle.md",
+      "sha256": "f06bbf53b8acd1ad4b56b371f3905f959b55c9b4d87053778dad7d8e685a5a71",
+      "run": "matrix-final-v1-astra-medium-rendering-baseline-5",
+      "case": "cycle",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-candidate-5/artifacts/gloss-001.md",
+      "sha256": "3bc3a5f8d1523aae9191e5aedab91d3f66d372d4977f346d4357ab1cee7cc2ba",
+      "run": "matrix-final-v1-astra-medium-rendering-candidate-5",
+      "case": "gloss-001",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-candidate-5/artifacts/gloss-002.md",
+      "sha256": "df9e7eebcbfc595ffc8a24a8abf7de9134e7493103f1d9517c0840c535fb1b03",
+      "run": "matrix-final-v1-astra-medium-rendering-candidate-5",
+      "case": "gloss-002",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": [
+        "Memoising explicitly explained as computed-result reuse."
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-candidate-5/artifacts/gloss-003.md",
+      "sha256": "bb5d414f46a9e73973b5c00c32c9141d0f1fa685200539bd17ddb5132cc8886f",
+      "run": "matrix-final-v1-astra-medium-rendering-candidate-5",
+      "case": "gloss-003",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-candidate-5/artifacts/long-table.md",
+      "sha256": "f6b8cb4a212a720cf66b80a02772325352eb688cdbd9a63354c338e66e28bcf3",
+      "run": "matrix-final-v1-astra-medium-rendering-candidate-5",
+      "case": "long-table",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-candidate-5/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "run": "matrix-final-v1-astra-medium-rendering-candidate-5",
+      "case": "short-table",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-candidate-5/artifacts/enumeration.md",
+      "sha256": "269bbd508816a62ad3e271e3885086e0452b7ff6dc6f235d6a0263c97e471df1",
+      "run": "matrix-final-v1-astra-medium-rendering-candidate-5",
+      "case": "enumeration",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-candidate-5/artifacts/model-hoist.md",
+      "sha256": "12d83ffc60abf5fb70fe167f6721af2908f8e52cdeaf1a0f5357a280dc918cdb",
+      "run": "matrix-final-v1-astra-medium-rendering-candidate-5",
+      "case": "model-hoist",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-candidate-5/artifacts/missing-model.md",
+      "sha256": "fe0b91df66d5a89c7e79c8603222768367de5515b83a56cb4839ebf02c8e9a95",
+      "run": "matrix-final-v1-astra-medium-rendering-candidate-5",
+      "case": "missing-model",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-final-v1-astra-medium-rendering-candidate-5/artifacts/cycle.md",
+      "sha256": "cb25b4a409708f151767bfcd4604e85eb15ec206c2c5a52f4c66b6c3fb740ec6",
+      "run": "matrix-final-v1-astra-medium-rendering-candidate-5",
+      "case": "cycle",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
     }
   ],
-  "not_reviewed": [
-    "candidate3",
-    "baseline4",
-    "candidate4",
-    "baseline5",
-    "candidate5"
+  "not_reviewed": [],
+  "summary": {
+    "completed_samples": 6,
+    "fully_read_artifacts": 54,
+    "source_facts_retained": 54,
+    "invented_actions": 0,
+    "candidate_artifacts_pass_bounded_checks": 27,
+    "baseline_artifacts_preserve_facts": 27,
+    "baseline_memoise_without_reuse_explanation": 3,
+    "candidate_memoise_without_reuse_explanation": 0,
+    "repeated_standalone_title_body_gloss": 0,
+    "four_sentence_prose_paragraphs": 0,
+    "assessed_decisions_passed": 120,
+    "native_samples_passed": 6
+  },
+  "observations": [
+    "All supplied issue meanings, exact metric, table rows/states/counts/log source/maintainer audience, three questions, governing explanation and cycle edges retained.",
+    "No invented delivery actions, unsupported recommendation, fabricated missing governing explanation or repeated standalone title/body gloss.",
+    "All3new candidate memoise glosses explicitly explain reusing computed results; all3new baseline glosses omit that explanation.",
+    "Model-hoist blocks stay within approximate prose density target, either separating the governing statement, splitting after3sentences or using3bold-lead bullets.",
+    "Long-table candidate4 grounds issue meanings in Scope under ID-only Ticket fields; whole-output grounding is satisfied.",
+    "Original raw failures remain stored per run; frozen heading assessment is separate from manual facts and native compliance.",
+    "This file reviews only six new finalist samples; screen files were neither changed nor silently folded into this54artifact count."
   ]
 }

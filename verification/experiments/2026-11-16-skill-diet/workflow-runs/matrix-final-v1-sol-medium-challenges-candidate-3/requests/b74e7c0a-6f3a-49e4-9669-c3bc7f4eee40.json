@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"prdr-unavailable","outcome":null,"ground":null,"reason":"opinion_available=false denotes an exhausted provider attempt with no opinion. Preserve absence by omitting --challenge; Phase 1 and the supplied proposal cannot replace the missing skeptic. The caller must reject and park phase2-inconclusive."}}

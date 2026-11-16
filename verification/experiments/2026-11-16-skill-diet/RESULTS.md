@@ -1,8 +1,10 @@
 # Skill diet measurements
 
-Both reductions remain on a draft PR. The gateway passed its paired execution
-boundary checks. The corrected adversarial prompt passed its repeated decision/artifact probes;
-its execution qualification is in progress. Further compression waits for these checks.
+Both reductions remain draft and require delivery-v2 workflow requalification.
+Raw trace review found that long policies embedded as one JSON string could be
+truncated by Claude's file display. The first adversarial baseline also reported
+a scratch-file read/write outside the fixture rules. Earlier effect comparisons
+remain useful diagnostics, but do not count as completed qualification.
 
 Baseline: `a8509086ad28fa0e55cf3d1d818f2055294e663b`, at the start of the
 12-hour run. The machine-readable tally is `ledger.json`. All sizes include the
@@ -69,7 +71,7 @@ review read. No helper behaviour, default or model choice changed. These small,
 correlated samples support the tested decisions and defect examples; they do not
 establish statistical non-inferiority or exercise the full two-model pipeline.
 
-## Gateway execution qualification
+## Gateway execution effects (superseded delivery treatment)
 
 Five fresh samples per arm executed five independent first-run and dispatch cases
 through the real pinned CLI. Both arms passed 25/25 cases. Normalised mutation
@@ -79,7 +81,8 @@ were no rejected calls. The original made 34 config-path reads; the candidate
 made 25. The nine extra original reads are visible in raw traces and made no
 mutations.
 
-This qualifies the gateway boundary. Downstream skills are stubs, with the
+This effect comparison awaits policy-delivery requalification. Downstream skills
+are stubs, with the
 onboard stub using real CLI setup; full downstream workflows are not claimed.
 All reports, operations, file snapshots, source hashes, worker prompts and screens
 are retained under `workflow-runs/`. `gateway-execution-results.json` binds the
@@ -136,3 +139,12 @@ v2. V3 separately passed 185/185 decisions and 40/40 artifact decisions in five 
 samples for each suite. These compare with the unchanged original policy and
 fixtures in the five recorded baseline samples. V2 evidence remains historical.
 Execution qualification is still pending.
+
+## Policy delivery correction
+
+`workflow-fixtures/DELIVERY-V2.md` records the delivery fault, protocol failures
+and new treatment before new samples. Policy bytes are unchanged. The new reader
+returns at most 6,000 UTF-16 characters per call, records every chunk hash, and
+refuses workflow calls until the full policy has been delivered in sequence.
+Old reports remain unchanged; their `pass` labels refer to the captured effect
+grade, not acceptance under the corrected delivery protocol.

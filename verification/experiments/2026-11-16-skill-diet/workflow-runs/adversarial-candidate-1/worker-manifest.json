@@ -1,0 +1,19 @@
+{
+  "arm": "candidate",
+  "requested_model": "claude-opus-5-5",
+  "effort": "medium",
+  "claude_cli": "2.1.325",
+  "worker": "claude-retry",
+  "prompt_sha256": "99457c9adbf2685cf6c63b27367e2eeb2f41fff78a655ed14dab85a85f8b4d6b",
+  "harness_command": [
+    "node",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/adversarial-execution.mjs",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+    "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/candidates/adversarial-v3.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-fixtures/adversarial.json",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/adversarial-candidate-1"
+  ],
+  "context_reset_requested": true,
+  "provider_usage": "unmetered"
+}

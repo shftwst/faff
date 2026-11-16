@@ -13,7 +13,7 @@ test('real challenge consumers admit a supported change and reject an absent ske
     const env = createChallengeEnvironment({ root, runtime: resolve('.'), fixture: f });
     const a = await env.call('submit_challenge', { case_id: 'adr-1', outcome: 'survived', ground: null, reason: 'The premise changed and the proposed layout addresses it.' });
     assert.equal(a.admission.disposition, 'admit');
-    const p = await env.call('submit_challenge', { case_id: 'prdr-unavailable', outcome: null, ground: null, reason: 'No independent opinion was obtained.' });
+    const p = await env.call('submit_challenge', { case_id: 'prdr-unavailable', outcome: 'absent', ground: null, reason: 'No independent opinion was obtained.' });
     assert.notEqual(p.admission.disposition, 'admit');
     assert.equal(gradeChallengeExecution(env.capture(), f).status, 'pass');
   } finally { rmSync(root, { recursive: true, force: true }); }

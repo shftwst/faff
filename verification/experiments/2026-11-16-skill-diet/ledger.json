@@ -7,7 +7,7 @@
     {
       "skill": "faff",
       "path": "plugin/skills/faff/SKILL.md",
-      "status": "draft-workflow-boundary-qualified",
+      "status": "draft-policy-delivery-requalification-pending",
       "before": {
         "path": "plugin/skills/faff/SKILL.md",
         "bytes": 12984,
@@ -139,13 +139,15 @@
           }
         ],
         "scope": "Gateway first-run and dispatch boundary. Real CLI mutations; downstream skill stubs. No full downstream workflow or statistical-equivalence claim.",
-        "provider_usage": "unmetered"
-      }
+        "provider_usage": "unmetered",
+        "qualification": "effect comparison passed; policy-delivery qualification superseded by delivery-v2"
+      },
+      "qualification_pending": "Repeat workflow qualification with complete policy exposure recorded through read_policy. Preserve earlier effect grades and protocol failures separately."
     },
     {
       "skill": "faffter-dark-adversarial-review",
       "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
-      "status": "draft-smoke-passed-workflow-proof-pending",
+      "status": "draft-policy-delivery-requalification-pending",
       "before": {
         "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
         "bytes": 74897,
@@ -221,7 +223,7 @@
         "passed": 551,
         "failed": 0
       },
-      "qualification_pending": "Compare original and reduced prompt execution on affected disposable workflow fixtures before accepting this slice.",
+      "qualification_pending": "Repeat workflow qualification with complete policy exposure recorded through read_policy. Preserve earlier effect grades and protocol failures separately.",
       "tests": {
         "ci_correction_and_adapters": {
           "passed": 158,

@@ -1,0 +1,242 @@
+{
+  "status": "pass",
+  "bridge": {
+    "stop": null,
+    "requests": 129,
+    "rejected": 0
+  },
+  "grade": {
+    "status": "pass",
+    "cases": [
+      {
+        "id": "case-a",
+        "pass": true,
+        "problems": [],
+        "signal": "pass",
+        "helper_exits": [
+          0
+        ],
+        "checkpoints": [],
+        "gate": {
+          "issue": "FAFF-7001",
+          "pass": true,
+          "ac_complete": true,
+          "review_verdict": "pass",
+          "holdout": "not-applicable",
+          "reasons": [],
+          "ac_called_out": []
+        }
+      },
+      {
+        "id": "case-b",
+        "pass": true,
+        "problems": [],
+        "signal": "needs-human",
+        "helper_exits": [
+          0
+        ],
+        "checkpoints": [
+          "phase1-pass",
+          "in_flight",
+          "complete"
+        ],
+        "gate": {
+          "issue": "FAFF-7001",
+          "pass": false,
+          "ac_complete": true,
+          "review_verdict": "needs-human",
+          "holdout": "not-applicable",
+          "reasons": [
+            "review-verdict needs-human"
+          ],
+          "ac_called_out": []
+        }
+      },
+      {
+        "id": "case-c",
+        "pass": true,
+        "problems": [],
+        "signal": "pass",
+        "helper_exits": [
+          5
+        ],
+        "checkpoints": [
+          "phase1-pass",
+          "in_flight",
+          "skipped_unreachable"
+        ],
+        "gate": {
+          "issue": "FAFF-7001",
+          "pass": true,
+          "ac_complete": true,
+          "review_verdict": "pass",
+          "holdout": "not-applicable",
+          "reasons": [],
+          "ac_called_out": []
+        }
+      },
+      {
+        "id": "case-d",
+        "pass": true,
+        "problems": [],
+        "signal": "unavailable",
+        "helper_exits": [
+          9
+        ],
+        "checkpoints": [
+          "phase1-pass",
+          "in_flight"
+        ],
+        "gate": {
+          "issue": "FAFF-7001",
+          "pass": false,
+          "ac_complete": true,
+          "review_verdict": "unavailable",
+          "holdout": "not-applicable",
+          "reasons": [
+            "review-verdict unavailable"
+          ],
+          "ac_called_out": []
+        }
+      },
+      {
+        "id": "case-e",
+        "pass": true,
+        "problems": [],
+        "signal": "needs-human",
+        "helper_exits": [
+          7
+        ],
+        "checkpoints": [
+          "phase1-pass",
+          "in_flight"
+        ],
+        "gate": {
+          "issue": "FAFF-7001",
+          "pass": false,
+          "ac_complete": true,
+          "review_verdict": "needs-human",
+          "holdout": "not-applicable",
+          "reasons": [
+            "review-verdict needs-human"
+          ],
+          "ac_called_out": []
+        }
+      },
+      {
+        "id": "case-f",
+        "pass": true,
+        "problems": [],
+        "signal": "needs-human",
+        "helper_exits": [
+          11
+        ],
+        "checkpoints": [
+          "phase1-pass",
+          "in_flight"
+        ],
+        "gate": {
+          "issue": "FAFF-7001",
+          "pass": false,
+          "ac_complete": true,
+          "review_verdict": "needs-human",
+          "holdout": "not-applicable",
+          "reasons": [
+            "review-verdict needs-human"
+          ],
+          "ac_called_out": []
+        }
+      },
+      {
+        "id": "case-g",
+        "pass": true,
+        "problems": [],
+        "signal": "pass",
+        "helper_exits": [
+          8
+        ],
+        "checkpoints": [
+          "phase1-pass",
+          "in_flight",
+          "skipped_deadline"
+        ],
+        "gate": {
+          "issue": "FAFF-7001",
+          "pass": true,
+          "ac_complete": true,
+          "review_verdict": "pass",
+          "holdout": "not-applicable",
+          "reasons": [],
+          "ac_called_out": []
+        }
+      },
+      {
+        "id": "case-h",
+        "pass": true,
+        "problems": [],
+        "signal": "fail",
+        "helper_exits": [],
+        "checkpoints": [],
+        "gate": {
+          "issue": "FAFF-7001",
+          "pass": false,
+          "ac_complete": true,
+          "review_verdict": "fail",
+          "holdout": "not-applicable",
+          "reasons": [
+            "review-verdict fail"
+          ],
+          "ac_called_out": []
+        }
+      },
+      {
+        "id": "case-i",
+        "pass": true,
+        "problems": [],
+        "signal": "needs-human",
+        "helper_exits": [],
+        "checkpoints": [
+          "phase1-pass"
+        ],
+        "gate": {
+          "issue": "FAFF-7001",
+          "pass": false,
+          "ac_complete": true,
+          "review_verdict": "needs-human",
+          "holdout": "not-applicable",
+          "reasons": [
+            "review-verdict needs-human"
+          ],
+          "ac_called_out": []
+        }
+      },
+      {
+        "id": "case-j",
+        "pass": true,
+        "problems": [],
+        "signal": "unavailable",
+        "helper_exits": [
+          9
+        ],
+        "checkpoints": [
+          "phase1-pass",
+          "in_flight"
+        ],
+        "gate": {
+          "issue": "FAFF-7001",
+          "pass": false,
+          "ac_complete": true,
+          "review_verdict": "unavailable",
+          "holdout": "not-applicable",
+          "reasons": [
+            "review-verdict unavailable"
+          ],
+          "ac_called_out": []
+        }
+      }
+    ],
+    "errors": []
+  },
+  "scope": "Adversarial review control flow: real backend resolution, wrapped helper transport to a controlled local provider, checkpoint files, contract validation and persisted merge-floor consumption. Phase 1 is a fixture delegate; provider responses are fixed. No live GitHub/tracker mutation or second-model judgement claim.",
+  "accounting": "unmetered"
+}

@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "value": {
+    "contract": {
+      "exit_code": 0,
+      "signal": null,
+      "stdout": "{\"signal\":\"needs-human\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"title\":\"Adversarial backend authentication failure for openai/fixture-model\",\"location\":\".faff/config.yaml\",\"action\":\"Fix the credentials named by the adversarial api_key_env for openai/fixture-model, then re-run the review.\"}],\"conformant\":true,\"violations\":[]}\n",
+      "stderr": ""
+    },
+    "gate": {
+      "issue": "FAFF-7001",
+      "pass": false,
+      "ac_complete": true,
+      "review_verdict": "needs-human",
+      "holdout": "not-applicable",
+      "reasons": [
+        "review-verdict needs-human"
+      ],
+      "ac_called_out": []
+    }
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "ok": true,
+  "value": {
+    "challenge": {
+      "case_id": "prdr-2",
+      "outcome": "overturned",
+      "ground": "over-scope",
+      "reason": "The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for."
+    },
+    "calls": [
+      {
+        "args": [
+          "prdr",
+          "yagni",
+          "--prd-goal",
+          "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.",
+          "--prd-goals",
+          "[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\",\"The merge-floor logic (AC + CI + review) stays the single source of truth for merge eligibility\"]",
+          "--proposal",
+          "admit",
+          "--proposal-reason",
+          "The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'.",
+          "--challenge",
+          "overturned",
+          "--challenge-ground",
+          "over-scope",
+          "--challenge-reason",
+          "The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for."
+        ],
+        "exit_code": 0,
+        "stdout": "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for.\",\"trace_to_goal\":true,\"cited_goals\":[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\"],\"dod_covers\":[],\"over_scope\":false,\"proposal\":{\"serves_goal\":false,\"within_scope\":false,\"verdict\":\"admit\",\"reason\":\"The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'.\"},\"challenge\":{\"ran\":true,\"overturns\":true,\"reason\":\"The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for.\",\"ground\":\"over-scope\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      },
+      {
+        "args": [
+          "prdr",
+          "admit",
+          "fixture",
+          "--actor",
+          "loop",
+          "--supersedes-provenance",
+          "loop",
+          "--upper",
+          "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for.\"}"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"disposition\":\"reject\",\"upper\":{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for.\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for.\"],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      }
+    ],
+    "upper": {
+      "admit": false,
+      "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for.",
+      "trace_to_goal": true,
+      "cited_goals": [
+        "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD."
+      ],
+      "dod_covers": [],
+      "over_scope": false,
+      "proposal": {
+        "serves_goal": false,
+        "within_scope": false,
+        "verdict": "admit",
+        "reason": "The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'."
+      },
+      "challenge": {
+        "ran": true,
+        "overturns": true,
+        "reason": "The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for.",
+        "ground": "over-scope"
+      },
+      "grounding_present": false,
+      "conformant": true,
+      "violations": []
+    },
+    "admission": {
+      "disposition": "reject",
+      "upper": {
+        "admit": false,
+        "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for."
+      },
+      "lower": {
+        "covered": true,
+        "uncovered_goals": []
+      },
+      "authority": {
+        "actor": "loop",
+        "supersedes_provenance": "loop",
+        "by_level": "ok"
+      },
+      "ratchet": {
+        "lineage_supersessions": 0,
+        "breached": false
+      },
+      "reasons": [
+        "upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for."
+      ],
+      "conformant": true,
+      "violations": []
+    }
+  }
+}

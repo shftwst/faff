@@ -1,0 +1,9 @@
+{
+  "ok": true,
+  "value": {
+    "exit_code": 2,
+    "signal": null,
+    "stdout": "",
+    "stderr": "faff adversarial-backends: adversarial.fallbacks is not valid JSON: Expected property name or '}' in JSON at position 1 (line 1 column 2)\n"
+  }
+}

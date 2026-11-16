@@ -1,0 +1,4 @@
+{
+  "reason": "Future samples stopped after discovering policy delivery truncation and scratch-file protocol violations. Current worker and server were allowed to finish before terminating the scheduler.",
+  "completed_worker_report_retained": true
+}

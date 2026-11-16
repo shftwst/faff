@@ -54,5 +54,6 @@
       "arm": "candidate",
       "policy": "candidates/adversarial-v3.md"
     }
-  ]
+  ],
+  "worker": "claude-challenges"
 }

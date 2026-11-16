@@ -8,6 +8,7 @@ import { pathToFileURL } from 'node:url';
 import { bindCandidateCommand, assertCandidateCommandUnchanged } from './candidate-command.mjs';
 import { canonicalHash, sha256 } from './schema.mjs';
 import { serveMailbox } from './interactive-handoff.mjs';
+import { createPolicyReader, POLICY_TOOL } from './policy-reader.mjs';
 
 const INIT = ['config', 'init', '--set', 'tracking.spec_docs_path='];
 const HOUSEKEEPING = [INIT, ['gitignore-ensure'], ['hooks-ensure']];
@@ -190,23 +191,24 @@ export async function runGatewayExecution({ root, commit, policyPath, fixturePat
   const cli = join(root, 'plugin/skills/faff/bin/faff');
   const work = mkdtempSync(join(tmpdir(), 'faff-gateway-workflow-'));
   mkdirSync(output);
+  const policyReader = createPolicyReader(policyBytes);
   const env = createGatewayEnvironment({ root: work, cli, fixture });
   const task = {
-    instructions: 'Execute each independent gateway entry using the supplied policy and fixture tools. Configuration state is unknown until read. Use the already-resolved executable for all CLI operations. Stop each case at downstream skill dispatch; if onboarding is invoked, resume the original request after it completes. Do not execute downstream workflows yourself. Make actual tool calls; do not answer with proposed actions. Read only this task file. All other filesystem access and commands are through the fixture bridge.',
-    policy: policyBytes.toString('utf8'), resolved_executable: cli, tools: GATEWAY_TOOLS,
+    instructions: 'First read the entire policy through read_policy, starting at offset 0 and following next_offset until null. Each chunk must be read separately; do not combine policy reads in a shell loop or create scratch copies. Execute each independent gateway entry using the supplied policy and fixture tools. Configuration state is unknown until read. Use the already-resolved executable for all CLI operations. Stop each case at downstream skill dispatch; if onboarding is invoked, resume the original request after it completes. Do not execute downstream workflows yourself. Make actual tool calls; do not answer with proposed actions. Read only this task file. All other filesystem access and commands are through the fixture bridge.',
+    policy: policyReader.metadata, resolved_executable: cli, tools: [POLICY_TOOL, ...GATEWAY_TOOLS],
     cases: fixture.cases.map(({ id, user_message, autonomous }) => ({ id, user_message, autonomous })),
   };
   write(join(output, 'task.json'), task);
-  write(join(output, 'manifest.json'), { schema: 1, kind: 'gateway-entry-execution', binding, fixture_sha256: sha256(fixtureBytes), policy_sha256: sha256(policyBytes), policy_bytes: policyBytes.length, task_sha256: canonicalHash(task), harness_sha256: sha256(readFileSync(new URL(import.meta.url))), scope: fixture.scope, normalisations: fixture.normalisations, accounting: 'unmetered interactive Claude worker; no billed-cost claim' });
+  write(join(output, 'manifest.json'), { schema: 1, kind: 'gateway-entry-execution', binding, fixture_sha256: sha256(fixtureBytes), policy_sha256: sha256(policyBytes), policy_bytes: policyBytes.length, task_sha256: canonicalHash(task), harness_sha256: sha256(readFileSync(new URL(import.meta.url))), policy_reader_sha256: sha256(readFileSync(new URL('./policy-reader.mjs', import.meta.url))), scope: fixture.scope, normalisations: fixture.normalisations, accounting: 'unmetered interactive Claude worker; no billed-cost claim' });
   write(join(output, 'ready.json'), { ready: true });
   try {
-    const bridge = await serveMailbox(output, env.call, { allowedTools: tools, maxRequests: 128, timeoutMs: 480000 });
+    const bridge = await serveMailbox(output, policyReader.guard(env.call), { allowedTools: new Set([...tools, 'read_policy']), maxRequests: 128, timeoutMs: 480000 });
     const capture = env.capture();
     const grade = gradeGatewayExecution(capture, env.expected);
     assertCandidateCommandUnchanged(binding);
     write(join(output, 'capture.json'), capture);
     write(join(output, 'expected.json'), env.expected);
-    const report = { status: !bridge.stop && !bridge.rejected && grade.status === 'pass' ? 'pass' : 'fail', bridge, grade, scope: fixture.scope, accounting: 'unmetered' };
+    const report = { status: !bridge.stop && !bridge.rejected && policyReader.capture().complete && grade.status === 'pass' ? 'pass' : 'fail', bridge, policy_delivery: policyReader.capture(), grade, scope: fixture.scope, accounting: 'unmetered' };
     write(join(output, 'report.json'), report);
     return report;
   } finally { rmSync(work, { recursive: true, force: true }); }

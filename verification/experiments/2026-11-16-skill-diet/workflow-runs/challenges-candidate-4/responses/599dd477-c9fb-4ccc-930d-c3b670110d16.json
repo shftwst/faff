@@ -1,0 +1,102 @@
+{
+  "ok": true,
+  "value": {
+    "challenge": {
+      "case_id": "prdr-2",
+      "outcome": "overturned",
+      "ground": "over-scope",
+      "reason": "The first DoD item serves the inspection goal, but the persisted .faff/merge-gate-history/<pr>.jsonl log, the --explain historical timeline and the --since/--format query options add historical storage and query capability, which the PRD explicitly places out of scope. The Phase-1 claim that this is a natural extension of inspection ignores that exclusion. The DoD capability is not a subset of the declared goals."
+    },
+    "calls": [
+      {
+        "args": [
+          "prdr",
+          "yagni",
+          "--prd-goal",
+          "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.",
+          "--prd-goals",
+          "[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\",\"The merge-floor logic (AC + CI + review) stays the single source of truth for merge eligibility\"]",
+          "--proposal",
+          "admit",
+          "--proposal-reason",
+          "The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'.",
+          "--challenge",
+          "overturned",
+          "--challenge-ground",
+          "over-scope",
+          "--challenge-reason",
+          "The first DoD item serves the inspection goal, but the persisted .faff/merge-gate-history/<pr>.jsonl log, the --explain historical timeline and the --since/--format query options add historical storage and query capability, which the PRD explicitly places out of scope. The Phase-1 claim that this is a natural extension of inspection ignores that exclusion. The DoD capability is not a subset of the declared goals."
+        ],
+        "exit_code": 0,
+        "stdout": "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The first DoD item serves the inspection goal, but the persisted .faff/merge-gate-history/<pr>.jsonl log, the --explain historical timeline and the --since/--format query options add historical storage and query capability, which the PRD explicitly places out of scope. The Phase-1 claim that this is a natural extension of inspection ignores that exclusion. The DoD capability is not a subset of the declared goals.\",\"trace_to_goal\":true,\"cited_goals\":[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\"],\"dod_covers\":[],\"over_scope\":false,\"proposal\":{\"serves_goal\":false,\"within_scope\":false,\"verdict\":\"admit\",\"reason\":\"The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'.\"},\"challenge\":{\"ran\":true,\"overturns\":true,\"reason\":\"The first DoD item serves the inspection goal, but the persisted .faff/merge-gate-history/<pr>.jsonl log, the --explain historical timeline and the --since/--format query options add historical storage and query capability, which the PRD explicitly places out of scope. The Phase-1 claim that this is a natural extension of inspection ignores that exclusion. The DoD capability is not a subset of the declared goals.\",\"ground\":\"over-scope\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      },
+      {
+        "args": [
+          "prdr",
+          "admit",
+          "fixture",
+          "--actor",
+          "loop",
+          "--supersedes-provenance",
+          "loop",
+          "--upper",
+          "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The first DoD item serves the inspection goal, but the persisted .faff/merge-gate-history/<pr>.jsonl log, the --explain historical timeline and the --since/--format query options add historical storage and query capability, which the PRD explicitly places out of scope. The Phase-1 claim that this is a natural extension of inspection ignores that exclusion. The DoD capability is not a subset of the declared goals.\"}"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"disposition\":\"reject\",\"upper\":{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The first DoD item serves the inspection goal, but the persisted .faff/merge-gate-history/<pr>.jsonl log, the --explain historical timeline and the --since/--format query options add historical storage and query capability, which the PRD explicitly places out of scope. The Phase-1 claim that this is a natural extension of inspection ignores that exclusion. The DoD capability is not a subset of the declared goals.\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The first DoD item serves the inspection goal, but the persisted .faff/merge-gate-history/<pr>.jsonl log, the --explain historical timeline and the --since/--format query options add historical storage and query capability, which the PRD explicitly places out of scope. The Phase-1 claim that this is a natural extension of inspection ignores that exclusion. The DoD capability is not a subset of the declared goals.\"],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      }
+    ],
+    "upper": {
+      "admit": false,
+      "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The first DoD item serves the inspection goal, but the persisted .faff/merge-gate-history/<pr>.jsonl log, the --explain historical timeline and the --since/--format query options add historical storage and query capability, which the PRD explicitly places out of scope. The Phase-1 claim that this is a natural extension of inspection ignores that exclusion. The DoD capability is not a subset of the declared goals.",
+      "trace_to_goal": true,
+      "cited_goals": [
+        "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD."
+      ],
+      "dod_covers": [],
+      "over_scope": false,
+      "proposal": {
+        "serves_goal": false,
+        "within_scope": false,
+        "verdict": "admit",
+        "reason": "The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'."
+      },
+      "challenge": {
+        "ran": true,
+        "overturns": true,
+        "reason": "The first DoD item serves the inspection goal, but the persisted .faff/merge-gate-history/<pr>.jsonl log, the --explain historical timeline and the --since/--format query options add historical storage and query capability, which the PRD explicitly places out of scope. The Phase-1 claim that this is a natural extension of inspection ignores that exclusion. The DoD capability is not a subset of the declared goals.",
+        "ground": "over-scope"
+      },
+      "grounding_present": false,
+      "conformant": true,
+      "violations": []
+    },
+    "admission": {
+      "disposition": "reject",
+      "upper": {
+        "admit": false,
+        "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The first DoD item serves the inspection goal, but the persisted .faff/merge-gate-history/<pr>.jsonl log, the --explain historical timeline and the --since/--format query options add historical storage and query capability, which the PRD explicitly places out of scope. The Phase-1 claim that this is a natural extension of inspection ignores that exclusion. The DoD capability is not a subset of the declared goals."
+      },
+      "lower": {
+        "covered": true,
+        "uncovered_goals": []
+      },
+      "authority": {
+        "actor": "loop",
+        "supersedes_provenance": "loop",
+        "by_level": "ok"
+      },
+      "ratchet": {
+        "lineage_supersessions": 0,
+        "breached": false
+      },
+      "reasons": [
+        "upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The first DoD item serves the inspection goal, but the persisted .faff/merge-gate-history/<pr>.jsonl log, the --explain historical timeline and the --since/--format query options add historical storage and query capability, which the PRD explicitly places out of scope. The Phase-1 claim that this is a natural extension of inspection ignores that exclusion. The DoD capability is not a subset of the declared goals."
+      ],
+      "conformant": true,
+      "violations": []
+    }
+  }
+}

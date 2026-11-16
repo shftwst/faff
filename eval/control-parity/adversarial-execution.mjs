@@ -9,6 +9,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { bindCandidateCommand, assertCandidateCommandUnchanged } from './candidate-command.mjs';
 import { canonicalHash, sha256 } from './schema.mjs';
 import { serveMailbox } from './interactive-handoff.mjs';
+import { createPolicyReader, POLICY_TOOL } from './policy-reader.mjs';
 
 const require = createRequire(import.meta.url);
 const writeJson = (path, value) => writeFileSync(path, JSON.stringify(value, null, 2) + '\n');
@@ -258,17 +259,18 @@ export async function runAdversarialExecution({ root, commit, policyPath, fixtur
   const binding = bindCandidateCommand(root, commit), fixtureBytes = readFileSync(fixturePath), policyBytes = readFileSync(policyPath);
   const fixture = JSON.parse(fixtureBytes), work = mkdtempSync(join(tmpdir(), 'faff-adversarial-workflow-'));
   mkdirSync(output);
+  const policyReader = createPolicyReader(policyBytes);
   const env = await createAdversarialEnvironment({ root: work, runtime: root, fixture });
   try {
-    const task = { instructions: 'Execute each independent review case using the policy and fixture tools. Read context/diff files through read_file. The supplied file paths and executable paths are already resolved. Use run_command with an argv array in place of Bash; stdout_path implements shell redirection without changing stdout. Use the supplied fixture_guidance when the policy requests that shared review section. The primary review is a fixture delegate. The independent provider is a controlled local server reached by the real production helper. Submit the complete review output and contract for each case, then finish. Do not execute workflows outside these tools.', policy: policyBytes.toString('utf8'), executables: env.executables, tools: ADVERSARIAL_TOOLS, cases: env.publicCases };
+    const task = { instructions: 'First read the entire policy through read_policy, starting at offset 0 and following next_offset until null. Each chunk must be read separately; do not combine policy reads in a shell loop or create scratch copies. Execute each independent review case using the policy and fixture tools. Read context/diff files through read_file. The supplied file paths and executable paths are already resolved. Use run_command with an argv array in place of Bash; stdout_path implements shell redirection without changing stdout. Use the supplied fixture_guidance when the policy requests that shared review section. The primary review is a fixture delegate. The independent provider is a controlled local server reached by the real production helper. Submit the complete review output and contract for each case, then finish. Do not execute workflows outside these tools.', policy: policyReader.metadata, executables: env.executables, tools: [POLICY_TOOL, ...ADVERSARIAL_TOOLS], cases: env.publicCases };
     writeJson(join(output, 'task.json'), task);
-    writeJson(join(output, 'manifest.json'), { schema: 1, kind: 'adversarial-review-execution', binding, fixture_sha256: sha256(fixtureBytes), policy_sha256: sha256(policyBytes), task_sha256: canonicalHash(task), harness_sha256: sha256(readFileSync(new URL(import.meta.url))), scope: fixture.scope, accounting: 'unmetered' });
+    writeJson(join(output, 'manifest.json'), { schema: 1, kind: 'adversarial-review-execution', binding, fixture_sha256: sha256(fixtureBytes), policy_sha256: sha256(policyBytes), task_sha256: canonicalHash(task), harness_sha256: sha256(readFileSync(new URL(import.meta.url))), policy_reader_sha256: sha256(readFileSync(new URL('./policy-reader.mjs', import.meta.url))), scope: fixture.scope, accounting: 'unmetered' });
     writeJson(join(output, 'ready.json'), { ready: true });
-    const bridge = await serveMailbox(output, env.call, { allowedTools: new Set(ADVERSARIAL_TOOLS.map(t => t.name)), maxRequests: 512, timeoutMs: 900000 });
+    const bridge = await serveMailbox(output, policyReader.guard(env.call), { allowedTools: new Set(['read_policy', ...ADVERSARIAL_TOOLS.map(t => t.name)]), maxRequests: 512, timeoutMs: 900000 });
     const capture = env.capture(), grade = gradeAdversarialExecution(capture, fixture);
     assertCandidateCommandUnchanged(binding);
     writeJson(join(output, 'capture.json'), capture);
-    const report = { status: !bridge.stop && !bridge.rejected && grade.status === 'pass' ? 'pass' : 'fail', bridge, grade, scope: fixture.scope, accounting: 'unmetered' };
+    const report = { status: !bridge.stop && !bridge.rejected && policyReader.capture().complete && grade.status === 'pass' ? 'pass' : 'fail', bridge, policy_delivery: policyReader.capture(), grade, scope: fixture.scope, accounting: 'unmetered' };
     writeJson(join(output, 'report.json'), report);
     return report;
   } finally { await env.close(); rmSync(work, { recursive: true, force: true }); }

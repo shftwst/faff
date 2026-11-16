@@ -1,0 +1,1228 @@
+{
+  "schema": 1,
+  "status": "baseline-complete-held-strict-native-path-failure",
+  "updated_utc": "2026-11-16T22:19:00.230432+00:00",
+  "scope": "All actual facts, complete summary strings and tracker/conversation publications of every listed completed V2 sample read. Also inspected continuation/fault events and authority snapshots. V1 failed before worker creation and is separate setup evidence.",
+  "canonical_hash_encoding": "Exact strings use SHA256 UTF-8; objects use UTF-8 JSON sorted keys, compact separators and unescaped Unicode. Raw files bound separately.",
+  "source_bindings": [
+    {
+      "path": "beep-reporting-sol-v2-registration.json",
+      "sha256": "dccc8d30ab46ea6fa88a73a15b597068371905d6a09635c507eeb5b1e70ffff9"
+    },
+    {
+      "path": "beep-reporting-sol-v2-baseline-plan.json",
+      "sha256": "d4ba45e248b81c7a92f98a1a61fa16ecf2b3897c9157d5e43ff8566b3b66a36e"
+    },
+    {
+      "path": "workflow-fixtures/beep-reporting-v1.json",
+      "sha256": "d2d8624e1587eae1384feb5aa09cabcdc3880023c088924604d20a83e2494fc3"
+    },
+    {
+      "path": "baseline/beep-reporting.md",
+      "sha256": "f1efefcfc1d1eccdfa0c32a0a06cb989ffc35753766289646eb439525c875d28"
+    },
+    {
+      "path": "baseline/beep-reporting-with-context.md",
+      "sha256": "a86f63c7119cfea82d9fd78e9c832c269e517b3107b0496dccf134f303cad254"
+    },
+    {
+      "path": "independent-beep-reporting-preflight-review.json",
+      "sha256": "d6d3b952d7b5a06b2e763b4c9dabe1f9e993b7139ef0fe631f2139f4c2609658"
+    },
+    {
+      "path": "beep-reporting-full-preflight-v2/preflight.json",
+      "sha256": "ea939ddf23cfc27461fc53ec9d74a420c264a564d97bb837e3581eb514173786"
+    },
+    {
+      "path": "beep-reporting-v1-startup-failure.json",
+      "sha256": "fe452888a36c2bb34bd876ee1b9b31654e18716a7b431b57b9c90078c5cc2ada"
+    }
+  ],
+  "samples": [
+    {
+      "name": "beep-reporting-sol-v2-baseline-1",
+      "arm": "baseline",
+      "bindings": [
+        {
+          "path": "workflow-runs/beep-reporting-sol-v2-baseline-1/capture.json",
+          "sha256": "47956a280b73bfe0602beb71ef261ad4b29d5dc4e50127e83c69b2fcedfbf1f6"
+        },
+        {
+          "path": "workflow-runs/beep-reporting-sol-v2-baseline-1/report.json",
+          "sha256": "266fd96422640b2b78f5925b3155cdecaee7a042c7342bb4efe9995f039dfeb2"
+        },
+        {
+          "path": "workflow-runs/beep-reporting-sol-v2-baseline-1/native-audit.json",
+          "sha256": "2203034a4e1a5a6a0d344742db3355c1be04761dbcbad3c2dc6808bea29f2364"
+        },
+        {
+          "path": "workflow-runs/beep-reporting-sol-v2-baseline-1/manifest.json",
+          "sha256": "426118a898069f43ab60e0dc651ca576b1c93f7946340ebb919600345ecab502"
+        },
+        {
+          "path": "workflow-runs/beep-reporting-sol-v2-baseline-1/task.json",
+          "sha256": "6390453707b71a19d5c12833d44f77a383587c08e1b5d2bc1616efc90d059e28"
+        }
+      ],
+      "functional_status": "pass",
+      "native_status": "pass",
+      "execution_cases_passed": 6,
+      "execution_cases_total": 6,
+      "manual_cases_read": 6
+    },
+    {
+      "name": "beep-reporting-sol-v2-baseline-2",
+      "arm": "baseline",
+      "bindings": [
+        {
+          "path": "workflow-runs/beep-reporting-sol-v2-baseline-2/capture.json",
+          "sha256": "263d6534cf7f33d47ec42f3462a3d727f814c041dc31df722d662b5689073827"
+        },
+        {
+          "path": "workflow-runs/beep-reporting-sol-v2-baseline-2/report.json",
+          "sha256": "266fd96422640b2b78f5925b3155cdecaee7a042c7342bb4efe9995f039dfeb2"
+        },
+        {
+          "path": "workflow-runs/beep-reporting-sol-v2-baseline-2/native-audit.json",
+          "sha256": "90e6294140d20f93866c5f089c916915d98638dc2336541ac414aa3f863d068d"
+        },
+        {
+          "path": "workflow-runs/beep-reporting-sol-v2-baseline-2/manifest.json",
+          "sha256": "eba1b945be3ee006d5bee21a37bede238648681f15f13ada6ae70a7d8fa8a508"
+        },
+        {
+          "path": "workflow-runs/beep-reporting-sol-v2-baseline-2/task.json",
+          "sha256": "8ada677306f9318d763b524e363d5451bb709183fc6570ea62dc86edbc9eb7f7"
+        }
+      ],
+      "functional_status": "pass",
+      "native_status": "pass",
+      "execution_cases_passed": 6,
+      "execution_cases_total": 6,
+      "manual_cases_read": 6
+    },
+    {
+      "name": "beep-reporting-sol-v2-baseline-3",
+      "arm": "baseline",
+      "bindings": [
+        {
+          "path": "workflow-runs/beep-reporting-sol-v2-baseline-3/capture.json",
+          "sha256": "afaa3f7971c977991df4c52700c424274b30e857ab466896be9ed48f2efdbfc8"
+        },
+        {
+          "path": "workflow-runs/beep-reporting-sol-v2-baseline-3/report.json",
+          "sha256": "266fd96422640b2b78f5925b3155cdecaee7a042c7342bb4efe9995f039dfeb2"
+        },
+        {
+          "path": "workflow-runs/beep-reporting-sol-v2-baseline-3/native-audit.json",
+          "sha256": "51a45e9f70cd4d989f4dbbf36723c59b92a654c92ed8b4817572c44f2c6d64c7"
+        },
+        {
+          "path": "workflow-runs/beep-reporting-sol-v2-baseline-3/manifest.json",
+          "sha256": "2084eba59a1ca46ec8982a11559362078bbfad841aab48530a30506082c65617"
+        },
+        {
+          "path": "workflow-runs/beep-reporting-sol-v2-baseline-3/task.json",
+          "sha256": "4a1080b4242cdf043c35f736571d4f19cca546e4e602f17a640e817bdc2ef915"
+        }
+      ],
+      "functional_status": "pass",
+      "native_status": "pass",
+      "execution_cases_passed": 6,
+      "execution_cases_total": 6,
+      "manual_cases_read": 6
+    },
+    {
+      "name": "beep-reporting-sol-v2-baseline-4",
+      "arm": "baseline",
+      "bindings": [
+        {
+          "path": "workflow-runs/beep-reporting-sol-v2-baseline-4/capture.json",
+          "sha256": "d957fd3294373512fbdaa87d072261a65247298996ad0957930314b31319f458"
+        },
+        {
+          "path": "workflow-runs/beep-reporting-sol-v2-baseline-4/report.json",
+          "sha256": "266fd96422640b2b78f5925b3155cdecaee7a042c7342bb4efe9995f039dfeb2"
+        },
+        {
+          "path": "workflow-runs/beep-reporting-sol-v2-baseline-4/native-audit.json",
+          "sha256": "a1033ac39d7d525fce42630403e2199dfd538421caef645548fc87ae2de28ff1"
+        },
+        {
+          "path": "workflow-runs/beep-reporting-sol-v2-baseline-4/manifest.json",
+          "sha256": "8ebb5e2ebb8dd8996f804b5cbefd00c4dec91beedabfa1b92f45029dd637eb59"
+        },
+        {
+          "path": "workflow-runs/beep-reporting-sol-v2-baseline-4/task.json",
+          "sha256": "8a9212f7778780ea566c839f7d682e14f735f79167f839e638c76459fb65feee"
+        }
+      ],
+      "functional_status": "pass",
+      "native_status": "pass",
+      "execution_cases_passed": 6,
+      "execution_cases_total": 6,
+      "manual_cases_read": 6
+    },
+    {
+      "name": "beep-reporting-sol-v2-baseline-5",
+      "arm": "baseline",
+      "bindings": [
+        {
+          "path": "workflow-runs/beep-reporting-sol-v2-baseline-5/capture.json",
+          "sha256": "c8b89c32b5df371b2fae6456deb18ebf6a78e299dbfe0c11637658f889b2cc51"
+        },
+        {
+          "path": "workflow-runs/beep-reporting-sol-v2-baseline-5/report.json",
+          "sha256": "266fd96422640b2b78f5925b3155cdecaee7a042c7342bb4efe9995f039dfeb2"
+        },
+        {
+          "path": "workflow-runs/beep-reporting-sol-v2-baseline-5/native-audit.json",
+          "sha256": "22beee2722582c92d7ca03ee6a55e05aea7bfec21f531d208ebe5d241e9ab938"
+        },
+        {
+          "path": "workflow-runs/beep-reporting-sol-v2-baseline-5/manifest.json",
+          "sha256": "acc5e5c379a86a1b30aa8da39bb2a5459a43e5a113077f58a7fb61c669770d39"
+        },
+        {
+          "path": "workflow-runs/beep-reporting-sol-v2-baseline-5/task.json",
+          "sha256": "19e732cdf775f6bd42c977da6bdb67378f4edc0d843f61a7acc3cb31a57b8e79"
+        }
+      ],
+      "functional_status": "pass",
+      "native_status": "fail",
+      "execution_cases_passed": 6,
+      "execution_cases_total": 6,
+      "manual_cases_read": 6
+    }
+  ],
+  "integration_evidence_separate_from_model": {
+    "original_targeted_suite": "Preflight review records 19 combined tests,16 reporting tests plus 3 intake tests; this is not model evidence.",
+    "full_transport_preflight": "V2 deterministic preflight: 6 execution cases and 6 omitted-trace negatives; no model sample credit.",
+    "model_result": "Only listed actual captures contribute to model-case/native/manual counts."
+  },
+  "rows": [
+    {
+      "sample": "beep-reporting-sol-v2-baseline-1",
+      "case_id": "shipped-precedence",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "03a41f35fac385746104b3e98637de083f8be1c6a2b643c3648b965001397a6a",
+      "facts_sha256": "c1b4493d5e14420c6e43e53a60478af2258186ea280dd8d580748825fc20d07a",
+      "summary_sha256": "c9d7a88ba2f9f3935ce4d59d4697109245d9c3c18fa5695fa80c1a8976cbf780",
+      "source_case_sha256": "29bb4bb9b722158c721c2c9f0e4a6fcc7c7c02efc0de1ba197ebbc776cae18f9",
+      "authoritative_before_sha256": "fbbb7b5e8ccbf8471bc1fdfc2c0ae9069efe9ece04ee1ef6ff4495567f165644",
+      "authoritative_after_sha256": "fbbb7b5e8ccbf8471bc1fdfc2c0ae9069efe9ece04ee1ef6ff4495567f165644",
+      "events_sha256": "3799b8ea0284a7cdb99f75771f69fed333c8dbb0cd24ed25e982260e15ea0bda",
+      "publications": [
+        {
+          "channel": "conversation",
+          "target": "conversation",
+          "text_sha256": "c9d7a88ba2f9f3935ce4d59d4697109245d9c3c18fa5695fa80c1a8976cbf780",
+          "normalised_id": "shipped-precedence:conversation:0"
+        },
+        {
+          "channel": "tracker",
+          "target": "project:fixture-reporting",
+          "text_sha256": "3c502a4e5dba38f03e328e84cc523fa39641a39edbcdef9243b3b92a02f7e6db",
+          "normalised_id": "shipped-precedence:tracker:1"
+        }
+      ],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "All five shipped IDs appear once under correct precedence: plain SHP-1, skipped SHP-2, flagged SHP-3/SHP-5, human-AC SHP-4. Superseded SUP-1 remains separate with PRIOR-1. Full follow-up retained. $3 total and $0.60 per five shipped remain known; 1200 estimated tokens and 240 per shipped agree.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-1",
+      "case_id": "review-holds",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "591aee9e567cdab5baef559a7d4d57caf07f45737bf327f3739673d3316635af",
+      "facts_sha256": "11e726f7b0969daf9749c7fd3c15ef47c30d4e6064b87e3e9744ecf1400cedc6",
+      "summary_sha256": "ab3a5f8d704e78250f68255877e5d8b1a00a195ce1a36481c630513d1cc35ff5",
+      "source_case_sha256": "c173c52a230f093eda807a726af134d75d32a1bd5d55b28373b7457d767ade2c",
+      "authoritative_before_sha256": "232cbb9ef64655a3e2004cd52e677c08be30bac24c0778763c609ddd2a72f9c9",
+      "authoritative_after_sha256": "232cbb9ef64655a3e2004cd52e677c08be30bac24c0778763c609ddd2a72f9c9",
+      "events_sha256": "cc5d10941246822371f967fe627039cf938fba34042417f334c95213c496304f",
+      "publications": [
+        {
+          "channel": "conversation",
+          "target": "conversation",
+          "text_sha256": "ab3a5f8d704e78250f68255877e5d8b1a00a195ce1a36481c630513d1cc35ff5",
+          "normalised_id": "review-holds:conversation:0"
+        },
+        {
+          "channel": "tracker",
+          "target": "project:fixture-reporting",
+          "text_sha256": "8d2947ebf0210c83ef2fbc076fe39bdfc20b8dc4658fa10d15f42230ddc8e292",
+          "normalised_id": "review-holds:tracker:1"
+        }
+      ],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "OPEN-1 remains human handoff, OPEN-2 resumable landing, PARK-1 ordinary park, PARK-2 build review outage, PREP-1 prep outage. Prep hold is not admitted and has no outcome bucket. Reported reason and park timestamp preserved. Unknown cost is not invented; zero shipped marked ZERO-SHIP.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-1",
+      "case_id": "budget-zero-ship",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "fe00f826929c91909ca4a0696ca22f00f38bce9331cfe4ede6773354f352e5c0",
+      "facts_sha256": "ef421c4f3ed9ec531269844dc1478d4bfac87805d9809d5c489847354a2d2d95",
+      "summary_sha256": "be3324c4adceeb1d15cb161db016a4ea36eedc892b7a93518ab031e8385f1b1f",
+      "source_case_sha256": "14269c66f7fa9046e64674872f2605bd391b08ec642af5a401a843bc94b6d990",
+      "authoritative_before_sha256": "248a974c59f63e5f0414dfcd3c4de07afffc102343438fe64d44255ab61b4314",
+      "authoritative_after_sha256": "248a974c59f63e5f0414dfcd3c4de07afffc102343438fe64d44255ab61b4314",
+      "events_sha256": "5a50200426676f9dd85a74735887b8da6035445f7424500079be07b96193239c",
+      "publications": [
+        {
+          "channel": "conversation",
+          "target": "conversation",
+          "text_sha256": "be3324c4adceeb1d15cb161db016a4ea36eedc892b7a93518ab031e8385f1b1f",
+          "normalised_id": "budget-zero-ship:conversation:0"
+        },
+        {
+          "channel": "tracker",
+          "target": "project:fixture-reporting",
+          "text_sha256": "29b186edadcbe100dd9f1ca02a7ba2d2cb28ebb7689c332faafc53fafd864961",
+          "normalised_id": "budget-zero-ship:tracker:1"
+        }
+      ],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "BUD-1 alone is budget-unreached with actual token breach and transcript provenance. ZERO-SHIP preserved; no continuation invented after legitimate budget stop.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-1",
+      "case_id": "dirty-install",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "c9e4d5b23ddece276f258d212cee2b00fae633620d1ec0bed1832b2f419b79b9",
+      "facts_sha256": "b67bf8ed6b8ac697e9c864c62e0dc94294651e2ca3f82edfc0c9f4cf1b518356",
+      "summary_sha256": "8ccc7658a2f6af9c8316b10bde60d9cf014a8b5fb6467d15d545b088a0544f2d",
+      "source_case_sha256": "bbf44396a22f646f055ccd3c24fc55ed848c1c6e715abb2c98cba26b88e94df0",
+      "authoritative_before_sha256": "2413bc3fae33b1579619e22a5e544d15c2e9c5bb4fbdad22379457212cb11e2f",
+      "authoritative_after_sha256": "2413bc3fae33b1579619e22a5e544d15c2e9c5bb4fbdad22379457212cb11e2f",
+      "events_sha256": "f625c7f804a00739c3a4fa25adfb546f1c2507b21d3a8f719d461ed84c7f7cc0",
+      "publications": [
+        {
+          "channel": "conversation",
+          "target": "conversation",
+          "text_sha256": "8ccc7658a2f6af9c8316b10bde60d9cf014a8b5fb6467d15d545b088a0544f2d",
+          "normalised_id": "dirty-install:conversation:0"
+        },
+        {
+          "channel": "tracker",
+          "target": "project:fixture-reporting",
+          "text_sha256": "c1c3f9f7c9d21ca77ee1d0fb26ce1b0aec05df9ed40fabeb547c8f5285280178",
+          "normalised_id": "dirty-install:tracker:1"
+        }
+      ],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "Install-health warning leads both full publications. Injected title newline is flattened as title data, not a real Deferred section. Existing errored outcome, missing-endpoint surfaced scope, dedupe count and unresolved branch cleanup survive. No claim that this model filed a new ticket or performed cleanup.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-1",
+      "case_id": "no-budget-continuation",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "bdc04995df94de76129384b85419e9bac2d2551897f6b40c6c614c00f4fd1eab",
+      "facts_sha256": null,
+      "summary_sha256": null,
+      "source_case_sha256": "b5d09e2c9b99e64ec9dc568600de7bfd3b2cfa37beb28ce696661eecec50a7ba",
+      "authoritative_before_sha256": "676fc6586706d73b40834190458980108e7904eab80adcd0033dc87284ed7f85",
+      "authoritative_after_sha256": "676fc6586706d73b40834190458980108e7904eab80adcd0033dc87284ed7f85",
+      "events_sha256": "c4080c3225afa287b7c682b39ea123b7c3fa91452ee4df68c689a5d4d4b2bf8a",
+      "publications": [],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "Exactly NEXT-1 dispatched once; no facts, summary, publication or invented budget/capacity outcome.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-1",
+      "case_id": "unreadable-ledger",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "1cf09f6ede6acc2c37d2d85bb76b3738ba19cd8385b32e6b44c6d03129cfc06a",
+      "facts_sha256": "5b55279c784b067b6228cb8f6bd292f9b7653df821783958546bae97af19b3ee",
+      "summary_sha256": null,
+      "source_case_sha256": "8738e3c6d98e5da26fbb3ba6641cfb92301fa6e1eebefd4d9af4572eeb9974ad",
+      "authoritative_before_sha256": "86f34df53f5cc7c070735d4a56a58d55b406da103b94b8c316294dc196a6f9f7",
+      "authoritative_after_sha256": "86f34df53f5cc7c070735d4a56a58d55b406da103b94b8c316294dc196a6f9f7",
+      "events_sha256": "05217a1681d81384f34b108b21d4ac5f1f71ef4471c2fce3d79e5993834d0742",
+      "publications": [],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "Command exit2 is surfaced with actual unreadable ledger diagnostic; no summary, publication or continuation after failure.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-2",
+      "case_id": "shipped-precedence",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "1f5fc6848ad1bb2c520ce2e98c0156d3fe311ad76d1e7513f658d952aad3715a",
+      "facts_sha256": "c1b4493d5e14420c6e43e53a60478af2258186ea280dd8d580748825fc20d07a",
+      "summary_sha256": "c9d7a88ba2f9f3935ce4d59d4697109245d9c3c18fa5695fa80c1a8976cbf780",
+      "source_case_sha256": "29bb4bb9b722158c721c2c9f0e4a6fcc7c7c02efc0de1ba197ebbc776cae18f9",
+      "authoritative_before_sha256": "d7872224f84cbcda6a1c3a16a7ad9c3e5623ed972dd127b207749da2be2d615a",
+      "authoritative_after_sha256": "d7872224f84cbcda6a1c3a16a7ad9c3e5623ed972dd127b207749da2be2d615a",
+      "events_sha256": "d24a256754c001793ea9f0a2beeda6dbc7a05f053223e2802a58620df0caa959",
+      "publications": [
+        {
+          "channel": "tracker",
+          "target": "project:fixture-reporting",
+          "text_sha256": "3c502a4e5dba38f03e328e84cc523fa39641a39edbcdef9243b3b92a02f7e6db",
+          "normalised_id": "shipped-precedence:tracker:0"
+        },
+        {
+          "channel": "conversation",
+          "target": "conversation",
+          "text_sha256": "c9d7a88ba2f9f3935ce4d59d4697109245d9c3c18fa5695fa80c1a8976cbf780",
+          "normalised_id": "shipped-precedence:conversation:1"
+        }
+      ],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "All five shipped IDs appear once under correct precedence: plain SHP-1, skipped SHP-2, flagged SHP-3/SHP-5, human-AC SHP-4. Superseded SUP-1 remains separate with PRIOR-1. Full follow-up retained. $3 total and $0.60 per five shipped remain known; 1200 estimated tokens and 240 per shipped agree.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-2",
+      "case_id": "review-holds",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "cd3a1859878615fad29f263207eb82fede1f6d6bcf45e06b10b3610ac390dfb9",
+      "facts_sha256": "11e726f7b0969daf9749c7fd3c15ef47c30d4e6064b87e3e9744ecf1400cedc6",
+      "summary_sha256": "ab3a5f8d704e78250f68255877e5d8b1a00a195ce1a36481c630513d1cc35ff5",
+      "source_case_sha256": "c173c52a230f093eda807a726af134d75d32a1bd5d55b28373b7457d767ade2c",
+      "authoritative_before_sha256": "1e1943b6aa13894ffb25aa562b89a8e0c0b2ae5c8c17015e31bb5d4c2b6a1d3d",
+      "authoritative_after_sha256": "1e1943b6aa13894ffb25aa562b89a8e0c0b2ae5c8c17015e31bb5d4c2b6a1d3d",
+      "events_sha256": "ad7b98970687faa8e8f0e2c3e5997ff3fa0934811dc4448f1e781d5d56e6dd78",
+      "publications": [
+        {
+          "channel": "tracker",
+          "target": "project:fixture-reporting",
+          "text_sha256": "8d2947ebf0210c83ef2fbc076fe39bdfc20b8dc4658fa10d15f42230ddc8e292",
+          "normalised_id": "review-holds:tracker:0"
+        },
+        {
+          "channel": "conversation",
+          "target": "conversation",
+          "text_sha256": "ab3a5f8d704e78250f68255877e5d8b1a00a195ce1a36481c630513d1cc35ff5",
+          "normalised_id": "review-holds:conversation:1"
+        }
+      ],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "OPEN-1 remains human handoff, OPEN-2 resumable landing, PARK-1 ordinary park, PARK-2 build review outage, PREP-1 prep outage. Prep hold is not admitted and has no outcome bucket. Reported reason and park timestamp preserved. Unknown cost is not invented; zero shipped marked ZERO-SHIP.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-2",
+      "case_id": "budget-zero-ship",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "f222d09410365d62876be218ddcb928ed2a092bcccff8d161003daa013e4972c",
+      "facts_sha256": "ef421c4f3ed9ec531269844dc1478d4bfac87805d9809d5c489847354a2d2d95",
+      "summary_sha256": "be3324c4adceeb1d15cb161db016a4ea36eedc892b7a93518ab031e8385f1b1f",
+      "source_case_sha256": "14269c66f7fa9046e64674872f2605bd391b08ec642af5a401a843bc94b6d990",
+      "authoritative_before_sha256": "fe4a15dae9a22ccc3b23ca783dd6e4c9f2f60162c16b108c62c10553ebf7894c",
+      "authoritative_after_sha256": "fe4a15dae9a22ccc3b23ca783dd6e4c9f2f60162c16b108c62c10553ebf7894c",
+      "events_sha256": "b23dcd32220ca3f6ddfe21c526eb57d1db17654640f0f4a4c8b3f5176a5967ec",
+      "publications": [
+        {
+          "channel": "tracker",
+          "target": "project:fixture-reporting",
+          "text_sha256": "29b186edadcbe100dd9f1ca02a7ba2d2cb28ebb7689c332faafc53fafd864961",
+          "normalised_id": "budget-zero-ship:tracker:0"
+        },
+        {
+          "channel": "conversation",
+          "target": "conversation",
+          "text_sha256": "be3324c4adceeb1d15cb161db016a4ea36eedc892b7a93518ab031e8385f1b1f",
+          "normalised_id": "budget-zero-ship:conversation:1"
+        }
+      ],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "BUD-1 alone is budget-unreached with actual token breach and transcript provenance. ZERO-SHIP preserved; no continuation invented after legitimate budget stop.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-2",
+      "case_id": "dirty-install",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "086871d12cf2954ebf094127cb7727da897b07f5ab21bdc37b29a5a4c4a537a4",
+      "facts_sha256": "b67bf8ed6b8ac697e9c864c62e0dc94294651e2ca3f82edfc0c9f4cf1b518356",
+      "summary_sha256": "8ccc7658a2f6af9c8316b10bde60d9cf014a8b5fb6467d15d545b088a0544f2d",
+      "source_case_sha256": "bbf44396a22f646f055ccd3c24fc55ed848c1c6e715abb2c98cba26b88e94df0",
+      "authoritative_before_sha256": "4cc3e27b51f65957d964308fcd7575fc7343040efdf5ac0f4a5f2f231b7c039c",
+      "authoritative_after_sha256": "4cc3e27b51f65957d964308fcd7575fc7343040efdf5ac0f4a5f2f231b7c039c",
+      "events_sha256": "35e60d9c7e3016e04237519ddaec810d89bfe523944aa20d9cc055d4f421ffb9",
+      "publications": [
+        {
+          "channel": "tracker",
+          "target": "project:fixture-reporting",
+          "text_sha256": "c1c3f9f7c9d21ca77ee1d0fb26ce1b0aec05df9ed40fabeb547c8f5285280178",
+          "normalised_id": "dirty-install:tracker:0"
+        },
+        {
+          "channel": "conversation",
+          "target": "conversation",
+          "text_sha256": "8ccc7658a2f6af9c8316b10bde60d9cf014a8b5fb6467d15d545b088a0544f2d",
+          "normalised_id": "dirty-install:conversation:1"
+        }
+      ],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "Install-health warning leads both full publications. Injected title newline is flattened as title data, not a real Deferred section. Existing errored outcome, missing-endpoint surfaced scope, dedupe count and unresolved branch cleanup survive. No claim that this model filed a new ticket or performed cleanup.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-2",
+      "case_id": "no-budget-continuation",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "296889b62b399ab1d529bfe17091bb6eac70103b8f57df190ace9869d49f13fe",
+      "facts_sha256": null,
+      "summary_sha256": null,
+      "source_case_sha256": "b5d09e2c9b99e64ec9dc568600de7bfd3b2cfa37beb28ce696661eecec50a7ba",
+      "authoritative_before_sha256": "d1f534edd462aa90522d4bedd8d3b1a7385ceb09be296326249916780fb67075",
+      "authoritative_after_sha256": "d1f534edd462aa90522d4bedd8d3b1a7385ceb09be296326249916780fb67075",
+      "events_sha256": "c4080c3225afa287b7c682b39ea123b7c3fa91452ee4df68c689a5d4d4b2bf8a",
+      "publications": [],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "Exactly NEXT-1 dispatched once; no facts, summary, publication or invented budget/capacity outcome.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-2",
+      "case_id": "unreadable-ledger",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "01b05d6f40ac5e56dde4e69d5b49dd66d39f8017445839d05124bae06240e306",
+      "facts_sha256": "5b55279c784b067b6228cb8f6bd292f9b7653df821783958546bae97af19b3ee",
+      "summary_sha256": null,
+      "source_case_sha256": "8738e3c6d98e5da26fbb3ba6641cfb92301fa6e1eebefd4d9af4572eeb9974ad",
+      "authoritative_before_sha256": "b3b33037d87505a954689f23c0ff0078569ac60982dc166b9c869bdb38c6a92f",
+      "authoritative_after_sha256": "b3b33037d87505a954689f23c0ff0078569ac60982dc166b9c869bdb38c6a92f",
+      "events_sha256": "ffef64036e845262a1fc94737d06370d370b1c38f71cd6e10f4ccb3b4a879717",
+      "publications": [],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "Command exit2 is surfaced with actual unreadable ledger diagnostic; no summary, publication or continuation after failure.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-3",
+      "case_id": "shipped-precedence",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "3cc05d955523335a5c152ac0cab8d3bcd39383519711722f64f5c01b841dc0f8",
+      "facts_sha256": "c1b4493d5e14420c6e43e53a60478af2258186ea280dd8d580748825fc20d07a",
+      "summary_sha256": "c9d7a88ba2f9f3935ce4d59d4697109245d9c3c18fa5695fa80c1a8976cbf780",
+      "source_case_sha256": "29bb4bb9b722158c721c2c9f0e4a6fcc7c7c02efc0de1ba197ebbc776cae18f9",
+      "authoritative_before_sha256": "6719eaec3fb1f80c0df80c67a8122ee6d0c9ea3385c16ccfff155f612f9e0415",
+      "authoritative_after_sha256": "6719eaec3fb1f80c0df80c67a8122ee6d0c9ea3385c16ccfff155f612f9e0415",
+      "events_sha256": "cbdb95a8edd572dfee6d808ee74c295493da00fcfeff143d25dc31f91caab49c",
+      "publications": [
+        {
+          "channel": "tracker",
+          "target": "project:fixture-reporting",
+          "text_sha256": "3c502a4e5dba38f03e328e84cc523fa39641a39edbcdef9243b3b92a02f7e6db",
+          "normalised_id": "shipped-precedence:tracker:0"
+        },
+        {
+          "channel": "conversation",
+          "target": "conversation",
+          "text_sha256": "c9d7a88ba2f9f3935ce4d59d4697109245d9c3c18fa5695fa80c1a8976cbf780",
+          "normalised_id": "shipped-precedence:conversation:1"
+        }
+      ],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "All five shipped IDs appear once under correct precedence: plain SHP-1, skipped SHP-2, flagged SHP-3/SHP-5, human-AC SHP-4. Superseded SUP-1 remains separate with PRIOR-1. Full follow-up retained. $3 total and $0.60 per five shipped remain known; 1200 estimated tokens and 240 per shipped agree.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-3",
+      "case_id": "review-holds",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "396f18b3803fe9e4d33c952dc3da7573df9bc72f959ba57c096912271c17b417",
+      "facts_sha256": "11e726f7b0969daf9749c7fd3c15ef47c30d4e6064b87e3e9744ecf1400cedc6",
+      "summary_sha256": "ab3a5f8d704e78250f68255877e5d8b1a00a195ce1a36481c630513d1cc35ff5",
+      "source_case_sha256": "c173c52a230f093eda807a726af134d75d32a1bd5d55b28373b7457d767ade2c",
+      "authoritative_before_sha256": "264063723c4f37cd90c24bf0dea60c623278352f84a65d8b3fd04b60f16d0877",
+      "authoritative_after_sha256": "264063723c4f37cd90c24bf0dea60c623278352f84a65d8b3fd04b60f16d0877",
+      "events_sha256": "b9589feb9c2dfdee174f2665df22aec0d1a81ef27603426c0afba67e050e28ca",
+      "publications": [
+        {
+          "channel": "tracker",
+          "target": "project:fixture-reporting",
+          "text_sha256": "8d2947ebf0210c83ef2fbc076fe39bdfc20b8dc4658fa10d15f42230ddc8e292",
+          "normalised_id": "review-holds:tracker:0"
+        },
+        {
+          "channel": "conversation",
+          "target": "conversation",
+          "text_sha256": "ab3a5f8d704e78250f68255877e5d8b1a00a195ce1a36481c630513d1cc35ff5",
+          "normalised_id": "review-holds:conversation:1"
+        }
+      ],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "OPEN-1 remains human handoff, OPEN-2 resumable landing, PARK-1 ordinary park, PARK-2 build review outage, PREP-1 prep outage. Prep hold is not admitted and has no outcome bucket. Reported reason and park timestamp preserved. Unknown cost is not invented; zero shipped marked ZERO-SHIP.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-3",
+      "case_id": "budget-zero-ship",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "9080f7c27d136847bd9a9b53d893fc9e1f2d2a94a310e5781d468b0a1058977b",
+      "facts_sha256": "ef421c4f3ed9ec531269844dc1478d4bfac87805d9809d5c489847354a2d2d95",
+      "summary_sha256": "be3324c4adceeb1d15cb161db016a4ea36eedc892b7a93518ab031e8385f1b1f",
+      "source_case_sha256": "14269c66f7fa9046e64674872f2605bd391b08ec642af5a401a843bc94b6d990",
+      "authoritative_before_sha256": "e62eb9acd58a55eba4857dea1c89aca169e2907e54ed63f0a1f103abff826243",
+      "authoritative_after_sha256": "e62eb9acd58a55eba4857dea1c89aca169e2907e54ed63f0a1f103abff826243",
+      "events_sha256": "7366b708053d3a7c1bac002af58ecd43db4799f8c416c9e83971f5d19668123d",
+      "publications": [
+        {
+          "channel": "tracker",
+          "target": "project:fixture-reporting",
+          "text_sha256": "29b186edadcbe100dd9f1ca02a7ba2d2cb28ebb7689c332faafc53fafd864961",
+          "normalised_id": "budget-zero-ship:tracker:0"
+        },
+        {
+          "channel": "conversation",
+          "target": "conversation",
+          "text_sha256": "be3324c4adceeb1d15cb161db016a4ea36eedc892b7a93518ab031e8385f1b1f",
+          "normalised_id": "budget-zero-ship:conversation:1"
+        }
+      ],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "BUD-1 alone is budget-unreached with actual token breach and transcript provenance. ZERO-SHIP preserved; no continuation invented after legitimate budget stop.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-3",
+      "case_id": "dirty-install",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "efaa1833aa4a4ddc5422e23538cbc63f4d16b78f228ae0dde7f00e419387b3a1",
+      "facts_sha256": "b67bf8ed6b8ac697e9c864c62e0dc94294651e2ca3f82edfc0c9f4cf1b518356",
+      "summary_sha256": "8ccc7658a2f6af9c8316b10bde60d9cf014a8b5fb6467d15d545b088a0544f2d",
+      "source_case_sha256": "bbf44396a22f646f055ccd3c24fc55ed848c1c6e715abb2c98cba26b88e94df0",
+      "authoritative_before_sha256": "8947103429573edd8e5b3f7a07bf5c5873617855c638c5e8371c3ca361221bbb",
+      "authoritative_after_sha256": "8947103429573edd8e5b3f7a07bf5c5873617855c638c5e8371c3ca361221bbb",
+      "events_sha256": "02bf4e8dadeae6f702765f053dce4f049804c870c4dc99a84155b4d0b264e6c5",
+      "publications": [
+        {
+          "channel": "tracker",
+          "target": "project:fixture-reporting",
+          "text_sha256": "c1c3f9f7c9d21ca77ee1d0fb26ce1b0aec05df9ed40fabeb547c8f5285280178",
+          "normalised_id": "dirty-install:tracker:0"
+        },
+        {
+          "channel": "conversation",
+          "target": "conversation",
+          "text_sha256": "8ccc7658a2f6af9c8316b10bde60d9cf014a8b5fb6467d15d545b088a0544f2d",
+          "normalised_id": "dirty-install:conversation:1"
+        }
+      ],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "Install-health warning leads both full publications. Injected title newline is flattened as title data, not a real Deferred section. Existing errored outcome, missing-endpoint surfaced scope, dedupe count and unresolved branch cleanup survive. No claim that this model filed a new ticket or performed cleanup.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-3",
+      "case_id": "no-budget-continuation",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "cb6f7ffb6c2c65de2555c2a8c9fe36c86ee2e619f2f38215e8f65edfde041cad",
+      "facts_sha256": null,
+      "summary_sha256": null,
+      "source_case_sha256": "b5d09e2c9b99e64ec9dc568600de7bfd3b2cfa37beb28ce696661eecec50a7ba",
+      "authoritative_before_sha256": "f594493be880c554058fefc7f37f9b6242b6ee1938407b794b2f629198d516bc",
+      "authoritative_after_sha256": "f594493be880c554058fefc7f37f9b6242b6ee1938407b794b2f629198d516bc",
+      "events_sha256": "c4080c3225afa287b7c682b39ea123b7c3fa91452ee4df68c689a5d4d4b2bf8a",
+      "publications": [],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "Exactly NEXT-1 dispatched once; no facts, summary, publication or invented budget/capacity outcome.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-3",
+      "case_id": "unreadable-ledger",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "08fe12c153396af4c339f4cdffe3e11377132670fe95fc0c7fed935d985add62",
+      "facts_sha256": "5b55279c784b067b6228cb8f6bd292f9b7653df821783958546bae97af19b3ee",
+      "summary_sha256": null,
+      "source_case_sha256": "8738e3c6d98e5da26fbb3ba6641cfb92301fa6e1eebefd4d9af4572eeb9974ad",
+      "authoritative_before_sha256": "ced124d2406eddaf16abc9238262a185d2921b9eb1dba9ee0ca95f755e111f8e",
+      "authoritative_after_sha256": "ced124d2406eddaf16abc9238262a185d2921b9eb1dba9ee0ca95f755e111f8e",
+      "events_sha256": "2d2632c44b8b10de91f60551b417f28a14bf150360069f18184d38fccf6d5bf8",
+      "publications": [],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "Command exit2 is surfaced with actual unreadable ledger diagnostic; no summary, publication or continuation after failure.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-4",
+      "case_id": "shipped-precedence",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "252282929b664daf19b3f0579b84acf6fe9de559e7fa5b39a5eb1495d536d54c",
+      "facts_sha256": "c1b4493d5e14420c6e43e53a60478af2258186ea280dd8d580748825fc20d07a",
+      "summary_sha256": "c9d7a88ba2f9f3935ce4d59d4697109245d9c3c18fa5695fa80c1a8976cbf780",
+      "source_case_sha256": "29bb4bb9b722158c721c2c9f0e4a6fcc7c7c02efc0de1ba197ebbc776cae18f9",
+      "authoritative_before_sha256": "5906b122b105006e3acca35fa2e77e8568aa4b6e57f3068a3aee0311e066604e",
+      "authoritative_after_sha256": "5906b122b105006e3acca35fa2e77e8568aa4b6e57f3068a3aee0311e066604e",
+      "events_sha256": "3bbc6005c6a526107a12b9b760c1062c7a76ea8430cda2b7f91aa81a8dda08b0",
+      "publications": [
+        {
+          "channel": "tracker",
+          "target": "project:fixture-reporting",
+          "text_sha256": "3c502a4e5dba38f03e328e84cc523fa39641a39edbcdef9243b3b92a02f7e6db",
+          "normalised_id": "shipped-precedence:tracker:0"
+        },
+        {
+          "channel": "conversation",
+          "target": "conversation",
+          "text_sha256": "c9d7a88ba2f9f3935ce4d59d4697109245d9c3c18fa5695fa80c1a8976cbf780",
+          "normalised_id": "shipped-precedence:conversation:1"
+        }
+      ],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "All five shipped IDs appear once under correct precedence: plain SHP-1, skipped SHP-2, flagged SHP-3/SHP-5, human-AC SHP-4. Superseded SUP-1 remains separate with PRIOR-1. Full follow-up retained. $3 total and $0.60 per five shipped remain known; 1200 estimated tokens and 240 per shipped agree.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-4",
+      "case_id": "review-holds",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "1a39971695229248e782ca9d414cb245f8de674194e5f7bd8ce829b6e9cc9357",
+      "facts_sha256": "11e726f7b0969daf9749c7fd3c15ef47c30d4e6064b87e3e9744ecf1400cedc6",
+      "summary_sha256": "ab3a5f8d704e78250f68255877e5d8b1a00a195ce1a36481c630513d1cc35ff5",
+      "source_case_sha256": "c173c52a230f093eda807a726af134d75d32a1bd5d55b28373b7457d767ade2c",
+      "authoritative_before_sha256": "fdb7f65cf8bc469d038a7253d43a696caa7d7d5dc399cb0b42f005a2c1ace10e",
+      "authoritative_after_sha256": "fdb7f65cf8bc469d038a7253d43a696caa7d7d5dc399cb0b42f005a2c1ace10e",
+      "events_sha256": "dfea6c77c892c6d55d4cbcfa73e2e9ab62238815ad2e3aa3207a66c27dc34253",
+      "publications": [
+        {
+          "channel": "tracker",
+          "target": "project:fixture-reporting",
+          "text_sha256": "8d2947ebf0210c83ef2fbc076fe39bdfc20b8dc4658fa10d15f42230ddc8e292",
+          "normalised_id": "review-holds:tracker:0"
+        },
+        {
+          "channel": "conversation",
+          "target": "conversation",
+          "text_sha256": "ab3a5f8d704e78250f68255877e5d8b1a00a195ce1a36481c630513d1cc35ff5",
+          "normalised_id": "review-holds:conversation:1"
+        }
+      ],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "OPEN-1 remains human handoff, OPEN-2 resumable landing, PARK-1 ordinary park, PARK-2 build review outage, PREP-1 prep outage. Prep hold is not admitted and has no outcome bucket. Reported reason and park timestamp preserved. Unknown cost is not invented; zero shipped marked ZERO-SHIP.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-4",
+      "case_id": "budget-zero-ship",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "39699cfd403a7cbd3dfefefd399041a8db21269dd1aeb8b21f71ef4abc511210",
+      "facts_sha256": "ef421c4f3ed9ec531269844dc1478d4bfac87805d9809d5c489847354a2d2d95",
+      "summary_sha256": "be3324c4adceeb1d15cb161db016a4ea36eedc892b7a93518ab031e8385f1b1f",
+      "source_case_sha256": "14269c66f7fa9046e64674872f2605bd391b08ec642af5a401a843bc94b6d990",
+      "authoritative_before_sha256": "66c6c791ef176c7b651dbb4ce977638cfaea5f39fea12a3604a3d4e766e8fa82",
+      "authoritative_after_sha256": "66c6c791ef176c7b651dbb4ce977638cfaea5f39fea12a3604a3d4e766e8fa82",
+      "events_sha256": "8ac0fc94e9dbef1d2737599cdaad54dc6cc2c568a4c5312c4bf7ee6d16f8f1b9",
+      "publications": [
+        {
+          "channel": "tracker",
+          "target": "project:fixture-reporting",
+          "text_sha256": "29b186edadcbe100dd9f1ca02a7ba2d2cb28ebb7689c332faafc53fafd864961",
+          "normalised_id": "budget-zero-ship:tracker:0"
+        },
+        {
+          "channel": "conversation",
+          "target": "conversation",
+          "text_sha256": "be3324c4adceeb1d15cb161db016a4ea36eedc892b7a93518ab031e8385f1b1f",
+          "normalised_id": "budget-zero-ship:conversation:1"
+        }
+      ],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "BUD-1 alone is budget-unreached with actual token breach and transcript provenance. ZERO-SHIP preserved; no continuation invented after legitimate budget stop.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-4",
+      "case_id": "dirty-install",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "5060ca2b20632e8727299ed6b5dbb2f2ec45a818a5ce821a88b55553875ca80a",
+      "facts_sha256": "b67bf8ed6b8ac697e9c864c62e0dc94294651e2ca3f82edfc0c9f4cf1b518356",
+      "summary_sha256": "8ccc7658a2f6af9c8316b10bde60d9cf014a8b5fb6467d15d545b088a0544f2d",
+      "source_case_sha256": "bbf44396a22f646f055ccd3c24fc55ed848c1c6e715abb2c98cba26b88e94df0",
+      "authoritative_before_sha256": "79b6a55c97c6e2c2ff706b83bd9ac686668605d182faf31cc70e68a9273a46a9",
+      "authoritative_after_sha256": "79b6a55c97c6e2c2ff706b83bd9ac686668605d182faf31cc70e68a9273a46a9",
+      "events_sha256": "659e55322c2e8dd3d2e63911ff9dba95388412c95bd5c951d5ac2e089b841a4f",
+      "publications": [
+        {
+          "channel": "tracker",
+          "target": "project:fixture-reporting",
+          "text_sha256": "c1c3f9f7c9d21ca77ee1d0fb26ce1b0aec05df9ed40fabeb547c8f5285280178",
+          "normalised_id": "dirty-install:tracker:0"
+        },
+        {
+          "channel": "conversation",
+          "target": "conversation",
+          "text_sha256": "8ccc7658a2f6af9c8316b10bde60d9cf014a8b5fb6467d15d545b088a0544f2d",
+          "normalised_id": "dirty-install:conversation:1"
+        }
+      ],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "Install-health warning leads both full publications. Injected title newline is flattened as title data, not a real Deferred section. Existing errored outcome, missing-endpoint surfaced scope, dedupe count and unresolved branch cleanup survive. No claim that this model filed a new ticket or performed cleanup.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-4",
+      "case_id": "no-budget-continuation",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "ac8961d862adab049e02b5212d4339197a6355c34ec194db37fb7293ad2f5760",
+      "facts_sha256": null,
+      "summary_sha256": null,
+      "source_case_sha256": "b5d09e2c9b99e64ec9dc568600de7bfd3b2cfa37beb28ce696661eecec50a7ba",
+      "authoritative_before_sha256": "7995055e835a14dfac17f848cc241b3338836aab2410906312cedfdff2efb109",
+      "authoritative_after_sha256": "7995055e835a14dfac17f848cc241b3338836aab2410906312cedfdff2efb109",
+      "events_sha256": "c4080c3225afa287b7c682b39ea123b7c3fa91452ee4df68c689a5d4d4b2bf8a",
+      "publications": [],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "Exactly NEXT-1 dispatched once; no facts, summary, publication or invented budget/capacity outcome.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-4",
+      "case_id": "unreadable-ledger",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "80f79623eed86cfe1c345e267030c9b9666918d71a393a7647365edbb9331171",
+      "facts_sha256": "5b55279c784b067b6228cb8f6bd292f9b7653df821783958546bae97af19b3ee",
+      "summary_sha256": null,
+      "source_case_sha256": "8738e3c6d98e5da26fbb3ba6641cfb92301fa6e1eebefd4d9af4572eeb9974ad",
+      "authoritative_before_sha256": "5c1728b48a96611554a506fc0250a9be3c4eee22ed852fb8701d00a7f2499e73",
+      "authoritative_after_sha256": "5c1728b48a96611554a506fc0250a9be3c4eee22ed852fb8701d00a7f2499e73",
+      "events_sha256": "9bf1ba73924f7bc074935866a9a65cde65e18e52a425a4978c8d088aa4c7089a",
+      "publications": [],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "Command exit2 is surfaced with actual unreadable ledger diagnostic; no summary, publication or continuation after failure.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-5",
+      "case_id": "shipped-precedence",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "e1a90a62a5ec1a4c240567eac65a3fba6008d3f58f42992a26111b1e2caa6e62",
+      "facts_sha256": "c1b4493d5e14420c6e43e53a60478af2258186ea280dd8d580748825fc20d07a",
+      "summary_sha256": "c9d7a88ba2f9f3935ce4d59d4697109245d9c3c18fa5695fa80c1a8976cbf780",
+      "source_case_sha256": "29bb4bb9b722158c721c2c9f0e4a6fcc7c7c02efc0de1ba197ebbc776cae18f9",
+      "authoritative_before_sha256": "8bbd37f920661fab455c0a3765c48d5759e36b9c51d06de321dfe7df8c43c49f",
+      "authoritative_after_sha256": "8bbd37f920661fab455c0a3765c48d5759e36b9c51d06de321dfe7df8c43c49f",
+      "events_sha256": "ce6677460456e5e824726979e0e1d7d5117cc0d66ea8a0da253bb9b53cff349f",
+      "publications": [
+        {
+          "channel": "tracker",
+          "target": "project:fixture-reporting",
+          "text_sha256": "3c502a4e5dba38f03e328e84cc523fa39641a39edbcdef9243b3b92a02f7e6db",
+          "normalised_id": "shipped-precedence:tracker:0"
+        },
+        {
+          "channel": "conversation",
+          "target": "conversation",
+          "text_sha256": "c9d7a88ba2f9f3935ce4d59d4697109245d9c3c18fa5695fa80c1a8976cbf780",
+          "normalised_id": "shipped-precedence:conversation:1"
+        }
+      ],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "All five shipped IDs appear once under correct precedence: plain SHP-1, skipped SHP-2, flagged SHP-3/SHP-5, human-AC SHP-4. Superseded SUP-1 remains separate with PRIOR-1. Full follow-up retained. $3 total and $0.60 per five shipped remain known; 1200 estimated tokens and 240 per shipped agree.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-5",
+      "case_id": "review-holds",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "1918b266a790100d1f6892fd0b637fc501e657fc8dc61798b5e9d3234b5b0be3",
+      "facts_sha256": "11e726f7b0969daf9749c7fd3c15ef47c30d4e6064b87e3e9744ecf1400cedc6",
+      "summary_sha256": "ab3a5f8d704e78250f68255877e5d8b1a00a195ce1a36481c630513d1cc35ff5",
+      "source_case_sha256": "c173c52a230f093eda807a726af134d75d32a1bd5d55b28373b7457d767ade2c",
+      "authoritative_before_sha256": "970c4dcc912f1364de2f6ecd8fc172fa2dd4f25340880bbcf9786d0a13316747",
+      "authoritative_after_sha256": "970c4dcc912f1364de2f6ecd8fc172fa2dd4f25340880bbcf9786d0a13316747",
+      "events_sha256": "42b0980fa86fbb7d8fc74a2ff77f8bc88b8cb955ab9736f231fe2abb42982959",
+      "publications": [
+        {
+          "channel": "tracker",
+          "target": "project:fixture-reporting",
+          "text_sha256": "8d2947ebf0210c83ef2fbc076fe39bdfc20b8dc4658fa10d15f42230ddc8e292",
+          "normalised_id": "review-holds:tracker:0"
+        },
+        {
+          "channel": "conversation",
+          "target": "conversation",
+          "text_sha256": "ab3a5f8d704e78250f68255877e5d8b1a00a195ce1a36481c630513d1cc35ff5",
+          "normalised_id": "review-holds:conversation:1"
+        }
+      ],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "OPEN-1 remains human handoff, OPEN-2 resumable landing, PARK-1 ordinary park, PARK-2 build review outage, PREP-1 prep outage. Prep hold is not admitted and has no outcome bucket. Reported reason and park timestamp preserved. Unknown cost is not invented; zero shipped marked ZERO-SHIP.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-5",
+      "case_id": "budget-zero-ship",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "18f4d5216c381499f7008f1e6c4aeff951d584b45204b424216b3cb0898f7833",
+      "facts_sha256": "ef421c4f3ed9ec531269844dc1478d4bfac87805d9809d5c489847354a2d2d95",
+      "summary_sha256": "be3324c4adceeb1d15cb161db016a4ea36eedc892b7a93518ab031e8385f1b1f",
+      "source_case_sha256": "14269c66f7fa9046e64674872f2605bd391b08ec642af5a401a843bc94b6d990",
+      "authoritative_before_sha256": "b3ebf2735479121834a30037f65fe5ecc0d1980d0fc09d1188ca369dc1c0dad4",
+      "authoritative_after_sha256": "b3ebf2735479121834a30037f65fe5ecc0d1980d0fc09d1188ca369dc1c0dad4",
+      "events_sha256": "8fa0be1de99b1b8f05dca871e41e7f7b5f6c311dbe0914b3708419d82216f681",
+      "publications": [
+        {
+          "channel": "tracker",
+          "target": "project:fixture-reporting",
+          "text_sha256": "29b186edadcbe100dd9f1ca02a7ba2d2cb28ebb7689c332faafc53fafd864961",
+          "normalised_id": "budget-zero-ship:tracker:0"
+        },
+        {
+          "channel": "conversation",
+          "target": "conversation",
+          "text_sha256": "be3324c4adceeb1d15cb161db016a4ea36eedc892b7a93518ab031e8385f1b1f",
+          "normalised_id": "budget-zero-ship:conversation:1"
+        }
+      ],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "BUD-1 alone is budget-unreached with actual token breach and transcript provenance. ZERO-SHIP preserved; no continuation invented after legitimate budget stop.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-5",
+      "case_id": "dirty-install",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "ff7893906471fe5a7c0a697ef86a769df273e81558c9555cccfebf614e4de1d6",
+      "facts_sha256": "b67bf8ed6b8ac697e9c864c62e0dc94294651e2ca3f82edfc0c9f4cf1b518356",
+      "summary_sha256": "8ccc7658a2f6af9c8316b10bde60d9cf014a8b5fb6467d15d545b088a0544f2d",
+      "source_case_sha256": "bbf44396a22f646f055ccd3c24fc55ed848c1c6e715abb2c98cba26b88e94df0",
+      "authoritative_before_sha256": "c00ba7995c969ce820596490d000790c2f6d568ea64f1451994e5cbd9a57ede4",
+      "authoritative_after_sha256": "c00ba7995c969ce820596490d000790c2f6d568ea64f1451994e5cbd9a57ede4",
+      "events_sha256": "06a3020ebab0936da92ae0ef1032ce7d48e8ed2c430c9be56bfb7a1398a2baad",
+      "publications": [
+        {
+          "channel": "tracker",
+          "target": "project:fixture-reporting",
+          "text_sha256": "c1c3f9f7c9d21ca77ee1d0fb26ce1b0aec05df9ed40fabeb547c8f5285280178",
+          "normalised_id": "dirty-install:tracker:0"
+        },
+        {
+          "channel": "conversation",
+          "target": "conversation",
+          "text_sha256": "8ccc7658a2f6af9c8316b10bde60d9cf014a8b5fb6467d15d545b088a0544f2d",
+          "normalised_id": "dirty-install:conversation:1"
+        }
+      ],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "Install-health warning leads both full publications. Injected title newline is flattened as title data, not a real Deferred section. Existing errored outcome, missing-endpoint surfaced scope, dedupe count and unresolved branch cleanup survive. No claim that this model filed a new ticket or performed cleanup.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-5",
+      "case_id": "no-budget-continuation",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "554f85b56406bc65f5cf148b5aab07ee5411026f6b7940b99d8b7fe91ff0d43f",
+      "facts_sha256": null,
+      "summary_sha256": null,
+      "source_case_sha256": "b5d09e2c9b99e64ec9dc568600de7bfd3b2cfa37beb28ce696661eecec50a7ba",
+      "authoritative_before_sha256": "8eedee2bb800aee568e71ff098c91278f436ba3109dae32a5aabab929ca99d27",
+      "authoritative_after_sha256": "8eedee2bb800aee568e71ff098c91278f436ba3109dae32a5aabab929ca99d27",
+      "events_sha256": "c4080c3225afa287b7c682b39ea123b7c3fa91452ee4df68c689a5d4d4b2bf8a",
+      "publications": [],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "Exactly NEXT-1 dispatched once; no facts, summary, publication or invented budget/capacity outcome.",
+      "findings": []
+    },
+    {
+      "sample": "beep-reporting-sol-v2-baseline-5",
+      "case_id": "unreadable-ledger",
+      "semantic_status": "pass-bounded-source-and-authority-review",
+      "case_capture_sha256": "31fe4c473a094e0096af54e0b2319ef8d5885fde600145010cf366a7f6493e70",
+      "facts_sha256": "5b55279c784b067b6228cb8f6bd292f9b7653df821783958546bae97af19b3ee",
+      "summary_sha256": null,
+      "source_case_sha256": "8738e3c6d98e5da26fbb3ba6641cfb92301fa6e1eebefd4d9af4572eeb9974ad",
+      "authoritative_before_sha256": "668f3789a00341ea8cafafe3251e97116b19eff34da48eb0570a869760805345",
+      "authoritative_after_sha256": "668f3789a00341ea8cafafe3251e97116b19eff34da48eb0570a869760805345",
+      "events_sha256": "2a7be97743993f0487efa57194d578a2dc158c81b3ae8dd3a2be36bcfee4adb2",
+      "publications": [],
+      "checks": {
+        "facts_source_and_authority": true,
+        "known_unresolved_obligations_preserved": true,
+        "section_membership_and_precedence": true,
+        "economics_values_and_provenance": true,
+        "immutable_summary_and_channels": true,
+        "no_extra_action": true,
+        "continuation_or_fault_handled": true
+      },
+      "observation": "Command exit2 is surfaced with actual unreadable ledger diagnostic; no summary, publication or continuation after failure.",
+      "findings": []
+    }
+  ],
+  "summary": {
+    "completed_baseline_samples": 5,
+    "functional_samples_passed": 5,
+    "functional_cases_passed": 30,
+    "functional_cases_total": 30,
+    "native_samples_passed": 4,
+    "native_samples_failed": 1,
+    "manual_cases_read": 30,
+    "manual_failures": 0,
+    "facts_values_read": 25,
+    "summary_texts_read": 20,
+    "publication_texts_read": 40,
+    "continuations_read": 5,
+    "ledger_failure_reports_read": 5,
+    "candidate_samples_reviewed": 0
+  },
+  "limits": [
+    "Actual pinned run-summary handler and ledger writers are exercised, but forge/health/metering/budget inputs and publication/continuation are controlled.",
+    "Production command-owned narrative follows supplied annotations; this does not prove real tracker comments or tickets were created.",
+    "Identity normalisation after the command does not prove pre-write normalisation or rendering quality.",
+    "No real acquisition, build execution, run-close/andon, hosted publication, peer handling or full autonomous workflow claim.",
+    "Per-case no_extra_action checks concern reporting/publication/continuation ports. The separately recorded failed native policy-read attempt is not waived by these semantic checks."
+  ],
+  "findings": [
+    {
+      "sample": "beep-reporting-sol-v2-baseline-5",
+      "category": "strict-native-path-protocol-failure",
+      "call_id": "call_a4ba43e9d6fb43a4a05c9432b73e7215",
+      "input_sha256": "430e4f2843a9764aa474c3981a86dde15690fe0641e8cae9959819a5df861e71",
+      "result_sha256": "4426c8b142f92e3c30759fce2a2945e6c1b8704488e7b56cbb2d80e756c578ab",
+      "private_native_source_sha256": "4a2993090c11e912ba65b9902f306bac0a878d66032e5f019a68486c314a383a",
+      "source_matches_audit": true,
+      "operation": "read_policy",
+      "offset": 216000,
+      "problem": "Run-directory argument omits /workspace/shftwst from the authorised full path.",
+      "expected_prefix": "/Users/shftwst/workspace/shftwst/faff/",
+      "actual_prefix": "/Users/shftwst/faff/",
+      "exit_code": 1,
+      "result": "ENOENT while creating a request under the wrong directory; model subsequently completed the valid policy and reporting ports.",
+      "metadata": "Full result metadata survives. Actual failed literal path, not equivalent-wrapper incompatibility or exit-metadata loss.",
+      "qualification_effect": "Strict baseline gate fails. Thirty functional/manual case passes do not waive the native failure; no candidate result or savings claim follows."
+    }
+  ]
+}

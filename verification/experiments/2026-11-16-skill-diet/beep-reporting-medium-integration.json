@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "directory": "/var/tmp/faff-beep-reporting-medium-integration",
+  "base_commit": "e0ff6bff35bb5432f8cf36de592b1064b639bff7",
+  "isolated_commit": "7ceb7af630c866baff0115c696f93516ec5f8260",
+  "source_sha256": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16",
+  "production_installed": false,
+  "temporary_directory": "/var/tmp/faff-beep-reporting-tests-w35_x9y6",
+  "checks": [
+    {
+      "check": "tests",
+      "command": [
+        "node",
+        "--test",
+        "--test-concurrency=4",
+        "test/control-parity-reporting.test.mjs",
+        "test/run-summary.test.mjs",
+        "test/rendering-routing.test.mjs"
+      ],
+      "exit_code": 0,
+      "path": "deterministic-checks/beep-reporting-medium-integration-tests.txt",
+      "sha256": "48506eac69810c6fb896c42a0f619d26cba1ef72e6844ffd17e5612203ab11d9"
+    },
+    {
+      "check": "adapter-lint",
+      "command": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "validate-adapters"
+      ],
+      "exit_code": 0,
+      "path": "deterministic-checks/beep-reporting-medium-integration-adapter-lint.txt",
+      "sha256": "bb4d1a24e82014e354b443a671613ccbfff3359e4e424d6bf8508de9c22e43ec"
+    },
+    {
+      "check": "rule-inventory",
+      "command": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "rule-inventory",
+        "check",
+        "--base",
+        "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+        "--json"
+      ],
+      "exit_code": 0,
+      "path": "deterministic-checks/beep-reporting-medium-integration-rule-inventory.txt",
+      "sha256": "628219eddedce474edc89e275f542affd2a0cbff743d39da491cdcb42e592cd5"
+    }
+  ],
+  "limits": [
+    "Deterministic integration only; model-pair native, output and manual checks required before source acceptance."
+  ]
+}

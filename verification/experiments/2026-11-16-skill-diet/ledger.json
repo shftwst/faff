@@ -1631,17 +1631,45 @@
       "effort": "medium",
       "source_commit": "ea19ca083647fc7cdce91c847b39ba20b55aa8c1",
       "before_commit": "34764e93cbde2c50bad402cec53fd65062d52eda"
+    },
+    {
+      "skill": "Intake producer",
+      "path": "plugin/skills/faffter-noon-intake/SKILL.md",
+      "status": "qualified-bounded-intake-brief-production",
+      "before": {
+        "path": "plugin/skills/faffter-noon-intake/SKILL.md",
+        "bytes": 7622,
+        "characters": 7560,
+        "estimated_tokens": 1890,
+        "sha256": "b1cfe70da49ff2ae688e936ea03407380a8d61a280e88778cddd1dc10e1a6c79"
+      },
+      "after": {
+        "path": "plugin/skills/faffter-noon-intake/SKILL.md",
+        "bytes": 5689,
+        "characters": 5645,
+        "estimated_tokens": 1412,
+        "sha256": "668b178bfead91377c81015083db36c57697c8bdf3d29dc4807073a81b952e0b"
+      },
+      "bytes_saved": 1933,
+      "estimated_tokens_saved": 478,
+      "mandatory_dependencies_added": [],
+      "qualification": "intake-astra-medium-v1-final-qualification.json",
+      "source_review": "intake-brief-v1-source-review.json",
+      "model": "gpt-6-astra",
+      "effort": "medium",
+      "source_commit": "c650c72bc5c4b602a187d619249277325c7d2ce7",
+      "before_commit": "3cbd784148e35408bacb271da5821c392c988a69"
     }
   ],
   "source_total": {
     "before_bytes": 1369435,
-    "after_bytes": 1262193,
+    "after_bytes": 1260260,
     "before_estimated_tokens": 339279,
-    "after_estimated_tokens": 312870
+    "after_estimated_tokens": 312392
   },
   "load_manifest": "load-manifest.json",
   "baseline_loads": "baseline/loads.json",
-  "latest_loads": "wtf-sol-v3-after-loads.json",
+  "latest_loads": "intake-astra-medium-v1-after-loads.json",
   "pending_slices": [
     {
       "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
@@ -1664,15 +1692,10 @@
       "status": "Held: baseline body adds an unsupported ADR acceptance-event date. Four separate free-form answer matches are oracle false negatives. Candidate unmeasured, source unchanged and savings excluded."
     },
     {
-      "path": "plugin/skills/faffter-noon-intake/SKILL.md",
-      "candidate": "candidates/intake-brief-v1.md",
-      "status": "Held: Sol candidate3 preserves artifact facts but fails native literal-path and heredoc rules. Candidate4/5 not launched, source unchanged; 48 manually read outputs and passing deterministic integration do not waive native failure."
-    },
-    {
       "path": "plugin/skills/faffter-noon-architecture/SKILL.md",
       "candidate": "candidates/architecture-proposal-v1.md",
       "status": "Held: Astra baseline passes functional checks but fails the literal native-path rule. Candidate unmeasured; source unchanged and savings excluded."
     }
   ],
-  "latest_source": "wtf-sol-v3-after-source.json"
+  "latest_source": "intake-astra-medium-v1-after-source.json"
 }

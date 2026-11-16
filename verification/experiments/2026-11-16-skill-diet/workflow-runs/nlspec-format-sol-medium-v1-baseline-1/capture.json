@@ -1,0 +1,298 @@
+{
+  "events": [
+    {
+      "seq": 1,
+      "name": "write_output",
+      "args": {
+        "case_id": "mechanical",
+        "text": "# Correct the help-page heading\n\nThis spec addresses SPEC-1: rename the help-page heading while preserving the rest of the page. It is for the build agent and human reviewers.\n\n## WHY\n\nChange only the existing heading in `docs/help.md`. The page currently calls itself `CLI reference`; the required name is `Command reference`. This is a mechanical documentation edit with no command or API change.\n\n**Reference context:** `docs/help.md` is Markdown and currently contains exactly `# CLI reference\\n\\nUse tool --help for options.\\n`.\n\n## OUT OF SCOPE\n\n- **Command behaviour:** Only documentation naming changes. Future command changes belong in `src/cli.ts`.\n\n## WHAT\n\nThe resulting page MUST contain exactly `# Command reference\\n\\nUse tool --help for options.\\n`, where `\\n` denotes a newline. Preserve every byte after the original first heading, including blank lines and the final newline. No types or interfaces change.\n\n## HOW\n\nReplace the existing heading in place. Verify the new heading and compare the remainder byte for byte against the supplied original.\n\n```\nPROCEDURE correct_help_heading(page):\n  1. Locate the initial heading '# CLI reference'.\n  2. Replace that heading with '# Command reference'.\n  3. Preserve every subsequent byte.\n```\n\nA file-content assertion checks the heading and unchanged remainder.\n\n## Scenarios\n\nNo behavioural scenario is required for this mechanical text-only objective.\n\n## DESIGN DECISION RATIONALE\n\n**How should the heading change be applied?**\n\n- **Edit in place:** Limits the change to the requested heading.\n- **Replace the page or change commands:** Adds unnecessary change outside the issue.\n\n**Chosen:** Edit the existing heading in place to avoid replacing the page or changing command behaviour.\n\n## OPEN QUESTIONS AND ASSUMPTIONS\n\nNo open questions or external assumptions. The supplied Punt scan reports zero eligible Punts and zero blocking open Punts.\n\n## DONE\n\n### From WHY and WHAT\n\n- [ ] `docs/help.md` starts with `# Command reference` and every byte following the original heading is unchanged.\n\n### From HOW\n\n- [ ] The file-content assertion for the heading and unchanged remainder passes.\n\n### Integration smoke test\n\n```\nPROCEDURE smoke_check_help_page:\n  1. Read docs/help.md after the edit.\n  2. Assert its bytes equal '# Command reference\\n\\nUse tool --help for options.\\n'.\n```\n\n## Review record\n\nThe supplied inherited review is complete: 0 blocker, 0 major, 0 minor findings. All supplied facts were checked; no changes beyond the snapshot are authorised. No review fixes, dismissals or additional Punts remain.\n\nconfidence: high\n\n```faff-contract:spec-readiness\n{\"confidence\":\"high\",\"decisions\":[{\"marker\":\"chosen\"}]}\n```"
+      },
+      "case_id": "mechanical",
+      "result": {
+        "written": true,
+        "bytes": 2699,
+        "sha256": "20deb57da92d320311ee73badf28d54edca02c873970adb547a5ed56e397207e"
+      }
+    },
+    {
+      "seq": 2,
+      "name": "write_output",
+      "args": {
+        "case_id": "retry-and-privacy",
+        "text": "# Bound import retries\n\nThis spec addresses SPEC-2: bound transient import retries while preserving results, terminal errors and payload privacy. It is for the build agent and human reviewers.\n\n## WHY\n\n`runImport` retries only transient import errors, with a total limit of three attempts. It currently delegates once to `importOnce`; the change adds bounded recovery inside the existing job runner without altering the caller interface.\n\n**Caller compatibility:** Successful values and terminal error objects MUST retain their original identity.\n\n**Reference context:**\n\n- **`src/import.ts`:** TypeScript; `runImport(payload)` currently returns `importOnce(payload)`.\n- **`src/errors.ts`:** TypeScript; defines `ImportError` with a Boolean `transient` field.\n- **`src/logger.ts`:** TypeScript; provides the existing `log(event, fields)` logger.\n\nThe existing job runner continues to call `runImport`.\n\n## OUT OF SCOPE\n\n- **Backoff:** No timing policy is requested. A future policy would extend the retry loop in `src/import.ts`.\n- **New job runner:** Retain the existing runner. Future runner changes belong in `src/runner.ts`.\n\n## WHAT\n\n```\nINTERFACE runImport:\n  input: payload, passed unchanged to importOnce\n  success: original successful value\n  failure: original terminal error, propagated unchanged\n\nRECORD ImportError EXTENDS Error:\n  transient: Boolean, inspected without mutation\n```\n\nAn attempt is one call to `importOnce`; the initial call is attempt 1. A retry is a subsequent call. Attempt at most three times, retrying only an `ImportError` whose `transient` field is true. Any other error is permanent for this procedure.\n\nRetry log fields MUST contain only the upcoming attempt number, 2 or 3. Logs MUST NOT contain payloads. Use the existing logger without introducing a payload-bearing event or fields.\n\n## HOW\n\nKeep retry ownership inside `runImport` and use the existing job runner. Retries are immediate, with no backoff.\n\n```\nPROCEDURE runImport(payload):\n  1. FOR attempt FROM 1 THROUGH 3:\n     a. Try importOnce(payload).\n     b. On success, return the original successful value immediately.\n     c. On error:\n        i. IF error is not ImportError OR error.transient is not true:\n           Propagate the original error immediately.\n        ii. IF attempt = 3:\n            Propagate the original third error immediately.\n        iii. Log the upcoming attempt number only using the existing logger.\n        iv. Continue immediately to the next attempt.\n```\n\nNo call follows a success, permanent error or third transient error. Add repository test coverage in `test/import-retry.test.ts`; passing that file is a separate completion check.\n\n**Anti-pattern:** Wrap or replace terminal errors. Why: The existing caller expects the original error.\n\n## Scenarios\n\n### Immediate success\n\n```\nGiven importOnce succeeds on its first call with value V\nWhen the existing job runner calls runImport with payload P\nThen runImport returns the original value V\nAnd importOnce is called exactly once\nAnd no retry is logged\n```\n\n### Transient failure then success\n\n```\nGiven importOnce first raises ImportError with transient true and then succeeds with value V\nWhen the existing job runner calls runImport with payload P\nThen runImport returns the original value V after exactly two calls\nAnd the retry log contains attempt number 2 only\n```\n\n### Three transient failures\n\n```holdout\nGiven the first three importOnce calls raise transient ImportError objects E1, E2 and E3\nWhen the existing job runner calls runImport with payload P\nThen runImport propagates the original error E3 after exactly three calls\nAnd no fourth call occurs\nAnd the retry logs contain attempt numbers 2 and 3 only\n```\n\n- **Log privacy:** Retry logs MUST NOT contain payloads; retry fields MUST contain only the attempt number.\n\n## DESIGN DECISION RATIONALE\n\n**Where should retries be owned?**\n\n- **Existing `runImport`:** Preserves the caller interface and runner ownership.\n- **New runner or timing policy:** Adds mechanisms outside the requested scope.\n\n**Chosen:** Bound retries in the existing `runImport` to preserve the caller interface and runner ownership.\n\n## OPEN QUESTIONS AND ASSUMPTIONS\n\nNone. The supplied Punt scan reports zero eligible Punts and zero blocking open Punts.\n\n## DONE\n\n### From WHY and WHAT\n\n- [ ] Success returns the original successful value without further attempts.\n- [ ] Permanent errors propagate immediately as the original error object.\n- [ ] Only transient `ImportError` instances are retried, with at most three total calls.\n- [ ] The third transient failure propagates its original error object and no fourth call occurs.\n- [ ] Retry logs contain only attempt numbers and no payloads.\n\n### From HOW\n\n- [ ] The existing runner calls the unchanged `runImport` interface; retries occur immediately without backoff.\n- [ ] `test/import-retry.test.ts` passes.\n\n### Integration smoke test\n\n```\nPROCEDURE smoke_check_import:\n  1. Arrange one transient ImportError followed by success with value V.\n  2. Invoke runImport through the existing job runner.\n  3. Assert the result is the original V after two importOnce calls.\n  4. Assert the retry log contains only attempt number 2 and no payload.\n```\n\n## Review record\n\nThe supplied inherited review is complete: 0 blocker, 0 major, 0 minor findings. All supplied facts were checked; no changes beyond the snapshot are authorised. No review fixes, dismissals or additional Punts remain.\n\nconfidence: high\n\n```faff-contract:spec-readiness\n{\"confidence\":\"high\",\"decisions\":[{\"marker\":\"chosen\"}]}\n```"
+      },
+      "case_id": "retry-and-privacy",
+      "result": {
+        "written": true,
+        "bytes": 5562,
+        "sha256": "57765290372971bdc34bcd66a2cfa71ca453d956b093d52db7dcbe3b03765a8e"
+      }
+    },
+    {
+      "seq": 3,
+      "name": "write_output",
+      "args": {
+        "case_id": "blocking-punt",
+        "text": "# Persist recovery tokens\n\nThis spec addresses SPEC-3: retain accepted recovery tokens across restart through the existing `TokenStore` interface. It is for the build agent and human reviewers. Implementation depends on an architecture decision recorded under Open Questions.\n\n## WHY\n\nAccepted tokens must survive a process restart. `src/token-store.ts` defines an interface but has no persistence backend, so that interface alone cannot provide durable storage. This change supplies persistence while preserving callers.\n\n**Interface compatibility:** Keep `TokenStore` unchanged.\n\n**Reference context:** `src/token-store.ts` is TypeScript and defines asynchronous `put(token)` and `get(id)`. Token structure and identifier semantics remain those of the existing interface; the supplied source does not define new token fields.\n\n## OUT OF SCOPE\n\n- **Token expiry:** Retention behaviour is a separate feature. A future change would extend `src/token-store.ts`.\n\n## WHAT\n\n```\nINTERFACE TokenStore, unchanged:\n  put(token): Promise<void>\n  get(id): Promise<Token OR null>\n```\n\nAn accepted token is a token whose `put` operation has completed successfully. Accepted tokens MUST remain available after restart. `get(id)` returns the stored token for a present identifier and null for an absent identifier.\n\nThe persistence backend is unresolved. Do not choose or assume SQLite or PostgreSQL.\n\n## HOW\n\nAfter the architecture owner chooses a backend, implement durable storage behind the existing interface. Backend-specific schema, connection lifecycle and restart mechanics cannot be fixed until that decision is made.\n\n```\nPROCEDURE persist_and_read, after backend decision:\n  1. On put(token), persist the token in the selected durable backend.\n  2. Complete put successfully only when the token is accepted durably.\n  3. On get(id), look up the identifier in durable storage.\n  4. IF the identifier is absent, return null.\n  5. OTHERWISE return the stored token.\n  6. After process restart, use the same durable storage to serve get(id).\n```\n\n**Anti-pattern:** Substitute an in-memory store. Why: Accepted tokens would disappear on restart.\n\n## Scenarios\n\n```\nGiven put has successfully accepted a token with identifier I\nWhen the process restarts and get(I) is called against the same durable storage\nThen get(I) returns the stored token\n```\n\nAbsent-token lookup is a simple interface condition checked in DONE.\n\n## DESIGN DECISION RATIONALE\n\n**Should the caller interface change?**\n\n- **Keep `TokenStore`:** Existing callers can continue using the interface.\n- **Replace the interface:** Requires caller changes outside the requirement.\n\n**Chosen:** Keep the existing `TokenStore` interface because callers already use it.\n\n**Which backend should store tokens?**\n\nSQLite and PostgreSQL are the supplied alternatives. The snapshot supplies no basis for selecting either; backend-specific pros and cons require the architecture owner's decision. The unresolved choice is recorded below.\n\n## OPEN QUESTIONS AND ASSUMPTIONS\n\n### Open Questions\n\n**Punt:** SQLite or PostgreSQL for durable token storage; the architecture owner must decide before implementation because the increment depends on this choice (decides: architecture).\n\nThe completed Punt scan reports one blocking open Punt, zero eligible non-blocking Punts. No backend is assumed.\n\n### Assumptions\n\nNo external assumptions are declared.\n\n## DONE\n\n### From WHY and WHAT\n\n- [ ] A token accepted by a successful `put` is returned by `get(id)` after process restart against the same durable storage.\n- [ ] `get(id)` returns the stored token for a present identifier.\n- [ ] `get(id)` returns null for an absent identifier.\n- [ ] The `TokenStore` interface retains the supplied `put` and `get` signatures.\n\n### From HOW\n\n- [ ] Successful `put` completion corresponds to durable acceptance in the backend selected by architecture.\n\n### Integration smoke test\n\nRun after the backend decision is resolved.\n\n```\nPROCEDURE smoke_check_token_persistence:\n  1. Start the token store using the selected durable backend.\n  2. Put a token with identifier I and await successful completion.\n  3. Restart the process against the same durable storage.\n  4. Assert get(I) returns the stored token.\n  5. Assert get of an absent identifier returns null.\n```\n\n## Review record\n\nThe supplied inherited review is complete: 0 blocker, 0 major, 0 minor findings. All supplied facts were checked; no changes beyond the snapshot are authorised. No fixes or dismissals are required. The architecture Punt remains unresolved as supplied.\n\nconfidence: medium\n\n```faff-contract:spec-readiness\n{\"confidence\":\"medium\",\"decisions\":[{\"marker\":\"chosen\"},{\"marker\":\"punt\"}]}\n```"
+      },
+      "case_id": "blocking-punt",
+      "result": {
+        "written": true,
+        "bytes": 4698,
+        "sha256": "7f90cca2e95a16652bb014a5984d44f02d3b444fa7ef6382c451a24fed85e59a"
+      }
+    },
+    {
+      "seq": 4,
+      "name": "write_output",
+      "args": {
+        "case_id": "deferred-punt",
+        "text": "# Validate import row limits\n\nThis spec addresses SPEC-4: reject import arrays above 1000 rows without importing or mutating their contents. It is for the build agent and human reviewers.\n\n## WHY\n\nCheck array length before any import work. `validateImport` currently accepts every input, so arrays above the required limit pass validation. Enforcing the limit prevents excessive work while preserving the existing caller interface.\n\n**Side effects:** Validation MUST NOT import or mutate rows.\n\n**Reference context:** `src/validate-import.ts` is TypeScript; `validateImport(rows)` currently returns `{ valid: true }`. Callers accept `{valid:boolean,error?:string}`. This change stays within that validation function.\n\n## OUT OF SCOPE\n\n- **Latency dashboard:** Reporting is unrelated to enforcing the limit. Future dashboard work would extend `src/metrics.ts`. The Latency dashboard design decision is deferred as Punt (non-blocking) under Open Questions and does not affect row-limit enforcement.\n\n## WHAT\n\n```\nRECORD ValidationResult:\n  valid: Boolean\n  error: optional String\n\nINTERFACE validateImport:\n  input: rows, an array inspected without mutation\n  output: ValidationResult\n```\n\nAccept arrays with at most 1000 rows, including an empty array. Reject arrays with more than 1000 rows with `valid` false and `error` equal to `row-limit`. Preserve the existing return shape; accepted arrays retain the current `{valid:true}` response. Validation does not import or mutate rows.\n\n## HOW\n\nInspect length before any import work, and return the validation result without changing the input.\n\n```\nPROCEDURE validateImport(rows):\n  1. IF length(rows) > 1000:\n     Return RECORD { valid: false, error: 'row-limit' }.\n  2. OTHERWISE:\n     Return RECORD { valid: true }.\n  3. Do not import rows or mutate the array or its rows on either path.\n```\n\n**Anti-pattern:** Import or truncate rows to enforce the limit. Why: Validation must have no import or mutation side effects.\n\n## Scenarios\n\n```\nGiven an array containing exactly 1000 rows\nWhen validateImport is called\nThen it returns valid true\nAnd the array and its rows remain unchanged\nAnd no rows are imported\n```\n\n```\nGiven an array containing 1001 rows\nWhen validateImport is called\nThen it returns valid false and error row-limit\nAnd the array and its rows remain unchanged\nAnd no rows are imported\n```\n\n## DESIGN DECISION RATIONALE\n\n**When should the row limit be checked?**\n\n- **Before import:** Rejects excessive work without side effects.\n- **During or after import:** Allows import side effects before validation completes.\n\n**Chosen:** Validate length before any import to reject excessive work without side effects.\n\n**When should dashboard design be settled?**\n\nDashboard design is unrelated to enforcing array length. Defer it to product rather than coupling reporting design to this validation change; the Punt is collected below.\n\n## OPEN QUESTIONS AND ASSUMPTIONS\n\n### Open Questions\n\n**Punt:** Latency dashboard (non-blocking). Dashboard design is deferred under OUT OF SCOPE, with extension point `src/metrics.ts`; it does not affect row-limit enforcement (decides: product).\n\nThe supplied completed Punt scan reports one eligible non-blocking Punt and zero blocking open Punts. Exclude the eligible dashboard Punt from the confidence count.\n\n### Assumptions\n\nNo external assumptions are declared.\n\n## DONE\n\n### From WHY and WHAT\n\n- [ ] Arrays with 0 through 1000 rows return `{valid:true}`.\n- [ ] Arrays with more than 1000 rows return `{valid:false,error:'row-limit'}`.\n- [ ] Results preserve the existing `{valid:boolean,error?:string}` return shape.\n\n### From HOW\n\n- [ ] Both acceptance and rejection paths leave the array and its rows unchanged and perform no import work.\n\n### Integration smoke test\n\n```\nPROCEDURE smoke_check_row_limit:\n  1. Create arrays of 1000 and 1001 rows and capture their original contents.\n  2. Call validateImport on each array.\n  3. Assert the first result is { valid: true }.\n  4. Assert the second result is { valid: false, error: 'row-limit' }.\n  5. Assert both inputs are unchanged and no import work occurred.\n```\n\n## Review record\n\nThe supplied inherited review is complete: 0 blocker, 0 major, 0 minor findings. All supplied facts were checked; no changes beyond the snapshot are authorised. No fixes or dismissals are required. The eligible non-blocking Latency dashboard Punt remains deferred as supplied.\n\nconfidence: high\n\n```faff-contract:spec-readiness\n{\"confidence\":\"high\",\"decisions\":[{\"marker\":\"chosen\"},{\"marker\":\"punt\"}]}\n```"
+      },
+      "case_id": "deferred-punt",
+      "result": {
+        "written": true,
+        "bytes": 4543,
+        "sha256": "471990ed59cda2743ed053e37e43f1832a851af3ef78d353f303b7cc8ee59229"
+      }
+    },
+    {
+      "seq": 5,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "scenario-scope",
+        "value": {
+          "required": false
+        }
+      },
+      "case_id": "scenario-scope",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 6,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "scenario-format",
+        "value": {
+          "fenced": true,
+          "capitalised_step_starts": true,
+          "bulleted_steps": false
+        }
+      },
+      "case_id": "scenario-format",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 7,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "nonfunctional",
+        "value": {
+          "forced_gwt": false
+        }
+      },
+      "case_id": "nonfunctional",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 8,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "holdout",
+        "value": {
+          "allowed": false
+        }
+      },
+      "case_id": "holdout",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 9,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "done-coverage",
+        "value": {
+          "allowed": false
+        }
+      },
+      "case_id": "done-coverage",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 10,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "repository-test",
+        "value": {
+          "separate_items": true
+        }
+      },
+      "case_id": "repository-test",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 11,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "known-owner",
+        "value": {
+          "owner_suffix": "architecture"
+        }
+      },
+      "case_id": "known-owner",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 12,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "confidence",
+        "value": {
+          "confidence": "high"
+        }
+      },
+      "case_id": "confidence",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 13,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "review-cap",
+        "value": {
+          "high_allowed": false
+        }
+      },
+      "case_id": "review-cap",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 14,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "contract",
+        "value": {
+          "position": "last"
+        }
+      },
+      "case_id": "contract",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 15,
+      "name": "finish",
+      "args": {},
+      "case_id": null,
+      "result": {
+        "finished": true
+      }
+    }
+  ],
+  "errors": [],
+  "outputs": [
+    {
+      "id": "mechanical",
+      "text": "# Correct the help-page heading\n\nThis spec addresses SPEC-1: rename the help-page heading while preserving the rest of the page. It is for the build agent and human reviewers.\n\n## WHY\n\nChange only the existing heading in `docs/help.md`. The page currently calls itself `CLI reference`; the required name is `Command reference`. This is a mechanical documentation edit with no command or API change.\n\n**Reference context:** `docs/help.md` is Markdown and currently contains exactly `# CLI reference\\n\\nUse tool --help for options.\\n`.\n\n## OUT OF SCOPE\n\n- **Command behaviour:** Only documentation naming changes. Future command changes belong in `src/cli.ts`.\n\n## WHAT\n\nThe resulting page MUST contain exactly `# Command reference\\n\\nUse tool --help for options.\\n`, where `\\n` denotes a newline. Preserve every byte after the original first heading, including blank lines and the final newline. No types or interfaces change.\n\n## HOW\n\nReplace the existing heading in place. Verify the new heading and compare the remainder byte for byte against the supplied original.\n\n```\nPROCEDURE correct_help_heading(page):\n  1. Locate the initial heading '# CLI reference'.\n  2. Replace that heading with '# Command reference'.\n  3. Preserve every subsequent byte.\n```\n\nA file-content assertion checks the heading and unchanged remainder.\n\n## Scenarios\n\nNo behavioural scenario is required for this mechanical text-only objective.\n\n## DESIGN DECISION RATIONALE\n\n**How should the heading change be applied?**\n\n- **Edit in place:** Limits the change to the requested heading.\n- **Replace the page or change commands:** Adds unnecessary change outside the issue.\n\n**Chosen:** Edit the existing heading in place to avoid replacing the page or changing command behaviour.\n\n## OPEN QUESTIONS AND ASSUMPTIONS\n\nNo open questions or external assumptions. The supplied Punt scan reports zero eligible Punts and zero blocking open Punts.\n\n## DONE\n\n### From WHY and WHAT\n\n- [ ] `docs/help.md` starts with `# Command reference` and every byte following the original heading is unchanged.\n\n### From HOW\n\n- [ ] The file-content assertion for the heading and unchanged remainder passes.\n\n### Integration smoke test\n\n```\nPROCEDURE smoke_check_help_page:\n  1. Read docs/help.md after the edit.\n  2. Assert its bytes equal '# Command reference\\n\\nUse tool --help for options.\\n'.\n```\n\n## Review record\n\nThe supplied inherited review is complete: 0 blocker, 0 major, 0 minor findings. All supplied facts were checked; no changes beyond the snapshot are authorised. No review fixes, dismissals or additional Punts remain.\n\nconfidence: high\n\n```faff-contract:spec-readiness\n{\"confidence\":\"high\",\"decisions\":[{\"marker\":\"chosen\"}]}\n```",
+      "persisted_sha256": "20deb57da92d320311ee73badf28d54edca02c873970adb547a5ed56e397207e"
+    },
+    {
+      "id": "retry-and-privacy",
+      "text": "# Bound import retries\n\nThis spec addresses SPEC-2: bound transient import retries while preserving results, terminal errors and payload privacy. It is for the build agent and human reviewers.\n\n## WHY\n\n`runImport` retries only transient import errors, with a total limit of three attempts. It currently delegates once to `importOnce`; the change adds bounded recovery inside the existing job runner without altering the caller interface.\n\n**Caller compatibility:** Successful values and terminal error objects MUST retain their original identity.\n\n**Reference context:**\n\n- **`src/import.ts`:** TypeScript; `runImport(payload)` currently returns `importOnce(payload)`.\n- **`src/errors.ts`:** TypeScript; defines `ImportError` with a Boolean `transient` field.\n- **`src/logger.ts`:** TypeScript; provides the existing `log(event, fields)` logger.\n\nThe existing job runner continues to call `runImport`.\n\n## OUT OF SCOPE\n\n- **Backoff:** No timing policy is requested. A future policy would extend the retry loop in `src/import.ts`.\n- **New job runner:** Retain the existing runner. Future runner changes belong in `src/runner.ts`.\n\n## WHAT\n\n```\nINTERFACE runImport:\n  input: payload, passed unchanged to importOnce\n  success: original successful value\n  failure: original terminal error, propagated unchanged\n\nRECORD ImportError EXTENDS Error:\n  transient: Boolean, inspected without mutation\n```\n\nAn attempt is one call to `importOnce`; the initial call is attempt 1. A retry is a subsequent call. Attempt at most three times, retrying only an `ImportError` whose `transient` field is true. Any other error is permanent for this procedure.\n\nRetry log fields MUST contain only the upcoming attempt number, 2 or 3. Logs MUST NOT contain payloads. Use the existing logger without introducing a payload-bearing event or fields.\n\n## HOW\n\nKeep retry ownership inside `runImport` and use the existing job runner. Retries are immediate, with no backoff.\n\n```\nPROCEDURE runImport(payload):\n  1. FOR attempt FROM 1 THROUGH 3:\n     a. Try importOnce(payload).\n     b. On success, return the original successful value immediately.\n     c. On error:\n        i. IF error is not ImportError OR error.transient is not true:\n           Propagate the original error immediately.\n        ii. IF attempt = 3:\n            Propagate the original third error immediately.\n        iii. Log the upcoming attempt number only using the existing logger.\n        iv. Continue immediately to the next attempt.\n```\n\nNo call follows a success, permanent error or third transient error. Add repository test coverage in `test/import-retry.test.ts`; passing that file is a separate completion check.\n\n**Anti-pattern:** Wrap or replace terminal errors. Why: The existing caller expects the original error.\n\n## Scenarios\n\n### Immediate success\n\n```\nGiven importOnce succeeds on its first call with value V\nWhen the existing job runner calls runImport with payload P\nThen runImport returns the original value V\nAnd importOnce is called exactly once\nAnd no retry is logged\n```\n\n### Transient failure then success\n\n```\nGiven importOnce first raises ImportError with transient true and then succeeds with value V\nWhen the existing job runner calls runImport with payload P\nThen runImport returns the original value V after exactly two calls\nAnd the retry log contains attempt number 2 only\n```\n\n### Three transient failures\n\n```holdout\nGiven the first three importOnce calls raise transient ImportError objects E1, E2 and E3\nWhen the existing job runner calls runImport with payload P\nThen runImport propagates the original error E3 after exactly three calls\nAnd no fourth call occurs\nAnd the retry logs contain attempt numbers 2 and 3 only\n```\n\n- **Log privacy:** Retry logs MUST NOT contain payloads; retry fields MUST contain only the attempt number.\n\n## DESIGN DECISION RATIONALE\n\n**Where should retries be owned?**\n\n- **Existing `runImport`:** Preserves the caller interface and runner ownership.\n- **New runner or timing policy:** Adds mechanisms outside the requested scope.\n\n**Chosen:** Bound retries in the existing `runImport` to preserve the caller interface and runner ownership.\n\n## OPEN QUESTIONS AND ASSUMPTIONS\n\nNone. The supplied Punt scan reports zero eligible Punts and zero blocking open Punts.\n\n## DONE\n\n### From WHY and WHAT\n\n- [ ] Success returns the original successful value without further attempts.\n- [ ] Permanent errors propagate immediately as the original error object.\n- [ ] Only transient `ImportError` instances are retried, with at most three total calls.\n- [ ] The third transient failure propagates its original error object and no fourth call occurs.\n- [ ] Retry logs contain only attempt numbers and no payloads.\n\n### From HOW\n\n- [ ] The existing runner calls the unchanged `runImport` interface; retries occur immediately without backoff.\n- [ ] `test/import-retry.test.ts` passes.\n\n### Integration smoke test\n\n```\nPROCEDURE smoke_check_import:\n  1. Arrange one transient ImportError followed by success with value V.\n  2. Invoke runImport through the existing job runner.\n  3. Assert the result is the original V after two importOnce calls.\n  4. Assert the retry log contains only attempt number 2 and no payload.\n```\n\n## Review record\n\nThe supplied inherited review is complete: 0 blocker, 0 major, 0 minor findings. All supplied facts were checked; no changes beyond the snapshot are authorised. No review fixes, dismissals or additional Punts remain.\n\nconfidence: high\n\n```faff-contract:spec-readiness\n{\"confidence\":\"high\",\"decisions\":[{\"marker\":\"chosen\"}]}\n```",
+      "persisted_sha256": "57765290372971bdc34bcd66a2cfa71ca453d956b093d52db7dcbe3b03765a8e"
+    },
+    {
+      "id": "blocking-punt",
+      "text": "# Persist recovery tokens\n\nThis spec addresses SPEC-3: retain accepted recovery tokens across restart through the existing `TokenStore` interface. It is for the build agent and human reviewers. Implementation depends on an architecture decision recorded under Open Questions.\n\n## WHY\n\nAccepted tokens must survive a process restart. `src/token-store.ts` defines an interface but has no persistence backend, so that interface alone cannot provide durable storage. This change supplies persistence while preserving callers.\n\n**Interface compatibility:** Keep `TokenStore` unchanged.\n\n**Reference context:** `src/token-store.ts` is TypeScript and defines asynchronous `put(token)` and `get(id)`. Token structure and identifier semantics remain those of the existing interface; the supplied source does not define new token fields.\n\n## OUT OF SCOPE\n\n- **Token expiry:** Retention behaviour is a separate feature. A future change would extend `src/token-store.ts`.\n\n## WHAT\n\n```\nINTERFACE TokenStore, unchanged:\n  put(token): Promise<void>\n  get(id): Promise<Token OR null>\n```\n\nAn accepted token is a token whose `put` operation has completed successfully. Accepted tokens MUST remain available after restart. `get(id)` returns the stored token for a present identifier and null for an absent identifier.\n\nThe persistence backend is unresolved. Do not choose or assume SQLite or PostgreSQL.\n\n## HOW\n\nAfter the architecture owner chooses a backend, implement durable storage behind the existing interface. Backend-specific schema, connection lifecycle and restart mechanics cannot be fixed until that decision is made.\n\n```\nPROCEDURE persist_and_read, after backend decision:\n  1. On put(token), persist the token in the selected durable backend.\n  2. Complete put successfully only when the token is accepted durably.\n  3. On get(id), look up the identifier in durable storage.\n  4. IF the identifier is absent, return null.\n  5. OTHERWISE return the stored token.\n  6. After process restart, use the same durable storage to serve get(id).\n```\n\n**Anti-pattern:** Substitute an in-memory store. Why: Accepted tokens would disappear on restart.\n\n## Scenarios\n\n```\nGiven put has successfully accepted a token with identifier I\nWhen the process restarts and get(I) is called against the same durable storage\nThen get(I) returns the stored token\n```\n\nAbsent-token lookup is a simple interface condition checked in DONE.\n\n## DESIGN DECISION RATIONALE\n\n**Should the caller interface change?**\n\n- **Keep `TokenStore`:** Existing callers can continue using the interface.\n- **Replace the interface:** Requires caller changes outside the requirement.\n\n**Chosen:** Keep the existing `TokenStore` interface because callers already use it.\n\n**Which backend should store tokens?**\n\nSQLite and PostgreSQL are the supplied alternatives. The snapshot supplies no basis for selecting either; backend-specific pros and cons require the architecture owner's decision. The unresolved choice is recorded below.\n\n## OPEN QUESTIONS AND ASSUMPTIONS\n\n### Open Questions\n\n**Punt:** SQLite or PostgreSQL for durable token storage; the architecture owner must decide before implementation because the increment depends on this choice (decides: architecture).\n\nThe completed Punt scan reports one blocking open Punt, zero eligible non-blocking Punts. No backend is assumed.\n\n### Assumptions\n\nNo external assumptions are declared.\n\n## DONE\n\n### From WHY and WHAT\n\n- [ ] A token accepted by a successful `put` is returned by `get(id)` after process restart against the same durable storage.\n- [ ] `get(id)` returns the stored token for a present identifier.\n- [ ] `get(id)` returns null for an absent identifier.\n- [ ] The `TokenStore` interface retains the supplied `put` and `get` signatures.\n\n### From HOW\n\n- [ ] Successful `put` completion corresponds to durable acceptance in the backend selected by architecture.\n\n### Integration smoke test\n\nRun after the backend decision is resolved.\n\n```\nPROCEDURE smoke_check_token_persistence:\n  1. Start the token store using the selected durable backend.\n  2. Put a token with identifier I and await successful completion.\n  3. Restart the process against the same durable storage.\n  4. Assert get(I) returns the stored token.\n  5. Assert get of an absent identifier returns null.\n```\n\n## Review record\n\nThe supplied inherited review is complete: 0 blocker, 0 major, 0 minor findings. All supplied facts were checked; no changes beyond the snapshot are authorised. No fixes or dismissals are required. The architecture Punt remains unresolved as supplied.\n\nconfidence: medium\n\n```faff-contract:spec-readiness\n{\"confidence\":\"medium\",\"decisions\":[{\"marker\":\"chosen\"},{\"marker\":\"punt\"}]}\n```",
+      "persisted_sha256": "7f90cca2e95a16652bb014a5984d44f02d3b444fa7ef6382c451a24fed85e59a"
+    },
+    {
+      "id": "deferred-punt",
+      "text": "# Validate import row limits\n\nThis spec addresses SPEC-4: reject import arrays above 1000 rows without importing or mutating their contents. It is for the build agent and human reviewers.\n\n## WHY\n\nCheck array length before any import work. `validateImport` currently accepts every input, so arrays above the required limit pass validation. Enforcing the limit prevents excessive work while preserving the existing caller interface.\n\n**Side effects:** Validation MUST NOT import or mutate rows.\n\n**Reference context:** `src/validate-import.ts` is TypeScript; `validateImport(rows)` currently returns `{ valid: true }`. Callers accept `{valid:boolean,error?:string}`. This change stays within that validation function.\n\n## OUT OF SCOPE\n\n- **Latency dashboard:** Reporting is unrelated to enforcing the limit. Future dashboard work would extend `src/metrics.ts`. The Latency dashboard design decision is deferred as Punt (non-blocking) under Open Questions and does not affect row-limit enforcement.\n\n## WHAT\n\n```\nRECORD ValidationResult:\n  valid: Boolean\n  error: optional String\n\nINTERFACE validateImport:\n  input: rows, an array inspected without mutation\n  output: ValidationResult\n```\n\nAccept arrays with at most 1000 rows, including an empty array. Reject arrays with more than 1000 rows with `valid` false and `error` equal to `row-limit`. Preserve the existing return shape; accepted arrays retain the current `{valid:true}` response. Validation does not import or mutate rows.\n\n## HOW\n\nInspect length before any import work, and return the validation result without changing the input.\n\n```\nPROCEDURE validateImport(rows):\n  1. IF length(rows) > 1000:\n     Return RECORD { valid: false, error: 'row-limit' }.\n  2. OTHERWISE:\n     Return RECORD { valid: true }.\n  3. Do not import rows or mutate the array or its rows on either path.\n```\n\n**Anti-pattern:** Import or truncate rows to enforce the limit. Why: Validation must have no import or mutation side effects.\n\n## Scenarios\n\n```\nGiven an array containing exactly 1000 rows\nWhen validateImport is called\nThen it returns valid true\nAnd the array and its rows remain unchanged\nAnd no rows are imported\n```\n\n```\nGiven an array containing 1001 rows\nWhen validateImport is called\nThen it returns valid false and error row-limit\nAnd the array and its rows remain unchanged\nAnd no rows are imported\n```\n\n## DESIGN DECISION RATIONALE\n\n**When should the row limit be checked?**\n\n- **Before import:** Rejects excessive work without side effects.\n- **During or after import:** Allows import side effects before validation completes.\n\n**Chosen:** Validate length before any import to reject excessive work without side effects.\n\n**When should dashboard design be settled?**\n\nDashboard design is unrelated to enforcing array length. Defer it to product rather than coupling reporting design to this validation change; the Punt is collected below.\n\n## OPEN QUESTIONS AND ASSUMPTIONS\n\n### Open Questions\n\n**Punt:** Latency dashboard (non-blocking). Dashboard design is deferred under OUT OF SCOPE, with extension point `src/metrics.ts`; it does not affect row-limit enforcement (decides: product).\n\nThe supplied completed Punt scan reports one eligible non-blocking Punt and zero blocking open Punts. Exclude the eligible dashboard Punt from the confidence count.\n\n### Assumptions\n\nNo external assumptions are declared.\n\n## DONE\n\n### From WHY and WHAT\n\n- [ ] Arrays with 0 through 1000 rows return `{valid:true}`.\n- [ ] Arrays with more than 1000 rows return `{valid:false,error:'row-limit'}`.\n- [ ] Results preserve the existing `{valid:boolean,error?:string}` return shape.\n\n### From HOW\n\n- [ ] Both acceptance and rejection paths leave the array and its rows unchanged and perform no import work.\n\n### Integration smoke test\n\n```\nPROCEDURE smoke_check_row_limit:\n  1. Create arrays of 1000 and 1001 rows and capture their original contents.\n  2. Call validateImport on each array.\n  3. Assert the first result is { valid: true }.\n  4. Assert the second result is { valid: false, error: 'row-limit' }.\n  5. Assert both inputs are unchanged and no import work occurred.\n```\n\n## Review record\n\nThe supplied inherited review is complete: 0 blocker, 0 major, 0 minor findings. All supplied facts were checked; no changes beyond the snapshot are authorised. No fixes or dismissals are required. The eligible non-blocking Latency dashboard Punt remains deferred as supplied.\n\nconfidence: high\n\n```faff-contract:spec-readiness\n{\"confidence\":\"high\",\"decisions\":[{\"marker\":\"chosen\"},{\"marker\":\"punt\"}]}\n```",
+      "persisted_sha256": "471990ed59cda2743ed053e37e43f1832a851af3ef78d353f303b7cc8ee59229"
+    }
+  ],
+  "rule_answers": [
+    {
+      "id": "scenario-scope",
+      "value": {
+        "required": false
+      }
+    },
+    {
+      "id": "scenario-format",
+      "value": {
+        "fenced": true,
+        "capitalised_step_starts": true,
+        "bulleted_steps": false
+      }
+    },
+    {
+      "id": "nonfunctional",
+      "value": {
+        "forced_gwt": false
+      }
+    },
+    {
+      "id": "holdout",
+      "value": {
+        "allowed": false
+      }
+    },
+    {
+      "id": "done-coverage",
+      "value": {
+        "allowed": false
+      }
+    },
+    {
+      "id": "repository-test",
+      "value": {
+        "separate_items": true
+      }
+    },
+    {
+      "id": "known-owner",
+      "value": {
+        "owner_suffix": "architecture"
+      }
+    },
+    {
+      "id": "confidence",
+      "value": {
+        "confidence": "high"
+      }
+    },
+    {
+      "id": "review-cap",
+      "value": {
+        "high_allowed": false
+      }
+    },
+    {
+      "id": "contract",
+      "value": {
+        "position": "last"
+      }
+    }
+  ]
+}

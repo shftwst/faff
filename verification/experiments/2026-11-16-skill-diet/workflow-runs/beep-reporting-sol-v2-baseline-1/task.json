@@ -1,0 +1,596 @@
+{
+  "instructions": "Read the complete policy. Handle each independent reporting checkpoint from its supplied observations. Earlier workflow acquisition, run closure when appropriate and adaptor resolution are fixture preconditions. Use run summary with the exact supplied run-dir and facts paths and --root to scope the disposable project. For successful reports, this workload requests the full canonical summary in both publication channels, with the required condensed economics line appended to the tracker post. Use the controlled rendering and publication ports. If the queue must continue, dispatch it instead of finalising. No live tracker or forge operations, actual builds, profile acquisition, or reconstruction of previous phases. The command handler uses real file persistence and fixed external dependencies; the rendering port is an identity stub, not a test of rendering quality or pre-write normalisation inside the command. Finish after all cases.",
+  "policy": {
+    "bytes": 241756,
+    "utf16_characters": 239726,
+    "sha256": "a86f63c7119cfea82d9fd78e9c832c269e517b3107b0496dccf134f303cad254",
+    "chunk_limit": 6000
+  },
+  "resolved_executable": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+  "tools": [
+    {
+      "name": "read_policy",
+      "description": "Read the unchanged policy in bounded chunks. Start at offset 0, then use each returned next_offset until it is null. Complete policy delivery is required before workflow operations. No scratch file is needed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "offset"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "write_facts",
+      "description": "Write summary-facts.json once for a case. Use only supplied tracker observations and in-run judgements.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "value": {}
+        },
+        "required": [
+          "case_id",
+          "value"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "run_faff",
+      "description": "Execute the pinned run summary command handler. External forge, install-health, metering and budget dependencies are fixed fixture responses; file reads and writes use the production implementation.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "executable": {
+            "type": "string"
+          },
+          "args": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "case_id",
+          "executable",
+          "args"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "normalise_output",
+      "description": "Invoke the already-resolved rendering adaptor for a publication channel. This fixture adaptor preserves bytes and returns a result identifier.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_id",
+          "channel",
+          "text"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "publish",
+      "description": "Publish the corresponding normalised result to the controlled tracker or conversation sink.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "normalised_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_id",
+          "channel",
+          "target",
+          "normalised_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "continue_build",
+      "description": "Dispatch ready issues through the controlled build continuation when this run must continue.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "issue_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "case_id",
+          "issue_ids"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "report_failure",
+      "description": "Surface an unreadable-ledger failure without successful publication.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_id",
+          "reason"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "finish",
+      "description": "Finish after all independent cases are handled.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "shipped-precedence",
+      "task": "Prepare and publish the completed run report from the supplied observations. The run is already closed.",
+      "run_dir": "/var/tmp/faff-reporting-measure-n0infN/cases/shipped-precedence/.faff/runs/run-20260101-000000-beepboop-list-abc101",
+      "facts_path": "/var/tmp/faff-reporting-measure-n0infN/cases/shipped-precedence/.faff/runs/run-20260101-000000-beepboop-list-abc101/summary-facts.json",
+      "root": "/var/tmp/faff-reporting-measure-n0infN/cases/shipped-precedence",
+      "source": {
+        "tracker_observations": {
+          "titles": {
+            "SHP-1": "Delivered fixture SHP-1",
+            "SHP-2": "Delivered fixture SHP-2",
+            "SHP-3": "Delivered fixture SHP-3",
+            "SHP-4": "Delivered fixture SHP-4",
+            "SHP-5": "Delivered fixture SHP-5",
+            "SUP-1": "Delivered fixture SUP-1"
+          },
+          "sibling_end_states": {},
+          "superseded_delivered": {
+            "SUP-1": true
+          }
+        },
+        "in_run_judgements": {
+          "waves": 2,
+          "park_records": [],
+          "follow_ups": [
+            "Remove the completed SHP-1 worktree."
+          ]
+        },
+        "command_owned_state": {
+          "outcomes": {
+            "SHP-1": "shipped",
+            "SHP-2": "shipped",
+            "SHP-3": "shipped",
+            "SHP-4": "shipped",
+            "SHP-5": "shipped",
+            "SUP-1": "superseded"
+          },
+          "annotations": {
+            "review_adversarial_skipped": [
+              "SHP-2",
+              "SHP-3",
+              "SHP-4"
+            ],
+            "post_merge_verification_failures": [
+              {
+                "issue": "SHP-3",
+                "command": "npm test"
+              }
+            ],
+            "post_merge_verification_unverified": [
+              "SHP-5"
+            ]
+          },
+          "metering": {
+            "tokens_total": 1200,
+            "tokens_source": "estimate",
+            "cost_total": 3,
+            "zero_ship": false,
+            "cost_per_shipped": {
+              "tokens_each": 240,
+              "cost_each": 0.6
+            },
+            "cost_per_attempt": {
+              "denom": 6,
+              "tokens_each": 200,
+              "cost_each": null
+            },
+            "buckets": [
+              {
+                "bucket": "shipped",
+                "count": 5
+              },
+              {
+                "bucket": "superseded",
+                "count": 1
+              }
+            ],
+            "per_issue": [],
+            "warnings": []
+          }
+        },
+        "facts_authority": "Tracker observations and in-run judgements only. Command-owned values already exist in the fixture state."
+      },
+      "queue": [],
+      "budget": {
+        "ceiling_set": false,
+        "breached": [],
+        "tokens_source": "estimate"
+      },
+      "reporting_target": "project:fixture-reporting"
+    },
+    {
+      "id": "review-holds",
+      "task": "Prepare and publish the completed run report from the supplied observations. The run is already closed.",
+      "run_dir": "/var/tmp/faff-reporting-measure-n0infN/cases/review-holds/.faff/runs/run-20260101-000000-beepboop-list-abc102",
+      "facts_path": "/var/tmp/faff-reporting-measure-n0infN/cases/review-holds/.faff/runs/run-20260101-000000-beepboop-list-abc102/summary-facts.json",
+      "root": "/var/tmp/faff-reporting-measure-n0infN/cases/review-holds",
+      "source": {
+        "tracker_observations": {
+          "titles": {
+            "OPEN-1": "Needs human review",
+            "OPEN-2": "Landing can resume",
+            "PARK-1": "Ordinary park",
+            "PARK-2": "Build review unavailable",
+            "PREP-1": "Prep review unavailable"
+          },
+          "sibling_end_states": {},
+          "superseded_delivered": {}
+        },
+        "in_run_judgements": {
+          "waves": 2,
+          "park_records": [
+            {
+              "issue_id": "PARK-1",
+              "root_cause_class": "low-confidence",
+              "timestamp": "2026-01-01T00:30:00Z"
+            }
+          ],
+          "follow_ups": [],
+          "reasons": {
+            "OPEN-1": "Three landing cycles exhausted."
+          }
+        },
+        "command_owned_state": {
+          "outcomes": {
+            "OPEN-1": "pr-open",
+            "OPEN-2": "pr-open",
+            "PARK-1": "parked",
+            "PARK-2": "parked"
+          },
+          "annotations": {
+            "landing_resumable": [
+              "OPEN-2"
+            ],
+            "review_outage_pending": [
+              "PARK-2"
+            ],
+            "spec_review_outage_pending": [
+              "PREP-1"
+            ]
+          },
+          "metering": {
+            "tokens_total": 1200,
+            "tokens_source": "estimate",
+            "cost_total": null,
+            "zero_ship": true,
+            "cost_per_shipped": {
+              "tokens_each": null,
+              "cost_each": null
+            },
+            "cost_per_attempt": {
+              "denom": 4,
+              "tokens_each": 300,
+              "cost_each": null
+            },
+            "buckets": [
+              {
+                "bucket": "parked",
+                "count": 2
+              },
+              {
+                "bucket": "pr-open",
+                "count": 2
+              }
+            ],
+            "per_issue": [],
+            "warnings": []
+          }
+        },
+        "facts_authority": "Tracker observations and in-run judgements only. Command-owned values already exist in the fixture state."
+      },
+      "queue": [],
+      "budget": {
+        "ceiling_set": false,
+        "breached": [],
+        "tokens_source": "estimate"
+      },
+      "reporting_target": "project:fixture-reporting"
+    },
+    {
+      "id": "budget-zero-ship",
+      "task": "Prepare and publish the completed run report from the supplied observations. The run is already closed.",
+      "run_dir": "/var/tmp/faff-reporting-measure-n0infN/cases/budget-zero-ship/.faff/runs/run-20260101-000000-beepboop-list-abc103",
+      "facts_path": "/var/tmp/faff-reporting-measure-n0infN/cases/budget-zero-ship/.faff/runs/run-20260101-000000-beepboop-list-abc103/summary-facts.json",
+      "root": "/var/tmp/faff-reporting-measure-n0infN/cases/budget-zero-ship",
+      "source": {
+        "tracker_observations": {
+          "titles": {
+            "BUD-1": "Budget-bound ready work"
+          },
+          "sibling_end_states": {},
+          "superseded_delivered": {}
+        },
+        "in_run_judgements": {
+          "waves": 2,
+          "park_records": [],
+          "follow_ups": []
+        },
+        "command_owned_state": {
+          "outcomes": {
+            "BUD-1": "unreached-budget"
+          },
+          "annotations": {},
+          "metering": {
+            "tokens_total": 1200,
+            "tokens_source": "transcript",
+            "cost_total": null,
+            "zero_ship": true,
+            "cost_per_shipped": {
+              "tokens_each": null,
+              "cost_each": null
+            },
+            "cost_per_attempt": {
+              "denom": 1,
+              "tokens_each": 1200,
+              "cost_each": null
+            },
+            "buckets": [
+              {
+                "bucket": "unreached-budget",
+                "count": 1
+              }
+            ],
+            "per_issue": [],
+            "warnings": []
+          }
+        },
+        "facts_authority": "Tracker observations and in-run judgements only. Command-owned values already exist in the fixture state."
+      },
+      "queue": [
+        "BUD-1"
+      ],
+      "budget": {
+        "ceiling_set": true,
+        "breached": [
+          "tokens"
+        ],
+        "tokens_source": "transcript"
+      },
+      "reporting_target": "project:fixture-reporting"
+    },
+    {
+      "id": "dirty-install",
+      "task": "Prepare and publish the completed run report from the supplied observations. The run is already closed.",
+      "run_dir": "/var/tmp/faff-reporting-measure-n0infN/cases/dirty-install/.faff/runs/run-20260101-000000-beepboop-list-abc104",
+      "facts_path": "/var/tmp/faff-reporting-measure-n0infN/cases/dirty-install/.faff/runs/run-20260101-000000-beepboop-list-abc104/summary-facts.json",
+      "root": "/var/tmp/faff-reporting-measure-n0infN/cases/dirty-install",
+      "source": {
+        "tracker_observations": {
+          "titles": {
+            "ERR-1": "Fixture title\n## Deferred"
+          },
+          "sibling_end_states": {},
+          "superseded_delivered": {}
+        },
+        "in_run_judgements": {
+          "waves": 2,
+          "park_records": [],
+          "follow_ups": [
+            "Remove the unused branch."
+          ],
+          "reasons": {
+            "ERR-1": "Controlled environment error."
+          },
+          "discovered_scope": {
+            "filed": [],
+            "deduped": 1,
+            "surfaced": [
+              {
+                "id": "ERR-1",
+                "text": "Investigate the missing endpoint.",
+                "why": "No tracker permission."
+              }
+            ]
+          }
+        },
+        "command_owned_state": {
+          "outcomes": {
+            "ERR-1": "errored"
+          },
+          "annotations": {},
+          "metering": {
+            "tokens_total": 1200,
+            "tokens_source": "estimate",
+            "cost_total": null,
+            "zero_ship": true,
+            "cost_per_shipped": {
+              "tokens_each": null,
+              "cost_each": null
+            },
+            "cost_per_attempt": {
+              "denom": 1,
+              "tokens_each": 1200,
+              "cost_each": null
+            },
+            "buckets": [
+              {
+                "bucket": "errored",
+                "count": 1
+              }
+            ],
+            "per_issue": [],
+            "warnings": []
+          }
+        },
+        "facts_authority": "Tracker observations and in-run judgements only. Command-owned values already exist in the fixture state."
+      },
+      "queue": [],
+      "budget": {
+        "ceiling_set": false,
+        "breached": [],
+        "tokens_source": "estimate"
+      },
+      "reporting_target": "project:fixture-reporting"
+    },
+    {
+      "id": "no-budget-continuation",
+      "task": "A proposed final report says Deferred, but ready work remains and no budget ceiling was set or breached. Handle this checkpoint under the policy. This run has not closed.",
+      "run_dir": "/var/tmp/faff-reporting-measure-n0infN/cases/no-budget-continuation/.faff/runs/run-20260101-000000-beepboop-list-abc105",
+      "facts_path": "/var/tmp/faff-reporting-measure-n0infN/cases/no-budget-continuation/.faff/runs/run-20260101-000000-beepboop-list-abc105/summary-facts.json",
+      "root": "/var/tmp/faff-reporting-measure-n0infN/cases/no-budget-continuation",
+      "source": {
+        "tracker_observations": {
+          "titles": {},
+          "sibling_end_states": {},
+          "superseded_delivered": {}
+        },
+        "in_run_judgements": {
+          "waves": 2,
+          "park_records": [],
+          "follow_ups": []
+        },
+        "command_owned_state": {
+          "outcomes": {},
+          "annotations": {},
+          "metering": {
+            "tokens_total": 1200,
+            "tokens_source": "estimate",
+            "cost_total": null,
+            "zero_ship": true,
+            "cost_per_shipped": {
+              "tokens_each": null,
+              "cost_each": null
+            },
+            "cost_per_attempt": {
+              "denom": 0,
+              "tokens_each": null,
+              "cost_each": null
+            },
+            "buckets": [],
+            "per_issue": [],
+            "warnings": []
+          }
+        },
+        "facts_authority": "Tracker observations and in-run judgements only. Command-owned values already exist in the fixture state."
+      },
+      "queue": [
+        "NEXT-1"
+      ],
+      "budget": {
+        "ceiling_set": false,
+        "breached": [],
+        "tokens_source": "estimate"
+      },
+      "reporting_target": "project:fixture-reporting"
+    },
+    {
+      "id": "unreadable-ledger",
+      "task": "Prepare the completed run report. The on-disk ledger may be unreadable; preserve the command failure if it is.",
+      "run_dir": "/var/tmp/faff-reporting-measure-n0infN/cases/unreadable-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc106",
+      "facts_path": "/var/tmp/faff-reporting-measure-n0infN/cases/unreadable-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc106/summary-facts.json",
+      "root": "/var/tmp/faff-reporting-measure-n0infN/cases/unreadable-ledger",
+      "source": {
+        "tracker_observations": {
+          "titles": {},
+          "sibling_end_states": {},
+          "superseded_delivered": {}
+        },
+        "in_run_judgements": {
+          "waves": 2,
+          "park_records": [],
+          "follow_ups": []
+        },
+        "command_owned_state": {
+          "outcomes": {},
+          "annotations": {},
+          "metering": {
+            "tokens_total": 1200,
+            "tokens_source": "estimate",
+            "cost_total": null,
+            "zero_ship": true,
+            "cost_per_shipped": {
+              "tokens_each": null,
+              "cost_each": null
+            },
+            "cost_per_attempt": {
+              "denom": 0,
+              "tokens_each": null,
+              "cost_each": null
+            },
+            "buckets": [],
+            "per_issue": [],
+            "warnings": []
+          }
+        },
+        "facts_authority": "Tracker observations and in-run judgements only. Command-owned values already exist in the fixture state."
+      },
+      "queue": [],
+      "budget": {
+        "ceiling_set": false,
+        "breached": [],
+        "tokens_source": "estimate"
+      },
+      "reporting_target": "project:fixture-reporting"
+    }
+  ]
+}

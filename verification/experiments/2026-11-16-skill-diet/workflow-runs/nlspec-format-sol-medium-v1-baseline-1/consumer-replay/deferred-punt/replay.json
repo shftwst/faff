@@ -1,0 +1,106 @@
+{
+  "id": "deferred-punt",
+  "status": "fail",
+  "problems": [
+    "artifact-rules"
+  ],
+  "source_sha256": "471990ed59cda2743ed053e37e43f1832a851af3ef78d353f303b7cc8ee59229",
+  "attached_sha256": "7ba9453edbe9c41f1f61ac2f5d9e67e97c965a6ff5d42ec299f4f573680bb34e",
+  "artifact": {
+    "pass": false,
+    "problems": [
+      "missing-pattern:System[^\\n]*Language[^\\n]*Relevance"
+    ],
+    "rubric": {
+      "score": 1,
+      "checks": 4,
+      "passed": 4,
+      "vector": [
+        true,
+        true,
+        true,
+        true
+      ]
+    }
+  },
+  "commands": [
+    {
+      "name": "contract",
+      "argv": [
+        "contract",
+        "spec-readiness"
+      ],
+      "stdin_sha256": "c60fe2a79a7328436ceff5050741b730a7f609b2607084e349a336e373801161",
+      "exit_code": 0,
+      "stdout": "{\"confidence\":\"high\",\"decisions\":[{\"classification\":\"closed\"},{\"classification\":\"open\"}],\"markers_valid\":true,\"violations\":[]}\n",
+      "stderr": ""
+    },
+    {
+      "name": "admissible",
+      "argv": [
+        "admissible",
+        "--spec",
+        "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/nlspec-format-sol-medium-v1-baseline-1/consumer-replay/deferred-punt/spec.md",
+        "--lights-out",
+        "--json"
+      ],
+      "stdin_sha256": null,
+      "exit_code": 0,
+      "stdout": "{\"admissible\":true,\"reasons\":[],\"checks\":[{\"id\":\"R1.scenarios\",\"pass\":true,\"detail\":\"2 born-verifiable scenario(s) (need >=1)\"},{\"id\":\"R2a.done-present\",\"pass\":true,\"detail\":\"4 DONE checklist item(s) (need >=1)\"},{\"id\":\"R2b.done-concrete\",\"pass\":true,\"detail\":\"0 vague DONE item(s)\"},{\"id\":\"R2c.human-judgement-untagged\",\"pass\":true,\"detail\":\"0 untagged human-judgement DONE item(s)\"},{\"id\":\"R2d.not-all-human-only\",\"pass\":true,\"detail\":\"4 DONE item(s) not tagged human-only (need at least 1)\"},{\"id\":\"R2e.human-marker-reason\",\"pass\":true,\"detail\":\"0 DONE item(s) begin needs-human: with no reason\"}],\"warnings\":[\"prose-DONE advisory: 4 DONE item(s) are loose prose and are delegated to the AC checklist, not judged by the holdout (judged count: 2; phrase an item with Then or must to keep it code-blind): Arrays with 0 through 1000 rows return `{valid:tru | Arrays with more than 1000 rows return `{valid:fal | Results preserve the existing `{valid:boolean,erro | Both acceptance and rejection paths leave the arra\"]}\n",
+      "stderr": ""
+    },
+    {
+      "name": "dod",
+      "argv": [
+        "dod",
+        "classify",
+        "--spec",
+        "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/nlspec-format-sol-medium-v1-baseline-1/consumer-replay/deferred-punt/spec.md",
+        "--json"
+      ],
+      "stdin_sha256": null,
+      "exit_code": 0,
+      "stdout": "{\"criteria\":[{\"text\":\"Given an array containing exactly 1000 rows\\nWhen validateImport is called\\nThen it returns valid true\\nAnd the array and its rows remain unchanged\\nAnd no rows are imported\",\"class\":\"scenario\",\"source\":\"scenarios\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"scenarios:1\"},{\"text\":\"Given an array containing 1001 rows\\nWhen validateImport is called\\nThen it returns valid false and error row-limit\\nAnd the array and its rows remain unchanged\\nAnd no rows are imported\",\"class\":\"scenario\",\"source\":\"scenarios\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"scenarios:2\"},{\"text\":\"Arrays with 0 through 1000 rows return `{valid:true}`.\",\"class\":\"prose\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"delegated\",\"verifier\":\"ac-checklist\",\"id\":\"done:1\",\"local_ac_id\":\"done:1\"},{\"text\":\"Arrays with more than 1000 rows return `{valid:false,error:'row-limit'}`.\",\"class\":\"prose\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"delegated\",\"verifier\":\"ac-checklist\",\"id\":\"done:2\",\"local_ac_id\":\"done:2\"},{\"text\":\"Results preserve the existing `{valid:boolean,error?:string}` return shape.\",\"class\":\"prose\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"delegated\",\"verifier\":\"ac-checklist\",\"id\":\"done:3\",\"local_ac_id\":\"done:3\"},{\"text\":\"Both acceptance and rejection paths leave the array and its rows unchanged and perform no import work.\",\"class\":\"prose\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"delegated\",\"verifier\":\"ac-checklist\",\"id\":\"done:4\",\"local_ac_id\":\"done:4\"}],\"counts\":{\"scenario\":2,\"assertion\":0,\"prose\":4},\"holdout_counts\":{\"holdout\":0,\"visible\":6},\"oracle_less_count\":0,\"verification_tier_counts\":{\"running-stack\":2,\"integration\":0,\"delegated\":4},\"judged_count\":2,\"integration_count\":0,\"delegated_count\":4}\n",
+      "stderr": ""
+    },
+    {
+      "name": "punt",
+      "argv": [
+        "punt-scan",
+        "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/nlspec-format-sol-medium-v1-baseline-1/consumer-replay/deferred-punt/spec.md"
+      ],
+      "stdin_sha256": null,
+      "exit_code": 0,
+      "stdout": "{\"punts\":[{\"topic\":\"Latency dashboard . Dashboard design is deferred under OUT OF SCOPE, with extension point `src/metrics.ts`; it does not affect row-limit enforcement .\",\"decides\":\"product\",\"non_blocking\":true,\"out_of_scope_crossref\":true,\"eligible\":true}],\"eligible_count\":1,\"blocking_open_count\":0}\n",
+      "stderr": ""
+    },
+    {
+      "name": "attach",
+      "argv": [
+        "prep",
+        "attach",
+        "--issue",
+        "SPEC-4",
+        "--spec",
+        "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/nlspec-format-sol-medium-v1-baseline-1/consumer-replay/deferred-punt/spec.md",
+        "--mode",
+        "interactive",
+        "--root",
+        "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/nlspec-format-sol-medium-v1-baseline-1/consumer-replay/deferred-punt",
+        "--json"
+      ],
+      "stdin_sha256": null,
+      "exit_code": 0,
+      "stdout": "{\"issue\":\"SPEC-4\",\"token\":\"ready-to-post\",\"body_path\":\"/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/nlspec-format-sol-medium-v1-baseline-1/consumer-replay/deferred-punt/spec.md\",\"spec_sha256\":\"7ba9453edbe9c41f1f61ac2f5d9e67e97c965a6ff5d42ec299f4f573680bb34e\",\"confidence\":\"high\",\"build_tier\":\"standard\",\"admissibility\":{\"admissible\":true,\"reasons\":[],\"scenarios_prose\":[]}}\n",
+      "stderr": ""
+    }
+  ],
+  "expected": {
+    "confidence": "high",
+    "admissible": true,
+    "blocking_punts": 0,
+    "eligible_punts": 1,
+    "holdouts": false,
+    "review_test_item": false
+  }
+}

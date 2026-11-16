@@ -1,0 +1,83 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "directory": "/var/tmp/faff-intake-astra-medium-integration",
+  "base_commit": "679f4d62c6b63b74d957e561f3846e071ade4e85",
+  "isolated_commit": "21de613c334f2ffc7ef0469cae7a6e24a73d72b5",
+  "source_sha256": "668b178bfead91377c81015083db36c57697c8bdf3d29dc4807073a81b952e0b",
+  "temporary_directory": "/var/tmp/faff-intake-astra-medium-tests-oh1wtoe2",
+  "production_installed": false,
+  "checks": [
+    {
+      "check": "tests",
+      "command": [
+        "node",
+        "--test",
+        "--test-concurrency=4",
+        "test/eval-affected.test.mjs",
+        "test/eval-baseline-gate.test.mjs",
+        "test/eval-cli-driver.test.mjs",
+        "test/eval-coverage-gate.test.mjs",
+        "test/eval-diff-baselines.test.mjs",
+        "test/eval-explanatory-order-drysmoke.test.mjs",
+        "test/eval-finding-identity.test.mjs",
+        "test/eval-gate.test.mjs",
+        "test/eval-grader.test.mjs",
+        "test/eval-holdout-live.test.mjs",
+        "test/eval-judgement-capture.test.mjs",
+        "test/eval-live-driver.test.mjs",
+        "test/eval-modedetect-drysmoke.test.mjs",
+        "test/eval-ollama-model.test.mjs",
+        "test/eval-prefix-planner.test.mjs",
+        "test/eval-readme-freshness.test.mjs",
+        "test/eval-reconciliation-drysmoke.test.mjs",
+        "test/eval-resume.test.mjs",
+        "test/eval-routing.test.mjs",
+        "test/eval-run-live-evals.test.mjs",
+        "test/eval-shaping-decomposition-drysmoke.test.mjs",
+        "test/eval-size-census.test.mjs",
+        "test/eval-tokenomics.test.mjs",
+        "test/eval-verdict-build-drysmoke.test.mjs",
+        "test/eval-zero-case-guard.test.mjs",
+        "test/evaluate-call.test.mjs",
+        "test/evaluator-preflight.test.mjs",
+        "test/intake-brief-artifact.test.mjs",
+        "test/intakecheck.test.mjs",
+        "test/self-intake.test.mjs",
+        "test/control-parity-intake-assessment.test.mjs"
+      ],
+      "exit_code": 0,
+      "path": "deterministic-checks/intake-astra-medium-v1-tests.txt",
+      "sha256": "a00460bbb7aebb5096b7199e42ed9560bf5e665920f9d077956f2ba9922ecfd3"
+    },
+    {
+      "check": "adapter-lint",
+      "command": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "validate-adapters"
+      ],
+      "exit_code": 0,
+      "path": "deterministic-checks/intake-astra-medium-v1-adapter-lint.txt",
+      "sha256": "bb4d1a24e82014e354b443a671613ccbfff3359e4e424d6bf8508de9c22e43ec"
+    },
+    {
+      "check": "rule-inventory",
+      "command": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "rule-inventory",
+        "check",
+        "--base",
+        "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+        "--json"
+      ],
+      "exit_code": 0,
+      "path": "deterministic-checks/intake-astra-medium-v1-rule-inventory.txt",
+      "sha256": "339b3b7652e4c229d136a0fdcb68493bdc0c2fffa35c0bffc5cbc2fe9f34501d"
+    }
+  ],
+  "limits": [
+    "Deterministic integration only; fresh model-pair fidelity, strict native certification and independent manual review remain required."
+  ]
+}

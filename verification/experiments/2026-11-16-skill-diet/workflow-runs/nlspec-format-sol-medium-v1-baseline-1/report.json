@@ -1,0 +1,334 @@
+{
+  "status": "fail",
+  "bridge": {
+    "stop": null,
+    "requests": 35,
+    "rejected": 0
+  },
+  "policy_delivery": {
+    "bytes": 120316,
+    "utf16_characters": 119305,
+    "sha256": "73ae4d3301da2e648c43b5ccc2693c4a8d9fd016ac82c53ba57397021588cb94",
+    "chunk_limit": 6000,
+    "complete": true,
+    "reads": [
+      {
+        "offset": 0,
+        "end": 6000,
+        "characters": 6000,
+        "bytes": 6060,
+        "sha256": "1ad27757278d7d3ac1cffaceede32e3587b1102da00ab01eff75174850a1ab17"
+      },
+      {
+        "offset": 6000,
+        "end": 12000,
+        "characters": 6000,
+        "bytes": 6016,
+        "sha256": "c448fbe4b2e11a1c81ec129f9a4ee971b6b4d66b34abc1fad6b04738b6013340"
+      },
+      {
+        "offset": 12000,
+        "end": 18000,
+        "characters": 6000,
+        "bytes": 6002,
+        "sha256": "e49b5d27ed1503db0c3c5b0ed8c25fc3818448325d0e3f151f8e229f0d8ebdad"
+      },
+      {
+        "offset": 18000,
+        "end": 24000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "a4732eaf68c746fc5cc538489d260f1d79cab764fa4b1c01ad33d99b8dc0f810"
+      },
+      {
+        "offset": 24000,
+        "end": 30000,
+        "characters": 6000,
+        "bytes": 6036,
+        "sha256": "7e21b3953e36d246dbda67849bd29b17f9d282e18830795aad5bc1a977320ea6"
+      },
+      {
+        "offset": 30000,
+        "end": 36000,
+        "characters": 6000,
+        "bytes": 6039,
+        "sha256": "9ceed1fc02782e67d505692197fd2091e357a5e82ac84399e68a010508a3bda2"
+      },
+      {
+        "offset": 36000,
+        "end": 42000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "7f39bf77f7421146ed5abf7d5a7ed6fc866c9e8601199633e81351b633824932"
+      },
+      {
+        "offset": 42000,
+        "end": 48000,
+        "characters": 6000,
+        "bytes": 6050,
+        "sha256": "771483164f5a275247017386698645a609a6e5901a187f3c7afcbfce3fa1ef73"
+      },
+      {
+        "offset": 48000,
+        "end": 54000,
+        "characters": 6000,
+        "bytes": 6062,
+        "sha256": "67c72c90b00d1f2c20a31ddb0a2b3174db0c0e8693af80c1bd94973c0c77b8b6"
+      },
+      {
+        "offset": 54000,
+        "end": 60000,
+        "characters": 6000,
+        "bytes": 6051,
+        "sha256": "a69f07927ca89517c406ecb1d0f6fd0b30eec58ccdaeabb852f7e40d8bebf2f6"
+      },
+      {
+        "offset": 60000,
+        "end": 66000,
+        "characters": 6000,
+        "bytes": 6050,
+        "sha256": "470365db00402373919e7c9cb9f27ce8cca9d03612d6407143bbf205892ed887"
+      },
+      {
+        "offset": 66000,
+        "end": 72000,
+        "characters": 6000,
+        "bytes": 6062,
+        "sha256": "31a2ced0410e432c745e1ec74b6e6ed10a42bbca81de5b2f622337e80b20dafc"
+      },
+      {
+        "offset": 72000,
+        "end": 78000,
+        "characters": 6000,
+        "bytes": 6052,
+        "sha256": "4a695da053aba82e74b1382aee3d649054249d2cc79ed8a4ab892acb4318a54e"
+      },
+      {
+        "offset": 78000,
+        "end": 84000,
+        "characters": 6000,
+        "bytes": 6057,
+        "sha256": "eba3083ca339fcf8bc69867432c5a1ea36d778c065a59dc9174bf9962fafe556"
+      },
+      {
+        "offset": 84000,
+        "end": 90000,
+        "characters": 6000,
+        "bytes": 6090,
+        "sha256": "7573bee855e746a4a6ce3d5d1cf61835d078276b83db51711c2bd9fd99e2a0db"
+      },
+      {
+        "offset": 90000,
+        "end": 96000,
+        "characters": 6000,
+        "bytes": 6090,
+        "sha256": "badbf68777b7e5c9a7ba55be2d78a01a3ef066459c467eb812f942352a044bbf"
+      },
+      {
+        "offset": 96000,
+        "end": 102000,
+        "characters": 6000,
+        "bytes": 6048,
+        "sha256": "1876c118bd4c36500d2560934ba5125f0edf1798945b2a99fca79e30a824ab3e"
+      },
+      {
+        "offset": 102000,
+        "end": 108000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "2891dcc6d28ea2e8918c9b94f8d63c8ccec6d19a974bb50b221c764276086f62"
+      },
+      {
+        "offset": 108000,
+        "end": 114000,
+        "characters": 6000,
+        "bytes": 6038,
+        "sha256": "558c6b8e9e4e4e89c63f3395342c24870c29edc314021eb1d0c7cbd562dc1174"
+      },
+      {
+        "offset": 114000,
+        "end": 119305,
+        "characters": 5305,
+        "bytes": 5351,
+        "sha256": "a9c39de06cfc554368dc512fe7a4236569b0f9edd1591743b438bcedda8dbc87"
+      }
+    ],
+    "errors": []
+  },
+  "grade": {
+    "status": "fail",
+    "cases": [
+      {
+        "id": "mechanical",
+        "kind": "artifact",
+        "pass": false,
+        "problems": [
+          "missing-pattern:System[^\\n]*Language[^\\n]*Relevance"
+        ],
+        "rubric": {
+          "score": 1,
+          "checks": 3,
+          "passed": 3,
+          "vector": [
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "retry-and-privacy",
+        "kind": "artifact",
+        "pass": false,
+        "problems": [
+          "missing-pattern:System[^\\n]*Language[^\\n]*Relevance"
+        ],
+        "rubric": {
+          "score": 1,
+          "checks": 5,
+          "passed": 5,
+          "vector": [
+            true,
+            true,
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "blocking-punt",
+        "kind": "artifact",
+        "pass": false,
+        "problems": [
+          "missing-pattern:System[^\\n]*Language[^\\n]*Relevance"
+        ],
+        "rubric": {
+          "score": 1,
+          "checks": 4,
+          "passed": 4,
+          "vector": [
+            true,
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "deferred-punt",
+        "kind": "artifact",
+        "pass": false,
+        "problems": [
+          "missing-pattern:System[^\\n]*Language[^\\n]*Relevance"
+        ],
+        "rubric": {
+          "score": 1,
+          "checks": 4,
+          "passed": 4,
+          "vector": [
+            true,
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "scenario-scope",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "required": false
+        }
+      },
+      {
+        "id": "scenario-format",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "fenced": true,
+          "capitalised_step_starts": true,
+          "bulleted_steps": false
+        }
+      },
+      {
+        "id": "nonfunctional",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "forced_gwt": false
+        }
+      },
+      {
+        "id": "holdout",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "allowed": false
+        }
+      },
+      {
+        "id": "done-coverage",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "allowed": false
+        }
+      },
+      {
+        "id": "repository-test",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "separate_items": true
+        }
+      },
+      {
+        "id": "known-owner",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "owner_suffix": "architecture"
+        }
+      },
+      {
+        "id": "confidence",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "confidence": "high"
+        }
+      },
+      {
+        "id": "review-cap",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "high_allowed": false
+        }
+      },
+      {
+        "id": "contract",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "position": "last"
+        }
+      }
+    ],
+    "errors": []
+  },
+  "scope": "Final full-nlspec production from completed explore/self-review snapshots. Four persisted specs and ten decisions. Real downstream spec consumers are replayed separately. No live exploration, inherited self-review execution, tracker writes, full prep workflow or actual implementation claim.",
+  "accounting": "unmetered"
+}

@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "accepted": false,
+  "status": "held-baseline-semantic-and-order-failures",
+  "baseline_sample": "map-report-sol-medium-v1-baseline-1",
+  "raw_result": "17/18 checks pass; native pass. Off-chain action uses removing, missed by remove|cut|break. No lexical correction applied because separate real failures hold the lane.",
+  "manual_failures": [
+    "All6 reports place TL;DR before Outcome initiatives rather than after Risks as the skill phase and output order require.",
+    "Cycle-on-chain labels the ledger-to-notifications gate Blocked by cycle despite the specified fireability predicate: upstream In Progress and downstream exists. Repairing the cycle is separate."
+  ],
+  "source_faithfulness_note": "Ghost-next correctly treats MAP-3 as unresolved; it does not invent a project, title or status.",
+  "inputs": [
+    {
+      "path": "map-report-sol-medium-v1-registration.json",
+      "sha256": "83b801668558d4a42fd5d49ffcf472b24bef27d8f63b1a1692a8f518f49571fa"
+    },
+    {
+      "path": "manual-artifact-reviews/map-sol-medium-v1-independent.json",
+      "sha256": "3bb5af01777f2a1ba5d1d4336c8716179a5768b617b86d7ad351adabb9e8614c"
+    },
+    {
+      "path": "workflow-runs/map-report-sol-medium-v1-baseline-1/report.json",
+      "sha256": "99e87c330bacbbe96d32b0ba261e79a73749d406c6c1176cb68e2280575246d8"
+    },
+    {
+      "path": "workflow-runs/map-report-sol-medium-v1-baseline-1/native-audit.json",
+      "sha256": "4417eb14e08b2dd9a65ad63f160c59111662c7146646b2c813869d5ebd75e95b"
+    },
+    {
+      "path": "workflow-runs/map-report-sol-medium-v1-baseline-1/capture.json",
+      "sha256": "bce68ac558a13a2085c20c068f11c0a74ea2464875633d035ed36bd2c6a0c76e"
+    }
+  ],
+  "candidate_measured": false,
+  "source_changed": false,
+  "savings_counted": false,
+  "integration": "Prepared private integration passes; this does not waive the failed measurement."
+}

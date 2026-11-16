@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All six cases finished. Four reports were published in both controlled channels, the ready queue was dispatched, and the unreadable-ledger failure was recorded. `finish` succeeded.\n\nNo departures from the restrictions.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e651-8a28-78f1-b6a0-24d85972a652"
+    ],
+    "elapsed_seconds": 484.4,
+    "stdout_sha256": "57053dfca3a82f2897421fbd96d169d1b924695ad5b4d342ad2fbdf87efb7325",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All six cases finished; the bridge confirmed successful finish. Four reports were published in both channels, ready work was dispatched, and the unreadable-ledger failure was preserved.\n\nNo departures from the requested restrictions.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e660-4c5a-7cb2-9203-b66e93d7f1a6"
+    ],
+    "elapsed_seconds": 533.9,
+    "stdout_sha256": "eb3aab6ca9f6c6ff0d6a2ff68d08aa2c9dc06dc3cdfff5ffa11ad9e57526664b",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

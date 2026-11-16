@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "scope": "Root read every candidate1 brief alongside the six completed conversation snapshots. Separate from independent all-artifact review.",
+  "fixture_sha256": "d64ac66570717a333c6a7350d947a035d3a5f0372d028003092cc0c304ea91d3",
+  "artifacts": [
+    {
+      "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-1/artifacts/greenfield-complete.md",
+      "sha256": "2368e9f9a4a1bdec727bfda49fc955508a3992e0621fa2b6ba20b6363bc1178e",
+      "status": "pass"
+    },
+    {
+      "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-1/artifacts/greenfield-repo-signal.md",
+      "sha256": "8f3347e5ba833191e9a968c75b4fa53f16853498ddd58ef45d0692a497306405",
+      "status": "pass"
+    },
+    {
+      "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-1/artifacts/greenfield-thin.md",
+      "sha256": "a73d7e4787b0bc0e4f575d56aad7ba9996de631768722093f7a79d72fe645d05",
+      "status": "pass"
+    },
+    {
+      "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-1/artifacts/minor-ambiguity.md",
+      "sha256": "d577e1e10b34a7e353c92c5fca115075bf397cc7e3ce34673cd51ed3c921df62",
+      "status": "pass"
+    },
+    {
+      "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-1/artifacts/single-bug.md",
+      "sha256": "cf4dd29662dd79a1bed78fd7bf033b749e7c3afc6f5de018d73a9c3824c9ee4e",
+      "status": "pass"
+    },
+    {
+      "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-1/artifacts/single-split.md",
+      "sha256": "d24a6643a06a8a3bba4046aef0114c67b532609933460f15a6ff2c5f81dc1fd1",
+      "status": "pass"
+    }
+  ],
+  "findings": [
+    "All six preserve supplied goals, capability/item fields, constraints and non-goals.",
+    "Thin platform/language and first slice stay unresolved; no unsupported choice introduced.",
+    "REPORT-17 remains a prerequisite; retry/notification split is left to methodology.",
+    "Timezone, retention and missing recording dates remain open. No tracker mutation or implementation work claimed."
+  ],
+  "limits": [
+    "One candidate sample spot-check only; all ten samples require independent manual review and automatic/native gates."
+  ]
+}

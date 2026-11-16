@@ -1,0 +1,1561 @@
+TAP version 13
+# dod classify: DONE item id not recognised (use lowercase [ac-N])
+# dod classify: mixed authored and positional AC ids
+# dod classify: DONE item begins "needs-human:" with no reason (marker ignored, text kept literal): needs-human:
+# dod classify: DONE item begins "needs-human:" with no reason (marker ignored, text kept literal): needs-human:
+# dod classify: unterminated fence in Scenarios section (criteria after the stray fence may be merged)
+# dod classify: unterminated fence in Scenarios section (criteria after the stray fence may be merged)
+# dod classify: unterminated fence in Scenarios section (criteria after the stray fence may be merged)
+# dod classify: unterminated fence in Scenarios section (criteria after the stray fence may be merged)
+# Subtest: --selftest verdict table passes (exit 0)
+ok 1 - --selftest verdict table passes (exit 0)
+  ---
+  duration_ms: 90.648695
+  type: 'test'
+  ...
+# Subtest: admissible: GWT + concrete DONE + runnable check → exit 0, admissible, no warnings
+ok 2 - admissible: GWT + concrete DONE + runnable check → exit 0, admissible, no warnings
+  ---
+  duration_ms: 46.134097
+  type: 'test'
+  ...
+# Subtest: R1-fail: no \#\# Scenarios section → exit 1, inadmissible, reason cites R1
+ok 3 - R1-fail: no \#\# Scenarios section → exit 1, inadmissible, reason cites R1
+  ---
+  duration_ms: 43.947391
+  type: 'test'
+  ...
+# Subtest: R2a-fail: empty DONE checklist → exit 1, inadmissible, reason cites DONE checklist
+ok 4 - R2a-fail: empty DONE checklist → exit 1, inadmissible, reason cites DONE checklist
+  ---
+  duration_ms: 51.945004
+  type: 'test'
+  ...
+# Subtest: R2b-fail: a vague DONE item ('works correctly') → exit 1, inadmissible, reason cites vague DONE
+ok 5 - R2b-fail: a vague DONE item ('works correctly') → exit 1, inadmissible, reason cites vague DONE
+  ---
+  duration_ms: 46.297805
+  type: 'test'
+  ...
+# Subtest: R3-advisory: passes R1+R2 but no runnable check → exit 0, admissible, one warning (never gates)
+ok 6 - R3-advisory: passes R1+R2 but no runnable check → exit 0, admissible, one warning (never gates)
+  ---
+  duration_ms: 46.819554
+  type: 'test'
+  ...
+# Subtest: DONE matched by name: works for both '\#\#\# 4. DONE' (lite) and '\#\# 8. DONE' (nlspec)
+ok 7 - DONE matched by name: works for both '\#\#\# 4. DONE' (lite) and '\#\# 8. DONE' (nlspec)
+  ---
+  duration_ms: 40.553647
+  type: 'test'
+  ...
+# Subtest: fail-safe: an empty/unparseable spec under lights-out → exit 1, inadmissible (not a crash)
+ok 8 - fail-safe: an empty/unparseable spec under lights-out → exit 1, inadmissible (not a crash)
+  ---
+  duration_ms: 38.881982
+  type: 'test'
+  ...
+# Subtest: scope no-op: no --lights-out → exit 0, admissible, single scope:pass check, no warnings
+ok 9 - scope no-op: no --lights-out → exit 0, admissible, single scope:pass check, no warnings
+  ---
+  duration_ms: 37.328443
+  type: 'test'
+  ...
+# Subtest: invariant: reasons non-empty IFF admissible == false
+ok 10 - invariant: reasons non-empty IFF admissible == false
+  ---
+  duration_ms: 124.68531
+  type: 'test'
+  ...
+# Subtest: usage error: an unreadable --spec path → exit 2
+ok 11 - usage error: an unreadable --spec path → exit 2
+  ---
+  duration_ms: 47.094512
+  type: 'test'
+  ...
+# Subtest: zero tracker/network: GOOD spec on stdin produces a verdict with no MCP (pure)
+ok 12 - zero tracker/network: GOOD spec on stdin produces a verdict with no MCP (pure)
+  ---
+  duration_ms: 43.299017
+  type: 'test'
+  ...
+# Subtest: FAFF-304: prose DONE items → admissible true AND a 'prose-DONE advisory:' warning naming the count
+ok 13 - FAFF-304: prose DONE items → admissible true AND a 'prose-DONE advisory:' warning naming the count
+  ---
+  duration_ms: 45.443806
+  type: 'test'
+  ...
+# Subtest: FAFF-304: the advisory count equals dodClassify's source:done, class:prose criteria (no forked classifier)
+ok 14 - FAFF-304: the advisory count equals dodClassify's source:done, class:prose criteria (no forked classifier)
+  ---
+  duration_ms: 83.60954
+  type: 'test'
+  ...
+# Subtest: FAFF-304: prose DONE items that restate a scenario are named as 'candidates to remove'
+ok 15 - FAFF-304: prose DONE items that restate a scenario are named as 'candidates to remove'
+  ---
+  duration_ms: 42.443686
+  type: 'test'
+  ...
+# Subtest: FAFF-304: an all born-verifiable DONE checklist produces NO prose-DONE advisory
+ok 16 - FAFF-304: an all born-verifiable DONE checklist produces NO prose-DONE advisory
+  ---
+  duration_ms: 46.244804
+  type: 'test'
+  ...
+# Subtest: FAFF-304: when no prose DONE item restates a scenario, the duplicate clause is omitted
+ok 17 - FAFF-304: when no prose DONE item restates a scenario, the duplicate clause is omitted
+  ---
+  duration_ms: 44.697682
+  type: 'test'
+  ...
+# Subtest: FAFF-304: the advisory never fires without --lights-out (scope-inactive)
+ok 18 - FAFF-304: the advisory never fires without --lights-out (scope-inactive)
+  ---
+  duration_ms: 42.710352
+  type: 'test'
+  ...
+# Subtest: FAFF-304: the advisory never flips admissible — a prose+vague DONE is still inadmissible (R2b), advisory rides alongside
+ok 19 - FAFF-304: the advisory never flips admissible — a prose+vague DONE is still inadmissible (R2b), advisory rides alongside
+  ---
+  duration_ms: 42.609352
+  type: 'test'
+  ...
+# Subtest: FAFF-1291: the prose-DONE advisory names the AC checklist and the judged count, and no longer says forced to needs-human
+ok 20 - FAFF-1291: the prose-DONE advisory names the AC checklist and the judged count, and no longer says forced to needs-human
+  ---
+  duration_ms: 41.841436
+  type: 'test'
+  ...
+# Subtest: FAFF-1291: all-prose DONE with nothing judged adds a second advisory line; the exit code is unchanged
+ok 21 - FAFF-1291: all-prose DONE with nothing judged adds a second advisory line; the exit code is unchanged
+  ---
+  duration_ms: 42.321811
+  type: 'test'
+  ...
+# Subtest: FAFF-1477: an untagged 'confirmed by eye' item is refused by R2c and the reason names the item and the tag
+ok 22 - FAFF-1477: an untagged 'confirmed by eye' item is refused by R2c and the reason names the item and the tag
+  ---
+  duration_ms: 42.85581
+  type: 'test'
+  ...
+# Subtest: FAFF-1477: the same item tagged needs-human: (with a leading [ac-N] id) is admitted, R2c to R2e all pass
+ok 23 - FAFF-1477: the same item tagged needs-human: (with a leading [ac-N] id) is admitted, R2c to R2e all pass
+  ---
+  duration_ms: 43.273559
+  type: 'test'
+  ...
+# Subtest: FAFF-1477: R2d refuses a spec whose DONE items are all tagged human-only; R2c and R2e still pass
+ok 24 - FAFF-1477: R2d refuses a spec whose DONE items are all tagged human-only; R2c and R2e still pass
+  ---
+  duration_ms: 45.576306
+  type: 'test'
+  ...
+# Subtest: FAFF-1477: R2e refuses a marker with no reason, and R2c does not also refuse it
+ok 25 - FAFF-1477: R2e refuses a marker with no reason, and R2c does not also refuse it
+  ---
+  duration_ms: 45.131723
+  type: 'test'
+  ...
+# Subtest: FAFF-1477: all-empty-reason markers fail R2e and pass R2d; giving them reasons then fails R2d
+ok 26 - FAFF-1477: all-empty-reason markers fail R2e and pass R2d; giving them reasons then fails R2d
+  ---
+  duration_ms: 88.49349
+  type: 'test'
+  ...
+# Subtest: FAFF-1477: a listed phrase inside an inline code span passes R2c
+ok 27 - FAFF-1477: a listed phrase inside an inline code span passes R2c
+  ---
+  duration_ms: 45.094639
+  type: 'test'
+  ...
+# Subtest: FAFF-1477: bare nouns do not match; 'manual confirmation' does
+ok 28 - FAFF-1477: bare nouns do not match; 'manual confirmation' does
+  ---
+  duration_ms: 85.592369
+  type: 'test'
+  ...
+# Subtest: FAFF-1477: patterns 4 to 7 refuse untagged and pass once tagged
+ok 29 - FAFF-1477: patterns 4 to 7 refuse untagged and pass once tagged
+  ---
+  duration_ms: 355.059001
+  type: 'test'
+  ...
+# Subtest: FAFF-1477: the phrases match case-insensitively and the detail joins items with ' | '
+ok 30 - FAFF-1477: the phrases match case-insensitively and the detail joins items with ' | '
+  ---
+  duration_ms: 43.121976
+  type: 'test'
+  ...
+# Subtest: FAFF-1477: an item over 50 characters is cut to 50 in the R2c detail
+ok 31 - FAFF-1477: an item over 50 characters is cut to 50 in the R2c detail
+  ---
+  duration_ms: 42.09427
+  type: 'test'
+  ...
+# Subtest: FAFF-1477: a spec with no DONE section fails R2a only; R2d and R2e pass
+ok 32 - FAFF-1477: a spec with no DONE section fails R2a only; R2d and R2e pass
+  ---
+  duration_ms: 39.932773
+  type: 'test'
+  ...
+# Subtest: FAFF-1477: the passing details are the pinned strings
+ok 33 - FAFF-1477: the passing details are the pinned strings
+  ---
+  duration_ms: 43.613767
+  type: 'test'
+  ...
+# Subtest: FAFF-1477: the new checks follow R2b in order and a failing check adds its detail to reasons
+ok 34 - FAFF-1477: the new checks follow R2b in order and a failing check adds its detail to reasons
+  ---
+  duration_ms: 43.906308
+  type: 'test'
+  ...
+# Subtest: FAFF-1477: without --lights-out a tagged item changes nothing: one scope check and no warnings
+ok 35 - FAFF-1477: without --lights-out a tagged item changes nothing: one scope check and no warnings
+  ---
+  duration_ms: 39.605398
+  type: 'test'
+  ...
+# Subtest: FAFF-1477: the withheld scenario: two untagged and two tagged prose items name only the untagged in the advisory
+ok 36 - FAFF-1477: the withheld scenario: two untagged and two tagged prose items name only the untagged in the advisory
+  ---
+  duration_ms: 42.461768
+  type: 'test'
+  ...
+# Subtest: FAFF-1477: a spec with one untagged and one tagged prose item never gets the all-prose line
+ok 37 - FAFF-1477: a spec with one untagged and one tagged prose item never gets the all-prose line
+  ---
+  duration_ms: 1.239248
+  type: 'test'
+  ...
+# Subtest: FAFF-1477: the new checks add no stderr of their own
+ok 38 - FAFF-1477: the new checks add no stderr of their own
+  ---
+  duration_ms: 42.523436
+  type: 'test'
+  ...
+# Subtest: FAFF-1477: the admissibleVerdict body reads ids through parseLocalAcId and never assignLocalAcIds
+ok 39 - FAFF-1477: the admissibleVerdict body reads ids through parseLocalAcId and never assignLocalAcIds
+  ---
+  duration_ms: 0.480416
+  type: 'test'
+  ...
+# Subtest: FAFF-1477: the needs-human marker pattern is written once in admissibility.js
+ok 40 - FAFF-1477: the needs-human marker pattern is written once in admissibility.js
+  ---
+  duration_ms: 0.347332
+  type: 'test'
+  ...
+# Subtest: FAFF-1477: the verdict treats as tagged exactly the items dodClassify marks human_only
+ok 41 - FAFF-1477: the verdict treats as tagged exactly the items dodClassify marks human_only
+  ---
+  duration_ms: 3.24312
+  type: 'test'
+  ...
+# Subtest: FAFF-1477: HUMAN_JUDGEMENT holds the seven patterns of the spec
+ok 42 - FAFF-1477: HUMAN_JUDGEMENT holds the seven patterns of the spec
+  ---
+  duration_ms: 0.066042
+  type: 'test'
+  ...
+# Subtest: FAFF-1477: over every committed spec the R2c refusals are exactly the pinned set, and R2d and R2e refuse none
+ok 43 - FAFF-1477: over every committed spec the R2c refusals are exactly the pinned set, and R2d and R2e refuse none
+  ---
+  duration_ms: 1325.935357
+  type: 'test'
+  ...
+# Subtest: contract spec-readiness — valid (golden)
+ok 44 - contract spec-readiness — valid (golden)
+  ---
+  duration_ms: 73.300972
+  type: 'test'
+  ...
+# Subtest: contract spec-readiness — fail-loud-bad-confidence (golden)
+ok 45 - contract spec-readiness — fail-loud-bad-confidence (golden)
+  ---
+  duration_ms: 60.659658
+  type: 'test'
+  ...
+# Subtest: contract review-verdict — valid (golden)
+ok 46 - contract review-verdict — valid (golden)
+  ---
+  duration_ms: 42.025103
+  type: 'test'
+  ...
+# Subtest: contract review-verdict — boundary-coerce-needs-human (golden)
+ok 47 - contract review-verdict — boundary-coerce-needs-human (golden)
+  ---
+  duration_ms: 40.80848
+  type: 'test'
+  ...
+# Subtest: contract review-verdict — unavailable-bare-conformant (golden)
+ok 48 - contract review-verdict — unavailable-bare-conformant (golden)
+  ---
+  duration_ms: 43.00656
+  type: 'test'
+  ...
+# Subtest: contract review-verdict — unavailable-with-well-formed-finding-conformant (golden)
+ok 49 - contract review-verdict — unavailable-with-well-formed-finding-conformant (golden)
+  ---
+  duration_ms: 48.628426
+  type: 'test'
+  ...
+# Subtest: contract review-verdict — unavailable-with-malformed-finding-still-flagged (golden)
+ok 50 - contract review-verdict — unavailable-with-malformed-finding-still-flagged (golden)
+  ---
+  duration_ms: 49.694507
+  type: 'test'
+  ...
+# Subtest: contract integrity-floor — review-unavailable-refuses (golden)
+ok 51 - contract integrity-floor — review-unavailable-refuses (golden)
+  ---
+  duration_ms: 36.074862
+  type: 'test'
+  ...
+# Subtest: contract delivery-outcome — valid (golden)
+ok 52 - contract delivery-outcome — valid (golden)
+  ---
+  duration_ms: 40.750438
+  type: 'test'
+  ...
+# Subtest: contract delivery-outcome — boundary-coerce-failed (golden)
+ok 53 - contract delivery-outcome — boundary-coerce-failed (golden)
+  ---
+  duration_ms: 38.368233
+  type: 'test'
+  ...
+# Subtest: contract automation-routing — valid (golden)
+ok 54 - contract automation-routing — valid (golden)
+  ---
+  duration_ms: 41.417812
+  type: 'test'
+  ...
+# Subtest: contract automation-routing — fail-loud-no-verdict (golden)
+ok 55 - contract automation-routing — fail-loud-no-verdict (golden)
+  ---
+  duration_ms: 35.624779
+  type: 'test'
+  ...
+# Subtest: contract quality-gates — valid-pass (golden)
+ok 56 - contract quality-gates — valid-pass (golden)
+  ---
+  duration_ms: 39.038941
+  type: 'test'
+  ...
+# Subtest: contract quality-gates — coerce-malformed-signal-to-needs-human (golden)
+ok 57 - contract quality-gates — coerce-malformed-signal-to-needs-human (golden)
+  ---
+  duration_ms: 36.414194
+  type: 'test'
+  ...
+# Subtest: contract quality-gates — fail-loud-non-object (golden)
+ok 58 - contract quality-gates — fail-loud-non-object (golden)
+  ---
+  duration_ms: 37.600234
+  type: 'test'
+  ...
+# Subtest: contract prd-readiness — valid-admissible (golden)
+ok 59 - contract prd-readiness — valid-admissible (golden)
+  ---
+  duration_ms: 41.648312
+  type: 'test'
+  ...
+# Subtest: contract prd-readiness — valid-not-ready (golden)
+ok 60 - contract prd-readiness — valid-not-ready (golden)
+  ---
+  duration_ms: 35.915695
+  type: 'test'
+  ...
+# Subtest: contract prd-readiness — out-of-set-reason-normalised-to-other (golden)
+ok 61 - contract prd-readiness — out-of-set-reason-normalised-to-other (golden)
+  ---
+  duration_ms: 38.289192
+  type: 'test'
+  ...
+# Subtest: contract prd-readiness — admissible-but-unverifiable (golden)
+ok 62 - contract prd-readiness — admissible-but-unverifiable (golden)
+  ---
+  duration_ms: 36.524486
+  type: 'test'
+  ...
+# Subtest: contract prd-readiness — fail-loud-bad-verdict (golden)
+ok 63 - contract prd-readiness — fail-loud-bad-verdict (golden)
+  ---
+  duration_ms: 39.45694
+  type: 'test'
+  ...
+# Subtest: contract prdr-admission — conformant-admit (golden)
+ok 64 - contract prdr-admission — conformant-admit (golden)
+  ---
+  duration_ms: 36.484903
+  type: 'test'
+  ...
+# Subtest: contract prdr-admission — admit-violates-two-gate-constraint (golden)
+ok 65 - contract prdr-admission — admit-violates-two-gate-constraint (golden)
+  ---
+  duration_ms: 40.241189
+  type: 'test'
+  ...
+# Subtest: contract prdr-admission — fail-loud-bad-disposition (golden)
+ok 66 - contract prdr-admission — fail-loud-bad-disposition (golden)
+  ---
+  duration_ms: 38.228691
+  type: 'test'
+  ...
+# Subtest: contract prdr-yagni — conformant-admit (golden)
+ok 67 - contract prdr-yagni — conformant-admit (golden)
+  ---
+  duration_ms: 37.447318
+  type: 'test'
+  ...
+# Subtest: contract prdr-yagni — conformant-reject-no-trace (golden)
+ok 68 - contract prdr-yagni — conformant-reject-no-trace (golden)
+  ---
+  duration_ms: 35.942987
+  type: 'test'
+  ...
+# Subtest: contract prdr-yagni — admit-violates-conservative-constraint (golden)
+ok 69 - contract prdr-yagni — admit-violates-conservative-constraint (golden)
+  ---
+  duration_ms: 37.927859
+  type: 'test'
+  ...
+# Subtest: contract prdr-yagni — conformant-under-citation-admit (golden)
+ok 70 - contract prdr-yagni — conformant-under-citation-admit (golden)
+  ---
+  duration_ms: 38.804483
+  type: 'test'
+  ...
+# Subtest: contract prdr-yagni — over-scope-admit-flagged-non-conformant (golden)
+ok 71 - contract prdr-yagni — over-scope-admit-flagged-non-conformant (golden)
+  ---
+  duration_ms: 36.75836
+  type: 'test'
+  ...
+# Subtest: contract prdr-yagni — fail-loud-bad-proposal-verdict (golden)
+ok 72 - contract prdr-yagni — fail-loud-bad-proposal-verdict (golden)
+  ---
+  duration_ms: 35.796363
+  type: 'test'
+  ...
+# Subtest: contract prd-coverage — conformant-satisfied (golden)
+ok 73 - contract prd-coverage — conformant-satisfied (golden)
+  ---
+  duration_ms: 37.440818
+  type: 'test'
+  ...
+# Subtest: contract prd-coverage — conformant-uncovered-lower-violation (golden)
+ok 74 - contract prd-coverage — conformant-uncovered-lower-violation (golden)
+  ---
+  duration_ms: 38.728942
+  type: 'test'
+  ...
+# Subtest: contract prd-coverage — conformant-conservative-unverified-dod (golden)
+ok 75 - contract prd-coverage — conformant-conservative-unverified-dod (golden)
+  ---
+  duration_ms: 39.42444
+  type: 'test'
+  ...
+# Subtest: contract prd-coverage — nonconformant-satisfied-while-uncovered (golden)
+ok 76 - contract prd-coverage — nonconformant-satisfied-while-uncovered (golden)
+  ---
+  duration_ms: 38.736982
+  type: 'test'
+  ...
+# Subtest: contract prd-coverage — fail-loud-non-object (golden)
+ok 77 - contract prd-coverage — fail-loud-non-object (golden)
+  ---
+  duration_ms: 40.038147
+  type: 'test'
+  ...
+# Subtest: contract spec-review-verdict — conformant-approve (golden)
+ok 78 - contract spec-review-verdict — conformant-approve (golden)
+  ---
+  duration_ms: 36.850527
+  type: 'test'
+  ...
+# Subtest: contract spec-review-verdict — conformant-reject-approach (golden)
+ok 79 - contract spec-review-verdict — conformant-reject-approach (golden)
+  ---
+  duration_ms: 37.643526
+  type: 'test'
+  ...
+# Subtest: contract spec-review-verdict — non-approve-no-objections (golden)
+ok 80 - contract spec-review-verdict — non-approve-no-objections (golden)
+  ---
+  duration_ms: 36.804819
+  type: 'test'
+  ...
+# Subtest: contract spec-review-verdict — approve-with-objections (golden)
+ok 81 - contract spec-review-verdict — approve-with-objections (golden)
+  ---
+  duration_ms: 38.94619
+  type: 'test'
+  ...
+# Subtest: contract spec-review-verdict — bad-lens (golden)
+ok 82 - contract spec-review-verdict — bad-lens (golden)
+  ---
+  duration_ms: 40.103647
+  type: 'test'
+  ...
+# Subtest: contract spec-review-verdict — conformant-triple-plus-anchor (golden)
+ok 83 - contract spec-review-verdict — conformant-triple-plus-anchor (golden)
+  ---
+  duration_ms: 37.892568
+  type: 'test'
+  ...
+# Subtest: contract spec-review-verdict — legacy-no-anchor-unchanged (golden)
+ok 84 - contract spec-review-verdict — legacy-no-anchor-unchanged (golden)
+  ---
+  duration_ms: 36.090903
+  type: 'test'
+  ...
+# Subtest: contract spec-review-verdict — fail-loud-bad-verdict (golden)
+ok 85 - contract spec-review-verdict — fail-loud-bad-verdict (golden)
+  ---
+  duration_ms: 39.325107
+  type: 'test'
+  ...
+# Subtest: contract spec-review-verdict — fail-loud-non-object (golden)
+ok 86 - contract spec-review-verdict — fail-loud-non-object (golden)
+  ---
+  duration_ms: 36.525777
+  type: 'test'
+  ...
+# Subtest: contract architecture-proposal — conformant-build (golden)
+ok 87 - contract architecture-proposal — conformant-build (golden)
+  ---
+  duration_ms: 36.022236
+  type: 'test'
+  ...
+# Subtest: contract architecture-proposal — conformant-buy (golden)
+ok 88 - contract architecture-proposal — conformant-buy (golden)
+  ---
+  duration_ms: 37.080027
+  type: 'test'
+  ...
+# Subtest: contract architecture-proposal — empty-chosen-architecture (golden)
+ok 89 - contract architecture-proposal — empty-chosen-architecture (golden)
+  ---
+  duration_ms: 37.394568
+  type: 'test'
+  ...
+# Subtest: contract architecture-proposal — bad-recommendation (golden)
+ok 90 - contract architecture-proposal — bad-recommendation (golden)
+  ---
+  duration_ms: 36.946485
+  type: 'test'
+  ...
+# Subtest: contract architecture-proposal — malformed-adr-candidate (golden)
+ok 91 - contract architecture-proposal — malformed-adr-candidate (golden)
+  ---
+  duration_ms: 36.988652
+  type: 'test'
+  ...
+# Subtest: contract architecture-proposal — fail-loud-non-object (golden)
+ok 92 - contract architecture-proposal — fail-loud-non-object (golden)
+  ---
+  duration_ms: 39.434024
+  type: 'test'
+  ...
+# Subtest: contract env-handle — conformant-ready (golden)
+ok 93 - contract env-handle — conformant-ready (golden)
+  ---
+  duration_ms: 37.661818
+  type: 'test'
+  ...
+# Subtest: contract env-handle — provisioning-not-ready (golden)
+ok 94 - contract env-handle — provisioning-not-ready (golden)
+  ---
+  duration_ms: 37.452402
+  type: 'test'
+  ...
+# Subtest: contract env-handle — ready-missing-endpoint (golden)
+ok 95 - contract env-handle — ready-missing-endpoint (golden)
+  ---
+  duration_ms: 38.2249
+  type: 'test'
+  ...
+# Subtest: contract env-handle — fail-loud-non-object (golden)
+ok 96 - contract env-handle — fail-loud-non-object (golden)
+  ---
+  duration_ms: 38.605441
+  type: 'test'
+  ...
+# Subtest: contract holdout-verdict — conformant-meets-spec (golden)
+ok 97 - contract holdout-verdict — conformant-meets-spec (golden)
+  ---
+  duration_ms: 37.714943
+  type: 'test'
+  ...
+# Subtest: contract holdout-verdict — conformant-needs-human-prose (golden)
+ok 98 - contract holdout-verdict — conformant-needs-human-prose (golden)
+  ---
+  duration_ms: 36.69282
+  type: 'test'
+  ...
+# Subtest: contract holdout-verdict — code-blind-false-violation (golden)
+ok 99 - contract holdout-verdict — code-blind-false-violation (golden)
+  ---
+  duration_ms: 37.459651
+  type: 'test'
+  ...
+# Subtest: contract holdout-verdict — fail-loud-non-object (golden)
+ok 100 - contract holdout-verdict — fail-loud-non-object (golden)
+  ---
+  duration_ms: 37.618901
+  type: 'test'
+  ...
+# Subtest: contract post-merge-verification — valid-verified-ok (golden)
+ok 101 - contract post-merge-verification — valid-verified-ok (golden)
+  ---
+  duration_ms: 37.774776
+  type: 'test'
+  ...
+# Subtest: contract post-merge-verification — valid-unverified-no-rung (golden)
+ok 102 - contract post-merge-verification — valid-unverified-no-rung (golden)
+  ---
+  duration_ms: 37.986108
+  type: 'test'
+  ...
+# Subtest: contract post-merge-verification — coerce-malformed-verdict-to-unverified (golden)
+ok 103 - contract post-merge-verification — coerce-malformed-verdict-to-unverified (golden)
+  ---
+  duration_ms: 35.539363
+  type: 'test'
+  ...
+# Subtest: contract post-merge-verification — fail-loud-non-object (golden)
+ok 104 - contract post-merge-verification — fail-loud-non-object (golden)
+  ---
+  duration_ms: 43.179434
+  type: 'test'
+  ...
+# Subtest: contract l4-topology-envelope — container-create-accepted-root-admit (golden)
+ok 105 - contract l4-topology-envelope — container-create-accepted-root-admit (golden)
+  ---
+  duration_ms: 45.713597
+  type: 'test'
+  ...
+# Subtest: contract l4-topology-envelope — container-create-signal-false-gated (golden)
+ok 106 - contract l4-topology-envelope — container-create-signal-false-gated (golden)
+  ---
+  duration_ms: 53.471252
+  type: 'test'
+  ...
+# Subtest: contract l4-topology-envelope — fail-loud-missing-contained-under-accepted-prd (golden)
+ok 107 - contract l4-topology-envelope — fail-loud-missing-contained-under-accepted-prd (golden)
+  ---
+  duration_ms: 48.583843
+  type: 'test'
+  ...
+# Subtest: contract run-trigger — conformant-plan-coverage-thin (golden)
+ok 108 - contract run-trigger — conformant-plan-coverage-thin (golden)
+  ---
+  duration_ms: 60.005534
+  type: 'test'
+  ...
+# Subtest: contract run-trigger — conformant-refuse-self-directed (golden)
+ok 109 - contract run-trigger — conformant-refuse-self-directed (golden)
+  ---
+  duration_ms: 50.689006
+  type: 'test'
+  ...
+# Subtest: contract run-trigger — reject-hand-altered-drain-on-plan-signals (golden)
+ok 110 - contract run-trigger — reject-hand-altered-drain-on-plan-signals (golden)
+  ---
+  duration_ms: 40.671271
+  type: 'test'
+  ...
+# Subtest: contract run-trigger — fail-loud-non-object (golden)
+ok 111 - contract run-trigger — fail-loud-non-object (golden)
+  ---
+  duration_ms: 39.333732
+  type: 'test'
+  ...
+# Subtest: contract spec-judge-verdict — affirm-conformant (golden)
+ok 112 - contract spec-judge-verdict — affirm-conformant (golden)
+  ---
+  duration_ms: 37.035443
+  type: 'test'
+  ...
+# Subtest: contract spec-judge-verdict — uphold-conformant (golden)
+ok 113 - contract spec-judge-verdict — uphold-conformant (golden)
+  ---
+  duration_ms: 40.418939
+  type: 'test'
+  ...
+# Subtest: contract spec-judge-verdict — affirm-with-correction-nonconformant (golden)
+ok 114 - contract spec-judge-verdict — affirm-with-correction-nonconformant (golden)
+  ---
+  duration_ms: 41.50402
+  type: 'test'
+  ...
+# Subtest: contract spec-judge-verdict — uphold-missing-correction-nonconformant (golden)
+ok 115 - contract spec-judge-verdict — uphold-missing-correction-nonconformant (golden)
+  ---
+  duration_ms: 42.355269
+  type: 'test'
+  ...
+# Subtest: contract spec-judge-verdict — uphold-short-verification-nonconformant (golden)
+ok 116 - contract spec-judge-verdict — uphold-short-verification-nonconformant (golden)
+  ---
+  duration_ms: 36.690611
+  type: 'test'
+  ...
+# Subtest: contract spec-judge-verdict — synthesize-conformant (golden)
+ok 117 - contract spec-judge-verdict — synthesize-conformant (golden)
+  ---
+  duration_ms: 39.33394
+  type: 'test'
+  ...
+# Subtest: contract spec-judge-verdict — synthesize-empty-sources-nonconformant (golden)
+ok 118 - contract spec-judge-verdict — synthesize-empty-sources-nonconformant (golden)
+  ---
+  duration_ms: 39.161023
+  type: 'test'
+  ...
+# Subtest: contract spec-judge-verdict — synthesize-source-outside-ab-nonconformant (golden)
+ok 119 - contract spec-judge-verdict — synthesize-source-outside-ab-nonconformant (golden)
+  ---
+  duration_ms: 40.417355
+  type: 'test'
+  ...
+# Subtest: contract spec-judge-verdict — prd-boundary-conformant (golden)
+ok 120 - contract spec-judge-verdict — prd-boundary-conformant (golden)
+  ---
+  duration_ms: 39.715315
+  type: 'test'
+  ...
+# Subtest: contract spec-judge-verdict — prd-boundary-empty-citation-nonconformant (golden)
+ok 121 - contract spec-judge-verdict — prd-boundary-empty-citation-nonconformant (golden)
+  ---
+  duration_ms: 38.450817
+  type: 'test'
+  ...
+# Subtest: contract spec-judge-verdict — echoed-bad-lens-nonconformant (golden)
+ok 122 - contract spec-judge-verdict — echoed-bad-lens-nonconformant (golden)
+  ---
+  duration_ms: 36.718027
+  type: 'test'
+  ...
+# Subtest: contract spec-judge-verdict — out-of-enum-outcome-fail-loud (golden)
+ok 123 - contract spec-judge-verdict — out-of-enum-outcome-fail-loud (golden)
+  ---
+  duration_ms: 36.10457
+  type: 'test'
+  ...
+# Subtest: four reference specs preserve distinct real consumer outcomes
+ok 124 - four reference specs preserve distinct real consumer outcomes
+  ---
+  duration_ms: 824.630203
+  type: 'test'
+  ...
+# Subtest: consumer replay rejects missing contract
+ok 125 - consumer replay rejects missing contract
+  ---
+  duration_ms: 164.291167
+  type: 'test'
+  ...
+# Subtest: consumer replay rejects text follows contract
+ok 126 - consumer replay rejects text follows contract
+  ---
+  duration_ms: 189.554836
+  type: 'test'
+  ...
+# Subtest: consumer replay rejects duplicate contract
+ok 127 - consumer replay rejects duplicate contract
+  ---
+  duration_ms: 166.608954
+  type: 'test'
+  ...
+# Subtest: consumer replay rejects contract confidence differs
+ok 128 - consumer replay rejects contract confidence differs
+  ---
+  duration_ms: 205.350771
+  type: 'test'
+  ...
+# Subtest: consumer replay rejects prose confidence differs
+ok 129 - consumer replay rejects prose confidence differs
+  ---
+  duration_ms: 187.521131
+  type: 'test'
+  ...
+# Subtest: consumer replay rejects all scenarios withheld
+ok 130 - consumer replay rejects all scenarios withheld
+  ---
+  duration_ms: 197.963407
+  type: 'test'
+  ...
+# Subtest: consumer replay rejects required visible scenario omitted
+ok 131 - consumer replay rejects required visible scenario omitted
+  ---
+  duration_ms: 193.158331
+  type: 'test'
+  ...
+# Subtest: consumer replay rejects scenario observable removed
+ok 132 - consumer replay rejects scenario observable removed
+  ---
+  duration_ms: 218.658708
+  type: 'test'
+  ...
+# Subtest: consumer replay rejects test file replaces holdout
+ok 133 - consumer replay rejects test file replaces holdout
+  ---
+  duration_ms: 270.142547
+  type: 'test'
+  ...
+# Subtest: consumer replay rejects repository test mixes behaviour
+ok 134 - consumer replay rejects repository test mixes behaviour
+  ---
+  duration_ms: 200.594528
+  type: 'test'
+  ...
+# Subtest: consumer replay rejects nonblocking punt loses tag
+ok 135 - consumer replay rejects nonblocking punt loses tag
+  ---
+  duration_ms: 199.086489
+  type: 'test'
+  ...
+# Subtest: consumer replay rejects blocking punt falsely deferred
+ok 136 - consumer replay rejects blocking punt falsely deferred
+  ---
+  duration_ms: 198.553198
+  type: 'test'
+  ...
+# Subtest: --selftest table passes (exit 0)
+ok 137 - --selftest table passes (exit 0)
+  ---
+  duration_ms: 102.03922
+  type: 'test'
+  ...
+# Subtest: dod classify: emits per-criterion holdout + top-level holdout_counts, counts unchanged shape
+ok 138 - dod classify: emits per-criterion holdout + top-level holdout_counts, counts unchanged shape
+  ---
+  duration_ms: 50.90684
+  type: 'test'
+  ...
+# Subtest: dod classify (FAFF-961): emits per-criterion verification_tier + top-level verification_tier_counts, existing shape unchanged
+ok 139 - dod classify (FAFF-961): emits per-criterion verification_tier + top-level verification_tier_counts, existing shape unchanged
+  ---
+  duration_ms: 47.435552
+  type: 'test'
+  ...
+# Subtest: dod classify (FAFF-961): a marker- and keyword-free spec tiers every criterion running-stack; counts unchanged from today
+ok 140 - dod classify (FAFF-961): a marker- and keyword-free spec tiers every criterion running-stack; counts unchanged from today
+  ---
+  duration_ms: 46.806929
+  type: 'test'
+  ...
+# Subtest: dod classify: a `holdout:`-prefixed DONE item stays literal, holdout false, stderr advisory
+ok 141 - dod classify: a `holdout:`-prefixed DONE item stays literal, holdout false, stderr advisory
+  ---
+  duration_ms: 53.990835
+  type: 'test'
+  ...
+# Subtest: dod split --view full is the identity (byte-for-byte)
+ok 142 - dod split --view full is the identity (byte-for-byte)
+  ---
+  duration_ms: 44.895515
+  type: 'test'
+  ...
+# Subtest: dod split --view builder: omits holdout units, inserts the withheld-count note, keeps the rest
+ok 143 - dod split --view builder: omits holdout units, inserts the withheld-count note, keeps the rest
+  ---
+  duration_ms: 40.62298
+  type: 'test'
+  ...
+# Subtest: dod split --view builder: a marker-free spec is a byte-identical no-op
+ok 144 - dod split --view builder: a marker-free spec is a byte-identical no-op
+  ---
+  duration_ms: 39.854023
+  type: 'test'
+  ...
+# Subtest: dod split --view builder: a marker outside the Scenarios section is not recognised
+ok 145 - dod split --view builder: a marker outside the Scenarios section is not recognised
+  ---
+  duration_ms: 41.117896
+  type: 'test'
+  ...
+# Subtest: dod split: coherence invariant — classify(split(spec, builder)) == full classification minus holdout criteria
+ok 146 - dod split: coherence invariant — classify(split(spec, builder)) == full classification minus holdout criteria
+  ---
+  duration_ms: 128.749595
+  type: 'test'
+  ...
+# Subtest: dod split: over-withholding fires an advisory on stderr, never a gate (exit 0)
+ok 147 - dod split: over-withholding fires an advisory on stderr, never a gate (exit 0)
+  ---
+  duration_ms: 40.104147
+  type: 'test'
+  ...
+# Subtest: dod split: ~~~holdout fences are recognised the same as ```holdout
+ok 148 - dod split: ~~~holdout fences are recognised the same as ```holdout
+  ---
+  duration_ms: 40.678104
+  type: 'test'
+  ...
+# Subtest: dod split: missing/unknown --view exits 2 with a usage line
+ok 149 - dod split: missing/unknown --view exits 2 with a usage line
+  ---
+  duration_ms: 81.937792
+  type: 'test'
+  ...
+# Subtest: dod split: an unreadable --spec path exits 2
+ok 150 - dod split: an unreadable --spec path exits 2
+  ---
+  duration_ms: 42.031978
+  type: 'test'
+  ...
+# Subtest: dod classify: an unreadable --spec path exits 2
+ok 151 - dod classify: an unreadable --spec path exits 2
+  ---
+  duration_ms: 37.450401
+  type: 'test'
+  ...
+# Subtest: dod: an unknown action prints usage naming both classify and split, exit 2
+ok 152 - dod: an unknown action prints usage naming both classify and split, exit 2
+  ---
+  duration_ms: 45.665055
+  type: 'test'
+  ...
+# Subtest: dod classify: every criterion carries an id <source>:<n>, numbered per source in classify order (FAFF-1259)
+ok 153 - dod classify: every criterion carries an id <source>:<n>, numbered per source in classify order (FAFF-1259)
+  ---
+  duration_ms: 47.706386
+  type: 'test'
+  ...
+# Subtest: dod classify (FAFF-1291): a prose DONE item is delegated to ac-checklist, a prose Scenarios unit stays running-stack, a rollback assertion is integration
+ok 154 - dod classify (FAFF-1291): a prose DONE item is delegated to ac-checklist, a prose Scenarios unit stays running-stack, a rollback assertion is integration
+  ---
+  duration_ms: 40.119772
+  type: 'test'
+  ...
+# Subtest: dod classify (FAFF-1291): an explicit integration fence on a prose DONE-adjacent unit still wins; an all-prose spec is not skipped
+ok 155 - dod classify (FAFF-1291): an explicit integration fence on a prose DONE-adjacent unit still wins; an all-prose spec is not skipped
+  ---
+  duration_ms: 82.66375
+  type: 'test'
+  ...
+# Subtest: dod classify (FAFF-1291): with --issue a delegated row carries the qualified ac_id
+ok 156 - dod classify (FAFF-1291): with --issue a delegated row carries the qualified ac_id
+  ---
+  duration_ms: 43.6726
+  type: 'test'
+  ...
+# error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+# fatal: failed to write commit object
+# Subtest: stage: ready-to-post, marker open with spec_sha256 and body_path, stamp and one tier line
+ok 157 - stage: ready-to-post, marker open with spec_sha256 and body_path, stamp and one tier line
+  ---
+  duration_ms: 70.462559
+  type: 'test'
+  ...
+# Subtest: stage: owner carries FAFF_SESSION_ID and FAFF_RUN_DIR when set
+ok 158 - stage: owner carries FAFF_SESSION_ID and FAFF_RUN_DIR when set
+  ---
+  duration_ms: 49.651132
+  type: 'test'
+  ...
+# Subtest: stage then confirm: attached with comment_id and attached_at; prepcheck reads attached
+ok 159 - stage then confirm: attached with comment_id and attached_at; prepcheck reads attached
+  ---
+  duration_ms: 121.435232
+  type: 'test'
+  ...
+# Subtest: stage twice: still one stamp and one build-tier line, marker reopened
+ok 160 - stage twice: still one stamp and one build-tier line, marker reopened
+  ---
+  duration_ms: 143.72249
+  type: 'test'
+  ...
+# Subtest: stage: a fenced > Spec: example is never touched
+ok 161 - stage: a fenced > Spec: example is never touched
+  ---
+  duration_ms: 51.703922
+  type: 'test'
+  ...
+# Subtest: stage: build-tier equals faff tier on the written file, across the spec_lines boundary
+ok 162 - stage: build-tier equals faff tier on the written file, across the spec_lines boundary
+  ---
+  duration_ms: 591.39085
+  type: 'test'
+  ...
+# Subtest: stage: --gate-history feeds the tier exactly as faff tier --gate-history does
+ok 163 - stage: --gate-history feeds the tier exactly as faff tier --gate-history does
+  ---
+  duration_ms: 68.012689
+  type: 'test'
+  ...
+# Subtest: stage: no H1 is invalid no-h1 and still leaves an open marker
+ok 164 - stage: no H1 is invalid no-h1 and still leaves an open marker
+  ---
+  duration_ms: 65.115234
+  type: 'test'
+  ...
+# Subtest: stage: an unreadable spec is errored and writes no marker
+ok 165 - stage: an unreadable spec is errored and writes no marker
+  ---
+  duration_ms: 42.899727
+  type: 'test'
+  ...
+# Subtest: stage: no readiness block is needs-judgement no-readiness-block; --extraction re-enters
+ok 166 - stage: no readiness block is needs-judgement no-readiness-block; --extraction re-enters
+  ---
+  duration_ms: 220.359248
+  type: 'test'
+  ...
+# Subtest: stage: readiness violations are invalid; two blocks or an unparseable block are errored
+ok 167 - stage: readiness violations are invalid; two blocks or an unparseable block are errored
+  ---
+  duration_ms: 222.085787
+  type: 'test'
+  ...
+# Subtest: stage: a missing or non-closed-set confidence line stamps unknown and is invalid
+ok 168 - stage: a missing or non-closed-set confidence line stamps unknown and is invalid
+  ---
+  duration_ms: 101.86572
+  type: 'test'
+  ...
+# Subtest: confirm: errored with no staged marker; exit 2 without --comment-id
+ok 169 - confirm: errored with no staged marker; exit 2 without --comment-id
+  ---
+  duration_ms: 80.23242
+  type: 'test'
+  ...
+# Subtest: confirm: an edit after stage is errored spec-changed-since-stage and leaves the marker open
+ok 170 - confirm: an edit after stage is errored spec-changed-since-stage and leaves the marker open
+  ---
+  duration_ms: 92.443318
+  type: 'test'
+  ...
+# Subtest: park: sets disposition parked, keeps a park sub-object, prepcheck reads parked
+ok 171 - park: sets disposition parked, keeps a park sub-object, prepcheck reads parked
+  ---
+  duration_ms: 111.953746
+  type: 'test'
+  ...
+# Subtest: park: no marker is errored no-staged-spec and writes no marker
+ok 172 - park: no marker is errored no-staged-spec and writes no marker
+  ---
+  duration_ms: 45.195848
+  type: 'test'
+  ...
+# Subtest: git-only: stage writes the store with the stamped bytes, no tracker tail, and closes the marker
+ok 173 - git-only: stage writes the store with the stamped bytes, no tracker tail, and closes the marker
+  ---
+  duration_ms: 53.703501
+  type: 'test'
+  ...
+# Subtest: git-only: a parked marker is needs-judgement git-only-marker-parked and left byte-identical
+ok 174 - git-only: a parked marker is needs-judgement git-only-marker-parked and left byte-identical
+  ---
+  duration_ms: 44.035642
+  type: 'test'
+  ...
+# Subtest: tracker mode: a parked marker is replaced, since the label is the park record there
+ok 175 - tracker mode: a parked marker is replaced, since the label is the park record there
+  ---
+  duration_ms: 49.423633
+  type: 'test'
+  ...
+# Subtest: usage: unknown flag, missing value, two modes, mode-only flags, bad --issue all exit 2 and write nothing
+ok 176 - usage: unknown flag, missing value, two modes, mode-only flags, bad --issue all exit 2 and write nothing
+  ---
+  duration_ms: 547.528375
+  type: 'test'
+  ...
+# Subtest: marker writes go through a temp file renamed into the marker's directory
+ok 177 - marker writes go through a temp file renamed into the marker's directory
+  ---
+  duration_ms: 8.136946
+  type: 'test'
+  ...
+# Subtest: smoke: stage, confirm, prepcheck, then faff spec commit records source_check match
+not ok 178 - smoke: stage, confirm, prepcheck, then faff spec commit records source_check match
+  ---
+  duration_ms: 13.250772
+  type: 'test'
+  location: '/var/tmp/faff-nlspec-format-medium-integration/test/prep-attach.test.mjs:340:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Command failed: git -C /var/tmp/faff-nlspec-format-tests-hyjiiiwn/faff-prep-attach-P6hQBM commit -qm init
+    error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    genericNodeError (node:internal/errors:983:15)
+    wrappedFn (node:internal/errors:537:14)
+    checkExecSyncError (node:child_process:916:11)
+    execFileSync (node:child_process:952:15)
+    fixture (file:///var/tmp/faff-nlspec-format-medium-integration/test/prep-attach.test.mjs:51:5)
+    TestContext.<anonymous> (file:///var/tmp/faff-nlspec-format-medium-integration/test/prep-attach.test.mjs:341:13)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+  ...
+# Subtest: FAFF-1443 scenario 1: three bold bullets are refused, three prose ids, one refused line
+ok 179 - FAFF-1443 scenario 1: three bold bullets are refused, three prose ids, one refused line
+  ---
+  duration_ms: 47.653969
+  type: 'test'
+  ...
+# Subtest: FAFF-1443 scenario 2: one fenced plain Given/When/Then block is admissible
+ok 180 - FAFF-1443 scenario 2: one fenced plain Given/When/Then block is admissible
+  ---
+  duration_ms: 45.521348
+  type: 'test'
+  ...
+# Subtest: FAFF-1443 scenario 3: a re-stage keeps exactly one line and the marker records the same object
+ok 181 - FAFF-1443 scenario 3: a re-stage keeps exactly one line and the marker records the same object
+  ---
+  duration_ms: 92.243568
+  type: 'test'
+  ...
+# Subtest: FAFF-1443 scenario 4: a plain block plus a bold bullet is admissible and names the prose unit
+ok 182 - FAFF-1443 scenario 4: a plain block plus a bold bullet is admissible and names the prose unit
+  ---
+  duration_ms: 45.625723
+  type: 'test'
+  ...
+# Subtest: FAFF-1443 scenario 5: a vague DONE item adds R2b to the line by id, never its text
+ok 183 - FAFF-1443 scenario 5: a vague DONE item adds R2b to the line by id, never its text
+  ---
+  duration_ms: 44.37039
+  type: 'test'
+  ...
+# Subtest: FAFF-1443 scenario 6: git-only autonomous attached carries the field and the store carries the line
+ok 184 - FAFF-1443 scenario 6: git-only autonomous attached carries the field and the store carries the line
+  ---
+  duration_ms: 47.043845
+  type: 'test'
+  ...
+# Subtest: FAFF-1443 scenario 7: invalid and needs-judgement results carry no admissibility key
+ok 185 - FAFF-1443 scenario 7: invalid and needs-judgement results carry no admissibility key
+  ---
+  duration_ms: 87.423659
+  type: 'test'
+  ...
+# Subtest: FAFF-1443: no Scenarios section reads (no Scenarios units); the line sits directly after build-tier
+ok 186 - FAFF-1443: no Scenarios section reads (no Scenarios units); the line sits directly after build-tier
+  ---
+  duration_ms: 44.333557
+  type: 'test'
+  ...
+# Subtest: FAFF-1443: spec_sha256 hashes the file bytes including the line; text mode prints its value
+ok 187 - FAFF-1443: spec_sha256 hashes the file bytes including the line; text mode prints its value
+  ---
+  duration_ms: 90.405112
+  type: 'test'
+  ...
+# Subtest: FAFF-1443: an admissibility line inside a fence is content and stays; a stale one outside is replaced
+ok 188 - FAFF-1443: an admissibility line inside a fence is content and stays; a stale one outside is replaced
+  ---
+  duration_ms: 53.302294
+  type: 'test'
+  ...
+# Subtest: FAFF-1443: a fault while classifying is admissible:false with the unknown line, and the token is unchanged
+ok 189 - FAFF-1443: a fault while classifying is admissible:false with the unknown line, and the token is unchanged
+  ---
+  duration_ms: 3.699286
+  type: 'test'
+  ...
+# Subtest: FAFF-1443: the key set and types hold on the success, refused and fault paths
+ok 190 - FAFF-1443: the key set and types hold on the success, refused and fault paths
+  ---
+  duration_ms: 0.849124
+  type: 'test'
+  ...
+# Subtest: FAFF-1443: the line is capped at 300 characters
+ok 191 - FAFF-1443: the line is capped at 300 characters
+  ---
+  duration_ms: 2.176955
+  type: 'test'
+  ...
+# Subtest: FAFF-1443: FAFF-1431's committed spec stages refused with eight prose Scenarios units
+ok 192 - FAFF-1443: FAFF-1431's committed spec stages refused with eight prose Scenarios units
+  ---
+  duration_ms: 65.453817
+  type: 'test'
+  ...
+# Subtest: FAFF-1443: away from a tier boundary, faff admissible and faff tier give the same result with and without the line
+ok 193 - FAFF-1443: away from a tier boundary, faff admissible and faff tier give the same result with and without the line
+  ---
+  duration_ms: 158.488592
+  type: 'test'
+  ...
+# ok   bare tag + crossref → eligible
+# ok   order-independent suffixes → identical markers
+# ok   tag without crossref → eligible false
+# ok   crossref without tag → eligible false
+# ok   no OUT OF SCOPE section → all blocking
+# ok   degenerate empty-slug topic never false-matches
+# ok   multiple mixed Punts
+# ok   canonical three-bullet item → sub-labels not emitted
+# ok   flat trailing-period item → one name key
+# ok   dash bullet → one blocking Punt
+# ok   star bullet → identical marker
+# ok   plus bullet → identical marker
+# ok   ordered dot → identical marker
+# ok   ordered paren → identical marker
+# ok   nested dash → identical marker
+# ok   nested ordered → identical marker
+# ok   ten-digit ordered marker → no Punt
+# ok   listed and eligible → non-blocking with crossref
+# ok   listed, tag order → identical markers
+# ok   the ticket repro → two listed untagged Punts block
+# ok   inline mention on a listed Chosen line → no Punt
+# ok   backticked token → no Punt
+# ok   listed Chosen marker → no Punt
+# ok   wrapped tags (the ticket repro) → identical to single-line
+# ok   wrapped topic: OUT OF SCOPE name split across the wrap → crossref and eligible
+# ok   three-line span → identical to single-line
+# ok   wrapped untagged Punt → still blocking
+# ok   wrapped tag without crossref → still blocking
+# ok   wrapped decides value: split `(decides:` still parses
+# ok   following paragraph after a blank line is not absorbed
+# ok   Chosen marker carrying the tag, no blank line → not absorbed
+# ok   two adjacent Punts, no blank line → two markers
+# ok   bare tag, topic and tag on the next line → one marker
+# ok   bare tag with nothing after → one blocking empty-topic marker
+# ok   CRLF wrapped Punt → identical to the LF form
+# ok   continuation starting with a hyphen-dash ends the logical line (known safe price)
+# ok   terminator: heading is not absorbed
+# ok   terminator: next Punt is not absorbed
+# ok   terminator: Chosen marker is not absorbed
+# ok   terminator: Decision marker is not absorbed
+# ok   terminator: Assumes marker is not absorbed
+# ok   terminator: indented Chosen marker is not absorbed
+# ok   terminator: bold-led label is not absorbed
+# ok   terminator: backtick fence is not absorbed
+# ok   terminator: tilde fence is not absorbed
+# ok   terminator: dash list item is not absorbed
+# ok   terminator: ordered list item is not absorbed
+# ok   terminator: block quote is not absorbed
+# ok   terminator: table row is not absorbed
+# ok   terminator: thematic break is not absorbed
+# ok   terminator: thematic break carrying the tag on its own line is not absorbed
+# ok   terminator: asterisk break carrying the tag on its own line is not absorbed
+# ok   terminator: spaced thematic break is not absorbed
+# ok   terminator: blank line then paragraph is not absorbed
+# ok   terminator: whitespace-only line then paragraph is not absorbed
+# ok   listed Punt wrapped, tags on line two → identical to the single-line form
+# ok   listed Punt followed by a listed Chosen carrying the tag → not absorbed
+# ok   two adjacent listed Punts → two markers
+# ok   bare tag + crossref → eligible
+# ok   order-independent suffixes → identical markers
+# ok   tag without crossref → eligible false
+# ok   crossref without tag → eligible false
+# ok   no OUT OF SCOPE section → all blocking
+# ok   degenerate empty-slug topic never false-matches
+# ok   multiple mixed Punts
+# ok   canonical three-bullet item → sub-labels not emitted
+# ok   flat trailing-period item → one name key
+# ok   dash bullet → one blocking Punt
+# ok   star bullet → identical marker
+# ok   plus bullet → identical marker
+# ok   ordered dot → identical marker
+# ok   ordered paren → identical marker
+# ok   nested dash → identical marker
+# ok   nested ordered → identical marker
+# ok   ten-digit ordered marker → no Punt
+# ok   listed and eligible → non-blocking with crossref
+# ok   listed, tag order → identical markers
+# ok   the ticket repro → two listed untagged Punts block
+# ok   inline mention on a listed Chosen line → no Punt
+# ok   backticked token → no Punt
+# ok   listed Chosen marker → no Punt
+# ok   wrapped tags (the ticket repro) → identical to single-line
+# ok   wrapped topic: OUT OF SCOPE name split across the wrap → crossref and eligible
+# ok   three-line span → identical to single-line
+# ok   wrapped untagged Punt → still blocking
+# ok   wrapped tag without crossref → still blocking
+# ok   wrapped decides value: split `(decides:` still parses
+# ok   following paragraph after a blank line is not absorbed
+# ok   Chosen marker carrying the tag, no blank line → not absorbed
+# ok   two adjacent Punts, no blank line → two markers
+# ok   bare tag, topic and tag on the next line → one marker
+# ok   bare tag with nothing after → one blocking empty-topic marker
+# ok   CRLF wrapped Punt → identical to the LF form
+# ok   continuation starting with a hyphen-dash ends the logical line (known safe price)
+# ok   terminator: heading is not absorbed
+# ok   terminator: next Punt is not absorbed
+# ok   terminator: Chosen marker is not absorbed
+# ok   terminator: Decision marker is not absorbed
+# ok   terminator: Assumes marker is not absorbed
+# ok   terminator: indented Chosen marker is not absorbed
+# ok   terminator: bold-led label is not absorbed
+# ok   terminator: backtick fence is not absorbed
+# ok   terminator: tilde fence is not absorbed
+# ok   terminator: dash list item is not absorbed
+# ok   terminator: ordered list item is not absorbed
+# ok   terminator: block quote is not absorbed
+# ok   terminator: table row is not absorbed
+# ok   terminator: thematic break is not absorbed
+# ok   terminator: thematic break carrying the tag on its own line is not absorbed
+# ok   terminator: asterisk break carrying the tag on its own line is not absorbed
+# ok   terminator: spaced thematic break is not absorbed
+# ok   terminator: blank line then paragraph is not absorbed
+# ok   terminator: whitespace-only line then paragraph is not absorbed
+# ok   listed Punt wrapped, tags on line two → identical to the single-line form
+# ok   listed Punt followed by a listed Chosen carrying the tag → not absorbed
+# ok   two adjacent listed Punts → two markers
+# RESULT: PASS (58 cases, 0 failed) — no tracker, no network, no system clock consulted
+# Subtest: punt-scan selftest table: every case passes
+ok 194 - punt-scan selftest table: every case passes
+  ---
+  duration_ms: 5.675575
+  type: 'test'
+  ...
+# Subtest: bare tag AND out-of-scope crossref → eligible
+ok 195 - bare tag AND out-of-scope crossref → eligible
+  ---
+  duration_ms: 0.138208
+  type: 'test'
+  ...
+# Subtest: the bare tag alone (no crossref) is not eligible
+ok 196 - the bare tag alone (no crossref) is not eligible
+  ---
+  duration_ms: 0.06725
+  type: 'test'
+  ...
+# Subtest: a crossref without the tag is not eligible
+ok 197 - a crossref without the tag is not eligible
+  ---
+  duration_ms: 0.062333
+  type: 'test'
+  ...
+# Subtest: (decides:)(non-blocking) and (non-blocking)(decides:) yield identical markers
+ok 198 - (decides:)(non-blocking) and (non-blocking)(decides:) yield identical markers
+  ---
+  duration_ms: 0.408791
+  type: 'test'
+  ...
+# Subtest: an unrecognised parenthetical is retained in the topic
+ok 199 - an unrecognised parenthetical is retained in the topic
+  ---
+  duration_ms: 0.058166
+  type: 'test'
+  ...
+# Subtest: no OUT OF SCOPE section → every Punt is blocking
+ok 200 - no OUT OF SCOPE section → every Punt is blocking
+  ---
+  duration_ms: 0.100834
+  type: 'test'
+  ...
+# Subtest: degenerate empty-slug topic never false-matches a crossref key
+ok 201 - degenerate empty-slug topic never false-matches a crossref key
+  ---
+  duration_ms: 0.0545
+  type: 'test'
+  ...
+# Subtest: mixed Punts: blocking_open_count counts only the non-eligible ones
+ok 202 - mixed Punts: blocking_open_count counts only the non-eligible ones
+  ---
+  duration_ms: 0.259208
+  type: 'test'
+  ...
+# Subtest: canonical three-bullet item emits only the name key, never the sub-labels
+ok 203 - canonical three-bullet item emits only the name key, never the sub-labels
+  ---
+  duration_ms: 0.317749
+  type: 'test'
+  ...
+# Subtest: flat trailing-period item emits exactly its one name key
+ok 204 - flat trailing-period item emits exactly its one name key
+  ---
+  duration_ms: 0.126458
+  type: 'test'
+  ...
+# Subtest: a section-numbered heading (\#\#\# 2. OUT OF SCOPE) is still located
+ok 205 - a section-numbered heading (\#\#\# 2. OUT OF SCOPE) is still located
+  ---
+  duration_ms: 0.050125
+  type: 'test'
+  ...
+# Subtest: slugTokenRunContains matches a contiguous token run, not a substring
+ok 206 - slugTokenRunContains matches a contiguous token run, not a substring
+  ---
+  duration_ms: 0.041583
+  type: 'test'
+  ...
+# Subtest: same spec bytes always produce the same PuntScanResult
+ok 207 - same spec bytes always produce the same PuntScanResult
+  ---
+  duration_ms: 0.051959
+  type: 'test'
+  ...
+# Subtest: CLI --selftest exits 0
+ok 208 - CLI --selftest exits 0
+  ---
+  duration_ms: 32.008743
+  type: 'test'
+  ...
+# Subtest: CLI emits PuntScanResult JSON on stdout for a spec file
+ok 209 - CLI emits PuntScanResult JSON on stdout for a spec file
+  ---
+  duration_ms: 19.374512
+  type: 'test'
+  ...
+# Subtest: CLI exits 2 on a missing/unreadable spec file
+ok 210 - CLI exits 2 on a missing/unreadable spec file
+  ---
+  duration_ms: 18.728305
+  type: 'test'
+  ...
+# Subtest: dash: a listed Punt equals its flush-left twin (**Punt:** repeat-park co…)
+ok 211 - dash: a listed Punt equals its flush-left twin (**Punt:** repeat-park co…)
+  ---
+  duration_ms: 0.143667
+  type: 'test'
+  ...
+# Subtest: dash: a listed Punt equals its flush-left twin (**Punt:** cron vs queue…)
+ok 212 - dash: a listed Punt equals its flush-left twin (**Punt:** cron vs queue…)
+  ---
+  duration_ms: 0.066917
+  type: 'test'
+  ...
+# Subtest: star: a listed Punt equals its flush-left twin (**Punt:** repeat-park co…)
+ok 213 - star: a listed Punt equals its flush-left twin (**Punt:** repeat-park co…)
+  ---
+  duration_ms: 0.119542
+  type: 'test'
+  ...
+# Subtest: star: a listed Punt equals its flush-left twin (**Punt:** cron vs queue…)
+ok 214 - star: a listed Punt equals its flush-left twin (**Punt:** cron vs queue…)
+  ---
+  duration_ms: 0.062166
+  type: 'test'
+  ...
+# Subtest: plus: a listed Punt equals its flush-left twin (**Punt:** repeat-park co…)
+ok 215 - plus: a listed Punt equals its flush-left twin (**Punt:** repeat-park co…)
+  ---
+  duration_ms: 0.053584
+  type: 'test'
+  ...
+# Subtest: plus: a listed Punt equals its flush-left twin (**Punt:** cron vs queue…)
+ok 216 - plus: a listed Punt equals its flush-left twin (**Punt:** cron vs queue…)
+  ---
+  duration_ms: 0.0465
+  type: 'test'
+  ...
+# Subtest: ordered dot: a listed Punt equals its flush-left twin (**Punt:** repeat-park co…)
+ok 217 - ordered dot: a listed Punt equals its flush-left twin (**Punt:** repeat-park co…)
+  ---
+  duration_ms: 0.048334
+  type: 'test'
+  ...
+# Subtest: ordered dot: a listed Punt equals its flush-left twin (**Punt:** cron vs queue…)
+ok 218 - ordered dot: a listed Punt equals its flush-left twin (**Punt:** cron vs queue…)
+  ---
+  duration_ms: 0.045708
+  type: 'test'
+  ...
+# Subtest: ordered paren: a listed Punt equals its flush-left twin (**Punt:** repeat-park co…)
+ok 219 - ordered paren: a listed Punt equals its flush-left twin (**Punt:** repeat-park co…)
+  ---
+  duration_ms: 0.048959
+  type: 'test'
+  ...
+# Subtest: ordered paren: a listed Punt equals its flush-left twin (**Punt:** cron vs queue…)
+ok 220 - ordered paren: a listed Punt equals its flush-left twin (**Punt:** cron vs queue…)
+  ---
+  duration_ms: 0.048459
+  type: 'test'
+  ...
+# Subtest: nested dash: a listed Punt equals its flush-left twin (**Punt:** repeat-park co…)
+ok 221 - nested dash: a listed Punt equals its flush-left twin (**Punt:** repeat-park co…)
+  ---
+  duration_ms: 0.048166
+  type: 'test'
+  ...
+# Subtest: nested dash: a listed Punt equals its flush-left twin (**Punt:** cron vs queue…)
+ok 222 - nested dash: a listed Punt equals its flush-left twin (**Punt:** cron vs queue…)
+  ---
+  duration_ms: 0.047083
+  type: 'test'
+  ...
+# Subtest: nested ordered: a listed Punt equals its flush-left twin (**Punt:** repeat-park co…)
+ok 223 - nested ordered: a listed Punt equals its flush-left twin (**Punt:** repeat-park co…)
+  ---
+  duration_ms: 0.143625
+  type: 'test'
+  ...
+# Subtest: nested ordered: a listed Punt equals its flush-left twin (**Punt:** cron vs queue…)
+ok 224 - nested ordered: a listed Punt equals its flush-left twin (**Punt:** cron vs queue…)
+  ---
+  duration_ms: 0.052625
+  type: 'test'
+  ...
+# Subtest: matchPuntStart returns the remainder without the prefix or the indentation
+ok 225 - matchPuntStart returns the remainder without the prefix or the indentation
+  ---
+  duration_ms: 0.061083
+  type: 'test'
+  ...
+# Subtest: matchPuntStart rejects non-Punt-start lines
+ok 226 - matchPuntStart rejects non-Punt-start lines
+  ---
+  duration_ms: 0.042875
+  type: 'test'
+  ...
+# Subtest: a listed Punt tagged non-blocking with an OUT OF SCOPE crossref is eligible
+ok 227 - a listed Punt tagged non-blocking with an OUT OF SCOPE crossref is eligible
+  ---
+  duration_ms: 0.04475
+  type: 'test'
+  ...
+# Subtest: CLI: two listed untagged Punts report blocking_open_count 2 (the ticket repro)
+ok 228 - CLI: two listed untagged Punts report blocking_open_count 2 (the ticket repro)
+  ---
+  duration_ms: 17.910806
+  type: 'test'
+  ...
+# Subtest: the ticket repro Punt wrapped at every space, with each separator, reads as the single-line form
+ok 229 - the ticket repro Punt wrapped at every space, with each separator, reads as the single-line form
+  ---
+  duration_ms: 0.524707
+  type: 'test'
+  ...
+# Subtest: the same property holds for a listed Punt and an indented listed Punt
+ok 230 - the same property holds for a listed Punt and an indented listed Punt
+  ---
+  duration_ms: 0.954123
+  type: 'test'
+  ...
+# Subtest: two wrapped Punts separated by a blank line stay two markers and the counts add up
+ok 231 - two wrapped Punts separated by a blank line stay two markers and the counts add up
+  ---
+  duration_ms: 0.054917
+  type: 'test'
+  ...
+# Subtest: punt-scan.js holds exactly one rule for what opens a list item
+ok 232 - punt-scan.js holds exactly one rule for what opens a list item
+  ---
+  duration_ms: 0.144624
+  type: 'test'
+  ...
+# Subtest: exports are unchanged in shape
+ok 233 - exports are unchanged in shape
+  ---
+  duration_ms: 0.0425
+  type: 'test'
+  ...
+# Subtest: CLI smoke: wrapping the repro Punt leaves the JSON byte-identical; a blank-separated paragraph tag is not absorbed
+ok 234 - CLI smoke: wrapping the repro Punt leaves the JSON byte-identical; a blank-separated paragraph tag is not absorbed
+  ---
+  duration_ms: 54.864166
+  type: 'test'
+  ...
+1..234
+# tests 234
+# suites 0
+# pass 233
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4836.772513

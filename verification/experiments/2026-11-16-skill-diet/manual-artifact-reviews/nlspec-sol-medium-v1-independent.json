@@ -1,0 +1,624 @@
+{
+  "schema": 1,
+  "reviewer": {
+    "role": "Independent read-only manual verifier",
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "method": "Full reads of all four actual baseline1 specs and fixture sources; original raw reports, replay criteria, pinned classifier and rejected native call inspected. No source edits, reruns or normalisation."
+  },
+  "status": "HOLD: failed baseline1; no candidate acceptance or continuation",
+  "reviewed_samples": 1,
+  "reviewed_artifacts": 4,
+  "unreviewed_planned_artifacts": 16,
+  "candidate_artifacts_reviewed": 0,
+  "bindings": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/nlspec-format-sol-medium-v1-registration.json",
+      "sha256": "9032ecf19f6592084710413cfce6f7c36aee4f358ec51a831a22de983703af3b",
+      "bytes": 4219
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/nlspec-format-sol-medium-v1-baseline-plan.json",
+      "sha256": "6fd453d58b608ed3a06e0763852f2e71c153fc29332bb1672b5af05183392079",
+      "bytes": 2481
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/nlspec-format-v1.json",
+      "sha256": "168cdf2176d61f598747dd15581e7dfc1dc08340c9d57f6028976f25ad1cb73a",
+      "bytes": 26295
+    },
+    {
+      "path": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+      "sha256": "af81549bd251bace400ebf5d976d65a15e9a9c258e83f318cbbc55fc034691af",
+      "bytes": 18819
+    },
+    {
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "sha256": "74545fd22fc8451da92bf1ea2f0686940faaa1183453c2402c617131882176e4",
+      "bytes": 11288
+    },
+    {
+      "path": "eval/control-parity/nlspec-replay.mjs",
+      "sha256": "d737b0c93427d98a698c7127a92c787f7f7ae9f47ce6fed453ca5b5687e0c26b",
+      "bytes": 7970
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/nlspec-format-sol-medium-v1-baseline-1/report.json",
+      "sha256": "c6a53d6363548704be6fb56029845dd698b4657428b23da5978b31d8493fbcda",
+      "bytes": 8242
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/nlspec-format-sol-medium-v1-baseline-1/capture.json",
+      "sha256": "72265a351b1545436e525118b152ced8b11f746c5221245c0e419585bf9a6cba",
+      "bytes": 41882
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/nlspec-format-sol-medium-v1-baseline-1/native-audit.json",
+      "sha256": "1f41b9c94ae693c8ef66ed86959dc1ea7a20a12c22bfbd9901e87401157ef8d9",
+      "bytes": 30970
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/nlspec-format-sol-medium-v1-baseline-1/consumer-replay/report.json",
+      "sha256": "292d8145021eebb82237802b79980b964b1a245e8dbdc53262fd8673da6b94e8",
+      "bytes": 116033
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/nlspec-format-sol-medium-v1-baseline-1/task.json",
+      "sha256": "0ddc4f08c734c6b9ab460989b758a6b6018d3ac4805859080d6fcf46aefb5dbd",
+      "bytes": 14485
+    }
+  ],
+  "counts": {
+    "raw_artifact_pass": 0,
+    "raw_artifact_total": 4,
+    "raw_decision_pass": 10,
+    "raw_decision_total": 10,
+    "consumer_combined_pass": 0,
+    "consumer_combined_total": 4,
+    "native_sample_pass": 0,
+    "native_sample_total": 1,
+    "manual_source_facts_and_decision_state_present": 4,
+    "manual_full_required_rule_pass": 0
+  },
+  "policy_delivery": {
+    "complete": true,
+    "bytes": 120316,
+    "sha256": "73ae4d3301da2e648c43b5ccc2693c4a8d9fd016ac82c53ba57397021588cb94"
+  },
+  "artifacts": [
+    {
+      "id": "mechanical",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/nlspec-format-sol-medium-v1-baseline-1/artifacts/mechanical.md",
+        "sha256": "20deb57da92d320311ee73badf28d54edca02c873970adb547a5ed56e397207e",
+        "bytes": 2699
+      },
+      "full_artifact_read": true,
+      "raw_artifact": {
+        "id": "mechanical",
+        "kind": "artifact",
+        "pass": false,
+        "problems": [
+          "missing-pattern:System[^\\n]*Language[^\\n]*Relevance"
+        ],
+        "rubric": {
+          "score": 1,
+          "checks": 3,
+          "passed": 3,
+          "vector": [
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      "consumer_status": "fail",
+      "consumer_problems": [
+        "artifact-rules",
+        "observable-scenarios",
+        "mechanical-no-forced-scenario"
+      ],
+      "consumer_evidence": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/nlspec-format-sol-medium-v1-baseline-1/consumer-replay/mechanical/replay.json",
+        "sha256": "6df066bda4cf8954f2928880a96749b6830654d8afd4f0898d7c6d0fc8cfba66",
+        "bytes": 6260
+      },
+      "criteria": [
+        {
+          "id": "scenarios:1",
+          "source": "scenarios",
+          "class": "prose",
+          "verifier": "holdout",
+          "holdout": false,
+          "text": "No behavioural scenario is required for this mechanical text-only objective."
+        },
+        {
+          "id": "done:1",
+          "source": "done",
+          "class": "prose",
+          "verifier": "ac-checklist",
+          "holdout": false,
+          "text": "`docs/help.md` starts with `# Command reference` and every byte following the original heading is unchanged."
+        },
+        {
+          "id": "done:2",
+          "source": "done",
+          "class": "prose",
+          "verifier": "ac-checklist",
+          "holdout": false,
+          "text": "The file-content assertion for the heading and unchanged remainder passes."
+        }
+      ],
+      "manual": {
+        "facts": [
+          "Exact replacement heading, unchanged remainder and final newline retained.",
+          "Mechanical objective, no API or command change, excluded command behaviour and src/cli.ts extension retained."
+        ],
+        "scenario_outcome": "FAIL: explanatory sentence under Scenarios is parsed as one prose scenario. Source permits omitting this section for a mechanical objective; it does not permit an unobservable Scenarios unit.",
+        "done_mapping": "Heading/remainder and file assertion have separate DONE items and smoke procedure.",
+        "markers": "high, chosen; no Punt or invented holdout.",
+        "manual_rule_status": "fail"
+      },
+      "shared_checks": {
+        "reference_context": "All system, language and relevance facts present; no literal column header. Raw pattern failure preserved.",
+        "review_record": "Completed supplied review explicitly attributed; zero findings and retained Punt state. No independent self-review execution claim.",
+        "omissions": "No applicable source requirement omitted except separately listed format/consumer findings. No external assumptions or unsupported backend selected.",
+        "rationale": "Supplied choice and reason retained; alternatives do not introduce a new selected policy.",
+        "final_contract": "One final spec-readiness block; confidence and decision markers match prose.",
+        "actions": "No claimed attach, filing, promotion, implemented fix or executed smoke test."
+      }
+    },
+    {
+      "id": "retry-and-privacy",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/nlspec-format-sol-medium-v1-baseline-1/artifacts/retry-and-privacy.md",
+        "sha256": "57765290372971bdc34bcd66a2cfa71ca453d956b093d52db7dcbe3b03765a8e",
+        "bytes": 5562
+      },
+      "full_artifact_read": true,
+      "raw_artifact": {
+        "id": "retry-and-privacy",
+        "kind": "artifact",
+        "pass": false,
+        "problems": [
+          "missing-pattern:System[^\\n]*Language[^\\n]*Relevance"
+        ],
+        "rubric": {
+          "score": 1,
+          "checks": 5,
+          "passed": 5,
+          "vector": [
+            true,
+            true,
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      "consumer_status": "fail",
+      "consumer_problems": [
+        "artifact-rules",
+        "observable-scenarios",
+        "repository-test-floor"
+      ],
+      "consumer_evidence": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/nlspec-format-sol-medium-v1-baseline-1/consumer-replay/retry-and-privacy/replay.json",
+        "sha256": "eeea02e49730715ae6dd06372c5b732590c37967f08f026e0db37895618beafb",
+        "bytes": 10499
+      },
+      "criteria": [
+        {
+          "id": "scenarios:1",
+          "source": "scenarios",
+          "class": "prose",
+          "verifier": "holdout",
+          "holdout": false,
+          "text": "### Immediate success"
+        },
+        {
+          "id": "scenarios:2",
+          "source": "scenarios",
+          "class": "scenario",
+          "verifier": "holdout",
+          "holdout": false,
+          "text": "Given importOnce succeeds on its first call with value V\nWhen the existing job runner calls runImport with payload P\nThen runImport returns the original value V\nAnd importOnce is called exactly once\nAnd no retry is logged"
+        },
+        {
+          "id": "scenarios:3",
+          "source": "scenarios",
+          "class": "prose",
+          "verifier": "holdout",
+          "holdout": false,
+          "text": "### Transient failure then success"
+        },
+        {
+          "id": "scenarios:4",
+          "source": "scenarios",
+          "class": "scenario",
+          "verifier": "holdout",
+          "holdout": false,
+          "text": "Given importOnce first raises ImportError with transient true and then succeeds with value V\nWhen the existing job runner calls runImport with payload P\nThen runImport returns the original value V after exactly two calls\nAnd the retry log contains attempt number 2 only"
+        },
+        {
+          "id": "scenarios:5",
+          "source": "scenarios",
+          "class": "prose",
+          "verifier": "holdout",
+          "holdout": false,
+          "text": "### Three transient failures"
+        },
+        {
+          "id": "scenarios:6",
+          "source": "scenarios",
+          "class": "scenario",
+          "verifier": "holdout",
+          "holdout": true,
+          "text": "Given the first three importOnce calls raise transient ImportError objects E1, E2 and E3\nWhen the existing job runner calls runImport with payload P\nThen runImport propagates the original error E3 after exactly three calls\nAnd no fourth call occurs\nAnd the retry logs contain attempt numbers 2 and 3 only"
+        },
+        {
+          "id": "scenarios:7",
+          "source": "scenarios",
+          "class": "assertion",
+          "verifier": "holdout",
+          "holdout": false,
+          "text": "**Log privacy:** Retry logs MUST NOT contain payloads; retry fields MUST contain only the attempt number."
+        },
+        {
+          "id": "done:1",
+          "source": "done",
+          "class": "prose",
+          "verifier": "ac-checklist",
+          "holdout": false,
+          "text": "Success returns the original successful value without further attempts."
+        },
+        {
+          "id": "done:2",
+          "source": "done",
+          "class": "prose",
+          "verifier": "ac-checklist",
+          "holdout": false,
+          "text": "Permanent errors propagate immediately as the original error object."
+        },
+        {
+          "id": "done:3",
+          "source": "done",
+          "class": "prose",
+          "verifier": "ac-checklist",
+          "holdout": false,
+          "text": "Only transient `ImportError` instances are retried, with at most three total calls."
+        },
+        {
+          "id": "done:4",
+          "source": "done",
+          "class": "prose",
+          "verifier": "ac-checklist",
+          "holdout": false,
+          "text": "The third transient failure propagates its original error object and no fourth call occurs."
+        },
+        {
+          "id": "done:5",
+          "source": "done",
+          "class": "prose",
+          "verifier": "ac-checklist",
+          "holdout": false,
+          "text": "Retry logs contain only attempt numbers and no payloads."
+        },
+        {
+          "id": "done:6",
+          "source": "done",
+          "class": "prose",
+          "verifier": "ac-checklist",
+          "holdout": false,
+          "text": "The existing runner calls the unchanged `runImport` interface; retries occur immediately without backoff."
+        },
+        {
+          "id": "done:7",
+          "source": "done",
+          "class": "prose",
+          "verifier": "ac-checklist",
+          "holdout": false,
+          "text": "`test/import-retry.test.ts` passes."
+        }
+      ],
+      "manual": {
+        "facts": [
+          "Maximum three total calls; only transient ImportError retries; original success/error identity preserved.",
+          "Existing runner/logger, immediate retries, no backoff and no payload logging retained.",
+          "All three requested behavioural scenarios are present, third withheld; log privacy assertion and body third-failure/no-fourth rule retained."
+        ],
+        "scenario_outcome": "FAIL consumer compatibility: three descriptive subsection headings become prose Scenarios units. Each fenced behavioural scenario itself has an observable Then; heading author did not assert these headings as extra tests.",
+        "done_mapping": "Semantic separation PASS: test/import-retry.test.ts passes is its own DONE item. Consumer routing FAIL: prose classification precedes code-surface matching and delegates this item to ac-checklist, not review-merge-floor. It is not absorbed into the Integration smoke subsection.",
+        "markers": "high, chosen; exact requested holdout selection retained.",
+        "invented_choices": "Upcoming attempt numbering 2 and 3 is an explicit implementation convention consistent with three calls and retry-attempt logging, not an invented external fact or architecture choice. No new backoff/logger/runner introduced.",
+        "manual_rule_status": "fail-consumer-compatibility"
+      },
+      "shared_checks": {
+        "reference_context": "All system, language and relevance facts present; no literal column header. Raw pattern failure preserved.",
+        "review_record": "Completed supplied review explicitly attributed; zero findings and retained Punt state. No independent self-review execution claim.",
+        "omissions": "No applicable source requirement omitted except separately listed format/consumer findings. No external assumptions or unsupported backend selected.",
+        "rationale": "Supplied choice and reason retained; alternatives do not introduce a new selected policy.",
+        "final_contract": "One final spec-readiness block; confidence and decision markers match prose.",
+        "actions": "No claimed attach, filing, promotion, implemented fix or executed smoke test."
+      }
+    },
+    {
+      "id": "blocking-punt",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/nlspec-format-sol-medium-v1-baseline-1/artifacts/blocking-punt.md",
+        "sha256": "7f90cca2e95a16652bb014a5984d44f02d3b444fa7ef6382c451a24fed85e59a",
+        "bytes": 4698
+      },
+      "full_artifact_read": true,
+      "raw_artifact": {
+        "id": "blocking-punt",
+        "kind": "artifact",
+        "pass": false,
+        "problems": [
+          "missing-pattern:System[^\\n]*Language[^\\n]*Relevance"
+        ],
+        "rubric": {
+          "score": 1,
+          "checks": 4,
+          "passed": 4,
+          "vector": [
+            true,
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      "consumer_status": "fail",
+      "consumer_problems": [
+        "artifact-rules",
+        "observable-scenarios"
+      ],
+      "consumer_evidence": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/nlspec-format-sol-medium-v1-baseline-1/consumer-replay/blocking-punt/replay.json",
+        "sha256": "7fb7654badc1d8c3b843536ae88db6f0467bfe38c81eab65ed751508cbebd9c8",
+        "bytes": 8100
+      },
+      "criteria": [
+        {
+          "id": "scenarios:1",
+          "source": "scenarios",
+          "class": "scenario",
+          "verifier": "holdout",
+          "holdout": false,
+          "text": "Given put has successfully accepted a token with identifier I\nWhen the process restarts and get(I) is called against the same durable storage\nThen get(I) returns the stored token"
+        },
+        {
+          "id": "scenarios:2",
+          "source": "scenarios",
+          "class": "prose",
+          "verifier": "holdout",
+          "holdout": false,
+          "text": "Absent-token lookup is a simple interface condition checked in DONE."
+        },
+        {
+          "id": "done:1",
+          "source": "done",
+          "class": "prose",
+          "verifier": "ac-checklist",
+          "holdout": false,
+          "text": "A token accepted by a successful `put` is returned by `get(id)` after process restart against the same durable storage."
+        },
+        {
+          "id": "done:2",
+          "source": "done",
+          "class": "prose",
+          "verifier": "ac-checklist",
+          "holdout": false,
+          "text": "`get(id)` returns the stored token for a present identifier."
+        },
+        {
+          "id": "done:3",
+          "source": "done",
+          "class": "prose",
+          "verifier": "ac-checklist",
+          "holdout": false,
+          "text": "`get(id)` returns null for an absent identifier."
+        },
+        {
+          "id": "done:4",
+          "source": "done",
+          "class": "prose",
+          "verifier": "ac-checklist",
+          "holdout": false,
+          "text": "The `TokenStore` interface retains the supplied `put` and `get` signatures."
+        },
+        {
+          "id": "done:5",
+          "source": "done",
+          "class": "prose",
+          "verifier": "ac-checklist",
+          "holdout": false,
+          "text": "Successful `put` completion corresponds to durable acceptance in the backend selected by architecture."
+        }
+      ],
+      "manual": {
+        "facts": [
+          "Persistence across restart, stored-token-or-null lookup and original interface retained.",
+          "Neither SQLite nor PostgreSQL is chosen. Architecture-owned blocking Punt retained; confidence medium.",
+          "Token expiry exclusion and extension point retained."
+        ],
+        "scenario_outcome": "FAIL: prose about absent-token lookup inside Scenarios is parsed as a second, unobservable unit. The restart GWT is observable.",
+        "done_mapping": "Persistence, lookup present/absent, unchanged interface and durable acceptance have DONE coverage.",
+        "markers": "medium, chosen+punt; scanner keeps one blocking Punt and zero eligible.",
+        "manual_rule_status": "fail"
+      },
+      "shared_checks": {
+        "reference_context": "All system, language and relevance facts present; no literal column header. Raw pattern failure preserved.",
+        "review_record": "Completed supplied review explicitly attributed; zero findings and retained Punt state. No independent self-review execution claim.",
+        "omissions": "No applicable source requirement omitted except separately listed format/consumer findings. No external assumptions or unsupported backend selected.",
+        "rationale": "Supplied choice and reason retained; alternatives do not introduce a new selected policy.",
+        "final_contract": "One final spec-readiness block; confidence and decision markers match prose.",
+        "actions": "No claimed attach, filing, promotion, implemented fix or executed smoke test."
+      }
+    },
+    {
+      "id": "deferred-punt",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/nlspec-format-sol-medium-v1-baseline-1/artifacts/deferred-punt.md",
+        "sha256": "471990ed59cda2743ed053e37e43f1832a851af3ef78d353f303b7cc8ee59229",
+        "bytes": 4543
+      },
+      "full_artifact_read": true,
+      "raw_artifact": {
+        "id": "deferred-punt",
+        "kind": "artifact",
+        "pass": false,
+        "problems": [
+          "missing-pattern:System[^\\n]*Language[^\\n]*Relevance"
+        ],
+        "rubric": {
+          "score": 1,
+          "checks": 4,
+          "passed": 4,
+          "vector": [
+            true,
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      "consumer_status": "fail",
+      "consumer_problems": [
+        "artifact-rules"
+      ],
+      "consumer_evidence": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/nlspec-format-sol-medium-v1-baseline-1/consumer-replay/deferred-punt/replay.json",
+        "sha256": "367f2f95259b2da72aee2979c234e3db381cd7039cf8ef09cf0d13c57744cb92",
+        "bytes": 7355
+      },
+      "criteria": [
+        {
+          "id": "scenarios:1",
+          "source": "scenarios",
+          "class": "scenario",
+          "verifier": "holdout",
+          "holdout": false,
+          "text": "Given an array containing exactly 1000 rows\nWhen validateImport is called\nThen it returns valid true\nAnd the array and its rows remain unchanged\nAnd no rows are imported"
+        },
+        {
+          "id": "scenarios:2",
+          "source": "scenarios",
+          "class": "scenario",
+          "verifier": "holdout",
+          "holdout": false,
+          "text": "Given an array containing 1001 rows\nWhen validateImport is called\nThen it returns valid false and error row-limit\nAnd the array and its rows remain unchanged\nAnd no rows are imported"
+        },
+        {
+          "id": "done:1",
+          "source": "done",
+          "class": "prose",
+          "verifier": "ac-checklist",
+          "holdout": false,
+          "text": "Arrays with 0 through 1000 rows return `{valid:true}`."
+        },
+        {
+          "id": "done:2",
+          "source": "done",
+          "class": "prose",
+          "verifier": "ac-checklist",
+          "holdout": false,
+          "text": "Arrays with more than 1000 rows return `{valid:false,error:'row-limit'}`."
+        },
+        {
+          "id": "done:3",
+          "source": "done",
+          "class": "prose",
+          "verifier": "ac-checklist",
+          "holdout": false,
+          "text": "Results preserve the existing `{valid:boolean,error?:string}` return shape."
+        },
+        {
+          "id": "done:4",
+          "source": "done",
+          "class": "prose",
+          "verifier": "ac-checklist",
+          "holdout": false,
+          "text": "Both acceptance and rejection paths leave the array and its rows unchanged and perform no import work."
+        }
+      ],
+      "manual": {
+        "facts": [
+          "Accept 0 through 1000 rows; reject above1000 with row-limit; preserve return shape.",
+          "No imports/input mutation; length checked first.",
+          "Latency dashboard excluded with matching non-blocking product Punt and src/metrics.ts extension."
+        ],
+        "scenario_outcome": "PASS: two observable behavioural units; no holdout invented.",
+        "done_mapping": "Bounds, exact rejection, shape and no side effects have DONE coverage.",
+        "markers": "high, chosen+punt; eligible dashboard Punt excluded from confidence count.",
+        "format_omission": "ValidationResult RECORD fields have no mutability annotation although source Type definitions says mark mutability. Input nonmutation is stated; returned record field mutability is not. Do not infer readonly or frozen fields.",
+        "manual_rule_status": "fail-format-mutation-annotation"
+      },
+      "shared_checks": {
+        "reference_context": "All system, language and relevance facts present; no literal column header. Raw pattern failure preserved.",
+        "review_record": "Completed supplied review explicitly attributed; zero findings and retained Punt state. No independent self-review execution claim.",
+        "omissions": "No applicable source requirement omitted except separately listed format/consumer findings. No external assumptions or unsupported backend selected.",
+        "rationale": "Supplied choice and reason retained; alternatives do not introduce a new selected policy.",
+        "final_contract": "One final spec-readiness block; confidence and decision markers match prose.",
+        "actions": "No claimed attach, filing, promotion, implemented fix or executed smoke test."
+      }
+    }
+  ],
+  "shared_ambiguities": [
+    {
+      "id": "reference-context-header",
+      "classification": "Oracle shape restriction plus overlapping presentation instructions, not missing source facts.",
+      "evidence": "NLSpec requires a brief System/Language/Relevance table. Rendering applies to tracker descriptions and replaces wide tables with Key:value row blocks. Actual specs preserve all three facts in prose/lists but omit both literal table header and exact replacement row labels.",
+      "assessment": "Raw header failures remain. A semantic fact assessment could distinguish these from missing context, but must not be represented as a frozen raw pass or full rendering compliance."
+    },
+    {
+      "id": "scenario-heading-unit",
+      "classification": "Real pinned parser compatibility failure; presentational heading ambiguity in retry.",
+      "evidence": "Scenarios parser produces prose units for retry H3 labels, mechanical explanatory sentence and blocking explanatory sentence. Source explicitly prohibits unobservable Scenarios units.",
+      "assessment": "Mechanical and blocking prose violate the stated unit rule. Retry headings are ordinary navigation for valid GWT units but real downstream routing still fails. No silent parser correction permitted."
+    },
+    {
+      "id": "repository-test-wording",
+      "classification": "Semantic source compliance with real routing failure.",
+      "evidence": "Pinned admissibility.js resolveVerificationTier checks prose DONE before codeSurfaceSignal. Test-file item is classified prose, so delegated/ac-checklist wins despite its own separate checklist line.",
+      "assessment": "Do not call this combined behaviour/test item, missing test item or smoke-subsection absorption. Frozen consumer expectation remains failed."
+    }
+  ],
+  "native": {
+    "status": "fail",
+    "model_ids": [
+      "gpt-6.1-sol"
+    ],
+    "efforts": [
+      "medium"
+    ],
+    "session_id": "01a1e667-fa8d-7361-bdd4-026ba969c221",
+    "rollout_sha256": "72715ab346f4a79d257a46ab5bc1433d86ee511713b898930053c86272dbc147",
+    "matches_audit_source": true,
+    "rejected_call": {
+      "id": "call_1207f9dfd99d45059065b68edea279d3",
+      "name": "exec",
+      "input_sha256": "89f68b1cbdf7e3a68b3cd8d60b847cf509182ee8bf272a49834076245d0b975d",
+      "allowed": false,
+      "result_seen": true,
+      "transport": "one-literal-exec-command-through-exec",
+      "command_sha256": "6465bd501c0dc5a94b52ccd47e987b40c9e5c5c408440d6780b4e881d9b7fe15",
+      "command_bytes": 3141,
+      "background": false,
+      "port": "write_output",
+      "problem": "heredoc-is-not-json",
+      "result_sha256": "31489d338b4226b1ea1873c094dd997fe3995d28da12f41cea99fca3a6edd833",
+      "is_error": true
+    },
+    "independent_finding": "Initial mechanical write_output heredoc contains invalid JSON around quoted pseudocode text. Actual mailbox-call JSON.parse error at position1207, line1 column1208, process exit1. Later successful writes do not erase this rejected native call. Bridge report has zero rejected mailbox requests because this malformed request fails before reaching bridge.",
+    "limits": "Native failure is transport compliance, separately retained from final artifact semantics and consumer replay."
+  },
+  "limits": [
+    "Only completed baseline1 reviewed. Baseline2-5 and all candidates are not reviewed.",
+    "Real consumer replay checks classification, Punt state, contracts and attachment only; it does not implement these specs or execute smoke tests.",
+    "Review record is supplied completed input; no actual self-review execution, backend selection, code implementation or live tracker operation was measured.",
+    "Passing integration tests do not waive this baseline or justify candidate continuation.",
+    "No frozen input or output was edited; no rerun or alternate assessment was used to manufacture a pass."
+  ]
+}

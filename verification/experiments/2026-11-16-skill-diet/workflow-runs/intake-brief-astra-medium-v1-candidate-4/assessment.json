@@ -1,0 +1,238 @@
+{
+  "schema": 1,
+  "correction_kind": "intake-explicit-open-questions",
+  "name": "intake-brief-astra-medium-v1-candidate-4",
+  "status": "pass",
+  "original_status": "pass",
+  "original_cases_passed": 18,
+  "report_sha256": "be4fb5613f9984bc7eb54d21b5a0322a5ce995498e8638aab8d04fc947116d80",
+  "capture_sha256": "745e17f3bb3be8c366947c5025862ada1ef7b80a681cd69c687032b15095320b",
+  "grader_sha256": "88b5bbff037cd5d9daff8d1094df3b885c01a34ce7902af47cc1354283cddc36",
+  "assessor_sha256": "af182da815def8ca4e941ab30ce435abcd50b375d82b010ed0dfcde004748d30",
+  "fixture_sha256": "d64ac66570717a333c6a7350d947a035d3a5f0372d028003092cc0c304ea91d3",
+  "correction_sha256": "db3f16a8895ef6b4ed94f1d95e45faaab26969338ad7b09c5f41f8c5e981f69d",
+  "qualification_limit": "Lexical assessment only. Independent manual source/invention review and native certification are mandatory; these questions cannot exclude contradictory invented choices elsewhere.",
+  "normalisations": [],
+  "grade": {
+    "status": "pass",
+    "cases": [
+      {
+        "id": "greenfield-complete",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 4,
+          "passed": 4,
+          "vector": [
+            true,
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "greenfield-thin",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 3,
+          "passed": 3,
+          "vector": [
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "single-bug",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 3,
+          "passed": 3,
+          "vector": [
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "single-split",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 3,
+          "passed": 3,
+          "vector": [
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "minor-ambiguity",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 3,
+          "passed": 3,
+          "vector": [
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "greenfield-repo-signal",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 3,
+          "passed": 3,
+          "vector": [
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "mode-owner",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "owner": "faff-jot"
+        }
+      },
+      {
+        "id": "ticket-owner",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "slot": "methodology",
+          "producer_creates_tickets": false
+        }
+      },
+      {
+        "id": "open-questions",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "block": false,
+          "carry_forward": true
+        }
+      },
+      {
+        "id": "required",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "sections": [
+            "Goal",
+            "Constraints",
+            "Out of scope"
+          ]
+        }
+      },
+      {
+        "id": "exclusive",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "both": false,
+          "required": "Item"
+        }
+      },
+      {
+        "id": "empty",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "omit": true
+        }
+      },
+      {
+        "id": "invented-goals",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "allowed": false
+        }
+      },
+      {
+        "id": "appetite",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "levels": [
+            "low",
+            "medium"
+          ]
+        }
+      },
+      {
+        "id": "minor",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "section": "Open questions"
+        }
+      },
+      {
+        "id": "split",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "force_split": false,
+          "flag_for_methodology": true
+        }
+      },
+      {
+        "id": "codes",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "use_codes": false
+        }
+      },
+      {
+        "id": "implementation",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "skill": "faff-prep"
+        }
+      }
+    ],
+    "errors": []
+  }
+}

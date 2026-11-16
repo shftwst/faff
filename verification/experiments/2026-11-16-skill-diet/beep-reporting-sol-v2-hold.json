@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "accepted": false,
+  "status": "held-baseline-failure",
+  "sample": "beep-reporting-sol-v2-baseline-5",
+  "reasons": [
+    "All30functional/manualcases pass, but strictnativepasses4/5.",
+    "Baseline5read_policyoffset216000 omits /workspace/shftwst from the fixed directory and receives ENOENT exit1.",
+    "Full native metadata survives; this is a real command path error, not an audit wrapper incompatibility."
+  ],
+  "bindings": [
+    {
+      "path": "manual-artifact-reviews/beep-reporting-sol-v2-independent.json",
+      "sha256": "69adda34c3f13b93500f77e5535e3930022f2c7bd0685002b458fba3f3559fe6"
+    },
+    {
+      "path": "workflow-runs/beep-reporting-sol-v2-baseline-5/report.json",
+      "sha256": "266fd96422640b2b78f5925b3155cdecaee7a042c7342bb4efe9995f039dfeb2"
+    },
+    {
+      "path": "workflow-runs/beep-reporting-sol-v2-baseline-5/native-audit.json",
+      "sha256": "22beee2722582c92d7ca03ee6a55e05aea7bfec21f531d208ebe5d241e9ab938"
+    },
+    {
+      "path": "workflow-runs/beep-reporting-sol-v2-baseline-5/capture.json",
+      "sha256": "c8b89c32b5df371b2fae6456deb18ebf6a78e299dbfe0c11637658f889b2cc51"
+    }
+  ],
+  "candidate_measured": false,
+  "source_changed": false,
+  "savings_counted": false,
+  "rule": "Preserve failed samples. No unchanged sample replacement or relaxation of the frozen acceptance gate."
+}

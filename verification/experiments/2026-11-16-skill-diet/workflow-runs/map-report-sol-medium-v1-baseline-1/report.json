@@ -1,0 +1,420 @@
+{
+  "status": "fail",
+  "bridge": {
+    "stop": null,
+    "requests": 51,
+    "rejected": 0
+  },
+  "policy_delivery": {
+    "bytes": 191250,
+    "utf16_characters": 189116,
+    "sha256": "9dd5bf205243f546cad7f02ac39bc4673b3a4ab2d840d5041665c10c2be17722",
+    "chunk_limit": 6000,
+    "complete": true,
+    "reads": [
+      {
+        "offset": 0,
+        "end": 6000,
+        "characters": 6000,
+        "bytes": 6066,
+        "sha256": "547635f9b314cb8db951b14d75aab4418e8f33cb3d684e85e0d8c0b754a9ccea"
+      },
+      {
+        "offset": 6000,
+        "end": 12000,
+        "characters": 6000,
+        "bytes": 6064,
+        "sha256": "4ec7af11494c16edb44f2cbcea113ef73ee771f0ecbaad8aaa9ae02d5847a2eb"
+      },
+      {
+        "offset": 12000,
+        "end": 18000,
+        "characters": 6000,
+        "bytes": 6044,
+        "sha256": "29120cb0371256437b3552133419eb94fc2fd48ff6cf55c10646725bc64ffb93"
+      },
+      {
+        "offset": 18000,
+        "end": 24000,
+        "characters": 6000,
+        "bytes": 6032,
+        "sha256": "0f56169ddfeb63608f06d177cc6a6c5b33233f2f95473f1a813a87c652e315fe"
+      },
+      {
+        "offset": 24000,
+        "end": 30000,
+        "characters": 6000,
+        "bytes": 6050,
+        "sha256": "f420e5781c6a45b49e457ced62c9db26e31aa02c8036c9001b524738c03ace9b"
+      },
+      {
+        "offset": 30000,
+        "end": 36000,
+        "characters": 6000,
+        "bytes": 6044,
+        "sha256": "fa019acb39a2b6372ea684a173048b6189b2c88ca5e8f2e27c2fdcf30194af08"
+      },
+      {
+        "offset": 36000,
+        "end": 42000,
+        "characters": 6000,
+        "bytes": 6038,
+        "sha256": "3cfd9ea1b01a7359ced78cb4625a2e865c6256910f4451b8811826771cf957fd"
+      },
+      {
+        "offset": 42000,
+        "end": 48000,
+        "characters": 6000,
+        "bytes": 6045,
+        "sha256": "daa193a7f15a1904f4ed681aa051e3bd4a2b33da52cfa0622276c04c492ab50b"
+      },
+      {
+        "offset": 48000,
+        "end": 54000,
+        "characters": 6000,
+        "bytes": 6050,
+        "sha256": "228e0f419d37d36a020c3789e1f7717771d531225306505963b1f7c945f55dac"
+      },
+      {
+        "offset": 54000,
+        "end": 60000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "ad2c18aab360f2f12fc1e8b3bc87e44f80c208a058aad1b2f30586ab6fb76d9d"
+      },
+      {
+        "offset": 60000,
+        "end": 66000,
+        "characters": 6000,
+        "bytes": 6060,
+        "sha256": "69cd537017f50fdaa5918eee5c5827638bff46b3a1027abbb36a34faeddea1bc"
+      },
+      {
+        "offset": 66000,
+        "end": 72000,
+        "characters": 6000,
+        "bytes": 6053,
+        "sha256": "0d44087dab5f34a9c8b35106b0f67756f7a76019873f655b61119f9726e4e0d1"
+      },
+      {
+        "offset": 72000,
+        "end": 78000,
+        "characters": 6000,
+        "bytes": 6046,
+        "sha256": "98d22f4688fe135f0484f8f0fec3a52e77755f5f10a81b2e96d54d58570ca74e"
+      },
+      {
+        "offset": 78000,
+        "end": 84000,
+        "characters": 6000,
+        "bytes": 6064,
+        "sha256": "713f6f33ac2eaffc155bc0afe73ff58f773c3a16af22b61d9704324109d2853b"
+      },
+      {
+        "offset": 84000,
+        "end": 90000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "0f07736bdfbbe4574f688f07df7d26adf1883045dbb072bdddd85cfb643b5e6b"
+      },
+      {
+        "offset": 90000,
+        "end": 96000,
+        "characters": 6000,
+        "bytes": 6057,
+        "sha256": "9a998310255a0e052645d798b6bd221a22c676390c257ee03e9ae7c93587f454"
+      },
+      {
+        "offset": 96000,
+        "end": 102000,
+        "characters": 6000,
+        "bytes": 6042,
+        "sha256": "e543ff5575d3463273748ed18f6fa8f5594b819460ae0c87bce83b288ae1dd39"
+      },
+      {
+        "offset": 102000,
+        "end": 108000,
+        "characters": 6000,
+        "bytes": 6056,
+        "sha256": "30e12336d4031dcdb95ff60a13f9c00444d6e1599a5b66d424107ddd548db9aa"
+      },
+      {
+        "offset": 108000,
+        "end": 114000,
+        "characters": 6000,
+        "bytes": 6071,
+        "sha256": "a86f91b237ba12ad99f62bb789fce45636435cb50c4cdd753a9cd0461f5acf6b"
+      },
+      {
+        "offset": 114000,
+        "end": 120000,
+        "characters": 6000,
+        "bytes": 6053,
+        "sha256": "e83ddf5269d098c285fda870680ac09dd496386570a27f12d44f7c2ce0b86dc1"
+      },
+      {
+        "offset": 120000,
+        "end": 126000,
+        "characters": 6000,
+        "bytes": 6048,
+        "sha256": "d4e7b78f034684a66e3c5c5a7354fade998981bb43446eafc98ef64524b07b7e"
+      },
+      {
+        "offset": 126000,
+        "end": 132000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "8502ef38e503215f83a7d47b9aebb8ad59f0f6a874476bf86e8f8cc777289f26"
+      },
+      {
+        "offset": 132000,
+        "end": 138000,
+        "characters": 6000,
+        "bytes": 6074,
+        "sha256": "eb183a87bfeec52592567ed1f3fd48089d25652a53150d1a977763926b38f129"
+      },
+      {
+        "offset": 138000,
+        "end": 144000,
+        "characters": 6000,
+        "bytes": 6076,
+        "sha256": "fa7fc383c85eb08a536941bbc120e6020dff8ce3d06e9744295335ae0d38b996"
+      },
+      {
+        "offset": 144000,
+        "end": 150000,
+        "characters": 6000,
+        "bytes": 6052,
+        "sha256": "1e9f44f8b8a2602b3d0c617e8ee7b8b082a1c7072da7202fa04669db11dba061"
+      },
+      {
+        "offset": 150000,
+        "end": 156000,
+        "characters": 6000,
+        "bytes": 6024,
+        "sha256": "6db7d23d119b6ab1de34786f6b6a1017abf7c6a634b2fb4e26dbccec684733a9"
+      },
+      {
+        "offset": 156000,
+        "end": 162000,
+        "characters": 6000,
+        "bytes": 6088,
+        "sha256": "a3fbce0dd02d7877a4099388e353e759de6dad183e1ccc21221f4178c4b9b341"
+      },
+      {
+        "offset": 162000,
+        "end": 168000,
+        "characters": 6000,
+        "bytes": 6122,
+        "sha256": "13e33a8410d1768b6f59e673764557205173b24cac608ba27973b81126f034eb"
+      },
+      {
+        "offset": 168000,
+        "end": 174000,
+        "characters": 6000,
+        "bytes": 6060,
+        "sha256": "dbbaa3df8f572281d59336c1fe16eb88ce4c71c9619667e46e2792d43d42fb78"
+      },
+      {
+        "offset": 174000,
+        "end": 180000,
+        "characters": 6000,
+        "bytes": 6446,
+        "sha256": "7210d4a91e9f0966281e51c3cd66369a998c2fb32fc586f7770b169d36517868"
+      },
+      {
+        "offset": 180000,
+        "end": 186000,
+        "characters": 6000,
+        "bytes": 6031,
+        "sha256": "26edeedb580cb602ce5248c891b84963bc697ad40dc4390f88dfe7dcf49de110"
+      },
+      {
+        "offset": 186000,
+        "end": 189116,
+        "characters": 3116,
+        "bytes": 3132,
+        "sha256": "37c0b48105b87d46e69097d1794cc69829e0c3cc1081c7ce8b716114bd7e61fb"
+      }
+    ],
+    "errors": []
+  },
+  "grade": {
+    "status": "fail",
+    "cases": [
+      {
+        "id": "coherent",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 1,
+          "passed": 1,
+          "vector": [
+            true
+          ]
+        }
+      },
+      {
+        "id": "cycle-on-chain",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 1,
+          "passed": 1,
+          "vector": [
+            true
+          ]
+        }
+      },
+      {
+        "id": "cycle-off-chain",
+        "kind": "artifact",
+        "pass": false,
+        "problems": [
+          "missing-pattern:remove|cut|break"
+        ],
+        "rubric": {
+          "score": 1,
+          "checks": 1,
+          "passed": 1,
+          "vector": [
+            true
+          ]
+        }
+      },
+      {
+        "id": "ghost-next",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 1,
+          "passed": 1,
+          "vector": [
+            true
+          ]
+        }
+      },
+      {
+        "id": "stalled-and-parallel",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 1,
+          "passed": 1,
+          "vector": [
+            true
+          ]
+        }
+      },
+      {
+        "id": "cross-initiative-and-park",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 1,
+          "passed": 1,
+          "vector": [
+            true
+          ]
+        }
+      },
+      {
+        "id": "ordering",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "methodology"
+      },
+      {
+        "id": "horizon-preserve",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "cycle-floor",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "off-chain-cycle",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": true
+      },
+      {
+        "id": "satisfied-edge",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "future-time",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "project-count",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "cross-initiative",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "later-collapse",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "status-write",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "no-risk",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": true
+      },
+      {
+        "id": "fresh-scope",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": true
+      }
+    ],
+    "errors": []
+  },
+  "scope": "Actual roadmap report generation from completed caller snapshots and methodology outputs. No live tracker acquisition, dispatch, tracker writes or full entry invocation. Only phases 2-8 and presentation explanations may be shortened; configuration, live-acquisition phase, chaining and autonomous rules remain verbatim.",
+  "accounting": "unmetered"
+}

@@ -1,0 +1,186 @@
+{
+  "schema": 1,
+  "status": "held-baseline-source-format-and-gate-policy-failures",
+  "updated_utc": "2026-11-16T21:54:21.330563+00:00",
+  "reviewer": {
+    "role": "independent actual roadmap artifact verifier",
+    "requested_model": "gpt-6.1-sol",
+    "requested_reasoning_effort": "medium"
+  },
+  "scope": "Fresh Sol-medium baseline1 only. All6actual reports fully read against unchanged baseline/map-report.md and fixture source snapshots. Earlier Astra outputs excluded. No candidate review or full caller claim.",
+  "bindings": [
+    {
+      "path": "map-report-sol-medium-v1-registration.json",
+      "sha256": "83b801668558d4a42fd5d49ffcf472b24bef27d8f63b1a1692a8f518f49571fa"
+    },
+    {
+      "path": "baseline/map-report.md",
+      "sha256": "55e5aa388261b226e011f45d16d3b88d6e61a9e9bba0f1831b2cfdf57ce308c6"
+    },
+    {
+      "path": "workflow-fixtures/map-report.json",
+      "sha256": "eb0cf02d6e14426a696f4374adde6367fead38048881e56af7a466913acf9777"
+    },
+    {
+      "path": "workflow-runs/map-report-sol-medium-v1-baseline-1/report.json",
+      "sha256": "99e87c330bacbbe96d32b0ba261e79a73749d406c6c1176cb68e2280575246d8"
+    },
+    {
+      "path": "workflow-runs/map-report-sol-medium-v1-baseline-1/capture.json",
+      "sha256": "bce68ac558a13a2085c20c068f11c0a74ea2464875633d035ed36bd2c6a0c76e"
+    },
+    {
+      "path": "workflow-runs/map-report-sol-medium-v1-baseline-1/native-audit.json",
+      "sha256": "4417eb14e08b2dd9a65ad63f160c59111662c7146646b2c813869d5ebd75e95b"
+    },
+    {
+      "path": "workflow-runs/map-report-sol-medium-v1-baseline-1/manifest.json",
+      "sha256": "968eb3e4090d7e4833fd338086d8f9edf1a7993d2928e89c6962197c957aae68"
+    }
+  ],
+  "source_policy_order_evidence": [
+    "What it does: Run through these phases in order.",
+    "Phase8is TL;DR, following Phase7Risks.",
+    "Output Format example orders Outcome initiatives, Workstreams, Dependency chain, Trigger gates, Critical path, Risks, TL;DR."
+  ],
+  "gate_evidence": "Phase5: A gate is fireable if(a)all upstream work is in flight or shipped and(b)downstream project exists. Cycle-on-chain input has MAP1/MAP2 In Progress and notifications project exists; fixture reference explicitly says Yes. Source requires cycle-driven No join-up separately, not an extra fireability exception.",
+  "raw_functional_status": "fail",
+  "raw_failures": [
+    {
+      "id": "cycle-off-chain",
+      "kind": "artifact",
+      "pass": false,
+      "problems": [
+        "missing-pattern:remove|cut|break"
+      ],
+      "rubric": {
+        "score": 1,
+        "checks": 1,
+        "passed": 1,
+        "vector": [
+          true
+        ]
+      }
+    }
+  ],
+  "native_statuses": [
+    "pass"
+  ],
+  "lexical_correction_assessment": "Inflected removing is a narrow recogniser false negative, but correcting it does not resolve separate ordering/gate failures. No baseline artifact should be relabelled all-pass on that basis.",
+  "rows": [
+    {
+      "path": "workflow-runs/map-report-sol-medium-v1-baseline-1/artifacts/coherent.md",
+      "sha256": "2d3d8f48e27c8979314d561226357a47e422b5713217a33c5c135abdc500af97",
+      "case": "coherent",
+      "read_complete": true,
+      "status": "held-required-output-order",
+      "facts_and_graph": "pass-source-faithful",
+      "horizon_order": "pass-MAP2-before-MAP1-then-MAP3-then-MAP4-with-cross-initiative-horizons-preserved",
+      "offers": "pass-applicable-gates-present",
+      "invented_actions": false,
+      "missing_or_unverified_source": "no unsupported source facts found beyond recorded gate-policy override",
+      "findings": [
+        "TL;DR moved before Outcome initiatives; baseline phases and Output Format place it after Risks."
+      ],
+      "lexical_oracle_note": null
+    },
+    {
+      "path": "workflow-runs/map-report-sol-medium-v1-baseline-1/artifacts/cross-initiative-and-park.md",
+      "sha256": "bea7eb7ce6369bc78d8189520958b16754cf92e4b1d45b7a57e232d1fd5fe877",
+      "case": "cross-initiative-and-park",
+      "read_complete": true,
+      "status": "held-required-output-order",
+      "facts_and_graph": "pass-source-faithful",
+      "horizon_order": "pass-MAP2-before-MAP1-then-MAP3-then-MAP4-with-cross-initiative-horizons-preserved",
+      "offers": "pass-applicable-gates-present",
+      "invented_actions": false,
+      "missing_or_unverified_source": "no unsupported source facts found beyond recorded gate-policy override",
+      "findings": [
+        "TL;DR moved before Outcome initiatives; baseline phases and Output Format place it after Risks."
+      ],
+      "lexical_oracle_note": null
+    },
+    {
+      "path": "workflow-runs/map-report-sol-medium-v1-baseline-1/artifacts/cycle-off-chain.md",
+      "sha256": "2bb3076025e1e6d6ecc2b4ed110a0fcfe8ab342d4045f0468ddd4956dbfeff3e",
+      "case": "cycle-off-chain",
+      "read_complete": true,
+      "status": "held-required-output-order",
+      "facts_and_graph": "pass-source-faithful",
+      "horizon_order": "pass-MAP2-before-MAP1-then-MAP3-then-MAP4-with-cross-initiative-horizons-preserved",
+      "offers": "pass-applicable-gates-present",
+      "invented_actions": false,
+      "missing_or_unverified_source": "no unsupported source facts found beyond recorded gate-policy override",
+      "findings": [
+        "TL;DR moved before Outcome initiatives; baseline phases and Output Format place it after Risks."
+      ],
+      "lexical_oracle_note": "Concrete proposed removal of MAP-7 blocker on MAP-8, conditional on confirmation, satisfies break-action semantics. Raw remove|cut|break recogniser misses removing."
+    },
+    {
+      "path": "workflow-runs/map-report-sol-medium-v1-baseline-1/artifacts/cycle-on-chain.md",
+      "sha256": "d1a12618edd41ca0fb34c9792cca0780ed912eaa92d65744f200d1eb83cc8d85",
+      "case": "cycle-on-chain",
+      "read_complete": true,
+      "status": "held-output-order-and-gate-predicate",
+      "facts_and_graph": "fail-fixed-gate-predicate",
+      "horizon_order": "pass-MAP2-before-MAP1-then-MAP3-then-MAP4-with-cross-initiative-horizons-preserved",
+      "offers": "pass-applicable-gates-present",
+      "invented_actions": false,
+      "missing_or_unverified_source": "no unsupported source facts found beyond recorded gate-policy override",
+      "findings": [
+        "TL;DR moved before Outcome initiatives; baseline phases and Output Format place it after Risks.",
+        "Gate fireability changed to Blocked by cycle, overriding fixed upstream-in-flight/downstream-exists predicate. Frozen source and fixture reference require Yes; cycle still breaks join-up and requires repair."
+      ],
+      "lexical_oracle_note": null
+    },
+    {
+      "path": "workflow-runs/map-report-sol-medium-v1-baseline-1/artifacts/ghost-next.md",
+      "sha256": "b956e68b4bc2384536aee325c18ec18497833fa3bd55f27cdc6226c1b6e750eb",
+      "case": "ghost-next",
+      "read_complete": true,
+      "status": "held-required-output-order",
+      "facts_and_graph": "pass-source-faithful",
+      "horizon_order": "pass-MAP2-before-MAP1-then-MAP3-then-MAP4-with-cross-initiative-horizons-preserved",
+      "offers": "pass-applicable-gates-present",
+      "invented_actions": false,
+      "missing_or_unverified_source": "ghost report explicitly treats MAP-3 as unresolved without inventing title/status/project",
+      "findings": [
+        "TL;DR moved before Outcome initiatives; baseline phases and Output Format place it after Risks."
+      ],
+      "lexical_oracle_note": null
+    },
+    {
+      "path": "workflow-runs/map-report-sol-medium-v1-baseline-1/artifacts/stalled-and-parallel.md",
+      "sha256": "42cdcbb5366248e5c15ba4828682cd01b8ee036c8182e80e8a378d45ccff39e5",
+      "case": "stalled-and-parallel",
+      "read_complete": true,
+      "status": "held-required-output-order",
+      "facts_and_graph": "pass-source-faithful",
+      "horizon_order": "pass-MAP2-before-MAP1-then-MAP3-then-MAP4-with-cross-initiative-horizons-preserved",
+      "offers": "pass-applicable-gates-present",
+      "invented_actions": false,
+      "missing_or_unverified_source": "no unsupported source facts found beyond recorded gate-policy override",
+      "findings": [
+        "TL;DR moved before Outcome initiatives; baseline phases and Output Format place it after Risks."
+      ],
+      "lexical_oracle_note": null
+    }
+  ],
+  "summary": {
+    "reports_read": 6,
+    "strict_required_rule_pass": 0,
+    "facts_graph_fixed_gate_pass": 5,
+    "offers_pass": 6,
+    "invented_action_claims": 0,
+    "output_order_failures": 6,
+    "fixed_gate_predicate_failures": 1
+  },
+  "not_reviewed": [
+    "baseline2\u20135not launched/complete at inspection; no unread reports counted"
+  ],
+  "limits": [
+    "No fixture/report/source changed by verifier.",
+    "Reports are otherwise source-faithful, and horizon/issue order is preserved. Output-section order is a separate explicit requirement.",
+    "Ghost-next reference text itself contains an unsupported live MAP3cross-project risk; actual source snapshots govern manual findings. The actual Sol ghost report avoids that error."
+  ]
+}

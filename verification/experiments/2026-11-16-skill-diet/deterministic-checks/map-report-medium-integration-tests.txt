@@ -1,0 +1,82 @@
+TAP version 13
+# Subtest: rendering references pass; missing facts, inverted model order and bad table form fail
+ok 1 - rendering references pass; missing facts, inverted model order and bad table form fail
+  ---
+  duration_ms: 1.267206
+  type: 'test'
+  ...
+# Subtest: artifact workflow persists exact output and detects changed files or repeated submissions
+ok 2 - artifact workflow persists exact output and detects changed files or repeated submissions
+  ---
+  duration_ms: 2.707243
+  type: 'test'
+  ...
+# Subtest: Scenario 1 — terminal render present: default emits returns undefined
+ok 3 - Scenario 1 — terminal render present: default emits returns undefined
+  ---
+  duration_ms: 15.445713
+  type: 'test'
+  ...
+# Subtest: Scenario 2 — comment write preceded by a routing render returns undefined
+ok 4 - Scenario 2 — comment write preceded by a routing render returns undefined
+  ---
+  duration_ms: 15.013172
+  type: 'test'
+  ...
+# Subtest: Scenario 3 — un-normalised write (no render of the surface) throws
+ok 5 - Scenario 3 — un-normalised write (no render of the surface) throws
+  ---
+  duration_ms: 13.017677
+  type: 'test'
+  ...
+# Subtest: Scenario 4 — render exists but emits AFTER the write throws (ordering)
+ok 6 - Scenario 4 — render exists but emits AFTER the write throws (ordering)
+  ---
+  duration_ms: 10.728391
+  type: 'test'
+  ...
+# Subtest: Default emits with no terminal render throws (the missing-render guard)
+ok 7 - Default emits with no terminal render throws (the missing-render guard)
+  ---
+  duration_ms: 8.530021
+  type: 'test'
+  ...
+# Subtest: Strict binding — a render that routes a DIFFERENT op does not bind
+ok 8 - Strict binding — a render that routes a DIFFERENT op does not bind
+  ---
+  duration_ms: 6.731567
+  type: 'test'
+  ...
+# Subtest: Lenient binding — an untagged render (routes undefined) binds any same-surface emit
+ok 9 - Lenient binding — an untagged render (routes undefined) binds any same-surface emit
+  ---
+  duration_ms: 13.764176
+  type: 'test'
+  ...
+# Subtest: Issue selector — the emit is matched on op AND issue when issue is given
+ok 10 - Issue selector — the emit is matched on op AND issue when issue is given
+  ---
+  duration_ms: 13.02997
+  type: 'test'
+  ...
+# Subtest: Non-functional — reads the frozen record without mutating it
+ok 11 - Non-functional — reads the frozen record without mutating it
+  ---
+  duration_ms: 19.796787
+  type: 'test'
+  ...
+# Subtest: A non-empty surface is required (guards a malformed call)
+ok 12 - A non-empty surface is required (guards a malformed call)
+  ---
+  duration_ms: 7.058941
+  type: 'test'
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 160.637703

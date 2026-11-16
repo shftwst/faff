@@ -1,0 +1,1394 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-16T22:15:54.786230+00:00",
+  "reviewer": {
+    "role": "independent final intake qualification verifier",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium"
+  },
+  "status": "pass",
+  "scope": "Read-only source, helper/qualification logic, exact manual and capture hashes, frozen raw/assessed statuses, strict native results, integration, source/load accounting and accepted source DCO. Pure capture regrading only; no model/test reruns, source edits or frozen-record changes.",
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/intake-astra-medium-v1-final-qualification.json",
+      "sha256": "0a4948f04586c1f1c32cc5893d3179d87966ff53fff6d2aa4264155c35edd6c6"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/qualify-intake-astra-medium-v1.mjs",
+      "sha256": "af809d466a55037734091b49bcc8d1d43428a2a69212588571b681d2581694ee"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/intake-astra-medium-v1-question-correction.json",
+      "sha256": "32a5651fd5358e47fb35d5142a8ed4638d247d8fc0b2feb7ed271355fb8608b6"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/intake-astra-medium-v1-independent.json",
+      "sha256": "feaff4b6c63cd96427b3f9595be2b4f264cd3d6ec48eb62cc377b6e23435372a"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/intake-astra-medium-v1-continuation-independent.json",
+      "sha256": "b5777cac504a2824fad0405a86824bfa4601f69693074fad2dce5cf2c5f57d87"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger.json",
+      "sha256": "3f3de895107fb36d205b80c2f3da4c48e7204e40f50927117d2c44c0e07aec6f"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/intake-astra-medium-v1-after-source.json",
+      "sha256": "fb70dd12dff4faba87d1f62366896d888983d184fcf68796bb0f853abbfdc37d"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/intake-astra-medium-v1-after-loads.json",
+      "sha256": "d7f86fc5057b7059d88b30af3c252016465506978c83029120ad52f99ac258f0"
+    }
+  ],
+  "checks": [
+    {
+      "check": "accepted_source",
+      "pass": true,
+      "detail": "Current source, accepted commit, candidate, qualification and ledger agree."
+    },
+    {
+      "check": "slice_accounting",
+      "pass": true,
+      "detail": "Intake saves 1,933 bytes and 478 estimated tokens."
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-1/manifest.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-1/capture.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-1/report.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-1/assessment.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-1/native-audit.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-1/native-audit-sample.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-1/worker-manifest.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-1/worker-final-state.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-2/manifest.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-2/capture.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-2/report.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-2/assessment.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-2/native-audit.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-2/native-audit-sample.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-2/worker-manifest.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-2/worker-final-state.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-3/manifest.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-3/capture.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-3/report.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-3/assessment.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-3/native-audit.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-3/native-audit-sample.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-3/worker-manifest.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-3/worker-final-state.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-4/manifest.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-4/capture.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-4/report.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-4/assessment.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-4/native-audit.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-4/native-audit-sample.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-4/worker-manifest.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-4/worker-final-state.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-5/manifest.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-5/capture.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-5/report.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-5/assessment.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-5/native-audit.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-5/native-audit-sample.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-5/worker-manifest.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-5/worker-final-state.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-1/manifest.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-1/capture.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-1/report.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-1/assessment.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-1/native-audit.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-1/native-audit-sample.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-1/worker-manifest.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-1/worker-final-state.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-2/manifest.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-2/capture.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-2/report.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-2/assessment.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-2/native-audit.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-2/native-audit-sample.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-2/worker-manifest.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-2/worker-final-state.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-3/manifest.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-3/capture.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-3/report.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-3/assessment.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-3/native-audit.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-3/native-audit-sample.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-3/worker-manifest.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-3/worker-final-state.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-4/manifest.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-4/capture.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-4/report.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-4/assessment.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-4/native-audit.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-4/native-audit-sample.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-4/worker-manifest.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-4/worker-final-state.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-5/manifest.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-5/capture.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-5/report.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-5/assessment.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-5/native-audit.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-5/native-audit-sample.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-5/worker-manifest.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-candidate-5/worker-final-state.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/intake-astra-medium-v1-independent.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/intake-astra-medium-v1-continuation-independent.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/intake-astra-medium-v1-root-spotcheck.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/intake-astra-medium-v1-question-correction.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/intake-astra-medium-v1-integration.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/deterministic-checks/intake-astra-medium-v1-tests.txt"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/deterministic-checks/intake-astra-medium-v1-adapter-lint.txt"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/deterministic-checks/intake-astra-medium-v1-rule-inventory.txt"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/deterministic-checks/intake-astra-medium-v1-main-adapter-lint.txt"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/deterministic-checks/intake-astra-medium-v1-main-rule-inventory.txt"
+    },
+    {
+      "check": "source_review_hash",
+      "pass": true,
+      "detail": "Source-review binding agrees."
+    },
+    {
+      "check": "exact_60_manual_set",
+      "pass": true,
+      "detail": "Frozen initial 12 and continuation 48 have no duplicate artifacts."
+    },
+    {
+      "check": "sample_status_binding",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-1"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-1/greenfield-complete"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-1/greenfield-thin"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-1/single-bug"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-1/single-split"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-1/minor-ambiguity"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-1/greenfield-repo-signal"
+    },
+    {
+      "check": "sample_status_binding",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-2"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-2/greenfield-complete"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-2/greenfield-thin"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-2/single-bug"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-2/single-split"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-2/minor-ambiguity"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-2/greenfield-repo-signal"
+    },
+    {
+      "check": "sample_status_binding",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-3"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-3/greenfield-complete"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-3/greenfield-thin"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-3/single-bug"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-3/single-split"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-3/minor-ambiguity"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-3/greenfield-repo-signal"
+    },
+    {
+      "check": "sample_status_binding",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-4"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-4/greenfield-complete"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-4/greenfield-thin"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-4/single-bug"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-4/single-split"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-4/minor-ambiguity"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-4/greenfield-repo-signal"
+    },
+    {
+      "check": "sample_status_binding",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-5"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-5/greenfield-complete"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-5/greenfield-thin"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-5/single-bug"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-5/single-split"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-5/minor-ambiguity"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-5/greenfield-repo-signal"
+    },
+    {
+      "check": "sample_status_binding",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-1"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-1/greenfield-complete"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-1/greenfield-thin"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-1/single-bug"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-1/single-split"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-1/minor-ambiguity"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-1/greenfield-repo-signal"
+    },
+    {
+      "check": "sample_status_binding",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-2"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-2/greenfield-complete"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-2/greenfield-thin"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-2/single-bug"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-2/single-split"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-2/minor-ambiguity"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-2/greenfield-repo-signal"
+    },
+    {
+      "check": "sample_status_binding",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-3"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-3/greenfield-complete"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-3/greenfield-thin"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-3/single-bug"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-3/single-split"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-3/minor-ambiguity"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-3/greenfield-repo-signal"
+    },
+    {
+      "check": "sample_status_binding",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-4"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-4/greenfield-complete"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-4/greenfield-thin"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-4/single-bug"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-4/single-split"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-4/minor-ambiguity"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-4/greenfield-repo-signal"
+    },
+    {
+      "check": "sample_status_binding",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-5"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-5/greenfield-complete"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-5/greenfield-thin"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-5/single-bug"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-5/single-split"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-5/minor-ambiguity"
+    },
+    {
+      "check": "manual_capture_artifact_hash",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-5/greenfield-repo-signal"
+    },
+    {
+      "check": "fresh_regrade_identity",
+      "pass": true,
+      "detail": "Independent calls to pure graders reproduce all ten persisted raw and assessed grades and normalisations. No helper execution or measurement writes."
+    },
+    {
+      "check": "symmetric_counts",
+      "pass": true,
+      "detail": "baseline: raw 29/30, assessed 30/30, decisions 60/60 and one normalisation."
+    },
+    {
+      "check": "symmetric_counts",
+      "pass": true,
+      "detail": "candidate: raw 29/30, assessed 30/30, decisions 60/60 and one normalisation."
+    },
+    {
+      "check": "raw_failures_retained",
+      "pass": true,
+      "detail": "Both disclosed raw failures remain unchanged."
+    },
+    {
+      "check": "frozen_correction_binding",
+      "pass": true,
+      "detail": "assess-intake-questions.mjs"
+    },
+    {
+      "check": "frozen_correction_binding",
+      "pass": true,
+      "detail": "workflow-fixtures/INTAKE-QUESTIONS-CORRECTION.md"
+    },
+    {
+      "check": "frozen_correction_binding",
+      "pass": true,
+      "detail": "run-diet-workflow-samples-v3.py"
+    },
+    {
+      "check": "frozen_correction_binding",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-assessed-plan.json"
+    },
+    {
+      "check": "frozen_correction_binding",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-assessed-plan.json"
+    },
+    {
+      "check": "frozen_correction_binding",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-assessment-completed-plan.json"
+    },
+    {
+      "check": "frozen_correction_binding",
+      "pass": true,
+      "detail": "manual-artifact-reviews/intake-astra-medium-v1-independent.json"
+    },
+    {
+      "check": "registration_binding",
+      "pass": true,
+      "detail": "architecture-proposal-sol-v1-baseline-plan.json"
+    },
+    {
+      "check": "registration_binding",
+      "pass": true,
+      "detail": "architecture-proposal-sol-v1-candidate-plan.json"
+    },
+    {
+      "check": "registration_binding",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-baseline-plan.json"
+    },
+    {
+      "check": "registration_binding",
+      "pass": true,
+      "detail": "intake-brief-astra-medium-v1-candidate-plan.json"
+    },
+    {
+      "check": "registration_binding",
+      "pass": true,
+      "detail": "baseline/intake-brief-with-context.md"
+    },
+    {
+      "check": "registration_binding",
+      "pass": true,
+      "detail": "candidates/intake-brief-v1-with-context.md"
+    },
+    {
+      "check": "registration_binding",
+      "pass": true,
+      "detail": "baseline/architecture-proposal-with-context.md"
+    },
+    {
+      "check": "registration_binding",
+      "pass": true,
+      "detail": "candidates/architecture-proposal-v1-with-context.md"
+    },
+    {
+      "check": "registration_binding",
+      "pass": true,
+      "detail": "workflow-fixtures/intake-brief-v2.json"
+    },
+    {
+      "check": "registration_binding",
+      "pass": true,
+      "detail": "workflow-fixtures/architecture-proposal.json"
+    },
+    {
+      "check": "registration_binding",
+      "pass": true,
+      "detail": "../../../eval/control-parity/rendering-artifact.mjs"
+    },
+    {
+      "check": "registration_binding",
+      "pass": true,
+      "detail": "../../../eval/control-parity/codex-model-native-audit.mjs"
+    },
+    {
+      "check": "registration_binding",
+      "pass": true,
+      "detail": "../../../eval/control-parity/codex-native-audit.mjs"
+    },
+    {
+      "check": "registration_binding",
+      "pass": true,
+      "detail": "../../../eval/control-parity/mailbox-call.mjs"
+    },
+    {
+      "check": "registration_binding",
+      "pass": true,
+      "detail": "run-model-matrix-samples.py"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faff/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faff/references/autonomous.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faff/references/build.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faff/references/create.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faff/references/kernel.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faff/references/l4.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faff/references/methodology.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faff/references/park.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faff/references/review.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faff/references/tracker.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faff-beep-boop/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faff-graft/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faff-jot/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faff-map/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faff-onboard/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faff-plot/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faff-prep/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faff-tidy/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faff-wtf/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faffidavit-rendering/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faffidavit-routing/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faffter-dark-adversarial-review/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faffter-dark-nlspec/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faffter-dark-spec-review/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-adr/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-architecture/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-concurrency-sequential/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-env-code-interface/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-env-compose/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-evaluate/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-intake/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-prd/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-review/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-ship/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-spec/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-spec-review/SKILL.md"
+    },
+    {
+      "check": "source_measurement",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-transport-private-network/SKILL.md"
+    },
+    {
+      "check": "overall_accounting",
+      "pass": true,
+      "detail": "Current source 1,260,260 bytes and 312,392 estimated tokens; savings 109,175 and 26,887 reconcile."
+    },
+    {
+      "check": "load_accounting",
+      "pass": true,
+      "detail": "faff"
+    },
+    {
+      "check": "load_accounting",
+      "pass": true,
+      "detail": "faff-beep-boop"
+    },
+    {
+      "check": "load_accounting",
+      "pass": true,
+      "detail": "faff-graft"
+    },
+    {
+      "check": "load_accounting",
+      "pass": true,
+      "detail": "faff-jot"
+    },
+    {
+      "check": "load_accounting",
+      "pass": true,
+      "detail": "faff-map"
+    },
+    {
+      "check": "load_accounting",
+      "pass": true,
+      "detail": "faff-onboard"
+    },
+    {
+      "check": "load_accounting",
+      "pass": true,
+      "detail": "faff-plot"
+    },
+    {
+      "check": "load_accounting",
+      "pass": true,
+      "detail": "faff-prep"
+    },
+    {
+      "check": "load_accounting",
+      "pass": true,
+      "detail": "faff-tidy"
+    },
+    {
+      "check": "load_accounting",
+      "pass": true,
+      "detail": "faff-wtf"
+    },
+    {
+      "check": "integration_632",
+      "pass": true,
+      "detail": "Integration 632/632 passes; adapter and inventory exit zero."
+    },
+    {
+      "check": "source_DCO",
+      "pass": true,
+      "detail": "Source sign-off matches operator author: Alec Hill <alec@shftwst.dev>"
+    },
+    {
+      "check": "helper_manual_status_allowance",
+      "pass": true,
+      "detail": "Helper restricts manual-status exceptions to the two disclosed thin briefs and still requires facts/form/invention passes."
+    },
+    {
+      "check": "helper_checks_regrade_and_native",
+      "pass": true,
+      "detail": "Read helper logic verifies fresh grades, explicit model/native status and policy/task/runtime bindings; helper was not executed because it writes qualification."
+    }
+  ],
+  "fresh_regrade_results": [
+    {
+      "name": "intake-brief-astra-medium-v1-baseline-1",
+      "arm": "baseline",
+      "raw_equal": true,
+      "assessed_equal": true,
+      "raw_artifacts": 6,
+      "assessed_artifacts": 6,
+      "decisions": 12,
+      "normalisations": 0
+    },
+    {
+      "name": "intake-brief-astra-medium-v1-baseline-2",
+      "arm": "baseline",
+      "raw_equal": true,
+      "assessed_equal": true,
+      "raw_artifacts": 5,
+      "assessed_artifacts": 6,
+      "decisions": 12,
+      "normalisations": 1
+    },
+    {
+      "name": "intake-brief-astra-medium-v1-baseline-3",
+      "arm": "baseline",
+      "raw_equal": true,
+      "assessed_equal": true,
+      "raw_artifacts": 6,
+      "assessed_artifacts": 6,
+      "decisions": 12,
+      "normalisations": 0
+    },
+    {
+      "name": "intake-brief-astra-medium-v1-baseline-4",
+      "arm": "baseline",
+      "raw_equal": true,
+      "assessed_equal": true,
+      "raw_artifacts": 6,
+      "assessed_artifacts": 6,
+      "decisions": 12,
+      "normalisations": 0
+    },
+    {
+      "name": "intake-brief-astra-medium-v1-baseline-5",
+      "arm": "baseline",
+      "raw_equal": true,
+      "assessed_equal": true,
+      "raw_artifacts": 6,
+      "assessed_artifacts": 6,
+      "decisions": 12,
+      "normalisations": 0
+    },
+    {
+      "name": "intake-brief-astra-medium-v1-candidate-1",
+      "arm": "candidate",
+      "raw_equal": true,
+      "assessed_equal": true,
+      "raw_artifacts": 6,
+      "assessed_artifacts": 6,
+      "decisions": 12,
+      "normalisations": 0
+    },
+    {
+      "name": "intake-brief-astra-medium-v1-candidate-2",
+      "arm": "candidate",
+      "raw_equal": true,
+      "assessed_equal": true,
+      "raw_artifacts": 6,
+      "assessed_artifacts": 6,
+      "decisions": 12,
+      "normalisations": 0
+    },
+    {
+      "name": "intake-brief-astra-medium-v1-candidate-3",
+      "arm": "candidate",
+      "raw_equal": true,
+      "assessed_equal": true,
+      "raw_artifacts": 5,
+      "assessed_artifacts": 6,
+      "decisions": 12,
+      "normalisations": 1
+    },
+    {
+      "name": "intake-brief-astra-medium-v1-candidate-4",
+      "arm": "candidate",
+      "raw_equal": true,
+      "assessed_equal": true,
+      "raw_artifacts": 6,
+      "assessed_artifacts": 6,
+      "decisions": 12,
+      "normalisations": 0
+    },
+    {
+      "name": "intake-brief-astra-medium-v1-candidate-5",
+      "arm": "candidate",
+      "raw_equal": true,
+      "assessed_equal": true,
+      "raw_artifacts": 6,
+      "assessed_artifacts": 6,
+      "decisions": 12,
+      "normalisations": 0
+    }
+  ],
+  "findings": [
+    "All 60 manual artifacts bind to exact persisted capture and qualification hashes. Both arms retain 29/30 raw and 30/30 assessed artifact passes; 60/60 rule answers per arm and strict native gates remain separate.",
+    "The lexical recogniser cannot exclude every contradictory invented choice. The mandatory independent manual invention gate remains present.",
+    "Source/load tokens are per-file UTF-16 character estimates, not billed usage, provider tokens or cost.",
+    "No executable semantic intake consumer, elicitation, methodology ticket shaping, tracker mutation or full jot/plot execution is certified. Intended Opus confirmation remains pending."
+  ],
+  "summary": {
+    "checks": 246,
+    "failed": 0,
+    "manual_artifacts_bound": 60,
+    "source_commit": "c650c72bc5c4b602a187d619249277325c7d2ce7",
+    "source_DCO_valid": true,
+    "saved_bytes": 109175,
+    "saved_estimated_tokens": 26887
+  }
+}

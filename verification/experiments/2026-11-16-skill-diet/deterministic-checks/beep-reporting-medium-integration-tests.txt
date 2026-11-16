@@ -1,0 +1,413 @@
+TAP version 13
+# Subtest: reporting boundary executes real persistence and rejects altered authority, publication and continuation
+    # Subtest: changed ledger state
+    ok 1 - changed ledger state
+      ---
+      duration_ms: 1.132664
+      type: 'test'
+      ...
+    # Subtest: fabricated facts economics
+    ok 2 - fabricated facts economics
+      ---
+      duration_ms: 0.43554
+      type: 'test'
+      ...
+    # Subtest: dropped follow-up
+    ok 3 - dropped follow-up
+      ---
+      duration_ms: 0.320041
+      type: 'test'
+      ...
+    # Subtest: rewritten persisted summary
+    ok 4 - rewritten persisted summary
+      ---
+      duration_ms: 0.332375
+      type: 'test'
+      ...
+    # Subtest: duplicate summary invocation
+    ok 5 - duplicate summary invocation
+      ---
+      duration_ms: 0.280249
+      type: 'test'
+      ...
+    # Subtest: wrong target
+    ok 6 - wrong target
+      ---
+      duration_ms: 0.268708
+      type: 'test'
+      ...
+    # Subtest: lost economics
+    ok 7 - lost economics
+      ---
+      duration_ms: 0.438332
+      type: 'test'
+      ...
+    # Subtest: lost health banner
+    ok 8 - lost health banner
+      ---
+      duration_ms: 0.784623
+      type: 'test'
+      ...
+    # Subtest: publish without normalisation
+    ok 9 - publish without normalisation
+      ---
+      duration_ms: 0.453249
+      type: 'test'
+      ...
+    # Subtest: capacity deferral
+    ok 10 - capacity deferral
+      ---
+      duration_ms: 0.358499
+      type: 'test'
+      ...
+    # Subtest: omitted ready issue
+    ok 11 - omitted ready issue
+      ---
+      duration_ms: 0.291707
+      type: 'test'
+      ...
+    # Subtest: publication after ledger fault
+    ok 12 - publication after ledger fault
+      ---
+      duration_ms: 0.278499
+      type: 'test'
+      ...
+    # Subtest: failed command missing result
+    ok 13 - failed command missing result
+      ---
+      duration_ms: 0.288041
+      type: 'test'
+      ...
+    1..13
+ok 1 - reporting boundary executes real persistence and rejects altered authority, publication and continuation
+  ---
+  duration_ms: 2495.589008
+  type: 'test'
+  ...
+# Subtest: optional empty facts do not hide unknown or command-owned data
+ok 2 - optional empty facts do not hide unknown or command-owned data
+  ---
+  duration_ms: 0.141625
+  type: 'test'
+  ...
+# Subtest: economics accepts equivalent numbers and preserves cost, token provenance and denominators
+ok 3 - economics accepts equivalent numbers and preserves cost, token provenance and denominators
+  ---
+  duration_ms: 0.224833
+  type: 'test'
+  ...
+# Subtest: Scenario 1 — terminal render present: default emits returns undefined
+ok 4 - Scenario 1 — terminal render present: default emits returns undefined
+  ---
+  duration_ms: 13.172885
+  type: 'test'
+  ...
+# Subtest: Scenario 2 — comment write preceded by a routing render returns undefined
+ok 5 - Scenario 2 — comment write preceded by a routing render returns undefined
+  ---
+  duration_ms: 8.004023
+  type: 'test'
+  ...
+# Subtest: Scenario 3 — un-normalised write (no render of the surface) throws
+ok 6 - Scenario 3 — un-normalised write (no render of the surface) throws
+  ---
+  duration_ms: 9.616477
+  type: 'test'
+  ...
+# Subtest: Scenario 4 — render exists but emits AFTER the write throws (ordering)
+ok 7 - Scenario 4 — render exists but emits AFTER the write throws (ordering)
+  ---
+  duration_ms: 9.953435
+  type: 'test'
+  ...
+# Subtest: Default emits with no terminal render throws (the missing-render guard)
+ok 8 - Default emits with no terminal render throws (the missing-render guard)
+  ---
+  duration_ms: 8.948563
+  type: 'test'
+  ...
+# Subtest: Strict binding — a render that routes a DIFFERENT op does not bind
+ok 9 - Strict binding — a render that routes a DIFFERENT op does not bind
+  ---
+  duration_ms: 9.657769
+  type: 'test'
+  ...
+# Subtest: Lenient binding — an untagged render (routes undefined) binds any same-surface emit
+ok 10 - Lenient binding — an untagged render (routes undefined) binds any same-surface emit
+  ---
+  duration_ms: 27.266393
+  type: 'test'
+  ...
+# Subtest: Issue selector — the emit is matched on op AND issue when issue is given
+ok 11 - Issue selector — the emit is matched on op AND issue when issue is given
+  ---
+  duration_ms: 21.240575
+  type: 'test'
+  ...
+# Subtest: Non-functional — reads the frozen record without mutating it
+ok 12 - Non-functional — reads the frozen record without mutating it
+  ---
+  duration_ms: 20.346702
+  type: 'test'
+  ...
+# Subtest: A non-empty surface is required (guards a malformed call)
+ok 13 - A non-empty surface is required (guards a malformed call)
+  ---
+  duration_ms: 14.742215
+  type: 'test'
+  ...
+# Subtest: scenario: no facts file — first line is the facts warning; awaiting landing renders, spec-review holds do not
+ok 14 - scenario: no facts file — first line is the facts warning; awaiting landing renders, spec-review holds do not
+  ---
+  duration_ms: 369.261709
+  type: 'test'
+  ...
+# Subtest: scenario: a shipped id flagged by both annotations renders only under post-merge flagged (the A9 tie-break)
+ok 15 - scenario: a shipped id flagged by both annotations renders only under post-merge flagged (the A9 tie-break)
+  ---
+  duration_ms: 120.860256
+  type: 'test'
+  ...
+# Subtest: scenario: superseded cites the delivering ids
+ok 16 - scenario: superseded cites the delivering ids
+  ---
+  duration_ms: 122.744626
+  type: 'test'
+  ...
+# Subtest: scenario: an L4 phantom merge escalates
+ok 17 - scenario: an L4 phantom merge escalates
+  ---
+  duration_ms: 117.355638
+  type: 'test'
+  ...
+# Subtest: scenario: hostile title and park record create no banned heading
+ok 18 - scenario: hostile title and park record create no banned heading
+  ---
+  duration_ms: 113.736356
+  type: 'test'
+  ...
+# Subtest: A1: install-health warning first when doctor reports unclean; absent when clean; a throwing doctor renders its could-not-read line
+ok 19 - A1: install-health warning first when doctor reports unclean; absent when clean; a throwing doctor renders its could-not-read line
+  ---
+  duration_ms: 100.685928
+  type: 'test'
+  ...
+# Subtest: A2/A5: methodology line and findings only when configured
+ok 20 - A2/A5: methodology line and findings only when configured
+  ---
+  duration_ms: 109.221366
+  type: 'test'
+  ...
+# Subtest: A3: header — mode, duration, sentry count and max, waves, stop reason; unreadable events marked
+ok 21 - A3: header — mode, duration, sentry count and max, waves, stop reason; unreadable events marked
+  ---
+  duration_ms: 130.213817
+  type: 'test'
+  ...
+# Subtest: A4: economics renders its figures, ZERO-SHIP and warnings; a throwing function renders unavailable
+ok 22 - A4: economics renders its figures, ZERO-SHIP and warnings; a throwing function renders unavailable
+  ---
+  duration_ms: 120.083257
+  type: 'test'
+  ...
+# Subtest: A6/A7: verdict counts and routed-out classes
+ok 23 - A6/A7: verdict counts and routed-out classes
+  ---
+  duration_ms: 200.860608
+  type: 'test'
+  ...
+# Subtest: A8: resolve-attempts only when reported
+ok 24 - A8: resolve-attempts only when reported
+  ---
+  duration_ms: 86.584836
+  type: 'test'
+  ...
+# Subtest: A9/A10: adversarial-skipped and post-merge sections only when their arrays say so
+ok 25 - A9/A10: adversarial-skipped and post-merge sections only when their arrays say so
+  ---
+  duration_ms: 341.786815
+  type: 'test'
+  ...
+# Subtest: A11: superseded absent without a superseded outcome; a missing record is named
+ok 26 - A11: superseded absent without a superseded outcome; a missing record is named
+  ---
+  duration_ms: 209.360046
+  type: 'test'
+  ...
+# Subtest: A12: PR-open vs awaiting landing
+ok 27 - A12: PR-open vs awaiting landing
+  ---
+  duration_ms: 283.728828
+  type: 'test'
+  ...
+# Subtest: A13: the parks block is `[]` for zero parks and carries the records
+ok 28 - A13: the parks block is `[]` for zero parks and carries the records
+  ---
+  duration_ms: 203.146394
+  type: 'test'
+  ...
+# Subtest: A13: a park record holding a backtick run still round-trips through park-history
+ok 29 - A13: a park record holding a backtick run still round-trips through park-history
+  ---
+  duration_ms: 116.760432
+  type: 'test'
+  ...
+# Subtest: A14/A15: the outage and slow-fan-out holds render only when their arrays are non-empty
+ok 30 - A14/A15: the outage and slow-fan-out holds render only when their arrays are non-empty
+  ---
+  duration_ms: 256.300476
+  type: 'test'
+  ...
+# Subtest: A16: errored with its reported reason
+ok 31 - A16: errored with its reported reason
+  ---
+  duration_ms: 118.131471
+  type: 'test'
+  ...
+# Subtest: A17: unreached only on an unreached-budget outcome; tokens_source on a tokens breach; a throwing budget degrades
+ok 32 - A17: unreached only on an unreached-budget outcome; tokens_source on a tokens breach; a throwing budget degrades
+  ---
+  duration_ms: 200.337234
+  type: 'test'
+  ...
+# Subtest: A18: product-incomplete only when the holdout record exists; environment gaps apart from human-only; unknown codes named
+ok 33 - A18: product-incomplete only when the holdout record exists; environment gaps apart from human-only; unknown codes named
+  ---
+  duration_ms: 163.41403
+  type: 'test'
+  ...
+# Subtest: A19: ground-truth divergences render only when reconcile found one (or a read failed); warn at L3
+ok 34 - A19: ground-truth divergences render only when reconcile found one (or a read failed); warn at L3
+  ---
+  duration_ms: 107.477995
+  type: 'test'
+  ...
+# Subtest: A20/A21/A22: inferred deps, discovered scope and follow-ups only when present
+ok 35 - A20/A21/A22: inferred deps, discovered scope and follow-ups only when present
+  ---
+  duration_ms: 163.527821
+  type: 'test'
+  ...
+# Subtest: A23: prep summary and tidy only in full mode
+ok 36 - A23: prep summary and tidy only in full mode
+  ---
+  duration_ms: 166.030691
+  type: 'test'
+  ...
+# Subtest: A24: no banned heading appears for any fixture in this file's shapes
+ok 37 - A24: no banned heading appears for any fixture in this file's shapes
+  ---
+  duration_ms: 137.886632
+  type: 'test'
+  ...
+# Subtest: facts problems: absent, invalid JSON, format missing, an unknown key — each exits 0 with its ⚠ line
+ok 38 - facts problems: absent, invalid JSON, format missing, an unknown key — each exits 0 with its ⚠ line
+  ---
+  duration_ms: 131.47023
+  type: 'test'
+  ...
+# Subtest: facts problems: a malformed facts file whose bytes include a heading yields one ⚠ line and no heading
+ok 39 - facts problems: a malformed facts file whose bytes include a heading yields one ⚠ line and no heading
+  ---
+  duration_ms: 84.530009
+  type: 'test'
+  ...
+# Subtest: ledger faults: missing admitted exits 2; a mistyped annotation array renders its could-not-read line
+ok 40 - ledger faults: missing admitted exits 2; a mistyped annotation array renders its could-not-read line
+  ---
+  duration_ms: 125.056662
+  type: 'test'
+  ...
+# Subtest: neutralisation: x\\n\#\# Deferred in every facts string field creates no heading
+ok 41 - neutralisation: x\\n\#\# Deferred in every facts string field creates no heading
+  ---
+  duration_ms: 197.602491
+  type: 'test'
+  ...
+# Subtest: labelling: facts-sourced lines end _(reported)_, the ⚠ facts diagnostics do not, disk-only lines do not
+ok 42 - labelling: facts-sourced lines end _(reported)_, the ⚠ facts diagnostics do not, disk-only lines do not
+  ---
+  duration_ms: 144.551825
+  type: 'test'
+  ...
+# Subtest: determinism: two renders at different clocks and ambient session ids, same forge responses, are byte-identical
+ok 43 - determinism: two renders at different clocks and ambient session ids, same forge responses, are byte-identical
+  ---
+  duration_ms: 168.218894
+  type: 'test'
+  ...
+# Subtest: reconcile in-process: a phantom merge, and the result deep-equals `faff reconcile --json` on the same input
+ok 44 - reconcile in-process: a phantom merge, and the result deep-equals `faff reconcile --json` on the same input
+  ---
+  duration_ms: 123.823874
+  type: 'test'
+  ...
+# Subtest: forge failure: a failing gh renders could-not-read-forge lines and the render still exits 0
+ok 45 - forge failure: a failing gh renders could-not-read-forge lines and the render still exits 0
+  ---
+  duration_ms: 135.821553
+  type: 'test'
+  ...
+# Subtest: no tracker facts: superseded and siblings with a readable baseline fabricate no divergence and say the checks did not run
+ok 46 - no tracker facts: superseded and siblings with a readable baseline fabricate no divergence and say the checks did not run
+  ---
+  duration_ms: 112.095651
+  type: 'test'
+  ...
+# Subtest: missing baseline: no sibling-baseline.json renders exactly one sibling-check-unproven line
+ok 47 - missing baseline: no sibling-baseline.json renders exactly one sibling-check-unproven line
+  ---
+  duration_ms: 106.214248
+  type: 'test'
+  ...
+# Subtest: PR lookup order: merge-record wins over landing-loop, which wins over the forge; a forge hit on another branch is ignored
+ok 48 - PR lookup order: merge-record wins over landing-loop, which wins over the forge; a forge hit on another branch is ignored
+  ---
+  duration_ms: 191.070631
+  type: 'test'
+  ...
+# Subtest: doctor in-process: the real install-health path renders doctor's own RESULT text when unclean
+ok 49 - doctor in-process: the real install-health path renders doctor's own RESULT text when unclean
+  ---
+  duration_ms: 87.672584
+  type: 'test'
+  ...
+# Subtest: no faff subprocess: with every child_process spawn but gh made to throw, the CLI still renders economics and install health
+ok 50 - no faff subprocess: with every child_process spawn but gh made to throw, the CLI still renders economics and install health
+  ---
+  duration_ms: 150.322436
+  type: 'test'
+  ...
+# Subtest: an unwritable --out exits 2 with a cannot-write line
+ok 51 - an unwritable --out exits 2 with a cannot-write line
+  ---
+  duration_ms: 178.935285
+  type: 'test'
+  ...
+# Subtest: `faff run bogus` exits 2 with a usage line naming summary
+ok 52 - `faff run bogus` exits 2 with a usage line naming summary
+  ---
+  duration_ms: 40.491821
+  type: 'test'
+  ...
+# Subtest: synthetic reference fixture renders the committed golden (in-process, stubbed forge, clean doctor)
+ok 53 - synthetic reference fixture renders the committed golden (in-process, stubbed forge, clean doctor)
+  ---
+  duration_ms: 174.298337
+  type: 'test'
+  ...
+# Subtest: integration smoke: the CLI on the reference fixture equals the golden outside install health and ground truth
+ok 54 - integration smoke: the CLI on the reference fixture equals the golden outside install health and ground truth
+  ---
+  duration_ms: 250.296074
+  type: 'test'
+  ...
+1..54
+# tests 67
+# suites 0
+# pass 67
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6542.694884

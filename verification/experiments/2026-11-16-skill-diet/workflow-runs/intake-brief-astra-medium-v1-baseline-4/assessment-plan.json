@@ -1,0 +1,30 @@
+{
+  "harness": "eval/control-parity/rendering-artifact.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/intake-brief-v2.json",
+  "timeout_seconds": 900,
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md"
+  ],
+  "json_stdin": true,
+  "bridge": "eval/control-parity/mailbox-call.mjs",
+  "treatment": "Bounded final discovery-brief production from completed conversation snapshots. Core discovery steps, formal output template and appetite behaviour stay byte-identical. No elicitation conversation, methodology ticket-shaping, tracker mutation or full jot/plot workflow claim.",
+  "acceptance": "Five fresh Astra-medium samples per arm, six actual briefs and twelve separate decisions per sample. Require all form checks and manual reading of all sixty artifacts for source facts, scope, assumptions, dependencies and no invented goals/tickets. Complete native audit and integration lint. Conversation and downstream ticket shaping are outside the cut and unchanged; no workflow execution claim.",
+  "samples": [
+    {
+      "name": "intake-brief-astra-medium-v1-baseline-4",
+      "arm": "baseline",
+      "policy": "baseline/intake-brief-with-context.md"
+    }
+  ],
+  "provider": "codex-cli",
+  "model": "gpt-6-astra",
+  "effort": "medium",
+  "protocol_revision": "INTAKE-BRIEF-V2.md: explicit canonical spelling on two unchanged owner questions; all V1 samples excluded",
+  "provider_revision": "New Astra-medium treatment after held Sol-medium native failures and incomplete Astra-low comparisons; no prior samples reused. Generic runner instructions do not repair the old Sol treatment.",
+  "purpose": "skill-diet-qualification",
+  "assessment": "assess-intake-questions.mjs",
+  "protocol_assessment": "Separately bound lexical correction only; raw results and independent manual/native gates remain."
+}

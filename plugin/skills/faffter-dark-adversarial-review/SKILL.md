@@ -42,9 +42,9 @@ The independent reviewer tests these concerns rather than repeating the primary 
 |---|---|
 | Specification gaming | Trivial AC satisfaction without value; specified edge cases replaced with no-ops or swallowed errors; tests asserting implementation rather than behaviour |
 | Implicit assumptions | Unvalidated ordering, size/cardinality and environment assumptions, including empty input, missing files, network and permissions |
-| Failure modes | Missing error paths, partial success leaving inconsistent state, resources left open on error |
-| Security | Unvalidated input, changed auth boundaries, exposed secrets, SQL/command/template injection |
-| Concurrency | Unsynchronised shared state, time-of-check/time-of-use gaps, async event ordering |
+| Failure mode blindness | Missing error paths, partial success leaving inconsistent state, resources left open on error |
+| Security surface | Unvalidated input, changed auth boundaries, exposed secrets, SQL/command/template injection |
+| Concurrency and ordering | Unsynchronised shared state, time-of-check/time-of-use gaps, async event ordering |
 
 For the same defect in the same file as a prior finding, add `carries: P<k>` to the finding body. Do not carry a finding merely because it is listed. If nothing is found, emit exactly `### observation: no findings`, not empty or free-form prose.
 
@@ -82,7 +82,7 @@ At verdict emission, resolutions may still be open. The settled record belongs i
 
 ## LLM provider integration
 
-The existing helpers own transport, preflight, retries, streaming, context-window checks, attribution, output validation and chain precedence. The runtime caller supplies the inputs below and handles the resulting exit code. Operator configuration reference: `docs/reference/adversarial-backends.md`; it is not a required review read.
+The helpers own transport, preflight, retries, streaming, context-window checks, attribution, output validation and chain precedence. The runtime caller supplies the inputs below and handles the resulting exit code. Optional operator reference: `docs/reference/adversarial-backends.md`.
 
 ### Backend call
 
@@ -193,9 +193,9 @@ Always append exactly one final fenced `faff-contract:review-verdict` block cont
 |---|---|
 | `signal` | Phase 1's signal, except for the helper-failure outcomes and autonomous critical escalation above |
 | `findings` | Both passes, with `location_present`/`action_present` true exactly when those fields are present. `pass` may have none; other outputs here carry at least one finding |
-| Finding `title` | Short defect-and-symbol noun phrase, without line numbers, severity words or category |
-| Finding `location` | Repo path, optionally `:line`; omit when absent |
-| Finding `action` | One-sentence fix; omit when absent |
+| Finding `"title"` | Short defect-and-symbol noun phrase, without line numbers, severity words or category |
+| Finding `"location"` | Repo path, optionally `:line`; omit when absent |
+| Finding `"action"` | One-sentence fix; omit when absent |
 | Finding `carried_id` | Phase 1 follows noon-review. Phase 2 copies the section's first `carries:` handle verbatim; the build author never chooses a substitute |
 | `adversarial_outcome` | Only `chain-outage-skipped` for autonomous advisory outage, or `mandatory-chain-outage` for exit 9; omit otherwise |
 | `escalated_criticals` | Only at autonomous escalation, one entry per escalating critical as below |
@@ -215,12 +215,10 @@ Set `signal:"needs-human"`. Include each escalating critical in `findings[]` wit
 Inside the same verdict block, emit one entry per escalating critical:
 
 ```json
-"escalated_criticals": [
-  { "severity": "critical", "location": "path/to/file.js:120", "title": "the finding's heading text", "carried_id": "P2" }
-]
+"escalated_criticals": [ { "severity": "critical", "location": "...", "title": "...", "carried_id": "P2" } ]
 ```
 
-Copy severity, location and title from that finding. Copy `carried_id` from its first `carries:` line, or omit it if absent. Do not invent an ID or select a different carry; `findingId` computes identity and `resolveRoundChain` checks continuity downstream.
+Copy severity, location and title from that finding. Its `carried_id` is copied verbatim from its section's first `carries:` line; omit it if absent. Do not invent an ID or select a different carry; `finding-id.js` owns `findingId` and `resolveRoundChain` for identity and continuity downstream.
 
 ### Rebuttal re-evaluation entry point
 
@@ -246,7 +244,7 @@ Over-scope means DoD capability beyond the PRD's declared goals (`V` is not a su
 
 ## Rules
 
-- Actively seek what the primary reviewer missed; do not agree by default.
+- Never agree with the primary review by default. Actively seek what it missed.
 - Trace every finding to the spec, code contracts or universally expected properties such as no crashes, data loss or security holes. Never invent requirements.
 - Findings need a concrete location and action, with evidence of the violated requirement. "This might be a problem" is insufficient.
 - Treat adversarial findings as hypotheses to verify. A different model provides independence, not guaranteed superior judgement.

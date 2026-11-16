@@ -1,9 +1,8 @@
 # Skill diet measurements
 
-Both reductions are draft candidates. Bounded decision and artifact probes have
-passed; workflow execution qualification is in progress and is required before
-these slices count as finished. The operator explicitly requested this proof
-within the current run, before further compression.
+Both reductions remain on a draft PR. The gateway passed its paired execution
+boundary checks. Adversarial-review execution qualification and corrected-prompt
+remeasurement are in progress. Further compression waits for these checks.
 
 Baseline: `a8509086ad28fa0e55cf3d1d818f2055294e663b`, at the start of the
 12-hour run. The machine-readable tally is `ledger.json`. All sizes include the
@@ -13,11 +12,11 @@ they are not provider usage or a measured cost saving.
 | Skill | Bytes before | Bytes after | Saved | Estimated tokens before | After | Saved |
 |---|---:|---:|---:|---:|---:|---:|
 | Gateway (`faff`) | 12,984 | 5,832 | 7,152 (55.1%) | 3,222 | 1,458 | 1,764 (54.7%) |
-| Adversarial review | 74,897 | 22,269 | 52,628 (70.3%) | 18,574 | 5,568 | 13,006 (70.0%) |
-| Changed files combined | 87,881 | 28,101 | 59,780 (68.0%) | 21,796 | 7,026 | 14,770 (67.8%) |
+| Adversarial review | 74,897 | 22,259 | 52,638 (70.3%) | 18,574 | 5,565 | 13,009 (70.0%) |
+| Changed files combined | 87,881 | 28,091 | 59,790 (68.0%) | 21,796 | 7,023 | 14,773 (67.8%) |
 
 The complete tracked skill source set started at 1,369,435 bytes and 339,279
-estimated tokens. It is now 1,309,655 bytes and 324,509 estimated tokens. These
+estimated tokens. It is now 1,309,645 bytes and 324,506 estimated tokens. These
 totals describe all 41 source files, not one invocation's prompt. No mandatory
 dependency was added. The gateway saving applies to bare gateway loading and its
 discovery description; specific heavy entry skills already load the kernel
@@ -31,7 +30,7 @@ stage savings are reported separately rather than attributed to every entry.
 
 ## Adversarial-review fidelity
 
-The original and final candidate each passed all 37 workflow decisions in five
+The original and candidate v2 each passed all 37 workflow decisions in five
 fresh Claude samples: 185/185 per arm. Cases cover Phase-1 short circuit,
 interactive versus unattended criticals, fixture caps, configuration and helper
 exits, L4 mandatory review, run-dir forwarding, checkpoints, carry handles,
@@ -70,6 +69,23 @@ review read. No helper behaviour, default or model choice changed. These small,
 correlated samples support the tested decisions and defect examples; they do not
 establish statistical non-inferiority or exercise the full two-model pipeline.
 
+## Gateway execution qualification
+
+Five fresh samples per arm executed five independent first-run and dispatch cases
+through the real pinned CLI. Both arms passed 25/25 cases. Normalised mutation
+order, onboarding prompts, dispatches and final file contents matched across all
+ten runs. No-write cases preserved file contents and modification times. There
+were no rejected calls. The original made 34 config-path reads; the candidate
+made 25. The nine extra original reads are visible in raw traces and made no
+mutations.
+
+This qualifies the gateway boundary. Downstream skills are stubs, with the
+onboard stub using real CLI setup; full downstream workflows are not claimed.
+All reports, operations, file snapshots, source hashes, worker prompts and screens
+are retained under `workflow-runs/`. `gateway-execution-results.json` binds the
+reports and records the cross-arm comparison. The fixture and oracle were frozen
+before model execution.
+
 ## Gateway fidelity
 
 Claude Code 2.1.325, Opus 5.5 at medium effort, in the existing authenticated
@@ -105,4 +121,16 @@ byte and line baselines were lowered. Rule inventory is checked against the
 12-hour baseline before publishing the slice.
 
 The earlier review-comment connector change is outside this baseline. Its 3,454
-bytes of prior reduction and pending dedicated CRLF measurement remain separate.
+bytes of prior reduction remain separate. The interactive CRLF fixture passed
+its behaviour check; provider-accounting qualification remains incomplete. See
+`../2026-11-16-review-comment-interactive/RESULTS.md`.
+
+## CI correction and candidate v3
+
+CI run 43808978097 caught six assertions in three test files: canonical review
+lens labels, the ADR independence sentence, and finding identity/carry example
+wording. Candidate v3 restores these source interfaces without weakening tests.
+The affected tests and adapter checks pass 158/158 locally. The original failing
+run remains recorded; it is not a green result. V2 model evidence remains bound to
+v2. V3 decision and artifact measurements run separately against the unchanged
+fixtures and recorded baseline samples before acceptance.

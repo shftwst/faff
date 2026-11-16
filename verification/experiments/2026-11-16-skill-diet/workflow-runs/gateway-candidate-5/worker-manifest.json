@@ -1,0 +1,19 @@
+{
+  "arm": "candidate",
+  "requested_model": "claude-opus-5-5",
+  "effort": "medium",
+  "claude_cli": "2.1.325",
+  "worker": "claude-retry",
+  "prompt_sha256": "2e79dd4f47e00748c85e0266f5b8c2d1735eb54a045d62462c1e70f253b28015",
+  "harness_command": [
+    "node",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/gateway-execution.mjs",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+    "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/candidates/gateway-v2.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-fixtures/gateway.json",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/gateway-candidate-5"
+  ],
+  "context_reset_requested": true,
+  "provider_usage": "unmetered"
+}

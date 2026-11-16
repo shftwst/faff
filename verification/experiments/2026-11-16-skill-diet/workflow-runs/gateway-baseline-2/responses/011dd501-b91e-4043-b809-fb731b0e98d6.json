@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "value": {
+    "completed": true,
+    "downstream": "fixture-stub",
+    "config_path_exists": false
+  }
+}

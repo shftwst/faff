@@ -7,7 +7,7 @@
     {
       "skill": "faff",
       "path": "plugin/skills/faff/SKILL.md",
-      "status": "draft-smoke-passed-workflow-proof-pending",
+      "status": "draft-workflow-boundary-qualified",
       "before": {
         "path": "plugin/skills/faff/SKILL.md",
         "bytes": 12984,
@@ -54,12 +54,98 @@
         "passed": 64,
         "failed": 0
       },
-      "qualification_pending": "Compare original and reduced prompt execution on affected disposable workflow fixtures before accepting this slice."
+      "workflow_execution": {
+        "schema": 1,
+        "status": "pass",
+        "samples_per_arm": 5,
+        "cases_per_sample": 5,
+        "baseline_passed": 25,
+        "candidate_passed": 25,
+        "normalised_effects_dispatches_and_final_states_equal": true,
+        "config_path_reads": {
+          "baseline": 34,
+          "candidate": 25
+        },
+        "runs": [
+          {
+            "run": "gateway-baseline-1",
+            "arm": "baseline",
+            "passed": 5,
+            "report_sha256": "826e85d64bcd668db499af8cec65a3a79f8d1a27ce9c8282acac9c12704e6e3c",
+            "config_path_reads": 8
+          },
+          {
+            "run": "gateway-baseline-2",
+            "arm": "baseline",
+            "passed": 5,
+            "report_sha256": "9b02bec5ed58f74c8a0711d899dc283b2040c0af53f598b8e116e5e78a43d2f2",
+            "config_path_reads": 7
+          },
+          {
+            "run": "gateway-baseline-3",
+            "arm": "baseline",
+            "passed": 5,
+            "report_sha256": "e8a464d7b6283316243e26d1bb44fbe6beb85aea6bc5ead135aa7075aed8300c",
+            "config_path_reads": 7
+          },
+          {
+            "run": "gateway-baseline-4",
+            "arm": "baseline",
+            "passed": 5,
+            "report_sha256": "9b02bec5ed58f74c8a0711d899dc283b2040c0af53f598b8e116e5e78a43d2f2",
+            "config_path_reads": 7
+          },
+          {
+            "run": "gateway-baseline-5",
+            "arm": "baseline",
+            "passed": 5,
+            "report_sha256": "e059ef4f5f66b27f3d4650e44f2b15e27f935d5dc88735a8ef62947e3f0b3ff9",
+            "config_path_reads": 5
+          },
+          {
+            "run": "gateway-candidate-1",
+            "arm": "candidate",
+            "passed": 5,
+            "report_sha256": "e059ef4f5f66b27f3d4650e44f2b15e27f935d5dc88735a8ef62947e3f0b3ff9",
+            "config_path_reads": 5
+          },
+          {
+            "run": "gateway-candidate-2",
+            "arm": "candidate",
+            "passed": 5,
+            "report_sha256": "e059ef4f5f66b27f3d4650e44f2b15e27f935d5dc88735a8ef62947e3f0b3ff9",
+            "config_path_reads": 5
+          },
+          {
+            "run": "gateway-candidate-3",
+            "arm": "candidate",
+            "passed": 5,
+            "report_sha256": "e059ef4f5f66b27f3d4650e44f2b15e27f935d5dc88735a8ef62947e3f0b3ff9",
+            "config_path_reads": 5
+          },
+          {
+            "run": "gateway-candidate-4",
+            "arm": "candidate",
+            "passed": 5,
+            "report_sha256": "e059ef4f5f66b27f3d4650e44f2b15e27f935d5dc88735a8ef62947e3f0b3ff9",
+            "config_path_reads": 5
+          },
+          {
+            "run": "gateway-candidate-5",
+            "arm": "candidate",
+            "passed": 5,
+            "report_sha256": "e059ef4f5f66b27f3d4650e44f2b15e27f935d5dc88735a8ef62947e3f0b3ff9",
+            "config_path_reads": 5
+          }
+        ],
+        "scope": "Gateway first-run and dispatch boundary. Real CLI mutations; downstream skill stubs. No full downstream workflow or statistical-equivalence claim.",
+        "provider_usage": "unmetered"
+      }
     },
     {
       "skill": "faffter-dark-adversarial-review",
       "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
-      "status": "draft-smoke-passed-workflow-proof-pending",
+      "status": "draft-ci-corrected-remeasurement-and-workflow-proof-pending",
       "before": {
         "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
         "bytes": 74897,
@@ -69,13 +155,13 @@
       },
       "after": {
         "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
-        "bytes": 22269,
-        "characters": 22269,
-        "estimated_tokens": 5568,
-        "sha256": "b8614d96a1135dcff5bd4e2f72e5fbf73fbaa21c2c217d214e9ec77214c890ff"
+        "bytes": 22259,
+        "characters": 22259,
+        "estimated_tokens": 5565,
+        "sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba"
       },
-      "bytes_saved": 52628,
-      "estimated_tokens_saved": 13006,
+      "bytes_saved": 52638,
+      "estimated_tokens_saved": 13009,
       "fidelity": {
         "kind": "decision-and-artifact-smoke",
         "model": "claude-opus-5-5",
@@ -111,7 +197,8 @@
           "quality fixtures frozen after candidate authoring, before either arm responded",
           "preliminary controls and formatting failures retained separately",
           "provider usage and cost unmetered"
-        ]
+        ],
+        "candidate_policy": "candidates/adversarial-v2.md (historical); v3 remeasurement in progress"
       },
       "mandatory_dependencies_added": [],
       "operator_reference": "docs/reference/adversarial-backends.md",
@@ -124,11 +211,11 @@
   ],
   "source_total": {
     "before_bytes": 1369435,
-    "after_bytes": 1309655,
+    "after_bytes": 1309645,
     "before_estimated_tokens": 339279,
-    "after_estimated_tokens": 324509
+    "after_estimated_tokens": 324506
   },
   "load_manifest": "load-manifest.json",
   "baseline_loads": "baseline/loads.json",
-  "latest_loads": "adversarial-after-loads.json"
+  "latest_loads": "adversarial-v3-after-loads.json"
 }

@@ -1,0 +1,58 @@
+{
+  "harness": "eval/control-parity/gateway-execution.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/gateway.json",
+  "samples": [
+    {
+      "name": "gateway-baseline-1",
+      "arm": "baseline",
+      "policy": "baseline/gateway.md"
+    },
+    {
+      "name": "gateway-candidate-1",
+      "arm": "candidate",
+      "policy": "candidates/gateway-v2.md"
+    },
+    {
+      "name": "gateway-candidate-2",
+      "arm": "candidate",
+      "policy": "candidates/gateway-v2.md"
+    },
+    {
+      "name": "gateway-baseline-2",
+      "arm": "baseline",
+      "policy": "baseline/gateway.md"
+    },
+    {
+      "name": "gateway-baseline-3",
+      "arm": "baseline",
+      "policy": "baseline/gateway.md"
+    },
+    {
+      "name": "gateway-candidate-3",
+      "arm": "candidate",
+      "policy": "candidates/gateway-v2.md"
+    },
+    {
+      "name": "gateway-candidate-4",
+      "arm": "candidate",
+      "policy": "candidates/gateway-v2.md"
+    },
+    {
+      "name": "gateway-baseline-4",
+      "arm": "baseline",
+      "policy": "baseline/gateway.md"
+    },
+    {
+      "name": "gateway-baseline-5",
+      "arm": "baseline",
+      "policy": "baseline/gateway.md"
+    },
+    {
+      "name": "gateway-candidate-5",
+      "arm": "candidate",
+      "policy": "candidates/gateway-v2.md"
+    }
+  ]
+}

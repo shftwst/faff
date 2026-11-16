@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "value": {
+    "exit_code": 0,
+    "stdout": "/tmp/faff-gateway-workflow-Xv6Ou2/cases/case-a/.faff/config.yaml\n",
+    "stderr": ""
+  }
+}

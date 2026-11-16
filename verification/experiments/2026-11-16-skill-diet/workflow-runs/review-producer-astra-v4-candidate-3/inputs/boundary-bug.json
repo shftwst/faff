@@ -1,0 +1,22 @@
+{
+  "appetite": "high",
+  "spec": "Implement belowLimit(value, limit) for finite numbers. Chosen: strict value < limit. AC: equality is rejected.",
+  "full_diff": "Added src/function.mjs and test/function.test.mjs exactly as supplied.",
+  "complete_changed_files": {
+    "src/function.mjs": "export const belowLimit = (value, limit) => value <= limit;\n",
+    "test/function.test.mjs": "import assert from 'node:assert/strict';\nimport {belowLimit} from '../src/function.mjs';\nassert.equal(belowLimit(4,5),true);\nassert.equal(belowLimit(6,5),false);\n"
+  },
+  "test_results": {
+    "status": "pass",
+    "command": "node --test",
+    "executed_by": "controlled caller, before this review"
+  },
+  "ac_checklist": [
+    {
+      "criterion": "Implement the stated behaviour",
+      "auto_verified": true,
+      "evidence": "test/function.test.mjs"
+    }
+  ],
+  "prior_findings": []
+}

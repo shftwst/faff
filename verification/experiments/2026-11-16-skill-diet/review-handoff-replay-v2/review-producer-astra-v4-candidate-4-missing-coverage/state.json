@@ -1,0 +1,23 @@
+{
+  "schema": 2,
+  "issues": {
+    "ISS-111": [
+      {
+        "id": "ISS-111-c1",
+        "created_at": "2026-11-14T08:00:00Z",
+        "body": "Human note\r\n\r\n<!-- faff-review-findings:ISS-111 -->\nsignal: fail\n\n## Findings\n\n### AC coverage: Mixed-case conversion untested in lower\n\ntest/function.test.mjs:3 covers uppercase input only. AC2 explicitly requires automated coverage for mixed-case input, and the checklist confirms it is unverified. Add an assertion that lower('AbC') equals 'abc'. The implementation otherwise matches the string-only, non-null spec.\n\n```faff-contract:review-verdict\n{\"signal\":\"fail\",\"findings\":[{\"title\":\"Mixed-case conversion untested in lower\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Add an assertion that lower('AbC') equals 'abc'.\",\"location_present\":true,\"action_present\":true,\"source\":\"standard\"}]}\n```\n<!-- /faff-review-findings:ISS-111 -->\n\r\nTrailing note"
+      }
+    ]
+  },
+  "next_comment_id": "ISS-111-c9",
+  "now": "2026-11-15T12:00:00Z",
+  "creates": 0,
+  "op_counts": {
+    "save_comment": 1
+  },
+  "faults": [],
+  "finished": {
+    "status": "completed",
+    "reason": "updated"
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "accepted": true,
+  "status": "qualified-bounded-review-production-and-comment-handoff",
+  "model": "gpt-6-astra",
+  "effort": "low",
+  "source_sha256": "e42c9a2d8d7478ad621769dcaec04dcd1dc17550de26805539696e25d64f251f",
+  "source_review": "review-producer-v3-source-review.json",
+  "source_review_sha256": "fa238430cede858209ab11b6ed9aa2fe2b868dc3ab660e8b2c36fc77441913f1",
+  "fixed_context_sha256": "17554a7630729184f82ccf8199637afde351bdee10c17dd43e785dfe3ed90249",
+  "native_qualification": "review-producer-astra-v4-native-qualification.json",
+  "native_qualification_sha256": "68922fa9fdf94cf3b10c82dd2f7fa5710c7cad82e8cd60aa695d6f2191de214e",
+  "manual_artifact_review": "manual-artifact-reviews/review-astra-v4.json",
+  "manual_artifact_review_sha256": "b38babd2742d97a4677df12bdca5b390826856a44e073eece63ea77e9dfc9923",
+  "title_equality": "review-producer-astra-v4-title-equality.json",
+  "title_equality_sha256": "d91e9673403e347bd297dfd8cf7258e2ed6e61f7eb1b01a419cc99f97eb4810e",
+  "before": {
+    "artifacts_passed": 35,
+    "artifacts_total": 35,
+    "decisions_passed": 100,
+    "decisions_total": 100,
+    "native_samples_passed": 5
+  },
+  "after": {
+    "artifacts_passed": 35,
+    "artifacts_total": 35,
+    "decisions_passed": 100,
+    "decisions_total": 100,
+    "native_samples_passed": 5
+  },
+  "downstream_replay": {
+    "report": "review-handoff-replay-v2/report.json",
+    "report_sha256": "ddb743d026834a7956099aaf570e7d92d8ea4b75e3893696cf5e4eae989cbe9e",
+    "manifest_sha256": "1ccca3b3d35c6a7d243779012be21ccf62dc7d415275ec63d0d501aa8d0092ef",
+    "artifacts": 70,
+    "handoffs_passed": 70,
+    "handoffs_total": 70
+  },
+  "integration": {
+    "tests_passed": 641,
+    "tests_failed": 0,
+    "adapter_lint": "pass",
+    "isolated_commit": "56606c1432af990321593fc15e1e801ae349fa65",
+    "checks": [
+      {
+        "path": "deterministic-checks/review-astra-v4-integration-tests.txt",
+        "sha256": "84ecaa46c07957286cc30f2aa4a4f14c63048850aa2211ba93489faa3eb488c6"
+      },
+      {
+        "path": "deterministic-checks/review-astra-v4-adapter-lint.txt",
+        "sha256": "b82122223fa41b4f23724aeceea9ad508c288e7f9ad02ccb918f8575e0fd6ce0"
+      },
+      {
+        "path": "review-astra-v4-isolated-rule-inventory.json",
+        "sha256": "40418ee52aa65ba0dfe1b7ceb47ead8c7984358131b6b04c01a27bc36f12789c"
+      }
+    ]
+  },
+  "mandatory_dependencies_added": [],
+  "limits": [
+    "Five new V4 candidate samples reuse five successful unchanged V3 baseline samples. Earlier candidate samples and failed qualifications are excluded and retained separately.",
+    "Root read all seventy actual outputs. Required facts, signals, prior-finding handling, actionable locations and exact prose/JSON title equality pass. Sentence-style titles occur in both arms; perfect noun-phrase style is not claimed.",
+    "Downstream replay uses the real review-verdict consumer and stored-comment connector with a subprocess fixture tracker. It preserves human prefix/suffix bytes, CRLF, comment identity and timestamp; each handoff reads twice and acknowledges one write.",
+    "Caller orchestration is deterministic. Full graft workflow, model caller selection, hosted publication, statistical equivalence and billed-token savings are not claimed."
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "value": {
+    "args": [
+      "contract",
+      "automation-routing"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"verdict\":\"fire-and-forget\",\"root_cause\":null,\"conformant\":false,\"violations\":[\"root_cause \\\"invented-class\\\" not in {punt-not-closed,gap,cycle,spec-ambiguous-external,other} — normalised to null\"]}\n",
+    "stderr": "",
+    "value": {
+      "verdict": "fire-and-forget",
+      "root_cause": null,
+      "conformant": false,
+      "violations": [
+        "root_cause \"invented-class\" not in {punt-not-closed,gap,cycle,spec-ambiguous-external,other} — normalised to null"
+      ]
+    }
+  }
+}

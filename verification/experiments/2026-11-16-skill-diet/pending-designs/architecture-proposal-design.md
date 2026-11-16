@@ -1,0 +1,18 @@
+# architecture-proposal skill diet
+
+## Scope and proof
+
+Frontmatter, standalone kernel read, whole Inputs, whole proposing strategy and the complete contract example remain byte-identical. Four real profile-show snapshots per sample exercise actual proposal artifacts, with ten separate policy decisions. Require all forty outputs manually read and actual contract consumption. No procurement, ADR creation or full caller claim.
+
+Require five fresh Astra-low samples per arm, complete native audits, manual review of every artifact and integration checks. Evidence: verification/experiments/2026-11-16-skill-diet/. No new mandatory reads.
+
+## Rule inventory
+
+| Prose rule | Replacement owner and observable behaviour | Covering test | Disposition |
+|---|---|---|---|
+| `The default occupant of the architecture slot — the generative half of faff's architecture story. Given a brief or spec plus the team's acquired infra prof` | Entry, What it does and Output preserve the default single-pass proposal role, caller-owned ADR materialisation, proposer/critic boundary, shape-validator ownership, one envelope, ADR intent and advisory confidence. | test/architecture-artifact.test.mjs | changed: consolidate repeated explanation while retaining the rule |
+| `One LLM pass turns the brief/spec + infra profile into one proposal envelope. It proposes, never commits: it emits the envelope + ADR candidates as intent ` | Entry, What it does and Output preserve the default single-pass proposal role, caller-owned ADR materialisation, proposer/critic boundary, shape-validator ownership, one envelope, ADR intent and advisory confidence. | test/architecture-artifact.test.mjs | changed: consolidate repeated explanation while retaining the rule |
+| `The contract (faff contract architecture-proposal) validates the envelope's shape only. This producer owns the proposing strategy — how the design is fitte` | Entry, What it does and Output preserve the default single-pass proposal role, caller-owned ADR materialisation, proposer/critic boundary, shape-validator ownership, one envelope, ADR intent and advisory confidence. | test/architecture-artifact.test.mjs | changed: consolidate repeated explanation while retaining the rule |
+| `Emit exactly one fenced block as the producer's output — the consumer locates it, JSON.parses it, and pipes it to faff contract architecture-proposal (the ` | Entry, What it does and Output preserve the default single-pass proposal role, caller-owned ADR materialisation, proposer/critic boundary, shape-validator ownership, one envelope, ADR intent and advisory confidence. | test/architecture-artifact.test.mjs | changed: consolidate repeated explanation while retaining the rule |
+| `Then emit a matching ## ADR promotion intent section (one entry per candidate) and a closing confidence: line (high / medium / low) — an advisory self-rati` | Entry, What it does and Output preserve the default single-pass proposal role, caller-owned ADR materialisation, proposer/critic boundary, shape-validator ownership, one envelope, ADR intent and advisory confidence. | test/architecture-artifact.test.mjs | changed: consolidate repeated explanation while retaining the rule |
+| `recommendation is one of a closed three-value set (canonical semantics: faff contract architecture-proposal --describe; enforced via violations); empty cho` | Entry, What it does and Output preserve the default single-pass proposal role, caller-owned ADR materialisation, proposer/critic boundary, shape-validator ownership, one envelope, ADR intent and advisory confidence. | test/architecture-artifact.test.mjs | changed: consolidate repeated explanation while retaining the rule |

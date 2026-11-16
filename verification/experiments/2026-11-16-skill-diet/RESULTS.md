@@ -1,8 +1,8 @@
 # Skill diet measurements
 
-Qualified source savings: **96,260 bytes and 23,719 estimated tokens**, from six body/reference cuts and 26 shorter discovery descriptions. Pending candidates are excluded. Draft PR: https://github.com/shftwst/faff/pull/1202.
+Qualified source savings: **101,620 bytes and 25,038 estimated tokens**, from seven body/reference cuts and 26 shorter discovery descriptions. Pending candidates are excluded. Draft PR: https://github.com/shftwst/faff/pull/1202.
 
-Baseline: `a8509086ad28fa0e55cf3d1d818f2055294e663b`. Current measured source commit: `ce02b49ac0428e03daae4c3ae8f77eee4dcd008c`. The 41-file set falls from 1,369,435 to 1,273,175 bytes, and from 339,279 to 315,560 estimated tokens. Estimates use ceil(UTF-16 characters/4) per file, summed; they are not provider usage or billing.
+Baseline: `a8509086ad28fa0e55cf3d1d818f2055294e663b`. Current measured source commit: `f6324f6112eeb54999aeda04c20245edac7187a9`. The 41-file set falls from 1,369,435 to 1,267,815 bytes, and from 339,279 to 314,241 estimated tokens. Estimates use ceil(UTF-16 characters/4) per file, summed; they are not provider usage or billing.
 
 ## Source reductions
 
@@ -14,13 +14,14 @@ Baseline: `a8509086ad28fa0e55cf3d1d818f2055294e663b`. Current measured source co
 | faffter-noon-methodology-thematic | 35,118 | 29,418 | 5,700 | 8,672 | 7,281 | 1,391 |
 | shared kernel configuration | 95,418 | 84,072 | 11,346 | 23,652 | 20,857 | 2,795 |
 | faffter-noon-prd | 4,214 | 2,465 | 1,749 | 1,047 | 617 | 430 |
+| faffter-noon-review | 13,405 | 8,045 | 5,360 | 3,327 | 2,008 | 1,319 |
 | 26 discovery descriptions | 832,740 | 828,416 | 4,324 | 206,322 | 205,255 | 1,067 |
 
-The 26 description reductions exclude gateway, adversarial review, rendering and thematic, whose metadata changes are counted with their body cuts. The later PRD body cut starts after its accepted description. `ledger.json` reconciles exactly to the committed source set, with no double counting or new mandatory reads.
+The 26 description reductions exclude gateway, adversarial review, rendering and thematic, whose metadata changes are counted with their body cuts. The later PRD and review body cuts start after their accepted descriptions. `ledger.json` reconciles exactly to the committed source set, with no double counting or new mandatory reads.
 
 ## Fidelity before and after
 
-Every paired row has five fresh samples per arm and complete native tool-log audits. Gateway through kernel configuration use Claude Opus 5.5, medium effort, CLI 2.1.325. PRD uses a separate fresh Astra-low pair, verified as gpt-6-astra / low / Codex CLI 0.169.0; no Claude samples are pooled into it.
+Every paired row has five samples per arm and complete native tool-log audits. Review V4 uses five new candidates with the unchanged five successful V3 baselines; earlier candidate samples are excluded. Gateway through kernel configuration use Claude Opus 5.5, medium effort, CLI 2.1.325. PRD uses a separate fresh Astra-low pair; review uses a separate Astra-low comparison, verified as gpt-6-astra / low / Codex CLI 0.169.0; no Claude samples are pooled into it.
 
 | Slice | Before | After | Executed boundary |
 |---|---|---|---|
@@ -32,14 +33,20 @@ Every paired row has five fresh samples per arm and complete native tool-log aud
 | Kernel configuration | 45/45 execution; 120/120 decisions | Same | Real config reads/writes, refusal paths and slot resolution with downstream stubs |
 | PRD producer | 30/30 artifacts; 40/40 decisions; 120/120 downstream cases | Same | Real PRD reads and contract consumption; all 60 artifacts read; deterministic coverage/run-start/run-trigger replay rejects 120 forged decisions per arm |
 
+| Review producer | 35/35 artifacts; 100/100 decisions; 35/35 stored-comment handoffs | Same | Real review-verdict consumer and stored-comment connector; all 70 outputs read; exact prose/JSON titles and preserved comment bytes checked |
+
 Rendering raw decision scores are 95/100 per arm; the separately recorded assessment accepts the correct heading with its Markdown marker. Adversarial assessments record three permitted output-existence probes. Original failures, captures and corrections remain preserved. Kernel V2/V3 native protocol failures are not pooled into qualified V4. The catalogue V1 selection regression was resolved by restoring the jot and prep descriptions.
 
-Qualification files bind source, reports, native audits and manual artifact reviews. `prd-astra-v2-rule-inventory-fixed.json` covers all 495 deleted blocks: 26 moved and 469 mapped, none uncovered. The PRD integration passes 539 tests and adapter lint; the initial inventory formatting failure is preserved. Adapter lint, targeted execution checks and size ratchets pass. Earlier observations and failed treatments are retained in [the measurement journal](MEASUREMENT-JOURNAL.md).
+Qualification files bind source, reports, native audits and manual artifact reviews. `review-astra-v4-main-rule-inventory.json` covers all 560 deleted blocks: 28 moved and 532 mapped, none uncovered. The PRD integration passes 539 tests and adapter lint; the initial inventory formatting failure is preserved. Adapter lint, targeted execution checks and size ratchets pass. Earlier observations and failed treatments are retained in [the measurement journal](MEASUREMENT-JOURNAL.md).
 
 ## Limits and pending work
 
-These are bounded comparisons, not statistical equivalence or proof of complete graft/ship, live tracker mutation or hosted publication. Untested mutation sections of the thematic skill remain byte-identical. Source totals count all tracked prose, not one prompt; `load-manifest.json` and `prd-astra-v2-after-loads.json` separately describe declared entry reads, counting each dependency once.
+These are bounded comparisons, not statistical equivalence or proof of complete graft/ship, live tracker mutation or hosted publication. Untested mutation sections of the thematic skill remain byte-identical. Source totals count all tracked prose, not one prompt; `load-manifest.json` and `review-astra-v4-after-loads.json` separately describe declared entry reads, counting each dependency once.
 
-Claude exhausted its weekly allowance during the PRD and default-review candidate sets. Those incomplete pairs are preserved and unqualified. The separate Astra PRD pair is qualified. Review V3 completed all functional, native, title and downstream checks but failed integration enum lint. V4 separates the existing judgement conditions and measures five new candidates against the unchanged five successful baselines. WTF and routing are running. ADR-body V1 has started with six real format/scaffold/validate preflight cases passing; its source cut is pending. Map V1 is held because all six baseline-one reports omit the required TL;DR section; its candidate was not measured. Pending body cuts remain excluded from totals. The WTF candidate was revised for omitted offers, and the review candidate for mismatched prose/JSON titles. The agile cut is held: manual review found an unsupported UI dependency qualifier in an Astra baseline diagnosis, failing the frozen all-artifact semantic bar. This is a baseline failure, not evidence of a candidate regression. The candidate continuation was cancelled and its measurement lane moves to routing. All PR CI checks pass at `4611efcd`, including all unit shards, the full Node 24 source-build suite, adapter lint, macOS validation and governance checks.
+Claude exhausted its weekly allowance during the PRD and default-review candidate sets. Those incomplete pairs are preserved and unqualified. The separate Astra PRD and review comparisons are qualified. Review V3 passed functional, native, title and downstream checks but failed integration enum lint. V4 separates the existing judgement conditions and passes all those checks plus 641 integration tests and adapter lint. Sentence-style finding titles occur in both arms; perfect noun-phrase style is not claimed.
 
-The full PRD downstream replay passes all 240 cases and rejects 240 forged decisions. The review V3 replay passes for all 70 artifacts, with one acknowledged stored-comment write each and exact preserved content/newlines. V4 requires a separate replay after its candidate set. These are deterministic caller checks, not additional model samples or full caller workflows.
+WTF is finishing its candidate set. Intake V1 baseline two returned the correct skill names with leading slashes, which the exact-string oracle rejected. V2 clarifies the identifier spelling in both arms and uses ten fresh samples; V1 reports remain excluded. Architecture V1 is held on a mistyped literal bridge path in the baseline. Its functional results do not override the native failure.
+
+Other held cuts remain excluded: routing varies its baseline root-cause assignment and fails the frozen exact projection; ADR-body adds an unsupported acceptance-event date; map omits the required TL;DR section; agile adds an unsupported dependency qualifier. Those are baseline failures, not measured candidate regressions. Candidate continuations were stopped. All PR CI checks passed at bc66798c; the newly committed review source is awaiting its own CI.
+
+The full PRD downstream replay passes all 240 cases and rejects 240 forged decisions. The accepted review V4 replay passes for all 70 actual artifacts, with one acknowledged stored-comment write each and exact preserved content/newlines. These are deterministic caller checks, not additional model samples or full caller workflows.

@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All 10 assignment cases, 2 supplied validations, and 13 policy questions finished and were persisted. `finish` returned `true`.\n\nNo departures from the restrictions.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e454-c5fd-7091-8a7a-797278ee8231"
+    ],
+    "elapsed_seconds": 533.6,
+    "stdout_sha256": "1ec5b47fde9301fc0d6d8c2753baf1b1992e309fd6dc790ccd612511ed100570",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

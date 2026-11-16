@@ -1,0 +1,1555 @@
+{
+  "events": [
+    {
+      "seq": 1,
+      "name": "describe_contract",
+      "args": {},
+      "result": {
+        "text": "# faff contract automation-routing\n\nThe closed six-value verdict the autonomous build-queue routing adaptor assigns to a not-yet-buildable issue — what faff-graft's resolve-attempt-before-park logic branches on.\n\n## Values\n\n### `verdict`\n\nEnum: `fire-and-forget`, `likely-fire`, `needs-decision-first`, `gap-blocked`, `circular-blocked`, `repeat-parked`\n\n| Value | Meaning |\n|---|---|\n| `fire-and-forget` | ready to build with no human touch expected |\n| `likely-fire` | ready to build, minor residual ambiguity a resolve-attempt can likely close |\n| `needs-decision-first` | a spec punt or open decision blocks the build — resolve-attempt then park |\n| `gap-blocked` | an external dependency is missing — resolve-attempt (precautionary vs load-bearing) then park |\n| `circular-blocked` | a dependency cycle blocks the build — resolve-attempt (serialise defensive edges) then park |\n| `repeat-parked` | this issue has parked before on the same class of ambiguity — no resolve-attempt, always park |\n\n### `root_cause`\n\nEnum: `punt-not-closed`, `gap`, `cycle`, `spec-ambiguous-external`, `other`\n\n| Value | Meaning |\n|---|---|\n| `punt-not-closed` | a spec Punt marker was never resolved |\n| `gap` | a named external dependency is missing |\n| `cycle` | a dependency cycle involves this issue |\n| `spec-ambiguous-external` | the ambiguity depends on information outside the spec |\n| `other` | a root cause outside the named set |\n\n## Coercion & fail direction\n\nExit codes: `0` conformant · `1` violations · `2` fail-loud.\n\n- an out-of-enum verdict → fail-loud (exit 2) — no safe coerce target, an assignment bug\n- an out-of-enum root_cause → normalised to null (exit 1)\n\n## Envelope\n\n- `verdict` (string, required) — one of {fire-and-forget, likely-fire, needs-decision-first, gap-blocked, circular-blocked, repeat-parked}\n- `root_cause` (enum, required) — one of {punt-not-closed, gap, cycle, spec-ambiguous-external, other, }\n- `conformant` (boolean, required)\n- `violations` (array, required)\n\n## Producer notes\n\n- the build-queue ADMISSION RULE (which verdicts actually enter the queue) is gateway semantics, NOT encoded in this script\n"
+      }
+    },
+    {
+      "seq": 2,
+      "name": "read_inputs",
+      "args": {
+        "case_id": "independent"
+      },
+      "result": {
+        "issue": {
+          "id": "ROUTE-1",
+          "title": "Export account records",
+          "status": "Todo"
+        },
+        "confidence": "high",
+        "spec": "# Account export\n\nconfidence: high\n\n**Chosen:** export the authenticated account records as JSON.\n",
+        "diagnostics": {
+          "in_cycle": false,
+          "ghost_project_or_missing_dep": null
+        },
+        "conflict": {
+          "independent": true,
+          "collision_group": [],
+          "in_queue_blockers": []
+        },
+        "park_history": [],
+        "spec_path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/independent.md"
+      }
+    },
+    {
+      "seq": 3,
+      "name": "scan_punts",
+      "args": {
+        "case_id": "independent"
+      },
+      "result": {
+        "args": [
+          "punt-scan",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/independent.md"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"punts\":[],\"eligible_count\":0,\"blocking_open_count\":0}\n",
+        "stderr": "",
+        "value": {
+          "punts": [],
+          "eligible_count": 0,
+          "blocking_open_count": 0
+        }
+      }
+    },
+    {
+      "seq": 4,
+      "name": "assign",
+      "args": {
+        "case_id": "independent",
+        "extraction": {
+          "verdict": "fire-and-forget",
+          "root_cause": null
+        }
+      },
+      "result": {
+        "args": [
+          "contract",
+          "automation-routing"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"fire-and-forget\",\"root_cause\":null,\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "fire-and-forget",
+          "root_cause": null,
+          "conformant": true,
+          "violations": []
+        }
+      }
+    },
+    {
+      "seq": 5,
+      "name": "read_inputs",
+      "args": {
+        "case_id": "collision"
+      },
+      "result": {
+        "issue": {
+          "id": "ROUTE-1",
+          "title": "Export account records",
+          "status": "Todo"
+        },
+        "confidence": "high",
+        "spec": "# Account export\n\nconfidence: high\n\n**Chosen:** export the authenticated account records as JSON.\n",
+        "diagnostics": {
+          "in_cycle": false,
+          "ghost_project_or_missing_dep": null
+        },
+        "conflict": {
+          "independent": false,
+          "collision_group": [
+            "ROUTE-1",
+            "ROUTE-2"
+          ],
+          "in_queue_blockers": [],
+          "reason": "Both changes touch src/export.mjs; serialise this group."
+        },
+        "park_history": [],
+        "spec_path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/collision.md"
+      }
+    },
+    {
+      "seq": 6,
+      "name": "scan_punts",
+      "args": {
+        "case_id": "collision"
+      },
+      "result": {
+        "args": [
+          "punt-scan",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/collision.md"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"punts\":[],\"eligible_count\":0,\"blocking_open_count\":0}\n",
+        "stderr": "",
+        "value": {
+          "punts": [],
+          "eligible_count": 0,
+          "blocking_open_count": 0
+        }
+      }
+    },
+    {
+      "seq": 7,
+      "name": "assign",
+      "args": {
+        "case_id": "collision",
+        "extraction": {
+          "verdict": "likely-fire",
+          "root_cause": null
+        }
+      },
+      "result": {
+        "args": [
+          "contract",
+          "automation-routing"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"likely-fire\",\"root_cause\":null,\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "likely-fire",
+          "root_cause": null,
+          "conformant": true,
+          "violations": []
+        }
+      }
+    },
+    {
+      "seq": 8,
+      "name": "read_inputs",
+      "args": {
+        "case_id": "blocking-punt"
+      },
+      "result": {
+        "issue": {
+          "id": "ROUTE-1",
+          "title": "Export account records",
+          "status": "Todo"
+        },
+        "confidence": "high",
+        "spec": "# Account export\n\nconfidence: high\n\n**Chosen:** export the authenticated account records as JSON.\n\n**Punt:** cron vs queue-driven send (decides: architecture)\n",
+        "diagnostics": {
+          "in_cycle": false,
+          "ghost_project_or_missing_dep": null
+        },
+        "conflict": {
+          "independent": true,
+          "collision_group": [],
+          "in_queue_blockers": []
+        },
+        "park_history": [],
+        "spec_path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/blocking-punt.md"
+      }
+    },
+    {
+      "seq": 9,
+      "name": "scan_punts",
+      "args": {
+        "case_id": "blocking-punt"
+      },
+      "result": {
+        "args": [
+          "punt-scan",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/blocking-punt.md"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"punts\":[{\"topic\":\"cron vs queue-driven send\",\"decides\":\"architecture\",\"non_blocking\":false,\"out_of_scope_crossref\":false,\"eligible\":false}],\"eligible_count\":0,\"blocking_open_count\":1}\n",
+        "stderr": "",
+        "value": {
+          "punts": [
+            {
+              "topic": "cron vs queue-driven send",
+              "decides": "architecture",
+              "non_blocking": false,
+              "out_of_scope_crossref": false,
+              "eligible": false
+            }
+          ],
+          "eligible_count": 0,
+          "blocking_open_count": 1
+        }
+      }
+    },
+    {
+      "seq": 10,
+      "name": "assign",
+      "args": {
+        "case_id": "blocking-punt",
+        "extraction": {
+          "verdict": "needs-decision-first",
+          "root_cause": "punt-not-closed"
+        }
+      },
+      "result": {
+        "args": [
+          "contract",
+          "automation-routing"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"needs-decision-first\",\"root_cause\":\"punt-not-closed\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "needs-decision-first",
+          "root_cause": "punt-not-closed",
+          "conformant": true,
+          "violations": []
+        }
+      }
+    },
+    {
+      "seq": 11,
+      "name": "read_inputs",
+      "args": {
+        "case_id": "eligible-punt"
+      },
+      "result": {
+        "issue": {
+          "id": "ROUTE-1",
+          "title": "Export account records",
+          "status": "Todo"
+        },
+        "confidence": "high",
+        "spec": "# Account export\n\nconfidence: high\n\n**Chosen:** export the authenticated account records as JSON.\n\n## OUT OF SCOPE\n\n- **Scheduled exports** - deferred to another ticket.\n\n**Punt:** scheduled exports (non-blocking)\n",
+        "diagnostics": {
+          "in_cycle": false,
+          "ghost_project_or_missing_dep": null
+        },
+        "conflict": {
+          "independent": true,
+          "collision_group": [],
+          "in_queue_blockers": []
+        },
+        "park_history": [],
+        "spec_path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/eligible-punt.md"
+      }
+    },
+    {
+      "seq": 12,
+      "name": "scan_punts",
+      "args": {
+        "case_id": "eligible-punt"
+      },
+      "result": {
+        "args": [
+          "punt-scan",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/eligible-punt.md"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"punts\":[{\"topic\":\"scheduled exports\",\"decides\":null,\"non_blocking\":true,\"out_of_scope_crossref\":true,\"eligible\":true}],\"eligible_count\":1,\"blocking_open_count\":0}\n",
+        "stderr": "",
+        "value": {
+          "punts": [
+            {
+              "topic": "scheduled exports",
+              "decides": null,
+              "non_blocking": true,
+              "out_of_scope_crossref": true,
+              "eligible": true
+            }
+          ],
+          "eligible_count": 1,
+          "blocking_open_count": 0
+        }
+      }
+    },
+    {
+      "seq": 13,
+      "name": "assign",
+      "args": {
+        "case_id": "eligible-punt",
+        "extraction": {
+          "verdict": "fire-and-forget",
+          "root_cause": null
+        }
+      },
+      "result": {
+        "args": [
+          "contract",
+          "automation-routing"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"fire-and-forget\",\"root_cause\":null,\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "fire-and-forget",
+          "root_cause": null,
+          "conformant": true,
+          "violations": []
+        }
+      }
+    },
+    {
+      "seq": 14,
+      "name": "read_inputs",
+      "args": {
+        "case_id": "tag-without-crossref"
+      },
+      "result": {
+        "issue": {
+          "id": "ROUTE-1",
+          "title": "Export account records",
+          "status": "Todo"
+        },
+        "confidence": "high",
+        "spec": "# Account export\n\nconfidence: high\n\n**Chosen:** export the authenticated account records as JSON.\n\n**Punt:** cron vs queue (non-blocking)\n",
+        "diagnostics": {
+          "in_cycle": false,
+          "ghost_project_or_missing_dep": null
+        },
+        "conflict": {
+          "independent": true,
+          "collision_group": [],
+          "in_queue_blockers": []
+        },
+        "park_history": [],
+        "spec_path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/tag-without-crossref.md"
+      }
+    },
+    {
+      "seq": 15,
+      "name": "scan_punts",
+      "args": {
+        "case_id": "tag-without-crossref"
+      },
+      "result": {
+        "args": [
+          "punt-scan",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/tag-without-crossref.md"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"punts\":[{\"topic\":\"cron vs queue\",\"decides\":null,\"non_blocking\":true,\"out_of_scope_crossref\":false,\"eligible\":false}],\"eligible_count\":0,\"blocking_open_count\":1}\n",
+        "stderr": "",
+        "value": {
+          "punts": [
+            {
+              "topic": "cron vs queue",
+              "decides": null,
+              "non_blocking": true,
+              "out_of_scope_crossref": false,
+              "eligible": false
+            }
+          ],
+          "eligible_count": 0,
+          "blocking_open_count": 1
+        }
+      }
+    },
+    {
+      "seq": 16,
+      "name": "assign",
+      "args": {
+        "case_id": "tag-without-crossref",
+        "extraction": {
+          "verdict": "needs-decision-first",
+          "root_cause": "punt-not-closed"
+        }
+      },
+      "result": {
+        "args": [
+          "contract",
+          "automation-routing"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"needs-decision-first\",\"root_cause\":\"punt-not-closed\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "needs-decision-first",
+          "root_cause": "punt-not-closed",
+          "conformant": true,
+          "violations": []
+        }
+      }
+    },
+    {
+      "seq": 17,
+      "name": "read_inputs",
+      "args": {
+        "case_id": "non-punt-marker"
+      },
+      "result": {
+        "issue": {
+          "id": "ROUTE-1",
+          "title": "Export account records",
+          "status": "Todo"
+        },
+        "confidence": "high",
+        "spec": "# Account export\n\nconfidence: high\n\n**Chosen:** export the authenticated account records as JSON.\n\nDelivery schedule: TBD (decides: product).\n",
+        "diagnostics": {
+          "in_cycle": false,
+          "ghost_project_or_missing_dep": null
+        },
+        "conflict": {
+          "independent": true,
+          "collision_group": [],
+          "in_queue_blockers": []
+        },
+        "park_history": [],
+        "spec_path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/non-punt-marker.md"
+      }
+    },
+    {
+      "seq": 18,
+      "name": "scan_punts",
+      "args": {
+        "case_id": "non-punt-marker"
+      },
+      "result": {
+        "args": [
+          "punt-scan",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/non-punt-marker.md"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"punts\":[],\"eligible_count\":0,\"blocking_open_count\":0}\n",
+        "stderr": "",
+        "value": {
+          "punts": [],
+          "eligible_count": 0,
+          "blocking_open_count": 0
+        }
+      }
+    },
+    {
+      "seq": 19,
+      "name": "assign",
+      "args": {
+        "case_id": "non-punt-marker",
+        "extraction": {
+          "verdict": "needs-decision-first",
+          "root_cause": "punt-not-closed"
+        }
+      },
+      "result": {
+        "args": [
+          "contract",
+          "automation-routing"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"needs-decision-first\",\"root_cause\":\"punt-not-closed\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "needs-decision-first",
+          "root_cause": "punt-not-closed",
+          "conformant": true,
+          "violations": []
+        }
+      }
+    },
+    {
+      "seq": 20,
+      "name": "read_inputs",
+      "args": {
+        "case_id": "medium-confidence"
+      },
+      "result": {
+        "issue": {
+          "id": "ROUTE-1",
+          "title": "Export account records",
+          "status": "Todo"
+        },
+        "confidence": "medium",
+        "spec": "# Account export\n\nconfidence: medium\n\n**Chosen:** export the authenticated account records as JSON.\n\nConfidence rationale: product must confirm whether a downloadable link is acceptable.\n",
+        "diagnostics": {
+          "in_cycle": false,
+          "ghost_project_or_missing_dep": null
+        },
+        "conflict": {
+          "independent": true,
+          "collision_group": [],
+          "in_queue_blockers": []
+        },
+        "park_history": [],
+        "spec_path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/medium-confidence.md"
+      }
+    },
+    {
+      "seq": 21,
+      "name": "scan_punts",
+      "args": {
+        "case_id": "medium-confidence"
+      },
+      "result": {
+        "args": [
+          "punt-scan",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/medium-confidence.md"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"punts\":[],\"eligible_count\":0,\"blocking_open_count\":0}\n",
+        "stderr": "",
+        "value": {
+          "punts": [],
+          "eligible_count": 0,
+          "blocking_open_count": 0
+        }
+      }
+    },
+    {
+      "seq": 22,
+      "name": "assign",
+      "args": {
+        "case_id": "medium-confidence",
+        "extraction": {
+          "verdict": "needs-decision-first",
+          "root_cause": "spec-ambiguous-external"
+        }
+      },
+      "result": {
+        "args": [
+          "contract",
+          "automation-routing"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"needs-decision-first\",\"root_cause\":\"spec-ambiguous-external\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "needs-decision-first",
+          "root_cause": "spec-ambiguous-external",
+          "conformant": true,
+          "violations": []
+        }
+      }
+    },
+    {
+      "seq": 23,
+      "name": "read_inputs",
+      "args": {
+        "case_id": "named-gap"
+      },
+      "result": {
+        "issue": {
+          "id": "ROUTE-1",
+          "title": "Export account records",
+          "status": "Todo"
+        },
+        "confidence": "high",
+        "spec": "# Account export\n\nconfidence: high\n\n**Chosen:** export the authenticated account records as JSON.\n",
+        "diagnostics": {
+          "in_cycle": false,
+          "ghost_project_or_missing_dep": {
+            "name": "Export archive",
+            "reason": "The spec assumes this project exists; fresh tracker lookup found none."
+          }
+        },
+        "conflict": {
+          "independent": true,
+          "collision_group": [],
+          "in_queue_blockers": []
+        },
+        "park_history": [],
+        "spec_path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/named-gap.md"
+      }
+    },
+    {
+      "seq": 24,
+      "name": "scan_punts",
+      "args": {
+        "case_id": "named-gap"
+      },
+      "result": {
+        "args": [
+          "punt-scan",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/named-gap.md"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"punts\":[],\"eligible_count\":0,\"blocking_open_count\":0}\n",
+        "stderr": "",
+        "value": {
+          "punts": [],
+          "eligible_count": 0,
+          "blocking_open_count": 0
+        }
+      }
+    },
+    {
+      "seq": 25,
+      "name": "assign",
+      "args": {
+        "case_id": "named-gap",
+        "extraction": {
+          "verdict": "gap-blocked",
+          "root_cause": "gap"
+        }
+      },
+      "result": {
+        "args": [
+          "contract",
+          "automation-routing"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"gap-blocked\",\"root_cause\":\"gap\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "gap-blocked",
+          "root_cause": "gap",
+          "conformant": true,
+          "violations": []
+        }
+      }
+    },
+    {
+      "seq": 26,
+      "name": "read_inputs",
+      "args": {
+        "case_id": "cycle"
+      },
+      "result": {
+        "issue": {
+          "id": "ROUTE-1",
+          "title": "Export account records",
+          "status": "Todo"
+        },
+        "confidence": "high",
+        "spec": "# Account export\n\nconfidence: high\n\n**Chosen:** export the authenticated account records as JSON.\n",
+        "diagnostics": {
+          "in_cycle": true,
+          "cycle": [
+            "ROUTE-1",
+            "ROUTE-2",
+            "ROUTE-1"
+          ],
+          "ghost_project_or_missing_dep": null
+        },
+        "conflict": {
+          "independent": true,
+          "collision_group": [],
+          "in_queue_blockers": []
+        },
+        "park_history": [],
+        "spec_path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/cycle.md"
+      }
+    },
+    {
+      "seq": 27,
+      "name": "scan_punts",
+      "args": {
+        "case_id": "cycle"
+      },
+      "result": {
+        "args": [
+          "punt-scan",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/cycle.md"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"punts\":[],\"eligible_count\":0,\"blocking_open_count\":0}\n",
+        "stderr": "",
+        "value": {
+          "punts": [],
+          "eligible_count": 0,
+          "blocking_open_count": 0
+        }
+      }
+    },
+    {
+      "seq": 28,
+      "name": "assign",
+      "args": {
+        "case_id": "cycle",
+        "extraction": {
+          "verdict": "circular-blocked",
+          "root_cause": "cycle"
+        }
+      },
+      "result": {
+        "args": [
+          "contract",
+          "automation-routing"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"circular-blocked\",\"root_cause\":\"cycle\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "circular-blocked",
+          "root_cause": "cycle",
+          "conformant": true,
+          "violations": []
+        }
+      }
+    },
+    {
+      "seq": 29,
+      "name": "read_inputs",
+      "args": {
+        "case_id": "repeat-park"
+      },
+      "result": {
+        "issue": {
+          "id": "ROUTE-1",
+          "title": "Export account records",
+          "status": "Todo"
+        },
+        "confidence": "medium",
+        "spec": "# Account export\n\nconfidence: medium\n\n**Chosen:** export the authenticated account records as JSON.\n\n**Punt:** export schedule (decides: product)\n",
+        "diagnostics": {
+          "in_cycle": false,
+          "ghost_project_or_missing_dep": null
+        },
+        "conflict": {
+          "independent": true,
+          "collision_group": [],
+          "in_queue_blockers": []
+        },
+        "park_history": [
+          {
+            "root_cause": "punt-not-closed",
+            "autonomous": true
+          },
+          {
+            "root_cause": "punt-not-closed",
+            "autonomous": true
+          },
+          {
+            "root_cause": "punt-not-closed",
+            "autonomous": true
+          }
+        ],
+        "spec_path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/repeat-park.md"
+      }
+    },
+    {
+      "seq": 30,
+      "name": "scan_punts",
+      "args": {
+        "case_id": "repeat-park"
+      },
+      "result": {
+        "args": [
+          "punt-scan",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/repeat-park.md"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"punts\":[{\"topic\":\"export schedule\",\"decides\":\"product\",\"non_blocking\":false,\"out_of_scope_crossref\":false,\"eligible\":false}],\"eligible_count\":0,\"blocking_open_count\":1}\n",
+        "stderr": "",
+        "value": {
+          "punts": [
+            {
+              "topic": "export schedule",
+              "decides": "product",
+              "non_blocking": false,
+              "out_of_scope_crossref": false,
+              "eligible": false
+            }
+          ],
+          "eligible_count": 0,
+          "blocking_open_count": 1
+        }
+      }
+    },
+    {
+      "seq": 31,
+      "name": "assign",
+      "args": {
+        "case_id": "repeat-park",
+        "extraction": {
+          "verdict": "repeat-parked",
+          "root_cause": "punt-not-closed"
+        }
+      },
+      "result": {
+        "args": [
+          "contract",
+          "automation-routing"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"repeat-parked\",\"root_cause\":\"punt-not-closed\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "repeat-parked",
+          "root_cause": "punt-not-closed",
+          "conformant": true,
+          "violations": []
+        }
+      }
+    },
+    {
+      "seq": 32,
+      "name": "validate_supplied",
+      "args": {
+        "case_id": "bad-root"
+      },
+      "result": {
+        "args": [
+          "contract",
+          "automation-routing"
+        ],
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"fire-and-forget\",\"root_cause\":null,\"conformant\":false,\"violations\":[\"root_cause \\\"invented-class\\\" not in {punt-not-closed,gap,cycle,spec-ambiguous-external,other} — normalised to null\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "fire-and-forget",
+          "root_cause": null,
+          "conformant": false,
+          "violations": [
+            "root_cause \"invented-class\" not in {punt-not-closed,gap,cycle,spec-ambiguous-external,other} — normalised to null"
+          ]
+        }
+      }
+    },
+    {
+      "seq": 33,
+      "name": "validate_supplied",
+      "args": {
+        "case_id": "bad-verdict"
+      },
+      "result": {
+        "args": [
+          "contract",
+          "automation-routing"
+        ],
+        "exit_code": 2,
+        "stdout": "",
+        "stderr": "faff contract automation-routing: fail-loud: verdict \"maybe-ready\" not in the closed six — no safe coerce target\n",
+        "value": null
+      }
+    },
+    {
+      "seq": 34,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "admission",
+        "value": [
+          "fire-and-forget",
+          "likely-fire"
+        ]
+      },
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 35,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "repeat-attempt",
+        "value": false
+      },
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 36,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "fresh-pass",
+        "value": false
+      },
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 37,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "same-pass",
+        "value": true
+      },
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 38,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "standalone-wtf",
+        "value": true
+      },
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 39,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "pipeline-path",
+        "value": ".faff/runs/<run-id>/automation-verdicts.md"
+      },
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 40,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "standalone-path",
+        "value": ".faff/logs/YYYY-MM-DD/HHMMSS-tidy-verdicts.md"
+      },
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 41,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "eligibility-owner",
+        "value": false
+      },
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 42,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "root-normalisation",
+        "value": 1
+      },
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 43,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "verdict-fail-loud",
+        "value": 2
+      },
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 44,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "shape-owner",
+        "value": false
+      },
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 45,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "detection-owner",
+        "value": "methodology"
+      },
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 46,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "no-queue-policy-in-validator",
+        "value": false
+      },
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 47,
+      "name": "finish",
+      "args": {},
+      "result": {
+        "finished": true
+      }
+    }
+  ],
+  "errors": [],
+  "reads": [
+    "independent",
+    "collision",
+    "blocking-punt",
+    "eligible-punt",
+    "tag-without-crossref",
+    "non-punt-marker",
+    "medium-confidence",
+    "named-gap",
+    "cycle",
+    "repeat-park"
+  ],
+  "scans": [
+    {
+      "id": "independent",
+      "result": {
+        "args": [
+          "punt-scan",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/independent.md"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"punts\":[],\"eligible_count\":0,\"blocking_open_count\":0}\n",
+        "stderr": "",
+        "value": {
+          "punts": [],
+          "eligible_count": 0,
+          "blocking_open_count": 0
+        }
+      }
+    },
+    {
+      "id": "collision",
+      "result": {
+        "args": [
+          "punt-scan",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/collision.md"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"punts\":[],\"eligible_count\":0,\"blocking_open_count\":0}\n",
+        "stderr": "",
+        "value": {
+          "punts": [],
+          "eligible_count": 0,
+          "blocking_open_count": 0
+        }
+      }
+    },
+    {
+      "id": "blocking-punt",
+      "result": {
+        "args": [
+          "punt-scan",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/blocking-punt.md"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"punts\":[{\"topic\":\"cron vs queue-driven send\",\"decides\":\"architecture\",\"non_blocking\":false,\"out_of_scope_crossref\":false,\"eligible\":false}],\"eligible_count\":0,\"blocking_open_count\":1}\n",
+        "stderr": "",
+        "value": {
+          "punts": [
+            {
+              "topic": "cron vs queue-driven send",
+              "decides": "architecture",
+              "non_blocking": false,
+              "out_of_scope_crossref": false,
+              "eligible": false
+            }
+          ],
+          "eligible_count": 0,
+          "blocking_open_count": 1
+        }
+      }
+    },
+    {
+      "id": "eligible-punt",
+      "result": {
+        "args": [
+          "punt-scan",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/eligible-punt.md"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"punts\":[{\"topic\":\"scheduled exports\",\"decides\":null,\"non_blocking\":true,\"out_of_scope_crossref\":true,\"eligible\":true}],\"eligible_count\":1,\"blocking_open_count\":0}\n",
+        "stderr": "",
+        "value": {
+          "punts": [
+            {
+              "topic": "scheduled exports",
+              "decides": null,
+              "non_blocking": true,
+              "out_of_scope_crossref": true,
+              "eligible": true
+            }
+          ],
+          "eligible_count": 1,
+          "blocking_open_count": 0
+        }
+      }
+    },
+    {
+      "id": "tag-without-crossref",
+      "result": {
+        "args": [
+          "punt-scan",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/tag-without-crossref.md"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"punts\":[{\"topic\":\"cron vs queue\",\"decides\":null,\"non_blocking\":true,\"out_of_scope_crossref\":false,\"eligible\":false}],\"eligible_count\":0,\"blocking_open_count\":1}\n",
+        "stderr": "",
+        "value": {
+          "punts": [
+            {
+              "topic": "cron vs queue",
+              "decides": null,
+              "non_blocking": true,
+              "out_of_scope_crossref": false,
+              "eligible": false
+            }
+          ],
+          "eligible_count": 0,
+          "blocking_open_count": 1
+        }
+      }
+    },
+    {
+      "id": "non-punt-marker",
+      "result": {
+        "args": [
+          "punt-scan",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/non-punt-marker.md"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"punts\":[],\"eligible_count\":0,\"blocking_open_count\":0}\n",
+        "stderr": "",
+        "value": {
+          "punts": [],
+          "eligible_count": 0,
+          "blocking_open_count": 0
+        }
+      }
+    },
+    {
+      "id": "medium-confidence",
+      "result": {
+        "args": [
+          "punt-scan",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/medium-confidence.md"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"punts\":[],\"eligible_count\":0,\"blocking_open_count\":0}\n",
+        "stderr": "",
+        "value": {
+          "punts": [],
+          "eligible_count": 0,
+          "blocking_open_count": 0
+        }
+      }
+    },
+    {
+      "id": "named-gap",
+      "result": {
+        "args": [
+          "punt-scan",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/named-gap.md"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"punts\":[],\"eligible_count\":0,\"blocking_open_count\":0}\n",
+        "stderr": "",
+        "value": {
+          "punts": [],
+          "eligible_count": 0,
+          "blocking_open_count": 0
+        }
+      }
+    },
+    {
+      "id": "cycle",
+      "result": {
+        "args": [
+          "punt-scan",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/cycle.md"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"punts\":[],\"eligible_count\":0,\"blocking_open_count\":0}\n",
+        "stderr": "",
+        "value": {
+          "punts": [],
+          "eligible_count": 0,
+          "blocking_open_count": 0
+        }
+      }
+    },
+    {
+      "id": "repeat-park",
+      "result": {
+        "args": [
+          "punt-scan",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/repeat-park.md"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"punts\":[{\"topic\":\"export schedule\",\"decides\":\"product\",\"non_blocking\":false,\"out_of_scope_crossref\":false,\"eligible\":false}],\"eligible_count\":0,\"blocking_open_count\":1}\n",
+        "stderr": "",
+        "value": {
+          "punts": [
+            {
+              "topic": "export schedule",
+              "decides": "product",
+              "non_blocking": false,
+              "out_of_scope_crossref": false,
+              "eligible": false
+            }
+          ],
+          "eligible_count": 0,
+          "blocking_open_count": 1
+        }
+      }
+    }
+  ],
+  "assignments": [
+    {
+      "id": "independent",
+      "extraction": {
+        "verdict": "fire-and-forget",
+        "root_cause": null
+      },
+      "result": {
+        "args": [
+          "contract",
+          "automation-routing"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"fire-and-forget\",\"root_cause\":null,\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "fire-and-forget",
+          "root_cause": null,
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "sha256": "544fd20901e9c5dc185d4b90cc2df60b732147eadbfa8aa2f1dafbfb5da094f3",
+      "persisted_sha256": "544fd20901e9c5dc185d4b90cc2df60b732147eadbfa8aa2f1dafbfb5da094f3"
+    },
+    {
+      "id": "collision",
+      "extraction": {
+        "verdict": "likely-fire",
+        "root_cause": null
+      },
+      "result": {
+        "args": [
+          "contract",
+          "automation-routing"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"likely-fire\",\"root_cause\":null,\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "likely-fire",
+          "root_cause": null,
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "sha256": "398ed8e6943392c50d0d29bb16e57bbd3f98bcc2444c469065a58b505949923a",
+      "persisted_sha256": "398ed8e6943392c50d0d29bb16e57bbd3f98bcc2444c469065a58b505949923a"
+    },
+    {
+      "id": "blocking-punt",
+      "extraction": {
+        "verdict": "needs-decision-first",
+        "root_cause": "punt-not-closed"
+      },
+      "result": {
+        "args": [
+          "contract",
+          "automation-routing"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"needs-decision-first\",\"root_cause\":\"punt-not-closed\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "needs-decision-first",
+          "root_cause": "punt-not-closed",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "sha256": "c7bdd81094d3529157e6bc1b53faaf63f825ef071fcf1f268928063647712f8a",
+      "persisted_sha256": "c7bdd81094d3529157e6bc1b53faaf63f825ef071fcf1f268928063647712f8a"
+    },
+    {
+      "id": "eligible-punt",
+      "extraction": {
+        "verdict": "fire-and-forget",
+        "root_cause": null
+      },
+      "result": {
+        "args": [
+          "contract",
+          "automation-routing"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"fire-and-forget\",\"root_cause\":null,\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "fire-and-forget",
+          "root_cause": null,
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "sha256": "544fd20901e9c5dc185d4b90cc2df60b732147eadbfa8aa2f1dafbfb5da094f3",
+      "persisted_sha256": "544fd20901e9c5dc185d4b90cc2df60b732147eadbfa8aa2f1dafbfb5da094f3"
+    },
+    {
+      "id": "tag-without-crossref",
+      "extraction": {
+        "verdict": "needs-decision-first",
+        "root_cause": "punt-not-closed"
+      },
+      "result": {
+        "args": [
+          "contract",
+          "automation-routing"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"needs-decision-first\",\"root_cause\":\"punt-not-closed\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "needs-decision-first",
+          "root_cause": "punt-not-closed",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "sha256": "c7bdd81094d3529157e6bc1b53faaf63f825ef071fcf1f268928063647712f8a",
+      "persisted_sha256": "c7bdd81094d3529157e6bc1b53faaf63f825ef071fcf1f268928063647712f8a"
+    },
+    {
+      "id": "non-punt-marker",
+      "extraction": {
+        "verdict": "needs-decision-first",
+        "root_cause": "punt-not-closed"
+      },
+      "result": {
+        "args": [
+          "contract",
+          "automation-routing"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"needs-decision-first\",\"root_cause\":\"punt-not-closed\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "needs-decision-first",
+          "root_cause": "punt-not-closed",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "sha256": "c7bdd81094d3529157e6bc1b53faaf63f825ef071fcf1f268928063647712f8a",
+      "persisted_sha256": "c7bdd81094d3529157e6bc1b53faaf63f825ef071fcf1f268928063647712f8a"
+    },
+    {
+      "id": "medium-confidence",
+      "extraction": {
+        "verdict": "needs-decision-first",
+        "root_cause": "spec-ambiguous-external"
+      },
+      "result": {
+        "args": [
+          "contract",
+          "automation-routing"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"needs-decision-first\",\"root_cause\":\"spec-ambiguous-external\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "needs-decision-first",
+          "root_cause": "spec-ambiguous-external",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "sha256": "b27ddaea6b411a5a9efb30ce97fadd142eea1a968fd7d7b8aee70eabff614fe1",
+      "persisted_sha256": "b27ddaea6b411a5a9efb30ce97fadd142eea1a968fd7d7b8aee70eabff614fe1"
+    },
+    {
+      "id": "named-gap",
+      "extraction": {
+        "verdict": "gap-blocked",
+        "root_cause": "gap"
+      },
+      "result": {
+        "args": [
+          "contract",
+          "automation-routing"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"gap-blocked\",\"root_cause\":\"gap\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "gap-blocked",
+          "root_cause": "gap",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "sha256": "ae1ac70937193c458bd988c043b14e08b2683a2cab655502c3bf756b4c8832f5",
+      "persisted_sha256": "ae1ac70937193c458bd988c043b14e08b2683a2cab655502c3bf756b4c8832f5"
+    },
+    {
+      "id": "cycle",
+      "extraction": {
+        "verdict": "circular-blocked",
+        "root_cause": "cycle"
+      },
+      "result": {
+        "args": [
+          "contract",
+          "automation-routing"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"circular-blocked\",\"root_cause\":\"cycle\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "circular-blocked",
+          "root_cause": "cycle",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "sha256": "069a03fcc0b3926ebff72039f0c5ca98e2c47b1153913076e7852f4890774c13",
+      "persisted_sha256": "069a03fcc0b3926ebff72039f0c5ca98e2c47b1153913076e7852f4890774c13"
+    },
+    {
+      "id": "repeat-park",
+      "extraction": {
+        "verdict": "repeat-parked",
+        "root_cause": "punt-not-closed"
+      },
+      "result": {
+        "args": [
+          "contract",
+          "automation-routing"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"repeat-parked\",\"root_cause\":\"punt-not-closed\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "repeat-parked",
+          "root_cause": "punt-not-closed",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "sha256": "9168346c6100b261b8bbddc97a5945a1e710afc46be94dc9bfb107ca48bbfc00",
+      "persisted_sha256": "9168346c6100b261b8bbddc97a5945a1e710afc46be94dc9bfb107ca48bbfc00"
+    }
+  ],
+  "validations": [
+    {
+      "id": "bad-root",
+      "result": {
+        "args": [
+          "contract",
+          "automation-routing"
+        ],
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"fire-and-forget\",\"root_cause\":null,\"conformant\":false,\"violations\":[\"root_cause \\\"invented-class\\\" not in {punt-not-closed,gap,cycle,spec-ambiguous-external,other} — normalised to null\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "fire-and-forget",
+          "root_cause": null,
+          "conformant": false,
+          "violations": [
+            "root_cause \"invented-class\" not in {punt-not-closed,gap,cycle,spec-ambiguous-external,other} — normalised to null"
+          ]
+        }
+      }
+    },
+    {
+      "id": "bad-verdict",
+      "result": {
+        "args": [
+          "contract",
+          "automation-routing"
+        ],
+        "exit_code": 2,
+        "stdout": "",
+        "stderr": "faff contract automation-routing: fail-loud: verdict \"maybe-ready\" not in the closed six — no safe coerce target\n",
+        "value": null
+      }
+    }
+  ],
+  "rule_answers": [
+    {
+      "id": "admission",
+      "value": [
+        "fire-and-forget",
+        "likely-fire"
+      ]
+    },
+    {
+      "id": "repeat-attempt",
+      "value": false
+    },
+    {
+      "id": "fresh-pass",
+      "value": false
+    },
+    {
+      "id": "same-pass",
+      "value": true
+    },
+    {
+      "id": "standalone-wtf",
+      "value": true
+    },
+    {
+      "id": "pipeline-path",
+      "value": ".faff/runs/<run-id>/automation-verdicts.md"
+    },
+    {
+      "id": "standalone-path",
+      "value": ".faff/logs/YYYY-MM-DD/HHMMSS-tidy-verdicts.md"
+    },
+    {
+      "id": "eligibility-owner",
+      "value": false
+    },
+    {
+      "id": "root-normalisation",
+      "value": 1
+    },
+    {
+      "id": "verdict-fail-loud",
+      "value": 2
+    },
+    {
+      "id": "shape-owner",
+      "value": false
+    },
+    {
+      "id": "detection-owner",
+      "value": "methodology"
+    },
+    {
+      "id": "no-queue-policy-in-validator",
+      "value": false
+    }
+  ]
+}

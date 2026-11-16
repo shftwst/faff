@@ -1,0 +1,18 @@
+{
+  "status": "pending-astra-v1-pair",
+  "baseline_bytes": 4787,
+  "candidate_bytes": 3889,
+  "baseline_estimated_tokens": 1192,
+  "candidate_estimated_tokens": 971,
+  "baseline_sha256": "5238f14f249ca9d7841a3160cd8bf1cc9a44fbe11e931222914d38ab9a0d4a88",
+  "candidate_sha256": "43ee9b702de2ed3c7d6a5e2076aa1c5780b16aa6b6e223b3d186aa8e6cda5ba2",
+  "fixed_context_sha256": "284e30386e5fb063c7c85c1b422027415a5fde3b54a0a2140deda2b28507304d",
+  "preserved_frontmatter_sha256": "828fd36f37b2ac5df2172739596f1b09f4f3e92f9e79de57905f2f313c8513d1",
+  "preserved_standalone_read_sha256": "08fd3e1c96df1c35ae2dad92764716fb028aaded7f112d20d70771b3848111d0",
+  "preserved_inputs_sha256": "04bfeae756d69be960718a060f1485ec8fc0318d7c436c19a6cc0760bc096150",
+  "preserved_strategy_sha256": "30852640aed4762348495e373830fb4c1ca85b5a261827745b223f21dd6f2bc9",
+  "preserved_example_sha256": "b5461c43dd6e23634277b9ab208742c3c57cd5a986b765258256f90252e56f45",
+  "changed_scope": "Consolidate repeated role, ownership and contract explanation. Frontmatter, standalone read, whole inputs, whole proposing strategy and complete example block byte-identical.",
+  "mandatory_dependencies_added": [],
+  "proof_required": "Five-versus-five fresh Astra-low samples, forty actual proposals manually read, complete native audit, actual contract consumption and integration. Profile acquisition and ADR/procurement writes remain outside the measured cut."
+}

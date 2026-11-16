@@ -1,23 +1,26 @@
 {
-  "updated_utc": "2026-11-16T12:25:16.846827+00:00",
+  "updated_utc": "2026-11-16T12:52:41.381757+00:00",
   "deadline_utc": "2026-11-16 16:13:53 UTC",
-  "accepted_saved_bytes": 96260,
-  "accepted_saved_estimated_tokens": 23719,
-  "accepted_total_bytes": 1273175,
-  "accepted_total_estimated_tokens": 315560,
-  "accepted": "Gateway, adversarial, rendering V2, thematic, kernel V4, PRD Astra V2 and 26 discovery descriptions.",
-  "pending": "Review V4 candidate, WTF V2 and routing V1 running. Map V1 and agile V3 held on baseline failures; no candidates installed. ADR-body V1 baseline started; candidate prepared and real CLI replay preflight passes.",
+  "accepted_saved_bytes": 101620,
+  "accepted_saved_estimated_tokens": 25038,
+  "accepted_total_bytes": 1267815,
+  "accepted_total_estimated_tokens": 314241,
+  "accepted": "Gateway, adversarial, rendering V2, thematic, kernel V4, PRD Astra V2, review Astra V4 and 26 discovery descriptions.",
+  "pending": "WTF V2 and intake V2 running. Agile, map, routing, ADR and architecture held.",
   "controllers": {
     "prd": "/tmp/faff-astra-prd-v2-baseline.log and /tmp/faff-astra-prd-v2-pair.log",
     "review": "/tmp/faff-astra-review-v4-pair.log",
     "agile": "Baseline capture only; candidate continuation stopped. Hold: agile-principles-astra-v3-hold.json.",
     "wtf": "/tmp/faff-astra-wtf-v2-pair.log",
-    "routing": "/tmp/faff-astra-routing-after-held-agile.log and /tmp/faff-astra-routing-pair.log",
+    "routing": "All five baselines captured; held before candidate",
     "artifact_replays": "/tmp/faff-artifact-replays.log waits for complete PRD/review pairs.",
-    "adr": "/tmp/faff-astra-adr-body-baseline.log and /tmp/faff-astra-adr-body-pair.log"
+    "adr": "Held on baseline; no continuation.",
+    "intake": "/tmp/faff-astra-intake-v2-baseline.log and /tmp/faff-astra-intake-v2-pair.log",
+    "architecture": "Held on native path failure; no candidates",
+    "review_replay": "/tmp/faff-review-v4-replay.log"
   },
-  "integration": "All PR CI checks green at 4611efcd. Review V3 integration held on enum lint, production restored; V4 measured revision started.",
+  "integration": "Review V4 committed as f6324f61 after isolated 641-test, adapter-lint and rule-inventory passes. Previous bc66798c full CI green.",
   "claude_usage": "Weekly allowance exhausted. All Claude queues stopped; no usage credits enabled.",
   "fallback": "Actual Codex CLI model gpt-6-astra, low effort, version 0.169.0 verified. Native wrapper parsing tested. First PRD sample remains failed for wrong literal path; first review native audit passed. No cross-provider pooling.",
-  "downstream_proof": "PRD: 60 actual artifacts, 240 run-start cases and 240 forged-decision rejections pass. Review V3: all 70 actual artifacts pass real stored-comment connector replay with exact preserved bytes. V4 requires its own replay."
+  "downstream_proof": "PRD: 60 actual artifacts, 240 run-start cases and 240 forged-decision rejections. Review V4: all 70 actual artifacts pass real stored-comment replay with exact preserved bytes."
 }

@@ -1,0 +1,38 @@
+{
+  "status": "held",
+  "updated_utc": "2026-11-16T12:34:07.438312+00:00",
+  "read_artifacts": 6,
+  "notes": "All six first-baseline bodies read. Formats, decisions, self-review and verification limits are retained. The related-decision body says the earlier ADR was accepted on 2026-10-20, but the supplied date is the record date; no acceptance-event date was provided. Five bodies pass source-fact review; this unsupported temporal claim holds the strict all-artifact bar.",
+  "rows": [
+    {
+      "path": "workflow-runs/adr-body-astra-v1-baseline-1/artifacts/custom.md",
+      "sha256": "50430440807eb07431f9d0846fbe6035053654321cda60ec5296f19c0fdc1ffa",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/adr-body-astra-v1-baseline-1/artifacts/empty-template.md",
+      "sha256": "337921782945aa9bf1cd51d711aef38de711620dbdfbfca40ab6ab419d3ebf85",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/adr-body-astra-v1-baseline-1/artifacts/limited-verification.md",
+      "sha256": "30b47fd345b25b17f4c27bf5420562a91fa6bf2c4f77bb8d4b4cc2de9c822b90",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/adr-body-astra-v1-baseline-1/artifacts/no-decision-heading.md",
+      "sha256": "b587c0d28da53658eb0a302ee4b07f8b33c74412181bd146af506bf5cd6ba693",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/adr-body-astra-v1-baseline-1/artifacts/nygard.md",
+      "sha256": "078c01d7822413e569452c3ddb36ade63cccb4edaf540c483c04013bdfb714d3",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/adr-body-astra-v1-baseline-1/artifacts/related-decision.md",
+      "sha256": "3a7fad31f8eaac50097bd9b297d91ae93d18de55343153aaa02340c184a223ee",
+      "status": "held-unsupported-acceptance-date"
+    }
+  ]
+}

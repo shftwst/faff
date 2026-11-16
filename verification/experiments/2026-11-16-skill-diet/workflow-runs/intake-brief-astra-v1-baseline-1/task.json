@@ -1,0 +1,286 @@
+{
+  "instructions": "Read the complete rendering policy through read_policy. For each independent artifact case, transform the supplied draft or source into the requested output and persist it through write_output. These are isolated human-facing outputs; preserve their facts and use the supplied source material. Do not query a tracker or read additional files. Separately answer every bounded rule question. Global operator guidance applies. Finish after every case is recorded.",
+  "policy": {
+    "bytes": 138592,
+    "utf16_characters": 137373,
+    "sha256": "afa5613b34725620514ef304eafa60667d0d1bf4240da15673e5061e2ffe08bd",
+    "chunk_limit": 6000
+  },
+  "tools": [
+    {
+      "name": "read_policy",
+      "description": "Read the unchanged policy in bounded chunks. Start at offset 0, then use each returned next_offset until it is null. Complete policy delivery is required before workflow operations. No scratch file is needed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "offset"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "write_output",
+      "description": "Persist the completed rendering for one artifact case. Write once per case; provide the actual normalised text or violation report requested.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_id",
+          "text"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "answer_rule",
+      "description": "Answer one separate bounded policy question in its stated value shape. Do not perform hypothetical actions.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "value": {}
+        },
+        "required": [
+          "case_id",
+          "value"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "finish",
+      "description": "Finish after all artifacts and rule answers are recorded.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "greenfield-complete",
+      "task": "Produce the intake discovery brief from this completed conversation snapshot. The human has asked for the brief now; carry unresolved questions forward. Do not ask more questions, write tickets, choose a ticket hierarchy, inspect the repository or mutate the tracker. This measures final brief production, not the preceding conversation.",
+      "source": {
+        "mode": "greenfield",
+        "starting_description": "A lending desk for a neighbourhood tool library.",
+        "project_context": "Existing README says Python CLI; one volunteer operates a laptop.",
+        "conversation": {
+          "goal": "Track tools lent to neighbours and their return.",
+          "capabilities": [
+            "Tool catalogue",
+            "Checkout and return log"
+          ],
+          "first_slice": "Record a checkout and its return for an existing tool.",
+          "constraints": [
+            "Python CLI",
+            "Offline on one laptop"
+          ],
+          "non_goals": [
+            "Online marketplace",
+            "Payments"
+          ],
+          "open_questions": [
+            "How long should completed checkout records be retained?"
+          ]
+        },
+        "appetite": "high"
+      }
+    },
+    {
+      "id": "greenfield-thin",
+      "task": "Produce the intake discovery brief from this completed conversation snapshot. The human has asked for the brief now; carry unresolved questions forward. Do not ask more questions, write tickets, choose a ticket hierarchy, inspect the repository or mutate the tracker. This measures final brief production, not the preceding conversation.",
+      "source": {
+        "mode": "greenfield",
+        "starting_description": "I want to track books borrowed from our street library.",
+        "project_context": "Empty repository; no framework or language chosen.",
+        "conversation": {
+          "goal": "Track borrowed books for street-library volunteers.",
+          "capabilities": [
+            "Book loan tracking"
+          ],
+          "constraints": [],
+          "non_goals": [],
+          "open_questions": [
+            "Platform and language are undecided.",
+            "The smallest useful first slice is not yet specified."
+          ]
+        },
+        "appetite": "high"
+      }
+    },
+    {
+      "id": "single-bug",
+      "task": "Produce the intake discovery brief from this completed conversation snapshot. The human has asked for the brief now; carry unresolved questions forward. Do not ask more questions, write tickets, choose a ticket hierarchy, inspect the repository or mutate the tracker. This measures final brief production, not the preceding conversation.",
+      "source": {
+        "mode": "single-item",
+        "starting_description": "CSV export inserts an empty row after each record.",
+        "project_context": "Existing workstream: Reporting. Use existing issue naming; parser correction REPORT-17 must ship first.",
+        "conversation": {
+          "intent": "Remove the extra empty rows from CSV export.",
+          "done_signal": "Two records export as two data rows under the existing header.",
+          "area": "Reporting",
+          "split_sense": "unitary",
+          "constraints": [
+            "Preserve the existing columns and header"
+          ],
+          "dependencies": [
+            "REPORT-17: Correct CSV parser row boundaries"
+          ],
+          "non_goals": [
+            "Report UI redesign"
+          ]
+        },
+        "appetite": "high"
+      }
+    },
+    {
+      "id": "single-split",
+      "task": "Produce the intake discovery brief from this completed conversation snapshot. The human has asked for the brief now; carry unresolved questions forward. Do not ask more questions, write tickets, choose a ticket hierarchy, inspect the repository or mutate the tracker. This measures final brief production, not the preceding conversation.",
+      "source": {
+        "mode": "single-item",
+        "starting_description": "Retry failed imports and notify operators of an exhausted retry.",
+        "project_context": "Existing workstream: Data imports. No current priority override.",
+        "conversation": {
+          "intent": "Retry transient import failures and notify operators after exhaustion.",
+          "done_signal": "A transient failure retries; exhausted retries produce an operator notification.",
+          "area": "Data imports",
+          "split_sense": "possibly-splittable: retry execution and operator notification can be developed independently",
+          "constraints": [
+            "Use the existing job runner"
+          ],
+          "dependencies": [],
+          "non_goals": [
+            "Replacing the job runner"
+          ],
+          "open_questions": [
+            "The methodology should decide whether to split these concerns."
+          ]
+        },
+        "appetite": "high"
+      }
+    },
+    {
+      "id": "minor-ambiguity",
+      "task": "Produce the intake discovery brief from this completed conversation snapshot. The human has asked for the brief now; carry unresolved questions forward. Do not ask more questions, write tickets, choose a ticket hierarchy, inspect the repository or mutate the tracker. This measures final brief production, not the preceding conversation.",
+      "source": {
+        "mode": "single-item",
+        "starting_description": "Show the scheduled delivery date on the order receipt.",
+        "project_context": "Existing workstream: Checkout. Existing receipt component; no repository inspection needed.",
+        "conversation": {
+          "intent": "Show the delivery date already stored on the order.",
+          "done_signal": "A receipt with a stored delivery date shows it; one without it omits the field.",
+          "area": "Checkout",
+          "split_sense": "unitary",
+          "constraints": [
+            "Use the existing receipt layout"
+          ],
+          "non_goals": [
+            "New delivery estimation logic"
+          ],
+          "open_questions": [
+            "The display timezone is unresolved; record it for prep."
+          ]
+        },
+        "appetite": "high"
+      }
+    },
+    {
+      "id": "greenfield-repo-signal",
+      "task": "Produce the intake discovery brief from this completed conversation snapshot. The human has asked for the brief now; carry unresolved questions forward. Do not ask more questions, write tickets, choose a ticket hierarchy, inspect the repository or mutate the tracker. This measures final brief production, not the preceding conversation.",
+      "source": {
+        "mode": "greenfield",
+        "starting_description": "A local organiser for rehearsal recordings.",
+        "project_context": "Repository README already specifies TypeScript and a browser UI; the human confirms both.",
+        "conversation": {
+          "goal": "Let band members organise local rehearsal recordings.",
+          "capabilities": [
+            "Recording catalogue",
+            "Search by rehearsal date"
+          ],
+          "first_slice": "List manually selected local recordings by rehearsal date.",
+          "constraints": [
+            "TypeScript",
+            "Browser UI",
+            "Files remain local"
+          ],
+          "dependencies": [],
+          "non_goals": [
+            "Cloud upload",
+            "Audio editing"
+          ],
+          "open_questions": [
+            "How should recordings without a date be shown?"
+          ]
+        },
+        "appetite": "high"
+      }
+    }
+  ],
+  "rule_questions": [
+    {
+      "id": "mode-owner",
+      "question": "Who decides greenfield versus single-item? Return {\"owner\": string}."
+    },
+    {
+      "id": "ticket-owner",
+      "question": "Who shapes the brief into ticket structure? Return {\"slot\": string, \"producer_creates_tickets\": boolean}."
+    },
+    {
+      "id": "open-questions",
+      "question": "Must unresolved questions block a brief? Return {\"block\": boolean, \"carry_forward\": boolean}."
+    },
+    {
+      "id": "required",
+      "question": "Name the sections required in both modes. Return {\"sections\": string[]} in source order."
+    },
+    {
+      "id": "exclusive",
+      "question": "Does a single-item brief include both Item and Capabilities? Return {\"both\": boolean, \"required\": string}."
+    },
+    {
+      "id": "empty",
+      "question": "How are optional empty sections handled? Return {\"omit\": boolean}."
+    },
+    {
+      "id": "invented-goals",
+      "question": "Can high appetite invent a user goal? Return {\"allowed\": boolean}."
+    },
+    {
+      "id": "appetite",
+      "question": "Which appetite levels ask more clarifying questions? Return {\"levels\": string[]} in ascending order."
+    },
+    {
+      "id": "minor",
+      "question": "At high/full appetite, where are minor unresolved assumptions recorded? Return {\"section\": string}."
+    },
+    {
+      "id": "split",
+      "question": "Two independent concerns are evident. Does intake force two tickets? Return {\"force_split\": boolean, \"flag_for_methodology\": boolean}."
+    },
+    {
+      "id": "codes",
+      "question": "Should capabilities use invented C1/D2 codes? Return {\"use_codes\": boolean}."
+    },
+    {
+      "id": "implementation",
+      "question": "Which skill owns later per-ticket specs? Return {\"skill\": string}."
+    }
+  ]
+}

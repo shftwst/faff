@@ -1,0 +1,17 @@
+```faff-contract:architecture-proposal
+{
+  "chosen_architecture": "Use the certified FixtureSign service as the document-signing component, conditional on human approval and separately authorised service access. Define the integration boundary at submission of a document for signature and receipt of the signed document and verification evidence.",
+  "rationale": "Requires the certified FixtureSign service for document signatures: FixtureSign is the proposed signing component. Certification is mandatory and the team cannot build a certified substitute in this release: the supplied brief and profile establish that the required component is not locally buildable, supporting a buy recommendation. The task is only to propose the signing component: the proposal is limited to that service boundary. No licence purchase or service call is authorised: this recommendation is surfaced for a human and no procurement or service operation is performed. The successful profile-show result records no FixtureSign licence or service access; existing Node 22 and Docker Compose may host a later integration, subject to its own specification.",
+  "adr_candidates": [{"title":"Use FixtureSign for certified document signatures","decision":"Propose FixtureSign as the signing component, with adoption contingent on a human decision and separately authorised access.","rationale":"Mandatory certification and the team's inability to obtain that certification in this release require the specified external service."}],
+  "assumptions": ["FixtureSign's required certification is a supplied fixture premise, not independently verified.","No FixtureSign licence or service access currently exists.","Before adoption, a human must confirm certification coverage, commercial terms, document handling requirements and permitted access.","Service interface, authentication, retry behaviour and verification evidence must be confirmed before an integration is specified."],
+  "recommendation": "buy"
+}
+```
+
+## ADR promotion intent
+
+- Use FixtureSign for certified document signatures: propose FixtureSign as the signing component, with adoption contingent on a human decision and separately authorised access. Mandatory certification and the team's inability to obtain that certification in this release require the specified external service. Candidate for later promotion by graft Step 4b; no ADR has been written.
+
+Surfaced for human review. No purchase, subscription or service call has been made. Production suitability remains a human judgement.
+
+confidence: medium

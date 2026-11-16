@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "value": {
+    "args": [
+      "contract",
+      "automation-routing"
+    ],
+    "exit_code": 2,
+    "stdout": "",
+    "stderr": "faff contract automation-routing: fail-loud: verdict \"maybe-ready\" not in the closed six — no safe coerce target\n",
+    "value": null
+  }
+}

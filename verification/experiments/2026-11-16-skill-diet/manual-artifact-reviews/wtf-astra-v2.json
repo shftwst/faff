@@ -1,8 +1,8 @@
 {
   "status": "in-progress-not-qualified",
-  "updated_utc": "2026-11-16T12:19:38.359487+00:00",
-  "read_artifacts": 9,
-  "notes": "First three baseline samples read; source facts and applicable next-step offers pass. Provided WIP capacity, queue dependencies, owner groups, diagnostics and advisory-only calibration preserved.",
+  "updated_utc": "2026-11-16T12:52:41.381757+00:00",
+  "read_artifacts": 27,
+  "notes": "All fifteen baseline artifacts and candidate-one three artifacts read. Source facts, WIP capacity, dependencies, owner groups, diagnostics and offers pass. Candidate one consolidates Coming up facts into focus/dependency sections: BRF-11 remains the first focus item and BRF-14 remains named with BRF-13 as blocker. The original Output Format example also has no Coming up heading. This is layout variance, not a missing source fact; no identical-heading claim. wtf-format-astra-v2-candidate-2 read; source facts and required behaviour pass.",
   "rows": [
     {
       "path": "workflow-runs/wtf-format-astra-v2-baseline-1/artifacts/empty.md",
@@ -57,6 +57,108 @@
       "sha256": "c12c7e475f9ab28deff6c40ae8b2d3bde0c47b39f9ef1f1517c9f77055e26c93",
       "status": "read-source-faithful",
       "offers": "All applicable offers present, including manual prep and autonomous graft resumes in the final gates."
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-baseline-4/artifacts/empty.md",
+      "sha256": "96965fcbe187a10a679398f6294a4434d3f360c74b0447e688fd16f043305a36",
+      "status": "read-source-faithful",
+      "offers": "All applicable parked resume, promotion, ratification, build, automation and tidy offers present."
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-baseline-4/artifacts/operations.md",
+      "sha256": "0efe65c0450e25b99d9475c9d15da1dac3b381f091e06aa2223a08c5348801c4",
+      "status": "read-source-faithful",
+      "offers": "All applicable parked resume, promotion, ratification, build, automation and tidy offers present."
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-baseline-4/artifacts/wip-cap.md",
+      "sha256": "4fb62644f13c067daab1c45425eb95a42945ec94c269cea58483f2b9d3be6b7b",
+      "status": "read-source-faithful",
+      "offers": "All applicable parked resume, promotion, ratification, build, automation and tidy offers present."
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-baseline-5/artifacts/empty.md",
+      "sha256": "af55760c693c10efb7966239847ef095d6eb669eb43555b616de34ac867f849e",
+      "status": "read-source-faithful",
+      "offers": "All applicable manual/autonomous park resumes, Ready promotion, ADR ratification, build, automation and tidy offers present."
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-baseline-5/artifacts/operations.md",
+      "sha256": "af83c829b7af519a9953b727436106146c1beeb45bf8a6d188613163405a041e",
+      "status": "read-source-faithful",
+      "offers": "All applicable manual/autonomous park resumes, Ready promotion, ADR ratification, build, automation and tidy offers present."
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-baseline-5/artifacts/wip-cap.md",
+      "sha256": "ae32ba2da52d54f2d936900d03b9541a98a6d4c96742d23ae8d8030f584a1d18",
+      "status": "read-source-faithful",
+      "offers": "All applicable manual/autonomous park resumes, Ready promotion, ADR ratification, build, automation and tidy offers present."
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-candidate-1/artifacts/empty.md",
+      "sha256": "87215ce4c8d3b079e583f4614e9e2619684f7acd70a6b472d1fe29543b21ed86",
+      "status": "read-source-faithful",
+      "offers": "All applicable manual/autonomous park resumes, Ready promotion, ADR ratification, build, automation and tidy offers present."
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-candidate-1/artifacts/operations.md",
+      "sha256": "a9d74a0d307ae31944255fc1efa47f87b6cb2d17570f064f8f5b6ec0b61633c2",
+      "status": "read-source-faithful",
+      "offers": "All applicable manual/autonomous park resumes, Ready promotion, ADR ratification, build, automation and tidy offers present."
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-candidate-1/artifacts/wip-cap.md",
+      "sha256": "c2d96b181cd884418ee6450467070bbd6031aacda853d255c1bbc91e6d5a7711",
+      "status": "read-source-faithful",
+      "offers": "All applicable manual/autonomous park resumes, Ready promotion, ADR ratification, build, automation and tidy offers present."
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-candidate-2/artifacts/empty.md",
+      "sha256": "87215ce4c8d3b079e583f4614e9e2619684f7acd70a6b472d1fe29543b21ed86",
+      "status": "read-source-faithful",
+      "offers": "All applicable manual/autonomous park, Ready promotion, ADR ratification, build and automation offers present."
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-candidate-2/artifacts/operations.md",
+      "sha256": "60f10a060f46f2893222e94f0816893ec404371d394770806b4e2f39da1f7740",
+      "status": "read-source-faithful",
+      "offers": "All applicable manual/autonomous park, Ready promotion, ADR ratification, build and automation offers present."
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-candidate-2/artifacts/wip-cap.md",
+      "sha256": "d8db300ccb4455d9bbc2aed44bded7c673c063f6a3d691986d66666f2f232cdf",
+      "status": "read-source-faithful",
+      "offers": "All applicable manual/autonomous park, Ready promotion, ADR ratification, build and automation offers present."
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-candidate-3/artifacts/empty.md",
+      "sha256": "c325b984660a60ae5cb538d222c14807e0f4c1d9f806767e1a0c811cc5d5e91e",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-candidate-3/artifacts/operations.md",
+      "sha256": "eacbce6c9baa11f3d1039e3168fff29e7b8083f356deabe5be6d80b174621d7c",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-candidate-3/artifacts/wip-cap.md",
+      "sha256": "7c05108658e0e8d748715205ad4736ed57ba68edcc5310fcf177c4c772d0ba51",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-candidate-4/artifacts/empty.md",
+      "sha256": "87215ce4c8d3b079e583f4614e9e2619684f7acd70a6b472d1fe29543b21ed86",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-candidate-4/artifacts/operations.md",
+      "sha256": "22adbba5890a19808b045313190f5b0ec929ef23723a1f3342814c39598b3e7b",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/wtf-format-astra-v2-candidate-4/artifacts/wip-cap.md",
+      "sha256": "ce47cb3df6cb63c60ac81871c25683d8064c0866ee4746f9fd639d3c3798e20b",
+      "status": "read-source-faithful"
     }
   ]
 }

@@ -1,0 +1,16 @@
+TAP version 13
+# Subtest: architecture artifacts pass real contract consumption and reject missing/duplicate blocks and malformed envelopes
+ok 1 - architecture artifacts pass real contract consumption and reject missing/duplicate blocks and malformed envelopes
+  ---
+  duration_ms: 776.736515
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 869.232552

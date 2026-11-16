@@ -1,0 +1,18 @@
+{
+  "status": "pending-astra-v1-pair",
+  "baseline_bytes": 7622,
+  "candidate_bytes": 5689,
+  "baseline_estimated_tokens": 1890,
+  "candidate_estimated_tokens": 1412,
+  "baseline_sha256": "b1cfe70da49ff2ae688e936ea03407380a8d61a280e88778cddd1dc10e1a6c79",
+  "candidate_sha256": "668b178bfead91377c81015083db36c57697c8bdf3d29dc4807073a81b952e0b",
+  "fixed_context_sha256": "5c783630961e6546e783e1f2d2743ad8ba5d07856420303b464459301cf8afe8",
+  "preserved_frontmatter_sha256": "df8380d64cd732b1e62c1e552d38d48e3e37018bf056d579d2e73460e29938ee",
+  "preserved_inputs_sha256": "3646586ccaede64ccc78e01fffe3a896ff146904a92b7054f9d12935e9e4244b",
+  "preserved_discovery_sha256": "6106e3bb7b38f4487153aa4bff45ad9ccf37cf99f9cff6a032e47509b33209d5",
+  "preserved_template_sha256": "9df73f5899327070b454777c18983d58e33df81f800ee8cbf38def96850c47e0",
+  "preserved_appetite_sha256": "204480930b22dddca8f9141848705064bcf2dd2569aea06fe993e527e86397e6",
+  "changed_scope": "Consolidate repeated roles, contract explanation and no-ticket/no-implementation rules. Frontmatter, Input, full discovery procedure, formal Markdown template and Appetite are byte-identical.",
+  "mandatory_dependencies_added": [],
+  "proof_required": "Five baseline and five candidate Astra-low samples, sixty actual briefs manually read, all structural and source-fact checks, complete native audit and integration. Elicitation and methodology ticket shaping remain outside measurement and unchanged."
+}

@@ -404,3 +404,17 @@ was substituted; the measurement lane now runs routing assignment.
 ## 2026-11-16 12:20 UTC: downstream proof and held cuts
 
 Review V3 passes 70/70 artifacts, 200/200 decisions, 70/70 exact prose/JSON title sets and 70/70 real stored-comment connector replays. Integration is held: the compressed verdict rules trigger existing enum lint. The dirty-tree connector guards account for the other two initial test failures. Production is restored. V4 measures five new presentation-corrected candidates against all five unchanged successful baselines; no V3 candidate is reused. Map baseline one omits the required TL;DR section in all six reports, so its cut is held; the separate removing/remove recogniser mismatch is recorded without relaxing the format bar. All PR checks pass at 4611efcd.
+
+## 2026-11-16T12:27:32.526248+00:00: routing held before candidate measurement
+
+The first three unchanged routing baselines agree on every verdict but differ on the medium-confidence root cause: spec-ambiguous-external twice, punt-not-closed once. The frozen exact projection includes root cause, so this pair cannot qualify. Candidate continuation stopped; finish baseline capture for the record. No candidate regression or savings is claimed.
+
+## 2026-11-16T12:34:07.438312+00:00: ADR baseline held; intake comparison begins
+
+ADR baseline one passes six structural body rubrics, but one body calls the record date an acceptance-event date. The source-fact bar holds that cut. Four policy-answer mismatches are separately recognised as exact-string oracle false negatives, with no correction or reroll because the artifact failure is independent. Intake final-brief comparison begins; the whole discovery procedure, inputs, template and appetite section remain byte-identical.
+
+## 2026-11-16T12:52:41.381757+00:00: review V4 qualified and committed
+
+All 35 baseline and 35 new candidate artifacts pass, alongside 100 decisions per arm and ten native audits. Root read all seventy and checked prose/JSON title equality. The actual outputs pass seventy real stored-comment connector handoffs, with exact human-content/CRLF preservation. The candidate passes 641 integration tests, adapter lint and 560-block rule inventory. Commit f6324f61 saves 5,360 bytes and 1,319 estimated tokens; cumulative accepted savings are 101,620 bytes and 25,038 tokens. Baseline reuse and sentence-title style variance are explicit in the final qualification.
+
+Intake V1 has an exact-string false negative on /faff-jot and /faff-prep. V2 freezes clearer spelling instructions and starts five fresh samples per arm; no sample pooling. Architecture V1 is held on a wrong literal bridge path, despite its passing functional report.

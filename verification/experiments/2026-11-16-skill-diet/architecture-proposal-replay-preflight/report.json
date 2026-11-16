@@ -1,0 +1,75 @@
+{
+  "status": "pass",
+  "mode": "preflight-reference-proposals",
+  "artifacts": 4,
+  "results": [
+    {
+      "name": "architecture-proposal-astra-v1-baseline-1",
+      "arm": "baseline",
+      "case_id": "relational",
+      "path": null,
+      "sha256": "3f37fd6d57366b06fb7ecce5223f6fa50700db3490b2d514fa6d906cf10d5966",
+      "report_sha256": null,
+      "native_audit_sha256": null,
+      "status": "pass",
+      "recommendation": "build",
+      "adr_candidates": 1,
+      "profile_exit": 0,
+      "contract_exit": 0,
+      "invalid_recommendation_rejected": true,
+      "consumption_sha256": "a6d968dd4dfc9bf5634b3a3121ba4f533587caf303ce9043a2ddb268bbdc9a8c"
+    },
+    {
+      "name": "architecture-proposal-astra-v1-baseline-1",
+      "arm": "baseline",
+      "case_id": "nightly-batch",
+      "path": null,
+      "sha256": "e47afc003679299570a0a75092be825250b595e79d064618f4b0e2dbc8ece398",
+      "report_sha256": null,
+      "native_audit_sha256": null,
+      "status": "pass",
+      "recommendation": "build",
+      "adr_candidates": 1,
+      "profile_exit": 0,
+      "contract_exit": 0,
+      "invalid_recommendation_rejected": true,
+      "consumption_sha256": "a73096998f3590d65ee4ffac857f598d5c3f58806d921690badf90efe0343368"
+    },
+    {
+      "name": "architecture-proposal-astra-v1-baseline-1",
+      "arm": "baseline",
+      "case_id": "no-profile",
+      "path": null,
+      "sha256": "509382f38e11227ae3125a4d437dd1b30c17025cac88bdda8bac22163bfc5e77",
+      "report_sha256": null,
+      "native_audit_sha256": null,
+      "status": "pass",
+      "recommendation": "build",
+      "adr_candidates": 1,
+      "profile_exit": 3,
+      "contract_exit": 0,
+      "invalid_recommendation_rejected": true,
+      "consumption_sha256": "340436d697d6c0b63f9013ccbf479f2abed5a4ba113a48b00d1fb76e6e35114d"
+    },
+    {
+      "name": "architecture-proposal-astra-v1-baseline-1",
+      "arm": "baseline",
+      "case_id": "external-only",
+      "path": null,
+      "sha256": "9314a4954769a4fed62d688720b2f7d0f7e56378b8dda6c395ce6850c9cf9303",
+      "report_sha256": null,
+      "native_audit_sha256": null,
+      "status": "pass",
+      "recommendation": "buy",
+      "adr_candidates": 1,
+      "profile_exit": 0,
+      "contract_exit": 0,
+      "invalid_recommendation_rejected": true,
+      "consumption_sha256": "d0fd2efeea51949395f35371268c1a7597e0912bba45dd2e31ce3eb2dec07c70"
+    }
+  ],
+  "limits": [
+    "Actual proposal envelopes pass the real architecture-proposal CLI; original profile-show results are reproduced and invalid recommendation mutations rejected.",
+    "The shape validator does not establish architectural quality. Manual source-fact, stated-need and ADR-intent review is separate. No model acquisition, procurement, ADR creation or full caller workflow is claimed."
+  ]
+}

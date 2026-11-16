@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All seven cases and 20 policy answers were persisted. Finish succeeded. No departures from the restrictions.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e454-5394-76a0-bcee-e9aea3ac18aa"
+    ],
+    "elapsed_seconds": 363.7,
+    "stdout_sha256": "8b50ad24a19eab9df55880c2ccdf8777d431a23d424ea9491ea2130c4a74e714",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

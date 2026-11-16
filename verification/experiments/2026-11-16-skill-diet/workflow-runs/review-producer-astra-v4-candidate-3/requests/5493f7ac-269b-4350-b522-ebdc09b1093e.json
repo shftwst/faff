@@ -1,0 +1,1 @@
+{"name":"submit_review","args":{"case_id":"clean","text":"signal: pass\n\n## Findings\n\nNone. double multiplies finite inputs by 2, with positive, zero and negative cases covered. The supplied tests passed; changes stay within scope and introduce no persistent effects.\n\n```faff-contract:review-verdict\n{\"signal\":\"pass\",\"findings\":[]}\n```"}}

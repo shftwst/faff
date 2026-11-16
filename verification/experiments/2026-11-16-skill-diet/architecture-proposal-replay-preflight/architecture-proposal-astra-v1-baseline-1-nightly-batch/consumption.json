@@ -1,0 +1,83 @@
+{
+  "profile": {
+    "exit_code": 0,
+    "stdout": "{\n  \"schema\": 1,\n  \"acquired_at\": \"2026-11-16T00:00:00Z\",\n  \"acquired_by\": \"fixture-acquirer\",\n  \"runtimes\": [\n    {\n      \"name\": \"node\",\n      \"version\": \"22\",\n      \"evidence\": \"package.json\"\n    }\n  ],\n  \"ci\": [\n    {\n      \"name\": \"github-actions\",\n      \"evidence\": \".github/workflows/ci.yml\"\n    }\n  ],\n  \"deploy_targets\": [\n    {\n      \"kind\": \"docker-compose\",\n      \"evidence\": \"compose.yaml\"\n    }\n  ],\n  \"datastores\": [\n    {\n      \"kind\": \"postgres\",\n      \"evidence\": \"compose.yaml\"\n    }\n  ],\n  \"paas_available\": [],\n  \"notes\": [\n    \"Local-first preference. No managed service entitlement recorded.\"\n  ]\n}\n",
+    "stderr": ""
+  },
+  "consumer": {
+    "pass": true,
+    "exit_code": 0,
+    "stdout": "{\"chosen_architecture\":\"A scheduled Node batch job in the existing Compose deployment, querying Postgres and writing summary rows.\",\"rationale\":\"The nightly schedule and small load fit one SQL aggregation against the existing database.\",\"adr_candidates\":[{\"title\":\"Schedule weekly summary aggregation\",\"decision\":\"Run a nightly Node job against existing Postgres.\",\"rationale\":\"The brief needs batch summaries with a small row count.\"}],\"assumptions\":[\"The deployment can run a scheduled process.\"],\"recommendation\":\"build\",\"violations\":[]}\n",
+    "stderr": "",
+    "producer_value": {
+      "chosen_architecture": "A scheduled Node batch job in the existing Compose deployment, querying Postgres and writing summary rows.",
+      "rationale": "The nightly schedule and small load fit one SQL aggregation against the existing database.",
+      "adr_candidates": [
+        {
+          "title": "Schedule weekly summary aggregation",
+          "decision": "Run a nightly Node job against existing Postgres.",
+          "rationale": "The brief needs batch summaries with a small row count."
+        }
+      ],
+      "assumptions": [
+        "The deployment can run a scheduled process."
+      ],
+      "recommendation": "build"
+    },
+    "value": {
+      "chosen_architecture": "A scheduled Node batch job in the existing Compose deployment, querying Postgres and writing summary rows.",
+      "rationale": "The nightly schedule and small load fit one SQL aggregation against the existing database.",
+      "adr_candidates": [
+        {
+          "title": "Schedule weekly summary aggregation",
+          "decision": "Run a nightly Node job against existing Postgres.",
+          "rationale": "The brief needs batch summaries with a small row count."
+        }
+      ],
+      "assumptions": [
+        "The deployment can run a scheduled process."
+      ],
+      "recommendation": "build",
+      "violations": []
+    }
+  },
+  "invalid_recommendation": {
+    "pass": false,
+    "exit_code": 1,
+    "stdout": "{\"chosen_architecture\":\"A scheduled Node batch job in the existing Compose deployment, querying Postgres and writing summary rows.\",\"rationale\":\"The nightly schedule and small load fit one SQL aggregation against the existing database.\",\"adr_candidates\":[{\"title\":\"Schedule weekly summary aggregation\",\"decision\":\"Run a nightly Node job against existing Postgres.\",\"rationale\":\"The brief needs batch summaries with a small row count.\"}],\"assumptions\":[\"The deployment can run a scheduled process.\"],\"recommendation\":\"invented\",\"violations\":[\"recommendation \\\"invented\\\" not in {build,buy,hybrid}\"]}\n",
+    "stderr": "",
+    "producer_value": {
+      "chosen_architecture": "A scheduled Node batch job in the existing Compose deployment, querying Postgres and writing summary rows.",
+      "rationale": "The nightly schedule and small load fit one SQL aggregation against the existing database.",
+      "adr_candidates": [
+        {
+          "title": "Schedule weekly summary aggregation",
+          "decision": "Run a nightly Node job against existing Postgres.",
+          "rationale": "The brief needs batch summaries with a small row count."
+        }
+      ],
+      "assumptions": [
+        "The deployment can run a scheduled process."
+      ],
+      "recommendation": "invented"
+    },
+    "value": {
+      "chosen_architecture": "A scheduled Node batch job in the existing Compose deployment, querying Postgres and writing summary rows.",
+      "rationale": "The nightly schedule and small load fit one SQL aggregation against the existing database.",
+      "adr_candidates": [
+        {
+          "title": "Schedule weekly summary aggregation",
+          "decision": "Run a nightly Node job against existing Postgres.",
+          "rationale": "The brief needs batch summaries with a small row count."
+        }
+      ],
+      "assumptions": [
+        "The deployment can run a scheduled process."
+      ],
+      "recommendation": "invented",
+      "violations": [
+        "recommendation \"invented\" not in {build,buy,hybrid}"
+      ]
+    }
+  }
+}

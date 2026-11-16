@@ -1,0 +1,307 @@
+{
+  "events": [
+    {
+      "seq": 1,
+      "name": "write_output",
+      "args": {
+        "case_id": "empty",
+        "text": "## What's up: 2026-11-16\n\n### Automation preview\n\nBuild queue: (none)\n\nPrep queue: (none)\n\n### Structural diagnostics\n\nStructural diagnostics: clean\n"
+      },
+      "case_id": "empty",
+      "result": {
+        "written": true,
+        "bytes": 149,
+        "sha256": "87215ce4c8d3b079e583f4614e9e2619684f7acd70a6b472d1fe29543b21ed86"
+      }
+    },
+    {
+      "seq": 2,
+      "name": "write_output",
+      "args": {
+        "case_id": "operations",
+        "text": "Methodology: faffter-noon-methodology-thematic\n\n## What's up: 2026-11-16\n\n**7 days to Recovery beta**\n\n### Milestones\n\nAccount recovery\n\n| Milestone | Target | Progress |\n|---|---|---|\n| Recovery beta | 2026-11-23 | 50% |\n\n### Shipped\n\n- **BRF-10:** Recorded recovery attempts. This unblocked BRF-11, issuing recovery tokens.\n\n### In progress\n\n- **BRF-12:** Add the recovery screen. Status: Building.\n\n### Blocked\n\n- **BRF-13:** Send recovery emails. Waiting for BRF-11.\n\n### Parked work\n\n- **BRF-20:** Choose the retention period. Interactive prep stopped because the product retention decision remains open. Once resolved, resume with `/faff-prep BRF-20`. Re-prep BRF-20 via `/faff-prep BRF-20`? (y/n)\n- **BRF-21:** Repair the importer. Autonomous graft stopped because schema compatibility is unclear. Resume with `/faff-graft BRF-21` once clarified. Log: `.faff/runs/run-a/BRF-21/graft.md`. Open log / re-run `/faff-prep BRF-21` / leave parked? (log/reprep/leave) Resume the build via `/faff-graft BRF-21`? (y/n)\n\n### Awaiting review (adversarial outage)\n\n- **BRF-22:** Deduplicate recovery emails. Attempt 1/3; branch pushed. No action needed: review resumes on the next build drain without rebuilding, or escalates to an ordinary park after the retry bound.\n\n### Awaiting spec-review (adversarial outage)\n\n- **BRF-23:** Scope the expiry policy. Held drain 2/4; spec attached. No action needed: review resumes on the next prep drain without re-spec, or escalates to an ordinary park past the hold limit.\n\n### ADR supersession proposals awaiting ratification\n\n- **ADR-0042, Use token ledger:** Proposes superseding ADR-0031, Use transient tokens. Authoring issue: BRF-12. Reason: need a durable retry record. Status: propose-only.\n\nRatify supersession of ADR-0031 by ADR-0042? (y/n)\n\n### Do this\n\n1. **BRF-11: Issue recovery tokens.** Priority source: issue; just unlocked by BRF-10. It heads the two-issue chain for sending recovery emails and auditing delivery; the audit remains gated by the email work.\n2. **BRF-12: Add the recovery screen.** Continue the build. Priority source: issue.\n\n### Methodology findings\n\nWIP: 1/3; remaining headroom: 2. No structural findings.\n\n### Automation preview\n\n#### Value chains to unlock\n\nBRF-14 audits recovery delivery and remains blocked by BRF-13.\n\n```text\n[BRF-11 → BRF-13 → BRF-14]\n Issue recovery tokens → Send recovery emails → Audit recovery delivery\n```\n\nOf the two dependents, one is blocked only by BRF-11. BRF-14 remains gated by BRF-13.\n\n#### Build queue\n\n```text\nfire-and-forget (independents)       likely-fire (serialised)\n  BRF-11  Issue recovery tokens       (none)\n```\n\n#### Needs your call before automation can pick up\n\n**architecture**\n\n- **BRF-30: Select the rate limit store.** `needs-decision-first`; Punt: Redis or database?\n\n**product**\n\n- **BRF-31: Set the recovery policy.** `needs-decision-first`; Punt: who can reset an account?\n\n**(unowned)**\n\n- **BRF-32: Choose the replay window.** `needs-decision-first`; retained `confidence: medium`, with retry timing thin in the spec.\n\n#### Prep queue\n\n- **BRF-33:** Record token revocation; no spec.\n\n### Structural diagnostics\n\nStructural diagnostics: clean\n\n### Ready to pick up\n\n- **BRF-11: Issue recovery tokens.** Spec ready; just unlocked by BRF-10. Promote BRF-11 to Todo? (y/n)\n\nStart building BRF-11 via `/faff-graft BRF-11`? (y/n)\n\nBuild queue has 1 issue (1 independent, 0 collision groups), plus 1 prep candidate. Run `/faff-beep-boop` (full pipeline: tidy + prep + build)? (y/n)\n"
+      },
+      "case_id": "operations",
+      "result": {
+        "written": true,
+        "bytes": 3518,
+        "sha256": "a9d74a0d307ae31944255fc1efa47f87b6cb2d17570f064f8f5b6ec0b61633c2"
+      }
+    },
+    {
+      "seq": 3,
+      "name": "write_output",
+      "args": {
+        "case_id": "wip-cap",
+        "text": "Methodology: faffter-dark-methodology-agile-delivery\n\n## What's up: 2026-11-16\n\n### In progress\n\n- **WIP-1:** Finish checkout; human work in progress.\n- **WIP-2:** Finish the refund screen; human work in progress.\n- **WIP-3:** Build the audit export; autonomous work in progress.\n\n### Do this\n\nHuman WIP is at its cap of 2; focus on finishing in-flight work.\n\n1. **WIP-1: Finish checkout.** Address the missing ticket for required tax mapping before completing checkout.\n2. **WIP-2: Finish the refund screen.** Complete the work already in progress.\n\n### Methodology findings\n\nHuman WIP: 2/2; remaining headroom: 0. The autonomous audit export does not count against this cap.\n\n- **Chain-gap (upstream), WIP-1:** Required tax mapping has no ticket.\n- **Repeat-park, WIP-5:** Setting the refund currency has repeatedly parked on the currency decision.\n\n(more in `/faff-tidy`)\n\n### Heads up\n\n- **Chain-gap (upstream), WIP-1:** Required tax mapping is untracked.\n- **Repeat-park, WIP-5:** The refund currency decision keeps blocking progress.\n\n### Automation preview\n\n#### Build queue\n\n```text\nfire-and-forget (independents)       likely-fire (serialised)\n  WIP-4  Add receipts                 (none)\n```\n\nPrep queue: (none)\n\n### Structural diagnostics\n\n- **Chain-gap (upstream), WIP-1:** Required tax mapping has no ticket.\n- **Repeat-park, WIP-5:** Repeated currency decision parks.\n- **Ghost-project, WIP-6:** Linking payment alerts points to the missing old payment project.\n\n### Calibration signals\n\nThe currency decision produced 4 events in the last 14 days. This is advisory; possible actions are:\n\n- **Review the pattern:** Check whether the resolve-attempt rules need a change.\n- **Refresh affected specs:** Consider `/faff-prep --refresh` after resolving the currency decision.\n- **Leave unchanged:** Keep the current rules and specs.\n\nRun a full groom via `/faff-tidy`? (y/n)\n\nBuild queue has 1 issue (1 independent, 0 collision groups), plus 0 prep candidates. Run `/faff-beep-boop` (full pipeline: tidy + prep + build)? (y/n)\n"
+      },
+      "case_id": "wip-cap",
+      "result": {
+        "written": true,
+        "bytes": 2037,
+        "sha256": "c2d96b181cd884418ee6450467070bbd6031aacda853d255c1bbc91e6d5a7711"
+      }
+    },
+    {
+      "seq": 4,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "empty-preview",
+        "value": true
+      },
+      "case_id": "empty-preview",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 5,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "methodology-line",
+        "value": "Methodology: "
+      },
+      "case_id": "methodology-line",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 6,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "milestone-columns",
+        "value": [
+          "Milestone",
+          "Target",
+          "Progress"
+        ]
+      },
+      "case_id": "milestone-columns",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 7,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "diagnostics-clean",
+        "value": true
+      },
+      "case_id": "diagnostics-clean",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 8,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "calibration-empty",
+        "value": false
+      },
+      "case_id": "calibration-empty",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 9,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "wip-cap",
+        "value": false
+      },
+      "case_id": "wip-cap",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 10,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "autonomous-wip",
+        "value": false
+      },
+      "case_id": "autonomous-wip",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 11,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "findings-cap",
+        "value": 2
+      },
+      "case_id": "findings-cap",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 12,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "ordering-owner",
+        "value": "pick-ordering"
+      },
+      "case_id": "ordering-owner",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 13,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "parked-manual",
+        "value": true
+      },
+      "case_id": "parked-manual",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 14,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "no-ratification",
+        "value": false
+      },
+      "case_id": "no-ratification",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 15,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "prep-no-spec",
+        "value": "faff-prep"
+      },
+      "case_id": "prep-no-spec",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 16,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "graft-spec",
+        "value": "faff-graft"
+      },
+      "case_id": "graft-spec",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 17,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "medium-owner",
+        "value": "(unowned)"
+      },
+      "case_id": "medium-owner",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 18,
+      "name": "finish",
+      "args": {},
+      "case_id": null,
+      "result": {
+        "finished": true
+      }
+    }
+  ],
+  "errors": [],
+  "outputs": [
+    {
+      "id": "empty",
+      "text": "## What's up: 2026-11-16\n\n### Automation preview\n\nBuild queue: (none)\n\nPrep queue: (none)\n\n### Structural diagnostics\n\nStructural diagnostics: clean\n",
+      "persisted_sha256": "87215ce4c8d3b079e583f4614e9e2619684f7acd70a6b472d1fe29543b21ed86"
+    },
+    {
+      "id": "operations",
+      "text": "Methodology: faffter-noon-methodology-thematic\n\n## What's up: 2026-11-16\n\n**7 days to Recovery beta**\n\n### Milestones\n\nAccount recovery\n\n| Milestone | Target | Progress |\n|---|---|---|\n| Recovery beta | 2026-11-23 | 50% |\n\n### Shipped\n\n- **BRF-10:** Recorded recovery attempts. This unblocked BRF-11, issuing recovery tokens.\n\n### In progress\n\n- **BRF-12:** Add the recovery screen. Status: Building.\n\n### Blocked\n\n- **BRF-13:** Send recovery emails. Waiting for BRF-11.\n\n### Parked work\n\n- **BRF-20:** Choose the retention period. Interactive prep stopped because the product retention decision remains open. Once resolved, resume with `/faff-prep BRF-20`. Re-prep BRF-20 via `/faff-prep BRF-20`? (y/n)\n- **BRF-21:** Repair the importer. Autonomous graft stopped because schema compatibility is unclear. Resume with `/faff-graft BRF-21` once clarified. Log: `.faff/runs/run-a/BRF-21/graft.md`. Open log / re-run `/faff-prep BRF-21` / leave parked? (log/reprep/leave) Resume the build via `/faff-graft BRF-21`? (y/n)\n\n### Awaiting review (adversarial outage)\n\n- **BRF-22:** Deduplicate recovery emails. Attempt 1/3; branch pushed. No action needed: review resumes on the next build drain without rebuilding, or escalates to an ordinary park after the retry bound.\n\n### Awaiting spec-review (adversarial outage)\n\n- **BRF-23:** Scope the expiry policy. Held drain 2/4; spec attached. No action needed: review resumes on the next prep drain without re-spec, or escalates to an ordinary park past the hold limit.\n\n### ADR supersession proposals awaiting ratification\n\n- **ADR-0042, Use token ledger:** Proposes superseding ADR-0031, Use transient tokens. Authoring issue: BRF-12. Reason: need a durable retry record. Status: propose-only.\n\nRatify supersession of ADR-0031 by ADR-0042? (y/n)\n\n### Do this\n\n1. **BRF-11: Issue recovery tokens.** Priority source: issue; just unlocked by BRF-10. It heads the two-issue chain for sending recovery emails and auditing delivery; the audit remains gated by the email work.\n2. **BRF-12: Add the recovery screen.** Continue the build. Priority source: issue.\n\n### Methodology findings\n\nWIP: 1/3; remaining headroom: 2. No structural findings.\n\n### Automation preview\n\n#### Value chains to unlock\n\nBRF-14 audits recovery delivery and remains blocked by BRF-13.\n\n```text\n[BRF-11 → BRF-13 → BRF-14]\n Issue recovery tokens → Send recovery emails → Audit recovery delivery\n```\n\nOf the two dependents, one is blocked only by BRF-11. BRF-14 remains gated by BRF-13.\n\n#### Build queue\n\n```text\nfire-and-forget (independents)       likely-fire (serialised)\n  BRF-11  Issue recovery tokens       (none)\n```\n\n#### Needs your call before automation can pick up\n\n**architecture**\n\n- **BRF-30: Select the rate limit store.** `needs-decision-first`; Punt: Redis or database?\n\n**product**\n\n- **BRF-31: Set the recovery policy.** `needs-decision-first`; Punt: who can reset an account?\n\n**(unowned)**\n\n- **BRF-32: Choose the replay window.** `needs-decision-first`; retained `confidence: medium`, with retry timing thin in the spec.\n\n#### Prep queue\n\n- **BRF-33:** Record token revocation; no spec.\n\n### Structural diagnostics\n\nStructural diagnostics: clean\n\n### Ready to pick up\n\n- **BRF-11: Issue recovery tokens.** Spec ready; just unlocked by BRF-10. Promote BRF-11 to Todo? (y/n)\n\nStart building BRF-11 via `/faff-graft BRF-11`? (y/n)\n\nBuild queue has 1 issue (1 independent, 0 collision groups), plus 1 prep candidate. Run `/faff-beep-boop` (full pipeline: tidy + prep + build)? (y/n)\n",
+      "persisted_sha256": "a9d74a0d307ae31944255fc1efa47f87b6cb2d17570f064f8f5b6ec0b61633c2"
+    },
+    {
+      "id": "wip-cap",
+      "text": "Methodology: faffter-dark-methodology-agile-delivery\n\n## What's up: 2026-11-16\n\n### In progress\n\n- **WIP-1:** Finish checkout; human work in progress.\n- **WIP-2:** Finish the refund screen; human work in progress.\n- **WIP-3:** Build the audit export; autonomous work in progress.\n\n### Do this\n\nHuman WIP is at its cap of 2; focus on finishing in-flight work.\n\n1. **WIP-1: Finish checkout.** Address the missing ticket for required tax mapping before completing checkout.\n2. **WIP-2: Finish the refund screen.** Complete the work already in progress.\n\n### Methodology findings\n\nHuman WIP: 2/2; remaining headroom: 0. The autonomous audit export does not count against this cap.\n\n- **Chain-gap (upstream), WIP-1:** Required tax mapping has no ticket.\n- **Repeat-park, WIP-5:** Setting the refund currency has repeatedly parked on the currency decision.\n\n(more in `/faff-tidy`)\n\n### Heads up\n\n- **Chain-gap (upstream), WIP-1:** Required tax mapping is untracked.\n- **Repeat-park, WIP-5:** The refund currency decision keeps blocking progress.\n\n### Automation preview\n\n#### Build queue\n\n```text\nfire-and-forget (independents)       likely-fire (serialised)\n  WIP-4  Add receipts                 (none)\n```\n\nPrep queue: (none)\n\n### Structural diagnostics\n\n- **Chain-gap (upstream), WIP-1:** Required tax mapping has no ticket.\n- **Repeat-park, WIP-5:** Repeated currency decision parks.\n- **Ghost-project, WIP-6:** Linking payment alerts points to the missing old payment project.\n\n### Calibration signals\n\nThe currency decision produced 4 events in the last 14 days. This is advisory; possible actions are:\n\n- **Review the pattern:** Check whether the resolve-attempt rules need a change.\n- **Refresh affected specs:** Consider `/faff-prep --refresh` after resolving the currency decision.\n- **Leave unchanged:** Keep the current rules and specs.\n\nRun a full groom via `/faff-tidy`? (y/n)\n\nBuild queue has 1 issue (1 independent, 0 collision groups), plus 0 prep candidates. Run `/faff-beep-boop` (full pipeline: tidy + prep + build)? (y/n)\n",
+      "persisted_sha256": "c2d96b181cd884418ee6450467070bbd6031aacda853d255c1bbc91e6d5a7711"
+    }
+  ],
+  "rule_answers": [
+    {
+      "id": "empty-preview",
+      "value": true
+    },
+    {
+      "id": "methodology-line",
+      "value": "Methodology: "
+    },
+    {
+      "id": "milestone-columns",
+      "value": [
+        "Milestone",
+        "Target",
+        "Progress"
+      ]
+    },
+    {
+      "id": "diagnostics-clean",
+      "value": true
+    },
+    {
+      "id": "calibration-empty",
+      "value": false
+    },
+    {
+      "id": "wip-cap",
+      "value": false
+    },
+    {
+      "id": "autonomous-wip",
+      "value": false
+    },
+    {
+      "id": "findings-cap",
+      "value": 2
+    },
+    {
+      "id": "ordering-owner",
+      "value": "pick-ordering"
+    },
+    {
+      "id": "parked-manual",
+      "value": true
+    },
+    {
+      "id": "no-ratification",
+      "value": false
+    },
+    {
+      "id": "prep-no-spec",
+      "value": "faff-prep"
+    },
+    {
+      "id": "graft-spec",
+      "value": "faff-graft"
+    },
+    {
+      "id": "medium-owner",
+      "value": "(unowned)"
+    }
+  ]
+}

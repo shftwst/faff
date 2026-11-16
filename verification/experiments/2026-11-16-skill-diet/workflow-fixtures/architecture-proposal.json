@@ -1,0 +1,348 @@
+{
+  "schema": 1,
+  "scope": "Bounded architecture artifact production from completed profile-show snapshots. Strategy and inputs remain byte-identical. Four actual proposals per sample, ten separate decisions, manual fact/requirement/ADR-intent review and real architecture-proposal contract consumption. No model profile acquisition, procurement, ADR creation or full graft workflow claim.",
+  "cases": [
+    {
+      "id": "relational",
+      "task": "Produce one architecture proposal and matching ADR promotion intent from this brief and the supplied completed profile-show result. The controlled caller already executed the real shipped profile read. Do not acquire a profile, write ADRs, procure a service or judge your own proposal as approved. State assumptions explicitly; the result is a proposal for later review.",
+      "source": {
+        "brief": "A small internal timesheet tool for a handful of users. Relational users/projects/entries must survive restarts and concurrent edits need transactional integrity. Use the existing team runtime and deployment. No streaming or high-throughput ingestion requirement.",
+        "profile_show": {
+          "exit_code": 0,
+          "stdout": "{\n  \"schema\": 1,\n  \"acquired_at\": \"2026-11-16T00:00:00Z\",\n  \"acquired_by\": \"fixture-acquirer\",\n  \"runtimes\": [\n    {\n      \"name\": \"node\",\n      \"version\": \"22\",\n      \"evidence\": \"package.json\"\n    }\n  ],\n  \"ci\": [\n    {\n      \"name\": \"github-actions\",\n      \"evidence\": \".github/workflows/ci.yml\"\n    }\n  ],\n  \"deploy_targets\": [\n    {\n      \"kind\": \"docker-compose\",\n      \"evidence\": \"compose.yaml\"\n    }\n  ],\n  \"datastores\": [\n    {\n      \"kind\": \"postgres\",\n      \"evidence\": \"compose.yaml\"\n    }\n  ],\n  \"paas_available\": [],\n  \"notes\": [\n    \"Local-first preference. No managed service entitlement recorded.\"\n  ]\n}\n",
+          "stderr": ""
+        }
+      },
+      "stored_profile": {
+        "schema": 1,
+        "acquired_at": "2026-11-16T00:00:00Z",
+        "acquired_by": "fixture-acquirer",
+        "runtimes": [
+          {
+            "name": "node",
+            "version": "22",
+            "evidence": "package.json"
+          }
+        ],
+        "ci": [
+          {
+            "name": "github-actions",
+            "evidence": ".github/workflows/ci.yml"
+          }
+        ],
+        "deploy_targets": [
+          {
+            "kind": "docker-compose",
+            "evidence": "compose.yaml"
+          }
+        ],
+        "datastores": [
+          {
+            "kind": "postgres",
+            "evidence": "compose.yaml"
+          }
+        ],
+        "paas_available": [],
+        "notes": [
+          "Local-first preference. No managed service entitlement recorded."
+        ]
+      },
+      "recommendations": [
+        "build"
+      ],
+      "oracle": {
+        "rubric": {
+          "must_include": [
+            [
+              "postgres",
+              "relational"
+            ],
+            "Node",
+            [
+              "compose",
+              "container"
+            ],
+            [
+              "durable",
+              "persist",
+              "survive restart"
+            ]
+          ],
+          "must_avoid": []
+        },
+        "required_patterns": [
+          "```faff-contract:architecture-proposal",
+          "^## ADR promotion intent",
+          "confidence[^\\n]*(?:high|medium|low)"
+        ],
+        "forbidden_patterns": [
+          "(?:I|We) (?:purchased|subscribed|deployed|committed|created the ADR)"
+        ]
+      },
+      "reference": "```faff-contract:architecture-proposal\n{\n  \"chosen_architecture\": \"A Node service in docker-compose using the existing Postgres database.\",\n  \"rationale\": \"The existing Node/Compose profile fits the small load. Postgres transactions provide transactional integrity for concurrent edits and durable storage to survive restarts.\",\n  \"adr_candidates\": [\n    {\n      \"title\": \"Keep timesheets in Postgres\",\n      \"decision\": \"Use the existing relational database with transactions.\",\n      \"rationale\": \"Relational records need durability and transactional integrity.\"\n    }\n  ],\n  \"assumptions\": [\n    \"The existing database has capacity for the small load.\"\n  ],\n  \"recommendation\": \"build\"\n}\n```\n\n## ADR promotion intent\n\n- Keep timesheets in Postgres: Use the existing relational database with transactions. Relational records need durability and transactional integrity.\n\nconfidence: medium\n"
+    },
+    {
+      "id": "nightly-batch",
+      "task": "Produce one architecture proposal and matching ADR promotion intent from this brief and the supplied completed profile-show result. The controlled caller already executed the real shipped profile read. Do not acquire a profile, write ADRs, procure a service or judge your own proposal as approved. State assumptions explicitly; the result is a proposal for later review.",
+      "source": {
+        "brief": "A nightly batch job reads the existing timesheet table and writes weekly summary rows. A few thousand reads and a few dozen writes per run. No real-time fan-out or cross-partition ordering. Use existing infrastructure.",
+        "profile_show": {
+          "exit_code": 0,
+          "stdout": "{\n  \"schema\": 1,\n  \"acquired_at\": \"2026-11-16T00:00:00Z\",\n  \"acquired_by\": \"fixture-acquirer\",\n  \"runtimes\": [\n    {\n      \"name\": \"node\",\n      \"version\": \"22\",\n      \"evidence\": \"package.json\"\n    }\n  ],\n  \"ci\": [\n    {\n      \"name\": \"github-actions\",\n      \"evidence\": \".github/workflows/ci.yml\"\n    }\n  ],\n  \"deploy_targets\": [\n    {\n      \"kind\": \"docker-compose\",\n      \"evidence\": \"compose.yaml\"\n    }\n  ],\n  \"datastores\": [\n    {\n      \"kind\": \"postgres\",\n      \"evidence\": \"compose.yaml\"\n    }\n  ],\n  \"paas_available\": [],\n  \"notes\": [\n    \"Local-first preference. No managed service entitlement recorded.\"\n  ]\n}\n",
+          "stderr": ""
+        }
+      },
+      "stored_profile": {
+        "schema": 1,
+        "acquired_at": "2026-11-16T00:00:00Z",
+        "acquired_by": "fixture-acquirer",
+        "runtimes": [
+          {
+            "name": "node",
+            "version": "22",
+            "evidence": "package.json"
+          }
+        ],
+        "ci": [
+          {
+            "name": "github-actions",
+            "evidence": ".github/workflows/ci.yml"
+          }
+        ],
+        "deploy_targets": [
+          {
+            "kind": "docker-compose",
+            "evidence": "compose.yaml"
+          }
+        ],
+        "datastores": [
+          {
+            "kind": "postgres",
+            "evidence": "compose.yaml"
+          }
+        ],
+        "paas_available": [],
+        "notes": [
+          "Local-first preference. No managed service entitlement recorded."
+        ]
+      },
+      "recommendations": [
+        "build"
+      ],
+      "oracle": {
+        "rubric": {
+          "must_include": [
+            [
+              "nightly",
+              "scheduled",
+              "batch"
+            ],
+            [
+              "postgres",
+              "existing database"
+            ]
+          ],
+          "must_avoid": []
+        },
+        "required_patterns": [
+          "```faff-contract:architecture-proposal",
+          "^## ADR promotion intent",
+          "confidence[^\\n]*(?:high|medium|low)"
+        ],
+        "forbidden_patterns": [
+          "(?:I|We) (?:purchased|subscribed|deployed|committed|created the ADR)"
+        ]
+      },
+      "reference": "```faff-contract:architecture-proposal\n{\n  \"chosen_architecture\": \"A scheduled Node batch job in the existing Compose deployment, querying Postgres and writing summary rows.\",\n  \"rationale\": \"The nightly schedule and small load fit one SQL aggregation against the existing database.\",\n  \"adr_candidates\": [\n    {\n      \"title\": \"Schedule weekly summary aggregation\",\n      \"decision\": \"Run a nightly Node job against existing Postgres.\",\n      \"rationale\": \"The brief needs batch summaries with a small row count.\"\n    }\n  ],\n  \"assumptions\": [\n    \"The deployment can run a scheduled process.\"\n  ],\n  \"recommendation\": \"build\"\n}\n```\n\n## ADR promotion intent\n\n- Schedule weekly summary aggregation: Run a nightly Node job against existing Postgres. The brief needs batch summaries with a small row count.\n\nconfidence: medium\n"
+    },
+    {
+      "id": "no-profile",
+      "task": "Produce one architecture proposal and matching ADR promotion intent from this brief and the supplied completed profile-show result. The controlled caller already executed the real shipped profile read. Do not acquire a profile, write ADRs, procure a service or judge your own proposal as approved. State assumptions explicitly; the result is a proposal for later review.",
+      "source": {
+        "brief": "A local command-line tool records equipment checkouts on one laptop. Records must survive restart. No shared-server or cloud requirement; the implementation language is open.",
+        "profile_show": {
+          "exit_code": 3,
+          "stdout": "",
+          "stderr": "faff profile show: no infra profile; run acquisition\n"
+        }
+      },
+      "stored_profile": null,
+      "recommendations": [
+        "build"
+      ],
+      "oracle": {
+        "rubric": {
+          "must_include": [
+            [
+              "local",
+              "laptop"
+            ],
+            [
+              "no infra profile",
+              "no infrastructure profile",
+              "no profile",
+              "profile is absent",
+              "profile is unavailable",
+              "profile was not",
+              "profile was unavailable"
+            ]
+          ],
+          "must_avoid": []
+        },
+        "required_patterns": [
+          "```faff-contract:architecture-proposal",
+          "^## ADR promotion intent",
+          "confidence[^\\n]*(?:high|medium|low)"
+        ],
+        "forbidden_patterns": [
+          "(?:I|We) (?:purchased|subscribed|deployed|committed|created the ADR)"
+        ]
+      },
+      "reference": "```faff-contract:architecture-proposal\n{\n  \"chosen_architecture\": \"A local command-line program with a SQLite file on the laptop.\",\n  \"rationale\": \"Local persisted records fit the single-laptop checkout workflow and survive restart without a shared server.\",\n  \"adr_candidates\": [\n    {\n      \"title\": \"Persist local checkouts in SQLite\",\n      \"decision\": \"Use one local SQLite database file.\",\n      \"rationale\": \"The brief requires local records that survive restart.\"\n    }\n  ],\n  \"assumptions\": [\n    \"No infra profile is available.\",\n    \"A runtime suitable for a local CLI can be installed after human review.\"\n  ],\n  \"recommendation\": \"build\"\n}\n```\n\n## ADR promotion intent\n\n- Persist local checkouts in SQLite: Use one local SQLite database file. The brief requires local records that survive restart.\n\nconfidence: medium\n"
+    },
+    {
+      "id": "external-only",
+      "task": "Produce one architecture proposal and matching ADR promotion intent from this brief and the supplied completed profile-show result. The controlled caller already executed the real shipped profile read. Do not acquire a profile, write ADRs, procure a service or judge your own proposal as approved. State assumptions explicitly; the result is a proposal for later review.",
+      "source": {
+        "brief": "This fixture requires the certified FixtureSign service for document signatures. Certification is mandatory and the team cannot build a certified substitute in this release. The task is only to propose the signing component; no licence purchase or service call is authorised.",
+        "profile_show": {
+          "exit_code": 0,
+          "stdout": "{\n  \"schema\": 1,\n  \"acquired_at\": \"2026-11-16T00:00:00Z\",\n  \"acquired_by\": \"fixture-acquirer\",\n  \"runtimes\": [\n    {\n      \"name\": \"node\",\n      \"version\": \"22\",\n      \"evidence\": \"package.json\"\n    }\n  ],\n  \"ci\": [\n    {\n      \"name\": \"github-actions\",\n      \"evidence\": \".github/workflows/ci.yml\"\n    }\n  ],\n  \"deploy_targets\": [\n    {\n      \"kind\": \"docker-compose\",\n      \"evidence\": \"compose.yaml\"\n    }\n  ],\n  \"datastores\": [\n    {\n      \"kind\": \"postgres\",\n      \"evidence\": \"compose.yaml\"\n    }\n  ],\n  \"paas_available\": [],\n  \"notes\": [\n    \"The required FixtureSign certification cannot be obtained by this team in this release. No FixtureSign licence or service access exists.\"\n  ]\n}\n",
+          "stderr": ""
+        }
+      },
+      "stored_profile": {
+        "schema": 1,
+        "acquired_at": "2026-11-16T00:00:00Z",
+        "acquired_by": "fixture-acquirer",
+        "runtimes": [
+          {
+            "name": "node",
+            "version": "22",
+            "evidence": "package.json"
+          }
+        ],
+        "ci": [
+          {
+            "name": "github-actions",
+            "evidence": ".github/workflows/ci.yml"
+          }
+        ],
+        "deploy_targets": [
+          {
+            "kind": "docker-compose",
+            "evidence": "compose.yaml"
+          }
+        ],
+        "datastores": [
+          {
+            "kind": "postgres",
+            "evidence": "compose.yaml"
+          }
+        ],
+        "paas_available": [],
+        "notes": [
+          "The required FixtureSign certification cannot be obtained by this team in this release. No FixtureSign licence or service access exists."
+        ]
+      },
+      "recommendations": [
+        "buy",
+        "hybrid"
+      ],
+      "oracle": {
+        "rubric": {
+          "must_include": [
+            "FixtureSign",
+            "human"
+          ],
+          "must_avoid": []
+        },
+        "required_patterns": [
+          "```faff-contract:architecture-proposal",
+          "^## ADR promotion intent",
+          "confidence[^\\n]*(?:high|medium|low)"
+        ],
+        "forbidden_patterns": [
+          "(?:I|We) (?:purchased|subscribed|deployed|committed|created the ADR)"
+        ]
+      },
+      "reference": "```faff-contract:architecture-proposal\n{\n  \"chosen_architecture\": \"Use the certified FixtureSign signing service, conditional on human procurement and access approval.\",\n  \"rationale\": \"The required certification is unavailable to an in-house implementation in this release. A non-build recommendation needs human review before any action.\",\n  \"adr_candidates\": [\n    {\n      \"title\": \"Require certified FixtureSign signatures\",\n      \"decision\": \"Propose the certified service subject to human approval.\",\n      \"rationale\": \"Certification is mandatory and not locally buildable in the release.\"\n    }\n  ],\n  \"assumptions\": [\n    \"No licence or service access exists; a human must approve procurement.\"\n  ],\n  \"recommendation\": \"buy\"\n}\n```\n\n## ADR promotion intent\n\n- Require certified FixtureSign signatures: Propose the certified service subject to human approval. Certification is mandatory and not locally buildable in the release.\n\nconfidence: medium\n"
+    }
+  ],
+  "rule_cases": [
+    {
+      "id": "profile-read",
+      "question": "Which read command is allowed? Return {\"command\": string}, choosing exactly \"faff profile show --json\" or \"faff profile mine\".",
+      "expected": {
+        "command": "faff profile show --json"
+      }
+    },
+    {
+      "id": "missing-profile",
+      "question": "Profile show exits 3. Return {\"stop\": boolean, \"state_no_profile_assumption\": boolean, \"use_brief\": boolean}.",
+      "expected": {
+        "stop": false,
+        "state_no_profile_assumption": true,
+        "use_brief": true
+      }
+    },
+    {
+      "id": "default",
+      "question": "What is the default recommendation? Return {\"recommendation\": string}, choosing build, buy or hybrid.",
+      "expected": {
+        "recommendation": "build"
+      }
+    },
+    {
+      "id": "non-build",
+      "question": "May the producer purchase or subscribe after a non-build proposal? Return {\"act\": boolean, \"surface_for_human\": boolean}.",
+      "expected": {
+        "act": false,
+        "surface_for_human": true
+      }
+    },
+    {
+      "id": "materialise",
+      "question": "Does this producer call faff adr new? Return {\"call\": boolean}.",
+      "expected": {
+        "call": false
+      }
+    },
+    {
+      "id": "critic",
+      "question": "Does this producer issue the downstream spec-review quality verdict? Return {\"issue_verdict\": boolean}.",
+      "expected": {
+        "issue_verdict": false
+      }
+    },
+    {
+      "id": "needs",
+      "question": "Must each stated brief requirement have a named matching design decision? Return {\"required\": boolean}.",
+      "expected": {
+        "required": true
+      }
+    },
+    {
+      "id": "alternatives",
+      "question": "Should rationale argue against unchosen architectures? Return {\"argue_against_unchosen\": boolean}.",
+      "expected": {
+        "argue_against_unchosen": false
+      }
+    },
+    {
+      "id": "intent",
+      "question": "Must ADR promotion intent echo each candidate? Return {\"echo_each\": boolean}.",
+      "expected": {
+        "echo_each": true
+      }
+    },
+    {
+      "id": "confidence",
+      "question": "Is confidence a quality gate? Return {\"advisory\": boolean, \"gates_quality\": boolean}.",
+      "expected": {
+        "advisory": true,
+        "gates_quality": false
+      }
+    }
+  ]
+}

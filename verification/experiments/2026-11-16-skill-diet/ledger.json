@@ -1547,23 +1547,46 @@
       "effort": "low",
       "source_commit": "ce02b49ac0428e03daae4c3ae8f77eee4dcd008c",
       "before_commit": "0ce1f7fed1dfe12ba5bba875e46f2e03cbcf25b4"
+    },
+    {
+      "skill": "Review producer",
+      "path": "plugin/skills/faffter-noon-review/SKILL.md",
+      "status": "qualified-bounded-review-production-and-comment-handoff",
+      "before": {
+        "path": "plugin/skills/faffter-noon-review/SKILL.md",
+        "bytes": 13405,
+        "characters": 13305,
+        "estimated_tokens": 3327,
+        "sha256": "f85023d05cd5c6de9ed09ce54a7c5a88d7a31b8d66f640f8b630b84ad85bc6fe"
+      },
+      "after": {
+        "path": "plugin/skills/faffter-noon-review/SKILL.md",
+        "bytes": 8045,
+        "characters": 8029,
+        "estimated_tokens": 2008,
+        "sha256": "e42c9a2d8d7478ad621769dcaec04dcd1dc17550de26805539696e25d64f251f"
+      },
+      "bytes_saved": 5360,
+      "estimated_tokens_saved": 1319,
+      "mandatory_dependencies_added": [],
+      "qualification": "review-producer-astra-v4-final-qualification.json",
+      "source_review": "review-producer-v3-source-review.json",
+      "model": "gpt-6-astra",
+      "effort": "low",
+      "source_commit": "f6324f6112eeb54999aeda04c20245edac7187a9",
+      "before_commit": "bc66798c"
     }
   ],
   "source_total": {
     "before_bytes": 1369435,
-    "after_bytes": 1273175,
+    "after_bytes": 1267815,
     "before_estimated_tokens": 339279,
-    "after_estimated_tokens": 315560
+    "after_estimated_tokens": 314241
   },
   "load_manifest": "load-manifest.json",
   "baseline_loads": "baseline/loads.json",
-  "latest_loads": "prd-astra-v2-after-loads.json",
+  "latest_loads": "review-astra-v4-after-loads.json",
   "pending_slices": [
-    {
-      "path": "plugin/skills/faffter-noon-review/SKILL.md",
-      "candidate": "candidates/review-producer-v3.md",
-      "status": "V3 functional/native/title/downstream checks passed, integration enum lint failed. V4 revised presentation measures five new candidates against unchanged successful V3 baseline; excluded until qualified."
-    },
     {
       "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
       "candidate": "candidates/agile-principles-v1.md",
@@ -1582,13 +1605,23 @@
     {
       "path": "plugin/skills/faffidavit-routing/SKILL.md",
       "candidate": "candidates/routing-assignment-v1.md",
-      "status": "Fresh Astra baseline running; candidate prepared with all verdict conditions, standalone reads and display preserved; excluded from totals"
+      "status": "Held: unchanged baseline root-cause assignments vary on the medium-confidence case, failing the frozen exact projection gate. Candidate continuation cancelled; source unchanged and savings excluded."
     },
     {
       "path": "plugin/skills/faffter-noon-adr/SKILL.md",
       "candidate": "candidates/adr-body-v1.md",
-      "status": "Fresh Astra V1 baseline running; real format/scaffold/validate reference preflight passes all six cases; excluded until paired qualification."
+      "status": "Held: baseline body adds an unsupported ADR acceptance-event date. Four separate free-form answer matches are oracle false negatives. Candidate unmeasured, source unchanged and savings excluded."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-intake/SKILL.md",
+      "candidate": "candidates/intake-brief-v1.md",
+      "status": "Astra baseline running; full discovery procedure, template, inputs and appetite preserved byte-for-byte. Final-brief production only; excluded until qualified."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-architecture/SKILL.md",
+      "candidate": "candidates/architecture-proposal-v1.md",
+      "status": "Astra V1 baseline running; four actual profile-show and contract-consumption reference preflights pass; strategy, inputs and example unchanged; excluded until qualified."
     }
   ],
-  "latest_source": "prd-astra-v2-after-source.json"
+  "latest_source": "review-astra-v4-after-source.json"
 }

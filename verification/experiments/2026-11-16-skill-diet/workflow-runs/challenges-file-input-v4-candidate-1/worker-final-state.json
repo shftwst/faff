@@ -1,0 +1,5 @@
+{
+  "exit_code": 1,
+  "stdout": "{\n  \"ok\": false,\n  \"error\": \"no worker named 'claude-interfaces'\"\n}\n",
+  "stderr": ""
+}

@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"adr-unavailable","outcome":"absent","ground":null,"reason":"The provider chain was exhausted with no independent opinion (opinion_available=false). No adversarial drift review ran, so the outcome is absent, which the admission gate treats as a reject. This is not a pass and not a review-outage annotation."}}

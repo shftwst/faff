@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "scope": "Native tool metadata for explicitly requested fixture sessions only. No model thoughts, assistant prose, credentials, tool-result contents or unrelated conversations are exported.",
+  "auditor_sha256": "ad73b7bde2d74237edc05911f79a1b1db8e2f1532245642af7f9648180a363ed",
+  "sources": [
+    {
+      "file": "37330285-840b-4934-bef3-b06f7ea2d55a.jsonl",
+      "sha256": "6125cefbad0b425a9752cbec626810bdaa0e5762706ffb5926a8f84ad6f3a801",
+      "bytes": 1860719
+    },
+    {
+      "file": "6ca13dee-7bc6-44ce-8701-bcc130ce4729.jsonl",
+      "sha256": "977a7c4a39047e3017a5f481643cc0ae187b6cf6facf82dec4e0e570c127f57a",
+      "bytes": 1837984
+    },
+    {
+      "file": "fa1378c9-fccf-4ad7-b315-db8378b97190.jsonl",
+      "sha256": "e9c8f175c3ae9ad4a5d1c6449220be872ebbee783451483a5b2176eb39a169a3",
+      "bytes": 1656326
+    }
+  ],
+  "runs": [
+    {
+      "name": "adversarial-context-v3-baseline-1",
+      "prompt_matches": 1,
+      "tools": [],
+      "model_ids": [],
+      "versions": [
+        "2.1.325"
+      ],
+      "complete": false,
+      "status": "incomplete",
+      "problems": [],
+      "source_sha256": "977a7c4a39047e3017a5f481643cc0ae187b6cf6facf82dec4e0e570c127f57a"
+    },
+    {
+      "name": "adversarial-context-v3-candidate-1",
+      "prompt_matches": 1,
+      "tools": [],
+      "model_ids": [],
+      "versions": [
+        "2.1.325"
+      ],
+      "complete": false,
+      "status": "incomplete",
+      "problems": [],
+      "source_sha256": "e9c8f175c3ae9ad4a5d1c6449220be872ebbee783451483a5b2176eb39a169a3"
+    },
+    {
+      "name": "adversarial-context-v3-baseline-3",
+      "prompt_matches": 1,
+      "tools": [],
+      "model_ids": [],
+      "versions": [
+        "2.1.325"
+      ],
+      "complete": false,
+      "status": "incomplete",
+      "problems": [],
+      "source_sha256": "6125cefbad0b425a9752cbec626810bdaa0e5762706ffb5926a8f84ad6f3a801"
+    }
+  ]
+}

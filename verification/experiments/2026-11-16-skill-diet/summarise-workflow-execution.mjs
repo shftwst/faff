@@ -4,7 +4,8 @@ import { canonicalHash, sha256 } from '../../../eval/control-parity/schema.mjs';
 
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 const root = import.meta.dirname;
-const args = process.argv.slice(2), outIndex = args.indexOf('--out');
+const useAssessments = process.argv.includes('--assessments');
+const args = process.argv.slice(2).filter(arg => arg !== '--assessments'), outIndex = args.indexOf('--out');
 const output = outIndex < 0 ? null : args[outIndex + 1];
 const planPaths = outIndex < 0 ? args : args.slice(0, outIndex);
 if (!planPaths.length || outIndex >= 0 && !output) throw new Error('usage: summarise-workflow-execution.mjs PLAN... [--out NEW_FILE]');
@@ -16,10 +17,26 @@ for (const sample of samples) {
   const directory = join(root, 'workflow-runs', sample.name), reportPath = join(directory, 'report.json');
   if (!existsSync(reportPath) || !existsSync(join(directory, 'worker-final-screen.json'))) { missing.push(sample.name); continue; }
   const report = read(reportPath), manifest = read(join(directory, 'manifest.json')), capture = read(join(directory, 'capture.json'));
+  const originalGrade = report.grade, originalStatus = report.status;
+  let assessmentHash = null;
+  if (useAssessments) {
+    const path = join(directory, 'assessment.json'), assessment = read(path);
+    if (manifest.kind !== 'adversarial-review-execution' || assessment.name !== sample.name || assessment.report_sha256 !== sha256(readFileSync(reportPath)) || assessment.capture_sha256 !== sha256(readFileSync(join(directory, 'capture.json'))) || assessment.fixture_sha256 !== manifest.fixture_sha256 || assessment.grader_sha256 !== sha256(readFileSync(resolve(root, '../../../eval/control-parity/adversarial-execution.mjs'))) || assessment.correction_sha256 !== sha256(readFileSync(join(root, 'workflow-fixtures/ORACLE-CORRECTION.md')))) throw new Error(`unbound assessment: ${sample.name}`);
+    assessmentHash = sha256(readFileSync(path));
+    report.grade = assessment.grade;
+    report.status = assessment.status;
+  }
   const policy = readFileSync(join(root, sample.policy)), text = policy.toString('utf8');
   const delivery = report.policy_delivery, runProblems = [];
+  const expectedErrors = useAssessments ? report.grade.diagnostics.map(d => d.error) : [];
+  const deliveryErrors = (delivery?.errors ?? []).filter(error => {
+    const index = error.name === 'read_file' ? expectedErrors.indexOf(error.message) : -1;
+    if (index < 0) return true;
+    expectedErrors.splice(index, 1);
+    return false;
+  });
   if (report.status !== 'pass') runProblems.push('effect-grade');
-  if (!delivery?.complete || delivery?.errors?.length || !delivery?.reads?.length) runProblems.push('policy-delivery');
+  if (!delivery?.complete || deliveryErrors.length || expectedErrors.length || !delivery?.reads?.length) runProblems.push('policy-delivery');
   if (manifest.policy_sha256 !== sha256(policy) || delivery?.sha256 !== sha256(policy)) runProblems.push('policy-binding');
   let cursor = 0;
   for (const chunk of delivery?.reads ?? []) {
@@ -51,9 +68,9 @@ for (const sample of samples) {
     if (!reply.ok) { refused++; continue; }
     payloads.push(JSON.stringify(reply.value) + '\n');
   }
-  if (refused) runProblems.push('refused-bridge-call');
+  if (refused !== (useAssessments ? report.grade.diagnostics.length : 0)) runProblems.push('refused-bridge-call');
   if (runProblems.length) problems.push({ run: sample.name, problems: [...new Set(runProblems)] });
-  runs.push({ name: sample.name, arm: sample.arm, kind: manifest.kind, report_sha256: sha256(readFileSync(reportPath)), policy_sha256: sha256(policy), projection_sha256: canonicalHash(projection), policy_chunks: delivery?.reads?.length ?? 0, cases_passed: report.grade.cases.filter(c => c.pass).length, cases_total: report.grade.cases.length, config_path_reads: manifest.kind === 'gateway-entry-execution' ? report.grade.cases.reduce((n, c) => n + c.reads.length, 0) : null, event_counts: capture.events.reduce((counts, event) => ({ ...counts, [event.name]: (counts[event.name] ?? 0) + 1 }), {}), recorded_data_bytes: payloads.reduce((n, p) => n + Buffer.byteLength(p), 0), estimated_recorded_data_tokens: payloads.reduce((n, p) => n + Math.ceil(p.length / 4), 0) });
+  runs.push({ name: sample.name, arm: sample.arm, kind: manifest.kind, report_sha256: sha256(readFileSync(reportPath)), assessment_sha256: assessmentHash, original_status: originalStatus, original_cases_passed: originalGrade.cases.filter(c => c.pass).length, diagnostics: report.grade.diagnostics ?? [], policy_sha256: sha256(policy), projection_sha256: canonicalHash(projection), policy_chunks: delivery?.reads?.length ?? 0, cases_passed: report.grade.cases.filter(c => c.pass).length, cases_total: report.grade.cases.length, config_path_reads: manifest.kind === 'gateway-entry-execution' ? report.grade.cases.reduce((n, c) => n + c.reads.length, 0) : null, event_counts: capture.events.reduce((counts, event) => ({ ...counts, [event.name]: (counts[event.name] ?? 0) + 1 }), {}), recorded_data_bytes: payloads.reduce((n, p) => n + Buffer.byteLength(p), 0), estimated_recorded_data_tokens: payloads.reduce((n, p) => n + Math.ceil(p.length / 4), 0) });
 }
 const kinds = [...new Set(runs.map(r => r.kind))];
 if (kinds.length > 1) problems.push({ problems: ['mixed-workflow-kinds'] });

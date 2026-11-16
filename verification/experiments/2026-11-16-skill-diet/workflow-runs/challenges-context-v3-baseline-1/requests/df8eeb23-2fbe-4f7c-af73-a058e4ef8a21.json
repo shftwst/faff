@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"adr-unavailable","outcome":null,"ground":null,"reason":"opinion_available=false: the provider attempt was exhausted and produced no independent opinion. No outcome is submitted, so the caller omits --challenge and the challenge is treated as absent (a missing skeptic is a reject, never a pass)."}}

@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"prdr-unavailable","outcome":null,"ground":null,"reason":"The provider attempt was exhausted with no independent opinion (opinion_available=false). No challenge outcome is recorded; the caller omits --challenge, which parks the PRDR as phase2-inconclusive."}}

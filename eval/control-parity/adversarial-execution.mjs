@@ -185,7 +185,18 @@ export async function createAdversarialEnvironment({ root, runtime, fixture }) {
   return environment;
 }
 
+export function expectedOutputReadMisses(capture, fixture) {
+  return capture.events.filter(event => {
+    const row = fixture.cases.find(row => row.id === event.case_id);
+    const state = capture.cases.find(state => state.id === event.case_id);
+    return row?.phase1 === 'pass' && event.name === 'read_file' && event.error?.startsWith('ENOENT:') && state && ['system', 'backends', 'findings'].some(key => event.args.path === state.files[key]);
+  });
+}
+
 export function gradeAdversarialExecution(capture, fixture) {
+  const diagnostics = expectedOutputReadMisses(capture, fixture).map(event => ({ seq: event.seq, case_id: event.case_id, kind: 'unwritten-output-read', path: event.args.path, error: event.error }));
+  const diagnosticSequences = new Set(diagnostics.map(event => event.seq));
+  const errors = capture.errors.filter(error => !diagnosticSequences.has(error.seq));
   const cases = fixture.cases.map(row => {
     const c = capture.cases.find(c => c.id === row.id), events = capture.events.filter(e => e.case_id === row.id), problems = [];
     const phase1 = events.filter(e => e.name === 'invoke_skill');
@@ -218,7 +229,7 @@ export function gradeAdversarialExecution(capture, fixture) {
       const resolution = events.find(e => e.command_kind === 'faff' && isDeepStrictEqual(e.args.args, ['adversarial-backends', '--consumer', 'code_review']));
       if (!resolution || resolution.result.exit_code !== 0 || resolution.seq > helper.seq) problems.push('backend-resolution');
       if (resolution && helper.backends_text !== resolution.result.stdout) problems.push('backend-bytes-changed');
-      if (helper.result.exit_code === 0 && c.findings_text !== helper.result.stdout) problems.push('findings-bytes-changed');
+      if (helper.result.exit_code === 0 && (row.autonomous || c.findings_text !== null) && c.findings_text !== helper.result.stdout) problems.push('findings-bytes-changed');
       const fixtureRead = events.find(e => e.command_kind === 'faff' && e.args.args[0] === 'review-fixture-paths');
       const fixtureFlags = args.flatMap((a, i) => a === '--fixture-path' ? [args[i + 1]] : []);
       const resolvedPaths = fixtureRead?.result.exit_code === 0 ? fixtureRead.result.stdout.trim().split('\n').filter(Boolean) : [];
@@ -238,10 +249,10 @@ export function gradeAdversarialExecution(capture, fixture) {
       if (resolution.length !== 1 || resolution[0].result.exit_code !== 2) problems.push('malformed-config-resolution');
     }
     if (row.phase1 !== 'pass' && capture.requests.some(r => r.case_id === row.id)) problems.push('phase1-short-circuit');
-    if (events.some(e => e.error)) problems.push('tool-error');
+    if (events.some(e => e.error && !diagnosticSequences.has(e.seq))) problems.push('tool-error');
     return { id: row.id, pass: problems.length === 0, problems, signal: c?.verdict?.signal ?? null, helper_exits: helpers.map(e => e.result.exit_code), checkpoints: progress.map(e => key(e.args.args)), gate: c?.submission?.gate ?? null };
   });
-  return { status: !capture.errors.length && cases.length && cases.every(c => c.pass) ? 'pass' : 'fail', cases, errors: capture.errors };
+  return { status: !errors.length && cases.length && cases.every(c => c.pass) ? 'pass' : 'fail', cases, errors, diagnostics };
 }
 
 const schema = properties => ({ type: 'object', properties, required: Object.keys(properties).filter(k => k !== 'stdout_path'), additionalProperties: false });
@@ -270,7 +281,7 @@ export async function runAdversarialExecution({ root, commit, policyPath, fixtur
     const capture = env.capture(), grade = gradeAdversarialExecution(capture, fixture);
     assertCandidateCommandUnchanged(binding);
     writeJson(join(output, 'capture.json'), capture);
-    const report = { status: !bridge.stop && !bridge.rejected && policyReader.capture().complete && grade.status === 'pass' ? 'pass' : 'fail', bridge, policy_delivery: policyReader.capture(), grade, scope: fixture.scope, accounting: 'unmetered' };
+    const report = { status: !bridge.stop && bridge.rejected === grade.diagnostics.length && policyReader.capture().complete && grade.status === 'pass' ? 'pass' : 'fail', bridge, policy_delivery: policyReader.capture(), grade, scope: fixture.scope, accounting: 'unmetered' };
     writeJson(join(output, 'report.json'), report);
     return report;
   } finally { await env.close(); rmSync(work, { recursive: true, force: true }); }

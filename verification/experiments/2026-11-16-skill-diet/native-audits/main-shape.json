@@ -1,0 +1,231 @@
+{
+  "schema": 1,
+  "scope": "Native tool metadata for explicitly requested fixture sessions only. No model thoughts, assistant prose, credentials, tool-result contents or unrelated conversations are exported.",
+  "auditor_sha256": "dff9f05531330a72536331a3e03ac2eb27549d0d1156b0e0ea03a68c9ebc0e21",
+  "sources": [
+    {
+      "file": "37330285-840b-4934-bef3-b06f7ea2d55a.jsonl",
+      "sha256": "a35ceb20782a6bf2c67f97249836bb7dbd5c2d3503e367f677feb3110dd063be",
+      "bytes": 1904961,
+      "shape": [
+        {
+          "type": "mode",
+          "content_types": "undefined"
+        },
+        {
+          "type": "file-history-snapshot",
+          "content_types": "undefined"
+        },
+        {
+          "type": "attachment",
+          "timestamp": "2026-11-16T06:59:34.989Z",
+          "version": "2.1.325",
+          "content_types": "undefined"
+        },
+        {
+          "type": "attachment",
+          "timestamp": "2026-11-16T06:59:34.999Z",
+          "version": "2.1.325",
+          "content_types": "undefined"
+        },
+        {
+          "type": "attachment",
+          "timestamp": "2026-11-16T06:59:34.999Z",
+          "version": "2.1.325",
+          "content_types": "undefined"
+        },
+        {
+          "type": "user",
+          "timestamp": "2026-11-16T06:59:34.959Z",
+          "version": "2.1.325",
+          "role": "user",
+          "content_types": "string"
+        },
+        {
+          "type": "user",
+          "timestamp": "2026-11-16T06:59:34.951Z",
+          "version": "2.1.325",
+          "role": "user",
+          "content_types": "string"
+        },
+        {
+          "type": "system",
+          "timestamp": "2026-11-16T06:59:34.956Z",
+          "version": "2.1.325",
+          "content_types": "undefined"
+        }
+      ],
+      "prompt_times": [
+        {
+          "run": "adversarial-context-v3-baseline-3",
+          "timestamp": "2026-11-16T06:59:36.439Z",
+          "expected_start": "2026-11-16T06:59:32.619Z",
+          "expected_end": "2026-11-16T07:09:29.862Z"
+        }
+      ]
+    },
+    {
+      "file": "6ca13dee-7bc6-44ce-8701-bcc130ce4729.jsonl",
+      "sha256": "977a7c4a39047e3017a5f481643cc0ae187b6cf6facf82dec4e0e570c127f57a",
+      "bytes": 1837984,
+      "shape": [
+        {
+          "type": "mode",
+          "content_types": "undefined"
+        },
+        {
+          "type": "file-history-snapshot",
+          "content_types": "undefined"
+        },
+        {
+          "type": "attachment",
+          "timestamp": "2026-11-16T06:40:00.163Z",
+          "version": "2.1.325",
+          "content_types": "undefined"
+        },
+        {
+          "type": "attachment",
+          "timestamp": "2026-11-16T06:40:00.171Z",
+          "version": "2.1.325",
+          "content_types": "undefined"
+        },
+        {
+          "type": "attachment",
+          "timestamp": "2026-11-16T06:40:00.172Z",
+          "version": "2.1.325",
+          "content_types": "undefined"
+        },
+        {
+          "type": "user",
+          "timestamp": "2026-11-16T06:40:00.130Z",
+          "version": "2.1.325",
+          "role": "user",
+          "content_types": "string"
+        },
+        {
+          "type": "user",
+          "timestamp": "2026-11-16T06:40:00.115Z",
+          "version": "2.1.325",
+          "role": "user",
+          "content_types": "string"
+        },
+        {
+          "type": "system",
+          "timestamp": "2026-11-16T06:40:00.125Z",
+          "version": "2.1.325",
+          "content_types": "undefined"
+        }
+      ],
+      "prompt_times": [
+        {
+          "run": "adversarial-context-v3-baseline-1",
+          "timestamp": "2026-11-16T06:40:01.520Z",
+          "expected_start": "2026-11-16T06:39:57.764Z",
+          "expected_end": "2026-11-16T06:50:24.486Z"
+        }
+      ]
+    },
+    {
+      "file": "fa1378c9-fccf-4ad7-b315-db8378b97190.jsonl",
+      "sha256": "e9c8f175c3ae9ad4a5d1c6449220be872ebbee783451483a5b2176eb39a169a3",
+      "bytes": 1656326,
+      "shape": [
+        {
+          "type": "mode",
+          "content_types": "undefined"
+        },
+        {
+          "type": "file-history-snapshot",
+          "content_types": "undefined"
+        },
+        {
+          "type": "attachment",
+          "timestamp": "2026-11-16T06:50:23.191Z",
+          "version": "2.1.325",
+          "content_types": "undefined"
+        },
+        {
+          "type": "attachment",
+          "timestamp": "2026-11-16T06:50:23.214Z",
+          "version": "2.1.325",
+          "content_types": "undefined"
+        },
+        {
+          "type": "attachment",
+          "timestamp": "2026-11-16T06:50:23.214Z",
+          "version": "2.1.325",
+          "content_types": "undefined"
+        },
+        {
+          "type": "user",
+          "timestamp": "2026-11-16T06:50:23.163Z",
+          "version": "2.1.325",
+          "role": "user",
+          "content_types": "string"
+        },
+        {
+          "type": "user",
+          "timestamp": "2026-11-16T06:50:23.147Z",
+          "version": "2.1.325",
+          "role": "user",
+          "content_types": "string"
+        },
+        {
+          "type": "system",
+          "timestamp": "2026-11-16T06:50:23.159Z",
+          "version": "2.1.325",
+          "content_types": "undefined"
+        }
+      ],
+      "prompt_times": [
+        {
+          "run": "adversarial-context-v3-candidate-1",
+          "timestamp": "2026-11-16T06:50:24.629Z",
+          "expected_start": "2026-11-16T06:50:20.797Z",
+          "expected_end": "2026-11-16T06:59:36.311Z"
+        }
+      ]
+    }
+  ],
+  "runs": [
+    {
+      "name": "adversarial-context-v3-baseline-1",
+      "prompt_matches": 1,
+      "tools": [],
+      "model_ids": [],
+      "versions": [
+        "2.1.325"
+      ],
+      "complete": false,
+      "status": "incomplete",
+      "problems": [],
+      "source_sha256": "977a7c4a39047e3017a5f481643cc0ae187b6cf6facf82dec4e0e570c127f57a"
+    },
+    {
+      "name": "adversarial-context-v3-candidate-1",
+      "prompt_matches": 1,
+      "tools": [],
+      "model_ids": [],
+      "versions": [
+        "2.1.325"
+      ],
+      "complete": false,
+      "status": "incomplete",
+      "problems": [],
+      "source_sha256": "e9c8f175c3ae9ad4a5d1c6449220be872ebbee783451483a5b2176eb39a169a3"
+    },
+    {
+      "name": "adversarial-context-v3-baseline-3",
+      "prompt_matches": 1,
+      "tools": [],
+      "model_ids": [],
+      "versions": [
+        "2.1.325"
+      ],
+      "complete": false,
+      "status": "incomplete",
+      "problems": [],
+      "source_sha256": "a35ceb20782a6bf2c67f97249836bb7dbd5c2d3503e367f677feb3110dd063be"
+    }
+  ]
+}

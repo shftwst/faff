@@ -209,3 +209,28 @@ rejected attempt. These samples do not qualify under the no-rejection protocol.
 passes JSON through one authorised input file, then a fixed bridge command reads
 it. The native guards remain enabled. Policies, fixtures and effect oracles are
 unchanged. Both file and stdin bridge tests preserve literal data.
+## Adversarial execution assessment correction
+
+The first four completed context-v3 samples each satisfy all ten workflow cases
+under the documented contract. Two original reports failed an overspecified
+check: baseline-3 consumed interactive findings from stdout without saving an
+optional file; candidate-2 made a permitted read-only probe of an unwritten
+staging output. `workflow-fixtures/ORACLE-CORRECTION.md` states the correction.
+Original reports and captures remain unchanged. Separate `assessment.json` files
+bind their hashes, the fixture, correction and grader. All seven affected tests
+pass, including negative cases for missing autonomous findings and unsafe reads.
+The same correction applies to both arms and the remaining predeclared samples.
+This is incomplete paired evidence, not adversarial qualification.
+
+A native metadata audit found the first three main-worker sessions and checked
+their actual tool calls. They contain no prohibited tools or native errors. The
+logs identify `claude-opus-5-5` and CLI 2.1.325. Early parser outputs incorrectly
+reported no tools because untimestamped metadata interrupted session tracking;
+those outputs remain retained. Repeated log records share tool IDs and are
+counted once by the corrected auditor. No model thoughts or raw conversations
+are exported. Full native audits for all qualifying runs remain pending.
+
+The temporary third worker disappeared when its startup handshake timed out.
+Its completed file-input baseline and interrupted candidate are retained as a
+separate, incomplete attempt. A fresh five-pair set uses the established worker;
+no sample from the interrupted attempt is pooled into that set.

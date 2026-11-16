@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "value": {
+    "contract": {
+      "exit_code": 0,
+      "signal": null,
+      "stdout": "{\"signal\":\"needs-human\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"severity\":\"major\",\"disposition\":\"open\",\"source\":\"adversarial\",\"title\":\"Adversarial backend returned empty output\",\"location\":\".faffrc.yaml\",\"action\":\"Check the openai/fixture-model backend configuration and reasoning settings, or configure a different adversarial model, then rerun Phase 2.\"}],\"conformant\":true,\"violations\":[]}\n",
+      "stderr": ""
+    },
+    "gate": {
+      "issue": "FAFF-7001",
+      "pass": false,
+      "ac_complete": true,
+      "review_verdict": "needs-human",
+      "holdout": "not-applicable",
+      "reasons": [
+        "review-verdict needs-human"
+      ],
+      "ac_called_out": []
+    }
+  }
+}

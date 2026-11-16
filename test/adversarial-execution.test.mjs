@@ -56,3 +56,29 @@ test('execution grader rejects a lost run directory, premature checkpoint and do
     assert.equal(gradeAdversarialExecution(changed, executionFixture).status, 'fail');
   }
 });
+
+test('interactive findings may stay on stdout; autonomous checkpoint findings must be preserved', () => {
+  const changed = structuredClone(captured);
+  changed.cases.find(c => c.id === 'case-a').findings_text = null;
+  assert.equal(gradeAdversarialExecution(changed, executionFixture).status, 'pass');
+  changed.cases.find(c => c.id === 'case-b').findings_text = null;
+  const grade = gradeAdversarialExecution(changed, executionFixture);
+  assert.equal(grade.status, 'fail');
+  assert.ok(grade.cases.find(c => c.id === 'case-b').problems.includes('findings-bytes-changed'));
+});
+
+test('an allowed output existence probe stays visible and does not excuse other failed reads', () => {
+  const changed = structuredClone(captured), state = changed.cases.find(c => c.id === 'case-a');
+  const error = 'ENOENT: output has not been written';
+  changed.events.unshift({ seq: 0, name: 'read_file', case_id: 'case-a', args: { case_id: 'case-a', path: state.files.system }, error });
+  changed.errors.push({ seq: 0, case_id: 'case-a', message: error });
+  const grade = gradeAdversarialExecution(changed, executionFixture);
+  assert.equal(grade.status, 'pass');
+  assert.equal(grade.diagnostics[0].kind, 'unwritten-output-read');
+  assert.equal(changed.errors.length, 1);
+  changed.events[0].args.path = state.files.context;
+  assert.equal(gradeAdversarialExecution(changed, executionFixture).status, 'fail');
+  changed.events[0].args.path = state.files.system;
+  changed.events[0].error = 'outside supplied files';
+  assert.equal(gradeAdversarialExecution(changed, executionFixture).status, 'fail');
+});

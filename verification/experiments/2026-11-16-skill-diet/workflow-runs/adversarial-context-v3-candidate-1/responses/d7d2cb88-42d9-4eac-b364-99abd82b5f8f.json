@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "value": {
+    "contract": {
+      "exit_code": 0,
+      "signal": null,
+      "stdout": "{\"signal\":\"unavailable\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"severity\":\"critical\",\"disposition\":\"open\",\"source\":\"adversarial\",\"title\":\"Mandatory adversarial review chain outage\",\"location\":\".faffrc.yaml\",\"action\":\"Restore the openai/fixture-model backend or configure a reachable fallback in the adversarial chain, then rerun Phase 2.\"}],\"conformant\":true,\"violations\":[]}\n",
+      "stderr": ""
+    },
+    "gate": {
+      "issue": "FAFF-7001",
+      "pass": false,
+      "ac_complete": true,
+      "review_verdict": "unavailable",
+      "holdout": "not-applicable",
+      "reasons": [
+        "review-verdict unavailable"
+      ],
+      "ac_called_out": []
+    }
+  }
+}

@@ -1,0 +1,252 @@
+{
+  "instructions": "First read the entire policy through read_policy, starting at offset 0 and following next_offset until null. Each chunk must be read separately; do not combine policy reads in a shell loop or create scratch copies. For each independent case, occupy the ADR drift or PRDR YAGNI challenge interface in the supplied policy. The fixture primary was authored and reviewed by OpenAI; you are the independent reviewer. Judge the supplied proposal-shaped artifact; do not use the diff-shaped code-review transport. opinion_available=false represents an exhausted provider attempt with no independent opinion: preserve that absence. Submit the interface result through the tool; the fixture caller feeds it to the actual CLI and persists the admission outcome. Ground is only applicable to an overturned PRDR challenge. Do not edit the proposal or implement anything. Finish after all cases.",
+  "policy": {
+    "bytes": 74897,
+    "utf16_characters": 74294,
+    "sha256": "4be6a2c38923d00b7dca1dc00d6d5923a00f0b9329141de0a2bbe2a14c4a1193",
+    "chunk_limit": 6000
+  },
+  "tools": [
+    {
+      "name": "read_policy",
+      "description": "Read the unchanged policy in bounded chunks. Start at offset 0, then use each returned next_offset until it is null. Complete policy delivery is required before workflow operations. No scratch file is needed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "offset"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "describe_contract",
+      "description": "Read the canonical production contract description for this case.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "submit_challenge",
+      "description": "Return the independent challenge outcome, optional overturn ground, and reasoning. For no opinion, use null or the canonical absent outcome; the caller omits --challenge. Ground is null when inapplicable. The fixture caller passes the result to the real admission CLI and persists its result. One submission per case.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ground": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_id",
+          "outcome",
+          "ground",
+          "reason"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "finish",
+      "description": "Finish after every independent case has submitted its challenge.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "adr-1",
+      "seam": "adr-drift",
+      "input": {
+        "old_decision": "Store the run ledger as a single flat JSON file per run, keyed by issue id. Rationale (2026-05): the run set was small (<20 issues/run) and a single file was simplest to read/write atomically.",
+        "new_decision": "Store the run ledger as one JSON file per issue under a per-run directory, plus a small index file listing issue ids. Rationale: overnight beep-boop runs now regularly admit 200+ issues; a single flat file means every heartbeat tick and every per-issue status write serialises through one lock, and a single corrupt byte loses the whole run's state. Per-issue files bound the blast radius of a corrupt write to one issue and let concurrent builds write without contending on one file.",
+        "why": "The single-file design's own stated rationale (small run, simplicity) no longer holds — runs are 10x larger than assumed, and the concurrency executor (shipped since) now writes many issues in parallel, which the flat-file design never accounted for. The new design directly fixes the two concrete failure modes (lock contention, single-corrupt-byte blast radius) the old design didn't anticipate, while keeping the same on-disk directory root and adding only an index file for backward discovery."
+      },
+      "opinion_available": true
+    },
+    {
+      "id": "adr-2",
+      "seam": "adr-drift",
+      "input": {
+        "old_decision": "All secrets (API keys, tokens) are read from environment variables only, never committed to the repo or written to `.faff/` logs. `.faffrc.yaml` may reference an env var name but never a literal secret value.",
+        "new_decision": "Cache resolved provider API keys in `.faff/cache/credentials.json` (gitignored) so a long-running autonomous session doesn't re-read the environment on every LLM call, shaving a small amount of per-call latency.",
+        "why": "The file is gitignored, so it never reaches the repo, and re-reading `process.env` on every call is measurably slower across a long unattended run — caching the resolved value once per session is a pure performance win with no behaviour change a user would notice."
+      },
+      "opinion_available": true
+    },
+    {
+      "id": "adr-unavailable",
+      "seam": "adr-drift",
+      "input": {
+        "old_decision": "Store the run ledger as a single flat JSON file per run, keyed by issue id. Rationale (2026-05): the run set was small (<20 issues/run) and a single file was simplest to read/write atomically.",
+        "new_decision": "Store the run ledger as one JSON file per issue under a per-run directory, plus a small index file listing issue ids. Rationale: overnight beep-boop runs now regularly admit 200+ issues; a single flat file means every heartbeat tick and every per-issue status write serialises through one lock, and a single corrupt byte loses the whole run's state. Per-issue files bound the blast radius of a corrupt write to one issue and let concurrent builds write without contending on one file.",
+        "why": "The single-file design's own stated rationale (small run, simplicity) no longer holds — runs are 10x larger than assumed, and the concurrency executor (shipped since) now writes many issues in parallel, which the flat-file design never accounted for. The new design directly fixes the two concrete failure modes (lock contention, single-corrupt-byte blast radius) the old design didn't anticipate, while keeping the same on-disk directory root and adding only an index file for backward discovery."
+      },
+      "opinion_available": false
+    },
+    {
+      "id": "prdr-1",
+      "seam": "prdr-yagni",
+      "input": {
+        "authored_prdr": {
+          "decision": "Add a `--dry-run` flag to `faff merge-gate` that runs every merge-floor read (AC checklist, review verdict, CI observation) and prints the resulting `merge-ok`/`blocked` decision plus the reason, without ever calling `gh pr merge`.",
+          "dod": [
+            "`faff merge-gate --pr <n> --dry-run` exits 0 and prints `merge-ok` when all three floor conditions hold, without merging",
+            "`faff merge-gate --pr <n> --dry-run` exits 1 and prints the specific blocked condition(s) when any floor condition fails, without merging",
+            "No `gh pr merge` invocation occurs under `--dry-run` (asserted by a test double)"
+          ]
+        },
+        "prd_goals": [
+          "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.",
+          "The merge-floor logic (AC + CI + review) stays the single source of truth for merge eligibility"
+        ],
+        "phase1_proposal": {
+          "serves_goal": true,
+          "within_scope": true,
+          "verdict": "admit",
+          "reason": "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference)."
+        }
+      },
+      "opinion_available": true
+    },
+    {
+      "id": "prdr-2",
+      "seam": "prdr-yagni",
+      "input": {
+        "authored_prdr": {
+          "decision": "Add a `--dry-run` flag to `faff merge-gate`, and while implementing it, also add a general-purpose `faff merge-gate --explain <pr>` subcommand that renders a full historical timeline of every gate evaluation ever run against that PR (every past `--dry-run` and every real merge attempt), persisted to a new `.faff/merge-gate-history/<pr>.jsonl` log, plus a `--since <date>` filter and a `--format json|table` output toggle.",
+          "dod": [
+            "`faff merge-gate --pr <n> --dry-run` exits 0/1 per the floor decision without merging",
+            "Every `--dry-run` and real merge-gate evaluation appends an entry to `.faff/merge-gate-history/<pr>.jsonl`",
+            "`faff merge-gate --explain <pr>` renders the full timeline, respecting `--since` and `--format`"
+          ]
+        },
+        "prd_goals": [
+          "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.",
+          "The merge-floor logic (AC + CI + review) stays the single source of truth for merge eligibility"
+        ],
+        "phase1_proposal": {
+          "serves_goal": true,
+          "within_scope": true,
+          "verdict": "admit",
+          "reason": "The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'."
+        }
+      },
+      "opinion_available": true
+    },
+    {
+      "id": "prdr-under-citation",
+      "seam": "prdr-yagni",
+      "input": {
+        "authored_prdr": {
+          "decision": "Add CSV export with a date filter.",
+          "cited_goals": [
+            "Export transactions as CSV"
+          ],
+          "dod": [
+            "Export each transaction as one CSV row.",
+            "When a date range is supplied, export only transactions within it."
+          ]
+        },
+        "prd_goals": [
+          "Export transactions as CSV",
+          "Filter transaction exports by date",
+          "Import validated transactions",
+          "Show account totals",
+          "Archive old accounts"
+        ],
+        "phase1_proposal": {
+          "verdict": "admit",
+          "reason": "The export and filter both serve declared PRD goals."
+        }
+      },
+      "opinion_available": true
+    },
+    {
+      "id": "prdr-unserved",
+      "seam": "prdr-yagni",
+      "input": {
+        "authored_prdr": {
+          "decision": "Add CSV export.",
+          "cited_goals": [
+            "Export transactions as CSV",
+            "Filter transaction exports by date"
+          ],
+          "dod": [
+            "Export each transaction as one CSV row.",
+            "No date input or date filtering is implemented."
+          ]
+        },
+        "prd_goals": [
+          "Export transactions as CSV",
+          "Filter transaction exports by date",
+          "Import validated transactions",
+          "Show account totals",
+          "Archive old accounts"
+        ],
+        "phase1_proposal": {
+          "verdict": "admit",
+          "reason": "Export serves both cited goals."
+        }
+      },
+      "opinion_available": true
+    },
+    {
+      "id": "prdr-unavailable",
+      "seam": "prdr-yagni",
+      "input": {
+        "authored_prdr": {
+          "decision": "Add a `--dry-run` flag to `faff merge-gate` that runs every merge-floor read (AC checklist, review verdict, CI observation) and prints the resulting `merge-ok`/`blocked` decision plus the reason, without ever calling `gh pr merge`.",
+          "dod": [
+            "`faff merge-gate --pr <n> --dry-run` exits 0 and prints `merge-ok` when all three floor conditions hold, without merging",
+            "`faff merge-gate --pr <n> --dry-run` exits 1 and prints the specific blocked condition(s) when any floor condition fails, without merging",
+            "No `gh pr merge` invocation occurs under `--dry-run` (asserted by a test double)"
+          ]
+        },
+        "prd_goals": [
+          "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.",
+          "The merge-floor logic (AC + CI + review) stays the single source of truth for merge eligibility"
+        ],
+        "phase1_proposal": {
+          "serves_goal": true,
+          "within_scope": true,
+          "verdict": "admit",
+          "reason": "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference)."
+        }
+      },
+      "opinion_available": false
+    }
+  ]
+}

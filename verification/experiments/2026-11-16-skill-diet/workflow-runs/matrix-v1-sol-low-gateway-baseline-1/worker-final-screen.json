@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All five cases completed through the bridge and reached downstream dispatch. `finish` returned `{\"finished\":true}`.\n\nNo departures from the restrictions.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e5bf-3944-74a1-8cbb-19b51752af61"
+    ],
+    "elapsed_seconds": 156.8,
+    "stdout_sha256": "fe5ad4b5ec7c1266de197ab40f82103d0cbc75fd4244d0d5351149332933fd5a",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

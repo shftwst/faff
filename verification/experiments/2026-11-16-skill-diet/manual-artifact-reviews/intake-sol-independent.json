@@ -1,0 +1,1434 @@
+{
+  "schema": 1,
+  "reviewed_at_utc": "2026-11-16T19:10:30.846653+00:00",
+  "reviewer": {
+    "role": "independent artifact verifier; no implementation or harness edits",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium"
+  },
+  "path_base": "repository root",
+  "scope": "Manual source-fidelity and discovery-brief contract review of completed samples present at initial inspection and the requested follow-up inspection. This review covers produced Markdown and reported rule answers, not elicitation, actual tracker behaviour, or full jot/plot execution.",
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/intake-brief-v2.json",
+      "sha256": "d64ac66570717a333c6a7350d947a035d3a5f0372d028003092cc0c304ea91d3"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/baseline/intake-brief.md",
+      "sha256": "b1cfe70da49ff2ae688e936ea03407380a8d61a280e88778cddd1dc10e1a6c79"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/intake-brief-v1.md",
+      "sha256": "668b178bfead91377c81015083db36c57697c8bdf3d29dc4807073a81b952e0b"
+    }
+  ],
+  "selection": {
+    "completed_samples": [
+      "intake-brief-sol-v1-baseline-1",
+      "intake-brief-sol-v1-baseline-2",
+      "intake-brief-sol-v1-baseline-3",
+      "intake-brief-sol-v1-baseline-4",
+      "intake-brief-sol-v1-baseline-5",
+      "intake-brief-sol-v1-candidate-1",
+      "intake-brief-sol-v1-candidate-2",
+      "intake-brief-sol-v1-candidate-3"
+    ],
+    "candidate_samples_available": 3,
+    "polling": "None; initial completed-sample snapshot plus one requested follow-up snapshot.",
+    "review_rounds": [
+      {
+        "samples": [
+          "intake-brief-sol-v1-baseline-1",
+          "intake-brief-sol-v1-baseline-2",
+          "intake-brief-sol-v1-baseline-3"
+        ],
+        "artifact_count": 18
+      },
+      {
+        "samples": [
+          "intake-brief-sol-v1-baseline-4",
+          "intake-brief-sol-v1-baseline-5",
+          "intake-brief-sol-v1-candidate-1"
+        ],
+        "artifact_count": 18
+      },
+      {
+        "samples": [
+          "intake-brief-sol-v1-candidate-2"
+        ],
+        "artifact_count": 6
+      },
+      {
+        "samples": [
+          "intake-brief-sol-v1-candidate-3"
+        ],
+        "artifact_count": 6,
+        "native_audit_qualified": false
+      }
+    ]
+  },
+  "samples": [
+    {
+      "sample": "intake-brief-sol-v1-baseline-1",
+      "arm": "baseline",
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-1/report.json",
+        "sha256": "e58e1f671dc384e0ec1fd34e280b0c13e9a1e72ab9f668a76d4ab1f56e614f10"
+      },
+      "worker_final_state": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-1/worker-final-state.json",
+        "sha256": "bf511db56de009d6d35f7e2a85689274b51a0ea9c39646a64549fb8752ae1178"
+      },
+      "worker_manifest": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-1/worker-manifest.json",
+        "sha256": "0ed46650ad6b01298cd603a94a77a6129a5f19859713ecbcb93d6e739303c7c9"
+      },
+      "report_status": "pass",
+      "worker_exit_code": 0,
+      "requested_worker_model": "gpt-6.1-sol",
+      "worker_effort": "medium",
+      "decision_checks": "All 12 reported rule answers match the fixture expectations, including mode ownership, methodology ownership, optional omission, no invented goals and no forced split."
+    },
+    {
+      "sample": "intake-brief-sol-v1-baseline-2",
+      "arm": "baseline",
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-2/report.json",
+        "sha256": "e58e1f671dc384e0ec1fd34e280b0c13e9a1e72ab9f668a76d4ab1f56e614f10"
+      },
+      "worker_final_state": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-2/worker-final-state.json",
+        "sha256": "b26fe0a6c9c47b3a1ba5eb9115f49f4b7a00089ef81640cde521053f964c2ca0"
+      },
+      "worker_manifest": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-2/worker-manifest.json",
+        "sha256": "8323732f83ee12b596b6b0160c81b593d94f95431b4b7a32f78df3063f98a766"
+      },
+      "report_status": "pass",
+      "worker_exit_code": 0,
+      "requested_worker_model": "gpt-6.1-sol",
+      "worker_effort": "medium",
+      "decision_checks": "All 12 reported rule answers match the fixture expectations, including mode ownership, methodology ownership, optional omission, no invented goals and no forced split."
+    },
+    {
+      "sample": "intake-brief-sol-v1-baseline-3",
+      "arm": "baseline",
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-3/report.json",
+        "sha256": "e58e1f671dc384e0ec1fd34e280b0c13e9a1e72ab9f668a76d4ab1f56e614f10"
+      },
+      "worker_final_state": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-3/worker-final-state.json",
+        "sha256": "06b710f8c1e510faccadd95306e2c668aeab59ec1647b791c2da955abfd58c2a"
+      },
+      "worker_manifest": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-3/worker-manifest.json",
+        "sha256": "9dcc2e6429534b25098adb5702e0f653bf9e3409248435ac1656f8f1ee3600cf"
+      },
+      "report_status": "pass",
+      "worker_exit_code": 0,
+      "requested_worker_model": "gpt-6.1-sol",
+      "worker_effort": "medium",
+      "decision_checks": "All 12 reported rule answers match the fixture expectations, including mode ownership, methodology ownership, optional omission, no invented goals and no forced split."
+    },
+    {
+      "sample": "intake-brief-sol-v1-baseline-4",
+      "arm": "baseline",
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-4/report.json",
+        "sha256": "e58e1f671dc384e0ec1fd34e280b0c13e9a1e72ab9f668a76d4ab1f56e614f10"
+      },
+      "worker_final_state": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-4/worker-final-state.json",
+        "sha256": "99ff0f27a413526c1f81eac8e4095c18c55945878c43aa63797729f60037b559"
+      },
+      "worker_manifest": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-4/worker-manifest.json",
+        "sha256": "c696de7aec0c1e8e418e1c88a69d9117499d0ae00da14a926a9094af64e59b77"
+      },
+      "report_status": "pass",
+      "worker_exit_code": 0,
+      "requested_worker_model": "gpt-6.1-sol",
+      "worker_effort": "medium",
+      "decision_checks": "All 12 reported rule answers match the fixture expectations, including mode ownership, methodology ownership, optional omission, no invented goals and no forced split."
+    },
+    {
+      "sample": "intake-brief-sol-v1-baseline-5",
+      "arm": "baseline",
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-5/report.json",
+        "sha256": "e58e1f671dc384e0ec1fd34e280b0c13e9a1e72ab9f668a76d4ab1f56e614f10"
+      },
+      "worker_final_state": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-5/worker-final-state.json",
+        "sha256": "af1cbd8d88381a9bfff3b7d393df21906151b81dbc03af6d4120344d4c2042b3"
+      },
+      "worker_manifest": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-5/worker-manifest.json",
+        "sha256": "748d849a3b01814fad5d7e65d4272ad3058bbb85dbdf53504271d274be0c3087"
+      },
+      "report_status": "pass",
+      "worker_exit_code": 0,
+      "requested_worker_model": "gpt-6.1-sol",
+      "worker_effort": "medium",
+      "decision_checks": "All 12 reported rule answers match the fixture expectations, including mode ownership, methodology ownership, optional omission, no invented goals and no forced split."
+    },
+    {
+      "sample": "intake-brief-sol-v1-candidate-1",
+      "arm": "candidate",
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-1/report.json",
+        "sha256": "be4fb5613f9984bc7eb54d21b5a0322a5ce995498e8638aab8d04fc947116d80"
+      },
+      "worker_final_state": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-1/worker-final-state.json",
+        "sha256": "46c34ecd33e4fce28487e90e371ed36a24709973970bfd637d050ea892d7ef26"
+      },
+      "worker_manifest": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-1/worker-manifest.json",
+        "sha256": "23b1f81423af61f79881d827c2205fdb9bd721ea7a24a307ccbe214e93dee3c2"
+      },
+      "report_status": "pass",
+      "worker_exit_code": 0,
+      "requested_worker_model": "gpt-6.1-sol",
+      "worker_effort": "medium",
+      "decision_checks": "All 12 reported rule answers match the fixture expectations, including mode ownership, methodology ownership, optional omission, no invented goals and no forced split."
+    },
+    {
+      "sample": "intake-brief-sol-v1-candidate-2",
+      "arm": "candidate",
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-2/report.json",
+        "sha256": "be4fb5613f9984bc7eb54d21b5a0322a5ce995498e8638aab8d04fc947116d80"
+      },
+      "worker_final_state": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-2/worker-final-state.json",
+        "sha256": "6f08d650ec6da137d383c2bc745ceeab66edd4be3f7e39cb0b6aa7c3137d4b05"
+      },
+      "worker_manifest": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-2/worker-manifest.json",
+        "sha256": "5389642b8872ed3eb3c946241ed9be52f579d1cc0bdcb7da0e06c3ef4fb34ed2"
+      },
+      "report_status": "pass",
+      "worker_exit_code": 0,
+      "requested_worker_model": "gpt-6.1-sol",
+      "worker_effort": "medium",
+      "decision_checks": "All 12 reported rule answers match fixture expectations."
+    },
+    {
+      "sample": "intake-brief-sol-v1-candidate-3",
+      "arm": "candidate",
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-3/report.json",
+        "sha256": "be4fb5613f9984bc7eb54d21b5a0322a5ce995498e8638aab8d04fc947116d80"
+      },
+      "worker_final_state": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-3/worker-final-state.json",
+        "sha256": "83f005a708c403eba4ddab643bdebce347127384034f0b256f287219cc4618f0"
+      },
+      "worker_manifest": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-3/worker-manifest.json",
+        "sha256": "dc99edf4ee8137454900a6be7703c90844383c4769eac33207548f1c778e21a3"
+      },
+      "report_status": "pass",
+      "worker_exit_code": 0,
+      "requested_model": "gpt-6.1-sol",
+      "effort": "medium",
+      "rule_decisions_match": true,
+      "native_audit": {
+        "evidence": {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-3/native-audit.json",
+          "sha256": "0f35135520ac7fcb627c071d408fad25f607a7e11cb3ce6645d00706249b0399"
+        },
+        "status": "failed per root; audited independently from artifact fidelity",
+        "qualification": "This sample is not counted as native-audit-qualified. Root is diagnosing the audit failure."
+      }
+    }
+  ],
+  "artifact_reviews": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-1/artifacts/greenfield-complete.md",
+      "sha256": "bb51607a2bed0065ffea7cad678035a69e0ed98be9146f0b3692b138c2aa9095",
+      "sample": "intake-brief-sol-v1-baseline-1",
+      "case_id": "greenfield-complete",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves neighbourhood tool-library loans and returns, the tool catalogue and checkout/return log, and the existing-tool checkout/return first slice.",
+          "Preserves Python CLI and offline use on one laptop, excludes marketplace and payments, and carries the retention question without answering it."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Capabilities for greenfield; no Item section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-1/artifacts/greenfield-repo-signal.md",
+      "sha256": "931e6f09c8e8de1b7ccbbbeecf1e3e1572a450af6ab8dd2d8b589380c41d1aaf",
+      "sample": "intake-brief-sol-v1-baseline-1",
+      "case_id": "greenfield-repo-signal",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves band members, local rehearsal recordings, recording catalogue and date search, and manually selected recordings listed by rehearsal date as the first slice.",
+          "Preserves README/human-confirmed TypeScript and browser UI, local files, cloud-upload/audio-editing exclusions and the unresolved undated-recordings question."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Capabilities for greenfield; no Item section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-1/artifacts/greenfield-thin.md",
+      "sha256": "bc07ce9f5167f785870c46bc8149ee150d253e7c0b92c720fd811ed7223856fd",
+      "sample": "intake-brief-sol-v1-baseline-1",
+      "case_id": "greenfield-thin",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves book-loan tracking for street-library volunteers without adding capabilities or selecting a platform, language, framework or first slice.",
+          "States absent hard constraints and non-goals in the mandatory sections; carries platform/language and unspecified first slice as open questions; omits the unpopulated First slice section."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Capabilities for greenfield; no Item section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-1/artifacts/minor-ambiguity.md",
+      "sha256": "2145f36a65474e612d08478af3e94fc1f84f6155ad813aa215449ca9004bf741",
+      "sample": "intake-brief-sol-v1-baseline-1",
+      "case_id": "minor-ambiguity",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves stored delivery date on receipts, Checkout area, unitary scope, and both branches of the done signal: display a stored date and omit the field when absent.",
+          "Preserves existing receipt layout and excludes delivery estimation; carries the unresolved display timezone to prep without choosing one."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Item for single-item; no Capabilities section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": [
+        "Trailing punctuation on the unitary split-sense value is readable prose; no strict field parser is established by this bounded fixture."
+      ]
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-1/artifacts/single-bug.md",
+      "sha256": "af7ad16cdc8b6f64beba64a4961d6d945a3d0724438966a02c28523654be33ad",
+      "sample": "intake-brief-sol-v1-baseline-1",
+      "case_id": "single-bug",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves extra CSV-row removal, Reporting area, unitary scope and two records producing two data rows under the existing header.",
+          "Preserves columns/header and existing issue naming; carries the supplied REPORT-17 parser-row-boundary correction as a prerequisite that must ship first; excludes report UI redesign."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Item for single-item; no Capabilities section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": [
+        "Trailing punctuation on the unitary split-sense value is readable prose; no strict field parser is established by this bounded fixture."
+      ]
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-1/artifacts/single-split.md",
+      "sha256": "781f1901ce5e587d3223c2a24580c37d08ac4599c404ed9cbe84fe1b62abd5f7",
+      "sample": "intake-brief-sol-v1-baseline-1",
+      "case_id": "single-split",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves transient import retries and operator notification after exhaustion, Data imports area and existing job runner; excludes replacement of the runner.",
+          "Preserves possibly-splittable scope and the independence of retry execution and notification; explicitly leaves the split decision to methodology and creates no ticket structure."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Item for single-item; no Capabilities section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": [
+        "The supplied absence of a priority override is appended to area. Separating this context would improve field clarity; the Data imports area and source facts remain intact."
+      ]
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-2/artifacts/greenfield-complete.md",
+      "sha256": "4741d880487c111ac9112ec592ca87d9aaad093baa49cac35d068314987e7d00",
+      "sample": "intake-brief-sol-v1-baseline-2",
+      "case_id": "greenfield-complete",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves neighbourhood tool-library loans and returns, the tool catalogue and checkout/return log, and the existing-tool checkout/return first slice.",
+          "Preserves Python CLI and offline use on one laptop, excludes marketplace and payments, and carries the retention question without answering it."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Capabilities for greenfield; no Item section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-2/artifacts/greenfield-repo-signal.md",
+      "sha256": "ca4f44b60026d367e7ee1aaa1527c7d5d4dbe4a10a435f80fa61ed5ce919f4d9",
+      "sample": "intake-brief-sol-v1-baseline-2",
+      "case_id": "greenfield-repo-signal",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves band members, local rehearsal recordings, recording catalogue and date search, and manually selected recordings listed by rehearsal date as the first slice.",
+          "Preserves README/human-confirmed TypeScript and browser UI, local files, cloud-upload/audio-editing exclusions and the unresolved undated-recordings question."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Capabilities for greenfield; no Item section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-2/artifacts/greenfield-thin.md",
+      "sha256": "54e204d4eed6d60ed6338a2bb48aaf8045e397cac9803299c10969d502b2f0ca",
+      "sample": "intake-brief-sol-v1-baseline-2",
+      "case_id": "greenfield-thin",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves book-loan tracking for street-library volunteers without adding capabilities or selecting a platform, language, framework or first slice.",
+          "States absent hard constraints and non-goals in the mandatory sections; carries platform/language and unspecified first slice as open questions; omits the unpopulated First slice section."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Capabilities for greenfield; no Item section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-2/artifacts/minor-ambiguity.md",
+      "sha256": "66c3abe43c732446fe2b05e4209e7fc1b0770e18b58447fda9f09e0da6611190",
+      "sample": "intake-brief-sol-v1-baseline-2",
+      "case_id": "minor-ambiguity",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves stored delivery date on receipts, Checkout area, unitary scope, and both branches of the done signal: display a stored date and omit the field when absent.",
+          "Preserves existing receipt layout and excludes delivery estimation; carries the unresolved display timezone to prep without choosing one."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Item for single-item; no Capabilities section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-2/artifacts/single-bug.md",
+      "sha256": "ff42f7d95be5fd7d4579fed06cb91d9560bd0cec6ec635913caa3cccded31006",
+      "sample": "intake-brief-sol-v1-baseline-2",
+      "case_id": "single-bug",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves extra CSV-row removal, Reporting area, unitary scope and two records producing two data rows under the existing header.",
+          "Preserves columns/header and existing issue naming; carries the supplied REPORT-17 parser-row-boundary correction as a prerequisite that must ship first; excludes report UI redesign."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Item for single-item; no Capabilities section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-2/artifacts/single-split.md",
+      "sha256": "58d8e1487939e35aa5d8c9cd0c94e5c570d804dc20bfed5aae2a4e7252d5f92e",
+      "sample": "intake-brief-sol-v1-baseline-2",
+      "case_id": "single-split",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves transient import retries and operator notification after exhaustion, Data imports area and existing job runner; excludes replacement of the runner.",
+          "Preserves possibly-splittable scope and the independence of retry execution and notification; explicitly leaves the split decision to methodology and creates no ticket structure."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Item for single-item; no Capabilities section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": [
+        "The supplied absence of a priority override appears under Constraints. This is a placement preference, not an invented constraint or a fidelity failure."
+      ]
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-3/artifacts/greenfield-complete.md",
+      "sha256": "8c9c00cdb8b29000f08371789b1f0e7d67d6be5e457f412bae776ee4e3adc082",
+      "sample": "intake-brief-sol-v1-baseline-3",
+      "case_id": "greenfield-complete",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves neighbourhood tool-library loans and returns, the tool catalogue and checkout/return log, and the existing-tool checkout/return first slice.",
+          "Preserves Python CLI and offline use on one laptop, excludes marketplace and payments, and carries the retention question without answering it."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Capabilities for greenfield; no Item section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-3/artifacts/greenfield-repo-signal.md",
+      "sha256": "ea930ea39ffea464068ade43ce797f15fecb6219559fdad2143f6b4af457561e",
+      "sample": "intake-brief-sol-v1-baseline-3",
+      "case_id": "greenfield-repo-signal",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves band members, local rehearsal recordings, recording catalogue and date search, and manually selected recordings listed by rehearsal date as the first slice.",
+          "Preserves README/human-confirmed TypeScript and browser UI, local files, cloud-upload/audio-editing exclusions and the unresolved undated-recordings question."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Capabilities for greenfield; no Item section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-3/artifacts/greenfield-thin.md",
+      "sha256": "a6c07016bcbb5952b6e4a29795979fd6335fcc684ef82dd7474890dd0cd23dc8",
+      "sample": "intake-brief-sol-v1-baseline-3",
+      "case_id": "greenfield-thin",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves book-loan tracking for street-library volunteers without adding capabilities or selecting a platform, language, framework or first slice.",
+          "States absent hard constraints and non-goals in the mandatory sections; carries platform/language and unspecified first slice as open questions; omits the unpopulated First slice section."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Capabilities for greenfield; no Item section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-3/artifacts/minor-ambiguity.md",
+      "sha256": "dd25085aa791728a2d68c3aecc0d88a01ffe89c35ed614fcc5a09e7e8c64d838",
+      "sample": "intake-brief-sol-v1-baseline-3",
+      "case_id": "minor-ambiguity",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves stored delivery date on receipts, Checkout area, unitary scope, and both branches of the done signal: display a stored date and omit the field when absent.",
+          "Preserves existing receipt layout and excludes delivery estimation; carries the unresolved display timezone to prep without choosing one."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Item for single-item; no Capabilities section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-3/artifacts/single-bug.md",
+      "sha256": "843e3a9938db21f1c2a9efc345f476342a57151c31af6378693abf38748b6102",
+      "sample": "intake-brief-sol-v1-baseline-3",
+      "case_id": "single-bug",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves extra CSV-row removal, Reporting area, unitary scope and two records producing two data rows under the existing header.",
+          "Preserves columns/header and existing issue naming; carries the supplied REPORT-17 parser-row-boundary correction as a prerequisite that must ship first; excludes report UI redesign."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Item for single-item; no Capabilities section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-3/artifacts/single-split.md",
+      "sha256": "228c9e360b1d48cf661df51b6ca94aa78e7efd103a7ebfcaf222c0b9a8cf20b3",
+      "sample": "intake-brief-sol-v1-baseline-3",
+      "case_id": "single-split",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves transient import retries and operator notification after exhaustion, Data imports area and existing job runner; excludes replacement of the runner.",
+          "Preserves possibly-splittable scope and the independence of retry execution and notification; explicitly leaves the split decision to methodology and creates no ticket structure."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Item for single-item; no Capabilities section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": [
+        "The supplied absence of a priority override appears under Constraints. This is a placement preference, not an invented constraint or a fidelity failure."
+      ]
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-4/artifacts/greenfield-complete.md",
+      "sha256": "f33eaa1cd86b30f7ec20681615c3bb50542f7e6c6af3893d3d32fe0e803e7721",
+      "sample": "intake-brief-sol-v1-baseline-4",
+      "case_id": "greenfield-complete",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves neighbourhood tool-library loans and returns, the tool catalogue and checkout/return log, and the existing-tool checkout/return first slice.",
+          "Preserves Python CLI and offline use on one laptop, excludes marketplace and payments, and carries the retention question without answering it."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Capabilities for greenfield; no Item section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-4/artifacts/greenfield-repo-signal.md",
+      "sha256": "304ea63911879bbbacc5d7a1062c8d42c236547b1768223421abac2ad09a910f",
+      "sample": "intake-brief-sol-v1-baseline-4",
+      "case_id": "greenfield-repo-signal",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves band members, local rehearsal recordings, recording catalogue and date search, and manually selected recordings listed by rehearsal date as the first slice.",
+          "Preserves README/human-confirmed TypeScript and browser UI, local files, cloud-upload/audio-editing exclusions and the unresolved undated-recordings question."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Capabilities for greenfield; no Item section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-4/artifacts/greenfield-thin.md",
+      "sha256": "cbd3e19da1a6c8c88fd0071f0b05f53bd7bb9ccf13fec688da994681b640924e",
+      "sample": "intake-brief-sol-v1-baseline-4",
+      "case_id": "greenfield-thin",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves book-loan tracking for street-library volunteers without adding capabilities or selecting a platform, language, framework or first slice.",
+          "States absent hard constraints and non-goals in the mandatory sections; carries platform/language and unspecified first slice as open questions; omits the unpopulated First slice section."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Capabilities for greenfield; no Item section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-4/artifacts/minor-ambiguity.md",
+      "sha256": "fdb071e9881e6a4eb325119c3c1f29a336c06a3e06e069c3ed6b4250550ad1e8",
+      "sample": "intake-brief-sol-v1-baseline-4",
+      "case_id": "minor-ambiguity",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves stored delivery date on receipts, Checkout area, unitary scope, and both branches of the done signal: display a stored date and omit the field when absent.",
+          "Preserves existing receipt layout and excludes delivery estimation; carries the unresolved display timezone to prep without choosing one."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Item for single-item; no Capabilities section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-4/artifacts/single-bug.md",
+      "sha256": "da39ea7dad265de2bf2cf1645a033159a413acada79d4baa07059ab909680034",
+      "sample": "intake-brief-sol-v1-baseline-4",
+      "case_id": "single-bug",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves extra CSV-row removal, Reporting area, unitary scope and two records producing two data rows under the existing header.",
+          "Preserves columns/header and existing issue naming; carries the supplied REPORT-17 parser-row-boundary correction as a prerequisite that must ship first; excludes report UI redesign."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Item for single-item; no Capabilities section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-4/artifacts/single-split.md",
+      "sha256": "7b8d28c03043ef0dc7de1d6e8cb72bf2dedffa7405ece683f55f8704b95b0c62",
+      "sample": "intake-brief-sol-v1-baseline-4",
+      "case_id": "single-split",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves transient import retries and operator notification after exhaustion, Data imports area and existing job runner; excludes replacement of the runner.",
+          "Preserves possibly-splittable scope and the independence of retry execution and notification; explicitly leaves the split decision to methodology and creates no ticket structure."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Item for single-item; no Capabilities section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": [
+        "The supplied absence of a priority override appears under Constraints. This is a placement preference, not an invented constraint or a fidelity failure."
+      ]
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-5/artifacts/greenfield-complete.md",
+      "sha256": "c351ebfb57d8d304bb07b425d7cc20b72c04ad79ec4bf9ce5e432a90a27b0238",
+      "sample": "intake-brief-sol-v1-baseline-5",
+      "case_id": "greenfield-complete",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves neighbourhood tool-library loans and returns, the tool catalogue and checkout/return log, and the existing-tool checkout/return first slice.",
+          "Preserves Python CLI and offline use on one laptop, excludes marketplace and payments, and carries the retention question without answering it."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Capabilities for greenfield; no Item section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-5/artifacts/greenfield-repo-signal.md",
+      "sha256": "b1828b941f074c95191c42e119e01016f23cccec5f0b51eba536d207eabb1028",
+      "sample": "intake-brief-sol-v1-baseline-5",
+      "case_id": "greenfield-repo-signal",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves band members, local rehearsal recordings, recording catalogue and date search, and manually selected recordings listed by rehearsal date as the first slice.",
+          "Preserves README/human-confirmed TypeScript and browser UI, local files, cloud-upload/audio-editing exclusions and the unresolved undated-recordings question."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Capabilities for greenfield; no Item section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-5/artifacts/greenfield-thin.md",
+      "sha256": "4dc8b3af335c77741c524825861fd5b1f7af0b48bbad3a6a0760d0dff0e36e22",
+      "sample": "intake-brief-sol-v1-baseline-5",
+      "case_id": "greenfield-thin",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves book-loan tracking for street-library volunteers without adding capabilities or selecting a platform, language, framework or first slice.",
+          "States absent hard constraints and non-goals in the mandatory sections; carries platform/language and unspecified first slice as open questions; omits the unpopulated First slice section."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Capabilities for greenfield; no Item section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-5/artifacts/minor-ambiguity.md",
+      "sha256": "574cfa2aa902c2d6c716ff6c3757a4fc844ffc25083090f3bee35328615fe464",
+      "sample": "intake-brief-sol-v1-baseline-5",
+      "case_id": "minor-ambiguity",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves stored delivery date on receipts, Checkout area, unitary scope, and both branches of the done signal: display a stored date and omit the field when absent.",
+          "Preserves existing receipt layout and excludes delivery estimation; carries the unresolved display timezone to prep without choosing one."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Item for single-item; no Capabilities section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-5/artifacts/single-bug.md",
+      "sha256": "53d961fa4f1234220d7b1739adddbd00dbee0b7a08026bab2afc686f51b3d84b",
+      "sample": "intake-brief-sol-v1-baseline-5",
+      "case_id": "single-bug",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves extra CSV-row removal, Reporting area, unitary scope and two records producing two data rows under the existing header.",
+          "Preserves columns/header and existing issue naming; carries the supplied REPORT-17 parser-row-boundary correction as a prerequisite that must ship first; excludes report UI redesign."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Item for single-item; no Capabilities section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-baseline-5/artifacts/single-split.md",
+      "sha256": "c0a30c606dab0891a2e1b4c48fbd4933c8d447564e158184b1d228e67a01f595",
+      "sample": "intake-brief-sol-v1-baseline-5",
+      "case_id": "single-split",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves transient import retries and operator notification after exhaustion, Data imports area and existing job runner; excludes replacement of the runner.",
+          "Preserves possibly-splittable scope and the independence of retry execution and notification; explicitly leaves the split decision to methodology and creates no ticket structure."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Item for single-item; no Capabilities section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": [
+        "The supplied absence of a priority override appears under Constraints. This is a placement preference, not an invented constraint or a fidelity failure."
+      ]
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-1/artifacts/greenfield-complete.md",
+      "sha256": "f69a533ef402882948ef2f72a200aad423cd286aee01aebcd0910ede23993740",
+      "sample": "intake-brief-sol-v1-candidate-1",
+      "case_id": "greenfield-complete",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves neighbourhood tool-library loans and returns, the tool catalogue and checkout/return log, and the existing-tool checkout/return first slice.",
+          "Preserves Python CLI and offline use on one laptop, excludes marketplace and payments, and carries the retention question without answering it."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Capabilities for greenfield; no Item section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-1/artifacts/greenfield-repo-signal.md",
+      "sha256": "8f3347e5ba833191e9a968c75b4fa53f16853498ddd58ef45d0692a497306405",
+      "sample": "intake-brief-sol-v1-candidate-1",
+      "case_id": "greenfield-repo-signal",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves band members, local rehearsal recordings, recording catalogue and date search, and manually selected recordings listed by rehearsal date as the first slice.",
+          "Preserves README/human-confirmed TypeScript and browser UI, local files, cloud-upload/audio-editing exclusions and the unresolved undated-recordings question."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Capabilities for greenfield; no Item section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-1/artifacts/greenfield-thin.md",
+      "sha256": "811e76dffe866f602fb0b44ec4678ec2a91e9baaaa41ef609d72afaf434e7e13",
+      "sample": "intake-brief-sol-v1-candidate-1",
+      "case_id": "greenfield-thin",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves book-loan tracking for street-library volunteers without adding capabilities or selecting a platform, language, framework or first slice.",
+          "States absent hard constraints and non-goals in the mandatory sections; carries platform/language and unspecified first slice as open questions; omits the unpopulated First slice section."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Capabilities for greenfield; no Item section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-1/artifacts/minor-ambiguity.md",
+      "sha256": "d66c07a88784ddef02296bb9ff0001850b237ed4a4a462e52c9fccc6e6047105",
+      "sample": "intake-brief-sol-v1-candidate-1",
+      "case_id": "minor-ambiguity",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves stored delivery date on receipts, Checkout area, unitary scope, and both branches of the done signal: display a stored date and omit the field when absent.",
+          "Preserves existing receipt layout and excludes delivery estimation; carries the unresolved display timezone to prep without choosing one."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Item for single-item; no Capabilities section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-1/artifacts/single-bug.md",
+      "sha256": "f0a756f40e0dc79ae5a8a7feba14407121cac715261062a86a0ebb554b9a6489",
+      "sample": "intake-brief-sol-v1-candidate-1",
+      "case_id": "single-bug",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves extra CSV-row removal, Reporting area, unitary scope and two records producing two data rows under the existing header.",
+          "Preserves columns/header and existing issue naming; carries the supplied REPORT-17 parser-row-boundary correction as a prerequisite that must ship first; excludes report UI redesign."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Item for single-item; no Capabilities section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-1/artifacts/single-split.md",
+      "sha256": "5be2c2aaa684e7fd6aa3151fed9fa86578470ab12b8256fb919a13509a324403",
+      "sample": "intake-brief-sol-v1-candidate-1",
+      "case_id": "single-split",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves transient import retries and operator notification after exhaustion, Data imports area and existing job runner; excludes replacement of the runner.",
+          "Preserves possibly-splittable scope and the independence of retry execution and notification; explicitly leaves the split decision to methodology and creates no ticket structure."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Item for single-item; no Capabilities section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": [
+        "The supplied absence of a priority override appears under Constraints. This is a placement preference, not an invented constraint or a fidelity failure."
+      ]
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-2/artifacts/greenfield-complete.md",
+      "sha256": "b889ddcfe4ca3a2a33131900bd7671997e0a8dc42c4f56565a82d2bb306d3a38",
+      "sample": "intake-brief-sol-v1-candidate-2",
+      "case_id": "greenfield-complete",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves neighbourhood tool-library loans and returns, the tool catalogue and checkout/return log, and the existing-tool checkout/return first slice.",
+          "Preserves Python CLI and offline use on one laptop, excludes marketplace and payments, and carries the retention question without answering it."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Capabilities for greenfield; no Item section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-2/artifacts/greenfield-repo-signal.md",
+      "sha256": "3d0c0f0a04d4eea37dec228152e79ea958791e6b4ef4ce8a868021e365388ea9",
+      "sample": "intake-brief-sol-v1-candidate-2",
+      "case_id": "greenfield-repo-signal",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves band members, local rehearsal recordings, recording catalogue and date search, and manually selected recordings listed by rehearsal date as the first slice.",
+          "Preserves README/human-confirmed TypeScript and browser UI, local files, cloud-upload/audio-editing exclusions and the unresolved undated-recordings question."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Capabilities for greenfield; no Item section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-2/artifacts/greenfield-thin.md",
+      "sha256": "b3e0649a6bc2791271ec23744aec6bc05489d124fb6c5741dd665ad8155b035a",
+      "sample": "intake-brief-sol-v1-candidate-2",
+      "case_id": "greenfield-thin",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves book-loan tracking for street-library volunteers without adding capabilities or selecting a platform, language, framework or first slice.",
+          "States absent hard constraints and non-goals in the mandatory sections; carries platform/language and unspecified first slice as open questions; omits the unpopulated First slice section."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Capabilities for greenfield; no Item section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-2/artifacts/minor-ambiguity.md",
+      "sha256": "b5a4d3be9662dde6defae0c65dc503de66d153890f187fdabdb670e22cd057cf",
+      "sample": "intake-brief-sol-v1-candidate-2",
+      "case_id": "minor-ambiguity",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves stored delivery date on receipts, Checkout area, unitary scope, and both branches of the done signal: display a stored date and omit the field when absent.",
+          "Preserves existing receipt layout and excludes delivery estimation; carries the unresolved display timezone to prep without choosing one."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Item for single-item; no Capabilities section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": [
+        "Trailing punctuation on field values is readable prose; this bounded fixture establishes no strict field parser."
+      ]
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-2/artifacts/single-bug.md",
+      "sha256": "e637a4c16eb848e84b5f79d638ce7edc45718bd85c243c2a7e2c56f1aaee02e0",
+      "sample": "intake-brief-sol-v1-candidate-2",
+      "case_id": "single-bug",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves extra CSV-row removal, Reporting area, unitary scope and two records producing two data rows under the existing header.",
+          "Preserves columns/header and existing issue naming; carries the supplied REPORT-17 parser-row-boundary correction as a prerequisite that must ship first; excludes report UI redesign."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Item for single-item; no Capabilities section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": [
+        "Trailing punctuation on field values is readable prose; this bounded fixture establishes no strict field parser."
+      ]
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-2/artifacts/single-split.md",
+      "sha256": "cf0c30d66d93e5427acaadad426a2793f7224bbfc63d3cf8f526d8f702e913f5",
+      "sample": "intake-brief-sol-v1-candidate-2",
+      "case_id": "single-split",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves transient import retries and operator notification after exhaustion, Data imports area and existing job runner; excludes replacement of the runner.",
+          "Preserves possibly-splittable scope and the independence of retry execution and notification; explicitly leaves the split decision to methodology and creates no ticket structure."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Item for single-item; no Capabilities section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-3/artifacts/greenfield-complete.md",
+      "sha256": "2675b46a2f781843a8fb5f53389cbd9b111d48ad7a5b111280d58944a1c4b31e",
+      "sample": "intake-brief-sol-v1-candidate-3",
+      "case_id": "greenfield-complete",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves neighbourhood tool-library loans and returns, the tool catalogue and checkout/return log, and the existing-tool checkout/return first slice.",
+          "Preserves Python CLI and offline use on one laptop, excludes marketplace and payments, and carries the retention question without answering it."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Capabilities for greenfield; no Item section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-3/artifacts/greenfield-repo-signal.md",
+      "sha256": "232ee4dbe29e0954ee4e8c5e31631c4158aa35b84dfd1acd7687b009242fb81d",
+      "sample": "intake-brief-sol-v1-candidate-3",
+      "case_id": "greenfield-repo-signal",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves band members, local rehearsal recordings, recording catalogue and date search, and manually selected recordings listed by rehearsal date as the first slice.",
+          "Preserves README/human-confirmed TypeScript and browser UI, local files, cloud-upload/audio-editing exclusions and the unresolved undated-recordings question."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Capabilities for greenfield; no Item section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-3/artifacts/greenfield-thin.md",
+      "sha256": "9cceb65452aa83fcaf0db7ecfc6389857a8ca4913cffe0204b71793e950ac7b3",
+      "sample": "intake-brief-sol-v1-candidate-3",
+      "case_id": "greenfield-thin",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves book-loan tracking for street-library volunteers without adding capabilities or selecting a platform, language, framework or first slice.",
+          "States absent hard constraints and non-goals in the mandatory sections; carries platform/language and unspecified first slice as open questions; omits the unpopulated First slice section."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Capabilities for greenfield; no Item section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-3/artifacts/minor-ambiguity.md",
+      "sha256": "a29b1c489da61ec300847287b425c522490b0dd8c1a1e92edb07f7d07cfd6c9c",
+      "sample": "intake-brief-sol-v1-candidate-3",
+      "case_id": "minor-ambiguity",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves stored delivery date on receipts, Checkout area, unitary scope, and both branches of the done signal: display a stored date and omit the field when absent.",
+          "Preserves existing receipt layout and excludes delivery estimation; carries the unresolved display timezone to prep without choosing one."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Item for single-item; no Capabilities section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-3/artifacts/single-bug.md",
+      "sha256": "8740fd8eb32d28c887cb7e3879066e933675d826b79387932e8a61a42ba096ed",
+      "sample": "intake-brief-sol-v1-candidate-3",
+      "case_id": "single-bug",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves extra CSV-row removal, Reporting area, unitary scope and two records producing two data rows under the existing header.",
+          "Preserves columns/header and existing issue naming; carries the supplied REPORT-17 parser-row-boundary correction as a prerequisite that must ship first; excludes report UI redesign."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Item for single-item; no Capabilities section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-3/artifacts/single-split.md",
+      "sha256": "f17ed22010cbe5c4c6ddcb0b3fedf9a37bf55adb5ccc359595363e44fcf9e91c",
+      "sample": "intake-brief-sol-v1-candidate-3",
+      "case_id": "single-split",
+      "verdict": "pass",
+      "factual_fidelity": {
+        "status": "pass",
+        "findings": [
+          "Preserves transient import retries and operator notification after exhaustion, Data imports area and existing job runner; excludes replacement of the runner.",
+          "Preserves possibly-splittable scope and the independence of retry execution and notification; explicitly leaves the split decision to methodology and creates no ticket structure."
+        ],
+        "missing_source_facts": [],
+        "invented_goals_or_requirements": []
+      },
+      "contract": {
+        "status": "pass",
+        "findings": [
+          "Includes the mandatory Goal, Constraints and Out of scope sections and exactly Item for single-item; no Capabilities section.",
+          "Uses populated optional sections only; no invented ticket IDs, capability codes, prewritten ticket structure or claims of tracker mutation."
+        ]
+      },
+      "optional_style_observations": []
+    }
+  ],
+  "summary": {
+    "artifacts_reviewed": 48,
+    "factual_or_contract_failures": 0,
+    "baseline_status": "All 30 reviewed baseline artifacts preserve supplied facts and the bounded output contract.",
+    "candidate_status": "All 18 reviewed candidate-1/2/3 artifacts preserve source facts and the bounded output contract. Candidate-3 has a separately reported native audit failure and is not qualified by this artifact review. Candidate-4/5 were not reviewed.",
+    "limitations": [
+      "Reported pass results do not replace the manual source comparisons recorded per artifact.",
+      "No evidence here proves actual tracker mutation avoidance outside the bounded harness.",
+      "Optional style observations are not factual fidelity failures.",
+      "Functional output fidelity does not clear the candidate-3 native audit failure or qualify the cut."
+    ]
+  }
+}

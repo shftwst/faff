@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All five cases reached their downstream dispatch, and the measurement finished successfully. There were no departures from the stated restrictions.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e5b0-502a-7d72-ae78-9e2931d03551"
+    ],
+    "elapsed_seconds": 115.1,
+    "stdout_sha256": "11c3348426cdb47f652b37a41d723ede3b3c15ac0dbbae77c2c035d108630b1e",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

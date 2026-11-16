@@ -1,0 +1,25 @@
+{
+  "status": "pass",
+  "kind": "wtf",
+  "isolated_commit": "16675291aad3f0b003cc709d1e5dc7626c617ac1",
+  "base_commit": "19d36dab50206f53982b436aae351124d53adfc5",
+  "directory": "/tmp/faff-wtf-sol-integration",
+  "production_installed": false,
+  "checks": [
+    {
+      "check": "tests",
+      "exit_code": 0,
+      "path": "deterministic-checks/wtf-sol-integration-tests.txt"
+    },
+    {
+      "check": "adapter-lint",
+      "exit_code": 0,
+      "path": "deterministic-checks/wtf-sol-integration-adapter-lint.txt"
+    },
+    {
+      "check": "rule-inventory",
+      "exit_code": 0,
+      "path": "deterministic-checks/wtf-sol-integration-rule-inventory.txt"
+    }
+  ]
+}

@@ -1,12 +1,12 @@
 {
-  "updated_utc": "2026-11-16T18:47:45.014496+00:00",
+  "updated_utc": "2026-11-16T19:13:04.597231+00:00",
   "deadline_utc": "2026-11-16 16:13:53 UTC",
   "accepted_saved_bytes": 101620,
   "accepted_saved_estimated_tokens": 25038,
   "accepted_total_bytes": 1267815,
   "accepted_total_estimated_tokens": 314241,
   "accepted": "Gateway, adversarial, rendering V2, thematic, kernel V4, PRD Astra V2, review Astra V4 and 26 discovery descriptions.",
-  "pending": "Sol intake V1, WTF source V4 / candidate Sol V2, and spec-review V1. Sol-medium Opus calibration running; six-combination matrix frozen and five additional combinations queued/running.",
+  "pending": "WTF sourceV5 / SolV3 candidate after sourceV4 omitted an empty queue partition; default spec-review SolV1 candidate. Intake source unchanged: Sol candidate3 failed literal-path and heredoc protocol. Six-combination model/effort screen running; no finalist selected.",
   "controllers": {
     "prd": "/tmp/faff-astra-prd-v2-baseline.log and /tmp/faff-astra-prd-v2-pair.log",
     "review": "/tmp/faff-astra-review-v4-pair.log",
@@ -20,18 +20,19 @@
     "review_replay": "/tmp/faff-review-v4-replay.log",
     "sol_gateway": "/tmp/faff-sol-gateway-calibration.log",
     "sol_rendering": "/tmp/faff-sol-rendering-calibration.log",
-    "sol_intake": "/tmp/faff-sol-intake-baseline-remaining.log and /tmp/faff-sol-intake-pair-corrected.log",
-    "sol_wtf": "/tmp/faff-sol-wtf-baseline-remaining.log and /tmp/faff-sol-wtf-v2-pair.log",
+    "sol_intake": "Stopped on candidate3 native protocol failure; no candidate4/5",
+    "sol_wtf": "/tmp/faff-sol-wtf-v3-pair.log; prior sourceV4 diagnostic set continues separately in /tmp/faff-sol-wtf-v2-pair.log",
     "sol_native_correction": "/tmp/faff-sol-audit-corrections.log",
     "sol_spec_review": "/tmp/faff-sol-spec-review-baseline.log and /tmp/faff-sol-spec-review-pair.log",
     "model_matrix": "/tmp/faff-model-matrix.log; three concurrent combinations"
   },
-  "integration": "Accepted source committed/pushed through 530336c1. Review V4/PRD evidence independently audited with 282 hash checks. New source cuts remain pending.",
+  "integration": "Accepted source through19d36dab, all PR checks pass. Private intake629, WTF576 and spec-review599 deterministic tests pass; none substitutes for paired fidelity/native qualification.",
   "claude_usage": "Weekly allowance exhausted. All Claude queues stopped; no usage credits enabled.",
   "fallback": "User now requests gpt-6.1-sol / medium. Earlier Astra quota errors retained as incomplete; no model pooling.",
   "downstream_proof": "PRD: 60 actual artifacts, 240 run-start cases and 240 forged-decision rejections. Review V4: all 70 actual artifacts pass real stored-comment replay with exact preserved bytes.",
   "continued_by_user_utc": "2026-11-16T18:36:39.190886+00:00",
   "original_deadline_elapsed": true,
   "latest_user_steering": "Broaden GPT model/effort comparison for an Opus stand-in.",
-  "model_matrix": "gpt-opus-standin-matrix-v1.json; Sol low/medium/high, Astra low/medium, Terra medium; two-per-arm screen and promote at most two."
+  "model_matrix": "gpt-opus-standin-matrix-v1.json; Sol low/medium/high, Astra low/medium, Terra medium; two-per-arm screen and promote at most two.",
+  "harder_calibration": "gpt-opus-hard-task-amendment-v1.json: same-family judgement only, no independent-provider eligibility claim; deterministic8-case preflight plus8altered-outcome rejections pass."
 }

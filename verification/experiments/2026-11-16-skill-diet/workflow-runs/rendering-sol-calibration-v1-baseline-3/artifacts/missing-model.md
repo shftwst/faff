@@ -1,0 +1,2 @@
+- Explanation → no load-bearing model to lead with → producer must supply the governing idea.
+- Steps one to three → three enumerable items are inline → render the steps as a numbered list.

@@ -1,0 +1,475 @@
+{
+  "status": "pass",
+  "bridge": {
+    "stop": null,
+    "requests": 52,
+    "rejected": 0
+  },
+  "policy_delivery": {
+    "bytes": 178299,
+    "utf16_characters": 176771,
+    "sha256": "0e68333b2af6a0e67610506a4fc8dca491ab8a38d32b55fb2ba34ecaebafb89e",
+    "chunk_limit": 6000,
+    "complete": true,
+    "reads": [
+      {
+        "offset": 0,
+        "end": 6000,
+        "characters": 6000,
+        "bytes": 6066,
+        "sha256": "4fecdf7d00a98d84389100cd4cb563d4b061a98c81a3c79167c7c6aae952b11c"
+      },
+      {
+        "offset": 6000,
+        "end": 12000,
+        "characters": 6000,
+        "bytes": 6064,
+        "sha256": "d08b239c5aba52ef7a27a1494b7712dbc3aa82ea86a81743d1e0ef25314480fe"
+      },
+      {
+        "offset": 12000,
+        "end": 18000,
+        "characters": 6000,
+        "bytes": 6046,
+        "sha256": "9d12dbe234cae4eb9a569bcdbf850dab312573da3121283f91bd94418647a011"
+      },
+      {
+        "offset": 18000,
+        "end": 24000,
+        "characters": 6000,
+        "bytes": 6030,
+        "sha256": "965fba20d53d9395ba778d600480f381900f60af7b52a47f1eb549b5a512b7b7"
+      },
+      {
+        "offset": 24000,
+        "end": 30000,
+        "characters": 6000,
+        "bytes": 6050,
+        "sha256": "97e1adb3b6da96bbc1f1d2933ef97a3ac72fe228d17f245824717932d2cb6d1f"
+      },
+      {
+        "offset": 30000,
+        "end": 36000,
+        "characters": 6000,
+        "bytes": 6044,
+        "sha256": "652a0907bc7be017f442b085ab47a569d5b258fe6a5da7e63e358b4e800de853"
+      },
+      {
+        "offset": 36000,
+        "end": 42000,
+        "characters": 6000,
+        "bytes": 6038,
+        "sha256": "581515ab7c62b00397e932da0c20a05e613ffd227c5d90339baef6b048ff6258"
+      },
+      {
+        "offset": 42000,
+        "end": 48000,
+        "characters": 6000,
+        "bytes": 6047,
+        "sha256": "80f8797ecfb8a8d018b6380a1f344c17794199eafef4021661ba0ffe74332443"
+      },
+      {
+        "offset": 48000,
+        "end": 54000,
+        "characters": 6000,
+        "bytes": 6048,
+        "sha256": "40c4c3a36f95c0de1ec9ea10b424e84d288710bc486b24fbd6a4ab40c30da3c3"
+      },
+      {
+        "offset": 54000,
+        "end": 60000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "80a98469f25addd14159c54b44a8e4e55724ed8d9afeeb2a0b4cbff424d38103"
+      },
+      {
+        "offset": 60000,
+        "end": 66000,
+        "characters": 6000,
+        "bytes": 6062,
+        "sha256": "d2afc8b8684e4ca2213e95a4f95a9dfb38ca03db0618376876955c2484bb7828"
+      },
+      {
+        "offset": 66000,
+        "end": 72000,
+        "characters": 6000,
+        "bytes": 6051,
+        "sha256": "49de46e2f382b0fc7be40fa14b20006960c7b6a363fe165a83529d007c1ab962"
+      },
+      {
+        "offset": 72000,
+        "end": 78000,
+        "characters": 6000,
+        "bytes": 6046,
+        "sha256": "95057539ff97d25f8970218e64536eaa9582e5d1462f459d48280f57546983c0"
+      },
+      {
+        "offset": 78000,
+        "end": 84000,
+        "characters": 6000,
+        "bytes": 6064,
+        "sha256": "07076f5439a752a9cbce15124bda49a3c44a63132a1cbff50fa8f6de821c2b8f"
+      },
+      {
+        "offset": 84000,
+        "end": 90000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "4ade12647479586632c67d133801fe5992274943bc43a9387d6394eae379b9c3"
+      },
+      {
+        "offset": 90000,
+        "end": 96000,
+        "characters": 6000,
+        "bytes": 6061,
+        "sha256": "c5ed21176e7ef3ffceda1a4bb6906a76ed0e2edddbbf694d9641791c7cf734ae"
+      },
+      {
+        "offset": 96000,
+        "end": 102000,
+        "characters": 6000,
+        "bytes": 6032,
+        "sha256": "b6cd586f086fa9ba48d32ad7cdba3aab21e2f2b85670cae0d6be3f9e0fa2fe3f"
+      },
+      {
+        "offset": 102000,
+        "end": 108000,
+        "characters": 6000,
+        "bytes": 6044,
+        "sha256": "df8eeba90cb652eaacb892fbf05eb124191e5789782b53e4503b669d3a564e36"
+      },
+      {
+        "offset": 108000,
+        "end": 114000,
+        "characters": 6000,
+        "bytes": 6064,
+        "sha256": "7d554dee568a318d927d6d4e786d7d87e22b9c89f09ed6318643e8b6be3f90e6"
+      },
+      {
+        "offset": 114000,
+        "end": 120000,
+        "characters": 6000,
+        "bytes": 6053,
+        "sha256": "4c7dc971b366fe4f990cc50979e4018222013a2a45fef1735fada4efeb9406d4"
+      },
+      {
+        "offset": 120000,
+        "end": 126000,
+        "characters": 6000,
+        "bytes": 6058,
+        "sha256": "21d7014d11e8f3529288cb17aa764ebcbfa109827e81a1b3c3be8928b508d535"
+      },
+      {
+        "offset": 126000,
+        "end": 132000,
+        "characters": 6000,
+        "bytes": 6046,
+        "sha256": "0ff2600a388ea0276b37ae069b261919f00189f675b01950768b6138a2572bd1"
+      },
+      {
+        "offset": 132000,
+        "end": 138000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "b4d10577f835e61c576c29d50fa54e935614232d9ca7dfbef242bc110cc7ebcd"
+      },
+      {
+        "offset": 138000,
+        "end": 144000,
+        "characters": 6000,
+        "bytes": 6044,
+        "sha256": "635408a6ad80f438ab52d558d5c8266a62950a0b1ffab1e435bcf3503d370aa5"
+      },
+      {
+        "offset": 144000,
+        "end": 150000,
+        "characters": 6000,
+        "bytes": 6080,
+        "sha256": "6b329a1b3152170f226bc8ec7f2ccec584e6662a6fd490cdc280cb3a0893a54f"
+      },
+      {
+        "offset": 150000,
+        "end": 156000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "45c0b21ae282b903d93e2a00ae3d6d76ed2588cea0adb41cccf9c299b876ead8"
+      },
+      {
+        "offset": 156000,
+        "end": 162000,
+        "characters": 6000,
+        "bytes": 6070,
+        "sha256": "edb4604bbf75e62e80a75d6153e43f7df1d30594ea2022374a00541955d05796"
+      },
+      {
+        "offset": 162000,
+        "end": 168000,
+        "characters": 6000,
+        "bytes": 6040,
+        "sha256": "28ede1c59c1721a0a8b98a31aab8cf86f4c7b9bc3c473a2efbcb3b5989c77d61"
+      },
+      {
+        "offset": 168000,
+        "end": 174000,
+        "characters": 6000,
+        "bytes": 6036,
+        "sha256": "a5b0ea374138f9fedad523ad42b06a925d0ee1bf60bde147bfa56bceca2c1598"
+      },
+      {
+        "offset": 174000,
+        "end": 176771,
+        "characters": 2771,
+        "bytes": 2799,
+        "sha256": "f0bef8265e70365d6f2672834a90c705e3e6023ab9530024c31ad06a4c6d2b88"
+      }
+    ],
+    "errors": []
+  },
+  "grade": {
+    "status": "pass",
+    "cases": [
+      {
+        "id": "spec-verdict-001",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 2,
+          "passed": 2,
+          "vector": [
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "spec-verdict-002",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 2,
+          "passed": 2,
+          "vector": [
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "spec-verdict-003",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 2,
+          "passed": 2,
+          "vector": [
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "qa-repo-file",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 2,
+          "passed": 2,
+          "vector": [
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "qa-no-observation",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 2,
+          "passed": 2,
+          "vector": [
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "methodology-blocker",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 2,
+          "passed": 2,
+          "vector": [
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "default-lenses",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "lenses": [
+            "architectural",
+            "infosec",
+            "methodology",
+            "QA"
+          ]
+        }
+      },
+      {
+        "id": "selected-lenses",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "lenses": [
+            "infosec",
+            "QA"
+          ]
+        }
+      },
+      {
+        "id": "mandatory-lenses",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "lenses": [
+            "infosec",
+            "QA"
+          ]
+        }
+      },
+      {
+        "id": "methodology-missing",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "recompute": false,
+          "objections": 0,
+          "note_gap": true
+        }
+      },
+      {
+        "id": "worst-only",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "maximum": 1
+        }
+      },
+      {
+        "id": "builder-choice",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "verdict": "approve",
+          "objections": 0
+        }
+      },
+      {
+        "id": "weak-consequence",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "value": "not separately stated"
+        }
+      },
+      {
+        "id": "anchor",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "anchor": "the-spec-anchor-field"
+        }
+      },
+      {
+        "id": "no-anchor",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "omit_spec_anchor": true
+        }
+      },
+      {
+        "id": "minor-only",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "verdict": "revise"
+        }
+      },
+      {
+        "id": "qa-blocker",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "verdict": "revise"
+        }
+      },
+      {
+        "id": "infosec-blocker",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "verdict": "needs-human"
+        }
+      },
+      {
+        "id": "founded",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "allowed": false
+        }
+      },
+      {
+        "id": "route-owner",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "owner": "consumer"
+        }
+      },
+      {
+        "id": "adversarial",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "launches": false
+        }
+      }
+    ],
+    "errors": []
+  },
+  "scope": "Bounded default spec-review production with the existing three spec-verdict fixtures plus two code-blind QA cases and an attached methodology blocker. Real contract and reject-approach route consumption required. No prep loop, hosted tracker or L4-refuter execution claim.",
+  "accounting": "unmetered"
+}

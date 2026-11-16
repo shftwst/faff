@@ -1,0 +1,2 @@
+- **Explanation opening:** no load-bearing model to lead with → ask the producer to supply the governing idea; none is present to hoist.
+- **Steps one to three:** three enumerable items remain inline → render the supplied steps as a markdown list.

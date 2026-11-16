@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-16T19:06:11.594991+00:00",
+  "status": "pass-with-isolated-temporary-directory",
+  "isolated_commit": "5031834e02dbafea2f2235b0975376030c7871fb",
+  "base_commit": "19d36dab50206f53982b436aae351124d53adfc5",
+  "production_installed": false,
+  "tests_passed": 629,
+  "tests_failed": 0,
+  "source_or_assertion_changes_for_rerun": false,
+  "temporary_directory": "/var/tmp/faff-intake-integration-uy944xwd",
+  "checks": [
+    {
+      "path": "deterministic-checks/intake-sol-integration-tests-isolated-tmp.txt",
+      "sha256": "7703d25adbb7cd48cb093c0a127cabe7ab3195aecf74dbf6ab486f864c2ba76c"
+    },
+    {
+      "path": "deterministic-checks/intake-sol-integration-adapter-lint.txt",
+      "sha256": "b82122223fa41b4f23724aeceea9ad508c288e7f9ad02ccb918f8575e0fd6ce0"
+    },
+    {
+      "path": "deterministic-checks/intake-sol-integration-rule-inventory.txt",
+      "sha256": "d9612e0cc7d3624d80698303660b6360589360e60c58a9beabb8dc7408dc32b1"
+    }
+  ],
+  "prior_failure_evidence": [
+    {
+      "path": "intake-sol-integration.json",
+      "sha256": "bc53bd8b73a7658aa070c791466b9b20b453fc76f2f87b814e0eed0da0e8f022"
+    },
+    {
+      "path": "evidence/deterministic-checks/intake-baseline-control-diagnosis.json",
+      "sha256": "c5f36d245eec4a314b06cd19cdcce4d3646625fe578586abb6094ae60a52a708"
+    },
+    {
+      "path": "evidence/deterministic-checks/intake-baseline-control-fs-probe.json",
+      "sha256": "113570cba855d2a10092f5664e5407ee3e749bd511d702b591157cd00cc4f305"
+    }
+  ],
+  "reason": "Unchanged and candidate code both failed when an intermittent /tmp/.git ancestor made repository detection fail closed. The same 629 assertions pass using a task-owned temporary directory outside /tmp. No foreign .git entry was removed.",
+  "limits": [
+    "This qualifies the isolated deterministic integration only; paired model fidelity, native and manual qualification remain required."
+  ]
+}

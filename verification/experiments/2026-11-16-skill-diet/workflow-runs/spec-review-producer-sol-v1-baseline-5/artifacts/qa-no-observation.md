@@ -1,0 +1,3 @@
+```faff-contract:spec-review-verdict
+{"verdict":"revise","objections":[{"lens":"QA","severity":"major","claim":"The Receipt date scenario lacks an observable Then, MUST or comparator. Add an expected observation to that unit.","evidence":"Receipt date says only Given a stored receipt, when its receipt is opened.","predicted_consequence":"Opening the receipt supplies no scenario-level pass or fail condition for the code-blind holdout to judge.","spec_anchor":"receipt-date"}]}
+```

@@ -1,0 +1,3 @@
+```faff-contract:spec-review-verdict
+{"verdict":"needs-human","objections":[{"lens":"infosec","severity":"blocker","claim":"Unrestricted server-side fetching and returning the body permits server-side request forgery. A safe destination policy requires a security decision before build.","evidence":"HOW explicitly chooses fetch(userUrl), no allow-list, and streams the fetched body back to the caller.","predicted_consequence":"A caller can supply a loopback or private-network URL and receive a response from a service reachable by the backend that the caller cannot access directly.","spec_anchor":"how"}]}
+```

@@ -1,0 +1,3 @@
+```faff-contract:spec-review-verdict
+{"verdict":"reject-approach","objections":[{"lens":"architectural","severity":"blocker","claim":"A module-level mutable singleton does not isolate roles by request.","evidence":"HOW sets currentRoles on request entry and makes every downstream helper read the module global.","predicted_consequence":"When two requests overlap, the second can overwrite currentRoles before the first request's helper reads it, causing the first request to use the second caller's roles.","spec_anchor":"how"}]}
+```

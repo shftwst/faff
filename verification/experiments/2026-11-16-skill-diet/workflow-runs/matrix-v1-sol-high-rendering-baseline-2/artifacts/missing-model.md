@@ -1,0 +1,2 @@
+- **Explanation:** no load-bearing model to lead with → the producer must supply the governing statement; the renderer cannot invent it.
+- **Three steps:** an enumerable set of three items is written inline → render the steps as a markdown list.

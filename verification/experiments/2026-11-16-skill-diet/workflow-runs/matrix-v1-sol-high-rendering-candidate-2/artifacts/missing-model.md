@@ -1,0 +1,2 @@
+- **Explanation:** no load-bearing model to lead with → the producer must supply the governing idea; none is present to hoist.
+- **Steps:** three enumerable items are inline → format them as a markdown list.

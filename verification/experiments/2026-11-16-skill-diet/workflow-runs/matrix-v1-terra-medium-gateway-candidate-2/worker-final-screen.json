@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All five cases reached their downstream skill dispatch, and the finish call succeeded. No departures from the stated restrictions.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e5b2-11f5-7da1-a414-a217881e2a46"
+    ],
+    "elapsed_seconds": 110.8,
+    "stdout_sha256": "93542d9dccf5fc9cb90b2b22326c05379dc7ffad354472b328b7b0ec589dd284",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

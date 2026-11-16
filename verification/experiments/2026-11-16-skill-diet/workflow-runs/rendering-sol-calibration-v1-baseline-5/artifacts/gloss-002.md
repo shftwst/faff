@@ -1,0 +1,1 @@
+ISS-BB: Memoise config resolver results to reduce cold-start time.

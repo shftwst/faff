@@ -424,3 +424,11 @@ Intake V1 has an exact-string false negative on /faff-jot and /faff-prep. V2 fre
 The original 12-hour window elapsed. The operator explicitly requested continuation, Sol medium as the Claude stand-in, and comparison against preserved Opus measurements to decide tomorrow's rerun needs. Fresh Sol pairs are frozen for pending cuts; gateway/rendering calibration retains exact policy, fixture and runtime hashes while disclosing different guidance, native transport, base instructions, timeout and path reminders. An independent verifier checked 282 accepted PRD/review evidence hashes and found the bounded claims supported.
 
 The first Sol runner still invoked an Astra-specific native model check. A separate tested Sol wrapper corrects only that expectation; existing sessions are re-audited, original reports retained, with no model reroll. Prior incomplete Astra sessions reported a usage limit and are excluded. WTF V2 remains held for two missing groom offers; an independent audit also found shared empty-subsection drift, now explicit in Sol manual acceptance.
+
+## GPT screen and pending source review, 2026-11-16T19:13:04.597231+00:00
+
+Intake passes 629unchanged tests under a task-owned `/var/tmp` directory after both baseline and candidate showed intermittent enclosing `/tmp/.git` interference. All 48 completed briefs retain facts, but candidate 3 makes a mistyped native path call and an unterminated heredoc. The strict native gate fails and candidates 4/5 are not launched; no savings are counted.
+
+WTF sourceV4 candidate 2 retains facts, offers and top-level empty headers but drops the empty likely-fire partition. SourceV5 adds a 157-byte reminder within Output Format only and requires five new candidate samples against the unchanged Sol baseline. Prior samples remain diagnostic and excluded.
+
+The model/effort screen retains native failures. Sol-high has one equivalent full-result wrapper unsupported by the frozen parser; another Sol-high run and all Terra runs discard exit metadata. No such record is relabelled a native pass. The harder task now uses a separately frozen, truthful same-family judgement treatment, preserving original case data, rules and real CLI outcomes. Its deterministic preflight passes 8 cases and rejects 8 altered outcomes; this is not model evidence.

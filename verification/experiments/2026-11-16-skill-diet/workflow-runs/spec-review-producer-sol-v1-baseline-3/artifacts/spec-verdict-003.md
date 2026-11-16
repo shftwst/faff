@@ -1,0 +1,3 @@
+```faff-contract:spec-review-verdict
+{"verdict":"needs-human","objections":[{"lens":"infosec","severity":"blocker","claim":"Unrestricted server-side fetching of user URLs permits server-side request forgery and response disclosure.","evidence":"HOW explicitly calls fetch(userUrl) without an allow-list and streams the body to the caller.","predicted_consequence":"A caller can supply an internal service or cloud metadata URL reachable by the backend and receive its response, exposing data inaccessible directly to that caller.","spec_anchor":"how"}]}
+```

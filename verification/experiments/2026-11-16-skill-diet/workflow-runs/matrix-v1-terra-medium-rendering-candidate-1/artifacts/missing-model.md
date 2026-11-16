@@ -1,0 +1,1 @@
+Draft explanation → no load-bearing model to lead with → provide the governing idea from the source.

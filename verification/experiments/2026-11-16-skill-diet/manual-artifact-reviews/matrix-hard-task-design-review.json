@@ -1,0 +1,127 @@
+{
+  "schema": 1,
+  "updated_utc": "2026-11-16T19:08:29.784493+00:00",
+  "reviewer": {
+    "role": "independent experiment design reviewer",
+    "requested_model": "gpt-6.1-sol",
+    "requested_reasoning_effort": "medium"
+  },
+  "status": "wrapper-static-review-passes; await-preflight-and-preregistered-runs",
+  "sources": [
+    {
+      "path": "eval/control-parity/challenge-execution.mjs",
+      "sha256": "8be468411350c7e29d4dbcaebc2043bb191919c1d44c175669c31f666dd098ce"
+    },
+    {
+      "path": "eval/control-parity/adversarial-execution.mjs",
+      "sha256": "e43b74a4bcbbaf36475b4b1fb87b81bd3ca3af148a8fc64b4df468c46f7e2de2"
+    },
+    {
+      "path": "gpt-opus-standin-matrix-v1.json",
+      "sha256": "95e800ed0a7d663c0076705eb7b0468b31946e31bf0308ec9d0186de7b3bae66"
+    },
+    {
+      "path": "challenges-file-input-v4-stable-plan.json",
+      "sha256": "5f82ed720ae0a3d0e19062aeabc4f5bfd7a482564cdac7234ed302b43eaf8252"
+    },
+    {
+      "path": "workflow-fixtures/challenges.json",
+      "sha256": "af35e82ab3155f5e540fdf89e9f4c3a3d06bd0987611c0fa061ca51bd001860b"
+    },
+    {
+      "path": "baseline/adversarial-review.md",
+      "sha256": "4be6a2c38923d00b7dca1dc00d6d5923a00f0b9329141de0a2bbe2a14c4a1193"
+    },
+    {
+      "path": "candidates/adversarial-v3.md",
+      "sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba"
+    },
+    {
+      "path": "adversarial-context-v3-plan.json",
+      "sha256": "c404302824fdf6f9c81cc434d0fd92b4092570ae76ca1c7402e0c35b88c9252d"
+    }
+  ],
+  "findings": [
+    {
+      "source": "eval/control-parity/challenge-execution.mjs:110",
+      "finding": "Task states that primary was authored/reviewed by OpenAI and calls the executor the independent reviewer. Matrix finalists are OpenAI models; provider-family independence is not established."
+    },
+    {
+      "source": "workflow-fixtures/challenges.json:3",
+      "finding": "Fixture scope says reviewer is from a different model family. Harness copies this scope into manifest and report; task-only correction would leave a false durable claim."
+    },
+    {
+      "source": "eval/control-parity/challenge-execution.mjs:99",
+      "finding": "submit_challenge description calls returned judgement independent. Neutralise that provenance claim in the narrowed treatment. Independent case can still mean separate fixture case; no need to alter case order."
+    },
+    {
+      "source": "candidates/adversarial-v3.md:235",
+      "finding": "PRDR policy requires an independent-model subagent. A same-family calibration may exercise the bounded decision interface but cannot demonstrate that production independence requirement."
+    },
+    {
+      "source": "eval/control-parity/challenge-execution.mjs:23",
+      "finding": "Eight proposal cases exercise challenge judgement, absent-opinion preservation, classified overturn grounds, real adr admit / prdr yagni / prdr admit consumption and Phase-1 forwarding. No actual hosted review backend or family-selection mechanism is exercised."
+    }
+  ],
+  "recommendation": {
+    "choice": "Preregister a separate bounded challenge-judgement-and-CLI-consumption treatment before any finalist harder-task run. Do not launch the original task unchanged.",
+    "task_replacement_exact": "The fixture primary was authored and reviewed by OpenAI. This run measures a separate evaluator's bounded challenge judgement and the pinned CLI's consumption of it. The evaluator is also an OpenAI model; provider-family independence is neither established nor tested. Occupy only the supplied decision interface for this calibration; do not claim this run satisfies the production independent-model requirement.",
+    "tool_description_replacement_exact": "Return the challenge outcome, optional overturn ground, and reasoning for this bounded calibration. For no opinion, use null or the canonical absent outcome; the caller omits --challenge. Ground is null when inapplicable. The fixture caller passes the result to the real admission CLI and persists its result. One submission per case.",
+    "manifest_report_scope_exact": "Bounded ADR/PRDR challenge judgement and real pinned CLI consumption on controlled fixtures. Evaluator and fixture primary share the OpenAI provider family. No cross-family independence, hosted-provider selection/transport, tracker change, record publication or complete production review workflow is tested.",
+    "preserve": [
+      "All eight case input/opinion_available values and expected outcome/ground/admission oracles",
+      "Original baseline/adversarial-review.md and candidates/adversarial-v3.md policy bytes",
+      "Pinned runtime commit and real consumer commands",
+      "All five planned samples per policy arm per finalist, including every failed/incomplete sample",
+      "Previously retained Opus reports, task hashes and scope claims as historical evidence"
+    ],
+    "preregister": [
+      "A dated matrix addendum explaining why narrower scope is required, before any harder-task sample starts",
+      "New treatment identifier and exact task/tool/scope strings, harness hash and derived task hashes",
+      "Original fixture hash plus a case-only canonical hash proving case/oracle preservation when overriding its descriptive scope",
+      "Provider/model/effort and changed bridge transport; Opus file-input versus GPT JSON-stdin remain disclosed",
+      "Separate functional correctness, native compliance, timing and independence status; never pool as identical-treatment evidence"
+    ],
+    "comparability_limit": "Results may compare bounded challenge decisions and consumer effects with the preserved Opus cases. Prompt/scope/transport changes prevent exact-treatment equivalence; no independent-review efficacy or provider-family interchangeability claim."
+  },
+  "alternative": {
+    "harness": "eval/control-parity/adversarial-execution.mjs",
+    "original_opus_plans": [
+      "adversarial-context-v3-plan.json",
+      "adversarial-context-v3-remaining-even-plan.json",
+      "adversarial-context-v3-remaining-odd-plan.json"
+    ],
+    "why_safer": "Executor orchestrates a fixture primary delegate and controlled local provider reached through the production helper; it need not claim to be a different-family reviewer of an OpenAI-authored primary. Treat provider outputs as controlled fixtures, not evidence of live model independence.",
+    "retained_opus_results": "All ten context-v3 reports exist. Baseline3 and candidate2 failed; retain both without replacement.",
+    "limit": "Exercises helper/orchestration and effect handling rather than independent natural-language challenge judgement. Switching requires an explicit preregistration amendment and should not be presented as the original harder task."
+  },
+  "wtf_candidate2_at_inspection": {
+    "path": "workflow-runs/wtf-format-sol-v2-candidate-2",
+    "complete_report": false,
+    "reviewed": false
+  },
+  "actions": "No model launch, source change or rerun performed.",
+  "wrapper_review": {
+    "updated_utc": "2026-11-16T19:10:48.826320+00:00",
+    "path": "eval/control-parity/challenge-calibration-execution.mjs",
+    "sha256": "6547c7aba15393ab22fd0c0557ef1598be10855079d3b3d8371865b91d89c026",
+    "status": "pass-static-scope-and-gate-preservation",
+    "checks": {
+      "truthful_task": "OpenAI primary and same-provider-family executor disclosed; independent provider opinion and production eligibility disclaimed.",
+      "tool_description": "submit_challenge describes calibration outcome; original schemas reused unchanged.",
+      "scope": "Manifest and report use narrowed offline calibration scope. Original fixture scope is stored only under original_fixture_scope_is_not_claimed.",
+      "environment_and_grader": "Imports original createChallengeEnvironment and gradeChallengeExecution; no consumer branch, outcome, ground, submission-count or forwarding gate replaced.",
+      "policy_delivery": "Same createPolicyReader, guarded mailbox, separate full reads and complete-policy success check.",
+      "tool_limits": "Same allowed tool names, 64 requests and 480000 ms mailbox bound.",
+      "success_gate": "Same no bridge stop, no bridge rejection, complete policy delivery and passing original grade required.",
+      "runtime": "Same command binding and assertCandidateCommandUnchanged; original fixture and policy byte hashes retained; wrapper and original core harness separately hashed.",
+      "persistence": "Exclusive wx writes prevent overwriting prior output artifacts."
+    },
+    "limits": [
+      "Static source review only; deterministic real-CLI/altered-outcome preflight results not yet inspected.",
+      "Independent case means separate case; no remaining task claim that GPT is a different-family reviewer.",
+      "Production independent-model policy is deliberately outside this narrowed calibration, not demonstrated by its pass.",
+      "Original fixture hash preserves all case bytes; a case-only hash is useful optional audit metadata, not a gate condition."
+    ]
+  }
+}

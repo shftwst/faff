@@ -1,0 +1,2 @@
+- Draft explanation → no load-bearing model to lead with → the producer must supply the governing idea; none can be hoisted from this source.
+- Three-step sequence → 3+ items must be a list → render the supplied steps as a numbered list.

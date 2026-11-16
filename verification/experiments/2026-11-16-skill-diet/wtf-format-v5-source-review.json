@@ -1,0 +1,21 @@
+{
+  "status": "pending-sol-v3-candidate-measurement",
+  "before_bytes": 31369,
+  "candidate_bytes": 27152,
+  "before_estimated_tokens": 7761,
+  "candidate_estimated_tokens": 6734,
+  "preserved_prefix_sha256": "132c49e045703fa6bc71452fda18af05cd9631f04dbfed7380f801dc8e1b4092",
+  "preserved_autonomous_sha256": "a0b08e587a3dec83342e4b2f4d638ffc6431c869e83256d9709dc710a897a1ff",
+  "preserved_unique_notes": [
+    "- Don't over-query \u2014 pull what's needed, synthesize, present",
+    "- If the project's ambient context (e.g. `CLAUDE.md`) states working-pattern or scheduling preferences, respect them when timing recommendations \u2014 faff keeps no separate config channel for this; the human's stated preference is the source.",
+    "- WIP recommendations are human-facing only. Autonomous in-flight work (issues `/faff-beep-boop` is currently building or has a PR open for) does not count against the human's WIP cap \u2014 the human reviews one PR at a time."
+  ],
+  "scope": "Only the report-format example and duplicate Notes changed. Configuration, all numbered phases, chaining, ADR write gates and autonomous behaviour remain byte-identical.",
+  "candidate": "candidates/wtf-format-v5.md",
+  "candidate_sha256": "8df715340ed14eabc072dc6c063bb6ef69682341c0e48f7e05cbf1f700df87bb",
+  "baseline_bytes": 31369,
+  "baseline_estimated_tokens": 7761,
+  "baseline_sha256": "f33cbda1169044be17045ad448ebdb0ba9db04801d8f18d23a0f8779463ffa33",
+  "revision": "Make the existing queue partition grid explicit for a non-empty Build queue. Preserve both partition labels even when one is empty; all non-format source bytes remain unchanged."
+}

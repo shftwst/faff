@@ -1,0 +1,2 @@
+Draft explanation → no load-bearing model to lead with → flag for the producer; the source supplies no governing idea.
+Draft explanation → three enumerable steps run inline → render them as a markdown list.

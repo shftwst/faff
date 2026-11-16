@@ -1,0 +1,25 @@
+{
+  "status": "fail",
+  "kind": "intake",
+  "isolated_commit": "5031834e02dbafea2f2235b0975376030c7871fb",
+  "base_commit": "19d36dab50206f53982b436aae351124d53adfc5",
+  "directory": "/tmp/faff-intake-sol-integration",
+  "production_installed": false,
+  "checks": [
+    {
+      "check": "tests",
+      "exit_code": 1,
+      "path": "deterministic-checks/intake-sol-integration-tests.txt"
+    },
+    {
+      "check": "adapter-lint",
+      "exit_code": 0,
+      "path": "deterministic-checks/intake-sol-integration-adapter-lint.txt"
+    },
+    {
+      "check": "rule-inventory",
+      "exit_code": 0,
+      "path": "deterministic-checks/intake-sol-integration-rule-inventory.txt"
+    }
+  ]
+}

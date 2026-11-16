@@ -1,0 +1,608 @@
+{
+  "schema": 1,
+  "scope": "Metadata only. Explicit model/effort expectation with unchanged native transport and delivery checks.",
+  "auditor_sha256": "2718b08adf2e517ab2633c9ad82bfa62ac4697a1596c39baa723401700096b43",
+  "core_auditor_sha256": "c46dd016be2aa62cb31803e15afb3cc4a57acf79f248500dd59d3d04a2ec10ac",
+  "classifier_sha256": "3f40f2fe4bc5094e14bb6f5796b2f5e46d9c9730b7fcbf8c04dfca03cacf5027",
+  "expectation_sha256": "349683fbd69125018e852ba3e2482111e6ed157e8dfbd84f765647e1f5baae6d",
+  "source_sha256": "7ee0e4e1b258add7cdc04cad1af991aa50b8c58517e72f1d5107b7a87c7c2e35",
+  "runs": [
+    {
+      "name": "matrix-v1-sol-high-rendering-baseline-1",
+      "session_id": "01a1e5b7-2021-7ae1-9852-71f98a5936c2",
+      "prompt_matches": 1,
+      "model_ids": [
+        "gpt-6.1-sol"
+      ],
+      "efforts": [
+        "high"
+      ],
+      "versions": [
+        "0.169.0"
+      ],
+      "base_instruction_hashes": [
+        "d7f4e2a97f86048ae05e687ed20b0abed4a38442ac8aa2868b5a09bdb855e518"
+      ],
+      "tools": [
+        {
+          "id": "call_e696faaef6db4ca88d31d929527d68fe",
+          "name": "exec",
+          "input_sha256": "1417d1b4ccccf291eed822c3f2fe16cad63e132238cb9fa3e28b4d423570e9d1",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "87e23d41e52c1803fcf7ea5a84d5d712497fad92b017af3ca5f1bc0fa2c5d43c",
+          "is_error": true
+        },
+        {
+          "id": "call_62320ea4c5d54d7d9aad6d54b83ddd1f",
+          "name": "exec",
+          "input_sha256": "2835868a7d60c8b4f802669488a8d35b05ee7f0702b8e9e97289db4db3cc770e",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "66b1ceeb06512e9afa7777b2d393224f5436afb05602d4de283171b3c91cc39d",
+          "is_error": true
+        },
+        {
+          "id": "call_4dc421ff91854ffca2fc8b8d1b1375ea",
+          "name": "exec",
+          "input_sha256": "362a7c590bbaccdf8030b54a6ea253867fe3ff64fbd2bb97bc5184aa9a10798b",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "926b6b5fff07b60c8a90cfdbd4b55823e29a477edca0ec257d46d963317f3193",
+          "is_error": true
+        },
+        {
+          "id": "call_9713c597ab794e1987658332a96e6396",
+          "name": "exec",
+          "input_sha256": "7f07c806c1c3ae9bf352bb0629c3557a2bf1908957d4329435deb99843977de9",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "f62c19effafad4ef644f866e4151fe652e6dacd95ceadf574acf195e2ecdcaf0",
+          "is_error": true
+        },
+        {
+          "id": "call_61f5fc7f21a940229d9ac08e2d4052e6",
+          "name": "exec",
+          "input_sha256": "b0e9151a396d676b9d7c277cd600a39ec3c1a52edf4b5d94fb58518a812d7acd",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "3922ba157f8140f86391c4300c883a0e15a77f41f28593083ee21bfcc22abda7",
+          "is_error": true
+        },
+        {
+          "id": "call_48c1d5b513d84ef88f3bfe897b4bb7b2",
+          "name": "exec",
+          "input_sha256": "1e9b6f01ace5ed42cfbf641945f23ca7b84c3b69d6db914485f87a5ab371f15a",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "ce868af32f0c8d465af2894ef0502f4ed76d867f4b8980a8082d5d703e54d98a",
+          "is_error": true
+        },
+        {
+          "id": "call_d5b8d40b8943428d9b419cb2c87797f3",
+          "name": "exec",
+          "input_sha256": "0a23ead142b1f3c6b46ee0e2342ca34d35fbd62967983442dc05fe40df84c107",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "27aea231639987bf1d4b256f5caa17c3c4967b26467443e15e7be61d306fbc31",
+          "is_error": true
+        },
+        {
+          "id": "call_5d7a95e26aaf4afbb3c171712cf89be2",
+          "name": "exec",
+          "input_sha256": "e799c058f2ab0f2eadb221e260b3dc7e2b2517bdc8ffdc7a637a73ff39dd16db",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "666a9a5c0d6fc7fa266bca43d73a2fc8d4d621ae153e846c992c1897a93b7711",
+          "is_error": true
+        },
+        {
+          "id": "call_3b297f049fdb4a24b7f36e0b59a223da",
+          "name": "exec",
+          "input_sha256": "90e88f39ebe803b66be8a75ca7822b319672db19718bfba39c4f79c67770395b",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "9936f2dbf63fb1361b6f1f4199f19a8e70c67aa7e1d5a43637f7d08a76a4644e",
+          "is_error": true
+        },
+        {
+          "id": "call_533f972aa35343c59c675654395fdbd8",
+          "name": "exec",
+          "input_sha256": "e1de201f996023fc3ee8f9be6953cc68dc063c55010fbda6025e13451b07ed2e",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "c1343ba3ed7fb7bd2856c1ec04f1c705d408ce17ed6e209284c88b7a2f5f731f",
+          "is_error": true
+        },
+        {
+          "id": "call_16866b106c464726a332eb77e9ccea71",
+          "name": "exec",
+          "input_sha256": "4c8896adfa3f73cee89bdd105871489bf1b66415f8f41a85ff7168b5ebb7105e",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "ba5d1cbf5407882ff3f05f2b9a22c5db3799fbe5befcffd8a7a994f5fcb4adbd",
+          "is_error": true
+        },
+        {
+          "id": "call_b1c5866f2cf2497e834b9f0d9b943f7d",
+          "name": "exec",
+          "input_sha256": "71d66ea1827093d1d9e615d2a2ef163b0d24b7009288abd1be178384b27f5406",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "567ff313d2c3ff32696ce9db0d851aaa754d8cf2b854e0e573d7db8737709501",
+          "is_error": true
+        },
+        {
+          "id": "call_1ceb0154477c4560a47ae2b7c4b5d6aa",
+          "name": "exec",
+          "input_sha256": "93d4c83ae9425c769480abed83e7b7579a1902956063f1476960565bf502e887",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "6fe0c3d35d445b536944851340644fe2c2d56601e8af192bd2e17a06afeb37f8",
+          "is_error": true
+        },
+        {
+          "id": "call_6c626ffb49e74ad090eba3e3d3326ec0",
+          "name": "exec",
+          "input_sha256": "46a3b0d5ce1b5475afea05920f203237d84c697cfae744ce29eef0c8573b4474",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "938985b06e927fa72d5f81c6ec9664c3c6b221361fa9b28e1ab4ef49a1395df6",
+          "is_error": true
+        },
+        {
+          "id": "call_f6542dad05b848f4be452ac259788199",
+          "name": "exec",
+          "input_sha256": "38830ad822410d55a3598d99f9ec188b8fe9129d79eb8f992781a58d6e0d13d8",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "739ff9aa088cf9971661213675be4ef4812a1a3d1901a4c3356fb99cbea872f2",
+          "is_error": true
+        },
+        {
+          "id": "call_f8d74270a05142ddb9202bad79247182",
+          "name": "exec",
+          "input_sha256": "18063d6938102824bf5961ee78e941913beb54d130c7f682c59d54fbc2653535",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "98a991cadd453d2294b3e79da5cea2fefee2d76d8d6fc4f00a6d0df6da1e9b5e",
+          "is_error": true
+        },
+        {
+          "id": "call_ba55989a12db491b85c161581d1547a4",
+          "name": "exec",
+          "input_sha256": "ca1be264c891d06bb50dd72903045c375011332b58ba2754a6c8be21dd953310",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "98af4f8ae692cb0ed632c99e8d02465e9ac799a9abc6d539e1bc7dcb02c4c586",
+          "is_error": true
+        },
+        {
+          "id": "call_ff6fedc9c831401c82a9a8c88ec005f1",
+          "name": "exec",
+          "input_sha256": "cfe6322207b7732874d86959546175eab0e0aee3381a039978df21ceb49030d0",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "fd3dc96f797a2795440539c885a5c25439e8a60754bcf5b7374be621ac91b328",
+          "is_error": true
+        },
+        {
+          "id": "call_cdeb89f1604a457792d32218434f366a",
+          "name": "exec",
+          "input_sha256": "fdb554ebee1699d0de799df5f3e8920ed429a35f5b1ba1c2f5500b712341c8eb",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "fd3dc96f797a2795440539c885a5c25439e8a60754bcf5b7374be621ac91b328",
+          "is_error": true
+        },
+        {
+          "id": "call_c61208cc431b4c19857ecd7ca44a686e",
+          "name": "exec",
+          "input_sha256": "6eb05ae425e7099b9a2fbca5b86204dede7e65c39f07518a3d941abeb04b16dd",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "98af4f8ae692cb0ed632c99e8d02465e9ac799a9abc6d539e1bc7dcb02c4c586",
+          "is_error": true
+        },
+        {
+          "id": "call_f9b814b9bdce4c5e9da8ef8287db59ce",
+          "name": "exec",
+          "input_sha256": "140eddc5ac5eb6f82ea194240426acdf5776462954a10948114b95d3364d837d",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "fd3dc96f797a2795440539c885a5c25439e8a60754bcf5b7374be621ac91b328",
+          "is_error": true
+        },
+        {
+          "id": "call_bb1e5842e2f0443dadd6e2c3c39129ea",
+          "name": "exec",
+          "input_sha256": "218f54259a8a449bc335fe0c2df2b1015f480672d75bb49e9a6d8ca558ef8889",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "98af4f8ae692cb0ed632c99e8d02465e9ac799a9abc6d539e1bc7dcb02c4c586",
+          "is_error": true
+        },
+        {
+          "id": "call_042560a6d64748168259313ecbc9a158",
+          "name": "exec",
+          "input_sha256": "2edda56901c3b51299ad30e36542afa338a3388a438b4b2bdddfd11632c6f155",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "fd3dc96f797a2795440539c885a5c25439e8a60754bcf5b7374be621ac91b328",
+          "is_error": true
+        },
+        {
+          "id": "call_a757faa6da96487a90bc48921ce3aa31",
+          "name": "exec",
+          "input_sha256": "98ea801717903e7100e24c88482ffb06bafa863aa6f652c5723bda5ba1a2b569",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "fd3dc96f797a2795440539c885a5c25439e8a60754bcf5b7374be621ac91b328",
+          "is_error": true
+        },
+        {
+          "id": "call_57f06f4ae5bd42c88736f857610d9ad4",
+          "name": "exec",
+          "input_sha256": "eb9bc542a1758c50c7da817901c9ff6ab199badb6f630f08c1cbb44c7e19094b",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "fd3dc96f797a2795440539c885a5c25439e8a60754bcf5b7374be621ac91b328",
+          "is_error": true
+        },
+        {
+          "id": "call_613eb75e36e84d5d8b8e40a13078ddaf",
+          "name": "exec",
+          "input_sha256": "e9754b5b1d3eb88bc0eb98c08a590aa6a12f838074c9c68884d68f38b33b23a9",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "fd3dc96f797a2795440539c885a5c25439e8a60754bcf5b7374be621ac91b328",
+          "is_error": true
+        },
+        {
+          "id": "call_638516693552422eaea722931a5f434d",
+          "name": "exec",
+          "input_sha256": "450fcfd724a53078c704d43fafd6da3f5003c927a457ecb7c1639c0faf709527",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "fd3dc96f797a2795440539c885a5c25439e8a60754bcf5b7374be621ac91b328",
+          "is_error": true
+        },
+        {
+          "id": "call_a344cb0b1147484aa93670383aaf3c49",
+          "name": "exec",
+          "input_sha256": "c1902320bc57751c97e309c18eec0c17569776278055dd647472421c931ef1f5",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "fd3dc96f797a2795440539c885a5c25439e8a60754bcf5b7374be621ac91b328",
+          "is_error": true
+        },
+        {
+          "id": "call_3b841b0280fc4fa7a7404ad95f982e16",
+          "name": "exec",
+          "input_sha256": "aba580df094cd87a96449666e8665c9102d22e6654ed4c19048fa00cb3db6116",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "fd3dc96f797a2795440539c885a5c25439e8a60754bcf5b7374be621ac91b328",
+          "is_error": true
+        },
+        {
+          "id": "call_19e850b331394a219bfa5d81588c8316",
+          "name": "exec",
+          "input_sha256": "9cbf66f6ff3fe587b201499bc59b33a270a5ae475a73c12f3cfff3a5df931d0c",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "fd3dc96f797a2795440539c885a5c25439e8a60754bcf5b7374be621ac91b328",
+          "is_error": true
+        },
+        {
+          "id": "call_f94fc5319900423085eba9336af5a7ea",
+          "name": "exec",
+          "input_sha256": "55000c7f39076664e17d30f149d74b562bc9a0983c262a0fdcd2b25693b7e8f2",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "fd3dc96f797a2795440539c885a5c25439e8a60754bcf5b7374be621ac91b328",
+          "is_error": true
+        },
+        {
+          "id": "call_2316d5dd0fc2433a91a4059816080542",
+          "name": "exec",
+          "input_sha256": "c0d8004329ec93a4f01cb7631199a18c7c3662eceaf5f320e209de9c9198d817",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "fd3dc96f797a2795440539c885a5c25439e8a60754bcf5b7374be621ac91b328",
+          "is_error": true
+        },
+        {
+          "id": "call_dedf3185b3ef4b9e8097e7a8fdda5b84",
+          "name": "exec",
+          "input_sha256": "e0d7c08c10b0a3bae808991ae6a68a80c54568af27d6afd12259e7a32a3b6209",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "98af4f8ae692cb0ed632c99e8d02465e9ac799a9abc6d539e1bc7dcb02c4c586",
+          "is_error": true
+        },
+        {
+          "id": "call_36c51f550c0e4f45bf53ee4e7c99aba0",
+          "name": "exec",
+          "input_sha256": "56f77d9b1004ab8bf877b689533df76d8143c28f007f1af2779e27ad70eab71d",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "98af4f8ae692cb0ed632c99e8d02465e9ac799a9abc6d539e1bc7dcb02c4c586",
+          "is_error": true
+        },
+        {
+          "id": "call_1b1dc549fbdc446d8788186a43bf519d",
+          "name": "exec",
+          "input_sha256": "24ea0f84e0b7df3f5700b6aad614ec30e4f7472356bdfa9d7c084a33f8e1fe38",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "98af4f8ae692cb0ed632c99e8d02465e9ac799a9abc6d539e1bc7dcb02c4c586",
+          "is_error": true
+        },
+        {
+          "id": "call_bd817869978a4447837ca293d47cc18a",
+          "name": "exec",
+          "input_sha256": "c66a2ab3e813968cca1d795985f2e336c096c71e389b59e672cf2f80c81addea",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "fd3dc96f797a2795440539c885a5c25439e8a60754bcf5b7374be621ac91b328",
+          "is_error": true
+        },
+        {
+          "id": "call_f0f70f0ce7184a23bb89e65dc0335f98",
+          "name": "exec",
+          "input_sha256": "8513cc0c7c4c0caa931ebf3a4896cc944b87a2665fb55d39a18e28877898db0e",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "b62a2d4628ccff1ed383aad16ac89f64ce89ff663af38173fb3b197bab2ea5bf",
+          "is_error": true
+        }
+      ],
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": false,
+          "content_sha256": null,
+          "content_bytes": null
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-v1-sol-high-rendering-baseline-1/task.json",
+          "complete": false,
+          "content_sha256": null,
+          "content_bytes": null
+        }
+      ],
+      "complete": false,
+      "status": "fail",
+      "problems": [
+        {
+          "id": "call_e696faaef6db4ca88d31d929527d68fe",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_62320ea4c5d54d7d9aad6d54b83ddd1f",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_4dc421ff91854ffca2fc8b8d1b1375ea",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_9713c597ab794e1987658332a96e6396",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_61f5fc7f21a940229d9ac08e2d4052e6",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_48c1d5b513d84ef88f3bfe897b4bb7b2",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_d5b8d40b8943428d9b419cb2c87797f3",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_5d7a95e26aaf4afbb3c171712cf89be2",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_3b297f049fdb4a24b7f36e0b59a223da",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_533f972aa35343c59c675654395fdbd8",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_16866b106c464726a332eb77e9ccea71",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_b1c5866f2cf2497e834b9f0d9b943f7d",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_1ceb0154477c4560a47ae2b7c4b5d6aa",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_6c626ffb49e74ad090eba3e3d3326ec0",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_f6542dad05b848f4be452ac259788199",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_f8d74270a05142ddb9202bad79247182",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_ba55989a12db491b85c161581d1547a4",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_ff6fedc9c831401c82a9a8c88ec005f1",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_cdeb89f1604a457792d32218434f366a",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_c61208cc431b4c19857ecd7ca44a686e",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_f9b814b9bdce4c5e9da8ef8287db59ce",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_bb1e5842e2f0443dadd6e2c3c39129ea",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_042560a6d64748168259313ecbc9a158",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_a757faa6da96487a90bc48921ce3aa31",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_57f06f4ae5bd42c88736f857610d9ad4",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_613eb75e36e84d5d8b8e40a13078ddaf",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_638516693552422eaea722931a5f434d",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_a344cb0b1147484aa93670383aaf3c49",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_3b841b0280fc4fa7a7404ad95f982e16",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_19e850b331394a219bfa5d81588c8316",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_f94fc5319900423085eba9336af5a7ea",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_2316d5dd0fc2433a91a4059816080542",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_dedf3185b3ef4b9e8097e7a8fdda5b84",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_36c51f550c0e4f45bf53ee4e7c99aba0",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_1b1dc549fbdc446d8788186a43bf519d",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_bd817869978a4447837ca293d47cc18a",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_f0f70f0ce7184a23bb89e65dc0335f98",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "problem": "initial-read-missing-incomplete-or-truncated"
+        }
+      ],
+      "expected_model": "gpt-6.1-sol",
+      "expected_effort": "high"
+    }
+  ]
+}

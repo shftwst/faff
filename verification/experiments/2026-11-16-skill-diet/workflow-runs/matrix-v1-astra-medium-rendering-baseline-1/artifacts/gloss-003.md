@@ -1,0 +1,1 @@
+ISS-CC: Capture `cache_read_input_tokens` for each request made by the eval harness.

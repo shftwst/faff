@@ -1,0 +1,1178 @@
+{
+  "schema": 1,
+  "reviewed_at_utc": "2026-11-16T19:10:30.849178+00:00",
+  "reviewer": {
+    "role": "independent source-fidelity and actual-artifact verifier",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium"
+  },
+  "path_base": "repository root",
+  "scope": "Actual six Markdown verdict artifacts per completed sample, compared manually against supplied spec bodies, selected lenses and methodology critiques. Separate shape, slug and outcome assertions support but do not replace source comparison.",
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/spec-review-producer-sol-v1-baseline-plan.json",
+      "sha256": "709a3fe087256f35b482761031f9730381863ba0c883ed21748dd1c02b1817a0"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/spec-review-producer-sol-v1-candidate-plan.json",
+      "sha256": "19450b1ca29061dcc35256506d5ade7fdb9f1255e4f1a098180b9b0b7150ffea"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/spec-review-producer.json",
+      "sha256": "c1b59e4f6f9355e3d447baaec14bed80d6a37d6ae61eb4df155e41ec39d51972"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/spec-review-producer-v1-source-review.json",
+      "sha256": "c9bf6c54e51f4848b4ea7031221311d8be9a640ca7e0cc2fe8626e9dbfff29ed"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/pending-designs/spec-review-producer-design.md",
+      "sha256": "eb0b9ddae4b6572ffcf58987f9cc73d1122bd5dab2878f1ae6509a169820263d"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/baseline/spec-review-producer.md",
+      "sha256": "cf2baaa0193e8f53a1a0ca792440ea471cdd0be5e49a6b320cca9d3b5fbaf58c"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/spec-review-producer-v1.md",
+      "sha256": "a4d074a09df4b449bdcecb1d85a6028e995ad6e1cffa49e70fc22409d25f9571"
+    }
+  ],
+  "source_review_assessment": "The preserved normative checklist specifies founded objections, exact selected lenses, critique consumption, raw-heading slugs and roll-up. The shortened candidate retains these rules. No source edits made by verifier.",
+  "evidence_notes": [
+    "Both plan acceptance strings retain Astra-low wording, but explicit provider/model/effort fields, design and inspected worker manifests specify fresh Sol-medium. This stale plan prose is an evidence inconsistency, not an artifact defect."
+  ],
+  "selection": {
+    "completed_samples": [
+      "spec-review-producer-sol-v1-baseline-1",
+      "spec-review-producer-sol-v1-baseline-2",
+      "spec-review-producer-sol-v1-baseline-3",
+      "spec-review-producer-sol-v1-baseline-4",
+      "spec-review-producer-sol-v1-baseline-5"
+    ],
+    "candidate_samples_reviewed": 0,
+    "polling": "One bounded completed-sample inspection; no waiting."
+  },
+  "samples": [
+    {
+      "sample": "spec-review-producer-sol-v1-baseline-1",
+      "arm": "baseline",
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-1/report.json",
+        "sha256": "1632e137ecd689c05f05863523597dac9fba57c269b58efdc80e5a2ac6f1560f"
+      },
+      "worker_final_state": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-1/worker-final-state.json",
+        "sha256": "3e3d9310eea75eaa699dc47e2089c22aa0a28a0ded1afa43d3dee31d47945327"
+      },
+      "worker_manifest": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-1/worker-manifest.json",
+        "sha256": "ca6d5130585d21f5ab26b11355c27bc99c5b6dcb84a276453bcf22b14009323b"
+      },
+      "reported_status": "pass",
+      "worker_exit_code": 0,
+      "requested_model": "gpt-6.1-sol",
+      "effort": "medium",
+      "rule_decisions": {
+        "count": 15,
+        "all_match_fixture": true
+      }
+    },
+    {
+      "sample": "spec-review-producer-sol-v1-baseline-2",
+      "arm": "baseline",
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-2/report.json",
+        "sha256": "1632e137ecd689c05f05863523597dac9fba57c269b58efdc80e5a2ac6f1560f"
+      },
+      "worker_final_state": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-2/worker-final-state.json",
+        "sha256": "99108338eb3c6717be2853db5f60b8000e036de98e36e6a517649fbf15d723a6"
+      },
+      "worker_manifest": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-2/worker-manifest.json",
+        "sha256": "3321033069b60093b3fd04b4ea4f1ad4aeec7394a86ef9617820e3e9c4d560bb"
+      },
+      "reported_status": "pass",
+      "worker_exit_code": 0,
+      "requested_model": "gpt-6.1-sol",
+      "effort": "medium",
+      "rule_decisions": {
+        "count": 15,
+        "all_match_fixture": true
+      }
+    },
+    {
+      "sample": "spec-review-producer-sol-v1-baseline-3",
+      "arm": "baseline",
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-3/report.json",
+        "sha256": "1632e137ecd689c05f05863523597dac9fba57c269b58efdc80e5a2ac6f1560f"
+      },
+      "worker_final_state": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-3/worker-final-state.json",
+        "sha256": "5c28b871b7e2afa3b91a888dda7758d8ab3e664d7042692f372a9870602eb322"
+      },
+      "worker_manifest": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-3/worker-manifest.json",
+        "sha256": "7d60f3446f581218a3ddc0ec3e298e0f5fa29ef8ea95365baeb5239a08edfef5"
+      },
+      "reported_status": "pass",
+      "worker_exit_code": 0,
+      "requested_model": "gpt-6.1-sol",
+      "effort": "medium",
+      "rule_decisions": {
+        "count": 15,
+        "all_match_fixture": true
+      }
+    },
+    {
+      "sample": "spec-review-producer-sol-v1-baseline-4",
+      "arm": "baseline",
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-4/report.json",
+        "sha256": "1632e137ecd689c05f05863523597dac9fba57c269b58efdc80e5a2ac6f1560f"
+      },
+      "worker_final_state": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-4/worker-final-state.json",
+        "sha256": "1c28e2fa95afb2645c8e7ddf248ccf53ebd93c1113fd8c4c4ebf1f1c47fba29d"
+      },
+      "worker_manifest": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-4/worker-manifest.json",
+        "sha256": "0a0a635afa12824a5f031b4debe252802e184f2b20359ef4b9bc62e5cd247c78"
+      },
+      "reported_status": "pass",
+      "worker_exit_code": 0,
+      "requested_model": "gpt-6.1-sol",
+      "effort": "medium",
+      "rule_decisions": {
+        "count": 15,
+        "all_match_fixture": true
+      }
+    },
+    {
+      "sample": "spec-review-producer-sol-v1-baseline-5",
+      "arm": "baseline",
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-5/report.json",
+        "sha256": "1632e137ecd689c05f05863523597dac9fba57c269b58efdc80e5a2ac6f1560f"
+      },
+      "worker_final_state": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-5/worker-final-state.json",
+        "sha256": "48e1ff3ad849df6e94e02646f969b4b268293a6d6b02936bbe62b0948507272c"
+      },
+      "worker_manifest": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-5/worker-manifest.json",
+        "sha256": "324bdac4ecec12615efce0baaabda8d45ce3f1dc6a9423eacdaa571ab12548e2"
+      },
+      "report_status": "pass",
+      "worker_exit_code": 0,
+      "requested_model": "gpt-6.1-sol",
+      "effort": "medium",
+      "rule_decisions_match": true
+    }
+  ],
+  "artifact_reviews": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-1/artifacts/methodology-blocker.md",
+      "sha256": "cdf76b8c2813e6fa03a8968b0dbc4ae7179851d16ffff73605078219c20b69b4",
+      "sample": "spec-review-producer-sol-v1-baseline-1",
+      "case_id": "methodology-blocker",
+      "manual_verdict": "pass",
+      "emitted_verdict": "reject-approach",
+      "selected_lenses": [
+        "methodology",
+        "QA"
+      ],
+      "emitted_lenses": [
+        "methodology"
+      ],
+      "emitted_severities": [
+        "blocker"
+      ],
+      "expected_reject_route": "plot",
+      "route_assessment": "Consistent with the emitted blocking lens; actual consumer execution is separate evidence.",
+      "source_fidelity_findings": [
+        "Methodology blocker consumes the attached critique: four independently deliverable concerns exceed its mandatory one-step increment limit; token issuance is the supplied first slice.",
+        "The objection cites HOW and the critique rather than independently inventing value, priority or scope policy. Reject-approach with a methodology blocker selects plot under the stated routing rule."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-1/artifacts/qa-no-observation.md",
+      "sha256": "f8b34f9796ed36b64f5d09e07ed51bdcb605ec2dc58329774f7ba5d8b597a979",
+      "sample": "spec-review-producer-sol-v1-baseline-1",
+      "case_id": "qa-no-observation",
+      "manual_verdict": "pass",
+      "emitted_verdict": "revise",
+      "selected_lenses": [
+        "infosec",
+        "QA"
+      ],
+      "emitted_lenses": [
+        "QA"
+      ],
+      "emitted_severities": [
+        "blocker"
+      ],
+      "expected_reject_route": null,
+      "route_assessment": "No reject-approach route applies.",
+      "source_fidelity_findings": [
+        "QA objection identifies Receipt date ending after Given/When, with no observable Then, MUST or comparator.",
+        "The objection is correctly confined to the scenario-level observation; the supplied DONE behaviour does not make the incomplete scenario directly judgeable. Revise is warranted."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": [
+        "QA blocker and major both roll up to revise. Severity differs from the reference example in some samples; the skill does not require the reference severity."
+      ]
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-1/artifacts/qa-repo-file.md",
+      "sha256": "15f09fdabd1996c1d632ca9fefdb0969ead0e4b68fdcad1fee85b292aa07feb4",
+      "sample": "spec-review-producer-sol-v1-baseline-1",
+      "case_id": "qa-repo-file",
+      "manual_verdict": "pass",
+      "emitted_verdict": "revise",
+      "selected_lenses": [
+        "infosec",
+        "QA"
+      ],
+      "emitted_lenses": [
+        "QA"
+      ],
+      "emitted_severities": [
+        "blocker"
+      ],
+      "expected_reject_route": null,
+      "route_assessment": "No reject-approach route applies.",
+      "source_fidelity_findings": [
+        "QA objection correctly identifies the Receipt date scenario whose success condition is test/receipt.test.mjs passing. The supplied code-blind holdout cannot read or run that test.",
+        "Revision concerns the scenario check, not missing behaviour throughout the spec: DONE already supplies date-rendering and absent-date behaviour. Restating it observably and moving the repository-test check is founded."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": [
+        "QA blocker and major both roll up to revise. Severity differs from the reference example in some samples; the skill does not require the reference severity."
+      ]
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-1/artifacts/spec-verdict-001.md",
+      "sha256": "764b1af376064ac3faf62615241497cde25bb69fe8dc4e0947a716c9e8ff8486",
+      "sample": "spec-review-producer-sol-v1-baseline-1",
+      "case_id": "spec-verdict-001",
+      "manual_verdict": "pass",
+      "emitted_verdict": "approve",
+      "selected_lenses": [
+        "architectural",
+        "infosec",
+        "methodology",
+        "QA"
+      ],
+      "emitted_lenses": [],
+      "emitted_severities": [],
+      "expected_reject_route": null,
+      "route_assessment": "No reject-approach route applies.",
+      "source_fidelity_findings": [
+        "Approval has zero objections. The supplied approach changes rendering only, reuses resolved eligibility/basis and preserves bare output. No new architectural or threat claim is invented.",
+        "The existing positive scenarios and no-objection methodology critique provide no founded reason to block this bounded increment."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-1/artifacts/spec-verdict-002.md",
+      "sha256": "0a4459e44a4f5d165b9d84bfd3ccb63b56d11469056448b0365c25bd01a1d729",
+      "sample": "spec-review-producer-sol-v1-baseline-1",
+      "case_id": "spec-verdict-002",
+      "manual_verdict": "pass",
+      "emitted_verdict": "reject-approach",
+      "selected_lenses": [
+        "architectural",
+        "infosec",
+        "methodology",
+        "QA"
+      ],
+      "emitted_lenses": [
+        "architectural"
+      ],
+      "emitted_severities": [
+        "blocker"
+      ],
+      "expected_reject_route": "prep",
+      "route_assessment": "Consistent with the emitted blocking lens; actual consumer execution is separate evidence.",
+      "source_fidelity_findings": [
+        "Architectural blocker identifies the module-level mutable currentRoles holder and reads by downstream helpers. Interleaved requests overwriting each other is a concrete consequence of shared request state, not an assertion about a supplied deployment.",
+        "One architectural objection avoids duplicating the same shared-state problem under infosec. Reject-approach with this blocker selects prep under the stated consumer routing rule."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-1/artifacts/spec-verdict-003.md",
+      "sha256": "f0d5a7680bfc2107c5d2702e87d603cf6df0edc8860c77eed296bf9fb042edb7",
+      "sample": "spec-review-producer-sol-v1-baseline-1",
+      "case_id": "spec-verdict-003",
+      "manual_verdict": "pass",
+      "emitted_verdict": "needs-human",
+      "selected_lenses": [
+        "architectural",
+        "infosec",
+        "methodology",
+        "QA"
+      ],
+      "emitted_lenses": [
+        "infosec"
+      ],
+      "emitted_severities": [
+        "blocker"
+      ],
+      "expected_reject_route": null,
+      "route_assessment": "No reject-approach route applies.",
+      "source_fidelity_findings": [
+        "Infosec blocker cites explicit unrestricted server-side fetch(userUrl) and response-body return. Internal-service response exposure is a founded SSRF consequence of the specified trust boundary.",
+        "Private-network, loopback or cloud-metadata examples describe targets reachable by the backend conditionally; they do not assert an actual deployment or existing metadata service. Needs-human follows the infosec blocker."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-2/artifacts/methodology-blocker.md",
+      "sha256": "a95f95cb983d4f0ffd5c24f589b0099cf45d785c6ada58357892ec1aac07876a",
+      "sample": "spec-review-producer-sol-v1-baseline-2",
+      "case_id": "methodology-blocker",
+      "manual_verdict": "pass",
+      "emitted_verdict": "reject-approach",
+      "selected_lenses": [
+        "methodology",
+        "QA"
+      ],
+      "emitted_lenses": [
+        "methodology"
+      ],
+      "emitted_severities": [
+        "blocker"
+      ],
+      "expected_reject_route": "plot",
+      "route_assessment": "Consistent with the emitted blocking lens; actual consumer execution is separate evidence.",
+      "source_fidelity_findings": [
+        "Methodology blocker consumes the attached critique: four independently deliverable concerns exceed its mandatory one-step increment limit; token issuance is the supplied first slice.",
+        "The objection cites HOW and the critique rather than independently inventing value, priority or scope policy. Reject-approach with a methodology blocker selects plot under the stated routing rule."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-2/artifacts/qa-no-observation.md",
+      "sha256": "06fd5a43df57d72c3ba1ea7371ccd21bbc4bc5fe30c49f37495bae7475799d88",
+      "sample": "spec-review-producer-sol-v1-baseline-2",
+      "case_id": "qa-no-observation",
+      "manual_verdict": "pass",
+      "emitted_verdict": "revise",
+      "selected_lenses": [
+        "infosec",
+        "QA"
+      ],
+      "emitted_lenses": [
+        "QA"
+      ],
+      "emitted_severities": [
+        "blocker"
+      ],
+      "expected_reject_route": null,
+      "route_assessment": "No reject-approach route applies.",
+      "source_fidelity_findings": [
+        "QA objection identifies Receipt date ending after Given/When, with no observable Then, MUST or comparator.",
+        "The objection is correctly confined to the scenario-level observation; the supplied DONE behaviour does not make the incomplete scenario directly judgeable. Revise is warranted."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": [
+        "QA blocker and major both roll up to revise. Severity differs from the reference example in some samples; the skill does not require the reference severity."
+      ]
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-2/artifacts/qa-repo-file.md",
+      "sha256": "7134de5046cd191fc78d3b2e2d728d8a6acf509b9899e78ab16eb8aaa0c2445e",
+      "sample": "spec-review-producer-sol-v1-baseline-2",
+      "case_id": "qa-repo-file",
+      "manual_verdict": "pass",
+      "emitted_verdict": "revise",
+      "selected_lenses": [
+        "infosec",
+        "QA"
+      ],
+      "emitted_lenses": [
+        "QA"
+      ],
+      "emitted_severities": [
+        "blocker"
+      ],
+      "expected_reject_route": null,
+      "route_assessment": "No reject-approach route applies.",
+      "source_fidelity_findings": [
+        "QA objection correctly identifies the Receipt date scenario whose success condition is test/receipt.test.mjs passing. The supplied code-blind holdout cannot read or run that test.",
+        "Revision concerns the scenario check, not missing behaviour throughout the spec: DONE already supplies date-rendering and absent-date behaviour. Restating it observably and moving the repository-test check is founded."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": [
+        "QA blocker and major both roll up to revise. Severity differs from the reference example in some samples; the skill does not require the reference severity."
+      ]
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-2/artifacts/spec-verdict-001.md",
+      "sha256": "764b1af376064ac3faf62615241497cde25bb69fe8dc4e0947a716c9e8ff8486",
+      "sample": "spec-review-producer-sol-v1-baseline-2",
+      "case_id": "spec-verdict-001",
+      "manual_verdict": "pass",
+      "emitted_verdict": "approve",
+      "selected_lenses": [
+        "architectural",
+        "infosec",
+        "methodology",
+        "QA"
+      ],
+      "emitted_lenses": [],
+      "emitted_severities": [],
+      "expected_reject_route": null,
+      "route_assessment": "No reject-approach route applies.",
+      "source_fidelity_findings": [
+        "Approval has zero objections. The supplied approach changes rendering only, reuses resolved eligibility/basis and preserves bare output. No new architectural or threat claim is invented.",
+        "The existing positive scenarios and no-objection methodology critique provide no founded reason to block this bounded increment."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-2/artifacts/spec-verdict-002.md",
+      "sha256": "710bf3cd1d2d3144f84b9b53e6b9057c4d811c207811fea55cee74082177e7bf",
+      "sample": "spec-review-producer-sol-v1-baseline-2",
+      "case_id": "spec-verdict-002",
+      "manual_verdict": "pass",
+      "emitted_verdict": "reject-approach",
+      "selected_lenses": [
+        "architectural",
+        "infosec",
+        "methodology",
+        "QA"
+      ],
+      "emitted_lenses": [
+        "architectural"
+      ],
+      "emitted_severities": [
+        "blocker"
+      ],
+      "expected_reject_route": "prep",
+      "route_assessment": "Consistent with the emitted blocking lens; actual consumer execution is separate evidence.",
+      "source_fidelity_findings": [
+        "Architectural blocker identifies the module-level mutable currentRoles holder and reads by downstream helpers. Interleaved requests overwriting each other is a concrete consequence of shared request state, not an assertion about a supplied deployment.",
+        "One architectural objection avoids duplicating the same shared-state problem under infosec. Reject-approach with this blocker selects prep under the stated consumer routing rule."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-2/artifacts/spec-verdict-003.md",
+      "sha256": "7e67a2c67244b9586ebb0b7b66f57ec1669ff412231ecaa71abc4773f7f3e9b2",
+      "sample": "spec-review-producer-sol-v1-baseline-2",
+      "case_id": "spec-verdict-003",
+      "manual_verdict": "pass",
+      "emitted_verdict": "needs-human",
+      "selected_lenses": [
+        "architectural",
+        "infosec",
+        "methodology",
+        "QA"
+      ],
+      "emitted_lenses": [
+        "infosec"
+      ],
+      "emitted_severities": [
+        "blocker"
+      ],
+      "expected_reject_route": null,
+      "route_assessment": "No reject-approach route applies.",
+      "source_fidelity_findings": [
+        "Infosec blocker cites explicit unrestricted server-side fetch(userUrl) and response-body return. Internal-service response exposure is a founded SSRF consequence of the specified trust boundary.",
+        "Private-network, loopback or cloud-metadata examples describe targets reachable by the backend conditionally; they do not assert an actual deployment or existing metadata service. Needs-human follows the infosec blocker."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-3/artifacts/methodology-blocker.md",
+      "sha256": "6802229caaf6b48b46e1e9ca245fbe7d97837f0416f8fda83226aa3395f0e7fe",
+      "sample": "spec-review-producer-sol-v1-baseline-3",
+      "case_id": "methodology-blocker",
+      "manual_verdict": "pass",
+      "emitted_verdict": "reject-approach",
+      "selected_lenses": [
+        "methodology",
+        "QA"
+      ],
+      "emitted_lenses": [
+        "methodology"
+      ],
+      "emitted_severities": [
+        "blocker"
+      ],
+      "expected_reject_route": "plot",
+      "route_assessment": "Consistent with the emitted blocking lens; actual consumer execution is separate evidence.",
+      "source_fidelity_findings": [
+        "Methodology blocker consumes the attached critique: four independently deliverable concerns exceed its mandatory one-step increment limit; token issuance is the supplied first slice.",
+        "The objection cites HOW and the critique rather than independently inventing value, priority or scope policy. Reject-approach with a methodology blocker selects plot under the stated routing rule."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-3/artifacts/qa-no-observation.md",
+      "sha256": "1bcd414897849856e7c31e3c1ac936a1a2156ca00a3a3a5b4903c7dd00c34054",
+      "sample": "spec-review-producer-sol-v1-baseline-3",
+      "case_id": "qa-no-observation",
+      "manual_verdict": "pass",
+      "emitted_verdict": "revise",
+      "selected_lenses": [
+        "infosec",
+        "QA"
+      ],
+      "emitted_lenses": [
+        "QA"
+      ],
+      "emitted_severities": [
+        "major"
+      ],
+      "expected_reject_route": null,
+      "route_assessment": "No reject-approach route applies.",
+      "source_fidelity_findings": [
+        "QA objection identifies Receipt date ending after Given/When, with no observable Then, MUST or comparator.",
+        "The objection is correctly confined to the scenario-level observation; the supplied DONE behaviour does not make the incomplete scenario directly judgeable. Revise is warranted."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": [
+        "QA blocker and major both roll up to revise. Severity differs from the reference example in some samples; the skill does not require the reference severity."
+      ]
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-3/artifacts/qa-repo-file.md",
+      "sha256": "4dc1840234fbef52c057723d426e82620a30a716db8c871a4777d6ecb01a8087",
+      "sample": "spec-review-producer-sol-v1-baseline-3",
+      "case_id": "qa-repo-file",
+      "manual_verdict": "pass",
+      "emitted_verdict": "revise",
+      "selected_lenses": [
+        "infosec",
+        "QA"
+      ],
+      "emitted_lenses": [
+        "QA"
+      ],
+      "emitted_severities": [
+        "major"
+      ],
+      "expected_reject_route": null,
+      "route_assessment": "No reject-approach route applies.",
+      "source_fidelity_findings": [
+        "QA objection correctly identifies the Receipt date scenario whose success condition is test/receipt.test.mjs passing. The supplied code-blind holdout cannot read or run that test.",
+        "Revision concerns the scenario check, not missing behaviour throughout the spec: DONE already supplies date-rendering and absent-date behaviour. Restating it observably and moving the repository-test check is founded."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": [
+        "QA blocker and major both roll up to revise. Severity differs from the reference example in some samples; the skill does not require the reference severity."
+      ]
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-3/artifacts/spec-verdict-001.md",
+      "sha256": "764b1af376064ac3faf62615241497cde25bb69fe8dc4e0947a716c9e8ff8486",
+      "sample": "spec-review-producer-sol-v1-baseline-3",
+      "case_id": "spec-verdict-001",
+      "manual_verdict": "pass",
+      "emitted_verdict": "approve",
+      "selected_lenses": [
+        "architectural",
+        "infosec",
+        "methodology",
+        "QA"
+      ],
+      "emitted_lenses": [],
+      "emitted_severities": [],
+      "expected_reject_route": null,
+      "route_assessment": "No reject-approach route applies.",
+      "source_fidelity_findings": [
+        "Approval has zero objections. The supplied approach changes rendering only, reuses resolved eligibility/basis and preserves bare output. No new architectural or threat claim is invented.",
+        "The existing positive scenarios and no-objection methodology critique provide no founded reason to block this bounded increment."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-3/artifacts/spec-verdict-002.md",
+      "sha256": "23b5bebb36dac9fae2c94735fb5f057b1f953c673ebd703820d01157cd62cd91",
+      "sample": "spec-review-producer-sol-v1-baseline-3",
+      "case_id": "spec-verdict-002",
+      "manual_verdict": "pass",
+      "emitted_verdict": "reject-approach",
+      "selected_lenses": [
+        "architectural",
+        "infosec",
+        "methodology",
+        "QA"
+      ],
+      "emitted_lenses": [
+        "architectural"
+      ],
+      "emitted_severities": [
+        "blocker"
+      ],
+      "expected_reject_route": "prep",
+      "route_assessment": "Consistent with the emitted blocking lens; actual consumer execution is separate evidence.",
+      "source_fidelity_findings": [
+        "Architectural blocker identifies the module-level mutable currentRoles holder and reads by downstream helpers. Interleaved requests overwriting each other is a concrete consequence of shared request state, not an assertion about a supplied deployment.",
+        "One architectural objection avoids duplicating the same shared-state problem under infosec. Reject-approach with this blocker selects prep under the stated consumer routing rule."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-3/artifacts/spec-verdict-003.md",
+      "sha256": "507bd12e68e9fc748dad857f1fdb1a0202e05d267aaea3679f5578742c021ee4",
+      "sample": "spec-review-producer-sol-v1-baseline-3",
+      "case_id": "spec-verdict-003",
+      "manual_verdict": "pass",
+      "emitted_verdict": "needs-human",
+      "selected_lenses": [
+        "architectural",
+        "infosec",
+        "methodology",
+        "QA"
+      ],
+      "emitted_lenses": [
+        "infosec"
+      ],
+      "emitted_severities": [
+        "blocker"
+      ],
+      "expected_reject_route": null,
+      "route_assessment": "No reject-approach route applies.",
+      "source_fidelity_findings": [
+        "Infosec blocker cites explicit unrestricted server-side fetch(userUrl) and response-body return. Internal-service response exposure is a founded SSRF consequence of the specified trust boundary.",
+        "Private-network, loopback or cloud-metadata examples describe targets reachable by the backend conditionally; they do not assert an actual deployment or existing metadata service. Needs-human follows the infosec blocker."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-4/artifacts/methodology-blocker.md",
+      "sha256": "3f6cc1ea862c1dd880a3fafad7f6b11ccde9bb3004b86fe8c44fc585a44957f4",
+      "sample": "spec-review-producer-sol-v1-baseline-4",
+      "case_id": "methodology-blocker",
+      "manual_verdict": "pass",
+      "emitted_verdict": "reject-approach",
+      "selected_lenses": [
+        "methodology",
+        "QA"
+      ],
+      "emitted_lenses": [
+        "methodology"
+      ],
+      "emitted_severities": [
+        "blocker"
+      ],
+      "expected_reject_route": "plot",
+      "route_assessment": "Consistent with the emitted blocking lens; actual consumer execution is separate evidence.",
+      "source_fidelity_findings": [
+        "Methodology blocker consumes the attached critique: four independently deliverable concerns exceed its mandatory one-step increment limit; token issuance is the supplied first slice.",
+        "The objection cites HOW and the critique rather than independently inventing value, priority or scope policy. Reject-approach with a methodology blocker selects plot under the stated routing rule."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-4/artifacts/qa-no-observation.md",
+      "sha256": "3376404ffad5b410a43131002a496e068f28b72619282b4ca88c55aeae93d61c",
+      "sample": "spec-review-producer-sol-v1-baseline-4",
+      "case_id": "qa-no-observation",
+      "manual_verdict": "pass",
+      "emitted_verdict": "revise",
+      "selected_lenses": [
+        "infosec",
+        "QA"
+      ],
+      "emitted_lenses": [
+        "QA"
+      ],
+      "emitted_severities": [
+        "blocker"
+      ],
+      "expected_reject_route": null,
+      "route_assessment": "No reject-approach route applies.",
+      "source_fidelity_findings": [
+        "QA objection identifies Receipt date ending after Given/When, with no observable Then, MUST or comparator.",
+        "The objection is correctly confined to the scenario-level observation; the supplied DONE behaviour does not make the incomplete scenario directly judgeable. Revise is warranted."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": [
+        "QA blocker and major both roll up to revise. Severity differs from the reference example in some samples; the skill does not require the reference severity."
+      ]
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-4/artifacts/qa-repo-file.md",
+      "sha256": "228277e916d782cbed0a11db1f01161b89cbb9f7db45008792d91692f16f019e",
+      "sample": "spec-review-producer-sol-v1-baseline-4",
+      "case_id": "qa-repo-file",
+      "manual_verdict": "pass",
+      "emitted_verdict": "revise",
+      "selected_lenses": [
+        "infosec",
+        "QA"
+      ],
+      "emitted_lenses": [
+        "QA"
+      ],
+      "emitted_severities": [
+        "blocker"
+      ],
+      "expected_reject_route": null,
+      "route_assessment": "No reject-approach route applies.",
+      "source_fidelity_findings": [
+        "QA objection correctly identifies the Receipt date scenario whose success condition is test/receipt.test.mjs passing. The supplied code-blind holdout cannot read or run that test.",
+        "Revision concerns the scenario check, not missing behaviour throughout the spec: DONE already supplies date-rendering and absent-date behaviour. Restating it observably and moving the repository-test check is founded."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": [
+        "QA blocker and major both roll up to revise. Severity differs from the reference example in some samples; the skill does not require the reference severity."
+      ]
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-4/artifacts/spec-verdict-001.md",
+      "sha256": "764b1af376064ac3faf62615241497cde25bb69fe8dc4e0947a716c9e8ff8486",
+      "sample": "spec-review-producer-sol-v1-baseline-4",
+      "case_id": "spec-verdict-001",
+      "manual_verdict": "pass",
+      "emitted_verdict": "approve",
+      "selected_lenses": [
+        "architectural",
+        "infosec",
+        "methodology",
+        "QA"
+      ],
+      "emitted_lenses": [],
+      "emitted_severities": [],
+      "expected_reject_route": null,
+      "route_assessment": "No reject-approach route applies.",
+      "source_fidelity_findings": [
+        "Approval has zero objections. The supplied approach changes rendering only, reuses resolved eligibility/basis and preserves bare output. No new architectural or threat claim is invented.",
+        "The existing positive scenarios and no-objection methodology critique provide no founded reason to block this bounded increment."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-4/artifacts/spec-verdict-002.md",
+      "sha256": "61af9ac4ecc97463b94983e0c88f35f9a9a19bacd4c0df9e480b3ac3e6ca2b89",
+      "sample": "spec-review-producer-sol-v1-baseline-4",
+      "case_id": "spec-verdict-002",
+      "manual_verdict": "pass",
+      "emitted_verdict": "reject-approach",
+      "selected_lenses": [
+        "architectural",
+        "infosec",
+        "methodology",
+        "QA"
+      ],
+      "emitted_lenses": [
+        "architectural"
+      ],
+      "emitted_severities": [
+        "blocker"
+      ],
+      "expected_reject_route": "prep",
+      "route_assessment": "Consistent with the emitted blocking lens; actual consumer execution is separate evidence.",
+      "source_fidelity_findings": [
+        "Architectural blocker identifies the module-level mutable currentRoles holder and reads by downstream helpers. Interleaved requests overwriting each other is a concrete consequence of shared request state, not an assertion about a supplied deployment.",
+        "One architectural objection avoids duplicating the same shared-state problem under infosec. Reject-approach with this blocker selects prep under the stated consumer routing rule."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-4/artifacts/spec-verdict-003.md",
+      "sha256": "131af2aeb2d30e89d8672d4bb330860104e71aef80313561f0399848a1862b0c",
+      "sample": "spec-review-producer-sol-v1-baseline-4",
+      "case_id": "spec-verdict-003",
+      "manual_verdict": "pass",
+      "emitted_verdict": "needs-human",
+      "selected_lenses": [
+        "architectural",
+        "infosec",
+        "methodology",
+        "QA"
+      ],
+      "emitted_lenses": [
+        "infosec"
+      ],
+      "emitted_severities": [
+        "blocker"
+      ],
+      "expected_reject_route": null,
+      "route_assessment": "No reject-approach route applies.",
+      "source_fidelity_findings": [
+        "Infosec blocker cites explicit unrestricted server-side fetch(userUrl) and response-body return. Internal-service response exposure is a founded SSRF consequence of the specified trust boundary.",
+        "Private-network, loopback or cloud-metadata examples describe targets reachable by the backend conditionally; they do not assert an actual deployment or existing metadata service. Needs-human follows the infosec blocker."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-5/artifacts/methodology-blocker.md",
+      "sha256": "03a681e427ee6acef1200c8da6e3183e15dfc5ab526e3db83a5bf692533f7388",
+      "sample": "spec-review-producer-sol-v1-baseline-5",
+      "case_id": "methodology-blocker",
+      "manual_verdict": "pass",
+      "emitted_verdict": "reject-approach",
+      "selected_lenses": [
+        "methodology",
+        "QA"
+      ],
+      "emitted_lenses": [
+        "methodology"
+      ],
+      "emitted_severities": [
+        "blocker"
+      ],
+      "expected_reject_route": "plot",
+      "route_assessment": "Consistent with the emitted blocking lens; actual consumer execution is separate evidence.",
+      "source_fidelity_findings": [
+        "Methodology blocker consumes the attached critique: four independently deliverable concerns exceed its mandatory one-step increment limit; token issuance is the supplied first slice.",
+        "The objection cites HOW and the critique rather than independently inventing value, priority or scope policy. Reject-approach with a methodology blocker selects plot under the stated routing rule."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-5/artifacts/qa-no-observation.md",
+      "sha256": "1d8322d716b2e1de42fa8142d7b2de35ef13907b3c8eef24a3f0d71a2fdc94da",
+      "sample": "spec-review-producer-sol-v1-baseline-5",
+      "case_id": "qa-no-observation",
+      "manual_verdict": "pass",
+      "emitted_verdict": "revise",
+      "selected_lenses": [
+        "infosec",
+        "QA"
+      ],
+      "emitted_lenses": [
+        "QA"
+      ],
+      "emitted_severities": [
+        "major"
+      ],
+      "expected_reject_route": null,
+      "route_assessment": "No reject-approach route applies.",
+      "source_fidelity_findings": [
+        "QA objection identifies Receipt date ending after Given/When, with no observable Then, MUST or comparator.",
+        "The objection is correctly confined to the scenario-level observation; the supplied DONE behaviour does not make the incomplete scenario directly judgeable. Revise is warranted."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": [
+        "QA blocker and major both roll up to revise. Severity differs from the reference example in some samples; the skill does not require the reference severity."
+      ]
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-5/artifacts/qa-repo-file.md",
+      "sha256": "6a942dd5dd967d2ba235596f2b361c4ca05d414669228bbcc86a25de40a150d5",
+      "sample": "spec-review-producer-sol-v1-baseline-5",
+      "case_id": "qa-repo-file",
+      "manual_verdict": "pass",
+      "emitted_verdict": "revise",
+      "selected_lenses": [
+        "infosec",
+        "QA"
+      ],
+      "emitted_lenses": [
+        "QA"
+      ],
+      "emitted_severities": [
+        "major"
+      ],
+      "expected_reject_route": null,
+      "route_assessment": "No reject-approach route applies.",
+      "source_fidelity_findings": [
+        "QA objection correctly identifies the Receipt date scenario whose success condition is test/receipt.test.mjs passing. The supplied code-blind holdout cannot read or run that test.",
+        "Revision concerns the scenario check, not missing behaviour throughout the spec: DONE already supplies date-rendering and absent-date behaviour. Restating it observably and moving the repository-test check is founded."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": [
+        "QA blocker and major both roll up to revise. Severity differs from the reference example in some samples; the skill does not require the reference severity."
+      ]
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-5/artifacts/spec-verdict-001.md",
+      "sha256": "764b1af376064ac3faf62615241497cde25bb69fe8dc4e0947a716c9e8ff8486",
+      "sample": "spec-review-producer-sol-v1-baseline-5",
+      "case_id": "spec-verdict-001",
+      "manual_verdict": "pass",
+      "emitted_verdict": "approve",
+      "selected_lenses": [
+        "architectural",
+        "infosec",
+        "methodology",
+        "QA"
+      ],
+      "emitted_lenses": [],
+      "emitted_severities": [],
+      "expected_reject_route": null,
+      "route_assessment": "No reject-approach route applies.",
+      "source_fidelity_findings": [
+        "Approval has zero objections. The supplied approach changes rendering only, reuses resolved eligibility/basis and preserves bare output. No new architectural or threat claim is invented.",
+        "The existing positive scenarios and no-objection methodology critique provide no founded reason to block this bounded increment."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-5/artifacts/spec-verdict-002.md",
+      "sha256": "37801a96e83b6ee847a564ffc3e2b91b5ea98df471d081fa64ff1bb9d9513660",
+      "sample": "spec-review-producer-sol-v1-baseline-5",
+      "case_id": "spec-verdict-002",
+      "manual_verdict": "pass",
+      "emitted_verdict": "reject-approach",
+      "selected_lenses": [
+        "architectural",
+        "infosec",
+        "methodology",
+        "QA"
+      ],
+      "emitted_lenses": [
+        "architectural"
+      ],
+      "emitted_severities": [
+        "blocker"
+      ],
+      "expected_reject_route": "prep",
+      "route_assessment": "Consistent with the emitted blocking lens; actual consumer execution is separate evidence.",
+      "source_fidelity_findings": [
+        "Architectural blocker identifies the module-level mutable currentRoles holder and reads by downstream helpers. Interleaved requests overwriting each other is a concrete consequence of shared request state, not an assertion about a supplied deployment.",
+        "One architectural objection avoids duplicating the same shared-state problem under infosec. Reject-approach with this blocker selects prep under the stated consumer routing rule."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-producer-sol-v1-baseline-5/artifacts/spec-verdict-003.md",
+      "sha256": "4df6b615a3c435f3cdc628f896710dd9fcd5d2d575eee46f1bde99e6944a1cca",
+      "sample": "spec-review-producer-sol-v1-baseline-5",
+      "case_id": "spec-verdict-003",
+      "manual_verdict": "pass",
+      "emitted_verdict": "needs-human",
+      "selected_lenses": [
+        "architectural",
+        "infosec",
+        "methodology",
+        "QA"
+      ],
+      "emitted_lenses": [
+        "infosec"
+      ],
+      "emitted_severities": [
+        "blocker"
+      ],
+      "expected_reject_route": null,
+      "route_assessment": "No reject-approach route applies.",
+      "source_fidelity_findings": [
+        "Infosec blocker cites explicit unrestricted server-side fetch(userUrl) and response-body return. Internal-service response exposure is a founded SSRF consequence of the specified trust boundary.",
+        "Private-network, loopback or cloud-metadata examples describe targets reachable by the backend conditionally; they do not assert an actual deployment or existing metadata service. Needs-human follows the infosec blocker."
+      ],
+      "unsupported_assertions": [],
+      "missing_required_concerns": [],
+      "contract_and_anchor_findings": [
+        "Exactly one JSON contract fence; approve has no objections and non-approve has a founded objection.",
+        "At most one objection per selected lens; no unselected-lens objection.",
+        "All present anchors match supplied raw heading slugs; how or receipt-date names the attacked section."
+      ],
+      "non_failure_observations": []
+    }
+  ],
+  "summary": {
+    "artifacts_reviewed": 30,
+    "source_fidelity_or_contract_failures": 0,
+    "baseline_status": "All 30 actual artifacts from five baseline samples preserve supplied facts and identify the supplied concerns with founded outcomes.",
+    "candidate_status": "No completed candidate was included in this snapshot; no candidate equivalence finding.",
+    "limitations": [
+      "This record assesses route correctness from emitted lens/severity; it does not claim execution of the route consumer.",
+      "Actual tracker behaviour, prep loops, L4 refuters and human escalation are outside scope.",
+      "Five baseline samples are reviewed; candidate samples remain unreviewed at this snapshot."
+    ]
+  }
+}

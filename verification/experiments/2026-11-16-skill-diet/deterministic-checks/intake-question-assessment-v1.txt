@@ -1,0 +1,68 @@
+TAP version 13
+# Subtest: intake questions correction retains the raw failure and recognises both explicit unknowns
+ok 1 - intake questions correction retains the raw failure and recognises both explicit unknowns
+  ---
+  duration_ms: 2.730873
+  type: 'test'
+  ...
+# Subtest: intake correction cannot waive missing questions, other facts, format, ids or rule decisions
+not ok 2 - intake correction cannot waive missing questions, other facts, format, ids or rule decisions
+  ---
+  duration_ms: 1.491332
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-intake-assessment.test.mjs:30:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    # Discovery brief: Street library loans
+    
+    mode: greenfield
+    
+    ## Goal
+    Track borrowed books for street-library volunteers.
+    
+    ## Capabilities
+    - Book loan tracking: record borrowed books.
+    
+    ## Constraints
+    None supplied.
+    
+    ## Out of scope
+    None supplied.
+    
+    ## Open questions
+    - Which platform and language should be used?
+    - ## Selected first slice
+    What is the smallest useful first slice?
+    
+    
+    'pass' !== 'fail'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'fail'
+  actual: 'pass'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-intake-assessment.test.mjs:40:13)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: question recogniser is not a substitute for independent invention review
+ok 3 - question recogniser is not a substitute for independent invention review
+  ---
+  duration_ms: 0.375916
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 2
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 110.188859

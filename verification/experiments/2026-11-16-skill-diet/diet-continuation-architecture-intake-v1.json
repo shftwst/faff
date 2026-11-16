@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-16T21:10:35.662141+00:00",
+  "status": "registered-before-new-measurements",
+  "plans": [
+    {
+      "path": "architecture-proposal-sol-v1-baseline-plan.json",
+      "sha256": "b543acd28a45f45f8d83a7bc034b88bb9868804d25ecae393c141cff73ee4f68"
+    },
+    {
+      "path": "architecture-proposal-sol-v1-candidate-plan.json",
+      "sha256": "0fed8ed26f52c6e45f8eecf174797fab12b875ae6d1d38ca74a5ff0005c3a2dc"
+    },
+    {
+      "path": "intake-brief-astra-medium-v1-baseline-plan.json",
+      "sha256": "bbc79ba4d74e5fe21c9eaf47dbef5fe7c28220d635415dcee039b7e0b10687c9"
+    },
+    {
+      "path": "intake-brief-astra-medium-v1-candidate-plan.json",
+      "sha256": "773fd1c82985419c2229ce602ea62f554dc696f91f7648e8305ffbb25b10632c"
+    }
+  ],
+  "runner": {
+    "path": "run-model-matrix-samples.py",
+    "sha256": "34b5e732717f921e7403940957fcc072b766ff1d870e7521d2b089059edc71c8"
+  },
+  "unchanged_inputs": [
+    {
+      "path": "baseline/intake-brief-with-context.md",
+      "sha256": "afa5613b34725620514ef304eafa60667d0d1bf4240da15673e5061e2ffe08bd"
+    },
+    {
+      "path": "candidates/intake-brief-v1-with-context.md",
+      "sha256": "69f342334338e4a72e86fcb26f82ea6aa7a4e7872792f08884c8b0f3457b5658"
+    },
+    {
+      "path": "baseline/architecture-proposal-with-context.md",
+      "sha256": "97038604a7eff768d3b5baad782f0103bca9ebefd074de68c08f7cbb1446fa02"
+    },
+    {
+      "path": "candidates/architecture-proposal-v1-with-context.md",
+      "sha256": "75b2c5776b5dc290c1271befbb1903990c9df67782c2fb51ff921738b93592fd"
+    },
+    {
+      "path": "workflow-fixtures/intake-brief-v2.json",
+      "sha256": "d64ac66570717a333c6a7350d947a035d3a5f0372d028003092cc0c304ea91d3"
+    },
+    {
+      "path": "workflow-fixtures/architecture-proposal.json",
+      "sha256": "f1b3185a451858a9b6692207c9dd333b1b6e46364c55a6425a157706acca5025"
+    },
+    {
+      "path": "../../../eval/control-parity/rendering-artifact.mjs",
+      "sha256": "88b5bbff037cd5d9daff8d1094df3b885c01a34ce7902af47cc1354283cddc36"
+    },
+    {
+      "path": "../../../eval/control-parity/codex-model-native-audit.mjs",
+      "sha256": "2718b08adf2e517ab2633c9ad82bfa62ac4697a1596c39baa723401700096b43"
+    },
+    {
+      "path": "../../../eval/control-parity/codex-native-audit.mjs",
+      "sha256": "c46dd016be2aa62cb31803e15afb3cc4a57acf79f248500dd59d3d04a2ec10ac"
+    },
+    {
+      "path": "../../../eval/control-parity/mailbox-call.mjs",
+      "sha256": "3feb07ca89eb0ddb815a064bac88d10848f05b662f89efbc684d5c51326df49d"
+    }
+  ],
+  "gates": [
+    "Five fresh baseline samples first, manually reviewed before candidate launch.",
+    "Five fresh candidate samples, all outputs read, all frozen artifact/decision requirements and strict native audits pass.",
+    "All failures retained; stop the affected lane on an execution or fidelity failure. No failed sample substituted and no model pooling.",
+    "Architecture requires real contract/profile replay. Intake has no semantic downstream brief consumer; artifact contract replay must not be described as ticket-shaping execution.",
+    "Source remains uninstalled and savings uncounted until integration, rule inventory, downstream proof where applicable and independent review close."
+  ],
+  "prior_holds": [
+    "intake-brief-sol-v1-hold.json",
+    "architecture-proposal-astra-v1-hold.json"
+  ],
+  "scope": "Continuation of authorised safe skill diet. No model matrix expansion, no Claude use, no merge or release."
+}

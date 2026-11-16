@@ -1,0 +1,37 @@
+TAP version 13
+# Subtest: reporting boundary executes real persistence and rejects altered authority, publication and continuation
+not ok 1 - reporting boundary executes real persistence and rejects altered authority, publication and continuation
+  ---
+  duration_ms: 1775.397217
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-reporting.test.mjs:11:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    {"exit_code":1,"stdout":"","stderr":"- type 'checkpoint' not in EventType {run-start, run-end, tidy-done, issue-admitted, prep-start, prep-done, build-start, issue-outcome, discovered-scope-filed, budget-checkpoint, park, sentry-checkpoint, corrective-authored, corrective-consumed, containment-check, self-intake-check, run-resume, run-claim-abandoned, park-reconsidered, ledger-write, agent-dispatch, sentry-trip, bundle-store-unavailable, decision-capture, decision-capture-action, runner-identity, evidence-terminal-only, human-only-acs-stamp}\n","error":null}
+    
+    1 !== 0
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 0
+  actual: 1
+  operator: 'strictEqual'
+  stack: |-
+    call (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/reporting-execution.mjs:44:12)
+    seed (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/reporting-execution.mjs:56:3)
+    createReportingEnvironment (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/reporting-execution.mjs:75:20)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-reporting.test.mjs:14:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1821.543553

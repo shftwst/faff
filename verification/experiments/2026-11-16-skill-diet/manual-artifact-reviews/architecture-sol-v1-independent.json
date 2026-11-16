@@ -1,0 +1,411 @@
+{
+  "schema": 1,
+  "status": "held-native-protocol-failure-despite-eight-semantic-passes",
+  "updated_utc": "2026-11-16T21:21:12.126990+00:00",
+  "scope": "Independent full read of every listed completed proposal against frozen brief/profile inputs and original architecture policy. No candidate measurement or source installation conclusion.",
+  "source_bindings": [
+    {
+      "path": "workflow-fixtures/architecture-proposal.json",
+      "sha256": "f1b3185a451858a9b6692207c9dd333b1b6e46364c55a6425a157706acca5025"
+    },
+    {
+      "path": "baseline/architecture-proposal.md",
+      "sha256": "5238f14f249ca9d7841a3160cd8bf1cc9a44fbe11e931222914d38ab9a0d4a88"
+    },
+    {
+      "path": "candidates/architecture-proposal-v1.md",
+      "sha256": "43ee9b702de2ed3c7d6a5e2076aa1c5780b16aa6b6e223b3d186aa8e6cda5ba2"
+    },
+    {
+      "path": "architecture-proposal-sol-v1-baseline-plan.json",
+      "sha256": "b543acd28a45f45f8d83a7bc034b88bb9868804d25ecae393c141cff73ee4f68"
+    },
+    {
+      "path": "diet-continuation-architecture-intake-v1.json",
+      "sha256": "b41b5e2ae44d7b9e461df7dfa386f4b217c868f82cdfba3762fc6414c05c2d27"
+    }
+  ],
+  "samples": [
+    {
+      "name": "architecture-proposal-sol-v1-baseline-1",
+      "arm": "baseline",
+      "bindings": [
+        {
+          "path": "workflow-runs/architecture-proposal-sol-v1-baseline-1/capture.json",
+          "sha256": "b87bcdcfa8dd690ad01dcf2d557bad414b6704e395885b68864d95a384b775c9"
+        },
+        {
+          "path": "workflow-runs/architecture-proposal-sol-v1-baseline-1/report.json",
+          "sha256": "5853bf4624aa38c1d5df7e12c6f4f337936292b5ef05ce90411676fb5697be78"
+        },
+        {
+          "path": "workflow-runs/architecture-proposal-sol-v1-baseline-1/native-audit.json",
+          "sha256": "e18d68ba85e10e8c94389f3c0d31f3ee3a400c990e48d8b7b7f50532faf04e7b"
+        },
+        {
+          "path": "workflow-runs/architecture-proposal-sol-v1-baseline-1/task.json",
+          "sha256": "702ab54806e7ea6cd47034fca4ead53051c423c75c9f3c9e555c9abad78738bb"
+        },
+        {
+          "path": "workflow-runs/architecture-proposal-sol-v1-baseline-1/manifest.json",
+          "sha256": "1bd3d2c3aaa7ef0bb75e077d33d3a4cc51a3937edec6e6685cc092dae45112cf"
+        }
+      ],
+      "functional_status": "pass",
+      "native_status": "pass",
+      "artifacts_read": 4
+    },
+    {
+      "name": "architecture-proposal-sol-v1-baseline-2",
+      "arm": "baseline",
+      "bindings": [
+        {
+          "path": "workflow-runs/architecture-proposal-sol-v1-baseline-2/capture.json",
+          "sha256": "ede37dcdfa750c11dbc1ca6083bd45e5a093e3d13ffb21943e25ffd9644dcc52"
+        },
+        {
+          "path": "workflow-runs/architecture-proposal-sol-v1-baseline-2/report.json",
+          "sha256": "5853bf4624aa38c1d5df7e12c6f4f337936292b5ef05ce90411676fb5697be78"
+        },
+        {
+          "path": "workflow-runs/architecture-proposal-sol-v1-baseline-2/native-audit.json",
+          "sha256": "ea79847e140440a4eccfb81784f9cc4a98e09197909022de40049eabf30522d0"
+        },
+        {
+          "path": "workflow-runs/architecture-proposal-sol-v1-baseline-2/task.json",
+          "sha256": "702ab54806e7ea6cd47034fca4ead53051c423c75c9f3c9e555c9abad78738bb"
+        },
+        {
+          "path": "workflow-runs/architecture-proposal-sol-v1-baseline-2/manifest.json",
+          "sha256": "1bd3d2c3aaa7ef0bb75e077d33d3a4cc51a3937edec6e6685cc092dae45112cf"
+        }
+      ],
+      "functional_status": "pass",
+      "native_status": "fail",
+      "artifacts_read": 4
+    }
+  ],
+  "rows": [
+    {
+      "path": "workflow-runs/architecture-proposal-sol-v1-baseline-1/artifacts/external-only.md",
+      "sha256": "358ff31ecafda545bfd3b89c70b488d6b75863f2822d56352e11b76872fa169f",
+      "case_id": "external-only",
+      "status": "pass-bounded-semantic-review",
+      "contract_shape_parse": "one fenced JSON proposal parsed; real CLI replay remains required",
+      "chosen_recommendation": "buy",
+      "adr_candidate_count": 1,
+      "candidate_titles": [
+        "Use certified FixtureSign for document signatures"
+      ],
+      "stated_need_coverage": [
+        "Certified FixtureSign service mandatory: proposed signing authority.",
+        "No certified substitute this release: explicit reason for non-build.",
+        "Signing-component-only scope: narrow adapter proposal.",
+        "No licence/service access: explicit unresolved assumption.",
+        "No purchase/service call authorised: explicit human consideration and separate authorisation."
+      ],
+      "criteria": {
+        "source_profile_facts_preserved": true,
+        "assumptions_explicit_and_not_presented_as_verified": true,
+        "one_chosen_design": true,
+        "no_unsupported_alternative_argument": true,
+        "no_action_or_ADR_materialisation_claim": true,
+        "every_ADR_candidate_has_matching_title_decision_and_rationale_in_intent": true,
+        "confidence_advisory_only": true,
+        "no_profile_exit3_preserved": "not-applicable",
+        "nonbuild_human_handling": true
+      },
+      "notes": [
+        "Additional design details are proposals, not asserted current infrastructure.",
+        "ADR intent paraphrases the same decisions/rationale with exact candidate titles; no missing or extra candidate."
+      ],
+      "findings": []
+    },
+    {
+      "path": "workflow-runs/architecture-proposal-sol-v1-baseline-1/artifacts/nightly-batch.md",
+      "sha256": "2be22e3a1e0f72670f8af2315c30f2508fd063cfea622e01e09c335f05c76408",
+      "case_id": "nightly-batch",
+      "status": "pass-bounded-semantic-review",
+      "contract_shape_parse": "one fenced JSON proposal parsed; real CLI replay remains required",
+      "chosen_recommendation": "build",
+      "adr_candidate_count": 1,
+      "candidate_titles": [
+        "Generate weekly summaries with a nightly Node batch command"
+      ],
+      "stated_need_coverage": [
+        "Nightly batch: proposed host scheduler and Node command.",
+        "Existing timesheets to weekly summaries: PostgreSQL aggregation and upsert.",
+        "Few thousand reads/dozens of writes: bounded transaction.",
+        "No real-time fan-out/cross-partition ordering: single scheduled aggregation.",
+        "Existing infrastructure: evidenced Node22/Compose/PostgreSQL/CI."
+      ],
+      "criteria": {
+        "source_profile_facts_preserved": true,
+        "assumptions_explicit_and_not_presented_as_verified": true,
+        "one_chosen_design": true,
+        "no_unsupported_alternative_argument": true,
+        "no_action_or_ADR_materialisation_claim": true,
+        "every_ADR_candidate_has_matching_title_decision_and_rationale_in_intent": true,
+        "confidence_advisory_only": true,
+        "no_profile_exit3_preserved": "not-applicable",
+        "nonbuild_human_handling": "not-applicable"
+      },
+      "notes": [
+        "Additional design details are proposals, not asserted current infrastructure.",
+        "ADR intent paraphrases the same decisions/rationale with exact candidate titles; no missing or extra candidate."
+      ],
+      "findings": []
+    },
+    {
+      "path": "workflow-runs/architecture-proposal-sol-v1-baseline-1/artifacts/no-profile.md",
+      "sha256": "d5e354161b168fe82832cf97a5a3491794991800587da87b2367b2a71c8f0b15",
+      "case_id": "no-profile",
+      "status": "pass-bounded-semantic-review",
+      "contract_shape_parse": "one fenced JSON proposal parsed; real CLI replay remains required",
+      "chosen_recommendation": "build",
+      "adr_candidate_count": 1,
+      "candidate_titles": [
+        "Store local equipment checkouts in SQLite"
+      ],
+      "stated_need_coverage": [
+        "One-laptop local CLI: Python3/SQLite proposed, not claimed installed.",
+        "Records survive restart: durable local DB and transactions.",
+        "No shared-server/cloud requirement: local operation.",
+        "Language open: Python is a proposed choice.",
+        "Exit3: explicit no-profile assumption and brief-only proposal."
+      ],
+      "criteria": {
+        "source_profile_facts_preserved": true,
+        "assumptions_explicit_and_not_presented_as_verified": true,
+        "one_chosen_design": true,
+        "no_unsupported_alternative_argument": true,
+        "no_action_or_ADR_materialisation_claim": true,
+        "every_ADR_candidate_has_matching_title_decision_and_rationale_in_intent": true,
+        "confidence_advisory_only": true,
+        "no_profile_exit3_preserved": true,
+        "nonbuild_human_handling": "not-applicable"
+      },
+      "notes": [
+        "Additional design details are proposals, not asserted current infrastructure.",
+        "ADR intent paraphrases the same decisions/rationale with exact candidate titles; no missing or extra candidate."
+      ],
+      "findings": []
+    },
+    {
+      "path": "workflow-runs/architecture-proposal-sol-v1-baseline-1/artifacts/relational.md",
+      "sha256": "4565c2b5308b3fba5009afb218389cdaec3b84fc8307980b8dd69f9c6b4eb60c",
+      "case_id": "relational",
+      "status": "pass-bounded-semantic-review",
+      "contract_shape_parse": "one fenced JSON proposal parsed; real CLI replay remains required",
+      "chosen_recommendation": "build",
+      "adr_candidate_count": 2,
+      "candidate_titles": [
+        "Build the timesheet application on the existing Node and Compose stack",
+        "Persist timesheets transactionally in PostgreSQL"
+      ],
+      "stated_need_coverage": [
+        "Small internal load: one application for a handful of users.",
+        "Relational users/projects/entries: PostgreSQL tables and constraints.",
+        "Survive restarts: persistent volume and backup/restore proposal.",
+        "Concurrent transactional integrity: transactions and row-version conditional updates.",
+        "Existing runtime/deploy: evidenced Node22/Compose/PostgreSQL/GitHub Actions.",
+        "No streaming/high throughput need: synchronous operations."
+      ],
+      "criteria": {
+        "source_profile_facts_preserved": true,
+        "assumptions_explicit_and_not_presented_as_verified": true,
+        "one_chosen_design": true,
+        "no_unsupported_alternative_argument": true,
+        "no_action_or_ADR_materialisation_claim": true,
+        "every_ADR_candidate_has_matching_title_decision_and_rationale_in_intent": true,
+        "confidence_advisory_only": true,
+        "no_profile_exit3_preserved": "not-applicable",
+        "nonbuild_human_handling": "not-applicable"
+      },
+      "notes": [
+        "Additional design details are proposals, not asserted current infrastructure.",
+        "ADR intent paraphrases the same decisions/rationale with exact candidate titles; no missing or extra candidate."
+      ],
+      "findings": []
+    },
+    {
+      "path": "workflow-runs/architecture-proposal-sol-v1-baseline-2/artifacts/external-only.md",
+      "sha256": "0483e981b594f4942c190d07a6ca7b832c3fe4c5d6b4e1016624804f7793a2af",
+      "case_id": "external-only",
+      "status": "pass-bounded-semantic-review",
+      "contract_shape_parse": "one fenced JSON proposal parsed; real CLI replay remains required",
+      "chosen_recommendation": "buy",
+      "adr_candidate_count": 1,
+      "candidate_titles": [
+        "Use certified FixtureSign for document signatures"
+      ],
+      "stated_need_coverage": [
+        "Mandatory FixtureSign certification: service chosen.",
+        "No substitute this release: rationale for buy recommendation.",
+        "Signing component only: narrow integration boundary.",
+        "No licence/access: explicit unresolved prerequisite.",
+        "Human review and separate authorisation precede any procurement/service call."
+      ],
+      "criteria": {
+        "source_profile_facts_preserved": true,
+        "assumptions_explicit_and_not_presented_as_verified": true,
+        "one_chosen_design": true,
+        "no_unsupported_alternative_argument": true,
+        "no_action_or_ADR_materialisation_claim": true,
+        "every_ADR_candidate_has_matching_title_decision_and_rationale_in_intent": true,
+        "confidence_advisory_only": true,
+        "no_profile_exit3_preserved": "not-applicable",
+        "nonbuild_human_handling": true
+      },
+      "notes": [
+        "Additional design details are proposals, not asserted current infrastructure.",
+        "ADR intent paraphrases the same decisions/rationale with exact candidate titles; no missing or extra candidate."
+      ],
+      "findings": []
+    },
+    {
+      "path": "workflow-runs/architecture-proposal-sol-v1-baseline-2/artifacts/nightly-batch.md",
+      "sha256": "1b846b5ed4d718d5e865b7c94b70e84af6b5330776c8b86c5c96db2d4c55855f",
+      "case_id": "nightly-batch",
+      "status": "pass-bounded-semantic-review",
+      "contract_shape_parse": "one fenced JSON proposal parsed; real CLI replay remains required",
+      "chosen_recommendation": "build",
+      "adr_candidate_count": 1,
+      "candidate_titles": [
+        "Run nightly summaries as a Node batch command"
+      ],
+      "stated_need_coverage": [
+        "Nightly batch: explicit proposed nightly scheduler.",
+        "Existing timesheet table to weekly summaries: PostgreSQL snapshot/aggregation/upsert.",
+        "Small read/write volume: one batch process.",
+        "No real-time fan-out/cross-partition ordering: direct snapshot computation.",
+        "Existing infrastructure: Node22, Compose, PostgreSQL, GitHub Actions.",
+        "Scheduler is expressly not established by profile; permissions, monitoring and overlap lock remain explicit assumptions."
+      ],
+      "criteria": {
+        "source_profile_facts_preserved": true,
+        "assumptions_explicit_and_not_presented_as_verified": true,
+        "one_chosen_design": true,
+        "no_unsupported_alternative_argument": true,
+        "no_action_or_ADR_materialisation_claim": true,
+        "every_ADR_candidate_has_matching_title_decision_and_rationale_in_intent": true,
+        "confidence_advisory_only": true,
+        "no_profile_exit3_preserved": "not-applicable",
+        "nonbuild_human_handling": "not-applicable"
+      },
+      "notes": [
+        "Additional design details are proposals, not asserted current infrastructure.",
+        "ADR intent paraphrases the same decisions/rationale with exact candidate titles; no missing or extra candidate."
+      ],
+      "findings": []
+    },
+    {
+      "path": "workflow-runs/architecture-proposal-sol-v1-baseline-2/artifacts/no-profile.md",
+      "sha256": "cb61d513eebb5b1fb4817e2ab44d317f51e0f3774a9a6d88fe64a26cb5e35a4e",
+      "case_id": "no-profile",
+      "status": "pass-bounded-semantic-review",
+      "contract_shape_parse": "one fenced JSON proposal parsed; real CLI replay remains required",
+      "chosen_recommendation": "build",
+      "adr_candidate_count": 1,
+      "candidate_titles": [
+        "Keep equipment checkouts in a local SQLite database"
+      ],
+      "stated_need_coverage": [
+        "Local CLI on one laptop: Python/SQLite proposed.",
+        "Restart survival: on-disk transactions and backup procedure.",
+        "No shared-server/cloud requirement: local installation.",
+        "Open language: Python chosen as proposal; installability unverified.",
+        "Exit3: explicit no-profile and brief-only basis."
+      ],
+      "criteria": {
+        "source_profile_facts_preserved": true,
+        "assumptions_explicit_and_not_presented_as_verified": true,
+        "one_chosen_design": true,
+        "no_unsupported_alternative_argument": true,
+        "no_action_or_ADR_materialisation_claim": true,
+        "every_ADR_candidate_has_matching_title_decision_and_rationale_in_intent": true,
+        "confidence_advisory_only": true,
+        "no_profile_exit3_preserved": true,
+        "nonbuild_human_handling": "not-applicable"
+      },
+      "notes": [
+        "Additional design details are proposals, not asserted current infrastructure.",
+        "ADR intent paraphrases the same decisions/rationale with exact candidate titles; no missing or extra candidate."
+      ],
+      "findings": []
+    },
+    {
+      "path": "workflow-runs/architecture-proposal-sol-v1-baseline-2/artifacts/relational.md",
+      "sha256": "847a221ed8b9854d8e5d3e147737a86ee882203e252324cd53a125e07e3b3bc3",
+      "case_id": "relational",
+      "status": "pass-bounded-semantic-review",
+      "contract_shape_parse": "one fenced JSON proposal parsed; real CLI replay remains required",
+      "chosen_recommendation": "build",
+      "adr_candidate_count": 2,
+      "candidate_titles": [
+        "Use the existing Node and Compose deployment for timesheets",
+        "Persist transactional timesheet records in PostgreSQL"
+      ],
+      "stated_need_coverage": [
+        "Handful of users: one Node application.",
+        "Relational users/projects/entries: existing PostgreSQL with keys/constraints.",
+        "Survive restarts: durable volume and backup/restore proposal.",
+        "Concurrent edits: transactions and stale-edit row-version checks.",
+        "Existing runtime/deploy/CI: Node22, Compose, GitHub Actions matched to profile.",
+        "No streaming/high throughput need: request-driven reads and writes."
+      ],
+      "criteria": {
+        "source_profile_facts_preserved": true,
+        "assumptions_explicit_and_not_presented_as_verified": true,
+        "one_chosen_design": true,
+        "no_unsupported_alternative_argument": true,
+        "no_action_or_ADR_materialisation_claim": true,
+        "every_ADR_candidate_has_matching_title_decision_and_rationale_in_intent": true,
+        "confidence_advisory_only": true,
+        "no_profile_exit3_preserved": "not-applicable",
+        "nonbuild_human_handling": "not-applicable"
+      },
+      "notes": [
+        "Additional design details are proposals, not asserted current infrastructure.",
+        "ADR intent paraphrases the same decisions/rationale with exact candidate titles; no missing or extra candidate."
+      ],
+      "findings": []
+    }
+  ],
+  "read_artifacts": 8,
+  "findings": [
+    {
+      "sample": "architecture-proposal-sol-v1-baseline-2",
+      "category": "native-literal-command-protocol",
+      "call_id": "call_86e6c4681b19454da6917fcc59d61772",
+      "input_sha256": "88ffa2de22bf7505e654f7b8990bd1e21909fffd5e7b0bc758951cfd06097bd9",
+      "result_sha256": "704f757ef66f85310c1a61e3a97aba4ecc359d34ff6b2969855305df268a70e9",
+      "private_native_source_sha256": "a1efe635cc89534e539c5bc9ca39ddd8032cefef6fcffb0cceae9bc1336867c4",
+      "source_matches_audit": true,
+      "operation": "write_output",
+      "case_id": "relational",
+      "problem": "Missing closing FAFF_JSON heredoc delimiter.",
+      "exit_code": 0,
+      "result": "Shell warned that here-document reached end-of-file; artifact write still succeeded.",
+      "artifact_path": "workflow-runs/architecture-proposal-sol-v1-baseline-2/artifacts/relational.md",
+      "artifact_sha256": "847a221ed8b9854d8e5d3e147737a86ee882203e252324cd53a125e07e3b3bc3",
+      "metadata": "Full exit metadata survives; strict parser correctly rejects literal command syntax. This is an actual delimiter violation, not equivalent-wrapper incompatibility or missing exit metadata.",
+      "qualification_effect": "Frozen strict native gate fails. Semantic artifact pass cannot waive it; baseline closure/candidate launch not authorised by this evidence."
+    }
+  ],
+  "limits": [
+    "Manual source/requirement/ADR-intent checks do not certify architectural quality or production grade.",
+    "Real profile-show and architecture-proposal contract replay remains required.",
+    "No live acquisition, procurement, ADR creation or full graft execution is claimed.",
+    "All native/functional failures remain strict and separate from semantic review."
+  ],
+  "summary": {
+    "completed_baseline_samples": 2,
+    "semantic_artifacts_passed": 8,
+    "semantic_artifacts_read": 8,
+    "functional_samples_passed": 2,
+    "native_samples_passed": 1,
+    "native_samples_failed": 1,
+    "candidate_samples_reviewed": 0
+  }
+}

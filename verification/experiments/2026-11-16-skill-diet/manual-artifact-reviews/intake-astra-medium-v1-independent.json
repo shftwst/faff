@@ -1,0 +1,516 @@
+{
+  "schema": 1,
+  "updated_utc": "2026-11-16T21:21:09.280727+00:00",
+  "reviewer": {
+    "role": "independent actual-artifact verifier",
+    "requested_model": "gpt-6.1-sol",
+    "requested_reasoning_effort": "medium"
+  },
+  "scope": "New Astra-medium intake treatment only. Review completed actual Markdown artifacts against unchanged completed-conversation snapshots. No older model samples pooled; no elicitation, ticket-shaping, tracker mutation or full jot/plot execution claim.",
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/diet-continuation-architecture-intake-v1.json",
+      "sha256": "b41b5e2ae44d7b9e461df7dfa386f4b217c868f82cdfba3762fc6414c05c2d27"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/intake-brief-astra-medium-v1-baseline-plan.json",
+      "sha256": "bbc79ba4d74e5fe21c9eaf47dbef5fe7c28220d635415dcee039b7e0b10687c9"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/intake-brief-v2.json",
+      "sha256": "d64ac66570717a333c6a7350d947a035d3a5f0372d028003092cc0c304ea91d3"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/baseline/intake-brief.md",
+      "sha256": "b1cfe70da49ff2ae688e936ea03407380a8d61a280e88778cddd1dc10e1a6c79"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/intake-brief-v1.md",
+      "sha256": "668b178bfead91377c81015083db36c57697c8bdf3d29dc4807073a81b952e0b"
+    }
+  ],
+  "samples": [
+    {
+      "sample": "intake-brief-astra-medium-v1-baseline-1",
+      "arm": "baseline",
+      "capture": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-1/capture.json",
+        "sha256": "9461d33e580c9107256ad01800494a30bcc6bb90e0cf35618db12d8a853f3c0b"
+      },
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-1/report.json",
+        "sha256": "e58e1f671dc384e0ec1fd34e280b0c13e9a1e72ab9f668a76d4ab1f56e614f10"
+      },
+      "native_audit": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-1/native-audit.json",
+        "sha256": "7dd6e64a0fbc911579f07c537b311236d1fc6bfc596ff9568718da49e7f2ffe3"
+      },
+      "worker_final_state": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-1/worker-final-state.json",
+        "sha256": "323bff9d33bde3706a728fc1ad6b05e51f2d3051097340bc613f64d05493d3e0"
+      },
+      "worker_manifest": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-1/worker-manifest.json",
+        "sha256": "0c816da746de44958993311ecddacadc01ee75813825ba794835551d6e25ecf9"
+      },
+      "functional_status": "pass",
+      "native_status": [
+        "pass"
+      ],
+      "reported_rule_answers_correct": 12,
+      "artifacts_read": 6
+    },
+    {
+      "sample": "intake-brief-astra-medium-v1-baseline-2",
+      "arm": "baseline",
+      "capture": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-2/capture.json",
+        "sha256": "5fac7786adb44ed7411b369e8f4cd4910784255e56f281062bc5ea134190a7d8"
+      },
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-2/report.json",
+        "sha256": "89d37db71c0a0e9c039124a29e9519f1578e3acbc7dbea27a7a34072d4282349"
+      },
+      "native_audit": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-2/native-audit.json",
+        "sha256": "9ea87f3c22c04a4e9d478e5e35e5efccc637a4c24f516a85e6bb89c2a30e79e4"
+      },
+      "worker_final_state": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-2/worker-final-state.json",
+        "sha256": "f98593c316fca02f165898130a898f56111c7cf1d12b106a12d7aaf9e1e86f9e"
+      },
+      "worker_manifest": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-2/worker-manifest.json",
+        "sha256": "64ff93d979111400a44bff70117093130ec8f9ba00c7e6ff43901b1c8cbc5b17"
+      },
+      "functional_status": "fail",
+      "native_status": [
+        "pass"
+      ],
+      "reported_rule_answers_correct": 12,
+      "artifacts_read": 6,
+      "frozen_artifact_failures": [
+        {
+          "case_id": "greenfield-thin",
+          "status": "fail",
+          "rubric_passed": 2,
+          "rubric_total": 3
+        }
+      ]
+    }
+  ],
+  "artifact_reviews": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-1/artifacts/greenfield-complete.md",
+      "sha256": "dc1c8aa820138f752110eb68c07d0b0c86b1df174ccaa0dace5c8477c3a12a4d",
+      "sample": "intake-brief-astra-medium-v1-baseline-1",
+      "arm": "baseline",
+      "case_id": "greenfield-complete",
+      "manual_status": "pass",
+      "facts": {
+        "status": "pass",
+        "findings": [
+          "Preserves neighbourhood tool-library loans and returns, the tool catalogue and checkout/return log, and the existing-tool checkout/return first slice.",
+          "Preserves Python CLI and offline use on one laptop, excludes marketplace and payments, and carries the retention question without answering it."
+        ],
+        "missing_facts": [],
+        "unsupported_facts": []
+      },
+      "format": {
+        "status": "pass",
+        "findings": [
+          "Correct mode and mandatory sections; exactly Capabilities with no Item.",
+          "Optional sections are populated; thin first slice is left unresolved rather than invented."
+        ]
+      },
+      "invention": {
+        "status": "pass",
+        "findings": [
+          "No invented goal, capability code, ticket ID, forced split or claimed tracker mutation.",
+          "Supplied open questions remain unresolved; supplied prerequisites and non-goals are preserved."
+        ]
+      },
+      "style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-1/artifacts/greenfield-repo-signal.md",
+      "sha256": "a7a8c4182f53b9536a4de14fbaaac0d62e8ae8894e4d36688c861f446dcc88ac",
+      "sample": "intake-brief-astra-medium-v1-baseline-1",
+      "arm": "baseline",
+      "case_id": "greenfield-repo-signal",
+      "manual_status": "pass",
+      "facts": {
+        "status": "pass",
+        "findings": [
+          "Preserves band members, local rehearsal recordings, recording catalogue and date search, and manually selected recordings listed by rehearsal date as the first slice.",
+          "Preserves README/human-confirmed TypeScript and browser UI, local files, cloud-upload/audio-editing exclusions and the unresolved undated-recordings question."
+        ],
+        "missing_facts": [],
+        "unsupported_facts": []
+      },
+      "format": {
+        "status": "pass",
+        "findings": [
+          "Correct mode and mandatory sections; exactly Capabilities with no Item.",
+          "Optional sections are populated; thin first slice is left unresolved rather than invented."
+        ]
+      },
+      "invention": {
+        "status": "pass",
+        "findings": [
+          "No invented goal, capability code, ticket ID, forced split or claimed tracker mutation.",
+          "Supplied open questions remain unresolved; supplied prerequisites and non-goals are preserved."
+        ]
+      },
+      "style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-1/artifacts/greenfield-thin.md",
+      "sha256": "cd8bf44d1cce40a4fe293680d48234e0ca4eb5192b2d5ba868c618bab4de2a74",
+      "sample": "intake-brief-astra-medium-v1-baseline-1",
+      "arm": "baseline",
+      "case_id": "greenfield-thin",
+      "manual_status": "pass",
+      "facts": {
+        "status": "pass",
+        "findings": [
+          "Preserves book-loan tracking for street-library volunteers without adding capabilities or selecting a platform, language, framework or first slice.",
+          "States absent hard constraints and non-goals in the mandatory sections; carries platform/language and unspecified first slice as open questions; omits the unpopulated First slice section."
+        ],
+        "missing_facts": [],
+        "unsupported_facts": []
+      },
+      "format": {
+        "status": "pass",
+        "findings": [
+          "Correct mode and mandatory sections; exactly Capabilities with no Item.",
+          "Optional sections are populated; thin first slice is left unresolved rather than invented."
+        ]
+      },
+      "invention": {
+        "status": "pass",
+        "findings": [
+          "No invented goal, capability code, ticket ID, forced split or claimed tracker mutation.",
+          "Supplied open questions remain unresolved; supplied prerequisites and non-goals are preserved."
+        ]
+      },
+      "style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-1/artifacts/minor-ambiguity.md",
+      "sha256": "0af9537b456f3ea9b5fe897ac083a2456628ad321ccc8a742726902e071e241c",
+      "sample": "intake-brief-astra-medium-v1-baseline-1",
+      "arm": "baseline",
+      "case_id": "minor-ambiguity",
+      "manual_status": "pass",
+      "facts": {
+        "status": "pass",
+        "findings": [
+          "Preserves stored delivery date on receipts, Checkout area, unitary scope, and both branches of the done signal: display a stored date and omit the field when absent.",
+          "Preserves existing receipt layout and excludes delivery estimation; carries the unresolved display timezone to prep without choosing one."
+        ],
+        "missing_facts": [],
+        "unsupported_facts": []
+      },
+      "format": {
+        "status": "pass",
+        "findings": [
+          "Correct mode and mandatory sections; exactly Item with no Capabilities.",
+          "Optional sections are populated; thin first slice is left unresolved rather than invented."
+        ]
+      },
+      "invention": {
+        "status": "pass",
+        "findings": [
+          "No invented goal, capability code, ticket ID, forced split or claimed tracker mutation.",
+          "Supplied open questions remain unresolved; supplied prerequisites and non-goals are preserved."
+        ]
+      },
+      "style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-1/artifacts/single-bug.md",
+      "sha256": "8747d5f28359b9cfa274571e8f913d343608cbbefbd01e99282bf50a556196be",
+      "sample": "intake-brief-astra-medium-v1-baseline-1",
+      "arm": "baseline",
+      "case_id": "single-bug",
+      "manual_status": "pass",
+      "facts": {
+        "status": "pass",
+        "findings": [
+          "Preserves extra CSV-row removal, Reporting area, unitary scope and two records producing two data rows under the existing header.",
+          "Preserves columns/header and existing issue naming; carries the supplied REPORT-17 parser-row-boundary correction as a prerequisite that must ship first; excludes report UI redesign."
+        ],
+        "missing_facts": [],
+        "unsupported_facts": []
+      },
+      "format": {
+        "status": "pass",
+        "findings": [
+          "Correct mode and mandatory sections; exactly Item with no Capabilities.",
+          "Optional sections are populated; thin first slice is left unresolved rather than invented."
+        ]
+      },
+      "invention": {
+        "status": "pass",
+        "findings": [
+          "No invented goal, capability code, ticket ID, forced split or claimed tracker mutation.",
+          "Supplied open questions remain unresolved; supplied prerequisites and non-goals are preserved."
+        ]
+      },
+      "style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-1/artifacts/single-split.md",
+      "sha256": "28a676df510753e46a83cb86ef3656bc671d6a2ea0320f592dc278d4304586ec",
+      "sample": "intake-brief-astra-medium-v1-baseline-1",
+      "arm": "baseline",
+      "case_id": "single-split",
+      "manual_status": "pass",
+      "facts": {
+        "status": "pass",
+        "findings": [
+          "Preserves transient import retries and operator notification after exhaustion, Data imports area and existing job runner; excludes replacement of the runner.",
+          "Preserves possibly-splittable scope and the independence of retry execution and notification; explicitly leaves the split decision to methodology and creates no ticket structure."
+        ],
+        "missing_facts": [],
+        "unsupported_facts": []
+      },
+      "format": {
+        "status": "pass",
+        "findings": [
+          "Correct mode and mandatory sections; exactly Item with no Capabilities.",
+          "Optional sections are populated; thin first slice is left unresolved rather than invented."
+        ]
+      },
+      "invention": {
+        "status": "pass",
+        "findings": [
+          "No invented goal, capability code, ticket ID, forced split or claimed tracker mutation.",
+          "Supplied open questions remain unresolved; supplied prerequisites and non-goals are preserved."
+        ]
+      },
+      "style_observations": [
+        "No current priority override is supplied context placed under Constraints; this placement does not invent a constraint."
+      ]
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-2/artifacts/greenfield-complete.md",
+      "sha256": "0138bd9fc92e2f743e3da9c85fccae9f61d714d1a9bcd3c40af9dcf8282cc34b",
+      "sample": "intake-brief-astra-medium-v1-baseline-2",
+      "arm": "baseline",
+      "case_id": "greenfield-complete",
+      "manual_status": "pass",
+      "facts": {
+        "status": "pass",
+        "findings": [
+          "Preserves neighbourhood tool-library loans and returns, the tool catalogue and checkout/return log, and the existing-tool checkout/return first slice.",
+          "Preserves Python CLI and offline use on one laptop, excludes marketplace and payments, and carries the retention question without answering it."
+        ],
+        "missing_facts": [],
+        "unsupported_facts": []
+      },
+      "format": {
+        "status": "pass",
+        "findings": [
+          "Correct mode and mandatory sections; exactly Capabilities with no Item.",
+          "Optional sections are populated; thin first slice is left unresolved rather than invented."
+        ]
+      },
+      "invention": {
+        "status": "pass",
+        "findings": [
+          "No invented goal, capability code, ticket ID, forced split or claimed tracker mutation.",
+          "Supplied open questions remain unresolved; supplied prerequisites and non-goals are preserved."
+        ]
+      },
+      "style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-2/artifacts/greenfield-repo-signal.md",
+      "sha256": "ab0e0ada14a3f2005052c7d455afd800392a970904bbc6697a76549f961c522b",
+      "sample": "intake-brief-astra-medium-v1-baseline-2",
+      "arm": "baseline",
+      "case_id": "greenfield-repo-signal",
+      "manual_status": "pass",
+      "facts": {
+        "status": "pass",
+        "findings": [
+          "Preserves band members, local rehearsal recordings, recording catalogue and date search, and manually selected recordings listed by rehearsal date as the first slice.",
+          "Preserves README/human-confirmed TypeScript and browser UI, local files, cloud-upload/audio-editing exclusions and the unresolved undated-recordings question."
+        ],
+        "missing_facts": [],
+        "unsupported_facts": []
+      },
+      "format": {
+        "status": "pass",
+        "findings": [
+          "Correct mode and mandatory sections; exactly Capabilities with no Item.",
+          "Optional sections are populated; thin first slice is left unresolved rather than invented."
+        ]
+      },
+      "invention": {
+        "status": "pass",
+        "findings": [
+          "No invented goal, capability code, ticket ID, forced split or claimed tracker mutation.",
+          "Supplied open questions remain unresolved; supplied prerequisites and non-goals are preserved."
+        ]
+      },
+      "style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-2/artifacts/greenfield-thin.md",
+      "sha256": "ad526e1eadddb7b826d57108dbc23a020d7fbeb8ca70f981d97289b94d033518",
+      "sample": "intake-brief-astra-medium-v1-baseline-2",
+      "arm": "baseline",
+      "case_id": "greenfield-thin",
+      "manual_status": "semantic-pass-frozen-oracle-fail",
+      "facts": {
+        "status": "pass",
+        "findings": [
+          "Preserves book-loan tracking for street-library volunteers without adding capabilities or selecting a platform, language, framework or first slice.",
+          "States absent hard constraints and non-goals in the mandatory sections; carries platform/language and unspecified first slice as open questions; omits the unpopulated First slice section.",
+          "The two unresolved source facts remain explicit unanswered Open questions. Their question wording is semantically equivalent but does not satisfy the frozen lexical oracle."
+        ],
+        "missing_facts": [],
+        "unsupported_facts": []
+      },
+      "format": {
+        "status": "pass",
+        "findings": [
+          "Correct mode and mandatory sections; exactly Capabilities with no Item.",
+          "Optional sections are populated; thin first slice is left unresolved rather than invented."
+        ]
+      },
+      "invention": {
+        "status": "pass",
+        "findings": [
+          "No invented goal, capability code, ticket ID, forced split or claimed tracker mutation.",
+          "Supplied open questions remain unresolved; supplied prerequisites and non-goals are preserved."
+        ]
+      },
+      "style_observations": [],
+      "frozen_oracle": {
+        "status": "fail",
+        "rubric_passed": 2,
+        "rubric_total": 3,
+        "problem": "source-facts-or-forbidden-wording",
+        "reason": "Open questions ask which platform/language and what smallest useful first slice, without using any allowed literal undecided/unspecified/not chosen/not specified term."
+      }
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-2/artifacts/minor-ambiguity.md",
+      "sha256": "dc833b1ce7fbf7f85690e1fc1f944ce50a4b5097e086747af5e5cc126ff34f5b",
+      "sample": "intake-brief-astra-medium-v1-baseline-2",
+      "arm": "baseline",
+      "case_id": "minor-ambiguity",
+      "manual_status": "pass",
+      "facts": {
+        "status": "pass",
+        "findings": [
+          "Preserves stored delivery date on receipts, Checkout area, unitary scope, and both branches of the done signal: display a stored date and omit the field when absent.",
+          "Preserves existing receipt layout and excludes delivery estimation; carries the unresolved display timezone to prep without choosing one."
+        ],
+        "missing_facts": [],
+        "unsupported_facts": []
+      },
+      "format": {
+        "status": "pass",
+        "findings": [
+          "Correct mode and mandatory sections; exactly Item with no Capabilities.",
+          "Optional sections are populated; thin first slice is left unresolved rather than invented."
+        ]
+      },
+      "invention": {
+        "status": "pass",
+        "findings": [
+          "No invented goal, capability code, ticket ID, forced split or claimed tracker mutation.",
+          "Supplied open questions remain unresolved; supplied prerequisites and non-goals are preserved."
+        ]
+      },
+      "style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-2/artifacts/single-bug.md",
+      "sha256": "45fac919fc125b3df34c41ffb918c886cdcc016dac0a2adc9e52b7b50b6e823b",
+      "sample": "intake-brief-astra-medium-v1-baseline-2",
+      "arm": "baseline",
+      "case_id": "single-bug",
+      "manual_status": "pass",
+      "facts": {
+        "status": "pass",
+        "findings": [
+          "Preserves extra CSV-row removal, Reporting area, unitary scope and two records producing two data rows under the existing header.",
+          "Preserves columns/header and existing issue naming; carries the supplied REPORT-17 parser-row-boundary correction as a prerequisite that must ship first; excludes report UI redesign."
+        ],
+        "missing_facts": [],
+        "unsupported_facts": []
+      },
+      "format": {
+        "status": "pass",
+        "findings": [
+          "Correct mode and mandatory sections; exactly Item with no Capabilities.",
+          "Optional sections are populated; thin first slice is left unresolved rather than invented."
+        ]
+      },
+      "invention": {
+        "status": "pass",
+        "findings": [
+          "No invented goal, capability code, ticket ID, forced split or claimed tracker mutation.",
+          "Supplied open questions remain unresolved; supplied prerequisites and non-goals are preserved."
+        ]
+      },
+      "style_observations": []
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-astra-medium-v1-baseline-2/artifacts/single-split.md",
+      "sha256": "c756268de3e37ddf6169be715c6b8a768207aa9002fedb93f179d5846b773102",
+      "sample": "intake-brief-astra-medium-v1-baseline-2",
+      "arm": "baseline",
+      "case_id": "single-split",
+      "manual_status": "pass",
+      "facts": {
+        "status": "pass",
+        "findings": [
+          "Preserves transient import retries and operator notification after exhaustion, Data imports area and existing job runner; excludes replacement of the runner.",
+          "Preserves possibly-splittable scope and the independence of retry execution and notification; explicitly leaves the split decision to methodology and creates no ticket structure."
+        ],
+        "missing_facts": [],
+        "unsupported_facts": []
+      },
+      "format": {
+        "status": "pass",
+        "findings": [
+          "Correct mode and mandatory sections; exactly Item with no Capabilities.",
+          "Optional sections are populated; thin first slice is left unresolved rather than invented."
+        ]
+      },
+      "invention": {
+        "status": "pass",
+        "findings": [
+          "No invented goal, capability code, ticket ID, forced split or claimed tracker mutation.",
+          "Supplied open questions remain unresolved; supplied prerequisites and non-goals are preserved."
+        ]
+      },
+      "style_observations": [
+        "No current priority override is supplied context placed under Constraints; this placement does not invent a constraint."
+      ]
+    }
+  ],
+  "summary": {
+    "samples_reviewed": 2,
+    "artifacts_reviewed": 12,
+    "semantic_failures": 0,
+    "format_failures": 0,
+    "invention_failures": 0,
+    "candidate_status": "Not launched or reviewed by verifier. Baseline-2 frozen oracle failure remains a blocking execution/acceptance result for root to resolve; manual semantic equivalence does not waive it.",
+    "functional_samples_passed": 1,
+    "functional_samples_failed": 1,
+    "native_samples_passed": 2
+  },
+  "limits": [
+    "Manual artifact fidelity does not waive a native or execution failure.",
+    "No executable semantic intake consumer is implied by form checks or provenance commands."
+  ],
+  "status": "baseline-snapshot-with-retained-frozen-oracle-failure"
+}

@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-16T21:27:03.343546+00:00",
+  "accepted": false,
+  "status": "held-native-heredoc-protocol-failure",
+  "baseline_samples_completed": 2,
+  "candidate_samples_completed": 0,
+  "reason": "Second baseline omits its closing FAFF_JSON delimiter. Shell exits0 after warning and artifact persists; literal protocol violation remains a strict native failure. Eight actual proposals pass semantic review, which cannot waive this gate.",
+  "native_audit_sha256": "ea79847e140440a4eccfb81784f9cc4a98e09197909022de40049eabf30522d0",
+  "manual_review": "manual-artifact-reviews/architecture-sol-v1-independent.json",
+  "manual_review_sha256": "76a12e11185219483f96bc7d8b79279fa531a6f9649edc22377df1d1edda5668",
+  "source_installed": false,
+  "savings_counted": false
+}

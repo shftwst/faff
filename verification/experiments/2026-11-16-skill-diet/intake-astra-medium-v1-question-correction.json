@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-16T21:27:03.343546+00:00",
+  "kind": "narrow-lexical-oracle-correction",
+  "prior_registration": "diet-continuation-architecture-intake-v1.json",
+  "model_facing_change": "None. The runner copy changes only its module description and allowed post-run assessor list. Native prompt, provider, policy, fixture, server and audit remain unchanged. Existing sample names are preserved; completed samples1/2 are assessed without replacement.",
+  "bindings": [
+    {
+      "path": "assess-intake-questions.mjs",
+      "sha256": "af182da815def8ca4e941ab30ce435abcd50b375d82b010ed0dfcde004748d30"
+    },
+    {
+      "path": "workflow-fixtures/INTAKE-QUESTIONS-CORRECTION.md",
+      "sha256": "db3f16a8895ef6b4ed94f1d95e45faaab26969338ad7b09c5f41f8c5e981f69d"
+    },
+    {
+      "path": "run-diet-workflow-samples-v3.py",
+      "sha256": "7c39d6a1c49ff6081c82f576918d32f074ecb4202b117d930bef520b1e1bb0ab"
+    },
+    {
+      "path": "intake-brief-astra-medium-v1-baseline-assessed-plan.json",
+      "sha256": "ef17e34e1a8b89ab2c6849be00d7e741297fa2a42832dbded1a3c1ddf227105a"
+    },
+    {
+      "path": "intake-brief-astra-medium-v1-candidate-assessed-plan.json",
+      "sha256": "9a3cee352b1a53b201796e8c0992fde999a742da5f0ee7f1aba5c41e5a9e2d42"
+    },
+    {
+      "path": "intake-brief-astra-medium-v1-assessment-completed-plan.json",
+      "sha256": "f1162a45ea7f19ea977af22325659b6952fa6e100e0b8fc84a37e4b03a25b892"
+    },
+    {
+      "path": "manual-artifact-reviews/intake-astra-medium-v1-independent.json",
+      "sha256": "feaff4b6c63cd96427b3f9595be2b4f264cd3d6ec48eb62cc377b6e23435372a"
+    }
+  ],
+  "qualification": "Independent source/invention review and complete native audits remain mandatory. Assessor cannot exclude contradictory prose outside its narrow pattern."
+}

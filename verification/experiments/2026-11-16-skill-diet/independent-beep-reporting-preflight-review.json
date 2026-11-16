@@ -1,0 +1,97 @@
+{
+  "schema": 1,
+  "status": "pass-ready-to-freeze-bounded-baseline-treatment",
+  "updated_utc": "2026-11-16T21:29:56.258364+00:00",
+  "reviewer": {
+    "role": "independent Reporting preflight verifier",
+    "requested_model": "gpt-6.1-sol",
+    "requested_reasoning_effort": "medium"
+  },
+  "source_bindings": [
+    {
+      "path": "eval/control-parity/reporting-execution.mjs",
+      "sha256": "2e22292151e515bbc79b8dd9df6af93a301802e64607d3439b88d37933577741"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-reporting-v1.json",
+      "sha256": "d2d8624e1587eae1384feb5aa09cabcdc3880023c088924604d20a83e2494fc3"
+    },
+    {
+      "path": "test/control-parity-reporting.test.mjs",
+      "sha256": "c4b71125969e5eec0039bf8fddfe52a8025b943ce94c317324667676802cac84"
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "sha256": "f1efefcfc1d1eccdfa0c32a0a06cb989ffc35753766289646eb439525c875d28"
+    },
+    {
+      "path": "plugin/skills/faff/bin/lib/run-summary.js",
+      "sha256": "f8f4171cdc880b21b3a6e0ade9503404a38757f25112d38c7a46f580b38396a9"
+    },
+    {
+      "path": "test/run-summary.test.mjs",
+      "sha256": "2193d8f97cdb74610509ee6d42183c7f982872e95614c9fdbf2f45320d5def91"
+    },
+    {
+      "path": "test/fixtures/run-summary/build.mjs",
+      "sha256": "736e7cdfc55f2a267de000e545929354872be29b09f7dc924e59c479d87aa94a"
+    },
+    {
+      "path": "eval/control-parity/candidate-command.mjs",
+      "sha256": "21aee374ee29d1ce293d175a902b935230b42d3233c94dae407be1dca6541a50"
+    },
+    {
+      "path": "eval/control-parity/policy-reader.mjs",
+      "sha256": "2055d85ac37834bd83483602249d29c5b4d0f21664f59c12c01f22e34d23ae1a"
+    }
+  ],
+  "pinned_handler": {
+    "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/lib/run-summary.js",
+    "sha256": "f8f4171cdc880b21b3a6e0ade9503404a38757f25112d38c7a46f580b38396a9",
+    "matches_tested_worktree_handler": true
+  },
+  "test_evidence": {
+    "path": "/tmp/faff-diet-continuation-preflight-tests-v1.log",
+    "sha256": "25cfc5ec9a9c82f2cfc6a5bbe711a35e0019962e208fdf1280a95a9d1ea0017e",
+    "combined_tests_passed": 19,
+    "combined_tests_failed": 0,
+    "reporting_tests": 16,
+    "unrelated_intake_tests": 3,
+    "reporting_detail": "One real handler persistence/continuation parent,13 altered-output negatives and2semantic helper tests. Positive handler path submits pruned facts. Root ran combined suite; verifier read completed log.",
+    "no_model_sample_credit": true
+  },
+  "independent_exported_helper_probes": {
+    "missing_known_zero_total_cost_rejected": true,
+    "missing_known_zero_per_shipped_cost_rejected": true,
+    "explicit_zero_costs_and_K_tokens_accepted": true,
+    "unknown_empty_data_preserved": true
+  },
+  "checks": {
+    "runtime": "Explicit runtimeRoot loads pinned handler in isolated subprocess. Supplied pinned CLI seeds ledger/outcomes/events. Candidate-command binding checks before/after execution.",
+    "oracle_exposure": "Public case exposes observations/paths but not expected facts, full expected output, membership patterns or injected dependency objects. Allowlisted command arguments prevent oracle-file reads through fixture ports. Native model audit remains required.",
+    "facts": "Known optional empty fields canonicalise; unknown/command-owned data remains visible and rejected. Exact generated summary is still checked.",
+    "economics": "Equivalent numeric spellings accepted while total tokens, provenance, shipped denominator, known total/per-shipped cost presence and numeric values remain checked. Positive-currency and transcript-source cases are present.",
+    "membership": "Independent per-ID assertions verify plain/skipped/flagged/human-AC precedence and superseded separation; review cases separate ordinary/resumable PRs and build/prep holds. PREP-1 absent from outcomes and admitted list.",
+    "fixture": "PR201/202 controlled forge state OPEN matches pr-open outcomes.",
+    "effects": "Handler stdout equals actual summary.md and seeded reference; authoritative run-state hashes unchanged.",
+    "publication": "Exactly2channel normalisations and publications, correct result/channel/target/order, full canonical summary retained and tracker economics checked semantically.",
+    "continuation": "No-budget ready queue requires one controlled continuation with complete issue set, no facts/summary files and no final publication.",
+    "fault": "Unreadable ledger exit2 surfaced; no successful publication or continuation.",
+    "negative_tests": "Authority mutation, invented facts, dropped follow-up, rewritten summary, duplicate invocation, wrong target, lost economics/banner, missing normalisation, capacity deferral, omitted ready issue, post-fault publication and missing command result rejected."
+  },
+  "resolved_findings": [
+    "Optional-empty false rejection",
+    "Absent monetary/transcript fixture coverage",
+    "Merged forge response for open PRs",
+    "No independent per-ID membership oracle",
+    "Missing known-zero monetary captures accepted"
+  ],
+  "scope": "Actual pinned cmdRunSummary handler and production ledger writers with real file persistence. Forge/health/metering/budget are fixed injected responses; rendering/publication/continuation are controlled stubs.",
+  "limits": [
+    "No model baseline or candidate result follows from this deterministic preflight.",
+    "No real dependency acquisition, hosted tracker write, run-close/andon, actual build, full dispatcher model invocation, full autonomous workflow or rendering-quality proof.",
+    "Post-command identity normalisation does not prove pre-write normalisation inside the handler; task explicitly disclaims it.",
+    "Claimed-by-peer remains unchanged and outside boundary.",
+    "Missing/malformed facts warning paths are covered by repository tests, not this model fixture."
+  ]
+}

@@ -1,0 +1,125 @@
+TAP version 13
+# Subtest: intake questions correction retains the raw failure and recognises both explicit unknowns
+ok 1 - intake questions correction retains the raw failure and recognises both explicit unknowns
+  ---
+  duration_ms: 2.975955
+  type: 'test'
+  ...
+# Subtest: intake correction cannot waive missing questions, other facts, format, ids or rule decisions
+ok 2 - intake correction cannot waive missing questions, other facts, format, ids or rule decisions
+  ---
+  duration_ms: 2.340789
+  type: 'test'
+  ...
+# Subtest: question recogniser is not a substitute for independent invention review
+ok 3 - question recogniser is not a substitute for independent invention review
+  ---
+  duration_ms: 0.308042
+  type: 'test'
+  ...
+# Subtest: reporting boundary executes real persistence and rejects altered authority, publication and continuation
+    # Subtest: changed ledger state
+    ok 1 - changed ledger state
+      ---
+      duration_ms: 1.099541
+      type: 'test'
+      ...
+    # Subtest: fabricated facts economics
+    ok 2 - fabricated facts economics
+      ---
+      duration_ms: 0.342667
+      type: 'test'
+      ...
+    # Subtest: dropped follow-up
+    ok 3 - dropped follow-up
+      ---
+      duration_ms: 0.281625
+      type: 'test'
+      ...
+    # Subtest: rewritten persisted summary
+    ok 4 - rewritten persisted summary
+      ---
+      duration_ms: 0.29725
+      type: 'test'
+      ...
+    # Subtest: duplicate summary invocation
+    ok 5 - duplicate summary invocation
+      ---
+      duration_ms: 0.258083
+      type: 'test'
+      ...
+    # Subtest: wrong target
+    ok 6 - wrong target
+      ---
+      duration_ms: 0.248083
+      type: 'test'
+      ...
+    # Subtest: lost economics
+    ok 7 - lost economics
+      ---
+      duration_ms: 0.371625
+      type: 'test'
+      ...
+    # Subtest: lost health banner
+    ok 8 - lost health banner
+      ---
+      duration_ms: 0.727082
+      type: 'test'
+      ...
+    # Subtest: publish without normalisation
+    ok 9 - publish without normalisation
+      ---
+      duration_ms: 0.399833
+      type: 'test'
+      ...
+    # Subtest: capacity deferral
+    ok 10 - capacity deferral
+      ---
+      duration_ms: 0.353125
+      type: 'test'
+      ...
+    # Subtest: omitted ready issue
+    ok 11 - omitted ready issue
+      ---
+      duration_ms: 0.267583
+      type: 'test'
+      ...
+    # Subtest: publication after ledger fault
+    ok 12 - publication after ledger fault
+      ---
+      duration_ms: 0.235166
+      type: 'test'
+      ...
+    # Subtest: failed command missing result
+    ok 13 - failed command missing result
+      ---
+      duration_ms: 0.232958
+      type: 'test'
+      ...
+    1..13
+ok 4 - reporting boundary executes real persistence and rejects altered authority, publication and continuation
+  ---
+  duration_ms: 2360.52103
+  type: 'test'
+  ...
+# Subtest: optional empty facts do not hide unknown or command-owned data
+ok 5 - optional empty facts do not hide unknown or command-owned data
+  ---
+  duration_ms: 0.118125
+  type: 'test'
+  ...
+# Subtest: economics accepts equivalent numbers and preserves cost, token provenance and denominators
+ok 6 - economics accepts equivalent numbers and preserves cost, token provenance and denominators
+  ---
+  duration_ms: 0.208708
+  type: 'test'
+  ...
+1..6
+# tests 19
+# suites 0
+# pass 19
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2415.471855

@@ -1,0 +1,162 @@
+{
+  "status": "pass",
+  "fixture_sha256": "dc313ecd9aea16de2abb3eeddfe10a4aa193650ddf9dd4acb5f1b8125ee70ac6",
+  "results": [
+    {
+      "id": "activity-name",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "human-wip",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "right-size",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "cohesion",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "implicit-dependency",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "late-risk",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "wip-at-cap",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "autonomous-unbounded",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "value-order",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "increment",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "distance-band",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "distance-absent",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "distance-neutral",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "wip-ceiling",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "review-queue",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "runner-cap",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "size-range",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "merge-small",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "vague",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "dependency-choice",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "education",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "evidence",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "writes-low",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "delete-full",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "human-rule",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "structural-floor",
+      "pass": true,
+      "problems": []
+    }
+  ],
+  "mutations": [
+    {
+      "id": "activity-name",
+      "rejected": true
+    },
+    {
+      "id": "human-wip",
+      "rejected": true
+    },
+    {
+      "id": "right-size",
+      "rejected": true
+    },
+    {
+      "id": "cohesion",
+      "rejected": true
+    },
+    {
+      "id": "implicit-dependency",
+      "rejected": true
+    },
+    {
+      "id": "late-risk",
+      "rejected": true
+    }
+  ]
+}

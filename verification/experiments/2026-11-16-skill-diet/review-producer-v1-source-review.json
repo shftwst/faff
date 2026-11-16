@@ -1,0 +1,13 @@
+{
+  "status": "pending-paired-measurement",
+  "baseline_bytes": 13405,
+  "candidate_bytes": 7940,
+  "baseline_estimated_tokens": 3327,
+  "candidate_estimated_tokens": 1981,
+  "baseline_sha256": "f85023d05cd5c6de9ed09ce54a7c5a88d7a31b8d66f640f8b630b84ad85bc6fe",
+  "candidate_sha256": "f3c727a44b1e1135f45ddb236174dfa0240da9826db0f8697f341d3688d6a846",
+  "preserved_human_pass_sha256": "3bc568b7fbbb7bf7dbfd3025912bf2bf10fd97f993e4031c6d8e5fe79882d2b4",
+  "preserved_appetite_table_sha256": "7865fc732522904aaa2bff4cf971211cf184530d86b971873896504e24389824",
+  "changed_scope": "Consolidate pre-PR/contract explanations and passes 1-4. Human pass and appetite table remain byte-identical.",
+  "proof_required": "Fresh V2 pair, complete native logs, actual artifacts and real contract consumer, manual reading; no full caller or irreversible-action proof claimed."
+}

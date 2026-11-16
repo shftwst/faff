@@ -6,7 +6,7 @@
     "effort": null,
     "tier": "mixed (see notes)",
     "date": "2026-11-16",
-    "commit": "5e8231cf",
+    "commit": "adbfe5a2",
     "lanes": [
       "blackbox",
       "live",

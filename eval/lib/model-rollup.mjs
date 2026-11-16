@@ -104,6 +104,24 @@ const THIN_REPS = 10;
 const num = (x) => (x == null ? "n/a" : x.toFixed(3));
 const signed = (x) => (x == null ? "n/a" : `${x >= 0 ? "+" : ""}${x.toFixed(3)}`);
 
+function skillRow(r, withRole) {
+  const thin = r.min_reps_per_case < THIN_REPS ? "*" : "";
+  return `| ${r.skill} | ${withRole ? `${r.role} | ` : ""}${r.kinds.length} | ${num(r.accuracy)} | ${num(r.reference_accuracy)} | ${signed(r.delta)} | ${num(r.format_adherence)} / ${num(r.reference_format_adherence)} | ${r.reps}${thin} | ${r.weakest_kind} ${num(r.weakest_accuracy)} |`;
+}
+const skillTableHead = (withRole) => [`| skill | ${withRole ? "role | " : ""}kinds | model | reference | delta | format (model / ref) | reps | weakest kind |`, `|---|${withRole ? "---|" : ""}---|---|---|---|---|---|---|`];
+
+// The per-role tables: one table of skills per role, with a total row. Shared by the stored README and
+// the console summary so the two cannot drift.
+export function renderRoleTables(rollup) {
+  const L = ["## By role, per skill", "", "The same table split by role, to show whether one role is a clear hit or miss.", ""];
+  for (const [role, t] of Object.entries(rollup.by_role)) {
+    L.push(`### ${role}`, "", ...skillTableHead(false));
+    for (const r of rollup.rows.filter((x) => x.role === role)) L.push(skillRow(r, false));
+    L.push(`| **${role} total** | ${t.kinds} | ${num(t.accuracy)} | ${num(t.reference_accuracy)} | ${signed(t.delta)} | | ${t.reps} | |`, "");
+  }
+  return L.slice(0, -1);
+}
+
 export function renderResultMarkdown(result) {
   const { meta, rollup } = result;
   const L = [];
@@ -115,21 +133,11 @@ export function renderResultMarkdown(result) {
   L.push("## By role", "", "| role | skills | kinds | model | reference | delta | reps |", "|---|---|---|---|---|---|---|");
   for (const [role, t] of Object.entries(rollup.by_role)) L.push(`| ${role} | ${t.skills} | ${t.kinds} | ${num(t.accuracy)} | ${num(t.reference_accuracy)} | ${signed(t.delta)} | ${t.reps} |`);
   L.push(`| **all** | ${rollup.all.skills} | ${rollup.all.kinds} | ${num(rollup.all.accuracy)} | ${num(rollup.all.reference_accuracy)} | ${signed(rollup.all.delta)} | ${rollup.all.reps} |`, "");
-  const skillRow = (r, withRole) => {
-    const thin = r.min_reps_per_case < THIN_REPS ? "*" : "";
-    return `| ${r.skill} | ${withRole ? `${r.role} | ` : ""}${r.kinds.length} | ${num(r.accuracy)} | ${num(r.reference_accuracy)} | ${signed(r.delta)} | ${num(r.format_adherence)} / ${num(r.reference_format_adherence)} | ${r.reps}${thin} | ${r.weakest_kind} ${num(r.weakest_accuracy)} |`;
-  };
-  const head = (withRole) => [`| skill | ${withRole ? "role | " : ""}kinds | model | reference | delta | format (model / ref) | reps | weakest kind |`, `|---|${withRole ? "---|" : ""}---|---|---|---|---|---|---|`];
   L.push("## By skill", "", "Sorted from the largest deficit to the largest lead. A `*` after the reps marks a skill with a kind run at fewer than " + THIN_REPS + " reps per case.", "");
-  L.push(...head(true));
+  L.push(...skillTableHead(true));
   for (const r of rollup.rows) L.push(skillRow(r, true));
   L.push(`| **all** | | ${rollup.all.kinds} | ${num(rollup.all.accuracy)} | ${num(rollup.all.reference_accuracy)} | ${signed(rollup.all.delta)} | | ${rollup.all.reps} | |`, "");
-  L.push("## By role, per skill", "", "The same table split by role, to show whether one role is a clear hit or miss.", "");
-  for (const [role, t] of Object.entries(rollup.by_role)) {
-    L.push(`### ${role}`, "", ...head(false));
-    for (const r of rollup.rows.filter((x) => x.role === role)) L.push(skillRow(r, false));
-    L.push(`| **${role} total** | ${t.kinds} | ${num(t.accuracy)} | ${num(t.reference_accuracy)} | ${signed(t.delta)} | | ${t.reps} | |`, "");
-  }
+  L.push(...renderRoleTables(rollup), "");
   if (rollup.unmeasured.length) {
     L.push("## Not measured", "", "These kinds are registered but have no result in this run.", "", "| kind | skill | registry status |", "|---|---|---|");
     for (const u of rollup.unmeasured) L.push(`| ${u.kind} | ${u.skill} | ${u.status} |`);

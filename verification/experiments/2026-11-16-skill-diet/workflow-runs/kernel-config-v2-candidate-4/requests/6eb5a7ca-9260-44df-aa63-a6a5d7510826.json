@@ -1,0 +1,1 @@
+{"name":"submit_result","args":{"case_id":"invalid-unused-leaf","status":"blocked","values":{},"reason":"faff dispatch resolve build exited 2: dispatch.build.by_confidence.medium.model has invalid model token \"invalid-model\". The resolver validates the whole tree and fails loud even for an unused leaf; repair is not authorised, so no build agent was dispatched."}}

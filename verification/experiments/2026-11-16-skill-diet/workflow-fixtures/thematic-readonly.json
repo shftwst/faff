@@ -1,0 +1,784 @@
+{
+  "schema": 1,
+  "scope": "Bounded named-output comparison for the thematic readonly slice. Persisted ticket proposals, separate decisions and actual run-done/contract consumption. No tracker mutation, PRDR authoring, full caller workflow or statistical equivalence claim.",
+  "cases": [
+    {
+      "id": "core-order",
+      "output": "pick-ordering",
+      "request": "Return the ordered issue IDs as a JSON array. Priority 1 outranks priority 2. Count only active blocker edges. The requested set is A through F.",
+      "input": {
+        "issues": [
+          {
+            "id": "A",
+            "priority": null,
+            "ancestor_priority": 1,
+            "created": "2026-01-06",
+            "blocked_by": []
+          },
+          {
+            "id": "B",
+            "priority": 2,
+            "created": "2026-01-02",
+            "blocked_by": []
+          },
+          {
+            "id": "C",
+            "priority": 2,
+            "created": "2026-01-03",
+            "blocked_by": [
+              "B"
+            ]
+          },
+          {
+            "id": "D",
+            "priority": 2,
+            "created": "2026-01-02",
+            "blocked_by": [
+              "B"
+            ]
+          },
+          {
+            "id": "E",
+            "priority": 2,
+            "created": "2026-01-04",
+            "blocked_by": [
+              "C"
+            ]
+          },
+          {
+            "id": "F",
+            "priority": 2,
+            "created": "2026-01-01",
+            "blocked_by": []
+          }
+        ],
+        "terminal_context": [
+          {
+            "id": "T",
+            "state": "Done",
+            "blocked_by": [
+              "A"
+            ]
+          },
+          {
+            "id": "U",
+            "state": "Cancelled",
+            "blocked_by": [
+              "A"
+            ]
+          }
+        ]
+      },
+      "kind": "decision",
+      "oracle": {
+        "required": [
+          "A",
+          "B",
+          "C",
+          "F",
+          "D",
+          "E"
+        ]
+      },
+      "reference": [
+        "A",
+        "B",
+        "C",
+        "F",
+        "D",
+        "E"
+      ]
+    },
+    {
+      "id": "no-distance",
+      "output": "pick-ordering",
+      "request": "Return the ordered IDs as an array. The caller has already computed live-edge transitive unlock counts. Priority 1 is highest.",
+      "input": {
+        "issues": [
+          {
+            "id": "H",
+            "priority": 1,
+            "container": "far",
+            "unlock_value": 0,
+            "created": 0
+          },
+          {
+            "id": "B",
+            "priority": 2,
+            "container": "far",
+            "unlock_value": 3,
+            "created": 1
+          },
+          {
+            "id": "N",
+            "priority": 2,
+            "container": "unmatched",
+            "unlock_value": 2,
+            "created": 2
+          },
+          {
+            "id": "C",
+            "priority": 2,
+            "container": "near",
+            "unlock_value": 1,
+            "created": 3
+          },
+          {
+            "id": "T",
+            "priority": 2,
+            "container": "met",
+            "unlock_value": 0,
+            "created": 4
+          }
+        ]
+      },
+      "kind": "decision",
+      "oracle": {
+        "required": [
+          "H",
+          "B",
+          "N",
+          "C",
+          "T"
+        ]
+      },
+      "reference": [
+        "H",
+        "B",
+        "N",
+        "C",
+        "T"
+      ]
+    },
+    {
+      "id": "within-band-distance",
+      "output": "pick-ordering",
+      "request": "Return the ordered IDs as an array, composing the supplied prd-distance map. The caller computed the live-edge unlock counts; priority 1 is highest.",
+      "input": {
+        "issues": [
+          {
+            "id": "H",
+            "priority": 1,
+            "container": "far",
+            "unlock_value": 0,
+            "created": 0
+          },
+          {
+            "id": "B",
+            "priority": 2,
+            "container": "far",
+            "unlock_value": 3,
+            "created": 1
+          },
+          {
+            "id": "N",
+            "priority": 2,
+            "container": "unmatched",
+            "unlock_value": 2,
+            "created": 2
+          },
+          {
+            "id": "C",
+            "priority": 2,
+            "container": "near",
+            "unlock_value": 1,
+            "created": 3
+          },
+          {
+            "id": "T",
+            "priority": 2,
+            "container": "met",
+            "unlock_value": 0,
+            "created": 4
+          }
+        ],
+        "prd-distance": [
+          {
+            "container": "near",
+            "class_rank": 1
+          },
+          {
+            "container": "far",
+            "class_rank": 3
+          },
+          {
+            "container": "met",
+            "class_rank": 0
+          }
+        ]
+      },
+      "kind": "decision",
+      "oracle": {
+        "required": [
+          "H",
+          "C",
+          "N",
+          "B",
+          "T"
+        ]
+      },
+      "reference": [
+        "H",
+        "C",
+        "N",
+        "B",
+        "T"
+      ]
+    },
+    {
+      "id": "promote-ready",
+      "output": "promotion-readiness",
+      "request": "Return only \"promote\", \"demote\", or \"hold\" for this fresh issue state. This is a recommendation; perform no tracker action.",
+      "input": {
+        "blockers": [
+          {
+            "id": "OLD",
+            "state": "Done"
+          }
+        ],
+        "deliverable": "Expose GET /healthz returning HTTP 200.",
+        "spec_location": "tracker comment with full spec",
+        "open_punts": [],
+        "false_assumptions": [],
+        "post_spec_challenges": [],
+        "code_drift": false,
+        "repeat_parked": false
+      },
+      "kind": "decision",
+      "oracle": {
+        "required": "promote"
+      },
+      "reference": "promote"
+    },
+    {
+      "id": "hold-description-only",
+      "output": "promotion-readiness",
+      "request": "Return only \"promote\", \"demote\", or \"hold\" for this fresh issue state. This is a recommendation; perform no tracker action.",
+      "input": {
+        "blockers": [
+          {
+            "id": "OLD",
+            "state": "Done"
+          }
+        ],
+        "deliverable": "Expose GET /healthz returning HTTP 200.",
+        "spec_location": null,
+        "open_punts": [],
+        "false_assumptions": [],
+        "post_spec_challenges": [],
+        "code_drift": false,
+        "repeat_parked": false,
+        "description": "Given a running server, GET /healthz MUST return 200."
+      },
+      "kind": "decision",
+      "oracle": {
+        "required": "hold"
+      },
+      "reference": "hold"
+    },
+    {
+      "id": "hold-punt",
+      "output": "promotion-readiness",
+      "request": "Return only \"promote\", \"demote\", or \"hold\" for this fresh issue state. This is a recommendation; perform no tracker action.",
+      "input": {
+        "blockers": [
+          {
+            "id": "OLD",
+            "state": "Done"
+          }
+        ],
+        "deliverable": "Expose GET /healthz returning HTTP 200.",
+        "spec_location": "tracker comment with full spec",
+        "open_punts": [
+          "**Punt:** choose the authentication store"
+        ],
+        "false_assumptions": [],
+        "post_spec_challenges": [],
+        "code_drift": false,
+        "repeat_parked": false
+      },
+      "kind": "decision",
+      "oracle": {
+        "required": "hold"
+      },
+      "reference": "hold"
+    },
+    {
+      "id": "hold-false-assumption",
+      "output": "promotion-readiness",
+      "request": "Return only \"promote\", \"demote\", or \"hold\" for this fresh issue state. This is a recommendation; perform no tracker action.",
+      "input": {
+        "blockers": [
+          {
+            "id": "OLD",
+            "state": "Done"
+          }
+        ],
+        "deliverable": "Expose GET /healthz returning HTTP 200.",
+        "spec_location": "tracker comment with full spec",
+        "open_punts": [],
+        "false_assumptions": [
+          "**Assumes:** migration shipped; live state says it has not"
+        ],
+        "post_spec_challenges": [],
+        "code_drift": false,
+        "repeat_parked": false
+      },
+      "kind": "decision",
+      "oracle": {
+        "required": "hold"
+      },
+      "reference": "hold"
+    },
+    {
+      "id": "demote-challenged",
+      "output": "promotion-readiness",
+      "request": "Return only \"promote\", \"demote\", or \"hold\" for this fresh issue state. This is a recommendation; perform no tracker action.",
+      "input": {
+        "blockers": [
+          {
+            "id": "OLD",
+            "state": "Done"
+          }
+        ],
+        "deliverable": "Expose GET /healthz returning HTTP 200.",
+        "spec_location": "tracker comment with full spec",
+        "open_punts": [],
+        "false_assumptions": [],
+        "post_spec_challenges": [
+          "Unresolved: this approach drops existing account data."
+        ],
+        "code_drift": false,
+        "repeat_parked": false
+      },
+      "kind": "decision",
+      "oracle": {
+        "required": "demote"
+      },
+      "reference": "demote"
+    },
+    {
+      "id": "demote-repeat-parked",
+      "output": "promotion-readiness",
+      "request": "Return only \"promote\", \"demote\", or \"hold\" for this fresh issue state. This is a recommendation; perform no tracker action.",
+      "input": {
+        "blockers": [
+          {
+            "id": "OLD",
+            "state": "Done"
+          }
+        ],
+        "deliverable": "Expose GET /healthz returning HTTP 200.",
+        "spec_location": "tracker comment with full spec",
+        "open_punts": [],
+        "false_assumptions": [],
+        "post_spec_challenges": [],
+        "code_drift": false,
+        "repeat_parked": true,
+        "state": "Todo",
+        "same_class_parks_in_21_days": 3
+      },
+      "kind": "decision",
+      "oracle": {
+        "required": "demote"
+      },
+      "reference": "demote"
+    },
+    {
+      "id": "shape-unitary",
+      "output": "ticket-shaping",
+      "request": "Return {\"containers\": [names of NEW container proposals], \"tickets\": [{\"title\": string, \"description\": string, \"container\": string or null, \"status\": string, \"blocked_by\": [ticket titles]}], \"needs_discovery\": boolean}. Existing homes are not new container proposals. Order tickets by the lens rule. Do not create them.",
+      "input": {
+        "mode": "single-item",
+        "Item": "Add login rate limiting",
+        "area": "Authentication",
+        "description": "Cap how often login requests are accepted.",
+        "split-sense": "unitary",
+        "Open questions": [
+          "Which limit should apply?"
+        ],
+        "Dependencies": [],
+        "existing_containers": [
+          "Authentication"
+        ]
+      },
+      "kind": "artifact",
+      "oracle": {
+        "required": {
+          "containers": [],
+          "tickets": [
+            {
+              "title": "Add login rate limiting",
+              "container": "Authentication",
+              "status": "Backlog",
+              "blocked_by": []
+            }
+          ],
+          "needs_discovery": false
+        },
+        "must_include": [
+          "Which limit should apply"
+        ]
+      },
+      "reference": {
+        "containers": [],
+        "tickets": [
+          {
+            "title": "Add login rate limiting",
+            "description": "Cap how often login requests are accepted. Open question: Which limit should apply?",
+            "container": "Authentication",
+            "status": "Backlog",
+            "blocked_by": []
+          }
+        ],
+        "needs_discovery": false
+      }
+    },
+    {
+      "id": "shape-split",
+      "output": "ticket-shaping",
+      "request": "Return {\"containers\": [names of NEW container proposals], \"tickets\": [{\"title\": string, \"description\": string, \"container\": string or null, \"status\": string, \"blocked_by\": [ticket titles]}], \"needs_discovery\": boolean}. Existing homes are not new container proposals. Order tickets by the lens rule. Do not create them.",
+      "input": {
+        "mode": "single-item",
+        "Item": "Keep sessions valid",
+        "area": "Authentication",
+        "description": "Validate session tokens and refresh expired sessions.",
+        "split-sense": "possibly-splittable",
+        "concerns": [
+          "Validate session tokens",
+          "Refresh expired sessions"
+        ],
+        "Dependencies": [
+          "Refresh expired sessions depends on Validate session tokens"
+        ],
+        "Open questions": [],
+        "existing_containers": [
+          "Authentication"
+        ]
+      },
+      "kind": "artifact",
+      "oracle": {
+        "required": {
+          "containers": [],
+          "tickets": [
+            {
+              "title": "Validate session tokens",
+              "container": "Authentication",
+              "status": "Backlog",
+              "blocked_by": []
+            },
+            {
+              "title": "Refresh expired sessions",
+              "container": "Authentication",
+              "status": "Backlog",
+              "blocked_by": [
+                "Validate session tokens"
+              ]
+            }
+          ],
+          "needs_discovery": false
+        }
+      },
+      "reference": {
+        "containers": [],
+        "tickets": [
+          {
+            "title": "Validate session tokens",
+            "description": "Validate session tokens.",
+            "container": "Authentication",
+            "status": "Backlog",
+            "blocked_by": []
+          },
+          {
+            "title": "Refresh expired sessions",
+            "description": "Refresh expired sessions after validation is available.",
+            "container": "Authentication",
+            "status": "Backlog",
+            "blocked_by": [
+              "Validate session tokens"
+            ]
+          }
+        ],
+        "needs_discovery": false
+      }
+    },
+    {
+      "id": "shape-thin-branch",
+      "output": "ticket-shaping",
+      "request": "Return {\"containers\": [names of NEW container proposals], \"tickets\": [{\"title\": string, \"description\": string, \"container\": string or null, \"status\": string, \"blocked_by\": [ticket titles]}], \"needs_discovery\": boolean}. Existing homes are not new container proposals. Order tickets by the lens rule. Do not create them.",
+      "input": {
+        "shape-level": "epic",
+        "project": "Unspecified work",
+        "First slice": null,
+        "Capabilities": [],
+        "Dependencies": []
+      },
+      "kind": "artifact",
+      "oracle": {
+        "required": {
+          "containers": [],
+          "tickets": [],
+          "needs_discovery": true
+        }
+      },
+      "reference": {
+        "containers": [],
+        "tickets": [],
+        "needs_discovery": true
+      }
+    },
+    {
+      "id": "horizons",
+      "output": "horizon-assignment",
+      "request": "Return only an object mapping each input ID to \"Now\", \"Next\", or \"Later\".",
+      "input": {
+        "issues": [
+          {
+            "id": "A",
+            "state": "In Progress",
+            "actively_built": true
+          },
+          {
+            "id": "B",
+            "state": "Todo",
+            "spec_exists": true,
+            "blockers": []
+          },
+          {
+            "id": "C",
+            "state": "Backlog",
+            "blockers": []
+          }
+        ]
+      },
+      "kind": "decision",
+      "oracle": {
+        "required": {
+          "A": "Now",
+          "B": "Next",
+          "C": "Later"
+        }
+      },
+      "reference": {
+        "A": "Now",
+        "B": "Next",
+        "C": "Later"
+      }
+    },
+    {
+      "id": "optional-critique",
+      "output": "issue-critique",
+      "request": "Return \"unanswered\" if this lens does not supply this optional output; otherwise return the critique.",
+      "input": {
+        "issue": "A",
+        "spec": "A large change spanning several outcomes."
+      },
+      "kind": "decision",
+      "oracle": {
+        "required": "unanswered"
+      },
+      "reference": "unanswered"
+    },
+    {
+      "id": "empty-rehome",
+      "output": "rehome-set",
+      "request": "Return the proposed container list as an array. Do not write anything.",
+      "input": {
+        "loose_backlog": [
+          {
+            "id": "A",
+            "title": "Add search"
+          },
+          {
+            "id": "B",
+            "title": "Index documents"
+          }
+        ]
+      },
+      "kind": "decision",
+      "oracle": {
+        "required": []
+      },
+      "reference": []
+    },
+    {
+      "id": "termination-policy",
+      "output": "run-termination-policy",
+      "request": "Return {\"ladder\": [{\"test\": string, \"verdict\": string}, ...]} for the complete thematic policy. The controlled caller will run this supplied ladder against independent CLI signal cases.",
+      "input": {},
+      "kind": "consumer",
+      "oracle": {
+        "required": {
+          "ladder": [
+            {
+              "test": "non-convergence",
+              "verdict": "escalate"
+            },
+            {
+              "test": "budget-narrow",
+              "verdict": "continue"
+            },
+            {
+              "test": "budget-stop",
+              "verdict": "run-complete"
+            },
+            {
+              "test": "value-inflection",
+              "verdict": "run-complete"
+            },
+            {
+              "test": "work-remaining",
+              "verdict": "continue"
+            },
+            {
+              "test": "clean-complete",
+              "verdict": "run-complete"
+            }
+          ]
+        }
+      },
+      "reference": {
+        "ladder": [
+          {
+            "test": "non-convergence",
+            "verdict": "escalate"
+          },
+          {
+            "test": "budget-narrow",
+            "verdict": "continue"
+          },
+          {
+            "test": "budget-stop",
+            "verdict": "run-complete"
+          },
+          {
+            "test": "value-inflection",
+            "verdict": "run-complete"
+          },
+          {
+            "test": "work-remaining",
+            "verdict": "continue"
+          },
+          {
+            "test": "clean-complete",
+            "verdict": "run-complete"
+          }
+        ]
+      },
+      "consumer": "run-done",
+      "consumer_scenarios": [
+        {
+          "id": "non-convergence",
+          "args": [
+            "--non-convergence",
+            "--inflection",
+            "reached"
+          ],
+          "expected": {
+            "verdict": "escalate",
+            "reason": "non-convergence",
+            "conformant": true
+          }
+        },
+        {
+          "id": "narrow-before-inflection",
+          "args": [
+            "--budget",
+            "{\"breached\": [\"tokens\"], \"outcome\": \"narrow\"}",
+            "--inflection",
+            "reached"
+          ],
+          "expected": {
+            "verdict": "continue",
+            "reason": "budget-narrow(tokens)",
+            "conformant": true
+          }
+        },
+        {
+          "id": "budget-stop",
+          "args": [
+            "--budget",
+            "{\"breached\": [\"tokens\"], \"outcome\": \"stop\"}"
+          ],
+          "expected": {
+            "verdict": "run-complete",
+            "reason": "budget-hit(tokens)",
+            "conformant": true
+          }
+        },
+        {
+          "id": "inflection",
+          "args": [
+            "--inflection",
+            "reached"
+          ],
+          "expected": {
+            "verdict": "run-complete",
+            "reason": "value-inflection",
+            "conformant": true
+          }
+        },
+        {
+          "id": "work-remaining",
+          "args": [],
+          "expected": {
+            "verdict": "continue",
+            "reason": "work-remaining",
+            "conformant": true
+          }
+        },
+        {
+          "id": "drained",
+          "args": [
+            "--queue-empty",
+            "--ledger-clean"
+          ],
+          "expected": {
+            "verdict": "run-complete",
+            "reason": "drained",
+            "conformant": true
+          }
+        },
+        {
+          "id": "budget-floor",
+          "args": [
+            "--budget",
+            "{\"breached\": [\"tokens\"], \"outcome\": \"escalate\"}",
+            "--non-convergence"
+          ],
+          "expected": {
+            "verdict": "escalate",
+            "reason": "budget-escalated(tokens)",
+            "conformant": true
+          }
+        },
+        {
+          "id": "ledger-floor",
+          "args": [
+            "--queue-empty",
+            "--no-ledger-clean"
+          ],
+          "expected": {
+            "verdict": "continue",
+            "reason": "undispatched-ledger",
+            "conformant": true
+          }
+        },
+        {
+          "id": "product-floor",
+          "args": [
+            "--queue-empty",
+            "--ledger-clean",
+            "--prd-coverage",
+            "{\"satisfied\": false}"
+          ],
+          "expected": {
+            "verdict": "escalate",
+            "reason": "product-incomplete",
+            "conformant": true
+          }
+        }
+      ]
+    }
+  ]
+}

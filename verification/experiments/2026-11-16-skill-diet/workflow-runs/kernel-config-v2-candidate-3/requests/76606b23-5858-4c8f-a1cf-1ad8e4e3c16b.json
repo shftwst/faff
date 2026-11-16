@@ -1,0 +1,1 @@
+{"name":"submit_result","args":{"case_id":"legacy-name","status":"blocked","values":{},"reason":"Only .faffrc.yml exists, an invalid legacy config name; config get exits 2 and names .faff/config.yaml as the fix. Invalid legacy names fail loudly, never substitute defaults, and no migration is authorised, so the spec producer was not invoked."}}

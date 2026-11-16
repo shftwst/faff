@@ -24,10 +24,10 @@ for (const sample of samples) {
     const path = join(directory, 'assessment.json'), assessment = read(path);
     const assessmentSources = {
       'adversarial-review-execution': ['adversarial-execution.mjs', 'ORACLE-CORRECTION.md'],
-      'rendering-artifact-workflow': ['rendering-artifact.mjs', 'RENDERING-ORACLE-CORRECTION.md'],
+      'rendering-artifact-workflow': ['rendering-artifact.mjs', assessment.correction_kind === 'wtf-label-prefix' ? 'WTF-LABEL-CORRECTION.md' : 'RENDERING-ORACLE-CORRECTION.md'],
     }[manifest.kind];
     if (!assessmentSources || assessment.name !== sample.name || assessment.report_sha256 !== sha256(readFileSync(reportPath)) || assessment.capture_sha256 !== sha256(readFileSync(join(directory, 'capture.json'))) || assessment.fixture_sha256 !== manifest.fixture_sha256 || assessment.grader_sha256 !== sha256(readFileSync(resolve(root, '../../../eval/control-parity/', assessmentSources[0]))) || assessment.correction_sha256 !== sha256(readFileSync(join(root, 'workflow-fixtures', assessmentSources[1])))) throw new Error(`unbound assessment: ${sample.name}`);
-    if (manifest.kind === 'rendering-artifact-workflow' && assessment.assessor_sha256 !== sha256(readFileSync(join(root, 'assess-rendering-artifacts.mjs')))) throw new Error(`unbound rendering assessor: ${sample.name}`);
+    if (manifest.kind === 'rendering-artifact-workflow' && assessment.assessor_sha256 !== sha256(readFileSync(join(root, assessment.correction_kind === 'wtf-label-prefix' ? 'assess-wtf-format.mjs' : 'assess-rendering-artifacts.mjs')))) throw new Error(`unbound rendering assessor: ${sample.name}`);
     assessmentHash = sha256(readFileSync(path));
     report.grade = assessment.grade;
     report.status = assessment.status;

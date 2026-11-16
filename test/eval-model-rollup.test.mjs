@@ -92,6 +92,8 @@ test("renderResultMarkdown carries the role table, skill table, thin-rep marker 
   assert.match(md, /4\*/, "thin reps are starred");
   assert.match(md, /## Not measured/);
   assert.match(md, /reconciliation/);
+  const noted = renderResultMarkdown({ meta: { model_id: "m", date: "2026-01-02", driver: "local", effort: null, tier: "quick", commit: "abc", reference: { label: "ref" }, lanes: ["blackbox"], notes: "rebuilt from captures" }, rollup });
+  assert.match(noted, /- Notes: rebuilt from captures/);
 });
 
 test("storeResult writes result.json and README.md under <slug>/<date>", () => {

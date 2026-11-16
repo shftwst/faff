@@ -109,8 +109,9 @@ export function renderResultMarkdown(result) {
   const L = [];
   L.push(`# ${meta.model_id}: model evaluation result`, "");
   L.push(`- Date: ${meta.date}`, `- Driver: ${meta.driver}${meta.effort ? `, effort ${meta.effort}` : ""}`, `- Tier: ${meta.tier}`, `- Commit: ${meta.commit}`);
-  L.push(`- Reference: ${meta.reference.label}`, `- Lanes: ${meta.lanes.join(", ")}`, "");
-  L.push("Accuracy is the mean over a skill's eval kinds. Deltas compare only kinds the reference also measured.", "");
+  L.push(`- Reference: ${meta.reference.label}`, `- Lanes: ${meta.lanes.join(", ")}`);
+  if (meta.notes) L.push(`- Notes: ${meta.notes}`);
+  L.push("", "Accuracy is the mean over a skill's eval kinds, each kind the mean of its cases' accuracy. Deltas compare only kinds the reference also measured.", "");
   L.push("## By role", "", "| role | skills | kinds | model | reference | delta | reps |", "|---|---|---|---|---|---|---|");
   for (const [role, t] of Object.entries(rollup.by_role)) L.push(`| ${role} | ${t.skills} | ${t.kinds} | ${num(t.accuracy)} | ${num(t.reference_accuracy)} | ${signed(t.delta)} | ${t.reps} |`);
   L.push(`| **all** | ${rollup.all.skills} | ${rollup.all.kinds} | ${num(rollup.all.accuracy)} | ${num(rollup.all.reference_accuracy)} | ${signed(rollup.all.delta)} | ${rollup.all.reps} |`, "");

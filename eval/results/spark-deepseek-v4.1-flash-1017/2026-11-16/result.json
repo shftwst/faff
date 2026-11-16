@@ -1,0 +1,762 @@
+{
+  "schema": 1,
+  "meta": {
+    "model_id": "spark/deepseek-v4.1-flash-1017",
+    "driver": "local",
+    "effort": null,
+    "tier": "mixed (see notes)",
+    "date": "2026-11-16",
+    "commit": "94c684bc",
+    "lanes": [
+      "blackbox",
+      "live",
+      "format"
+    ],
+    "reference": {
+      "label": "claude-opus-5-5 (medium effort), eval/baselines/frontier.json",
+      "file": "eval/baselines/frontier.json",
+      "model": "claude-opus-5-5",
+      "effort": "medium",
+      "captured_at": "2026-10-05"
+    },
+    "captures": [
+      "20261115-005822",
+      "20261115-080655",
+      "20261115-092725"
+    ],
+    "notes": "Black-box lane rebuilt from three raw captures: 20 kinds at 20 to 50 reps per case (a full sweep stopped part-way, 2026-11-15), 11 kinds at 5 reps per case, and refutation-spec at 3 reps per case. Live and format lanes come from one quick-tier run on 2026-11-16 (6 format samples per producer; finding-identity runs one pair per case). The confidence kind was measured with the rubric wording before FAFF-1482; with the reworded rubric it scores 0.99 over 120 reps."
+  },
+  "per_kind": {
+    "adr-drift": {
+      "accuracy": 0.94,
+      "stability": 0.94,
+      "format_adherence": 1,
+      "cases": 2,
+      "reps": 100,
+      "min_reps_per_case": 50,
+      "errored": 0
+    },
+    "adr-gloss": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1,
+      "cases": 2,
+      "reps": 40,
+      "min_reps_per_case": 20,
+      "errored": 0
+    },
+    "architecture": {
+      "accuracy": 0.9299999999999999,
+      "stability": 0.9299999999999999,
+      "format_adherence": 1,
+      "cases": 2,
+      "reps": 70,
+      "min_reps_per_case": 20,
+      "errored": 0
+    },
+    "chain-gap": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1,
+      "cases": 2,
+      "reps": 40,
+      "min_reps_per_case": 20,
+      "errored": 0
+    },
+    "confidence": {
+      "accuracy": 0.8566666666666666,
+      "stability": 0.8566666666666666,
+      "format_adherence": 0.9966666666666667,
+      "cases": 6,
+      "reps": 270,
+      "min_reps_per_case": 20,
+      "errored": 0
+    },
+    "decomposition": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1,
+      "cases": 2,
+      "reps": 40,
+      "min_reps_per_case": 20,
+      "errored": 0
+    },
+    "dupe": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 0.8999999999999999,
+      "cases": 2,
+      "reps": 40,
+      "min_reps_per_case": 20,
+      "errored": 0
+    },
+    "explanatory-order": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1,
+      "cases": 2,
+      "reps": 40,
+      "min_reps_per_case": 20,
+      "errored": 0
+    },
+    "gloss": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 0.7666666666666666,
+      "cases": 3,
+      "reps": 60,
+      "min_reps_per_case": 20,
+      "errored": 0
+    },
+    "grouping": {
+      "accuracy": 0.9,
+      "stability": 0.9,
+      "format_adherence": 1,
+      "cases": 1,
+      "reps": 50,
+      "min_reps_per_case": 50,
+      "errored": 0
+    },
+    "holdout": {
+      "accuracy": 0.96,
+      "stability": 0.96,
+      "format_adherence": 1,
+      "cases": 2,
+      "reps": 100,
+      "min_reps_per_case": 50,
+      "errored": 0
+    },
+    "holdout-exercise": {
+      "accuracy": 0.94,
+      "stability": 0.94,
+      "format_adherence": 1,
+      "cases": 3,
+      "reps": 120,
+      "min_reps_per_case": 20,
+      "errored": 0
+    },
+    "marker": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1,
+      "cases": 2,
+      "reps": 40,
+      "min_reps_per_case": 20,
+      "errored": 0
+    },
+    "modedetect": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1,
+      "cases": 3,
+      "reps": 60,
+      "min_reps_per_case": 20,
+      "errored": 0
+    },
+    "ordering": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 0.95,
+      "cases": 2,
+      "reps": 40,
+      "min_reps_per_case": 20,
+      "errored": 0
+    },
+    "park-reconsider-classification": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1,
+      "cases": 4,
+      "reps": 80,
+      "min_reps_per_case": 20,
+      "errored": 0
+    },
+    "prd-readiness": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1,
+      "cases": 4,
+      "reps": 80,
+      "min_reps_per_case": 20,
+      "errored": 0
+    },
+    "prdr-yagni": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1,
+      "cases": 2,
+      "reps": 40,
+      "min_reps_per_case": 20,
+      "errored": 0
+    },
+    "prep-architecture-trigger": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1,
+      "cases": 2,
+      "reps": 40,
+      "min_reps_per_case": 20,
+      "errored": 0
+    },
+    "refutation-code": {
+      "accuracy": 0.8571428571428571,
+      "stability": 1,
+      "format_adherence": 1,
+      "cases": 7,
+      "reps": 140,
+      "min_reps_per_case": 20,
+      "errored": 0
+    },
+    "resolved-elsewhere": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1,
+      "cases": 1,
+      "reps": 5,
+      "min_reps_per_case": 5,
+      "errored": 0
+    },
+    "roadmap": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1,
+      "cases": 2,
+      "reps": 10,
+      "min_reps_per_case": 5,
+      "errored": 0
+    },
+    "routing": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1,
+      "cases": 6,
+      "reps": 30,
+      "min_reps_per_case": 5,
+      "errored": 0
+    },
+    "shaping": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1,
+      "cases": 2,
+      "reps": 10,
+      "min_reps_per_case": 5,
+      "errored": 0
+    },
+    "spec-verdict": {
+      "accuracy": 0.9333333333333332,
+      "stability": 0.9333333333333332,
+      "format_adherence": 1,
+      "cases": 3,
+      "reps": 15,
+      "min_reps_per_case": 5,
+      "errored": 0
+    },
+    "specqual": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1,
+      "cases": 3,
+      "reps": 15,
+      "min_reps_per_case": 5,
+      "errored": 0
+    },
+    "splittable": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1,
+      "cases": 2,
+      "reps": 10,
+      "min_reps_per_case": 5,
+      "errored": 0
+    },
+    "stale": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1,
+      "cases": 2,
+      "reps": 10,
+      "min_reps_per_case": 5,
+      "errored": 0
+    },
+    "superseded": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 0.9,
+      "cases": 2,
+      "reps": 10,
+      "min_reps_per_case": 5,
+      "errored": 0
+    },
+    "vague": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 0.8,
+      "cases": 2,
+      "reps": 10,
+      "min_reps_per_case": 5,
+      "errored": 0
+    },
+    "verdict-revert": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": 1,
+      "cases": 2,
+      "reps": 10,
+      "min_reps_per_case": 5,
+      "errored": 0
+    },
+    "refutation-spec": {
+      "accuracy": 0.5490196078431373,
+      "stability": 0.7843137254901962,
+      "format_adherence": 1,
+      "cases": 17,
+      "reps": 51,
+      "min_reps_per_case": 3,
+      "errored": 0
+    },
+    "reconciliation": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": null,
+      "cases": 3,
+      "reps": 15,
+      "min_reps_per_case": 5,
+      "errored": 0
+    },
+    "verdict-build": {
+      "accuracy": 1,
+      "stability": 1,
+      "format_adherence": null,
+      "cases": 1,
+      "reps": 5,
+      "min_reps_per_case": 5,
+      "errored": 0
+    },
+    "finding-identity": {
+      "accuracy": 0.875,
+      "stability": 1,
+      "format_adherence": null,
+      "cases": 16,
+      "reps": 16,
+      "min_reps_per_case": 1,
+      "errored": 0
+    },
+    "holdout-live": {
+      "accuracy": 0.7,
+      "stability": 0.8,
+      "format_adherence": null,
+      "cases": 2,
+      "reps": 10,
+      "min_reps_per_case": 5,
+      "errored": 0
+    }
+  },
+  "rollup": {
+    "rows": [
+      {
+        "skill": "faffter-dark-spec-review",
+        "role": "reviewer",
+        "kinds": [
+          "refutation-spec"
+        ],
+        "accuracy": 0.549,
+        "reference_accuracy": 0.904,
+        "delta": -0.355,
+        "format_adherence": 1,
+        "reference_format_adherence": 1,
+        "reps": 51,
+        "min_reps_per_case": 3,
+        "weakest_kind": "refutation-spec",
+        "weakest_accuracy": 0.549
+      },
+      {
+        "skill": "faffter-noon-spec-review",
+        "role": "reviewer",
+        "kinds": [
+          "spec-verdict"
+        ],
+        "accuracy": 0.933,
+        "reference_accuracy": 1,
+        "delta": -0.067,
+        "format_adherence": 1,
+        "reference_format_adherence": 1,
+        "reps": 15,
+        "min_reps_per_case": 5,
+        "weakest_kind": "spec-verdict",
+        "weakest_accuracy": 0.933
+      },
+      {
+        "skill": "faffter-noon-review",
+        "role": "reviewer",
+        "kinds": [
+          "verdict-revert",
+          "verdict-build",
+          "finding-identity"
+        ],
+        "accuracy": 0.958,
+        "reference_accuracy": 1,
+        "delta": -0.063,
+        "format_adherence": 1,
+        "reference_format_adherence": 1,
+        "reps": 31,
+        "min_reps_per_case": 1,
+        "weakest_kind": "finding-identity",
+        "weakest_accuracy": 0.875
+      },
+      {
+        "skill": "faffter-dark-methodology-agile-delivery",
+        "role": "producer",
+        "kinds": [
+          "grouping"
+        ],
+        "accuracy": 0.9,
+        "reference_accuracy": 0.96,
+        "delta": -0.06,
+        "format_adherence": 1,
+        "reference_format_adherence": 1,
+        "reps": 50,
+        "min_reps_per_case": 50,
+        "weakest_kind": "grouping",
+        "weakest_accuracy": 0.9
+      },
+      {
+        "skill": "faffter-noon-architecture",
+        "role": "producer",
+        "kinds": [
+          "architecture"
+        ],
+        "accuracy": 0.93,
+        "reference_accuracy": 0.99,
+        "delta": -0.06,
+        "format_adherence": 1,
+        "reference_format_adherence": 0.955,
+        "reps": 70,
+        "min_reps_per_case": 20,
+        "weakest_kind": "architecture",
+        "weakest_accuracy": 0.93
+      },
+      {
+        "skill": "faffter-noon-evaluate",
+        "role": "judge",
+        "kinds": [
+          "holdout",
+          "holdout-exercise",
+          "holdout-live"
+        ],
+        "accuracy": 0.867,
+        "reference_accuracy": 1,
+        "delta": -0.05,
+        "format_adherence": 1,
+        "reference_format_adherence": 1,
+        "reps": 230,
+        "min_reps_per_case": 5,
+        "weakest_kind": "holdout-live",
+        "weakest_accuracy": 0.7
+      },
+      {
+        "skill": "faffter-noon-spec",
+        "role": "producer",
+        "kinds": [
+          "confidence",
+          "marker",
+          "specqual"
+        ],
+        "accuracy": 0.952,
+        "reference_accuracy": 1,
+        "delta": -0.048,
+        "format_adherence": 0.999,
+        "reference_format_adherence": 0.983,
+        "reps": 325,
+        "min_reps_per_case": 5,
+        "weakest_kind": "confidence",
+        "weakest_accuracy": 0.857
+      },
+      {
+        "skill": "faffter-dark-adversarial-review",
+        "role": "reviewer",
+        "kinds": [
+          "refutation-code",
+          "adr-drift",
+          "prdr-yagni"
+        ],
+        "accuracy": 0.932,
+        "reference_accuracy": 0.933,
+        "delta": -0.001,
+        "format_adherence": 1,
+        "reference_format_adherence": 1,
+        "reps": 280,
+        "min_reps_per_case": 20,
+        "weakest_kind": "refutation-code",
+        "weakest_accuracy": 0.857
+      },
+      {
+        "skill": "faff-jot",
+        "role": "producer",
+        "kinds": [
+          "shaping"
+        ],
+        "accuracy": 1,
+        "reference_accuracy": 1,
+        "delta": 0,
+        "format_adherence": 1,
+        "reference_format_adherence": 1,
+        "reps": 10,
+        "min_reps_per_case": 5,
+        "weakest_kind": "shaping",
+        "weakest_accuracy": 1
+      },
+      {
+        "skill": "faff-map",
+        "role": "producer",
+        "kinds": [
+          "roadmap"
+        ],
+        "accuracy": 1,
+        "reference_accuracy": 1,
+        "delta": 0,
+        "format_adherence": 1,
+        "reference_format_adherence": 0.925,
+        "reps": 10,
+        "min_reps_per_case": 5,
+        "weakest_kind": "roadmap",
+        "weakest_accuracy": 1
+      },
+      {
+        "skill": "faff-plot",
+        "role": "producer",
+        "kinds": [
+          "decomposition"
+        ],
+        "accuracy": 1,
+        "reference_accuracy": 1,
+        "delta": 0,
+        "format_adherence": 1,
+        "reference_format_adherence": 1,
+        "reps": 40,
+        "min_reps_per_case": 20,
+        "weakest_kind": "decomposition",
+        "weakest_accuracy": 1
+      },
+      {
+        "skill": "faff-prep",
+        "role": "producer",
+        "kinds": [
+          "reconciliation",
+          "prep-architecture-trigger",
+          "park-reconsider-classification"
+        ],
+        "accuracy": 1,
+        "reference_accuracy": 1,
+        "delta": 0,
+        "format_adherence": 1,
+        "reference_format_adherence": 1,
+        "reps": 135,
+        "min_reps_per_case": 5,
+        "weakest_kind": "reconciliation",
+        "weakest_accuracy": 1
+      },
+      {
+        "skill": "faffidavit-routing",
+        "role": "producer",
+        "kinds": [
+          "routing"
+        ],
+        "accuracy": 1,
+        "reference_accuracy": 1,
+        "delta": 0,
+        "format_adherence": 1,
+        "reference_format_adherence": 1,
+        "reps": 30,
+        "min_reps_per_case": 5,
+        "weakest_kind": "routing",
+        "weakest_accuracy": 1
+      },
+      {
+        "skill": "faffter-noon-adr",
+        "role": "producer",
+        "kinds": [
+          "adr-gloss"
+        ],
+        "accuracy": 1,
+        "reference_accuracy": 1,
+        "delta": 0,
+        "format_adherence": 1,
+        "reference_format_adherence": 1,
+        "reps": 40,
+        "min_reps_per_case": 20,
+        "weakest_kind": "adr-gloss",
+        "weakest_accuracy": 1
+      },
+      {
+        "skill": "faffter-noon-intake",
+        "role": "producer",
+        "kinds": [
+          "modedetect"
+        ],
+        "accuracy": 1,
+        "reference_accuracy": 1,
+        "delta": 0,
+        "format_adherence": 1,
+        "reference_format_adherence": 1,
+        "reps": 60,
+        "min_reps_per_case": 20,
+        "weakest_kind": "modedetect",
+        "weakest_accuracy": 1
+      },
+      {
+        "skill": "faffter-noon-methodology-thematic",
+        "role": "producer",
+        "kinds": [
+          "ordering"
+        ],
+        "accuracy": 1,
+        "reference_accuracy": 1,
+        "delta": 0,
+        "format_adherence": 0.95,
+        "reference_format_adherence": 1,
+        "reps": 40,
+        "min_reps_per_case": 20,
+        "weakest_kind": "ordering",
+        "weakest_accuracy": 1
+      },
+      {
+        "skill": "faffter-noon-prd",
+        "role": "producer",
+        "kinds": [
+          "prd-readiness"
+        ],
+        "accuracy": 1,
+        "reference_accuracy": 1,
+        "delta": 0,
+        "format_adherence": 1,
+        "reference_format_adherence": 1,
+        "reps": 80,
+        "min_reps_per_case": 20,
+        "weakest_kind": "prd-readiness",
+        "weakest_accuracy": 1
+      },
+      {
+        "skill": "faff-tidy",
+        "role": "producer",
+        "kinds": [
+          "dupe",
+          "vague",
+          "stale",
+          "superseded",
+          "splittable",
+          "chain-gap",
+          "resolved-elsewhere"
+        ],
+        "accuracy": 1,
+        "reference_accuracy": 0.997,
+        "delta": 0.003,
+        "format_adherence": 0.943,
+        "reference_format_adherence": 1,
+        "reps": 125,
+        "min_reps_per_case": 5,
+        "weakest_kind": "dupe",
+        "weakest_accuracy": 1
+      },
+      {
+        "skill": "faffidavit-rendering",
+        "role": "producer",
+        "kinds": [
+          "gloss",
+          "explanatory-order"
+        ],
+        "accuracy": 1,
+        "reference_accuracy": 0.99,
+        "delta": 0.01,
+        "format_adherence": 0.883,
+        "reference_format_adherence": 1,
+        "reps": 100,
+        "min_reps_per_case": 20,
+        "weakest_kind": "gloss",
+        "weakest_accuracy": 1
+      }
+    ],
+    "by_role": {
+      "judge": {
+        "skills": 1,
+        "kinds": 3,
+        "accuracy": 0.867,
+        "reference_accuracy": 1,
+        "delta": -0.05,
+        "reps": 230
+      },
+      "producer": {
+        "skills": 14,
+        "kinds": 25,
+        "accuracy": 0.987,
+        "reference_accuracy": 0.996,
+        "delta": -0.009,
+        "reps": 1115
+      },
+      "reviewer": {
+        "skills": 4,
+        "kinds": 8,
+        "accuracy": 0.894,
+        "reference_accuracy": 0.958,
+        "delta": -0.078,
+        "reps": 377
+      }
+    },
+    "all": {
+      "skills": 19,
+      "kinds": 36,
+      "accuracy": 0.957,
+      "reference_accuracy": 0.988,
+      "delta": -0.026,
+      "reps": 1722
+    },
+    "unmeasured": [
+      {
+        "kind": "spec-judge-discrimination",
+        "skill": "faffter-dark-spec-review",
+        "status": "designed"
+      },
+      {
+        "kind": "build-adjudication",
+        "skill": "faffter-dark-adversarial-review",
+        "status": "designed"
+      }
+    ]
+  },
+  "format": {
+    "producers": [
+      {
+        "producer": "spec",
+        "samples": 6,
+        "passed": 6,
+        "failures": {},
+        "note": null
+      },
+      {
+        "producer": "architecture",
+        "samples": 6,
+        "passed": 6,
+        "failures": {},
+        "note": null
+      },
+      {
+        "producer": "routing",
+        "samples": 6,
+        "passed": 6,
+        "failures": {},
+        "note": null
+      },
+      {
+        "producer": "adr",
+        "samples": 6,
+        "passed": 5,
+        "failures": {
+          "headings were: ADR: Use Postgres LISTEN/NOTIFY for the webhook ingest queue | Context | Decision | Consequences": 1
+        },
+        "note": "A title or a Self-review heading is a miss. The confidence line is advisory and not machine-parsed."
+      }
+    ],
+    "checked_at": "2026-11-16T03:42:56.816Z"
+  },
+  "skipped": []
+}

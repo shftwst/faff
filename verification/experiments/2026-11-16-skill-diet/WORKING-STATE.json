@@ -1,19 +1,19 @@
 {
-  "updated_utc": "2026-11-16T11:27:15.518300+00:00",
+  "updated_utc": "2026-11-16T11:38:44.567829+00:00",
   "deadline_utc": "2026-11-16 16:13:53 UTC",
   "accepted_saved_bytes": 94511,
   "accepted_saved_estimated_tokens": 23289,
   "accepted_total_bytes": 1274924,
   "accepted_total_estimated_tokens": 315990,
   "accepted": "Gateway, adversarial, rendering V2, thematic, kernel V4 and 26 discovery descriptions.",
-  "pending": "Fresh Astra-low PRD V2, review V3 and agile V3 baseline sets running. WTF V2, map and routing still pending. No new source cuts counted.",
+  "pending": "PRD Astra V2 candidate set running after five passing baseline samples and manual review of all thirty baseline artifacts. Review Astra V3 baseline five running; first twenty-eight artifacts read. Agile Astra V3 baseline two running; first eight diagnoses read. WTF V2, map and routing queued. No pending source cuts counted.",
   "controllers": {
     "prd": "/tmp/faff-astra-prd-v2-baseline.log and /tmp/faff-astra-prd-v2-pair.log",
     "review": "/tmp/faff-astra-review-baseline.log and /tmp/faff-astra-review-pair-then-map.log",
     "agile": "/tmp/faff-astra-agile-v3-baseline.log and /tmp/faff-astra-agile-v3-pair-then-routing.log",
     "wtf": "/tmp/faff-astra-wtf-v2-pair.log waits for PRD pair"
   },
-  "integration": "Rendering anchor fix: 524/524 eval tests and all PR CI checks green at 0ff0f4dc. Pending PRD/review cuts still require matching loader/wording-test updates.",
+  "integration": "All PR CI checks green at 43c8e46f, including full Node 24 source-build suite. Pending PRD/review cuts still require matching loader/wording-test updates.",
   "claude_usage": "Weekly allowance exhausted. All Claude queues stopped; no usage credits enabled.",
   "fallback": "Actual Codex CLI model gpt-6-astra, low effort, version 0.169.0 verified. Native wrapper parsing tested. First PRD sample remains failed for wrong literal path; first review native audit passed. No cross-provider pooling."
 }

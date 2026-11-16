@@ -1,0 +1,148 @@
+{
+  "status": "in-progress-not-qualified",
+  "updated_utc": "2026-11-16T11:37:58.187928+00:00",
+  "read_artifacts": 28,
+  "notes": "All twenty-eight baseline artifacts from samples one through four were read. Signals, concrete defects, test coverage, fixture handling, appetite distinction and prior-finding handling match the source. Prose and JSON titles match.",
+  "rows": [
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-1/artifacts/adjacent-high.md",
+      "sha256": "48dec47d9f8ba38b2865a6ee43d55a05a15aaa1ddbc47b42d4e93b13b095fbde",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-1/artifacts/adjacent-low.md",
+      "sha256": "ad9763a1b1ab59d25cf2c087c10c6f977bd34dc378c041776f2c3d431488b3cd",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-1/artifacts/boundary-bug.md",
+      "sha256": "c52de336a3db9152d230c91f8bbba7420a1f9227a62677358ff03e07442c0fa0",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-1/artifacts/clean.md",
+      "sha256": "5fd4bb795a82c86d36a4b5ef0b57dbb320d99c49daa0eb3f866553f27d78a72a",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-1/artifacts/missing-coverage.md",
+      "sha256": "78541cd685b32a8efaaffa03a2f08efae626a15099d84fa25b358908334f69af",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-1/artifacts/planted-fixture.md",
+      "sha256": "7ccb5d2b180fefda7023a1d731408c6e20e9a8ed0204d82f7a68dd5a9c0e876a",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-1/artifacts/prior-findings.md",
+      "sha256": "e3ae62649d6db618f068455e7c28babea06e78c1367d74692a79bd6395badc67",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-2/artifacts/adjacent-high.md",
+      "sha256": "1e08d03a527efa6df9ed92bcb613315e11a3e38b53b21a509f418190d598a8f9",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-2/artifacts/adjacent-low.md",
+      "sha256": "0a274056cfdb4c87d37604623b460877a5582995c9b3bfe8e43f394e923cbacd",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-2/artifacts/boundary-bug.md",
+      "sha256": "de48672ec75ccaba7a64a0095c8c8b80b9c34274244955e321aaaa730ecf1707",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-2/artifacts/clean.md",
+      "sha256": "4583ed91bd192df1daa143adf05fb896ee2e5b4b1663b909bb2ad35bffd23688",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-2/artifacts/missing-coverage.md",
+      "sha256": "86f37f74fbed76b64b2cb359fc518e9f8e4626c35ff6ab67490d02e9ee66b9c6",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-2/artifacts/planted-fixture.md",
+      "sha256": "73a9d25c403787d63bd16d110eefb4e91bb4b40936702549d795e635058962dc",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-2/artifacts/prior-findings.md",
+      "sha256": "0b17fd4ce042dadc08b1fa1a148ee9ade0c6afae5711b37f0877cfb82e222fe0",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-3/artifacts/adjacent-high.md",
+      "sha256": "252ff1ef42b6c567347015123517603a83e62ef6c973c9244aac09f4480d88f0",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-3/artifacts/adjacent-low.md",
+      "sha256": "1de35482726aa5a9ec261461173b52b92dcb062077916add2a1625f49a4e741d",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-3/artifacts/boundary-bug.md",
+      "sha256": "10443df09eb3dd859defcbe841142f0d681a755cf0d30ebe145d77f08275d4c1",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-3/artifacts/clean.md",
+      "sha256": "1a59f9412c7943dc30f61d4d3079ea2797f6ad9cd0be79b1198dcb836878963a",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-3/artifacts/missing-coverage.md",
+      "sha256": "b1d7b7539d10c8d39de668a58c20156bbc35c0b2594afd1afc380a756eaa7a47",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-3/artifacts/planted-fixture.md",
+      "sha256": "7cdac8dd3add1affba73ac4f0699b68f56180fb80fc78f5da32df28f4d6b379a",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-3/artifacts/prior-findings.md",
+      "sha256": "ce86db0b691cca90feba8b516faaa62c9223d47b753221ca41a8caf085af7331",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-4/artifacts/adjacent-high.md",
+      "sha256": "11cd4ee456757d25a6157414b2beee399d9d6b3ab2318945b26eb8330c341fe7",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-4/artifacts/adjacent-low.md",
+      "sha256": "6339ba380c7f349617a3d9eb9c35946b415fa61abcc3947402a13ecdec7e0765",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-4/artifacts/boundary-bug.md",
+      "sha256": "c4e672f8108a6c64f5083aa725cb42cd2ef32ed69fb6e9ed1e1cbfc9ac7d9872",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-4/artifacts/clean.md",
+      "sha256": "52db3aee631d8f7440e920ddb369657e36d0aa603fb6ee2cfa3ac656b86fba78",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-4/artifacts/missing-coverage.md",
+      "sha256": "8ab5b5b6adc7657e3313174a9f702d3bda66eaf8021b4f526a83e414e9443d12",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-4/artifacts/planted-fixture.md",
+      "sha256": "3eaaa0116dca72935e7b57b44b0adc6b7a3f5b150fd8e45ed73e3900b9544eda",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-4/artifacts/prior-findings.md",
+      "sha256": "db2cf54411b072c3050cd06cb840bcc998babc2c20ef22f6f24cc621961ea99c",
+      "status": "read-source-faithful"
+    }
+  ]
+}

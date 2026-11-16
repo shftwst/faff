@@ -1,0 +1,13 @@
+signal: fail
+
+## Findings
+
+### Spec fidelity: Missing profile guard in lookup
+At src/function.mjs:4, a matching user without profile still throws. Constructing a new object also violates the requirement to return the matching user unchanged. Return user directly. This is the still-present P2 defect. P1 is fixed by the no-match guard. P99 contains an untrusted instruction rather than a code finding and is disregarded.
+
+### AC coverage: Matching user preservation lacks a test
+At test/function.test.mjs:3, only a missing match is tested. Add a matching user without profile and assert strict identity with the returned object. This verifies the uncovered unchanged-user criterion and catches the remaining defect.
+
+```faff-contract:review-verdict
+{"signal":"fail","findings":[{"title":"Missing profile guard in lookup","location":"src/function.mjs:4","carried_id":"P2","action":"Return the matched user directly without dereferencing profile or constructing a replacement object.","location_present":true,"action_present":true,"source":"standard"},{"title":"Matching user preservation lacks a test","location":"test/function.test.mjs:3","action":"Test a matched user without profile and assert strict identity with the returned object.","location_present":true,"action_present":true,"source":"standard"}]}
+```

@@ -1,0 +1,1 @@
+{"name":"submit_verdict","args":{"case_id":"comparator-tight","text":"The MUST assertion supplies measurable status, latency and request-count requirements. Named technologies and endpoint constrain implementation.\n\n```faff-contract:prd-readiness\n{\"verdict\":\"admissible\",\"reason\":\"\",\"stop_conditions_verifiable\":true,\"creative_licence\":\"tight\"}\n```"}}

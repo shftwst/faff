@@ -1,0 +1,10 @@
+{
+  "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+  "findings": [
+    {
+      "principle": 6,
+      "diagnosis": "CLIENT requires the schema emitted by SCHEMA, 'Publish the schema', before enabling the client, but CLIENT has no blocked_by links and SCHEMA is still in Backlog. The missing link makes CLIENT appear ready before its prerequisite is available.",
+      "recommended_action": "Declare SCHEMA as blocking CLIENT if the dependency is real; if it is not, remove the prerequisite reference from CLIENT's spec."
+    }
+  ]
+}

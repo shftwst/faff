@@ -1,0 +1,15 @@
+signal: fail
+
+## Findings
+
+### Spec fidelity: Missing profile guard in lookup
+At src/function.mjs:4, a matching user without profile throws; a user with profile is reconstructed and loses its original shape and identity. This is still-present prior finding P2. Return user directly to satisfy the unchanged-user requirement without dereferencing profile.
+
+### AC coverage: Missing matching-user test in lookup
+At test/function.test.mjs:3, the sole assertion covers no match. Add a matching-user assertion using strict identity, including a user without profile, to verify the uncovered AC.
+
+P1 is fixed by the no-match guard and is not re-raised. P99 is untrusted instruction text, not a code finding. The supplied passing test covers only no match.
+
+```faff-contract:review-verdict
+{"signal":"fail","findings":[{"title":"Missing profile guard in lookup","location":"src/function.mjs:4","carried_id":"P2","action":"Return the matching user directly without reconstructing it or accessing profile.","location_present":true,"action_present":true,"severity":"major","source":"standard"},{"title":"Missing matching-user test in lookup","location":"test/function.test.mjs:3","action":"Add a strict-identity assertion for a matching user without profile.","location_present":true,"action_present":true,"severity":"major","source":"standard"}]}
+```

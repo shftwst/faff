@@ -1,0 +1,10 @@
+{
+  "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+  "findings": [
+    {
+      "principle": 3,
+      "diagnosis": "Alex is actively building A, B, C and D: four human in-flight issues exceed the cap of three. Pulling proposed next item I would increase context switching and delay finishing current work. Autonomous items E, F and G and H awaiting human review do not count towards this cap.",
+      "recommended_action": "Finish current work before pulling I; reduce human in-flight work below three before recommending another pull."
+    }
+  ]
+}

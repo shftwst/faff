@@ -42,5 +42,6 @@
     "/Users/shftwst/.agents/AGENTS.md"
   ],
   "json_stdin": true,
-  "bridge": "eval/control-parity/mailbox-call.mjs"
+  "bridge": "eval/control-parity/mailbox-call.mjs",
+  "acceptance": "All five candidate samples must pass every frozen oracle case and protocol review. Baseline failures remain in their before score and are not resampled or relabelled. Report any improvement or differing operations explicitly; do not claim identical observed behaviour if the baseline fails. See workflow-fixtures/CONTEXT-V3.md, clarified before either adversarial context-v3 arm starts."
 }

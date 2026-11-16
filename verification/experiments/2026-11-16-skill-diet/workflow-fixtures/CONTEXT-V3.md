@@ -38,3 +38,23 @@ pair. Earlier failed or incomplete treatments are not pooled into acceptance.
 Existing all-case oracle requirements remain. Native screens require a separate
 protocol review; an effect-grade pass alone is insufficient. Small samples and
 screens do not establish statistical equivalence or complete native-tool logging.
+
+## Adversarial acceptance clarification before context-v3 samples
+
+The delivery-v2 pilot exposed a baseline configuration-forwarding defect. It is
+not reasonable to erase or repeatedly resample that defect to manufacture a
+perfect before score. Before collecting either adversarial context-v3 arm, the
+retention rule is made explicit: all five candidate runs must pass every oracle
+case and the protocol review, with zero unsafe gate results or protected-file
+changes. Both arms receive their unmodified per-case pass/fail grades. Every
+baseline error remains in the denominator and is reported as a before-score
+failure, not waived or relabelled. A baseline failure does not by itself require
+reverting a candidate that satisfies every intended rule.
+
+This clarifies the earlier wording that required every case in both arms to
+pass. The older treatment still fails its original gate. The new comparison can
+show improvement over the baseline; if so, it must not be described as identical
+observed behaviour or perfect parity. The configured budget is part of the
+oracle, and final gate equality cannot hide a wrong argument. Any candidate
+failure stops acceptance and requires investigation. No sample replacement or
+selective omission is permitted.

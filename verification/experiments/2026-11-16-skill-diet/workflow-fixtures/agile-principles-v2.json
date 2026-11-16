@@ -1,0 +1,596 @@
+{
+  "schema": 1,
+  "scope": "Bounded agile diagnosis/template comparison. Eight actual persisted named-output artifacts and eighteen separate decisions. No tracker writes, reparenting, build-queue execution, PRDR authoring or full caller workflow. Outside the seven-principle explanatory section remains unchanged; complete principle 2 and all operative Rule paragraphs remain verbatim.",
+  "cases": [
+    {
+      "id": "activity-name",
+      "output": "backlog-diagnostics",
+      "request": "Produce the requested named output from this fresh caller snapshot. Return {\"banner\": string, \"findings\": [{\"principle\": integer, \"diagnosis\": string, \"recommended_action\": string}]}. Include evidence and the concrete consequence in each diagnosis. Do not mutate the tracker. The shared topology floor has already found no cycles, stale blockers, duplicates or ghost projects. Other relevant principle findings may accompany the central finding.",
+      "input": {
+        "appetite": "low",
+        "workstreams": [
+          {
+            "id": "W1",
+            "name": "Q2 sprint 3",
+            "outcome": "Reduce checkout abandonment",
+            "issues": [
+              {
+                "id": "A",
+                "title": "Keep the checkout address on validation error"
+              }
+            ]
+          }
+        ]
+      },
+      "kind": "artifact",
+      "oracle": {
+        "required": {
+          "banner": "Methodology: faffter-dark-methodology-agile-delivery"
+        },
+        "must_include": [
+          "\"principle\":1",
+          "W1",
+          "checkout",
+          "renam|name.*outcome|outcome.*name"
+        ],
+        "must_avoid": [
+          "You are doing this wrong",
+          "You.re doing this wrong",
+          "Best practice is",
+          "You should"
+        ]
+      },
+      "reference": {
+        "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+        "findings": [
+          {
+            "principle": 1,
+            "diagnosis": "W1 (Q2 sprint 3) is time/activity-named, hiding its checkout outcome and making sequencing harder.",
+            "recommended_action": "Rename W1 for its checkout outcome."
+          }
+        ]
+      }
+    },
+    {
+      "id": "human-wip",
+      "output": "standup-digest",
+      "request": "Produce the requested named output from this fresh caller snapshot. Return {\"banner\": string, \"findings\": [{\"principle\": integer, \"diagnosis\": string, \"recommended_action\": string}]}. Include evidence and the concrete consequence in each diagnosis. Do not mutate the tracker. The shared topology floor has already found no cycles, stale blockers, duplicates or ghost projects. Other relevant principle findings may accompany the central finding.",
+      "input": {
+        "appetite": "low",
+        "person": "Alex",
+        "human_in_flight": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "autonomous_in_flight": [
+          "E",
+          "F",
+          "G"
+        ],
+        "awaiting_human_review": [
+          "H"
+        ],
+        "proposed_next": "I"
+      },
+      "kind": "artifact",
+      "oracle": {
+        "required": {
+          "banner": "Methodology: faffter-dark-methodology-agile-delivery"
+        },
+        "must_include": [
+          "\"principle\":3",
+          "Alex",
+          "A",
+          "B",
+          "C",
+          "D",
+          "3",
+          "finish|complete",
+          "before"
+        ],
+        "must_avoid": [
+          "You are doing this wrong",
+          "You.re doing this wrong",
+          "Best practice is",
+          "You should"
+        ]
+      },
+      "reference": {
+        "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+        "findings": [
+          {
+            "principle": 3,
+            "diagnosis": "Alex has 4 human-driven items A, B, C and D in flight, over the cap of 3; more context switching delays finished value.",
+            "recommended_action": "Finish an in-flight item before pulling I; autonomous E, F and G and review queue H do not count."
+          }
+        ]
+      }
+    },
+    {
+      "id": "right-size",
+      "output": "issue-critique",
+      "request": "Produce the requested named output from this fresh caller snapshot. Return {\"banner\": string, \"findings\": [{\"principle\": integer, \"diagnosis\": string, \"recommended_action\": string}]}. Include evidence and the concrete consequence in each diagnosis. Do not mutate the tracker. The shared topology floor has already found no cycles, stale blockers, duplicates or ghost projects. Other relevant principle findings may accompany the central finding.",
+      "input": {
+        "appetite": "low",
+        "issue": {
+          "id": "BIG",
+          "title": "Improve account access",
+          "estimate_days": 6,
+          "spec": "Add a session-token verifier (three days) and an independent account-recovery UI (three days). Either concern can ship without the other."
+        }
+      },
+      "kind": "artifact",
+      "oracle": {
+        "required": {
+          "banner": "Methodology: faffter-dark-methodology-agile-delivery"
+        },
+        "must_include": [
+          "\"principle\":4",
+          "BIG",
+          "session",
+          "recovery",
+          "split"
+        ],
+        "must_avoid": [
+          "You are doing this wrong",
+          "You.re doing this wrong",
+          "Best practice is",
+          "You should"
+        ]
+      },
+      "reference": {
+        "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+        "findings": [
+          {
+            "principle": 4,
+            "diagnosis": "BIG combines independent session-token verification and account-recovery UI, hiding progress and delaying separate delivery.",
+            "recommended_action": "Split BIG into two 1-3 day tickets so either concern can ship independently."
+          }
+        ]
+      }
+    },
+    {
+      "id": "cohesion",
+      "output": "backlog-diagnostics",
+      "request": "Produce the requested named output from this fresh caller snapshot. Return {\"banner\": string, \"findings\": [{\"principle\": integer, \"diagnosis\": string, \"recommended_action\": string}]}. Include evidence and the concrete consequence in each diagnosis. Do not mutate the tracker. The shared topology floor has already found no cycles, stale blockers, duplicates or ghost projects. Other relevant principle findings may accompany the central finding.",
+      "input": {
+        "appetite": "low",
+        "workstreams": [
+          {
+            "id": "W2",
+            "name": "Faster onboarding",
+            "issues": [
+              {
+                "id": "ON",
+                "title": "Shorten signup to one screen",
+                "outcome": "Faster onboarding"
+              },
+              {
+                "id": "BILL",
+                "title": "Produce monthly invoices",
+                "outcome": "Billing accuracy"
+              }
+            ]
+          }
+        ]
+      },
+      "kind": "artifact",
+      "oracle": {
+        "required": {
+          "banner": "Methodology: faffter-dark-methodology-agile-delivery"
+        },
+        "must_include": [
+          "\"principle\":5",
+          "W2",
+          "ON",
+          "BILL",
+          "onboard",
+          "bill",
+          "split|rehom(?:e|ing)|mov(?:e|ing)"
+        ],
+        "must_avoid": [
+          "You are doing this wrong",
+          "You.re doing this wrong",
+          "Best practice is",
+          "You should"
+        ]
+      },
+      "reference": {
+        "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+        "findings": [
+          {
+            "principle": 5,
+            "diagnosis": "W2 mixes onboarding (ON) and billing (BILL), with different completion criteria and sequencing needs.",
+            "recommended_action": "Split W2 by outcome, moving BILL to its billing home while keeping ON with onboarding."
+          }
+        ]
+      }
+    },
+    {
+      "id": "implicit-dependency",
+      "output": "issue-critique",
+      "request": "Produce the requested named output from this fresh caller snapshot. Return {\"banner\": string, \"findings\": [{\"principle\": integer, \"diagnosis\": string, \"recommended_action\": string}]}. Include evidence and the concrete consequence in each diagnosis. Do not mutate the tracker. The shared topology floor has already found no cycles, stale blockers, duplicates or ghost projects. Other relevant principle findings may accompany the central finding.",
+      "input": {
+        "appetite": "low",
+        "issue": {
+          "id": "CLIENT",
+          "spec": "Consume the schema emitted by SCHEMA before enabling the client.",
+          "blocked_by": []
+        },
+        "other_issues": [
+          {
+            "id": "SCHEMA",
+            "state": "Backlog",
+            "title": "Publish the schema"
+          }
+        ]
+      },
+      "kind": "artifact",
+      "oracle": {
+        "required": {
+          "banner": "Methodology: faffter-dark-methodology-agile-delivery"
+        },
+        "must_include": [
+          "\"principle\":6",
+          "CLIENT",
+          "SCHEMA",
+          "block",
+          "link|add",
+          "if|confirm|verify"
+        ],
+        "must_avoid": [
+          "You are doing this wrong",
+          "You.re doing this wrong",
+          "Best practice is",
+          "You should"
+        ]
+      },
+      "reference": {
+        "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+        "findings": [
+          {
+            "principle": 6,
+            "diagnosis": "CLIENT depends on SCHEMA output but has no blocker edge, so automation could pull CLIENT before its prerequisite exists.",
+            "recommended_action": "Link SCHEMA as a blocker of CLIENT if that dependency is real; otherwise remove the spec reference."
+          }
+        ]
+      }
+    },
+    {
+      "id": "late-risk",
+      "output": "issue-critique",
+      "request": "Produce the requested named output from this fresh caller snapshot. Return {\"banner\": string, \"findings\": [{\"principle\": integer, \"diagnosis\": string, \"recommended_action\": string}]}. Include evidence and the concrete consequence in each diagnosis. Do not mutate the tracker. The shared topology floor has already found no cycles, stale blockers, duplicates or ghost projects. Other relevant principle findings may accompany the central finding.",
+      "input": {
+        "appetite": "low",
+        "initiative": {
+          "id": "PAY",
+          "name": "Accept card payments",
+          "sequence": [
+            "UI",
+            "COPY",
+            "BANK"
+          ]
+        },
+        "issue": {
+          "id": "BANK",
+          "title": "Integrate with an unfamiliar bank API",
+          "risk": "Unproven integration with an external team; no spike exists.",
+          "scheduled_position": "last"
+        }
+      },
+      "kind": "artifact",
+      "oracle": {
+        "required": {
+          "banner": "Methodology: faffter-dark-methodology-agile-delivery"
+        },
+        "must_include": [
+          "\"principle\":7",
+          "PAY",
+          "BANK",
+          "risk|unproven",
+          "earl|forward|spike"
+        ],
+        "must_avoid": [
+          "You are doing this wrong",
+          "You.re doing this wrong",
+          "Best practice is",
+          "You should"
+        ]
+      },
+      "reference": {
+        "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+        "findings": [
+          {
+            "principle": 7,
+            "diagnosis": "PAY leaves BANK, an unproven external integration, last; a surprise would arrive after the rest of the work is committed.",
+            "recommended_action": "Pull BANK earlier or add a small de-risking spike before committing its full scope."
+          }
+        ]
+      }
+    },
+    {
+      "id": "wip-at-cap",
+      "output": "standup-digest",
+      "request": "Produce the requested named output from this fresh caller snapshot. Return {\"banner\": string, \"findings\": [{\"principle\": integer, \"diagnosis\": string, \"recommended_action\": string}]}. Include evidence and the concrete consequence in each diagnosis. Do not mutate the tracker. The shared topology floor has already found no cycles, stale blockers, duplicates or ghost projects. Other relevant principle findings may accompany the central finding.",
+      "input": {
+        "appetite": "low",
+        "human_in_flight": [
+          "A",
+          "B",
+          "C"
+        ],
+        "autonomous_in_flight": [
+          "D",
+          "E",
+          "F",
+          "G"
+        ],
+        "awaiting_human_review": [
+          "H"
+        ],
+        "new_pull_requested": false,
+        "other_findings": []
+      },
+      "kind": "artifact",
+      "oracle": {
+        "required": {
+          "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+          "findings": []
+        }
+      },
+      "reference": {
+        "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+        "findings": []
+      }
+    },
+    {
+      "id": "autonomous-unbounded",
+      "output": "build-queue",
+      "request": "Produce the requested named output from this fresh caller snapshot. Return {\"banner\": string, \"findings\": [{\"principle\": integer, \"diagnosis\": string, \"recommended_action\": string}]}. Include evidence and the concrete consequence in each diagnosis. Do not mutate the tracker. The shared topology floor has already found no cycles, stale blockers, duplicates or ghost projects. Other relevant principle findings may accompany the central finding.",
+      "input": {
+        "appetite": "low",
+        "human_in_flight": [],
+        "autonomous_in_flight": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E"
+        ],
+        "issues": [],
+        "other_findings": []
+      },
+      "kind": "artifact",
+      "oracle": {
+        "required": {
+          "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+          "findings": []
+        }
+      },
+      "reference": {
+        "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+        "findings": []
+      }
+    },
+    {
+      "id": "value-order",
+      "output": "policy-clarification",
+      "request": "Does value/risk sequencing aim to finish each structural slice in isolation before crossing into another? Return a boolean.",
+      "input": {},
+      "kind": "decision",
+      "oracle": {
+        "required": false
+      },
+      "reference": false
+    },
+    {
+      "id": "increment",
+      "output": "policy-clarification",
+      "request": "Which ships first when one candidate unlocks an observable value increment and the other is an isolated cleanup, with equal human priority and no other competing risks? Return \"increment\" or \"cleanup\".",
+      "input": {},
+      "kind": "decision",
+      "oracle": {
+        "required": "increment"
+      },
+      "reference": "increment"
+    },
+    {
+      "id": "distance-band",
+      "output": "policy-clarification",
+      "request": "Can a supplied PRD-distance map reorder across a human-priority band? Return a boolean.",
+      "input": {},
+      "kind": "decision",
+      "oracle": {
+        "required": false
+      },
+      "reference": false
+    },
+    {
+      "id": "distance-absent",
+      "output": "policy-clarification",
+      "request": "Must absent PRD-distance input preserve the map-unaware ordering byte-for-byte? Return a boolean.",
+      "input": {},
+      "kind": "decision",
+      "oracle": {
+        "required": true
+      },
+      "reference": true
+    },
+    {
+      "id": "distance-neutral",
+      "output": "policy-clarification",
+      "request": "What rank is neutral along with unmatched containers? Return the integer.",
+      "input": {},
+      "kind": "decision",
+      "oracle": {
+        "required": 0
+      },
+      "reference": 0
+    },
+    {
+      "id": "wip-ceiling",
+      "output": "policy-clarification",
+      "request": "Return the human in-flight WIP cap as an integer.",
+      "input": {},
+      "kind": "decision",
+      "oracle": {
+        "required": 3
+      },
+      "reference": 3
+    },
+    {
+      "id": "review-queue",
+      "output": "policy-clarification",
+      "request": "Does a PR awaiting human review count as human in-flight WIP? Return a boolean.",
+      "input": {},
+      "kind": "decision",
+      "oracle": {
+        "required": false
+      },
+      "reference": false
+    },
+    {
+      "id": "runner-cap",
+      "output": "policy-clarification",
+      "request": "Does this WIP cap apply to autonomous build-queue output? Return a boolean.",
+      "input": {},
+      "kind": "decision",
+      "oracle": {
+        "required": false
+      },
+      "reference": false
+    },
+    {
+      "id": "size-range",
+      "output": "policy-clarification",
+      "request": "Return the target ticket size in days as {\"min\":integer,\"max\":integer}.",
+      "input": {},
+      "kind": "decision",
+      "oracle": {
+        "required": {
+          "min": 1,
+          "max": 3
+        }
+      },
+      "reference": {
+        "min": 1,
+        "max": 3
+      }
+    },
+    {
+      "id": "merge-small",
+      "output": "policy-clarification",
+      "request": "When small tickets always ship together, is merge a candidate recommendation? Return a boolean.",
+      "input": {},
+      "kind": "decision",
+      "oracle": {
+        "required": true
+      },
+      "reference": true
+    },
+    {
+      "id": "vague",
+      "output": "policy-clarification",
+      "request": "A one-sentence ticket has no clear deliverable. Is it a vague-ticket finding candidate? Return a boolean.",
+      "input": {},
+      "kind": "decision",
+      "oracle": {
+        "required": true
+      },
+      "reference": true
+    },
+    {
+      "id": "dependency-choice",
+      "output": "policy-clarification",
+      "request": "When a spec reference may not be a real dependency, return the two permissible corrective options as [\"link-if-real\",\"remove-reference-if-not\"].",
+      "input": {},
+      "kind": "decision",
+      "oracle": {
+        "required": [
+          "link-if-real",
+          "remove-reference-if-not"
+        ]
+      },
+      "reference": [
+        "link-if-real",
+        "remove-reference-if-not"
+      ]
+    },
+    {
+      "id": "education",
+      "output": "policy-clarification",
+      "request": "Return the three ordered components of a diagnosis as [\"situation\",\"consequence\",\"action\"].",
+      "input": {},
+      "kind": "decision",
+      "oracle": {
+        "required": [
+          "situation",
+          "consequence",
+          "action"
+        ]
+      },
+      "reference": [
+        "situation",
+        "consequence",
+        "action"
+      ]
+    },
+    {
+      "id": "evidence",
+      "output": "policy-clarification",
+      "request": "May a finding be based only on speculation about intent? Return a boolean.",
+      "input": {},
+      "kind": "decision",
+      "oracle": {
+        "required": false
+      },
+      "reference": false
+    },
+    {
+      "id": "writes-low",
+      "output": "policy-clarification",
+      "request": "May this lens mutate tracker topology at low appetite? Return a boolean.",
+      "input": {},
+      "kind": "decision",
+      "oracle": {
+        "required": false
+      },
+      "reference": false
+    },
+    {
+      "id": "delete-full",
+      "output": "policy-clarification",
+      "request": "May full appetite cancel or delete work to cut scope? Return a boolean.",
+      "input": {},
+      "kind": "decision",
+      "oracle": {
+        "required": false
+      },
+      "reference": false
+    },
+    {
+      "id": "human-rule",
+      "output": "policy-clarification",
+      "request": "May this lens override an explicit user ask-first rule? Return a boolean.",
+      "input": {},
+      "kind": "decision",
+      "oracle": {
+        "required": false
+      },
+      "reference": false
+    },
+    {
+      "id": "structural-floor",
+      "output": "policy-clarification",
+      "request": "May the agile lens replace the mandatory cycle and ghost-project floor with its own graph algorithm? Return a boolean.",
+      "input": {},
+      "kind": "decision",
+      "oracle": {
+        "required": false
+      },
+      "reference": false
+    }
+  ]
+}

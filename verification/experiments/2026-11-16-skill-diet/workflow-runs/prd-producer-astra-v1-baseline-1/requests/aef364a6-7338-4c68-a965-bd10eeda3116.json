@@ -1,0 +1,1 @@
+{"name":"submit_verdict","args":{"case_id":"missing","text":"The PRD states a goal and a non-goal but no done-criteria. It leaves implementation choices open.\n\n```faff-contract:prd-readiness\n{\"verdict\":\"not-ready\",\"reason\":\"no-stop-conditions\",\"stop_conditions_verifiable\":false,\"creative_licence\":\"broad\"}\n```"}}

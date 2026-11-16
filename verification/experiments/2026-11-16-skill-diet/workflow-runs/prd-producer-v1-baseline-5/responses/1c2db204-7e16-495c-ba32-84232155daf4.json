@@ -1,0 +1,7 @@
+{
+  "ok": true,
+  "value": {
+    "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-v1-baseline-5/prds/missing.md",
+    "text": "# Product goal\nHelp account owners manage notifications.\n\n## Non-goals\nSMS is out of scope.\n"
+  }
+}

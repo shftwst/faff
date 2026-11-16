@@ -1,17 +1,18 @@
 {
-  "updated_utc": "2026-11-16T10:56:25.426587+00:00",
+  "updated_utc": "2026-11-16T11:19:00.493509+00:00",
   "deadline_utc": "2026-11-16 16:13:53 UTC",
   "accepted_saved_bytes": 94511,
   "accepted_saved_estimated_tokens": 23289,
   "accepted_total_bytes": 1274924,
   "accepted_total_estimated_tokens": 315990,
   "accepted": "Gateway, adversarial, rendering V2, thematic, kernel V4 and 26 discovery descriptions.",
-  "pending": "PRD V1 and review V2 paired measurements running; WTF V2 offer correction queued; agile and map baselines queued. All unaccepted skill texts live only in frozen candidates, not production paths.",
+  "pending": "Fresh Astra-low PRD V2, review V3 and agile V2 baseline sets running. WTF V2, map and routing still pending. No new source cuts counted.",
   "controllers": {
-    "primary": "/tmp/faff-prd-pair.log then /tmp/faff-wtf-v2.log then /tmp/faff-map-baseline.log",
-    "secondary": "/tmp/faff-review-pair-then-agile.log"
+    "prd": "/tmp/faff-astra-prd-v2-baseline.log and /tmp/faff-astra-prd-v2-pair.log",
+    "review": "/tmp/faff-astra-review-baseline.log and /tmp/faff-astra-review-pair-then-map.log",
+    "agile": "/tmp/faff-astra-agile-v2-baseline.log and /tmp/faff-astra-agile-pair-then-routing.log"
   },
-  "integration": "Rendering eval anchor fix: 524/524 local eval tests. Pending producer candidates require PRD anchor and review wording-test updates before source acceptance.",
-  "claude_usage": "99% weekly last observed; still measuring",
-  "fallback": "Astra low prepared but unused. Fresh separate baseline/candidate pairs required if Claude allowance exhausts."
+  "integration": "Rendering anchor fix: 524/524 eval tests and all PR CI checks green at 0ff0f4dc. Pending PRD/review cuts still require matching loader/wording-test updates.",
+  "claude_usage": "Weekly allowance exhausted. All Claude queues stopped; no usage credits enabled.",
+  "fallback": "Actual Codex CLI model gpt-6-astra, low effort, version 0.169.0 verified. Native wrapper parsing tested. First PRD sample remains failed for wrong literal path; first review native audit passed. No cross-provider pooling."
 }

@@ -1,0 +1,45 @@
+{
+  "harness": "eval/control-parity/methodology-output.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/agile-principles-v2.json",
+  "timeout_seconds": 900,
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md"
+  ],
+  "json_stdin": true,
+  "bridge": "eval/control-parity/mailbox-call.mjs",
+  "treatment": "Actual persisted agile diagnoses for controlled caller snapshots, fixed original shared kernel/methodology context and guidance, accepted catalogue descriptor. No tracker mutation; literal command treatment. Fresh Astra-low arm after Claude allowance exhaustion; never pooled with Claude. V2 accepts moving/rehoming inflections in the cohesion action recogniser and repeats the exact native sample path.",
+  "acceptance": "Five baseline and five candidate samples; require every artifact rubric, eighteen separate decisions, full native audit and manual reading of all eighty artifacts. No full caller or topology-write claim. Preserve failures and provider separation.",
+  "samples": [
+    {
+      "name": "agile-principles-astra-v2-candidate-1",
+      "arm": "candidate",
+      "policy": "candidates/agile-principles-v1-with-context.md"
+    },
+    {
+      "name": "agile-principles-astra-v2-candidate-2",
+      "arm": "candidate",
+      "policy": "candidates/agile-principles-v1-with-context.md"
+    },
+    {
+      "name": "agile-principles-astra-v2-candidate-3",
+      "arm": "candidate",
+      "policy": "candidates/agile-principles-v1-with-context.md"
+    },
+    {
+      "name": "agile-principles-astra-v2-candidate-4",
+      "arm": "candidate",
+      "policy": "candidates/agile-principles-v1-with-context.md"
+    },
+    {
+      "name": "agile-principles-astra-v2-candidate-5",
+      "arm": "candidate",
+      "policy": "candidates/agile-principles-v1-with-context.md"
+    }
+  ],
+  "provider": "codex-cli",
+  "model": "gpt-6-astra",
+  "effort": "low"
+}

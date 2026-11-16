@@ -1,0 +1,10 @@
+{
+  "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+  "findings": [
+    {
+      "principle": 1,
+      "diagnosis": "W1, 'Q2 sprint 3', names a time bucket although its stated outcome is reducing checkout abandonment and A preserves the checkout address on validation error. The name hides the shared outcome needed to assess sequencing.",
+      "recommended_action": "Consider renaming W1 to 'Reduce checkout abandonment' so its name states the outcome A supports."
+    }
+  ]
+}

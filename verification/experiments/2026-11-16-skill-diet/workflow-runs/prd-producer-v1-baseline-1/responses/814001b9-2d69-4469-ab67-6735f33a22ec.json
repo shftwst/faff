@@ -1,0 +1,7 @@
+{
+  "ok": true,
+  "value": {
+    "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-v1-baseline-1/prds/vague-tight.md",
+    "text": "# Product goal\nMake search delightful.\n\n## Implementation\nUse PostgreSQL full-text search through POST /search.\n\n## Done\nUsers will be satisfied and the system should be stable.\n"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+  "findings": [
+    {
+      "principle": 5,
+      "diagnosis": "W2, 'Faster onboarding', combines ON, shortening signup to one screen for faster onboarding, with BILL, producing monthly invoices for billing accuracy. These are distinct outcomes with different completion criteria, so a single workstream obscures sequencing and what done means.",
+      "recommended_action": "Consider keeping ON in Faster onboarding and moving BILL to an outcome-led Billing accuracy workstream, subject to human agreement."
+    }
+  ]
+}

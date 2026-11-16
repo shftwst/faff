@@ -41,3 +41,16 @@ test('producer outputs persist exactly and refuse tracker writes or duplicate su
     await assert.rejects(env.call('write_tracker', { case_id: fixture.cases[0].id, value: { status: 'Todo' } }), /invalid/);
   } finally { rmSync(directory, { recursive: true, force: true }); }
 });
+
+test('agile V2 accepts moving between named outcomes without admitting a missing re-grouping action', () => {
+  const base = new URL('../verification/experiments/2026-11-16-skill-diet/', import.meta.url);
+  const before = JSON.parse(readFileSync(new URL('workflow-fixtures/agile-principles.json', base)));
+  const after = JSON.parse(readFileSync(new URL('workflow-fixtures/agile-principles-v2.json', base)));
+  const observed = JSON.parse(readFileSync(new URL('workflow-runs/agile-principles-astra-v1-baseline-1/artifacts/cohesion.json', base)));
+  const oldCase = before.cases.find(c => c.id === 'cohesion'), newCase = after.cases.find(c => c.id === 'cohesion');
+  assert.equal(gradeMethodologyOutput(observed, oldCase.oracle).pass, false);
+  assert.equal(gradeMethodologyOutput(observed, newCase.oracle).pass, true);
+  const wrong = structuredClone(observed); wrong.findings[0].recommended_action = 'Leave both outcomes together in W2.';
+  assert.equal(gradeMethodologyOutput(wrong, newCase.oracle).pass, false);
+  for (const c of after.cases) assert.equal(gradeMethodologyOutput(c.reference, c.oracle).pass, true, c.id);
+});

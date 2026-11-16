@@ -1,0 +1,7 @@
+{
+  "status": "interrupted-provider-allowance",
+  "observed_utc": "2026-11-16T11:07:59.895791+00:00",
+  "reason": "Claude weekly allowance exhausted mid-sample. No usage credits selected. Original pending bridge/report state is preserved.",
+  "worker": "claude-retry",
+  "counts_towards_qualification": false
+}

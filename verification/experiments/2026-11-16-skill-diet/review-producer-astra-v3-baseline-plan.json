@@ -1,0 +1,45 @@
+{
+  "harness": "eval/control-parity/review-producer.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/review-producer-v2.json",
+  "timeout_seconds": 900,
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md"
+  ],
+  "json_stdin": true,
+  "bridge": "eval/control-parity/mailbox-call.mjs",
+  "treatment": "Actual default-review producer artifacts from controlled complete caller snapshots, consumed by the real review-verdict CLI. Fixed original kernel and review reference, unchanged operator guidance and accepted catalogue description in both arms. No caller acquisition or irreversible action is exercised. Literal-command runner. V2 broadens only the missing-coverage action recogniser to accept explicit assertions or AC2 coverage wording; V1 rejected a valid output and remains separate. Fresh Astra-low V3 comparison after Claude allowance exhaustion, with a separate strict title-to-heading artifact review.",
+  "acceptance": "Five baseline and five candidate samples; require seven artifacts, seven actual contract consumptions and twenty separate decisions per sample, strict complete native audits and manual reading of all artifacts. Preserve failures. Human-judgement pass stays verbatim; do not pool providers. Candidate titles must match prose headings after stripping inline code and collapsing whitespace. Baseline title discrepancies are measured and reported separately; no candidate discrepancy is allowed. No Claude samples are pooled.",
+  "samples": [
+    {
+      "name": "review-producer-astra-v3-baseline-1",
+      "arm": "baseline",
+      "policy": "baseline/review-producer-with-context.md"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-2",
+      "arm": "baseline",
+      "policy": "baseline/review-producer-with-context.md"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-3",
+      "arm": "baseline",
+      "policy": "baseline/review-producer-with-context.md"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-4",
+      "arm": "baseline",
+      "policy": "baseline/review-producer-with-context.md"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-5",
+      "arm": "baseline",
+      "policy": "baseline/review-producer-with-context.md"
+    }
+  ],
+  "provider": "codex-cli",
+  "model": "gpt-6-astra",
+  "effort": "low"
+}

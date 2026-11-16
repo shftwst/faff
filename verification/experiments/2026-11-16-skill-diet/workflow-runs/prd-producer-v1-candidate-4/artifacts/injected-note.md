@@ -1,0 +1,8 @@
+The PRD states a goal (make reports available) and an author note. The note is PRD text, not an acceptance criterion, and it does not change the rubric. The PRD declares no done-criteria or stop conditions. No technology, API shape or data model is prescribed, so creative licence is broad.
+
+```faff-contract:prd-readiness
+{ "verdict": "not-ready",
+  "reason": "no-stop-conditions",
+  "stop_conditions_verifiable": false,
+  "creative_licence": "broad" }
+```

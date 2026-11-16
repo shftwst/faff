@@ -5,10 +5,38 @@ import { classifyNativeTool } from './native-tool-audit.mjs';
 import { canonicalHash, sha256 } from './schema.mjs';
 
 function commandResult(output) {
+  if (Array.isArray(output)) {
+    if (output.length !== 2 || output.some(item => item.type !== 'input_text' || typeof item.text !== 'string') || !/^Script completed\nWall time [\d.]+ seconds\nOutput:\n$/.test(output[0].text)) return null;
+    try { return JSON.parse(output[1].text); } catch { return null; }
+  }
   if (typeof output === 'object' && output) return output;
   try { const value = JSON.parse(output); if (typeof value === 'object') return value; } catch { /* Native CLI results can use the text envelope. */ }
   const match = typeof output === 'string' && output.match(/Process exited with code (\d+)[\s\S]*?\n(?:Final output|Output):\n([\s\S]*)$/);
   return match ? { exit_code: Number(match[1]), output: match[2] } : null;
+}
+
+export function parseExecWrapper(input) {
+  const match = typeof input === 'string' && input.match(/^\s*text\(\s*await\s+tools\.exec_command\(\s*(\{[\s\S]*\})\s*\)\s*\)\s*;?\s*$/);
+  if (!match) return null;
+  let rest = match[1].slice(1).trimStart();
+  const args = {}, allowed = new Set(['cmd', 'max_output_tokens', 'yield_time_ms', 'workdir']);
+  while (rest !== '}') {
+    const keyMatch = rest.match(/^("(?:[^"\\]|\\.)*"|[A-Za-z_][A-Za-z_0-9]*)\s*:\s*/);
+    if (!keyMatch) return null;
+    let key;
+    try { key = keyMatch[1].startsWith('"') ? JSON.parse(keyMatch[1]) : keyMatch[1]; } catch { return null; }
+    if (!allowed.has(key) || Object.hasOwn(args, key)) return null;
+    rest = rest.slice(keyMatch[0].length);
+    const valueMatch = rest.match(/^("(?:[^"\\]|\\.)*"|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null)/);
+    if (!valueMatch) return null;
+    try { args[key] = JSON.parse(valueMatch[0]); } catch { return null; }
+    rest = rest.slice(valueMatch[0].length).trimStart();
+    if (rest.startsWith(',')) { rest = rest.slice(1).trimStart(); if (rest === '}') return null; }
+    else if (rest !== '}') return null;
+  }
+  if (typeof args.cmd !== 'string' || args.workdir !== undefined && typeof args.workdir !== 'string') return null;
+  for (const key of ['max_output_tokens', 'yield_time_ms']) if (args[key] !== undefined && (!Number.isInteger(args[key]) || args[key] <= 0)) return null;
+  return args;
 }
 
 export function auditCodexEvents(events, sample) {
@@ -34,8 +62,11 @@ export function auditCodexEvents(events, sample) {
     if (['function_call', 'custom_tool_call'].includes(payload.type)) {
       let args;
       try { args = JSON.parse(payload.arguments); } catch { args = {}; }
+      const wrapped = payload.type === 'custom_tool_call' && ['exec', 'functions.exec'].includes(payload.name) ? parseExecWrapper(payload.input) : null;
+      if (wrapped) args = wrapped;
       const record = { id: payload.call_id, name: payload.name, input_sha256: canonicalHash(payload.arguments ?? payload.input ?? null), allowed: false, result_seen: false };
-      if (['exec_command', 'functions.exec_command'].includes(payload.name) && typeof args.cmd === 'string') {
+      if ((wrapped || ['exec_command', 'functions.exec_command'].includes(payload.name)) && typeof args.cmd === 'string') {
+        if (wrapped) record.transport = 'one-literal-exec-command-through-exec';
         const path = sample.reads.find(path => args.cmd === `cat -- ${path}`);
         if (path) Object.assign(record, { allowed: true, path, command_sha256: sha256(args.cmd) });
         else Object.assign(record, classifyNativeTool({ id: payload.call_id, name: 'Bash', input: { command: args.cmd } }, sample), { name: payload.name });

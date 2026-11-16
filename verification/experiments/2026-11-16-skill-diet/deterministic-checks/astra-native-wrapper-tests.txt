@@ -1,0 +1,40 @@
+TAP version 13
+# Subtest: Codex audit binds actual low-effort model, complete initial reads and literal bridge calls
+ok 1 - Codex audit binds actual low-effort model, complete initial reads and literal bridge calls
+  ---
+  duration_ms: 1.015709
+  type: 'test'
+  ...
+# Subtest: Codex audit rejects extra commands, wrong effort, truncated reads and absent results
+ok 2 - Codex audit rejects extra commands, wrong effort, truncated reads and absent results
+  ---
+  duration_ms: 0.829876
+  type: 'test'
+  ...
+# Subtest: Codex audit supports the CLI text envelope without accepting incomplete command sessions
+ok 3 - Codex audit supports the CLI text envelope without accepting incomplete command sessions
+  ---
+  duration_ms: 0.68375
+  type: 'test'
+  ...
+# Subtest: Codex audit accepts one literal command in the actual exec transport envelope
+ok 4 - Codex audit accepts one literal command in the actual exec transport envelope
+  ---
+  duration_ms: 1.030043
+  type: 'test'
+  ...
+# Subtest: exec transport parsing never evaluates scripts or accepts extra operations and forged output
+ok 5 - exec transport parsing never evaluates scripts or accepts extra operations and forged output
+  ---
+  duration_ms: 0.471584
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 39.346374

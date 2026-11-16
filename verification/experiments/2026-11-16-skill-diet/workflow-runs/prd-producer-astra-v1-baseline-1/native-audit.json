@@ -1,0 +1,700 @@
+{
+  "schema": 1,
+  "scope": "Only metadata from the explicitly named measurement session is exported. No reasoning, messages, credentials or tool-result contents.",
+  "auditor_sha256": "f025068e0364f25fb604f580bf593ade49aa46c7c44c44bb96ccf8912b45bdf6",
+  "classifier_sha256": "3f40f2fe4bc5094e14bb6f5796b2f5e46d9c9730b7fcbf8c04dfca03cacf5027",
+  "source_sha256": "93fe6f09750c6d06c4c9f3ddaedf3606786154219bda0f42358eb69b702dbc56",
+  "runs": [
+    {
+      "name": "prd-producer-astra-v1-baseline-1",
+      "session_id": "01a1e40a-ae72-7233-9da9-94b803c73bdd",
+      "prompt_matches": 1,
+      "model_ids": [
+        "gpt-6-astra"
+      ],
+      "efforts": [
+        "low"
+      ],
+      "versions": [
+        "0.169.0"
+      ],
+      "base_instruction_hashes": [
+        "f4219f703a1cd39f9deed7b9030e97d7d8e263d3c01c6a291bec1849642995e8"
+      ],
+      "tools": [
+        {
+          "id": "call_fda82e6ff5af476e896db3aa4a2ccdbb",
+          "name": "exec",
+          "input_sha256": "ef5f7cbdc82cc35294e12a12ad3e17e3b72c90e72ebf313d29d4af2d0d2ed879",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "59bf08d0f6345478a9c8ce44ea4da41883c5273f946d8d41eded9ce9b6de2398",
+          "is_error": true
+        },
+        {
+          "id": "call_ac5004149d21417cafc2ca32107f0600",
+          "name": "exec",
+          "input_sha256": "a2e257d4820df29239777d206cd49905d1b36b06640bf557ab9ee4a28aea9a86",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "98aab001d952db45bd187c6bb7830ca354ceeabd83ea9df86c18faeda8088a5a",
+          "is_error": true
+        },
+        {
+          "id": "call_ba691341be4f444fabc39803275f268d",
+          "name": "exec",
+          "input_sha256": "71eb5da2c0786520be888492908fc298421884295b74a6fe5258531ebcf6376b",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "dfca62f0def79b22cd88f91ff3659a09aa0919cce35f145b2e7e3998b29b3657",
+          "is_error": true
+        },
+        {
+          "id": "call_fd02153a53394525a6693780ddd92ea3",
+          "name": "exec",
+          "input_sha256": "34e6b2f66a8f71e311320a13f67b67bc0080d725556e812367b5bdb2336a5117",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "370555145c73b5653af15c882480ce967dca37884eebe73c9cc6c4456e0b4b9d",
+          "is_error": true
+        },
+        {
+          "id": "call_b8c856bffefe40eaa00d285e2ba681c5",
+          "name": "exec",
+          "input_sha256": "f6b46803c95432746e792309bb33528ad0ac8f4874eb935e4198ba18fdbfa457",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "486b2f92aa91407b7b1352bf8ad8ffb093bb3bf1d2d3819e49214eace01fe429",
+          "is_error": true
+        },
+        {
+          "id": "call_97c2d62f373647e2a65c4996c7ef8687",
+          "name": "exec",
+          "input_sha256": "0218fd8e66f132bc9f4fd7d1c4763b657a578a98c4dc617d341adf90fb17aa6c",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "30552ad4271f09df3450785a6725fae94de290b51ef3a5286eb3b135edc3c98c",
+          "is_error": true
+        },
+        {
+          "id": "call_c4be9aebeae34873be033337339cb4b9",
+          "name": "exec",
+          "input_sha256": "2517ecc3ad413d805142f8c6ad6ce1ef5438afe9dfa7c16075125a572b34d482",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "05d2b86851804e0ea664f2176f739913c4a835ae26e85f1106856672c38797c5",
+          "is_error": true
+        },
+        {
+          "id": "call_727228d6608e44e992494d42f566e871",
+          "name": "exec",
+          "input_sha256": "3eb137f775d3dd8d1220fc4b391f3b39691f464d5693a261decf5180385b09a9",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "b5721b4812645ca6cd3b3faf84c5422dcb1abee22fff517ff5ccd7986055d865",
+          "is_error": true
+        },
+        {
+          "id": "call_5d9dc06010c2406b832e345625363e4a",
+          "name": "exec",
+          "input_sha256": "2a5b3f3637808f6e2f05ef9a1a7575330b384efabe9d62acf25f7e232d4715d5",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "4495ccd34c4ef5b5a271961250bc8e5415d4ec977dee583e8be9c0713beaf570",
+          "is_error": true
+        },
+        {
+          "id": "call_01fdd6a2cf2643f5bebcba2f08e2af06",
+          "name": "exec",
+          "input_sha256": "ea8f0357588d4d33a13a94b90812b70f56cc34d4079ee3fb8a0e223b633d0e9b",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "78b988bf38e23335b6cf2b20c0abcc609cc8c40a548de5e252cad821eddb2d1a",
+          "is_error": true
+        },
+        {
+          "id": "call_c7f01b6d71ca4e69af3a4daa36d1d971",
+          "name": "exec",
+          "input_sha256": "e505aecdf095c94374484f3e3c093c1c42ac8ed23caa93a7fa692580238b5264",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "ccbf75c46695ca37c5a41f13cacd91ddefc5e8f615d628097a5e44cf07763ecf",
+          "is_error": true
+        },
+        {
+          "id": "call_32a6d3f836344c00928009ba1f9e7947",
+          "name": "exec",
+          "input_sha256": "733d2fe3f52ac0a271ecec42277759e5242762bf43f33abcf8dd973c0aadff52",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "9d8e12a0eafe9f88eb105247475fa91aa175709791ee69980c036f0822020c48",
+          "is_error": true
+        },
+        {
+          "id": "call_6cfc4d71e9d94312acd59cdc80830fdf",
+          "name": "exec",
+          "input_sha256": "f9d1b7ad6b1b5517b338e88640df66fb073b35a68144dac75a8036e871a1ccdd",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "9c262159e187834fce0e1fc3b2e3517595ab51f42b298844de6ccfba0f47fbf7",
+          "is_error": true
+        },
+        {
+          "id": "call_7f3319f69ca44719b790981405404286",
+          "name": "exec",
+          "input_sha256": "c58b335ba48e2cae31a62f41fa4aa49d39037f4342d637c9f4e7749f2fa5e5db",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "58cb6903cfe5c071bc29505304462bbc99e1593590f2cf57bc8e3fb84f59fd40",
+          "is_error": true
+        },
+        {
+          "id": "call_7350833fea4b4561b83f8610fb0ffad7",
+          "name": "exec",
+          "input_sha256": "0f2794e16af2c95a177b0dfc50dda68ae04372dfd1ed24fcfe3a09596a15be28",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "702c3ddba119e317383cbde89bec1e2da1b81b6b4a53c979229e7c322214838a",
+          "is_error": true
+        },
+        {
+          "id": "call_621990e7c45d48c3ac2d30772f575fdc",
+          "name": "exec",
+          "input_sha256": "01662b2fa9cb54eccdc271d3ad843d5eb76a15bfcd610d5fb4451048000dec1e",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "7f8947825dab50a61a6a0c5252d2eff1778e8d7e68bdd5b17f302d1c425b1ca0",
+          "is_error": true
+        },
+        {
+          "id": "call_b453c7b2d59248bd90a75d4c7d99925e",
+          "name": "exec",
+          "input_sha256": "4c6b8fe2e79c1f7ed3f636a13a7dcec90ac0f1c01c9bfc1180e24423799aa3e8",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "c822d2f9ca85b1c8306eb63a9de4255be34039cbba085c75a3bf6460389399e4",
+          "is_error": true
+        },
+        {
+          "id": "call_0d62cb3afdad439fb9dfb62212cec42d",
+          "name": "exec",
+          "input_sha256": "9023cf8fa38f8c1053ef7a802fab9af6a40b734ca1c048445e956691ca6f09f0",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "b36ac34e332e345687865b27b594db15faa9c1d7e6197629850431cc410c80c4",
+          "is_error": true
+        },
+        {
+          "id": "call_bd71a3718e194c0e838ad1763ee3fed2",
+          "name": "exec",
+          "input_sha256": "66de03514cab7887c09fd2adedf0d61ec2d04225e5e78691e4145bdb9999921c",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "77cb56b1cebe05766ac6a90115f670cb3f90be6f2e31b66e7fd49feeff9a3f73",
+          "is_error": true
+        },
+        {
+          "id": "call_959a109470e2423dbc6f3d7b7c23e220",
+          "name": "exec",
+          "input_sha256": "09542192b33f75077485b52abea4d73d4b2d83130335b8ebf88b6cc340548d82",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "db117000dc69c82fe9c18c1f62d74b9ef9ede7c95fcacc90e74d02d2607ecaec",
+          "is_error": true
+        },
+        {
+          "id": "call_7b384f5637b5455bbbf31ec7fe19648d",
+          "name": "exec",
+          "input_sha256": "ef4cc2902cbeb1b7022c1f77d1e2a07b8fcfa1558560b07a1e575f7be780db7e",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "52137de5b49cc23ee047a80df22c764c9d81ef2497bb3402128c4ce728a8bcaf",
+          "is_error": true
+        },
+        {
+          "id": "call_6d9430c63e4f4fb1a40e6f484c435c3d",
+          "name": "exec",
+          "input_sha256": "94ff73d63f0bbecc55f0dd57c3cf43e63ab29c225a41d70a0ccc0f91099f3d8f",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "702c3a8155c5f1499893712bc2059a496718d2e17b120c3eabf36f6a8bcf0127",
+          "is_error": true
+        },
+        {
+          "id": "call_b66d6a387ac44ce6abc7aee93ec2c6cb",
+          "name": "exec",
+          "input_sha256": "2a941b06aa2ccf404096271a97980728be721befb7bc243957631d64546a9f1c",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "9008e8d9e28ab9052813c38731a9ac18a110eb78f68fef6b8ab56074aca923e1",
+          "is_error": true
+        },
+        {
+          "id": "call_6228f9ef53a24184a792cf70e7610c40",
+          "name": "exec",
+          "input_sha256": "50159bdf8e7e1f9718448efdca1d7e36b7c83cd465f7d8b462bc1bffe0a86cf1",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "4fb9b88a70d514fe4f8134b3fef29eea8888253936b5d88785112dbff060c0cf",
+          "is_error": true
+        },
+        {
+          "id": "call_d544fecd9197481fa5e859319a9939cc",
+          "name": "exec",
+          "input_sha256": "59c3059f9961b70ef21939bdc244686fdb4993ca5b438feecee1a95ca48ec5f8",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "972d7a996e3dbb57934bac80144b45ebdc7be65b3766238ab47601823b50c4f1",
+          "is_error": true
+        },
+        {
+          "id": "call_90885167e50b42d99d1da266681a26ea",
+          "name": "exec",
+          "input_sha256": "81613ddd1c677356924789a42d605b104e1d5dc37dab7982c4600a77fdaf2267",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "bd40493f552778cb8e2f37ca235b3d0b310e50236e23a67de80426c8811e7d83",
+          "is_error": true
+        },
+        {
+          "id": "call_9f6d8803cbe94bed8185c0cbce04d89e",
+          "name": "exec",
+          "input_sha256": "3126c17a44cb1a7114897bfafc9c470cbf0aa0646f97313d4dc8f6fbbbf05ef5",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "cedf29e9ab9d85c610e2f69e7c7122f0029dc846d354245820b27c9425d95957",
+          "is_error": true
+        },
+        {
+          "id": "call_35f59ff56fda4bdf8d00304053f73066",
+          "name": "exec",
+          "input_sha256": "9b454ab8408c4f539b23b51c6fc153e26c22a06a0cf6a2dfa4286b3f39ba4743",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "0372b27835eed66c10c347db8483565fd2d64ad0b97b93e9dc47442794e96024",
+          "is_error": true
+        },
+        {
+          "id": "call_e391618e9a994e8d96d8fb511bced94f",
+          "name": "exec",
+          "input_sha256": "f512307c31b0aac2a10dd414dbcc7274dcff7e3cbe037417f08eb6b9c584780c",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "169ea7cd87031d306046d6ff7f9a79be5dd4220a221e536db913a4a440d470b6",
+          "is_error": true
+        },
+        {
+          "id": "call_2ddea59239fc4e92aee1f3b0738e27e3",
+          "name": "exec",
+          "input_sha256": "b67d60ace00a3d0733ba98e8220fad91b0f9f0395780c59db4e49eea7afaafb0",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "081535ac0d84acd7e4dac628a47fc4cb4bfc3f0110f7eb54306ca0f896ce4112",
+          "is_error": true
+        },
+        {
+          "id": "call_802de18d37dc4a408839638b5138703e",
+          "name": "exec",
+          "input_sha256": "a4b364d16dd2b63c8e6647a83602d9e95f2e931cb6869f49d11ecd324b9e03de",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "1443b9d22314b7bf3940cc9b8f476114d58fa31194f437a2a20a2003ed4b2db9",
+          "is_error": true
+        },
+        {
+          "id": "call_610c0eeb225d4f06a734c77952924b0a",
+          "name": "exec",
+          "input_sha256": "edf9b449ed34195e281db2637d779623f343c86b860bf1ae40bd655db68bb990",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "bd6dccfe362cd2cb19def1ad354a4c5e600fdf9534d80d038fe04c9b71974e31",
+          "is_error": true
+        },
+        {
+          "id": "call_71c9b5f534fd4e93b83dd028ec45f0c8",
+          "name": "exec",
+          "input_sha256": "737290402e01224ffba3a7cdce4ba15200ce9f4c39f6457c75e30f479edf6a33",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "8aecb11fcd94dbdf4fe8c1c5402c666f3d2675671a23bd92beadf06445a0130b",
+          "is_error": true
+        },
+        {
+          "id": "call_eaeeb7ecd8e34ec6ad2353a0bfb756cd",
+          "name": "exec",
+          "input_sha256": "2afacdb4f942b0f50808d5016c1b9ba3a1c9d75186ae735d50b085797e351cc1",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "013ba80edcf14771e20562fbdb50ae880b230bf9fa8906f2724dbd711b4ed042",
+          "is_error": true
+        },
+        {
+          "id": "call_89aea16edd714d5fabed3ea080b78907",
+          "name": "exec",
+          "input_sha256": "60d13c5d8a05cc4637d281baa8d316c04e3a7712390759ce18db7ee8b145e136",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "6e6767e593726f1a3e38d6fc928bfe206b4668d766de0067a477d6797c0ca2ac",
+          "is_error": true
+        },
+        {
+          "id": "call_d339f8d8b6d0428b8630e0d08c617f4f",
+          "name": "exec",
+          "input_sha256": "3f5555bbeb34eeb6560d2bb0590198622ec90028d83aed730ce1abf7bd31de13",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "2c0c284d7dfe5d380142270dbc3e648efdd25a57091e169cbe901381fbe95e40",
+          "is_error": true
+        },
+        {
+          "id": "call_eb80aadd842942378347f6e73a5b7b23",
+          "name": "exec",
+          "input_sha256": "1b26768f8603563fd97cc1735b4360f765d4fa697da2d615953879623f65681a",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "e5ec25e0a5ca5442657364c43b8b0dd08a9580c1264e0748dbe9242a536c00a5",
+          "is_error": true
+        },
+        {
+          "id": "call_47b3626352864e859079a13cce4b03af",
+          "name": "exec",
+          "input_sha256": "a1efbe54b521077ea808e2324569892cf28aac000b98938765d830b9e33d3048",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "97e61e79008bcd2dbada30ea31098d4a403922305f77a124c4c87ef629f47827",
+          "is_error": true
+        },
+        {
+          "id": "call_842632e42e654d7f9fffec06a410b32c",
+          "name": "exec",
+          "input_sha256": "1010f04e34b481c0631b0bd0e9d38799e61afffc02da76d20d47d8ee671cfbc4",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "9279d4c3d55bbff287fb41ce7a8e5c72834016cb00208e54988178d621cf61b9",
+          "is_error": true
+        },
+        {
+          "id": "call_1e08504ff9564dd1a3fcdc47dde6aacd",
+          "name": "exec",
+          "input_sha256": "1ec9dc0c479c807247abe1c64af405278ca6d6ce72d9bd4dbace30073a3b3283",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "c6f51628559793528aba40a06902253fee2d5922c6124d506c967063270170c0",
+          "is_error": true
+        },
+        {
+          "id": "call_26f30e55c776479dbaf5f43b37bea9d1",
+          "name": "exec",
+          "input_sha256": "952d8c442e6109b381db442e187c9bea01c32f59b00c33ddb8483ccb5da914e9",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "182325120e6f1f0ca2345150dbbb02fafb28139474ebca08da0fd736e751a36f",
+          "is_error": true
+        },
+        {
+          "id": "call_a37066b3b85c40ad917fa0de90bb41d0",
+          "name": "exec",
+          "input_sha256": "f89c196ac5989ba320423c21a1712e40a35e79a2c582802f558dfee6f00cc3c2",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "aa7947620a3b06677e4ebd61d206669d3cab4a967849ba16a885ae53b02c3469",
+          "is_error": true
+        },
+        {
+          "id": "call_661fa937f78c42ff93a1f4d0927c4907",
+          "name": "exec",
+          "input_sha256": "3b907ae9ccef8fe718a1fa2eb91926e9015714b0f4b8701763011f2d2df854df",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "7536ac200bfedac8f5995f5fb80a479c84e6dbbc7f6d443bcc3bccb007cd7950",
+          "is_error": true
+        }
+      ],
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": false,
+          "content_sha256": null,
+          "content_bytes": null
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": false,
+          "content_sha256": null,
+          "content_bytes": null
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-astra-v1-baseline-1/task.json",
+          "complete": false,
+          "content_sha256": null,
+          "content_bytes": null
+        }
+      ],
+      "complete": false,
+      "status": "fail",
+      "problems": [
+        {
+          "id": "call_fda82e6ff5af476e896db3aa4a2ccdbb",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_ac5004149d21417cafc2ca32107f0600",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_ba691341be4f444fabc39803275f268d",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_fd02153a53394525a6693780ddd92ea3",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_b8c856bffefe40eaa00d285e2ba681c5",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_97c2d62f373647e2a65c4996c7ef8687",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_c4be9aebeae34873be033337339cb4b9",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_727228d6608e44e992494d42f566e871",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_5d9dc06010c2406b832e345625363e4a",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_01fdd6a2cf2643f5bebcba2f08e2af06",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_c7f01b6d71ca4e69af3a4daa36d1d971",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_32a6d3f836344c00928009ba1f9e7947",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_6cfc4d71e9d94312acd59cdc80830fdf",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_7f3319f69ca44719b790981405404286",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_7350833fea4b4561b83f8610fb0ffad7",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_621990e7c45d48c3ac2d30772f575fdc",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_b453c7b2d59248bd90a75d4c7d99925e",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_0d62cb3afdad439fb9dfb62212cec42d",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_bd71a3718e194c0e838ad1763ee3fed2",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_959a109470e2423dbc6f3d7b7c23e220",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_7b384f5637b5455bbbf31ec7fe19648d",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_6d9430c63e4f4fb1a40e6f484c435c3d",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_b66d6a387ac44ce6abc7aee93ec2c6cb",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_6228f9ef53a24184a792cf70e7610c40",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_d544fecd9197481fa5e859319a9939cc",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_90885167e50b42d99d1da266681a26ea",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_9f6d8803cbe94bed8185c0cbce04d89e",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_35f59ff56fda4bdf8d00304053f73066",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_e391618e9a994e8d96d8fb511bced94f",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_2ddea59239fc4e92aee1f3b0738e27e3",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_802de18d37dc4a408839638b5138703e",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_610c0eeb225d4f06a734c77952924b0a",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_71c9b5f534fd4e93b83dd028ec45f0c8",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_eaeeb7ecd8e34ec6ad2353a0bfb756cd",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_89aea16edd714d5fabed3ea080b78907",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_d339f8d8b6d0428b8630e0d08c617f4f",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_eb80aadd842942378347f6e73a5b7b23",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_47b3626352864e859079a13cce4b03af",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_842632e42e654d7f9fffec06a410b32c",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_1e08504ff9564dd1a3fcdc47dde6aacd",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_26f30e55c776479dbaf5f43b37bea9d1",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_a37066b3b85c40ad917fa0de90bb41d0",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_661fa937f78c42ff93a1f4d0927c4907",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "problem": "initial-read-missing-incomplete-or-truncated"
+        }
+      ]
+    }
+  ]
+}

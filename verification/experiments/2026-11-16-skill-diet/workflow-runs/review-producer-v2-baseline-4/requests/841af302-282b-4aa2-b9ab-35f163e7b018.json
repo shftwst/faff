@@ -1,0 +1,1 @@
+{"name":"submit_review","args":{"case_id":"clean","text":"signal: pass\n\n## Findings\n\nNo findings. double multiplies by 2 as the spec's Chosen pure function, the test covers positive, zero and negative inputs, the diff touches only src/function.mjs and its test, and local tests pass.\n\n```faff-contract:review-verdict\n{\"signal\":\"pass\",\"findings\":[]}\n```"}}

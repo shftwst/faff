@@ -1,0 +1,31 @@
+{
+  "observed_utc": "2026-11-16T11:07:59.923992+00:00",
+  "completed_prd_samples": {
+    "baseline": 5,
+    "candidate": 4
+  },
+  "completed_review_v2_samples": {
+    "baseline": 5,
+    "candidate": 3
+  },
+  "partial": [
+    {
+      "name": "prd-producer-v1-candidate-5",
+      "status": "interrupted-provider-allowance",
+      "observed_utc": "2026-11-16T11:07:59.895791+00:00",
+      "reason": "Claude weekly allowance exhausted mid-sample. No usage credits selected. Original pending bridge/report state is preserved.",
+      "worker": "claude-retry",
+      "counts_towards_qualification": false
+    },
+    {
+      "name": "review-producer-v2-candidate-4",
+      "status": "interrupted-provider-allowance",
+      "observed_utc": "2026-11-16T11:07:59.923789+00:00",
+      "reason": "Claude weekly allowance exhausted mid-sample. No usage credits selected. Original pending bridge/report state is preserved.",
+      "worker": "claude-challenges",
+      "counts_towards_qualification": false
+    }
+  ],
+  "native_exports": "Paired exports were not reached. These incomplete pairs are not qualified or counted.",
+  "continuation": "Fresh Astra-low pairs; separate provider results. All source changes remain pending."
+}

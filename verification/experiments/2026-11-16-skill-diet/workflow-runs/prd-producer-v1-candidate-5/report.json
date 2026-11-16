@@ -1,0 +1,339 @@
+{
+  "status": "fail",
+  "bridge": {
+    "stop": {
+      "reason": "interactive-timeout"
+    },
+    "requests": 30,
+    "rejected": 0
+  },
+  "policy_delivery": {
+    "bytes": 97951,
+    "utf16_characters": 97138,
+    "sha256": "4221f145fb4306a0140eb780d1aa80140f30f0fdae6a6330b6e63d1634fa6879",
+    "chunk_limit": 6000,
+    "complete": true,
+    "reads": [
+      {
+        "offset": 0,
+        "end": 6000,
+        "characters": 6000,
+        "bytes": 6066,
+        "sha256": "4fecdf7d00a98d84389100cd4cb563d4b061a98c81a3c79167c7c6aae952b11c"
+      },
+      {
+        "offset": 6000,
+        "end": 12000,
+        "characters": 6000,
+        "bytes": 6064,
+        "sha256": "d08b239c5aba52ef7a27a1494b7712dbc3aa82ea86a81743d1e0ef25314480fe"
+      },
+      {
+        "offset": 12000,
+        "end": 18000,
+        "characters": 6000,
+        "bytes": 6046,
+        "sha256": "9d12dbe234cae4eb9a569bcdbf850dab312573da3121283f91bd94418647a011"
+      },
+      {
+        "offset": 18000,
+        "end": 24000,
+        "characters": 6000,
+        "bytes": 6030,
+        "sha256": "965fba20d53d9395ba778d600480f381900f60af7b52a47f1eb549b5a512b7b7"
+      },
+      {
+        "offset": 24000,
+        "end": 30000,
+        "characters": 6000,
+        "bytes": 6050,
+        "sha256": "97e1adb3b6da96bbc1f1d2933ef97a3ac72fe228d17f245824717932d2cb6d1f"
+      },
+      {
+        "offset": 30000,
+        "end": 36000,
+        "characters": 6000,
+        "bytes": 6044,
+        "sha256": "652a0907bc7be017f442b085ab47a569d5b258fe6a5da7e63e358b4e800de853"
+      },
+      {
+        "offset": 36000,
+        "end": 42000,
+        "characters": 6000,
+        "bytes": 6038,
+        "sha256": "581515ab7c62b00397e932da0c20a05e613ffd227c5d90339baef6b048ff6258"
+      },
+      {
+        "offset": 42000,
+        "end": 48000,
+        "characters": 6000,
+        "bytes": 6047,
+        "sha256": "80f8797ecfb8a8d018b6380a1f344c17794199eafef4021661ba0ffe74332443"
+      },
+      {
+        "offset": 48000,
+        "end": 54000,
+        "characters": 6000,
+        "bytes": 6048,
+        "sha256": "40c4c3a36f95c0de1ec9ea10b424e84d288710bc486b24fbd6a4ab40c30da3c3"
+      },
+      {
+        "offset": 54000,
+        "end": 60000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "80a98469f25addd14159c54b44a8e4e55724ed8d9afeeb2a0b4cbff424d38103"
+      },
+      {
+        "offset": 60000,
+        "end": 66000,
+        "characters": 6000,
+        "bytes": 6062,
+        "sha256": "d2afc8b8684e4ca2213e95a4f95a9dfb38ca03db0618376876955c2484bb7828"
+      },
+      {
+        "offset": 66000,
+        "end": 72000,
+        "characters": 6000,
+        "bytes": 6051,
+        "sha256": "49de46e2f382b0fc7be40fa14b20006960c7b6a363fe165a83529d007c1ab962"
+      },
+      {
+        "offset": 72000,
+        "end": 78000,
+        "characters": 6000,
+        "bytes": 6046,
+        "sha256": "95057539ff97d25f8970218e64536eaa9582e5d1462f459d48280f57546983c0"
+      },
+      {
+        "offset": 78000,
+        "end": 84000,
+        "characters": 6000,
+        "bytes": 6064,
+        "sha256": "07076f5439a752a9cbce15124bda49a3c44a63132a1cbff50fa8f6de821c2b8f"
+      },
+      {
+        "offset": 84000,
+        "end": 90000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "4ade12647479586632c67d133801fe5992274943bc43a9387d6394eae379b9c3"
+      },
+      {
+        "offset": 90000,
+        "end": 96000,
+        "characters": 6000,
+        "bytes": 6049,
+        "sha256": "5fa0f258b6fde76571d02029cda188360ab59ca5cc335ee65b98a45f21b44485"
+      },
+      {
+        "offset": 96000,
+        "end": 97138,
+        "characters": 1138,
+        "bytes": 1138,
+        "sha256": "aa9d31f389fa395b14f80ee2baa114fd0cdc849ef66834d22a370b2e98940f9d"
+      }
+    ],
+    "errors": []
+  },
+  "grade": {
+    "status": "fail",
+    "cases": [
+      {
+        "id": "scenario-broad",
+        "kind": "producer-artifact",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "broad"
+        },
+        "consumer_results": [
+          {
+            "id": "prd-readiness",
+            "pass": true,
+            "verdict": "admissible",
+            "reason": ""
+          }
+        ]
+      },
+      {
+        "id": "comparator-tight",
+        "kind": "producer-artifact",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "tight"
+        },
+        "consumer_results": [
+          {
+            "id": "prd-readiness",
+            "pass": true,
+            "verdict": "admissible",
+            "reason": ""
+          }
+        ]
+      },
+      {
+        "id": "missing",
+        "kind": "producer-artifact",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "verdict": "not-ready",
+          "reason": "no-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "broad"
+        },
+        "consumer_results": [
+          {
+            "id": "prd-readiness",
+            "pass": true,
+            "verdict": "not-ready",
+            "reason": "no-stop-conditions"
+          }
+        ]
+      },
+      {
+        "id": "vague-tight",
+        "kind": "producer-artifact",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "verdict": "not-ready",
+          "reason": "ambiguous-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "tight"
+        },
+        "consumer_results": [
+          {
+            "id": "prd-readiness",
+            "pass": true,
+            "verdict": "not-ready",
+            "reason": "ambiguous-stop-conditions"
+          }
+        ]
+      },
+      {
+        "id": "mixed",
+        "kind": "producer-artifact",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "broad"
+        },
+        "consumer_results": [
+          {
+            "id": "prd-readiness",
+            "pass": true,
+            "verdict": "admissible",
+            "reason": ""
+          }
+        ]
+      },
+      {
+        "id": "injected-note",
+        "kind": "producer-artifact",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "verdict": "not-ready",
+          "reason": "no-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "broad"
+        },
+        "consumer_results": [
+          {
+            "id": "prd-readiness",
+            "pass": true,
+            "verdict": "not-ready",
+            "reason": "no-stop-conditions"
+          }
+        ]
+      },
+      {
+        "id": "code-blind",
+        "kind": "decision",
+        "pass": false,
+        "problems": [
+          "rule-answer"
+        ],
+        "value": null
+      },
+      {
+        "id": "licence-gate",
+        "kind": "decision",
+        "pass": false,
+        "problems": [
+          "rule-answer"
+        ],
+        "value": null
+      },
+      {
+        "id": "mixed-bar",
+        "kind": "decision",
+        "pass": false,
+        "problems": [
+          "rule-answer"
+        ],
+        "value": null
+      },
+      {
+        "id": "missing-refusal",
+        "kind": "decision",
+        "pass": false,
+        "problems": [
+          "rule-answer"
+        ],
+        "value": null
+      },
+      {
+        "id": "owner",
+        "kind": "decision",
+        "pass": false,
+        "problems": [
+          "rule-answer"
+        ],
+        "value": null
+      },
+      {
+        "id": "last-block",
+        "kind": "decision",
+        "pass": false,
+        "problems": [
+          "rule-answer"
+        ],
+        "value": null
+      },
+      {
+        "id": "uncertain",
+        "kind": "decision",
+        "pass": false,
+        "problems": [
+          "rule-answer"
+        ],
+        "value": null
+      },
+      {
+        "id": "admissible-reason",
+        "kind": "decision",
+        "pass": false,
+        "problems": [
+          "rule-answer"
+        ],
+        "value": null
+      }
+    ],
+    "errors": []
+  },
+  "scope": "Bounded code-blind PRD producer execution. Read each isolated PRD, persist a final fenced verdict, then parse and consume it through the actual prd-readiness CLI. Separate policy decisions; no run mint, full orchestration, code inspection or tracker mutation.",
+  "accounting": "unmetered"
+}

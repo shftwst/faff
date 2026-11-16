@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "signal": "pass",
+  "rounds_total": 2,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/corrective-integrity.js::forge-surface header comment still names five per-issue members",
+      "title": "forge-surface header comment still names five per-issue members",
+      "location": "plugin/skills/faff/bin/lib/corrective-integrity.js:189",
+      "action": "Fix.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "faffter-noon-review",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "forge-surface header comment still names five per-issue members",
+          "location": "plugin/skills/faff/bin/lib/corrective-integrity.js:189",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "scratchpad/pr-body-1478-head.md::pr body paraphrases the integrity-digest snapshot grep",
+      "title": "PR body paraphrases the integrity-digest snapshot grep",
+      "location": "scratchpad/pr-body-1478-head.md",
+      "action": "Fix.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "standard",
+      "model": "faffter-noon-review",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "PR body paraphrases the integrity-digest snapshot grep",
+          "location": "scratchpad/pr-body-1478-head.md",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "plugin/skills/faff/bin/lib/evidence.js::hashregularfile left unused after the selftest deletion",
+      "title": "hashRegularFile left unused after the selftest deletion",
+      "location": "plugin/skills/faff/bin/lib/evidence.js",
+      "action": "Fix.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "hashRegularFile left unused after the selftest deletion",
+          "location": "plugin/skills/faff/bin/lib/evidence.js",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/evidence-return.test.mjs::claim helper's third-digest default hides the old shape",
+      "title": "claim helper's third-digest default hides the old shape",
+      "location": "test/evidence-return.test.mjs",
+      "action": "Fix.",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "fixed",
+      "refutation": null,
+      "disposition_rationale": null,
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "claim helper's third-digest default hides the old shape",
+          "location": "test/evidence-return.test.mjs",
+          "severity": "minor",
+          "disposition": "fixed"
+        }
+      ]
+    }
+  ]
+}

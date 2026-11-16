@@ -1,0 +1,431 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.44.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "`faff admissible --lights-out` exits 1 with a reason naming the item for an untagged DONE item that contains a phrase from the keep list, and exits 0 once the same item is prefixed `needs-human: <reason>` (scenarios 1 and 2).",
+      "verified": "untagged item refused with its name and the tag hint; tagged item exits 0",
+      "passed": true,
+      "ac_id": "faff-1477#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: an untagged 'confirmed by eye' item is refused by R2c and the reason names the item and the tag"
+        },
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: the same item tagged needs-human: (with a leading [ac-N] id) is admitted, R2c to R2e all pass"
+        }
+      ]
+    },
+    {
+      "ac": "A spec whose DONE items are all human-only exits 1 with a reason containing \"no DONE item is left\" (scenario 3).",
+      "verified": "all-tagged spec refused by R2d with 'no DONE item is left'",
+      "passed": true,
+      "ac_id": "faff-1477#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: R2d refuses a spec whose DONE items are all tagged human-only; R2c and R2e still pass"
+        }
+      ]
+    },
+    {
+      "ac": "`parseHumanMarker` and `HUMAN_JUDGEMENT` are exported from `admissibility.js`, and `HUMAN_JUDGEMENT` holds the seven patterns written in section 3, character for character.",
+      "verified": "both exported; the seven patterns match the spec character for character",
+      "passed": true,
+      "ac_id": "faff-1477#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: HUMAN_JUDGEMENT holds the seven patterns of the spec"
+        }
+      ]
+    },
+    {
+      "ac": "`checks[]` gains `R2c.human-judgement-untagged`, `R2d.not-all-human-only` and `R2e.human-marker-reason`, after `R2b.done-concrete`, and each failing check adds its `detail` to `reasons`.",
+      "verified": "checks appended in order after R2b; failing details land in reasons",
+      "passed": true,
+      "ac_id": "faff-1477#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: the new checks follow R2b in order and a failing check adds its detail to reasons"
+        }
+      ]
+    },
+    {
+      "ac": "The failing details use the shapes in section 3, with items collapsed and truncated to 50 characters, and the passing details are exactly the three strings in the section 3 table.",
+      "verified": "failing shapes, 50-char cut and the three pinned passing strings asserted",
+      "passed": true,
+      "ac_id": "faff-1477#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: the passing details are the pinned strings"
+        },
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: an item over 50 characters is cut to 50 in the R2c detail"
+        }
+      ]
+    },
+    {
+      "ac": "`proseDoneAdvisory` ignores criteria with `human_only` true in `count`, `items` and the duplicates only, `doneTotal` and `allProseDone` stay over all DONE items, and `oracleLessAdvisory` is unchanged.",
+      "verified": "tagged item leaves count/items; the withheld scenario names only the untagged items; oracleLessAdvisory body untouched",
+      "passed": true,
+      "ac_id": "faff-1477#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: the withheld scenario: two untagged and two tagged prose items name only the untagged in the advisory"
+        },
+        {
+          "kind": "command",
+          "locator": "git diff -U0 origin/main...HEAD -- plugin/skills/faff/bin/lib/admissibility.js | grep -c 'function oracleLessAdvisory'"
+        }
+      ]
+    },
+    {
+      "ac": "A spec with one untagged prose DONE item and one tagged item gets `proseDoneAdvisory(...).allProseDone === false`, so the \"every DONE item is loose prose\" line is not emitted for it.",
+      "verified": "one untagged and one tagged prose item gives allProseDone false",
+      "passed": true,
+      "ac_id": "faff-1477#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: a spec with one untagged and one tagged prose item never gets the all-prose line"
+        }
+      ]
+    },
+    {
+      "ac": "Without `--lights-out`, a spec that contains a tagged item returns the same one-check `scope` verdict with no warnings as a spec without one (`proseDoneAdvisory` is reached only from the lights-out branch).",
+      "verified": "without --lights-out a tagged spec returns one scope check and no warnings",
+      "passed": true,
+      "ac_id": "faff-1477#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: without --lights-out a tagged item changes nothing: one scope check and no warnings"
+        }
+      ]
+    },
+    {
+      "ac": "Without `--lights-out` the verdict is unchanged: one `scope` check, exit 0 (scenario 6).",
+      "verified": "same test: one scope check, exit 0",
+      "passed": true,
+      "ac_id": "faff-1477#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: without --lights-out a tagged item changes nothing: one scope check and no warnings"
+        }
+      ]
+    },
+    {
+      "ac": "An empty-reason marker exits 1 with a reason containing \"with no reason\", and the same item draws no R2c refusal (scenario 4).",
+      "verified": "empty-reason marker exits 1 with 'with no reason'; R2c passes",
+      "passed": true,
+      "ac_id": "faff-1477#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: R2e refuses a marker with no reason, and R2c does not also refuse it"
+        }
+      ]
+    },
+    {
+      "ac": "An item that names a phrase only inside an inline code span passes R2c (scenario 5).",
+      "verified": "a phrase inside an inline code span passes R2c",
+      "passed": true,
+      "ac_id": "faff-1477#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: a listed phrase inside an inline code span passes R2c"
+        }
+      ]
+    },
+    {
+      "ac": "Items reading \"the confirmation dialog closes\" and \"the inspection log lists the failing check\" pass R2c, and \"manual confirmation of the layout\" fails it (bare nouns do not match).",
+      "verified": "bare nouns pass, 'manual confirmation' fails",
+      "passed": true,
+      "ac_id": "faff-1477#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: bare nouns do not match; 'manual confirmation' does"
+        }
+      ]
+    },
+    {
+      "ac": "With two untagged prose items and two tagged items, the prose-DONE advisory reports `2 DONE item(s)` and names neither tagged item (the withheld scenario).",
+      "verified": "two untagged and two tagged prose items: one '2 DONE item(s)' line naming only the untagged",
+      "passed": true,
+      "ac_id": "faff-1477#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: the withheld scenario: two untagged and two tagged prose items name only the untagged in the advisory"
+        }
+      ]
+    },
+    {
+      "ac": "For a matrix of items (tagged, empty reason, whitespace-only reason, uppercase marker, leading `[ac-N]`, near-miss `[AC-N]`), the set the verdict treats as tagged equals the set `dodClassify` marks `human_only`.",
+      "verified": "tagged set equals the dodClassify human_only set over the matrix",
+      "passed": true,
+      "ac_id": "faff-1477#done:14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: the verdict treats as tagged exactly the items dodClassify marks human_only"
+        }
+      ]
+    },
+    {
+      "ac": "A tagged item that contains a listed phrase passes R2c.",
+      "verified": "a tagged item naming a phrase passes R2c",
+      "passed": true,
+      "ac_id": "faff-1477#done:15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: the same item tagged needs-human: (with a leading [ac-N] id) is admitted, R2c to R2e all pass"
+        }
+      ]
+    },
+    {
+      "ac": "A spec with no DONE items fails R2a only; R2d and R2e pass.",
+      "verified": "a spec with no DONE section fails R2a only",
+      "passed": true,
+      "ac_id": "faff-1477#done:16",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: a spec with no DONE section fails R2a only; R2d and R2e pass"
+        }
+      ]
+    },
+    {
+      "ac": "The new checks read item text through `parseLocalAcId` and never call `assignLocalAcIds`, so they add no stderr output of their own (a search of the `admissibleVerdict` body finds no `assignLocalAcIds`).",
+      "verified": "the admissibleVerdict body uses parseLocalAcId and never assignLocalAcIds; stderr empty",
+      "passed": true,
+      "ac_id": "faff-1477#done:17",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: the admissibleVerdict body reads ids through parseLocalAcId and never assignLocalAcIds"
+        },
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: the new checks add no stderr of their own"
+        }
+      ]
+    },
+    {
+      "ac": "`faffter-noon-spec/SKILL.md` gains one paragraph in the self-review that reads the `R2c`, `R2d` and `R2e` reasons, treats each as a `major` finding, and says what to do: tag a person-only item `needs-human: <reason>`, rewrite any other item so a test or command can check it, keep at least one item that is not tagged, and give or drop an empty-reason marker; it re-runs once.",
+      "verified": "the noon spec self-review sentence names R2c, R2d and R2e",
+      "passed": true,
+      "ac_id": "faff-1477#done:18",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main...HEAD -- plugin/skills/faffter-noon-spec/SKILL.md | grep -c 'R2c.*R2d.*R2e'"
+        }
+      ]
+    },
+    {
+      "ac": "`faffter-dark-nlspec/SKILL.md` is unchanged, and its self-review section still inherits the sibling's.",
+      "verified": "the dark nlspec skill has no diff against origin/main",
+      "passed": true,
+      "ac_id": "faff-1477#done:19",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff --quiet origin/main...HEAD -- plugin/skills/faffter-dark-nlspec/SKILL.md"
+        }
+      ]
+    },
+    {
+      "ac": "`plugin/skills/faff/prose-baseline.json` has the `faffter-noon-spec/SKILL.md` entry raised by the exact byte delta of the edit, and `faff validate-adapters` reports no new FAIL.",
+      "verified": "baseline raised 17658 to 17919, the exact byte delta; validate-adapters passes",
+      "passed": true,
+      "ac_id": "faff-1477#done:20",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    },
+    {
+      "ac": "New prose uses Canadian spelling and no em dashes.",
+      "verified": "no em dash on any added line under plugin/skills or test",
+      "passed": true,
+      "ac_id": "faff-1477#done:21",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "git diff origin/main...HEAD -- plugin/skills test | grep '^+' | grep -c '—'"
+        }
+      ]
+    },
+    {
+      "ac": "`test/admissible.test.mjs` gains cases for scenarios 1 to 6, the withheld scenario, the all-tagged refusal, the empty-reason refusal, the code-span exemption and the stderr-quiet requirement.",
+      "verified": "cases for the scenarios, withheld scenario, all-tagged, empty-reason, code-span and stderr-quiet requirements are in the file",
+      "passed": true,
+      "ac_id": "faff-1477#done:22",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: an untagged 'confirmed by eye' item is refused by R2c and the reason names the item and the tag"
+        },
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: the new checks add no stderr of their own"
+        }
+      ]
+    },
+    {
+      "ac": "A corpus test over `records/specs` asserts that, over every spec under `records/specs` whether admissible or not, the specs failing R2c are exactly the four named in section 4 (it pins that set of names only and asserts no total counts), that their failing check set is `R2c.human-judgement-untagged` alone, and that R2d and R2e refuse none; a comment in the test states that a new match means tag the item or change the list and this pin together.",
+      "verified": "corpus pin over every spec, names only, R2d and R2e refuse none",
+      "passed": true,
+      "ac_id": "faff-1477#done:23",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: over every committed spec the R2c refusals are exactly the pinned set, and R2d and R2e refuse none"
+        }
+      ]
+    },
+    {
+      "ac": "A test pins the shared-predicate matrix from the HOW items above.",
+      "verified": "shared-predicate matrix pinned",
+      "passed": true,
+      "ac_id": "faff-1477#done:24",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: the verdict treats as tagged exactly the items dodClassify marks human_only"
+        }
+      ]
+    },
+    {
+      "ac": "A test row per pattern 4 to 7 gives one untagged phrase that fails R2c and the same item tagged that passes (the fourth scenario of the Scenarios section), and a row with \"Confirmed by eye\" and \"Manually verified\" fails R2c, so case-insensitivity is exercised.",
+      "verified": "patterns 4 to 7 refuse untagged and pass once tagged; case-insensitivity row",
+      "passed": true,
+      "ac_id": "faff-1477#done:25",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: patterns 4 to 7 refuse untagged and pass once tagged"
+        },
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: the phrases match case-insensitively and the detail joins items with ' | '"
+        }
+      ]
+    },
+    {
+      "ac": "A test with a Scenarios-only spec and no DONE items asserts R2a fails and R2d and R2e pass.",
+      "verified": "no-DONE-section test",
+      "passed": true,
+      "ac_id": "faff-1477#done:26",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: a spec with no DONE section fails R2a only; R2d and R2e pass"
+        }
+      ]
+    },
+    {
+      "ac": "A test with an untagged item longer than 50 characters and a second matching item asserts the detail truncates each to 50 characters and joins them with \" | \".",
+      "verified": "over-50-character truncation and ' | ' join",
+      "passed": true,
+      "ac_id": "faff-1477#done:27",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: an item over 50 characters is cut to 50 in the R2c detail"
+        }
+      ]
+    },
+    {
+      "ac": "The literal pattern `needs-human:[ \\t]*` appears in exactly one place in `admissibility.js`.",
+      "verified": "the marker pattern appears once",
+      "passed": true,
+      "ac_id": "faff-1477#done:28",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/admissible.test.mjs::FAFF-1477: the needs-human marker pattern is written once in admissibility.js"
+        }
+      ]
+    },
+    {
+      "ac": "`node --test test/admissible.test.mjs test/dod.test.mjs test/faff-1475-human-only-acs.test.mjs test/faff-1475-ac-floor.test.mjs` passes, and `faff admissible --selftest` and `faff dod --selftest` still pass.",
+      "verified": "the four named test files pass (43 and 139 cases) and both selftests pass",
+      "passed": true,
+      "ac_id": "faff-1477#done:29",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/admissible.test.mjs test/dod.test.mjs test/faff-1475-human-only-acs.test.mjs test/faff-1475-ac-floor.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "The full `node --test` suite passes, and `faff regions check` and `faff lint-cli-coverage` pass with no module added.",
+      "verified": "gate ladder UNIT rung passed all 416 files; regions check and lint-cli-coverage pass",
+      "passed": true,
+      "ac_id": "faff-1477#done:30",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff regions check"
+        },
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff lint-cli-coverage"
+        }
+      ]
+    },
+    {
+      "ac": "The PR description records the corpus result (4 specs, 7 items refused of 715 admissible) and the four spec names.",
+      "verified": "PR body records 4 specs, 7 items, 715 and the four spec names",
+      "passed": true,
+      "ac_id": "faff-1477#done:31",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c 'FAFF-654' pr-body-draft"
+        }
+      ]
+    },
+    {
+      "ac": "Before merge, the agent fetches the attached spec of each issue in the current Todo queue from the tracker (the CLI never touches the tracker), pipes each to `faff admissible --lights-out --spec - --json`, and the PR description lists every issue whose spec would now refuse, with the reason; each is tagged or rewritten in the same window, or the list is \"none\".",
+      "verified": "queue scan stated in the PR body: three faff-automate Todo specs read, none refuse",
+      "passed": true,
+      "ac_id": "faff-1477#done:32",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c 'FAFF-1318' pr-body-draft"
+        }
+      ]
+    },
+    {
+      "ac": "The PR description states that a queued spec with an untagged listed phrase becomes inadmissible at its next unattended admission, and that the fix is a tag or a rewrite.",
+      "verified": "PR body states the next-admission effect and the tag or rewrite fix",
+      "passed": true,
+      "ac_id": "faff-1477#done:33",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "grep -c 'next unattended admission' pr-body-draft"
+        }
+      ]
+    }
+  ]
+}

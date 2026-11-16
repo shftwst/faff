@@ -59,6 +59,8 @@ for (const sample of samples) {
     });
   } else if (manifest.kind === 'challenge-judgement-and-consumption') {
     projection = report.grade.cases.map(({ id, outcome, ground, disposition, upper_admit }) => ({ id, outcome, ground, disposition, upper_admit }));
+  } else if (manifest.kind === 'kernel-config-execution') {
+    projection = report.grade.cases.map(c => c.kind === 'decision' ? { id: c.id, kind: c.kind, value: c.value } : { id: c.id, kind: c.kind, effects: c.effects, status: c.status, values: c.values, final_files: c.final_files });
   } else throw new Error(`unknown run kind ${manifest.kind}`);
   const taskBytes = readFileSync(join(directory, 'task.json'));
   const payloads = [taskBytes.toString('utf8')];

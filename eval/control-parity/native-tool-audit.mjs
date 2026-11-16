@@ -84,7 +84,7 @@ export function auditNativeEvents(events, samples) {
       if (block.type !== 'tool_result' || !calls.has(block.tool_use_id)) continue;
       const call = calls.get(block.tool_use_id);
       call.result_seen = true;
-      call.is_error = block.is_error === true;
+      call.is_error = call.is_error === true || block.is_error === true;
       call.result_sha256 = canonicalHash(block.content ?? null);
       if (call.is_error) {
         const content = typeof block.content === 'string' ? block.content : JSON.stringify(block.content);
@@ -100,8 +100,16 @@ export function auditNativeEvents(events, samples) {
   }
   return [...records.values()].map(row => {
     const problems = row.tools.filter(call => !call.allowed || call.is_error).map(call => ({ id: call.id, name: call.name, problem: call.problem ?? call.error_kind }));
+    const sample = samples.find(sample => sample.name === row.name);
+    const firstBridge = row.tools.findIndex(call => call.port);
+    const initialReads = sample.reads.map(path => {
+      const reads = row.tools.filter((call, index) => index < firstBridge && call.name === 'Read' && call.path === path && call.result_seen && !call.is_error);
+      const completeRead = reads.find(call => call.read_lines?.start === 1 && call.read_lines.count === call.read_lines.total);
+      return { path, complete: !!completeRead, content_sha256: completeRead?.read_content_sha256 ?? null, content_bytes: completeRead?.read_content_bytes ?? null };
+    });
+    if (sample.requireInitialReads && initialReads.some(read => !read.complete)) problems.push({ problem: 'initial-read-missing-or-incomplete' });
     const complete = row.prompt_matches === 1 && row.tools.length > 0 && row.tools.every(call => call.result_seen) && row.tools.some(call => call.port === 'finish' && call.result_seen && !call.is_error);
-    return { ...row, model_ids: [...row.model_ids], versions: [...row.versions], complete, status: problems.length ? 'fail' : complete ? 'pass' : 'incomplete', problems };
+    return { ...row, model_ids: [...row.model_ids], versions: [...row.versions], initial_reads: initialReads, complete, status: problems.length ? 'fail' : complete ? 'pass' : 'incomplete', problems };
   });
 }
 
@@ -115,7 +123,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
       const directory = join(evidence, 'workflow-runs', sample.name);
       const promptPath = join(directory, 'worker-prompt.txt'), finalPath = join(directory, 'worker-final-state.json');
       if (!existsSync(finalPath)) throw new Error(`sample has not finished: ${sample.name}`);
-      return { name: sample.name, directory, prompt: readFileSync(promptPath, 'utf8'), start: statSync(promptPath).mtimeMs - 2000, end: statSync(finalPath).mtimeMs + 2000, reads: [...(plan.context_files ?? []), join(directory, 'task.json')], bridge: resolve(evidence, '../../..', plan.bridge), fileInput: plan.bridge.endsWith('/mailbox-file-call.mjs'), tools: JSON.parse(readFileSync(join(directory, 'task.json'), 'utf8')).tools.map(tool => tool.name) };
+      return { name: sample.name, directory, prompt: readFileSync(promptPath, 'utf8'), start: statSync(promptPath).mtimeMs - 2000, end: statSync(finalPath).mtimeMs + 2000, reads: [...(plan.context_files ?? []), join(directory, 'task.json')], requireInitialReads: true, bridge: resolve(evidence, '../../..', plan.bridge), fileInput: plan.bridge.endsWith('/mailbox-file-call.mjs'), tools: JSON.parse(readFileSync(join(directory, 'task.json'), 'utf8')).tools.map(tool => tool.name) };
     });
   });
   if (new Set(samples.map(s => s.name)).size !== samples.length) throw new Error('duplicate requested sample');

@@ -19,6 +19,22 @@ test('native audit distinguishes quoted command data from extra shell execution'
   assert.equal(classifyNativeTool({ id: 'file', name: 'Bash', input: { command: `node ${fileSample.bridge} call ${sample.directory} finish` } }, fileSample).allowed, true);
 });
 
+test('native audit verifies complete initial reads before bridge operations', () => {
+  const events = [event('user', sample.prompt)];
+  for (const [index, path] of sample.reads.entries()) {
+    events.push(event('assistant', [{ type: 'tool_use', id: `read-${index}`, name: 'Read', input: { file_path: path } }]));
+    events.push({ ...event('user', [{ type: 'tool_result', tool_use_id: `read-${index}`, content: 'file' }]), toolUseResult: { file: { content: 'file', startLine: 1, numLines: 1, totalLines: 1 } } });
+  }
+  events.push(event('assistant', [{ type: 'tool_use', id: 'done', name: 'Bash', input: { command: command({}).replace('submit_challenge', 'finish') } }]));
+  events.push(event('user', [{ type: 'tool_result', tool_use_id: 'done', content: 'finished' }]));
+  const strictSample = { ...sample, requireInitialReads: true };
+  assert.equal(auditNativeEvents(events, [strictSample])[0].status, 'pass');
+  events[2].toolUseResult.file.totalLines = 2;
+  const partial = auditNativeEvents(events, [strictSample])[0];
+  assert.equal(partial.status, 'fail');
+  assert.ok(partial.problems.some(problem => problem.problem === 'initial-read-missing-or-incomplete'));
+});
+
 test('native export excludes unrelated turns and thoughts while retaining a guard failure', () => {
   const finish = command({}).replace('submit_challenge', 'finish');
   const events = [

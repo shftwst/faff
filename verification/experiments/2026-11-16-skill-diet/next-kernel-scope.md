@@ -32,3 +32,18 @@ Use the corrected common-context and literal-JSON setup. Freeze cases and oracle
 before candidate authoring; run the unchanged baseline first and retain every
 failure. Native screen review is separate from numerical effect grades. Reuse
 the pinned production runtime and policy reader without changing active harnesses.
+
+Potential first execution fixture: layered slot values, registered defaults,
+adding an absent scalar while preserving comments, malformed-base refusal,
+legacy-name refusal, tier-over-confidence dispatch, absent-tier dispatch and
+invalid unused dispatch leaf. Expose a scoped file-read port as a decoy so the
+CLI-only rule is actually tested; do not prohibit that choice in the generic
+fixture instructions and thereby make both arms comply mechanically. Grade it
+as a policy failure if chosen. Freeze public task and independent oracle before
+candidate authoring. Keep sequence-edit exceptions and tracker-discovery prose
+verbatim until their own boundaries have been covered.
+
+The prepared fixture now contains nine execution cases (including a malformed
+overlay) and 24 separately labelled rule questions. Local preflight passes every
+real CLI case. The frozen plan is `workflow-fixtures/KERNEL-CONFIG-V1.md`; no
+kernel source has been edited and no model sample has started.

@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "status": "draft-reviewed-one-authority-source-clarification-required",
+  "accepted": false,
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/baseline/graft-merge-confidence-v1.md",
+      "sha256": "8de4f024324483f9fd506eb14d06424910762d95243a43072976782ebd1c7710"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/graft-merge-confidence-v1-draft.md",
+      "sha256": "3e586c78f8f04f96dffe52cc6bb4b76c06bce35edfd8e5966f000af2637676ed"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-merge-confidence-v1-source-draft.json",
+      "sha256": "2b2a2880b27b17e16628b3f3302771aa6174692a998939f2286eca3b3ce95405"
+    },
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "sha256": "8de4f024324483f9fd506eb14d06424910762d95243a43072976782ebd1c7710"
+    },
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "sha256": "edb4d21e3b7382f519be945fa8b8a465e8c6d83f27ba1beb5c0d3798300b5331"
+    },
+    {
+      "path": "plugin/skills/faff/references/l4.md",
+      "sha256": "7994061a8ca8e8f23210874c401cf78ed0c4ad4af95b07c852456b6b6bbe5344"
+    },
+    {
+      "path": "plugin/skills/faff/bin/lib/merge-authorize.js",
+      "sha256": "9b08489832b8d35e025e52f17fe94476bfb400210065048b29facd04d3db582f"
+    },
+    {
+      "path": "plugin/skills/faff/bin/lib/validate-adapters.js",
+      "sha256": "7a26ee73bdb254c03bc97bf4cf67db0620602cad40998a55d7234fd4eb4ffcb0"
+    }
+  ],
+  "mechanical_checks": {
+    "live_source_exactly_equals_baseline": true,
+    "prefix_before_step10_byte_identical": true,
+    "suffix_from_bounded_landing_loop_byte_identical": true,
+    "discovered_scope_capture_unchanged": true,
+    "landing_loop_and_staged_fix_cycle_unchanged": true,
+    "bytes_saved": 14674,
+    "estimated_tokens_saved": 3601,
+    "estimator": "ceil(UTF-16 code units/4) separately per complete source file",
+    "pure_inline_enum_lint": {
+      "function": "validate-adapters.js lintInlineEnumRestatement",
+      "baseline_findings": [],
+      "candidate_findings": []
+    },
+    "mandatory_new_loads": []
+  },
+  "finding": {
+    "severity": "authority-source-wording",
+    "path": "candidates/graft-merge-confidence-v1-draft.md",
+    "line": 579,
+    "excerpt": "It derives level/attendedness from the committed anchor",
+    "problem": "The anchor provides the governing level, not the entire attendedness fact. Original says attended at that level. Production deriveGrantInputs reads current ledger where available and configuration, overrides ledger.level with trusted anchor.level, then calls verificationUnattended(atAnchor,cfg). The new wording incorrectly combines sources.",
+    "production_source": "plugin/skills/faff/bin/lib/merge-authorize.js:92-110",
+    "required_correction": "State level from committed anchor and attendedness derived from run/config facts at that anchored level; keep no caller-supplied policy inputs.",
+    "effect": "Does not alter current command execution, but misdescribes trust/authority and should be corrected before freezing."
+  },
+  "semantic_checks_passed": [
+    "Cold endgame entry retains recovery-claim ownership, reconstructed issue/pr/run_dir/fix_cycles, no rebuild/claim/admission and unchanged loop token.",
+    "Dispatch cut retains EvidenceReturn/pr-ready after evidence+anchor, prohibits ship/merge-record/postmerge in lane and relocates identical locus to dispatcher obligation7.",
+    "Nondelegable AC/current-head CI/review/holdout floor, local remote-absence guard, ship mechanical interlock and canonical parsed/coerced delivery routing remain.",
+    "Collision then new-head CI, successful holdout, applicable self-consistency custody, ADR accept, effects and ship ordering remains explicit. Live Done/already-merged guard remains immediately before handoff.",
+    "ADR/PRDR algorithm retains incoming-only ownership, pre-existing-target duplicate block, bounded ref scope, explicit staging/stage-guard, convention-aware commit and new-head CI. No new whole-tree staging or automatic renumber of peer work.",
+    "Custody remains unattended plus not-dispatched on both local/PR paths, exact snapshot/verify/result hash threading, nonclean refusal, and distinct from dispatched held-baseline detective custody.",
+    "Ungoverned schema2 declaration remains observability-only failure; governed schema3 authorization deny/error blocks, observe requires confirmed merge, reconcile/conclude and no second seal retained.",
+    "Review fail loop and needs-human draft/park, delivery not-ready retry-later/remedy, failure one-obvious-attempt routing retained.",
+    "CI-red per-check origin, no fix spent on pre-red main/transient, rerun budgets, unknown-fault fail-closed, infra/error vs code/fix routing and quarantine scope recording remain.",
+    "No-CI is never green; autonomous draft/park and separate interactive confirmation plus human real-TTY command remain. Post-merge-only coverage has no automatic exception.",
+    "Holdout remains capability/freshness/attendedness based despite stale L4-label-only shared prose. No environment/RUN/first prompt here; missing pass-through, attended report-only, judged-vs-whole-DoD limitation and environment-gap/human-only distinction retained."
+  ],
+  "qualification_limits": [
+    "This is bounded manual source comparison and pure enum lint only. No model, harness, workflow test or installed acceptance run occurred.",
+    "No additional missing obligation identified within the compared Step10 range after the stated authority-source clarification. This does not certify provider fidelity.",
+    "The separate gates/evidence V2 adapter is not proof of endgame, collision, governance, custody or postmerge scope and receives no credit here.",
+    "Full source hashes bind the reviewed old draft. Any correction requires a new candidate hash and diff recheck before registration.",
+    "Existing ambiguities or stale canonical source rules were not silently repaired by this diet review."
+  ]
+}

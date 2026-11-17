@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "reviewed_at_utc": "2026-11-17T02:46:06.420898+00:00",
+  "reviewer": {
+    "task": "/root/verify_wtf_scope",
+    "role": "Independent bounded static source reviewer"
+  },
+  "status": "changes_required_unmeasured_uninstalled",
+  "bindings": {
+    "verification/experiments/2026-11-16-skill-diet/baseline/prep-review-orchestration-v1.md": {
+      "sha256": "af41560116bca66bd79662e1ee7ed5d4bb14197cdb4236b850028e5be632155c",
+      "bytes": 104335
+    },
+    "verification/experiments/2026-11-16-skill-diet/candidates/prep-review-orchestration-v1-draft.md": {
+      "sha256": "e09b63dd8e3eaa078f324dd256f27769229d42a6571f71f007e5257698101cef",
+      "bytes": 93323
+    },
+    "verification/experiments/2026-11-16-skill-diet/prep-review-orchestration-v1-source-draft.json": {
+      "sha256": "c084dfadb1211c614f6aad2e89a124de541991fba1a74b609823210a7da102f6",
+      "bytes": 1784
+    },
+    "plugin/skills/faff/bin/lib/validate-adapters.js": {
+      "sha256": "7a26ee73bdb254c03bc97bf4cf67db0620602cad40998a55d7234fd4eb4ffcb0",
+      "bytes": 131208
+    }
+  },
+  "scope": "Two declared review-entry/review-exit blocks only. No model measurement, test rerun, new harness or source edit.",
+  "findings": [
+    {
+      "id": "missing-unique-cause-values",
+      "severity": "material-policy-loss",
+      "evidence": [
+        "spec-review reject-approach (methodology at major or above) \u2014 L4 plot ignition refused: <reason>",
+        "spec-review judge park-needs-human \u2014 <upheld objections>"
+      ],
+      "detail": "Each exact cause occurs once in baseline and zero times in candidate. The replacement says earlier plot/judge arms supply their own exact causes, but those unchanged arms do not state these values. Generic round/hold authority does not replace these separately specified causes.",
+      "required_fix": "Restore both original exact cause strings. Keep V1 evidence unchanged and review corrected bytes separately."
+    },
+    {
+      "id": "new-inline-enum-lint-failure",
+      "severity": "integration-blocker",
+      "detail": "Existing pure lintInlineEnumRestatement helper returns integrity-floor.level full-enum findings at candidate lines 94 and 95. Baseline returns no findings. New L1|L2|L3|L4 syntax and adjacent prose trigger the existing two-line full-set rule.",
+      "required_fix": "Avoid the full enum restatement, for example retain original <level> call syntax with canonical command validity authority. Do not weaken lint."
+    }
+  ],
+  "static_checks": {
+    "outside_two_regions_byte_identical": true,
+    "ratification_carried_objections_reslice_judge_block_byte_identical": true,
+    "baseline_validator_lines": 612,
+    "candidate_validator_lines": 609,
+    "prep_existing_line_cap": 612,
+    "line_cap_pass": true,
+    "anchors": {
+      "never end a turn": true,
+      "in-flight marker": true
+    },
+    "mandatory_reads_added": false,
+    "potential_bytes_saved": 11012,
+    "enum_lint_execution": "Called existing exported pure lintInlineEnumRestatement on baseline/candidate text; no test suite or CLI integration run.",
+    "baseline_enum_findings": [],
+    "candidate_enum_findings": [
+      "line 94: inline enum restatement of integrity-floor.level",
+      "line 95: inline enum restatement of integrity-floor.level"
+    ]
+  },
+  "remaining_obligations_assessed": "Apart from the two cause values, no additional material loss identified in declared-surface classification, command-authoritative lens/mode selection, foreign validation, scratch/pin/served/window ownership, per-round assembly before dispatch, failed-read versus empty handling, warning logs, marker/author/latest-topic tracker filtering, inert fold, turn survival, record-before-contract and action order, mode-specific route table, outage kinds/counts/in-turn retries, hold labels/comments/status/token, busy-lock handling, valid-store-only resume, retained-verdict reconciliation, byte-exact audit evidence, independent turn-budget counter and degraded methodology rules. Removed command internals remain governed by explicit command invocation, not agent reimplementation.",
+  "pointer_assessment": "Existing kernel/dispatch/conformance and local ratification/judge/re-slice pointers remain legitimate; no added unconditional reads. The final exact-cause pointer is the identified exception.",
+  "requirements_after_correction": [
+    "Hash-bound corrected source recheck preserving initial findings",
+    "Frozen bounded paired measurement with actual round/hold/ratified-scope/evidence consumers and manual output/side-effect review",
+    "Exact-source integration including adapter lint and inventory before acceptance/installation"
+  ],
+  "limits": [
+    "Static review is not model parity, workflow qualification or acceptance.",
+    "The protected judgement and re-slice protocols were checked for byte equality, not newly behaviorally proved.",
+    "No accepted savings or installed change follows from this draft."
+  ]
+}

@@ -1,0 +1,133 @@
+{
+  "schema": 1,
+  "created_at_utc": "2026-11-17T02:41:47.391231+00:00",
+  "reviewer": "/root/verify_wtf_scope; independent bounded read-only prioritisation",
+  "status": "research_note_only_no_candidate_or_acceptance",
+  "bindings": {
+    "plugin/skills/faff-prep/SKILL.md": "af41560116bca66bd79662e1ee7ed5d4bb14197cdb4236b850028e5be632155c",
+    "plugin/skills/faff/references/kernel.md": "edb4d21e3b7382f519be945fa8b8a465e8c6d83f27ba1beb5c0d3798300b5331",
+    "plugin/skills/faff/references/review.md": "b2e82efe53cdbb303f173b0465eea4dc878037870eebe7a50896489e088e84b2",
+    "plugin/skills/faffter-dark-spec-review/eval/in-spec-ratification/README.md": "8d32846222da36a249e203d59e728b4921818ba33a5eb177e2286be2952129fa"
+  },
+  "regions": [
+    {
+      "lines": "88-160",
+      "topic": "selection, dispatch, ratified scope and round routing",
+      "bytes": 15287
+    },
+    {
+      "lines": "161-207",
+      "topic": "interactive ratification",
+      "bytes": 6226
+    },
+    {
+      "lines": "208-220",
+      "topic": "carried objections and L4 re-slice",
+      "bytes": 3154
+    },
+    {
+      "lines": "221-241",
+      "topic": "judge",
+      "bytes": 8879
+    },
+    {
+      "lines": "242-274",
+      "topic": "outage, resume, evidence and modes",
+      "bytes": 8850
+    }
+  ],
+  "recommendation": {
+    "batch": "Command-owned spec-review orchestration: lines 88-160 plus 242-274; retain ratification classifier/utterance/carry-forward, judge dispatch, and L4 re-slice rules unchanged initially.",
+    "input_bytes": 24137,
+    "conservative_potential_reduction_bytes": [
+      7000,
+      10000
+    ],
+    "reason": "Large reduction from one round/hold/evidence command authority and compact state tables, without changing judgement prompts or refuter/judge transport. Estimates are not accepted savings."
+  },
+  "mechanical_repetition_to_simplify": [
+    {
+      "region": "90-103",
+      "opportunity": "Shorten orthogonal-gates rationale and repeated lens/pin safety explanations; retain declared-surface classification and call inputs, exact level handling, rationale logging, scratch ownership, servedness, human-unpark and failure routes.",
+      "canonical": "Already-loaded kernel: Producer dispatch, Slot conformance validation, Spec-review verdict. Deterministic spec-review-lenses and spec-review round own selection/governance.",
+      "tests": [
+        "spec-review-lenses.test.mjs",
+        "spec-review-pin.test.mjs",
+        "spec-review-window.test.mjs",
+        "spec-review-round.test.mjs"
+      ]
+    },
+    {
+      "region": "105-139",
+      "opportunity": "Combine repeated assemble exit handling in prose, shell comments and bullets into one call plus one exit/effect table. Shorten repeated visibility-only/no-register-write rationale.",
+      "retain": "Every-round cadence; unconditional call; conditional container only; each stderr warning; exit 2 is failed read and needs-human, exit 3 legitimate empty and stale-file removal; live marked nonautomation authors only; latest-topic dedup; gather reuses fetch; neutralized inert DATA; no register write.",
+      "canonical": "ratified-scope assemble/fold consumers, plus already-loaded kernel untrusted-input rules. Filtering and timing remain prep-owned.",
+      "tests": [
+        "ratified-scope.test.mjs",
+        "decisions.test.mjs"
+      ]
+    },
+    {
+      "region": "140-159",
+      "opportunity": "Compress incident explanation and internal implementation narrative around inflight/turncheck and round into exact ordering and action/effect table.",
+      "retain": "Open before dispatch, close on consumed result; harness-dependent turn rule; one round call, no parallel standalone rerouting; copy all warnings; approve still needs confidence; every action and mode distinction.",
+      "canonical": "Already-loaded kernel Producer dispatch; actual spec-review round owns record-before-contract, governance, churn, caps and convergence.",
+      "tests": [
+        "inflightcheck.test.mjs",
+        "turncheck.test.mjs",
+        "spec-review-round.test.mjs",
+        "spec-review-occupant-served-dispatch.test.mjs"
+      ]
+    },
+    {
+      "region": "242-274",
+      "opportunity": "Unify outage/turn-budget tables, resume rule and Modes recap; remove explanations already expressed by exact hold command effects and independent counters. Retain terminal evidence producer as one recipe.",
+      "retain": "Both outage kinds versus config-fault; retry only outaged lenses in-turn; limits from disk; hold label/comment/status/token effects; exit-4 retry once; valid-store-only shortcut skipping production/premise; invalid store ordinary flow; clear after conclusive result; turn-budget no round/verdict; audit evidence non-gating and byte-for-byte; no invented rationale; judge path --from-judge and unchanged spec; all warnings.",
+      "canonical": "spec-review round/hold and collate-evidence commands; already-loaded kernel retained verdict/Live-thread reconciliation contract.",
+      "tests": [
+        "spec-review-round.test.mjs",
+        "spec-review-hold.test.mjs",
+        "spec-review-evidence-write.test.mjs",
+        "spec-review-carry-check.test.mjs",
+        "spec-review.test.mjs"
+      ]
+    }
+  ],
+  "needs_behavioural_proof_not_just_repetition": [
+    {
+      "region": "161-207",
+      "hazard": "Decision versus implementation/ambiguous classification is explicitly LLM judgement. Do not substitute spec_anchor matching, tag recognition or CLI success for it. Existing scope-test fixture includes a positive control.",
+      "reusable": "in-spec-ratification/scope-test-objections.json plus decision tagged/untagged/critical and implementation spec variants; its README specifies independent extraction and transport checks. These are regression fixtures, not permanently wired CI or a free current model-pass claim.",
+      "preserve": "Interactive only; major/minor only; explicit human reply; no critical/methodology/ambiguous offer; quote neutralization before write, shortest decision sentence <=200 chars; no raw utterance; same transform not whole fold output; capture offer; all-objections-ratified mark excludes cap; inherited tags survive scoped revision/autonomous refresh, not promised for later full redraft."
+    },
+    {
+      "region": "221-241",
+      "hazard": "Judge blinding, two calls, backend independence, argument reread/restamp after prior correction, scrubbed reconstruction, per-section minimum, retry disposition and terminal admit ordering are unique executable protocol, not duplicate rationale. Leave intact for first economical batch.",
+      "reusable": [
+        "spec-judge-evidence.test.mjs",
+        "spec-judge-assemble-admit.test.mjs",
+        "spec-judge-casefile.test.mjs",
+        "spec-judge-level-write-once.test.mjs",
+        "spec-judge-accept-bar.test.mjs"
+      ],
+      "limit": "Deterministic replay proves assembly/admission, not judge quality; committed defect/taste smoke is explicitly advisory."
+    },
+    {
+      "region": "208-219",
+      "hazard": "Plot dispatch, refusal, child-wave reentry and cross-child churn are orchestration effects. Leave unchanged unless actual controlled dispatch/reentry is included, not merely a round result saying re-slice."
+    }
+  ],
+  "minimum_reused_checkpoint_proof": [
+    "Use existing policy-reader/MCP capture and runtime-binding machinery; no new broad workflow engine. Replay actual spec-review round on existing historical verdict/round fixtures, including approve, revise, malformed, judge handoff, re-slice handoff and mode-specific outage; assert actual persisted round/decision/warnings and downstream action attempts.",
+    "Use ratified-scope real command fixtures for two consecutive rounds with changed register, no-container tradeoff, legitimate empty, unreadable source and hostile tracker resolution. Observe exact context bytes and warning propagation, not exit alone.",
+    "Use existing round/hold fixtures for retry boundary, independent counters, lock-busy, valid/invalid resume and conclusive clear. Controlled producer/tracker ports must show valid resume never reproduces the spec and hold never promotes or applies parked.",
+    "Use actual collate-evidence and carry consumers on produced terminal artifacts; require exact publication bytes, source-derived dispositions, warning-only failure behavior and unchanged retained verdict/confidence boundary."
+  ],
+  "canonical_source_limits": [
+    "Prep already requires kernel, tracker, autonomous, methodology, review and park references at line 19. Refer to those without adding mandatory reads.",
+    "Reviewer producer source is not automatically prep context; do not remove prep-owned obligations merely because an occupant also says them. Prep owns dispatch/context/timing/attachment, reviewer owns judgement.",
+    "The ratification fixtures and README are proof resources, not runtime canonical policy. A pointer to them cannot replace runtime scope-test rules.",
+    "Modes and park-cause recap may shorten only after every unique mode/effect/cause remains in its authoritative local table. No baseline failure waiver or retesting unchanged treatment until pass."
+  ],
+  "activity_limits": "No skill prose authored; no harness, fixture, source or active-run changes; no model calls or test reruns. Only this structured note written."
+}

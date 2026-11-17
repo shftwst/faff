@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "status": "draft-unmeasured-uninstalled",
+  "source": "plugin/skills/faff-graft/SKILL.md",
+  "source_commit": "f9f93a7771793954c82fd9a5a541df419767c558",
+  "baseline": "baseline/graft-merge-confidence-v1.md",
+  "candidate": "candidates/graft-merge-confidence-v1-draft.md",
+  "baseline_sha256": "8de4f024324483f9fd506eb14d06424910762d95243a43072976782ebd1c7710",
+  "candidate_sha256": "3e586c78f8f04f96dffe52cc6bb4b76c06bce35edfd8e5966f000af2637676ed",
+  "before_bytes": 178777,
+  "after_bytes": 164103,
+  "bytes_saved": 14674,
+  "before_estimated_tokens": 44329,
+  "after_estimated_tokens": 40728,
+  "estimated_tokens_saved": 3601,
+  "sections": [
+    {
+      "section": "merge-confidence-before-landing-loop",
+      "baseline_start_line": 524,
+      "baseline_end_line": 586,
+      "before_bytes": 28517,
+      "after_bytes": 13843,
+      "before_sha256": "f98e41a111fcd793a681bf5ad0fbb2719b5940492e39cf53a2e2c81469000dad",
+      "after_sha256": "3046a23a0ab169c68da7ae7dd98fe09ad5d920fff4106e5c616b932f5a049217"
+    }
+  ],
+  "outside_sections_unchanged": true,
+  "outside_sections_sha256": "ba675826461222ac4bf62b41056752e8b254c2de6279293785b94baab37e3939",
+  "mandatory_dependencies_added": [],
+  "limits": [
+    "Unregistered source draft; no fidelity or accepted savings claim.",
+    "Independent from gates/evidence V2 draft; main source remains baseline.",
+    "Landing-loop pseudocode/table and staged fix cycle stay byte-for-byte unchanged.",
+    "No proof of endgame/governed/collision/postmerge behaviour is claimed from the separate graft checkpoint adapter."
+  ]
+}

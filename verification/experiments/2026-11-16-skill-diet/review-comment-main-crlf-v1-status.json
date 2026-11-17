@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "recorded_at_utc": "2026-11-17T20:48:40.460161+00:00",
+  "status": "blocked-before-provider-request",
+  "registration_sha256": "cec6d0b5ec5580932a9c5ccfb37fca0c225a973ca596971d0b49f5ff5baa1773",
+  "measurement_commit": "d7c4948dc8c6b1210ca26487ccfc49ccd696f02e",
+  "production_commit_after_test_only_fix": "8b29b9dd3e44787a3aa13a38ea9df3b296c00932",
+  "plugin_tree": "0a6a3679a526b833b945edc40aa8dfa54930fa87",
+  "source_bindings_checked": 597,
+  "binding_mismatches": [],
+  "diagnostic_exit": 1,
+  "reason": "Existing interactive worker has no CLAUDE_CODE_OAUTH_TOKEN environment variable; unchanged diagnostic refused at line54 before CLI probe, output directory, provider preflight or model attempt.",
+  "output_directory_exists": false,
+  "provider_samples": 0,
+  "retry_count": 0,
+  "host_container_check": "docker ps returned zero running containers.",
+  "limits": [
+    "No fidelity result, hosted tracker qualification, auth/connector acceptance or production activation.",
+    "No credentials inspected or copied; harness and source unchanged.",
+    "Worker reported outer shell exit0 from a trailing echo; diagnostic itself exit1. Both preserved in worker capture."
+  ],
+  "worker_capture_sha256": "e03ae0e8a9714712407f15f2bc7704669087bb861b8591450cd0244f02ee163f"
+}

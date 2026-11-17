@@ -1,13 +1,21 @@
 {
   "schema": 1,
-  "status": "ready-for-root-commit-lint-and-all14-selected-source-checks-pass",
+  "status": "source-checks-complete-lint-all14-selected-checks-and-inventory-pass",
   "accepted": false,
   "head_before_batch": "850c7e4df44587cc3b9f2f973c632177e1c31d4d",
   "inventory": {
     "path": "records/specs/2026-11-17-skill-diet-source-batch-3-design.md",
     "sha256": "7872756b70eba1021142c170fdab1e6231214ff3969c55d600e1687b1e117943",
     "rows": 129,
-    "status": "prepared-head-check-awaits-root-commit"
+    "status": "pass",
+    "commit": "e732fd2474385cd6cee5f2a45cab6773e3c6a97f",
+    "command": "node plugin/skills/faff/bin/faff rule-inventory check --base a8509086ad28fa0e55cf3d1d818f2055294e663b --json",
+    "exit_code": 0,
+    "log": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/SOURCE-BATCH-3-rule-inventory.json",
+    "log_sha256": "dc811b244e78d0e01be51280e73c814f85738d142b299d563e0b5cf05793222b",
+    "blocks_deleted": 1000,
+    "covered_moved": 38,
+    "covered_by_row": 962
   },
   "only_allowances_lowered": [
     "faff-beep-boop/SKILL.md",

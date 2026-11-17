@@ -1,11 +1,12 @@
 Current covered runtime prose totals **1,164,780 bytes / 288,949 estimated tokens** across 41 files. Today’s three implemented, statically reviewed batches remove **87,404 bytes / 21,462 estimated tokens** from the frozen accepted source. New model qualification remains outstanding.
 
-Current filesystem bytes include the third-batch lint/wiring correction; frozen candidate sizes are not substituted for installed source.
+Current source includes the third-batch lint/wiring correction; frozen candidate sizes are not substituted for implemented source.
+
 | State | Bytes | Estimated tokens |
 |---|---:|---:|
 | Original a8509086 | 1,369,435 | 339,279 |
 | Historical accepted a523734d | 1,252,184 | 310,411 |
-| Current working source | 1,164,780 | 288,949 |
+| Current implemented source | 1,164,780 | 288,949 |
 
 Historical qualified ledger reduction: **117,251 bytes / 28,868 estimated tokens**. Overall implemented reduction from original: **204,655 bytes / 50,330 estimated tokens**. These scopes are distinct; today’s delta has not been added to the accepted ledger.
 
@@ -15,7 +16,9 @@ Historical qualified ledger reduction: **117,251 bytes / 28,868 estimated tokens
 | 2 | 22,248 | 5,458 |
 | 3 | 14,897 | 3,653 |
 
-Kernel pair remains held on one strict input mismatch, as reported by root. This accounting performs no regrade or waiver and claims no new model-qualified savings. Root owns remaining checks and commits.
+Kernel qualification remains held on one registered producer-input mismatch; both arms produced the expected real CLI outcomes. See [kernel pair](KERNEL-PAIR.md). This report claims no new model-qualified savings.
+
+Adapter lint passes. Rule inventory covers all 1,000 deleted blocks: 38 moved and 962 covered by inventory rows. The three batches have 11, 64 and 14 passing selected checks respectively; these sets overlap and are not summed. One inherited outage-retry test still expects the legacy config path and fails without reading any changed skill prose. Initial failures and corrected checks remain in the batch check records.
 
 Scope comes only from the 41 `prose-baseline.json` runtime paths, excluding tests, evidence and design files. Each file is measured from original/accepted Git bytes and current filesystem bytes; token estimates are `ceil(UTF-16 code units / 4)` per full file, then summed. They measure source size, not billing or repeated runtime loads. Original and accepted totals match the frozen ledger exactly.
 

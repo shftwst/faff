@@ -1,0 +1,562 @@
+{
+  "status": "source-ported-existing-checks-pass-not-new-model-qualified",
+  "base_commit": "2d8cb231c515861e88f5aa79bf5ab43f13223d72",
+  "before": {
+    "bytes": 157576,
+    "tokens_ceil_utf16_over_4": 39048,
+    "validator_lines": 668,
+    "sha256": "6ea68fdab91425ccf686415c8b273c0bcc0788c6cffc022ddbe9b38e9ae83559"
+  },
+  "after": {
+    "bytes": 149511,
+    "tokens_ceil_utf16_over_4": 37069,
+    "validator_lines": 665,
+    "sha256": "c78f3490f8967dba2ac7de0e496f9fd62f632265fcc7ad6adfc429a66c547e79"
+  },
+  "savings": {
+    "bytes": 8065,
+    "tokens_ceil_utf16_over_4": 1979
+  },
+  "accepted_sources": [
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/candidates/beep-reporting-v1.md",
+      "sha256": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/candidates/beep-ledger-v2.md",
+      "sha256": "3b23939b67eb3472b4e826e990ce7ed9f396455c4ff65430af4cecb7a8bdcbfe"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/beep-reporting-mcp-v1-final-qualification.json",
+      "sha256": "84817cb65c0946867ea087bc08f0818fc2a3b279267e9de5590976e1009f5b6e"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v3-final-qualification.json",
+      "sha256": "46f2b73ad6f530e60b1a38b2d971ca17b38968d161ff580e5341612ff4896cad"
+    }
+  ],
+  "block_mapping": [
+    {
+      "cut": "reporting",
+      "operation": "replace",
+      "historical_baseline": "baseline/beep-reporting.md",
+      "historical_candidate": "candidates/beep-reporting-v1.md",
+      "historical_before_lines": [
+        597,
+        597
+      ],
+      "historical_after_lines": [
+        597,
+        597
+      ],
+      "current_main_original_byte_offset": 140740,
+      "before_bytes": 450,
+      "after_bytes": 246,
+      "before_sha256": "a79a01dca7e2107ff7827aa66791b3219482b868669efebe81e4dee2efdf16be",
+      "after_sha256": "f992973399aaa0fef2c646b66c151930117d9e83d3391a44dc8646f3185fa172",
+      "before_exact_main_occurrences": 1
+    },
+    {
+      "cut": "reporting",
+      "operation": "replace",
+      "historical_baseline": "baseline/beep-reporting.md",
+      "historical_candidate": "candidates/beep-reporting-v1.md",
+      "historical_before_lines": [
+        599,
+        599
+      ],
+      "historical_after_lines": [
+        599,
+        599
+      ],
+      "current_main_original_byte_offset": 141191,
+      "before_bytes": 96,
+      "after_bytes": 86,
+      "before_sha256": "9d2b64628ed22a189ed7abadc41d6209332a536ec9ad63e11867248a46345829",
+      "after_sha256": "e5494059d762c3922c5995bc3d7c4b15d8fcf57e5b8af7f832410c938f23fed7",
+      "before_exact_main_occurrences": 1
+    },
+    {
+      "cut": "reporting",
+      "operation": "replace",
+      "historical_baseline": "baseline/beep-reporting.md",
+      "historical_candidate": "candidates/beep-reporting-v1.md",
+      "historical_before_lines": [
+        601,
+        604
+      ],
+      "historical_after_lines": [
+        601,
+        604
+      ],
+      "current_main_original_byte_offset": 141288,
+      "before_bytes": 2588,
+      "after_bytes": 1752,
+      "before_sha256": "77649ed57f259e0e3db7b5aa024415a5ed019175578e12bf76c8d4fca282d81b",
+      "after_sha256": "2c2d7be36e17b547df12c7a9433d3c6e933159136baf7a558ba0d4b48274e518",
+      "before_exact_main_occurrences": 1
+    },
+    {
+      "cut": "reporting",
+      "operation": "replace",
+      "historical_baseline": "baseline/beep-reporting.md",
+      "historical_candidate": "candidates/beep-reporting-v1.md",
+      "historical_before_lines": [
+        606,
+        607
+      ],
+      "historical_after_lines": [
+        606,
+        607
+      ],
+      "current_main_original_byte_offset": 143890,
+      "before_bytes": 571,
+      "after_bytes": 440,
+      "before_sha256": "7c100e28a81cdbd954f4d7fb92b82d8e7dae94d558db4c406c757842fa87e779",
+      "after_sha256": "96be6baa7df5ed9a979078f0bad5ea41f809c92de83843985b76d121609a84a0",
+      "before_exact_main_occurrences": 1
+    },
+    {
+      "cut": "reporting",
+      "operation": "replace",
+      "historical_baseline": "baseline/beep-reporting.md",
+      "historical_candidate": "candidates/beep-reporting-v1.md",
+      "historical_before_lines": [
+        610,
+        610
+      ],
+      "historical_after_lines": [
+        610,
+        610
+      ],
+      "current_main_original_byte_offset": 144669,
+      "before_bytes": 636,
+      "after_bytes": 363,
+      "before_sha256": "1feb05aaad1eaf64c3e229468ebcbd5ef587732ee10974ac74e748d7db863461",
+      "after_sha256": "454e67fa6860ff0d6a0d997842042a358f2521d2e484fa00ac9767561c22e2e5",
+      "before_exact_main_occurrences": 1
+    },
+    {
+      "cut": "ledger",
+      "operation": "replace",
+      "historical_baseline": "baseline/beep-ledger-v2.md",
+      "historical_candidate": "candidates/beep-ledger-v2.md",
+      "historical_before_lines": [
+        383,
+        383
+      ],
+      "historical_after_lines": [
+        383,
+        383
+      ],
+      "current_main_original_byte_offset": 95591,
+      "before_bytes": 692,
+      "after_bytes": 417,
+      "before_sha256": "52237ac68b2f5e349d1af1b591cdf073d35385173f5aa9f1a73039c3b4dd3092",
+      "after_sha256": "9e0a174c314b072cb639c929dadc8a441bc9c816c1c8c07f657e3b13cdd1b662",
+      "before_exact_main_occurrences": 1
+    },
+    {
+      "cut": "ledger",
+      "operation": "replace",
+      "historical_baseline": "baseline/beep-ledger-v2.md",
+      "historical_candidate": "candidates/beep-ledger-v2.md",
+      "historical_before_lines": [
+        385,
+        385
+      ],
+      "historical_after_lines": [
+        385,
+        385
+      ],
+      "current_main_original_byte_offset": 96284,
+      "before_bytes": 702,
+      "after_bytes": 448,
+      "before_sha256": "267de3ed715417c7b7cfcc31b15b0addf41f60dccf4ada4a7d5f1fcfceb51ae9",
+      "after_sha256": "33a104b8f78fca8ece4df0c29fb9212ee8ce8aed6d70b01c0988e3fb3aa2d7e1",
+      "before_exact_main_occurrences": 1
+    },
+    {
+      "cut": "ledger",
+      "operation": "replace",
+      "historical_baseline": "baseline/beep-ledger-v2.md",
+      "historical_candidate": "candidates/beep-ledger-v2.md",
+      "historical_before_lines": [
+        387,
+        398
+      ],
+      "historical_after_lines": [
+        387,
+        389
+      ],
+      "current_main_original_byte_offset": 96987,
+      "before_bytes": 813,
+      "after_bytes": 996,
+      "before_sha256": "e9fad97b09adb105d5bcc3ba838a7828c565f27f7f19766aadfa07f7d5c2df7c",
+      "after_sha256": "be6acab919713bc50422fe19fcef35f93ed4732d6d62c2ccc119ae93c532fe6d",
+      "before_exact_main_occurrences": 1
+    },
+    {
+      "cut": "ledger",
+      "operation": "replace",
+      "historical_baseline": "baseline/beep-ledger-v2.md",
+      "historical_candidate": "candidates/beep-ledger-v2.md",
+      "historical_before_lines": [
+        400,
+        402
+      ],
+      "historical_after_lines": [
+        391,
+        391
+      ],
+      "current_main_original_byte_offset": 97801,
+      "before_bytes": 1806,
+      "after_bytes": 422,
+      "before_sha256": "c29ad3074460f001f601f1bd96e48815c424f92dd22a14385b921f8123b41cfc",
+      "after_sha256": "05d7d563e7681a6674296a756cbedc486e685108333743af9c56dd432a8258b7",
+      "before_exact_main_occurrences": 1
+    },
+    {
+      "cut": "ledger",
+      "operation": "replace",
+      "historical_baseline": "baseline/beep-ledger-v2.md",
+      "historical_candidate": "candidates/beep-ledger-v2.md",
+      "historical_before_lines": [
+        404,
+        404
+      ],
+      "historical_after_lines": [
+        393,
+        393
+      ],
+      "current_main_original_byte_offset": 99608,
+      "before_bytes": 601,
+      "after_bytes": 338,
+      "before_sha256": "189709996713e58379d1df4eb4201151a10123dbc539ccdef0fd6af01cd0aaac",
+      "after_sha256": "b58e4656637f9b56b34cf8d061b4a826d356b8e7fc637da8527f71090dd24686",
+      "before_exact_main_occurrences": 1
+    },
+    {
+      "cut": "ledger",
+      "operation": "replace",
+      "historical_baseline": "baseline/beep-ledger-v2.md",
+      "historical_candidate": "candidates/beep-ledger-v2.md",
+      "historical_before_lines": [
+        406,
+        408
+      ],
+      "historical_after_lines": [
+        395,
+        405
+      ],
+      "current_main_original_byte_offset": 100210,
+      "before_bytes": 3397,
+      "after_bytes": 2799,
+      "before_sha256": "e3426b52f860ce38ea07e7e5519b6e52301ad3567b88121c64d8c29ae453e8e7",
+      "after_sha256": "c613c4d8aead709fea3b2a7542c1b6873bdb4c48c51c8a055124fa67af426eab",
+      "before_exact_main_occurrences": 1
+    },
+    {
+      "cut": "ledger",
+      "operation": "delete",
+      "historical_baseline": "baseline/beep-ledger-v2.md",
+      "historical_candidate": "candidates/beep-ledger-v2.md",
+      "historical_before_lines": [
+        410,
+        411
+      ],
+      "historical_after_lines": [
+        407,
+        406
+      ],
+      "current_main_original_byte_offset": 103871,
+      "before_bytes": 2466,
+      "after_bytes": 0,
+      "before_sha256": "c75b4a2d515ae7de594633d8ad86d89b0f84bbe1ad8356ca23b71c9fb464d5a4",
+      "after_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "before_exact_main_occurrences": 1
+    },
+    {
+      "cut": "ledger",
+      "operation": "replace",
+      "historical_baseline": "baseline/beep-ledger-v2.md",
+      "historical_candidate": "candidates/beep-ledger-v2.md",
+      "historical_before_lines": [
+        413,
+        413
+      ],
+      "historical_after_lines": [
+        408,
+        408
+      ],
+      "current_main_original_byte_offset": 107959,
+      "before_bytes": 1100,
+      "after_bytes": 746,
+      "before_sha256": "99f696fcfef16bb1fa8c37a6dff40ddf9038037df0343f6dc01587548b2cffc2",
+      "after_sha256": "818d5fd3790d1562e4f60e9a6619ff4db548f3185c86d3ed1356e6e15f9edfc2",
+      "before_exact_main_occurrences": 1
+    },
+    {
+      "cut": "ledger",
+      "operation": "replace",
+      "historical_baseline": "baseline/beep-ledger-v2.md",
+      "historical_candidate": "candidates/beep-ledger-v2.md",
+      "historical_before_lines": [
+        455,
+        455
+      ],
+      "historical_after_lines": [
+        450,
+        450
+      ],
+      "current_main_original_byte_offset": 117682,
+      "before_bytes": 1416,
+      "after_bytes": 579,
+      "before_sha256": "5ccbe7bf2c32b2ddb57c36cfa6de5674a685c212974c6f23ec906783d46a0396",
+      "after_sha256": "58e0c5cf66590b86ca32377f48cc0273859fc48bb7c097c5acb63c28305fc9e3",
+      "before_exact_main_occurrences": 1
+    },
+    {
+      "cut": "ledger",
+      "operation": "replace",
+      "historical_baseline": "baseline/beep-ledger-v2.md",
+      "historical_candidate": "candidates/beep-ledger-v2.md",
+      "historical_before_lines": [
+        457,
+        457
+      ],
+      "historical_after_lines": [
+        452,
+        454
+      ],
+      "current_main_original_byte_offset": 119099,
+      "before_bytes": 449,
+      "after_bytes": 500,
+      "before_sha256": "4981e472e9bdf5c0247c0c0ad949fa44d4f676d432beea8a940b7f8206dc266d",
+      "after_sha256": "f0e44a387d9841f9d70fdc3f93ba8bd030d484d9a7afef8c177330b9e2e8e9d9",
+      "before_exact_main_occurrences": 1
+    },
+    {
+      "cut": "ledger",
+      "operation": "replace",
+      "historical_baseline": "baseline/beep-ledger-v2.md",
+      "historical_candidate": "candidates/beep-ledger-v2.md",
+      "historical_before_lines": [
+        473,
+        473
+      ],
+      "historical_after_lines": [
+        470,
+        470
+      ],
+      "current_main_original_byte_offset": 120640,
+      "before_bytes": 1114,
+      "after_bytes": 788,
+      "before_sha256": "60c580eb3c722114fbd04a3a494a20414cfa697cfa554a4f4965415fd4e1c1b9",
+      "after_sha256": "b6231bbb4300500faa1fa7ba2fc0c52dc68582e3855cdb53996bf7193d585186",
+      "before_exact_main_occurrences": 1
+    },
+    {
+      "cut": "ledger",
+      "operation": "replace",
+      "historical_baseline": "baseline/beep-ledger-v2.md",
+      "historical_candidate": "candidates/beep-ledger-v2.md",
+      "historical_before_lines": [
+        475,
+        475
+      ],
+      "historical_after_lines": [
+        472,
+        472
+      ],
+      "current_main_original_byte_offset": 121755,
+      "before_bytes": 609,
+      "after_bytes": 510,
+      "before_sha256": "aa7ad94d5c95757296833c7f3db250d75a55f6d66ac36c21817075d10e105e3d",
+      "after_sha256": "18dd4839eaccad3cfa99be5bd20b641a00d39d7ea4bc81307ab1f0d96c9be900",
+      "before_exact_main_occurrences": 1
+    }
+  ],
+  "outside_blocks_exact_main": true,
+  "integration_deltas": [
+    {
+      "from": "Keep `schema_version`; add only keys allowed by the v0.3 `run-ledger` schema.",
+      "to": "Direct edits keep `schema_version` and add only keys the v0.3 `run-ledger` schema lists.",
+      "bytes_added": 11,
+      "reason": "Restore unchanged main literal required by run-ledger-writer-inventory source consumer; meaning unchanged, test unchanged."
+    }
+  ],
+  "line_ratchet": {
+    "before": 668,
+    "after": 665,
+    "lowered": true
+  },
+  "excluded": "All source-batch additional10952B reductions excluded. Only5reporting+12ledger exact accepted diff blocks applied.",
+  "main_differences_from_historical_reporting_baseline": [
+    {
+      "operation": "replace",
+      "historical_baseline_lines": [
+        3,
+        3
+      ],
+      "main_lines": [
+        3,
+        3
+      ],
+      "historical_bytes": 169,
+      "main_bytes": 328,
+      "main_sha256": "9c025999e47020e73a2fb535dec75552e2cbf8bf3bf88a4e2fad846b3e5f2cc8",
+      "main_text_retained_verbatim": true,
+      "excerpt": "description: \"Chew through ready work unattended \u2014 overnight or fire-and-forget. Default: full pipeline (tidy \u2192 prep queue drain \u2192"
+    },
+    {
+      "operation": "replace",
+      "historical_baseline_lines": [
+        10,
+        10
+      ],
+      "main_lines": [
+        10,
+        10
+      ],
+      "historical_bytes": 1114,
+      "main_bytes": 1041,
+      "main_sha256": "6acb95b016b76b164d6f785be3559f829f2ccda991fec105ab57d30c891ff85c",
+      "main_text_retained_verbatim": true,
+      "excerpt": "**Methodology lens.** The `methodology` slot **always runs** \u2014 it defaults to `faffter-noon-methodology-thematic` when `.faff/conf"
+    },
+    {
+      "operation": "replace",
+      "historical_baseline_lines": [
+        16,
+        16
+      ],
+      "main_lines": [
+        16,
+        16
+      ],
+      "historical_bytes": 567,
+      "main_bytes": 506,
+      "main_sha256": "aee89803c74047dd6e912fd8522666f100bf67ac1fd54e144c525a491b83fbf9",
+      "main_text_retained_verbatim": true,
+      "excerpt": "**Tracker availability is resolved once per run (gateway \u2192 Tracker availability resolution).** The run's once-resolved git-only si"
+    },
+    {
+      "operation": "replace",
+      "historical_baseline_lines": [
+        651,
+        651
+      ],
+      "main_lines": [
+        651,
+        651
+      ],
+      "historical_bytes": 494,
+      "main_bytes": 484,
+      "main_sha256": "e61eb9cebfc444504a26d9fcbd11745b2707d1f4a596e2048421dc048a4f38fd",
+      "main_text_retained_verbatim": true,
+      "excerpt": "- **User-set budgets are the one legitimate stop-short.** If `--until HH:MM` or `--max N` fires, the run stops with any unreached "
+    }
+  ],
+  "commit": "d6a6cf997387c313e053a8c5a87a0393e931fb19",
+  "branch": "feat/skill-diet-beep-main",
+  "before_copy": "/var/tmp/faff-beep-main-before.md",
+  "checks": {
+    "full_existing_tests": {
+      "pass": 246,
+      "fail": 0,
+      "files": [
+        "test/eval-cli-driver.test.mjs",
+        "test/prose-size.test.mjs",
+        "test/validate-adapters.test.mjs",
+        "test/run-summary.test.mjs",
+        "test/run-ledger-record-outcome.test.mjs",
+        "test/heartbeat.test.mjs",
+        "test/events.test.mjs"
+      ]
+    },
+    "initial_ledger_source_guard": {
+      "pass": 0,
+      "fail": 1,
+      "reason": "Equivalent compressed schema_version/listed-keys wording did not match existing source literal; restored prompt literal, test unchanged."
+    },
+    "focused_final_tests": {
+      "pass": 2,
+      "fail": 0,
+      "scope": "Ledger schema source guard and committed prose-baseline serialization"
+    },
+    "unique_existing_tests_passed": 247,
+    "adapter_lint": "pass before and after literal restoration",
+    "ratchets": {
+      "byte_baseline": 149511,
+      "line_baseline": 665,
+      "canonical_serialization": "pass"
+    },
+    "rule_inventory": {
+      "result": "pass",
+      "blocks_deleted": 26,
+      "covered_moved": 0,
+      "covered_by_row": 26,
+      "uncovered": [],
+      "row_errors": [],
+      "warnings": []
+    },
+    "git_diff_check": "pass",
+    "worktree": "clean"
+  },
+  "commands": [
+    "env TMPDIR=/var/tmp GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=commit.gpgsign GIT_CONFIG_VALUE_0=false node --test test/eval-cli-driver.test.mjs test/prose-size.test.mjs test/validate-adapters.test.mjs test/run-summary.test.mjs test/run-ledger-record-outcome.test.mjs test/heartbeat.test.mjs test/events.test.mjs",
+    "env TMPDIR=/var/tmp GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=commit.gpgsign GIT_CONFIG_VALUE_0=false node --test --test-name-pattern \"faff-beep-boop SKILL.md tells\" test/run-ledger-writer-inventory.test.mjs",
+    "env TMPDIR=/var/tmp GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=commit.gpgsign GIT_CONFIG_VALUE_0=false node --test --test-name-pattern \"faff-beep-boop SKILL.md tells|committed\" test/run-ledger-writer-inventory.test.mjs test/prose-size.test.mjs",
+    "node plugin/skills/faff/bin/faff validate-adapters",
+    "node plugin/skills/faff/bin/faff rule-inventory check --base 2d8cb231c515861e88f5aa79bf5ab43f13223d72 --json"
+  ],
+  "logs": [
+    {
+      "path": "/var/tmp/faff-beep-main-tests.txt",
+      "bytes": 63073,
+      "sha256": "aaeeb440ff0efe819a97b7edaf3c9d0cbb72807a1c107ca5b6aaa9b8c66efb51"
+    },
+    {
+      "path": "/var/tmp/faff-beep-main-ledger-source-test.txt",
+      "bytes": 164393,
+      "sha256": "5e63a54953ff9a9d6ce8bc39b246b83158cf34d9b190677c06ac6a81704fd172"
+    },
+    {
+      "path": "/var/tmp/faff-beep-main-compat-tests.txt",
+      "bytes": 584,
+      "sha256": "4a35a400a9f7dcd6168cec678a62af4ce301f2af2a7cc16ca4572bc0d6863e00"
+    },
+    {
+      "path": "/var/tmp/faff-beep-main-adapter-lint.txt",
+      "bytes": 24929,
+      "sha256": "5818c2b4d520cd8657ec9bd7a1c13e39cc2acd49ffce8c7b0bc7f67e73011aa6"
+    },
+    {
+      "path": "/var/tmp/faff-beep-main-final-adapter-lint.txt",
+      "bytes": 24929,
+      "sha256": "5818c2b4d520cd8657ec9bd7a1c13e39cc2acd49ffce8c7b0bc7f67e73011aa6"
+    },
+    {
+      "path": "/var/tmp/faff-beep-main-commit.txt",
+      "bytes": 220,
+      "sha256": "276cc9e60c40bade682c27f4b9ac148204b6bc94f35b234f6be403337f010a92"
+    },
+    {
+      "path": "/var/tmp/faff-beep-main-rule-inventory.json",
+      "bytes": 6444,
+      "sha256": "c49287c05f734e164aaac0214d41b5ee7bc529c33fdf76ad53fecff21a097bd7"
+    }
+  ],
+  "changed_files": [
+    "plugin/skills/faff-beep-boop/SKILL.md",
+    "plugin/skills/faff/bin/lib/validate-adapters.js",
+    "plugin/skills/faff/prose-baseline.json",
+    "records/specs/2026-11-17-skill-diet-beep-main-design.md"
+  ],
+  "limits": [
+    "Historical reporting and ledger qualification bindings retained, no claim of fresh model parity for this integrated main source.",
+    "No models, harness/evaluator changes, runtime semantic changes, new mandatory reads, push or PR.",
+    "Only executable-file delta is exact beep-boop line ratchet668 to665; CLI helpers unchanged."
+  ]
+}

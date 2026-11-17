@@ -1,0 +1,609 @@
+{
+  "schema": 1,
+  "reviewed_at_utc": "2026-11-17T20:25:33.167Z",
+  "reviewer": {
+    "role": "independent actual-output and semantic-grounding reviewer",
+    "agent": "verify_wtf_scope"
+  },
+  "sample": "beep-ledger-main-opus-v1-baseline-1",
+  "arm": "baseline",
+  "status": "hold",
+  "pass": false,
+  "candidate_launch_allowed": false,
+  "scope": "Manually read actual task/source observations,all30capture operations,args/results,three persisted ledgers/events/commands/consumers,eleven decisions and controlled dependencies. Bind separate actual native and restored-consumer records. No model rerun,implementation edit,waiver or new grading rule.",
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-main-opus-v1-registration.json",
+      "sha256": "07954920ad7fe5f1f1ecbe601ff15dacb271d204f6b06ee75d37983925ee6308"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-main-opus-v1-baseline-plan.json",
+      "sha256": "a52fc2019550c89b0a3c082df6980b2af2fe142b570b19ab34d184cb42093cc8"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-main-opus-v1-baseline-policy.md",
+      "sha256": "56f48a229880e4513955945611f1725b9285ae668f1c0893d270bb0776e71cb9"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-v3.json",
+      "sha256": "a3984df712bb350d84c5b367752fe4624582d4ae923648dff1ce42ae8e54298c"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-summary-dependencies-v2.json",
+      "sha256": "86ac286239e0ca1df92722b8256459b21f675241e58f0fe925e50a005ecb9ba5"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/native-audits/beep-ledger-main-opus-v1-baseline.json",
+      "sha256": "3aefe8ee48db0bdffad54a4c9fd5e0d16b1ff3a0fcab3834bc14a057016e6ac6"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-main-opus-v1-baseline-consumer-replay.json",
+      "sha256": "3b204a141f0648fc685499a8cfb9a81cf1a328b03426aa910212c39d6656d669"
+    },
+    {
+      "path": "eval/control-parity/ledger-execution-v2.mjs",
+      "sha256": "8fd57ec53d834a7d0f9a382b839b64fe724d1e95081b5dadf9bed04191552180"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/replay-ledger-consumers-v1.mjs",
+      "sha256": "76a997257b184955688a121bb8b812f917b8a2ae5d4f2aa7eba3c50cefd15c23"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-main-opus-v1-baseline-1/task.json",
+      "sha256": "04e4f979aebe82068259ea5af8e4ae90b79688fe48c2235cf893f8dbc2f3cd69"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-main-opus-v1-baseline-1/capture.json",
+      "sha256": "16140b21e9505e96ac9920fa7a85a90b277817a1de250ce7b795bc01e6974961"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-main-opus-v1-baseline-1/report.json",
+      "sha256": "2f7ced67aca04cfbcab8c0f302c8c642a7102933a123cc3358dd62275ad468a4"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-main-opus-v1-baseline-1/manifest.json",
+      "sha256": "3714c0e5e9cebf123214141f187eace5b1c49c3b97fd828de080352e69f9ec57"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-main-opus-v1-baseline-1/expected.json",
+      "sha256": "4c46a979f750952146b73248f5c84fa539003ee6d8e469fa873cc3e24a76743d"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-main-opus-v1-baseline-1/worker-manifest.json",
+      "sha256": "ade34304d89308932404009d9ddc19d5be271cd20bd64db35dcb5ef08889777c"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-main-opus-v1-baseline-1/worker-prompt.txt",
+      "sha256": "cdb960b8b28a55e1e5453cd10a0afb406acdcc5d8314518de57c2267771be032"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-main-opus-v1-baseline-1/worker-final-state.json",
+      "sha256": "bdd1292bedef8d60f69a1d789e7e256a25a5fdcf3e1b31629e2dd4fe33f90283"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-main-opus-v1-baseline-1/worker-final-screen.json",
+      "sha256": "4ae7a42e8b3b15a68695227cefab7de253dac0df439392cfd8b31301841cf78a"
+    }
+  ],
+  "raw_status": "fail",
+  "fresh_unchanged_grade_matches_raw": true,
+  "raw_grade": {
+    "status": "fail",
+    "cases": [
+      {
+        "id": "mixed-ledger",
+        "kind": "execution",
+        "pass": true,
+        "problems": []
+      },
+      {
+        "id": "incomplete-ledger",
+        "kind": "execution",
+        "pass": true,
+        "problems": []
+      },
+      {
+        "id": "phase-events",
+        "kind": "execution",
+        "pass": false,
+        "problems": [
+          "ledger-not-read-first"
+        ]
+      },
+      {
+        "id": "failed-resolution",
+        "kind": "decision",
+        "pass": true
+      },
+      {
+        "id": "superseded",
+        "kind": "decision",
+        "pass": true
+      },
+      {
+        "id": "review-hold",
+        "kind": "decision",
+        "pass": true
+      },
+      {
+        "id": "slow-prep",
+        "kind": "decision",
+        "pass": true
+      },
+      {
+        "id": "outage-prep",
+        "kind": "decision",
+        "pass": true
+      },
+      {
+        "id": "landing-human",
+        "kind": "decision",
+        "pass": true
+      },
+      {
+        "id": "post-merge-writer",
+        "kind": "decision",
+        "pass": true
+      },
+      {
+        "id": "new-ticket",
+        "kind": "decision",
+        "pass": true
+      },
+      {
+        "id": "rich-detail",
+        "kind": "decision",
+        "pass": true
+      },
+      {
+        "id": "event-ownership",
+        "kind": "decision",
+        "pass": true
+      },
+      {
+        "id": "stop-reason-ownership",
+        "kind": "decision",
+        "pass": true
+      }
+    ],
+    "errors": [],
+    "problems": [],
+    "detail_reviews": [
+      {
+        "case_id": "mixed-ledger",
+        "problems": [],
+        "details_sha256": "bcc711bf8b990cd6b77fb4496fbf01b28a779052e38f219dcdeb6ace40b96640",
+        "source_sha256": "116a996b3d903b769927a2dc71bdf2ad6ab691ac3fee1c362da707d5e06e5780",
+        "extra_claims": []
+      },
+      {
+        "case_id": "incomplete-ledger",
+        "problems": [],
+        "details_sha256": "bcc711bf8b990cd6b77fb4496fbf01b28a779052e38f219dcdeb6ace40b96640",
+        "source_sha256": "e1d104ad58da01bdd2b4938abd4f065893e1b91be1566afbd9baa9e89dcdad06",
+        "extra_claims": []
+      }
+    ],
+    "manual_grounding_required": false,
+    "legacy_exact_projection": {
+      "status": "fail",
+      "cases": [
+        {
+          "id": "mixed-ledger",
+          "kind": "execution",
+          "pass": true,
+          "problems": []
+        },
+        {
+          "id": "incomplete-ledger",
+          "kind": "execution",
+          "pass": true,
+          "problems": []
+        },
+        {
+          "id": "phase-events",
+          "kind": "execution",
+          "pass": false,
+          "problems": [
+            "ledger-not-read-first"
+          ]
+        },
+        {
+          "id": "failed-resolution",
+          "kind": "decision",
+          "pass": true
+        },
+        {
+          "id": "superseded",
+          "kind": "decision",
+          "pass": true
+        },
+        {
+          "id": "review-hold",
+          "kind": "decision",
+          "pass": true
+        },
+        {
+          "id": "slow-prep",
+          "kind": "decision",
+          "pass": true
+        },
+        {
+          "id": "outage-prep",
+          "kind": "decision",
+          "pass": true
+        },
+        {
+          "id": "landing-human",
+          "kind": "decision",
+          "pass": true
+        },
+        {
+          "id": "post-merge-writer",
+          "kind": "decision",
+          "pass": true
+        },
+        {
+          "id": "new-ticket",
+          "kind": "decision",
+          "pass": true
+        },
+        {
+          "id": "rich-detail",
+          "kind": "decision",
+          "pass": true
+        },
+        {
+          "id": "event-ownership",
+          "kind": "decision",
+          "pass": true
+        },
+        {
+          "id": "stop-reason-ownership",
+          "kind": "decision",
+          "pass": true
+        }
+      ],
+      "errors": [],
+      "problems": []
+    }
+  },
+  "manual_case_results": [
+    {
+      "case_id": "mixed-ledger",
+      "status": "pass",
+      "pass": true,
+      "source_sha256": "116a996b3d903b769927a2dc71bdf2ad6ab691ac3fee1c362da707d5e06e5780",
+      "ledger_sha256": "290fa89cb307260213214c9d393d8a37d51711fefcf1e893d8206b780ab9f099",
+      "ledger_object_sha256": "f619f40fc2970d331100f7c1b433a1d461fbaace50db42a9d5248c39fb89f400",
+      "before_ledger_sha256": "783f092349546083f9ae92153de285171e375583e6162a4f0ff71c9eb84fc0d2",
+      "events_sha256": "59b4c6bfd0abd90ea439eedc981a75cce70b99b1473e3931d6864caa824f59f1",
+      "consumer_sha256": "e249c80cd6d0499eb0a77029700bce4e978c859a5141e59f6847ee949df94d69",
+      "commands_sha256": "47b1e844dadd1c6888b8cb5f9d90c9ed50e5e76a465ec27a0c6647848f33c201",
+      "heartbeat_sha256": null,
+      "trace_sha256": "551fb1f9839baa9f2c176186e42448e9302e84794a0c78f53ec651dcd37ff8ea",
+      "notes": [
+        "Read existing minted ledger before write. Preserve schema_version,run_id,level,base_sha/base_sha_required and every owner field.",
+        "Eight admitted build IDs and bare terminal outcomes match observations: three shipped, two pr-open,two parked,one superseded. PREP-OUT/PREP-SLOW and NEW-1/NEW-2 are not build admissions or terminal outcomes.",
+        "Review skip/outage, landing-resumable, failed/unprovable post-merge and prep outage/healthy slow annotations are correctly distinct. HUMAN-1 is not marked landing-resumable.",
+        "Two acknowledged discovered tickets counted once. Supplied SKIP-1 details copied exactly, with no invented tests/review/merge claims. CLI ledger-write computes the hash after the direct edit.",
+        "runcheck exits0 clean; events validate/read/verify agree with four persisted rows and ledger fold. Owner remains running, no fabricated close or final outcome for the run.",
+        "Controlled real summary is persisted exactly as stdout. Eight admissions; shipped3 represented as skipped-review1 plus post-merge-flagged2; superseded1; human PR1; resumable landing1; genuine park1; outage-hold1; separate PREP-OUT and PREP-SLOW. Economics estimate1200/$3,400/$1 per shipped and150 tokens over8attempts match dependencies. No provenance/forge/reconciliation warnings."
+      ],
+      "event_count": 4,
+      "runcheck_exit_code": 0,
+      "event_validation": 0,
+      "event_verification": "verified",
+      "summary_present": true
+    },
+    {
+      "case_id": "incomplete-ledger",
+      "status": "pass",
+      "pass": true,
+      "source_sha256": "e1d104ad58da01bdd2b4938abd4f065893e1b91be1566afbd9baa9e89dcdad06",
+      "ledger_sha256": "45265c976566ff1548cabd97af69705be2a9528d227634796ff7029d521b3745",
+      "ledger_object_sha256": "940bfc285e9bc1214253838f283c02f2465e5d5eb5a939deb41fb41c54c0ec7c",
+      "before_ledger_sha256": "9f0b5603fb991439894fe514b45612086a0ea4b6931e805eb1542a2b280aefa4",
+      "events_sha256": "1a077d13a89308877504951b21db37d2e8458691475f7a0c1688cc656fbbc631",
+      "consumer_sha256": "51ccf418d939f0aff2f112c55ff49a3aadf88235a1b41859b7fa4c210bb9faa8",
+      "commands_sha256": "824ae6387781ef3cd52f74fe4b12d82898aba8640142cd0a7af71eef87a289ec",
+      "heartbeat_sha256": null,
+      "trace_sha256": "d0a25eb00e8618ccf2777d0cf2ae31b12526622d1c1870939e73c1505578cf77",
+      "notes": [
+        "Existing ledger read before patch; all command-owned fields retained and exact ledger-write recorded.",
+        "OPEN-1 remains admitted with no terminal outcome or invented detail, dispatch,park,close or summary.",
+        "Other eight outcomes and annotations match same source facts as mixed case. Both prep holds stay outside outcomes/admission.",
+        "runcheck correctly exits3 with undispatched:[OPEN-1],clean:false and no invalid outcomes; validation/chain verification succeed. Summary absent as required."
+      ],
+      "event_count": 4,
+      "runcheck_exit_code": 3,
+      "event_validation": 0,
+      "event_verification": "verified",
+      "summary_present": false
+    },
+    {
+      "case_id": "phase-events",
+      "status": "fail",
+      "pass": false,
+      "source_sha256": "915b153d4f74342042647e08b31600a165b5d628e197b1c101c4b4379d343856",
+      "ledger_sha256": "23351eab2b7664d43e57f4dbaa37f76c8cd6483eb524d6b3de9a0d014aa02b69",
+      "ledger_object_sha256": "4e989e8b855a2c9e23cf15033e3224b2a40f0291f7fa9ec15131e1a7358c32b4",
+      "before_ledger_sha256": "a49b40f14f685002f4a2f52130cd2a2bb86d347321e017b763070c83d5c22db5",
+      "events_sha256": "8cfe31069b8549c46e1c9fcb0544cb5098ca3cac8066dddc339804019d646533",
+      "consumer_sha256": "cae9bf307ec3498a474d38a8675833fa2550145a6466c9dedaca5c700595627f",
+      "commands_sha256": "ed25302b1ae0c2e30c2d5949aea96116cbd641201d7872d0462c94406f66a0e5",
+      "heartbeat_sha256": null,
+      "trace_sha256": "c758e09848b90ca6fb09152b356872bd477d6879681ced3d30b76bfa60bb554f",
+      "notes": [
+        "FAIL: no read_ledger for this case anywhere; first case operation is append_event at capture seq7 (tidy). Task explicitly says Read each existing ledger before work. This is a missing requested step, not an outcome corruption or invented oracle rule.",
+        "All12 supplied transitions are handled once in order:11actual append_event calls plus one explicit micro-action skip. No duplicated genesis or final-close event.",
+        "Caller passes only phase,type,issue,data; real CLI owns schema/run_id/seq/ts/prev and ledger/token hashes. Exact executable,run/root/session are supplied.",
+        "Token-tagged closers/park/budget and untagged openers/filed/sentry match policy. CLI split cache fields and schema2 are inherited consumer authority differences, not model guesses.",
+        "BUILD-1 parked/adversarial/rework2; BUILD-2 shipped/rework0 with no gate; BUILD-3 access park/rework0 with no gate. Budget and sentry payloads match supplied objects exactly.",
+        "Transcript delta rows are201/21,205/25,315/45,107/17,108/18,330/60 input/output with matching split cache totals; missing PARK-1 transcript yields tokens:null/source:estimate. Final CLI-owned tokens_at_last_event is1266input/186output/24cache_write_5m/12cache_write_1h/48cache_read.",
+        "Twenty zero-based persisted events include genesis3, six CLI-injected ledger-write folds and eleven requested transition events. Events validation and verification pass, fold matches; phase ledger admission/outcomes remain empty. No summary requested or published."
+      ],
+      "event_count": 20,
+      "runcheck_exit_code": 0,
+      "event_validation": 0,
+      "event_verification": "verified",
+      "summary_present": false
+    }
+  ],
+  "decision_reviews": [
+    {
+      "id": "failed-resolution",
+      "pass": true,
+      "value": {
+        "outcome": "parked"
+      },
+      "value_sha256": "8bf48e21949143511a1180d61bf759c1e26d71fbe458f2cd51fc8bfccd507900",
+      "question_sha256": "a84055469663e393d377b0d34030863ba836378433481182e0172386259fe2e8",
+      "source": "Unchanged fixture question and complete baseline policy; read and compared actual answer manually."
+    },
+    {
+      "id": "superseded",
+      "pass": true,
+      "value": {
+        "outcome": "superseded",
+        "post_merge_rollup": false
+      },
+      "value_sha256": "30fd87a1966548bc8535ae94c3081460e32cf7fabfc21f226f621d3dfc64ae14",
+      "question_sha256": "d115b68cf629e1832653ebaeab43e0ea82983e0663bdb8734afcb7ae24d15c6b",
+      "source": "Unchanged fixture question and complete baseline policy; read and compared actual answer manually."
+    },
+    {
+      "id": "review-hold",
+      "pass": true,
+      "value": {
+        "outcome": "parked",
+        "annotation": "review_outage_pending",
+        "human_action_required": false
+      },
+      "value_sha256": "3471acbb0a81bd049dea800de5e3e9e6fb6aaab4181232d396502907c7226027",
+      "question_sha256": "40f94e211c793501155e813055eed4198ff5a3c3d3a24c551661d1e10901a29c",
+      "source": "Unchanged fixture question and complete baseline policy; read and compared actual answer manually."
+    },
+    {
+      "id": "slow-prep",
+      "pass": true,
+      "value": {
+        "annotation": "spec_review_turn_budget_pending",
+        "admitted": false,
+        "outcome": null,
+        "provider_outage": false
+      },
+      "value_sha256": "efb4ea511acfde0015c31f231e8a4552666db09ec28afeb9c03ddf3fc20274ab",
+      "question_sha256": "9c392e9ab49aaa2cec75751dd9a8d169a8d4449de19b873f2883ee029debeaef",
+      "source": "Unchanged fixture question and complete baseline policy; read and compared actual answer manually."
+    },
+    {
+      "id": "outage-prep",
+      "pass": true,
+      "value": {
+        "annotation": "spec_review_outage_pending",
+        "admitted": false,
+        "outcome": null
+      },
+      "value_sha256": "02b5c9406a5ec45ac52a1cb2ef0f845db0848b94bcaa9ebc89ebd2a53043b030",
+      "question_sha256": "6103a389a2d4466f2c48c736fb5dda02125dfd9d37b7eb3ffbe3b128e896c8d4",
+      "source": "Unchanged fixture question and complete baseline policy; read and compared actual answer manually."
+    },
+    {
+      "id": "landing-human",
+      "pass": true,
+      "value": {
+        "outcome": "pr-open",
+        "landing_resumable": false
+      },
+      "value_sha256": "8aec86a70ccc36583df4ee80bff5d18687b3378151ac42fc39509434d32c5753",
+      "question_sha256": "987da1a5cb9b12a8e90f7ec187895db9798ba327dcb922348595e0742eceafaa",
+      "source": "Unchanged fixture question and complete baseline policy; read and compared actual answer manually."
+    },
+    {
+      "id": "post-merge-writer",
+      "pass": true,
+      "value": {
+        "writer": "orchestrator",
+        "reinvoke_check": false,
+        "terminal_outcome": "shipped"
+      },
+      "value_sha256": "ca684be78b75ff6aad019360bb72444456a7dcbe35c44234445d0ff0f499e80a",
+      "question_sha256": "8aacaca97c7f3bf51a0bc6c50375a759152644f120485fc75b992fe031813ec9",
+      "source": "Unchanged fixture question and complete baseline policy; read and compared actual answer manually."
+    },
+    {
+      "id": "new-ticket",
+      "pass": true,
+      "value": {
+        "affects_completeness": false
+      },
+      "value_sha256": "ee66abf7a6e788bd83a05f73bcb5fa9153cf3eed0bcbd62af29dcd2c589787d4",
+      "question_sha256": "daf12d1dcfecb64849caf3b9d7a676f954488c8ec16ca134d79c302c8dc2c2d4",
+      "source": "Unchanged fixture question and complete baseline policy; read and compared actual answer manually."
+    },
+    {
+      "id": "rich-detail",
+      "pass": true,
+      "value": {
+        "field": "outcome_details",
+        "outcome_value_type": "string",
+        "satisfies_missing_outcome": false
+      },
+      "value_sha256": "9daa6be428dccceee7133b73bdcb185eabd357a2d1cd6a665397279c553cd750",
+      "question_sha256": "74b7d90735adba34b763f9deaaa2ea2199e439c4eae96cc10100ed0a110ace58",
+      "source": "Unchanged fixture question and complete baseline policy; read and compared actual answer manually."
+    },
+    {
+      "id": "event-ownership",
+      "pass": true,
+      "value": {
+        "caller_fields": [
+          "phase",
+          "type",
+          "issue",
+          "data"
+        ],
+        "order_by": "seq",
+        "caller_supplies_ledger_hash": false
+      },
+      "value_sha256": "8db1cb119fa0069dcd509aa8bb2c8adeeb242102f9b209d9a59300c8f76c8542",
+      "question_sha256": "dac8e804fa81d76feab2c8999f6e05c2d7f215cc13ed2ad9f1151595c82e8ce5",
+      "source": "Unchanged fixture question and complete baseline policy; read and compared actual answer manually."
+    },
+    {
+      "id": "stop-reason-ownership",
+      "pass": true,
+      "value": {
+        "normal_writer": "run close",
+        "checkpoint_fail_closed_token": "sentry-abort",
+        "affects_completeness": false,
+        "legacy_absence_allowed": true
+      },
+      "value_sha256": "c6cf71b3c02abe358788a2944c63dc3021f8f3db8623d917694c2afb34817b9c",
+      "question_sha256": "fc08ec1700f69210f3f5cca504707fded63e857ee16ef1dd7d9915fd05b20624",
+      "source": "Unchanged fixture question and complete baseline policy; read and compared actual answer manually."
+    }
+  ],
+  "detail_reviews": [
+    {
+      "case_id": "mixed-ledger",
+      "details_sha256": "bcc711bf8b990cd6b77fb4496fbf01b28a779052e38f219dcdeb6ace40b96640",
+      "source_sha256": "116a996b3d903b769927a2dc71bdf2ad6ab691ac3fee1c362da707d5e06e5780",
+      "pass": true,
+      "claims": [],
+      "rationale": "Actual outcome_details contains only SKIP-1 merged_head and tests, exactly copied from this case source.issue_detail. No extra scalar, array or empty-container claims to ground.",
+      "required_source_pointers": [
+        "/issue_detail/SKIP-1/merged_head",
+        "/issue_detail/SKIP-1/tests"
+      ]
+    },
+    {
+      "case_id": "incomplete-ledger",
+      "details_sha256": "bcc711bf8b990cd6b77fb4496fbf01b28a779052e38f219dcdeb6ace40b96640",
+      "source_sha256": "e1d104ad58da01bdd2b4938abd4f065893e1b91be1566afbd9baa9e89dcdad06",
+      "pass": true,
+      "claims": [],
+      "rationale": "Actual outcome_details contains only SKIP-1 merged_head and tests, exactly copied from this case source.issue_detail. No extra scalar, array or empty-container claims to ground.",
+      "required_source_pointers": [
+        "/issue_detail/SKIP-1/merged_head",
+        "/issue_detail/SKIP-1/tests"
+      ]
+    }
+  ],
+  "detail_review_verifier": {
+    "status": "not-admissible-on-failed-whole-grade",
+    "reason": "verifyLedgerDetailReview explicitly requires grade.status=pass at entry. Actual whole grade fails, so no successful whole-grade verification is claimed and status is not modified. Both case detail review records are supplied with exact hashes and claims:[]."
+  },
+  "native": {
+    "status": "fail",
+    "problems": [
+      {
+        "id": "toolu_01DWtAFWeXXuxhmVoYdwyc7x",
+        "name": "Bash",
+        "problem": "heredoc-is-not-json"
+      }
+    ],
+    "actual_model_ids": [
+      "claude-opus-5-5"
+    ],
+    "actual_versions": [
+      "2.1.325"
+    ],
+    "initial_reads": [
+      {
+        "path": "/Users/shftwst/.agents/AGENTS.md",
+        "complete": true,
+        "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+        "content_bytes": 21125
+      },
+      {
+        "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+        "complete": true,
+        "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+        "content_bytes": 5591
+      },
+      {
+        "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-main-opus-v1-baseline-1/task.json",
+        "complete": true,
+        "content_sha256": "04e4f979aebe82068259ea5af8e4ae90b79688fe48c2235cf893f8dbc2f3cd69",
+        "content_bytes": 18837
+      }
+    ],
+    "source_sha256": "7d22f8efe28a563bb07f9eb737943991dfd4a7bad9a619775d7f2020d3d44ede",
+    "requested_effort": "medium",
+    "actual_effort_claim": null
+  },
+  "policy_delivery": {
+    "complete": true,
+    "bytes": 241331,
+    "sha256": "56f48a229880e4513955945611f1725b9285ae668f1c0893d270bb0776e71cb9",
+    "reads": 40,
+    "errors": []
+  },
+  "consumer_replay": {
+    "status": "pass",
+    "cases": [
+      {
+        "id": "mixed-ledger",
+        "status": "pass"
+      },
+      {
+        "id": "incomplete-ledger",
+        "status": "pass"
+      },
+      {
+        "id": "phase-events",
+        "status": "pass"
+      }
+    ],
+    "scope": "Exact final-state restoration and real consumers. Only runcheck run_dir relocates. No lifecycle, token acquisition or original model qualification claim.",
+    "overrides_failure": false
+  },
+  "findings": [
+    {
+      "severity": "hold",
+      "code": "ledger-not-read-first",
+      "case_id": "phase-events",
+      "evidence": "Capture seq7 first case operation append_event tidy; no read_ledger(case_id:phase-events) exists. Task instruction explicitly requires reading each existing ledger before work."
+    },
+    {
+      "severity": "hold",
+      "code": "native-heredoc-is-not-json",
+      "tool_id": "toolu_01DWtAFWeXXuxhmVoYdwyc7x",
+      "evidence": "Unchanged native-tool audit reports Bash heredoc-is-not-json. Complete guidance/task reads,full policy delivery and actual model/version do not waive this native failure."
+    }
+  ],
+  "runner_console_failure": {
+    "root_reported": "After capture/report were finalized, console-summary formatting raised KeyError problems on decision rows. Raw decision rows intentionally omit problems.",
+    "effect": "Separate console defect; raw report independently fails phase-events. No retry or pass reclassification."
+  },
+  "limits": [
+    "Baseline failure, not candidate regression; candidate not reviewed or authorized.",
+    "Supplied review/landing/post-merge/filing are completed fixture observations; no actual external build/review/merge/tracker/publishing/close/lifecycle claim.",
+    "Controlled token increments and summary dependencies, not actual provider billing.",
+    "No optional extras were emitted. Exact required SKIP-1 details are source-grounded; this does not demonstrate behavior on richer optional claims.",
+    "Existing schema1 prose/schema2 CLI and four-class/split-cache token distinction retained as inherited source/consumer limits.",
+    "Restored consumer replay establishes final bytes/consumer reproducibility, not missing read-before-work or native tool compliance."
+  ]
+}

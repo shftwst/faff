@@ -1,0 +1,568 @@
+TAP version 13
+# Subtest: wiring: Step 4b prose names `faff adr extract-intent` and reads from spec-docs-path on the no-tracker-comment branch
+ok 1 - wiring: Step 4b prose names `faff adr extract-intent` and reads from spec-docs-path on the no-tracker-comment branch
+  ---
+  duration_ms: 0.923832
+  type: 'test'
+  ...
+# Subtest: wiring: all four Step 4b sub-steps (scaffold / author / 3b supersede / commit) are textually unchanged
+ok 2 - wiring: all four Step 4b sub-steps (scaffold / author / 3b supersede / commit) are textually unchanged
+  ---
+  duration_ms: 0.481708
+  type: 'test'
+  ...
+# Subtest: static: faffter-noon-adr SKILL.md Output section names the CLI resolver, not a literal Nygard heading triple
+ok 3 - static: faffter-noon-adr SKILL.md Output section names the CLI resolver, not a literal Nygard heading triple
+  ---
+  duration_ms: 1.319039
+  type: 'test'
+  ...
+# Subtest: step 4 calls faff graft admit --mode autonomous and nothing else for admission
+ok 4 - step 4 calls faff graft admit --mode autonomous and nothing else for admission
+  ---
+  duration_ms: 0.623999
+  type: 'test'
+  ...
+# Subtest: explicit-list mode calls faff graft admit --mode autonomous and nothing else for admission
+ok 5 - explicit-list mode calls faff graft admit --mode autonomous and nothing else for admission
+  ---
+  duration_ms: 0.116292
+  type: 'test'
+  ...
+# Subtest: step 4 passes a run dir and no wave, so each call mints a fresh consult id and writes its own captures
+ok 6 - step 4 passes a run dir and no wave, so each call mints a fresh consult id and writes its own captures
+  ---
+  duration_ms: 0.116041
+  type: 'test'
+  ...
+# Subtest: step 4 routes all eight dispositions and a non-zero exit
+ok 7 - step 4 routes all eight dispositions and a non-zero exit
+  ---
+  duration_ms: 0.114874
+  type: 'test'
+  ...
+# Subtest: step 4 carries the final-call rule
+ok 8 - step 4 carries the final-call rule
+  ---
+  duration_ms: 0.172083
+  type: 'test'
+  ...
+# Subtest: step 4 checks the issue key and replaces the spec file before every call
+ok 9 - step 4 checks the issue key and replaces the spec file before every call
+  ---
+  duration_ms: 0.149791
+  type: 'test'
+  ...
+# Subtest: faff-graft: one governed-run check sentence, 8 site(s) refer to it, and no file-path check survives
+ok 10 - faff-graft: one governed-run check sentence, 8 site(s) refer to it, and no file-path check survives
+  ---
+  duration_ms: 2.839369
+  type: 'test'
+  ...
+# Subtest: no other skill names the governor file, calls the status verb, uses a forbidden phrase, or softens the stop into a fallback
+ok 11 - no other skill names the governor file, calls the status verb, uses a forbidden phrase, or softens the stop into a fallback
+  ---
+  duration_ms: 10.768395
+  type: 'test'
+  ...
+# Subtest: loadTidyJudgementProse extracts section 1 (the classification rubric) from the shipped SKILL.md
+ok 12 - loadTidyJudgementProse extracts section 1 (the classification rubric) from the shipped SKILL.md
+  ---
+  duration_ms: 1.271623
+  type: 'test'
+  ...
+# Subtest: loadTidyJudgementProse fails loud on a missing skill file
+ok 13 - loadTidyJudgementProse fails loud on a missing skill file
+  ---
+  duration_ms: 0.676915
+  type: 'test'
+  ...
+# Subtest: loadSynthesisGlossProse extracts the synthesis-gloss section from the shipped rendering skill
+ok 14 - loadSynthesisGlossProse extracts the synthesis-gloss section from the shipped rendering skill
+  ---
+  duration_ms: 0.478208
+  type: 'test'
+  ...
+# Subtest: loadSynthesisGlossProse fails loud on a missing skill file
+ok 15 - loadSynthesisGlossProse fails loud on a missing skill file
+  ---
+  duration_ms: 0.293958
+  type: 'test'
+  ...
+# Subtest: loadJudgementCriteria combines the classification rubric and the synthesis-gloss contract
+ok 16 - loadJudgementCriteria combines the classification rubric and the synthesis-gloss contract
+  ---
+  duration_ms: 1.321622
+  type: 'test'
+  ...
+# Subtest: FAFF-146 loadConfidenceRubricProse extracts the Confidence self-rating section verbatim
+ok 17 - FAFF-146 loadConfidenceRubricProse extracts the Confidence self-rating section verbatim
+  ---
+  duration_ms: 0.411874
+  type: 'test'
+  ...
+# Subtest: FAFF-146 loadConfidenceRubricProse fails loud on a missing skill file
+ok 18 - FAFF-146 loadConfidenceRubricProse fails loud on a missing skill file
+  ---
+  duration_ms: 0.214124
+  type: 'test'
+  ...
+# Subtest: FAFF-146 loadMarkerDialectProse extracts the decision-marker dialect verbatim
+ok 19 - FAFF-146 loadMarkerDialectProse extracts the decision-marker dialect verbatim
+  ---
+  duration_ms: 0.692874
+  type: 'test'
+  ...
+# Subtest: FAFF-146 loadMarkerDialectProse fails loud on a missing skill file
+ok 20 - FAFF-146 loadMarkerDialectProse fails loud on a missing skill file
+  ---
+  duration_ms: 0.821082
+  type: 'test'
+  ...
+# Subtest: FAFF-146 loadReconciliationProse extracts the Step-2a Challenge/Resolution/Context/Noise rubric
+ok 21 - FAFF-146 loadReconciliationProse extracts the Step-2a Challenge/Resolution/Context/Noise rubric
+  ---
+  duration_ms: 1.109081
+  type: 'test'
+  ...
+# Subtest: FAFF-146 loadReconciliationProse fails loud on a missing skill file
+ok 22 - FAFF-146 loadReconciliationProse fails loud on a missing skill file
+  ---
+  duration_ms: 0.367291
+  type: 'test'
+  ...
+# Subtest: FAFF-146 criteriaFor picks the prep rubric for confidence/marker and the tidy criteria otherwise
+ok 23 - FAFF-146 criteriaFor picks the prep rubric for confidence/marker and the tidy criteria otherwise
+  ---
+  duration_ms: 1.71958
+  type: 'test'
+  ...
+# Subtest: FAFF-153 loadTidyChainGapProse extracts the verbatim `\#\#\#\# Chain gaps` sub-section
+ok 24 - FAFF-153 loadTidyChainGapProse extracts the verbatim `\#\#\#\# Chain gaps` sub-section
+  ---
+  duration_ms: 1.39958
+  type: 'test'
+  ...
+# Subtest: FAFF-153 loadTidyChainGapProse fails loud on a missing skill file
+ok 25 - FAFF-153 loadTidyChainGapProse fails loud on a missing skill file
+  ---
+  duration_ms: 0.11525
+  type: 'test'
+  ...
+# Subtest: loadReviewVerdictProse folds the gateway's fixed contract and the review producer's rubric verbatim
+ok 26 - loadReviewVerdictProse folds the gateway's fixed contract and the review producer's rubric verbatim
+  ---
+  duration_ms: 0.350874
+  type: 'test'
+  ...
+# Subtest: loadReviewVerdictProse fails loud on a missing skill file
+ok 27 - loadReviewVerdictProse fails loud on a missing skill file
+  ---
+  duration_ms: 0.095833
+  type: 'test'
+  ...
+# Subtest: FAFF-317 loadHoldoutJudgementProse extracts the exercise-step/met-unmet/prose rubric verbatim
+ok 28 - FAFF-317 loadHoldoutJudgementProse extracts the exercise-step/met-unmet/prose rubric verbatim
+  ---
+  duration_ms: 0.117041
+  type: 'test'
+  ...
+# Subtest: FAFF-317 loadHoldoutJudgementProse fails loud on a missing skill file
+ok 29 - FAFF-317 loadHoldoutJudgementProse fails loud on a missing skill file
+  ---
+  duration_ms: 0.076583
+  type: 'test'
+  ...
+# Subtest: FAFF-317 criteriaFor arms both `holdout` and `holdout-exercise` with the evaluator rubric
+ok 30 - FAFF-317 criteriaFor arms both `holdout` and `holdout-exercise` with the evaluator rubric
+  ---
+  duration_ms: 0.097583
+  type: 'test'
+  ...
+# Subtest: FAFF-319 criteriaFor arms each judgement-eval kind with its OWN surface rubric (not tidy's)
+ok 31 - FAFF-319 criteriaFor arms each judgement-eval kind with its OWN surface rubric (not tidy's)
+  ---
+  duration_ms: 0.420582
+  type: 'test'
+  ...
+# Subtest: FAFF-669 loadPrepArchitectureTriggerProse loads the conditional architecture step's trigger test
+ok 32 - FAFF-669 loadPrepArchitectureTriggerProse loads the conditional architecture step's trigger test
+  ---
+  duration_ms: 0.535666
+  type: 'test'
+  ...
+# Subtest: FAFF-669 loadGroupingProse loads the agile lens's rehome-set proposal procedure
+ok 33 - FAFF-669 loadGroupingProse loads the agile lens's rehome-set proposal procedure
+  ---
+  duration_ms: 0.14375
+  type: 'test'
+  ...
+# Subtest: FAFF-669 loadResolvedElsewhereProse lands on the heading, not the earlier inline back-reference
+ok 34 - FAFF-669 loadResolvedElsewhereProse lands on the heading, not the earlier inline back-reference
+  ---
+  duration_ms: 0.187291
+  type: 'test'
+  ...
+# Subtest: FAFF-669 loadAdrDriftProse reaches past the seam plumbing into the independence rules
+ok 35 - FAFF-669 loadAdrDriftProse reaches past the seam plumbing into the independence rules
+  ---
+  duration_ms: 0.214874
+  type: 'test'
+  ...
+# Subtest: FAFF-669 criteriaFor arms all four kinds with their own surface's rubric, and null under --no-plugin
+ok 36 - FAFF-669 criteriaFor arms all four kinds with their own surface's rubric, and null under --no-plugin
+  ---
+  duration_ms: 0.615999
+  type: 'test'
+  ...
+# Subtest: FAFF-669 every registered start anchor occurs exactly once in the file its loader reads
+ok 37 - FAFF-669 every registered start anchor occurs exactly once in the file its loader reads
+  ---
+  duration_ms: 6.009696
+  type: 'test'
+  ...
+# Subtest: FAFF-669 the anchor registry covers every start-anchor constant declared in the driver
+ok 38 - FAFF-669 the anchor registry covers every start-anchor constant declared in the driver
+  ---
+  duration_ms: 0.253291
+  type: 'test'
+  ...
+# Subtest: FAFF-687 every registered end anchor occurs exactly endCount times (default 1) in the after-start window
+ok 39 - FAFF-687 every registered end anchor occurs exactly endCount times (default 1) in the after-start window
+  ---
+  duration_ms: 6.839486
+  type: 'test'
+  ...
+# Subtest: FAFF-687 the anchor registry covers every end-anchor constant declared in the driver
+ok 40 - FAFF-687 the anchor registry covers every end-anchor constant declared in the driver
+  ---
+  duration_ms: 0.562541
+  type: 'test'
+  ...
+# Subtest: loadRoutingVerdictProse folds the gateway's fixed contract and the adaptor's assignment conditions verbatim
+ok 41 - loadRoutingVerdictProse folds the gateway's fixed contract and the adaptor's assignment conditions verbatim
+  ---
+  duration_ms: 0.880956
+  type: 'test'
+  ...
+# Subtest: loadRoutingVerdictProse fails loud on a missing skill file
+ok 42 - loadRoutingVerdictProse fails loud on a missing skill file
+  ---
+  duration_ms: 0.297125
+  type: 'test'
+  ...
+# Subtest: criteriaFor picks the routing rubric for the routing kind
+ok 43 - criteriaFor picks the routing rubric for the routing kind
+  ---
+  duration_ms: 0.366041
+  type: 'test'
+  ...
+# Subtest: the concurrency executors restate neither the new key nor the digest shape
+ok 44 - the concurrency executors restate neither the new key nor the digest shape
+  ---
+  duration_ms: 2.072996
+  type: 'test'
+  ...
+# Subtest: graft Step 8 takes ids from dod classify, renders the block and drops the hand-written template
+ok 45 - graft Step 8 takes ids from dod classify, renders the block and drops the hand-written template
+  ---
+  duration_ms: 1.064914
+  type: 'test'
+  ...
+# Subtest: FAFF-1399: an absent `priority` (vague, or a legacy pre-feature entry) files with no tracker priority and no comment — documented at every filing call site that reads a stored priority
+ok 46 - FAFF-1399: an absent `priority` (vague, or a legacy pre-feature entry) files with no tracker priority and no comment — documented at every filing call site that reads a stored priority
+  ---
+  duration_ms: 274.955651
+  type: 'test'
+  ...
+# Subtest: FAFF-1399: tidy's chain-gap filing documents the --source chain-gap wiring and its own CLI-failure fallback (it computes priority fresh, so it never reads a stored `absent`)
+ok 47 - FAFF-1399: tidy's chain-gap filing documents the --source chain-gap wiring and its own CLI-failure fallback (it computes priority fresh, so it never reads a stored `absent`)
+  ---
+  duration_ms: 0.399749
+  type: 'test'
+  ...
+# Subtest: FAFF-1399: the priority-reason comment is documented as write-once — never edited or re-posted
+ok 48 - FAFF-1399: the priority-reason comment is documented as write-once — never edited or re-posted
+  ---
+  duration_ms: 1.745538
+  type: 'test'
+  ...
+# Subtest: FAFF-1399: every filing call site references the same shared priority-reason comment shape rather than restating it
+ok 49 - FAFF-1399: every filing call site references the same shared priority-reason comment shape rather than restating it
+  ---
+  duration_ms: 2.746953
+  type: 'test'
+  ...
+# Subtest: DONE-7: gateway obligation 5 states the mid-bracket write rule, one-chain-per-orchestrator, and the Class-B composition requirement
+ok 50 - DONE-7: gateway obligation 5 states the mid-bracket write rule, one-chain-per-orchestrator, and the Class-B composition requirement
+  ---
+  duration_ms: 2.865661
+  type: 'test'
+  ...
+# Subtest: DONE-8: the sequential executor no longer claims it writes nothing between snapshot and verify, or zero re-baselining
+ok 51 - DONE-8: the sequential executor no longer claims it writes nothing between snapshot and verify, or zero re-baselining
+  ---
+  duration_ms: 0.281041
+  type: 'test'
+  ...
+# Subtest: DONE-9: both executors reference obligation 5 for the shared chain/sequence/Class A-B rules, and carry only placement prose
+ok 52 - DONE-9: both executors reference obligation 5 for the shared chain/sequence/Class A-B rules, and carry only placement prose
+  ---
+  duration_ms: 0.373207
+  type: 'test'
+  ...
+# Subtest: the review and build-progress blocks and worktree ensure's resume share one remote-based diff identity (FAFF-708)
+ok 53 - the review and build-progress blocks and worktree ensure's resume share one remote-based diff identity (FAFF-708)
+  ---
+  duration_ms: 1149.443919
+  type: 'test'
+  ...
+# Subtest: no coupled graft diff block hardcodes a `main...HEAD` or `origin/main` base (FAFF-708 prompt-regression guard)
+ok 54 - no coupled graft diff block hardcodes a `main...HEAD` or `origin/main` base (FAFF-708 prompt-regression guard)
+  ---
+  duration_ms: 0.153292
+  type: 'test'
+  ...
+# Subtest: all six producer files carry the canonical bullet and all three worked examples verbatim
+ok 55 - all six producer files carry the canonical bullet and all three worked examples verbatim
+  ---
+  duration_ms: 1.121498
+  type: 'test'
+  ...
+# Subtest: skill prose: graft's resume skip needs an empty violations list, and the callers name the writers (FAFF-1259)
+ok 56 - skill prose: graft's resume skip needs an empty violations list, and the callers name the writers (FAFF-1259)
+  ---
+  duration_ms: 1.568664
+  type: 'test'
+  ...
+# Subtest: the committed baseline equals the real tree exactly, entry for entry
+ok 57 - the committed baseline equals the real tree exactly, entry for entry
+  ---
+  duration_ms: 4.165325
+  type: 'test'
+  ...
+# Subtest: drift guard: faff-graft/SKILL.md carries no bare per-appetite review-loop integer
+ok 58 - drift guard: faff-graft/SKILL.md carries no bare per-appetite review-loop integer
+  ---
+  duration_ms: 1.003832
+  type: 'test'
+  ...
+# Subtest: drift guard: the reviewer's Appetite integration table (1/3/5/10) agrees with the resolver's own map
+ok 59 - drift guard: the reviewer's Appetite integration table (1/3/5/10) agrees with the resolver's own map
+  ---
+  duration_ms: 0.684749
+  type: 'test'
+  ...
+# Subtest: faff-beep-boop SKILL.md tells the orchestrator to keep schema_version and add only listed keys
+ok 60 - faff-beep-boop SKILL.md tells the orchestrator to keep schema_version and add only listed keys
+  ---
+  duration_ms: 1.66333
+  type: 'test'
+  ...
+# Subtest: static: the §0a call-site carries no ad-hoc --autonomous/--plan flag or env sniff gating the run-start call — the only guard is the inherited ledger's own classified level
+ok 61 - static: the §0a call-site carries no ad-hoc --autonomous/--plan flag or env sniff gating the run-start call — the only guard is the inherited ledger's own classified level
+  ---
+  duration_ms: 1.016998
+  type: 'test'
+  ...
+# Subtest: static: the §0a coverage read consumes boolean .covered and computes no fraction/ratio at the call-site
+ok 62 - static: the §0a coverage read consumes boolean .covered and computes no fraction/ratio at the call-site
+  ---
+  duration_ms: 0.460457
+  type: 'test'
+  ...
+# Subtest: static: the §0a heading + prose sit under the L4-lights-out-only guard, and §0a itself never mints (FAFF-858: it classifies + reuses the operator's cage-1 mint)
+ok 63 - static: the §0a heading + prose sit under the L4-lights-out-only guard, and §0a itself never mints (FAFF-858: it classifies + reuses the operator's cage-1 mint)
+  ---
+  duration_ms: 0.335041
+  type: 'test'
+  ...
+# Subtest: static: a plan verdict invokes /faff-plot --autonomous (nested reuse, no mint), records the licence via run-record-prd, and falls through on the inherited runDir (no STOP, converge don't stop)
+ok 64 - static: a plan verdict invokes /faff-plot --autonomous (nested reuse, no mint), records the licence via run-record-prd, and falls through on the inherited runDir (no STOP, converge don't stop)
+  ---
+  duration_ms: 1.127039
+  type: 'test'
+  ...
+# Subtest: static: a drain verdict records the licence via run-record-prd (no mint); a refuse verdict leaves the inherited runDir untouched (no mint, nothing to close)
+ok 65 - static: a drain verdict records the licence via run-record-prd (no mint); a refuse verdict leaves the inherited runDir untouched (no mint, nothing to close)
+  ---
+  duration_ms: 0.440832
+  type: 'test'
+  ...
+# Subtest: graft Steps 4c and 10 read commit_subject_scheme from spec-commit.json, and the stale scheme phrases are gone
+ok 66 - graft Steps 4c and 10 read commit_subject_scheme from spec-commit.json, and the stale scheme phrases are gone
+  ---
+  duration_ms: 1.187122
+  type: 'test'
+  ...
+# Subtest: graft Step 4's intro says spec commit's warnings are logged to graft.md
+ok 67 - graft Step 4's intro says spec commit's warnings are logged to graft.md
+  ---
+  duration_ms: 0.512333
+  type: 'test'
+  ...
+# Subtest: graft Step 4's committed and already-committed row logs warnings to graft.md
+ok 68 - graft Step 4's committed and already-committed row logs warnings to graft.md
+  ---
+  duration_ms: 0.360916
+  type: 'test'
+  ...
+# Subtest: graft Step 4's intro says Step 4c and the merge-time ADR renumber read commit_subject_scheme
+ok 69 - graft Step 4's intro says Step 4c and the merge-time ADR renumber read commit_subject_scheme
+  ---
+  duration_ms: 0.371166
+  type: 'test'
+  ...
+# Subtest: faffter-noon-spec: every fenced Scenarios example is a scenario to classify and counts once for R1
+ok 70 - faffter-noon-spec: every fenced Scenarios example is a scenario to classify and counts once for R1
+  ---
+  duration_ms: 5.591989
+  type: 'test'
+  ...
+# Subtest: faffter-dark-nlspec: every fenced Scenarios example is a scenario to classify and counts once for R1
+ok 71 - faffter-dark-nlspec: every fenced Scenarios example is a scenario to classify and counts once for R1
+  ---
+  duration_ms: 2.038995
+  type: 'test'
+  ...
+# Subtest: the noon self-review treats an R1 refusal with Scenarios units as a major finding
+ok 72 - the noon self-review treats an R1 refusal with Scenarios units as a major finding
+  ---
+  duration_ms: 0.176958
+  type: 'test'
+  ...
+# Subtest: faff-prep/SKILL.md: the round call checks churn and prep parks on its action
+ok 73 - faff-prep/SKILL.md: the round call checks churn and prep parks on its action
+  ---
+  duration_ms: 0.911707
+  type: 'test'
+  ...
+# Subtest: faff-prep/SKILL.md: Park causes names the round call's churn cause
+ok 74 - faff-prep/SKILL.md: Park causes names the round call's churn cause
+  ---
+  duration_ms: 0.412333
+  type: 'test'
+  ...
+# Subtest: faff-prep/SKILL.md: the count-cap and convergence yield run inside `spec-review round`
+ok 75 - faff-prep/SKILL.md: the count-cap and convergence yield run inside `spec-review round`
+  ---
+  duration_ms: 0.282666
+  type: 'test'
+  ...
+# Subtest: faff-prep/SKILL.md: the convergence yield runs inside `spec-review round` and prep routes on its action
+ok 76 - faff-prep/SKILL.md: the convergence yield runs inside `spec-review round` and prep routes on its action
+  ---
+  duration_ms: 1.112831
+  type: 'test'
+  ...
+# Subtest: FAFF-1054: SKILL.md documents the self-check as advisory-only, keyed to TTFT never wall-clock
+ok 77 - FAFF-1054: SKILL.md documents the self-check as advisory-only, keyed to TTFT never wall-clock
+  ---
+  duration_ms: 0.739082
+  type: 'test'
+  ...
+# Subtest: FAFF-1054: SKILL.md's documented advisory ratio floor and suggestion match the mirrored implementation
+ok 78 - FAFF-1054: SKILL.md's documented advisory ratio floor and suggestion match the mirrored implementation
+  ---
+  duration_ms: 0.134166
+  type: 'test'
+  ...
+# Subtest: FAFF-1054: SKILL.md's resolution block carries the dispatch_strategy -d chain and the deadline/timeout -gt 0 guards
+ok 79 - FAFF-1054: SKILL.md's resolution block carries the dispatch_strategy -d chain and the deadline/timeout -gt 0 guards
+  ---
+  duration_ms: 0.08125
+  type: 'test'
+  ...
+# Subtest: FAFF-1054: the dispatch prose describes the resolved strategy, not an unconditional 'CONCURRENTLY'
+ok 80 - FAFF-1054: the dispatch prose describes the resolved strategy, not an unconditional 'CONCURRENTLY'
+  ---
+  duration_ms: 0.066708
+  type: 'test'
+  ...
+# Subtest: drift guard: faff-prep/SKILL.md's gate counts the cap through `spec-review round`, never a bare integer
+ok 81 - drift guard: faff-prep/SKILL.md's gate counts the cap through `spec-review round`, never a bare integer
+  ---
+  duration_ms: 0.941789
+  type: 'test'
+  ...
+# Subtest: occupant dispatch (extracted verbatim from SKILL.md): round >= 2 idempotent no-op capture STILL writes served-<n>.json
+ok 82 - occupant dispatch (extracted verbatim from SKILL.md): round >= 2 idempotent no-op capture STILL writes served-<n>.json
+  ---
+  duration_ms: 119.712091
+  type: 'test'
+  ...
+# Subtest: occupant dispatch (extracted verbatim from SKILL.md): the no-lens-served branch fires when served_count is 0
+ok 83 - occupant dispatch (extracted verbatim from SKILL.md): the no-lens-served branch fires when served_count is 0
+  ---
+  duration_ms: 33.688849
+  type: 'test'
+  ...
+# Subtest: occupant SKILL chain-assembly block calls `spec-review-pin --resolve`, NOT `adversarial-backends`
+ok 84 - occupant SKILL chain-assembly block calls `spec-review-pin --resolve`, NOT `adversarial-backends`
+  ---
+  duration_ms: 1.661705
+  type: 'test'
+  ...
+# Subtest: occupant SKILL documents UNCONDITIONAL round-1+ pin capture: served → --winner-index --round, empty → --no-lens-served --round
+ok 85 - occupant SKILL documents UNCONDITIONAL round-1+ pin capture: served → --winner-index --round, empty → --no-lens-served --round
+  ---
+  duration_ms: 0.59754
+  type: 'test'
+  ...
+# Subtest: occupant SKILL documents served-<n>.json is written on EVERY served round, not just round 1
+ok 86 - occupant SKILL documents served-<n>.json is written on EVERY served round, not just round 1
+  ---
+  duration_ms: 0.522124
+  type: 'test'
+  ...
+# Subtest: prep SKILL resolves the scratch dir via `spec-review-dir` and hands it to `spec-review round`
+ok 87 - prep SKILL resolves the scratch dir via `spec-review-dir` and hands it to `spec-review round`
+  ---
+  duration_ms: 0.75079
+  type: 'test'
+  ...
+# Subtest: prep SKILL governs the window through `spec-review round --served`, never a hand-derived swap comparison
+ok 88 - prep SKILL governs the window through `spec-review round --served`, never a hand-derived swap comparison
+  ---
+  duration_ms: 1.077956
+  type: 'test'
+  ...
+# Subtest: prep SKILL asserts the governance step ran: the round call fails safe on a missing governance-<n>.json
+ok 89 - prep SKILL asserts the governance step ran: the round call fails safe on a missing governance-<n>.json
+  ---
+  duration_ms: 0.266999
+  type: 'test'
+  ...
+# Subtest: prep SKILL bounds churn to the window: the round call compares against the previous round in the window
+ok 90 - prep SKILL bounds churn to the window: the round call compares against the previous round in the window
+  ---
+  duration_ms: 0.233958
+  type: 'test'
+  ...
+# Subtest: faffter-dark-spec-review occupant wires the round-1 --eligible reputation filter
+ok 91 - faffter-dark-spec-review occupant wires the round-1 --eligible reputation filter
+  ---
+  duration_ms: 1.269914
+  type: 'test'
+  ...
+# Subtest: the single-pass faffter-noon-spec-review default resolves no chain and is NOT wired
+ok 92 - the single-pass faffter-noon-spec-review default resolves no chain and is NOT wired
+  ---
+  duration_ms: 0.155583
+  type: 'test'
+  ...
+# Subtest: faff-prep/SKILL.md: the loop resolves the window + round number through `spec-review round`
+ok 93 - faff-prep/SKILL.md: the loop resolves the window + round number through `spec-review round`
+  ---
+  duration_ms: 1.094873
+  type: 'test'
+  ...
+1..93
+# tests 93
+# suites 0
+# pass 93
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1280.681404

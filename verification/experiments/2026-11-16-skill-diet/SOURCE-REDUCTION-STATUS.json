@@ -1,0 +1,1074 @@
+{
+  "schema": 1,
+  "status": "current-source-implemented-static-reviewed-not-newly-model-qualified",
+  "created_utc": "2026-11-17T13:24:01.451447+00:00",
+  "workspace": "/var/tmp/faff-skill-diet-source-batch",
+  "current_HEAD": "850c7e4df44587cc3b9f2f973c632177e1c31d4d",
+  "references": {
+    "original": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+    "accepted": "a523734da3865a10e24239a606663b050a90cbc9"
+  },
+  "scope": {
+    "definition": "Exactly the 41 runtime prose paths in plugin/skills/faff/prose-baseline.json files keys; allowances are not used as measured sizes. New test/evidence/design files excluded.",
+    "files": 41,
+    "same_paths_at_reference_commits": {
+      "original": {
+        "scope_file_sha256": "29504b2861c676a05d1d5dc57d543d067042fd33b8c5bfbda182c2c2e079750e",
+        "same41paths": true,
+        "count": 41
+      },
+      "accepted": {
+        "scope_file_sha256": "6b76996f64b10600f16e3cd9a7fe49c4a80fdf8291b8ab88e4a5ec875f429024",
+        "same41paths": true,
+        "count": 41
+      }
+    },
+    "current_allowance_size_mismatches": []
+  },
+  "token_method": "For each whole UTF-8 decoded file, ceil(UTF-16 code units /4); sum 41 rounded file estimates. Not model usage, billing, prompt-load frequency or billed-token savings.",
+  "inputs": [
+    {
+      "path": "plugin/skills/faff/prose-baseline.json",
+      "sha256": "e3089c33c79367348beeeaf94323b14c83db9b1eb667a7b6e30c1b5bbeebb445"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger.json",
+      "sha256": "343be2bca8d0d721f95996a9a45cabc9cd33214fe99347987edad7f5af0b143b"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/SOURCE-BATCH-measurement.json",
+      "sha256": "afddfd89c8337ba30fe4d7700f31a53e94cd0b2006fa59faec88a4eb6c6d717c"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/SOURCE-BATCH-2-checks.json",
+      "sha256": "e901301294251497caa402d5c1dbb91012d37467150500e60e01c098cf282903"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/SOURCE-BATCH-3-measurement.json",
+      "sha256": "4dfdce7fb08c3cc6853c00ab3f3923efa1fd66aa0f0b36630080d159441a30d1"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/SOURCE-BATCH-3-lint-wiring-correction.json",
+      "sha256": "90936128db3f85e312b7ec06f6f1f0ec1aa6bca1f03af8ee80e7bbc4c84a9aab"
+    }
+  ],
+  "totals": {
+    "original": {
+      "bytes": 1369435,
+      "estimated_tokens": 339279
+    },
+    "accepted": {
+      "bytes": 1252184,
+      "estimated_tokens": 310411
+    },
+    "current": {
+      "bytes": 1164780,
+      "estimated_tokens": 288949
+    }
+  },
+  "historical_qualified_ledger_savings": {
+    "bytes": 117251,
+    "estimated_tokens": 28868
+  },
+  "today_implemented_static_reviewed_savings": {
+    "bytes": 87404,
+    "estimated_tokens": 21462
+  },
+  "overall_implemented_savings": {
+    "bytes": 204655,
+    "estimated_tokens": 50330
+  },
+  "today_batches": [
+    {
+      "batch": 1,
+      "saved_bytes": 50259,
+      "saved_estimated_tokens": 12351,
+      "binding": "SOURCE-BATCH-measurement.json"
+    },
+    {
+      "batch": 2,
+      "saved_bytes": 22248,
+      "saved_estimated_tokens": 5458,
+      "binding": "SOURCE-BATCH-2-checks.json; token delta reconciled across exact five source files"
+    },
+    {
+      "batch": 3,
+      "saved_bytes": 14897,
+      "saved_estimated_tokens": 3653,
+      "binding": "SOURCE-BATCH-3-measurement.json plus SOURCE-BATCH-3-lint-wiring-correction.json; current source bytes supersede draft candidate sizes"
+    }
+  ],
+  "today_touched_files": [
+    "plugin/skills/faff-graft/SKILL.md",
+    "plugin/skills/faff-beep-boop/SKILL.md",
+    "plugin/skills/faff-prep/SKILL.md",
+    "plugin/skills/faff/references/kernel.md",
+    "plugin/skills/faff-tidy/SKILL.md"
+  ],
+  "touch_counts": {
+    "unchanged": 9,
+    "historical": 27,
+    "today": 1,
+    "historical + today": 4
+  },
+  "checks": {
+    "original_expected_totals_match": true,
+    "accepted_expected_totals_match": true,
+    "historical_ledger_source_total_matches": true,
+    "current_source_stable_during_measurement": true,
+    "batch_byte_and_token_deltas_sum_to_today": true,
+    "tests_or_models_run": false
+  },
+  "qualification_disclosure": [
+    "Historical accepted source and ledger remain frozen at a523734d; this report does not update accepted ledger.",
+    "Current source includes three implemented/static-reviewed reduction batches. New model qualification is outstanding; static review/integration checks are not model equivalence.",
+    "Kernel pair remains held on one strict input mismatch, as reported by root; no failed sample is waived, replaced or recounted here. This accounting task did not independently regrade model outputs.",
+    "No new model-qualified savings claim, model calls, tests, harness work, source edits or commits. Root owns subsequent checks/commit."
+  ],
+  "files_ranked_original_bytes_descending": [
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "original": {
+        "bytes": 178859,
+        "estimated_tokens": 44349,
+        "sha256": "401252f1a2bce5d68e972b83eaaffc1d2f1ce1dc1d47dc53f15488eb12c591ca"
+      },
+      "accepted": {
+        "bytes": 178777,
+        "estimated_tokens": 44329,
+        "sha256": "8de4f024324483f9fd506eb14d06424910762d95243a43072976782ebd1c7710"
+      },
+      "current": {
+        "bytes": 141511,
+        "estimated_tokens": 35182,
+        "sha256": "2fd7bd3f2ba0d8b00d6b9b7749460a7872e3380daf6f79525e2b8f876d592407"
+      },
+      "historically_touched": true,
+      "touched_today": true,
+      "touched_status": "historical + today",
+      "today_saved_bytes": 37266,
+      "today_saved_estimated_tokens": 9147
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "original": {
+        "bytes": 157720,
+        "estimated_tokens": 39083,
+        "sha256": "7340b6f3cc1dc51887fcfdb710785e59e287406f6c3f89f45510abade3e0f69d"
+      },
+      "accepted": {
+        "bytes": 149485,
+        "estimated_tokens": 37063,
+        "sha256": "3b23939b67eb3472b4e826e990ce7ed9f396455c4ff65430af4cecb7a8bdcbfe"
+      },
+      "current": {
+        "bytes": 138518,
+        "estimated_tokens": 34378,
+        "sha256": "f4bdf4edd751b6f5783abdcfa2bbd454e502203e850d4e4ce152ab0da96de06a"
+      },
+      "historically_touched": true,
+      "touched_today": true,
+      "touched_status": "historical + today",
+      "today_saved_bytes": 10967,
+      "today_saved_estimated_tokens": 2685
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "original": {
+        "bytes": 104335,
+        "estimated_tokens": 25883,
+        "sha256": "af41560116bca66bd79662e1ee7ed5d4bb14197cdb4236b850028e5be632155c"
+      },
+      "accepted": {
+        "bytes": 104335,
+        "estimated_tokens": 25883,
+        "sha256": "af41560116bca66bd79662e1ee7ed5d4bb14197cdb4236b850028e5be632155c"
+      },
+      "current": {
+        "bytes": 87112,
+        "estimated_tokens": 21638,
+        "sha256": "3c7cfc586a19e92af472480086dbcc56a8aba1c8d7052ee327f12cfacce97886"
+      },
+      "historically_touched": false,
+      "touched_today": true,
+      "touched_status": "today",
+      "today_saved_bytes": 17223,
+      "today_saved_estimated_tokens": 4245
+    },
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "original": {
+        "bytes": 95418,
+        "estimated_tokens": 23652,
+        "sha256": "c96e4bfabbab1312565011ef3bad69bb918fbaa00e619c1bca0b1e00f1ce7086"
+      },
+      "accepted": {
+        "bytes": 84072,
+        "estimated_tokens": 20857,
+        "sha256": "edb4d21e3b7382f519be945fa8b8a465e8c6d83f27ba1beb5c0d3798300b5331"
+      },
+      "current": {
+        "bytes": 70812,
+        "estimated_tokens": 17604,
+        "sha256": "d2dca7702a6d68745133d80f3ddcf32ed6230a8f54f04007d1fbdb2746f8e6e9"
+      },
+      "historically_touched": true,
+      "touched_today": true,
+      "touched_status": "historical + today",
+      "today_saved_bytes": 13260,
+      "today_saved_estimated_tokens": 3253
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "original": {
+        "bytes": 76181,
+        "estimated_tokens": 18866,
+        "sha256": "a8e8608fe6f9a43f36b9f523e54ae1b1c66dc5e6ba03dc3be255127fab2cf3a4"
+      },
+      "accepted": {
+        "bytes": 76028,
+        "estimated_tokens": 18828,
+        "sha256": "9e2d98e3f7d1de13c74866115cd433ae62854f95e2bf2ae4617185d24123d757"
+      },
+      "current": {
+        "bytes": 67340,
+        "estimated_tokens": 16696,
+        "sha256": "5a52e93398564ddf4400a4492275dd30728012a515ac6f88d72ec605a5b7529c"
+      },
+      "historically_touched": true,
+      "touched_today": true,
+      "touched_status": "historical + today",
+      "today_saved_bytes": 8688,
+      "today_saved_estimated_tokens": 2132
+    },
+    {
+      "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+      "original": {
+        "bytes": 74897,
+        "estimated_tokens": 18574,
+        "sha256": "4be6a2c38923d00b7dca1dc00d6d5923a00f0b9329141de0a2bbe2a14c4a1193"
+      },
+      "accepted": {
+        "bytes": 22259,
+        "estimated_tokens": 5565,
+        "sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba"
+      },
+      "current": {
+        "bytes": 22259,
+        "estimated_tokens": 5565,
+        "sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba"
+      },
+      "historically_touched": true,
+      "touched_today": false,
+      "touched_status": "historical",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faff-plot/SKILL.md",
+      "original": {
+        "bytes": 45906,
+        "estimated_tokens": 11342,
+        "sha256": "1739242fe22980f02a0697bb958f9845739117e85a6708664d68f1d761db578e"
+      },
+      "accepted": {
+        "bytes": 45580,
+        "estimated_tokens": 11262,
+        "sha256": "57c8efe868e470b21d70f5787025457fed8ab70766d1a8115e721645e37fa25c"
+      },
+      "current": {
+        "bytes": 45580,
+        "estimated_tokens": 11262,
+        "sha256": "57c8efe868e470b21d70f5787025457fed8ab70766d1a8115e721645e37fa25c"
+      },
+      "historically_touched": true,
+      "touched_today": false,
+      "touched_status": "historical",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+      "original": {
+        "bytes": 45057,
+        "estimated_tokens": 11165,
+        "sha256": "371ad208c15856e0da8a58ac929f5894bf614b44331a031cb89a76012a490eb3"
+      },
+      "accepted": {
+        "bytes": 44947,
+        "estimated_tokens": 11138,
+        "sha256": "73358ee7786bf114f34e0fe69912dc644fb809a35ae27841f222164bad09aff3"
+      },
+      "current": {
+        "bytes": 44947,
+        "estimated_tokens": 11138,
+        "sha256": "73358ee7786bf114f34e0fe69912dc644fb809a35ae27841f222164bad09aff3"
+      },
+      "historically_touched": true,
+      "touched_today": false,
+      "touched_status": "historical",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faffter-dark-spec-review/SKILL.md",
+      "original": {
+        "bytes": 40715,
+        "estimated_tokens": 10117,
+        "sha256": "21cb7cdfebd5b73f59f5b6e0aeda877e96f75cbe5780535e1ca740e1996d9dee"
+      },
+      "accepted": {
+        "bytes": 40496,
+        "estimated_tokens": 10063,
+        "sha256": "d0eb7dfabc221c9a3822336eef239e4d0a2537ae68b254c4581a99be25ab6200"
+      },
+      "current": {
+        "bytes": 40496,
+        "estimated_tokens": 10063,
+        "sha256": "d0eb7dfabc221c9a3822336eef239e4d0a2537ae68b254c4581a99be25ab6200"
+      },
+      "historically_touched": true,
+      "touched_today": false,
+      "touched_status": "historical",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faff/references/autonomous.md",
+      "original": {
+        "bytes": 39233,
+        "estimated_tokens": 9729,
+        "sha256": "b0e0ef32be783ffa5be27ab74db987ef347fedf1a75dd16bab5db030304d85d7"
+      },
+      "accepted": {
+        "bytes": 39233,
+        "estimated_tokens": 9729,
+        "sha256": "b0e0ef32be783ffa5be27ab74db987ef347fedf1a75dd16bab5db030304d85d7"
+      },
+      "current": {
+        "bytes": 39233,
+        "estimated_tokens": 9729,
+        "sha256": "b0e0ef32be783ffa5be27ab74db987ef347fedf1a75dd16bab5db030304d85d7"
+      },
+      "historically_touched": false,
+      "touched_today": false,
+      "touched_status": "unchanged",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faff/references/methodology.md",
+      "original": {
+        "bytes": 35453,
+        "estimated_tokens": 8778,
+        "sha256": "51188b58858080ab4a28801c946ff47dced68c25ad675453efde346113e97f8b"
+      },
+      "accepted": {
+        "bytes": 35453,
+        "estimated_tokens": 8778,
+        "sha256": "51188b58858080ab4a28801c946ff47dced68c25ad675453efde346113e97f8b"
+      },
+      "current": {
+        "bytes": 35453,
+        "estimated_tokens": 8778,
+        "sha256": "51188b58858080ab4a28801c946ff47dced68c25ad675453efde346113e97f8b"
+      },
+      "historically_touched": false,
+      "touched_today": false,
+      "touched_status": "unchanged",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+      "original": {
+        "bytes": 35118,
+        "estimated_tokens": 8672,
+        "sha256": "5c5ccd71a7bce35a406be9381acd606f3ae8af51622ddedbe0a28a503ba0c797"
+      },
+      "accepted": {
+        "bytes": 29418,
+        "estimated_tokens": 7281,
+        "sha256": "07dc585871f8f70c523e164be3bfa28855f303289a0488af7b00f7c734d58f3f"
+      },
+      "current": {
+        "bytes": 29418,
+        "estimated_tokens": 7281,
+        "sha256": "07dc585871f8f70c523e164be3bfa28855f303289a0488af7b00f7c734d58f3f"
+      },
+      "historically_touched": true,
+      "touched_today": false,
+      "touched_status": "historical",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faff-wtf/SKILL.md",
+      "original": {
+        "bytes": 31551,
+        "estimated_tokens": 7806,
+        "sha256": "92583ba51c7ed42b9729c23b7c2e3367ab830ca023e68103845094e127478b54"
+      },
+      "accepted": {
+        "bytes": 27152,
+        "estimated_tokens": 6734,
+        "sha256": "8df715340ed14eabc072dc6c063bb6ef69682341c0e48f7e05cbf1f700df87bb"
+      },
+      "current": {
+        "bytes": 27152,
+        "estimated_tokens": 6734,
+        "sha256": "8df715340ed14eabc072dc6c063bb6ef69682341c0e48f7e05cbf1f700df87bb"
+      },
+      "historically_touched": true,
+      "touched_today": false,
+      "touched_status": "historical",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faff/references/l4.md",
+      "original": {
+        "bytes": 26377,
+        "estimated_tokens": 6538,
+        "sha256": "7994061a8ca8e8f23210874c401cf78ed0c4ad4af95b07c852456b6b6bbe5344"
+      },
+      "accepted": {
+        "bytes": 26377,
+        "estimated_tokens": 6538,
+        "sha256": "7994061a8ca8e8f23210874c401cf78ed0c4ad4af95b07c852456b6b6bbe5344"
+      },
+      "current": {
+        "bytes": 26377,
+        "estimated_tokens": 6538,
+        "sha256": "7994061a8ca8e8f23210874c401cf78ed0c4ad4af95b07c852456b6b6bbe5344"
+      },
+      "historically_touched": false,
+      "touched_today": false,
+      "touched_status": "unchanged",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
+      "original": {
+        "bytes": 25766,
+        "estimated_tokens": 6386,
+        "sha256": "a292b72b94a582f65fb8f9fc9cfd5fa4a9be09a449f95b35ac19a007d962d423"
+      },
+      "accepted": {
+        "bytes": 25665,
+        "estimated_tokens": 6361,
+        "sha256": "4706d07b456a00e1b9e4e47dada91182950f6f716c610123977525f7d7471ef9"
+      },
+      "current": {
+        "bytes": 25665,
+        "estimated_tokens": 6361,
+        "sha256": "4706d07b456a00e1b9e4e47dada91182950f6f716c610123977525f7d7471ef9"
+      },
+      "historically_touched": true,
+      "touched_today": false,
+      "touched_status": "historical",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faff-map/SKILL.md",
+      "original": {
+        "bytes": 24782,
+        "estimated_tokens": 6049,
+        "sha256": "ad434e473fefdebb9e38b4ec003269875e31471cda65d542d920478ecc4a588c"
+      },
+      "accepted": {
+        "bytes": 24535,
+        "estimated_tokens": 5988,
+        "sha256": "55e5aa388261b226e011f45d16d3b88d6e61a9e9bba0f1831b2cfdf57ce308c6"
+      },
+      "current": {
+        "bytes": 24535,
+        "estimated_tokens": 5988,
+        "sha256": "55e5aa388261b226e011f45d16d3b88d6e61a9e9bba0f1831b2cfdf57ce308c6"
+      },
+      "historically_touched": true,
+      "touched_today": false,
+      "touched_status": "historical",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "original": {
+        "bytes": 24639,
+        "estimated_tokens": 6040,
+        "sha256": "50256436d59e7fa4850fe4b59934631ee75c51a21c7b890f5cd2225d25e81fce"
+      },
+      "accepted": {
+        "bytes": 11288,
+        "estimated_tokens": 2777,
+        "sha256": "74545fd22fc8451da92bf1ea2f0686940faaa1183453c2402c617131882176e4"
+      },
+      "current": {
+        "bytes": 11288,
+        "estimated_tokens": 2777,
+        "sha256": "74545fd22fc8451da92bf1ea2f0686940faaa1183453c2402c617131882176e4"
+      },
+      "historically_touched": true,
+      "touched_today": false,
+      "touched_status": "historical",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faff/references/tracker.md",
+      "original": {
+        "bytes": 24185,
+        "estimated_tokens": 5994,
+        "sha256": "f98c08368032e6c4053800551a64b7927439a16f7f57c02925c4e0f37847289c"
+      },
+      "accepted": {
+        "bytes": 24185,
+        "estimated_tokens": 5994,
+        "sha256": "f98c08368032e6c4053800551a64b7927439a16f7f57c02925c4e0f37847289c"
+      },
+      "current": {
+        "bytes": 24185,
+        "estimated_tokens": 5994,
+        "sha256": "f98c08368032e6c4053800551a64b7927439a16f7f57c02925c4e0f37847289c"
+      },
+      "historically_touched": false,
+      "touched_today": false,
+      "touched_status": "unchanged",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faff-jot/SKILL.md",
+      "original": {
+        "bytes": 23456,
+        "estimated_tokens": 5804,
+        "sha256": "3258c873a3ddae74a97d17f34812748a564655b34cbbae36a3753d52d329ce78"
+      },
+      "accepted": {
+        "bytes": 23456,
+        "estimated_tokens": 5804,
+        "sha256": "3258c873a3ddae74a97d17f34812748a564655b34cbbae36a3753d52d329ce78"
+      },
+      "current": {
+        "bytes": 23456,
+        "estimated_tokens": 5804,
+        "sha256": "3258c873a3ddae74a97d17f34812748a564655b34cbbae36a3753d52d329ce78"
+      },
+      "historically_touched": false,
+      "touched_today": false,
+      "touched_status": "unchanged",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faff-onboard/SKILL.md",
+      "original": {
+        "bytes": 23185,
+        "estimated_tokens": 5733,
+        "sha256": "093c997b1c26f1d98f68e11e23e01cae9cd7f4cfa9616a1280303a30d835a810"
+      },
+      "accepted": {
+        "bytes": 23039,
+        "estimated_tokens": 5697,
+        "sha256": "61b542661d1a6d20e5d50ba8912deda6a3633c82e00b5040916d49a6e38c429b"
+      },
+      "current": {
+        "bytes": 23039,
+        "estimated_tokens": 5697,
+        "sha256": "61b542661d1a6d20e5d50ba8912deda6a3633c82e00b5040916d49a6e38c429b"
+      },
+      "historically_touched": true,
+      "touched_today": false,
+      "touched_status": "historical",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+      "original": {
+        "bytes": 18823,
+        "estimated_tokens": 4671,
+        "sha256": "4cc4f0a6613802f34749f6cd367f4818dd9aef34641cb5fb812a39fe71a6c519"
+      },
+      "accepted": {
+        "bytes": 18819,
+        "estimated_tokens": 4671,
+        "sha256": "af81549bd251bace400ebf5d976d65a15e9a9c258e83f318cbbc55fc034691af"
+      },
+      "current": {
+        "bytes": 18819,
+        "estimated_tokens": 4671,
+        "sha256": "af81549bd251bace400ebf5d976d65a15e9a9c258e83f318cbbc55fc034691af"
+      },
+      "historically_touched": true,
+      "touched_today": false,
+      "touched_status": "historical",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faffter-noon-concurrency-sequential/SKILL.md",
+      "original": {
+        "bytes": 18605,
+        "estimated_tokens": 4613,
+        "sha256": "e3308c33e5cf68379704357f18cdabbbc3d02c40a80534aac4f8b293d2d1e28a"
+      },
+      "accepted": {
+        "bytes": 18512,
+        "estimated_tokens": 4590,
+        "sha256": "1e0e8c86860a2e962e4f022225c5c23148539afa2075981d1148c9069e3af2d8"
+      },
+      "current": {
+        "bytes": 18512,
+        "estimated_tokens": 4590,
+        "sha256": "1e0e8c86860a2e962e4f022225c5c23148539afa2075981d1148c9069e3af2d8"
+      },
+      "historically_touched": true,
+      "touched_today": false,
+      "touched_status": "historical",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+      "original": {
+        "bytes": 17919,
+        "estimated_tokens": 4444,
+        "sha256": "cb5488f22d8eaafbeb03d867b2b5ba7e55c7f3ac6e2d2cd32e5dd706c2af4494"
+      },
+      "accepted": {
+        "bytes": 17847,
+        "estimated_tokens": 4427,
+        "sha256": "cc268664fa8b1789242fb898e2236c2301c937520805c1fd8a6cf6b48be99696"
+      },
+      "current": {
+        "bytes": 17847,
+        "estimated_tokens": 4427,
+        "sha256": "cc268664fa8b1789242fb898e2236c2301c937520805c1fd8a6cf6b48be99696"
+      },
+      "historically_touched": true,
+      "touched_today": false,
+      "touched_status": "historical",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faffter-noon-evaluate/SKILL.md",
+      "original": {
+        "bytes": 16192,
+        "estimated_tokens": 4024,
+        "sha256": "b5309423190169dee6b3499b5891cad7565e1e0378f07590ec6831b929d6925f"
+      },
+      "accepted": {
+        "bytes": 15939,
+        "estimated_tokens": 3961,
+        "sha256": "155185589d5cd019fce35b657f11c751326e44b1f7de0836890f057293c60d22"
+      },
+      "current": {
+        "bytes": 15939,
+        "estimated_tokens": 3961,
+        "sha256": "155185589d5cd019fce35b657f11c751326e44b1f7de0836890f057293c60d22"
+      },
+      "historically_touched": true,
+      "touched_today": false,
+      "touched_status": "historical",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faff/references/park.md",
+      "original": {
+        "bytes": 14619,
+        "estimated_tokens": 3627,
+        "sha256": "0a59cc9f746bc416dd693f249b7b3c844c85cb8ce660db0f7a907b3387c8ff43"
+      },
+      "accepted": {
+        "bytes": 14619,
+        "estimated_tokens": 3627,
+        "sha256": "0a59cc9f746bc416dd693f249b7b3c844c85cb8ce660db0f7a907b3387c8ff43"
+      },
+      "current": {
+        "bytes": 14619,
+        "estimated_tokens": 3627,
+        "sha256": "0a59cc9f746bc416dd693f249b7b3c844c85cb8ce660db0f7a907b3387c8ff43"
+      },
+      "historically_touched": false,
+      "touched_today": false,
+      "touched_status": "unchanged",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faffter-noon-ship/SKILL.md",
+      "original": {
+        "bytes": 14189,
+        "estimated_tokens": 3521,
+        "sha256": "0def991641eeffae8fc708e05a4c93a709c9a0dee36aee1280b81eecad2803e4"
+      },
+      "accepted": {
+        "bytes": 14027,
+        "estimated_tokens": 3481,
+        "sha256": "7df6adee9b0220feec53dc794cc9f047fcdfdde5906f98dfe87a77e1bc444e2b"
+      },
+      "current": {
+        "bytes": 14027,
+        "estimated_tokens": 3481,
+        "sha256": "7df6adee9b0220feec53dc794cc9f047fcdfdde5906f98dfe87a77e1bc444e2b"
+      },
+      "historically_touched": true,
+      "touched_today": false,
+      "touched_status": "historical",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faffter-noon-review/SKILL.md",
+      "original": {
+        "bytes": 13503,
+        "estimated_tokens": 3351,
+        "sha256": "7647654d4336064a5812b7e8fda1bca94fbebc5171f54c05f6f960253c56d98a"
+      },
+      "accepted": {
+        "bytes": 8045,
+        "estimated_tokens": 2008,
+        "sha256": "e42c9a2d8d7478ad621769dcaec04dcd1dc17550de26805539696e25d64f251f"
+      },
+      "current": {
+        "bytes": 8045,
+        "estimated_tokens": 2008,
+        "sha256": "e42c9a2d8d7478ad621769dcaec04dcd1dc17550de26805539696e25d64f251f"
+      },
+      "historically_touched": true,
+      "touched_today": false,
+      "touched_status": "historical",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faff/SKILL.md",
+      "original": {
+        "bytes": 12984,
+        "estimated_tokens": 3222,
+        "sha256": "5d2d4afc4fe71f2b48d1007804d420bfd94f22a576bdbb554e578803de01744d"
+      },
+      "accepted": {
+        "bytes": 5832,
+        "estimated_tokens": 1458,
+        "sha256": "122858afa54cc46458ec6a2ad646b73a62a63791c95a71dba731905fbe6ee3d2"
+      },
+      "current": {
+        "bytes": 5832,
+        "estimated_tokens": 1458,
+        "sha256": "122858afa54cc46458ec6a2ad646b73a62a63791c95a71dba731905fbe6ee3d2"
+      },
+      "historically_touched": true,
+      "touched_today": false,
+      "touched_status": "historical",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md",
+      "original": {
+        "bytes": 12540,
+        "estimated_tokens": 3108,
+        "sha256": "9a2e3fd87f6f7d2d00586adec5f7d9a4d0a8415fabd5966104addf6d480d1fb3"
+      },
+      "accepted": {
+        "bytes": 12321,
+        "estimated_tokens": 3054,
+        "sha256": "74251c96bb33e9b5f15f370f994256a0ed25a588cd7a186ecca80d13eed98ae0"
+      },
+      "current": {
+        "bytes": 12321,
+        "estimated_tokens": 3054,
+        "sha256": "74251c96bb33e9b5f15f370f994256a0ed25a588cd7a186ecca80d13eed98ae0"
+      },
+      "historically_touched": true,
+      "touched_today": false,
+      "touched_status": "historical",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faffter-noon-env-compose/SKILL.md",
+      "original": {
+        "bytes": 12443,
+        "estimated_tokens": 3095,
+        "sha256": "279c55c58c16cfee1b74e4ca54711dcd5b97b039dbce2db35e581576a3477046"
+      },
+      "accepted": {
+        "bytes": 12232,
+        "estimated_tokens": 3043,
+        "sha256": "311f5695a82a15e3be90ebe15878a0f9a67fb7c710ef178c7f37d8f557a651d9"
+      },
+      "current": {
+        "bytes": 12232,
+        "estimated_tokens": 3043,
+        "sha256": "311f5695a82a15e3be90ebe15878a0f9a67fb7c710ef178c7f37d8f557a651d9"
+      },
+      "historically_touched": true,
+      "touched_today": false,
+      "touched_status": "historical",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faff/references/build.md",
+      "original": {
+        "bytes": 12080,
+        "estimated_tokens": 2993,
+        "sha256": "16760ea2fcff5f06ba910049e51736db01178e72b287f7e09a115946098630b9"
+      },
+      "accepted": {
+        "bytes": 12080,
+        "estimated_tokens": 2993,
+        "sha256": "16760ea2fcff5f06ba910049e51736db01178e72b287f7e09a115946098630b9"
+      },
+      "current": {
+        "bytes": 12080,
+        "estimated_tokens": 2993,
+        "sha256": "16760ea2fcff5f06ba910049e51736db01178e72b287f7e09a115946098630b9"
+      },
+      "historically_touched": false,
+      "touched_today": false,
+      "touched_status": "unchanged",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faffidavit-routing/SKILL.md",
+      "original": {
+        "bytes": 11236,
+        "estimated_tokens": 2783,
+        "sha256": "13ea361878b5986ee805af4f8bd95a6d9c916bb2218fa784c6d86c9e82729b4d"
+      },
+      "accepted": {
+        "bytes": 11144,
+        "estimated_tokens": 2760,
+        "sha256": "d6e7f37d231ea6a42a336cdc268717fe2e788ac290dc17d5948a673d9d698735"
+      },
+      "current": {
+        "bytes": 11144,
+        "estimated_tokens": 2760,
+        "sha256": "d6e7f37d231ea6a42a336cdc268717fe2e788ac290dc17d5948a673d9d698735"
+      },
+      "historically_touched": true,
+      "touched_today": false,
+      "touched_status": "historical",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faffter-noon-env-code-interface/SKILL.md",
+      "original": {
+        "bytes": 9862,
+        "estimated_tokens": 2454,
+        "sha256": "0583fd07595fd1e09a407d30514fbbee372c46dfecddab3cbaba2d2b3360b398"
+      },
+      "accepted": {
+        "bytes": 9602,
+        "estimated_tokens": 2389,
+        "sha256": "f4dc693965a2e49f2765d745a343e5c9e5df3282cc439fb762781a5ed49ece75"
+      },
+      "current": {
+        "bytes": 9602,
+        "estimated_tokens": 2389,
+        "sha256": "f4dc693965a2e49f2765d745a343e5c9e5df3282cc439fb762781a5ed49ece75"
+      },
+      "historically_touched": true,
+      "touched_today": false,
+      "touched_status": "historical",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec-review/SKILL.md",
+      "original": {
+        "bytes": 9605,
+        "estimated_tokens": 2381,
+        "sha256": "4704eea626c039b83490a8ccf87a52d289b97ae2128ac0d0d56adbf7f22895b7"
+      },
+      "accepted": {
+        "bytes": 8055,
+        "estimated_tokens": 2001,
+        "sha256": "a4d074a09df4b449bdcecb1d85a6028e995ad6e1cffa49e70fc22409d25f9571"
+      },
+      "current": {
+        "bytes": 8055,
+        "estimated_tokens": 2001,
+        "sha256": "a4d074a09df4b449bdcecb1d85a6028e995ad6e1cffa49e70fc22409d25f9571"
+      },
+      "historically_touched": true,
+      "touched_today": false,
+      "touched_status": "historical",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faff/references/create.md",
+      "original": {
+        "bytes": 9145,
+        "estimated_tokens": 2265,
+        "sha256": "c65b76c6db60f6162986de266c7504390327c82e857c07bdb9e0deaa34197cdd"
+      },
+      "accepted": {
+        "bytes": 9145,
+        "estimated_tokens": 2265,
+        "sha256": "c65b76c6db60f6162986de266c7504390327c82e857c07bdb9e0deaa34197cdd"
+      },
+      "current": {
+        "bytes": 9145,
+        "estimated_tokens": 2265,
+        "sha256": "c65b76c6db60f6162986de266c7504390327c82e857c07bdb9e0deaa34197cdd"
+      },
+      "historically_touched": false,
+      "touched_today": false,
+      "touched_status": "unchanged",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faffter-noon-intake/SKILL.md",
+      "original": {
+        "bytes": 7715,
+        "estimated_tokens": 1913,
+        "sha256": "7851000ca07fffdb5155f757526f2d5dc636537495be47e43ece8ae9359561ad"
+      },
+      "accepted": {
+        "bytes": 5689,
+        "estimated_tokens": 1412,
+        "sha256": "668b178bfead91377c81015083db36c57697c8bdf3d29dc4807073a81b952e0b"
+      },
+      "current": {
+        "bytes": 5689,
+        "estimated_tokens": 1412,
+        "sha256": "668b178bfead91377c81015083db36c57697c8bdf3d29dc4807073a81b952e0b"
+      },
+      "historically_touched": true,
+      "touched_today": false,
+      "touched_status": "historical",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faffter-noon-transport-private-network/SKILL.md",
+      "original": {
+        "bytes": 6442,
+        "estimated_tokens": 1602,
+        "sha256": "a7cd58988d8ff5809f7f0348eb4fc617a9f8498e439535b153c9309c68a71779"
+      },
+      "accepted": {
+        "bytes": 6250,
+        "estimated_tokens": 1555,
+        "sha256": "8187ee3fb166c1d0f0355f38452f007e70c7aa4b1e516a79a12161487c699284"
+      },
+      "current": {
+        "bytes": 6250,
+        "estimated_tokens": 1555,
+        "sha256": "8187ee3fb166c1d0f0355f38452f007e70c7aa4b1e516a79a12161487c699284"
+      },
+      "historically_touched": true,
+      "touched_today": false,
+      "touched_status": "historical",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faffter-noon-architecture/SKILL.md",
+      "original": {
+        "bytes": 4967,
+        "estimated_tokens": 1236,
+        "sha256": "cdfaaca22d2f577cb3c1496b652c22020c6264dbcc98352512c5d7ae40a7e6ed"
+      },
+      "accepted": {
+        "bytes": 4787,
+        "estimated_tokens": 1192,
+        "sha256": "5238f14f249ca9d7841a3160cd8bf1cc9a44fbe11e931222914d38ab9a0d4a88"
+      },
+      "current": {
+        "bytes": 4787,
+        "estimated_tokens": 1192,
+        "sha256": "5238f14f249ca9d7841a3160cd8bf1cc9a44fbe11e931222914d38ab9a0d4a88"
+      },
+      "historically_touched": true,
+      "touched_today": false,
+      "touched_status": "historical",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faff/references/review.md",
+      "original": {
+        "bytes": 4756,
+        "estimated_tokens": 1186,
+        "sha256": "b2e82efe53cdbb303f173b0465eea4dc878037870eebe7a50896489e088e84b2"
+      },
+      "accepted": {
+        "bytes": 4756,
+        "estimated_tokens": 1186,
+        "sha256": "b2e82efe53cdbb303f173b0465eea4dc878037870eebe7a50896489e088e84b2"
+      },
+      "current": {
+        "bytes": 4756,
+        "estimated_tokens": 1186,
+        "sha256": "b2e82efe53cdbb303f173b0465eea4dc878037870eebe7a50896489e088e84b2"
+      },
+      "historically_touched": false,
+      "touched_today": false,
+      "touched_status": "unchanged",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faffter-noon-prd/SKILL.md",
+      "original": {
+        "bytes": 4517,
+        "estimated_tokens": 1123,
+        "sha256": "be742410026685601a5d762c42ff56a430920492314d8eacfdb12628bed12152"
+      },
+      "accepted": {
+        "bytes": 2465,
+        "estimated_tokens": 617,
+        "sha256": "c0296bbf7b29ec22a8da958a64788b81d21f730bd9183c4e18d521ba7a256aeb"
+      },
+      "current": {
+        "bytes": 2465,
+        "estimated_tokens": 617,
+        "sha256": "c0296bbf7b29ec22a8da958a64788b81d21f730bd9183c4e18d521ba7a256aeb"
+      },
+      "historically_touched": true,
+      "touched_today": false,
+      "touched_status": "historical",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faffter-noon-adr/SKILL.md",
+      "original": {
+        "bytes": 4460,
+        "estimated_tokens": 1107,
+        "sha256": "f58e9b3f16a23a3869d7a642d3547cd8baede891c3a1cfe7d3e2de27c97b7157"
+      },
+      "accepted": {
+        "bytes": 4238,
+        "estimated_tokens": 1052,
+        "sha256": "19620bd0d1588ea9f4e1d8f6486e368f75da3c5f3a08add1165f03dbcef78346"
+      },
+      "current": {
+        "bytes": 4238,
+        "estimated_tokens": 1052,
+        "sha256": "19620bd0d1588ea9f4e1d8f6486e368f75da3c5f3a08add1165f03dbcef78346"
+      },
+      "historically_touched": true,
+      "touched_today": false,
+      "touched_status": "historical",
+      "today_saved_bytes": 0,
+      "today_saved_estimated_tokens": 0
+    }
+  ],
+  "final_source_correction": "Current sources remeasured after third-batch lint/wiring correction, not copied from frozen candidates. Earlier report values superseded by this same precommit accounting record."
+}

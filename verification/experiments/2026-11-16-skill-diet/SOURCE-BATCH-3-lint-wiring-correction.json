@@ -1,0 +1,33 @@
+{
+  "scope": "Restore3 compatible prose literals required by existing source guards; join2 paragraphs and6 procedure continuations to retain beep line cap. No command, authority or behavioural rule changes.",
+  "files": [
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "before_sha256": "f3f26569dcf0652fbe5f55768b34adc3b9e3bfd54ff91dca92c41bce9279c522",
+      "after_sha256": "f4bdf4edd751b6f5783abdcfa2bbd454e502203e850d4e4ce152ab0da96de06a",
+      "before_bytes": 138519,
+      "after_bytes": 138518,
+      "before_lines": 678,
+      "after_lines": 668
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "before_sha256": "8e47355a05d5c9fa73dc249bc24b2f9e911b0c9ac199b1791938fbc492c4d9eb",
+      "after_sha256": "3c7cfc586a19e92af472480086dbcc56a8aba1c8d7052ee327f12cfacce97886",
+      "before_bytes": 87112,
+      "after_bytes": 87112,
+      "before_lines": 592,
+      "after_lines": 592
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "before_sha256": "541f8b4793865e26fc60466d2208f67312bcb5ac2c82146a975f0ef934914e5c",
+      "after_sha256": "5a52e93398564ddf4400a4492275dd30728012a515ac6f88d72ec605a5b7529c",
+      "before_bytes": 67326,
+      "after_bytes": 67340,
+      "before_lines": 356,
+      "after_lines": 356
+    }
+  ],
+  "initial_edit_attempt": "Stopped on terminator assertion before writes; no files changed by failed attempt."
+}

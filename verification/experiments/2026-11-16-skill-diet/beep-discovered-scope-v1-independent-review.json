@@ -1,0 +1,93 @@
+{
+  "schema": 1,
+  "status": "pass-bounded-static-semantic-review",
+  "created_utc": "2026-11-17T13:19:37.717127+00:00",
+  "reviewer_role": "independent source reviewer",
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/baseline/beep-discovered-scope-v1.md",
+      "sha256": "c90a34bacc7f3a1becdd118f7c3471e8b43c20f9bf872a92398bb933cab21d83"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/beep-discovered-scope-v1.md",
+      "sha256": "f3f26569dcf0652fbe5f55768b34adc3b9e3bfd54ff91dca92c41bce9279c522"
+    }
+  ],
+  "boundary": {
+    "start": "### 10. File discovered-scope tickets",
+    "end_exclusive": "### 10b. Per-run holdout phase"
+  },
+  "baseline_region_bytes": 13132,
+  "candidate_region_bytes": 8703,
+  "saving_bytes": 4429,
+  "outside_region_bytes_identical": true,
+  "checks": [
+    {
+      "domain": "timing-and-authority",
+      "status": "pass",
+      "assessment": "L4 eager/per-wave/residual, L3 convergence/per-wave and opted-out deferral, builds-ran short-circuit, full orchestrator write authority and graft record-only all retained."
+    },
+    {
+      "domain": "collection-and-mandate",
+      "status": "pass",
+      "assessment": "All built terminal outcomes and orchestrator file included; issue-directory vs dispatch-container mandate and absent orchestrator issue comment retained."
+    },
+    {
+      "domain": "containment",
+      "status": "pass",
+      "assessment": "Fresh parent ancestry before appetite; exact contain command/flags and exits0/3/2; root/cycle/unknown parent fail outward, equality contained; no-create/no-crash usage handling retained."
+    },
+    {
+      "domain": "self-intake",
+      "status": "pass",
+      "assessment": "Mechanical default-off exception, committed-config derivation and dial recheck, exact command, fresh destination team, SSH/https repo normalization, null failclosed, optional team-fetch bypass and concrete-only exit0 preserved."
+    },
+    {
+      "domain": "appetite-and-dedup",
+      "status": "pass",
+      "assessment": "Low/medium/high/full behaviour preserved; outward-new-root remains forbidden even full. Same open-ticket dedup by title/surface and relationship target, skip/count duplicates preserved."
+    },
+    {
+      "domain": "create-and-priority",
+      "status": "pass",
+      "assessment": "Chain-gap cross-reference, Backlog/relationship/build provenance, autonomous jot stamp, captured-not-recomputed priority, fixed reason attribution/same-create handling and absent omission retained."
+    },
+    {
+      "domain": "self-intake-create",
+      "status": "pass",
+      "assessment": "Backlog defect rather than chain gap, no automate, optional relationship, classification only in run entry, same priority and stamp retained."
+    },
+    {
+      "domain": "outward-surface",
+      "status": "pass",
+      "assessment": "No create/park; preserved entry, summary/wtf and mandate comment exception; interactive jot root creation supplies approval; fast-track remains human-only."
+    },
+    {
+      "domain": "ledger-and-admission",
+      "status": "pass",
+      "assessment": "Informational filed count and per-item log fields/path retained; newly filed tickets excluded from admitted-outcomes until wave admission."
+    },
+    {
+      "domain": "trust-and-query-boundary",
+      "status": "pass",
+      "assessment": "Fresh reads, agent-sourced ancestry structure-not-truth, exact payload recording, audit recompute detective-not-preventive and no primitive tracker fetch retained."
+    },
+    {
+      "domain": "capture-and-recovery",
+      "status": "pass",
+      "assessment": "Orchestrator schema/concrete criterion/continue-only, append dedup, standalone fallback, malformed move preservation/surface, no dropped entry or bookkeeping failure retained."
+    },
+    {
+      "domain": "capture-priority",
+      "status": "pass",
+      "assessment": "Relationship none and gate_defect false; exact discovered-scope-priority command, CLI-failure/vague absent retained."
+    }
+  ],
+  "findings": [],
+  "assessment": "No material loss or strengthening found in containment, self-intake, authority, dedup, priority, fresh queries, provenance or recovery. Commands and flags retain their operative values; whitespace/comment layout changes are non-semantic.",
+  "limitations": [
+    "Static comparison only; no tests, models, command execution or runtime assurance.",
+    "No source edits, framework changes or commits.",
+    "No independent verification that existing source rules match current runtime behaviour."
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "status": "bounded-source-review-clear-uninstalled",
+  "accepted": false,
+  "reviewer": {
+    "agent": "verify_wtf_scope",
+    "role": "independent source equivalence review"
+  },
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/baseline/tidy-structural-v1.md",
+      "sha256": "544f06c985f75aee6012371b7faf9142714826e35a5bf4a0d8e12544d6ef8d16"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/tidy-structural-v1.md",
+      "sha256": "541f8b4793865e26fc60466d2208f67312bcb5ac2c82146a975f0ef934914e5c"
+    }
+  ],
+  "region": {
+    "start": "### 5. Structural diagnostics",
+    "end_exclusive": "#### Splittable specs",
+    "baseline_bytes": 10697,
+    "candidate_bytes": 7008,
+    "saving_bytes": 3689,
+    "baseline_sha256": "f093ffa6ddc3c6eeb63237627f37257e9137b1fb12844c6b8e8eccfce99db155",
+    "candidate_sha256": "f69b16682569a0b7eccf45a11d552097c05f337b9a0544b2bc011d1f804cc15f"
+  },
+  "findings": [],
+  "checks": {
+    "prefix_outside_region_byte_equal": true,
+    "suffix_outside_region_byte_equal": true,
+    "all_three_rubric_subsections_byte_equal": true,
+    "single_batched_methodology_result_and_shared_consumer": "preserved",
+    "seven_detection_categories_thresholds_scope_and_chain_gap_skip_rules": "preserved",
+    "real_findings_reconcile_corpus_weak_judgement_and_exit2_handling": "preserved",
+    "routing_files_and_within_pass_reuse": "preserved",
+    "mode_specific_mechanical_fixes_and_park_transition_labels": "preserved",
+    "all_surface_only_authority_and_done_never_duplicate_convention": "preserved",
+    "appetite_defaults_and_ambiguity_downgrade": "preserved",
+    "autonomous_containment_mandate_ancestry_recording_outward_hard_floor_and_carveout": "preserved",
+    "four_subtype_links_status_provenance_logging": "preserved",
+    "priority_relationship_source_no_gate_defect_fixed_comment_attribution_failure_fallback": "preserved"
+  },
+  "assessment": "No concrete obligation loss, command alteration or authority weakening found. The rewrite consolidates category explanations and filing rules while preserving the three loaded judgement rubrics byte for byte. After admission refers to the preceding containment disposition; it introduces no separate new admission command.",
+  "limits": [
+    "Static review only, no tests or model calls for this draft.",
+    "No source edits, commits or candidate installation performed.",
+    "Source equivalence does not establish measured model behaviour or full tracker workflow execution."
+  ]
+}

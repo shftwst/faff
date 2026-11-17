@@ -1,0 +1,127 @@
+{
+  "schema": 1,
+  "status": "ready-for-root-commit-lint-and-all14-selected-source-checks-pass",
+  "accepted": false,
+  "head_before_batch": "850c7e4df44587cc3b9f2f973c632177e1c31d4d",
+  "inventory": {
+    "path": "records/specs/2026-11-17-skill-diet-source-batch-3-design.md",
+    "sha256": "7872756b70eba1021142c170fdab1e6231214ff3969c55d600e1687b1e117943",
+    "rows": 129,
+    "status": "prepared-head-check-awaits-root-commit"
+  },
+  "only_allowances_lowered": [
+    "faff-beep-boop/SKILL.md",
+    "faff-prep/SKILL.md",
+    "faff-tidy/SKILL.md"
+  ],
+  "line_caps_changed": false,
+  "initial_metrics": [
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "prior_bytes": 142948,
+      "draft_bytes": 138519,
+      "saving_bytes": 4429,
+      "sha256": "f3f26569dcf0652fbe5f55768b34adc3b9e3bfd54ff91dca92c41bce9279c522"
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "prior_bytes": 93904,
+      "draft_bytes": 87112,
+      "saving_bytes": 6792,
+      "sha256": "8e47355a05d5c9fa73dc249bc24b2f9e911b0c9ac199b1791938fbc492c4d9eb"
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "prior_bytes": 71015,
+      "draft_bytes": 67326,
+      "saving_bytes": 3689,
+      "sha256": "541f8b4793865e26fc60466d2208f67312bcb5ac2c82146a975f0ef934914e5c"
+    }
+  ],
+  "initial_saving_bytes": 14910,
+  "checks": [
+    {
+      "command": "TMPDIR=/var/tmp GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=commit.gpgsign GIT_CONFIG_VALUE_0=false node plugin/skills/faff/bin/faff validate-adapters",
+      "log": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/SOURCE-BATCH-3-adapter-lint.txt",
+      "sha256": "885565c0e2ebac5534d6c4d4fcb20a770be428c37ea2d10685c8fdffbde978ec",
+      "exit_code": 1,
+      "blocker": "beep-boop678lines exceeds668cap"
+    },
+    {
+      "command": "TMPDIR=/var/tmp GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=commit.gpgsign GIT_CONFIG_VALUE_0=false node --test --test-name-pattern 'absent .priority.|tidy.s chain-gap filing|priority-reason comment is documented|every filing call site references|prep SKILL|faff-prep|drift guard' test/faff-1399-discovered-scope-priority.test.mjs test/spec-review-churn.test.mjs test/spec-review-convergence.test.mjs test/spec-review-iteration-cap.test.mjs test/spec-review-pin.test.mjs test/spec-review-window.test.mjs",
+      "log": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/SOURCE-BATCH-3-source-wiring.txt",
+      "sha256": "a0ae51eb569bb776ab76678c9e3ad626db4063a4565e0bbb17c028c650ce211d",
+      "exit_code": 1,
+      "tests": 14,
+      "passed": 11,
+      "failed": 3,
+      "blockers": [
+        "beep absence fallback no longer matches priority.*is.*absent.*files exactly as before",
+        "tidy no longer carries literal CLI failure degrades to no tracker priority + no comment",
+        "prep Park causes. bold lead no longer starts with **Park causes**"
+      ]
+    },
+    {
+      "command": "TMPDIR=/var/tmp GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=commit.gpgsign GIT_CONFIG_VALUE_0=false node plugin/skills/faff/bin/faff validate-adapters",
+      "log": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/SOURCE-BATCH-3-adapter-lint-corrected.txt",
+      "sha256": "e92e4f2c28e4b637244209fb290337e9aa2ea26c94e54be38b0cc314f0eb60eb",
+      "exit_code": 0,
+      "outcome": "pass",
+      "tests": null
+    },
+    {
+      "command": "TMPDIR=/var/tmp GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=commit.gpgsign GIT_CONFIG_VALUE_0=false node --test --test-name-pattern 'absent .priority.|tidy.s chain-gap filing|Park causes names' test/faff-1399-discovered-scope-priority.test.mjs test/spec-review-churn.test.mjs",
+      "log": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/SOURCE-BATCH-3-source-wiring-corrected.txt",
+      "sha256": "091a9bdf003b91c20729c982962485f755eb5a9dd39a57ad49b197aa9c30ade3",
+      "exit_code": 0,
+      "outcome": "pass",
+      "tests": 3
+    }
+  ],
+  "limits": [
+    "Existing tests and assertions unchanged. No source edits, new tests, model calls or commits by verifier.",
+    "Only affected source-wiring tests selected; prior unaffected command test evidence not repeated.",
+    "Original logs preserved; root owns compatible source corrections."
+  ],
+  "final_metrics": [
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "bytes": 138518,
+      "saved_bytes": 4430,
+      "sha256": "f4bdf4edd751b6f5783abdcfa2bbd454e502203e850d4e4ce152ab0da96de06a",
+      "lines": 667
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "bytes": 87112,
+      "saved_bytes": 6792,
+      "sha256": "3c7cfc586a19e92af472480086dbcc56a8aba1c8d7052ee327f12cfacce97886",
+      "lines": 591
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "bytes": 67340,
+      "saved_bytes": 3675,
+      "sha256": "5a52e93398564ddf4400a4492275dd30728012a515ac6f88d72ec605a5b7529c",
+      "lines": 355
+    }
+  ],
+  "final_saving_bytes": 14897,
+  "final_saving_estimated_tokens": 3653,
+  "final_measurement": {
+    "path": "verification/experiments/2026-11-16-skill-diet/SOURCE-BATCH-3-measurement.json",
+    "sha256": "2353cad3bc7a18e8e590543b3132261c02db27dbb825de41ce15a27d120551ee"
+  },
+  "correction_record": {
+    "path": "verification/experiments/2026-11-16-skill-diet/SOURCE-BATCH-3-lint-wiring-correction.json",
+    "sha256": "90936128db3f85e312b7ec06f6f1f0ec1aa6bca1f03af8ee80e7bbc4c84a9aab"
+  },
+  "distinct_selected_source_tests": {
+    "total": 14,
+    "passed": 14,
+    "failed": 0,
+    "first_passes_not_repeated": 11,
+    "corrected_failures_rechecked": 3
+  },
+  "prose_baseline_sha256": "e3089c33c79367348beeeaf94323b14c83db9b1eb667a7b6e30c1b5bbeebb445"
+}

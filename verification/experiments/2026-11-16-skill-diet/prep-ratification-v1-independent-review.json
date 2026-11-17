@@ -1,0 +1,130 @@
+{
+  "schema": 1,
+  "status": "bounded-source-review-clear-no-concrete-misses",
+  "reviewer": {
+    "role": "Independent bounded source obligation reviewer",
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/baseline/prep-ratification-v1.md",
+      "sha256": "8d886cfeeeea3042a47e583001b07b34739bfbbefd81c391e8b36b8e22b8f95d"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/prep-ratification-v1.md",
+      "sha256": "8e47355a05d5c9fa73dc249bc24b2f9e911b0c9ac199b1791938fbc492c4d9eb"
+    }
+  ],
+  "region": {
+    "from": "### Ratify a design-lens objection in place (interactive only)",
+    "through_before": "## Spec quality bar (owned by the producer)",
+    "baseline_start_line": 155,
+    "candidate_start_line": 155,
+    "baseline_bytes": 24207,
+    "candidate_bytes": 17415,
+    "saved_bytes": 6792,
+    "baseline_sha256": "ad5c725f54559f91c147f8c410a5e62f6158120bb3a229b8df2fe25e92cdc67b",
+    "candidate_sha256": "bbe35ce429a6deacb553c5432a93d91c3ab2380e65667908d0097fdeb414dbd7"
+  },
+  "outside_region_checks": {
+    "prefix_byte_identical": true,
+    "suffix_byte_identical": true,
+    "prefix_sha256": "15f80619e44dea5770cd79ec8406c9df8cc155c23f3970c6e814a80e029d7102",
+    "suffix_sha256": "c488d3f64a7a138c384e7b08936e7040f73b8417947a2a573c6a2752a8630a38"
+  },
+  "method": "Read all117 baseline-region lines and100 candidate-region lines, including bold-labelled subsections through park causes, against all command/flag, threshold, authority, error and return obligations. Inline-span comparison supplements semantic read. No tests/model/runtime execution.",
+  "checks": [
+    {
+      "domain": "Ratification scope and authority",
+      "candidate_region_lines": "Candidate region1-19",
+      "result": "preserved",
+      "finding": "Only interactive major/minor design objections naming existing Chosen decision and cleanly decision-level claim; critical/mixed/ambiguous/unclassifiable and methodology objections never ratify. Human explicit reply only; tag within reattach, neutralised quote, tradeoff offer, remove only ratified must-fix, all-ratified exact mark command/cap exemption, unresolved objections continue. Autonomous no offer."
+    },
+    {
+      "domain": "Quote and carry-forward",
+      "candidate_region_lines": "21-25",
+      "result": "preserved",
+      "finding": "Identical fold-resolutions structural neutralisation, newline/secret/imperative handling before shortest decision sentence,200-character cap/ellipsis; current-spec verbatim tag carry through revise and autonomous scoped refresh, no fresh midloop redraft/new autonomous tag; separate full redraft excluded."
+    },
+    {
+      "domain": "Carried objections and re-slice",
+      "candidate_region_lines": "27-36",
+      "result": "preserved",
+      "finding": "Verbatim carried_design_objections lens/severity block in actual park/handoff surface, existing round audit not new store/live plot input. Exact L4 autonomous ledger whitelist, no size-only park, target explicit-over-inherited/no-target park, Skill plot invocation/self-mint/outward guard/caps/no prep topology writes, handoff log/no parent respec, Backlog wave reentry/no second cycle, closed plot refusal/no retry and genuine churn escalation retained."
+    },
+    {
+      "domain": "Judge activation and assemble",
+      "candidate_region_lines": "38-41",
+      "result": "preserved",
+      "finding": "L3/L4 autonomous exact-level judge at nonconverge/churn/plateau appetite ceiling, advisory default-off attended; broken config/contract/operator hard cap/budget bypass. Terminal no further round, deterministic layers not rederived. Exact assemble argv/optional flags,1:1 blinded cases/out-of-band0600 ledger, unreadable/malformed park, zero residue roll-up retained."
+    },
+    {
+      "domain": "Per-proposition provenance",
+      "candidate_region_lines": "42",
+      "result": "preserved",
+      "finding": "Two calls per fixed-ledger-order proposition; current spec re-read and argument_B rederived; exact restamp command and whole pre-correction snapshot fields; earlier corrections affect later defence, nonzero fail-loud park retained."
+    },
+    {
+      "domain": "Judge call limits and trust",
+      "candidate_region_lines": "44-48",
+      "result": "preserved",
+      "finding": "Exact three-tier token-cap shell/fixed consumer, invalid cap2000/both calls max-tokens; Phase1 reconstruction-only context/no A/B, prose diff, exact system/expect flags, resolved judge clock, reasoning on/no knob, backend outside refuter set/at least as strong. Four required sections each>=40 nonwhitespace; invalid reconstruction parks/no call2. Phase2 output imperative scrub, anonymised scrubbed arguments, prose diff/system/contract/cap and untrusted-data instruction retained."
+    },
+    {
+      "domain": "Retry and correction order",
+      "candidate_region_lines": "50-52",
+      "result": "preserved",
+      "finding": "Transport judgeDispatchDisposition sole retry classifier;5/8 retry limit default2 then proposition park;2/4/6/7/11,1,12,10 direct park/no second loop. Only call2 stdout exactly one block, zero/multiple/malformed/exit1|2 park; conformant UPHOLD_REVIEW/SYNTHESIZE including MINOR correction before next reread then ruling; parked unresolved marker retained."
+    },
+    {
+      "domain": "Admit floors and authority",
+      "candidate_region_lines": "54-61",
+      "result": "preserved",
+      "finding": "Exact admit argv and optional run-dir, every proposition ruling/park plus applied corrections first, correction check and null/degraded arithmetic veto, L4 ratification plus protected-anchor governance half, missing ruling/malformed ledger exit2 park. True effective-level final/provisional retain strings and later human challenge, false blockers/floors/PRD human at both levels; confidence gate untouched/no judge confidence, terminal no new round/counter retained."
+    },
+    {
+      "domain": "Advisory discrimination smoke",
+      "candidate_region_lines": "63",
+      "result": "preserved",
+      "finding": "Optional one-shot defect/taste pair and pinned outcomes, bounded outage/skip logging, mismatch/skip non-gating/no sample certification retained."
+    },
+    {
+      "domain": "Outage and resume",
+      "candidate_region_lines": "65-82",
+      "result": "preserved",
+      "finding": "Infra/model-transient retryable distinctions, config fault human, kind provenance/legacy default without counter change. Disk count/only outaged lenses/same turn never end attempts. Exact hold command/kind/lens/dir flags, returned actions/labels/verbatim comment/Backlog token, exit4 once then errored/no other error masking. Valid-store+label-only bypass, durable tracker spec/fresh occupant/lenses, invalid ordinary flow, clear label operations and across-drain limit retained."
+    },
+    {
+      "domain": "Retention and evidence",
+      "candidate_region_lines": "84-91",
+      "result": "preserved",
+      "finding": "Exact retain beside confidence consumed through live reconciliation without freshness bypass; empty rounds no comment, otherwise exact collate commands/key/dispositions/no invented rationale; judge no dispositions and same admit spec except restage; byte-exact new tracker comment/git-only append/no hashed block edits, verdict file and stderr/nonzero logs non-gating retained."
+    },
+    {
+      "domain": "Turn budget, modes and terminal causes",
+      "candidate_region_lines": "93-99",
+      "result": "preserved",
+      "finding": "Single fanout timeout configured/default300/one bounded retry, healthy unfinished never invented verdict/relaunch; interactive no autohold, autonomous exact turn-budget hold/token/independent counter/no round/verdict. Appetite bounded autonomous fixes, L1-L3 no autore-slice, L4 only; missing methodology no invented critique. Exact returned and supplemental park-cause strings, handoff and outage hold not parks retained."
+    }
+  ],
+  "concrete_misses": [],
+  "autonomy_assessment": "No broadened authority found: human ratification remains explicit and interactive, re-slice exact autonomous L4 only, judge admission/floors deterministic, advisory evidence never gates and no confidence override.",
+  "inline_span_changes": {
+    "no_longer_standalone_inline": [
+      "\"L4\"",
+      "0600",
+      "admit",
+      "parked",
+      "promote-final",
+      "promote-provisional",
+      "spec_review"
+    ],
+    "assessment": "Formatting/explanatory spans remain in surrounding prose or larger code spans (including0600 and exact L4 config); no executable command/flag loss found."
+  },
+  "limits": [
+    "Source equivalence review only, not model fidelity or full workflow qualification.",
+    "No source/test/allowance edits, models or commits; only this independent review record.",
+    "Shared implementation and existing inherited inconsistencies were not adjudicated or corrected."
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "schema": 1,
+  "status": "draft-uninstalled-unreviewed",
+  "source": "plugin/skills/faff-prep/SKILL.md",
+  "baseline": "verification/experiments/2026-11-16-skill-diet/baseline/prep-ratification-v1.md",
+  "baseline_sha256": "8d886cfeeeea3042a47e583001b07b34739bfbbefd81c391e8b36b8e22b8f95d",
+  "candidate": "verification/experiments/2026-11-16-skill-diet/candidates/prep-ratification-v1.md",
+  "candidate_sha256": "8e47355a05d5c9fa73dc249bc24b2f9e911b0c9ac199b1791938fbc492c4d9eb",
+  "boundary": {
+    "start": "### Ratify a design-lens objection in place (interactive only)",
+    "end_exclusive": "## Spec quality bar (owned by the producer)",
+    "note": "The heading includes later bold-labelled spec-review control procedures. The whole contiguous region is compressed, not ratification alone."
+  },
+  "baseline_region_bytes": 24207,
+  "candidate_region_bytes": 17415,
+  "saving_bytes": 6792,
+  "prefix_suffix_identical": true,
+  "live_source_matches_baseline": true,
+  "rule_map": [
+    {
+      "domain": "Ratification scope",
+      "preserved_obligations": "Interactive major/minor design objection, named Chosen plus own-claim decision classification; critical floor, ambiguous/mixed/implementation and methodology refusal; explicit human only."
+    },
+    {
+      "domain": "Ratification edit/audit",
+      "preserved_obligations": "Mechanical tag, reattach quote, Decisions-register offer, removal only of ratified must-fix, all-ratified no cap iteration; exact mark-ratified command."
+    },
+    {
+      "domain": "Utterance and carry",
+      "preserved_obligations": "Existing neutralizer function/order, shortest sentence,200char cap; preserve tags/current spec on revise and autonomous stale refresh, separate-session limit."
+    },
+    {
+      "domain": "Carried objections",
+      "preserved_obligations": "Verbatim CLI lens/severity audit block in correct record, no new store or plot live constraint; new epics independently reviewed."
+    },
+    {
+      "domain": "Re-slice",
+      "preserved_obligations": "Exact autonomous ledger L4 whitelist, target resolution/anchor and plot authority; no prep ledger/topology; handoff/log/Backlog/wave; refusal no retry and churn escalation."
+    },
+    {
+      "domain": "Judge entry",
+      "preserved_obligations": "Would-be-park interception, terminal vocabulary, autonomous L3/L4 only, human default-off advisory; direct-park config/malformed/hard-cap/budget bypass."
+    },
+    {
+      "domain": "Case assembly",
+      "preserved_obligations": "Window/issue/container/output arguments;1:1 blind propositions, private0600 ledger; unreadable/malformed park, empty residue rollup."
+    },
+    {
+      "domain": "Per-proposition context",
+      "preserved_obligations": "Fixed order; reread/rederive argument_B, restamp whole-file snapshot before corrections, nonzero fail-loud; no stale assembly defence."
+    },
+    {
+      "domain": "Judge calls",
+      "preserved_obligations": "Three-tier token fallback and invalid handling; blind reconstruction/prose diff/system/context,clock,reasoning/backend independence and strength;four40char sections; scrubbed Phase2 and untrusted data."
+    },
+    {
+      "domain": "Retry and rulings",
+      "preserved_obligations": "judgeDispatchDisposition exact retry/park codes and configured bound, no added loop; stdout-only single block, validation exits, corrections including MINOR before next case, parked residue retained."
+    },
+    {
+      "domain": "Admission",
+      "preserved_obligations": "All rulings/corrections before deterministic rollup, correction check/floor failclosed/L4 ratification/anchor counterpart; emitted effective level;PRD boundary both levels; confidence untouched; no next round."
+    },
+    {
+      "domain": "Advisory smoke",
+      "preserved_obligations": "Optional one defect/taste pair, pinned oracles, bounded transport retry/skip; mismatch never gates or certifies."
+    },
+    {
+      "domain": "Outage hold/resume",
+      "preserved_obligations": "Two kinds identical/provenance legacy fallback; disk retry limit/outaged lenses same turn; exact hold action/exit lock handling; label+valid store gate, fresh lenses/occupant, conclusive clear/counters."
+    },
+    {
+      "domain": "Retain/evidence",
+      "preserved_obligations": "Approve line by confidence, freshness reconciliation; all-round audit collation, exact refuter/human/judge paths, no invented rationale; byte-exact comment/git-only/hash and warnings nonblocking."
+    },
+    {
+      "domain": "Turn budget/modes",
+      "preserved_obligations": "Single fanout timeout300 and one retry, no invented verdict/relaunch; interactive surface/autonomous hold, independent counters/no round; mode-specific replan/plot/outage handling."
+    },
+    {
+      "domain": "Methodology/causes",
+      "preserved_obligations": "No missing-signal invention; exact returned and added park causes; handoff/held are not parks."
+    }
+  ],
+  "checks": [
+    "Read repository skill-authoring standard.",
+    "Manual command/flag and inline-literal comparison; commands retained, prose layout shortened.",
+    "Verified exact unchanged prefix/suffix and untouched live source."
+  ],
+  "limits": [
+    "No independent semantic acceptance yet.",
+    "No tests, models, new harness/framework, commits, allowance/design edits or live source installation."
+  ]
+}

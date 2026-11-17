@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "status": "ready-for-root-reviewed-commit-inventory-pending-inherited-test-failure-retained",
+  "status": "source-checks-complete-inventory-and-lint-pass-inherited-test-failure-retained",
   "accepted": false,
   "workspace": "/var/tmp/faff-skill-diet-source-batch",
   "base_for_inventory": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
@@ -90,9 +90,15 @@
     "assertions_modified": false
   },
   "inventory_check": {
-    "status": "not-run-awaiting-root-reviewed-commit",
-    "reason": "Existing checker reads base..HEAD and HEAD spec blobs; no worktree support. Root explicitly retained commit ownership after source reviews.",
-    "required_command": "node plugin/skills/faff/bin/faff rule-inventory check --base a8509086ad28fa0e55cf3d1d818f2055294e663b --json"
+    "status": "pass",
+    "commit": "850c7e4df44587cc3b9f2f973c632177e1c31d4d",
+    "command": "node plugin/skills/faff/bin/faff rule-inventory check --base a8509086ad28fa0e55cf3d1d818f2055294e663b --json",
+    "exit_code": 0,
+    "log": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/SOURCE-BATCH-2-rule-inventory.json",
+    "log_sha256": "9b0372e050c48491a59dc1b6b7662c684d4b33887d9771992d91a6efd9a991d3",
+    "blocks_deleted": 919,
+    "covered_moved": 37,
+    "covered_by_row": 882
   },
   "limits": [
     "Source and deterministic/source-wiring checks only; no model calls or behavioural qualification.",

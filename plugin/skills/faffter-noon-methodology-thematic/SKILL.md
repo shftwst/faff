@@ -7,40 +7,31 @@ judgement_seam: ordering
 
 # faffter-noon-methodology-thematic
 
-The default **thematic** methodology derives ordering, decision-closure gates and graph diagnostics from tracker topology. Float the highest-leverage work first without outcome opinions, delivery philosophy or principle-based diagnosis.
+Default `slots.methodology`: `faffter-noon-methodology-thematic`. Derive answers from tracker topology and stated facts, without value, risk, right-sizing or outcome opinions.
 
-Compose the methodology-agnostic **structural (topology) floor** for cycle + ghost-project detection (gateway → **The `methodology` slot** → the structural/topology floor), as agile does. This lens does not own it: "structural" means tracker topology / dependency graph, not thematic.
-
-Run when no other methodology is configured; the separate skill can be referenced, tested and swapped.
-
-```yaml
-slots:
-  methodology: faffter-noon-methodology-thematic   # the default — explicit for clarity
-```
+Compose the methodology-agnostic cycle + ghost-project structural/topology floor from gateway → **The `methodology` slot**. "Structural" means tracker topology, not this lens. Opinionated methodologies add to this baseline; structural diagnostics always run.
 
 ## Core ordering rule
 
-**Priority (issue-level OR inherited from any ancestor) → chainable unlock value (count of direct + transitive dependents, over live blocker edges only — gateway → *Satisfied blockers — edges to terminal work*).**
-
-Break equal priority by greater downstream unlock value; break equal priority and unlock by oldest creation first. Apply this rule to every output that sequences work.
+Order by priority (issue-level or inherited from any ancestor), then chainable unlock value (direct + transitive dependents over live blocker edges), then oldest creation first. Apply this to every output sequencing work. Satisfied edges add no unlock count (gateway → **Satisfied blockers — edges to terminal work**).
 
 ## Outputs
 
-Answer named requests from graph facts, never opinions; this skill neither knows nor describes callers. Gateway → **The `methodology` slot** fixes outputs, requiredness, caller mapping and standard envelope; implement that contract below.
+Answer the caller's requested named capability from graph facts. The required/optional outputs, caller mapping and standard envelope are fixed in gateway → **The `methodology` slot**.
 
-Leave optional `issue-critique` unanswered: per-issue right-sizing/workstream/risk critique needs an opinionated lens. This is contract-valid; `/faff-prep` omits `## Methodology critique`, which agile supplies.
+Leave optional `issue-critique` unanswered: per-issue right-sizing/workstream/risk critique requires an opinionated lens. This is contract-valid; `/faff-prep` omits `## Methodology critique`.
 
 ### `pick-ordering`
 
-Use the core ordering rule so issues gating longest chains rise. Count only live blocker edges (gateway → **Satisfied blockers — edges to terminal work**); satisfied edges add no downstream count.
+Apply the core ordering rule.
 
-**Optional `prd-distance` composition.** When supplied under a resolved target PRD in an L4 drain, compose the `prd-distance` map within priority bands, never replacing the core rule (gateway → **Standard envelope → Optional input `prd-distance`**):
+When the caller supplies `prd-distance` under a resolved target PRD in an L4 drain (gateway → **Standard envelope → Optional input `prd-distance`**):
 
-1. Partition the ordered set into contiguous **human-priority bands** (the existing priority tier — floor rule (a): distance never crosses a band).
-2. **Within each band**, stable-sort by the issue's PRD-completion distance: `rank = min class_rank` of `prd-distance` entries whose `container` slug-matches the issue's container. **No match, or `rank == 0` (met) → neutral** — keep the issue's existing relative position (the core-rule order). Lower rank (nearer the parent PRD) orders sooner.
-3. **Never** move an issue across a band boundary.
+1. Partition into contiguous human-priority bands. Never cross a band boundary.
+2. Within each band, stable-sort matched issues by `rank = min class_rank` among entries whose `container` slug-matches the issue's container. Lower rank goes first.
+3. No match or `rank == 0` (met) is neutral: leave those issues in their existing positions. For equal non-neutral ranks, retain core-rule order (unlock value, then creation).
 
-Within a band, distance is primary across classes; unlock value then creation breaks ties within a class. Step 2's stable sort leaves unmatched/`met` positions unchanged. **Input absent ⇒ byte-identical output**: without a map, do not run composition.
+Distance is primary across classes within a band. With no map, skip composition and return byte-identical core-rule output.
 
 ### `promotion-readiness`
 
@@ -58,24 +49,25 @@ Within a band, distance is primary across classes; unlock value then creation br
 
 ### `ticket-shaping`
 
-From a **discovery brief** (`intake` output, `faffter-noon-intake`), propose structured tickets for `/faff-jot` after intake. The orchestrator creates them; this output **proposes**, never writes the tracker.
+Propose tickets from the `intake` discovery brief (`faffter-noon-intake`) and live tracker graph. The orchestrator creates them; this output never writes the tracker. Use stated capabilities and dependencies without value or right-sizing opinions.
 
-Shape from the brief's stated facts and live tracker graph, without value or right-sizing opinions; `faffter-dark-methodology-agile-delivery` adds those:
+| Brief | Proposal |
+|---|---|
+| Greenfield | One workstream/container per stated capability, named verbatim; within each, tickets needed for `First slice`. Apply the core ordering rule using stated `Dependencies` for unlock value and creation/sequence order where priorities are unset. If multiple capabilities and the tracker supports it, propose a top-level initiative/project. |
+| Single item, `unitary` | One ticket from `Item`, in the workstream named by `area`. |
+| Single item, `possibly-splittable` | Two tickets named for the two concerns, linked by the stated relationship. Never force an unflagged split. |
 
-- **greenfield brief** — one workstream/container candidate per stated capability (named after the capability, verbatim — the thematic lens does not rename); within each, the first tickets needed to reach the brief's `First slice`. Sequence the workstreams and the tickets by the core ordering rule (priority — none yet, so creation/sequence order — then unlock value derived from the stated `Dependencies`). Emit a top-level container proposal when the tracker supports one (initiative/project) and the brief spans multiple capabilities.
-- **single-item brief** — one ticket from the `Item`, placed in the workstream named by `area`. If `split-sense: possibly-splittable`, propose the two tickets named after the two concerns and link them per the stated relationship; if `unitary`, one ticket. Never force a split the brief didn't flag.
+Each ticket has a plain-English source-derived title (no invented codes), brief-seeded description, container/workstream, declared blocker/blocked-by links from `Dependencies`, and `Backlog` status. Carry relevant `Open questions` into its description for `/faff-prep`.
 
-Each proposed ticket needs a capability/item-derived plain-English title (no invented codes), relevant-brief-seeded description, container/workstream, `Dependencies`-derived blocker/blocked-by links and `Backlog` status. Copy relevant `Open questions` into its description for `/faff-prep`.
+With `shape-level`, shape only the requested level from the node-scoped sub-brief; `/faff-plot` owns descent and stopping:
 
-**Recursive mode (`shape-level` supplied by `/faff-plot`).** A `shape-level` (`initiative` / `project` / `epic`) requests only that altitude's children from the node-scoped sub-brief, never a full flat set. `/faff-plot` owns descent and stop rule; shape one level per call:
+| Level | Children to propose |
+|---|---|
+| `initiative` | One initiative per named top-level outcome/capability group, with verbatim names. |
+| `project` | Projects/workstreams under the supplied initiative's brief slice. |
+| `epic` | Only epics needed for the supplied project's first usable slice, with dependency-derived blocker links. Do not enumerate leaves. |
 
-- `initiative` — one initiative container per top-level outcome/capability group the brief names. Literal, verbatim names; no value opinion.
-- `project` — given one initiative's slice of the brief, the projects (workstreams) under it.
-- `epic` — given one project's slice, its **first-slice epics only** — the issues needed to reach that project's first usable slice — with `Dependencies`-derived blocker/blocked-by links. Do **not** enumerate the leaves below them.
-
-For a branch not concretely derivable, emit nothing and surface "needs more discovery" so plot stops it. Keep single-level `Backlog` status and brief-seeded descriptions. Without `shape-level`, retain the single-level brief→tickets behaviour `/faff-jot` uses.
-
-A thin brief warrants fewer, larger defensible tickets plus the missing facts, never speculative ones. Leave refinement to the human or later `/faff-prep`.
+Keep the same Backlog status and brief-seeded descriptions. For a branch the sub-brief cannot concretely support, emit no children and report "needs more discovery". For thin briefs, propose fewer, larger tickets and surface missing facts instead of inventing work. Without `shape-level`, use the single-level behaviour above for `/faff-jot`.
 
 ### `backlog-diagnostics`
 
@@ -180,12 +172,13 @@ Render: every issue gets tracker ID + plain-English gloss + unlock-chain consequ
 
 ### `horizon-assignment`
 
-Assign each issue a horizon from tracker state:
-- **Now** — In Progress or actively being built
-- **Next** — Todo, blockers clear or nearly clear, spec exists
-- **Later** — Backlog, or blocked by Now/Next work (live edges only — a satisfied edge, gateway → **Satisfied blockers — edges to terminal work**, does not count as blocked)
+| Horizon | Tracker state |
+|---|---|
+| Now | In Progress or actively being built |
+| Next | Todo, blockers clear or nearly clear, spec exists |
+| Later | Backlog, or blocked by Now/Next work; satisfied edges do not count as blockers |
 
-Sequence each horizon by `pick-ordering`. Surface ghost-project pointers, initiative gaps with no Next project, unfireable trigger gates, stalled Now projects (In Progress, no commits 14+ days), and parked issues with unmet unpark conditions. Emit an ASCII initiative → project → issue chain with gaps inline.
+Use `pick-ordering` within each horizon. Surface ghost-project pointers, structural gaps (initiative with no Next project), unfireable trigger gates, stalled Now projects (In Progress with no commits for 14+ days), and parked issues with unmet unpark conditions. Render an ASCII initiative → project → issue chain with gaps marked inline.
 
 ### `build-queue`
 
@@ -199,21 +192,20 @@ Sequence each horizon by `pick-ordering`. Surface ghost-project pointers, initia
 
 ### `run-termination-policy`
 
-**Optional** (gateway → **The `methodology` slot**). Order the **policy-weighted** terminating rungs for `faff run-done` from **graph/process facts, never value/risk opinion**. Return exactly the CLI's built-in `structural-default` ladder (fixed `policy_source` enum), made explicit:
+Optional (gateway → **The `methodology` slot**). Return the CLI's `structural-default` ordered ladder as `{test, verdict}` rungs:
 
-```
-1. non-convergence  → escalate      # no-progress waves need a human, not more spend
-2. budget-narrow    → continue       # a narrow ceiling triggers the narrow-loop, not a stop
-3. budget-stop      → run-complete    # a stop ceiling ends cleanly (a ceiling, not a failure)
-4. value-inflection → run-complete    # an explicit MVP/value inflection stops early
-5. work-remaining   → continue        # admissible work remains → keep going
-6. clean-complete   → run-complete    # queue drained / all parked → drained | all-parked
-```
+| test | verdict |
+|---|---|
+| non-convergence | escalate |
+| budget-narrow | continue |
+| budget-stop | run-complete |
+| value-inflection | run-complete |
+| work-remaining | continue |
+| clean-complete | run-complete |
 
-- **Floor is not ours.** The fixed safety floor (`budget-escalate`, `undispatched-ledger` at drain, `product-incomplete`) is the CLI's, applied **before** this ladder and **never** overridable — this output only orders the rungs **above** it. Reordering or softening a non-floor rung is the lens's prerogative; weakening the floor is impossible by construction.
-- **Unanswered ⇒ no change.** When this output is not requested/answered, `faff run-done` applies the same ladder as its built-in default — so zero-config runs behave identically.
+The orchestrator passes it to `faff run-done --policy`. The CLI alone decides run-end; this output is read-only and never writes the tracker. Unanswered uses this same built-in default.
 
-**Output:** ordered `{test, verdict}` rungs over the closed test vocabulary above, passed to `faff run-done --policy` by the orchestrator. Read-only: author the ladder, never decide run-end (`faff run-done` alone) or write the tracker.
+The CLI applies its fixed safety floor first: `budget-escalate`, `undispatched-ledger` at drain, and `product-incomplete`. A lens may reorder or soften non-floor rungs but can never override or weaken that floor. This lens uses graph/process facts and the exact ladder above.
 
 ### `crank-up-set`
 
@@ -264,9 +256,7 @@ Sequence each horizon by `pick-ordering`. Surface ghost-project pointers, initia
 
 ### `rehome-set`
 
-**Optional** (gateway → **The `methodology` slot**). Outcome-led homes for loose Backlog tickets require judging their shared shippable outcome. This lens groups by graph position, not value/outcome, so return an **empty rehome-set**: no proposed containers, membership map, coherence edges or leave-loose reasoning. This is a valid answer; `faffter-dark-methodology-agile-delivery` supplies the missing outcome opinion.
-
-**Empty/unanswered ⇒ the caller reports no grouping opinion and writes nothing** (zero-config unchanged).
+Optional. Return an empty rehome-set: no proposed containers, membership map, coherence edges or leave-loose reasoning. Outcome-led grouping requires an opinion this graph-derived lens does not supply. Empty/unanswered means the caller reports no grouping opinion and writes nothing (gateway → **The `methodology` slot**).
 
 ## Appetite integration
 
@@ -278,13 +268,4 @@ The thematic lens respects appetite but has limited agency by design:
 | Ordering | Core rule, no overrides | Core rule, no overrides | Core rule, no overrides | Core rule, no overrides |
 | Spec format | Enforce markers | Enforce markers | Enforce markers | Enforce markers |
 
-Note: the thematic lens never reorders by value/risk/principles — that's what opinionated methodologies (like `faffter-dark-methodology-agile-delivery`) add. Thematic ordering is always priority + unlock value.
-
 Gateway → **Appetite for destruction** → **Topology-write authority** governs tracker **topology** (reparent / convert / rehome). This opinion-free lens stays surface-only: reflect existing graph topology, never restructure it. The dial's reversibility and human-curated-structure floors bind here too.
-
-## Rules
-
-- This methodology is **graph-derived, not opinion-derived**. It never says "this is too big" or "this ordering is wrong" — it says "this cycle exists", "this gap exists", "this issue unlocks 5 others."
-- It does not assess value, risk, or right-sizing. Those are judgement calls that belong to opinionated methodologies.
-- It provides the opinion-free baseline — ordering plus the composed structural/topology floor — that opinionated methodologies layer on top of.
-- When a faffter-dark methodology is configured, it runs **in addition to** the thematic baseline, not instead of it. The structural (topology) diagnostics always fire; methodology findings are additive.

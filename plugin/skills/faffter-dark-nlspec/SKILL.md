@@ -41,7 +41,7 @@ Opening paragraph naming the artifact, the issue it addresses, and the intended 
 
 ### 1. WHY — Problem and Principles
 
-**Open with the load-bearing model.** The WHY's first paragraph states the one idea the reader needs to understand the rest — the mechanism the spec turns on, in plain terms — before problem detail. (Rendering hoists this if buried; the producer should write it deliberately, not leave it for normalise to find.)
+**Open with the load-bearing model.** Before problem detail, WHY's first paragraph states in plain terms the mechanism the spec turns on. Write it deliberately; rendering hoists it if buried, but do not leave discovery to normalise.
 
 **Problem statement:** status quo → pain → what this change does about it. Three sentences max.
 
@@ -237,21 +237,21 @@ confidence: high | medium | low
 
 Rate open decisions, not polish. A slip the builder can settle without making a new decision (a field missing from one example, an obvious unstated default) is fixed in the draft and does not lower the rating.
 
-This line is consumed by faff-prep for its gate decision (autonomous mode: `high` → promote; `medium` → attach + flag for review; `low` → park) and is **retained on the attached spec** — downstream consumers (faff-graft, faff-beep-boop, and faff-tidy's spec-health pass) read it as durable provenance and a re-spec signal; a retained `confidence: medium` maps to the `needs-decision-first` routing verdict. It is both a signal to the caller and a lasting property of the spec.
+Faff-prep consumes the line for its gate (autonomous: `high` → promote; `medium` → attach + flag for review; `low` → park). **Retain it on the attached spec** as durable provenance and a re-spec signal for faff-graft, faff-beep-boop and faff-tidy's spec-health pass. Retained `confidence: medium` routes `needs-decision-first`.
 
 ## Quality bar — self-review before returning
 
-This producer discharges the `spec` slot's quality bar by inheritance, not by defining a second one: before emitting the spec and confidence line, it runs the sibling `faffter-noon-spec/SKILL.md` → _Self-review before returning_ section in full, exactly as written there.
+Before emitting the spec and confidence line, run sibling `faffter-noon-spec/SKILL.md` → _Self-review before returning_ **in full, exactly as written**. This inherits the `spec` slot's quality bar, never defines a second one.
 
 - **What's inherited.** The reviewer brief, the `blocker`/`major`/`minor` severities, the acting-on-findings rules, the return-the-review requirement, and the narrowing-only-refresh exemption all carry over unchanged — this section adds nothing to that checklist and drops nothing from it.
 - **In-context clause.** This skill only ever runs as a dispatched producer subagent, never at the gateway's top level, so the inherited review always takes its in-context form here: a fresh-reasoning pass performed inside this same subagent against the drafted spec and the codebase, rather than a further clean-context subagent dispatch.
-- Nesting therefore stays single-level by construction for this producer — the top-level case the inherited section also allows for simply never arises, so there is nothing to choose between at dispatch time; the review's purpose (every claim checked against the codebase before the spec is trusted) is unaffected by the different form.
+- Nesting stays single-level: this producer never takes the inherited top-level dispatch branch. The review still checks every claim against the codebase before trusting the spec.
 - **Rating cap.** The inherited downgrade rule binds this producer exactly as written: landing on ≥1 `blocker` finding, or ≥3 `major` findings, forecloses a `high` self-rating regardless of how settled the draft felt going in.
 - Cap the self-rating at `medium` when that threshold is hit, and read the confidence self-rating section immediately above as subject to this cap rather than as an independent judgement call.
 
 ## Contract artifact
 
-After the prose spec and the `confidence:` line, append **one** fenced code block — tagged `faff-contract:spec-readiness`, as the **last** thing in the output — declaring the markers you just wrote, so faff-prep (the consumer) parses them **deterministically** (no LLM re-read of your prose) and pipes them to `faff contract spec-readiness`. You authored the markers and the confidence token, so you declare them directly; the block mirrors the prose, it is not a second source of truth.
+After the prose spec and `confidence:` line, append **one** `faff-contract:spec-readiness` fenced block as the **last** output. Declare the actual markers and confidence token you authored; the block mirrors the prose, never a second truth. Faff-prep parses it **deterministically**, without an LLM re-read, and pipes it to `faff contract spec-readiness`.
 
 ````
 ```faff-contract:spec-readiness

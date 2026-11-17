@@ -1,35 +1,34 @@
-Current covered runtime prose totals **1,164,780 bytes / 288,949 estimated tokens** across 41 files. Today’s three implemented, statically reviewed batches remove **87,404 bytes / 21,462 estimated tokens** from the frozen accepted source. New model qualification remains outstanding.
-
-Current source includes the third-batch lint/wiring correction; frozen candidate sizes are not substituted for implemented source.
+Current covered runtime prose totals **1,164,979 bytes / 288,999 estimated tokens** across 41 files. Today’s implemented, statically reviewed source reductions net **87,205 bytes / 21,412 estimated tokens** from the frozen accepted source. New model qualification remains outstanding.
 
 | State | Bytes | Estimated tokens |
 |---|---:|---:|
 | Original a8509086 | 1,369,435 | 339,279 |
 | Historical accepted a523734d | 1,252,184 | 310,411 |
-| Current implemented source | 1,164,780 | 288,949 |
+| Current working source | 1,164,979 | 288,999 |
 
-Historical qualified ledger reduction: **117,251 bytes / 28,868 estimated tokens**. Overall implemented reduction from original: **204,655 bytes / 50,330 estimated tokens**. These scopes are distinct; today’s delta has not been added to the accepted ledger.
+Historical qualified ledger reduction: **117,251 bytes / 28,868 estimated tokens**. Overall implemented reduction from original: **204,456 bytes / 50,280 estimated tokens**. Today’s delta has not been added to the accepted ledger.
 
-| Today’s batch | Bytes removed | Estimated tokens removed |
+| Source change | Bytes removed | Estimated tokens removed |
 |---|---:|---:|
 | 1 | 50,259 | 12,351 |
 | 2 | 22,248 | 5,458 |
 | 3 | 14,897 | 3,653 |
+| Post-CI source compatibility restorations | -199 | -50 |
 
-Kernel qualification remains held on one registered producer-input mismatch; both arms produced the expected real CLI outcomes. See [kernel pair](KERNEL-PAIR.md). This report claims no new model-qualified savings.
+Current actual source includes post-CI compatibility restorations: graft +139 bytes, beep +15 bytes and kernel +45 bytes. Earlier batch measurements remain historical and unchanged. The kernel loader END marker was restored after frozen measurement; the measured candidate remains frozen and held on one strict input mismatch. The newer runtime kernel hash has no model qualification.
 
-Adapter lint passes. Rule inventory covers all 1,000 deleted blocks: 38 moved and 962 covered by inventory rows. The three batches have 11, 64 and 14 passing selected checks respectively; these sets overlap and are not summed. One inherited outage-retry test still expects the legacy config path and fails without reading any changed skill prose. Initial failures and corrected checks remain in the batch check records.
+The parent/current CI failure comparison is recorded in [SOURCE-CI-inherited-failures.json](SOURCE-CI-inherited-failures.json). It distinguishes seven failures observed in both parents from eleven additional source compatibility failures at PR head 963bfdf; the correction is committed at `576a053`. Existing hash-bound records show affected source guards 9/9, remote-diff tests 7/7, adapter lint and cumulative rule inventory pass (1,000 deleted blocks: 38 moved, 962 row-covered, zero uncovered or row errors). These bounded checks do not certify full CI or model equivalence. Typecheck was pending at the last monitoring observation. No regrade, waiver or framework repair was performed.
 
-Scope comes only from the 41 `prose-baseline.json` runtime paths, excluding tests, evidence and design files. Each file is measured from original/accepted Git bytes and current filesystem bytes; token estimates are `ceil(UTF-16 code units / 4)` per full file, then summed. They measure source size, not billing or repeated runtime loads. Original and accepted totals match the frozen ledger exactly.
+Scope is only the 41 `prose-baseline.json` runtime paths, excluding tests, evidence and design files. Sizes come from original/accepted Git bytes and current filesystem bytes. For each full file, tokens are estimated as `ceil(UTF-16 code units / 4)`, then summed. They measure source size, not billing or repeated loads. Original and accepted totals match the frozen ledger exactly.
 
-Files ranked by original byte size, descending. “Touched” distinguishes historical qualified changes from today’s implemented changes. Each cell shows bytes / estimated tokens.
+Files ranked by original byte size, descending. Each size cell shows bytes / estimated tokens. “Touched” distinguishes historical qualified changes from today’s implemented changes.
 
-| Runtime prose path under plugin/skills/ | Original B /tokens | Accepted B /tokens | Current B /tokens | Touched | Today removed B /tokens |
+| Runtime prose path under plugin/skills/ | Original B / tokens | Accepted B / tokens | Current B / tokens | Touched | Today removed B / tokens |
 |---|---:|---:|---:|---|---:|
-| faff-graft/SKILL.md | 178,859 / 44,349 | 178,777 / 44,329 | 141,511 / 35,182 | historical + today | 37,266 / 9,147 |
-| faff-beep-boop/SKILL.md | 157,720 / 39,083 | 149,485 / 37,063 | 138,518 / 34,378 | historical + today | 10,967 / 2,685 |
+| faff-graft/SKILL.md | 178,859 / 44,349 | 178,777 / 44,329 | 141,650 / 35,217 | historical + today | 37,127 / 9,112 |
+| faff-beep-boop/SKILL.md | 157,720 / 39,083 | 149,485 / 37,063 | 138,533 / 34,381 | historical + today | 10,952 / 2,682 |
 | faff-prep/SKILL.md | 104,335 / 25,883 | 104,335 / 25,883 | 87,112 / 21,638 | today | 17,223 / 4,245 |
-| faff/references/kernel.md | 95,418 / 23,652 | 84,072 / 20,857 | 70,812 / 17,604 | historical + today | 13,260 / 3,253 |
+| faff/references/kernel.md | 95,418 / 23,652 | 84,072 / 20,857 | 70,857 / 17,616 | historical + today | 13,215 / 3,241 |
 | faff-tidy/SKILL.md | 76,181 / 18,866 | 76,028 / 18,828 | 67,340 / 16,696 | historical + today | 8,688 / 2,132 |
 | faffter-dark-adversarial-review/SKILL.md | 74,897 / 18,574 | 22,259 / 5,565 | 22,259 / 5,565 | historical | 0 / 0 |
 | faff-plot/SKILL.md | 45,906 / 11,342 | 45,580 / 11,262 | 45,580 / 11,262 | historical | 0 / 0 |
@@ -68,4 +67,4 @@ Files ranked by original byte size, descending. “Touched” distinguishes hist
 | faffter-noon-prd/SKILL.md | 4,517 / 1,123 | 2,465 / 617 | 2,465 / 617 | historical | 0 / 0 |
 | faffter-noon-adr/SKILL.md | 4,460 / 1,107 | 4,238 / 1,052 | 4,238 / 1,052 | historical | 0 / 0 |
 
-Exact per-file SHA256 bindings, input hashes, scope checks and measurement-time HEAD are in [SOURCE-REDUCTION-STATUS.json](SOURCE-REDUCTION-STATUS.json), SHA256 `171ed4cd1425edf9a40a45d7526b7a7704c3ebef657559842457afa1c1da493e`. No tests, models, harness changes, source edits or commits were performed for this report.
+Exact per-file SHA256 bindings, input hashes, scope checks and measurement-time HEAD are in [SOURCE-REDUCTION-STATUS.json](SOURCE-REDUCTION-STATUS.json), SHA256 `7903a64ce855909a7c4b42143e9e04c8b149dc599c2d0fa4c1a9db0eb4bf658d`. No tests, models, harness changes, source edits or commits were performed for this accounting.

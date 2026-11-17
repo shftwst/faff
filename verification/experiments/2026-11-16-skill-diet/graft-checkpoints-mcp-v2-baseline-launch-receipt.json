@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "phase": "baseline",
+  "created_utc": "2026-11-17T03:11:34.625979+00:00",
+  "plan_sha256": "c161ded3286e67e009a68c0ba9c9e3326d5dc248331cbe4a5ebaee5ccffed185",
+  "prelaunch_review_sha256": "7f446f0b75d0101993a905ee45d70b5c46f38808ba6c0cb585a88953d4c6fb40",
+  "source_checkpoint": "2878b641096c482f15ed6fe5f9c49a9e358093e2",
+  "samples": [
+    "graft-checkpoints-mcp-v2-baseline-1",
+    "graft-checkpoints-mcp-v2-baseline-2",
+    "graft-checkpoints-mcp-v2-baseline-3",
+    "graft-checkpoints-mcp-v2-baseline-4",
+    "graft-checkpoints-mcp-v2-baseline-5"
+  ],
+  "policy": "Five original baseline samples concurrently. Candidate held until full baseline native/manual gate passes; no retries or replacements."
+}

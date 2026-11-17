@@ -1,0 +1,349 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-17T19:49:35.938017+00:00",
+  "reviewer": {
+    "role": "independent actual-artifact reviewer",
+    "model": "Sol-medium"
+  },
+  "status": "pass",
+  "manual_pass": true,
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/intake-main-opus-v1-registration.json",
+      "sha256": "a183f6649d1363569619e26bd2b5717349c6cbeb9a65c78e0b5407a525c916d7",
+      "bytes": 18071
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/intake-main-opus-v1-baseline-plan.json",
+      "sha256": "0d510810488265573b1128960f91c0a55f68908e9143ddf3621f53c5ad6c4112",
+      "bytes": 1883
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/intake-main-opus-v1-baseline-policy.md",
+      "sha256": "4095bc04a6e93251701c0dd1335e3f7ecbac07681867f02935f1b205d107dbce",
+      "bytes": 125575
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/intake-brief-v2.json",
+      "sha256": "d64ac66570717a333c6a7350d947a035d3a5f0372d028003092cc0c304ea91d3",
+      "bytes": 18399
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/assess-intake-questions.mjs",
+      "sha256": "af182da815def8ca4e941ab30ce435abcd50b375d82b010ed0dfcde004748d30",
+      "bytes": 4201
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/INTAKE-QUESTIONS-CORRECTION.md",
+      "sha256": "db3f16a8895ef6b4ed94f1d95e45faaab26969338ad7b09c5f41f8c5e981f69d",
+      "bytes": 1586
+    }
+  ],
+  "run_bindings": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-main-opus-v1-baseline-1/manifest.json",
+      "sha256": "3bb7d9e06e9efe818ae2d549dd855e41847372faa85f3a98f7fa5f66477d84ed",
+      "bytes": 82380
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-main-opus-v1-baseline-1/task.json",
+      "sha256": "9ac5f7f84f18996d957434211ddbf5d9e8ce6d327c768ce7db7f25aef35636a4",
+      "bytes": 12011
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-main-opus-v1-baseline-1/capture.json",
+      "sha256": "f85c458b4e1434a9e2de25dcd02075bd29482466f2b96aab39431b0b25708684",
+      "bytes": 16371
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-main-opus-v1-baseline-1/report.json",
+      "sha256": "875f6198750e54e1c4f45c4477ba0385bef9b9e7a0d6c490275edc58f5d99d00",
+      "bytes": 9208
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-main-opus-v1-baseline-1/assessment.json",
+      "sha256": "5f52e81d701b6a5391dad3e22a15b2c2a8d9dd6188076bf3034eabe296cff804",
+      "bytes": 5300
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-main-opus-v1-baseline-1/worker-final-state.json",
+      "sha256": "ae30a9498b837f069fba1f83d8a418d951f0acd0927b143a820e52d94d41a306",
+      "bytes": 809
+    }
+  ],
+  "native_binding": {
+    "path": "verification/experiments/2026-11-16-skill-diet/native-audits/intake-main-opus-v1-baseline.json",
+    "sha256": "be756a63ab3096d2d72bcab648a579617a71b0ac3a7555d0d19661b47182654c",
+    "bytes": 35004
+  },
+  "native_verification": "Separate root-owned gate; hash binding does not assert independent native certification.",
+  "case_reviews": [
+    {
+      "id": "greenfield-complete",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-main-opus-v1-baseline-1/artifacts/greenfield-complete.md",
+        "sha256": "45ff70699a5290ef19320b31319cfe8fd28d7cfe249aa89d51f605e4ae9d1dc2",
+        "bytes": 792
+      },
+      "fixture_source_value_sha256": "28e13a85bcb522ce20a7656e76cce86a8674f63af3f3f6d6e06809a7de537518",
+      "persisted_matches_capture": true,
+      "status": "pass",
+      "finding": "Preserves tool-library goal, two named capabilities, checkout/return first slice, volunteer/laptop/Python/offline constraints, marketplace/payment exclusions and retention uncertainty. Fees/deposits/charges illustrate Payments exclusion rather than add a capability.",
+      "required_sections_present": true,
+      "exclusive_mode_section": true,
+      "sections": [
+        "Goal",
+        "Capabilities",
+        "First slice",
+        "Constraints",
+        "Out of scope",
+        "Open questions"
+      ],
+      "unsupported_goals_choices_or_ids": []
+    },
+    {
+      "id": "greenfield-thin",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-main-opus-v1-baseline-1/artifacts/greenfield-thin.md",
+        "sha256": "c2cb82521cd140a8459cdcf8de4cc071fd5736a29e5c7a43d6d1cabee440ed5e",
+        "bytes": 521
+      },
+      "fixture_source_value_sha256": "338e72fd2a1ddb11dbce2ddfa367cb1a26ef7c6b2d430ea5ae52d3ad396b9eba",
+      "persisted_matches_capture": true,
+      "status": "pass",
+      "finding": "Preserves book-loan goal and volunteers without choosing platform, language, framework or first slice. Explicitly marks constraints/non-goals unstated, omits unknown First slice and carries both uncertainties. Loan/return wording is a reasonable gloss of tracking borrowed books, not a new capability.",
+      "required_sections_present": true,
+      "exclusive_mode_section": true,
+      "sections": [
+        "Goal",
+        "Capabilities",
+        "Constraints",
+        "Out of scope",
+        "Open questions"
+      ],
+      "unsupported_goals_choices_or_ids": []
+    },
+    {
+      "id": "single-bug",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-main-opus-v1-baseline-1/artifacts/single-bug.md",
+        "sha256": "0ca09c1cb7c632fc7adf81f9c6d10133203ea6592242058e76dc64dec32a25aa",
+        "bytes": 671
+      },
+      "fixture_source_value_sha256": "bfea813d3233b8457311fe7d2211ddeb99f7705ede35e4d3f355b614d8d3552a",
+      "persisted_matches_capture": true,
+      "status": "pass",
+      "finding": "Preserves CSV extra-row defect, exact two-record done signal, Reporting area, unitary flag, columns/header/naming constraints and REPORT-17 prerequisite. Only supplied identifier retained; UI redesign excluded.",
+      "required_sections_present": true,
+      "exclusive_mode_section": true,
+      "sections": [
+        "Goal",
+        "Item",
+        "Constraints",
+        "Dependencies",
+        "Out of scope"
+      ],
+      "unsupported_goals_choices_or_ids": []
+    },
+    {
+      "id": "single-split",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-main-opus-v1-baseline-1/artifacts/single-split.md",
+        "sha256": "346abbaf708b111b19abfe83cc7160394f9f15151da6011fa5879f7e65cea7d2",
+        "bytes": 733
+      },
+      "fixture_source_value_sha256": "49886ace65821531f8eb11af51a3d02dbf70183190713f094b8747fb3b7d84c5",
+      "persisted_matches_capture": true,
+      "status": "pass",
+      "finding": "Preserves transient retry/exhaustion-notification concerns and done signal, Data imports area, existing runner and nonreplacement boundary. Possibly-splittable remains a flag; actual split explicitly left to methodology.",
+      "required_sections_present": true,
+      "exclusive_mode_section": true,
+      "sections": [
+        "Goal",
+        "Item",
+        "Constraints",
+        "Out of scope",
+        "Open questions"
+      ],
+      "unsupported_goals_choices_or_ids": []
+    },
+    {
+      "id": "minor-ambiguity",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-main-opus-v1-baseline-1/artifacts/minor-ambiguity.md",
+        "sha256": "5ade3ab6f2a20ddcfec54a22ab9ac382572dd83fdc4ab7b5284fa1d52a27f840",
+        "bytes": 613
+      },
+      "fixture_source_value_sha256": "eec86272640ebe1a6a5bd0e17541063ada8b4799461112d58e806ec797e45183",
+      "persisted_matches_capture": true,
+      "status": "pass",
+      "finding": "Preserves stored-date display/omission condition, Checkout/receipt layout and no estimation logic. Timezone remains unresolved for prep, not silently chosen.",
+      "required_sections_present": true,
+      "exclusive_mode_section": true,
+      "sections": [
+        "Goal",
+        "Item",
+        "Constraints",
+        "Out of scope",
+        "Open questions"
+      ],
+      "unsupported_goals_choices_or_ids": []
+    },
+    {
+      "id": "greenfield-repo-signal",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-main-opus-v1-baseline-1/artifacts/greenfield-repo-signal.md",
+        "sha256": "547fdc971b926032b7408522260685b88400c58d25900381da4f4dff015d6d0b",
+        "bytes": 803
+      },
+      "fixture_source_value_sha256": "aa2a87f2162191d28f211820d9bbb8acfed5b800b823757feb5791dbb66e6dd0",
+      "persisted_matches_capture": true,
+      "status": "pass",
+      "finding": "Preserves recording catalogue/date search, manually selected local first slice, confirmed TypeScript/browser UI/local-files constraints, cloud/audio-editing exclusions and missing-date uncertainty. No new framework, upload or processing choice.",
+      "required_sections_present": true,
+      "exclusive_mode_section": true,
+      "sections": [
+        "Goal",
+        "Capabilities",
+        "First slice",
+        "Constraints",
+        "Out of scope",
+        "Open questions"
+      ],
+      "unsupported_goals_choices_or_ids": []
+    }
+  ],
+  "decision_reviews": [
+    {
+      "id": "mode-owner",
+      "value": {
+        "owner": "faff-jot"
+      },
+      "source_and_expected_match": true,
+      "value_sha256": "2351ae58625137b41f20ffb0f792faf0fc6207e99f58d022d6db35544cd097af"
+    },
+    {
+      "id": "ticket-owner",
+      "value": {
+        "slot": "methodology",
+        "producer_creates_tickets": false
+      },
+      "source_and_expected_match": true,
+      "value_sha256": "fe2cbc149223e0cd2374d260ea6aee16c8649951b5fdbf8daea3b3364e71aa3a"
+    },
+    {
+      "id": "open-questions",
+      "value": {
+        "block": false,
+        "carry_forward": true
+      },
+      "source_and_expected_match": true,
+      "value_sha256": "5b49e85c4ec0a6521f6b58f830109168145e397e47636f5ae85e663a5b66b703"
+    },
+    {
+      "id": "required",
+      "value": {
+        "sections": [
+          "Goal",
+          "Constraints",
+          "Out of scope"
+        ]
+      },
+      "source_and_expected_match": true,
+      "value_sha256": "4f8ef55f35647d2c60aa36c6236f4dad14f35e7e51d09df503b8d422495fa336"
+    },
+    {
+      "id": "exclusive",
+      "value": {
+        "both": false,
+        "required": "Item"
+      },
+      "source_and_expected_match": true,
+      "value_sha256": "00a7fd6505e3c0176e1c4583b512f4920bbab4fc33d8b2ba7560a9530e9aee49"
+    },
+    {
+      "id": "empty",
+      "value": {
+        "omit": true
+      },
+      "source_and_expected_match": true,
+      "value_sha256": "dc42dac21f2cd359ca1123bc86cc892521f80128fded3a792bc2d75e57bf104e"
+    },
+    {
+      "id": "invented-goals",
+      "value": {
+        "allowed": false
+      },
+      "source_and_expected_match": true,
+      "value_sha256": "3a60061947d350e063c1e5f3255de367587628dcd0a355766ec128b5b36c4d14"
+    },
+    {
+      "id": "appetite",
+      "value": {
+        "levels": [
+          "low",
+          "medium"
+        ]
+      },
+      "source_and_expected_match": true,
+      "value_sha256": "5461042ecd7d86c5b5a529d08d8ad887804faf93b8afe304a267aaca57e029b5"
+    },
+    {
+      "id": "minor",
+      "value": {
+        "section": "Open questions"
+      },
+      "source_and_expected_match": true,
+      "value_sha256": "7deb5eb52814d3f793eb9e0f5093b3ac3b0fec13ee133b90af913694eece81ec"
+    },
+    {
+      "id": "split",
+      "value": {
+        "force_split": false,
+        "flag_for_methodology": true
+      },
+      "source_and_expected_match": true,
+      "value_sha256": "ba66789389d7432f5e2ceb569bbab7daf189fe1912c2fe229434e3ed17e96fc2"
+    },
+    {
+      "id": "codes",
+      "value": {
+        "use_codes": false
+      },
+      "source_and_expected_match": true,
+      "value_sha256": "c4c8c8baf4646674da88a29c3a358d25cb6b5ed9c3e4f083553c31d5c4123109"
+    },
+    {
+      "id": "implementation",
+      "value": {
+        "skill": "faff-prep"
+      },
+      "source_and_expected_match": true,
+      "value_sha256": "6982ada5a1649c6dad3ac1e940403d1825d5fb2b047170bd499a9acea440169b"
+    }
+  ],
+  "summary": {
+    "briefs_read": 6,
+    "fidelity_and_format_pass": 6,
+    "decisions_read": 12,
+    "decisions_source_match": 12,
+    "raw_status": "pass",
+    "assessed_status": "pass",
+    "normalisations": [],
+    "policy_delivery_complete": true,
+    "capture_errors": [],
+    "observed_event_names": [
+      "answer_rule",
+      "finish",
+      "write_output"
+    ],
+    "invented_goals_choices_or_ids": 0,
+    "ticket_shaping_or_split_decisions": 0
+  },
+  "limits": [
+    "One baseline diagnostic sample only; candidate not reviewed. No historical model qualification pooling or statistical equivalence conclusion.",
+    "Completed conversation snapshots, final briefs and policy answers only. No elicitation, live acquisition, methodology shaping, tracker mutation, code writing or full jot/plot workflow measured.",
+    "Exact question assessor made zero normalisations; raw pass is retained. Source fidelity was checked independently of lexical recognition.",
+    "Native verification is separate and owned by root; no model calls, reruns or source edits performed."
+  ]
+}

@@ -1,0 +1,120 @@
+{
+  "main_base": "cd633ecf2fc24e175b2146e6af6bb551fcb9dffb",
+  "path": "plugin/skills/faffter-noon-intake/SKILL.md",
+  "main_bytes": 7594,
+  "integrated_bytes": 5567,
+  "saved_bytes": 2027,
+  "main_estimated_tokens": 1883,
+  "integrated_estimated_tokens": 1382,
+  "saved_estimated_tokens": 501,
+  "main_sha256": "4c0ac1a434a46ec5f388fc17e652c4463e63ffa75eec0cae37ddf6e99f6e3562",
+  "historical_candidate": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/candidates/intake-brief-v1.md",
+  "historical_candidate_sha256": "668b178bfead91377c81015083db36c57697c8bdf3d29dc4807073a81b952e0b",
+  "integrated_sha256": "a7025288c28087551f6817e43978a68613b9bb2eb9d1090411220611adacd6d4",
+  "qualification_record": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/intake-astra-medium-v1-final-qualification.json",
+  "qualification_record_sha256": "0a4948f04586c1f1c32cc5893d3179d87966ff53fff6d2aa4264155c35edd6c6",
+  "historical_model": "gpt-6-astra",
+  "historical_effort": "medium",
+  "qualification_status": "qualified-bounded-intake-brief-production",
+  "integration_deltas": [
+    {
+      "from": "A short, focused conversation. The goal is to extract just enough to shape tickets, not to write a spec (that's `/faff-prep`'s job, later, per ticket). Pull on the threads that change how the work breaks down; leave implementation detail for prep.",
+      "to": "Keep discovery short: gather enough to shape tickets, leaving specs and implementation detail to `/faff-prep` later, per ticket. Ask about facts that change how work breaks down.",
+      "reason": "Preserve existing main discovery-paragraph trim exactly; no changed policy."
+    },
+    {
+      "from": "Stop pulling threads once the brief below can be filled. Unresolved questions are captured, not chased \u2014 they go into the brief as open questions for prep to resolve, not as blockers here.",
+      "to": "Stop once the brief below can be filled. Capture unresolved questions for prep under open questions; do not chase them or block the brief.",
+      "reason": "Preserve existing main discovery-paragraph trim exactly; no changed policy."
+    },
+    {
+      "from": "two trailing LF bytes",
+      "to": "one trailing LF byte",
+      "reason": "Remove historical extra blank EOF line reported by git diff --check; no prose/rule change."
+    }
+  ],
+  "reverse_only_deltas_recovers_historical_candidate": true,
+  "main_change_preservation": "PRD main equals a850 original; intake retains both existing main discovery paragraph trims.",
+  "limits": [
+    "Historically GPT verified only; no Opus/Claude verification claimed or performed.",
+    "No new model/harness/test/runtime behavior. Main-compatible source integration only."
+  ],
+  "inventory_rows": 18,
+  "inventory_bytes": 3066,
+  "inventory_path": "records/specs/2026-11-17-skill-diet-intake-main-design.md",
+  "commit": "47aaefba63be2aa8415cb51a11eb71aa73678132",
+  "branch": "feat/skill-diet-intake-main",
+  "worktree_clean": true,
+  "commits": [
+    "bd957344ac95b0ed42d5654385daffba593eacb7",
+    "47aaefba63be2aa8415cb51a11eb71aa73678132"
+  ],
+  "files_committed": [
+    "plugin/skills/faff/prose-baseline.json",
+    "plugin/skills/faffter-noon-intake/SKILL.md",
+    "records/specs/2026-11-17-skill-diet-intake-main-design.md"
+  ],
+  "signed_off_by": "Alec Hill <alec@shftwst.dev>",
+  "checks": [
+    {
+      "log": "/var/tmp/faff-intake-main-source-consumer-tests.txt",
+      "sha256": "91fdd1fcb05d2591c19015c578fb2d1e021e7c2dc7ab5754b57a90c789033d4f",
+      "status": "pass",
+      "tests": 107,
+      "pass": 107,
+      "fail": 0
+    },
+    {
+      "log": "/var/tmp/faff-intake-main-prose-adapter-tests.txt",
+      "sha256": "14b274792622da87afee149221a43555c370ce4a507c34f4d5d87dd2357c8322",
+      "status": "pass",
+      "tests": 85,
+      "pass": 85,
+      "fail": 0
+    },
+    {
+      "log": "/var/tmp/faff-intake-main-adapter-lint.txt",
+      "sha256": "1601b691f953422c0cb71693868296d8615d4c26d72cccd02320ef5b3a146a27",
+      "status": "pass"
+    },
+    {
+      "log": "/var/tmp/faff-intake-main-rule-inventory.json",
+      "sha256": "f2a8c7d768aafeed01cdca3217000dab278dac9c2a1e71c2489893a3dd782eb6",
+      "status": "historical-failure-retained"
+    },
+    {
+      "log": "/var/tmp/faff-intake-main-baseline-hygiene-tests.txt",
+      "sha256": "65eb3e9b23bb1516dccc3146d1819c8bf4faf4783c1c4ba4e6881541158e0e50",
+      "status": "pass",
+      "tests": 2,
+      "pass": 2,
+      "fail": 0
+    },
+    {
+      "log": "/var/tmp/faff-intake-main-adapter-lint-hygiene.txt",
+      "sha256": "1601b691f953422c0cb71693868296d8615d4c26d72cccd02320ef5b3a146a27",
+      "status": "pass"
+    },
+    {
+      "log": "/var/tmp/faff-intake-main-rule-inventory-corrected.json",
+      "sha256": "d4c370728e64bd766819a407c35e01d0adc6bee068f18bbb5d4f3c505c4b7a5a",
+      "status": "pass"
+    }
+  ],
+  "inventory": {
+    "blocks_deleted": 18,
+    "covered_moved": 1,
+    "covered_by_row": 17
+  },
+  "test_counts": {
+    "unique_passed": 192,
+    "failed": 0,
+    "additional_hygiene_rechecks_passed": 2
+  },
+  "no_push_or_pr": true,
+  "historical_integration_failures": {
+    "inventory": "No uncovered prose; one redundant short Rules heading row invalid. Removed that unused row; final inventory passes.",
+    "hygiene": "Historical candidate had an extra EOF blank line; removed1B and retained all source text. Initial unpublished commit was followed by a signed-off cleanup commit.",
+    "original_failures_preserved": true
+  }
+}

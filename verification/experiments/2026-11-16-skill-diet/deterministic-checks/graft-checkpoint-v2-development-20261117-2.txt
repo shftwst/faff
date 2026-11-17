@@ -1,0 +1,16 @@
+TAP version 13
+# Subtest: case delivery returns the full existing row and precedes graft and ledger operations
+ok 1 - case delivery returns the full existing row and precedes graft and ledger operations
+  ---
+  duration_ms: 1441.137597
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1469.878609

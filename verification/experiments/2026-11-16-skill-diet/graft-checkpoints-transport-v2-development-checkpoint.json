@@ -1,0 +1,200 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "registration_status": "unregistered development checkpoint",
+  "scope": "Reusable bounded input transport only. No model rerun, native Codex audit, source/cut qualification or registration. Existing semantic bars remain unchanged.",
+  "checks": {
+    "frozen_plan_inputs_unchanged": true,
+    "case_data_matches_delivered_events": true,
+    "all_case_deliveries_precede_case_operations": true,
+    "task_contains_only_case_index": true,
+    "task_under_6000_tokens": true,
+    "all_case_envelopes_under_6000_tokens": true,
+    "seed_and_snapshot_unchanged": true,
+    "trusted_consumer_unchanged": true,
+    "semantic_grading_cases_unchanged": true,
+    "zero_model_mcp_workflow_pass": true
+  },
+  "tests": {
+    "command": "node --test test/control-parity-graft-checkpoint-v2.test.mjs",
+    "pass": 2,
+    "fail": 0
+  },
+  "preflight": {
+    "directory": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117",
+    "execution_cases": 8,
+    "decisions": 6,
+    "policy_reads": 70,
+    "requests": 119,
+    "rejected": 0,
+    "actual_transport": "Existing createMcpMailbox and serveMailbox with UUID request/result files, exact MCP result envelopes and real pinned CLI runtime."
+  },
+  "initial_task": {
+    "bytes": 5570,
+    "estimated_tokens": 1393,
+    "outer_wrapper_exercised": "text(await tools.exec_command({cmd:\"cat -- .../task.json\",max_output_tokens:12000,yield_time_ms:10000}));",
+    "outer_output_limit": "Default functions.exec cap unchanged",
+    "observed_complete": true,
+    "observed_inner_original_token_count": 1393
+  },
+  "case_responses": [
+    {
+      "case_id": "dispatched-pass",
+      "envelope_path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/read-case-dispatched-pass-mcp-result.json",
+      "envelope_sha256": "be95cf727e2885307a8d186a203a44c4de2507fb8c2c5e7f5646a5e228cfe93e",
+      "outer_text_bytes": 5851,
+      "outer_estimated_tokens": 1463,
+      "under_6000": true
+    },
+    {
+      "case_id": "gate-failure",
+      "envelope_path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/read-case-gate-failure-mcp-result.json",
+      "envelope_sha256": "79d8668cfbf9065042d25b3c81d84ddafb7e2f3650fc40d09569d179ac0bab74",
+      "outer_text_bytes": 5601,
+      "outer_estimated_tokens": 1401,
+      "under_6000": true
+    },
+    {
+      "case_id": "gate-none",
+      "envelope_path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/read-case-gate-none-mcp-result.json",
+      "envelope_sha256": "8ea377f53c1a8ad2689e3d14eab5c096158955b957270f11ceabdd7183d5be16",
+      "outer_text_bytes": 5452,
+      "outer_estimated_tokens": 1363,
+      "under_6000": true
+    },
+    {
+      "case_id": "evidence-absence",
+      "envelope_path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/read-case-evidence-absence-mcp-result.json",
+      "envelope_sha256": "893337c8ddea07691cdbb2d089dd2d4a5eb65fffb4043bffd9a70f5ebf4be687",
+      "outer_text_bytes": 5765,
+      "outer_estimated_tokens": 1442,
+      "under_6000": true
+    },
+    {
+      "case_id": "evidence-refusal",
+      "envelope_path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/read-case-evidence-refusal-mcp-result.json",
+      "envelope_sha256": "98c601f0030d4b4f7b59a208bcaa6cddd019a42a13db8c7d521008bec6736fe7",
+      "outer_text_bytes": 5958,
+      "outer_estimated_tokens": 1490,
+      "under_6000": true
+    },
+    {
+      "case_id": "evidence-tamper",
+      "envelope_path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/read-case-evidence-tamper-mcp-result.json",
+      "envelope_sha256": "c76d1881d9aba11eb0d7356f82286f42b27469f56c64a5dcc4e122714d6a8c60",
+      "outer_text_bytes": 6151,
+      "outer_estimated_tokens": 1538,
+      "under_6000": true
+    },
+    {
+      "case_id": "mixed-ledger",
+      "envelope_path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/read-case-mixed-ledger-mcp-result.json",
+      "envelope_sha256": "8132d4895f7f43a27a75245e7363e8da48d71276e651bc678c836b6f7204a00c",
+      "outer_text_bytes": 3418,
+      "outer_estimated_tokens": 855,
+      "under_6000": true
+    },
+    {
+      "case_id": "incomplete-ledger",
+      "envelope_path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/read-case-incomplete-ledger-mcp-result.json",
+      "envelope_sha256": "ef73c335ae0871d51d5d698ca4075d6d253424c093e22efd2dd3acd2cc8b6d3b",
+      "outer_text_bytes": 3468,
+      "outer_estimated_tokens": 867,
+      "under_6000": true
+    }
+  ],
+  "outer_result_serialization_check": {
+    "largest_case": "evidence-tamper",
+    "actual_call": "text(JSON.parse((await tools.exec_command({cmd:\"cat -- .../read-case-evidence-tamper-mcp-result.json\",max_output_tokens:12000})).output));",
+    "observed_complete": true,
+    "scope": "The actual saved MCP result object was passed through this session's text(...) outer serializer at its default cap. Loading used exec_command because this session has no measurement read_case port registered. This is serializer/envelope evidence, not a literal Codex MCP native session or native-audit pass. Every other real result envelope has a smaller bounded estimate."
+  },
+  "bindings": [
+    {
+      "path": "eval/control-parity/graft-checkpoint-execution.mjs",
+      "sha256": "da743a47820a6b94695151a1e9ca56a6355271493141c4566a9185c72c190663"
+    },
+    {
+      "path": "eval/control-parity/graft-checkpoint-execution-v2.mjs",
+      "sha256": "0cfb3138c52fe9c3e6bb0e549c54a0142ee3efaa731897143141b442b9c7e2ea"
+    },
+    {
+      "path": "test/control-parity-graft-checkpoint.test.mjs",
+      "sha256": "596ab429a3255a21fa9c9a1feb1bf8164354eb3fef54063439f154d95e06ee84"
+    },
+    {
+      "path": "test/control-parity-graft-checkpoint-v2.test.mjs",
+      "sha256": "6ea6a2413a0067863f5e4bf38342009b8f11bb322097868079730dcd23b18e7d"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/graft-checkpoints-v1-draft.json",
+      "sha256": "aeea37201a2f485f31a39f9e3d94ce2d58498d50ebf40d17d6109fd25132afcb"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/graft-checkpoint-transport-v2-preflight-controller-20261117.mjs",
+      "sha256": "a19a31553f1eac5a67cf6b5ba9e92e05d648c8adc8d8976a9b467a5340b77550"
+    },
+    {
+      "path": "eval/control-parity/mailbox-mcp.mjs",
+      "sha256": "f660be0c380c4be28eab6a19837dfda8a4dae84138bd0754e7d05b38eb9ef64a"
+    },
+    {
+      "path": "eval/control-parity/interactive-handoff.mjs",
+      "sha256": "340573bb016b4fc19dc3859cba2e3bd808c8c95c22306e83bcecf1abf57eb5d0"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/preflight.json",
+      "sha256": "eafefa1b8c9aa036a08a948a09e7a0be4fd24381416e1ec4e79a38b5c123f1dd"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/manifest.json",
+      "sha256": "1542763b85c8c883b8c9482f4d369605a20b1e6a4c734b25e9842800f797d82f"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/task.json",
+      "sha256": "d3285cf11f811b2c26a52f2f7f3367fa1f4d233d5990f5aa6e993eacb180d466"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/capture.json",
+      "sha256": "31ef06264342f1fa9a97072e3fca2878fb2f5bd8a6af2f40f67adfb03597a542"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/report.json",
+      "sha256": "756a35c91d5b7129efa1e002dd698d064972ba78c378c8b7c0e9741da1d4c19a"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/consumers.json",
+      "sha256": "748e26b282d1e1c24e6faa355bd14a3360e722054deabdaf3fec036d92e43308"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/mcp-trace.jsonl",
+      "sha256": "72446da2e0ccc88ca9e5da5819390095c8fc1140aea84e5f0d8f42068697bd72"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/mcp-server-manifest.json",
+      "sha256": "ade662a43eb2da5ab320c7adf96f7be5695fe6de719349ba77e6f48244f63fd9"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/graft-checkpoint-v2-development-red-20261117-1.txt",
+      "sha256": "809d0598e90ee37193c6b276bd176761570b684b73d5c771a7e84e3f05a7a8c0"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/graft-checkpoint-v2-development-20261117-2.txt",
+      "sha256": "af85633162f2db6adea0706a2664c157d620dc9867ff128a713592dee91cab11"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/graft-checkpoint-v2-development-20261117-3.txt",
+      "sha256": "c4aee66350711b4e7d49b4df21571942be92bfbff729f406f661e4c0d5ad9e24"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/graft-checkpoint-transport-v2-preflight-20261117-1.txt",
+      "sha256": "44b46b6fb60c21ff8f8b98344557c290bc7b35676d856c55f4bd3f37a9b5ea78"
+    }
+  ],
+  "limits": [
+    "Old V2 measurement failures and all frozen inputs remain unchanged.",
+    "Independent review and future registration are required; no current-cut acceptance.",
+    "Default 10000 outer cap and 12000 inner initial-read cap are unchanged.",
+    "Optional ledger detail grounding and all existing semantic checks remain required."
+  ]
+}

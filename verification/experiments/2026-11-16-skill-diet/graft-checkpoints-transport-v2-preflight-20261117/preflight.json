@@ -1,0 +1,136 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "scope": "Zero-model controller using actual policy delivery, case reads, existing MCP envelope/mailbox transport and real CLI consumers. No model/native Codex session, hosted review/PR, lifecycle or cut qualification.",
+  "root_commit": "8b324d625b0fa6aee1282d89448474e259981dac",
+  "commands": [
+    [
+      "/usr/local/bin/node",
+      "verification/experiments/2026-11-16-skill-diet/deterministic-checks/graft-checkpoint-transport-v2-preflight-controller-20261117.mjs"
+    ]
+  ],
+  "cases": 14,
+  "inputs": [
+    {
+      "path": "eval/control-parity/graft-checkpoint-execution-v2.mjs",
+      "sha256": "0cfb3138c52fe9c3e6bb0e549c54a0142ee3efaa731897143141b442b9c7e2ea"
+    },
+    {
+      "path": "test/control-parity-graft-checkpoint-v2.test.mjs",
+      "sha256": "6ea6a2413a0067863f5e4bf38342009b8f11bb322097868079730dcd23b18e7d"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/graft-checkpoints-v1-draft.json",
+      "sha256": "aeea37201a2f485f31a39f9e3d94ce2d58498d50ebf40d17d6109fd25132afcb"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-v3.json",
+      "sha256": "a3984df712bb350d84c5b367752fe4624582d4ae923648dff1ce42ae8e54298c"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-summary-dependencies-v2.json",
+      "sha256": "86ac286239e0ca1df92722b8256459b21f675241e58f0fe925e50a005ecb9ba5"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-evidence-consumer-reuse-notes.json",
+      "sha256": "17fda0f8cfdf2f7358b3c046558e7c0989e448f4a2aae86e6831124a452af7a3"
+    },
+    {
+      "path": "eval/control-parity/ledger-execution.mjs",
+      "sha256": "91c5674d197cf7a79f037300ab2eb5523f49c2af3a990a8bef2da44a1126ac31"
+    },
+    {
+      "path": "eval/control-parity/ledger-execution-v2.mjs",
+      "sha256": "8fd57ec53d834a7d0f9a382b839b64fe724d1e95081b5dadf9bed04191552180"
+    },
+    {
+      "path": "eval/control-parity/candidate-command.mjs",
+      "sha256": "21aee374ee29d1ce293d175a902b935230b42d3233c94dae407be1dca6541a50"
+    },
+    {
+      "path": "eval/control-parity/policy-reader.mjs",
+      "sha256": "2055d85ac37834bd83483602249d29c5b4d0f21664f59c12c01f22e34d23ae1a"
+    },
+    {
+      "path": "eval/control-parity/interactive-handoff.mjs",
+      "sha256": "340573bb016b4fc19dc3859cba2e3bd808c8c95c22306e83bcecf1abf57eb5d0"
+    },
+    {
+      "path": "eval/control-parity/schema.mjs",
+      "sha256": "0164ccec86e98253e013dea2db3a00db35ef2ee9707de0a7360146b489715234"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/graft-checkpoint-transport-v2-preflight-controller-20261117.mjs",
+      "sha256": "a19a31553f1eac5a67cf6b5ba9e92e05d648c8adc8d8976a9b467a5340b77550"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/task.json",
+      "sha256": "d3285cf11f811b2c26a52f2f7f3367fa1f4d233d5990f5aa6e993eacb180d466"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/public-cases.json",
+      "sha256": "fe4a7bbe743918a0dedeb58b05a9732fdf157e35b9c287cddb721800fd53cdaa"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/capture.json",
+      "sha256": "31ef06264342f1fa9a97072e3fca2878fb2f5bd8a6af2f40f67adfb03597a542"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/consumers.json",
+      "sha256": "748e26b282d1e1c24e6faa355bd14a3360e722054deabdaf3fec036d92e43308"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/report.json",
+      "sha256": "756a35c91d5b7129efa1e002dd698d064972ba78c378c8b7c0e9741da1d4c19a"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/mcp-trace.jsonl",
+      "sha256": "72446da2e0ccc88ca9e5da5819390095c8fc1140aea84e5f0d8f42068697bd72"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/mcp-server-manifest.json",
+      "sha256": "ade662a43eb2da5ab320c7adf96f7be5695fe6de719349ba77e6f48244f63fd9"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/read-case-dispatched-pass-mcp-result.json",
+      "sha256": "be95cf727e2885307a8d186a203a44c4de2507fb8c2c5e7f5646a5e228cfe93e"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/read-case-gate-failure-mcp-result.json",
+      "sha256": "79d8668cfbf9065042d25b3c81d84ddafb7e2f3650fc40d09569d179ac0bab74"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/read-case-gate-none-mcp-result.json",
+      "sha256": "8ea377f53c1a8ad2689e3d14eab5c096158955b957270f11ceabdd7183d5be16"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/read-case-evidence-absence-mcp-result.json",
+      "sha256": "893337c8ddea07691cdbb2d089dd2d4a5eb65fffb4043bffd9a70f5ebf4be687"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/read-case-evidence-refusal-mcp-result.json",
+      "sha256": "98c601f0030d4b4f7b59a208bcaa6cddd019a42a13db8c7d521008bec6736fe7"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/read-case-evidence-tamper-mcp-result.json",
+      "sha256": "c76d1881d9aba11eb0d7356f82286f42b27469f56c64a5dcc4e122714d6a8c60"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/read-case-mixed-ledger-mcp-result.json",
+      "sha256": "8132d4895f7f43a27a75245e7363e8da48d71276e651bc678c836b6f7204a00c"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/read-case-incomplete-ledger-mcp-result.json",
+      "sha256": "ef73c335ae0871d51d5d698ca4075d6d253424c093e22efd2dd3acd2cc8b6d3b"
+    }
+  ],
+  "limitations": [
+    "Six new checkpoint cases plus two unmodified reused ledger cases. Long gate budget/resume/timeout variants remain covered by existing tests and are not model-executed here.",
+    "Source assertions and actual output provenance need independent manual review. Deterministic grader remains draft.",
+    "No separate errored-rung producer case; existing gates-budget tests cover real timeout/errored results. Failed and missing gates are actual bounded cases.",
+    "Inherited consumer mismatch: discovery:none yields needs-human/rungs:[] from real gates; the actual quality-gates contract validator refuses that shape. The missing-gates case requires reporting this real refusal, never fabricating rungs or a conformant contract."
+  ],
+  "manual_detail_gate_required": true
+}

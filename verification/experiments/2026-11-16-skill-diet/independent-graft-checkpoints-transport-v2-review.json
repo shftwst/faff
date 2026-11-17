@@ -1,0 +1,259 @@
+{
+  "schema": 1,
+  "reviewed_at_utc": "2026-11-17T03:34:40.461112+00:00",
+  "reviewer": "/root/verify_wtf_scope; independent narrow transport/source/evidence reviewer",
+  "status": "bounded_transport_review_clear_unregistered_no_acceptance",
+  "bindings": {
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-development-checkpoint.json": {
+      "sha256": "1f5fe1197b7d93d98db57f454cd97a2793284a22e1a42782660028f1062d2bf9",
+      "bytes": 10030
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-mcp-v2-baseline-plan.json": {
+      "sha256": "c161ded3286e67e009a68c0ba9c9e3326d5dc248331cbe4a5ebaee5ccffed185",
+      "bytes": 17483
+    },
+    "verification/experiments/2026-11-16-skill-diet/independent-graft-checkpoints-v1-adapter-review.json": {
+      "sha256": "b0b27109364588f1ce1877ffbeef2370184f6b25a197c807a5674c7f28999325",
+      "bytes": 12578
+    },
+    "verification/experiments/2026-11-16-skill-diet/independent-graft-checkpoints-v1-compact-task-addendum.json": {
+      "sha256": "52b23ea9928fba61e9e27761b944f46914bd1cc173ddac69b0cc7661d7cbd4cc",
+      "bytes": 7269
+    },
+    "eval/control-parity/graft-checkpoint-execution.mjs": {
+      "sha256": "da743a47820a6b94695151a1e9ca56a6355271493141c4566a9185c72c190663",
+      "bytes": 26623
+    },
+    "eval/control-parity/graft-checkpoint-execution-v2.mjs": {
+      "sha256": "0cfb3138c52fe9c3e6bb0e549c54a0142ee3efaa731897143141b442b9c7e2ea",
+      "bytes": 27748
+    },
+    "test/control-parity-graft-checkpoint-v2.test.mjs": {
+      "sha256": "6ea6a2413a0067863f5e4bf38342009b8f11bb322097868079730dcd23b18e7d",
+      "bytes": 3017
+    },
+    "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/graft-checkpoints-v1-draft.json": {
+      "sha256": "aeea37201a2f485f31a39f9e3d94ce2d58498d50ebf40d17d6109fd25132afcb",
+      "bytes": 10075
+    },
+    "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-v3.json": {
+      "sha256": "a3984df712bb350d84c5b367752fe4624582d4ae923648dff1ce42ae8e54298c",
+      "bytes": 24173
+    },
+    "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-summary-dependencies-v2.json": {
+      "sha256": "86ac286239e0ca1df92722b8256459b21f675241e58f0fe925e50a005ecb9ba5",
+      "bytes": 3370
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-evidence-consumer-reuse-notes.json": {
+      "sha256": "17fda0f8cfdf2f7358b3c046558e7c0989e448f4a2aae86e6831124a452af7a3",
+      "bytes": 15387
+    },
+    "eval/control-parity/ledger-execution.mjs": {
+      "sha256": "91c5674d197cf7a79f037300ab2eb5523f49c2af3a990a8bef2da44a1126ac31",
+      "bytes": 26721
+    },
+    "eval/control-parity/ledger-execution-v2.mjs": {
+      "sha256": "8fd57ec53d834a7d0f9a382b839b64fe724d1e95081b5dadf9bed04191552180",
+      "bytes": 8948
+    },
+    "eval/control-parity/candidate-command.mjs": {
+      "sha256": "21aee374ee29d1ce293d175a902b935230b42d3233c94dae407be1dca6541a50",
+      "bytes": 7740
+    },
+    "eval/control-parity/policy-reader.mjs": {
+      "sha256": "2055d85ac37834bd83483602249d29c5b4d0f21664f59c12c01f22e34d23ae1a",
+      "bytes": 2228
+    },
+    "eval/control-parity/interactive-handoff.mjs": {
+      "sha256": "340573bb016b4fc19dc3859cba2e3bd808c8c95c22306e83bcecf1abf57eb5d0",
+      "bytes": 8344
+    },
+    "eval/control-parity/schema.mjs": {
+      "sha256": "0164ccec86e98253e013dea2db3a00db35ef2ee9707de0a7360146b489715234",
+      "bytes": 15363
+    },
+    "verification/experiments/2026-11-16-skill-diet/deterministic-checks/graft-checkpoint-transport-v2-preflight-controller-20261117.mjs": {
+      "sha256": "a19a31553f1eac5a67cf6b5ba9e92e05d648c8adc8d8976a9b467a5340b77550",
+      "bytes": 7261
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/task.json": {
+      "sha256": "d3285cf11f811b2c26a52f2f7f3367fa1f4d233d5990f5aa6e993eacb180d466",
+      "bytes": 5570
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/public-cases.json": {
+      "sha256": "fe4a7bbe743918a0dedeb58b05a9732fdf157e35b9c287cddb721800fd53cdaa",
+      "bytes": 51796
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/capture.json": {
+      "sha256": "31ef06264342f1fa9a97072e3fca2878fb2f5bd8a6af2f40f67adfb03597a542",
+      "bytes": 405275
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/consumers.json": {
+      "sha256": "748e26b282d1e1c24e6faa355bd14a3360e722054deabdaf3fec036d92e43308",
+      "bytes": 23431
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/report.json": {
+      "sha256": "756a35c91d5b7129efa1e002dd698d064972ba78c378c8b7c0e9741da1d4c19a",
+      "bytes": 17857
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/mcp-trace.jsonl": {
+      "sha256": "72446da2e0ccc88ca9e5da5819390095c8fc1140aea84e5f0d8f42068697bd72",
+      "bytes": 61421
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/mcp-server-manifest.json": {
+      "sha256": "ade662a43eb2da5ab320c7adf96f7be5695fe6de719349ba77e6f48244f63fd9",
+      "bytes": 391
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/read-case-dispatched-pass-mcp-result.json": {
+      "sha256": "be95cf727e2885307a8d186a203a44c4de2507fb8c2c5e7f5646a5e228cfe93e",
+      "bytes": 5890
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/read-case-gate-failure-mcp-result.json": {
+      "sha256": "79d8668cfbf9065042d25b3c81d84ddafb7e2f3650fc40d09569d179ac0bab74",
+      "bytes": 5640
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/read-case-gate-none-mcp-result.json": {
+      "sha256": "8ea377f53c1a8ad2689e3d14eab5c096158955b957270f11ceabdd7183d5be16",
+      "bytes": 5491
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/read-case-evidence-absence-mcp-result.json": {
+      "sha256": "893337c8ddea07691cdbb2d089dd2d4a5eb65fffb4043bffd9a70f5ebf4be687",
+      "bytes": 5804
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/read-case-evidence-refusal-mcp-result.json": {
+      "sha256": "98c601f0030d4b4f7b59a208bcaa6cddd019a42a13db8c7d521008bec6736fe7",
+      "bytes": 5997
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/read-case-evidence-tamper-mcp-result.json": {
+      "sha256": "c76d1881d9aba11eb0d7356f82286f42b27469f56c64a5dcc4e122714d6a8c60",
+      "bytes": 6190
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/read-case-mixed-ledger-mcp-result.json": {
+      "sha256": "8132d4895f7f43a27a75245e7363e8da48d71276e651bc678c836b6f7204a00c",
+      "bytes": 3457
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v2-preflight-20261117/read-case-incomplete-ledger-mcp-result.json": {
+      "sha256": "ef73c335ae0871d51d5d698ca4075d6d253424c093e22efd2dd3acd2cc8b6d3b",
+      "bytes": 3507
+    }
+  },
+  "changes_reviewed": [
+    "Full original public-case projection moved intact into a stored publicCases value; initial task contains eight id/kind index rows.",
+    "New read_case returns a structured clone of the exact full row, including source facts, supplied tamper return and every fixed argv. No private oracle/expected fields added.",
+    "All graft operations and delegated ledger read/write/event operations are blocked before their own read_case delivery; policy-reader still gates workflow operations on complete policy delivery.",
+    "Capture retains each exact read_case result. Grader adds delivery coverage/order for all eight cases; all prior semantic checks and trusted consumers remain unchanged."
+  ],
+  "unchanged_source_checks": {
+    "seed_and_snapshot_bytes_equal": true,
+    "trusted_consume_bytes_equal": true,
+    "semantic_case_grading_body_bytes_equal": true,
+    "frozen_v2_inputs_checked": 59,
+    "frozen_v2_mismatches": [],
+    "old_adapter_tests_fixture_plans_and_results_preserved": true
+  },
+  "actual_preflight": {
+    "status": "pass",
+    "execution_cases": 8,
+    "decisions": 6,
+    "policy_reads": 70,
+    "mcp_requests": 119,
+    "rejected": 0,
+    "transport": "Actual existing createMcpMailbox and serveMailbox, saved MCP envelopes and UUID mailbox requests/responses; actual pinned CLI runtime from held plan. Deterministic controller uses private expected answers, not model evidence.",
+    "fresh_grade_replay_matches_recorded": true,
+    "case_delivery": [
+      {
+        "case_id": "dispatched-pass",
+        "complete_payload_equal": true,
+        "delivery_before_operations": true,
+        "envelope_sha256": "be95cf727e2885307a8d186a203a44c4de2507fb8c2c5e7f5646a5e228cfe93e",
+        "outer_text_bytes": 5851
+      },
+      {
+        "case_id": "gate-failure",
+        "complete_payload_equal": true,
+        "delivery_before_operations": true,
+        "envelope_sha256": "79d8668cfbf9065042d25b3c81d84ddafb7e2f3650fc40d09569d179ac0bab74",
+        "outer_text_bytes": 5601
+      },
+      {
+        "case_id": "gate-none",
+        "complete_payload_equal": true,
+        "delivery_before_operations": true,
+        "envelope_sha256": "8ea377f53c1a8ad2689e3d14eab5c096158955b957270f11ceabdd7183d5be16",
+        "outer_text_bytes": 5452
+      },
+      {
+        "case_id": "evidence-absence",
+        "complete_payload_equal": true,
+        "delivery_before_operations": true,
+        "envelope_sha256": "893337c8ddea07691cdbb2d089dd2d4a5eb65fffb4043bffd9a70f5ebf4be687",
+        "outer_text_bytes": 5765
+      },
+      {
+        "case_id": "evidence-refusal",
+        "complete_payload_equal": true,
+        "delivery_before_operations": true,
+        "envelope_sha256": "98c601f0030d4b4f7b59a208bcaa6cddd019a42a13db8c7d521008bec6736fe7",
+        "outer_text_bytes": 5958
+      },
+      {
+        "case_id": "evidence-tamper",
+        "complete_payload_equal": true,
+        "delivery_before_operations": true,
+        "envelope_sha256": "c76d1881d9aba11eb0d7356f82286f42b27469f56c64a5dcc4e122714d6a8c60",
+        "outer_text_bytes": 6151
+      },
+      {
+        "case_id": "mixed-ledger",
+        "complete_payload_equal": true,
+        "delivery_before_operations": true,
+        "envelope_sha256": "8132d4895f7f43a27a75245e7363e8da48d71276e651bc678c836b6f7204a00c",
+        "outer_text_bytes": 3418
+      },
+      {
+        "case_id": "incomplete-ledger",
+        "complete_payload_equal": true,
+        "delivery_before_operations": true,
+        "envelope_sha256": "ef73c335ae0871d51d5d698ca4075d6d253424c093e22efd2dd3acd2cc8b6d3b",
+        "outer_text_bytes": 3468
+      }
+    ]
+  },
+  "existing_small_tests": {
+    "tests": 2,
+    "pass": 2,
+    "fail": 0,
+    "source_reviewed": true,
+    "log_hashes_bound_by_checkpoint": true,
+    "independent_full_suite_rerun": false
+  },
+  "size_and_outer_serializer": {
+    "initial_task_bytes": 5570,
+    "initial_task_inner_reported_token_count": 1393,
+    "case_outer_byte_div4_estimates_range": [
+      855,
+      1538
+    ],
+    "outer_default_cap_unchanged": 10000,
+    "inner_read_cap_unchanged": 12000,
+    "independent_observation": "Executed exact nested text(await tools.exec_command(cat task.json,max_output_tokens12000,yield_time_ms10000)) and text(JSON.parse(saved largest actual MCP envelope)) in this reviewer session. Both complete outputs were visible without truncation, including the full task and evidence-tamper row.",
+    "largest_envelope_bytes": 6151,
+    "limit": "This exercises the actual outer serializer and saved real MCP envelope, not a literal newly launched Codex native read_case session. Size estimates are tool/byte-derived estimates, not model tokenizer certification. No raised cap or shortened case data."
+  },
+  "native_and_capture_compatibility": {
+    "assessment": "Existing native auditor derives allowed operations from task.tools and matches generic operation args/results to capture.events; read_case follows that same envelope and sequence shape. V5 reads the small task and dynamically exposes listed tools. Source-level compatibility is supported.",
+    "limits": [
+      "No new Codex model/native session was launched; this record is not a native-audit pass.",
+      "Current delivery grader checks receipt presence/order, not full payload equality by itself. Full payload identity is established here by frozen environment source and eight actual envelope/capture/public-row comparisons; future qualification must retain exact source hashes and native response/capture bindings.",
+      "V5 still lacks an automatic graft grading branch; future externally frozen arm gate/replay must name the new adapter and delivery evidence explicitly."
+    ]
+  },
+  "remaining_limits": [
+    "Held V2 baseline/native/raw/manual failures remain frozen and unwaived. No source acceptance, installed savings or new cohort approval.",
+    "Transport correction does not relax or endorse the existing exact-note, exact-result-key or nonzero-prerequisite semantic oracle constraints; separate root adjudication remains pending.",
+    "All prior bounded proof limits remain: no full build/hosted forge/CI/review quality/lifecycle, dispatched run-grain custody, PR-body placement, long resume or separate errored-rung model proof.",
+    "Optional ledger extra-detail grounding and manual actual-output review remain required.",
+    "A future design must freeze complete new helper/context/runtime closure and acceptance rules before models; this unregistered controller proof is not sufficient by itself."
+  ],
+  "activity": "Only this independent record written; no frozen inputs, samples, helpers or skill source edited; no models or full suite run."
+}

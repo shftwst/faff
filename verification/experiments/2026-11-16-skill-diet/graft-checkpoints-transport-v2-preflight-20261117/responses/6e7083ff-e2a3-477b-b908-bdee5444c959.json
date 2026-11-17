@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "value": {
+    "executable": "/usr/local/bin/node",
+    "argv": [
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+      "contract",
+      "quality-gates"
+    ],
+    "stdin": "{\"signal\":\"pass\",\"rungs\":[{\"kind\":\"LINT\",\"status\":\"pass\"},{\"kind\":\"UNIT\",\"status\":\"pass\"}]}",
+    "cwd": "/var/tmp/graft-checkpoint-7eLX8j/dispatched-pass",
+    "exit_code": 0,
+    "stdout": "{\"signal\":\"pass\",\"rungs\":[{\"kind\":\"LINT\",\"status\":\"pass\"},{\"kind\":\"UNIT\",\"status\":\"pass\"}],\"conformant\":true,\"violations\":[]}\n",
+    "stderr": "",
+    "error": null
+  }
+}

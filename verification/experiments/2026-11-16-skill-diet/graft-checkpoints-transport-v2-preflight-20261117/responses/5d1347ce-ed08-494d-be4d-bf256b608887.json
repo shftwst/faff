@@ -1,0 +1,19 @@
+{
+  "ok": true,
+  "value": {
+    "executable": "/usr/local/bin/node",
+    "argv": [
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+      "heartbeat",
+      "/var/tmp/graft-checkpoint-7eLX8j/dispatched-pass/.faff/runs/run-20260101-000000-beepboop-list-dispatched-pass",
+      "--unit",
+      "FAFF-9"
+    ],
+    "stdin": "",
+    "cwd": "/var/tmp/graft-checkpoint-7eLX8j/dispatched-pass",
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "error": null
+  }
+}

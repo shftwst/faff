@@ -1,0 +1,1 @@
+{"name":"run_command","args":{"case_id":"evidence-absence","command_id":"verify-return","input":"{\"issue\":\"FAFF-9\",\"ac_checklist\":{\"present\":false,\"sha256\":null},\"review_verdict\":{\"present\":false,\"sha256\":null},\"human_only_acs\":{\"present\":false,\"sha256\":null}}\n"}}

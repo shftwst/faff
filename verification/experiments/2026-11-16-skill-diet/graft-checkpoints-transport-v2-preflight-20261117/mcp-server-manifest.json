@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "server": "measurement",
+  "task_sha256": "d3285cf11f811b2c26a52f2f7f3367fa1f4d233d5990f5aa6e993eacb180d466",
+  "tools_sha256": "27d1dba27ffc4a3fc8898f288e9bd7be7f1af3ed97e919580777d1a93d3781d6",
+  "server_sha256": "f660be0c380c4be28eab6a19837dfda8a4dae84138bd0754e7d05b38eb9ef64a",
+  "mailbox_sha256": "340573bb016b4fc19dc3859cba2e3bd808c8c95c22306e83bcecf1abf57eb5d0"
+}

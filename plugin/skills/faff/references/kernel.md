@@ -417,7 +417,7 @@ Canonical semantics: `faff contract spec-readiness --describe`. Classify each no
 | `medium` | Attach with rating retained, move to Todo and surface for human triage; never auto-admit |
 | `low` | Park |
 
-Medium maps to `needs-decision-first`. An autonomous resolve-attempt that fails invokes **Park protocol (shared)** with `faff-parked` and root cause `punt-not-closed`; do not leave it merely surfaced and unparked. Wtf surfaces the park. Later human resolution uses **Live-thread reconciliation** and **Unpark protocol (shared)**. Tidy's spec-health pass also checks codebase drift; every verdict computation must reconcile live-thread steering, even without a tidy pass. Every non-trivial decision section has exactly one marker; a tradeoff/comparison ending without one is invalid:
+Medium maps to `needs-decision-first`. An autonomous run gives it a resolve-attempt; failure invokes **Park protocol (shared)** with `faff-parked` and root cause `punt-not-closed`; do not leave it merely surfaced and unparked. Wtf surfaces the park. Later human resolution uses **Live-thread reconciliation** and **Unpark protocol (shared)**. Tidy's spec-health pass also checks codebase drift; every verdict computation must reconcile live-thread steering, even without a tidy pass. Every non-trivial decision section has exactly one marker; a tradeoff/comparison ending without one is invalid:
 
 | Marker | Reader action |
 |---|---|

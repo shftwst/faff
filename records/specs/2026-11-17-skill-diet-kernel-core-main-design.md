@@ -2,7 +2,7 @@
 
 ## Scope
 
-Replace only Core contracts and adaptor slots through EOF using the source-batch final text, retaining the original producer-consumer END anchor and restoring the original chosen/punt/assumes/none marker encoding. All preceding current-main bytes remain exact. Restore the existing loader literal never silently to pass in the review-verdict section; the unchanged source guard requires it. This is a new corrected source treatment; prior held input-binding results remain held. Existing consumer tests and lint establish integration, not new model parity.
+Replace only Core contracts and adaptor slots through EOF using the source-batch final text, retaining the original producer-consumer END anchor and restoring the original chosen/punt/assumes/none marker encoding. All preceding current-main bytes remain exact. Restore the existing loader literal never silently to pass in the review-verdict section; the unchanged source guard requires it. Restore the explicit autonomous resolve-attempt requirement in the medium-marker paragraph. This is a new corrected source treatment; prior held input-binding results remain held. Existing consumer tests and lint establish integration, not new model parity.
 
 ## Rule inventory
 

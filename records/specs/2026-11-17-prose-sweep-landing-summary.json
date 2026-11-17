@@ -1,0 +1,301 @@
+{
+  "main_base": "63e71d1f6bfa5ea8ba6590861ab2fd76b7042f2d",
+  "evidence_commit": "edbdfee14c5ce3497a5b8caa775adf2315fa8f23",
+  "files_reviewed": 41,
+  "files_changed": 35,
+  "saved_bytes": 17930,
+  "saved_estimated_tokens": 4411,
+  "before_bytes": 1372081,
+  "after_bytes": 1354151,
+  "qualification": "Independent static review;93existing source checks, adapter lint and113-block inventory pass. No full model behavioural parity claim.",
+  "excluded": "Earlier experimental reductions, planner and harness code are not part of this main patch. One unmatched30-byte prep substitution is deferred.",
+  "files": [
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "before_bytes": 157720,
+      "after_bytes": 157576,
+      "saved_bytes": 144,
+      "saved_estimated_tokens": 35
+    },
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "before_bytes": 179464,
+      "after_bytes": 179185,
+      "saved_bytes": 279,
+      "saved_estimated_tokens": 69
+    },
+    {
+      "path": "plugin/skills/faff-jot/SKILL.md",
+      "before_bytes": 23456,
+      "after_bytes": 23298,
+      "saved_bytes": 158,
+      "saved_estimated_tokens": 38
+    },
+    {
+      "path": "plugin/skills/faff-map/SKILL.md",
+      "before_bytes": 24782,
+      "after_bytes": 24684,
+      "saved_bytes": 98,
+      "saved_estimated_tokens": 23
+    },
+    {
+      "path": "plugin/skills/faff-onboard/SKILL.md",
+      "before_bytes": 23185,
+      "after_bytes": 23024,
+      "saved_bytes": 161,
+      "saved_estimated_tokens": 40
+    },
+    {
+      "path": "plugin/skills/faff-plot/SKILL.md",
+      "before_bytes": 45906,
+      "after_bytes": 45820,
+      "saved_bytes": 86,
+      "saved_estimated_tokens": 21
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "before_bytes": 104335,
+      "after_bytes": 104236,
+      "saved_bytes": 99,
+      "saved_estimated_tokens": 25
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "before_bytes": 76181,
+      "after_bytes": 75989,
+      "saved_bytes": 192,
+      "saved_estimated_tokens": 48
+    },
+    {
+      "path": "plugin/skills/faff-wtf/SKILL.md",
+      "before_bytes": 31551,
+      "after_bytes": 31496,
+      "saved_bytes": 55,
+      "saved_estimated_tokens": 12
+    },
+    {
+      "path": "plugin/skills/faff/SKILL.md",
+      "before_bytes": 12984,
+      "after_bytes": 12984,
+      "saved_bytes": 0,
+      "saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faff/references/autonomous.md",
+      "before_bytes": 39233,
+      "after_bytes": 38758,
+      "saved_bytes": 475,
+      "saved_estimated_tokens": 116
+    },
+    {
+      "path": "plugin/skills/faff/references/build.md",
+      "before_bytes": 12080,
+      "after_bytes": 9689,
+      "saved_bytes": 2391,
+      "saved_estimated_tokens": 588
+    },
+    {
+      "path": "plugin/skills/faff/references/create.md",
+      "before_bytes": 9145,
+      "after_bytes": 7429,
+      "saved_bytes": 1716,
+      "saved_estimated_tokens": 425
+    },
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "before_bytes": 95418,
+      "after_bytes": 94998,
+      "saved_bytes": 420,
+      "saved_estimated_tokens": 104
+    },
+    {
+      "path": "plugin/skills/faff/references/l4.md",
+      "before_bytes": 26377,
+      "after_bytes": 25523,
+      "saved_bytes": 854,
+      "saved_estimated_tokens": 210
+    },
+    {
+      "path": "plugin/skills/faff/references/methodology.md",
+      "before_bytes": 35453,
+      "after_bytes": 34325,
+      "saved_bytes": 1128,
+      "saved_estimated_tokens": 277
+    },
+    {
+      "path": "plugin/skills/faff/references/park.md",
+      "before_bytes": 14619,
+      "after_bytes": 13771,
+      "saved_bytes": 848,
+      "saved_estimated_tokens": 210
+    },
+    {
+      "path": "plugin/skills/faff/references/review.md",
+      "before_bytes": 7605,
+      "after_bytes": 7238,
+      "saved_bytes": 367,
+      "saved_estimated_tokens": 91
+    },
+    {
+      "path": "plugin/skills/faff/references/tracker.md",
+      "before_bytes": 24185,
+      "after_bytes": 22649,
+      "saved_bytes": 1536,
+      "saved_estimated_tokens": 379
+    },
+    {
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "before_bytes": 24639,
+      "after_bytes": 24639,
+      "saved_bytes": 0,
+      "saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faffidavit-routing/SKILL.md",
+      "before_bytes": 11236,
+      "after_bytes": 10725,
+      "saved_bytes": 511,
+      "saved_estimated_tokens": 126
+    },
+    {
+      "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+      "before_bytes": 74289,
+      "after_bytes": 74289,
+      "saved_bytes": 0,
+      "saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md",
+      "before_bytes": 12540,
+      "after_bytes": 11876,
+      "saved_bytes": 664,
+      "saved_estimated_tokens": 163
+    },
+    {
+      "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
+      "before_bytes": 25766,
+      "after_bytes": 25466,
+      "saved_bytes": 300,
+      "saved_estimated_tokens": 75
+    },
+    {
+      "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+      "before_bytes": 45057,
+      "after_bytes": 44542,
+      "saved_bytes": 515,
+      "saved_estimated_tokens": 128
+    },
+    {
+      "path": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+      "before_bytes": 18737,
+      "after_bytes": 18517,
+      "saved_bytes": 220,
+      "saved_estimated_tokens": 54
+    },
+    {
+      "path": "plugin/skills/faffter-dark-spec-review/SKILL.md",
+      "before_bytes": 40715,
+      "after_bytes": 40463,
+      "saved_bytes": 252,
+      "saved_estimated_tokens": 61
+    },
+    {
+      "path": "plugin/skills/faffter-noon-adr/SKILL.md",
+      "before_bytes": 4460,
+      "after_bytes": 4158,
+      "saved_bytes": 302,
+      "saved_estimated_tokens": 75
+    },
+    {
+      "path": "plugin/skills/faffter-noon-architecture/SKILL.md",
+      "before_bytes": 4967,
+      "after_bytes": 4608,
+      "saved_bytes": 359,
+      "saved_estimated_tokens": 88
+    },
+    {
+      "path": "plugin/skills/faffter-noon-concurrency-sequential/SKILL.md",
+      "before_bytes": 18605,
+      "after_bytes": 18149,
+      "saved_bytes": 456,
+      "saved_estimated_tokens": 110
+    },
+    {
+      "path": "plugin/skills/faffter-noon-env-code-interface/SKILL.md",
+      "before_bytes": 9862,
+      "after_bytes": 9400,
+      "saved_bytes": 462,
+      "saved_estimated_tokens": 115
+    },
+    {
+      "path": "plugin/skills/faffter-noon-env-compose/SKILL.md",
+      "before_bytes": 12443,
+      "after_bytes": 12054,
+      "saved_bytes": 389,
+      "saved_estimated_tokens": 95
+    },
+    {
+      "path": "plugin/skills/faffter-noon-evaluate/SKILL.md",
+      "before_bytes": 16192,
+      "after_bytes": 15758,
+      "saved_bytes": 434,
+      "saved_estimated_tokens": 105
+    },
+    {
+      "path": "plugin/skills/faffter-noon-intake/SKILL.md",
+      "before_bytes": 7715,
+      "after_bytes": 7594,
+      "saved_bytes": 121,
+      "saved_estimated_tokens": 30
+    },
+    {
+      "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+      "before_bytes": 35118,
+      "after_bytes": 34734,
+      "saved_bytes": 384,
+      "saved_estimated_tokens": 94
+    },
+    {
+      "path": "plugin/skills/faffter-noon-prd/SKILL.md",
+      "before_bytes": 4517,
+      "after_bytes": 4517,
+      "saved_bytes": 0,
+      "saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faffter-noon-review/SKILL.md",
+      "before_bytes": 13503,
+      "after_bytes": 13503,
+      "saved_bytes": 0,
+      "saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faffter-noon-ship/SKILL.md",
+      "before_bytes": 14189,
+      "after_bytes": 13651,
+      "saved_bytes": 538,
+      "saved_estimated_tokens": 132
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec-review/SKILL.md",
+      "before_bytes": 9605,
+      "after_bytes": 9605,
+      "saved_bytes": 0,
+      "saved_estimated_tokens": 0
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+      "before_bytes": 17805,
+      "after_bytes": 17088,
+      "saved_bytes": 717,
+      "saved_estimated_tokens": 176
+    },
+    {
+      "path": "plugin/skills/faffter-noon-transport-private-network/SKILL.md",
+      "before_bytes": 6442,
+      "after_bytes": 6143,
+      "saved_bytes": 299,
+      "saved_estimated_tokens": 73
+    }
+  ]
+}

@@ -36,7 +36,7 @@
         "test/prose-size.test.mjs"
       ],
       "exit_code": 0,
-      "log": "/var/tmp/faff-producers-main-checks/source-checks.txt",
+      "log": "https://github.com/shftwst/faff/blob/edbdfee14c5ce3497a5b8caa775adf2315fa8f23/verification/experiments/2026-11-17-prose-sweep/landing-checks/producers-source-checks.txt",
       "sha256": "db60e1977d1193cef8bc6ade909a484a1e6f517675a279afdfe1a994b1c32cea"
     },
     {
@@ -47,7 +47,7 @@
         "validate-adapters"
       ],
       "exit_code": 0,
-      "log": "/var/tmp/faff-producers-main-checks/adapter-lint.txt",
+      "log": "https://github.com/shftwst/faff/blob/edbdfee14c5ce3497a5b8caa775adf2315fa8f23/verification/experiments/2026-11-17-prose-sweep/landing-checks/producers-adapter-lint.txt",
       "sha256": "2d18cb8ac7110f10818e29d090d69f50240e4e1f42d02599ad481576636accf1"
     }
   ],

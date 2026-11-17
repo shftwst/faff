@@ -30,7 +30,7 @@ The caller provides:
 
 ## Output
 
-A single markdown document following the four-phase arc below, ending with a confidence self-rating line. The caller (faff-prep) validates it via `faff contract spec-readiness`, then attaches it to the issue. This skill produces the body; it does not define the marker contract (that's the gateway _Spec readiness (fixed)_ section) and does not handle attachment or lifecycle (that's faff-prep).
+Emit one markdown document following the four-phase arc and ending with a confidence self-rating line. Faff-prep validates via `faff contract spec-readiness`, then attaches it and owns lifecycle. This producer owns only the body; the gateway _Spec readiness (fixed)_ section owns the marker contract.
 
 ## The lite nlspec arc
 
@@ -103,7 +103,7 @@ Before emitting the spec + self-rating, dispatch a **clean-context subagent** to
 
 **Acting on findings.** `blocker` (spec is wrong about a codebase fact, false `**Assumes:**`, or a `**Chosen:**` that contradicts established convention) → revise: apply the fix, or convert the affected `**Chosen:**` to a `**Punt:**` noting the conflict; if it can't be fixed without architectural reframing, return a `low` rating with the blocker noted so the caller parks. `major` (vague AC, scope creep, a missed edge case the codebase shows is relevant) → fix where mechanical, else leave as `**Punt:**` with the reviewer's note. `minor` → fold where trivial, else note.
 
-**Self-rating downgrade rule.** If the review surfaces ≥1 `blocker` or ≥3 `major` findings, the spec **cannot** self-rate `high` regardless of how it felt pre-review — cap at `medium`. This stops rationalising past honest findings. Applies to every spec, regardless of size.
+**Self-rating downgrade rule.** ≥1 `blocker` or ≥3 `major` review findings cap the spec at `medium`, never `high`, regardless of its pre-review rating or size.
 
 **Return the review.** Emit the review's findings + the resolution decisions (what was applied, what was left as `**Punt:**`, what was dismissed and why) alongside the spec, so the caller can log the audit trail. A missing review record is a process failure.
 
@@ -119,11 +119,11 @@ confidence: high | medium | low
 
 The three levels and the gate each maps to are part of the **fixed spec-readiness contract** in the gateway (_Spec readiness (fixed)_), which also defines the line's format. Either way, this skill emits it, it does not define it. In short: `high` = every decision marked, no open questions, DONE mirrors the body; `medium` = an open `**Punt:**` item that `faff punt-scan` does not report `eligible`, or patchy explore findings; `low` = significant unknowns or possible split. Rate open decisions, not polish: a slip the builder can settle without making a new decision (a field missing from one example, an obvious unstated default) is fixed in the draft and does not lower the rating. A Punt is eligible only when it is tagged `(non-blocking)` **and** cross-referenced under OUT OF SCOPE; prose saying it does not block does not make it eligible. A spec whose only open items are eligible Punts can self-rate `high`. This is a mechanical read of the scanner, never a self-certification of the tag; tag honesty is the spec-review lens's call.
 
-This line is consumed by faff-prep for its autonomous gate decision (`high` → promote; `medium` → attach + flag for human review; `low` → park) and is **retained on the attached spec** — it is durable provenance and a re-spec signal, not stripped. `/faff-tidy`'s spec-health pass reads the retained rating and reconciles it against later comments and codebase drift; the routing verdict treats a retained `confidence: medium` as `needs-decision-first`. It is both a signal to the caller and a lasting property of the spec.
+Faff-prep consumes this line for its autonomous gate (`high` → promote; `medium` → attach + flag for human review; `low` → park). **Retain it on the attached spec** as durable provenance and a re-spec signal. `/faff-tidy` reconciles it against later comments/codebase drift in spec-health; routing treats retained `confidence: medium` as `needs-decision-first`.
 
 ## Contract artifact
 
-After the prose spec and the `confidence:` line, append **one** fenced code block — tagged `faff-contract:spec-readiness`, as the **last** thing in the output — declaring the markers you just wrote, so faff-prep (the consumer) parses them **deterministically** (no LLM re-read of your prose) and pipes them to `faff contract spec-readiness`. You authored the markers and the confidence token, so you declare them directly; the block mirrors the prose, it is not a second source of truth.
+After the prose spec and `confidence:` line, append **one** `faff-contract:spec-readiness` fenced block as the **last** output. Declare the actual markers and confidence token you authored; the block mirrors the prose, never a second truth. Faff-prep parses it **deterministically**, without an LLM re-read, and pipes it to `faff contract spec-readiness`.
 
 ````
 ```faff-contract:spec-readiness

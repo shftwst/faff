@@ -1,0 +1,38 @@
+{
+  "refs": {
+    "old_base": "bf839cfcc13194df284296ababd8966bd9f2ab62",
+    "new_base": "0ba516734c228ba46234f1879adf46a4c2a8348b",
+    "old_head": "dd254a8cdcd38f05477a6bd75a122207839932ad",
+    "new_head": "c3feb801f4d6a2982ab496e8ad7d8df7c3c28e64"
+  },
+  "trees": {
+    "old_base": "fd47a570fd534f23617ccaf2b3c1770d62e88eab",
+    "new_base": "fd47a570fd534f23617ccaf2b3c1770d62e88eab",
+    "old_head": "a9d1babe3937751b850512a98e7743a4cf4042d4",
+    "new_head": "a9d1babe3937751b850512a98e7743a4cf4042d4"
+  },
+  "base_trees_identical": true,
+  "head_trees_identical": true,
+  "range_diff": "Both replayed commits have unchanged patches.",
+  "rule_inventory": {
+    "base": "0ba516734c228ba46234f1879adf46a4c2a8348b",
+    "result": "pass",
+    "blocks_deleted": 92,
+    "covered_by_row": 92,
+    "uncovered": 0,
+    "row_errors": 0
+  },
+  "pr": {
+    "number": 1205,
+    "base": "main",
+    "mergeable": "MERGEABLE",
+    "ci": "restarted after rebase"
+  },
+  "savings": {
+    "merged_pr_1204_bytes": 17930,
+    "merged_pr_1204_estimated_tokens": 4411,
+    "pending_pr_1205_bytes": 15730,
+    "pending_pr_1205_estimated_tokens": 3861
+  },
+  "fidelity": "Exact reviewed file tree preserved. Historical source checks remain applicable; no new model runs."
+}

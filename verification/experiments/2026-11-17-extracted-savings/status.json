@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "base": "2d8cb231c515861e88f5aa79bf5ab43f13223d72",
+  "base": "89ad284a36cf24da33c0e0f44e34d18fd1db7507",
   "estimator": "ceil(UTF-16 code units / 4) per full file, summed; not provider usage",
   "pre_quick_pass_main": {
     "files": 41,
@@ -9,90 +9,18 @@
   },
   "current_main": {
     "files": 41,
-    "bytes": 1245989,
-    "estimated_tokens": 308888
+    "bytes": 1243988,
+    "estimated_tokens": 308394
   },
   "landed_savings": {
-    "bytes": 126092,
-    "estimated_tokens": 31041
+    "bytes": 128093,
+    "estimated_tokens": 31535
   },
   "pending_extractions": [
     {
-      "skill": "PRD",
-      "pr": "https://github.com/shftwst/faff/pull/1212",
-      "head": "3179437be4d31f0ade986dbe4d6e0cd5920b8300",
-      "before": {
-        "bytes": 4517,
-        "sha256": "be742410026685601a5d762c42ff56a430920492314d8eacfdb12628bed12152",
-        "estimated_tokens": 1123
-      },
-      "after": {
-        "bytes": 2516,
-        "sha256": "ea0a17ed8ce3640e273743d3766353082a60c1e93b917049a7b65205d33b3657",
-        "estimated_tokens": 629
-      },
-      "saved": {
-        "bytes": 2001,
-        "estimated_tokens": 494
-      },
-      "fresh_fidelity": {
-        "baseline": {
-          "samples": 1,
-          "raw_cases_passed": 14,
-          "raw_cases_total": 14,
-          "artifact_cases": 6,
-          "decision_cases": 8,
-          "cli_consumptions_passed": 6,
-          "cli_consumptions_total": 6,
-          "native": "pass",
-          "manual": "pass",
-          "actual_model": [
-            "claude-opus-5-5"
-          ],
-          "actual_cli": [
-            "2.1.325"
-          ]
-        },
-        "candidate": {
-          "samples": 1,
-          "raw_cases_passed": 14,
-          "raw_cases_total": 14,
-          "artifact_cases": 6,
-          "decision_cases": 8,
-          "cli_consumptions_passed": 6,
-          "cli_consumptions_total": 6,
-          "native": "pass",
-          "manual": "pass",
-          "actual_model": [
-            "claude-opus-5-5"
-          ],
-          "actual_cli": [
-            "2.1.325"
-          ]
-        }
-      },
-      "qualification_commit": "46cc3a87c8940f61eef0832ce9fce567a9113ec3",
-      "qualification_path": "verification/experiments/2026-11-16-skill-diet/prd-main-opus-v1-qualification.json",
-      "limits": [
-        "One fixed sample per arm, fresh bounded diagnostic. Historical Astra-low and incomplete Opus runs remain separate.",
-        "No implementation inspection, live tracker acquisition, full run-start workflow, statistical equivalence or provider billing claim."
-      ],
-      "local_checks": {
-        "tests_passed": 183,
-        "adapter_lint": "pass",
-        "rule_inventory": "pass"
-      },
-      "status": "open",
-      "ci": {
-        "status": "pass"
-      },
-      "new_model_samples": 2,
-      "remote_rebase_measured_source_unchanged": true
-    },
-    {
       "skill": "default spec-review",
       "pr": "https://github.com/shftwst/faff/pull/1213",
-      "head": "17dc2374b68236a5bb1012bbc6af4c2be94c87ed",
+      "head": "e8ad65cb4c2f543b1991f6ec994a7d1c35d6b9dd",
       "before": {
         "bytes": 9605,
         "sha256": "4704eea626c039b83490a8ccf87a52d289b97ae2128ac0d0d56adbf7f22895b7",
@@ -160,25 +88,125 @@
       },
       "status": "open",
       "ci": {
-        "status": "running"
+        "status": "pass",
+        "failed": [],
+        "remaining": []
       },
       "new_model_samples": 2
+    },
+    {
+      "skill": "kernel core contracts",
+      "pr": "https://github.com/shftwst/faff/pull/1214",
+      "head": "d55846e80588d0b5547fe6b8d3a3eedbd5daa873",
+      "path": "plugin/skills/faff/references/kernel.md",
+      "before": {
+        "bytes": 83652,
+        "sha256": "aa76c16a0d51ee966c3e77cf5df8564834966173f08dd2100da174b82c97ac89",
+        "estimated_tokens": 20753
+      },
+      "after": {
+        "bytes": 70478,
+        "sha256": "4505afeeec9f75b9d2d388564f5f61ce9b7daeac7bbf21bd546d04de41f4e1f5",
+        "estimated_tokens": 17522
+      },
+      "saved": {
+        "bytes": 13174,
+        "estimated_tokens": 3231
+      },
+      "fresh_fidelity": {
+        "baseline": {
+          "samples": 1,
+          "raw_cases_passed": 41,
+          "raw_cases_total": 41,
+          "artifact_cases": 9,
+          "decision_cases": 32,
+          "producer_input_bindings_passed": 9,
+          "producer_input_bindings_total": 9,
+          "real_cli_expected_outcomes_matched": 9,
+          "real_cli_cases_total": 9,
+          "invalid_control_expected_outcomes_matched": 9,
+          "invalid_controls_total": 9,
+          "native": "pass",
+          "manual": "pass",
+          "actual_model": [
+            "claude-opus-5-5"
+          ],
+          "actual_cli": [
+            "2.1.325"
+          ]
+        },
+        "candidate": {
+          "samples": 1,
+          "raw_cases_passed": 41,
+          "raw_cases_total": 41,
+          "artifact_cases": 9,
+          "decision_cases": 32,
+          "producer_input_bindings_passed": 9,
+          "producer_input_bindings_total": 9,
+          "real_cli_expected_outcomes_matched": 9,
+          "real_cli_cases_total": 9,
+          "invalid_control_expected_outcomes_matched": 9,
+          "invalid_controls_total": 9,
+          "native": "pass",
+          "manual": "pass",
+          "actual_model": [
+            "claude-opus-5-5"
+          ],
+          "actual_cli": [
+            "2.1.325"
+          ]
+        }
+      },
+      "qualification_commit": "651b70febbae12b71d504732c583790af159adee",
+      "qualification_path": "verification/experiments/2026-11-16-skill-diet/kernel-core-main-opus-v1-qualification.json",
+      "limits": [
+        "New corrected treatment; prior held Sol evidence is immutable, unpooled and not qualification of these bytes.",
+        "One fixed fresh sample per arm is a bounded diagnostic, not five-run reliability or statistical equivalence.",
+        "No actual caching/invalidation, parking, publication, deployment, complete caller execution, provider independence or billing claim.",
+        "Real consumption and manual/native gates are separate required evidence using unchanged pinned CLI and fixture; no new harness/replayer framework or normalisation."
+      ],
+      "local_checks": {
+        "tests_passed": 151,
+        "adapter_lint": "pass",
+        "rule_inventory": "pass"
+      },
+      "new_model_samples": 2,
+      "source_corrections": [
+        "Restore explicit chosen|punt|assumes|none marker enum.",
+        "Retain source-batch producer-consumer END anchor required by unchanged loader.",
+        "Restore original never silently to pass source-consumer literal.",
+        "Restore original positive autonomous run resolve-attempt obligation."
+      ],
+      "prior_hold": {
+        "path": "kernel-core-contracts-pair-v1-result.json",
+        "status": "held; unchanged and unpooled",
+        "cause": "Prior Sol pair raw41/41 each but candidate producer input8/9: missing explicit marker:none in readiness-missing-marker. CLI9/9 did not excuse that input mismatch."
+      },
+      "publication_binding": "Rebased to main 89ad284a; measured kernel hash unchanged.",
+      "status": "open",
+      "ci": {
+        "status": "running",
+        "failed": [],
+        "remaining": [
+          "typecheck"
+        ]
+      }
     }
   ],
   "pending_savings": {
-    "bytes": 3551,
-    "estimated_tokens": 874
+    "bytes": 14724,
+    "estimated_tokens": 3611
   },
   "limits": [
-    "PRs 1207 through 1211 have merged. Fresh diagnostics and historical cohorts remain separate.",
+    "PRs 1207 through 1212 have merged. Fresh diagnostics and historical cohorts remain separate.",
     "No raw runs, harness or bulk evidence imported into implementation branches.",
     "Optional documentation, tests and rule inventories are not runtime prompt savings.",
     "#1203 remains draft; other implemented or held cuts are not promoted by these extractions."
   ],
   "next_candidates_not_counted": [],
   "projected_after_all_prs": {
-    "bytes": 1242438,
-    "estimated_tokens": 308014
+    "bytes": 1229264,
+    "estimated_tokens": 304783
   },
   "landed_extractions": [
     {
@@ -485,6 +513,81 @@
       },
       "new_model_samples": 2,
       "merge_commit": "2d8cb231c515861e88f5aa79bf5ab43f13223d72"
+    },
+    {
+      "skill": "PRD",
+      "pr": "https://github.com/shftwst/faff/pull/1212",
+      "head": "3179437be4d31f0ade986dbe4d6e0cd5920b8300",
+      "before": {
+        "bytes": 4517,
+        "sha256": "be742410026685601a5d762c42ff56a430920492314d8eacfdb12628bed12152",
+        "estimated_tokens": 1123
+      },
+      "after": {
+        "bytes": 2516,
+        "sha256": "ea0a17ed8ce3640e273743d3766353082a60c1e93b917049a7b65205d33b3657",
+        "estimated_tokens": 629
+      },
+      "saved": {
+        "bytes": 2001,
+        "estimated_tokens": 494
+      },
+      "fresh_fidelity": {
+        "baseline": {
+          "samples": 1,
+          "raw_cases_passed": 14,
+          "raw_cases_total": 14,
+          "artifact_cases": 6,
+          "decision_cases": 8,
+          "cli_consumptions_passed": 6,
+          "cli_consumptions_total": 6,
+          "native": "pass",
+          "manual": "pass",
+          "actual_model": [
+            "claude-opus-5-5"
+          ],
+          "actual_cli": [
+            "2.1.325"
+          ]
+        },
+        "candidate": {
+          "samples": 1,
+          "raw_cases_passed": 14,
+          "raw_cases_total": 14,
+          "artifact_cases": 6,
+          "decision_cases": 8,
+          "cli_consumptions_passed": 6,
+          "cli_consumptions_total": 6,
+          "native": "pass",
+          "manual": "pass",
+          "actual_model": [
+            "claude-opus-5-5"
+          ],
+          "actual_cli": [
+            "2.1.325"
+          ]
+        }
+      },
+      "qualification_commit": "46cc3a87c8940f61eef0832ce9fce567a9113ec3",
+      "qualification_path": "verification/experiments/2026-11-16-skill-diet/prd-main-opus-v1-qualification.json",
+      "limits": [
+        "One fixed sample per arm, fresh bounded diagnostic. Historical Astra-low and incomplete Opus runs remain separate.",
+        "No implementation inspection, live tracker acquisition, full run-start workflow, statistical equivalence or provider billing claim."
+      ],
+      "local_checks": {
+        "tests_passed": 183,
+        "adapter_lint": "pass",
+        "rule_inventory": "pass"
+      },
+      "status": "merged",
+      "ci": {
+        "status": "pass",
+        "failed": [],
+        "remaining": []
+      },
+      "new_model_samples": 2,
+      "remote_rebase_measured_source_unchanged": true,
+      "merge_commit": "89ad284a36cf24da33c0e0f44e34d18fd1db7507"
     }
   ],
   "local_not_counted": [
@@ -523,14 +626,13 @@
       "status": "source review and 133 tests pass; model behaviour unmeasured; not in merge queue"
     },
     {
-      "skill": "corrected kernel core contracts",
-      "head": "ba3b13aa6229d8324bc5da69ae4257d70c716910",
+      "skill": "beep-boop reporting and ledger combined",
+      "head": "d6a6cf997387c313e053a8c5a87a0393e931fb19",
       "saved": {
-        "bytes": 13174,
-        "estimated_tokens": 3231
+        "bytes": 8065,
+        "estimated_tokens": 1979
       },
-      "status": "fresh candidate running after baseline41/41,9/9actual input/CLI cases and9/9invalid controls; native/manual baseline pass",
-      "previous_treatment": "Sol pair remains held8/9 producer inputs; corrected enum/positiveattempt and compatibility anchors define new source."
+      "status": "Fresh reporting and ledger baselines running; candidate not launched. Source review and 247 tests pass."
     }
   ],
   "recorded_at_utc": "2026-11-17T20:06:42.639034+00:00"

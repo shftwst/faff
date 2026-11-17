@@ -10,12 +10,13 @@ Tokens use the ceiling of UTF-16 code units divided by four per complete file.
 | [1209](https://github.com/shftwst/faff/pull/1209), kernel configuration | 11,346 B | 2,795 | Merged |
 | [1210](https://github.com/shftwst/faff/pull/1210), rendering | 9,842 B | 2,401 | Merged |
 | [1211](https://github.com/shftwst/faff/pull/1211), thematic | 3,672 B | 896 | Merged |
-| [1212](https://github.com/shftwst/faff/pull/1212), PRD | 2,001 B | 494 | Open, CI passed |
+| [1212](https://github.com/shftwst/faff/pull/1212), PRD | 2,001 B | 494 | Merged |
 | [1213](https://github.com/shftwst/faff/pull/1213), default spec-review | 1,550 B | 380 | Open, CI running |
+| [1214](https://github.com/shftwst/faff/pull/1214), kernel core contracts | 13,174 B | 3,231 | Open, CI running |
 
-Merged savings since the quick-pass starting main: **126,092 bytes / 31,041
-estimated tokens**. Main totals **1,245,989 bytes / 308,888 estimated tokens**
-across 41 covered files. Open PRs contribute another 3,551 bytes / 874 tokens.
+Merged savings since the quick-pass starting main: **128,093 bytes / 31,535
+estimated tokens**. Main totals **1,243,988 bytes / 308,394 estimated tokens**
+across 41 covered files. Open PRs contribute another 14,724 bytes / 3,611 tokens.
 Local and held reductions are excluded from both totals.
 
 Fresh Opus diagnostics used one fixed sample per arm. Thematic passed 16/16
@@ -38,8 +39,13 @@ Default spec-review passed a fresh 21/21 cases and 6/6 real contract/routing
 checks per arm, with all six invalid controls rejected per arm. Its two QA
 severity labels varied within policy without changing the correct revise route.
 
-The corrected kernel core candidate is being measured. Its local saving of
-13,174 bytes / 3,231 tokens is excluded until the new treatment completes.
+The corrected kernel core candidate passed 41/41 cases, 9/9 producer-input
+bindings, 9/9 real CLI outcomes and 9/9 invalid controls in each arm. Manual
+and native audits passed. The prior held treatment stays separate.
+
+The combined beep-boop reporting and ledger candidate saves 8,065 bytes / 1,979
+tokens locally. Source review and 247 existing tests pass; fresh reporting and
+ledger baselines are running. This saving is excluded from the totals above.
 
 Kernel's missed line allowance was corrected from 465 to 435. Linux checks
 passed; macOS was cancelled after merge. The other merged extractions had

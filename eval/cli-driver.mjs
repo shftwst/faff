@@ -4,9 +4,9 @@
 //
 // Two presets over ONE code path (FAFF-132):
 //   - frontier: `claude -p` against api.anthropic.com (the default).
-//   - local:    the SAME `claude -p` invocation with ollama's Anthropic-Messages-API env
-//               redirect (ANTHROPIC_BASE_URL=<ollama host>, AUTH_TOKEN=ollama, API_KEY="")
-//               + --model. No new transport — ollama speaks the Anthropic API natively.
+//   - local:    the SAME `claude -p` invocation with an Anthropic-Messages-API env redirect
+//               (ANTHROPIC_BASE_URL=<local gateway>, AUTH_TOKEN=<local API key>, API_KEY="")
+//               + --model. No new transport — the gateway speaks the Anthropic API natively.
 //
 // FAFF-133 — load the REAL skills into the isolated run. The empty CLAUDE_CONFIG_DIR gave the
 // spawned `claude` NO faff skills, so the eval measured an improvised vanilla-model judgement, not
@@ -50,7 +50,7 @@ import { normaliseCleanRefutation } from "../plugin/skills/faffter-dark-adversar
 
 // FAFF-138 — the isolated CLAUDE_CONFIG_DIR (ADR-0003) also strips the OAuth credential file, so a
 // frontier `claude -p` lands "Not logged in". Forward ONLY the credential file into the per-rep
-// cfgDir (mutable state stays isolated). Frontier-only: the local lane points at the ollama host, so
+// cfgDir (mutable state stays isolated). Frontier-only: the local lane points at a local gateway, so
 // it must NOT copy the real Anthropic credential to a third-party endpoint (forwardCreds: false).
 // Best-effort: a missing creds file (e.g. ANTHROPIC_API_KEY env auth) is fine — leave it.
 const CREDENTIALS_FILE = ".credentials.json";
@@ -1239,7 +1239,7 @@ function renderVerdictRevertPrompt(c, verdictProse = null) {
 export const estimateTokens = (s) => Math.ceil(String(s ?? "").length / 4);
 
 // FAFF-144/FAFF-148 — the full eval prompt for a case (criteria + fixture + the envelope instruction),
-// factored out of makeCliDriver so any driver (claude -p OR a direct ollama POST) builds it the same.
+// factored out of makeCliDriver so any driver builds it the same.
 // FAFF-146/148 — the envelope instruction is per-kind. verdict-revert uses the review-verdict rubric +
 // its verdict-shaped envelope; confidence/marker carry their own field (modeInstructionFor); the tidy
 // kinds keep EVAL_MODE_INSTRUCTION.
@@ -1252,7 +1252,7 @@ export function buildEvalPrompt(evalCase, criteria = null) {
 }
 
 // PURE: resolve the exact { bin, args, env } to spawn. No spawn, no fs, no clock — so a test can
-// import this and assert preset wiring (--model / --bare / --plugin-dir / ollama env) with zero I/O.
+// import this and assert preset wiring (--model / --bare / --plugin-dir / local-gateway env) with zero I/O.
 export function buildInvocation(opts, prompt, cfgDir) {
   const { bin = "claude", model = null, effort = null, env = {}, bare = false, pluginDir = null } = opts ?? {};
   const args = [
@@ -1359,25 +1359,26 @@ export function makeCliDriver(opts = {}) {
 // FAFF-315: `model` is threaded through so the frontier lane can be PINNED (never the account
 // default — the eval-bulk budget guard). buildInvocation already emits `--model` when set.
 export function frontierOpts({ bin = "claude", model = null, effort = null, bare = false, pluginDir = DEFAULT_PLUGIN_DIR, forwardCreds = true } = {}) {
-  return { bin, model, effort, bare, pluginDir, forwardCreds }; // FAFF-722 — effort is frontier-only (localOpts has none)
+  return { bin, model, effort, bare, pluginDir, forwardCreds }; // FAFF-722
 }
 export function frontierDriver(args = {}) {
   return makeCliDriver(frontierOpts(args));
 }
 
-// Preset: local — the SAME `claude -p` path with ollama's Anthropic-API env redirect + --model.
-// `baseUrl` is REQUIRED — there is deliberately no localhost default (ollama is served over Tailscale).
-// `authToken` defaults to $LOCAL_API_KEY for gateways that reject ollama's placeholder token.
-export function localOpts({ baseUrl, model, bin = "claude", bare = true, pluginDir = DEFAULT_PLUGIN_DIR, authToken = process.env.LOCAL_API_KEY || "ollama" } = {}) {
-  if (!baseUrl) throw new Error("localDriver requires a baseUrl (the ollama host); no localhost default");
+// Preset: local — the SAME `claude -p` path with an Anthropic-API env redirect + --model.
+// `baseUrl` and `apiKey` are REQUIRED — there is deliberately no localhost default and no placeholder key.
+export function localOpts({ baseUrl, model, apiKey, bin = "claude", bare = true, pluginDir = DEFAULT_PLUGIN_DIR, effort = null } = {}) {
+  if (!baseUrl) throw new Error("localDriver requires a baseUrl (the local gateway); no localhost default");
+  if (!apiKey) throw new Error("localDriver requires an apiKey; no placeholder default");
   return {
     bin,
     model,
+    effort,
     baseUrl,
     bare,
     pluginDir,
-    forwardCreds: false, // FAFF-138 SECURITY: never copy the real Anthropic credential to the ollama host
-    env: { ANTHROPIC_BASE_URL: baseUrl, ANTHROPIC_AUTH_TOKEN: authToken, ANTHROPIC_API_KEY: "" },
+    forwardCreds: false, // FAFF-138 SECURITY: never copy the real Anthropic credential to the local gateway
+    env: { ANTHROPIC_BASE_URL: baseUrl, ANTHROPIC_AUTH_TOKEN: apiKey, ANTHROPIC_API_KEY: "" },
   };
 }
 export function localDriver(args = {}) {

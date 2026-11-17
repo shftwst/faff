@@ -141,7 +141,7 @@ function dispatchSelftest() {
 
   ok("reasoningEffortForTransport: low/medium/high pass through", ["low", "medium", "high"].every((l) => reasoningEffortForTransport(l) === l));
   ok("reasoningEffortForTransport: xhigh/max clamp to high", reasoningEffortForTransport("xhigh") === "high" && reasoningEffortForTransport("max") === "high");
-  ok("EFFORT_GRADED_FAMILIES: openai + codex graded, ollama not", EFFORT_GRADED_FAMILIES.has("openai") && EFFORT_GRADED_FAMILIES.has("codex") && !EFFORT_GRADED_FAMILIES.has("ollama"));
+  ok("EFFORT_GRADED_FAMILIES: openai + codex graded", EFFORT_GRADED_FAMILIES.has("openai") && EFFORT_GRADED_FAMILIES.has("codex"));
 
   const cfg = { dispatch: { build: { by_tier: { complex: { model: "haiku", effort: "high" } } } } };
   const snapshot = JSON.stringify(cfg);

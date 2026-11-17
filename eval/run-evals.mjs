@@ -534,17 +534,16 @@ function printHeadline(s) {
   console.log(`  total tokens (est): ${s.total_cost_tokens}`);
 }
 
-// Resolve the local preset's base URL + model: --flag → env → hard error. NO localhost default —
-// ollama is served over Tailscale, so a missing base URL is a fail-loud config error, not a default.
+// Resolve the local preset's base URL, model and API key: --flag → env → hard error. There is NO
+// localhost default and no placeholder key, so a missing value is a fail-loud config error.
 export function resolveLocalParams(argv) {
   const baseUrl = argFlag(argv, "--base-url") ?? process.env.FAFF_EVAL_LOCAL_BASE_URL ?? null;
   const model = argFlag(argv, "--model") ?? process.env.FAFF_EVAL_LOCAL_MODEL ?? null;
+  const apiKey = process.env.FAFF_EVAL_LOCAL_API_KEY || process.env.LOCAL_API_KEY || null;
   if (!baseUrl) throw new Error("--driver local requires --base-url (or FAFF_EVAL_LOCAL_BASE_URL); no localhost default");
   if (!model) throw new Error("--driver local requires --model (or FAFF_EVAL_LOCAL_MODEL)");
-  if (/localhost|127\.0\.0\.1/.test(baseUrl)) {
-    console.warn("[run-evals] WARN: base URL points at localhost, but ollama is served over Tailscale — is this right?");
-  }
-  return { baseUrl, model };
+  if (!apiKey) throw new Error("--driver local requires FAFF_EVAL_LOCAL_API_KEY (or LOCAL_API_KEY)");
+  return { baseUrl, model, apiKey };
 }
 
 // Resolve which skills the spawned run loads (FAFF-133): `--plugin-dir <path>` overrides the repo
@@ -563,7 +562,7 @@ export function resolvePluginDir(argv) {
 // FAFF-315: the eval frontier lane is PINNED — flag > `faff config get eval.model` > the baked
 // fallback — NEVER the account default. Budget guard: eval bulk must not silently bill the
 // session/account model (e.g. a fast-burning frontier pool); validity guard: the report names the
-// model the numbers belong to (baseline lineage is model-specific). Local/ollama lanes untouched.
+// model the numbers belong to (baseline lineage is model-specific). The local lane is untouched.
 export const EVAL_MODEL_FALLBACK = "claude-sonnet-4-6";
 // `run(bin, args)` is injectable for tests; the default is an argv-array spawn — no shell, so the
 // module-derived path is never subject to shell expansion (adversarial-review hardening).
@@ -620,17 +619,11 @@ export function resolveDriver(argv, presets) {
     return presets.frontierDriver({ bin, pluginDir, model, effort });
   }
   if (which === "local") {
-    if (effort) console.warn("[run-evals] WARN: --effort is ignored for --driver local (no reasoning-effort knob on the ollama lane)"); // FAFF-722
-    const { baseUrl, model } = resolveLocalParams(argv);
-    return presets.localDriver({ baseUrl, model, bin, pluginDir });
+    const { baseUrl, model, apiKey } = resolveLocalParams(argv);
+    const localEffort = argFlag(argv, "--effort") ? effort : null; // only an explicit flag: the pinned eval.effort is the frontier baseline's lineage
+    return presets.localDriver({ baseUrl, model, apiKey, bin, pluginDir, effort: localEffort });
   }
-  if (which === "ollama-direct") {
-    if (effort) console.warn("[run-evals] WARN: --effort is ignored for --driver ollama-direct (no reasoning-effort knob on the ollama lane)"); // FAFF-722
-    // FAFF-144: direct /api/chat (no agent loop). think defaults OFF (the local-speed lever); --think to enable.
-    const { baseUrl, model } = resolveLocalParams(argv);
-    return presets.makeDirectOllamaDriver({ baseUrl, model, pluginDir, think: argv.includes("--think") });
-  }
-  throw new Error(`unknown --driver: ${which} (expected frontier|local|ollama-direct)`);
+  throw new Error(`unknown --driver: ${which} (expected frontier|local)`);
 }
 
 function printCompareTable(fr, lo) {
@@ -655,7 +648,7 @@ async function compare(argv, presets) {
   const baseReps = repsArg ? Number(repsArg) : BASE_REPS;
   const bin = argFlag(argv, "--bin") ?? "claude";
   const pluginDir = resolvePluginDir(argv);
-  const { baseUrl, model } = resolveLocalParams(argv); // fail-loud before any rep
+  const { baseUrl, model, apiKey } = resolveLocalParams(argv); // fail-loud before any rep
   let cases = loadCases();
   const loadedCount = cases.length; // FAFF-691 — pre-filter count distinguishes an empty load from an --only no-match
   if (only) cases = cases.filter((c) => c.id === only);
@@ -664,7 +657,7 @@ async function compare(argv, presets) {
   // plain-sweep-only flag.
   assertNonEmptyCases(cases, { entry: "--compare", only, loadedCount });
   const fr = await runEvals({ cases, driver: presets.frontierDriver({ bin, pluginDir }), baseReps });
-  const lo = await runEvals({ cases, driver: presets.localDriver({ baseUrl, model, bin, pluginDir }), baseReps });
+  const lo = await runEvals({ cases, driver: presets.localDriver({ baseUrl, model, apiKey, bin, pluginDir }), baseReps });
   const reportDir = join(HERE, "report");
   mkdirSync(reportDir, { recursive: true });
   writeFileSync(join(reportDir, "compare.json"), JSON.stringify({ frontier: fr, local: lo }, null, 2));
@@ -712,7 +705,7 @@ function changedFilesFromGit() {
   } catch { return []; }
 }
 
-// Cheap reachability probe — a single GET to the ollama base URL; resolves true on ANY response,
+// Cheap reachability probe — a single GET to the local base URL; resolves true on ANY response,
 // false on error/timeout. Injectable so tests never open a socket. ONE shot — never retried.
 function defaultProbe(baseUrl, { timeoutMs = 3000 } = {}) {
   return new Promise((resolve) => {
@@ -728,12 +721,12 @@ function defaultProbe(baseUrl, { timeoutMs = 3000 } = {}) {
 // Preflight the local backend ONCE. Returns {ok:true, baseUrl, model} | {ok:false, reason}. Unconfigured
 // (no --base-url/--model) and unreachable both resolve to {ok:false} — a soft-skip, never a thrown error.
 export async function preflightLocal(argv, { probe = defaultProbe } = {}) {
-  let baseUrl, model;
-  try { ({ baseUrl, model } = resolveLocalParams(argv)); }
+  let baseUrl, model, apiKey;
+  try { ({ baseUrl, model, apiKey } = resolveLocalParams(argv)); }
   catch (e) { return { ok: false, reason: `local model not configured (${e.message})` }; }
   let reachable = false;
   try { reachable = await probe(baseUrl); } catch { reachable = false; }
-  return reachable ? { ok: true, baseUrl, model } : { ok: false, reason: `local model unreachable at ${baseUrl}` };
+  return reachable ? { ok: true, baseUrl, model, apiKey } : { ok: false, reason: `local model unreachable at ${baseUrl}` };
 }
 
 // SOFT local gate — ALWAYS returns 0. Preflight (one shot); unavailable → soft-skip; else run the scoped
@@ -748,7 +741,7 @@ async function softLocalGate(argv, presets, baselinePath, { probe, runEvalsFn = 
   const only = argFlag(argv, "--only");
   const repsArg = argFlag(argv, "--reps");
   const driver = presets.localDriver({
-    baseUrl: pf.baseUrl, model: pf.model, bin: argFlag(argv, "--bin") ?? "claude", pluginDir: resolvePluginDir(argv),
+    baseUrl: pf.baseUrl, model: pf.model, apiKey: pf.apiKey, bin: argFlag(argv, "--bin") ?? "claude", pluginDir: resolvePluginDir(argv),
   });
   let cases = loadCases().filter((c) => SMOKE_KINDS.has(c.kind));
   const loadedCount = cases.length; // FAFF-691 — smoke-set count BEFORE --only
@@ -785,21 +778,20 @@ export async function gate(argv, presets, baselinePath, opts = {}) {
 }
 
 // CLI — the REAL run. Never triggered by a test import (process.argv[1] is the test file).
-// `node eval/run-evals.mjs [--driver frontier|local|ollama-direct] [--model M] [--base-url URL] [--think] [--plugin-dir P | --no-plugin] [--only ID] [--reps N] [--cases-dir DIR]`
+// `node eval/run-evals.mjs [--driver frontier|local] [--model M] [--base-url URL] [--plugin-dir P | --no-plugin] [--only ID] [--reps N] [--cases-dir DIR]`
 // `--cases-dir DIR` (FAFF-625): additive, plain-sweep-only — routes loadCases(DIR) instead of the default eval/cases/. Absent, behaviour is byte-identical. NOT read by --gate / --against / --update-baseline / --compare.
 // `node eval/run-evals.mjs --compare [--model M] [--base-url URL] [--plugin-dir P | --no-plugin] [--only ID] [--reps N]`
 // `node eval/run-evals.mjs --gate [--driver smart|local|frontier] [--against PATH]`   (FAFF-180: proportionate gate — smart default; local/smart soft+exit-0, frontier hard)
 // `node eval/run-evals.mjs --driver frontier --against eval/baselines/frontier.json`   (FAFF-169: regression gate — exit non-zero on a per-kind drop)
 // `node eval/run-evals.mjs --driver frontier --update-baseline eval/baselines/frontier.json [--resume]`   (FAFF-169: deliberate re-baseline; FAFF-318: --resume continues a crashed sweep from its per-kind checkpoint)
 // `node eval/run-evals.mjs --driver frontier --update-baseline eval/baselines/frontier.json --kind K1,K2`  (FAFF-712: SCOPED re-baseline — runs only the named kinds and folds their rows into the existing baseline, retaining every un-named kind; for an oracle-only change that --resume's case-id staleness can't detect. Standalone: not with --only/--resume.)
-// frontier/local = agentic `claude -p`; ollama-direct = direct /api/chat at local speed (FAFF-144).
+// frontier/local = agentic `claude -p`.
 // Loads the repo's canonical plugin by default (FAFF-133); --no-plugin runs a vanilla skill-less baseline.
 // FAFF-320 — a full sweep (`main`, `--update-baseline`) streams every rep's raw judgement to
 // `.faff/eval-runs/<run-id>/judgements.jsonl` (printed at start) for crash-salvage + calibration.
 async function main(argv) {
   const cliPresets = await import("./cli-driver.mjs"); // { frontierDriver, localDriver } — pure import, no spawn
-  const { makeDirectOllamaDriver } = await import("./ollama-model.mjs"); // FAFF-144 — pure import, no socket
-  const presets = { ...cliPresets, makeDirectOllamaDriver };
+  const presets = cliPresets;
   // FAFF-625 review finding (major): --cases-dir is plain-sweep-only (below) — every OTHER entry path
   // below calls loadCases() with no argument and silently ignores the flag if present. A silent no-op
   // is a footgun (the codebase's fail-loud convention), so warn loudly here, once, before any entry

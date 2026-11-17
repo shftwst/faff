@@ -23,7 +23,7 @@ node eval/run-evals.mjs --gate [--driver smart|local|frontier] [--against PATH]
 
 | `--driver` | Runs | Hardness | Use |
 |---|---|---|---|
-| `local` | scoped smoke kinds × low reps (ollama) | **soft** — drift report, **always exits 0**, tolerates an absent/sub-par model | CI default-pin; fast trend signal |
+| `local` | scoped smoke kinds × low reps (local model) | **soft** — drift report, **always exits 0**, tolerates an absent/sub-par model | CI default-pin; fast trend signal |
 | `frontier` | full sweep (`claude -p`) | **hard** — exits non-zero on a baseline regression | substantive change / re-baseline / human |
 | `smart` (**default**) | routes by diff surface + local preflight | inherits its route | "do the right thing" |
 
@@ -42,7 +42,6 @@ node eval/run-evals.mjs --gate [--driver smart|local|frontier] [--against PATH]
 | `cli-driver.mjs` | the real `claude -p` driver with per-run `CLAUDE_CONFIG_DIR` isolation — **the only piece that costs money**. One code path, two presets (`frontierDriver` / `localDriver`) over `makeCliDriver`; both load the real skills via `--plugin-dir <repo>/plugin` (FAFF-133); frontier forwards OAuth creds + drops `--bare` (FAFF-138), local keeps `--bare` + env-token auth. Pure `buildInvocation` / `*Opts` / `forwardCredentials` for the tests |
 | `run-evals.mjs` | orchestrator: load → drive K reps via an *injectable* driver → grade → escalate wobbly cases → aggregate. Owns the `--driver` selector, `--plugin-dir`/`--no-plugin`, and `--compare` |
 | `live-driver.mjs` | **faithful lane** (FAFF-135): a `live` SkillDriver for the FAFF-93 harness — reads a fixture via `runSkill`, prompts a real model with faff-tidy's rubric, records the judgement as DecisionRecord **buckets**. Model is injectable (mock in CI; `makeLiveModel` spawns `claude -p`) |
-| `ollama-model.mjs` | **fast local lane** (FAFF-136, path B): `makeOllamaModel` — a direct ollama `/api/chat` completion (no agent loop, ~seconds/rep) as the `liveDriver` model fn. Pure `buildOllamaRequest`/`parseOllamaResponse`; `post` injectable (mock in CI, zero network) |
 
 ## Two measurement lanes
 - **Black-box** (`cli-driver.mjs` + `run-evals.mjs`) — spawn `claude -p` over a self-contained prompt (rubric inlined, FAFF-134), grade the envelope. Coarse, fast, model-sweep-friendly.
@@ -52,32 +51,19 @@ node eval/run-evals.mjs --gate [--driver smart|local|frontier] [--against PATH]
   import { liveDriver, makeLiveModel } from "./live-driver.mjs";
   import { localOpts } from "./cli-driver.mjs"; // or frontierOpts
   // real-model smoke (FAFF-131-class — needs a live claude -p; local ≈ minutes/rep):
-  // baseUrl/model come from your environment (FAFF_EVAL_LOCAL_BASE_URL / FAFF_EVAL_LOCAL_MODEL),
-  // set in your shell or .faffrc.local.yaml — never a repo-embedded host.
-  // Both are REQUIRED: unset → localOpts throws (there is no localhost default — see "Drivers" below).
-  const model = makeLiveModel(localOpts({ baseUrl: process.env.FAFF_EVAL_LOCAL_BASE_URL, model: process.env.FAFF_EVAL_LOCAL_MODEL }));
+  // baseUrl/model/apiKey come from your environment (FAFF_EVAL_LOCAL_BASE_URL / FAFF_EVAL_LOCAL_MODEL /
+  // FAFF_EVAL_LOCAL_API_KEY), set in your shell or .faffrc.local.yaml — never a repo-embedded host or key.
+  // baseUrl and apiKey are REQUIRED: unset → localOpts throws (no localhost default, no placeholder key — see "Drivers" below).
+  const model = makeLiveModel(localOpts({ baseUrl: process.env.FAFF_EVAL_LOCAL_BASE_URL, model: process.env.FAFF_EVAL_LOCAL_MODEL, apiKey: process.env.FAFF_EVAL_LOCAL_API_KEY }));
   const rec = await runSkill({ skill: "faff-tidy", tracker, repo, driver: liveDriver({ model }) });
   // rec.buckets.dupe / .vague / … are the model's judgement, captured at the harness seams.
   ```
-  **Fast local lane — direct ollama `/api/chat` (FAFF-136, path B).** The agentic `claude -p` model above is ~26 min/rep on a local 27B; a *direct* completion (no agent loop) drops that to ~minutes-or-less — measures model+prompt judgement (less faithful, but isolates flakiness cleanly) and makes a local sweep viable. Same `liveDriver` seam, different model fn:
-  ```js
-  import { makeOllamaModel } from "./ollama-model.mjs";
-  const model = makeOllamaModel({
-    // baseUrl/model from FAFF_EVAL_LOCAL_BASE_URL / FAFF_EVAL_LOCAL_MODEL (env / .faffrc.local.yaml).
-    // Both REQUIRED: unset → an undefined baseUrl errors in the driver; there is no localhost default.
-    baseUrl: process.env.FAFF_EVAL_LOCAL_BASE_URL, model: process.env.FAFF_EVAL_LOCAL_MODEL,
-    think: false,                  // FAFF-137: qwen3.6 is a reasoning model — disable the think-block
-    options: { num_predict: 2000 } // SAFETY ceiling only (see below) — NOT a conciseness lever
-  });
-  const rec = await runSkill({ skill: "faff-tidy", tracker, repo, driver: liveDriver({ model }) });
-  ```
-  **Generation, not transport, is the local cost** — qwen3.6 at ~13 tok/s, and even with `think:false` it can ramble *in the content* (one smoke ran 12s/379 chars, another 4min/10k chars). Conciseness is forced by the **prompt**, not the cap: `EVAL_MODE_INSTRUCTION` says *output ONLY the single fenced block — no reasoning/preamble/prose* (FAFF-137), so the model writes less by intent with the answer intact. **`options.num_predict` truncates — it does not force-fit:** it's a hard stop, the model has no idea the budget exists, and a reasoning model answers *last*, so a tight cap can clip the envelope away → an **errored rep**. Set it **generous** (≥ the longest normal answer, e.g. 2000) as a runaway backstop only. If a model still mis-tags its block as ` ```json `, `parseJudgementEnvelope` recovers the last fenced JSON with a matching `case_id` and flags it `format: "noncompliant"` — judgement isn't lost, and **format adherence is a measured per-model metric** (`format_adherence` in the headline). The A/B choice (agentic-faithful vs direct-fast) per lane is FAFF-131 / ADR-0004's call.
 
 ## Drivers — frontier vs local (FAFF-132)
 Two presets of the **same** `claude -p` invocation; the orchestrator/grader are driver-agnostic.
 
 - **frontier** (default) — `claude -p` against the Anthropic API.
-- **local** — the same `claude -p` path with ollama's **native Anthropic Messages API** redirect (no proxy, no new transport): `ANTHROPIC_BASE_URL=<ollama host>`, `ANTHROPIC_AUTH_TOKEN=$LOCAL_API_KEY` (falls back to `ollama` when unset), `ANTHROPIC_API_KEY=""`, plus `--model`. The base URL is **required** (`--base-url` / `FAFF_EVAL_LOCAL_BASE_URL`) — there is **no `localhost` default**, because ollama here is served over **Tailscale**. (Ollama's `ollama launch claude --model <m>` wrapper is an alternative but assumes localhost; the env-var path is what reaches the tailnet host. See docs.ollama.com/integrations/claude-code; local models need ≥64k context.)
+- **local** — the same `claude -p` path redirected at a gateway that speaks the **Anthropic Messages API** (no proxy, no new transport): `ANTHROPIC_BASE_URL=<gateway URL>`, `ANTHROPIC_AUTH_TOKEN=<API key>`, `ANTHROPIC_API_KEY=""`, plus `--model`. The URL, model and key are all **required** and come from configuration: `--base-url` / `FAFF_EVAL_LOCAL_BASE_URL`, `--model` / `FAFF_EVAL_LOCAL_MODEL`, and `FAFF_EVAL_LOCAL_API_KEY` (or `LOCAL_API_KEY`). There is **no `localhost` default** and no placeholder key. Local models need ≥64k context.
 
 ## Skills loaded into the run (FAFF-133)
 The per-rep `CLAUDE_CONFIG_DIR` is isolated (so the nested `claude -p` can't clobber the parent `~/.claude.json` — ADR 0003), but an *empty* config dir also means **no faff skills** — so the spawned `claude` improvises a vanilla-model judgement instead of running the shipped faff-tidy prose. Both presets therefore default to **`--bare --plugin-dir <repo>/plugin`**:
@@ -88,10 +74,10 @@ The per-rep `CLAUDE_CONFIG_DIR` is isolated (so the nested `claude -p` can't clo
 This supersedes FAFF-132's "frontier is byte-identical to FAFF-130" note — that preserved the skill-less behaviour; both presets now load the same shipped skills so frontier and local measure the same prose.
 
 ### Auth & isolation (FAFF-138)
-The isolated `CLAUDE_CONFIG_DIR` (ADR 0003) also strips the OAuth credential file (`.credentials.json`), so a **frontier** `claude -p` lands *"Not logged in"*. The local lane dodged this — `ANTHROPIC_AUTH_TOKEN=ollama` is env auth. The fix, per lane:
+The isolated `CLAUDE_CONFIG_DIR` (ADR 0003) also strips the OAuth credential file (`.credentials.json`), so a **frontier** `claude -p` lands *"Not logged in"*. The local lane dodged this — the env-token auth. The fix, per lane:
 
 - **frontier** — `forwardCreds: true` copies *only* `.credentials.json` into the per-rep `cfgDir` (mutable state stays isolated). And it runs **without `--bare`** — `--bare` only honours *env*-token auth, so it'd ignore the forwarded OAuth file. Isolation instead comes from the fresh `CLAUDE_CONFIG_DIR` + a **clean spawn cwd** (no project `CLAUDE.md`/hooks pulled in); `--plugin-dir` alone still loads the skills.
-- **local** — `forwardCreds: false` (**security:** never copy the real Anthropic credential to the ollama host) and keeps `--bare` (env-token auth works under it).
+- **local** — `forwardCreds: false` (**security:** never copy the real Anthropic credential to the local gateway) and keeps `--bare` (env-token auth works under it).
 
 Smoke (frontier, `dupe-001`, 1 rep): `accuracy 1.00 · stability 1.00 · format 1.00`, ~3.7 s — Opus is far faster than the local 27B.
 
@@ -106,9 +92,10 @@ Smoke (frontier, `dupe-001`, 1 rep): `accuracy 1.00 · stability 1.00 · format 
 node eval/run-evals.mjs --only dupe-001 --reps 2          # smoke: validate CLAUDE_CONFIG_DIR isolation first
 node eval/run-evals.mjs                                   # full run → eval/report/latest.json
 
-# local (ollama over Tailscale) — export the two env vars first, e.g.
-#   export FAFF_EVAL_LOCAL_BASE_URL=http://<your-ollama-host>:11434
+# local — export the URL, model and key first, e.g.
+#   export FAFF_EVAL_LOCAL_BASE_URL=https://<your-gateway>
 #   export FAFF_EVAL_LOCAL_MODEL=<your-local-model>
+#   export FAFF_EVAL_LOCAL_API_KEY=<your-api-key>      # or LOCAL_API_KEY
 node eval/run-evals.mjs --driver local \
   --only dupe-001 --reps 2                                # smoke: validate reachability + envelope parse first
 node eval/run-evals.mjs --driver local
@@ -116,7 +103,7 @@ node eval/run-evals.mjs --driver local
 # frontier vs local, same cases, one table → eval/report/compare.json
 node eval/run-evals.mjs --compare
 ```
-(`--base-url`/`--model` may instead come from `FAFF_EVAL_LOCAL_BASE_URL` / `FAFF_EVAL_LOCAL_MODEL`.)
+(`--base-url`/`--model` may instead come from `FAFF_EVAL_LOCAL_BASE_URL` / `FAFF_EVAL_LOCAL_MODEL`; the key is read from the environment only, never from a flag.)
 
 FAFF-131 then fills `records/adr/0004-*.md` (FAFF-130 shipped the **scaffold**) with the measured
 per-kind accuracy + flakiness + $/case cost + the gloss judge↔human delta — now tabulable
@@ -181,7 +168,7 @@ may run it. Follow these six points exactly.
    matching that `meta` unless you deliberately want a different lineage, because nothing in the
    harness warns you when they diverge; re-baseline whenever you change either.
 
-   **Reasoning effort: `eval.effort` and `--effort <level>` (frontier lane only).** The effort resolves
+   **Reasoning effort: `eval.effort` and `--effort <level>` (frontier lane; the `local` lane takes the flag only).** The effort resolves
    `--effort` flag **>** `faff config get eval.effort` **>** no flag (ADR-0133). In this repo
    `eval.effort` is pinned to `medium`, so a plain run passes `--effort medium`; `inherit` (the default
    when unset) passes no flag and runs at `claude -p`'s built-in default, which has changed between model
@@ -192,8 +179,7 @@ may run it. Follow these six points exactly.
    resume at a different effort refuses to blend, exactly as a different `--model` does). Like
    `eval.model`, `eval.effort` is part of a baseline's lineage: change it only together with a
    re-baseline. Both live in their own `eval:` block because eval is not a dispatch lane; the
-   old `models.eval` / `effort.eval` keys fail loud. `--effort` is ignored (with a warning) on the `local`/`ollama-direct` lanes; reasoning
-   effort is a frontier `claude -p` knob.
+   old `models.eval` / `effort.eval` keys fail loud. On the `local` lane only an explicit `--effort` flag is forwarded to `claude -p`; the pinned `eval.effort` is not, because it belongs to the frontier baseline. The gateway decides whether the level changes anything.
 
 3. **Never pass `--only` with `--update-baseline`.** The advice is unchanged; the reason below replaces
    an older one that FAFF-318 fixed. `--only` narrows the run to a subset of kinds, which does two things

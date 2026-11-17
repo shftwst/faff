@@ -36,10 +36,10 @@ test("deriveAuth: keyless anthropic -> subscription-seat (binds to the ambient s
   assert.equal(deriveAuth({ provider: "anthropic" }), "subscription-seat");
 });
 test("deriveAuth: keyless non-anthropic -> none", () => {
-  assert.equal(deriveAuth({ provider: "ollama" }), "none");
+  assert.equal(deriveAuth({ provider: "vllm" }), "none");
 });
 test("deriveEgress: tailscale (*.ts.net) host -> local", () => {
-  assert.equal(deriveEgress({ host: "http://studio.x.ts.net:11434" }), "local");
+  assert.equal(deriveEgress({ host: "http://studio.x.ts.net:8000" }), "local");
 });
 test("deriveEgress: a public host -> external", () => {
   assert.equal(deriveEgress({ host: "https://integrate.api.nvidia.com/v1" }), "external");
@@ -79,7 +79,7 @@ test("constraints: a fully valid record passes", () => {
 test("merge: engines: and backends: fold into one namespace, no collision", () => {
   const cfg = {
     backends: { a: { provider: "nvidia", model: "m1", host: "https://a/v1", api_key_env: "K1" } },
-    engines: { b: { provider: "ollama", model: "m2", host: "http://studio.x.ts.net:11434" } },
+    engines: { b: { provider: "vllm", model: "m2", host: "http://studio.x.ts.net:8000" } },
   };
   const res = mergeBackendsNamespace(cfg);
   assert.equal(res.error, undefined);
@@ -89,7 +89,7 @@ test("merge: engines: and backends: fold into one namespace, no collision", () =
 test("merge: a name in BOTH engines: and backends: is a hard error, never last-wins", () => {
   const cfg = {
     backends: { shared: { provider: "nvidia", model: "m1", host: "https://a/v1" } },
-    engines: { shared: { provider: "ollama", model: "m2", host: "http://h:1" } },
+    engines: { shared: { provider: "vllm", model: "m2", host: "http://h:1" } },
   };
   const res = mergeBackendsNamespace(cfg);
   assert.match(res.error, /name collision/);
@@ -119,16 +119,16 @@ test("resolveBackendRefs: an unknown name hard-fails (fail loud, never a silent 
 
 test("checkRealizable: requires:local + an egress:external ref -> refuse residency-violation naming it, before any dispatch", () => {
   const cfg = { backends: {
-    "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434" },
+    "studio-vllm": { provider: "vllm", model: "m1", host: "http://studio.x.ts.net:8000" },
     "gemini-gemma": { provider: "gemini", model: "m2", host: "https://generativelanguage.googleapis.com/v1beta/openai", api_key_env: "GEMINI_API_KEY" },
   } };
-  const res = checkRealizable(cfg, { refs: ["studio-ollama", "gemini-gemma"], requires: "local" });
+  const res = checkRealizable(cfg, { refs: ["studio-vllm", "gemini-gemma"], requires: "local" });
   assert.equal(res.refuse, true);
   assert.match(res.reason, /^residency-violation: gemini-gemma/);
 });
 
-test("checkRealizable: egress derivation for a requires:local check (studio-ollama local, nvidia-glm external)", () => {
-  assert.equal(deriveEgress({ host: "http://studio.x.ts.net:11434" }), "local");
+test("checkRealizable: egress derivation for a requires:local check (studio-vllm local, nvidia-glm external)", () => {
+  assert.equal(deriveEgress({ host: "http://studio.x.ts.net:8000" }), "local");
   assert.equal(deriveEgress({ host: "https://integrate.api.nvidia.com/v1" }), "external");
 });
 
@@ -154,7 +154,7 @@ test("checkRealizable: the stored/normalized b.egress still honors 'explicit val
 
 test("checkRealizable: an explicit egress:local claim that IS actually local (host agrees) still passes", () => {
   const cfg = { backends: {
-    "honest-backend": { provider: "ollama", model: "m1", host: "http://10.0.0.5:11434", egress: "local" },
+    "honest-backend": { provider: "vllm", model: "m1", host: "http://10.0.0.5:8000", egress: "local" },
   } };
   const res = checkRealizable(cfg, { refs: ["honest-backend"], requires: "local" });
   assert.equal(res.ok, true);
@@ -213,7 +213,7 @@ test("checkRealizable: auth: subscription-seat resolves only on the interactive/
 
 test("portableMatrixAdmits: api-key/none are harness-agnostic; subscription-seat is claude-code-only", () => {
   assert.equal(portableMatrixAdmits("anything", "nvidia", "api-key"), true);
-  assert.equal(portableMatrixAdmits("anything", "ollama", "none"), true);
+  assert.equal(portableMatrixAdmits("anything", "vllm", "none"), true);
   assert.equal(portableMatrixAdmits(CURRENT_HARNESS, "anthropic", "subscription-seat"), true);
   assert.equal(portableMatrixAdmits("other", "anthropic", "subscription-seat"), false);
 });
@@ -236,8 +236,8 @@ test("resolveTokenSource: subscription-seat -> the ambient interactive session, 
 
 test("configCheck guard: requires:local chain on a DERIVED (not explicit) egress:local backend -> warns", () => {
   const cfg = {
-    backends: { "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434" } },
-     adversarial: { refs: ["studio-ollama"], requires: "local" } ,
+    backends: { "studio-vllm": { provider: "vllm", model: "m1", host: "http://studio.x.ts.net:8000" } },
+     adversarial: { refs: ["studio-vllm"], requires: "local" } ,
   };
   const findings = backendsConfigCheckFindings(cfg);
   assert.ok(findings.some((f) => f.severity === "warn" && /DERIVED/.test(f.message)));
@@ -245,8 +245,8 @@ test("configCheck guard: requires:local chain on a DERIVED (not explicit) egress
 
 test("configCheck guard: requires:local chain on an EXPLICIT egress:local backend -> silent", () => {
   const cfg = {
-    backends: { "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434", egress: "local" } },
-     adversarial: { refs: ["studio-ollama"], requires: "local" } ,
+    backends: { "studio-vllm": { provider: "vllm", model: "m1", host: "http://studio.x.ts.net:8000", egress: "local" } },
+     adversarial: { refs: ["studio-vllm"], requires: "local" } ,
   };
   const findings = backendsConfigCheckFindings(cfg);
   assert.ok(!findings.some((f) => /DERIVED/.test(f.message)));
@@ -254,8 +254,8 @@ test("configCheck guard: requires:local chain on an EXPLICIT egress:local backen
 
 test("configCheck guard: requires: no-egress (documented alias) processes the chain same as requires: local", () => {
   const cfg = {
-    backends: { "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434" } }, // derived local
-     adversarial: { refs: ["studio-ollama"], requires: "no-egress" } ,
+    backends: { "studio-vllm": { provider: "vllm", model: "m1", host: "http://studio.x.ts.net:8000" } }, // derived local
+     adversarial: { refs: ["studio-vllm"], requires: "no-egress" } ,
   };
   const findings = backendsConfigCheckFindings(cfg);
   assert.ok(findings.some((f) => f.severity === "warn" && /DERIVED/.test(f.message)));
@@ -263,8 +263,8 @@ test("configCheck guard: requires: no-egress (documented alias) processes the ch
 
 test("configCheck guard: an unrecognized requires value -> fail-loud error finding, never a silent skip", () => {
   const cfg = {
-    backends: { "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434" } },
-     adversarial: { refs: ["studio-ollama"], requires: "Local" } , // case-typo
+    backends: { "studio-vllm": { provider: "vllm", model: "m1", host: "http://studio.x.ts.net:8000" } },
+     adversarial: { refs: ["studio-vllm"], requires: "Local" } , // case-typo
   };
   const findings = backendsConfigCheckFindings(cfg);
   assert.ok(findings.some((f) => f.severity === "error" && /unrecognized value/.test(f.message) && /Local/.test(f.message)));
@@ -276,18 +276,18 @@ test("configCheck guard: an unrecognized requires value -> fail-loud error findi
 // egress: local is invisible.
 test("configCheck guard: a PER-CONSUMER refs chain on a derived egress:local backend warns, surfacing the consumer", () => {
   const cfg = {
-    backends: { "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434" } }, // derived local
-    adversarial: { requires: "local", prdr_review: { refs: ["studio-ollama"] } },
+    backends: { "studio-vllm": { provider: "vllm", model: "m1", host: "http://studio.x.ts.net:8000" } }, // derived local
+    adversarial: { requires: "local", prdr_review: { refs: ["studio-vllm"] } },
   };
   const findings = backendsConfigCheckFindings(cfg);
-  assert.ok(findings.some((f) => f.severity === "warn" && /DERIVED/.test(f.message) && f.surface === "adversarial.prdr_review.refs[studio-ollama]"),
+  assert.ok(findings.some((f) => f.severity === "warn" && /DERIVED/.test(f.message) && f.surface === "adversarial.prdr_review.refs[studio-vllm]"),
     `expected a per-consumer derived-egress warn; got ${JSON.stringify(findings)}`);
 });
 
 test("configCheck guard: an EXPLICIT egress:local per-consumer backend is silent (parity with the shared refs path)", () => {
   const cfg = {
-    backends: { "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434", egress: "local" } },
-    adversarial: { requires: "local", spec_review: { refs: ["studio-ollama"] } },
+    backends: { "studio-vllm": { provider: "vllm", model: "m1", host: "http://studio.x.ts.net:8000", egress: "local" } },
+    adversarial: { requires: "local", spec_review: { refs: ["studio-vllm"] } },
   };
   assert.ok(!backendsConfigCheckFindings(cfg).some((f) => /DERIVED/.test(f.message)));
 });
@@ -295,8 +295,8 @@ test("configCheck guard: an EXPLICIT egress:local per-consumer backend is silent
 test("configCheck guard: the global requires covers BOTH the shared and per-consumer refs in one pass", () => {
   const cfg = {
     backends: {
-      "shared-b": { provider: "ollama", model: "m1", host: "http://shared.x.ts.net:11434" }, // derived local
-      "consumer-b": { provider: "ollama", model: "m2", host: "http://cons.x.ts.net:11434" }, // derived local
+      "shared-b": { provider: "vllm", model: "m1", host: "http://shared.x.ts.net:8000" }, // derived local
+      "consumer-b": { provider: "vllm", model: "m2", host: "http://cons.x.ts.net:8000" }, // derived local
     },
     adversarial: { requires: "local", refs: ["shared-b"], code_review: { refs: ["consumer-b"] } },
   };
@@ -307,7 +307,7 @@ test("configCheck guard: the global requires covers BOTH the shared and per-cons
 
 test("configCheck guard: an unrecognized global requires surfaces ONCE even with per-consumer refs present", () => {
   const cfg = {
-    backends: { b: { provider: "ollama", model: "m1", host: "http://b.x.ts.net:11434" } },
+    backends: { b: { provider: "vllm", model: "m1", host: "http://b.x.ts.net:8000" } },
     adversarial: { requires: "Local", spec_review: { refs: ["b"] }, code_review: { refs: ["b"] } }, // case-typo, no shared refs
   };
   const errs = backendsConfigCheckFindings(cfg).filter((f) => f.severity === "error" && /unrecognized value/.test(f.message));
@@ -322,7 +322,7 @@ test("CLI: backends resolve — exit 0, JSON chain in refs order", () => {
   const dir = fixtureDir(
     "backends:\n" +
     "  a:\n    provider: nvidia\n    model: m1\n    host: https://a/v1\n    api_key_env: K1\n" +
-    "  b:\n    provider: ollama\n    model: m2\n    host: http://h.ts.net:1\n",
+    "  b:\n    provider: vllm\n    model: m2\n    host: http://h.ts.net:1\n",
   );
   try {
     const r = runCli(["backends", "resolve", "--refs", "b,a"], { cwd: dir });
@@ -347,7 +347,7 @@ test("CLI: backends resolve — exit 2 on an unknown backend name", () => {
 test("CLI: backends realizable — exit 1 + residency-violation JSON on requires:local + an external ref", () => {
   const dir = fixtureDir(
     "backends:\n" +
-    "  local-one:\n    provider: ollama\n    model: m1\n    host: http://h.ts.net:1\n" +
+    "  local-one:\n    provider: vllm\n    model: m1\n    host: http://h.ts.net:1\n" +
     "  ext-one:\n    provider: nvidia\n    model: m2\n    host: https://a/v1\n    api_key_env: K\n",
   );
   try {
@@ -383,22 +383,22 @@ test("CLI: backends --selftest passes", () => {
 test("integration: adversarial refs: resolves against backends:, byte-equivalent to the legacy chain (optionals restated — named backends: never inherit)", () => {
   const legacyCfg = { adversarial: {
     provider: "nvidia", model: "nvidia/nemotron", host: "https://integrate.api.nvidia.com/v1", api_key_env: "NVIDIA_API_KEY", timeout: 480, first_byte_timeout: 300,
-    fallbacks: [{ provider: "ollama", model: "qwen3-next:80b", host: "http://studio.x.ts.net:11434" }],
+    fallbacks: [{ provider: "vllm", model: "qwen3-next:80b", host: "http://studio.x.ts.net:8000" }],
   }  };
   const legacy = assembleAdversarialBackends(legacyCfg);
   // The legacy fallback carries no api_key_env/timeout/first_byte_timeout of its own, so it
   // INHERITS all three from the primary (inheritOptionalFromPrimary) — spec-documented legacy
   // behaviour; FAFF-897: first_byte_timeout inherits identically to timeout.
-  assert.deepEqual(legacy.chain[1], { provider: "ollama", model: "qwen3-next:80b", host: "http://studio.x.ts.net:11434", api_key_env: "NVIDIA_API_KEY", timeout: 480, first_byte_timeout: 300 });
+  assert.deepEqual(legacy.chain[1], { provider: "vllm", model: "qwen3-next:80b", host: "http://studio.x.ts.net:8000", api_key_env: "NVIDIA_API_KEY", timeout: 480, first_byte_timeout: 300 });
 
   // Named backends: entries do NOT inherit (spec §4 edge cases) — byte-equivalence for THIS
   // scenario requires restating both previously-inherited optionals explicitly.
   const migratedCfg = {
     backends: {
       "nvidia-glm": { provider: "nvidia", model: "nvidia/nemotron", host: "https://integrate.api.nvidia.com/v1", api_key_env: "NVIDIA_API_KEY", timeout: 480, first_byte_timeout: 300 },
-      "studio-ollama": { provider: "ollama", model: "qwen3-next:80b", host: "http://studio.x.ts.net:11434", api_key_env: "NVIDIA_API_KEY", timeout: 480, first_byte_timeout: 300 },
+      "studio-vllm": { provider: "vllm", model: "qwen3-next:80b", host: "http://studio.x.ts.net:8000", api_key_env: "NVIDIA_API_KEY", timeout: 480, first_byte_timeout: 300 },
     },
-     adversarial: { refs: ["nvidia-glm", "studio-ollama"] } ,
+     adversarial: { refs: ["nvidia-glm", "studio-vllm"] } ,
   };
   const migrated = assembleAdversarialBackends(migratedCfg);
 
@@ -408,16 +408,16 @@ test("integration: adversarial refs: resolves against backends:, byte-equivalent
 
 test("integration: migration MAY instead consciously drop a spurious inherited optional (documented deviation, per spec's own example)", () => {
   // The spec explicitly names this exact case as an acceptable documented deviation: a
-  // keyless local ollama fallback spuriously inheriting the primary's NVIDIA_API_KEY under
+  // keyless local vllm fallback spuriously inheriting the primary's NVIDIA_API_KEY under
   // the legacy form. Not restating it on the named backend is a legitimate, one-line
   // documented choice — the migrated chain then correctly drops the spurious key, rather
   // than being forced to carry it forward just to stay byte-identical to a legacy artifact.
   const migratedCfg = {
-    backends: { "studio-ollama": { provider: "ollama", model: "qwen3-next:80b", host: "http://studio.x.ts.net:11434" } },
-     adversarial: { refs: ["studio-ollama"] } ,
+    backends: { "studio-vllm": { provider: "vllm", model: "qwen3-next:80b", host: "http://studio.x.ts.net:8000" } },
+     adversarial: { refs: ["studio-vllm"] } ,
   };
   const migrated = assembleAdversarialBackends(migratedCfg);
-  assert.deepEqual(migrated.chain, [{ provider: "ollama", model: "qwen3-next:80b", host: "http://studio.x.ts.net:11434" }]);
+  assert.deepEqual(migrated.chain, [{ provider: "vllm", model: "qwen3-next:80b", host: "http://studio.x.ts.net:8000" }]);
   assert.ok(!("api_key_env" in migrated.chain[0]), "no spurious key carried forward once the deviation is deliberate");
 });
 
@@ -451,14 +451,14 @@ test("CLI: adversarial-backends with a refs: config resolves cleanly", () => {
 
 test("integration: dispatch.<lane>.model = engine:<name> resolves a backend declared ONLY under backends: (not engines:)", () => {
   const cfg = {
-    backends: { "studio-ollama": { provider: "ollama", model: "qwen3-next:80b", host: "http://studio.x.ts.net:11434" } },
-    dispatch: { methodology: { model: "engine:studio-ollama" }, intake: { model: "sonnet" } },
+    backends: { "studio-vllm": { provider: "vllm", model: "qwen3-next:80b", host: "http://studio.x.ts.net:8000" } },
+    dispatch: { methodology: { model: "engine:studio-vllm" }, intake: { model: "sonnet" } },
   };
   const res = resolveEngineForLane(cfg, "methodology");
   assert.equal(res.error, undefined);
-  assert.equal(res.name, "studio-ollama");
-  assert.equal(res.family, "ollama");
-  assert.equal(res.host, "http://studio.x.ts.net:11434");
+  assert.equal(res.name, "studio-vllm");
+  assert.equal(res.family, "openai");
+  assert.equal(res.host, "http://studio.x.ts.net:8000");
 });
 
 test("integration: engine: consumer still refuses provider: anthropic, even though the namespace accepts it", () => {
@@ -470,7 +470,7 @@ test("integration: engine: consumer still refuses provider: anthropic, even thou
 test("integration: engines:/backends: name collision surfaces at the engine-lane resolution boundary too", () => {
   const cfg = {
     backends: { shared: { provider: "nvidia", model: "m1", host: "https://a/v1" } },
-    engines: { shared: { provider: "ollama", model: "m2", host: "http://h:1" } },
+    engines: { shared: { provider: "vllm", model: "m2", host: "http://h:1" } },
     dispatch: { intake: { model: "engine:shared" } },
   };
   const res = resolveEngineForLane(cfg, "intake");
@@ -482,7 +482,7 @@ test("integration: engines:/backends: name collision surfaces at the engine-lane
 
 test("first_byte_timeout is carried on the normalized record, mirroring timeout", () => {
   const r = normalizeBackend("slow-local", {
-    provider: "ollama", model: "q", host: "http://studio.x.ts.net:11434", first_byte_timeout: 300,
+    provider: "vllm", model: "q", host: "http://studio.x.ts.net:8000", first_byte_timeout: 300,
   });
   assert.equal(r.error, undefined);
   assert.equal(r.backend.first_byte_timeout, 300);
@@ -493,7 +493,7 @@ test("first_byte_timeout is carried on the normalized record, mirroring timeout"
 test("telemetry derives per family and is carried on the normalized record", () => {
   const codex = normalizeBackend("seat", { provider: "codex", model: "gpt-5-codex" });
   assert.equal(codex.backend.telemetry, "exec-json-events");
-  const local = normalizeBackend("lan", { provider: "ollama", model: "q", host: "http://localhost:11434" });
+  const local = normalizeBackend("lan", { provider: "vllm", model: "q", host: "http://localhost:8000" });
   assert.equal(local.backend.telemetry, "none", "a family with no readable spend source must derive none, never a false-metered claim");
 });
 
@@ -503,7 +503,7 @@ test("an explicit telemetry value wins over the derivation", () => {
 });
 
 test("a backend cannot claim a spend source its family cannot serve", () => {
-  const r = normalizeBackend("lan", { provider: "ollama", model: "q", host: "http://localhost:11434", telemetry: "exec-json-events" });
+  const r = normalizeBackend("lan", { provider: "vllm", model: "q", host: "http://localhost:8000", telemetry: "exec-json-events" });
   assert.match(r.error, /requires provider codex/);
   const r2 = normalizeBackend("seat", { provider: "codex", model: "m", telemetry: "transcript-jsonl" });
   assert.match(r2.error, /requires provider anthropic/);
@@ -517,7 +517,7 @@ test("an off-vocabulary telemetry value fails loud at normalize time, naming the
 
 test("FAFF-604: a budget.allow_unmetered entry naming no configured backend warns as a dead waiver", () => {
   const findings = backendsConfigCheckFindings({
-    backends: { lan: { provider: "ollama", model: "q", host: "http://localhost:11434" } },
+    backends: { lan: { provider: "vllm", model: "q", host: "http://localhost:8000" } },
     budget: { allow_unmetered: ["lan", "ghost"] },
   });
   const dead = findings.filter((f) => f.surface === "budget.allow_unmetered");

@@ -550,14 +550,14 @@ function backendsSelftest() {
   // --- deriveAuth ------------------------------------------------------------
   ok("deriveAuth: api_key_env present -> api-key", deriveAuth({ api_key_env: "K" }) === "api-key");
   ok("deriveAuth: keyless anthropic -> subscription-seat", deriveAuth({ provider: "anthropic" }) === "subscription-seat");
-  ok("deriveAuth: keyless non-anthropic -> none", deriveAuth({ provider: "ollama" }) === "none");
+  ok("deriveAuth: keyless non-anthropic -> none", deriveAuth({ provider: "vllm" }) === "none");
   ok("deriveAuth: api_key_env wins over anthropic", deriveAuth({ provider: "anthropic", api_key_env: "K" }) === "api-key");
 
   // --- deriveEgress ------------------------------------------------------------
-  ok("deriveEgress: tailscale host -> local", deriveEgress({ host: "http://studio.x.ts.net:11434" }) === "local");
+  ok("deriveEgress: tailscale host -> local", deriveEgress({ host: "http://studio.x.ts.net:8000" }) === "local");
   ok("deriveEgress: public host -> external", deriveEgress({ host: "https://integrate.api.nvidia.com/v1" }) === "external");
-  ok("deriveEgress: localhost -> local", deriveEgress({ host: "http://localhost:11434" }) === "local");
-  ok("deriveEgress: 127.0.0.1 -> local", deriveEgress({ host: "http://127.0.0.1:11434" }) === "local");
+  ok("deriveEgress: localhost -> local", deriveEgress({ host: "http://localhost:8000" }) === "local");
+  ok("deriveEgress: 127.0.0.1 -> local", deriveEgress({ host: "http://127.0.0.1:8000" }) === "local");
   ok("deriveEgress: RFC1918 10.x -> local", deriveEgress({ host: "http://10.0.0.5:1234" }) === "local");
   ok("deriveEgress: RFC1918 192.168.x -> local", deriveEgress({ host: "http://192.168.1.5:1234" }) === "local");
   ok("deriveEgress: RFC1918 172.16-31.x -> local", deriveEgress({ host: "http://172.20.0.5:1234" }) === "local");
@@ -566,7 +566,7 @@ function backendsSelftest() {
   // --- deriveTelemetry (FAFF-604) ---------------------------------------------
   ok("deriveTelemetry: anthropic -> transcript-jsonl", deriveTelemetry({ provider: "anthropic" }) === "transcript-jsonl");
   ok("deriveTelemetry: codex -> exec-json-events", deriveTelemetry({ provider: "codex" }) === "exec-json-events");
-  ok("deriveTelemetry: ollama -> none (no readable spend source)", deriveTelemetry({ provider: "ollama" }) === "none");
+  ok("deriveTelemetry: vllm -> none (no readable spend source)", deriveTelemetry({ provider: "vllm" }) === "none");
   ok("deriveTelemetry: nvidia -> none", deriveTelemetry({ provider: "nvidia" }) === "none");
   ok("deriveTelemetry: absent provider -> none (never a false-metered claim)", deriveTelemetry({}) === "none");
   ok("normalizeBackend: telemetry derived for codex",
@@ -576,7 +576,7 @@ function backendsSelftest() {
   ok("normalizeBackend: unknown telemetry value -> named error",
     /invalid telemetry "bogus"/.test(normalizeBackend("cx", { provider: "codex", model: "m", telemetry: "bogus" }).error || ""));
   ok("normalizeBackend: exec-json-events on a non-codex provider -> named error",
-    /requires provider codex/.test(normalizeBackend("x", { provider: "ollama", model: "m", host: "http://localhost:11434", telemetry: "exec-json-events" }).error || ""));
+    /requires provider codex/.test(normalizeBackend("x", { provider: "vllm", model: "m", host: "http://localhost:8000", telemetry: "exec-json-events" }).error || ""));
   ok("normalizeBackend: transcript-jsonl on a non-anthropic provider -> named error",
     /requires provider anthropic/.test(normalizeBackend("x", { provider: "codex", model: "m", telemetry: "transcript-jsonl" }).error || ""));
   ok("normalizeBackend: telemetry none is legal on any provider",
@@ -587,7 +587,7 @@ function backendsSelftest() {
   // --- fleet telemetry scan (FAFF-604) — moved here from budget.js: governance
   // may not require this module, so the factory owns the resolution.
   const codexFleet = { backends: { seat: { provider: "codex", model: "gpt-5-codex" } }, dispatch: { methodology: { model: "engine:seat" } } };
-  const localFleet = { backends: { lan: { provider: "ollama", model: "q", host: "http://localhost:11434" } }, dispatch: { intake: { model: "engine:lan" } } };
+  const localFleet = { backends: { lan: { provider: "vllm", model: "q", host: "http://localhost:8000" } }, dispatch: { intake: { model: "engine:lan" } } };
   ok("fleetEngineBackends: resolves an engine:<name> lane value to its backend",
     fleetEngineBackends(codexFleet).map((b) => b.name).join(",") === "seat");
   ok("fleetEngineBackends: no engine lanes -> empty (an all-Agent-token fleet)",
@@ -596,7 +596,7 @@ function backendsSelftest() {
     fleetEngineBackends({ backends: {}, dispatch: { intake: { model: "engine:ghost" } } }).length === 0);
   ok("unmeteredFleetEngines: a codex engine is METERED (exec-json-events), never flagged",
     unmeteredFleetEngines(codexFleet, []).length === 0);
-  ok("unmeteredFleetEngines: an ollama engine derives telemetry: none -> flagged",
+  ok("unmeteredFleetEngines: a vllm engine derives telemetry: none -> flagged",
     unmeteredFleetEngines(localFleet, []).join(",") === "lan");
   ok("unmeteredFleetEngines: an explicit budget.allow_unmetered waiver clears the flag",
     unmeteredFleetEngines(localFleet, ["lan"]).length === 0);
@@ -644,7 +644,7 @@ function backendsSelftest() {
   {
     const cfg = {
       backends: { a: { provider: "nvidia", model: "m1", host: "https://a/v1", api_key_env: "K1" } },
-      engines: { b: { provider: "ollama", model: "m2", host: "http://studio.x.ts.net:11434" } },
+      engines: { b: { provider: "vllm", model: "m2", host: "http://studio.x.ts.net:8000" } },
     };
     const res = mergeBackendsNamespace(cfg);
     ok("merge: no collision -> both present", !res.error && !!res.backends.a && !!res.backends.b);
@@ -654,7 +654,7 @@ function backendsSelftest() {
   {
     const cfg = {
       backends: { shared: { provider: "nvidia", model: "m1", host: "https://a/v1" } },
-      engines: { shared: { provider: "ollama", model: "m2", host: "http://h:1" } },
+      engines: { shared: { provider: "vllm", model: "m2", host: "http://h:1" } },
     };
     const res = mergeBackendsNamespace(cfg);
     ok("merge: name collision -> hard error, never last-wins", /name collision/.test(res.error || ""));
@@ -678,10 +678,10 @@ function backendsSelftest() {
   {
     // residency-violation scenario straight from the spec's holdout example
     const cfg = { backends: {
-      "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434" },
+      "studio-vllm": { provider: "vllm", model: "m1", host: "http://studio.x.ts.net:8000" },
       "gemini-gemma": { provider: "gemini", model: "m2", host: "https://generativelanguage.googleapis.com/v1beta/openai", api_key_env: "GEMINI_API_KEY" },
     } };
-    const res = checkRealizable(cfg, { refs: ["studio-ollama", "gemini-gemma"], requires: "local" });
+    const res = checkRealizable(cfg, { refs: ["studio-vllm", "gemini-gemma"], requires: "local" });
     ok("checkRealizable: requires:local + external ref -> refuse residency-violation naming the backend", res.refuse === true && /residency-violation: gemini-gemma/.test(res.reason));
   }
   {
@@ -777,16 +777,16 @@ function backendsSelftest() {
   // --- backendsConfigCheckFindings (derived-egress guard) ------------------------------------------------------------
   {
     const cfg = {
-      backends: { "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434" } }, // derived local
-       adversarial: { refs: ["studio-ollama"], requires: "local" } ,
+      backends: { "studio-vllm": { provider: "vllm", model: "m1", host: "http://studio.x.ts.net:8000" } }, // derived local
+       adversarial: { refs: ["studio-vllm"], requires: "local" } ,
     };
     const findings = backendsConfigCheckFindings(cfg);
     ok("configCheck: requires:local chain on a DERIVED-local backend -> warns", findings.some((f) => f.severity === "warn" && /DERIVED/.test(f.message)));
   }
   {
     const cfg = {
-      backends: { "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434", egress: "local" } }, // EXPLICIT local
-       adversarial: { refs: ["studio-ollama"], requires: "local" } ,
+      backends: { "studio-vllm": { provider: "vllm", model: "m1", host: "http://studio.x.ts.net:8000", egress: "local" } }, // EXPLICIT local
+       adversarial: { refs: ["studio-vllm"], requires: "local" } ,
     };
     const findings = backendsConfigCheckFindings(cfg);
     ok("configCheck: requires:local chain on an EXPLICIT-local backend -> silent", !findings.some((f) => /DERIVED/.test(f.message)));
@@ -794,23 +794,23 @@ function backendsSelftest() {
   {
     const cfg = {
       backends: { shared: { provider: "nvidia", model: "m1", host: "https://a/v1" } },
-      engines: { shared: { provider: "ollama", model: "m2", host: "http://h:1" } },
+      engines: { shared: { provider: "vllm", model: "m2", host: "http://h:1" } },
     };
     const findings = backendsConfigCheckFindings(cfg);
     ok("configCheck: name collision surfaced as an error finding", findings.some((f) => f.severity === "error" && /name collision/.test(f.message)));
   }
   {
     const cfg = {
-      backends: { "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434", egress: "local" } },
-       adversarial: { refs: ["studio-ollama"], requires: "no-egress" } , // documented alias
+      backends: { "studio-vllm": { provider: "vllm", model: "m1", host: "http://studio.x.ts.net:8000", egress: "local" } },
+       adversarial: { refs: ["studio-vllm"], requires: "no-egress" } , // documented alias
     };
     const findings = backendsConfigCheckFindings(cfg);
     ok("configCheck: requires: no-egress (alias) processes the chain same as requires: local", !findings.some((f) => f.severity === "error"));
   }
   {
     const cfg = {
-      backends: { "studio-ollama": { provider: "ollama", model: "m1", host: "http://studio.x.ts.net:11434" } },
-       adversarial: { refs: ["studio-ollama"], requires: "Local" } , // typo/case mismatch
+      backends: { "studio-vllm": { provider: "vllm", model: "m1", host: "http://studio.x.ts.net:8000" } },
+       adversarial: { refs: ["studio-vllm"], requires: "Local" } , // typo/case mismatch
     };
     const findings = backendsConfigCheckFindings(cfg);
     ok("configCheck: unrecognized requires value -> fail-loud error finding, not a silent skip", findings.some((f) => f.severity === "error" && /unrecognized value/.test(f.message)));

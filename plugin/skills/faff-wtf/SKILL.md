@@ -17,17 +17,17 @@ Pull current state from your issue tracker and git, figure out what matters, tel
 
 **Methodology transport.** Each `methodology` output `/faff-wtf` requests (`pick-ordering`, `standup-digest`, and `backlog-diagnostics` when no tidy ran this pass) is dispatched as a **producer subagent** (gateway → **Sibling-skill invocation → Producer dispatch**) resolving the `methodology` dispatch lane. Per gateway → **The `methodology` slot → Transport** they share **one batched dispatch per render pass**; if `/faff-wtf` is ever itself a subagent, the call runs **in-context** (single-level nesting).
 
-**Reflect newly unlocked potential.** When summarising recently completed work, explicitly call out what each shipped issue **unblocked** — issues whose blockers cleared in the last 24-48 hours and are now ready (or one step closer to ready). This belongs in "Recently Completed" alongside the ship list, and these unlocked issues are flagged as *just-realised* potential (annotated "just unlocked by …") so the human/automation notices them — where they land in "Coming Up" / "Today's Focus" / "Ready to pick up" is the methodology's `pick-ordering` call, not wtf's.
+**Reflect newly unlocked potential.** In "Recently Completed", show what each shipped issue unblocked: blockers cleared within 24-48 hours, leaving dependents ready or closer to ready. Annotate these issues "just unlocked by …" as *just-realised* potential. Their placement in "Coming Up" / "Today's Focus" / "Ready to pick up" follows methodology `pick-ordering`, never wtf's judgement.
 
 ## Always pull fresh
 
-Every invocation re-fetches the whole picture live per the shared **Always pull fresh** rule (gateway): every milestone, every In Progress / Blocked / Recently Completed / Coming Up issue, every blocker link, status field, and recent-activity timestamp. A briefing built on a partial or cached fetch is silently wrong, and the human acts on it.
+Re-fetch the whole picture live on every invocation (gateway → **Always pull fresh**): every milestone, In Progress / Blocked / Recently Completed / Coming Up issue, blocker link, status field and recent-activity timestamp. Never use a partial or cached fetch.
 
 ## What it does
 
 **Rendering rules.** Every issue surfaced in any section below uses the synthesis contract (gateway → **Rendering → `rendering_adaptor`**) — tracker ID + plain-English gloss + unlock-chain consequence when non-trivial. Build-queue and prep-queue sections render as the queue partition grid (`rendering_adaptor` slot, default `faffidavit-rendering` — form (c)). Cycles render as the cycle bracket / cycle box form. Structural diagnostics findings and calibration signals are pulled from the most recent `.faff/logs/YYYY-MM-DD/HHMMSS-tidy*.md` files; if none exists in the current pass, wtf runs the structural-diagnostics computation inline (same logic, same output location). When a `methodology` slot is configured, a `### Methodology findings` section sits after `### Today's Focus` (display convention: gateway → **The `methodology` slot**).
 
-**Two lanes, daily-driver first.** Sections 1–7 are the **L1 answer**: what shipped, what's stuck, your parked loose ends, and the 2–3 things to do today, plus a backlog-health read (methodology, structural diagnostics, calibration) drawn from tidy's cache. One section, the **automation preview** (§5b), answers a *different* question: is it worth handing the queue to `/faff-beep-boop`? It renders after the focus answer and never displaces it.
+**Two lanes, daily-driver first.** Sections 1–7 give the **L1 answer**: shipped/stuck work, parked loose ends, 2–3 priorities for today and backlog health (methodology, structural diagnostics, calibration) from tidy's cache. The **automation preview** (5b) follows without displacing that answer: is the queue worth handing to `/faff-beep-boop`?
 
 Run through these sections in order:
 
@@ -54,9 +54,9 @@ Query across every team in the resolved team-set (`tracking.teams`, legacy `trac
 
 ### 4. Parked work (any source)
 
-Surface every issue faff has parked — whether by an overnight `/faff-beep-boop` run **or** interactively (a manual `/faff-prep` / `/faff-graft` that hit low confidence, an unresolved punt the user chose to leave, or a build-time ambiguity). The manual user parks too (L1 prep, L2 build), and that work must resurface here — not only beep-boop's.
+Surface every park, autonomous or interactive: overnight `/faff-beep-boop`, manual `/faff-prep` / `/faff-graft` low confidence, an unresolved punt the user left, or build-time ambiguity. Include human parks at L1 prep and L2 build.
 
-**The `faff-parked` label is the spine of this section, not the run logs.** Every park — autonomous or interactive — applies the `faff-parked` label per the shared **Park / Unpark protocol** (gateway), so the tracker query catches them all regardless of how they were parked:
+**The `faff-parked` label is authoritative, not run logs.** Every autonomous or interactive park applies it (gateway → **Park / Unpark protocol**); query it to catch both:
 
 - **Tracker query for issues tagged `faff-parked`** (or the tracker's equivalent label) — the authoritative source; covers interactive *and* autonomous parks.
 - The most-recently-modified `.faff/runs/*/summary.md` (if any run logs exist) — used only to enrich autonomous parks with a log path. Pick by mtime, not name — run-id mint formats vary and are not load-bearing here. Use `Bash(ls -t "$PWD/.faff/runs/" 2>/dev/null)` to check for existence — do **not** use Glob, which silently misses dot-prefixed directories in some environments (e.g. Docker containers). A missing or unreadable run-log directory **never** suppresses this section — the label query still runs.
@@ -71,19 +71,19 @@ Skip this section entirely if there are no parked issues (no `faff-parked`-label
 
 ### 4c. Awaiting review — adversarial outage
 
-Surface every issue tagged `faff-awaiting-review` via a **live tracker label query** (this label is not `faff-parked`'s query above and is easy to miss otherwise — wtf's parked query is scoped to `faff-parked` only). **Distinct from Parked work above:** this is not a human park — it means the built work is durable (branch pushed) and the review is waiting on a **machine** (the provider) to recover, auto-resuming on the next `/faff-beep-boop` drain with no rebuild. For each: issue id + title, the outage-retry attempt count (`n`/`graft.review_outage_retry_limit`), and a note that no action is needed — it self-resolves next drain, or escalates to an ordinary park after the retry bound. Skip the section if none.
+Query `faff-awaiting-review` **live**, separately from `faff-parked`. These are provider outages: the built branch is pushed, review awaits the machine and resumes next `/faff-beep-boop` drain without rebuilding. For each issue, show id + title, retry attempt `n`/`graft.review_outage_retry_limit`, and that no action is needed: it self-resolves next drain or becomes an ordinary park after the retry bound. Skip if none.
 
 ### 4c-bis. Awaiting spec-review — adversarial outage
 
-The prep-altitude twin of §4c above. Surface every issue tagged `faff-awaiting-spec-review` via a **live tracker label query** (a distinct label + query from `faff-awaiting-review`'s §4c — the two altitudes stay separable). **Distinct from Parked and §4c above:** not a human park, and not a stalled *build* — the spec is attached and durable on the tracker, review has not concluded, and the outage is waiting on a **machine** (the spec-review provider) to recover, auto-resuming on the next `/faff-beep-boop` drain with no re-spec. For each: issue id + title, the held-drain attempt count (`n`/`prep.spec_review_outage_hold_limit`), and a note that no action is needed — it self-resolves next prep drain, or escalates to an ordinary park past the hold limit. Skip the section if none.
+Query `faff-awaiting-spec-review` **live**, separately from `faff-awaiting-review` in 4c and from Parked work. The spec is attached durably to the tracker; review is unfinished while the provider recovers. Resume next `/faff-beep-boop` prep drain without re-speccing. Show each issue's id + title, held-drain attempt `n`/`prep.spec_review_outage_hold_limit`, and that no action is needed: it self-resolves next prep drain or becomes an ordinary park past the hold limit. Skip if none.
 
 ### 4d. ADR supersession proposals awaiting ratification
 
-Surface every **propose-only** ADR-admission candidate recorded by an autonomous `faff-graft` Step 3b run — a **loop-authored** ADR proposing to supersede a **human/legacy-provenance** ADR, which the admit gate correctly refused to auto-write (guardrails ratify only by human gesture; the loop never self-ratifies). Read `.faff/adr-proposals/*.json` (one file per candidate, keyed by the new ADR's number; written by graft, never by `/faff-wtf`). **Distinct from Parked / Awaiting-review above:** this isn't a stalled issue — the build that authored the proposing ADR already shipped; the proposal is a standing, git-native artifact (an ADR pair, not a tracker issue) waiting on a **ratification gesture**, not a build retry.
+Read `.faff/adr-proposals/*.json` for every **propose-only** autonomous graft Step 3b ADR-admission candidate: a loop-authored ADR proposing to supersede a human/legacy ADR, refused automatic writing because ratification requires a human gesture. Graft writes these files, one per new ADR number; wtf never does. The originating build already shipped. This standing git-native ADR pair awaits ratification, not a tracker issue or build retry.
 
 For each entry with `disposition: propose-only`: surface the new ADR (number + title) and the old ADR it proposes to supersede (number + title), the recorded `why`, and the issue that authored it. Offer a yes/no gate: **"Ratify supersession of ADR-`<old>` by ADR-`<new>`? (y/n)"**. On confirm, run `faff adr supersede <old> --by <new>` (the existing mechanical linker), then delete the now-resolved `.faff/adr-proposals/<new>.json`. On deny, leave the file — it resurfaces unchanged on the next `/faff-wtf` pass. This is the **only** place a human ratifies a loop-over-human ADR supersession; the admit gate never asks elsewhere.
 
-`disposition: reject` entries are informational only (already refused by the admit gate: challenge, by-level or ratchet; nothing to ratify) — mention a one-line count ("N supersession(s) refused by the admit gate — see the log") rather than itemising, unless appetite is `high`/`full` (prominent) per the gateway's appetite-graded-surfacing rule. Skip the section entirely if `.faff/adr-proposals/` is absent or empty.
+For `disposition: reject` (already refused by challenge, by-level or ratchet), nothing needs ratifying. Report a count: "N supersession(s) refused by the admit gate — see the log". Itemise prominently only at appetite `high`/`full` (gateway appetite-graded-surfacing rule). Skip the section if `.faff/adr-proposals/` is absent or empty.
 
 ### 5. Today's Focus
 Based on the above, recommend 2-3 specific things to focus on today, **selected and ordered per the configured methodology's `pick-ordering`** (gateway → **Ordering & judgement delegation**; the thematic default orders by priority → chainable unlock value):
@@ -92,11 +92,11 @@ Based on the above, recommend 2-3 specific things to focus on today, **selected 
 - Flag if something blocked needs attention first
 - Note any dependencies that are about to unblock downstream work — call out the size of the chain that would open up
 
-(The value-chains view — which ready issue ships the most downstream value if delegated — lives in the **automation preview**, §5b, not here. Today's Focus stays the L1 answer: a short, ordered list of what *you* pick up next.)
+(The **automation preview**, 5b, shows which ready issue ships most downstream value if delegated. Today's Focus remains the L1 answer: a short ordered list of what the human picks up next.)
 
 ### 5a. Methodology findings (rendered only when a `methodology` skill is configured)
 
-Request the `standup-digest` output from the configured `methodology` skill and render what it returns. The digest carries a WIP status, an optional sequencing diagnosis, and the top structural findings — the methodology decides their content; faff-wtf only places and trims them.
+Request and render the configured methodology's `standup-digest`: WIP status, optional sequencing diagnosis and top structural findings. Methodology owns the content; wtf only places and trims it.
 
 - **WIP coupling.** When the digest reports WIP at cap, `### Today's Focus` recommends **completion of in-flight only** — no new starts. Below cap, allow up to the digest's remaining-headroom count of new starts.
 - **Highlight, not firehose.** Render at most two structural findings here, ordered by the digest's severity. If more exist, end with "(more in `/faff-tidy`)".
@@ -105,9 +105,9 @@ Skip the entire `### 5a` subsection if no `methodology` skill is configured.
 
 ### 5b. Automation preview — is it worth firing `/faff-beep-boop`? (always render)
 
-The **L3 delegation view**: which lever ships the most downstream value, and what an unattended run would pick up right now (computed per the **Automation-routing verdict (fixed)**, gateway). It answers a different question from Today's Focus above and never displaces it. **Always present** — even with empty queues, render the headers with "(none)" so the human can see at a glance whether a run is worth kicking off.
+The **L3 delegation view** shows which lever ships most downstream value and what an unattended run would pick up now (gateway → **Automation-routing verdict (fixed)**). It never displaces Today's Focus. **Always render**, including headers with "(none)" for empty queues.
 
-**Value chains to unlock (rendered when any ready issue has chainable unlock value ≥ 2).** Surface the **chains** so you can see which lever ships the most downstream value. For each ready (or about-to-be-ready) issue that gates others, render the chain it opens, not just a count:
+**Value chains to unlock (rendered when any ready issue has chainable unlock value ≥ 2).** For each ready or about-to-be-ready issue gating others, show the chain it opens, not just a count:
 
 ```
 SHF-12  add auth-token service        →  unlocks SHF-18 → SHF-19 → SHF-23   (3 issues, all currently blocked only by SHF-12)
@@ -124,9 +124,9 @@ Render the head issue (the one to build now), an arrow, then the transitive depe
 
 ### 5c. Structural diagnostics (always render — at least the status line)
 
-Read the most recent tidy log (`.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md`) for `backlog-diagnostics` findings. If no tidy ran this pass, request the `backlog-diagnostics` output from the configured methodology skill (default `faffter-noon-methodology-thematic`) — when it fires it joins the pass's batched methodology dispatch (**Methodology transport** above). Render a one-line status if all clean (`Structural diagnostics: clean ✓`); otherwise render the findings in the format that output defines.
+Read the latest tidy log (`.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md`) for `backlog-diagnostics`. If no tidy ran this pass, request that output from the configured methodology (default `faffter-noon-methodology-thematic`) within the pass's batched dispatch (**Methodology transport**). Render `Structural diagnostics: clean ✓` if clean; otherwise use the output's findings format.
 
-Repeat-parks, orphaned+repeat-parked, and **chain-gap** findings (any sub-type — sub-ticket / upstream / downstream / peer) additionally surface in `### Heads up` so the user sees the urgent patterns prominently, not just in the diagnostics dump. Chain gaps are first-class Heads-up material: when a ticket's spec references work no ticket tracks, picking up the ticket leaves the broader purpose unfulfilled with no breadcrumb for what's next. Tag each Heads-up chain-gap entry with the sub-type so the human can scan-read.
+Also surface repeat-parks, orphaned+repeat-parked and every **chain-gap** sub-type (sub-ticket / upstream / downstream / peer) in `### Heads up`, beyond the diagnostics section. Tag each chain-gap entry with its sub-type so missing work is visible before the human picks a focus issue.
 
 ### 5d. Calibration signals (rendered only when threshold crossed)
 

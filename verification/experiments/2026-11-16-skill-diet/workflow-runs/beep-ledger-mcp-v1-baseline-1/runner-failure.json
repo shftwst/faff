@@ -1,0 +1,5 @@
+{
+  "status": "fail",
+  "error": "Command '['/usr/local/bin/node', '--input-type=module', '-e', \"import{readFileSync,writeFileSync}from'node:fs';import{gradeLedgerExecution}from'./eval/control-parity/ledger-execution.mjs';import{isDeepStrictEqual}from'node:util';const[d,f]=process.argv.slice(1),r=n=>JSON.parse(readFileSync(d+'/'+n)),grade=gradeLedgerExecution(r('capture.json'),r('expected.json'),JSON.parse(readFileSync(f)));const result={status:grade.status,recorded_grade_matches:isDeepStrictEqual(grade,r('report.json').grade),grade};writeFileSync(d+'/workflow-replay.json',JSON.stringify(result,null,2)+'\\\\n',{flag:'wx'});if(result.status!=='pass'||!result.recorded_grade_matches)process.exitCode=1;\", '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1', '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-v2-draft.json']' returned non-zero exit status 1.",
+  "policy": "Retain the failed sample and stop; no replacement or waiver."
+}

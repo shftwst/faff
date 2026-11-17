@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "status": "registered-before-model-launch",
+  "plans": [
+    {
+      "path": "beep-ledger-mcp-v2-baseline-plan.json",
+      "sha256": "d54ad9cf805cb542eb20f5c71e8443a07d89244262715edb389320349aebca84"
+    },
+    {
+      "path": "beep-ledger-mcp-v2-candidate-plan.json",
+      "sha256": "05d274ac9664b29977dbb783e44fbb1fdfa58c8d075047584b31d447f8343cc5"
+    }
+  ],
+  "accepted_reporting_source_commit": "c742d56b4b1ba1902889be4b9131a04d2d5613ae",
+  "baseline_source_sha256": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16",
+  "candidate_source_sha256": "3b23939b67eb3472b4e826e990ce7ed9f396455c4ff65430af4cecb7a8bdcbfe",
+  "acceptance": "Five fresh V2 baseline samples must pass all three execution cases and eleven decisions, exact native replay, restored real consumer replay, unchanged registered inputs and independent review of actual output and every extra detail claim before any candidate launch. Then require the same five fresh candidate samples. Any failure stops and is preserved; no replacement, post-hoc qualification or pooling with held V1. Exact legacy-projection scores remain diagnostic. Current-source integration/lint/inventory are required before acceptance.",
+  "manual_criteria": [
+    "Read all actual ledger patches and persisted bytes against the supplied observations, authority and completeness rules.",
+    "Read every supplied event payload, persisted event, real consumer output and all eleven policy decisions.",
+    "Required issue_detail is an explicit V3 workload obligation; all other fields and authority checks remain exact. Additional detail keys may name only supplied admitted_build_ids.",
+    "Read every extra detail claim, including arrays and empty containers. Ground path, value and implied meaning for the same issue in exact source pointers and rationale; mere occurrence of a value elsewhere is insufficient. Reject invented tests, merges, side effects or contradictory claims.",
+    "Use the manual schema enforced by verify-ledger-mcp-arm-v2.mjs and verifyLedgerDetailReview: exact sample/case/decision coverage, source/ledger/events/consumer and detail/path/value hashes, true pass fields and no unsupported assertions. Automatic grade pass never substitutes for manual grounding.",
+    "Restore exact final ledger/event bytes and heartbeat into isolated roots, preserving run IDs and timestamps. Reproduce real runcheck/event consumers and summary exactly; only parsed runcheck.run_dir relocates."
+  ],
+  "candidate_launch_requires": "Complete five-baseline verify-ledger-mcp-arm-v2 pass and independent actual-output review; generic runner does not enforce this external prerequisite.",
+  "prior_cohort": "beep-ledger-mcp-v1-hold.json remains immutable, failed and unpooled. V2 is a new complete cohort and workload.",
+  "model_calls_launched": 0,
+  "limits": [
+    "No model run-open/close, governance, actual review/landing/filing, hosted publication or complete unattended-loop proof.",
+    "Source preserves inherited schema1/four-token-class prose while real CLI owns schema2/split-cache token output.",
+    "Controlled summary external inputs and transcript counts, not actual provider billing or architectural-quality proof."
+  ]
+}

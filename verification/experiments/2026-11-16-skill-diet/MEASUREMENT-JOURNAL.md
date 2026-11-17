@@ -520,3 +520,12 @@ LedgerV2 changes only the two reviewed ledger/event sections on this exact Repor
 Architecture's fresh MCP cohort produced 20/20 raw/manual proposals and 50/50 decisions. Baseline5 received a runtime date update across UTC midnight, adding a third user context message. The frozen native auditor rejects it, leaving native4/5. The independent metadata-only diagnosis does not waive the failure. All samples and the final manual record are frozen; no candidate launched or savings counted.
 
 Ledger V2 private integration passes143tests, lint and inventory. Independent prelaunch review verified the accepted Reporting baseline, exact candidate/private commit, frozen inputs, pinned runtime and transport evidence. The five-baseline V3-runner plan is now active, with all producer/decision/native/manual/consumer gates required before candidates. No ledger savings counted.
+
+## 2026-11-17: ledger evaluator correction before a fresh cohort
+
+- Held MCP V1 after baseline 1: raw producer 1/3, decisions 11/11, native 1/1, independent factual review 3/3 with 665 binding checks. Only the exact optional-detail projection fails. Candidate remains unlaunched.
+- Preserved the original grader, workload, registration, raw output and failure. No V1 post-hoc acceptance or pooling.
+- Added a versioned workload that explicitly requests supplied issue details; its evaluator preserves all other checks and requires independent grounding for every additional claim. Displayed values and hashes must agree.
+- Added exact ledger/event snapshot restoration with real runcheck, event consumers and summary. Only runcheck's directory path relocates. Missing cases and altered bytes, events, dependencies, summary or incomplete-work result fail.
+- Current deterministic suite passes 81 tests. Final in-process MCP preflight passes 71 calls, 3 producer cases, 11 decisions and 14 omission negatives; fresh exact consumer replay passes all three cases.
+- Accepted source totals remain 110,629 bytes / 27,243 estimated tokens saved. Ledger's 6,622 bytes / 1,625 tokens remain pending.

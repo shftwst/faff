@@ -1,0 +1,167 @@
+{
+  "schema": 1,
+  "reviewer": {
+    "role": "Independent read-only versioned evaluator reviewer",
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "status": "clear-for-fresh-registration-with-mandatory-manual-detail-gate",
+  "models_launched": 0,
+  "source_installed": false,
+  "bindings": [
+    {
+      "path": "eval/control-parity/ledger-execution-v2.mjs",
+      "sha256": "8fd57ec53d834a7d0f9a382b839b64fe724d1e95081b5dadf9bed04191552180"
+    },
+    {
+      "path": "test/control-parity-ledger-v2.test.mjs",
+      "sha256": "5edd682e4b1acce3d9dd5437fb52265f396d5092effb772bb80ab3d93fc3b30c"
+    },
+    {
+      "path": "eval/control-parity/ledger-execution.mjs",
+      "sha256": "91c5674d197cf7a79f037300ab2eb5523f49c2af3a990a8bef2da44a1126ac31"
+    },
+    {
+      "path": "test/control-parity-ledger.test.mjs",
+      "sha256": "19bd406ff1a816e6596741f8e2db1ace7eb37250b622685f9c5697c72867c576"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-v3.json",
+      "sha256": "a3984df712bb350d84c5b367752fe4624582d4ae923648dff1ce42ae8e54298c"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/run-mcp-workflow-samples-v4.py",
+      "sha256": "85840dcfc17bedb3a9760eb344e28187ecd45d3ed5c8e2b761050f8575fd7c75"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/preflight-ledger-mcp-v2.mjs",
+      "sha256": "f9a10db53665afcbe743f24bd8ef3ca6ed9bef6af71e752ec373f3db4ab37e27"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/beep-ledger-mcp-v2-evaluator-tests-final.txt",
+      "sha256": "8eae3b34fbbd8e287adcd6e3821feb66ea64fb1cda1fa1fe33adba7a541a92a1"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v2-final/preflight.json",
+      "sha256": "b6c65ebb5185714eb4c1ff0784632eb0bfba7f2fed8ce45dffa2bfd0a103cb2a"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v2-final/manifest.json",
+      "sha256": "1c5338f2c0a0eb8154e4c710f1b30f75a2a71761e54ee0ed5f9720bf08983a46"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v2-final/capture.json",
+      "sha256": "711135d80cf0fcbf0f1cab7934312206a6d74d4db36c15bf246a22f25bdb1024"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v2-final/expected.json",
+      "sha256": "6ec0fe183a022292d36f88e35f680fbdf588c45aa7b7177c9096e8c5bf90eda0"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v2-final/report.json",
+      "sha256": "f0eb490dda46f6d7ed37c75cc75b222079c21abe222e5335d3b5df5c45ed2da8"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v2-final/task.json",
+      "sha256": "3e92021e5a10cfbc4456b5f253d4b693bba438165c57522d8d6ad4d0f4f28cbd"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v2-final/mcp-trace.jsonl",
+      "sha256": "952061e5e247d7400ead200113f77b167ed7ab35c28de538678b9a35c9d75c51"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v1-hold.json",
+      "sha256": "d94e96d28716c20de3cf54c0fa878223ddbb64a30e08e80230e87b66d9985d67"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/replay-ledger-consumers-v1.mjs",
+      "sha256": "76a997257b184955688a121bb8b812f917b8a2ae5d4f2aa7eba3c50cefd15c23"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v2-final/consumer-replay.json",
+      "sha256": "0811d377d9eedbd79a9c8a84288e6572a51dec23c44d0f32c1b727c04c3e5343"
+    }
+  ],
+  "version_boundary": {
+    "legacy_harness_and_test_hashes_match_prior_v7_review": true,
+    "old_model_cohort_not_regraded_or_accepted": true,
+    "fixture_v3_only_changes_two_ledger_task_instructions": true,
+    "new_workload": "Explicitly persist supplied issue_detail; optional grounded extras restricted to supplied admitted_build_ids. Both fresh arms must receive this same workload.",
+    "legacy_exact_projection_retained_as_diagnostic": true
+  },
+  "mechanism_review": [
+    "New grade delegates original capture to unchanged legacy grader. Only oracle outcome_details expectation is adjusted; original capture and every authority/byte/event/runcheck/summary/other-field check remain in force.",
+    "Recursive required source.issue_detail objects must be retained. Required arrays and scalar values remain exact; shape requires object map of per-issue objects and keys limited to explicit admitted build IDs.",
+    "Every optional scalar/null value, array as atomic value and empty object is inventoried with escaped JSON pointer and exact value hash; nonempty objects recurse so field meaning remains in the full path.",
+    "Manual gate covers every detail case and every extra path exactly, rejects duplicates/omissions, binds full details/source hashes and exact displayed values/value hashes, requires pass:true, nonempty rationale and existing same-case source pointers.",
+    "Citation existence and hashes prove attribution/binding, not interpretation. The independent reviewer must judge the meaning of full path plus value for the correct issue, including implied tests-passed or side-effect claims.",
+    "Structurally valid fabricated claims intentionally remain pending manual judgement; a rejecting judgement prevents the manual gate from passing. Automated status:pass is not final qualification."
+  ],
+  "resolved_finding": {
+    "id": "displayed-value-consistency",
+    "original": "Manual finding value_sha256 was checked but displayed finding.value was not.",
+    "final": "Verifier now deep-compares finding.value with the inventoried value; changed-displayed-value negative passes."
+  },
+  "verification": {
+    "independent_current_pinned_v2_tests": {
+      "passed": 25,
+      "failed": 0
+    },
+    "independent_prior_old_plus_pre_correction_v2_tests": {
+      "passed": 67,
+      "failed": 0,
+      "limit": "Before the final displayed-value check; current25 suite reran after that change, and original43 test/harness sources remain unchanged."
+    },
+    "final_combined_recorded_log": {
+      "passed": 81,
+      "failed": 0,
+      "method": "Read completed root-run log and bind exact bytes, not claimed as a second independent execution."
+    },
+    "full_final_inprocess_bridge_preflight": {
+      "independent_assertions": 353,
+      "calls": 71,
+      "policy_reads": 40,
+      "workflow_effect_calls": 31,
+      "case_and_decision_omission_failures": 14,
+      "replayed_grade_matches": true,
+      "automated_grade": "pass",
+      "legacy_exact_projection": "fail",
+      "manual_grounding_required": true,
+      "inventoried_extra_claims": 2,
+      "extra_paths": "/SUPER-1/superseded_by in each ledger case, value [PRIOR-7]",
+      "policy": "Exact baseline/beep-ledger-v2-with-context.md",
+      "no_orphan_requests_or_responses": true
+    },
+    "runner_v4_ast_extracted_smoke": {
+      "runner_sha256": "85840dcfc17bedb3a9760eb344e28187ecd45d3ed5c8e2b761050f8575fd7c75",
+      "replay_code_sha256": "5bf3596ebc7a4d2c9bdb6d3a2f241dbc4e815194b95ce96faa909838ef9c723a",
+      "output_sha256": "f00e119d4fb20ca56e9b68e367a4f7d71a37f0821ca21b835fd9fd1e18357bde",
+      "exit_code": 0,
+      "json_parses": true,
+      "real_trailing_newline": true,
+      "grade_matches": true,
+      "method": "Actual Python AST replay string executed over fresh temporary copies of final capture/expected/report; temporary directory removed."
+    },
+    "independent_final_state_consumer_replay": {
+      "source_read": true,
+      "executed_independently": true,
+      "status": "pass",
+      "cases_passed": 3,
+      "method": "Restored exact captured ledger/events/heartbeat bytes in disposable roots; real runcheck/event validate/read/verify and summary consumers compared to recorded values, allowing only runcheck run_dir relocation. Before/after input and runtime guards retained. No model calls."
+    }
+  },
+  "conditions_before_acceptance": [
+    "Freeze a new cohort and both arm plans before model calls; no V1 pooling or replacement.",
+    "Require fresh native audit, real-consumer grade and independent snapshot replay for every sample.",
+    "Require explicit verifyLedgerDetailReview over the freshly recomputed grade for every ledger detail review, even if automatic grade passes; validate each extra claim semantically before acceptance.",
+    "Require complete baseline manual/native/consumer gate before candidate launch, then full candidate gate and integration before source installation or counted savings."
+  ],
+  "limits": [
+    "No model-produced V2 artifacts reviewed; this is evaluator/fixture/runner readiness only.",
+    "Full preflight calls createMcpMailbox in process, not native model sessions or stdio handshake qualification.",
+    "No automated semantic truth inference from citations. Reviewer rationale and source grounding remain independent judgement.",
+    "No full run-open/close/governance/review/landing/filing/hosted publication proof.",
+    "Controlled transcripts and summary dependencies do not measure provider billing.",
+    "Old skill source and source totals remain unchanged; no source acceptance or savings claim."
+  ]
+}

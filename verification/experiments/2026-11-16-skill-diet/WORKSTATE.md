@@ -10,7 +10,7 @@ Reporting is qualified within its stated command/producer/consumer boundary. Bas
 
 Earlier Reporting shell transport remains held separately. Structured MCP transport V4 is qualified; old pilot failures remain preserved. The native auditor proves full policy delivery and exact call/result attribution. Semantic completion has its separate workflow gate.
 
-**Active ledger measurement:** session 44826 runs `run-mcp-workflow-samples-v3.py` with `beep-ledger-mcp-v1-baseline-plan.json`. Log: `/tmp/faff-beep-ledger-mcp-baselines-v1.log`. Five baselines must pass all 3 producer cases, 11 decisions, native and independent actual-output review before any candidate launch. Candidate plan is frozen but unlaunched. Do not edit frozen inputs or stage active runs/manual aggregates.
+**Ledger MCP V1 held:** baseline1 passes native delivery, all eleven decisions and independent factual review, but its frozen automatic grade fails two exact-projection checks on optional, source-grounded outcome_details. Original outputs and failure are preserved in `beep-ledger-mcp-v1-hold.json`. No further V1 samples or candidate launched; no savings counted. A versioned evaluator and explicit supplied-detail workload are being prepared for a fresh, unpooled complete pair.
 
 Ledger V2 candidate is `candidates/beep-ledger-v2.md`, based on exact accepted Reporting source. Potential saving: 6,622 bytes / 1,625 tokens. Only Run ledger and Run-event log sections change; all outside bytes, Reporting, Owner/heartbeat, Stop hook, budget/owner definitions, event table and shared context are preserved. Independent source rebase review passed. Never install the older V1 whole-file candidate.
 

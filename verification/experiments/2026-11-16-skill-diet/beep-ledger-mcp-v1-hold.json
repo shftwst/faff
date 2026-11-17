@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "status": "held",
+  "reason": "Two exact-projection checks rejected source-grounded optional outcome_details. Original automatic grade remains failed. No post-hoc qualification, replacement or pooling.",
+  "registered_plan": "beep-ledger-mcp-v1-baseline-plan.json",
+  "registered_plan_sha256": "2d9cddcf88d0676ce737de6a94c93024e78c461680369634005925fc5603b85b",
+  "samples_launched": 1,
+  "raw_execution_passed": 1,
+  "raw_execution_total": 3,
+  "decisions_passed": 11,
+  "native_passed": 1,
+  "manual_execution_passed": 3,
+  "candidate_launched": false,
+  "accepted": false,
+  "savings_counted": false,
+  "files": {
+    "workflow-runs/beep-ledger-mcp-v1-baseline-1/report.json": "c4a4bcb8b4c636f52c81a9b2e32ba47ee5ed762f7e72845934b235166f61be64",
+    "workflow-runs/beep-ledger-mcp-v1-baseline-1/workflow-replay.json": "44d6db96d158564c5b7a1d63662a472e72838a69a61ca81e8a571219ffe4dc15",
+    "workflow-runs/beep-ledger-mcp-v1-baseline-1/native-audit.json": "29f151c2b4b7c672555ab56489eea68f4c121192e47dde829db1970a75b79011",
+    "workflow-runs/beep-ledger-mcp-v1-baseline-1/runner-failure.json": "d9cf72658b2115a94823e075600ab6669932d59d42384cf3d1674cee6280ad59",
+    "manual-artifact-reviews/beep-ledger-mcp-v1-baseline-independent.json": "e87e650f2aa9b91f9e757bff7294a856b402264ad1f73bea251f82ede245a33c"
+  },
+  "next": "Version the evaluator and workload to explicitly request supplied details, then preregister a fresh complete pair. Keep V1 immutable and unpooled."
+}

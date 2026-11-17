@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "status": "gate-code-review-pass",
+  "scope": "Read-only gate/helper/schema review plus supporting deterministic tests and final preflight replay-result comparison. This is not a completed V2 arm gate, source acceptance or blanket native qualification. No model calls or production/source edits. Separate prelaunch plan-binding review remains required.",
+  "verifier_sha256": "9485254f9e6330abe47ba42d3e6a2fb8af6787f8e9ef2ef3ff6f5cc648aaf895",
+  "syntax_check": {
+    "command": "node --check verification/experiments/2026-11-16-skill-diet/verify-ledger-mcp-arm-v2.mjs",
+    "exit_code": 0
+  },
+  "supporting_tests": {
+    "command": "node --test test/control-parity-ledger-v2.test.mjs test/control-parity-ledger-replay.test.mjs",
+    "exit_code": 0,
+    "tests": 38,
+    "pass": 38,
+    "fail": 0,
+    "log_path": "/tmp/faff-ledger-gate-v2-independent-supporting-tests.log",
+    "log_sha256": "fabaad9adda1541ed96f137721c383bd3ad62cc955cf3e4061dea6033c9db8c6",
+    "limit": "Tests exercise detail grading/manual binding and exact restored consumers. Full five-sample arm verification cannot run before the cohort exists."
+  },
+  "closed_source_issue": {
+    "issue": "Registration plans could be empty/subset, leaving selected plan not bound to registration.",
+    "resolution": "Exact unique two-path registration list, SHA256 format, current file hashes and selected-plan registered hash are now mandatory. Required frozen dependencies plus runner/harness/fixture/dependency identities and sample arm/policy are enforced."
+  },
+  "reviewed_gates": [
+    "Exactly five V2 sample names and exact arm/policy plus manual plan/sample-set bindings.",
+    "Complete mandatory frozen helper/import/source/context entries and final unchanged-input hashes.",
+    "Manifest runtime root/commit, policy, fixture, dependency, harness and task hashes; runtime artifact integrity.",
+    "Worker exit, plan/runner/model/effort/arm and exact native metadata/evidence-key hashes.",
+    "Actual raw native session hash and exact auditor replay against the same source policy.",
+    "Fresh V2 grade equals stored raw report and workflow replay; original legacy exact-projection diagnostics remain present.",
+    "Manual case/decision completeness and exact source/ledger/events/consumer hashes with explicit authority/facts/no-unsupported-assertion statuses.",
+    "Every optional detail claim has exact value/hash, explicit passing independent judgement, source pointers and rationale; code verifies citations exist without pretending citations prove interpretation.",
+    "Restored real consumer replay must pass, then all guarded source/sample/native/manual inputs must remain unchanged."
+  ],
+  "final_preflight_confirmation": {
+    "directory": "ledger-mcp-preflight-v2-final",
+    "replay_status": "pass",
+    "input_hashes_checked": 6,
+    "consumer_cases_compared_to_capture": 3,
+    "allowed_difference": "Parsed runcheck.stdout.run_dir only. All other fields/consumer stdout/stderr/exit/error and full persisted summary compare exactly.",
+    "helper_in_final_replay_matches_reviewed_replay_version": true
+  },
+  "remaining_code_blockers": [],
+  "external_requirements": [
+    "Independent review of final registration/plan hashes, exact two operator context paths and all frozen inputs before launch.",
+    "Record the complete five-baseline native/raw/manual/detail/consumer gate before any candidate launch; this verifier does not launch or enforce chronology of external invocations.",
+    "Candidate needs the same complete independent five-sample gate.",
+    "Keep original V1 hold, failures and diagnostics unchanged; fresh V2 cohort is separate and unpooled.",
+    "Source integration, installed-source checks and accounting remain separate after both arms qualify."
+  ],
+  "old_v1_qualified": false,
+  "artifacts": {
+    "verification/experiments/2026-11-16-skill-diet/verify-ledger-mcp-arm-v2.mjs": "9485254f9e6330abe47ba42d3e6a2fb8af6787f8e9ef2ef3ff6f5cc648aaf895",
+    "eval/control-parity/ledger-execution-v2.mjs": "8fd57ec53d834a7d0f9a382b839b64fe724d1e95081b5dadf9bed04191552180",
+    "eval/control-parity/ledger-execution.mjs": "91c5674d197cf7a79f037300ab2eb5523f49c2af3a990a8bef2da44a1126ac31",
+    "eval/control-parity/codex-mcp-native-audit.mjs": "f33617ae48ad5bcbdeb993a7c1533b39ca43fdc2890160c8f458a81a3dfdb5f0",
+    "verification/experiments/2026-11-16-skill-diet/replay-ledger-consumers-v1.mjs": "76a997257b184955688a121bb8b812f917b8a2ae5d4f2aa7eba3c50cefd15c23",
+    "eval/control-parity/reporting-execution.mjs": "baedd016cfd7502a237c9255b1dfba8f7e150357f04cc8e2b29c2865773fce58",
+    "test/control-parity-ledger-v2.test.mjs": "5edd682e4b1acce3d9dd5437fb52265f396d5092effb772bb80ab3d93fc3b30c",
+    "test/control-parity-ledger-replay.test.mjs": "a424252651653fc7d7f69b1326110b22b076c554252a0fec197ee5b3e14d4390",
+    "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-v3.json": "a3984df712bb350d84c5b367752fe4624582d4ae923648dff1ce42ae8e54298c",
+    "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-summary-dependencies-v2.json": "86ac286239e0ca1df92722b8256459b21f675241e58f0fe925e50a005ecb9ba5",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v2-final/consumer-replay.json": "0811d377d9eedbd79a9c8a84288e6572a51dec23c44d0f32c1b727c04c3e5343",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v2-final/capture.json": "711135d80cf0fcbf0f1cab7934312206a6d74d4db36c15bf246a22f25bdb1024",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v2-final/manifest.json": "1c5338f2c0a0eb8154e4c710f1b30f75a2a71761e54ee0ed5f9720bf08983a46",
+    "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v1-hold.json": "d94e96d28716c20de3cf54c0fa878223ddbb64a30e08e80230e87b66d9985d67"
+  }
+}

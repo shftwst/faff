@@ -7,7 +7,7 @@ judgement_seam: none
 
 # faffter-noon-ship
 
-The default **producer** for `ship` delivers an integrity-floor-cleared PR (AC-verified + CI-green + review `pass`): no-op deploy readiness, merge through `faff merge-gate` (never raw `gh pr merge`), cleanup of its own artifacts, and no deploy. Emit the native result **plus a `faff-contract:delivery-outcome` block** for faff-graft Step 10 to parse via `faff contract delivery-outcome` and route (canonical semantics: `faff contract delivery-outcome --describe`). Swap to a deploy-capable producer (e.g. `gstack:land-and-deploy`) when delivery extends beyond merge.
+The default **`ship` producer** merges an integrity-floor-cleared PR (AC-verified + CI-green + review `pass`) through `faff merge-gate`, never raw `gh pr merge`. Deploy readiness is a no-op; it cleans only its own artifacts and does not deploy. Emit the native result **plus a `faff-contract:delivery-outcome` block** for graft Step 10 to parse via `faff contract delivery-outcome` and route (canonical semantics: `faff contract delivery-outcome --describe`). Use a deploy-capable producer (e.g. `gstack:land-and-deploy`) for delivery beyond merge.
 
 ```yaml
 slots:
@@ -20,21 +20,21 @@ Invoked by `/faff-graft`'s **Step 10** after the integrity floor passes: interac
 
 ## The contract
 
-The delivery-outcome contract is **fixed in the gateway** — see the sibling `faff/references/kernel.md` → **Core contracts and adaptor slots** → _Delivery outcome (fixed)_. It is the authoritative definition for **every** `ship` producer (this default and any deploy-capable third party): the closed outcome vocabulary (canonical semantics: `faff contract delivery-outcome --describe`), the two-tier gate (non-delegable integrity floor + the producer's own deploy-readiness tier), and the coercion rule (a result the `faff contract delivery-outcome` script can't map normalises to `failed`, never `shipped`). This skill **refers back** to that contract; the recap here is non-normative and the gateway wins on any conflict.
+The gateway's fixed delivery-outcome contract governs **every** `ship` producer: sibling `faff/references/kernel.md` → **Core contracts and adaptor slots** → _Delivery outcome (fixed)_. It owns the closed vocabulary (`faff contract delivery-outcome --describe`), non-delegable integrity floor + producer deploy-readiness tier, and coercion: an unmappable `faff contract delivery-outcome` result normalises to `failed`, never `shipped`. This recap is non-normative; the gateway wins any conflict.
 
-**How this contract reaches you.** The fixed definition is loaded by the invoking consumer (`/faff-graft` reads the gateway on entry), so when you run as the `ship` slot it is already in context. If invoked standalone, first **Read the sibling `faff/references/kernel.md` (the shared kernel) → _Delivery outcome (fixed)_**, then the lane references ship consumes — `faff/references/build.md` (Worktree policy), `faff/references/l4.md` (Mechanism slot), and `faff/references/review.md` (Producer slots vs adaptor slots) — before delivering.
+**How this contract reaches you.** Invoking `/faff-graft` reads the gateway on entry, so the fixed definition is already in context. Standalone, **Read sibling `faff/references/kernel.md` (the shared kernel) → _Delivery outcome (fixed)_**, then `faff/references/build.md` (Worktree policy), `faff/references/l4.md` (Mechanism slot) and `faff/references/review.md` (Producer slots vs adaptor slots), before delivering.
 
 ## How the default runs it
 
 The default delivers by merging, nothing more:
 
-1. **Delivery-precondition check (ship-time backstop).** Immediately before merging, re-run a cheap, **read-only** probe of the mechanical preconditions the merge needs (graft runs the same probe pre-build; this is the backstop for a precondition that changed during the build, or that the pre-flight couldn't see without the real diff):
+1. **Delivery-precondition check (ship-time backstop).** Immediately before merge, re-run a cheap **read-only** probe of its mechanical preconditions. Graft probes them pre-build; recheck conditions that changed during the build or needed the real diff:
    - **push** — can we push to the remote for this branch? (`git push --dry-run`)
    - **token-scope** — if the diff touches `.github/workflows/*`, does the token carry the `workflow` scope? (`gh auth status`)
    - **merge-method** — is the intended merge method (squash) enabled on the repo? (`gh api repos/{owner}/{repo}` merge flags)
    - **actions-policy** — does the change rely on something org/repo Actions policy forbids (e.g. an Actions-created PR)?
 
-   On a block, emit `not-ready:precondition:<kind> — <detail>; remedy: <remedy>` (the `<kind>` is the failing probe) and stop — **do not** attempt the merge. This is the **only** way the default emits the deferral outcome: its *deploy-readiness* tier is still a no-op pass (it has no deploy environment), but a mechanical **precondition** block is a legitimate deferral the default surfaces so the operator gets the specific blocker + one-time remedy instead of a silent failure.
+   On a block, emit `not-ready:precondition:<kind> — <detail>; remedy: <remedy>` (`<kind>` names the failing probe) and stop: **do not attempt the merge**. This is the default's **only** deferral path; its deploy-readiness tier remains a no-op pass with no deploy environment. Surface the specific mechanical blocker and one-time remedy.
 
    An *indeterminate* probe (network/`gh` outage) is **not** a confirmed block — proceed to the merge attempt instead; a genuine outage there maps to the failure outcome, never a phantom success.
 
@@ -45,7 +45,7 @@ The default delivers by merging, nothing more:
    **Git-only mode:** invoke `faff merge-gate --local --issue <ID> --run-dir <dir> --level <level> --execute` **instead of `--pr <n>`** — there is no PR to reference. `merge-gate --local` re-verifies the identical AC/review floor legs, runs its own fresh `faff gates run` as the CI-equivalent, and lands the merge as a local base-ref move (never a raw `git merge`/`push`/`update-ref` — those are mechanically fenced on a no-remote repo by `merge-fence`'s `matchesRawLocalBaseMerge`). Exit codes are identical (0 `merge-ok` / 1 `refuse` / 2 fail-loud); `--merge-args` has no effect in this mode (there is no `gh pr merge` to flag) and may be omitted.
 
    **Custody-flag pass-through.** When graft's _Interactive custody stamp sub-step_ produced a per-issue custody verdict (the L4 top-level path, `--local` **or** `--pr` — production is mode-agnostic), it passes `--custody-verdict <path>` and `--custody-verdict-sha256 <sha>` down to this producer. **Forward BOTH unchanged** whenever the caller passed them, and omit them when it did not — the producer never mints, re-hashes, or inspects the verdict, it only relays the two flags to the interlock (which admits the verdict through `computeCustodyVerdictAdmission`) **on whichever of `--pr`/`--local` this step invokes**. **Two callers supply these flags:** graft's L4 top-level _Interactive custody stamp sub-step_ (the self-consistency stamp, on whichever of the `merge-gate --pr`/`--local` invocations this step makes), and the **dispatched-lane merge locus** (the `concurrency` dispatcher at gateway obligation 7), which produces a *detective*-custody verdict over the untrusted build lane and threads the same two flags onto the **`--pr`** invocation. The relay is byte-identical regardless of caller or merge mechanism and never distinguishes the two bases (that distinction is the caller's, honoured by never routing either verdict through `FAFF_INTEGRITY_BOUNDARY`). Only a **dispatched** `--pr` merge whose lane produced no detective-custody verdict, or an L1–L3 merge, passes no custody flags.
-4. **Cleanup (deploy-side only).** The default created no release artefacts or temp deploy state, so there is nothing of its own to clean. It **never** touches the worktree — worktree teardown pairs with graft's setup and is graft's job (under the parallel executor it's coordinated there). See gateway → **Worktree policy**.
+4. **Cleanup (deploy-side only).** No release artefacts or temp deploy state were created, so nothing needs cleanup. **Never touch the worktree**: teardown belongs to graft, coordinated by the parallel executor when applicable (gateway → **Worktree policy**).
 5. **Emit the native result + the contract block.** The default's native result is the **`faff merge-gate` exit + its printed verdict**, which it self-declares in its `faff-contract:delivery-outcome` block (canonical semantics: `faff contract delivery-outcome --describe`).
    - `merge-ok` (exit 0, `merged`) → the success outcome, `corroborated: true`.
    - a `refuse` (exit 1) or fail-loud (exit 2) → the failure outcome carrying merge-gate's blocker line as the reason.
@@ -53,11 +53,11 @@ The default delivers by merging, nothing more:
 
    faff-graft parses the block via `faff contract delivery-outcome`.
 
-On a merge conflict or any `gh` failure, the producer declares `failed:<reason>` (e.g. `failed:merge conflict on main`) — never swallow it. Graft treats that as a post-build failure (one fix attempt if obvious, else park). The default only signals success when the merge actually succeeded: if `gh` exits non-zero, times out, or its result can't be confirmed, that is a failure signal, not a success one (declare `corroborated: false`) — and the `faff contract delivery-outcome` coercion rule (malformed or uncorroborated `shipped` → `failed`, never `shipped`) is the backstop, though the default never relies on it.
+On a merge conflict or any `gh` failure, declare `failed:<reason>` (e.g. `failed:merge conflict on main`), never swallow it. Graft takes one obvious fix attempt, else parks. Signal success **only** after confirmed merge: non-zero `gh`, timeout or an unconfirmable result means failure with `corroborated: false`. The `faff contract delivery-outcome` backstop coerces malformed or uncorroborated `shipped` to `failed`, never `shipped`; do not rely on coercion instead of honest reporting.
 
 ## Contract artifact
 
-After the native result (step 5), append **one** fenced block tagged `faff-contract:delivery-outcome`, **last** in the output. Faff-graft parses it deterministically via `faff contract delivery-outcome`, without an LLM re-read of the `gh`/deploy result. Declare the merge exit you observed: the block mirrors the native result, not a second source of truth (the same pattern as `faff-contract:spec-readiness`).
+After the native result (step 5), append **one** `faff-contract:delivery-outcome` fenced block **last**. Declare the observed merge exit; it mirrors the native result, never a second truth (as with `faff-contract:spec-readiness`). Faff-graft parses it deterministically via `faff contract delivery-outcome`, without an LLM re-read of the `gh`/deploy result.
 
 ````
 ```faff-contract:delivery-outcome

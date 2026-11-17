@@ -7,13 +7,13 @@ judgement_seam: holdout, holdout-exercise, holdout-live
 
 # faffter-noon-evaluate
 
-The default **`evaluator`** occupant exercises a spec's born-verifiable done-criteria against a running provisioned feature, emits one `faff-contract:holdout-verdict` and tears the env down. It receives the spec, **never the diff or codebase**: code-blindness prevents judging its own implementation or accepting one merely because it looks plausible.
+The default **`evaluator`** exercises a spec's born-verifiable done-criteria against a running provisioned feature, emits one `faff-contract:holdout-verdict` and tears down the env. It receives the spec, **never the diff or codebase**, preventing self-judgement or acceptance based on plausible-looking code.
 
 > When standalone, Read the sibling `faff/references/kernel.md` (the shared kernel) first, then `faff/references/l4.md` (the L4 concurrency & evaluator lane it consumes) — together they hold the shared rules and the fixed contracts. This recap is non-normative; the gateway kernel wins.
 
 ## What it does
 
-One pass **judges outcomes, never reads code**: exercise the feature externally and report each criterion with evidence in one verdict block. Callers branch on the contract block, not the exercise mechanism; replacement evaluators emit the same block.
+One pass **judges outcomes, never reads code**: exercise externally and give per-criterion evidence in one verdict block. Callers branch on that block; replacement evaluators may change the exercise mechanism but emit the same contract.
 
 The trust boundary is fixed and not negotiable:
 
@@ -47,7 +47,7 @@ The procedure, in order:
 - **Roll up + emit.** Derive the `aggregate` from the criteria per the fixed derivation (canonical semantics: `faff contract holdout-verdict --describe`) — a mix of met and unmet criteria rolls up to `gaps`, never a hand-picked severity — set `code_blind: true`, and emit the block. Write the human-readable evidence as a prose report alongside (not in the block). **Emit the block only: you write no file.** The caller persists it through `faff holdout record`, which writes the v0.3 `holdout-anchored` record to `.faff/holdout/<issue|run>.json` (the store `faff holdout verdicts` reads and re-validates through the same gate) and, for a per-issue invocation, to the run-scoped `<run-dir>/<issue>/holdout.json` the `faff merge-gate` L4 floor reads. The writer refuses a `met` or `unmet` criterion missing `exercised`, `expected` or `observed`, a `needs-human` criterion missing `reason`, and any block whose criterion ids differ from the `running-stack` ids in `faff dod classify` (a missing, extra or delegated id), and records a refusal as a blocking `needs-human` verdict, so leave no detail out. **Under the caged (spawner-dispatched) form:** when the run promised the evaluator cage, this occupant runs inside the `evaluate-call.mjs` spawner and emits **criteria + aggregate only** — the **spawner** derives `code_blind` from what it provably withheld, stamps `spawner_attested` + `attestation`, and writes the record through the same writer. Do not self-attest `code_blind` in that mode; an inner claim that you saw code is a refuse, never laundered.
 - **Tear down.** Tear the env down via its `teardown_ref` on **every** exit path, including the early not-ready return — a leased resource is never left hanging. A teardown failure is logged loudly; it does not change the verdict.
 
-**Anti-pattern:** reading the repo's own test suite to decide a verdict. Why: that re-imports the code's blind spots and breaks the lane invariant — exercise the *running feature*, never re-run the builder's tests.
+**Anti-pattern:** reading the repo's own test suite to decide a verdict re-imports its blind spots and breaks code-blindness. Exercise the **running feature**, never re-run the builder's tests.
 
 ## Output (the contract artifact)
 
@@ -77,4 +77,4 @@ Emit exactly one fenced block as the producer's output — the consumer locates 
   "violations": [] }
 ```
 
-The `aggregate` must match the derivation from the criteria, `code_blind` must be `true`, every `met`/`unmet` must carry evidence, and no `prose` criterion may be judged (a prose DONE item must not appear at all) — the contract reports any of these at exit 1, coercing a malformed `aggregate` to `needs-human` (never `meets-spec`). A swapped-in evaluator (a different exercise strategy) conforms by emitting the same block.
+`aggregate` must derive from the criteria, `code_blind` must be `true`, every `met`/`unmet` needs evidence, and `prose` is never judged (prose DONE items are excluded entirely). The contract reports violations at exit 1 and coerces malformed `aggregate` to `needs-human`, never `meets-spec`. Replacement evaluators must emit the same block.

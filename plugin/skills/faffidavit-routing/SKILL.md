@@ -23,11 +23,11 @@ The automation-routing contract itself is a faff-core invariant and lives in the
 
 This boundary binds the `methodology` slot and `/faff-beep-boop` admission, `/faff-wtf` briefing and `/faff-graft` parking. The gateway fixes verdict vocabulary regardless of methodology; this skill owns only assignment and display.
 
-**How this contract reaches you.** The fixed definition is loaded by the invoking consumer (`/faff-tidy` / `/faff-beep-boop` / `/faff-wtf` read the gateway on entry), so when you run as the `routing_adaptor` slot it is already in context. If you are invoked **standalone** ("why wouldn't SHF-123 fire?"), **Read the sibling `faff/references/kernel.md` (the shared kernel) → _Core contracts and adaptor slots → Automation-routing verdict_ now**, together with the lane references routing consumes — `faff/references/autonomous.md` (Resolve-attempt before park), `faff/references/methodology.md` (the methodology slot), `faff/references/review.md` (Producer slots vs adaptor slots), and `faff/references/park.md` (Park protocol) — before assigning. Refer back to it; never treat the recap below as the source of truth.
+**How this contract reaches you.** Invoking `/faff-tidy` / `/faff-beep-boop` / `/faff-wtf` loads the gateway, so the fixed definition is already in context. Standalone ("why wouldn't SHF-123 fire?"), **Read sibling `faff/references/kernel.md` (the shared kernel) → _Core contracts and adaptor slots → Automation-routing verdict_**, plus `faff/references/autonomous.md` (Resolve-attempt before park), `faff/references/methodology.md` (methodology slot), `faff/references/review.md` (Producer slots vs adaptor slots) and `faff/references/park.md` (Park protocol), **before assigning**. The recap below never replaces that source.
 
 ## The six verdicts (non-normative recap for assignment)
 
-The adaptor assigns exactly one per Todo issue with a discoverable spec. The authoritative definition is the gateway's; this table is a **non-normative** recap for assignment (gateway wins on any conflict). The columns this adaptor owns are the *assignment conditions* and *consumer behaviour*; the verdict names and their meaning are the gateway's:
+Assign exactly one verdict per Todo issue with a discoverable spec. This is a **non-normative** recap; the gateway wins conflicts and owns verdict names/meanings. This adaptor owns the *assignment conditions* and *consumer behaviour* columns:
 
 | Verdict | Definition | What `/faff-beep-boop` does |
 |---|---|---|
@@ -85,7 +85,7 @@ The synthesis gloss (gateway → **Rendering → `rendering_adaptor`**, synthesi
 
 ## Validate — wired to the contract script
 
-Validation is **conformance by construction**: this adaptor does **not** prose-check the verdict's *shape*. It **extracts** the assigned verdict into a structured candidate, hands that to the deterministic **contract script**, and returns the script's output. **The contract script `faff contract automation-routing` is the sole source of contract data** — this adaptor never builds the contract data itself, never decides `conformant` / `violations`. That delegation is what `faff validate-adapters` checks (the wiring-check).
+Validation is **conformance by construction**: extract the assigned verdict into a structured candidate and return the deterministic contract script's output, never prose-check its *shape*. **`faff contract automation-routing` is the sole source of contract data**; this adaptor never constructs that data or decides `conformant` / `violations`. `faff validate-adapters` checks this wiring.
 
 **The split:**
 

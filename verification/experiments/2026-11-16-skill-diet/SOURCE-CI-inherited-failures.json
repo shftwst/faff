@@ -1,0 +1,272 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-17T13:33:44.594784+00:00",
+  "scope": "Read-only existing CI summaries/job logs; bounded source reads to identify unchanged authoring test/adapter and validator/gateway. No tests/models/reruns/modification/comment/retry.",
+  "runs": {
+    "accepted_parent": {
+      "commit": "a523734da3865a10e24239a606663b050a90cbc9",
+      "run": 44016832399,
+      "shard3_job": 133816666016,
+      "shard4_job": 133816666091,
+      "run_link": "https://github.com/shftwst/faff/actions/runs/44016832399",
+      "job_links": {
+        "shard3_job": "https://github.com/shftwst/faff/actions/runs/44016832399/job/133816666016",
+        "shard4_job": "https://github.com/shftwst/faff/actions/runs/44016832399/job/133816666091"
+      }
+    },
+    "immediate_parent": {
+      "commit": "e11206a810e269eb880456f71f1704dd1c5e0f19",
+      "run": 44092528184,
+      "shard3_job": 134071070143,
+      "shard4_job": 134071070045,
+      "run_link": "https://github.com/shftwst/faff/actions/runs/44092528184",
+      "job_links": {
+        "shard3_job": "https://github.com/shftwst/faff/actions/runs/44092528184/job/134071070143",
+        "shard4_job": "https://github.com/shftwst/faff/actions/runs/44092528184/job/134071070045"
+      }
+    },
+    "PR1203": {
+      "commit": "963bfdf36e638aef2c90735d076a562bfa27d8dc",
+      "run": 44092768313,
+      "shard1_job": 134071918040,
+      "shard2_job": 134071918005,
+      "shard3_job": 134071917928,
+      "shard4_job": 134071918091,
+      "typecheck_job": 134071918035,
+      "run_link": "https://github.com/shftwst/faff/actions/runs/44092768313",
+      "job_links": {
+        "shard1_job": "https://github.com/shftwst/faff/actions/runs/44092768313/job/134071918040",
+        "shard2_job": "https://github.com/shftwst/faff/actions/runs/44092768313/job/134071918005",
+        "shard3_job": "https://github.com/shftwst/faff/actions/runs/44092768313/job/134071917928",
+        "shard4_job": "https://github.com/shftwst/faff/actions/runs/44092768313/job/134071918091",
+        "typecheck_job": "https://github.com/shftwst/faff/actions/runs/44092768313/job/134071918035"
+      }
+    }
+  },
+  "inherited_failures": [
+    {
+      "name": "authored and supplied exact skills pass real configured consumers without writes",
+      "test_location": "test/control-parity-authoring.test.mjs:28",
+      "job_key": "shard3_job",
+      "log_evidence": "Grade returned fail instead of pass. Logs do not expose underlying consumer result; root cause unproven.",
+      "job_links": {
+        "accepted_parent": "https://github.com/shftwst/faff/actions/runs/44016832399/job/133816666016",
+        "immediate_parent": "https://github.com/shftwst/faff/actions/runs/44092528184/job/134071070143",
+        "PR1203": "https://github.com/shftwst/faff/actions/runs/44092768313/job/134071917928"
+      }
+    },
+    {
+      "name": "the real fixed-contract consumer admits the exact converted review example",
+      "test_location": "test/control-parity-authoring.test.mjs:84",
+      "job_key": "shard3_job",
+      "log_evidence": "reviewExampleConforms returned false; no guessed underlying cause.",
+      "job_links": {
+        "accepted_parent": "https://github.com/shftwst/faff/actions/runs/44016832399/job/133816666016",
+        "immediate_parent": "https://github.com/shftwst/faff/actions/runs/44092528184/job/134071070143",
+        "PR1203": "https://github.com/shftwst/faff/actions/runs/44092768313/job/134071917928"
+      }
+    },
+    {
+      "name": "faff-beep-boop SKILL.md tells the orchestrator to keep schema_version and add only listed keys",
+      "test_location": "test/run-ledger-writer-inventory.test.mjs:490",
+      "job_key": "shard3_job",
+      "log_evidence": "Exact source wording guard missing: keep `schema_version` and add only keys the v0.3 `run-ledger` schema lists. Present failure in both parent runs; root reports compatibility wording restored subsequently.",
+      "job_links": {
+        "accepted_parent": "https://github.com/shftwst/faff/actions/runs/44016832399/job/133816666016",
+        "immediate_parent": "https://github.com/shftwst/faff/actions/runs/44092528184/job/134071070143",
+        "PR1203": "https://github.com/shftwst/faff/actions/runs/44092768313/job/134071917928"
+      }
+    },
+    {
+      "name": "FAFF-584: the two hub files' real committed size sits exactly at their SKILL_LINE_BASELINE (zero headroom, no RATCHET)",
+      "test_location": "test/validate-adapters.test.mjs:331",
+      "job_key": "shard3_job",
+      "log_evidence": "faff SKILL_LINE_BASELINE has line headroom/RATCHET; same parent failure. Distinct from byte prose-baseline allowances.",
+      "job_links": {
+        "accepted_parent": "https://github.com/shftwst/faff/actions/runs/44016832399/job/133816666016",
+        "immediate_parent": "https://github.com/shftwst/faff/actions/runs/44092528184/job/134071070143",
+        "PR1203": "https://github.com/shftwst/faff/actions/runs/44092768313/job/134071917928"
+      }
+    },
+    {
+      "name": "controlled PR dependency owns human-only production from real captured spec, run and config facts",
+      "test_location": "test/control-parity-graft-checkpoint-v3.test.mjs:19",
+      "job_key": "shard4_job",
+      "log_evidence": "MODULE_NOT_FOUND /Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff; tooling fixture path, not prose semantics.",
+      "job_links": {
+        "accepted_parent": "https://github.com/shftwst/faff/actions/runs/44016832399/job/133816666091",
+        "immediate_parent": "https://github.com/shftwst/faff/actions/runs/44092528184/job/134071070045",
+        "PR1203": "https://github.com/shftwst/faff/actions/runs/44092768313/job/134071918091"
+      }
+    },
+    {
+      "name": "gate diagnostic optional grounded follow-up is allowed while exact contract remains required",
+      "test_location": "test/control-parity-graft-checkpoint-v3.test.mjs:120",
+      "job_key": "shard4_job",
+      "log_evidence": "Same missing absolute local CLI path.",
+      "job_links": {
+        "accepted_parent": "https://github.com/shftwst/faff/actions/runs/44016832399/job/133816666091",
+        "immediate_parent": "https://github.com/shftwst/faff/actions/runs/44092528184/job/134071070045",
+        "PR1203": "https://github.com/shftwst/faff/actions/runs/44092768313/job/134071918091"
+      }
+    },
+    {
+      "name": "exact restored state reproduces real consumers and incomplete-work refusal",
+      "test_location": "test/control-parity-ledger-replay.test.mjs:26",
+      "job_key": "shard4_job",
+      "log_evidence": "ENOENT lstat /Users; tooling fixture path, not prose semantics.",
+      "job_links": {
+        "accepted_parent": "https://github.com/shftwst/faff/actions/runs/44016832399/job/133816666091",
+        "immediate_parent": "https://github.com/shftwst/faff/actions/runs/44092528184/job/134071070045",
+        "PR1203": "https://github.com/shftwst/faff/actions/runs/44092768313/job/134071918091"
+      }
+    }
+  ],
+  "new_source_compatibility_failures": [
+    {
+      "name": "faff-graft: one governed-run check sentence, 8 site(s) refer to it, and no file-path check survives",
+      "test_location": "test/commissaire-status-skill-sites.test.mjs:33",
+      "job_key": "shard1_job",
+      "log_evidence": "Expected8 governed site references, observed6.",
+      "job_links": {
+        "PR1203": "https://github.com/shftwst/faff/actions/runs/44092768313/job/134071918040"
+      }
+    },
+    {
+      "name": "the committed baseline equals the real tree exactly, entry for entry",
+      "test_location": "test/prose-size.test.mjs:293",
+      "job_key": "shard1_job",
+      "log_evidence": "Canonical serialized prose-baseline text differs.",
+      "job_links": {
+        "PR1203": "https://github.com/shftwst/faff/actions/runs/44092768313/job/134071918040"
+      }
+    },
+    {
+      "name": "FAFF-146 loadMarkerDialectProse extracts the decision-marker dialect verbatim",
+      "test_location": "test/eval-cli-driver.test.mjs:249",
+      "job_key": "shard2_job",
+      "log_evidence": "Missing kernel END anchor **The producer emits, the consumer parses.**",
+      "job_links": {
+        "PR1203": "https://github.com/shftwst/faff/actions/runs/44092768313/job/134071918005"
+      }
+    },
+    {
+      "name": "FAFF-146 criteriaFor picks the prep rubric for confidence/marker and the tidy criteria otherwise",
+      "test_location": "test/eval-cli-driver.test.mjs:273",
+      "job_key": "shard2_job",
+      "log_evidence": "Same missing kernel END anchor.",
+      "job_links": {
+        "PR1203": "https://github.com/shftwst/faff/actions/runs/44092768313/job/134071918005"
+      }
+    },
+    {
+      "name": "FAFF-146 buildEvalPrompt(marker) carries the sections and the marker envelope shape",
+      "test_location": "test/eval-cli-driver.test.mjs:292",
+      "job_key": "shard2_job",
+      "log_evidence": "Same missing kernel END anchor.",
+      "job_links": {
+        "PR1203": "https://github.com/shftwst/faff/actions/runs/44092768313/job/134071918005"
+      }
+    },
+    {
+      "name": "loadReviewVerdictProse folds the gateway's fixed contract and the review producer's rubric verbatim",
+      "test_location": "test/eval-cli-driver.test.mjs:339",
+      "job_key": "shard2_job",
+      "log_evidence": "Guard: carries the malformed\u2192needs-human coercion statement.",
+      "job_links": {
+        "PR1203": "https://github.com/shftwst/faff/actions/runs/44092768313/job/134071918005"
+      }
+    },
+    {
+      "name": "FAFF-669 no non-exempt case-backed kind is riding the tidy fall-through",
+      "test_location": "test/eval-cli-driver.test.mjs:795",
+      "job_key": "shard2_job",
+      "log_evidence": "Same missing kernel END anchor.",
+      "job_links": {
+        "PR1203": "https://github.com/shftwst/faff/actions/runs/44092768313/job/134071918005"
+      }
+    },
+    {
+      "name": "FAFF-687 every registered end anchor occurs exactly endCount times (default 1) in the after-start window",
+      "test_location": "test/eval-cli-driver.test.mjs:961",
+      "job_key": "shard2_job",
+      "log_evidence": "MARKER_DIALECT_END count0 instead of1.",
+      "job_links": {
+        "PR1203": "https://github.com/shftwst/faff/actions/runs/44092768313/job/134071918005"
+      }
+    },
+    {
+      "name": "graft Step 8 takes ids from dod classify, renders the block and drops the hand-written template",
+      "test_location": "test/faff-1287-ac-ids.test.mjs:319",
+      "job_key": "shard2_job",
+      "log_evidence": "Expected faff dod classify --spec <spec> --issue <ISSUE> --json; source uses <verified-path>.",
+      "job_links": {
+        "PR1203": "https://github.com/shftwst/faff/actions/runs/44092768313/job/134071918005"
+      }
+    },
+    {
+      "name": "/home/runner/work/faff/faff/test/graft-remote-base.test.mjs",
+      "test_location": "test/graft-remote-base.test.mjs:59",
+      "job_key": "shard3_job",
+      "log_evidence": "Expected exact heading line **Remote-backed review diff.**, found0 because prose shares line.",
+      "job_links": {
+        "accepted_parent": "https://github.com/shftwst/faff/actions/runs/44016832399/job/133816666016",
+        "immediate_parent": "https://github.com/shftwst/faff/actions/runs/44092528184/job/134071070143",
+        "PR1203": "https://github.com/shftwst/faff/actions/runs/44092768313/job/134071917928"
+      }
+    },
+    {
+      "name": "graft Steps 4c and 10 read commit_subject_scheme from spec-commit.json, and the stale scheme phrases are gone",
+      "test_location": "test/spec-commit.test.mjs:572",
+      "job_key": "shard3_job",
+      "log_evidence": "Renumber step must contain `commit_subject_scheme`, spec-commit.json and faff conventions get commit_subject.",
+      "job_links": {
+        "accepted_parent": "https://github.com/shftwst/faff/actions/runs/44016832399/job/133816666016",
+        "immediate_parent": "https://github.com/shftwst/faff/actions/runs/44092528184/job/134071070143",
+        "PR1203": "https://github.com/shftwst/faff/actions/runs/44092768313/job/134071917928"
+      }
+    }
+  ],
+  "counts": {
+    "current_unit_failures": 18,
+    "same_named_failures_in_both_parents": 7,
+    "additional_current_source_compatibility_failures": 11,
+    "unit_shard_failure_counts": [
+      2,
+      7,
+      6,
+      3
+    ]
+  },
+  "source_identity_note": "Authoring test/adapter, contract consumer, validator and gateway show no diff from a523734d to963bfdf. Parent observed CI failures, rather than this identity alone, establish inheritance.",
+  "last_observed_checks": {
+    "passed": [
+      "validate-macos",
+      "governance-check",
+      "PR title",
+      "dco",
+      "docs-build",
+      "env-rootless",
+      "coverage-report"
+    ],
+    "failed": [
+      "unit (1)",
+      "unit (2)",
+      "unit (3)",
+      "unit (4)",
+      "validate"
+    ],
+    "pending": [
+      "typecheck"
+    ],
+    "skipped": [
+      "deploy"
+    ]
+  },
+  "limits": [
+    "Typecheck still pending at last observation; monitoring ends at requested bounded window.",
+    "Parent/current failure equality does not prove root cause for authoring tests; none guessed here.",
+    "Records refer to frozen963bfdf CI, not later root compatibility fixes or a future run.",
+    "No historical failure waived and no framework repair performed."
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "schema": 1,
+  "status": "all-requested-bounded-compatibility-checks-pass",
+  "accepted": false,
+  "workspace": "/var/tmp/faff-skill-diet-source-batch",
+  "head_at_check": "963bfdf36e638aef2c90735d076a562bfa27d8dc",
+  "inputs": [
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "sha256": "59420e7265aa8aa0174eadb665f988d9b748fa728f8035efce69fe69ce7f24d9"
+    },
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "sha256": "a6834f8d738b01d94e4d40887c309ffa83599e7fbda0c406f65eb3f03a78f7e6"
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "sha256": "003d961663cb7e38de3d673a639e4da8fe19bd5f23dc1f954f811d71f3477549"
+    },
+    {
+      "path": "plugin/skills/faff/prose-baseline.json",
+      "sha256": "3c96b9a4faa49a9fbc8f76501d481c79dde88a60883f3e6f7a3bc1218d23cb03"
+    },
+    {
+      "path": "test/eval-cli-driver.test.mjs",
+      "sha256": "b7f80be2a9436b2723eaa2b31439ec2bb6df434f2b12ed5491fb6518f8a0ae0a"
+    },
+    {
+      "path": "test/faff-1287-ac-ids.test.mjs",
+      "sha256": "4a628deb3431361d6ddb850012dd2b9a7e9d0cf992d4e72631a77c7ec87643d5"
+    },
+    {
+      "path": "test/commissaire-status-skill-sites.test.mjs",
+      "sha256": "7d0ece94d6b1b50c27eccdb66aa6eae31e56c3219045fe226c9692ce9688d17d"
+    },
+    {
+      "path": "test/spec-commit.test.mjs",
+      "sha256": "e3425752515eb40c71de11dadc14934227cfc7602042390de562882ba2a4293a"
+    },
+    {
+      "path": "test/run-ledger-writer-inventory.test.mjs",
+      "sha256": "ce2f7fcbd868727d3f540c0425e21e0e4879237a9f18f0e2a171fc7f3697eab5"
+    },
+    {
+      "path": "test/prose-size.test.mjs",
+      "sha256": "85d1a54da680bbc3f462140a7475536f052c44b62fdf739939f6d9150ddb7e0b"
+    },
+    {
+      "path": "test/graft-remote-base.test.mjs",
+      "sha256": "2a89e0fd2b3c0373a425122d03f7b3bd7b57d71723edd7bb520e349b2b1e46ee"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/SOURCE-CI-compatibility-correction.json",
+      "sha256": "559276c0ce7ba11827c16b67d8e5bfa0d9b0502a5138e2528560708ee7509276"
+    }
+  ],
+  "checks": [
+    {
+      "command": "TMPDIR=/var/tmp GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=commit.gpgsign GIT_CONFIG_VALUE_0=false node --test --test-name-pattern 'loadMarkerDialectProse|criteriaFor picks the prep rubric|buildEvalPrompt\\(marker\\)|graft Step 8 takes ids|faff-graft: one governed-run|graft Steps 4c and 10|SKILL.md tells the orchestrator|committed baseline equals' test/eval-cli-driver.test.mjs test/faff-1287-ac-ids.test.mjs test/commissaire-status-skill-sites.test.mjs test/spec-commit.test.mjs test/run-ledger-writer-inventory.test.mjs test/prose-size.test.mjs",
+      "log": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/SOURCE-CI-compatibility-source-tests.txt",
+      "log_sha256": "3786102db76a152fe0c87d6a9f60590e8ec71be684fe28f5a89fe2b1dfc0dcd9",
+      "exit_code": 0,
+      "status": "pass",
+      "tests": 9
+    },
+    {
+      "command": "TMPDIR=/var/tmp GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=commit.gpgsign GIT_CONFIG_VALUE_0=false node --test test/graft-remote-base.test.mjs",
+      "log": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/SOURCE-CI-compatibility-remote-base.txt",
+      "log_sha256": "e9e3ed2af786632e9f48e1d0be261d5ec3e3d95865ea40e35cca867ad30cbaa2",
+      "exit_code": 0,
+      "status": "pass",
+      "tests": 7
+    },
+    {
+      "command": "TMPDIR=/var/tmp GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=commit.gpgsign GIT_CONFIG_VALUE_0=false node plugin/skills/faff/bin/faff validate-adapters",
+      "log": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/SOURCE-CI-compatibility-adapter-lint.txt",
+      "log_sha256": "1c2b00f06da26c738381af4f6c4817a6aecd9b1af9f2ddb03733fa6de95123d2",
+      "exit_code": 0,
+      "status": "pass",
+      "tests": null
+    }
+  ],
+  "summary": {
+    "selected_source_tests_passed": 9,
+    "remote_diff_tests_passed": 7,
+    "failed": 0,
+    "adapter_lint": "pass",
+    "remaining_failures_in_requested_checks": []
+  },
+  "limits": [
+    "Only requested affected compatibility guards and adapter lint were run. No full suite, new tests, runtime edits, models or commits.",
+    "Process-local signing override and short TMPDIR affect disposable git test fixtures only; repository/global git settings unchanged.",
+    "Passing source compatibility checks does not establish model workflow equivalence or resolve previously recorded unrelated test failures."
+  ]
+}

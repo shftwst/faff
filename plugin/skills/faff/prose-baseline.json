@@ -1,46 +1,86 @@
 {
   "schema": 1,
   "files": {
-    "faff-beep-boop/SKILL.md": 138518,
-    "faff-graft/SKILL.md": 141511,
+    "faff-beep-boop/SKILL.md": 138533,
+
+    "faff-graft/SKILL.md": 141650,
+
     "faff-jot/SKILL.md": 23456,
+
     "faff-map/SKILL.md": 24535,
+
     "faff-onboard/SKILL.md": 23039,
+
     "faff-plot/SKILL.md": 45580,
+
     "faff-prep/SKILL.md": 87112,
+
     "faff-tidy/SKILL.md": 67340,
+
     "faff-wtf/SKILL.md": 27152,
+
     "faff/SKILL.md": 5832,
+
     "faff/references/autonomous.md": 39233,
+
     "faff/references/build.md": 12080,
+
     "faff/references/create.md": 9145,
-    "faff/references/kernel.md": 70812,
+
+    "faff/references/kernel.md": 70857,
+
     "faff/references/l4.md": 26377,
+
     "faff/references/methodology.md": 35453,
+
     "faff/references/park.md": 14619,
+
     "faff/references/review.md": 4756,
+
     "faff/references/tracker.md": 24185,
+
     "faffidavit-rendering/SKILL.md": 11288,
+
     "faffidavit-routing/SKILL.md": 11144,
+
     "faffter-dark-adversarial-review/SKILL.md": 22259,
+
     "faffter-dark-authoring-adaptors/SKILL.md": 12321,
+
     "faffter-dark-concurrency-parallel/SKILL.md": 25665,
+
     "faffter-dark-methodology-agile-delivery/SKILL.md": 44947,
+
     "faffter-dark-nlspec/SKILL.md": 18819,
+
     "faffter-dark-spec-review/SKILL.md": 40496,
+
     "faffter-noon-adr/SKILL.md": 4238,
+
     "faffter-noon-architecture/SKILL.md": 4787,
+
     "faffter-noon-concurrency-sequential/SKILL.md": 18512,
+
     "faffter-noon-env-code-interface/SKILL.md": 9602,
+
     "faffter-noon-env-compose/SKILL.md": 12232,
+
     "faffter-noon-evaluate/SKILL.md": 15939,
+
     "faffter-noon-intake/SKILL.md": 5689,
+
     "faffter-noon-methodology-thematic/SKILL.md": 29418,
+
     "faffter-noon-prd/SKILL.md": 2465,
+
     "faffter-noon-review/SKILL.md": 8045,
+
     "faffter-noon-ship/SKILL.md": 14027,
+
     "faffter-noon-spec-review/SKILL.md": 8055,
+
     "faffter-noon-spec/SKILL.md": 17847,
+
     "faffter-noon-transport-private-network/SKILL.md": 6250
   }
 }

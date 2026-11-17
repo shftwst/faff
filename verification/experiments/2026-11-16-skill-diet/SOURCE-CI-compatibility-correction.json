@@ -1,0 +1,26 @@
+{
+  "scope": "Restore existing source loader anchors, guard literals, governed-run reference phrases and equivalent command placeholder binding. No contract/routing/command authority changes.",
+  "files": [
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "before_sha256": "d2dca7702a6d68745133d80f3ddcf32ed6230a8f54f04007d1fbdb2746f8e6e9",
+      "after_sha256": "59420e7265aa8aa0174eadb665f988d9b748fa728f8035efce69fe69ce7f24d9",
+      "before_bytes": 70812,
+      "after_bytes": 70857
+    },
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "before_sha256": "2fd7bd3f2ba0d8b00d6b9b7749460a7872e3380daf6f79525e2b8f876d592407",
+      "after_sha256": "a6834f8d738b01d94e4d40887c309ffa83599e7fbda0c406f65eb3f03a78f7e6",
+      "before_bytes": 141511,
+      "after_bytes": 141650
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "before_sha256": "f4bdf4edd751b6f5783abdcfa2bbd454e502203e850d4e4ce152ab0da96de06a",
+      "after_sha256": "003d961663cb7e38de3d673a639e4da8fe19bd5f23dc1f954f811d71f3477549",
+      "before_bytes": 138518,
+      "after_bytes": 138533
+    }
+  ]
+}

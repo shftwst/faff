@@ -383,7 +383,7 @@ Runs alongside step 11.5. For every ledger outcome `== "shipped"`, read `<run-di
 
 ## Run ledger (mechanical completeness)
 
-Maintain `.faff/runs/<run-id>/run-ledger.json` for step 11 `runcheck` and the Stop hook. After every direct edit, including admission, outcome, stop-reason or owner changes, append `echo '{"phase":"run","type":"ledger-write"}' | faff events append --run <run-id>`. Keep `schema_version`; add only keys allowed by the v0.3 `run-ledger` schema. The CLI computes `data.ledger_sha256` from the file; never supply a hash.
+Maintain `.faff/runs/<run-id>/run-ledger.json` for step 11 `runcheck` and the Stop hook. After every direct edit, including admission, outcome, stop-reason or owner changes, append `echo '{"phase":"run","type":"ledger-write"}' | faff events append --run <run-id>`. For every write, keep `schema_version` and add only keys the v0.3 `run-ledger` schema lists. The CLI computes `data.ledger_sha256` from the file; never supply a hash.
 
 Only `faff run open` mints the directory, through `faff run-ledger init-self-drain`: never hand-author `mkdir` plus a ledger. It creates an honest minimal L3 ledger and genesis `events.jsonl` chain under `run-YYYYMMDD-HHMMSS-beepboop-<mode>-<entropy>` (UTC, `beepboop` one word, CLI-generated hex tail after `<mode>`). Preserve legacy directory names. Dispatch no build lane before `run open` exits 0. Beep-boop augments `admitted` and `outcomes`.
 

@@ -1,0 +1,64 @@
+TAP version 13
+# Subtest: faff-graft: one governed-run check sentence, 8 site(s) refer to it, and no file-path check survives
+ok 1 - faff-graft: one governed-run check sentence, 8 site(s) refer to it, and no file-path check survives
+  ---
+  duration_ms: 2.577662
+  type: 'test'
+  ...
+# Subtest: FAFF-146 loadMarkerDialectProse extracts the decision-marker dialect verbatim
+ok 2 - FAFF-146 loadMarkerDialectProse extracts the decision-marker dialect verbatim
+  ---
+  duration_ms: 1.168623
+  type: 'test'
+  ...
+# Subtest: FAFF-146 loadMarkerDialectProse fails loud on a missing skill file
+ok 3 - FAFF-146 loadMarkerDialectProse fails loud on a missing skill file
+  ---
+  duration_ms: 0.635749
+  type: 'test'
+  ...
+# Subtest: FAFF-146 criteriaFor picks the prep rubric for confidence/marker and the tidy criteria otherwise
+ok 4 - FAFF-146 criteriaFor picks the prep rubric for confidence/marker and the tidy criteria otherwise
+  ---
+  duration_ms: 0.73254
+  type: 'test'
+  ...
+# Subtest: FAFF-146 buildEvalPrompt(marker) carries the sections and the marker envelope shape
+ok 5 - FAFF-146 buildEvalPrompt(marker) carries the sections and the marker envelope shape
+  ---
+  duration_ms: 0.393916
+  type: 'test'
+  ...
+# Subtest: graft Step 8 takes ids from dod classify, renders the block and drops the hand-written template
+ok 6 - graft Step 8 takes ids from dod classify, renders the block and drops the hand-written template
+  ---
+  duration_ms: 1.024915
+  type: 'test'
+  ...
+# Subtest: the committed baseline equals the real tree exactly, entry for entry
+ok 7 - the committed baseline equals the real tree exactly, entry for entry
+  ---
+  duration_ms: 4.747158
+  type: 'test'
+  ...
+# Subtest: faff-beep-boop SKILL.md tells the orchestrator to keep schema_version and add only listed keys
+ok 8 - faff-beep-boop SKILL.md tells the orchestrator to keep schema_version and add only listed keys
+  ---
+  duration_ms: 0.934248
+  type: 'test'
+  ...
+# Subtest: graft Steps 4c and 10 read commit_subject_scheme from spec-commit.json, and the stale scheme phrases are gone
+ok 9 - graft Steps 4c and 10 read commit_subject_scheme from spec-commit.json, and the stale scheme phrases are gone
+  ---
+  duration_ms: 1.177123
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 129.602391
